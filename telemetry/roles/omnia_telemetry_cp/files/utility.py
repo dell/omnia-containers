@@ -13,21 +13,20 @@
 # limitations under the License.
 
 """
-This module contains the main function for the telemetry collector.
+Utility functions for miscellaneous tasks.
 """
-import time
-import utility
 
+import random
 
-def main():
+def generate_random_fuzzy_offset(fuzzy_offset=60):
     """
-    Execute the main logic of the telemetry collector.
+    Generate a random fuzzy offset.
 
-    This function calculates a new telemetry interval and logs it.
+    Args:
+        fuzzy_offset (float): The maximum offset value.
 
+    Returns:
+        float: A random fuzzy offset value rounded to 2 decimal places.
     """
-    random_fuzzy_offset = utility.generate_random_fuzzy_offset()
-    time.sleep(random_fuzzy_offset)
-
-if __name__ == "__main__":
-    main()
+    random_fuzzy_offset = round(random.uniform(0, fuzzy_offset), 2)
+    return random_fuzzy_offset
