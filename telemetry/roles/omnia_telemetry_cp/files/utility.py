@@ -21,7 +21,6 @@ from enum import Enum
 import common_parser
 import common_logging
 import platform
-import invoke_commands
 
 # Dictionary to hold the telemetry.ini values. telemetry.ini holds telemetry user inputs
 dict_telemetry_ini = {}
@@ -35,10 +34,6 @@ class Result(Enum):
     SUCCESS = "Pass"
     FAILURE = "Fail"
     UNKNOWN = "Unknown"
-
-def get_system_name():
-    '''Get system Serial no./Service Tag'''
-    return invoke_commands.call_command('dmidecode -s system-serial-number')
 
 def set_telemetry_ini_values():
     """
