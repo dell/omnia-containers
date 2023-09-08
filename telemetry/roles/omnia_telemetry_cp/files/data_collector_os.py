@@ -36,3 +36,13 @@ def get_health_node_dmesg():
     elif output is None:
         dmesg_op_dict["Dmesg"] = utility.Result.SUCCESS.value
     return dmesg_op_dict
+
+def get_unique_loggedin_users():
+    '''
+    Returns number of unique users logged in
+    '''
+    output=invoke_commands.call_command_with_pipe('who|cut -f 1 -d " "|sort -u|wc -l')
+    if output is None:
+        return utility.Result.NO_DATA.value
+    else:
+        return output

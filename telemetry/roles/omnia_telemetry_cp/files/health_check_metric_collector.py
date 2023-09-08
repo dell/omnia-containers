@@ -17,6 +17,7 @@ Module to gather health check metrics.
 '''
 
 import data_collector_kubernetes
+import data_collector_smart
 import data_collector_storage
 import data_collector_os
 from collections import defaultdict
@@ -255,6 +256,15 @@ class HealthCheckMetricCollector:
             self.health_check_metric_output_dict["gpu_temperature:gpu"] = \
                 utility.Result.UNKNOWN.value
 
+    def get_smart_health_parameters(self):
+        '''
+        Get the following health metric parameters:
+        1. smart
+        '''
+        smart_dict=data_collector_smart.get_using_smartctl("smart")
+        for key in smart_dict.keys():
+            self.health_check_metric_output_dict["smart:"+key]=smart_dict[key]
+
     def metric_collector(self, aggregation_level="compute"):
         '''
         This method aggregates all the health check parameters.
@@ -264,6 +274,8 @@ class HealthCheckMetricCollector:
         self.get_beegfs_details()
         self.get_nvidia_metrics()
         self.get_amd_metrics()
+        self.get_smart_health_parameters()
+
         if aggregation_level in ["manager", "manager,login"]:
             # Get following information's through kubernetes
             # 1.Kubernetespodsstatus

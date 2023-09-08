@@ -18,6 +18,8 @@
     Module to get all regular metrics
 '''
 import data_collector_psutil
+import data_collector_smart
+import data_collector_os
 import invoke_commands
 import common_parser
 import utility
@@ -161,6 +163,22 @@ class RegularMetricCollector:
         sacct_dict=data_collector_slurm.get_cluster_values_sacct()
         self.regular_metric_output_dict["FailedJobs"]=sacct_dict["FailedJobs"]
 
+    def get_smart_regular_parameters(self):
+        '''
+        Get the following regular metric parameters:
+        1. SMARTHDATemp
+        '''
+        SMARTHDATemp_dict=data_collector_smart.get_using_smartctl("SMARTHDATemp")
+        for key in SMARTHDATemp_dict.keys():
+            self.regular_metric_output_dict["SMARTHDATemp:"+key]=SMARTHDATemp_dict[key]
+
+    def get_unique_user_login(self):
+        '''
+        Get the following regular metric parameters:
+        1. UniqueUserLogin
+        '''
+        self.regular_metric_output_dict["UniqueUserLogin"]=str(data_collector_os.get_unique_loggedin_users())
+
     def metric_collector(self, aggregation_level="compute"):
         '''
         This method aggregrates all the regular metric parameters.
@@ -171,6 +189,7 @@ class RegularMetricCollector:
         self.get_packet_errors()
         self.get_hardware_corrupted_memory()
         self.get_virtual_memory_info()
+        self.get_smart_regular_parameters()
 
         #Get cluster level parameters.
         if aggregation_level in ["manager","manager,login"]:
@@ -183,3 +202,7 @@ class RegularMetricCollector:
             # 6.RunningJobs
             # 7.FailedJobs
             self.get_using_slurm()
+        if aggregation_level in ["login","manager,login"]:
+            # Get the Folloiwng parameter
+            #1. UniqueUserLogin
+            self.get_unique_user_login()

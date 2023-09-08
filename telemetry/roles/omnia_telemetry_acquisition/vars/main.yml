@@ -19,7 +19,7 @@ binary_files_path: "/opt/omnia/telemetry/dist/omnia_telemetry"
 omnia_telemetry_dest: "/opt/omnia/telemetry"
 init_file_path: "{{ role_path }}/../omnia_telemetry_prepare_cp/files/telemetry.ini"
 init_file_path_dest: "/opt/omnia/telemetry/telemetry.ini"
-binary_mode: "0544"
+binary_mode: "0500"
 file_mode: "0600"
 directory_permissions: "0600"
 config_file_path_dst: "/opt/omnia/telemetry/.timescaledb/"
@@ -36,4 +36,4 @@ telemetry_package_list: "{{ playbook_dir }}/../provision/roles/xcat_repo_manipul
 omnia_telemetry_template_path: "templates/omnia_telemetry_service_template.j2"
 omnia_telemetry_service_shell_file_path: /opt/omnia/telemetry/omnia_telemetry
 omnia_telemetry_service_path: /etc/systemd/system/omnia_telemetry.service
-omnia_telemetry_service_file_permissions: 0644
+omnia_telemetry_service_file_permissions: 0600
