@@ -1,0 +1,330 @@
+#!/usr/libexec/platform-python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2015 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import optparse
+import os
+import subprocess
+import sys
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+import confluent.sortutil as sortutil
+import confluent.logreader as logreader
+import time
+import socket
+import re
+
+confettypath = os.path.join(os.path.dirname(sys.argv[0]), 'confetty')
+argparser = optparse.OptionParser(
+    usage="Usage: %prog [options] <noderange> [kill][-- [passthroughoptions]]",
+    epilog="Command sequences are available while connected to a console, hit "
+           "ctrl-'e', then release ctrl, then 'c', then '?' for a full list. "
+           "For example, ctrl-'e', then 'c', then '.' will exit the current "
+           "console")
+argparser.add_option('-t', '--tile', action='store_true', default=False,
+                     help='Tile console windows in the terminal')
+argparser.add_option('-l', '--log', action='store_true', default=False,
+                     help='Enter log replay mode instead of showing a live console')
+
+argparser.add_option('-T', '--Timestamp', action='store_true', default=False,
+                     help= 'Dump log in stdout with timestamps')
+
+argparser.add_option('-w','--windowed', action='store_true', default=False,
+                     help='Open terminal windows for each node.  The '
+                          'environment variable NODECONSOLE_WINDOWED_COMMAND '
+                          'should be set, which should be a text string corresponding '
+                          'to a command that can be used to open a windowed console,'
+                          ' omitting the "nodeconsole <noderange>" part of the '
+                          'command, for example, to open a set of consoles for a '
+                          'range of nodes in separate xterm windows, set '
+                          'NODECONSOLE_WINDOWED_COMMAND to "xterm -e".  To open a '
+                          'set of consoles for a range of nodes in separate '
+                          'GNOME Terminal windows with a size of 100 columns and '
+                          '31 rows, set NODECONSOLE_WINDOWED_COMMAND '
+                          'to "gnome-terminal --geometry 100x31 --" or in a WSL '
+                          'environment, to open a set of consoles for a range of '
+                          'nodes in separate Windows Terminal windows, with the '
+                          'title set for each node, set NODECONSOLE_WINDOWED_COMMAND'
+                          ' to "wt.exe wsl.exe -d AlmaLinux-8 '
+                          '--shell-type login".  If the NODECONSOLE_WINDOWED_COMMAND '
+                          'environment variable isn\'t set, xterm will be used by'
+                          'default.')
+
+(options, args) = argparser.parse_args()
+
+pass_through_args = []
+killcon = False
+try:
+    noderange = args[0]
+    if len(args) > 1:
+        if args[1] == 'kill':
+            killcon = True
+        pass_through_args = args[1:]
+        args = args[:1]
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+
+if len(args) != 1:
+    argparser.print_help()
+    sys.exit(1)
+
+if options.log:
+    logname = args[0]
+    if not os.path.exists(logname) and logname[0] != '/':
+        logname = os.path.join('/var/log/confluent/consoles', logname)
+    if not os.path.exists(logname):
+        sys.stderr.write('Unable to locate {0} on local system\n'.format(logname))
+        sys.exit(1)
+    logreader.replay_to_console(logname)
+    sys.exit(0)
+
+if options.Timestamp:
+    logname = args[0]
+    if not os.path.exists(logname) and logname[0] != '/':
+        logname = os.path.join('/var/log/confluent/consoles', logname)
+    if not os.path.exists(logname):
+        sys.stderr.write('Unable to locate {0} on local system\n'.format(logname))
+        sys.exit(1)
+    logreader.dump_to_console(logname)
+    sys.exit(0)
+
+def kill(noderange):
+    sess = client.Command()
+    envstring=os.environ.get('NODECONSOLE_WINDOWED_COMMAND')
+    if not envstring:
+        envstring = 'xterm'
+
+    nodes = []
+    for res in sess.read('/noderange/{0}/nodes/'.format(args[0])):
+        node = res.get('item', {}).get('href', '/').replace('/', '')
+        if not node:
+            sys.stderr.write(res.get('error', repr(res)) + '\n')
+            sys.exit(1)
+        nodes.append(node) 
+
+    for node in nodes:
+        s=socket.socket(socket.AF_UNIX)
+        winid=None
+        try:
+            win=subprocess.Popen(['xwininfo', '-tree', '-root'], stdout=subprocess.PIPE)
+            wintr=win.communicate()[0]
+            for line in wintr.decode('utf-8').split('\n'):
+                if 'console: {0}'.format(node) in line or 'confetty' in line:
+                    win_obj = [ele for ele in line.split(' ') if ele.strip()]
+                    winid = win_obj[0]
+        except:
+            print("Error: cannot retrieve window id of node {}".format(node))
+
+        if winid:
+            ps_data=subprocess.Popen(['xkill', '-id', winid ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    sys.exit(0)
+
+def handle_geometry(envlist, sizegeometry, side_pad=0, top_pad=0, first=False):    
+    if '-geometry' in envlist:
+        g_index = envlist.index('-geometry')
+    elif '-g' in envlist:
+        g_index = envlist.index('-g')
+    else:
+        g_index = 0
+    if g_index:   
+        if first:
+             envlist[g_index+1] = '{0}+{1}+{2}'.format(envlist[g_index+1],side_pad, top_pad)
+        else:
+            envlist[g_index+1] = '{0}+{1}+{2}'.format(sizegeometry,side_pad, top_pad)
+    else:
+        envlist.insert(1, '-geometry')
+        envlist.insert(2, '{0}+{1}+{2}'.format(sizegeometry,side_pad, top_pad))
+        g_index = 1
+    return envlist     
+
+# add funcltionality to close/kill all open consoles
+if killcon:
+    kill(noderange)
+    
+#added functionality for wcons
+if options.windowed:
+    result=subprocess.Popen(['xwininfo', '-root'], stdout=subprocess.PIPE)
+    rootinfo=result.communicate()[0]
+    result.wait()
+    for line in rootinfo.decode('utf-8').split('\n'):
+        if 'Width' in line:
+            screenwidth = int(line.split(':')[1])
+        if 'Height' in line:
+            screenheight = int(line.split(':')[1])
+
+    envstring=os.environ.get('NODECONSOLE_WINDOWED_COMMAND')
+    if not envstring:
+        sizegeometry='100x31'
+        corrected_x, corrected_y = (13,84)
+        envlist = handle_geometry(['xterm'] + pass_through_args + ['-e'],sizegeometry, first=True)
+        #envlist=['xterm', '-bg', 'black', '-fg', 'white', '-geometry', '{sizegeometry}+0+0'.format(sizegeometry=sizegeometry), '-e']
+    else:
+        envlist=os.environ.get('NODECONSOLE_WINDOWED_COMMAND').split(' ')
+        if envlist[0] == 'xterm':
+            if '-geometry' in envlist:
+                g_index = envlist.index('-geometry')
+            elif '-g' in envlist:
+                g_index = envlist.index('-g')
+            else:
+                g_index = 0
+            if g_index:    
+                envlist[g_index+1] = envlist[g_index+1] + '+0+0'
+
+            else:
+                envlist.insert(1, '-geometry')
+                envlist.insert(2, '100x31+0+0')
+                g_index = 1
+            
+    nodes = []
+    sess = client.Command()
+    for res in sess.read('/noderange/{0}/nodes/'.format(args[0])):
+        node = res.get('item', {}).get('href', '/').replace('/', '')
+        if not node:
+            sys.stderr.write(res.get('error', repr(res)) + '\n')
+            sys.exit(1)
+        nodes.append(node)
+
+    if options.tile and not envlist[0] == 'xterm':
+        sys.stderr.write('[ERROR] UNSUPPORTED OPTIONS. \nWindowed and tiled consoles are only supported when using xterm \n')
+        sys.exit(1)
+    firstnode=nodes[0]
+    nodes.pop(0)
+    with open(os.devnull, 'wb') as devnull:
+        xopen=subprocess.Popen(envlist + [confettypath, '-c', '/tmp/controlpath-{0}'.format(firstnode), '-m', '5', 'start', '/nodes/{0}/console/session'.format(firstnode) ] , stdin=devnull)
+        time.sleep(2)
+        s=socket.socket(socket.AF_UNIX)
+        winid=''
+        try:
+            s.connect('/tmp/controlpath-{firstnode}'.format(firstnode=firstnode))
+            s.recv(64)
+            s.send(b'GETWINID')
+            winid=s.recv(64).decode('utf-8')
+
+        except:
+            time.sleep(2)
+            # try to get id of first panel/xterm window using name
+            win=subprocess.Popen(['xwininfo', '-tree', '-root'], stdout=subprocess.PIPE)
+            wintr=win.communicate()[0]
+            for line in wintr.decode('utf-8').split('\n'):
+                if 'console: {firstnode}'.format(firstnode=firstnode) in line or 'confetty' in line:
+                    win_obj = [ele for ele in line.split(' ') if ele.strip()]
+                    winid = win_obj[0]
+    if winid:
+        firstnode_window=subprocess.Popen(['xwininfo', '-id', '{winid}'.format(winid=winid)], stdout=subprocess.PIPE)
+        xinfo=firstnode_window.communicate()[0]
+        xinfl = xinfo.decode('utf-8').split('\n')
+        for line in xinfl:
+            if 'Absolute upper-left X:' in line:
+                side_pad = int(line.split(':')[1])
+            elif 'Absolute upper-left Y:' in line:
+                top_pad = int(line.split(':')[1])
+
+            elif 'Width:' in line:
+                window_width = int(line.split(':')[1])
+            elif 'Height' in line:
+                window_height = int(line.split(':')[1])
+            elif '-geometry' in line:
+                l = re.split(' |x|-|\+', line)
+                l_nosp = [ele for ele in l if ele.strip()]
+                wmxo = int(l_nosp[1])
+                wmyo = int(l_nosp[2])
+                sizegeometry = str(wmxo) + 'x' + str(wmyo)
+            else:
+                pass
+
+        window_width += side_pad*2
+        window_height += side_pad+top_pad
+        screenwidth -= wmxo
+        screenheight -= wmyo
+        currx = window_width
+        curry = 0
+        maxcol = int(screenwidth/window_width)
+
+    for node in sortutil.natural_sort(nodes):
+        if options.tile and envlist[0] == 'xterm':
+            corrected_x = currx
+            corrected_y = curry
+            xgeometry = '{0}+{1}+{2}'.format(sizegeometry, corrected_x, corrected_y)
+            currx += window_width
+            if currx >= screenwidth:
+                currx=0
+                curry += window_height
+                if curry > screenheight:
+                    curry =top_pad
+            if not envstring:        
+                envlist= handle_geometry(envlist, sizegeometry, corrected_x, corrected_y)
+            else:
+                if g_index:    
+                    envlist[g_index+1] = xgeometry
+        elif envlist[0] == 'xterm':
+            envlist=handle_geometry(envlist, sizegeometry, side_pad, top_pad)
+            side_pad+=(side_pad+1)
+            top_pad+=(top_pad+30)
+        else:
+            pass 
+        with open(os.devnull, 'wb') as devnull:
+            xopen=subprocess.Popen(envlist + [confettypath, '-c', '/tmp/controlpath-{0}'.format(node), '-m', '5', 'start', '/nodes/{0}/console/session'.format(node)] , stdin=devnull)
+    sys.exit(0)
+#end of wcons
+if options.tile:
+    null = open('/dev/null', 'w')
+    nodes = []
+    sess = client.Command()
+    for res in sess.read('/noderange/{0}/nodes/'.format(args[0])):
+        node = res.get('item', {}).get('href', '/').replace('/', '')
+        if not node:
+            sys.stderr.write(res.get('error', repr(res)) + '\n')
+            sys.exit(1)
+        nodes.append(node)
+    initial = True
+    in_tmux = False
+    pane = 0
+    sessname = 'nodeconsole_{0}'.format(os.getpid())
+    if os.environ.get("TMUX"):
+        initial = False
+        in_tmux = True
+        subprocess.call(['tmux', 'rename-session', sessname])
+    for node in sortutil.natural_sort(nodes):
+        panename = '{0}:{1}'.format(sessname, pane)
+        if initial:
+            initial = False
+            subprocess.call(
+                ['tmux', 'new-session', '-d', '-s',
+                 sessname, '-x', '800', '-y',
+                 '800', '{0} -m 5 start /nodes/{1}/console/session'.format(
+                    confettypath, node)])
+        else:
+            subprocess.call(['tmux', 'select-pane', '-t', sessname])
+            subprocess.call(['tmux', 'set-option', '-t', panename, 'pane-border-status', 'top'], stderr=null)
+            subprocess.call(
+                    ['tmux', 'split', '-h', '-t', sessname,
+                 '{0} -m 5 start /nodes/{1}/console/session'.format(
+                     confettypath, node)])
+            subprocess.call(['tmux', 'select-layout', '-t', sessname, 'tiled'], stdout=null)
+            pane += 1
+    subprocess.call(['tmux', 'select-pane', '-t', sessname])
+    subprocess.call(['tmux', 'set-option', '-t', panename, 'pane-border-status', 'top'], stderr=null)
+    if not in_tmux:
+        os.execlp('tmux', 'tmux', 'attach', '-t', sessname)
+else:
+    os.execl(confettypath, confettypath, 'start',
+             '/nodes/{0}/console/session'.format(args[0]))

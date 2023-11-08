@@ -1,0 +1,250 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2018 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import optparse
+import os
+import signal
+import sys
+
+try:
+    input = raw_input
+except NameError:
+    pass
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+exitcode = 0
+
+class OptParser(optparse.OptionParser):
+
+    def format_epilog(self, formatter):
+        return self.expand_prog_name(self.epilog)
+
+def mbtohuman(mb):
+    if mb > 1000000:
+        return '{0:.3f} TB'.format(mb/1000000.0)
+    if mb > 1000:
+        return '{0:.3f} GB'.format(mb/1000.0)
+    return '{0:.3f} MB'.format(mb)
+
+def showstorage(noderange, options, args):
+    global exitcode
+    session = client.Command()
+    disks = {}
+    arrays = {}
+    volumes = {}
+    scfg = session.read('/noderange/{0}/configuration/storage/all'.format(
+        noderange))
+    _print_cfg(scfg)
+
+
+def _print_cfg(scfg):
+    global exitcode
+    storagebynode = {}
+    for e in scfg:
+        if 'error' in e:
+            sys.stderr.write(e['error'] + '\n')
+            exitcode = e.get('errorcode', 1)
+        for node in e.get('databynode', {}):
+            curr = e['databynode'][node]
+            if 'error' in curr:
+                if 'no available drives' in curr['error']:
+                    curr['error'] += ' (drives must be in unconfigured state to be available, they must not be in jbod or online state)'
+                sys.stderr.write('{0}: {1}\n'.format(node, curr['error']))
+                exitcode = curr.get('errorcode', 1)
+                continue
+            if node not in storagebynode:
+                storagebynode[node] = {'disks': [], 'arrays': [],
+                                       'volumes': []}
+            storagebynode[node][curr['type'] + 's'].append(curr)
+    for node in storagebynode:
+        for disk in sorted(storagebynode[node]['disks'],
+                           key=lambda x: x['name']):
+            print('{0}: Disk {1} Description: {2}'.format(
+                node, disk['name'], disk['description']))
+            print('{0}: Disk {1} State: {2}'.format(node, disk['name'],
+                                                    disk['state']))
+            print('{0}: Disk {1} FRU: {2}'.format(node, disk['name'],
+                                                  disk['fru']))
+            print('{0}: Disk {1} Serial Number: {2}'.format(node, disk['name'],
+                                                            disk['serial']))
+            if disk['array']:
+                print('{0}: Disk {1} Array: {2}'.format(node, disk['name'],
+                                                        disk['array']))
+        for arr in storagebynode[node]['arrays']:
+            print('{0}: Array {1} Available Capacity: {2}'.format(
+                node, arr['id'], mbtohuman(arr['available'])))
+            print('{0}: Array {1} Total Capacity: {2}'.format(
+                node, arr['id'], mbtohuman(arr['capacity'])))
+            print('{0}: Array {1} RAID: {2}'.format(node, arr['id'],
+                                                    arr['raid']))
+            print('{0}: Array {1} Disks: {2}'.format(node, arr['id'], ','.join(
+                arr['disks'])))
+            print(
+                '{0}: Array {1} Volumes: {2}'.format(node, arr['id'], ','.join(
+                    arr['volumes'])))
+        for vol in storagebynode[node]['volumes']:
+            print('{0}: Volume {1}: Size: {2}'.format(node, vol['name'],
+                                                      mbtohuman(vol['size'])))
+            print('{0}: Volume {1}: State: {2}'.format(node, vol['name'],
+                                                       vol['state']))
+            print('{0}: Volume {1}: Array {2}'.format(node, vol['name'],
+                                                      vol['array']))
+
+
+def createstorage(noderange, options, args):
+    if options.raidlevel is None or options.disks is None:
+        sys.stderr.write('-r and -d are required arguments to create array\n')
+        sys.exit(1)
+    session = client.Command()
+    session.stop_if_noderange_over(noderange, options.maxnodes)
+    names = options.name
+    if names is None:
+        names = ''.join(args)
+    parms = {'disks': options.disks, 'raidlevel': options.raidlevel,
+             'name': names}
+    if options.size:
+        parms['size'] = options.size
+    if options.stripsizes:
+        parms['stripsizes'] = options.stripsizes
+    _print_cfg(session.create(
+            '/noderange/{0}/configuration/storage/volumes/{1}'.format(
+                noderange, names), parms))
+
+
+def deletestorage(noderange, options, args):
+    if options.name is None:
+        if len(args) == 1:
+            names = args[0]
+        else:
+            sys.stderr.write('-n is required to indicate volume(s) to delete\n')
+            sys.exit(1)
+    else:
+        names = options.name
+    session = client.Command()
+    session.stop_if_noderange_over(noderange, options.maxnodes)
+    for rsp in session.delete(
+            '/noderange/{0}/configuration/storage/volumes/{1}'.format(
+                noderange, names)):
+        if 'deleted' in rsp:
+            print('Deleted: {0}'.format(rsp['deleted']))
+        elif 'databynode' in rsp:
+            for node in rsp['databynode']:
+                if 'error' in rsp['databynode'][node]:
+                    sys.stderr.write('{0}: {1}\n'.format(
+                        node, rsp['databynode'][node]['error']))
+                else:
+                    sys.stderr.write('{0}: {1}\n'.format(
+                        node, repr(rsp['databynode'][node])))
+        else:
+            print(repr(rsp))
+
+
+def setdisk(noderange, options, args):
+    if options.disks is None:
+        if len(args):
+            names = args.pop(0)
+        else:
+            sys.stderr.write('-d is required to indicate disk to modify\n')
+            sys.exit(1)
+    else:
+        names = options.disks
+    if not len(args) or args[0] not in ('hotspare', 'jbod', 'unconfigured'):
+        sys.stderr.write('diskset requires valid state as argument (hotspare, jbod, unconfigured)\n')
+        sys.exit(1)
+    session = client.Command()
+    session.stop_if_noderange_over(noderange, options.maxnodes)
+    scfg = session.update('/noderange/{0}/configuration/storage/disks/{1}'.format(noderange, names), {'state': args[0]})
+    _print_cfg(scfg)
+
+funmap = {
+    'create': createstorage,
+    'show': showstorage,
+    'diskset': setdisk,
+    'delete': deletestorage,
+    'rm': deletestorage,
+}
+
+
+
+def main():
+    argparser = OptParser(
+        usage='Usage: %prog <noderange> [show|create|delete|diskset] [hotspare|jbod|unconfigured] [options]',
+        epilog='',
+    )
+    argparser.add_option('-r', '--raidlevel', type='int',
+                         help='RAID level to use when creating an array')
+    argparser.add_option('-d', '--disks', type='str',
+                         help='Comma separated list of disks to use, or the '
+                              'word "rest" to indicate use of all available '
+                              'disks')
+    argparser.add_option('-i', '--interactive', default=False, action='store_true',
+                         help='Confirm any potentially destructive changes interactively')
+    argparser.add_option('-s', '--size', type='str',
+                         help='Comma separated list of sizes to use when '
+                              'creating volumes.  The sizes may be absolute '
+                              'size (e.g. 16gb), percentage (10%) or the word '
+                              '"rest" to use remaining capacity, default '
+                              'behavior is to use all capacity to make a '
+                              'volume')
+    argparser.add_option('-n', '--name', type='str',
+                         help='Comma separated list of names to use when '
+                              'naming volumes, or selecting a volume for '
+                              'delete.  Default behavior is to use '
+                              'implementation provided default names.')
+    argparser.add_option('-z', '--stripsizes', type='str',
+                         help='Comma separated list of stripsizes to use when creating volumes. '
+                            'This value is in kilobytes.  The default behavior is to allow the '
+                            'storage controller to decide.')
+    argparser.add_option('-m', '--maxnodes', type='int',
+                     help='Specify a maximum number of '
+                          'nodes to configure storage on, '
+                          'prompting if over the threshold') 
+    (options, args) = argparser.parse_args()
+    if len(args) == 1:
+        args.append('show')
+    try:
+        noderange = args[0]
+        operation = args[1]
+    except IndexError:
+        argparser.print_help()
+        sys.exit(1)
+    client.check_globbing(noderange)
+    try:
+        handler = funmap[operation]
+    except KeyError:
+        argparser.print_help()
+        sys.exit(1)
+    if options.interactive and operation != 'show':
+        showstorage(noderange, None, None)
+        sys.stdout.write('The above configuration will be changed by this action, do you wish to continue (y/N): ')
+        confirm = input()
+        if confirm and confirm.lower()[0] != 'y':
+            sys.stdout.write('Aborting\n')
+            sys.exit(1)
+    handler(noderange, options, args[2:])
+
+
+if __name__ == '__main__':
+    main()

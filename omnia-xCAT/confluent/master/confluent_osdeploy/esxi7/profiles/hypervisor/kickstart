@@ -1,0 +1,11 @@
+accepteula
+clearpart --firstdisk --overwritevmfs
+install --firstdisk --overwritevmfs
+%include /tmp/ksnet
+%include /tmp/rootpw
+reboot
+%post --interpreter=busybox
+localcli network firewall unload
+STATUP=$(mktemp)
+echo '{"status": "complete"}' > $STATUP
+/opt/confluent/bin/apiclient /confluent-api/self/updatestatus $STATUP

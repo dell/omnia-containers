@@ -1,0 +1,47 @@
+Name: confluent_imgutil
+Version: #VERSION#
+Release: 1
+Summary: Confluent OS imaging utility
+License: Apache2
+URL: https://hpc.lenovo.com/
+Source: confluent_imgutil.tar.xz
+BuildArch: noarch
+BuildRoot: /tmp/
+%if "%{dist}" == ".el8"
+Requires: squashfs-tools
+%else
+%if "%{dist}" == ".el9"
+Requires: squashfs-tools
+%else
+%if "%{dist}" == ".el7"
+Requires: squashfs-tools
+%else
+Requires: squashfs
+%endif
+%endif
+%endif
+
+
+%description
+Utility for generating, modifying, and packing confluent deployment
+images for diskless boot.
+
+%prep
+%setup -n imgutil
+
+%build
+mkdir -p opt/confluent/lib/imgutil
+mkdir -p opt/confluent/bin
+mv imgutil opt/confluent/bin/
+chmod a+x opt/confluent/bin/imgutil
+mv ubuntu* suse15 el7 el9 el8 opt/confluent/lib/imgutil/
+mkdir -p opt/confluent/share/licenses/confluent_imgutil
+cp LICENSE opt/confluent/share/licenses/confluent_imgutil
+
+%install
+cp -a opt %{buildroot}/
+
+%files
+/opt/confluent/bin/imgutil
+/opt/confluent/lib/imgutil
+%license /opt/confluent/share/licenses/confluent_imgutil/LICENSE

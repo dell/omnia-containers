@@ -1,0 +1,260 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2015-2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import csv
+import datetime
+import optparse
+import os
+import signal
+import sys
+import time
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+
+class hybridcsv(csv.excel):
+    lineterminator = '\n'
+
+
+def floatformat(num):
+    fm = u'{:.5f}'.format(num).rstrip('0')
+    if fm[-1:] == u'.':
+        return fm + u'0'
+    return fm
+
+csv.register_dialect('hybrid', hybridcsv)
+
+import confluent.client as client
+
+sensorcollections = {
+    'all': 'sensors/hardware/all/all',
+    'energy': 'sensors/hardware/energy/all',
+    'temperature': 'sensors/hardware/temperature/all',
+    'temp': 'sensors/hardware/temperature/all',
+    'power': 'sensors/hardware/power/all',
+    'fans': 'sensors/hardware/fans/all',
+    'fanspeed': 'sensors/hardware/fans/all',
+}
+
+
+argparser = optparse.OptionParser(
+    usage="Usage: %prog [options] noderange ([sensor(s)])")
+argparser.add_option('-i', '--interval', type='float',
+                     help='Interval to do repeated samples over')
+argparser.add_option('-n', '--numreadings', type='int',
+                     help='Number of readings to gather')
+argparser.add_option('-c', '--csv', action='store_true',
+                     help='Output in CSV format')
+argparser.add_option('-s', '--skipnumberless', action='store_true',
+                     help='Output in CSV format')
+(options, args) = argparser.parse_args()
+repeatmode = False
+if options.interval:
+    repeatmode = True
+if options.numreadings:
+    repeatmode = options.numreadings
+    if options.interval is None:
+        options.interval = 1
+try:
+    noderange = args[0]
+    client.check_globbing(noderange)
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+sensors = []
+for sensorgroup in args[1:]:
+    for sensor in sensorgroup.split(','):
+        sensor = sensor.replace(' ', '_').lower()
+        if '/' not in sensor:
+            if sensor in sensorcollections:
+                sensors.append(sensorcollections[sensor])
+            else:
+                sensors.append('sensors/hardware/all/' + sensor)
+if not sensors:
+    sensors = ['sensors/hardware/all/all']
+session = client.Command()
+exitcode = 0
+sensorheaders = {}
+
+
+def sensorpass(showout=True, appendtime=False):
+    global exitcode
+    resultdata = {}
+    for reqsensor in sensors:
+        for reading in session.read(
+                '/noderange/' + noderange + '/' + reqsensor):
+            if 'error' in reading:
+                sys.stderr.write('Error: {0}\n'.format(reading['error']))
+                if 'errorcode' in reading:
+                    exitcode |= exitcode
+                else:
+                    exitcode |= 1
+            if 'databynode' not in reading:
+                continue
+            reading = reading['databynode']
+            for node in reading:
+                if node not in resultdata:
+                    resultdata[node] = {}
+                if 'error' in reading[node]:
+                    sys.stderr.write(
+                        '{0}: Error: {1}\n'.format(node,
+                                                   reading[node]['error']))
+                if 'sensors' not in reading[node]:
+                    continue
+                for sensedata in reading[node]['sensors']:
+                    if sensedata['value'] is None and options.skipnumberless:
+                        continue
+                    for redundant_state in ('Non-Critical', 'Critical'):
+                        try:
+                            if sensedata.get('states', False):
+                                sensedata['states'].remove(redundant_state)
+                        except ValueError:
+                            pass
+                    resultdata[node][sensedata['name']] = sensedata
+                    sensorname = sensedata['name']
+                    sensorheaders[sensorname] = sensorname
+                    if sensedata['units'] not in (None, u''):
+                        sensorheaders[sensorname] += u' ({0})'.format(
+                            sensedata['units'])
+                    if showout:
+                        if sensedata['value'] is None:
+                            showval = ''
+                        elif isinstance(sensedata['value'], float):
+                            showval = u' {0} '.format(floatformat(sensedata['value']))
+                        else:
+                            showval = u' {0} '.format(sensedata['value'])
+                        if sensedata['units'] not in (None, u''):
+                            showval += sensedata['units']
+                        if sensedata.get('health', 'ok') != 'ok':
+                            datadescription = [sensedata['health']]
+                        else:
+                            datadescription = []
+                        if sensedata.get('states', False):
+                            datadescription.extend(sensedata['states'])
+                        if datadescription:
+                            if showval == '':
+                                showval += u' {0}'.format(
+                                    ','.join(datadescription))
+                            else:
+                                showval += u' ({0})'.format(
+                                    ','.join(datadescription))
+                        if appendtime:
+                            showval += ' @' + time.strftime(
+                                '%Y-%m-%dT%H:%M:%S')
+                        printval = u'{0}: {1}:{2}'.format(
+                            node, sensedata['name'], showval)
+                        if not isinstance(printval, str):
+                            printval = printval.encode('utf-8')
+                        print(printval)
+                        sys.stdout.flush()
+    return resultdata
+
+
+def format_csv(csvwriter, orderedsensors, resdata, showtime=True):
+    for nodekey in resdata:
+        if showtime:
+            if isinstance(showtime, int):
+                rowdata = [time.strftime('%Y-%m-%dT%H:%M:%S'), nodekey]
+            else:
+                rowdata = [time.strftime('%Y-%m-%dT%H:%M:%S.') +
+                           str(datetime.datetime.now().microsecond//1000),
+                           nodekey]
+        else:
+            rowdata = [nodekey]
+        for sensorkey in orderedsensors:
+            try:
+                datum = resdata[nodekey][sensorkey]['value']
+                if datum is None:
+                    if resdata[nodekey][sensorkey]['health'] != 'ok':
+                        datum = resdata[nodekey][sensorkey]['health']
+                    else:
+                        datum = ''
+                    if resdata[nodekey][sensorkey]['states']:
+                        healthstates = ','.join(
+                            resdata[nodekey][sensorkey]['states'])
+                        if datum != '':
+                            datum = ','.join([datum, healthstates])
+                        else:
+                            datum = healthstates
+                if isinstance(datum, float):
+                    datum = floatformat(datum)
+                rowdata.append(datum)
+            except KeyError:
+                rowdata.append('N/A')
+        csvwriter.writerow(rowdata)
+        sys.stdout.flush()
+
+
+def main():
+    linebyline = True
+    headernames = []
+    orderedsensors = []
+    csvwriter = None
+    if options.interval or options.csv:
+        resdata = sensorpass(False)
+        for name in sensorheaders:
+            orderedsensors.append(name)
+        orderedsensors.sort()
+        for name in orderedsensors:
+            headername = sensorheaders[name]
+            if (not isinstance(headername, str) and
+                    not isinstance(headername, bytes)):
+                headername = headername.encode('utf-8')
+            headernames.append(headername)
+    if options.csv:
+        linebyline = False
+        csvwriter = csv.writer(sys.stdout, dialect='hybrid')
+        if options.interval:
+            csvwriter.writerow(['time', 'node'] + headernames)
+        else:
+            csvwriter.writerow(['node'] + headernames)
+    if options.interval:
+        # first do a pass to swallow up probable causes of uneven timing
+        # for example if some have sdrs fetch and others not, this should
+        # get a common baseline going
+        while True:
+            nextstart = os.times()[4] + options.interval
+            resdata = sensorpass(linebyline, True)
+            if options.csv:
+                format_csv(csvwriter, orderedsensors, resdata,
+                           showtime=options.interval)
+            if options.numreadings:
+                options.numreadings -= 1
+                if options.numreadings <= 0:
+                    sys.exit(exitcode)
+            sleeptime = nextstart - os.times()[4]
+            if sleeptime > 0:
+                time.sleep(sleeptime)
+    else:
+        if options.csv:
+            format_csv(csvwriter, orderedsensors, resdata, showtime=False)
+        else:
+            sensorpass(True)
+
+
+try:
+    main()
+except KeyboardInterrupt:
+    print('')
+    sys.exit(0)

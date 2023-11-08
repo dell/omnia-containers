@@ -1,0 +1,218 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2016-2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import codecs
+import json
+import optparse
+import os
+import re
+import signal
+import sys
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+
+if sys.version_info[0] < 3:
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+filters = []
+
+
+def pretty(text):
+    if text == 'pcislot':
+        return 'PCI slot'
+    if text == 'partnumber':
+        return 'part number'
+    return text
+
+def print_mem_info(node, prefix, meminfo):
+    memdescfmt = '{0}GB PC'
+    if meminfo['memory_type'] == 'DDR3 SDRAM':
+        memdescfmt += '3-{1} '
+    elif 'DDR4' in meminfo['memory_type']:
+        memdescfmt += '4-{1} '
+    elif 'DDR5' in meminfo['memory_type']:
+        memdescfmt += '5-{1} '
+    elif 'DCPMM' in meminfo['memory_type']:
+        memdescfmt = '{0}GB {1} '
+        meminfo['module_type'] = 'DCPMM'
+    else:
+        print('{0}: {1}: Unrecognized Memory'.format(node, prefix))
+        return
+    if meminfo.get('ecc', False):
+        memdescfmt += 'ECC '
+    capacity = meminfo['capacity_mb'] / 1024
+    modtype = meminfo.get('module_type', None)
+    if modtype:
+        memdescfmt += modtype
+    memdesc = memdescfmt.format(capacity, meminfo['speed'])
+    print('{0}: {1} description: {2}'.format(node, prefix, memdesc))
+    print('{0}: {1} manufacturer: {2}'.format(
+        node, prefix, meminfo['manufacturer']))
+    print('{0}: {1} model: {2}'.format(node, prefix, meminfo['model']))
+    print('{0}: {1} serial number: {2}'.format(node, prefix,
+                                               meminfo['serial']))
+    if 'manufacture_date' in meminfo:
+        print('{0}: {1} manufacture date: {2}'.format(node, prefix,
+                                                      meminfo['manufacture_date']))
+        print('{0}: {1} manufacture location: {2}'.format(
+            node, prefix, meminfo['manufacture_location']))
+
+exitcode = 0
+
+def printerror(res, node=None):
+    global exitcode
+    if 'errorcode' in res:
+        exitcode = res['errorcode']
+    if 'error' in res:
+        if node:
+            sys.stderr.write('{0}: {1}\n'.format(node, res['error']))
+        else:
+            sys.stderr.write('{0}\n'.format(res['error']))
+        if 'errorcode' not in res:
+            exitcode = 1
+
+
+url = '/noderange/{0}/inventory/hardware/all/all'
+usedprefixes = set([])
+
+argparser = optparse.OptionParser(
+    usage="Usage: %prog <noderange> [serial|model|uuid|mac]")
+argparser.add_option('-j', '--json', action='store_true', help='Output JSON')
+argparser.add_option('-s', '--store', action='store_true', help='Store serial, model, and uuid into id.serial, id.model, and id.uuid')
+(options, args) = argparser.parse_args()
+try:
+    noderange = args[0]
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+client.check_globbing(noderange)
+if len(args) > 1:
+    if args[1] == 'firm':
+        os.execlp('nodefirmware', 'nodefirmware', noderange)
+    else:
+        url = '/noderange/{0}/inventory/hardware/all/system'
+        for arg in args:
+            for arg in arg.split(','):
+                if arg == 'serial':
+                    filters.append(re.compile('serial number'))
+                elif arg == 'model':
+                    filters.append(re.compile('^model'))
+                    filters.append(re.compile('product name'))
+                elif arg == 'uuid':
+                    filters.append(re.compile('uuid'))
+                elif arg == 'mac':
+                    filters.append(re.compile('mac address'))
+                    url = '/noderange/{0}/inventory/hardware/all/all'
+try:
+    if options.json:
+        databynode = {}
+    if options.store and len(args) <= 1:
+        url = '/noderange/{0}/inventory/hardware/all/system'
+    pushattribs = {}
+    session = client.Command()
+    for res in session.read(url.format(noderange)):
+        printerror(res)
+        if 'databynode' not in res:
+            continue
+        for node in res['databynode']:
+            if options.store and node not in pushattribs:
+                pushattribs[node] = {}
+            printerror(res['databynode'][node], node)
+            if 'inventory' not in res['databynode'][node]:
+                continue
+            for inv in res['databynode'][node]['inventory']:
+                prefix = inv['name']
+                if options.store and prefix == 'System':
+                    currinfo = inv.get('information', {})
+                    curruuid = currinfo.get('UUID', '')
+                    if curruuid:
+                        curruuid = curruuid.lower()
+                        pushattribs[node]['id.uuid'] = curruuid
+                    currserial = currinfo.get('Serial Number', '')
+                    if currserial:
+                        currserial = currserial.strip()
+                        pushattribs[node]['id.serial'] = currserial
+                    currmodelnum = currinfo.get('Model', '')
+                    if currmodelnum:
+                        currmodelnum = currmodelnum.strip()
+                        pushattribs[node]['id.model'] = currmodelnum
+                idx = 2
+                while (node, prefix) in usedprefixes:
+                    prefix = '{0} {1}'.format(inv['name'], idx)
+                    idx += 1
+                usedprefixes.add((node, prefix))
+                if not inv['present']:
+                    if not filters:
+                        if options.json:
+                            if node not in databynode:
+                                databynode[node] = {}
+                            databynode[node][prefix] = inv
+                        elif not options.store:
+                            print('{0}: {1}: Not Present'.format(node, prefix))
+                    continue
+                info = inv['information']
+                info.pop('board_extra', None)
+                info.pop('oem_parser', None)
+                info.pop('chassis_extra', None)
+                info.pop('product_extra', None)
+                if 'memory_type' in info:
+                    if not filters:
+                        if options.json:
+                            if node not in databynode:
+                                databynode[node] = {}
+                            databynode[node][prefix] = inv
+                            continue
+                        print_mem_info(node, prefix, info)
+                    continue
+                for datum in info:
+                    if filters:
+                        for filter in filters:
+                            if filter.match(datum.lower()):
+                                break
+                        else:
+                            continue
+                    if info[datum] is None:
+                        continue
+                    if options.json:
+                        if node not in databynode:
+                            databynode[node] = {}
+                        databynode[node][prefix] = inv
+                        break
+                    elif not options.store:
+                        print(u'{0}: {1} {2}: {3}'.format(node, prefix,
+                                                         pretty(datum),
+                                                         info[datum]))
+    if options.json:
+        print(json.dumps(databynode, sort_keys=True, indent=4,
+                         separators=(',', ': ')))
+    if pushattribs:
+        for node in pushattribs:
+            for rsp in session.update('/nodes/{0}/attributes/current'.format(node), pushattribs[node]):
+                if 'error' in rsp:
+                    sys.stderr.write(rsp['error'] + '\n')
+except KeyboardInterrupt:
+    print('')
+sys.exit(exitcode)

@@ -1,0 +1,199 @@
+#!/bin/bash
+export LANG=en_US.utf8
+mkdir -p /etc/confluent
+if ! grep console= /proc/cmdline >& /dev/null; then
+    autocons=$(/opt/confluent/bin/autocons)
+    echo console=$autocons |sed -e 's!/dev/!!' >> /tmp/01-autocons.conf
+    autocons=${autocons%,*}
+    echo $autocons > /tmp/01-autocons.devnode
+    if [ ! -z "$autocons" ]; then
+        echo "Using $(cat /tmp/01-autocons.conf)"
+        (while :; do TERM=xterm-256color tmux a <> $autocons >&0 2>&1; done) &
+        (while :; do TERM=linux tmux a <> /dev/tty1 >&0 2>&1; done) &
+    else
+        (while :; do TERM=linux tmux a <> /dev/console >&0 2>&1; done) &
+    fi
+else
+    (while :; do TERM=xterm-256color tmux a <> /dev/console >&0 2>&1; done) &
+    (while :; do TERM=linux tmux a <> /dev/tty1 >&0 2>&1; done) &
+fi
+(while :; do TERM=linux tmux <> /dev/tty2 >&0 2>&1; done) &
+echo -n "udevd: "
+/usr/lib/systemd/systemd-udevd --daemon
+echo -n "Loading drivers..."
+udevadm trigger
+udevadm trigger --type=devices --action=add
+udevadm settle
+modprobe ib_ipoib
+modprobe ib_umad
+modprobe hfi1
+modprobe mlx5_ib
+echo "done"
+cat > /etc/ssh/sshd_config << EOF
+Port 22
+Port 3389
+Subsystem       sftp    /usr/libexec/openssh/sftp-server
+PermitRootLogin yes
+AuthorizedKeysFile      .ssh/authorized_keys
+EOF
+mkdir ~/.ssh
+cat /ssh/*pubkey > ~/.ssh/authorized_keys 2>/dev/null
+cat /tls/*.pem > /etc/confluent/ca.pem
+mkdir -p /etc/pki/tls/certs
+cat /tls/*.pem > /etc/pki/tls/certs/ca-bundle.crt
+TRIES=0
+touch /etc/confluent/confluent.info
+if [ -e /dev/disk/by-label/CNFLNT_IDNT ]; then
+    mkdir -p /media/ident
+    mount /dev/disk/by-label/CNFLNT_IDNT /media/ident
+    if [ -e /media/ident/genesis_bootstrap.sh ]; then
+        exec sh /media/ident/genesis_bootstrap.sh
+    fi
+fi
+if [ -e /dev/disk/by-label/GENESIS-X86 ]; then
+    mkdir -p /media/genesis
+    mount /dev/disk/by-label/GENESIS-X86 /media/genesis
+    if [ -e /media/genesis/genesis_bootstrap.sh ]; then
+        exec sh /media/genesis/genesis_bootstrap.sh
+    fi
+fi
+cd /sys/class/net
+echo -n "Scanning for network configuration..."
+while ! grep ^EXTMGRINFO: /etc/confluent/confluent.info | awk -F'|' '{print $3}' | grep 1 >& /dev/null && [ "$TRIES" -lt 30 ]; do
+    TRIES=$((TRIES + 1))
+    for i in *; do
+        ip link set $i up
+    done
+    /opt/confluent/bin/copernicus -t > /etc/confluent/confluent.info
+done
+cd /
+nodename=$(grep ^NODENAME /etc/confluent/confluent.info|awk '{print $2}')
+hostname $nodename
+tpmdir=$(mktemp -d)
+cd $tpmdir
+lasthdl=""
+oldumask=$(umask)
+umask 0077
+for hdl in $(tpm2_getcap handles-persistent|awk '{print $2}'); do
+    tpm2_startauthsession --policy-session --session=session.ctx
+    tpm2_policypcr -Q --session=session.ctx --pcr-list="sha256:15" --policy=pcr15.sha256.policy
+    unsealeddata=$(tpm2_unseal --auth=session:session.ctx -Q -c $hdl 2>/dev/null)
+    tpm2_flushcontext session.ctx
+    if [[ $unsealeddata == "CONFLUENT_APIKEY:"* ]]; then
+        confluent_apikey=${unsealeddata#CONFLUENT_APIKEY:}
+        echo $confluent_apikey > /etc/confluent/confluent.apikey
+        if [ -n "$lasthdl" ]; then
+            tpm2_evictcontrol -c $lasthdl
+        fi
+        lasthdl=$hdl
+    fi
+done
+cd - > /dev/null
+rm -rf $tpmdir
+while ! /usr/libexec/platform-python /opt/confluent/bin/apiclient /confluent-api/self/deploycfg2 > /etc/confluent/confluent.deploycfg; do
+	sleep 10
+done
+if [ ! -z "$autocons" ] && grep "textconsole: true" /etc/confluent/confluent.deploycfg > /dev/null; then /opt/confluent/bin/autocons -c > /dev/null; fi
+umask $oldumask
+new_apikey=$(cat /etc/confluent/confluent.apikey)
+if [ "$new_apikey" != "$confluent_apikey" ]; then
+    if [ -n "$lasthdl" ]; then
+        tpm2_evictcontrol -c $lasthdl
+    fi
+    tmpdir=$(mktemp -d)
+    cd $tmpdir
+    tpm2_startauthsession --session=session.ctx
+    tpm2_policypcr -Q --session=session.ctx --pcr-list="sha256:15" --policy=pcr15.sha256.policy
+    tpm2_createprimary -G ecc -Q --key-context=prim.ctx
+    (echo -n "CONFLUENT_APIKEY:$new_apikey") | tpm2_create -Q --policy=pcr15.sha256.policy --public=data.pub --private=data.priv -i - -C prim.ctx
+    tpm2_load -Q --parent-context=prim.ctx --public=data.pub --private=data.priv --name=confluent.apikey --key-context=data.ctx
+    tpm2_evictcontrol -Q -c data.ctx
+    tpm2_flushcontext session.ctx
+    cd - > /dev/null
+    rm -rf $tmpdir
+fi
+tpm2_pcrextend 15:sha256=2fbe96c50dde38ce9cd2764ddb79c216cfbcd3499568b1125450e60c45dd19f2 2> /dev/null
+ifidx=$(cat /tmp/confluent.ifidx)
+ifname=$(ip link |grep ^$ifidx:|awk '{print $2}')
+ifname=${ifname%:}
+autoconfigmethod=$(grep ipv6_method /etc/confluent/confluent.deploycfg |awk '{print $2}')
+if [ "$autoconfigmethod" = "static" ]; then
+    ipaddr=$(grep ^ipv6_address: /etc/confluent/confluent.deploycfg)
+    ipaddr=${ipaddr#ipv6_address: }
+    ipgw=$(grep ^ipv6_gateway: /etc/confluent/confluent.deploycfg)
+    ipgw=${ipgw#ipv6_gateway: }
+    if [ "$ipgw" = "null" ]; then
+        ipgw=""
+    fi
+    ipnm=$(grep ^ipv6_prefix: /etc/confluent/confluent.deploycfg)
+    ipnm=${ipnm#ipv6_prefix: }
+    echo "Setting up $ifname as static at $ipaddr/$ipnm"
+    ip addr add dev $ifname $ipaddr/$ipnm
+    if [ ! -z "$ipgw" ]; then
+        ip route add default via $ipgw
+    fi
+fi
+autoconfigmethod=$(grep ipv4_method /etc/confluent/confluent.deploycfg |awk '{print $2}')
+if [ "$autoconfigmethod" = "dhcp" ]; then
+    echo -n "Attempting to use dhcp to bring up $ifname..."
+    dhclient $ifname
+    echo "Complete:"
+    ip addr show dev $ifname
+elif [ "$autoconfigmethod" = "static" ]; then
+    v4addr=$(grep ^ipv4_address: /etc/confluent/confluent.deploycfg)
+    v4addr=${v4addr#ipv4_address: }
+    v4gw=$(grep ^ipv4_gateway: /etc/confluent/confluent.deploycfg)
+    v4gw=${v4gw#ipv4_gateway: }
+    if [ "$v4gw" = "null" ]; then
+        v4gw=""
+    fi
+    v4nm=$(grep ^prefix: /etc/confluent/confluent.deploycfg)
+    v4nm=${v4nm#prefix: }
+    echo "Setting up $ifname as static at $v4addr/$v4nm"
+    ip addr add dev $ifname $v4addr/$v4nm
+    if [ ! -z "$v4gw" ]; then
+        ip route add default via $v4gw
+    fi
+fi
+nameserversec=0
+while read -r entry; do
+    if [ $nameserversec = 1 ]; then
+        if [[ $entry == "-"* ]] && [[ $entry != "- ''" ]]; then
+            echo nameserver ${entry#- } >> /etc/resolv.conf
+            continue
+        fi
+    fi
+    nameserversec=0
+    if [ "${entry%:*}" = "nameservers" ]; then
+        nameserversec=1
+        continue
+    fi
+done < /etc/confluent/confluent.deploycfg
+dnsdomain=$(grep ^dnsdomain: /etc/confluent/confluent.deploycfg)
+dnsdomain=${dnsdomain#dnsdomain: }
+echo search $dnsdomain >> /etc/resolv.conf
+echo -n "Initializing ssh..."
+ssh-keygen -A
+mkdir -p /usr/share/empty.sshd
+rm /etc/ssh/ssh_host_dsa_key*
+for pubkey in /etc/ssh/ssh_host*key.pub; do
+    certfile=${pubkey/.pub/-cert.pub}
+    privfile=${pubkey%.pub}
+    /usr/libexec/platform-python /opt/confluent/bin/apiclient /confluent-api/self/sshcert $pubkey > $certfile
+    if [ -s $certfile ]; then
+        echo HostCertificate $certfile >> /etc/ssh/sshd_config
+    fi
+    echo HostKey $privfile >> /etc/ssh/sshd_config
+done
+/usr/sbin/sshd
+confluent_profile=$(grep ^profile: /etc/confluent/confluent.deploycfg | awk '{print $2}')
+export confluent_profile
+/usr/libexec/platform-python /opt/confluent/bin/apiclient /confluent-public/os/$confluent_profile/scripts/functions > /etc/confluent/functions
+. /etc/confluent/functions
+set_confluent_vars
+export confluent_mgr
+echo "Running https://$confluent_mgr/confluent-public/os/$confluent_profile/scripts/onboot.sh"
+run_remote onboot.sh
+while :; do
+    bash
+done

@@ -1,0 +1,151 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2019 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import optparse
+import os
+import signal
+import sys
+import time
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+
+exitcode = 0
+
+argparser = optparse.OptionParser(
+    usage="Usage: "
+          "%prog <noderange> [list][install <license_filename>|save <directory>|delete <license_feature_name>]")
+argparser.add_option('-m', '--maxnodes', type='int',
+                     help='Specify a maximum number of '
+                          'nodes to delete licenses from, '
+                          'prompting if over the threshold')                  
+(options, args) = argparser.parse_args()
+upfile = None
+downdir = None
+delete = False
+try:
+    noderange = args[0]
+    if len(args) > 1:
+        if args[1] == 'install':
+            upfile = args[2]
+        elif args[1] == 'save':
+            downdir = args[2]
+        elif args[1] == 'delete':
+            delete = args[2]
+        elif args[1] != 'list':
+            argparser.print_help()
+            sys.exit(1)        
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+client.check_globbing(noderange)
+
+
+def install_license(session, filename):
+    global exitcode
+    resource = '/noderange/{0}/configuration/' \
+               'management_controller/licenses/'.format(noderange)
+    filename = os.path.abspath(filename)
+    instargs = {'filename': filename}
+    if session.unixdomain:
+        of = open(filename, 'rb')
+        try:
+            session.add_file(filename, of.fileno(), 'rb')
+        except Exception:
+            pass
+    for res in session.create(resource, instargs):
+        for node in res.get('databynode', []):
+            if 'error' in res['databynode'][node]:
+                sys.stderr.write('{0}: {1}\n'.format(
+                    node, res['databynode'][node]['error']))
+                sys.exit(res['databynode'][node].get('errorcode', 1))        
+    show_licenses(session)
+
+
+def save_licenses(session, dirname):
+    global exitcode
+    resource = '/noderange/{0}/configuration/' \
+               'management_controller/save_licenses'.format(noderange)
+    filename = os.path.abspath(dirname)
+    instargs = {'dirname': filename}
+    for res in session.create(resource, instargs):
+        for node in res.get('databynode', {}):
+            fname = res['databynode'][node].get('filename', None)
+            if fname:
+                print('{0}: Saved license to {1}'.format(node, fname))
+            elif 'error' in res['databynode'][node]:
+                sys.stderr.write('{0}: {1}\n'.format(node, res['databynode'][node]['error']))
+            else:
+                sys.stderr.write('{0}: {1}\n'.format(node, repr(res['databynode'][node])))
+
+
+def show_licenses(session):
+    global exitcode
+    for res in session.read(
+            '/noderange/{0}/configuration/management_controller/licenses/'
+            'all'.format(noderange)):
+        for node in res.get('databynode', {}):
+            for license in res['databynode'][node].get('License', []):
+                msg = '{0}: {1}'.format(node, license.get('feature',
+                                                          'Unknown'))
+                if license.get('state', 'Active') != 'Active':
+                    msg += ' ({0})'.format(license['state'])
+                print(msg)
+
+
+def delete_license(session, licname):
+    global exitcode
+    licstodel = []
+    for res in list(session.read(
+            '/noderange/{0}/configuration/management_controller/licenses/'
+            'all'.format(noderange))):
+        for node in res.get('databynode', {}):
+            for license in res['databynode'][node].get('License', []):
+                if license.get('feature', None) == licname:
+                    prefix = '/nodes/{0}/configuration/management_controller/licenses/'.format(node)
+                    for currlic in list(session.read(prefix)):
+                        currlic = currlic.get('item', {}).get('href', 'all')
+                        if currlic == 'all':
+                            continue
+                        currname = list(session.read(prefix + currlic))[0]
+                        currname = currname.get('License', [{}])[0].get('feature', None)
+                        if currname == licname:
+                            list(session.delete(prefix + currlic))
+    show_licenses(session)
+
+try:
+    session = client.Command()
+    if upfile:
+        install_license(session, upfile)
+    elif downdir:
+        save_licenses(session, downdir)
+    elif delete:
+        session.stop_if_noderange_over(noderange, options.maxnodes)
+        delete_license(session, delete)
+    else:
+        show_licenses(session)
+except KeyboardInterrupt:
+    print('')
+sys.exit(exitcode)

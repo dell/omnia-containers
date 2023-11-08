@@ -1,0 +1,122 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# This is a utility to bring xcoll (plus enhancements) to confluent
+# the core engine is textgroup.py, this simply provides a CLI to use
+# generically
+
+import optparse
+import os
+import select
+import sys
+
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.textgroup as tg
+import confluent.client
+
+argparser = optparse.OptionParser(usage="Usage: <other command> | %prog [options]")
+argparser.add_option('-a', '--abbreviate', action='store_true',
+                     help='Attempt to use confluent server to shorten noderanges')
+argparser.add_option('-b', '--base',
+                     help='Use given node as reference for comparison when '
+                          'using -d, instead of using the most common result')
+argparser.add_option('-d', '--diff', action='store_true',
+                     help='Show what differs between most common '
+                          'output group and others')
+argparser.add_option('-w', '--watch', action='store_true',
+                     help='Show intermediate results while running')
+argparser.add_option('-g', '--groupcount', action='store_true',
+                     help='Show count of output groups rather than the actual output')                     
+argparser.add_option('-s', '--skipcommon', action='store_true',
+                     help='Do not print most common result, only non modal '
+                          'groups, useful when combined with -d')
+argparser.add_option('-c', '--count', action='store_true',
+                     help='Also display count of nodes in a given group')
+argparser.add_option('-r', '--reverse', action='store_true',
+                     help='Reverse sort order to show biggest output group '
+                          'last')
+argparser.add_option('-l', '--log', action='store', type='string', dest='log',
+                     help='Log each output to file, using {node} as a placeholder for node.')
+(options, args) = argparser.parse_args()
+if sys.stdin.isatty():
+    argparser.print_help()
+    sys.exit(1)
+
+grouped = tg.GroupedData()
+
+if options.abbreviate:
+    grouped = tg.GroupedData(confluent.client.Command())
+else:
+    grouped = tg.GroupedData()
+
+def print_current():
+    if options.diff:
+        grouped.print_deviants(skipmodal=options.skipcommon, count=options.count,
+                          reverse=options.reverse, basenode=options.base)
+    elif options.groupcount:
+        grouped.generate_byoutput()
+        print(len(grouped.byoutput))
+    else:
+        grouped.print_all(skipmodal=options.skipcommon,
+                               count=options.count,
+                               reverse=options.reverse)
+    sys.stdout.flush()
+
+fullline = sys.stdin.readline()
+printpending = True
+clearpending = False
+holdoff = 0
+while fullline:
+    for line in fullline.split('\n'):
+        if not line:
+            continue
+        if ':' not in line:
+            line = 'UNKNOWN: ' + line
+        if options.log:
+            node, output = line.split(':', 1)
+            output = output.lstrip()
+            currlog = options.log.format(node=node, nodename=node)
+            with open(currlog, mode='a')  as log:
+                log.write(output + '\n')
+            continue
+        node, output = line.split(':', 1)
+        output = output.lstrip()
+        grouped.add_line(node, output)
+        if options.watch:
+            if not holdoff:
+                holdoff = os.times()[4] + 0.250
+            if (holdoff < os.times()[4] or
+                    not select.select((sys.stdin,), (), (), 0.250)[0]):
+                # print now, nothing pending
+                holdoff = 0
+                sys.stdout.write('\x1b[2J\x1b[;H')  # clear screen
+                print_current()
+                printpending = False
+                clearpending = True
+            else:
+                printpending = True
+    fullline = sys.stdin.readline()
+
+if printpending:
+    if clearpending:
+        sys.stdout.write('\x1b[2J\x1b[;H')  # clear screen
+    print_current()
+

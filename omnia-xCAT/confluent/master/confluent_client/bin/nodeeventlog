@@ -1,0 +1,171 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2015-2019 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import codecs
+from datetime import datetime as dt
+from datetime import timedelta
+import optparse
+import os
+import signal
+import sys
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+
+if sys.version_info[0] < 3:
+    sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
+argparser = optparse.OptionParser(
+    usage="Usage: %prog [options] <noderange> [clear]")
+argparser.add_option('-m', '--maxnodes', type='int',
+                     help='Specify a maximum number of '
+                          'nodes to clear if clearing log, '
+                          'prompting if over the threshold')   
+argparser.add_option('-l', '--lines', type='int',
+                     help='return the last <n> entries  '
+                          'for each node in the eventlog. '
+                          )
+argparser.add_option('-t', '--timeframe', type='string',
+                     help='return entries within a specified timeframe  '
+                          'for each node in the eventlog. This will return '
+                          'entries from the last hours or days. '
+                          '1h would be one hour, 4d would be four days. '
+                          'format <num>h or <num>d'
+                          )  
+(options, args) = argparser.parse_args()
+try:
+    noderange = args[0]
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+client.check_globbing(noderange)
+deletemode = False
+if len(args) > 2:
+    argparser.print_help()
+    sys.exit(1)
+if len(args) == 2:
+    if args[1] == 'clear':
+        deletemode = True
+    else:
+        argparser.print_help()
+        sys.exit(1)
+
+session = client.Command()
+exitcode = 0
+
+def format_event(evt):
+    retparts = []
+    if 'timestamp' in evt and evt['timestamp'] is not None:
+        display = dt.strptime(evt['timestamp'], '%Y-%m-%dT%H:%M:%S')
+        retparts.append(display.strftime('%m/%d/%Y %H:%M:%S'))
+    dscparts = []
+    if evt.get('log_id', None):
+        retparts.append(evt['log_id'] + ':')
+    if 'component_type' in evt and evt['component_type'] is not None:
+        dscparts.append(evt['component_type'])
+    if 'component' in evt and evt['component'] is not None:
+        dscparts.append(evt['component'])
+    if 'event' in evt and evt['event'] and evt['event'] is not None:
+        evttext = evt['event']
+        try:
+            if evttext.startswith(evt['component'] + ' - '):
+                evttext = evt['event'].replace(evt['component'] + ' - ', '')
+        except (KeyError, TypeError):
+            pass
+        dscparts.append(evttext)
+    retparts.append(' - '.join(dscparts))
+    msg = evt.get('message')
+    if not msg:
+        msg = ''
+    return ' '.join(retparts) + msg
+
+if deletemode:
+    func = session.delete
+    session.stop_if_noderange_over(noderange, options.maxnodes)
+else:
+    func = session.read
+
+if options.timeframe:
+    try:
+        delta = int(options.timeframe[:-1])
+    except ValueError:
+        argparser.print_help()
+        sys.exit(1)
+    if options.timeframe[-1].lower() == 'd':
+        tdelta = timedelta(days=delta)
+    elif options.timeframe[-1].lower() == 'h':
+        tdelta = timedelta(hours=delta)
+    else:
+        argparser.print_help()
+        sys.exit(1)
+    timeframe = dt.now() - tdelta
+
+event_dict = {}
+nodes = []
+for res in session.read('/noderange/{0}/nodes/'.format(args[0])):
+    node = res.get('item', {}).get('href', '/').replace('/', '')
+    nodes.append(node)
+    event_dict[node] = []
+
+for rsp in func('/noderange/{0}/events/hardware/log'.format(noderange)):
+    if 'error' in rsp:
+        sys.stderr.write(rsp['error'] + '\n')
+        exitcode |= rsp['errorcode']
+    if 'databynode' in rsp:
+        nodedata = rsp['databynode']
+        for node in nodedata:
+            thisdata = nodedata[node]
+            if 'error' in thisdata:
+               sys.stderr.write('{0}: {1}\n'.format(node, thisdata['error']))
+               exitcode |= 1
+            if 'events' in thisdata:
+                evtdata = thisdata['events']
+                if options.lines:
+                    event_dict[node].extend(evtdata)
+                else:
+                    for evt in evtdata:
+                        if options.timeframe:
+                            # check if line is in timeframe 
+                            if 'timestamp' in evt and evt['timestamp'] is not None:
+                                display = dt.strptime(evt['timestamp'], '%Y-%m-%dT%H:%M:%S')
+                                if display > timeframe:                          
+                                    print('{0}: {1}'.format(node, format_event(evt))) 
+                        else:
+                            print('{0}: {1}'.format(node, format_event(evt))) 
+
+if options.lines:
+    for node in nodes:
+        evtdata_list = event_dict[node]
+        if len(evtdata_list) != 0:
+            if len(evtdata_list) > options.lines:
+                evtdata_list = evtdata_list[-abs(options.lines):]
+            for evt in evtdata_list:
+                if options.timeframe:
+                    if 'timestamp' in evt and evt['timestamp'] is not None:
+                        display = dt.strptime(evt['timestamp'], '%Y-%m-%dT%H:%M:%S')
+                        if display > timeframe:                          
+                            print('{0}: {1}'.format(node, format_event(evt)))
+                else:
+                    print('{0}: {1}'.format(node, format_event(evt)))

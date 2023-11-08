@@ -1,0 +1,61 @@
+#!/usr/bin/python
+# This will take a given directory and make a 'big floppy image'
+# out of it, suitable for nodemedia upload.
+
+import fcntl
+import glob
+import os
+import subprocess
+import sys
+
+def create_image(directory, image, label=None):
+    ents = 0
+    datasz = 512
+    for dir in os.walk(sys.argv[1]):
+        ents += 1
+        for filen in dir[2]:
+            ents += 1
+            filename = os.path.join(dir[0], filen)
+            currsz = os.path.getsize(filename)
+            # assuming up to 65k cluster
+            currsz = (currsz // 512 +1) * 512
+            datasz += currsz
+    datasz += ents * 32768
+    datasz = datasz // 16384 + 1
+    with open(image, 'wb') as imgfile:
+        imgfile.seek(datasz * 16384 - 1)
+        imgfile.write(b'\x00')
+    if label:
+        subprocess.check_call(['mformat', '-i', image, '-v', label,
+                               '-r', '16', '-d', '1', '-t', str(datasz),
+                               '-s', '16','-h', '2', '::'])
+    else:
+        subprocess.check_call(['mformat', '-i', image, '-r', '16', '-d', '1', '-t',
+                                str(datasz), '-s', '16','-h', '2', '::'])
+    # Some clustered filesystems will have the lock from mformat
+    # linger after close (mformat doesn't unlock)
+    # do a blocking wait for shared lock and then explicitly
+    # unlock between calls to mtools
+    with open(image, 'rb') as imgfile:
+        fcntl.flock(imgfile.fileno(), fcntl.LOCK_SH)
+        fcntl.flock(imgfile.fileno(), fcntl.LOCK_UN)
+    cpycmd = ['mcopy', '-i', image, '-s']
+    cpycmd.extend(glob.glob('{0}/*'.format(directory)))
+    cpycmd.append('::')
+    subprocess.check_call(cpycmd)
+    # though not necessary for us, make sure dir2img doesn't have a lingering
+    # flock from mcopy for any subsequent commands
+    with open(image, 'rb') as imgfile:
+        fcntl.flock(imgfile.fileno(), fcntl.LOCK_SH)
+        fcntl.flock(imgfile.fileno(), fcntl.LOCK_UN)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        sys.stderr.write("Usage: {0} <directory> <imagefile>".format(
+            sys.argv[0]))
+        sys.exit(1)
+    label = None
+    if len(sys.argv) > 3:
+        label = sys.argv[3]
+    create_image(sys.argv[1], sys.argv[2], label)

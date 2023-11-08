@@ -1,0 +1,149 @@
+nodeattrib(8) -- List or change confluent nodes attributes
+=========================================================
+
+## SYNOPSIS
+
+`nodeattrib [-b] <noderange> [all|<nodeattribute>...]`
+`nodeattrib <noderange> [<nodeattribute1=value1> <nodeattribute2=value2> ...]`  
+`nodeattrib -c <noderange> <nodeattribute1> <nodeattribute2> ...`  
+`nodeattrib -e <noderange> <nodeattribute1> <nodeattribute2> ...`  
+`nodeattrib -p <noderange> <nodeattribute1> <nodeattribute2> ...`
+`nodeattrib <noderange> -s <attributes.batch> ...` 
+
+## DESCRIPTION
+
+**nodeattrib** manages the attributes of confluent nodes.  In
+the simplest form, it simply takes the given noderange(5) and lists the
+matching nodes, one line at a time.
+
+If a list of node attribute names are given, the value of those are also
+displayed.  If `-b` is specified, it will also display information on
+how inherited and expression based attributes are defined.  Attributes can be
+straightforward values, or an expression as documented in nodeattribexpressions(5).
+For a full list of attributes, run `nodeattrib <node> all` against a node.
+If `-c` is specified, this will set the nodeattribute to a null value.
+This is different from setting the value to an empty string.
+
+Attributes may be specified by wildcard, for example `net.*switch` will report
+all attributes that begin with `net.` and end with `switch`.
+
+If the word all is specified, then all available attributes are given.
+Omitting any attribute name or the word 'all' will display only attributes
+that are currently set.
+
+For the `groups` attribute, it is possible to add a group by doing
+`groups,=<newgroup>` and to remove by doing `groups^=<oldgroup>`
+
+Note that `nodeattrib <group>` will likely not provide the expected behavior.
+See nodegroupattrib(8) command on how to manage attributes on a group level.  Running
+nodeattrib on a group will simply set node-specific attributes on each individual
+member of the group.
+
+Additionally, if wanting to change from a node level attribute value to inherit from a
+member group, it is required to use '-c' to clear the attribute.  Conversely, assigning
+to a blank value will allow masking a group defined attribute with an empty value.
+
+## OPTIONS
+
+* `-b`, `--blame`:
+  Annotate inherited and expression based attributes to show their base value.
+  
+* `-c`, `--clear`:
+  Clear specified nodeattributes.
+  
+* `-e`, `--environment`:
+  Set specified attributes based on exported environment variable of matching name. 
+  Environment variable names may be lower case or all upper case. 
+  Replace . with _ as needed (e.g. info.note may be specified as either $info_note or $INFO_NOTE)
+  
+* `-p`, `--prompt`:
+  Request interactive prompting to provide values rather than the command line
+  or environment variables.
+
+* `-s`, `--set`:
+  Set attributes using a batch file rather than the command line. The attributes in the batch file 
+  can be specified as one line of key=value pairs simmilar to command line or each attribute can
+  be in its own line. Lines that start with # sign will be read as a comment. See EXAMPLES for batch
+  file syntax.   
+ 
+* `-m MAXNODES`, `--maxnodes=MAXNODES`:
+  Prompt if trying to set attributes on more than
+  specified number of nodes.
+
+* `-h`, `--help`:
+  Show help message and exit
+
+## EXAMPLES
+* Listing matching nodes of a simple noderange:
+    `# nodeattrib n1-n2`  
+    `n1: console.method: ipmi`  
+    `n1: hardwaremanagement.manager: 172.30.3.1`  
+    `n2: console.method: ipmi`  
+    `n2: hardwaremanagement.manager: 172.30.3.2`  
+
+* Getting an attribute of nodes matching a noderange:
+    `# nodeattrib n1,n2 hardwaremanagement.manager`  
+    `n1: hardwaremanagement.manager: 172.30.3.1`  
+    `n2: hardwaremanagement.manager: 172.30.3.2`  
+
+* Getting a group of attributes while determining what group defines them:
+    `# nodeattrib n1,n2 hardwaremanagement --blame`  
+    `n1: hardwaremanagement.manager: 172.30.3.1`  
+    `n1: hardwaremanagement.method: ipmi (inherited from group everything)`  
+    `n1: net.switch: r8e1`  
+    `n1: net.switchport: 14`  
+    `n2: hardwaremanagement.manager: 172.30.3.2`  
+    `n2: hardwaremanagement.method: ipmi (inherited from group everything)`  
+    `n2: net.switch: r8e1`  
+    `n2: net.switchport: 2`  
+
+* Listing matching nodes of a simple noderange that are set:
+    `# nodeattrib n1-n2 current`  
+    `n1: console.method: ipmi`  
+    `n1: hardwaremanagement.manager: 172.30.3.1`  
+    `n2: console.method: ipmi`  
+    `n2: hardwaremanagement.manager: 172.30.3.2`  
+
+* Change attribute on nodes of a simple noderange:
+    `# nodeattrib n1-n2 console.method=serial`  
+    `n1: console.method: serial`  
+    `n1: hardwaremanagement.manager: 172.30.3.1`  
+    `n2: console.method: serial`  
+    `n2: hardwaremanagement.manager: 172.30.3.2`  
+
+* Clear attribute on nodes of a simple noderange, if you want to retain the variable set the attribute to "":
+    `# nodeattrib n1-n2 -c console.method`  
+    `# nodeattrib n1-n2 console.method`  
+    `n1: console.method: `  
+    `n2: console.method: `  
+
+* List all switches that a node is described as connected to:
+    `# nodeattrib d1 net.*switch`  
+    `d1: net.mgt.switch: mgtswitch1`  
+    `d1: net.pxe.switch: pxeswitch1`  
+    `d1: net.switch:`  
+
+* Setting attributes using a batch file with syntax similar to command line:
+    `# cat nodeattributes.batch`  
+    `# power`
+    `power.psu1.outlet=3 power.psu1.pdu=pdu2`
+    `# nodeattrib n41 -s nodeattributes.batch`
+    `n41: 3`
+    `n41: pdu2`
+
+* Setting attributes using a batch file with syntax where each attribute is in its own line:
+    `# cat nodeattributes.batch`  
+    `# management`
+    `custom.mgt.switch=switch_main`
+    `custom.mgt.switch.port=swp4`
+    `# nodeattrib n41 -s nodeattributes.batch`
+    `n41: switch_main`
+    `n41: swp4`
+
+  
+
+## SEE ALSO
+
+nodegroupattrib(8), nodeattribexpressions(5)
+
+## ATTRIBUTES

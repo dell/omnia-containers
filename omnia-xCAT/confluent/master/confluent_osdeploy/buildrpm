@@ -1,0 +1,34 @@
+VERSION=`git describe|cut -d- -f 1`
+NUMCOMMITS=`git describe|cut -d- -f 2`
+if [ "$NUMCOMMITS" != "$VERSION"  ]; then
+    VERSION=$VERSION.dev$NUMCOMMITS.g`git describe|cut -d- -f 3`
+fi
+sed -e "s/#VERSION#/$VERSION/" confluent_osdeploy.spec.tmpl > confluent_osdeploy.spec
+cd ..
+cp ../LICENSE .
+tar Jcvf confluent_osdeploy.tar.xz confluent_osdeploy
+mv confluent_osdeploy.tar.xz ~/rpmbuild/SOURCES/
+cd -
+mkdir -p el9bin/opt/confluent/bin
+mkdir -p el9bin/stateless-bin
+podman run --privileged --rm -v $(pwd)/utils:/buildutils -i -t fedorabuild make -C /buildutils
+cd utils
+cp confluent_imginfo copernicus clortho autocons ../el9bin/opt/confluent/bin
+cp start_root urlmount ../el9bin/stateless-bin/
+make clean
+cd ..
+mkdir -p el8bin/opt/confluent/bin
+mkdir -p el8bin/stateless-bin
+podman run --privileged --rm -v $(pwd)/utils:/buildutils -i -t el7build make -C /buildutils
+cd utils
+cp confluent_imginfo copernicus clortho autocons ../el8bin/opt/confluent/bin
+cp start_root urlmount ../el8bin/stateless-bin/
+make clean
+cd ..
+tar Jcvf confluent_el9bin.tar.xz el9bin/
+tar Jcvf confluent_el8bin.tar.xz el8bin/
+mv confluent_el8bin.tar.xz ~/rpmbuild/SOURCES/
+mv confluent_el9bin.tar.xz ~/rpmbuild/SOURCES/
+rm -rf el9bin
+rm -rf el8bin
+rpmbuild -ba confluent_osdeploy.spec

@@ -1,0 +1,14 @@
+nodegrouplist(8) -- List the defined confluent nodegroups
+===================================================================
+
+## SYNOPSIS
+
+`nodegrouplist`  
+
+## DESCRIPTION
+
+`nodegrouplist` lists the currently defined groups in confluent.
+
+## SEE ALSO
+
+nodeattrib(8), nodeattribexpressions(5), nodegroupattrib(8)

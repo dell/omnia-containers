@@ -1,0 +1,1049 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2014 IBM Corporation
+# Copyright 2015-2018 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+# ultimately, this should provide an interactive cli for navigating confluent
+# tree and doing console with a socket.  <ESC>]0;<string><BELL> can be used to
+# present info such as whether it is in a console or other mode and, if in
+# console, how many other connections are live and looking
+# this means 'wcons' simply needs to make a terminal run and we'll take care of
+# the title while providing more info
+# this also means the socket interface needs to have ways to convey more
+# interesting pieces of data (like concurrent connection count)
+# socket will probably switch to a TLV scheme:
+# 32 bit TL, 8 bits of type code and 24 bit size
+# type codes:
+# 0: string data
+# 1: json data
+# 24 bit size allows the peer to avoid having to do any particular parsing to
+# understand message boundaries (which is a significant burden on the xCAT
+# protocol)
+
+# When in a console client mode, will recognize two escape sequences by
+# default:
+# Ctrl-E, c, ?: mimic conserver behavior
+# ctrl-]: go to interactive prompt (telnet escape, but not telnet prompt)
+# esc-( would interfere with normal esc use too much
+# ~ I will not use for now...
+
+import math
+import getpass
+import optparse
+import os
+import select
+import shlex
+import signal
+import socket
+import struct
+import sys
+import time
+try:
+    import fcntl
+    import termios
+    import tty
+except ImportError:
+    pass
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+exitcode = 0
+consoleonly = False
+consolename = ""
+didconsole = False
+target = "/"
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.termhandler as termhandler
+import confluent.tlvdata as tlvdata
+import confluent.client as client
+
+try:
+    unicode
+except NameError:
+    unicode = str
+
+conserversequence = '\x05c'  # ctrl-e, c
+clearpowermessage = False
+
+oldtcattr = None
+fd = sys.stdin
+try:
+    if fd.isatty():
+        oldtcattr = termios.tcgetattr(fd.fileno())
+except NameError:
+    pass
+netserver = None
+laststate = {}
+
+try:
+    input = raw_input
+except NameError:
+    pass
+
+class BailOut(Exception):
+    def __init__(self, errorcode=0):
+        self.errorcode = errorcode
+
+
+def print_help():
+    print("confetty provides a filesystem like interface to confluent.  "
+          "Navigation is done using the same commands as would be used in a "
+          "filesystem.  Tab completion is supported to aid in navigation,"
+          "as is up arrow to recall previous commands and control-r to search"
+          "previous command history, similar to using bash\n\n"
+          "The supported commands are:\n"
+          "cd [location] - Set the current command context, similar to a "
+          "working directory.\n"
+          "show [resource] - Present the information about the specified "
+          "resource, or current context if omitted.\n"
+          "create [resource] attributename=value attributename=value - Create "
+          "a new instance of a resource.\n"
+          "remove [resource] - Remove a resource from a list\n"
+          "set [resource] attributename=value attributename=value - Change "
+          "the specified attributes value for the given resource name\n"
+          "unset [resource] attributename - Clear any value for the given "
+          "attribute names on a resource.\n"
+          "start [resource] - When used on a text session resource, it "
+          "enters remote terminal mode.  In this mode, use 'ctrl-e, c, ?' for "
+          "help"
+          )
+    #TODO(jjohnson2): lookup context help for 'target' variable, perhaps
+    #common with the api document
+
+
+def updatestatus(stateinfo={}):
+    global powerstate, powertime, clearpowermessage
+    status = consolename
+    info = []
+    for statekey in stateinfo:
+        laststate[statekey] = stateinfo[statekey]
+    if ('connectstate' in laststate and
+            laststate['connectstate'] != 'connected'):
+        info.append(laststate['connectstate'])
+        if laststate['connectstate'] == 'closed':
+            quitconfetty(fullexit=consoleonly)
+    if 'error' in laststate:
+        info.append(laststate['error'])
+        # error will be repeated if relevant
+        # avoid keeping it around as stale
+        del laststate['error']
+    if 'state' in stateinfo:  # currently only read power means anything
+        newpowerstate = stateinfo['state']['value']
+        if newpowerstate != powerstate and newpowerstate == 'off':
+            sys.stdout.write("\x1b[2J\x1b[;H[powered off]\r\n")
+            clearpowermessage = True
+        if newpowerstate == 'on' and clearpowermessage:
+            sys.stdout.write("\x1b[2J\x1b[;H")
+            clearpowermessage = False
+        powerstate = newpowerstate
+    if 'clientcount' in laststate and laststate['clientcount'] != 1:
+        info.append('clients: %d' % laststate['clientcount'])
+    if 'bufferage' in stateinfo and stateinfo['bufferage'] is not None:
+        laststate['showtime'] = time.time() - stateinfo['bufferage']
+    if 'showtime' in laststate:
+        showtime = laststate['showtime']
+        age = time.time() - laststate['showtime']
+        if age > 86400:  # older than one day
+            # disambiguate by putting date in and time
+            info.append(time.strftime('%m-%dT%H:%M', time.localtime(showtime)))
+        else:
+            info.append(time.strftime('%H:%M', time.localtime(showtime)))
+    if info:
+        status += ' [' + ','.join(info) + ']'
+    if os.environ.get('TERM', '') not in ('linux'):
+        sys.stdout.write('\x1b]0;console: %s\x07' % status)
+    sys.stdout.flush()
+
+
+def recurse_format(datum, levels=0):
+    ret = ''
+    import json
+    return json.dumps(datum, ensure_ascii=False, indent=1)
+    if isinstance(datum, dict):
+        for key in datum.iterkeys():
+            if datum[key] is None:
+                continue
+            ret += key + ':'
+            if type(datum[key]) in (str, unicode):
+                ret += datum[key] + '\n'
+            else:
+                ret += recurse_format(datum[key], levels + 1)
+    elif isinstance(datum, list):
+        if type(datum[0]) in (str, unicode):
+            ret += '[' + ",".join(datum) + ']\n'
+        else:
+            ret += '['
+            elems = []
+            for elem in datum:
+                elems.append('{' + recurse_format(elem, levels + 1) + '}')
+            ret += ','.join(elems)
+            ret += ('  ' * levels) + ']\n'
+    return ret
+
+
+def prompt():
+    if os.environ.get('TERM', '') not in ('linux'):
+        sys.stdout.write('\x1b]0;confetty: %s\x07' % target)
+    try:
+        return input(target + ' -> ')
+    except KeyboardInterrupt:
+        print("")
+        return ""
+    except EOFError:  # ctrl-d
+        print("exit")
+        return "exit"
+#    sys.stdout.write(target + ' -> ')
+#    sys.stdout.flush()
+#    username = raw_input("Name: ")
+
+valid_commands = [
+    'start',
+    'cd',
+    'show',
+    'set',
+    'unset',
+    'create',
+    'remove',
+    'rm',
+    'delete',
+    'help',
+]
+
+candidates = None
+session = None
+
+
+def completer(text, state):
+    try:
+        return rcompleter(text, state)
+    except:
+        pass
+        #import traceback
+        #traceback.print_exc()
+
+
+def rcompleter(text, state):
+    global candidates
+    global valid_commands
+    cline = readline.get_line_buffer()
+    cline = cline[:readline.get_endidx()]
+    if len(text):
+        cline = cline[:-len(text)]
+    args = shlex.split(cline, posix=True)
+    currpos = len(args)
+    if currpos and cline[-1] == ' ':
+        lastarg = ''
+        currpos += 1
+    elif currpos:
+        lastarg = args[-1]
+    else:
+        lastarg = ''
+    if currpos <= 1:
+        foundcount = 0
+        for cmd in valid_commands:
+            if cmd.startswith(text):
+                if foundcount == state:
+                    return cmd
+                else:
+                    foundcount += 1
+        candidates = None
+        return None
+    cmd = args[0]
+    if candidates is None:
+        candidates = []
+        targpath = fullpath_target(lastarg)
+        for res in session.read(targpath):
+            if 'item' in res:  # a link relation
+                if type(res['item']) == dict:
+                    candidates.append(res['item']["href"])
+                else:
+                    for item in res['item']:
+                        candidates.append(item["href"])
+    foundcount = 0
+    for elem in candidates:
+        if cmd == 'cd' and elem[-1] != '/':
+            continue
+        if elem.startswith(text):
+            if foundcount == state:
+                return elem
+            else:
+                foundcount += 1
+    candidates = None
+    return None
+
+
+def parse_command(command):
+    if isinstance(command, list):
+        return command
+    try:
+        args = shlex.split(command, posix=True)
+    except ValueError as ve:
+        print('Error: ' + str(ve))
+        return []
+    return args
+
+
+currchildren = None
+
+
+def print_result(res):
+    global exitcode
+    if 'errorcode' in res or 'error' in res:
+        print(res['error'])
+        if 'errorcode' in res:
+            exitcode |= res['errorcode']
+        return
+    if 'databynode' in res:
+        print_result(res['databynode'])
+        return
+    for key in sorted(res):
+        notes = []
+        if res[key] is None:
+            attrstr = '%s=""' % key
+        elif type(res[key]) == list:
+            attrstr = '%s=%s' % (key, recurse_format(res[key]))
+        elif not isinstance(res[key], dict):
+            try:
+                print('{0}: {1}'.format(key, res[key]))
+            except UnicodeEncodeError:
+                print('{0}: {1}'.format(key, repr(res[key])))
+            continue
+        elif 'value' in res[key] and res[key]['value'] is not None:
+            attrstr = '%s="%s"' % (key, res[key]['value'])
+        elif 'value' in res[key] and res[key]['value'] is None:
+            attrstr = '%s=""' % key
+        elif 'isset' in res[key] and res[key]['isset']:
+            attrstr = '%s="********"' % key
+        elif 'isset' in res[key] or not res[key]:
+            attrstr = '%s=""' % key
+        else:
+            sys.stdout.write('{0}: '.format(key))
+            if isinstance(res[key], str) or isinstance(res[key], unicode):
+                print(res[key])
+            else:
+                print_result(res[key])
+            continue
+        if res[key] is not None and 'inheritedfrom' in res[key]:
+            notes.append(
+                'Inherited from %s' % res[key]['inheritedfrom'])
+        if res[key] is not None and 'expression' in res[key]:
+            notes.append(
+                ('Derived from expression "%s"' %
+                 res[key]['expression']))
+        if notes:
+            notestr = '(' + ', '.join(notes) + ')'
+            output = '{0:<40} {1:>39}'.format(attrstr, notestr)
+        else:
+            output = attrstr
+        try:
+            print(output)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            print(output.encode('utf-8'))
+
+
+def do_command(command, server):
+    global exitcode
+    global target
+    global currconsole
+    global currchildren
+    exitcode = 0
+    argv = parse_command(command)
+    if len(argv) == 0:
+        return
+    argv[0] = argv[0].lower()
+    if argv[0] == 'exit':
+        if os.environ.get('TERM', '') not in ('linux'):
+            sys.stdout.write('\x1b]0;\x07')
+        raise BailOut()
+    elif argv[0] in ('help', '?'):
+        return print_help()
+    elif argv[0] == 'cd':
+        otarget = target
+        if len(argv) > 1:
+            target = fullpath_target(argv[1], forcepath=True)
+        else:  # cd by itself, go 'home'
+            target = '/'
+        if target[-1] == '/':
+            parentpath = target[:-1]
+        else:
+            parentpath = target
+        if parentpath:
+            childname = '{0}/'.format(parentpath[parentpath.rindex('/') + 1:])
+            parentpath = parentpath[:parentpath.rindex('/') + 1]
+            if parentpath == '/noderange/':
+                for res in session.read(target, server):
+                    if 'errorcode' in res:
+                        exitcode = res['errorcode']
+                        target = otarget
+                    if 'error' in res:
+                        sys.stderr.write(target + ': ' + res['error'] + '\n')
+                        target = otarget
+            else:
+                foundchild = False
+                for res in session.read(parentpath, server):
+                    try:
+                        if res['item']['href'] == childname:
+                            foundchild = True
+                    except KeyError:
+                        pass
+                    if 'errorcode' in res:
+                        exitcode = res['errorcode']
+                        target = otarget
+                    if 'error' in res:
+                        sys.stderr.write(target + ': ' + res['error'] + '\n')
+                        target = otarget
+                if not foundchild:
+                    sys.stderr.write(target + ': Target not found - \n')
+                    target = otarget
+    elif argv[0] in ('cat', 'show', 'ls', 'dir'):
+        if len(argv) > 1:
+            targpath = fullpath_target(argv[1])
+            if argv[0] in ('ls', 'dir'):
+                if targpath[-1] != '/':
+                    # could still be a directory, fetch the parent..
+                    childname = targpath[targpath.rindex('/') + 1:]
+                    parentpath = targpath[:targpath.rindex('/') + 1]
+                    if parentpath != '/noderange/':
+                        # if it were /noderange/, then it's a directory
+                        # even though parent won't tell us that
+                        for res in session.read(parentpath, server):
+                            try:
+                                if res['item']['href'] == childname:
+                                    print(childname)
+                                    return
+                            except KeyError:
+                                pass
+        else:
+            targpath = target
+        for res in session.read(targpath):
+            if 'item' in res:  # a link relation
+                if type(res['item']) == dict:
+                    print(res['item']["href"])
+                else:
+                    for item in res['item']:
+                        print(item["href"])
+            else:  # generic attributes to list
+                if 'error' in res:
+                    sys.stderr.write(res['error'] + '\n')
+                if 'errorcode' in res:
+                    exitcode = res['errorcode']
+                    continue
+                print_result(res)
+    elif argv[0] == 'start':
+        targpath = fullpath_target(argv[1])
+        nodename = targpath.split('/')[-3]
+        currconsole = targpath
+        startrequest = {'operation': 'start', 'path': targpath,
+                        'parameters': {}}
+        height, width = struct.unpack(
+            'hh', fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ, b'....'))[:2]
+        startrequest['parameters']['width'] = width
+        startrequest['parameters']['height'] = height
+        for param in argv[2:]:
+            (parmkey, parmval) = param.split("=")
+            startrequest['parameters'][parmkey] = parmval
+        tlvdata.send(
+            session.connection, startrequest)
+        status = tlvdata.recv(session.connection)
+        if 'error' in status:
+            if 'errorcode' in status:
+                exitcode = status['errorcode']
+            sys.stderr.write('Error: ' + status['error'] + '\n')
+            while '_requestdone' not in status:
+                status = tlvdata.recv(session.connection)
+            return
+        startconsole(nodename)
+        return
+    elif argv[0] == 'set':
+        setvalues(argv[1:])
+    elif argv[0] == 'create':
+        createresource(argv[1:])
+    elif argv[0] in ('rm', 'delete', 'remove'):
+        delresource(argv[1])
+    elif argv[0] in ('unset', 'clear'):
+        clearvalues(argv[1], argv[2:])
+    elif argv[0] == 'shutdown':
+        shutdown()
+    else:
+        sys.stderr.write("%s: command not found...\n" % argv[0])
+
+
+def shutdown():
+    tlvdata.send(session.connection, {'operation': 'shutdown', 'path': '/'})
+
+
+def createresource(args):
+    resname = args[0]
+    attribs = args[1:]
+    keydata = parameterize_attribs(attribs)
+    if keydata is None:
+        return
+    targpath = fullpath_target(resname)
+    if targpath.startswith('/noderange//'):
+        collection = targpath
+    else:
+        collection, _, resname = targpath.rpartition('/')
+        if 'name' not in keydata:
+            keydata['name'] = resname
+    makecall(session.create, (collection, keydata))
+
+
+def makecall(callout, args):
+    global exitcode
+    for response in callout(*args):
+        if 'deleted' in response:
+            print("Deleted: " + response['deleted'])
+        if 'created' in response:
+            print("Created: " + response['created'])
+        if 'error' in response:
+            if 'errorcode' in response:
+                exitcode = response['errorcode']
+            sys.stderr.write('Error: ' + response['error'] + '\n')
+        if 'databynode' in response:
+            lresponse = response['databynode']
+            for node in lresponse:
+                if 'errorcode' in lresponse[node]:
+                    exitcode = lresponse[node]['errorcode']
+                if 'error' in lresponse[node]:
+                    sys.stderr.write('{0}: Error - {1}\n'.format(node, lresponse[node]['error']))
+
+
+def clearvalues(resource, attribs):
+    global exitcode
+    targpath = fullpath_target(resource)
+    keydata = {}
+    for attrib in attribs:
+        keydata[attrib] = None
+    for res in session.update(targpath, keydata):
+        if 'error' in res:
+            if 'errorcode' in res:
+                exitcode = res['errorcode']
+            sys.stderr.write('Error: ' + res['error'] + '\n')
+
+
+def delresource(resname):
+    resname = fullpath_target(resname)
+    makecall(session.delete, (resname,))
+
+
+def setvalues(attribs):
+    global exitcode
+    if '=' in attribs[0]:  # going straight to attribute
+        resource = attribs[0][:attribs[0].index("=")]
+        if '/' in resource:
+            lastslash = resource.rindex('/')
+            attribs[0] = attribs[0][lastslash + 1:]
+    else:  # an actual resource
+        resource = attribs[0]
+        attribs = attribs[1:]
+    keydata = parameterize_attribs(attribs)
+    if not keydata:
+        return
+    targpath = fullpath_target(resource)
+    for res in session.update(targpath, keydata):
+        if 'error' in res:
+            if 'errorcode' in res:
+                exitcode = res['errorcode']
+            sys.stderr.write('Error: ' + res['error'] + '\n')
+        print_result(res)
+
+
+def parameterize_attribs(attribs):
+    keydata = {}
+    for attrib in attribs:
+        if '=' not in attrib:
+            sys.stderr.write("Invalid syntax %s\n" % attrib)
+            return None
+        key = attrib[:attrib.index("=")]
+        value = attrib[attrib.index("=") + 1:]
+        if key == 'groups':
+            value = value.split(',')
+        keydata[key] = value
+    return keydata
+
+
+def fullpath_target(currpath, forcepath=False):
+    global target
+    if currpath == '':
+        return target
+    pathcomponents = currpath.split("/")
+    if pathcomponents[-1] == "":  # preserve path
+        forcepath = True
+    if pathcomponents[0] == "":  # absolute path
+        ntarget = currpath
+    else:
+        targparts = target.split("/")[:-1]
+        for component in pathcomponents:
+            if component in ('.', ''):  # ignore these
+                continue
+            elif component == '..':
+                if len(targparts) > 0:
+                    del targparts[-1]
+            else:
+                targparts.append(component)
+        if forcepath and (len(targparts) == 0 or targparts[-1] != ""):
+            targparts.append('')
+        ntarget = '/'.join(targparts)
+    if forcepath and (len(ntarget) == 0 or ntarget[-1] != '/'):
+        ntarget += '/'
+    return ntarget
+
+def do_resize(a, b):
+    if not inconsole:
+        return
+    height, width = struct.unpack(
+        'hh', fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ, b'....'))[:2]
+    tlvdata.send(session.connection, {'operation': 'resize', 'width': width,
+                                      'height': height})
+
+
+def startconsole(nodename):
+    global inconsole
+    global consolename
+    global didconsole
+    signal.signal(signal.SIGWINCH, do_resize)
+    didconsole = True
+    consolename = nodename
+    tty.setraw(sys.stdin.fileno())
+    currfl = fcntl.fcntl(sys.stdin.fileno(), fcntl.F_GETFL)
+    fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL, currfl | os.O_NONBLOCK)
+    inconsole = True
+
+
+def quitconfetty(code=0, fullexit=False, fixterm=True):
+    global inconsole
+    global currconsole
+    global didconsole
+    if fixterm or didconsole:
+        currfl = fcntl.fcntl(sys.stdin.fileno(), fcntl.F_GETFL)
+        fcntl.fcntl(sys.stdin.fileno(), fcntl.F_SETFL, currfl & ~os.O_NONBLOCK)
+        if oldtcattr is not None:
+            termios.tcsetattr(sys.stdin.fileno(), termios.TCSANOW, oldtcattr)
+    # Request default color scheme, to undo potential weirdness of terminal
+    if sys.stdout.isatty():
+        sys.stdout.write('\x1b[m')
+    if fullexit:
+        if sys.stdout.isatty() and os.environ.get('TERM', '') not in ('linux'):
+            sys.stdout.write('\x1b]0;\x07')
+        raise BailOut(code)
+    else:
+        tlvdata.send(session.connection, {'operation': 'stop',
+                                          'path': currconsole})
+        inconsole = False
+
+
+def get_session_node(shellargs):
+    # straight to node console
+    if len(shellargs) == 1 and ' ' not in shellargs[0]:
+        return shellargs[0]
+    if len(shellargs) == 2 and shellargs[0] == 'start':
+        args = [s for s in shellargs[1].split('/') if s]
+        if len(args) == 4 and args[0] == 'nodes' and args[2] == 'console' and \
+                args[3] == 'session':
+            return args[1]
+    return None
+
+
+def run_inline_command(path, arg, completion, **kwargs):
+    tlvdata.send(session.connection, {'operation': 'pause',
+                                              'path': currconsole})
+    buffdata = ''
+    while select.select((session.connection,), (), (), 0)[0]:
+        buffdata += consume_termdata(session.connection, bufferonly=True)
+    rc = session.simple_noderange_command(consolename, path, arg, **kwargs)
+    tlvdata.send(session.connection, {'operation': 'resume',
+                                      'path': currconsole})
+    sys.stdout.write(completion)
+    sys.stdout.flush()
+    if buffdata:
+        try:
+            sys.stdout.write(buffdata)
+        except UnicodeEncodeError:
+            sys.stdout.buffer.write(buffdata.encode('utf8'))
+        except IOError:  # Some times circumstances are bad
+                         # resort to byte at a time...
+            for d in buffdata:
+                sys.stdout.write(d)
+    return rc
+
+def conserver_command(filehandle, localcommand):
+    # x - conserver has that as 'show baud', I am inclined to replace that with
+    #     'request exclusive'
+    # b - conserver has that as 'broadcast message', I'm tempted to use that
+    #     for break
+    # r - replay
+    # p - replay (this is the one I've always used)
+    # f - force attach read/write
+    # a - attach read/write
+    # s - spy mode
+    # l[n] - send a particular break, tempted to do l0 for compatibility
+    # o - reopen tty, this should mean reconnect console
+    # d - down a console... never used this...
+    # L - toggle logging
+    # w - who is on console
+
+    cmdlen = 1
+    localcommand = get_command_bytes(filehandle, localcommand, cmdlen)
+
+    if localcommand[0] == '.':
+        print("disconnect]\r")
+        quitconfetty(fullexit=consoleonly)
+    elif localcommand[0] == 'o':
+        tlvdata.send(session.connection, {'operation': 'reopen',
+                                          'path': currconsole})
+        print('reopen]\r')
+    elif localcommand[0] == 'b':
+        tlvdata.send(session.connection, {'operation': 'break',
+                                          'path': currconsole})
+        print("break sent]\r")
+    elif localcommand[0] == 'p':  # power
+        cmdlen += 1
+        localcommand = get_command_bytes(filehandle, localcommand, cmdlen)
+
+        if localcommand[1] == 'o': # off
+            sys.stdout.write("powering off...")
+            sys.stdout.flush()
+            run_inline_command('/power/state', 'off', 'complete]')
+        elif localcommand[1] == 's':  # shutdown
+            sys.stdout.write("shutting down...")
+            sys.stdout.flush()
+            run_inline_command('/power/state', 'shutdown', 'complete]')
+        elif localcommand[1] == 'b': # boot
+            cmdlen += 1
+            localcommand = get_command_bytes(filehandle, localcommand, cmdlen)
+
+            if localcommand[2] == 's':  # boot to setup
+                print("booting to setup...")
+
+                bootmode = 'uefi'
+                bootdev = 'setup'
+
+                rc = run_inline_command('/boot/nextdevice', bootdev, '', bootmode=bootmode)
+
+                if rc:
+                    print("Error]\r")
+                else:
+                    rc = run_inline_command('/power/state', 'boot', 'complete]')
+                    if rc:
+                        print("Error]")
+
+            elif localcommand[2] == 'n':  # boot to network
+                sys.stdout.write("booting to network...")
+                sys.stdout.flush()
+                bootmode = 'uefi'
+                bootdev = 'network'
+                rc = run_inline_command('/boot/nextdevice', bootdev, '', bootmode=bootmode)
+                if rc:
+                    print("Error]\r")
+                else:
+                    rc = run_inline_command('/power/state', 'boot', 'complete]')
+                    if rc:
+                        print("Error]\r")
+            elif localcommand[2] == '\x0d':  # boot to default
+                print("booting to default...")
+
+                bootmode = 'uefi'
+                bootdev = 'default'
+
+                rc = run_inline_command('/boot/nextdevice', bootdev, '', bootmode=bootmode)
+
+                if rc:
+                    print("Error]\r")
+                else:
+                    rc = run_inline_command('/power/state', 'boot', 'complete]')
+                    if rc:
+                        print("Error]\r")
+            else:
+                print("Unknown boot state.]\r")
+
+        else:
+            print("Unknown power state.]\r")
+        check_power_state()
+    elif localcommand[0] == 'r':
+        sys.stdout.write('\x1b7\x1b[999;999H\x1b[6n')
+        sys.stdout.flush()
+        reply = ''
+        while 'R' not in reply:
+            try:
+                reply += sys.stdin.read(1)
+            except IOError:
+                pass
+        reply = reply.replace('\x1b[', '')
+        reply = reply.replace('R', '')
+        height, width = reply.split(';')
+        sys.stdout.write('\x1b8')
+        sys.stdout.flush()
+        print('sending stty commands]')
+        return 'stty columns {0}\rstty rows {1}\r'.format(width, height)
+    elif localcommand[0] == '?':
+        print("help]\r")
+        print(".       exit console\r")
+        print("b       break\r")
+        print("o       reopen\r")
+        print("po      power off\r")
+        print("ps      shutdown\r")
+        print("pbs     boot to setup\r")
+        print("pbn     boot to network\r")
+        print("pb<ent> boot to default\r")
+        print("r       send stty command to resize terminal\r")
+        print("<cr> abort command\r")
+    elif localcommand[0] == '\x0d':
+        print("ignored]\r")
+    else:  # not a command at all..
+        print("unknown -- use '?']\r")
+
+
+def get_command_bytes(filehandle, localcommand, cmdlen):
+    while len(localcommand) < cmdlen:
+        try:
+            ready, _, _ = select.select((filehandle,), (), (), 1)
+        except select.error:
+            ready = ()
+        if ready:
+            localcommand += filehandle.read()
+    return localcommand
+
+
+def check_escape_seq(currinput, filehandle):
+    while conserversequence.startswith(currinput):
+        if currinput.startswith(conserversequence):  # We have full sequence
+            sys.stdout.write("[")
+            sys.stdout.flush()
+            return conserver_command(
+                filehandle, currinput[len(conserversequence):])
+        try:
+            ready, _, _ = select.select((filehandle,), (), (), 3)
+        except select.error:
+            ready = ()
+        if not ready:  # 3 seconds of no typing
+            break
+        currinput += filehandle.read()
+    return currinput
+
+parser = optparse.OptionParser()
+parser.add_option("-s", "--server", dest="netserver",
+                  help="Confluent instance to connect to",
+                  metavar="SERVER:PORT")
+parser.add_option("-c", "--control", dest="controlpath",
+                  help="Path to offer terminal control",
+                  metavar="PATH")
+parser.add_option(
+    '-m', '--mintime', default=0,
+    help='Minimum time to run or else pause for input (used to keep a '
+         'terminal from closing quickly on error)')
+opts, shellargs = parser.parse_args()
+
+username = None
+passphrase = None
+def server_connect():
+    global session, username, passphrase
+    if opts.controlpath:
+        termhandler.TermHandler(opts.controlpath)
+    if opts.netserver:  # going over a TLS network
+        session = client.Command(opts.netserver)
+    elif 'CONFLUENT_HOST' in os.environ:
+        session = client.Command(os.environ['CONFLUENT_HOST'])
+    else:  # unix domain
+        session = client.Command()
+
+    # Next stop, reading and writing from whichever of stdin and server goes first.
+    #see pyghmi code for solconnect.py
+    if not session.authenticated and username is not None:
+        session.authenticate(username, passphrase)
+    if not session.authenticated and 'CONFLUENT_USER' in os.environ:
+        username = os.environ['CONFLUENT_USER']
+        passphrase = os.environ['CONFLUENT_PASSPHRASE']
+        session.authenticate(username, passphrase)
+    while not session.authenticated:
+        username = input("Name: ")
+        passphrase = getpass.getpass("Passphrase: ")
+        session.authenticate(username, passphrase)
+
+def check_power_state():
+    tlvdata.send(
+        session.connection,
+        {'operation': 'retrieve',
+         'path': '/nodes/' + consolename + '/power/state'})
+    return
+
+
+if sys.stdout.isatty():
+    import readline
+
+
+def main():
+    global inconsole
+    try:
+        server_connect()
+    except (EOFError, KeyboardInterrupt) as _:
+        raise BailOut(0)
+    except socket.gaierror:
+        sys.stderr.write('Could not connect to confluent\n')
+        raise BailOut(1)
+    # clear on start can help with readable of TUI, but it
+    # can be annoying, so for now don't do it.
+    # sys.stdout.write('\x1b[H\x1b[J')
+    # sys.stdout.flush()
+    global powerstate, powertime, clearpowermessage
+
+
+    if sys.stdout.isatty():
+
+        readline.parse_and_bind("tab: complete")
+        readline.parse_and_bind("set bell-style none")
+        dl = readline.get_completer_delims().replace('-', '')
+        readline.set_completer_delims(dl)
+        readline.set_completer(completer)
+
+    doexit = False
+    inconsole = False
+    pendingcommand = ""
+    session_node = get_session_node(shellargs)
+    if session_node is not None:
+        consoleonly = True
+        do_command("start /nodes/%s/console/session" % session_node, netserver)
+        doexit = True
+    elif shellargs:
+        do_command(shellargs, netserver)
+        quitconfetty(fullexit=True, fixterm=False)
+
+    powerstate = None
+    powertime = None
+
+    while inconsole or not doexit:
+        if inconsole:
+            try:
+                rdylist, _, _ = select.select(
+                    (sys.stdin, session.connection), (), (), 10)
+            except select.error:
+                rdylist = ()
+            for fh in rdylist:
+                if fh == session.connection:
+                    consume_termdata(fh)
+                else:
+                    try:
+                        myinput = fh.read()
+                        myinput = check_escape_seq(myinput, fh)
+                        if myinput:
+                            tlvdata.send(session.connection, myinput)
+                    except IOError:
+                        pass
+            if powerstate is None or powertime < time.time() - 10:  # Check powerstate every 10 seconds
+                powertime = time.time()
+                powerstate = True
+                check_power_state()
+        else:
+            currcommand = prompt()
+            try:
+                do_command(currcommand, netserver)
+            except socket.error:
+                try:
+                    server_connect()
+                    do_command(currcommand, netserver)
+                except socket.error:
+                    doexit = True
+                    sys.stdout.write('Lost connection to server')
+    quitconfetty(fullexit=True)
+
+def consume_termdata(fh, bufferonly=False):
+    global clearpowermessage
+    try:
+        data = tlvdata.recv(fh)
+    except Exception:
+        data = None
+    if type(data) == dict:
+        updatestatus(data)
+        return ''
+    if data is not None:
+        data = client.stringify(data)
+        if clearpowermessage:
+            sys.stdout.write("\x1b[2J\x1b[;H")
+            clearpowermessage = False
+        if bufferonly:
+            return data
+        try:
+            sys.stdout.write(data)
+        except UnicodeEncodeError:
+            sys.stdout.buffer.write(data.encode('utf8'))
+        except IOError:  # Some times circumstances are bad
+                         # resort to byte at a time...
+            for d in data:
+                sys.stdout.write(d)
+        now = time.time()
+        if ('showtime' not in laststate or
+                                (now // 60) != laststate['showtime'] // 60):
+            # don't bother churning if minute does not change
+            laststate['showtime'] = now
+            updatestatus()
+        try:
+            sys.stdout.flush()
+        except Exception:
+            # EWOULDBLOCK causes this to raise, ignore
+            # this scenario comfortable that it
+            # will come out soon enough
+            pass
+    else:
+        deadline = 5
+        connected = False
+        while not connected and deadline > 0:
+            try:
+                server_connect()
+                connected = True
+            except Exception:
+                pass
+            if not connected:
+                time.sleep(1)
+                deadline -=1
+        if connected:
+            do_command(
+                "start /nodes/%s/console/session skipreplay=True" % consolename,
+                netserver)
+        else:
+            doexit = True
+            inconsole = False
+            sys.stdout.write("\r\n[remote disconnected]\r\n")
+    return ''
+
+if __name__ == '__main__':
+    errcode = 0
+    deadline = 0
+    if opts.mintime:
+        deadline = os.times()[4] + float(opts.mintime)
+    try:
+        main()
+    except BailOut as e:
+        errcode = e.errorcode
+    except Exception as e:
+        import traceback
+        excinfo = traceback.print_exc()
+        try:
+            quitconfetty()
+        except Exception:
+            pass
+        print(excinfo)
+    finally:
+        if deadline and os.times()[4] < deadline:
+            sys.stderr.write('[Exited early, hit enter to continue]')
+            sys.stdin.readline()
+        if errcode == 0:
+            errcode = exitcode
+        sys.exit(errcode)

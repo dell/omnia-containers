@@ -1,0 +1,48 @@
+%define name confluent_client
+%define version #VERSION#
+%define release 1
+
+Summary: Client libraries and utilities for confluent
+Name: %{name}
+Version: %{version}
+Release: %{release}
+Source0: %{name}-%{version}.tar.gz
+License: Apache2
+Group: Development/Libraries
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
+Prefix: %{_prefix}
+BuildArch: noarch
+Vendor: Lenovo
+Url: http://github.com/lenovo/confluent
+Obsoletes: confluent_common
+
+%description
+This package enables python development and command line access to
+a confluent server.
+
+%prep
+%setup -n %{name}-%{version} -n %{name}-%{version}
+
+%build
+%if "%{dist}" == ".el7"
+python2 setup.py build
+%else
+python3 setup.py build
+%endif
+
+%install
+%if "%{dist}" == ".el7"
+python2 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES --install-scripts=/opt/confluent/bin --install-purelib=/opt/confluent/lib/python
+%else
+python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES --install-scripts=/opt/confluent/bin --install-purelib=/opt/confluent/lib/python
+%endif
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%files -f INSTALLED_FILES
+%license /opt/confluent/share/licenses/confluent_client/LICENSE
+%license /opt/confluent/share/licenses/confluent_client/COPYRIGHT
+%defattr(-,root,root)
+/opt/confluent

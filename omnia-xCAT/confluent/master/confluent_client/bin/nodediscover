@@ -1,0 +1,424 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import csv
+import optparse
+import os
+import sys
+import time
+
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+import confluent.sortutil as sortutil
+
+defcolumns = ['Node', 'Model', 'Serial', 'UUID', 'Mac Address', 'Type',
+              'Current IP Addresses']
+columnmapping = {
+    'Node': 'nodename',
+    'Model': 'modelnumber',
+    'Model Name': 'modelname',
+    'Serial': 'serialnumber',
+    'UUID': 'uuid',
+    'Type': 'types',
+    'Current IP Addresses': 'ipaddrs',
+    'IP': 'ipaddrs',
+    'Bay': 'bay',
+    'Mac Address': 'macs',
+    'Mac': 'macs',
+    'Switch': 'switch',
+    'Port': 'port',
+    'Advertised IP': 'otheripaddrs',
+    'Other IP': 'otheripaddrs',
+}
+#TODO: add chassis uuid
+
+def register_endpoint(options, session, addr):
+    neednewline = False
+    current = 0
+    for rsp in session.update('/discovery/register', {'addresses': addr}):
+        if 'count' in rsp:
+            total = rsp['count']
+        elif total > 1:
+            current += 1
+            sys.stdout.write('\x1b[2K\r{0:.1f}% Scanned'.format(100 * current / total))
+            sys.stdout.flush()
+            neednewline = True
+        if 'created' in rsp:
+            if neednewline:
+                print('')
+                neednewline = False
+            print('Registered: {0}'.format(rsp['created']))
+    if neednewline:
+        print('')
+
+def subscribe_discovery(options, session, subscribe, targ):
+    keyn = 'subscribe' if subscribe else 'unsubscribe'
+    payload = {keyn: targ}
+    if subscribe:
+        for rsp in session.update('/discovery/subscriptions/{0}'.format(targ), payload):
+            if 'status' in rsp:
+                print(rsp['status'])
+    else:
+        for rsp in session.delete('/discovery/subscriptions/{0}'.format(targ)):
+            if 'status' in rsp:
+                print(rsp['status'])
+    
+def print_disco(options, session, currmac, outhandler, columns):
+    procinfo = {}
+    for tmpinfo in session.read('/discovery/by-mac/{0}'.format(currmac)):
+
+        procinfo.update(tmpinfo)
+    if 'Switch' in columns or 'Port' in columns:
+        if 'switch' in procinfo:
+            procinfo['port'] = procinfo['switchport']
+        else:
+            for tmpinfo in session.read(
+                    '/networking/macs/by-mac/{0}'.format(currmac)):
+                if 'ports' in tmpinfo:
+                    # The api sorts so that the most specific available value
+                    # is last
+                    procinfo.update(tmpinfo['ports'][-1])
+    record = []
+    for col in columns:
+        rawcol = columnmapping[col]
+        rawval = procinfo.get(rawcol, '')
+        if isinstance(rawval, list):
+            record.append(','.join(rawval))
+        else:
+            record.append(str(rawval))
+    outhandler.add_row(record)
+
+
+def process_header(header):
+    # normalize likely header titles
+    fields = []
+    broken = False
+    for datum in header:
+        datum = datum.lower()
+        if datum.startswith('node') or datum.startswith('name'):
+            fields.append('node')
+        elif datum in ('nodegroup', 'nodegroups', 'group', 'groups'):
+            fields.append('groups')
+        elif datum.startswith('mac') or datum.startswith('ether'):
+            fields.append('mac')
+        elif datum.startswith('serial') or datum in ('sn', 's/n'):
+            fields.append('serial')
+        elif datum == 'uuid':
+            fields.append('uuid')
+        elif datum in ('bmc', 'imm', 'xcc'):
+            fields.append('hardwaremanagement.manager')
+        elif datum in ('bmc gateway', 'xcc gateway', 'imm gateway'):
+            fields.append('net.bmc.ipv4_gateway')
+        elif datum in ('bmc_gateway', 'xcc_gateway', 'imm_gateway'):
+            fields.append('net.bmc.ipv4_gateway')
+        elif datum in ('bmcuser', 'username', 'user'):
+            fields.append('secret.hardwaremanagementuser')
+        elif datum in ('bmcpass', 'password', 'pass'):
+            fields.append('secret.hardwaremanagementpassword')
+        else:
+            print("Unrecognized column name {0}".format(datum))
+            broken = True
+    if broken:
+        sys.exit(1)
+    return tuple(fields)
+
+
+def datum_complete(datum):
+    if 'node' not in datum or not datum['node']:
+        sys.stderr.write('Nodename is a required field')
+        return False
+    provided = set(datum)
+    required = set(['serial', 'uuid', 'mac'])
+    for field in provided & required:
+        if datum[field]:
+            break
+    else:
+        sys.stderr.write('One of the fields "Serial Number", "UUID", or '
+                   '"MAC Address" must be provided')
+        return False
+    return True
+
+
+searchkeys = set(['mac', 'serial', 'uuid'])
+
+
+def search_record(datum, options, session):
+    for searchkey in searchkeys:
+        options.__dict__[searchkey] = None
+    for searchkey in searchkeys & set(datum):
+        options.__dict__[searchkey] = datum[searchkey]
+    return list(list_matching_macs(options, session))
+
+
+def datum_to_attrib(datum):
+    for key in ('serial', 'uuid', 'mac'):
+        try:
+            del datum[key]
+        except KeyError:
+            pass
+    datum['name'] = datum['node']
+    del datum['node']
+    return datum
+
+unique_fields = frozenset(['serial', 'mac', 'uuid'])
+
+def import_csv(options, session):
+    nodedata = []
+    unique_data = {}
+    exitcode = 0
+    with open(options.importfile, 'r') as datasrc:
+        records = csv.reader(datasrc)
+        fields = process_header(next(records))
+        for field in fields:
+            if field in unique_fields:
+                unique_data[field] = set([])
+        broken = False
+        for record in records:
+            currfields = list(fields)
+            nodedatum = {}
+            for datum in record:
+                currfield = currfields.pop(0)
+                if currfield in unique_fields:
+                    if datum in unique_data[currfield]:
+                        sys.stderr.write(
+                            "Import contains duplicate values "
+                            "({0} with value {1}\n".format(currfield, datum)
+                        )
+                        sys.exit(1)
+                    unique_data[currfield].add(datum)
+                nodedatum[currfield] = datum
+            if not datum_complete(nodedatum):
+                sys.exit(1)
+            if not search_record(nodedatum, options, session) and not broken:
+                blocking_scan(session)
+            if not search_record(nodedatum, options, session):
+                sys.stderr.write(
+                    "Could not match the following data: " +
+                    repr(nodedatum) + '\n')
+                broken = True
+            nodedata.append(nodedatum)
+    if broken:
+        sys.exit(1)
+    for datum in nodedata:
+        maclist = search_record(datum, options, session)
+        datum = datum_to_attrib(datum)
+        nodename = datum['name']
+        for res in session.create('/nodes/', datum):
+            if 'error' in res:
+                sys.stderr.write(res['error'] + '\n')
+                exitcode |= res.get('errorcode', 1)
+                continue
+            elif 'created' in res:
+                print('Defined ' + res['created'])
+            else:
+                print(repr(res))
+        for mac in maclist:
+            for res in session.update('/discovery/by-mac/{0}'.format(mac),
+                                      {'node': nodename}):
+                if 'error' in res:
+                    sys.stderr.write(res['error'] + '\n')
+                    exitcode |= res.get('errorcode', 1)
+                    continue
+                elif 'assigned' in res:
+                    print('Discovered ' + res['assigned'])
+                else:
+                    print(repr(res))
+    if exitcode:
+        sys.exit(exitcode)
+
+
+def list_discovery(options, session):
+    orderby = None
+    if options.fields:
+        columns = []
+        for field in options.fields.split(','):
+            for cdt in columnmapping:
+                if cdt.lower().replace(
+                        ' ', '') == field.lower().replace(' ', ''):
+                    columns.append(cdt)
+    else:
+        columns = defcolumns
+    if options.order:
+        for field in columns:
+            if options.order.lower() == field.lower():
+                orderby = field
+    outhandler = client.Tabulator(columns)
+    for mac in list_matching_macs(options, session):
+        print_disco(options, session, mac, outhandler, columns)
+    if options.csv:
+        outhandler.write_csv(sys.stdout, orderby)
+    else:
+        for row in outhandler.get_table(orderby):
+            print(row)
+
+def clear_discovery(options, session):
+    for mac in list_matching_macs(options, session):
+        for res in session.delete('/discovery/by-mac/{0}'.format(mac)):
+            if 'deleted' in res:
+                print('Cleared info for {0}'.format(res['deleted']))
+            else:
+                print(repr(res))
+
+def list_matching_macs(options, session, node=None, checknode=True):
+    path = '/discovery/'
+    if node:
+        path += 'by-node/{0}/'.format(node)
+    elif checknode and options.node:
+        path += 'by-node/{0}/'.format(options.node)
+    if options.model:
+        path += 'by-model/{0}/'.format(options.model)
+    if options.serial:
+        path += 'by-serial/{0}/'.format(options.serial)
+    if options.uuid:
+        path += 'by-uuid/{0}/'.format(options.uuid)
+    if options.type:
+        path += 'by-type/{0}/'.format(options.type)
+    if options.state:
+        if options.state == 'unknown':
+            options.state = 'unidentified'
+        path += 'by-state/{0}/'.format(options.state).lower()
+    if options.mac:
+        path += 'by-mac/{0}'.format(options.mac)
+        result = list(session.read(path))[0]
+        if 'error' in result:
+            return []
+        return [options.mac.replace(':', '-')]
+    else:
+        path += 'by-mac/'
+        ret = []
+        for x in session.read(path):
+            if 'item' in x and 'href' in x['item']:
+                ret.append(x['item']['href'])
+        return ret
+
+def assign_discovery(options, session, needid=True):
+    abort = False
+    if options.importfile:
+        return import_csv(options, session)
+    if not options.node:
+        sys.stderr.write("Node (-n) must be specified for assignment\n")
+        abort = True
+    if needid and not (options.serial or options.uuid or options.mac):
+        sys.stderr.write(
+            "UUID (-u), serial (-s), or ether address (-e) required for "
+            "assignment\n")
+        abort = True
+    if abort:
+        sys.exit(1)
+    matches = list_matching_macs(options, session, None if needid else options.node, False)
+    if not matches:
+        # Do a rescan to catch missing requested data
+        blocking_scan(session)
+        matches = list_matching_macs(options, session, None if needid else options.node, False)
+    if not matches:
+        sys.stderr.write("No matching discovery candidates found\n")
+        sys.exit(1)
+    exitcode = 0
+    for res in session.update('/discovery/by-mac/{0}'.format(matches[0]),
+                   {'node': options.node}):
+        if 'assigned' in res:
+            print('Assigned: {0}'.format(res['assigned']))
+        elif 'error' in res:
+            sys.stderr.write('Error: {0}\n'.format(res['error']))
+            exitcode |= res.get('errorcode', 1)
+        else:
+            print(repr(res))
+    if exitcode:
+        sys.exit(exitcode)
+
+def blocking_scan(session):
+    list(session.update('/discovery/rescan', {'rescan': 'start'}))
+    while(list(session.read('/discovery/rescan'))[0].get('scanning', False)):
+        time.sleep(0.5)
+    list(session.update('/networking/macs/rescan', {'rescan': 'start'}))
+
+
+def main():
+    parser = optparse.OptionParser(
+        usage='Usage: %prog [list|assign|rescan|clear|subscribe|unsubscribe|register] [options]')
+    # -a for 'address' maybe?
+    # order by
+    # show state (discovered or..
+    # nodediscover approve?
+    # flush to clear old data out?  (e.g. no good way to age pxe data)
+    # also delete discovery datum... more targeted
+    # defect: -t lenovo-imm returns all
+    parser.add_option('-m', '--model', dest='model',
+                      help='Operate with nodes matching the specified model '
+                       'number', metavar='MODEL')
+    parser.add_option('-d', '--discoverystate', dest='state',
+                      help='The discovery state of the entries (discovered, '
+                           'identified, and unidentified)')
+    parser.add_option('-s', '--serial', dest='serial',
+                      help='Operate against the system matching the specified '
+                           'serial number', metavar='SERIAL')
+    parser.add_option('-u', '--uuid', dest='uuid',
+                      help='Operate against the system matching the specified '
+                           'UUID', metavar='UUID')
+    parser.add_option('-n', '--node', help='Operate with the given nodename')
+    parser.add_option('-e', '--ethaddr', dest='mac',
+                      help='Operate against the system with the specified MAC '
+                           'address', metavar='MAC')
+    parser.add_option('-t', '--type', dest='type',
+                      help='Operate against the system of the specified type',
+                      metavar='TYPE')
+    parser.add_option('-c', '--csv', dest='csv',
+                      help='Use CSV formatted output', action='store_true')
+    parser.add_option('-i', '--import', dest='importfile',
+                      help='Import bulk assignment data from given CSV file',
+                      metavar='IMPORT.CSV')
+    parser.add_option('-f', '--fields', dest='fields',
+                      help='Select fields for output',
+                      metavar='FIELDS')
+    parser.add_option('-o', '--order', dest='order',
+                      help='Order output by given field', metavar='ORDER')
+    (options, args) = parser.parse_args()
+    if len(args) == 0 or args[0] not in ('list', 'assign', 'reassign', 'rescan', 'clear', 'subscribe', 'unsubscribe', 'register'):
+        parser.print_help()
+        sys.exit(1)
+    if args[0] == 'register' and len(args) != 2:
+        sys.stderr.write('Register requires target address or range (e.g. 192.168.2.30, 192.168.2.0/24, or 192.168.2.1-192.168.2.30)\n')
+        sys.exit(1)
+    if 'subscribe' in args[0] and len(args) != 2:
+        sys.stderr.write('subscribe/unsubscribe subcommands require switch name as argument\n')
+        sys.exit(1)
+    session = client.Command()
+    if args[0] == 'list':
+        list_discovery(options, session)
+    if args[0] == 'clear':
+        clear_discovery(options, session)
+    if args[0] == 'assign':
+        assign_discovery(options, session)
+    if args[0] == 'reassign':
+        assign_discovery(options, session, False)
+    if args[0] == 'register':
+        register_endpoint(options, session, args[1])
+    if args[0] == 'subscribe':
+        subscribe_discovery(options, session, True, args[1])
+    if args[0] == 'unsubscribe':
+        subscribe_discovery(options, session, False, args[1])
+    if args[0] == 'rescan':
+        blocking_scan(session)
+        print("Rescan complete")
+
+
+if __name__ == '__main__':
+    main()
