@@ -1,0 +1,134 @@
+#!/bin/bash
+
+#
+# warn_if_bad		Put out warning message(s) if $1 has bad RC.
+#
+#	$1	0 (pass) or non-zero (fail).
+#	$2+	Remaining arguments printed only if the $1 is non-zero.
+#
+#	Incoming $1 is returned unless it is 0
+#
+function warn_if_bad()
+{
+	local -i rc="$1"
+	local script="${0##*/}"
+
+	# Ignore if no problems
+	[ "${rc}" -eq "0" ] && return 0
+
+	# Broken
+	shift
+	echo "${script}: $@" >&2
+	return "${rc}"
+}
+
+#
+# exit_if_bad		Put out error message(s) if $1 has bad RC.
+#
+#	$1	0 (pass) or non-zero (fail).
+#	$2+	Remaining arguments printed only if the $1 is non-zero.
+#
+#               Exits with 1 unless $1 is 0
+#
+function exit_if_bad()
+{
+	warn_if_bad "$@" || exit 1
+	return 0
+}
+
+TMP_DIR=""
+
+function internal_cleanup()
+{
+	[ -d "${TMP_DIR}" ] && rm -rf "${TMP_DIR}"
+}
+
+#trap internal_cleanup EXIT
+
+TMP_DIR="$(mktemp -d "/tmp/${0##*/}.XXXXXXXX" 2>/dev/null)"
+exit_if_bad "$?" "Above listed required command(s) not found."
+
+# Main
+if [ -z "$1" ]
+then
+	echo "Usage: ${0##*/} <goconserver binary tarball>"
+	echo
+	echo "Examples:"
+	echo "  ${0##*/} goconserver_linux_ppc64le.tar.gz"
+	echo "  ${0##*/} https://github.com/xcat2/goconserver/files/1505167/goconserver_linux_ppc64le.tar.gz"
+	exit 0
+fi
+
+BASE_DIR="${0%/*}"
+
+GOCONSERVER_BINARY_TARBALL="$1"
+"${BASE_DIR}/prep-tarball" "${GOCONSERVER_BINARY_TARBALL}"
+exit_if_bad "$?" "prep-tarball failed."
+
+tmp_b="${GOCONSERVER_BINARY_TARBALL##*/}"
+tmp_b="${tmp_b%%.*}"
+ARCH="${tmp_b##*_}"
+GOCONSERVER_REPACK_TARBALL="goconserver-repack-${ARCH}.tar.gz"
+
+case "${ARCH}" in
+"ppc64le")
+	ARCH="ppc64el"
+	;;
+esac
+
+GOCONSERVER_PREP_TARBALL="goconserver.tar.gz"
+EXTRACT_DIR="goconserver-${VERSION:-0.0.1}"
+rm -rf "${EXTRACT_DIR}.orig" "${EXTRACT_DIR}"
+
+ln -s -f "${GOCONSERVER_REPACK_TARBALL}" "${GOCONSERVER_PREP_TARBALL}"
+
+alien -d -g -c -k --version=${VERSION:-0.0.1} "${GOCONSERVER_PREP_TARBALL}"
+rm -f "${GOCONSERVER_PREP_TARBALL}"
+
+sed -i -e 's/^Copyright: .*$/Copyright: EPL/' \
+	"${EXTRACT_DIR}/debian/copyright"
+sed -i -e 's/^Architecture: .*$/Architecture: '"${ARCH}"'/' \
+	-e 's/^Maintainer: .*$/Maintainer: GONG Jie <gongjie@linux.vnet.ibm.com>/' \
+	-e '/^Description:/,$d' \
+	"${EXTRACT_DIR}/debian/control"
+cat <<-EOF >>"${EXTRACT_DIR}/debian/control"
+Description: Independent tool to provide terminal session service.
+ goconserver is written in golang and is a part of microservice of xCAT. It
+ can work as a independent tool to provide the terminal session service.
+ Terminal session could run in the background and help log the terminal
+ content.
+EOF
+
+cat <<-EOF >"${EXTRACT_DIR}/debian/changelog"
+goconserver (${VERSION:-0.0.1}-snap$(date '+%Y%m%d%H%M')) experimental; urgency=low
+
+  * Converted from .tgz format to .deb by alien version 8.95
+
+
+
+ -- GONG Jie <gongjie@linux.vnet.ibm.com>  $(date -R)
+EOF
+
+cat <<-EOF >"${EXTRACT_DIR}/debian/postinst"
+#!/bin/sh
+
+if [ "\$1" = "configure" ]
+then
+    systemctl daemon-reload
+    systemctl try-restart goconserver.service
+fi
+EOF
+chmod 0755 "${EXTRACT_DIR}/debian/postinst"
+
+cat <<-EOF >"${EXTRACT_DIR}/debian/prerm"
+#!/bin/sh
+
+if [ "\$1" = "remove" ]
+then
+    systemctl stop goconserver.service
+    systemctl disable goconserver.service
+fi
+EOF
+chmod 0755 "${EXTRACT_DIR}/debian/prerm"
+
+( cd "${EXTRACT_DIR}" && debian/rules binary )

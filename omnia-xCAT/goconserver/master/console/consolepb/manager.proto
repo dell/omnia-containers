@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package consolepb;
+import "google/protobuf/empty.proto";
+
+service ConsoleManager {
+  rpc ShowNode (NodeName) returns (Node) {};
+  rpc SetConsoleState (NodesState) returns (Result) {};
+  rpc GetReplayContent (NodeName) returns (ReplayContent) {};
+  rpc ListSessionUser (NodeName) returns (SessionUsers) {};
+  rpc ListNodesStatus (google.protobuf.Empty) returns (NodesStatus) {};
+}
+
+message NodeName {
+  string name = 1;
+}
+
+message NodesStatus {
+  map<string, int32> nodesStatus = 1;
+}
+
+message Node {
+  string name = 1;
+  string driver = 2;
+  map<string, string> params = 3;
+  bool ondemand = 4;
+  int32 status = 5;
+}
+
+message NodesState {
+  repeated string names = 1;
+  string state = 2;
+}
+
+message Result {
+  map<string, string> result = 1;
+}
+
+message ReplayContent {
+  string content = 1;
+}
+
+message SessionUsers {
+  repeated string users = 1;
+}
