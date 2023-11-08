@@ -1,0 +1,11 @@
+image: xcat/xcat2:2.14.6
+tags: ['latest']
+manifests:
+  - image: xcat/xcat2:2.14.6-x86_64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: xcat/xcat2:2.14.6-ppc64le
+    platform:
+      architecture: ppc64le
+      os: linux

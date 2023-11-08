@@ -1,0 +1,10 @@
+image: xcat/xcat2:devel
+manifests:
+  - image: xcat/xcat2:devel-x86_64
+    platform:
+      architecture: amd64
+      os: linux
+  - image: xcat/xcat2:devel-ppc64le
+    platform:
+      architecture: ppc64le
+      os: linux
