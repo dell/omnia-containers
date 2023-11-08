@@ -1,0 +1,88 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2015-2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import optparse
+import os
+import signal
+import sys
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+
+argparser = optparse.OptionParser(
+    usage="Usage: %prog [options] <noderange> "
+          "([status|on|off|shutdown|boot|reset|pdu_status|pdu_off|pdu_on])")
+argparser.add_option('-p', '--showprevious', dest='previous',
+                     action='store_true', default=False,
+                     help='Show previous power state')
+argparser.add_option('-m', '--maxnodes', type='int',
+                     help='Specify a maximum number of '
+                          'nodes to change power state, '
+                          'prompting if over the threshold')
+
+(options, args) = argparser.parse_args()
+try:
+    noderange = args[0]
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+client.check_globbing(noderange)
+setstate = None
+if len(args) > 1:
+    setstate = args[1]
+    if setstate == 'softoff':
+        setstate = 'shutdown'
+
+if setstate not in (None, 'on', 'off', 'shutdown', 'boot', 'reset', 'pdu_status', 'pdu_stat', 'pdu_on', 'pdu_off', 'status', 'stat', 'state'):
+    argparser.print_help()
+    sys.exit(1)
+session = client.Command()
+exitcode = 0
+session.add_precede_key('oldstate')
+powurl = 'state'
+if setstate and setstate.startswith('pdu_'):
+    setstate = setstate.replace('pdu_', '')
+    powurl = 'inlets/all'
+if setstate in ('status', 'state', 'stat'):
+    setstate = None
+
+if options.previous:
+    # get previous states
+    prev = {}
+    for rsp in session.read("/noderange/{0}/power/{1}".format(noderange, powurl)):
+        # gets previous (current) states
+
+        databynode = rsp["databynode"]
+
+        for node in databynode:
+            prev[node] = databynode[node]["state"]["value"]
+
+    # add dictionary to session
+    session.add_precede_dict(prev)
+
+def outhandler(node, res):
+    for k in res[node]:
+        client.cprint('{0}: {1}: {2}'.format(node, k.replace('inlet_', ''), res[node][k]))
+sys.exit(session.simple_noderange_command(noderange, '/power/{0}'.format(powurl), setstate, promptover=options.maxnodes, key='state', outhandler=outhandler))

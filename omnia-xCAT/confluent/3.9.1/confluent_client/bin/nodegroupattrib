@@ -1,0 +1,130 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+__author__ = 'alin37'
+
+from getpass import getpass
+import optparse
+import os
+import signal
+import sys
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+
+argparser = optparse.OptionParser(
+    usage='''\n       %prog [options]   \
+             \n       %prog [options] nodegroup [list of attributes|all]  \
+             \n       %prog [options] nodegroup nodes=value1,value2   \
+             \n       %prog -e nodegroup <attribute names to set>  \
+             \n       %prog [options] nodegroup nodes=value1,value2
+             \n ''')
+argparser.add_option('-b', '--blame', action='store_true',
+                     help='Show information about how attributes inherited')
+argparser.add_option('-e', '--environment', action='store_true',
+                     help='Set attributes, but from environment variable of '
+                          'same name')
+argparser.add_option('-c', '--clear', action='store_true',
+                     help='Clear variables')
+argparser.add_option('-p', '--prompt', action='store_true',
+                     help='Prompt for attribute values interactively')
+(options, args) = argparser.parse_args()
+
+
+#setting minimal output to only output current information
+showtype = 'current'
+requestargs=None
+nodetype="nodegroups"
+
+try:
+    nodegroups = args[0]
+    client.check_globbing(nodegroups)
+    nodelist = '/{0}/{1}/'.format(nodetype,nodegroups)
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+    nodelist = '/nodegroups/'
+session = client.Command()
+exitcode = 0
+
+#Sets attributes
+
+if len(args) > 1:
+    showtype = 'all'
+    if "=" in args[1] and options.clear:
+        print("Can not clear and set at the same time!")
+        argparser.print_help()
+        sys.exit(1)
+    argassign = None
+    if options.prompt:
+        argassign = {}
+        for arg in args[1:]:
+            oneval = 1
+            twoval = 2
+            while oneval != twoval:
+                oneval = getpass('Enter value for {0}: '.format(arg))
+                twoval = getpass('Confirm value for {0}: '.format(arg))
+                if oneval != twoval:
+                    print('Values did not match.')
+            argassign[arg] = twoval
+    exitcode=client.updateattrib(session,args,nodetype, nodegroups, options, argassign)
+    try:
+        # setting user output to what the user inputs
+        if args[1] == 'all':
+            showtype = 'all'
+        elif args[1] == 'current':
+            showtype = 'current'
+
+        requestargs=args[1:]
+    except Exception as e:
+        print(str(e))
+
+if exitcode != 0:
+    sys.exit(exitcode)
+
+# Lists all attributes
+if len(args) > 0:
+    # setting output to all so it can search since if we do have something to search, we want to show all outputs even if it is blank.
+    if requestargs is None:
+        showtype = 'current'
+    elif requestargs == []:
+        #showtype already set
+        pass
+    else:
+        try:
+            requestargs.remove('all')
+            requestargs.remove('current')
+        except ValueError:
+            pass
+    exitcode = client.printgroupattributes(session, requestargs, showtype,nodetype, nodegroups, options)
+else:
+    for res in session.read(nodelist):
+        if 'error' in res:
+            sys.stderr.write(res['error'] + '\n')
+            exitcode = 1
+        else:
+            print(res['item']['href'].replace('/', ''))
+
+sys.exit(exitcode)

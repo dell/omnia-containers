@@ -1,0 +1,78 @@
+#!/bin/bash
+cd `dirname $0`
+PKGNAME=$(basename $(pwd))
+DPKGNAME=$(basename $(pwd) | sed -e s/_/-/)
+OPKGNAME=$(basename $(pwd) | sed -e s/_/-/)
+PYEXEC=python3
+DSCARGS="--with-python3=True --with-python2=False"
+if grep wheezy /etc/os-release; then
+    DPKGNAME=python-$DPKGNAME
+    PYEXEC=python
+    DSCARGS=""
+fi
+cd ..
+mkdir -p /tmp/confluent # $DPKGNAME
+cp -a * .git /tmp/confluent # $DPKGNAME
+cd /tmp/confluent/$PKGNAME
+if [ -x ./makeman ]; then
+    ./makeman
+fi
+./makesetup
+VERSION=`cat VERSION`
+cat > setup.cfg << EOF
+[install]
+install-purelib=/opt/confluent/lib/python
+install-scripts=/opt/confluent/bin
+
+[sdist_dsc]
+package=$DPKGNAME
+EOF
+
+$PYEXEC setup.py sdist > /dev/null 2>&1
+py2dsc $DSCARGS dist/*.tar.gz
+shopt -s extglob
+cd deb_dist/!(*.orig)/
+if [ "$OPKGNAME" = "confluent-server" ]; then
+    if grep wheezy /etc/os-release; then
+        sed -i 's/^\(Depends:.*\)/\1, python-confluent-client, python-lxml, python-eficompressor, python-pycryptodomex, python-dateutil, python-pyopenssl, python-msgpack/' debian/control
+    else
+        sed -i 's/^\(Depends:.*\)/\1, confluent-client, python3-lxml, python3-eficompressor, python3-pycryptodome, python3-websocket, python3-msgpack, python3-eventlet, python3-pyparsing, python3-pyghmi, python3-paramiko, python3-pysnmp4, python3-libarchive-c, confluent-vtbufferd/' debian/control
+    fi
+    if grep wheezy /etc/os-release; then
+        echo 'confluent_client python-confluent-client' >> debian/pydist-overrides
+    else
+        echo 'confluent_client confluent-client' >> debian/pydist-overrides
+    fi
+fi
+if ! grep wheezy /etc/os-release; then
+    sed -i 's/^Package: python3-/Package: /' debian/control
+fi
+head -n -1 debian/control > debian/control1
+mv debian/control1 debian/control
+cat > debian/postinst << EOF
+if ! getent passwd confluent > /dev/null; then 
+    useradd -r confluent -d /var/lib/confluent -s /usr/sbin/nologin
+    mkdir -p /etc/confluent
+    chown confluent /etc/confluent
+fi
+EOF
+echo 'export PYBUILD_INSTALL_ARGS=--install-lib=/opt/confluent/lib/python' >> debian/rules
+#echo 'Provides: python-'$DPKGNAME >> debian/control
+#echo 'Conflicts: python-'$DPKGNAME >> debian/control
+#echo 'Replaces: python-'$DPKGNAME' (<<2)' >> debian/control
+#echo 'Breaks: python-'$DPKGNAME' (<<2)' >> debian/control
+
+dpkg-buildpackage -rfakeroot -uc  -us -i
+if [ $? -ne 0 ]; then
+    echo "[ERROR] rpmbuild returned non-zero, run: rpmbuild -ba ~/rpmbuild/SPECS/$PKGNAME.spec"
+    exit 1
+else
+    cd -
+    # Clean up the generated files in this directory
+    rm -rf $PKGNAME.egg-info dist setup.py
+    rm -rf $(find deb_dist -mindepth 1 -maxdepth 1 -type d)
+    if [ ! -z "$1" ]; then
+        mv deb_dist/* $1/
+    fi
+fi
+exit 0

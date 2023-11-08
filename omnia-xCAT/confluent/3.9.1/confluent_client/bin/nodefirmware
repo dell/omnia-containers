@@ -1,0 +1,180 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2016-2017 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import optparse
+import os
+import signal
+import sys
+import time
+
+try:
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+except AttributeError:
+    pass
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    sys.path.append(path)
+
+import confluent.client as client
+import confluent.screensqueeze as sq
+
+exitcode = 0
+
+
+def printfirm(node, prefix, data):
+    if 'model' in data and data['model']:
+        prefix += ' ' + data['model']
+    builddesc = []
+    if 'build' in data and data['build']:
+        builddesc.append(data['build'])
+    if 'date' in data and data['date']:
+        builddesc.append(data['date'])
+    if 'version' in data and data['version']:
+        version = data['version']
+        if builddesc:
+            version += ' ({0})'.format(' '.join(builddesc))
+    else:
+        version = ' '.join(builddesc)
+    print('{0}: {1}: {2}'.format(node, prefix, version))
+
+components = ['all']
+
+argparser = optparse.OptionParser(
+    usage="Usage: "
+          "%prog <noderange> [list][update [--backup <file>]]|[<components>]")
+argparser.add_option('-b', '--backup', action='store_true',
+                     help='Target a backup bank rather than primary')
+argparser.add_option('-m', '--maxnodes', type='int',
+                     help='When updating, prompt if more than the specified '
+                          'number of servers will be affected')
+             
+(options, args) = argparser.parse_args()
+upfile = None
+try:
+    noderange = args[0]
+    if len(args) > 1:
+        if args[1] == 'update':
+            upfile = args[2]
+        else:
+            if args[1] == 'list':
+                comps = args[2:]
+            else:
+                comps = args[1:]
+            components = []
+            for arg in comps:
+                components += arg.split(',')
+            if not components:
+                components = ['all']
+
+except IndexError:
+    argparser.print_help()
+    sys.exit(1)
+client.check_globbing(noderange)
+
+def get_update_progress(session, url):
+    for res in session.read(url):
+        status = res.get('phase', 'error')
+        percent = res.get('progress', None)
+        detail = res.get('detail', repr(res)),
+        if status == 'error':
+            text = 'error!'
+        else:
+            text = '{0}: {1:3.0f}%'.format(status, percent)
+    return text, status, detail
+
+def update_firmware(session, filename):
+    global exitcode
+    session.stop_if_noderange_over(noderange, options.maxnodes)
+    output = sq.ScreenPrinter(noderange, session)
+    nodeurls = {}
+    filename = os.path.abspath(filename)
+    resource = '/noderange/{0}/inventory/firmware/updates/active'.format(
+        noderange)
+    upargs = {'filename': filename}
+    if options.backup:
+        upargs['bank'] = 'backup'
+    noderrs = {}
+    if session.unixdomain:
+        of = open(filename, 'rb')
+        try:
+            session.add_file(filename, of.fileno(), 'rb')
+        except Exception:
+            pass
+    for res in session.create(resource, upargs):
+        if 'created' not in res:
+            for nodename in res.get('databynode', ()):
+                output.set_output(nodename, 'error!')
+                noderrs[nodename] = res['databynode'][nodename].get(
+                    'error', 'Unknown Error')
+            continue
+        watchurl = res['created']
+        currnode = watchurl.split('/')[1]
+        nodeurls[currnode] = '/' + watchurl
+    while nodeurls:
+        for node in list(nodeurls):
+            progress, status, err = get_update_progress(
+                session, nodeurls[node])
+            if status == 'error':
+                exitcode = 1
+                noderrs[node] = err
+            if status in ('error', 'complete', 'pending'):
+                list(session.delete(nodeurls[node]))
+                del nodeurls[node]
+            output.set_output(node, progress)
+        time.sleep(2)
+    allerrnodes = ','.join(noderrs)
+    if noderrs:
+        sys.stderr.write(
+            'Nodes had errors updating ({0})!\n'.format(allerrnodes))
+    for node in noderrs:
+        sys.stderr.write('{0}: {1}\n'.format(node, noderrs[node]))
+
+def show_firmware(session):
+    global exitcode
+    firmware_shown = False
+    nodes_matched = False
+    for component in components:
+        for res in session.read(
+                '/noderange/{0}/inventory/firmware/all/{1}'.format(
+                    noderange, component)):
+            nodes_matched = True
+            exitcode |= client.printerror(res)
+            if 'databynode' not in res:
+                continue
+            for node in res['databynode']:
+                if 'firmware' not in res['databynode'][node]:
+                    continue
+                for inv in res['databynode'][node]['firmware']:
+                    for prefix in inv:
+                        firmware_shown = True
+                        printfirm(node, prefix, inv[prefix])
+    if not nodes_matched:
+        sys.stderr.write('No matching nodes for noderange "{0}"\n'.format(noderange))
+    elif not firmware_shown and not exitcode:
+        argparser.print_help()
+
+
+try:
+    session = client.Command()
+    if upfile is None:
+        show_firmware(session)
+    else:
+        update_firmware(session, upfile)
+except KeyboardInterrupt:
+    print('')
+sys.exit(exitcode)

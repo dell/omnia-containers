@@ -1,0 +1,299 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import socket
+import glob
+import ssl
+import sys
+path = os.path.dirname(os.path.realpath(__file__))
+path = os.path.realpath(os.path.join(path, '..', 'lib', 'python'))
+if path.startswith('/opt'):
+    # if installed into system path, do not muck with things
+    sys.path.append(path)
+import confluent.sshutil as sshutil
+import confluent.certutil as certutil
+import confluent.client as client
+import confluent.config.configmanager as configmanager
+import eventlet.green.subprocess as subprocess
+import tempfile
+import shutil
+import eventlet.green.socket as socket
+import eventlet
+import greenlet
+
+def fprint(txt):
+    sys.stdout.write(txt)
+    sys.stdout.flush()
+
+
+def tftp_works():
+    try:
+        subprocess.check_call(['curl', '--connect-timeout', '2', '-sf', 'tftp://localhost/confluent/x86_64/ipxe.efi', '-o', '/dev/null'])
+        return True
+    except Exception:
+        return False
+
+def emprint(txt):
+    if sys.stdout.isatty():
+        print('\x1b[1m\x1b[4m' + txt + '\x1b[0m')
+    else:
+        print(txt)
+
+def deployment_configured():
+    return os.path.exists('/var/lib/confluent/public/site/confluent_uuid')
+
+def webserver_listening():
+    try:
+        conn = socket.create_connection(('localhost', 443))
+        return conn
+    except Exception:
+        return False
+
+
+def certificates_missing_ips(conn):
+    # check if the tls can verify by the right CAs, then further
+    # check if all ip addresses are in the certificate offered
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    ctx.check_hostname = False
+    for cacert in glob.glob('/var/lib/confluent/public/site/tls/*.pem'):
+        ctx.load_verify_locations(cacert)
+    sock = ctx.wrap_socket(conn)
+    crt = sock.getpeercert()
+    sans = crt.get('subjectAltName', [])
+    ips = certutil.get_ip_addresses()
+    missing_ips = []
+    for ip in ips:
+        for san in sans:
+            field, val = san
+            if val[-1] == '\n':
+                val = val[:-1]
+            if ':' in val:
+                # must normalize ipv6 to a sane value
+                val = socket.getaddrinfo(val, 443, proto=socket.IPPROTO_TCP)[0][-1][0]
+            if ip == val:
+                break
+        else:
+            missing_ips.append(ip)
+    return missing_ips
+
+
+def web_download_works():
+    try:
+        subprocess.check_call(['curl', '-skf', 'https://localhost/confluent-public/site/confluent_uuid', '-o', '/dev/null'])
+    except Exception:
+        return False
+    return True
+            
+def web_api_works():
+    try:
+        res = subprocess.check_output(['curl', '-X', 'GET', '-Isk', 'https://localhost/confluent-api/'])
+        res = res.split(b'\n')[0]
+        if b'401' in res:
+            return True
+        return False
+    except Exception:
+        return False
+    return True
+
+def nics_missing_ipv6():
+    # check for ability to create AF_INET6, for kernel disabled ipv6
+    a = socket.socket(socket.AF_INET6)
+    ipaddrs = subprocess.check_output(['ip', '-br', 'a']).split(b'\n')
+    missingnics = []
+    for line in ipaddrs:
+        comps = line.split()
+        if not comps:
+            continue
+        iname, state = comps[:2]
+        if iname == b'lo':
+            continue
+        addrs = comps[2:]
+        hasv6 = False
+        hasv4 = False
+        for addr in addrs:
+            if b'.' in addr:
+                hasv4 = True
+            if addr.startswith(b'fe80::'):
+                hasv6 = True
+        if hasv4 and not hasv6:
+            missingnics.append(iname.decode('utf8'))
+    return missingnics
+
+def insecure_boot_attempts():
+    insecurenodes = set([])
+    with open('/var/log/confluent/events') as eventin:
+        line = True
+        while line:
+            line = eventin.readline()
+            if 'insecure mode is disabled' in line:
+                line = line.split()
+                insecurenodes.add(line[7])
+    for node in insecurenodes:
+        currattr = subprocess.check_output(['nodeattrib', node, 'deployment.useinsecureprotocols'])
+        currattr = currattr.split()
+        if len(currattr) > 2 and currattr[2] == b'firmware':
+            continue
+        else:
+            return True
+    return False
+
+
+def uuid_matches():
+    with open('/var/lib/confluent/public/site/confluent_uuid', 'r') as uuidf:
+        fsuuid = uuidf.read().strip()
+    dbuuid = configmanager.get_global('confluent_uuid')
+    return dbuuid == fsuuid
+
+def lookup_node(node):
+    try:
+        return socket.getaddrinfo(node, 0)
+    except greenlet.GreenletExit:
+        return None
+    except Exception:
+        return None
+
+if __name__ == '__main__':
+    ap = argparse.ArgumentParser(description='Run configuration checks for a system running confluent service')
+    ap.add_argument('-n', '--node', help='A node name to run node specific checks against')
+    args, extra = ap.parse_known_args(sys.argv)
+    if len(extra) > 1:
+        ap.print_help()
+        sys.exit(1)
+    sys.stdout.write('OS Deployment: ')
+    sys.stdout.flush()
+    if deployment_configured():
+        print("Initialized")
+        sys.stdout.write('Confluent UUID: ')
+        sys.stdout.flush()
+        if uuid_matches():
+            print('Consistent')
+        else:
+            emprint('Inconsistent between confluent database and /var/lib/confluent (Example resolution: confetty set /uuid resync=1)')
+        fprint('Web Server: ')
+        conn = webserver_listening()
+        if conn:
+            print('Running')
+            fprint('Web Certificate: ')
+            cert = certificates_missing_ips(conn)
+            if cert:
+                cert = ', '.join(cert)
+                emprint('Addresses missing from certificate: {0} (Example resolution: osdeploy initialize -t)'.format(cert))
+            else:
+                print('OK')
+                fprint('Checking web download: ')
+                if web_download_works():
+                    print('OK')
+                else:
+                    emprint('Failed to download /confluent-public/site/confluent_uuid')
+                fprint('Checking web API access: ')
+                if web_api_works():
+                    print('OK')
+                else:
+                    emprint('Failed access, if selinux is enabled, `setsebool -P httpd_can_network_connect=1`, otherwise check web proxy configuration')
+        else:
+            emprint('Not Running (Example resolution: systemctl enable httpd --now)')
+        fprint('TFTP Status: ')
+        if tftp_works():
+            print('OK')
+        else:
+            emprint('TFTP failure, PXE will not work, though media and HTTP boot can still work. (Example resolution: osdeploy initialize -p)')
+        fprint('SSH root user public key: ')
+        if glob.glob('/var/lib/confluent/public/site/ssh/*.rootpubkey'):
+            print('OK')
+        else:
+            emprint('No trusted ssh keys for root user, passwordless SSH from managers to nodes may not work (Example resolution: osdeploy initialize -u)')
+        if sshutil.sshver() > 7.6:
+            fprint('Checking SSH Certificate authority: ')
+            try:
+                sshutil.prep_ssh_key('/etc/confluent/ssh/ca')
+                print('OK')
+            except Exception:
+                emprint('Failed to load SSH authority key, deployed servers will not have host certificates for known_hosts and users may be unable to ssh between nodes without a password (Example resolution: osdeploy initialize -s)')            
+            fprint('Checking confluent SSH automation key: ')
+            try:
+                sshutil.prep_ssh_key('/etc/confluent/ssh/automation')
+                print('OK')
+            except subprocess.CalledProcessError:
+                emprint('Failed to load confluent automation key, syncfiles and profile ansible plays will not work (Example resolution: osdeploy initialize -a)')
+        fprint('Checking for blocked insecure boot: ')
+        if insecure_boot_attempts():
+            emprint('Some nodes are attempting network boot using PXE or HTTP boot, but the node is not configured to allow this (Example resolution: nodegroupattrib everything deployment.useinsecureprotocols=firmware)')
+        else:
+            print('OK')
+        fprint('Checking IPv6 enablement: ')
+        nics = nics_missing_ipv6()
+        if nics:
+            snics = ','.join(nics)
+            emprint('Some interfaces ({0}) have ipv6 disabled, and may be unable to fully perform discovery or deployment (Example resolution: nmcli c m {1} ipv6.method link-local )'.format(snics, nics[0]))
+        else:
+            print('OK')
+    else:
+        print("Uninitialized, further OS deployment checks skipped, see `osdeploy initialize` to set up OS deployment feature")
+    if args.node:
+        print("Performing node checks for '{}'".format(args.node))
+        print("Checking node attributes in confluent...")
+        sess = client.Command()
+        allok = True
+        uuidok = False
+        macok = False
+        valid_nodes = [node['item']['href'][:-1] for node in sess.read('/nodes/')] #get all valid nodes
+        for rsp in sess.read(f'/nodes/{args.node}/attributes/all'):
+            if rsp.get('errorcode', None) == 404:
+                emprint(f'There is no node named "{args.node}"')
+                allok = False
+                uuidok = True  # not really, but suppress the spurious error
+            dnsdomain = rsp.get('dns.domain', {}).get('value', '')
+            if ',' in dnsdomain or ' ' in dnsdomain:
+                allok = False
+                emprint(f'{args.node} has a dns.domain that appears to be a search instead of singular domain')
+                uuidok = True  # not really, but suppress the spurious error
+            uuid = rsp.get('id.uuid', {}).get('value', None)
+            if uuid:
+                uuidok = True
+            if 'deployment.useinsecureprotocols' in rsp:
+                insec = rsp.get('deployment.useinsecureprotocols', {}).get('value', None)
+                if insec != 'firmware':
+                    emprint(f'{args.node} does not have deployment.useinsecureprotocols set to firmware. This is fine for USB boot. HTTP boot can work, but requires the deployment server CA certificates be provisioned to the UEFI first.  PXE and HTTP boot without preprovisioned certificates will fail.')
+            for key in rsp:
+                if key.endswith('.hwaddr'):
+                    mac = rsp[key].get('value', None)
+                    if mac:
+                        macok = True
+            #adding new code to check if the response is something like net.<something>switch
+            for key in rsp:
+                if ((key.startswith('net.') and key.endswith('switch')) 
+                        or (key.startswith('power.') and key.endswith('pdu'))
+                        or (key.startswith('enclosure.') and key.endswith('manager'))
+                        ):
+                    switch_value = rsp[key].get('value',None)
+                    if switch_value and switch_value not in valid_nodes:
+                        emprint(f'{switch_value} is not a valid node name (as referenced by attribute "{key}" of node {args.node}).')
+        if not uuidok and not macok:
+            allok = False
+            emprint(f'{args.node} does not have a uuid or mac address defined in id.uuid or net.*hwaddr, deployment will not work')
+        if allok:
+            print(f'No issues detected with attributes of {args.node}')
+        fprint("Checking name resolution: ")
+        lk = eventlet.spawn(lookup_node, args.node)
+        eventlet.sleep(0.1)
+        tries = 5
+        while not lk.dead and tries > 0:
+            eventlet.sleep(1)
+            tries -= 1
+        deaddns = False
+        if not tries:
+            emprint('Name resolution takes too long, check state of /etc/resolv.conf and indicated nameservers, this can produce failure to netboot or failure to commence installation')
+            lk.kill()
+            deaddns = True
+        result = lk.wait()
+        if not result and not deaddns:
+            emprint('Name resolution failed for node, it is normally a good idea for the node name to resolve to an IP')
+        if result:
+            print("OK")
+    else:
+        print("Skipping node checks, no node specified (Example: confluent_selfcheck -n n1)")
+# possible checks:
+# arping on the node, check for dupes/against nodeinventory?
+# arping -D for mgt own ip addresses? check for dupes, also check for bleed through from one nic to another
+# iterate through profiles, use mtools to extract site initramfs, check if outdated

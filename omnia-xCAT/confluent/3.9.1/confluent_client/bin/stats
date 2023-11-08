@@ -1,0 +1,200 @@
+#!/usr/bin/python2
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+
+# Copyright 2019 Lenovo
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import base64
+import csv
+import io
+import numpy as np
+import sys
+
+try:
+    import sixel
+
+    class DumbWriter(sixel.SixelWriter):
+        def restore_position(self, output):
+            return
+except ImportError:
+    pass
+
+
+def iterm_draw(data):
+    databuf = data.getbuffer()
+    datalen = len(databuf)
+    data = base64.b64encode(databuf).decode('utf8')
+    sys.stdout.write(
+        '\x1b]1337;File=inline=1;size={}:'.format(datalen))
+    sys.stdout.write(data)
+    sys.stdout.write('\a')
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+
+
+def kitty_draw(data):
+    data = base64.b64encode(data.getbuffer())
+    while data:
+        chunk, data = data[:4096], data[4096:]
+        m = 1 if data else 0
+        sys.stdout.write('\x1b_Ga=T,f=100,m={};'.format(m))
+        sys.stdout.write(chunk.decode('utf8'))
+        sys.stdout.write('\x1b\\')
+        sys.stdout.flush()
+    sys.stdout.write('\n')
+
+
+def plot(gui, output, plotdata, bins, fmt):
+    import matplotlib as mpl
+    if gui and mpl.get_backend() == 'agg':
+        sys.stderr.write('Error: No GUI backend available and -g specified!\n')
+    if not gui:
+        mpl.use('Agg')
+    import matplotlib.pyplot as plt
+    n, bins, patches = plt.hist(plotdata, bins)
+    plt.show()
+    if not gui:
+        if output:
+            tdata = output
+        else:
+            tdata = io.BytesIO()
+        plt.savefig(tdata)
+    if not gui and not output:
+        if fmt == 'sixel':
+            writer = DumbWriter()
+            writer.draw(tdata)
+        elif fmt == 'kitty':
+            kitty_draw(tdata)
+        elif fmt == 'iterm':
+            iterm_draw(tdata)
+    return n, bins
+
+def textplot(plotdata, bins):
+    n, bins = np.histogram(plotdata, bins)
+    labels = []
+    for bin in bins:
+        labels.append('{0:0.1f}'.format(bin))
+    width = 80
+    # Since this will be primarily piped into, hard to get 
+    # terminal width
+    labelwidth = 0
+    for lab in labels:
+        if len(lab) > labelwidth:
+            labelwidth = len(lab)
+    width -= (labelwidth) + 1
+    labelfmt = '{{0:>{0}s}}|'.format(labelwidth)
+    maxn = 0.0
+    for lgth in n:
+        if lgth > maxn:
+            maxn = float(lgth)
+    for i in range(len(n)):
+        print(labelfmt.format(labels[i]) + '=' * int(np.round((n[i]/maxn) * width)))
+    return n, bins
+
+histogram = False
+aparser = argparse.ArgumentParser(description='Quick access to common statistics')
+aparser.add_argument('-c', type=int, default=0, help='Column number to analyze (default is last column)')
+aparser.add_argument('-d', default=None, help='Value used to separate columns')
+aparser.add_argument('-x', default=False, action='store_true', help='Output histogram in graphical format')
+aparser.add_argument('-f', default='sixel', help='Format for histogram output (sixel/iterm/kitty)')
+aparser.add_argument('-s', default=0, help='Number of header lines to skip before processing')
+aparser.add_argument('-g', default=False, action='store_true', help='Open histogram in separate graphical window')
+aparser.add_argument('-o', default=None, help='Output histogram to the specified filename in PNG format')
+aparser.add_argument('-t', default=False, action='store_true', help='Output a histogram in text format')
+aparser.add_argument('-v', default=False, action='store_true', help='Attempt to list nodes relevant to each histogram bar (requires -s, -o, or -t)')
+aparser.add_argument('-b', type=int, default=10, help='Number of bins to use in histogram (default is 10)')
+args = aparser.parse_args(sys.argv[1:])
+plotdata = []
+headlines = int(args.s)
+while headlines >= 0:
+    data = sys.stdin.readline()
+    headlines -= 1
+if args.d:
+    delimiter = args.d
+else:
+    if '\t' in data:
+        delimiter = '\t'
+    elif ' ' in data:
+        delimiter = ' '
+    elif ',' in data:
+        delimiter = ','
+    else:
+        delimiter = ' '  # handle single column
+data = list(csv.reader([data], delimiter=delimiter))[0]
+nodebydatum = {}
+idx = args.c - 1
+autoidx = False
+while data:
+    node = None
+    if ':' in data[0]:
+        node, data[0] = data[0].split(':', 1)
+    else:
+        node = data[0]
+    if idx == -1 and not autoidx:
+        while not autoidx:
+            try:
+                datum = float(data[idx])
+            except ValueError:
+                idx -= 1
+                continue
+            except IndexError:
+                sys.stderr.write('Unable to identify a numerical column\n')
+                sys.exit(1)
+            autoidx = True
+    else:
+        datum = float(data[idx])
+    if node:
+        if datum in nodebydatum:
+            nodebydatum[datum].add(node)
+        else:
+            nodebydatum[datum] = set([node])
+    plotdata.append(datum)
+    data = sys.stdin.readline()
+    data = list(csv.reader([data], delimiter=delimiter))[0]
+n = None
+if args.g or args.o or args.x:
+    n, bins = plot(args.g, args.o, plotdata, bins=args.b, fmt=args.f)
+if args.t:
+    n, bins = textplot(plotdata, bins=args.b)
+print('Samples: {5} Min: {3} Median: {0} Mean: {1} Max: {4} StandardDeviation: {2} Sum: {6}'.format(np.median(plotdata), np.mean(plotdata), np.std(plotdata), np.min(plotdata), np.max(plotdata), len(plotdata), np.sum(plotdata)))
+if args.v and n is not None and nodebydatum:
+    print('')
+    currbin = bins[0]
+    bins = bins[1:]
+    currbinmembers = []
+    for datum in sorted(nodebydatum):
+        if datum > bins[0]:
+           nextbin = None
+           endbin = bins[0]
+           while len(bins) and bins[0] < datum:
+                nextbin = bins[0]
+                bins = bins[1:]
+           if not nextbin:
+               nextbin = np.max(plotdata)
+           print('Entries between {0} and {1}'.format(currbin, endbin))
+           currbin = nextbin
+           print('-' * 80)
+           print(','.join(sorted(currbinmembers)))
+           print('')
+           print('')
+           currbinmembers = []
+        for node in nodebydatum[datum]:
+            currbinmembers.append(node)
+    if currbinmembers:
+       print('Entries between {0} and {1}'.format(currbin, np.max(plotdata)))
+       print('-' * 80)
+       print(','.join(sorted(currbinmembers)))
+       print('')
+       print('')

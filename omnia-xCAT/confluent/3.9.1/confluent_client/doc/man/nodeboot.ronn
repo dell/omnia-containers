@@ -1,0 +1,72 @@
+nodeboot(8) -- Reboot a confluent node to a specific device
+=========================================================
+
+## SYNOPSIS
+
+`nodeboot [options] <noderange> [default|cd|network|setup|hd]`  
+
+## DESCRIPTION
+
+**nodeboot** reboots nodes in a noderange.  If an additional argument is given,
+it sets the node to specifically boot to that as the next boot.  This 
+performs an immediate reboot without waiting for the OS.  To set the boot
+device without inducing a reboot, see the `nodesetboot` command.
+
+## OPTIONS
+
+* `-b`, `--bios`:
+  For a system that supports both BIOS and UEFI style boot, request BIOS style
+  boot if supported (some platforms will UEFI boot with this flag anyway).
+
+* `-u`, `--uefi`:
+  This flag does nothing, it is for command compatibility with xCAT's rsetboot
+
+* `-p`, `--persist`:
+  For a system that supports it, mark the boot override to persist rather than
+  be a one time change.  Many systems do not support this functionality.
+  
+* `-m MAXNODES`, `--maxnodes=MAXNODES`:
+  Specify a maximum number of nodes to boot, prompting
+  if over the threshold
+  
+* `-h`, `--help`:
+  Show help message and exit  
+
+* `default`:
+  Request a normal default boot with no particular device override
+
+* `cd`:
+  Request boot from media.  Note that this can include physical CD,
+  remote media mounted as CD/DVD, and detachable hard disks drives such as usb
+  key devices.
+  
+* `network`:
+  Request boot to network
+  
+* `setup`:
+  Request to enter the firmware configuration menu (e.g. F1 setup) on next boot.
+
+* `hd`:
+  Boot straight to hard disk drive
+
+## EXAMPLES
+* Booting n3 and n4 to the default boot behavior:
+  `# nodeboot n3-n4`  
+  `n3: default`  
+  `n4: default`  
+  `n3: on->reset`  
+  `n4: on->reset`  
+
+* Booting n1 and n2 to setup menu:
+  `# nodeboot n1-n2 setup`
+  `n2: setup`  
+  `n1: setup`  
+  `n2: on->reset`  
+  `n1: on->reset`  
+
+* Booting n3 and n4 to network:
+  `# nodeboot n3-n4 net`  
+  `n3: network`  
+  `n4: network`  
+  `n4: on->reset`  
+  `n3: off->on`  

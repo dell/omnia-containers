@@ -1,0 +1,36 @@
+%define name confluent_vtbufferd
+%define version #VERSION#
+%define release 1
+%define debug_package %{nil}
+%define _build_id_links none
+
+Summary: Console buffer manager for confluent
+Name: %{name}
+Version: %{version}
+Release: %{release}
+Source0: %{name}-%{version}.tar.gz
+License: Apache2
+Group: Development/Libraries
+Vendor: Lenovo HPC Organization <hpchelp@lenovo.com>
+Url: https://github.com/lenovo/confluent/
+
+%description
+Service for managing in-memory VT emulation for confluent.
+
+%prep
+%setup -n %{name}-%{version} -n %{name}-%{version}
+
+
+%build
+make
+
+%install
+mkdir -p $RPM_BUILD_ROOT/opt/confluent/bin $RPM_BUILD_ROOT/opt/confluent/share/licenses/vtbufferd
+cp vtbufferd $RPM_BUILD_ROOT/opt/confluent/bin/
+cp NOTICE $RPM_BUILD_ROOT/opt/confluent/share/licenses/vtbufferd
+cp LICENSE $RPM_BUILD_ROOT/opt/confluent/share/licenses/vtbufferd
+
+%files
+/opt/confluent/bin/vtbufferd
+%license /opt/confluent/share/licenses/vtbufferd/NOTICE
+%license /opt/confluent/share/licenses/vtbufferd/LICENSE

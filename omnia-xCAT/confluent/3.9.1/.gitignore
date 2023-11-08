@@ -1,0 +1,7 @@
+*.pyc
+.*.
+confluent_client/man/man*
+.vscode
+.*.sw*
+.sw*
+.idea/*
