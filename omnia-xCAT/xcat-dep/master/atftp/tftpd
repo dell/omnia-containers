@@ -1,0 +1,90 @@
+#!/bin/bash
+# chkconfig: 345 85 60
+# description: TFTP server
+# processname: atftpd
+
+### BEGIN INIT INFO
+# Provides: tftpd
+# Required-Start: 
+# Required-Stop:
+# Default-Start: 3 4 5
+# Default-stop: 0 1 2 6
+# Short-Description: atftp
+# Description: ATFTP server
+### END INIT INFO
+
+if [ -r /etc/sysconfig/atftpd ]; then 
+    . /etc/sysconfig/atftpd
+fi
+
+RHSuccess()
+{
+    success
+    echo
+}
+RHFailure()
+{
+    failure
+    echo
+}
+MStatus()
+{
+  ps ax|grep -v grep|grep atftpd >& /dev/null
+  if [ "$?" = "0" ]; then
+    RVAL=0
+    echo "atftpd service is running"
+  else
+    RVAL=3
+    echo "atftpd service is not running"
+  fi
+  return $RVAL
+}
+
+if [ -f /etc/init.d/functions ]; then
+  . /etc/init.d/functions
+  START_DAEMON=daemon
+  STATUS=MStatus
+  LOG_SUCCESS=RHSuccess
+  LOG_FAILURE=RHFailure
+  LOG_WARNING=passed
+elif [ -f /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+  START_DAEMON=start_daemon
+  STATUS=MStatus
+  LOG_SUCCESS=log_success_msg
+  LOG_FAILURE=log_failure_msg
+  LOG_WARNING=log_warning_message
+else
+  echo "Error, don't know how to start on this platform"
+  exit 1
+fi
+MULTARG="--no-multicast"
+
+case $1 in
+restart)
+  $0 stop
+  $0 start
+  ;;
+status)
+  $STATUS
+  ;;
+stop)
+  echo -n "Stopping ATFTP "
+  if killproc atftpd; then
+   $LOG_SUCCESS
+  else
+   $LOG_FAILURE
+  fi
+  ;;
+start)
+  echo -n "Starting ATFTP "
+  if [ "$ATFTPMULTICAST" == "yes" ]; then
+    MULTARG=""
+  fi
+  $START_DAEMON /usr/sbin/atftpd $MULTARG --group nobody --daemon && $LOG_SUCCESS || $LOG_FAILURE
+  ;;
+esac
+
+
+
+

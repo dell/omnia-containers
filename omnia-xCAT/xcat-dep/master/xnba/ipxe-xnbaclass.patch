@@ -1,0 +1,13 @@
+diff --git a/src/net/udp/dhcp.c b/src/net/udp/dhcp.c
+index 3a3666c..0e46a82 100644
+--- a/src/net/udp/dhcp.c
++++ b/src/net/udp/dhcp.c
+@@ -87,7 +87,7 @@ static uint8_t dhcp_request_options_data[] = {
+ 	DHCP_VENDOR_CLASS_ID,
+ 	DHCP_STRING ( DHCP_VENDOR_PXECLIENT ( DHCP_ARCH_CLIENT_ARCHITECTURE,
+ 					      DHCP_ARCH_CLIENT_NDI ) ),
+-	DHCP_USER_CLASS_ID, DHCP_STRING ( 'i', 'P', 'X', 'E' ),
++	DHCP_USER_CLASS_ID, DHCP_STRING ( 'x', 'N', 'B', 'A' ),
+ 	DHCP_PARAMETER_REQUEST_LIST,
+ 	DHCP_OPTION ( DHCP_SUBNET_MASK, DHCP_ROUTERS, DHCP_DNS_SERVERS,
+ 		      DHCP_LOG_SERVERS, DHCP_HOST_NAME, DHCP_DOMAIN_NAME,

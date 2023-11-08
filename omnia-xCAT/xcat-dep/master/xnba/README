@@ -1,0 +1,54 @@
+Get latest ipxe source from git.ipxe.org
+----------------------------------------
+Current ipxe version is 1.21.1 (released Dec 31,2020), the tar command below will generate xnba-1.21.1.tar.bz2
+
+1. Clone ipxe from github - git clone git://git.ipxe.org/ipxe.git
+2. Verify version number - git describe --tags --always --long --abbrev=1 --match "v*"
+3. Rename ipxe directory to xnba-<version> - mv ipxe xnba-1.21.1
+4. Tar xnba-<version> directory - tar Jcvf xnba-1.21.1.tar.bz2 --exclude-vcs xnba-1.21.1
+5. Optionally, if building is needed - cd src; make
+
+
+Patch ipxe source
+-----------------
+1. Clone xcat-dep/xnba and create a new branch: git clone git@github.com:xcat2/xcat-dep.git; cd xcat-dep; git checkout -b <new branch>
+2. Checkin the generated xnba-<version>.tar.bz2 file from above into git
+3. If needed, modify existing or create additional patch files and checkin into git. The patch files will automatically be applied during build step below.
+  The following patches currently contain modification for xCAT Network Boot Agent
+
+	ipxe-xnbaclass.patch
+	ipxe-machyp.patch
+	ipxe-dhcp.patch	
+	ipxe-branding.patch
+	ipxe-verbump.patch
+
+3.a To modify existing or create additional patch file:
+    i. git clone git://git.ipxe.org/ipxe.git
+   ii. Make changes to the files under ipxe/src directory
+  iii. git diff <changed file> > my.patch
+   iv. If creating a new patch, rename my.patch to something like ipxe-<xxx>.patch
+    v. If modifying existing patch, replace the contents of that .patch file with the my.patch
+   vi. Be carefull of spaces vs. tabs. If original source file contained tabs, the .patch file should also have tabs for the patched lines.
+  vii. Checkin the new or modified patch files into the same git branch.
+
+
+Build xNBA rpm for xcat-dep
+---------------------------
+1. On x86 RHEL machine, install required package: git, xz-devel and gcc
+2. Checkout the branch created above: git clone https://github.com/xcat2/xcat-dep.git; cd xcat-dep; git checkout <new branch>
+3. Copy 5 patch files listed above and xnba-<version>.tar.bz2 from cloned git directory into /root/rpmbuild/SOURCES/. Create that directory if one does not already exist.
+4. RPM build: cd xcat-dep/xnba; rpmbuild -ba xnba-undi.spec
+5. Copy generated rpm /root/rpmbuild/RPMS/noarch/xnba-undi-<version>.noarch.rpm into /gsa/pokgsa/projects/x/xcat/build/linux/xcat-dep/
+6. Create links from <os/arch> subdirs to the /root/rpmbuild/RPMS/noarch/xnba-undi-<version>.noarch.rpm
+
+
+Build xNBA deb for xcat-dep
+---------------------------
+1. On x86 Ubuntu machine, install required packages:  git, liblzma-dev, dpkg-dev, debhelper, and quilt
+2. Checkout the branch created above: git clone https://github.com/xcat2/xcat-dep.git; cd xcat-dep; git checkout <new branch>
+3. DEB build: cd xcat-dep/xnba; ./make_deb.sh: build the package from the binaries under "binary" directory
+4. ./rebuild.sh : build the package from source code, this should only run on amd64/x86_64 platform, it will update the files under "binary" directory after compilation
+5. Copy generated deb file xcat-dep/xnba-undi_<version>_all.deb into /gsa/pokgsa/projects/x/xcat/build/ubuntu/xcat-dep/xcat-dep/pool/main/x/xnba-undi/ 
+and /gsa/pokgsa/projects/x/xcat/build/ubuntu/xcat-dep/debs
+
+

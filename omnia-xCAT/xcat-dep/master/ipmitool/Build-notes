@@ -1,0 +1,51 @@
+Build Notes
+ipmitool-xcat is architecture specific and needs to be built separately on x86_64 and ppc64le
+
+RPM Option #1 Run the script bldipmi.pl
+1) yum install openssl-devel rpm-build autoconf automake libtool ncurses-devel readline-devel
+2) Update "release" variable in "bldipmi.pl" if generating a new version of the RPM
+3) Run "./bldipmi.pl" which creates:
+     /tmp/build/<os>/<arch>/ipmitool-xcat-<version>.<arch>.rpm
+
+RPM Option #2 Use the manual steps listed below:
+
+1)   Download ipmitool-1.8.11.tar.gz from https://xcat.svn.sourceforge.net/svnroot/xcat/xcat-dep/trunk/ipmitool/ipmitool-1.8.11.tar.gz to /tmp/ipmitool directory.
+2)   cd /tmp/ipmitool
+3)   gunzip ipmitool-1.8.11.tar.gz
+4)   tar xvf ipmitool-1.8.11.tar
+5)   Copy ipmitool.spec to /opt/freeware/src/packages/SPECS/
+6)   tar cvf ipmitool-1.8.11.tar ipmitool-1.8.11
+7)   gzip ipmitool-1.8.11.tar
+8)   Copy ipmitool-1.8.11.tar.gz to /opt/freeware/src/packages/SOURCES
+9)   Copy ipmitool-config.h.in.patch, ipmitool-imbapi.patch , and ipmitool-ipmievd.patch to /usr/src/packages/SOURCES
+10)  cd /usr/src/packages/SPECS
+11)  Run "rpm -bb ipmitool.spec", which creates:
+             /opt/freeware/src/packages/RPMS/ppc/ipmitool-1.8.11-1.aix5.3.ppc.rpm 
+
+DEB Option #1
+
+1) git clone https://github.com/xcat2/xcat-dep.git
+2) apt install dpkg-dev debhelper libssl-dev quilt libreadline-dev
+3) cd xcat-dep/ipmitool
+4) ./make_deb.sh
+5) Will generate file ipmitool-xcat_<version>_<arch>.deb file in current directory
+6) Use debian/changelog file to update release version
+
+NOTE #1 
+HOW TO CREATE THESE PATCHES 
+1) cd /tmp/ipmitool-1.8.11
+2) mkdir a (this directory contains the original file)
+3) Copy original file to "a" subdirectory
+4) Repeat above for directory "b" (this directory contains the changed file)
+5) Copy changed file to "b" subdirectory
+6) cd /tmp/ipmitool-1.8.11
+7) diff -uNr a b > ipmitool.patch
+
+NOTE #2
+ENABLE THE SSL
+Before running the build operation, the openssl-devel should be installed on the build env to make sure the ssl can be enabled for the generated ipmitool package.
+You can run the 'ldd ipmitool' to see whether the 'libcrypto.so.x' has been added as a dependency to check whether the ssl has been enabled.
+
+
+Note #3
+On RHEL 7.1 ppc64le, probably because of the beta version of toolchain, needs to add "--build=powerpc64le-redhat-linux-gnu" with the ./configure in ipmitool.spec

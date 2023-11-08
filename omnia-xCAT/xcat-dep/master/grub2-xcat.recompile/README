@@ -1,0 +1,35 @@
+The grub2-xcat rpm/deb package can be built from the grub2 source package shipped in Redhat/Fedora/CentOS...
+
+The steps:
+
+1.build grub2-xcat rpm
+
+For rpm package compling, a RHEL 7 environment on powerpc64 is required. Please make sure all the necessary build tools are installed, the list of the build tools can be showed by:
+==================================================
+rpm -qpR <the name of your grub2 source rpm file>
+==================================================
+
+(1)obtain the grub2 source rpm 
+The latest source rpm file of grub2 can be obtained from the source codes of the Red Hat Enterprse Linux. The current source rpm file, grub2-2.02-0.16.ael7b.src.rpm, was obtained from RHEL 7.1. 
+
+(2)update the Makefile
+When a new source rpm file is available, please update the following line in the Makefile accordingly. 
+==================================================
+SRC_RPM = <the name of your grub2 source rpm file>
+==================================================
+
+(3)run "./makerpm" to generate the grub2-xcat rpm, which can be found in current dir.
+
+(4)upload the grub2-xcat rpm to the build server and checkin the modified Makefile to xcat-dep git code base.
+
+2. build grub2-deb rpm  
+
+For deb package generating, a Debian or Ubunutu environment on any architecture wilth alien installed should work. 
+running "./makedeb" will convert the grub2-xcat rpm generated above to deb package. 
+
+Finally, upload the deb package to the build server.
+
+======
+NOTICE
+======
+If rebuild of `grub2-2.02-0.16.el7.src.rpm' is needed. The file `Makefile' may need to be checked out to an older version.

@@ -1,0 +1,48 @@
+diff -urN ipxe/src/net/arp.c ipxe-droppackets/src/net/arp.c
+--- ipxe/src/net/arp.c	2010-11-12 11:04:06.000000000 -0500
++++ ipxe-droppackets/src/net/arp.c	2010-11-12 15:28:25.000000000 -0500
+@@ -234,7 +234,7 @@
+ 		goto done;
+ 	
+ 	/* Create new ARP table entry if necessary */
+-	if ( ! merge ) {
++	if ( ( arphdr->ar_op == htons ( ARPOP_REPLY ) ) && ( ! merge ) ) {
+ 		arp = &arp_table[next_new_arp_entry++ % NUM_ARP_ENTRIES];
+ 		arp->ll_protocol = ll_protocol;
+ 		arp->net_protocol = net_protocol;
+diff -urN ipxe/src/net/icmp.c ipxe-droppackets/src/net/icmp.c
+--- ipxe/src/net/icmp.c	2010-11-12 11:04:06.000000000 -0500
++++ ipxe-droppackets/src/net/icmp.c	2010-11-12 15:28:25.000000000 -0500
+@@ -69,11 +69,14 @@
+ 	}
+ 
+ 	/* We respond only to pings */
+-	if ( icmp->type != ICMP_ECHO_REQUEST ) {
++	/* Always discard, responding to pings is more than most systems do in this state and 
++	 * gPXE is in a relatively precarious position, resource management wise, and thus it is
++         * easier just to disable this function. */
++	/* if ( icmp->type != ICMP_ECHO_REQUEST ) { */
+ 		DBG ( "ICMP ignoring type %d\n", icmp->type );
+ 		rc = 0;
+ 		goto done;
+-	}
++	/* } */
+ 
+ 	DBG ( "ICMP responding to ping\n" );
+ 
+diff -urN ipxe/src/net/tcp.c ipxe-droppackets/src/net/tcp.c
+--- ipxe/src/net/tcp.c	2010-11-12 11:04:06.000000000 -0500
++++ ipxe-droppackets/src/net/tcp.c	2010-11-12 15:28:25.000000000 -0500
+@@ -1119,7 +1119,11 @@
+ 
+ 	/* If no connection was found, send RST */
+ 	if ( ! tcp ) {
+-		tcp_xmit_reset ( tcp, st_src, tcphdr );
++		/* We simply drop unrecognized TCP connections.  Hopefully, this is no worse than I typically set up a firewall.
++		 * If we try to even remotely respond to random TCP streams, it can exhaust gPXE resources easily in a very large
++		 * environment */
++		/* tcp_xmit_reset ( tcp, st_src, tcphdr ); Don't consume precious outbound resource for irrelevant communication. */
++		
+ 		rc = -ENOTCONN;
+ 		goto discard;
+ 	}

@@ -1,0 +1,24 @@
+diff --git a/src/net/netdev_settings.c b/src/net/netdev_settings.c
+index cc2e103..2b8de05 100644
+--- a/src/net/netdev_settings.c
++++ b/src/net/netdev_settings.c
+@@ -45,6 +45,11 @@ const struct setting mac_setting __setting ( SETTING_NETDEV, mac ) = {
+ 	.description = "MAC address",
+ 	.type = &setting_type_hex,
+ };
++const struct setting machyp_setting __setting ( SETTING_NETDEV, machyp  ) = {
++    .name = "machyp",
++    .description = "MAC address",
++    .type = &setting_type_hexhyp,
++};
+ const struct setting hwaddr_setting __setting ( SETTING_NETDEV, hwaddr ) = {
+ 	.name = "hwaddr",
+ 	.description = "Hardware address",
+@@ -277,6 +282,7 @@ struct netdev_setting_operation {
+ /** Network device settings */
+ static struct netdev_setting_operation netdev_setting_operations[] = {
+ 	{ &mac_setting, netdev_store_mac, netdev_fetch_mac },
++        { &machyp_setting, netdev_store_mac, netdev_fetch_mac },
+ 	{ &hwaddr_setting, NULL, netdev_fetch_hwaddr },
+ 	{ &bustype_setting, NULL, netdev_fetch_bustype },
+ 	{ &busloc_setting, NULL, netdev_fetch_busloc },
