@@ -1,0 +1,284 @@
+!!python/dict
+  node:
+    criteria:
+    - "C:${{op=action,xcatversion=vutil.xcatversion(): (False,'This schema is valid for xCAT releases >=2.13.11, current xCAT version is %s'%(str(xcatversion))) if xcatversion<'2.13.11' else (True,'')}}"
+    obj_type: 
+    - "${{ groupname=T{nodegroup.groupname}, nodename=T{nodelist.node},objname=V{obj_name} :'node' if nodename == objname else 'group'}}"
+    - "W:T{nodegroup.groupname}=${{objtype=V{obj_type},value=V{obj_name}: value if objtype=='group' else None}}"
+    - "W:T{nodelist.node}=${{objtype=V{obj_type},value=V{obj_name}: value if objtype=='node' else None}}"
+    - "C:${{objtype=V{obj_type}: True if str(objtype) in ('node','group') else False}}"
+    obj_info: 
+      groups: 
+      - "${{ objtype=V{obj_type} : T{nodelist.groups} if objtype == 'node' else None}}"
+      - "C:${{objtype=V{obj_type},groups=V{obj_info.groups}: False if str(objtype) in ['node'] and not groups else True }}"
+      grouptype: "${{objtype=V{obj_type} :  T{nodegroup.grouptype} if objtype == 'group' else None}}"
+      members: "${{objtype=V{obj_type} : T{nodegroup.members} if objtype == 'group' else None}}"
+      filter: "${{ objtype=V{obj_type} : T{nodegroup.wherevals} if objtype == 'group' else None}}"
+      description: "${{ objtype=V{obj_type}: T{nodelist.comments} if objtype=='node' else T{nodegroup.comments} if objtype=='group' else None}}"
+    device_type: 
+    - "${{ switchname=T{switches.switch}, pduname=T{pdu.node}, objname=V{obj_name}, rackname=T{rack.rackname},hcpname=T{ppchcp.hcp}: 'switch' if switchname == objname else 'pdu' if pduname == objname else 'rack' if rackname == objname else 'hmc' if hcpname == objname else 'server' }}"
+    - "W:T{switches.switch}=${{devtype=V{device_type},value=V{obj_name}: value if devtype == 'switch' else None}}"
+    - "W:T{pdu.node}=${{devtype=V{device_type},value=V{obj_name}: value if devtype == 'pdu' else None}}" 
+    - "W:T{rack.rackname}=${{devtype=V{device_type},value=V{obj_name}: value if devtype == 'rack' else None}}" 
+    - "W:T{ppchcp.hcp}=${{devtype=V{device_type},value=V{obj_name}: value if devtype == 'hmc' else None}}"
+    - "C:${{devtype=V{device_type}: True if str(devtype) in ('switch','pdu','rack','hmc','server') else False}}"
+    device_info:
+      arch: 
+      - "T{nodetype.arch}"
+      - "C:${{arch=V{device_info.arch}: False if arch and str(arch) not in ('ppc64','ppc64el','ppc64le','x86_64','armv7l','armel') else True}}"
+      supportedarchs: 
+      - "T{nodetype.supportedarchs}"
+      disksize: "T{hwinv.disksize}"
+      memory: "T{hwinv.memory}"
+      cputype: "T{hwinv.cputype}"
+      cpucount: "T{hwinv.cpucount}"
+      mtm: "T{vpd.mtm}"
+      uuid: "T{vpd.uuid}"
+      switchtype: "${{devtype=V{device_type}: T{switches.switchtype} if devtype == 'switch' else None}}"
+      pdutype:  "${{devtype=V{device_type}: T{pdu.pdutype} if devtype == 'pdu' else None}}"
+      outlets: "${{devtype=V{device_type}: T{pdu.outlet} if devtype == 'pdu' else None}}"
+      serial: "T{vpd.serial}"
+      characteristics: "T{nodetype.nodetype}"
+      displayname: "${{ devtype=V{device_type}: T{rack.displayname} if devtype == 'rack' else None }}"
+      rackno: "${{ devtype=V{device_type}: T{rack.num} if devtype == 'rack' else None }}"
+      height: "${{ devtype=V{device_type}: T{rack.height} if devtype == 'rack' else None }}"
+      room: "${{ devtype=V{device_type}: T{rack.room} if devtype == 'rack' else None }}"
+    position_info:
+      rack: "T{nodepos.rack}"
+      unit: "T{nodepos.u}"
+      chassis: "T{nodepos.chassis}"
+      slot: "T{nodepos.slot}"
+      room: "T{nodepos.room}"
+      height: "T{nodepos.height}"
+    domain_info:
+      ou: "T{domain.ou}"
+      authdomain: "T{domain.authdomain}"
+      adminuser: "T{domain.adminuser}"
+      adminpassword: "T{domain.adminpassword}"
+      type: "T{domain.type}"
+    security_info:
+      snmp:
+        securitylevel: 
+        - "T{pdu.seclevel}"
+        - "C:${{seclevel=V{security_info.snmp.securitylevel}: True if str(seclevel) in  ('', 'noAuthNoPriv','authNoPriv','authPriv') else False}}"
+        version: 
+        - "${{devtype=V{device_type}: T{switches.snmpversion} if devtype == 'switch' else T{pdu.snmpversion} if devtype in ['pdu'] else None}}"
+        - "C:${{version=V{security_info.snmp.version}: True if str(version) in ('','1','2','2c','3','SNMPv1','SNMPv2','SNMPv3') else False}}"
+        authprotocol: 
+        - "${{ devtype=V{device_type}: T{switches.auth} if devtype in ['switch'] else T{pdu.authtype} if devtype in ['pdu']  else None  }}" 
+        - "C:${{authtype=V{security_info.snmp.authprotocol}: True if str(authtype).upper() in ('','MD5','SHA') else False}}"
+        privacyprotocol: 
+        - "${{devtype=V{device_type}: T{switches.privacy} if devtype == 'switch' else T{pdu.privtype} if devtype in ['pdu']  else  None }}"
+        - "C:${{privtype=V{security_info.snmp.privacyprotocol}: True if str(privtype) in ('','AES','DES','authNoPriv') else False}}"
+        community: "${{devtype=V{device_type}: T{pdu.community} if devtype in ['pdu']  else T{switches.password} if devtype == 'switch' else None}}"
+        username: "${{devtype=V{device_type}: T{switches.username} if devtype == 'switch' else T{pdu.snmpuser} if devtype in ['pdu'] else None}}"
+        authkey: "${{devtype=V{device_type}: T{switches.password} if devtype == 'switch' else T{pdu.authkey} if devtype in ['pdu'] else None}}"
+        privkey: "T{pdu.privkey}"
+      remotecontrol:
+        username: "${{devtype=V{device_info.characteristics}: T{switches.sshusername} if devtype == 'switch' else T{pdu.username} if devtype in ['pdu'] else T{ppchcp.username} if devtype in ('hmc','ivm','ppc','ppc,osi') else T{mpa.username} if devtype in ['mm']  else None}}" 
+        password: "${{devtype=V{device_info.characteristics}: T{switches.sshpassword} if devtype == 'switch' else T{pdu.password}  if devtype in ['pdu'] else T{ppchcp.password} if devtype in ('hmc','ivm','ppc','ppc,osi') else T{mpa.password} if devtype in ['mm']  else None}}"
+        remoteprotocol: 
+        - "T{switches.protocol}"
+        - "C:${{protocol=V{security_info.remotecontrol.remoteprotocol}: True if str(protocol) in ('','ssh','telnet') else False}}"
+      zonename: 
+      - "${{ objtype=V{obj_type} : T{nodelist.zonename} if objtype == 'node' else None }}"
+      - "C:${{ value=V{security_info.zonename}, objtype=V{obj_type} : False if value and objtype != 'node' else True  }}"
+      productkey: "REF{prodkey}" 
+    network_info:
+      linkports: "${{devtype=V{device_type}: T{switches.linkports} if devtype == 'switch' else None}}"
+      otherinterfaces: "T{hosts.otherinterfaces}"
+      routenames: "T{noderes.routenames}"
+      primarynic: 
+        ip: 
+        - "T{hosts.ip}"
+        - "C:${{ip=V{network_info.primarynic.ip}: False if ip and not vutil.isIPaddr(ip) and not vutil.isRegex(ip) else True}}"
+        mac: 
+        - "T{mac.mac}"   
+        - "C:${{mac=V{network_info.primarynic.mac}: False if mac and not vutil.isMacHosts(mac) and not vutil.isRegex(mac) else True}}"
+        hostnames: "T{hosts.hostnames}"
+      connections: "REF{networkconn}"
+        #- switch: "T{switch.switch}"
+        #  switchport: "T{switch.port}"
+        #  vlan: "T{switch.vlan}"
+        #  interface: "T{switch.interface}"
+      nics:
+        ips: 
+        - "T{nics.nicips}"
+        - "C:${{value=V{network_info.nics.ips}: False if value and not vutil.isNicips(value) and not vutil.isRegex(value) else True}}"
+        hostnamesuffixes: "T{nics.nichostnamesuffixes}"
+        hostnameprefixe: "T{nics.nichostnameprefixes}"
+        alias: "T{nics.nicaliases}"
+        type: "T{nics.nictypes}"
+        configscripts: "T{nics.niccustomscripts}"
+        networks: "T{nics.nicnetworks}"
+        extraconfig: "T{nics.nicextraparams}"
+        nicdevices: "T{nics.nicdevices}"
+        nicsinfo: "T{nics.nicsadapter}"
+    engines:
+       hardware_mgt_engine:
+          engine_type: 
+          - "T{nodehm.mgt}"
+          - "C:${{engine_type=V{engines.hardware_mgt_engine.engine_type}: True if str(engine_type) in ('','openbmc','ipmi','hmc','fsp','kvm','mp','bpa','ivm','blade','pdu','switch') else False}}"
+          engine_info:
+            #openbmc_info:
+            bmc: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{openbmc.bmc} if str(engine_type) in ['openbmc'] else T{ipmi.bmc} if str(engine_type) in ['ipmi'] else None}}"
+            bmcusername: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{openbmc.username} if str(engine_type) in ['openbmc'] else T{ipmi.username} if str(engine_type) in ['ipmi'] else None}}"
+            bmcpassword: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{openbmc.password} if str(engine_type) in ['openbmc'] else T{ipmi.password} if str(engine_type) in ['ipmi'] else None}}"
+            bmctaggedvlan: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{openbmc.taggedvlan} if str(engine_type) in ['openbmc'] else T{ipmi.taggedvlan} if str(engine_type) in ['ipmi'] else None}}"
+            consport: "T{openbmc.consport}"
+            #ipmi_info:
+            bmcid: "T{ipmi.bmcid}"
+            bmcport: "T{ipmi.bmcport}"
+            #kvm_info:
+            vmhost: "T{vm.host}"
+            vmstorage: "T{vm.storage}"
+            vmothersetting: "T{vm.othersettings}"
+            vmstoragemodel: "T{vm.storagemodel}"
+            vmmemory: "T{vm.memory}"
+            vmcpus: "T{vm.cpus}"
+            vmnics: "T{vm.nics}"
+            vmnicnicmodel: "T{vm.nicmodel}"
+            vmvirtflags: "T{vm.virtflags}"
+            vmvncport: "T{vm.vncport}"
+            vmbootorder: "T{vm.bootorder}"
+            vmbeacon: "T{vm.beacon}"
+            vmcfgstore: "T{vm.cfgstore}"
+            vmcluster: "T{vm.cluster}"
+            vmmaster: "T{vm.master}"
+            vmmanager: "T{vm.mgr}"
+            vmphyslots: "T{vm.physlots}"
+            vmstoragecache: "T{vm.storagecache}"
+            vmstorageformat: "T{vm.storageformat}"
+            vmtextconsole: "T{vm.storageformat}"
+            #zvm_info:
+            hcp: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{zvm.hcp} if str(engine_type) in ['zvm'] else T{ppc.hcp} if str(engine_type) in ['hmc'] else None }}"
+            zvmuserid: "T{zvm.userid}"
+            parent: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{zvm.parent} if str(engine_type) in ['zvm'] else T{ppc.parent} if str(engine_type) in ['hmc'] else None }}"
+            hwtype: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{zvm.nodetype} if str(engine_type) in ['zvm'] else T{ppc.nodetype} if str(engine_type) in ['hmc'] else T{mp.nodetype} }}"
+            #hmc_info: 
+            id: "${{engine_type=V{engines.hardware_mgt_engine.engine_type}: T{ppc.id} if str(engine_type) in ['hmc','kvm']  else T{mp.id} }}"
+            pprofile: "T{ppc.pprofile}"
+            supernode: "T{ppc.supernode}"
+            sfp: "T{ppc.sfp}"
+            #other_info:
+            mpa: "T{mp.mpa}"
+       power_mgt_engine:
+          engine_type: "T{nodehm.power}" 
+          engine_info: 
+            pdu: "T{pduoutlet.pdu}"
+       netboot_engine:
+          engine_type: 
+          - "T{noderes.netboot}" 
+          - "C:${{enginetype=V{engines.netboot_engine.engine_type}: True if str(enginetype) in ('','pxe','xnba','grub2','yaboot','petitboot','onie') else False }}"
+          engine_info: 
+            installnic: "T{noderes.installnic}"
+            discoverynics: "T{noderes.discoverynics}"
+            osimage: "T{nodetype.provmethod}"
+            chain: "T{chain.chain}"
+            addkcmdline: "T{bootparams.addkcmdline}"
+            postscripts: "T{postscripts.postscripts}"
+            postbootscripts: "T{postscripts.postbootscripts}"
+            prescriptsbegin: "T{prescripts.begin}"
+            prescriptsend: "T{prescripts.end}"
+       console_engine:
+          engine_type: "T{nodehm.cons}"
+          engine_info:
+            consoleenabled: "T{nodehm.consoleenabled}"
+            conserver: "T{nodehm.conserver}"
+            serialport: "T{nodehm.serialport}"
+            serialspeed: "T{nodehm.serialspeed}"
+            serialflow: "T{nodehm.serialflow}"
+            consoleondemand: "T{nodehm.consoleondemand}"
+            terminalport: "T{nodehm.termport}"                                         
+            terminalserver: "T{nodehm.termserver}"
+    role: 
+    - "${{ snname=T{servicenode.node},objname=V{obj_name}: 'service' if snname ==objname else 'compute'}}"
+    - "W:T{servicenode.node}=${{role=V{role},value=V{obj_name}: value if role == 'service' else None}}"
+    - "C:${{role=V{role}: True if str(role) in ('compute','service') else False}}"
+    role_info:
+      xcatmaster: "T{noderes.xcatmaster}"
+      servicenode: "T{noderes.servicenode}"
+      tftpserver: "T{noderes.tftpserver}"
+      nfsserver: "T{noderes.nfsserver}"
+      monserver: "T{noderes.monserver}"
+      nameservers: "T{noderes.nameservers}"
+      nodelistprimarysn: 
+      - "${{ objtype=V{obj_type} : T{nodelist.primarysn} if objtype == 'node' else None }}"
+      - "C:${{ value=V{role_info.nodelistprimarysn}, objtype=V{obj_type} : False if value and objtype != 'node' else True  }}"
+      enablesyslog: "T{noderes.syslog}"
+      setupnameserver: 
+      - "${{role=V{role}: T{servicenode.nameserver} if role == 'service' else None}}"
+      - "C:${{setupnameserver=V{role_info.setupnameserver}: True if setupnameserver in ('0','1','2','') else False}}"
+      setupdhcp:  
+      - "${{ role=V{role}: T{servicenode.dhcpserver} if role == 'service' else None}}"
+      - "C:${{setupdhcp=V{role_info.setupdhcp}: True if setupdhcp in ('0','1','') else False}}"
+      setuptftp: 
+      - "${{ role=V{role}: T{servicenode.tftpserver} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setuptftp}: True if option in ('0','1','') else False}}"
+      setupnfs: 
+      - "${{ role=V{role}: T{servicenode.nfsserver} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupnfs}: True if option in ('0','1','') else False}}"
+      setupconserver: 
+      - "${{ role=V{role}: T{servicenode.conserver} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupconserver}: True if option in ('0','1','2','') else False}}"
+      setupipforward: 
+      - "${{ role=V{role}: T{servicenode.ipforward} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupipforward}: True if option in ('0','1','') else False}}"
+      setupproxydhcp: 
+      - "${{ role=V{role}: T{servicenode.proxydhcp} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupproxydhcp}: True if option in ('0','1','') else False}}"
+      setupldap: 
+      - "${{ role=V{role}: T{servicenode.ldapserver} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupldap}: True if option in ('0','1','') else False}}"
+      setupntp: 
+      - "${{ role=V{role}: T{servicenode.ntpserver} if role == 'service' else None}}"
+      - "C:${{option=V{role_info.setupntp}: True if option in ('0','1','') else False}}"
+      dhcpinterfaces: "${{ role=V{role}:T{servicenode.dhcpinterfaces} if role == 'service' else None}}"
+    deprecated:
+      cfgmgtcfgmgr: "T{cfgmgt.cfgmgr}"
+      cfgmgtcfgserver: "T{cfgmgt.cfgserver}"
+      cfgmgtroles: "T{cfgmgt.roles}"
+      chainondiscover: "T{chain.ondiscover}"
+      hypervisorcluster: "T{hypervisor.cluster}"
+      hypervisorinterface: "T{hypervisor.interface}"
+      hypervisormgr: "T{hypervisor.mgr}"
+      hypervisortype: "T{hypervisor.type}"
+      iscsipasswd: "T{iscsi.passwd}"
+      iscsiserver: "T{iscsi.server}"
+      iscsitarget: "T{iscsi.target}"
+      iscsiuserid: "T{iscsi.userid}"
+      macinterface: "T{mac.interface}"
+      micbridge: "T{mic.bridge}"
+      michost: "T{mic.host}"
+      micid: "T{mic.id}"
+      micnodetype: "T{mic.nodetype}"
+      miconboot: "T{mic.onboot}"
+      micpowermgt: "T{mic.powermgt}"
+      micvlog: "T{mic.vlog}"
+      mpadisplayname: "T{mpa.displayname}"
+      mpaslots: "T{mpa.slots}"
+      mpaurlpath: "T{mpa.urlpath}"
+      nodehmcmdmapping: "T{nodehm.cmdmapping}"
+      nodehmgetmac: "T{nodehm.getmac}"
+      nodelisthidden: 
+      - "${{ objtype=V{obj_type} : T{nodelist.hidden} if objtype == 'node' else None }}" 
+      - "C:${{ value=V{deprecated.nodelisthidden}, objtype=V{obj_type} : False if value and objtype != 'node' else True  }}"
+      noderesnfsdir: "T{noderes.nfsdir}"
+      noderesnimserver: "T{noderes.nimserver}"
+      noderesprimarynic: "T{noderes.primarynic}"
+      noderesproxydhcp: "T{noderes.proxydhcp}"
+      pdunodetype: "T{pdu.nodetype}"
+      ppcdirectpassword: "T{ppcdirect.password}"
+      servicenodeftpserver: "T{servicenode.ftpserver}"
+      servicenodenimserver: "T{servicenode.nimserver}"
+      storagecontroller: "T{storage.controller}"
+      storageosvolume: "T{storage.osvolume}"
+      storagetype: "T{storage.type}"
+      vmmigrationdest: "T{vm.migrationdest}"
+      vmtextconsole: "T{vm.textconsole}"
+      vpdside: "T{vpd.side}"
+      websrvpassword: "T{websrv.password}"
+      websrvport: "T{websrv.port}"
+      websrvusername: "T{websrv.username}"
+      tftpdir: "T{noderes.tftpdir}"
+

@@ -1,0 +1,4 @@
+!!python/dict
+  productkey:
+    product: "T{prodkey.product}"
+    key: "T{prodkey.key}"

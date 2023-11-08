@@ -1,0 +1,12 @@
+Source: xcat-inventory
+Section: admin
+Priority: extra
+Maintainer: xCAT <xcat-user@lists.sourceforge.net>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.4
+Homepage: https://xcat.org/
+
+Package: xcat-inventory
+Architecture: all
+Depends: python-pymysql,python-sqlalchemy,python-psycopg2,python-six,python-yaml,python-jinja2,git
+Description: xcat inventory

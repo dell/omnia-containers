@@ -1,0 +1,11 @@
+!!python/dict  
+  route:
+    net: 
+    - "T{routes.net}"
+    - "C:${{value=V{net}: True if vutil.isIPaddr(value) or value in ['default'] else False}}"
+    mask: 
+    - "T{routes.mask}"
+    - "C:${{value=V{mask}: vutil.isIPaddr(value)}}"
+    ifname: "T{routes.ifname}"
+    gateway: "T{routes.gateway}"
+    usercomment: "T{routes.comments}"

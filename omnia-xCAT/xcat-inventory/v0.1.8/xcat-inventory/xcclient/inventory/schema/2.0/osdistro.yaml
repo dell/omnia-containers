@@ -1,0 +1,9 @@
+!!python/dict
+  osdistro:
+    basename: "T{osdistro.basename}"
+    arch: "T{osdistro.arch}"
+    type: "T{osdistro.type}"
+    majorversion: "T{osdistro.majorversion}"
+    minorversion: "T{osdistro.minorversion}"
+    dirpaths: "T{osdistro.dirpaths}"
+    comments: "T{osdistro.comments}"

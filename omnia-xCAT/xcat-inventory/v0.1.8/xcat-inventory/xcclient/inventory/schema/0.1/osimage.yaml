@@ -1,0 +1,116 @@
+!!python/dict
+  osimage:
+    criteria:
+    - "C:${{op=action,xcatversion=vutil.xcatversion(): (False,'This schema is valid for xCAT releases < 2.14.2, current xCAT version is %s'%(str(xcatversion))) if xcatversion>='2.14.2' and op=='export' else (True,'')}}"
+    imagetype:
+    - "T{osimage.imagetype}"
+    - "W:T{winimage.imagename}=${{imgtype=V{imagetype},value=V{obj_name} : value if imgtype == 'windows' else None }}"
+    - "W:T{linuximage.imagename}=${{imgtype=V{imagetype},value=V{obj_name}: value if imgtype == 'linux' else None }}"
+    - "C:${{value=V{imagetype}: True if str(value) in ('windows','linux') else False}}"
+    basic_attributes:
+      distribution: "T{osimage.osvers}"
+      arch: "T{osimage.osarch}"
+      osdistro: "T{osimage.osdistroname}"
+      osname: "T{osimage.osname}"
+      description: "T{osimage.description}"
+      groups: "T{osimage.groups}"
+    role: 
+    - "T{osimage.profile}"
+    - "C:${{value=V{role}: True if str(value) in ('','compute','service') else False}}"
+    provision_mode: 
+    - "T{osimage.provmethod}"
+    - "C:${{value=V{provision_mode}: True if str(value) in ('install','netboot','statelite') else False}}"
+    package_selection:
+      pkglist: 
+      - "${{value=T{linuximage.pkglist},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.pkglist}=${{value=V{package_selection.pkglist}: ','.join(value) if type(value) == type([]) else value}}"
+      - "F:${{flist=V{package_selection.pkglist}: [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/') ] }}"
+      pkgdir: 
+      - "${{value=T{linuximage.pkgdir},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.pkgdir}=${{value=V{package_selection.pkgdir}: ','.join(value) if type(value) == type([]) else value}}"
+      otherpkglist: 
+      - "${{value=T{linuximage.otherpkglist},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.otherpkglist}=${{value=V{package_selection.otherpkglist}: ','.join(value) if type(value) == type([]) else value}}"
+      - "F:${{flist=V{package_selection.otherpkglist}: [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/')] }}"
+      otherpkgdir: 
+      - "${{value=T{linuximage.otherpkgdir},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.otherpkgdir}=${{value=V{package_selection.otherpkgdir}: ','.join(value) if type(value) == type([]) else value}}"
+    osupdatename: "T{osimage.osupdatename}"
+    kernel_driver:
+      driverupdatesrc: "T{linuximage.driverupdatesrc}"
+      netdrivers: "T{linuximage.netdrivers}"
+      kerneldir: "T{linuximage.kerneldir}"
+      kernelver: "T{linuximage.kernelver}"
+    scripts:
+      postscripts: 
+      - "${{value=T{osimage.postscripts},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{osimage.postscripts}=${{value=V{scripts.postscripts}: ','.join(value) if type(value) == type([]) else value}}"
+      postbootscripts: 
+      - "${{value=T{osimage.postbootscripts},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{osimage.postbootscripts}=${{value=V{scripts.postbootscripts}: ','.join(value) if type(value) == type([]) else value}}"
+    environvars: 
+      - "${{:''}}"
+    kernel_dump:
+      dump: "T{linuximage.dump}"
+      crashkernelsize: "T{linuximage.crashkernelsize}"
+    template: 
+    - "${{imagetype=V{imagetype} :T{winimage.template} if imagetype == 'windows' else T{linuximage.template} if imagetype == 'linux' else None }} "
+    - "F:${{flist=V{template}.split(','): [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/') ] }}"
+      
+    diskpartitionspec: 
+    - "${{imagetype=V{imagetype}, envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {}: vutil.strsubst(T{linuximage.partitionfile},envars) if imagetype == 'linux' else vutil.strsubst(T{winimage.partitionfile},envars) if imagetype == 'windows' else None}}"
+    - "W:T{linuximage.partitionfile}=${{imagetype=V{imagetype},value=V{diskpartitionspec}: value if imagetype == 'linux' else None }}"
+    - "W:T{winimage.partitionfile}=${{imagetype=V{imagetype},value=V{diskpartitionspec}: value if imagetype == 'windows' else None }}"
+    - "F:${{flist=V{diskpartitionspec}.split(','): [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/') ] }}"
+    filestosync: 
+    - "${{value=T{osimage.synclists},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None}} "
+    - "W:T{osimage.synclists}=${{value=V{filestosync}: ','.join(value) if type(value) == type([]) else value}}"
+    - "F:${{flist=V{filestosync}: [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/') ] }}"
+    addkcmdline: "T{linuximage.addkcmdline}"
+    boottarget: "T{linuximage.boottarget}"                                 
+    genimgoptions:
+      exlist: 
+      - "${{value=T{linuximage.exlist},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.exlist}=${{value=V{genimgoptions.exlist}: ','.join(value) if type(value) == type([]) else value}}"
+      - "F:${{flist=V{genimgoptions.exlist}: [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/')] }}"
+      postinstall: 
+      - "${{value=T{linuximage.postinstall},envars=dict([y.split('=')[1],'{{'+y.split('=')[0]+'}}'] for y in T{osimage.environvar}.split(',')) if T{osimage.environvar} else {} : [x for x in vutil.strsubst(value,envars).split(',')] if value else None }} "
+      - "W:T{linuximage.postinstall}=${{value=V{genimgoptions.postinstall}: ','.join(value) if type(value) == type([]) else value}}"
+      - "F:${{flist=V{genimgoptions.postinstall}: [x for x in vutil.getfileanddeplist(flist) if not vutil.underpath(x,'/opt/xcat/share/xcat/')] }}"
+      rootimgdir: "T{linuximage.rootimgdir}"
+      nodebootif: "T{linuximage.nodebootif}"
+      permission: "T{linuximage.permission}"
+      rootfstype: 
+      - "T{osimage.rootfstype}"
+      - "C:${{value=V{genimgoptions.rootfstype}: True if str(value) in ('','nfs','ramdisk') else False}}"
+      installto: "${{imagetype=V{imagetype} :T{winimage.installto} if imagetype == 'windows' else None }}"
+      winpepath: "${{imagetype=V{imagetype} :T{winimage.winpepath}  if imagetype == 'windows' else None }}"
+    deprecated:
+      nimimageshared_home: "T{nimimage.shared_home}"
+      nimimageconfigdump: "T{nimimage.configdump}"
+      nimimagespot: "T{nimimage.spot}"
+      nimimagenimtype: "T{nimimage.nimtype}"
+      nimimagemksysb: "T{nimimage.mksysb}"
+      nimimagehome: "T{nimimage.home}"
+      nimimagenimmethod: "T{nimimage.nimmethod}"
+      nimimagefb_script: "T{nimimage.fb_script}"
+      nimimagedump: "T{nimimage.dump}"
+      cfmdir: "T{osimage.cfmdir}"
+      nimimagecomments: "T{nimimage.comments}"
+      serverrole: "T{osimage.serverrole}"
+      nimimageroot: "T{nimimage.root}"
+      nimimageinstallp_bundle: "T{nimimage.installp_bundle}"
+      nimimageotherpkgs: "T{nimimage.otherpkgs}"
+      nimimageresolv_conf: "T{nimimage.resolv_conf}"
+      nimimagepaging: "T{nimimage.paging}"
+      nimimagescript: "T{nimimage.script}"
+      nimimageshared_root: "T{nimimage.shared_root}"
+      nimimagebosinst_data: "T{nimimage.bosinst_data}"
+      nimimagelpp_source: "T{nimimage.lpp_source}"
+      kitcomponents: "T{osimage.kitcomponents}"
+      nimimageimage_data: "T{nimimage.image_data}"
+      isdeletable: "T{osimage.isdeletable}"
+      nimimagetmp: "T{nimimage.tmp}"
+      otherifce: "T{linuximage.otherifce}"
+      comments: "T{linuximage.comments}"
+      krpmver: "T{linuximage.krpmver}"

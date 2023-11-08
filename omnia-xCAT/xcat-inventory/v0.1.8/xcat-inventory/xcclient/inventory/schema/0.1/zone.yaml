@@ -1,0 +1,6 @@
+!!python/dict
+  zone:
+    sshkeydir: "T{zone.sshkeydir}"
+    sshbetweennodes: "T{zone.sshbetweennodes}"
+    defaultzone: "T{zone.defaultzone}"
+    comments: "T{zone.comments}"

@@ -1,0 +1,9 @@
+pyyaml
+pymysql
+sqlalchemy
+psycopg2
+jinja2
+sh
+deepdiff
+configparser
+Six

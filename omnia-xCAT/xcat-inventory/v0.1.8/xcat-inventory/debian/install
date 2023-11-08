@@ -1,0 +1,4 @@
+cli/* opt/xcat/bin/
+xcclient/* opt/xcat/lib/python/xcclient
+templates/* opt/xcat/share/xcat/inventory_templates
+xcclient/inventory/inventory.cfg etc/xcat/
