@@ -1,0 +1,322 @@
+#!/bin/sh
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+# This script, ("loadclouddata"), is a sample xCAT post script for
+#	upload the openstack-cookbooks, roles, enviornment to the
+#       xCAT chef-server node, and then create the chef-client
+#        nodes, and then assign the role and environment name to the
+#       chef-client nodes
+#
+#	Make sure your script is executable and that is is in the
+#	/install/postscripts directory on the xCAT management node.
+#
+#	You must add the script name to the list of scripts that
+#	must be run at install time,  or use it with updatenode.
+#
+# 	To use this script you should make sure it gets run after the
+#	"mountinstall" script or any other scipts that may need to use
+#       scripts in the /install directory.
+#	
+#	For example, to get it to run after the "mountinstall" script you
+#	could set the "postbootscripts" attribute of the chef-server node
+#	definitions as follows:
+#
+#	chdef -t node -o chef-server postbootscripts="mountinstall,loadclouddata"	
+#
+
+
+## defined HASH functions here
+hput() {
+    eval "HASH""$1""$2"='$3'
+}
+
+hget() {
+    eval echo '${'"HASH$1$2"'}'
+}
+
+hkeys() {
+    set | grep -o "^HASH${1}[[:alnum:]]*=" | sed -re "s/^HASH${1}(.*)=/\\1/g"
+}
+
+HOME='/root/'
+export HOME
+
+#flags
+run_all=0
+only_load_cookbook=0
+only_load_role=0
+only_load_clouddata=0
+# develop mode. 0 -- false(customer mode); 1 -- true(develop mode)
+devmode=1
+
+if [ $# -eq 0 ]
+then
+    run_all=1
+else
+  for arg in "$@"
+  do
+    if [ "$arg" = "--cookbook" ]
+    then
+        only_load_cookbook=1
+    elif [ "$arg" = "--role" ]
+    then
+        only_load_role=1
+    elif [ "$arg" = "--clouddata" ]
+    then
+        only_load_clouddata=1
+    elif [ "$arg" = "--nodevmode" ]
+    then
+        devmode=0
+        run_all=1
+    else
+        errmsg="no argument $arg in the loadchefdata script"
+        logger -t xcat -p local4.err "$errmsg"
+        echo "$errmsg"
+        exit 1
+    fi
+  done
+fi
+
+if [ $devmode -eq 0 ]
+then
+   if [ $only_load_cookbook -eq 1 -o $only_load_role -eq 1 -o $only_load_clouddata -eq 1 ]
+   then
+       errmsg="'--nodevmode' could not be used with other arguments"
+       logger -t xcat -p local4.err "$errmsg"
+       echo "$errmsg"
+       exit 1
+   fi
+fi
+
+if [ -z $CLOUDLIST ]
+then
+    errmsg="Error! No Cloud name is assigned to the chef-client of the chef-server $NODE. Please check the cloud table."
+    logger -t xcat -p local4.err $errmsg
+    echo $errmsg
+    exit 1
+fi
+
+# enter the repository director
+# for example: cd /install/chef-cookbooks/grizzy-xcat/
+if [ ! -d "$REPOSITORY" ]
+then
+    errmsg="Error! Not an available OpenStack Chef cookbooks repository for the cloud $CLOUDLIST.Please check the clouds table."
+    logger -t xcat -p local4.err $errmsg
+    echo $errmsg
+    exit 1
+fi
+cd $REPOSITORY
+
+if [ $run_all -eq 1 -o $only_load_cookbook -eq 1 ]
+then
+   # upload coobooks
+   knife cookbook bulk delete '.*' -y  > /dev/null 2>&1
+   knife cookbook upload -o cookbooks --all
+   if [ $? != 0 ]
+   then
+       errmsg="Failed to run knife cookbook upload -o cookbooks --all on the chefserver $NODE."
+       logger -t xcat -p local4.err "$errmsg"
+       echo $errmsg
+       exit 1
+    fi
+fi
+
+if [ $run_all -eq 1 -o $only_load_role -eq 1 ]
+then
+    # upload roles
+    knife role bulk delete '.*' -y  > /dev/null 2>&1
+    knife role from file roles/*.rb
+    if [ $? != 0 ]
+    then
+       errmsg="Failed to run \'knife role from file roles/*.rb\'  on the chefserver $NODE."
+       logger -t xcat -p local4.err $errmsg
+       echo $errmsg
+       exit 1
+    fi
+
+fi
+
+
+if [ $run_all -eq 1 -o $only_load_clouddata -eq 1 ]
+then
+
+    if [ -z $CFGCLIENTLIST ]
+    then
+        msg="No cfgclient on the cfgserver $NODE?"
+        logger -t xcat -p local3.info $msg
+        echo $errmsg
+        exit 0
+    fi
+
+    #CLOUDLIST='cloud1,cloud1,cloud3'
+    OIFS=$IFS
+    IFS=','
+    for cloud in $CLOUDLIST
+    do
+        echo "loading the enviornment file $cloud.rb for $cloud"
+        # knife environment delete xcat_per-tenant_routers_with_private_networks  -y
+        # knife environment delete xcat_per-tenant_routers_with_private_networks  -y
+        # load the environment file
+        # knife environment from file environments/xcat_per-tenant_routers_with_private_networks.rb
+        if [ ! -e "$REPOSITORY/environments/$cloud.rb" ]
+        then
+            errmsg="$REPOSITORY/environments/$cloud.rb doesn't exsit. run mkclouddata at first."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+        knife environment from file environments/$cloud.rb
+        if [ $? != 0 ]
+        then
+            errmsg="Failed to run \'knife environment from file environments/$cloud.rb\' on the chef-server $NODE."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+    done
+    #IFS=$OIFS
+
+    #CFGCLIENTLIST='node1,node1,node3'
+    #OIFS=$IFS
+    #IFS=','
+    for client in $CFGCLIENTLIST
+    do
+        echo "Configuring the chef-client node $client on the chef-server $NODE."
+        #c_fullname="$client.$DOMAIN"
+        c_fullname=$client
+        knife client delete -y $c_fullname  > /dev/null 2>&1
+        knife node delete -y $c_fullname    > /dev/null 2>&1
+
+        #create nodes on this chef-server
+        # knife node create test3 -d
+        knife node create $c_fullname -d
+        if [ $? != 0 ]
+        then
+            errmsg="Failed to run \'knife node create $client -d\' on the chef-server $NODE."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+
+        roles=`hget $client roles`
+        if [ -z $roles ]
+        then
+            errmsg="No value of the attribute cfgmgtroles is set for $client. Please check the cfgmgt table."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+
+        roles=`echo $roles | sed -e 's/ /,/g'`
+        r="";
+        for onerole in $roles
+        do
+            r+="role[$onerole],"
+        done
+
+        # assign the role for the chef node
+        knife node run_list add $c_fullname "$r"
+        if [ $? != 0 ]
+        then
+            errmsg="Failed to run knife node run_list add $client '$r' on the chef-server $NODE."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+
+        # assign the new environment to the chef client node
+        newenv=`hget $client cloud`
+        if [ -z $newenv ]
+        then
+            errmsg="No value of the attribute cloud is set for $client. Please check the cloud table."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+        origenv=`knife node show $c_fullname -E | sed -e 's/[ ]*//g'| awk -F: '{print $2}'`
+        EDITOR="sed -e s/$origenv/$newenv/ -i" knife node edit $c_fullname
+        if [ $? != 0 ]
+        then
+            errmsg="Failed to run knife node edit $client on the chef-server $NODE."
+            logger -t xcat -p local4.err $errmsg
+            echo $errmsg
+            exit 1
+        fi
+
+
+    done
+
+    IFS=$OIFS
+fi
+
+
+if [ $devmode -eq 0 ]
+then
+    bags=(db_passwords  secrets  service_passwords  user_passwords)
+
+    if [ ! -e "$REPOSITORY/databags" ]
+    then
+        mkdir -p "$REPOSITORY/databags"
+    fi
+
+    databag_key="$REPOSITORY/databags/openstack_databag_key"
+    openssl rand -base64 512 > $databag_key
+    if [ $? != 0 ]
+    then
+        errmsg="Failed to use openssl to generate the data bag key on $NODE. Please check whether openssl is installed."
+        logger -t xcat -p local4.err "$errmsg"
+        echo "$errmsg"
+        exit 1
+    fi
+
+    if [ ! -e "/etc/chef/" ]
+    then
+        mkdir -p "/etc/chef/"
+    fi
+
+    #for knife command
+    cp -f $databag_key "/etc/chef/encrypted_data_bag_secret"
+    #for other chef-client nodes
+    cp -f $databag_key "/etc/chef-server/encrypted_data_bag_secret"
+
+   # add the path of encrypted_data_bag_secret to knife.rb file
+   if ! grep -w -q 'encrypted_data_bag_secret' /root/.chef/knife.rb
+   then
+       echo "encrypted_data_bag_secret '/etc/chef/openstack_encrypted_data_bag_secret'" >> /root/.chef/knife.rb
+   fi
+
+   # delete the old databags
+   knife data bag list | xargs -i knife data bag delete -y {}
+
+   # create databags and upload items
+   for bag in ${bags[@]}
+   do
+       bagpath="$REPOSITORY/databags/$bag"
+       if [ ! -e "$bagpath" ]
+       then
+           errmsg="$bag doesn't exist in $REPOSITORY/databags. Please make sure the databags are in the directory $REPOSITORY/databags."
+           logger -t xcat -p local4.err "$errmsg"
+           echo "$errmsg"
+           exit 1
+       fi
+       knife data bag create --secret-file $databag_key $bag
+       items=$(ls $bagpath)
+       for item in $items
+       do
+           knife data bag from file $bag $REPOSITORY/databags/$bag/$item --secret-file $databag_key
+           if [ $? != 0 ]
+           then
+               errmsg="Failed to run knife data bag from file $bag $REPOSITORY/databags/$bag/$item --secret-file $databag_key"
+               logger -t xcat -p local4.err "$errmsg"
+               echo "$errmsg"
+               exit 1
+           fi
+       done
+   done
+
+fi
+
+exit 0
+
+
+

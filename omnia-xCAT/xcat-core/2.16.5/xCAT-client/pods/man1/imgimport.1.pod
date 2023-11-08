@@ -1,0 +1,128 @@
+=head1 NAME
+
+B<imgimport> - Imports an xCAT image or configuration file into the xCAT tables so that you can immediately begin deploying with it.
+
+=head1 SYNOPSIS
+
+B<imgimport [-h|--help]>
+
+B<imgimport> I<bundle_file_name> [B<-p>|B<--postscripts> I<nodelist>] [B<-f>|B<--profile> I<new_profile>] [B<-R>|B<--remotehost> I<user@host>] [B<-v>|B<--verbose>]
+
+=head1 DESCRIPTION
+
+The B<imgimport> command will import an image that has been exported by B<imgexport> from xCAT.  This is the easiest way to transfer, backup, change or share images created by xCAT whether they be stateless or stateful. The bundle file will be unpacked in the current working directory. The xCAT configuration such as I<osimage> and I<linuximage> tables will then be updated.
+
+For stateful, the following files will be copied to the appropriate directories.
+  x.pkglist
+  x.otherpkgs.pkglist
+  x.tmpl
+  x.synclist
+  kits related files
+
+For stateless, the following files will be copied to the appropriate directories.
+  kernel
+  initrd.gz
+  rootimg.cpio.xz or rootimg.cpio.gz or rootimg.tar.xz or rootimg.tar.gz or rootimg.gz(for backward-compatibility)
+  x.pkglist
+  x.otherpkgs.pkglist
+  x.synclist
+  x.postinstall
+  x.exlist
+  kits related files
+
+For statelite, the following files will be copied to the appropriate directories.
+  kernel
+  initrd.gz
+  root image tree
+  x.pkglist
+  x.synclist
+  x.otherpkgs.pkglist
+  x.postinstall
+  x.exlist
+
+where x is the profile name.
+
+Any extra files, included by B<--extra> flag in the B<imgexport> command, will also be copied to the appropriate directories.
+
+For statelite, the litefile table will be updated for the image. The litetree and statelite tables are not imported.
+
+If B<-p> flag is specified, the I<postscripts> table will be updated with the postscripts and the postbootscripts names from the image for the nodes given by this flag.
+
+If B<-f> flag is not specified, all the files will be copied to the same directories as the source. If it is specified, the old profile name x will be changed to the new and the files will be copied to the appropriate directores for the new profiles. For example, I</opt/xcat/share/xcat/netboot/sles/x.pkglist> will be copied to I</install/custom/netboot/sles/compute_new.pkglist> and I</install/netboot/sles11/ppc64/x/kernel> will be copied to I</install/netboot/sles11/ppc64/compute_new/kernel>. This flag is commonly used when you want to copy the image on the same xCAT mn so you can make modification on the new one.
+
+After this command, you can run the B<nodeset> command and then start deploying the nodes. You can also choose to modify the files and run the following commands before the node deployment.
+
+For stateful:
+  nodeset
+
+For stateless:
+  genimage
+  packimage
+  nodeset
+
+For statelite
+  genimage
+  liteimg
+  nodeset
+
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-f|--profile> I<new_profile>
+
+Import the image with a new profile name.
+
+=item B<-h|--help>
+
+Display usage message.
+
+=item B<-p|--postscripts> I<nodelist>
+
+Import the postscripts. The postscripts contained in the image will be set in the postscripts table for I<nodelist>.
+
+=item B<-R|--remotehost> I<user@host>
+
+Import the image from remote host. Passwordless ssh must be setup to the remote host.
+
+=item B<-v|--verbose>
+
+Verbose output.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+1. Simplest way to import an image. If there is a bundle file named 'foo.gz', then run:
+
+ imgimport foo.gz
+
+
+2. Import the image with postscript names.
+
+ imgimport foo.gz -p node1,node2
+
+The I<postscripts> table will be updated with the name of the I<postscripts> and the I<postbootscripts> for node1 and node2.
+
+
+3. Import the image with a new profile name
+
+ imgimport foo.gz -f compute_test
+
+
+=head1 FILES
+
+/opt/xcat/bin/imgimport
+
+
+=head1 SEE ALSO
+
+L<imgexport(1)|imgexport.1>
+

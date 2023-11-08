@@ -1,0 +1,158 @@
+start:rmdef_null
+description:rmdef without any flag
+label:mn_only,ci_test,db
+cmd:rmdef
+check:output=~Usage
+end
+
+start:rmdef_t_o_node
+description:rmdef -t node -o
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode,testnode1 groups=all,aix
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~testnode
+check:output=~testnode1
+cmd:rmdef -t node -o testnode,testnode1
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~Could not find an object named 'testnode' of type 'node'.
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+end
+
+start:rmdef_t_node
+description:rmdef -t node
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode,testnode1 groups=all,aix
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~testnode
+check:output=~testnode1
+cmd:rmdef -t node testnode,testnode1
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~Could not find an object named 'testnode' of type 'node'.
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+end
+
+start:rmdef_node
+description:rmdef nodename
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode,testnode1 groups=all,aix
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~testnode
+check:output=~testnode1
+cmd:rmdef testnode,testnode1
+check:rc==0
+cmd:lsdef -t node testnode,testnode1
+check:output=~Could not find an object named 'testnode' of type 'node'.
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+end
+
+start:rmdef_t_o_network
+description:rmdef -t network
+label:mn_only,ci_test,db
+cmd:mkdef -t network -o testnet net=1.2.3.0 mask=255.0.0.0 gateway=1.2.3.1
+check:rc==0
+cmd:lsdef -t network
+check:output=~testnet
+cmd:rmdef -t network -o testnet
+check:rc==0
+cmd:lsdef -t network testnet
+check:output=~Could not find an object named 'testnet' of type 'network'.
+end
+
+start:rmdef_group
+description:rmdef to remove static node group
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode1-testnode2 mgt=hmc cons=hmc groups=all,systemp
+check:rc==0
+cmd:mkdef -t group -o testgrp members=testnode1,testnode2
+check:rc==0
+cmd:lsdef -s testgrp
+check:rc==0
+check:output=~testnode1
+check:output=~testnode2
+cmd:rmdef -t node -o testgrp
+check:rc=0
+cmd:lsdef -t node testnode1,testnode2
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+check:output=~Could not find an object named 'testnode2' of type 'node'.
+cmd:rmdef -t group -o testgrp
+check:rc==0
+cmd:lsdef -t group -o testgrp
+check:output=~Could not find an object named 'testgrp' of type 'group'.
+end
+
+start:rmdef_dynamic_group
+description:rmdef to remove dynamic node group
+label:mn_only,ci_test,db
+cmd:lsdef testnode1;if [ $? -eq 0 ]; then lsdef -l testnode1 -z >/tmp/testnode1.stanza ; rmdef testnode1;fi
+cmd:lsdef testnode2;if [ $? -eq 0 ]; then lsdef -l testnode2 -z >/tmp/testnode2.stanza ; rmdef testnode2;fi
+cmd:tabdump nodegroup
+cmd:tabdump nodelist
+cmd:mkdef -t node -o testnode1-testnode2 mgt=hmc cons=hmc groups=all,systemp
+check:rc==0
+cmd:tabdump nodelist|grep testnode
+cmd:mkdef -t group -o dyngrp -d -w mgt==hmc -w cons==hmc -w groups==all,systemp
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -s dyngrp
+check:rc==0
+check:output=~testnode1
+check:output=~testnode2
+cmd:rmdef -t node -o dyngrp
+check:rc=0
+cmd:tabdump nodegroup
+cmd:lsdef -t node testnode1,testnode2
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+check:output=~Could not find an object named 'testnode2' of type 'node'.
+cmd:rmdef -t group -o dyngrp
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -t group -o dyngrp
+check:output=~Could not find an object named 'dyngrp' of type 'group'.
+cmd:if [ -e /tmp/testnode1.stanza ]; then cat /tmp/testnode1.stanza | mkdef -z; rm -rf /tmp/testnode1.stanza; fi
+cmd:if [ -e /tmp/testnode2.stanza ]; then cat /tmp/testnode2.stanza | mkdef -z; rm -rf /tmp/testnode2.stanza; fi
+end
+
+#start:rmdef_f_all
+#cmd:mkdir -p /tmp/db
+#cmd:dumpxCATdb -p /tmp/db
+#check:rc==0
+#cmd:rmdef -f -a
+#check:rc==0
+#cmd:XCATBYPASS=yes lsdef -a
+#check:rc==0
+#check:output!~group
+#check:output!~node
+#check:output!~network
+#check:output!~osimage
+#check:output!~policy
+#check:output!~notification
+#check:output!~eventlog
+#check:output!~boottarget
+#check:output!~firmware
+#check:output!~monitoring
+#cmd:XCATBYPASS=yes restorexCATdb -a -p /tmp/db
+#check:rc==0
+#end
+
+start:rmdef_t_err
+description:rmdef -t wrongtype
+label:mn_only,ci_test,db
+cmd:rmdef -t wrongtype -o testnode
+check:rc!=0
+check:output=~not a valid
+end
+
+start:rmdef_template
+description:try to delete a template, then error messages appear
+label:mn_only,ci_test,db
+cmd:result=`lsdef | grep  switch-template`; if [[ $result =~ "switch-template" ]]; then echo $result; noderm switch-template; fi
+cmd:rmdef switch-template
+check:rc==1
+check:output=~Error\: (\[.*?\]: )?Could not find an object named \'switch-template\' of type \'node\'
+check:output=~No objects have been removed from the xCAT database.
+end

@@ -1,0 +1,38 @@
+=head1 NAME
+
+B<nodediscoverstatus> - gets the node discovery process status
+
+=head1 SYNOPSIS
+
+B<nodediscoverstatus> [B<-h>|B<--help>|B<-v>|B<--version>]
+
+=head1 DESCRIPTION
+
+The B<nodediscoverstatus> command detects if the sequential or profile node discovery process is currently running, i.e. B<nodediscoverstart>
+has been run, but B<nodediscoverstop> has not.
+
+=head1 OPTIONS
+
+B<-h|--help>
+
+Display usage message.
+
+B<-v|--version>
+
+Command Version.
+
+=head1 RETURN VALUE
+
+0  The command completed successfully.
+
+1  An error has occurred.
+
+=head1 EXAMPLES
+
+To determine if there are some nodes discovered and the discovered nodes' status, enter the following command:
+
+ nodediscoverstatus
+
+=head1 SEE ALSO
+
+L<nodediscoverstart(1)|nodediscoverstart.1>, L<nodediscoverls(1)|nodediscoverls.1>, L<nodediscoverstatus(1)|nodediscoverstop.1>

@@ -1,0 +1,67 @@
+=head1 NAME
+
+B<makeknownhosts> - Make a known_hosts file under $ROOTHOME/.ssh for input noderange.
+
+=head1 SYNOPSIS
+
+B<makeknownhosts> I<noderange> [B<-r>|B<--remove>|B<-d>|B<--delete>] [B<-V>|B<--verbose>]
+
+B<makeknownhosts> [B<-h>|B<--help>]
+
+=head1 DESCRIPTION
+
+B<makeknownhosts> Replaces or removes entries for the nodes in the known_hosts file in the $ROOTHOME/.ssh directory.
+The known_hosts file entry is built from the shared ssh host key that xCAT distributes to the installed nodes.
+
+HMCs, AMM, switches, etc., where xCAT does not distribute the shared ssh host key, should not be put in the noderange.
+
+To build the known_hosts entry for a node, you are only required to have the node in the database, and name resolution working for the node. You do not have to be able to access the node. 
+
+Having this file with correct entries, will avoid the ssh warning when nodes are automatically added to the known_hosts file.
+The file should be distributed using B<xdcp> to all the nodes, if you want node to node communication not to display the warning. 
+
+=head1 OPTIONS
+
+=over 6
+
+=item I<noderange>
+
+A set of comma delimited node names and/or group names.
+See the I<noderange> man page for details on supported formats.
+
+=item B<-d|--delete>
+
+Only removes the entries for the nodes from the known_hosts file.
+
+=item B<-r|--remove>
+
+Synonymous to B<-d|--delete>.
+
+=item B<-V|--verbose>
+
+Verbose mode.
+
+=back
+
+=head1 EXAMPLES
+
+=over 2
+
+=item 1.
+To build the known_hosts entry for the nodes in the compute group
+
+ makeknownhosts compute
+
+=item 2.
+To build the known_hosts entry for the nodes in the lpars and service groups
+
+ makeknownhosts lpars,service 
+
+=item 3.
+To remove the known_hosts entry for node02
+
+ makeknownhosts node02 -d
+
+=back
+
+

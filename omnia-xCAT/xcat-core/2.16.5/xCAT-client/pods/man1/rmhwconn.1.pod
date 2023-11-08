@@ -1,0 +1,103 @@
+=head1 NAME
+
+B<rmhwconn> - Use this command to remove connections from CEC and Frame nodes to HMC nodes.
+
+=head1 SYNOPSIS
+
+B<rmhwconn> [B<-h>| B<--help>]
+
+B<rmhwconn> [B<-v>| B<--version>]
+
+=head2 PPC (with HMC) specific:
+
+B<rmhwconn> [B<-V>| B<--verbose>] I<noderange>
+
+=head2 PPC (without HMC, using FSPAPI) specific:
+
+B<rmhwconn> I<noderange> B<-T> I<tooltype>
+
+=head2 PPC (use HMC as SFP) specific:
+
+B<rmhwconn> B<-s>
+
+=head1 DESCRIPTION
+
+For PPC (with HMC) specific:
+
+This command is used to disconnect CEC and Frame nodes from HMC nodes, according to the connection information defined in ppc table in xCAT DB.
+
+Note: If a CEC belongs to a frame with a BPA installed, this CEC cannot be disconnected individually. Instead, the whole frame should be disconnected.
+
+For PPC (without HMC, using FSPAPI) specific:
+
+It's used to disconnection CEC and Frame nodes from hardware server.
+
+For PPC (use HMC as SFP) specific:
+
+It is used to disconnect Frame nodes from HMC nodes.
+
+=head1 OPTIONS
+
+=over 5
+
+=item B<-h|--help>
+
+Display usage message.
+
+=item B<-V|--verbose>
+
+Verbose output.
+
+=item B<-T>
+
+The tooltype is used to communicate to the CEC/Frame. The value could be B<lpar> or B<fnm>. The tooltype value B<lpar> is for xCAT and B<fnm> is for CNM.
+
+=back
+
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+
+To disconnect all CEC nodes in node group cec from their HMC nodes:
+
+ rmhwconn cec
+
+=item 2.
+
+To remove the connection for Frame node frame1:
+
+ rmhwconn frame1
+
+=item 3.
+
+To disconnect all CEC nodes in node group cec from their related hardware serveri, using lpar tooltype:
+
+ rmhwconn cec -T lpar
+
+=back
+
+
+=head1 FILES
+
+$XCATROOT/bin/rmhwconn
+
+(The XCATROOT environment variable is set when xCAT is installed. The
+default value is "/opt/xcat".)
+
+=head1 NOTES
+
+This command is part of the xCAT software product.
+
+
+=head1 SEE ALSO
+
+L<lshwconn(1)|lshwconn.1>, L<mkhwconn(1)|mkhwconn.1>

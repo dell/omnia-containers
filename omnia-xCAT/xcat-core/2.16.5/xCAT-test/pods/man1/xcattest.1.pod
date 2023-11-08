@@ -1,0 +1,186 @@
+=head1 NAME
+
+B<xcattest> - Run automated xCAT test cases.
+
+=head1 SYNOPSIS
+
+B<xcattest> [B<-?|-h>]
+
+B<xcattest> [B<-f> I<configure file>[B<:System>]] [B<-l> [{B<caselist|caseinfo|casenum>}]] [B<-r>] [B<-q>] [B<-b> I<testcase bundle list>]
+
+B<xcattest> [B<-f> I<configure file>[B<:System>]] [B<-l> [{B<caselist|caseinfo|casenum>}]] [B<-r>] [B<-q>] [B<-t> I<testcase name list>]
+
+B<xcattest> [B<-f> I<configure file>[B<:System>]] [B<-l> [{B<caselist|caseinfo|casenum>}]] [B<-r>] [B<-q>] [B<-c> I<testcase command list>]
+
+B<xcattest> [B<-f> I<configure file>[B<:System>]] [B<-l> [{B<caselist|caseinfo|casenum>}]] [B<-r>] [B<-q>] [B<-s> I<testcase filter expression>]
+
+B<xcattest> [B<-f> I<configure file>[B<:System>]] B<-l bundleinfo>
+
+=head1 DESCRIPTION
+
+The B<xcattest> command runs test cases to verify the xCAT functions. It can be used to ensure the code changes you made do not break the existing commands; to run acceptance test for new build you got; to verify the xCAT snapshot build or development build before putting it onto your production system. The B<xcattest> command is part of the xCAT package I<xCAT-test>.
+
+The root directory for the I<xCAT-test> package is I</opt/xcat/share/xcat/tools/autotest/>. All test cases are in the sub directory I<testcase>, indexed by the xCAT command, you can add your own test cases according to the test cases format below. The subdirectory I<bundle> contains all the test cases bundle definition files, you can customize or create any test cases bundle file as required. The testing result information will be written into the subdirectory I<result>, the timestamps are used as the postfixes for all the result files. I<xCAT-test> package ships two configuration file templates: I<aix.conf.template> and I<linux.conf.template> for AIX and Linux environment, you can use the template files as the starting point of making your own configuration file.
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-?|-h>
+
+Display usage message.
+
+=item B<-f> I<configure file>
+
+Specifies the configuration file with full-path. If not specified, an example config file: I</opt/xcat/share/xcat/tools/autotest/linux.conf.template> is used by default. If B<System> tag is used, only I<[System]> section in the configuration file will be used. If B<System> is not used, all other sections of the configuration file will be used, like I<[Table]>, I<[Object]>, etc.
+
+=item B<-b> I<testcase bundle list>
+
+Comma separated list of test case bundle files, each test cases bundle can contain multiple lines and each line for one test case name. The bundle files should be placed in I</opt/xcat/share/xcat/tools/autotest/bundle>.
+
+=item B<-t> I<testcase name list>
+
+Comma separated list of test cases to run.
+
+=item B<-c> I<testcase command list>
+
+Comma separated list of commands which will be tested, i.e., all the test cases under the command sub directory will be run.
+
+=item B<-s> I<filter expression>
+
+Run testcases with testcase B<label> attribute matching I<filter expression>. Operators B<|>, B<+>, and B<-> can be used. Expresson I<"label1+label2-label3|label4|label5"> will match testcases that have B<label> attribute matching "label1" and "label2", but not "label3" or testcases that have B<label> attribute matching "label4" or testcases that have B<label> attribute matching "label5"
+
+=item B<-l {caselist|caseinfo|casenum|bundleinfo}>
+
+Display rather than run the test cases. The B<caselist> is a default and will display a list of testcase names. B<caseinfo> will display testcase names and descriptions. B<casenum> will display the number of testcases. B<bundleinfo> will display testcase bundle names and descriptions.
+
+
+=item B<-r>
+
+Back up the original environment settings before running test, and restore them after running test.
+
+=item B<-q>
+
+Do not print output of test cases to STDOUT, instead, log output to I</opt/xcat/share/xcat/tools/autotest/result>.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 TEST CASE FORMAT
+
+The xCAT-test test cases are in flat text format, the testing framework will parse the test cases line by line, here is an example of the test case:
+
+  #required, case name
+  start:case name
+  #optional, description of the test case
+  description: what the test case is for?
+  #optional, environment requirements
+  os:AIX/Linux/sles/ubuntu/rhels/rhels7/rhels8
+  #optional, environment requirements
+  arch:ppc/ppc64/ppc64le/x86_64
+  #optional, environment requirements
+  hcp:hmc/mm/bmc/fsp/ipmi/openbmc
+  #optional, label
+  label:label1
+  #required, command need to run
+  cmd:command
+  #optional, check return code of last executed command
+  check:rc == or != return code
+  #optional, check output of last executed command
+  check:output== or != or =~ or !~ output check string
+  end
+
+B<Note>: Each test case can have more than one I<cmd> sections and each I<cmd> section can have more than one I<check:rc> sections and more than one I<check:output> sections, the I<output check string> can include regular expressions.
+
+=head1 EXAMPLES
+
+=over 4
+
+=item 1.
+
+To run all test cases related to command B<rpower>:
+
+  xcattest -f /tmp/config -c rpower
+
+=item 2.
+
+To run customized bundle with I</tmp/config> file:
+
+  xcattest -c lsdef -l  > /opt/xcat/share/xcat/tools/autotest/bundle/custom.bundle
+  Modify custom.bundle
+  xcattest -f /tmp/config -b custom.bundle
+
+=item 3.
+
+To run specified test cases with I</tmp/config> file:
+
+  xcattest -f /tmp/config -t lsdef_t_o_l_z
+
+=item 4.
+
+To add a new test case to test B<chvm>. In this example, we assume that the B<min_mem> should not be equal to 16 in the lpar profile of computenode. The case name is B<chvm_custom>. It creates a test lpar named B<testnode> first, then changes the B<min_mem> of the lpar to 16 using B<chvm>, then checks if B<min_mem> have changed correctly. Finally, the B<testnode> is removed.
+
+  add a new test case file in /opt/xcat/share/xcat/tools/autotest/chvm
+  edit filename
+  start:chvm_custom
+  hcp:hmc
+  cmd:lsvm $$CN > /tmp/autotest.profile
+  check:rc==0
+  cmd:mkdef -t node -o testnode mgt=hmc groups=all
+  cmd:mkvm testnode -i $$MaxLparID -l $$CN
+  check:rc==0
+  cmd:perl -pi -e 's/min_mem=\d+/min_mem=16/g' /tmp/autotest.profile
+  cmd:cat /tmp/autotest.profile|chvm testnode
+  check:rc==0
+  cmd:lsvm testnode
+  check:output=~min_mem=16
+  cmd:rmvm testnode
+  cmd:rm -f /tmp/autotest.profile
+  end
+
+=item 5.
+
+To run all test cases that have I<label:kdump> or I<label:parallel_cmds>:
+
+  xcattest -s kdump|parallel_cmds
+
+=item 6.
+
+To display all bundles and their descriptions:
+
+  xcattest -l bundleinfo
+
+=back
+
+=head1 INLINE FUNCTIONS
+
+The xCAT-test testing framework provides some inline functions. The inline functions can be called in test cases as __FUNCTIONNAME(PARAMTERLIST)__ to get some necessary attributes defined in the configuration file. The inline functions can be used in I<cmd> section and the I<check:output> section.
+
+=over 4
+
+=item 1. 
+
+B<GETNODEATTR(nodename, attribute)> To get the value of specified node's attribute
+
+=item 2. 
+
+B<INC(digit)> To get value of digit+1.
+
+For example, to run B<rscan> command against the hardware control point of compute node specified in the configuration file:
+
+  rscan __GETNODEATTR($$CN, hcp)__ -z
+
+=item 3. 
+
+B<GETTABLEVALUE(keyname, key, colname, table)> To get the value of column where keyname == key in specified table.
+
+=back
+
+=head1 FILES
+
+/opt/xcat/bin/xcattest

@@ -1,0 +1,268 @@
+=head1 Name
+
+B<rflash> - Performs Licensed Internal Code (LIC) update or firmware update on supported xCAT managed nodes.
+
+=head1 B<Synopsis>
+
+B<rflash> [B<-h>|B<--help> | B<-v>|B<--version> | B<-V>|B<--verbose>]
+
+=head2 PPC (with HMC) specific:
+
+B<rflash> I<noderange> B<-p> I<directory> [B<--activate> {B<concurrent>|B<disruptive>}]
+
+B<rflash> I<noderange> {B<--commit>|B<--recover>}
+
+=head2 PPC (without HMC, using Direct FSP Management) specific:
+
+B<rflash> I<noderange> B<-p> I<directory> [B<--activate> {B<disruptive>|B<deferred>}] [B<-d> I<data_directory>]
+
+B<rflash> I<noderange> {B<--commit>|B<--recover>}
+
+=head2 NeXtScale FPC specific:
+
+B<rflash> I<noderange> I<http_directory>
+
+=head2 OpenPOWER BMC specific (using IPMI):
+
+B<rflash> I<noderange> [I<hpm_file_path> | B<-d> I<data_directory>] [B<-c>|B<--check>] [B<--retry=>I<count>]
+
+B<rflash> I<noderange> B<--recover> I<bmc_file_path>
+
+=head2 OpenPOWER OpenBMC specific :
+
+B<rflash> I<noderange> {[B<-c>|B<--check>] | [B<-l>|B<--list>]}
+
+B<rflash> I<noderange> I<tar_file_path> {[B<-c>|B<--check>] | [B<-a>|B<--activate>] | [B<-u>|B<--upload>]}
+
+B<rflash> I<noderange> I<tar_file_directory> [B<-d>]
+
+B<rflash> I<noderange> I<image_id> {[B<-a>|B<--activate>] | [B<--delete>]}
+
+=head1 B<Description>
+
+The B<rflash> command initiates Firmware updates on supported xCAT nodes.  Licensed Internal Code (also known as microcode) updates are performed on supported HMC-attached  POWER5 and POWER6 pSeries nodes, and POWER7 systems using Direct FSP management.
+
+The command scans the specified directory structure for Firmware update package files applicable to the given nodes and components. And then it will B<automatically> select the B<latest> version for the upgrade. The firmware update files include the Microcode update package and associated XML file. They can be downloaded from the IBM Web site: I<http://www-933.ibm.com/support/fixcentral/>.
+
+The POWER5  and POWER6 systems contain several components that use Licensed Internal Code.  The B<rflash> command supports two of these components: the managed system (also known as the Central Electronics Complex, or CEC) and the power subsystem (also known as the Bulk Power Assembly (BPA) or Bulk Power Controller (BPC)).  Some POWER5 managed systems can be attached to a power subsystem.  These power subsystems can support multiple managed systems.  When the B<rflash> command is invoked, xCAT will determine the managed system or power subsystem associated with that CEC and perform the update.
+
+The I<noderange> can be an CEC or CEC list, a Lpar or Lpar list and a Frame or Frame list. But CEC (or Lpar) and Frame B<can't> be used at the same time. When the I<noderange> is an CEC or CEC list, B<rflash> will upgrade the firmware of the CEC or CECs in the cec list. If I<noderange> is a Lpar or Lpar list, B<rflash> will update Licensed Internal Code (LIC) on  HMC-attached POWER5 and POWER6 pSeries nodes, and POWER7 systems using Direct FSP management.  If I<noderange> is a Frame or Frame list, B<rflash> will update Licensed Internal Code (LIC) of the power subsystem on  HMC-attached POWER5 and POWER6 pSeries nodes. The I<noderange> can also be the specified node groups. You  can  specify a  comma or space-separated list of node group ranges. See the I<noderange>  man  page  for  detailed usage information.
+
+The command will update firmware for NeXtScale FPC when given an FPC node and the http information needed to access the firmware.
+
+
+=head2 PPC (with HMC) specific:
+
+The B<rflash> command uses the B<xdsh> command to connect to the HMC controlling the given managed system and perform the updates. Before running B<rflash>, use B<rspconfig> to check if the related HMC ssh is enabled. To enable a HMC ssh connection, use B<rspconfig> command.
+
+B<Warning!>  This command may take considerable time to complete, depending on the number of systems being updated and the workload on the target HMC.  In particular, power subsystem updates may take an hour or more if there are many attached managed systems.
+
+Depending on the Licensed Internal Code update that is installed, the affected HMC-attached POWER5 and POWER6 systems may need to be recycled.  The B<--activate> flag determines how the affected systems activate the new code.  The concurrent option activates code updates that do not require a system recycle (known as a "concurrent update").  If this option is given with an update that requires a system recycle (known as a "disruptive update"), a message will be returned, and no activation will be performed.  The disruptive option will cause any affected systems that are powered on to be powered down before installing and activating the update.  Once the update is complete, the command will attempt to power on any affected systems that it powered down.  Those systems that were powered down when the command was issued will remain powered down when the update is complete.
+
+The flash chip of a POWER5 and POWER6 managed system or power subsystem stores firmware in two locations, referred to as the temporary side and the permanent side.  By default, most POWER5 and POWER6 systems boot from the temporary side of the flash.  When the B<rflash> command updates code, the current contents of the temporary side are written to the permanent side, and the new code is written to the temporary side.  The new code is then activated.  Therefore, the two sides of the flash will contain different levels of code when the update has completed.
+
+The B<--commit> flag is used to write the contents of the temporary side of the flash to the permanent side.  This flag should be used after updating code and verifying correct system operation.  The B<--recover> flag is used to write the permanent side of the flash chip back to the temporary side.  This flag should be used to recover from a corrupt flash operation, so that the previously running code can be restored.
+
+B<NOTE:>When the B<--commit> or B<--recover> two flags is used, the noderange B<cannot> be BPA. It only B<can> be CEC or LPAR, and  will take effect for B<both> managed systems and power subsystems.
+
+xCAT recommends that you shutdown your Operating System images and power off your managed systems before applying disruptive updates to managed systems or power subsystems.
+
+Any previously activated code on the affected systems will be automatically accepted into permanent flash by this procedure.
+
+B<IMPORTANT!>  If the power subsystem is recycled, all of its attached managed systems will be recycled.
+
+If it outputs B<"Timeout waiting for prompt"> during the upgrade, set the B<"ppctimeout"> larger in the B<site> table. After the upgrade, remember to change it back. If run the B<"rflash"> command on an AIX management node, need to make sure the value of B<"useSSHonAIX"> is B<"yes"> in the site table.
+
+=head2 PPC (using Direct FSP Management) specific:
+
+In currently Direct FSP/BPA Management, our B<rflash> doesn't support B<concurrent> value of B<--activate> flag, and supports B<disruptive> and B<deferred>. The B<disruptive> option will cause any affected systems that are powered on to be powered down before installing and activating the update. So we require that the systems should be powered off before do the firmware update.
+
+The B<deferred> option will load the new firmware into the T (temp) side, but will not activate it like the disruptive firmware. The customer will continue to run the Frames and CECs working with the P (perm) side and can wait for a maintenance window where they can activate and boot the Frame/CECs with new firmware levels. Refer to the doc to get more details: XCAT_Power_775_Hardware_Management
+
+In Direct FSP/BPA Management, there is B<-d> I<data_directory> option. The default value is /tmp. When doing firmware update, B<rflash> will put some related data from rpm packages in <data_directory> directory, so the execution of B<rflash> will require available disk space in <data_directory> for the command to properly execute:
+
+For one GFW rpm package and one power code rpm package, if the GFW rpm package size is gfw_rpmsize, and the Power code rpm package size is power_rpmsize, it requires that the available disk space should be more than: 1.5*gfw_rpmsize + 1.5*power_rpmsize
+
+For Power 775, the B<rflash> command takes effect on the primary and secondary FSPs or BPAs almost in parallel.
+
+For more details about the Firmware Update using Direct FSP/BPA Management, refer to: XCAT_Power_775_Hardware_Management#Updating_the_BPA_and_FSP_firmware_using_xCAT_DFM
+
+=head2 NeXtScale FPC specific:
+
+The command will update firmware for NeXtScale FPC when given an FPC node and the http information needed to access the firmware. The http information required includes both the MN IP address as well as the directory containing the firmware. It is recommended that the firmware be downloaded and placed in the /install directory structure as the xCAT MN /install directory is configured with the correct permissions for http.  Refer to the doc to get more details: XCAT_NeXtScale_Clusters
+
+=head2 OpenPOWER specific (using IPMI):
+
+The command will update firmware for OpenPOWER BMC when given an OpenPOWER node with I<mgt=ipmi> and either the hpm formatted file path or path to a data directory.
+
+B<Note:> When using B<rflash> in hierarchical environment, the hpm file or data directory must be accessible from Service Nodes.
+
+=head2 OpenPOWER specific (using OpenBMC):
+
+The command will update firmware for OpenPOWER BMC when given an OpenPOWER node with I<mgt=openbmc> and either an update .tar file or an uploaded image id.
+
+B<-l|--list>:
+
+The list option will list out available firmware on the BMC.  It provides an interface to display the ID of the various firmware levels.
+
+The (*) symbol indicates the active running firmware on the server.
+
+The (+) symbol indicates the firmware that is pending and a reboot is required to set it to be the active running firmware level.
+
+B<-u|--upload>:
+
+The upload option expects a .tar file as the input and will upload the file to the BMC.  Use the list option to view the result.
+
+B<-a|--activate>:
+
+The activate option expects either a .tar file or an ID as the input.  If a .tar file is provided, it will upload and activate the firmware in a single step
+
+To apply the firmware level, a reboot is required to BMC and HOST.
+
+B<Note:> When using B<rflash> in hierarchical environment, the .tar file must be accessible from Service Nodes.
+
+B<-d>:
+
+This option streamlines the update, activate, reboot BMC and reboot HOST procedure. It expects a directory containing both BMC and Host .tar files. When BMC and Host tar files are provided, the command will upload and activate firmware. After BMC becomes activate, it will reboot BMC. If BMC state is Ready, the command will reboot the HOST. If BMC state is NotReady, the command will exit.
+
+B<--delete>:
+
+This delete option will delete update image from BMC. It expects an ID as the input.
+
+=head1 B<Options>
+
+=over 7
+
+=item B<-h|--help>
+
+Writes the command's usage statement to standard output.
+
+=item B<-c|--check>
+
+Check the firmware version of BMC and an update file.
+
+=item B<-p> I<directory>
+
+Specifies the directory where the packages are located.
+
+=item B<-d> I<data_directory>
+
+PPC (without HMC, using Direct FSP Management) specific:
+
+Specifies the directory where the raw data from rpm packages for each CEC/Frame are located. The default directory is /tmp. The option is only used in Direct FSP/BPA Management.
+
+OpenPOWER BMC specific (using IPMI):
+
+Used for IBM Power S822LC for Big Data systems only. Specifies the directory where the B<pUpdate> utility and at least one of BMC or Host update files are located. The utility and update files can be downloaded from FixCentral.
+
+=item B<--activate> {B<concurrent> | B<disruptive>}
+
+Must be specified to activate the new Licensed Internal Code.  The "disruptive" option will cause the target systems to be recycled.  Without this flag, LIC updates will be installed only, not activated.
+
+=item B<--commit>
+
+Used to commit the flash image in the temporary side of the chip to the permanent side for both managed systems and power subsystems.
+
+=item B<--recover>
+
+PPC (with HMC) and PPC (without HMC, using Direct FSP Management) specific:
+
+Used to recover the flash image in the permanent side of the chip to the temporary side for both managed systems and power subsystems.
+
+OpenPOWER BMC specific (using IPMI):
+
+Used for IBM Power S822LC for Big Data systems only. Used to recover the BMC with a BMC image downloaded from FixCentral. This option will only work if BMC is in "Brick protection" state.
+
+=item B<--retry=>I<count>
+
+Specify number of times to retry the update if failure is detected. Default value is 2. Value of 0 can be used to indicate no retries.
+
+=item B<-a|--activate>
+
+Activate update image. Image id or update file must be specified.
+
+=item B<-l|--list>
+
+List currently uploaded update images. "(*)" indicates currently active image.
+
+=item B<-u|--upload>
+
+Upload update image. Specified file must be in .tar format.
+
+=item B<--delete>
+
+Delete update image from BMC
+
+=item B<-v|--version>
+
+Displays the command's version.
+
+=item B<-V|--verbose>
+
+Verbose output.
+
+=back
+
+=head1 B<Exit Status>
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 B<Examples>
+
+=over 4
+
+=item 1.
+To update  only the  power subsystem attached to a single HMC-attached pSeries CEC(cec_name), and recycle the power  subsystem  and  all attached managed systems when the update is complete, and the Microcode update package and associated XML file are in /tmp/fw, enter:
+
+ rflash cec_name -p /tmp/fw --activate disruptive
+
+=item 2.
+To update  only the  power subsystem attached to a single HMC-attached pSeries node, and recycle the power  subsystem  and  all attached managed systems when the update is complete, and the Microcode update package and associated XML file are in /tmp/fw, enter:
+
+ rflash bpa_name -p /tmp/fw --activate disruptive
+
+=item 3.
+To commit a firmware update to permanent flash for both managed system and the related power subsystems, enter:
+
+ rflash cec_name --commit
+
+=item 4.
+To update the firmware on a NeXtScale FPC specify the FPC node name and the HTTP location of the file including the xCAT MN IP address and the directory on the xCAT MN containing the firmware as follows:
+
+ rflash fpc01 http://10.1.147.169/install/firmware/fhet17a/ibm_fw_fpc_fhet17a-2.02_anyos_noarch.rom
+
+=item 5.
+To update the firmware on OpenPOWER machine specify the node name and the file path of the HPM firmware file as follows:
+
+ rflash fs3 /firmware/8335_810.1543.20151021b_update.hpm
+
+Print verbose message to rflash log file (/var/log/xcat/rflash/fs3.log) when updating firmware:
+
+ rflash fs3 /firmware/8335_810.1543.20151021b_update.hpm -V
+
+=item 6.
+To update the firmware on IBM Power S822LC for Big Data machine specify the node name and the file path of the data directory containing pUpdate utility, both BMC and Host update files:
+
+ rflash briggs01 -d /root/supermicro/OP825
+
+=item 7.
+To update the firmware on the OpenBMC machine, specify the firmware update file to upload and activate:
+
+ rflash p9euh02 -a /tmp/witherspoon.pnor.squashfs.tar
+
+=back
+
+=head1 B<Location>
+
+B</opt/xcat/bin/rflash>
+
+=head1 NOTES
+
+This command is part of the xCAT software product.
+
+=head1 SEE ALSO
+
+L<rinv(1)|rinv.1>, L<rspconfig(1)|rspconfig.1>
+

@@ -1,0 +1,2 @@
+#INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/post.ubuntu.common#
+#INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/post.xcat#

@@ -1,0 +1,8 @@
+#INCLUDE:compute.rhels7.pkglist#
+
+#For Cuda
+kernel-devel
+gcc
+pciutils
+dkms
+cuda

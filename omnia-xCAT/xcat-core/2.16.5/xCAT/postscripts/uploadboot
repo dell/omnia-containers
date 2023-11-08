@@ -1,0 +1,26 @@
+#!/bin/sh
+if [ -r /boot/etc/yaboot.conf ]; then
+	KNAME=`grep ^image /boot/etc/yaboot.conf|head -n 1|cut -d= -f 2|sed -e 's!^/!!'`
+	KERNEL=/boot/$KNAME
+	KERNEL=`echo $KERNEL|sed -e 's!//!/!g'`
+	INAME=`grep initrd /boot/etc/yaboot.conf|head -n 1|cut -d= -f 2|sed -e 's!^/!!'`
+	INITRD=/boot/$INAME
+	INITRD=`echo $INITRD|sed -e 's!//!/!g'`
+	KCMDLINE=`grep append= /boot/etc/yaboot.conf|head -n 1|cut -d= -f 2-`
+	KCMDLINE=`echo $KCMDLINE|sed -e 's! rhgb!!'|sed -e 's!"!!g'`
+elif [ -r /boot/grub/menu.lst ]; then
+	KNAME=`grep -v ^# /boot/grub/menu.lst|grep -v title|grep kernel|cut -d' ' -f 2|sed -e 's!/boot/!!'`
+	KERNEL=/boot/$KNAME
+	KCMDLINE=`grep -v ^# /boot/grub/menu.lst|grep -v title|grep kernel|cut -d' ' -f 3-|sed -e 's! rhgb!!'`
+	INAME=`grep -v ^# /boot/grub/menu.lst|grep -v title|grep initrd|cut -d' ' -f 2|sed -e 's!/boot/!!'`
+	INITRD=/boot/$INAME
+	INITRD=`echo $INITRD|sed -e 's!//!/!g'`
+
+fi
+`dirname $0`/unlocktftpdir.awk $MASTER 3002
+curl -T $KERNEL tftp://$MASTER/xcat/$NODE/$KNAME
+curl -T $INITRD tftp://$MASTER/xcat/$NODE/$INAME
+#tftp $MASTER -m binary -c put $KERNEL xcat/$NODE/$KNAME
+#tftp $MASTER -m binary -c put $INITRD xcat/$NODE/$INAME
+`dirname $0`/locktftpdir.awk $MASTER 3002
+`dirname $0`/setiscsiparms.awk $MASTER 3002 $KNAME $INAME "$KCMDLINE"

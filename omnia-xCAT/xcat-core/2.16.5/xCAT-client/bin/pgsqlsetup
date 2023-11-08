@@ -1,0 +1,1438 @@
+#!/usr/bin/env perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#
+
+#-----------------------------------------------------------------------------
+
+=head1   pgsqlsetup
+
+
+
+ This is script is called after the installation or upgrade of PostgreSQL
+   on xCAT.  It will automate the setup of the PostgreSQL and xCAT to run
+   xCAT on the PostgreSQL DB on AIX and Linux.
+   On AIX 6.1 or later , It will setup an xcatdb database ,a postgres id,
+   a xcatadm id and password to be used in the /etc/xcat/cfgloc file
+   to access the database.
+   On Linux , It will setup an xcatdb database , and get an xcatadm password
+   to be used in the /etc/xcat/cfgloc file to access the database.
+   On Linux,  the xcatadm does not need to be created and postgres is already
+   created by the install.
+
+   You can set the XCATPGPW environment variable to a password for the database
+   to avoid prompting otherwise it will prompt for the
+   password to assign to the xcatadm userid for the Unix id and PgSQL database
+   id.
+
+   Setups up AIX 6.1+ and Linux,  but most work needs to be done on AIX.
+   See man pgsqlsetup for more information and the documentation.
+
+   If the -P flag is supplied, we are supporting setup under PCM.
+    Additional setup for PCM is required.
+
+=cut
+
+BEGIN
+{
+    $::XCATROOT = $ENV{'XCATROOT'} ? $ENV{'XCATROOT'} : '/opt/xcat';
+    $::XCATDIR  = $ENV{'XCATDIR'}  ? $ENV{'XCATDIR'}  : '/etc/xcat';
+}
+
+# if AIX - make sure we include perl 5.8.2 in INC path.
+#       Needed to find perl dependencies shipped in deps tarball.
+if ($^O =~ /^aix/i) {
+    unshift(@INC, qw(/usr/opt/perl5/lib/5.8.2/aix-thread-multi /usr/opt/perl5/lib/5.8.2 /usr/opt/perl5/lib/site_perl/5.8.2/aix-thread-multi /usr/opt/perl5/lib/site_perl/5.8.2));
+}
+
+use lib "$::XCATROOT/lib/perl";
+use DBI;
+use xCAT::Utils;
+use xCAT::NetworkUtils;
+use Getopt::Long;
+use xCAT::MsgUtils;
+use xCAT::Table;
+use Expect;
+use Socket;
+
+use strict;
+
+#-----------------------------------------------------------------------------
+# Main
+
+$::progname = "pgsqlsetup";
+my $args = join ' ', @ARGV;
+$::command = "$0 $args";
+Getopt::Long::Configure("bundling");
+$Getopt::Long::ignorecase = 0;
+
+# Default install location for all but version 9.0
+$::installdir     = "/var/lib/pgsql";             # install location
+$::installdatadir = "/var/lib/pgsql/data";        # install location
+$::pgcmddir       = "/usr/bin";                   # pg cmds location
+$::debiancfgdir   = "/etc/postgresql/9.1/main";
+my $INIT;
+my $SETUPODBC;
+my @LISTENADDRS;
+my @ACCESSADDRS;
+my $NOSTART;
+my $SETUPPCM;
+my $HELP;
+my $VERSION;
+my $debianflag = 0;
+
+# parse the options
+if (
+    !GetOptions(
+        'i|init'    => \$INIT,
+        'o|odbc'    => \$SETUPODBC,
+        'l|listen=s'=> \@LISTENADDRS,
+        'a|access=s'=> \@ACCESSADDRS,
+        'N|nostart' => \$NOSTART,
+        'P|PCM'     => \$SETUPPCM,
+        'h|help'    => \$HELP,
+        'v|version' => \$VERSION,
+        'V|verbose' => \$::VERBOSE,
+    )
+  )
+{
+    &usage;
+    exit(1);
+}
+
+# display the usage if -h or --help is specified
+if ($HELP)
+{
+    &usage;
+    exit(0);
+}
+
+# display the version statement if -v or --version is specified
+if ($VERSION)
+{
+    my $version = xCAT::Utils->Version();
+    xCAT::MsgUtils->message("I", $version);
+    exit 0;
+}
+
+# Database name xcatdb
+$::dbname = "xcatdb";
+
+if ((!($INIT)) && (!($SETUPODBC)))
+{
+    xCAT::MsgUtils->message("I", "Either -i  or -o flag must be chosen");
+    &usage;
+    exit(1);
+}
+
+# check to see if only odbc update,  no passwords needed
+my $odbconly = 0;
+if ((!($INIT)) && ($SETUPODBC))
+{
+    $odbconly = 1;
+
+}
+
+# create comma-separated list of additional listen addresses
+my $listenaddrs = undef;
+if (@LISTENADDRS)
+{
+    $listenaddrs = join ',', @LISTENADDRS;
+}
+
+#
+# Get OS
+#
+if (xCAT::Utils->isAIX())
+{
+    $::osname = 'AIX';
+}
+else
+{
+    $::osname = 'Linux';
+
+    # determine whether redhat or sles
+    $::linuxos = xCAT::Utils->osver();
+    if (-e "/etc/debian_version") {
+        $debianflag = 1;
+    }
+}
+
+
+#
+# check to see  if perl-DBD-Pg is installed
+#
+my $cmd = "rpm -qa | grep perl-DBD-Pg";
+if ($debianflag) {
+    $cmd = "dpkg -l | grep libdbd-pg-perl";
+}
+my @output = xCAT::Utils->runcmd($cmd, 0);
+if ($::RUNCMD_RC != 0)
+{
+    my $message =
+"\nperl-DBD-Pg is not installed.  If on AIX, it should be first obtained from the xcat dependency tarballs and installed before running this command.\n If on Linux, install from the OS CDs.";
+    if ($debianflag) {
+        $message = "\nlibdb-pg-perl is not installed. Use apt-get to install it.";
+    }
+    xCAT::MsgUtils->message("E", " $cmd failed. $message");
+    exit(1);
+}
+#
+# check to see if postgresql is installed
+#
+my $cmd = "rpm -qa | grep postgresql | grep server";
+if ($debianflag) {
+    $cmd = "dpkg -l | grep postgresql | awk '{print \$2}'";
+}
+my @output = xCAT::Utils->runcmd($cmd, 0);
+if ($::RUNCMD_RC != 0)
+{
+    my $message =
+"\nPostgreSQL is not installed.  If on AIX, it should be first obtained from the xcat dependency tarballs and installed before running this command.\n If on Linux, install from the OS CDs.";
+    if ($debianflag) {
+        $message = "\npostgresql is not installed. Use apt-get to install it.";
+    }
+    xCAT::MsgUtils->message("E", " $cmd failed. $message");
+    exit(1);
+}
+
+
+# check if 9.X release not built by us is installed,  setup different
+# SLES used default dir
+if ((grep(/postgresql9/, @output)) && ($::linuxos !~ /sles/)) { # postgresql 9.x
+        # figure out which 9.x release  and build path
+    my @parseout = split(/\-/,          $output[0]);
+    my @ptflevel = split("postgresql9", $parseout[0]);
+    $::postgres9  = @ptflevel[1];                      # set it to the PTF level
+    $::installdir = "/var/lib/pgsql/9.$::postgres9";   # override default
+    $::installdatadir = "/var/lib/pgsql/9.$::postgres9/data"; # override default
+    $::pgcmddir       = "/usr/pgsql-9.$::postgres9/bin";      # pg cmds location
+}
+
+if ($debianflag) {
+    undef $::postgres9;
+    $::installdatadir = "/var/lib/postgresql/9.1/main";
+    $::pgcmddir       = "/usr/lib/postgresql/9.1/bin";
+    for my $line (@output) {
+        if ($line =~ /postgresql\-9/) {
+            my $pgsqlver = substr $line, 11;
+            $::pgcmddir       = "/usr/lib/postgresql/${pgsqlver}/bin";
+            $::installdatadir = "/var/lib/postgresql/${pgsqlver}/main";
+            $::debiancfgdir   = "/etc/postgresql/${pgsqlver}/main";
+            last;
+        }
+    }
+}
+
+# check to see if  PostgreSQL  is running
+my $pgsqlrunning     = 0;
+my $xcatrunningpgsql = 0;
+my $cmd              = "ps -ef | grep postgres";
+my @output           = xCAT::Utils->runcmd($cmd, 0);
+if ($::RUNCMD_RC == 0)    # already running
+{
+    my $pgsqlcheck = "postgres:";    # see if really running
+    if (grep(/$pgsqlcheck/, @output))
+    {
+
+        $pgsqlrunning = 1;
+    }
+}
+if (-e ("/etc/xcat/cfgloc"))         # check to see if xcat is using pgsql
+{                                    # cfgloc exists
+    $cmd = "fgrep Pg /etc/xcat/cfgloc";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC == 0)
+    {
+        if ($INIT)
+        {
+            my $message =
+"The /etc/xcat/cfgloc file is already configured for PostgreSQL. xcat database initialization will not take place.";
+            xCAT::MsgUtils->message("I", "$message");
+        }
+        $xcatrunningpgsql = 1;
+    }
+}
+
+#  if not just odbc update
+#  Get  admin password or use the env variable
+#
+if (($odbconly == 0) && ($xcatrunningpgsql == 0))
+{    # not just updating the odbc  and xcat not already running on pg
+    if ($ENV{'XCATPGPW'})    # passwd supplied
+    {
+        my $pw = $ENV{'XCATPGPW'};
+        if ($pw =~ m/[^a-zA-Z0-9]/) {    # if not alpha-numerid
+            my $warning =
+              "The password in the env variable XCATPGPW is not alpha-numeric.";
+            xCAT::MsgUtils->message("E", $warning);
+            exit 1;
+        }
+        $::adminpassword = $ENV{'XCATPGPW'};
+    } else {
+
+        my $msg = "Input the password for xcatadm id: ";
+        xCAT::MsgUtils->message('I', "$msg");
+        `stty -echo`;
+        chop($::adminpassword = <STDIN>);
+        `stty echo`;
+        if ($::adminpassword =~ m/[^a-zA-Z0-9]/) {    # if not alpha-numerid
+            my $warning =
+"The input password  is not alpha-numeric. Rerun the command an input an alpha-numeric password.";
+            xCAT::MsgUtils->message("E", $warning);
+            exit 1;
+        }
+
+    }
+}
+
+# initial setup request and not already running pgsql
+if (($INIT) && ($xcatrunningpgsql == 0))
+{
+
+    if (!($NOSTART)) {    # if not just setting up the database
+                          #
+                          # Backup current database
+                          #
+        my $homedir = xCAT::Utils->getHomeDir();
+        $::backupdir = $homedir;
+        if ($::osname eq 'AIX')
+        {
+            $::backupdir .= "xcat-dbback";
+        }
+        else
+        {
+            $::backupdir .= "/xcat-dbback";
+        }
+
+        &backupxcatdb;
+
+        # shutdown the xcatd daemon
+        &shutdownxcatd;
+    }
+    my $hname;
+    $hname = `hostname`;
+    chomp $hname;
+    if (!($NOSTART)) {    # if not just setting up the database
+                          #
+                          #  Get MN name from site.master in backed up database
+                          # if that does not exist use resolved hostname
+                          # double check site.master for resolution
+        my $sitefile = "$::backupdir/site.csv";
+        my $cmd      = q{grep \"master } . $sitefile;
+        my @output   = xCAT::Utils->runcmd($cmd, -1);
+        if ($::RUNCMD_RC == 0)    #  entry in site table
+        {
+            (my $attr, my $master) = split(",", $output[0]);
+            (my $q, $hname) = split("\"", $master);
+            chomp $hname;
+        }
+    }
+
+
+    my $ipaddr = xCAT::NetworkUtils->getipaddr($hname);
+    if ($ipaddr)
+    {
+        $::MN = $ipaddr;
+    }
+    else
+    {
+        xCAT::MsgUtils->message("E", "Hostname resolution for $hname failed.");
+        exit(1);
+    }
+
+
+    # Add postgres user and group and xcatadm for AIX
+    # create the /var/lib/pgsql data directory and set permissions.
+    # All this is done on Linux install automatically:
+    #  postgres is created on Linux and xcatadm does not need to be a
+    #  real userid on Linux. Also directory permissions are correct on Linux
+    #
+    if ($::osname eq 'AIX')
+    {
+        &mkpgusers;
+    }
+
+    #
+    # Init Pg database and setup pg_hba.conf and postgresql.conf
+    #
+    &initpgdb;
+
+    #
+    # Start Postgresql server
+    #
+    if ($pgsqlrunning == 0)    # if not already running
+    {
+        &pgstart(0);
+    }
+
+    #
+    # Setup Postgresql to restart on reboot
+    #
+    &pgreboot;
+
+
+    # if xcat not already configured to run Postgresql add xCAT database
+    if ($xcatrunningpgsql == 0)
+    {
+
+        #
+        # Create xcatd  database
+        # Create xcatadm in the database
+        #
+        &setupxcatdb;
+
+        #
+        # create cfgloc file
+        #
+        &createcfgloc;
+
+        if (!($NOSTART)) {    # if not just setting up the database
+                              #
+                              # Restore backed up database into PostgreSQL
+                              #
+            &restorexcatdb;
+        }
+    }
+
+    if (!($NOSTART)) {        # if not just setting up the database
+        xCAT::MsgUtils->message("I",
+            "xCAT is running on the PostgreSQL database.\n");
+    } else {
+        xCAT::MsgUtils->message("I",
+            "xCAT PostgreSQL database is setup.\n");
+    }
+
+}    # end initialization
+
+if ($SETUPODBC)
+{
+
+    #
+    #  set up the ODBC on the Management Node
+    #
+
+
+    &setupODBC;
+
+}
+
+exit;
+
+#####################################
+#  subroutines
+#####################################
+
+#-----------------------------------------------------------------------------
+
+=head3    usage
+	
+	Displays message for -h option
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub usage
+{
+    xCAT::MsgUtils->message(
+        'I',
+"Usage:\npgsqlsetup - Performs the setup of PostgreSQL for xCAT to use as its database. See man pgsqlsetup for more information."
+    );
+    my $msg =
+"pgsqlsetup <-h|--help>\n           <-v|--version>\n           <-i|--init> [-N|--nostart] [-l|--listen address] [-a|--access address] [-P|--PCM] [-o|--odbc] [-V|--verbose]\n           <-o|--odbc> [-V|--verbose]";
+
+    xCAT::MsgUtils->message('I', "$msg");
+}
+
+#-----------------------------------------------------------------------------
+
+=head3    shutdownxcatd
+	
+  shutdown the daemon
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub shutdownxcatd
+
+{
+    my $msg = "Shutting down the xcatd daemon during database migration.";
+    xCAT::MsgUtils->message('I', "$msg");
+    my $xcmd;
+    if ($::osname eq 'AIX')
+    {
+        $xcmd = "stopsrc -s xcatd";
+        system($xcmd);
+
+    }
+    else
+    {
+        # $xcmd = "service xcatd stop";
+        my $ret = xCAT::Utils->stopservice("xcatd");
+        return $ret;
+    }
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3    backupxcatdb
+	
+   Backup xCATdb
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub backupxcatdb
+
+{
+
+
+    xCAT::MsgUtils->message(
+        "I",
+"Backing up xCAT Database to $::backupdir.\nThis could take several minutes."
+    );
+    if (!(-e $::backupdir))
+    {    # does not exist, make it
+        my $cmd = "mkdir -p $::backupdir";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+    }
+    else
+    {    # remove contents
+
+        my $cmd = "rm -f $::backupdir/*";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+    }
+
+    # back it up
+    my $cmd = "XCATBYPASS=1 dumpxCATdb -p $::backupdir";
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+    {
+        xCAT::MsgUtils->message("E", " $cmd failed.");
+        exit(1);
+    }
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3  mkpgusers
+	
+         adds postgres user and group and xcatadm id
+         Only needed on AIX,  Linux install does this	
+         Note this does not support postgresql 9.0 on AIX
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub mkpgusers
+{
+
+    #
+    # mk postgres group and user
+    #
+    my $cmd = "lsgroup postgres";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)
+    {
+
+        # postgres group does not exist, need to make it
+        $cmd = "mkgroup postgres";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+    }
+    $cmd = "lsuser postgres";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)
+    {
+
+        #postgres user does not exist, need to make it
+        $cmd = "mkuser pgrp=postgres home=/var/lib/pgsql postgres";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+
+    }
+
+    #
+    # mk xcatadm user
+    #
+    $cmd = "lsuser xcatadm";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)
+    {
+
+        #xcatadm user does not exist, need to make it
+        $cmd = "mkuser xcatadm";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+
+        # set xcatadm id password
+        $cmd = qq~echo "xcatadm:$::adminpassword" | /bin/chpasswd -c~;
+
+        # secure passwd in verbose mode
+        my $tmpv = $::VERBOSE;
+        $::VERBOSE = 0;
+        xCAT::Utils->runcmd($cmd, -1);
+        if ($::RUNCMD_RC != 0)
+        {
+
+            xCAT::MsgUtils->message("E", " command failed.");
+            exit(1);
+        }
+        $::VERBOSE = $tmpv;
+    }
+
+    #
+    # Make the postgresql database directory and make postgres owner
+    #
+    if (!(-e $::installdatadir))
+    {    # if it does not already exist
+        $cmd = "mkdir $::installdatadir";
+        xCAT::Utils->runcmd($cmd, 0);
+
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+            exit(1);
+        }
+    }
+    $cmd = "chown  postgres $::installdatadir";
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+    {
+        xCAT::MsgUtils->message("E", " $cmd failed.");
+        exit(1);
+    }
+
+    $cmd = "chgrp postgres $::installdatadir";
+    xCAT::Utils->runcmd($cmd, 0);
+
+    if ($::RUNCMD_RC != 0)
+    {
+        xCAT::MsgUtils->message("E", " $cmd failed.");
+        exit(1);
+    }
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   runpostgrescmd
+
+	
+  Run a commmand as the postgres id
+  Input: command
+
+=cut
+
+#-----------------------------------------------------------------------------
+sub runpostgrescmd
+{
+    my $orgcmd = shift;
+    my $cmd    = "\'";
+    $cmd .= $orgcmd;
+    $cmd .= ' 2>&1';
+    $cmd .= "\'";
+    system("su - postgres -c $cmd");
+
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   runpgcmd_chkoutput
+
+	
+  Run a commmand as the postgres id
+  Input: command
+  Output: return code
+  Note: this version checks for specific error conditions
+
+=cut
+
+#-----------------------------------------------------------------------------
+sub runpgcmd_chkoutput
+{
+    my $orgcmd = shift;
+    my $rc     = 0;
+    my $cmd    = "\'";
+    $cmd .= $orgcmd;
+    $cmd .= ' 2>&1';
+    $cmd .= "\'";
+
+    my $retries = 0;
+    my @output;
+    while ($retries < 6) {
+        $retries++;
+        @output = `su - postgres -c $cmd`;
+        if (grep(/could not connect to database postgres/, @output)) {
+            sleep 5;
+            $rc = 1
+        } else {
+            $rc = 0;
+            foreach my $line (@output) {
+                print "$line \n";
+            }
+            last;
+        }
+    }
+    if ($rc == 1) {    # print out the postgresql connect failure
+        foreach my $line (@output) {
+            print "$line \n";
+        }
+    }
+    return $rc;
+
+
+}
+
+
+#-----------------------------------------------------------------------------
+
+=head3   initpgdb
+
+	
+    Create the PostgreSQL database and setup the config files
+
+=cut
+
+#-----------------------------------------------------------------------------
+sub initpgdb
+{
+    my $cmd;
+    my $dbrestart = 0;
+
+    # init the database,  must su to postgres
+
+    if ($::osname eq 'AIX')
+    {
+        $cmd = "$::installdir/bin/initdb -D $::installdatadir ";
+    } else {
+        $cmd = "$::pgcmddir/initdb -D $::installdatadir ";
+    }
+    &runpostgrescmd($cmd);
+
+    # insert  MN ip address and any -a addresses
+    # in the # IPv4 local connections: stanza of
+    # the /var/lib/pgsql/data/pg_hba.conf file
+    # if it is not already there
+
+    my $hbafile = $::installdatadir;
+    $hbafile .= "\/pg_hba.conf";
+    if ($debianflag) {
+        $hbafile = $::debiancfgdir . "/pg_hba.conf";
+    }
+    $cmd = "cp $hbafile $hbafile.org";    # backup the original
+    xCAT::Utils->runcmd($cmd, -1);
+
+    push @ACCESSADDRS, $::MN;  # add management node to list
+    my $insertstr = undef;     # start with empty string
+    for my $hbaaccess (@ACCESSADDRS)
+      {
+        $cmd = "fgrep $hbaaccess $hbafile";
+        xCAT::Utils->runcmd($cmd, -1);
+        if ($::RUNCMD_RC != 0)    # not already there
+        {
+            $insertstr .= "host    all          all        ";
+            $insertstr .= $hbaaccess;
+            $insertstr .= "\/32      md5\\n "; # add entry line to string
+        }
+      }
+    $cmd = "awk '{gsub(\"\IPv4 local connections:\",\"\IPv4 local connections:\\n$insertstr \"); print}'   $hbafile > $hbafile.xcat";
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+      {
+         xCAT::MsgUtils->message("E", " $cmd failed.");
+         exit(1);
+      }
+    $cmd = "cp -p  $hbafile.xcat $hbafile  ";
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+      {
+         xCAT::MsgUtils->message("E", " $cmd failed.");
+         exit(1);
+      }
+    $cmd = "rm  $hbafile.xcat ";
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+      {
+        xCAT::MsgUtils->message("E", " $cmd failed.");
+        exit(1);
+      }
+	  $dbrestart = 1;
+
+    # setup the postgresql.conf file
+    my $pgconf = $::installdatadir;
+    $pgconf .= "\/postgresql.conf";
+    if ($debianflag) {
+        $pgconf = $::debiancfgdir . "/postgresql.conf";
+    }
+    my $str = "\"setup by xCAT\"";
+    $cmd = "fgrep $str $pgconf";
+    my @output = xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)    #  not setup
+    {
+        $cmd = "echo \"#setup by xCAT\" >> $pgconf";
+        `$cmd`;
+        if ($::osname eq 'Linux')
+        {
+            $cmd = qq~ echo listen_addresses = \\'localhost,$::MN\\' >> $pgconf~;
+             if ($::listenaddrs)
+             {
+                 $cmd = qq~ echo listen_addresses = \\'localhost,$::MN,$::listenaddrs\\' >> $pgconf~;
+             }
+            `$cmd`;
+        }
+
+        # only for AIX, already setup for Linux
+        if ($::osname eq 'AIX')
+        {
+            $cmd = qq~ echo listen_addresses = \\'$::MN\\' >> $pgconf~;
+            if ($::listenaddrs)
+            {
+                $cmd = qq~ echo listen_addresses = \\'$::MN,$::listenaddrs\\' >> $pgconf~;
+            }
+            `$cmd`;
+            $cmd = qq~echo logging_collector = on >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_directory = \\'pg_log\\' >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_filename = \\'postgresql-%a.log\\' >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_truncate_on_rotation = on >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_rotation_age = 1d >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_rotation_size = 0 >> $pgconf~;
+            `$cmd`;
+            $cmd = qq~echo log_min_messages = notice >> $pgconf~;
+            `$cmd`;
+        }
+        $dbrestart = 1;
+    }
+
+    # make sure everything in /var/lib/pgsql/data is owned by postgres
+    if ($::installdatadir) {    # for protection
+        $cmd = "chown postgres $::installdatadir/*";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+        }
+        $cmd = "chgrp postgres $::installdatadir/* ";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+        }
+
+    }
+    if ($dbrestart) {
+        &pgstart(1);
+    }
+
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   pgstart
+
+	
+    Start or restart the Postgresql server
+    startflg = 0  start postgresql
+    startflg = 1  restart postgresql
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub pgstart
+
+{
+    my $startflg = shift;
+    my $cmd;
+    my $ret = 0;
+    xCAT::MsgUtils->message("I", "Starting the PosgreSQL Server");
+    if ($::osname eq 'AIX')
+    {
+
+        # must su to postgres id,  root cannot start postgesql
+        $cmd = "/var/lib/pgsql/bin/pg_ctl -D /var/lib/pgsql/data  start";
+        &runpostgrescmd($cmd);
+    }
+    else    # linux
+    {
+        if (defined($::postgres9)) {    # set to the PTF level of postgresql 9.X
+                #$cmd = "service postgresql-9.$::postgres9 start";
+            $cmd = "postgresql-9.$::postgres9";
+        } else {
+
+            #$cmd = "service postgresql start";
+            $cmd = "postgresql";
+        }
+        if ($startflg == 0) {
+            $ret = xCAT::Utils->startservice($cmd);
+        } else {
+            $ret = xCAT::Utils->restartservice($cmd);
+        }
+        if ($ret != 0) {
+            xCAT::MsgUtils->message("E", " failed to start $cmd.");
+            exit(1);
+        }
+
+        # check to see if running before continuing
+        my $retries   = 0;
+        my $pgstarted = 0;
+
+        #if (defined($::postgres9)) { # set to the PTF level of postgresql 9.X
+        #    #$cmd = "service postgresql-9.$::postgres9 status";
+        #    $ret=xCAT::Utils->checkservicestatus("postgresql-9.$::postgres9");
+        #} else {
+        #    #$cmd = "service postgresql status";
+        #    $ret=xCAT::Utils->checkservicestatus("postgresql");
+        #}
+        while ($retries < 30) {
+            $retries++;
+
+            #my @status=xCAT::Utils->runcmd($cmd, -1);
+            #if (grep(/[r|R]unning/, @status)) {
+            $ret = xCAT::Utils->checkservicestatus($cmd);
+            if ($ret == 0) {
+                $pgstarted = 1;
+                last;
+            }
+            sleep 1;
+        }
+        if ($pgstarted == 0) {    # failed to started
+            xCAT::MsgUtils->message("E", " service postgresql start failed.");
+            exit(1);
+
+        }
+    }    # end linux
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   pgreboot
+
+	
+    Setup for postgresql to start on reboot, only Linux
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub pgreboot
+{
+    my $cmd;
+    if ($::osname eq 'AIX')
+    {
+        xCAT::MsgUtils->message(
+            "I",
+            " Autosetup on AIX to start Postgresql on reboot not supported yet."
+        );
+
+    }
+    else    # linux
+    {
+        if (defined($::postgres9)) {    # set to the postgresql ptf level
+                #    $cmd = "chkconfig postgresql-9.$::postgres9 on";
+            $cmd = "postgresql-9.$::postgres9";
+        } else {
+
+            #$cmd = "chkconfig postgresql on";
+            $cmd = "postgresql";
+        }
+
+        #if ($debianflag){
+        #$cmd = "update-rc.d postgresql defaults";
+        #}
+        #xCAT::Utils->runcmd($cmd, 0);
+        #if ($::RUNCMD_RC != 0)
+        my $ret = xCAT::Utils->enableservice($cmd);
+        if ($cmd != 0)
+        {
+            xCAT::MsgUtils->message("E",
+"enable service $cmd failed. PostgreSQL will not restart on reboot.");
+        }
+    }
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3    setupxcatdb
+	
+      Creates the xcatdb in Postgresql
+      Add xcatadm to the database and make owner of the database
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub setupxcatdb
+
+{
+    my $cmd;
+
+    # create the database
+    if ($::osname eq 'AIX')
+    {
+        $cmd = "$::installdir/bin/createdb  $::dbname ";
+    } else {    #Linux
+        $cmd = "$::pgcmddir/createdb  $::dbname ";
+    }
+
+    # We need to check the output, because sometimes
+    # postmaster daemon is not ready at this point to create the database
+    my $rc = &runpgcmd_chkoutput($cmd);
+    if ($rc > 0) {
+        xCAT::MsgUtils->message("E",
+            "Failed creating the $::dbname database");
+        exit(1);
+    }
+
+    if ($::osname eq 'AIX')
+    {
+        $cmd = "/var/lib/pgsql/bin/psql -d $::dbname -U postgres";
+    } else {    # Linux
+        $cmd = "$::pgcmddir/psql -d $::dbname -U postgres";
+        if (($debianflag) || ($::linuxos =~ /sles/)) {
+            $cmd = "su - postgres -c '$::pgcmddir/psql -d $::dbname -U postgres'";
+        }
+    }
+    my $pgsql;
+    my $timeout  = 10;    # sets Expect default timeout, 0 accepts immediately
+    my $pwd_sent = 0;
+    my $pg_prompt  = "$::dbname=# ";
+    my $expect_log = undef;
+    my $debug      = 0;
+    $pgsql = new Expect;
+
+    #
+    # -re $pg_prompt
+    #    For example xcatdb=#
+    #
+    #
+
+    # disable command echoing
+    #$pgsql->slave->stty(qw(sane -echo));
+
+    #
+    # exp_internal(1) sets exp_internal debugging
+    # to STDERR.
+    #
+    #$pgsql->exp_internal(1);
+    $pgsql->exp_internal($debug);
+
+    #
+    # log_stdout(0) prevent the program's output from being shown.
+    #  turn on if debugging error
+    #$pgsql->log_stdout(1);
+    $pgsql->log_stdout($debug);
+
+    my $createuser = "CREATE USER xcatadm WITH PASSWORD \'$::adminpassword\';\r";
+    my $spawncmd;
+    $spawncmd = $cmd;
+    unless ($pgsql->spawn($spawncmd))
+    {
+        xCAT::MsgUtils->message("E",
+            "Unable to run $spawncmd to add xcat admin user.");
+        return;
+
+    }
+    my @result = $pgsql->expect(
+        $timeout,
+        [
+            $pg_prompt,
+            sub {
+                $pgsql->send("$createuser");
+                $pgsql->clear_accum();
+                $pgsql->exp_continue();
+                $pgsql->send("\q;\r");
+            }
+        ]
+    );
+    ######################################
+    # Expect error - report and quit
+    ##########################################
+    if (defined($result[1]))
+    {
+        my $errmsg = $result[1];
+        $pgsql->soft_close();
+        xCAT::MsgUtils->message("E",
+            "Failed creating xcatadm id.");
+        exit(1);
+
+    }
+    $pgsql->soft_close();
+
+    # setup root user
+    $pgsql = new Expect;
+
+    #
+    # -re $pg_prompt
+    #    For example xcatdb=#
+    #
+    #
+
+    # disable command echoing
+    #$pgsql->slave->stty(qw(sane -echo));
+
+    #
+    # exp_internal(1) sets exp_internal debugging
+    # to STDERR.
+    #
+    #$pgsql->exp_internal(1);
+    $pgsql->exp_internal($debug);
+
+    #
+    # log_stdout(0) prevent the program's output from being shown.
+    #  turn on if debugging error
+    #$pgsql->log_stdout(1);
+    $pgsql->log_stdout($debug);
+
+    $createuser = "CREATE USER root WITH PASSWORD \'$::adminpassword\';\r";
+    $spawncmd;
+    $spawncmd = $cmd;
+    unless ($pgsql->spawn($spawncmd))
+    {
+        xCAT::MsgUtils->message("E",
+            "Unable to run $spawncmd to add xcat root user.");
+        return;
+
+    }
+    my @result = $pgsql->expect(
+        $timeout,
+        [
+            $pg_prompt,
+            sub {
+                $pgsql->send("$createuser");
+                $pgsql->clear_accum();
+                $pgsql->exp_continue();
+                $pgsql->send("\q;\r");
+            }
+        ]
+    );
+    ######################################
+    # Expect error - report and quit
+    ##########################################
+    if (defined($result[1]))
+    {
+        my $errmsg = $result[1];
+        $pgsql->soft_close();
+        xCAT::MsgUtils->message("E",
+            "Failed creating root id. $errmsg");
+        exit(1);
+
+    }
+    $pgsql->soft_close();
+
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   setupODBC
+	
+         Will setup the ODBC interface to the ODBC. Only supported on Linux
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub setupODBC
+
+{
+    if ($::osname eq 'AIX') {
+        my $message =
+          "Setup of the ODBC is only supported on Linux.";
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+    }
+
+    #
+    # check to see if correct rpms are installed
+    #
+    # for all OS need unixODBC rpm
+    my $message;
+    my $cmd = "rpm -qa | grep unixODBC";
+    if ($debianflag) {
+        $cmd = "dpkg -l | grep unixodbc";
+    }
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)
+    {
+        $message =
+          "unixODBC rpm is not installed. Install from the OS CDs.";
+        if ($debianflag) {
+            $message = "unixodbc is not installed. Install it first.";
+        }
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+    }
+    $cmd = "rpm -qa | grep postgresql-odbc";
+    if ($debianflag) {
+        $cmd = "dpkg -l | grep odbc-postgresql";
+    }
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)
+    {
+        $message =
+          "postgresql-odbc rpm  is not installed. Install from the OS CDs.";
+        if ($debianflag) {
+            $message = "odbc-postgresql is not installed. Install it first.";
+        }
+        xCAT::MsgUtils->message("E", " $message");
+        exit(1);
+    }
+    my $xcatconfig = "/etc/xcat/cfgloc";
+    if (!(-e $xcatconfig))
+    {
+        $message =
+"The $xcatconfig file is  missing. You need to configure xCAT for PostgreSQL before setting up the ODBC.";
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+
+    }
+    $cmd = "fgrep -i  host $xcatconfig";
+    my @output;
+    @output = xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)    # cannot get the necessary hostname or ip
+    {
+
+        $message =
+"Cannot find host info in the /etc/xcat/cfgloc  file. Configuration of ODBC cannot continue.";
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+
+    }
+
+    # get host and password database from cfgloc
+    my ($connstring, $adminid, $passwd) = split(/\|/, $output[0]);
+    my ($hdr,        $id,      $server) = split(/=/,  $connstring);
+    my ($database, $footer) = split(/;/, $id);
+
+    # the odbcinst.ini file should have been created during install of the
+    # unixODBC and postgresql-ODBC rpms
+    my $odbcfile     = "/etc/odbc.ini";
+    my $odbcinstfile = "/etc/odbcinst.ini";
+    if (!(-e $odbcinstfile)) {
+        $message =
+          "Cannot find $odbcinstfile. Configuration of ODBC cannot continue.";
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+    }
+
+    # setup the DSN odbc.ini file
+    $cmd = "fgrep -i xcatdb $odbcfile";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)    # then xcat entry not there
+    {
+        my $entry =
+"[xCATDB]\nDriver   = PostgreSQL\nSERVER   = $server\nPORT     = 3306\nDATABASE = $database";
+        $cmd = "echo \"$entry\" >> $odbcfile";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            $message = "Could not setup ODBC DNS file.";
+            xCAT::MsgUtils->message("E", "$message");
+            exit(1);
+
+        }
+    }
+    else
+    {    # entry already there
+        $message = "$odbcfile already configured, will not change.";
+        xCAT::MsgUtils->message("I", "$message");
+    }
+
+    # setup $roothome/.odbc.ini so root will not have to specify password
+    # when accessing through ODBC
+
+    my $homedir      = xCAT::Utils->getHomeDir();
+    my $rootodbcfile = $homedir;
+    $rootodbcfile .= "/.odbc.ini";
+
+    # setup the DSN odbc.ini file
+    $cmd = "fgrep -i  XCATDB $rootodbcfile";
+    xCAT::Utils->runcmd($cmd, -1);
+    if ($::RUNCMD_RC != 0)    # then xcat entry not there
+    {
+        my $entry =
+"[xCATDB]\nSERVER =$server\nDATABASE = $database\nUSER     = $adminid\nPASSWORD = $passwd";
+        $cmd = "echo \"$entry\" >> $rootodbcfile";
+
+        # secure passwd in verbose mode
+        my $tmpv = $::VERBOSE;
+        $::VERBOSE = 0;
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            $message = "Could not setup root ODBC file $rootodbcfile.";
+            xCAT::MsgUtils->message("E", "$message");
+            exit(1);
+
+        }
+        $::VERBOSE = $tmpv;
+    }
+    else
+    {    # entry already there
+        $message = "$rootodbcfile already configured, will not change. Make sure the userid and password are correct for PostgreSQL";
+        xCAT::MsgUtils->message("I", "$message");
+    }
+
+    # allow readonly by root
+    chmod 0600, $rootodbcfile;
+
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   createcfgloc
+	
+		 Creates the cfgloc file which will be copied to cfgloc
+                 to run xCAT on PostgreSQL
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub createcfgloc
+
+{
+    my $cfgloc       = "/etc/xcat/cfgloc";
+    my $cfglocbackup = "/etc/xcat/cfgloc.xcat.backup";
+    my $cmd;
+    my $message;
+
+    # if they had an old cfgloc , save it
+    if ((-e ($cfgloc)) && (!(-e ($cfglocbackup))))
+    {
+        $cmd = "mv $cfgloc $cfglocbackup";
+        xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0)
+        {
+            xCAT::MsgUtils->message("E", " $cmd failed.");
+        }
+    }
+    my $pgentry = "Pg:dbname=$::dbname;host=$::MN|xcatadm|$::adminpassword";
+    $cmd = "echo \"$pgentry\" > $cfgloc";
+
+    # secure passwd in verbose mode
+    my $tmpv = $::VERBOSE;
+    $::VERBOSE = 0;
+    xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0)
+    {
+        $message = "command failed. Could not setup cfgloc";
+        xCAT::MsgUtils->message("E", "$message");
+        exit(1);
+
+    }
+    $::VERBOSE = $tmpv;
+
+    # allow readonly by root
+    chmod 0600, $cfgloc;
+
+}
+
+#-----------------------------------------------------------------------------
+
+=head3   restorexcatdb
+	
+		Restores the database from ~/xcat-dbback and restarts the xcatd using
+	   PostgreSQL	
+	
+=cut
+
+#-----------------------------------------------------------------------------
+
+sub restorexcatdb
+{
+    # set the env variable for Table.pm for the new database
+    my $xcatcfg;
+    my $cfgl;
+    open($cfgl, "<", "/etc/xcat/cfgloc");
+    $xcatcfg = <$cfgl>;
+    close($cfgl);
+    chomp($xcatcfg);
+
+    # restore the database
+    xCAT::MsgUtils->message(
+        "I",
+"Restoring the xCAT Database with $::backupdir to PostgreSQL database.\nThis could take several minutes."
+    );
+    if (!(-d $::backupdir))
+    {    # does not exist, error
+        xCAT::MsgUtils->message("E",
+            " $::backupdir is missing. Cannot retore the database.");
+        exit(1);
+    }
+    my $tmpv = $::VERBOSE;
+    $::VERBOSE = 0;
+
+    # restore it
+    my $cmd = "XCATBYPASS=1 XCATCFG=\"$xcatcfg\" restorexCATdb -p $::backupdir";
+
+    # secure passwords in verbose mode
+    my $tmpv = $::VERBOSE;
+    $::VERBOSE = 0;
+    xCAT::Utils->runcmd($cmd, 0);
+    $::VERBOSE = $tmpv;
+    if ($::RUNCMD_RC != 0)
+    {
+        xCAT::MsgUtils->message("E", " restorexCATdb -p $::backupdir failed.");
+        exit(1);
+    }
+    $::VERBOSE = $tmpv;
+
+    #
+    # start the daemon
+    #
+    my $xcmd;
+    if ($::osname eq 'AIX')
+    {
+        $xcmd = "startsrc -s xcatd";
+        system($xcmd);
+
+    }
+    else
+    {
+        #$xcmd = "service xcatd start";
+        my $ret = xCAT::Utils->startservice("xcatd");
+        return $ret;
+    }
+
+}
+

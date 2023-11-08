@@ -1,0 +1,71 @@
+=head1 Name
+
+B<rmigrate> - Execute migration of a guest VM between hosts/hypervisors
+
+=head1 B<Synopsis>
+
+B<rmigrate> I<noderange> I<target_host>
+
+=head2 For zVM:
+
+B<rmigrate> I<noderange> [B<destination=>I<target_host>] [B<action=>I<action>] [B<force=>I<force>] [B<immediate=>I<yes_no>] [B<max_total=>I<total>] [B<max_quiesce=>I<quiesce>]
+
+=head1 B<Description>
+
+B<rmigrate> requests that a guest VM to be moved from the current hypervisor to another.  It will request a live migration if possible.  The vmstorage directory should be shared between the source and destination hypervisors.
+
+Note: Make sure SELINUX is disabled and firewall is turned off on source and destination hypervisors.
+
+=head2 For zVM:
+
+B<rmigrate> migrates a VM from one z/VM member to another in an SSI cluster (only in z/VM 6.2).
+
+=head1 OPTIONS
+
+=head2 zVM specific:
+
+=over 4
+
+=item B<destination=>
+The name of the destination z/VM system to which the specified virtual machine will be relocated.
+
+=item B<action=>
+It can be: (MOVE) initiate a VMRELOCATE MOVE of the VM, (TEST) determine if VM is eligible to be relocated, or (CANCEL) stop the relocation of VM.
+
+=item B<force=>
+It can be: (ARCHITECTURE) attempt relocation even though hardware architecture facilities or CP features are not available on destination system, (DOMAIN) attempt relocation even though VM would be moved outside of its domain, or (STORAGE) relocation should proceed even if CP determines that there are insufficient storage resources on destination system.
+
+=item B<immediate=>
+It can be: (YES) VMRELOCATE command will do one early pass through virtual machine storage and then go directly to the quiesce stage, or (NO) specifies immediate processing.
+
+=item B<max_total=>
+The maximum wait time for relocation to complete.
+
+=item B<max_quiesce=>
+The maximum quiesce time a VM may be stopped during a relocation attempt.
+
+=back
+
+=head1 B<Files>
+
+B<vm> table -
+Table governing VM parameters.  See L<vm(5)|vm.5> for further details.
+This is used to determine the current host to migrate from.
+
+=head1 B<Examples>
+
+1. To migrate kvm guest "kvm1" from hypervisor "hyp01" to hypervisor "hyp02", run:
+
+ rmigrate kvm1 hyp02
+
+2. To migrate kvm guest "kvm1" to hypervisor "hyp02", which is already on host "hyp02", enter:
+
+ rmigrate kvm1 hyp02
+
+=head2 zVM specific:
+
+=over 4
+
+ rmigrate ihost123 destination=pokdev62
+
+=back

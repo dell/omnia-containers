@@ -1,0 +1,6 @@
+#NEW_INSTALL_LIST#
+#ENV:INUCLIENTS=1 INUBOSTYPE=1#
+rsct/rsct.core
+rsct/rsct.core.utils
+rsct/src
+#NEW_INSTALL_LIST#

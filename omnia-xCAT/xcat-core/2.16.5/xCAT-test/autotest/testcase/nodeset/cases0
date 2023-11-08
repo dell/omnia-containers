@@ -1,0 +1,523 @@
+start:nodeset_stat
+os:Linux
+label:others
+cmd:nodeset $$CN stat
+check:rc==0
+check:output=~$$CN:\s+[discover|boot|reboot|install|netboot|shell|standby]
+cmd:nodeset $$CN stat -V
+check:rc==0
+check:output=~$$CN:\s+\[\w+\]:\s+[discover|boot|reboot|install|netboot|shell|standby]
+end
+
+start:nodeset_noderange
+os:Linux
+label:others
+cmd:nodeset $$CN test
+check:rc!=0
+check:output=~Error
+end
+
+start:nodeset_check_yaboot_no
+os:rhels
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=rhels7.5 netboot=yaboot
+check:rc==0
+cmd: mkdef "rhels7.5-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels7.5
+check:rc==0
+cmd:nodeset testnode1 osimage="rhels7.5-ppc64-install-compute"
+check:rc!=0
+check:output=~yaboot is not valid when provisioning
+check:output=~valid options: "grub2,grub2-tftp,grub2-http"
+cmd:rmdef -t osimage -o "rhels7.5-ppc64-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_yaboot_yes
+os:rhels
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=rhels5.5 netboot=yaboot
+check:rc==0
+cmd: mkdef "rhels5.5-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels5.5
+check:rc==0
+cmd:nodeset testnode1 osimage="rhels5.5-ppc64-install-compute"
+check:rc!=0
+check:output=~Install image not found in /install/rhels5.5/ppc64
+cmd:rmdef -t osimage -o "rhels5.5-ppc64-install-compute"
+cmd:noderm testnode1
+end
+
+
+start:nodeset_check_grub2_yes
+os:rhels
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=rhels7.5 netboot=grub2
+check:rc==0
+cmd: mkdef "rhels7.5-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels7.5
+check:rc==0
+cmd:nodeset testnode1 osimage="rhels7.5-ppc64-install-compute"
+check:output=~Install image not found in /install/rhels7.5/ppc64
+cmd:rmdef -t osimage -o "rhels7.5-ppc64-install-compute"
+cmd:noderm testnode1
+check:rc==0
+end
+
+start:nodeset_check_grub2_no
+os:rhels
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=rhels6.8 netboot=grub2
+check:rc==0
+cmd: mkdef "rhels6.8-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels6.8
+check:rc==0
+cmd:nodeset testnode1 osimage="rhels6.8-ppc64-install-compute"
+check:rc!=0
+check:output=~grub2 is not valid when provisioning rhels6.8-ppc64-install-compute
+check:output=~valid options: "yaboot"
+cmd:rmdef -t osimage -o "rhels6.8-ppc64-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_grub2_ubuntu
+os:ubuntu
+label:others
+cmd:mkdef -t node -o testnode1 arch=x86_64 cons=kvm groups=kvm ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=kvm monserver=10.1.1.1 nameservers=10.1.1.1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=ubuntu14.04.5 netboot=grub2
+check:rc==0
+cmd: mkdef "ubuntu14.04.5-x86_64-install-compute" -u profile=compute provmethod=install osvers=ubuntu14.04.5
+check:rc==0
+cmd:nodeset testnode1 osimage="ubuntu14.04.5-x86_64-install-compute"
+check:rc!=0
+check:output=~grub2 is not valid when provisioning ubuntu14.04.5-x86_64-install-compute
+check:output=~valid options: "xnba,pxe"
+cmd:rmdef -t osimage -o "ubuntu14.04.5-x86_64-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_grub2_sles11
+os:sles
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=sles11.4 netboot=grub2
+check:rc==0
+cmd:copycds $$ISO
+check:rc==0
+cmd:nodeset testnode1 osimage="sles11.4-ppc64-install-compute"
+check:rc!=0
+check:output=~install sles11.4-ppc64-compute
+cmd:noderm testnode1
+end
+
+
+start:nodeset_check_yaboot_sles11
+os:sles
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar hcp=hmc1 hwtype=lpar  id=1 ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi parent=fsp1 pprofile=testnode1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=sles11.4 netboot=yaboot
+check:rc==0
+cmd: mkdef "sles11.9-ppc64-install-compute" -u profile=compute provmethod=install osvers=sles11.9
+check:rc==0
+cmd:nodeset testnode1 osimage="sles11.9-ppc64-install-compute"
+check:rc!=0
+check:output=~yaboot is not valid when provisioning sles11.9-ppc64-install-compute
+cmd:rmdef -t osimage -o "sles11.9-ppc64-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_grub2_sles12
+os:sles
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64el cons=kvm groups=kvm ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=kvm monserver=10.1.1.1 nameservers=10.1.1.1 1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=sles12 netboot=grub2
+check:rc==0
+cmd: mkdef "sles12-ppc64el-install-compute" -u profile=compute provmethod=install osvers=sles12
+check:rc==0
+cmd:nodeset testnode1 osimage="sles12-ppc64el-install-compute"
+check:rc!=0
+check:output=~Failed to detect copycd configured install source at /install/sles12
+cmd:rmdef -t osimage -o "sles12-ppc64el-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_yaboot_sles12
+os:sles
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64el cons=kvm groups=kvm ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=kvm monserver=10.1.1.1 nameservers=10.1.1.1 1 profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=sles12 netboot=yaboot
+check:rc==0
+cmd: mkdef "sles12-ppc64el-install-compute" -u profile=compute provmethod=install osvers=sles12
+check:rc==0
+cmd:nodeset testnode1 osimage="sles12-ppc64el-install-compute"
+check:rc!=0
+check:output=~yaboot is not valid when provisioning sles12-ppc64el-install-compute
+cmd:rmdef -t osimage -o "sles12-ppc64el-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_petitboot
+os:rhels
+label:others
+cmd:mkdef -t node -o testnode1 arch=ppc64el cons=ipmi groups=pbmc mgt=ipmi ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06  monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1
+check:rc==0
+cmd:chdef testnode1 os=rhels7.5 netboot=petitboot
+check:rc==0
+cmd: mkdef "rhels7.5-ppc64el-install-compute" -u profile=compute provmethod=install osvers=rhels7.5
+check:rc==0
+cmd:nodeset testnode1 osimage="rhels7.5-ppc64el-install-compute"
+check:rc==0
+cmd:rmdef -t osimage -o "rhels7.5-ppc64el-install-compute"
+cmd:noderm testnode1
+end
+
+start:nodeset_check_warninginfo
+label:others
+cmd:if [[ "__GETNODEATTR($$CN,arch)__" =~ "el" || "__GETNODEATTR($$CN,arch)__" =~ "le" ]]; then bootloader=xnba; else bootloader=petitboot; fi; mkdef -t node -o testnode1 arch=ppc64el cons=ipmi groups=pbmc mgt=ipmi ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06  monserver=10.1.1.1 nameservers=10.1.1.1 nodetype=ppc,osi profile=compute tftpserver=10.1.1.1 xcatmaster=10.1.1.1 netboot=$bootloader
+check:rc==0
+cmd:lsdef testnode1
+cmd:nodeset testnode1 osimage=__GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-compute
+check:output=~Warning: (\[.*?\]: )?testnode1:.+might be invalid
+cmd:noderm testnode1
+end
+
+start:nodeset_xnba
+description: Verify when xnba is used for OS loader, whether the configuration files under /tftpboot can be generated corrently
+label:others
+cmd:rmdef testnode1
+cmd:rm -f /tftpboot/xcat/xnba/nodes/testnode1 /tftpboot/xcat/xnba/nodes/testnode1.elilo
+cmd:mkdef -t node -o testnode1 arch=x86_64 cons=kvm groups=kvm ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=kvm profile=compute os=rhels6.99
+check:rc==0
+cmd:cp -f /etc/hosts /etc/hosts.xcattestbak
+cmd:echo "10.1.1.200 testnode1" >> /etc/hosts
+check:rc==0
+cmd:chdef testnode1 netboot=xnba addkcmdline=debug
+check:rc==0
+cmd:mkdef "rhels6.99-x86_64-install-compute" -u profile=compute provmethod=install osvers=rhels6.99 osarch=x86_64
+cmd:mkdir -p /install/rhels6.99/x86_64/images/pxeboot
+cmd:echo blah >/install/rhels6.99/x86_64/images/pxeboot/vmlinuz
+cmd:echo blah >/install/rhels6.99/x86_64/images/pxeboot/initrd.img
+cmd:nodeset testnode1 osimage=rhels6.99-x86_64-install-compute
+check:rc==0
+cmd:grep "debug" /tftpboot/xcat/xnba/nodes/testnode1
+check:rc==0
+cmd:grep "debug" /tftpboot/xcat/xnba/nodes/testnode1.elilo
+check:rc==0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:grep "debug" /tftpboot/xcat/xnba/nodes/testnode1
+check:rc!=0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc!=0
+cmd:chdef -t node -o testnode1 ip=
+check:rc==0
+cmd:cp -f /etc/hosts.xcattestbak /etc/hosts
+cmd:sleep 2
+cmd:getent hosts testnode1 | grep testnode1
+check:rc!=0
+cmd:nodeset testnode1 osimage=rhels6.99-x86_64-install-compute
+check:rc!=0
+cmd:noderm testnode1
+cmd:rmdef -t osimage -o "rhels6.99-x86_64-install-compute"
+cmd:rm -rf /install/rhels6.99
+end
+
+start:nodeset_grub2
+description: Verify when grub2 is used for OS loader, whether the configuration files under /tftpboot can be generated corrently
+label:others
+cmd:lsdef testnode1 > /dev/null 2>&1;if [[ $? -eq 0 ]]; then lsdef testnode1 -z >/tmp/testnode1.stanza ;rmdef testnode1;fi
+cmd:rm -f  /tftpboot/boot/grub2/{testnode1,grub.cfg-{01-e6-d4-d2-3a-ad-06,0[aA]0101[cC]8}}
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc profile=compute os=rhels7.99
+check:rc==0
+cmd:cp -f /etc/hosts /etc/hosts.xcattestbak
+cmd:echo "10.1.1.200 testnode1" >> /etc/hosts
+cmd:makedns -n
+check:rc==0
+cmd:chdef testnode1 netboot=grub2 addkcmdline=debug
+check:rc==0
+cmd:mkdef "rhels7.99-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels7.99 osarch=ppc64
+cmd:mkdir -p /install/rhels7.99/ppc64/ppc/ppc64
+cmd:echo blah >/install/rhels7.99/ppc64/ppc/ppc64/vmlinuz
+cmd:echo blah >/install/rhels7.99/ppc64/ppc/ppc64/initrd.img
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64-install-compute
+check:rc==0
+cmd:grep "debug" /tftpboot/boot/grub2/testnode1
+check:rc==0
+cmd:grep "debug" /tftpboot/boot/grub2/grub.cfg-01-e6-d4-d2-3a-ad-06
+check:rc==0
+cmd:grep "debug" /tftpboot/boot/grub2/grub.cfg-0[aA]0101[cC]8
+check:rc==0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:grep "debug" /tftpboot/boot/grub2/testnode1
+check:rc!=0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc!=0
+cmd:chdef -t node -o testnode1 ip=
+check:rc==0
+cmd:sed -i /testnode1/d /etc/hosts
+cmd:getent hosts testnode1 | grep testnode1
+check:rc!=0
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64-install-compute
+check:rc!=0
+cmd:noderm testnode1
+cmd:rmdef -t osimage -o "rhels7.99-ppc64-install-compute"
+cmd:rm -rf /install/rhels7.99
+cmd:cp -f /etc/hosts.xcattestbak /etc/hosts
+cmd:if [[ -e /tmp/testnode1.stanza ]]; then cat /tmp/testnode1.stanza |mkdef -z -f;rm -rf /tmp/testnode1.stanza;fi
+end
+
+start:nodeset_petitboot
+description: Verify when petitboot is used for OS loader, whether the configuration files under /tftpboot can be generated corrently
+label:others
+cmd:lsdef testnode1 > /dev/null 2>&1;if [[ $? -eq 0 ]]; then lsdef testnode1 -z >/tmp/testnode1.stanza ;rmdef testnode1;fi
+cmd:rm -f  /tftpboot/petitboot/testnode1
+cmd:mkdef -t node -o testnode1 arch=ppc64le cons=bmc groups=ipmi ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=ipmi profile=compute os=rhels7.99
+check:rc==0
+cmd:cp -f /etc/hosts /etc/hosts.bak
+cmd:cp -f /etc/hosts /etc/hosts.xcattestbak
+cmd:echo "10.1.1.200 testnode1" >> /etc/hosts
+cmd:makedns -n
+check:rc==0
+cmd:chdef testnode1 netboot=petitboot addkcmdline=debug
+check:rc==0
+cmd:mkdef "rhels7.99-ppc64le-install-compute" -u profile=compute provmethod=install osvers=rhels7.99 osarch=ppc64le
+cmd:mkdir -p /install/rhels7.99/ppc64le
+cmd:mkdir -p /install/rhels7.99/ppc64le/ppc/ppc64le
+cmd:echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/vmlinuz
+cmd:echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/initrd.img
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+check:rc==0
+cmd:grep "debug" /tftpboot/petitboot/testnode1
+check:rc==0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:grep "debug" /tftpboot/petitboot/testnode1
+check:rc!=0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc!=0
+cmd:chdef -t node -o testnode1 ip=
+check:rc==0
+cmd:sed -i /testnode1/d /etc/hosts.xcattestbak
+cmd:yes|cp -rf /etc/hosts.xcattestbak /etc/hosts
+cmd:getent hosts testnode1 | grep testnode1
+check:rc!=0
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+check:rc!=0
+cmd:noderm testnode1
+cmd:rmdef -t osimage -o "rhels7.99-ppc64le-install-compute"
+cmd:rm -rf /install/rhels7.99
+cmd:yes|cp -f /etc/hosts.bak /etc/hosts
+cmd:if [[ -e /tmp/testnode1.stanza ]]; then cat /tmp/testnode1.stanza |mkdef -z -f;rm -rf /tmp/testnode1.stanza;fi
+cmd:rm -rf /etc/hosts.xcattestbak /etc/hosts.bak
+end
+
+start:nodeset_yaboot
+description: Verify when yaboot is used for OS loader, whether the configuration files under /tftpboot can be generated corrently
+label:others
+cmd:rmdef testnode1
+cmd:rm -f /tftpboot/yaboot.conf-e6-d4-d2-3a-ad-06
+cmd:mkdef -t node -o testnode1 arch=ppc64 cons=hmc groups=lpar ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=hmc profile=compute os=rhels6.99
+check:rc==0
+cmd:cp -f /etc/hosts /etc/hosts.xcattestbak
+cmd:echo "10.1.1.200 testnode1" >> /etc/hosts
+cmd:makedns -n
+check:rc==0
+cmd:chdef testnode1 netboot=yaboot addkcmdline=debug
+check:rc==0
+cmd:mkdef "rhels6.99-ppc64-install-compute" -u profile=compute provmethod=install osvers=rhels6.99 osarch=ppc64
+cmd:mkdir -p /install/rhels6.99/ppc64/ppc/{chrp,ppc64}
+cmd:echo blah >/install/rhels6.99/ppc64/ppc/ppc64/vmlinuz
+cmd:echo blah >/install/rhels6.99/ppc64/ppc/ppc64/initrd.img
+cmd:echo blah >/install/rhels6.99/ppc64/ppc/chrp/yaboot
+cmd:nodeset testnode1 osimage=rhels6.99-ppc64-install-compute
+check:rc==0
+cmd:grep "debug" /tftpboot/yaboot.conf-e6-d4-d2-3a-ad-06
+check:rc==0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:grep "debug" /tftpboot/yaboot.conf-e6-d4-d2-3a-ad-06
+check:rc!=0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc!=0
+cmd:chdef -t node -o testnode1 ip=
+check:rc==0
+cmd:cp -f /etc/hosts.xcattestbak /etc/hosts
+cmd:getent hosts testnode1 | grep testnode1
+check:rc!=0
+cmd:nodeset testnode1 osimage=rhels6.99-ppc64-install-compute
+check:rc!=0
+cmd:noderm testnode1
+cmd:rmdef -t osimage -o "rhels6.99-ppc64-install-compute"
+cmd:rm -rf /install/rhels6.99
+end
+
+start:nodeset_errorcommand
+description:This testcase is to very nodeset osimage errorcommand could give right output
+label:others
+Attribute: $$CN-The operation object of nodeset command
+cmd:nodeset $$CN osimage= __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-compute
+check:rc==1
+check:output=~Error: (\[.*?\]: )?Invalid argument:
+check:output=~Usage: nodeset <noderange>
+end
+
+start:nodeset_disjointdhcps_petitboot
+description: Verify the disjointdhcps feature when petitboot is used for OS loader.
+label:others
+cmd:lsdef testnode1 > /dev/null 2>&1;if [[ $? -eq 0 ]]; then lsdef testnode1 -z >/tmp/testnode1.stanza ;rmdef testnode1;fi
+cmd:rm -f /tftpboot/petitboot/testnode1
+cmd:mkdef -t node -o testnode1 arch=ppc64le cons=bmc groups=ipmi ip=10.1.1.200 mac=e6:d4:d2:3a:ad:06 mgt=ipmi profile=compute os=rhels7.99
+check:rc==0
+cmd:cp -f /etc/hosts /etc/hosts.xcattestbak
+cmd:echo "10.1.1.200 testnode1" >> /etc/hosts
+cmd:makedns -n
+check:rc==0
+cmd:chdef testnode1 netboot=petitboot addkcmdline=debug
+check:rc==0
+cmd:mkdef "rhels7.99-ppc64le-install-compute" -u profile=compute provmethod=install osvers=rhels7.99 osarch=ppc64le
+cmd:xdsh $$SN 'mkdir -p /install/rhels7.99/ppc64le'
+cmd:xdsh $$SN 'mkdir -p /install/rhels7.99/ppc64le/ppc/ppc64le'
+cmd:xdsh $$SN 'echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/vmlinuz'
+cmd:xdsh $$SN 'echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/initrd.img'
+cmd:mkdir -p /install/rhels7.99/ppc64le
+cmd:mkdir -p /install/rhels7.99/ppc64le/ppc/ppc64le
+cmd:echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/vmlinuz
+cmd:echo blah >/install/rhels7.99/ppc64le/ppc/ppc64le/initrd.img
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+check:rc==0
+cmd:grep "debug" /tftpboot/petitboot/testnode1
+check:rc==0
+#cmd:makedhcp -q testnode1 | grep ^testnode1:
+#check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:grep "debug" /tftpboot/petitboot/testnode1
+check:rc!=0
+cmd:chdef -t site sharedtftp=0 disjointdhcps=0
+check:rc==0
+cmd:chdef -t site tftpdir=/tftpboot.1
+check:rc==0
+cmd:mkdir -p /tftpboot.1/boot/grub2
+cmd:touch /tftpboot.1/boot/grub2/grub2.ppc
+cmd:xdsh $$SN 'mkdir -p /tftpboot.1/boot/grub2'
+cmd:xdsh $$SN 'touch /tftpboot.1/boot/grub2/grub2.ppc'
+cmd:chdef -t node testnode1 servicenode=$$SN
+check:rc==0
+cmd:rm -f /tftpboot/petitboot/testnode1
+cmd:xdsh $$SN 'rm -f /tftpboot/petitboot/testnode1'
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+check:rc==0
+cmd:test -f /tftpboot.1/petitboot/testnode1
+check:rc==0
+cmd:xdsh $$SN 'test -f /tftpboot.1/petitboot/testnode1'
+check:rc==0
+cmd:nodeset testnode1 offline
+check:rc==0
+cmd:chdef -t site disjointdhcps=1
+check:rc==0
+cmd:chdef -t node testnode1 servicenode=nonexistenode
+check:rc==0
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+#Ignore the exit code check as nonexistenode is fake and dispatching always fail
+#check:rc==0
+#nodeset will be always run on MN (#4426)
+cmd:test -f /tftpboot.1/petitboot/testnode1
+check:rc==0
+cmd:xdsh $$SN 'test -f /tftpboot.1/petitboot/testnode1'
+check:rc!=0
+cmd:nodeset testnode1 offline
+#check:rc==0
+# DHCP dynamic range
+cmd:chdef -t network 20_0_0_0-255_0_0_0 net=20.0.0.0 mask=255.0.0.0 dynamicrange=20.0.0.1-20.0.0.2 tftpserver=$$SN dhcpserver=$$SN
+check:rc==0
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+#check:rc==0
+cmd:xdsh $$SN 'test -f /tftpboot.1/petitboot/testnode1'
+check:rc==0
+# Clean up
+cmd:rmdef -t network 20_0_0_0-255_0_0_0
+check:rc==0
+cmd:chdef -t site sharedtftp=1
+check:rc==0
+cmd:chdef -t site disjointdhcps=0
+check:rc==0
+cmd:chdef -t site tftpdir=/tftpboot
+check:rc==0
+cmd:rm -rf /tftpboot.1
+cmd:xdsh $$SN 'rm -rf /tftpboot.1'
+cmd:makedns -d testnode1
+check:rc==0
+cmd:chdef -t node -o testnode1 ip=
+check:rc==0
+cmd:sed -i /testnode1/d /etc/hosts 
+cmd:getent hosts testnode1 | grep testnode1
+check:rc!=0
+cmd:nodeset testnode1 osimage=rhels7.99-ppc64le-install-compute
+check:rc!=0
+cmd:noderm testnode1
+cmd:rmdef -t osimage -o "rhels7.99-ppc64le-install-compute"
+cmd:rm -rf /install/rhels7.99
+cmd:xdsh $$SN 'rm -rf /install/rhels7.99'
+cmd:cp -f /etc/hosts.xcattestbak /etc/hosts
+cmd:if [[ -e /tmp/testnode1.stanza ]]; then cat /tmp/testnode1.stanza |mkdef -z -f;rm -rf /tmp/testnode1.stanza;fi
+end
+
+start:nodeset_switch_osimage
+description: This case is to verify if xcat supports nodeset <switch> osimage command for cumulus switch. This case is for bug 5126.
+os:Linux
+label:others
+cmd:copycds $$CUMULUSOS |tee /tmp/cumulusimage
+check:rc==0
+cmd:grep "The image" /tmp/cumulusimage |sed -r 's/.*\image(.*)\is.*/\1/' |tee /tmp/imagename
+check:rc==0
+cmd:imagename=`cat /tmp/imagename`;lsdef -t osimage -o $imagename
+check:rc==0
+check:output=~description=Cumulus Linux
+check:output=~osarch=armel
+check:output=~osname=cumulus
+cmd:imagename=`cat /tmp/imagename`;pkgfile=`lsdef -t osimage -o $imagename |grep pkgdir|awk -F= '{print $2}'`;ls -l $pkgfile
+check:rc==0
+cmd:echo "/etc/resolv.conf /etc/nsswitch.conf -> ($$CN) /tmp/\n /etc/rsyslog.conf  ->  /tmp/aa\n /etc/rsyslog.d/ -> /tmp/bb/\n /tmp/post1 -> /tmp/\n\n EXECUTEALWAYS:\n/tmp/post1\n" >> /tmp/synclists;echo "#!/bin/sh\n\nmv /tmp/aa /tmp/mm" >> /tmp/posts1;imagename=`cat /tmp/imagename`; chdef -t osimage -o $imagename synclists=/tmp/synclists
+check:rc==0
+cmd:imagename=`cat /tmp/imagename`;nodeset $$CN osimage=$imagename
+check:rc==0
+check:output=~$$CN:\s*install
+cmd:imagename=`cat /tmp/imagename`;osversion=`lsdef -t osimage -o $imagename |grep osvers|awk -F= '{print $2}'`;versionnum=`echo $osversion |sed 's:[a-zA-Z]::g'`;grep -w -A10 "$$CN" /var/lib/dhcpd/dhcpd.leases | grep "/install/$osversion/armel/cumulus-linux-$versionnum-bcm-armel.bin"
+check:rc==0
+end
+
+start:nodeset_secureroot
+os: rhels
+description: Test nodeset could generate right installation files when site.secureroot=1
+label: others,security
+cmd: chdef -t site secureroot=1
+cmd: myimage=__GETNODEATTR($$CN,provmethod)__; osimage=__GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-compute; cn=$$CN
+test -f /install/autoinst/$cn && mv -f /install/autoinst/$cn /install/autoinst/$cn.secureroot
+nodeset $cn osimage=$osimage
+myresult=$?
+chdef $cn provmethod=$myimage
+test $myresult -eq 0
+check:rc==0
+cmd: cat /install/autoinst/$$CN | grep '^rootpw --iscrypted \*' > /dev/null
+check:rc==0
+cmd: chdef -t site secureroot=
+cmd: test -f /install/autoinst/$$CN.secureroot && mv -f /install/autoinst/$$CN.secureroot /install/autoinst/$$CN
+end

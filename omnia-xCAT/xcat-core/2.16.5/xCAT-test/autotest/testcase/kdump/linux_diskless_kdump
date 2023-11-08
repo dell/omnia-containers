@@ -1,0 +1,129 @@
+start:linux_diskless_kdump
+label:others,kdump,invoke_provision
+os:Linux
+cmd:lsdef -z $$CN > /tmp/node.stanza
+cmd:lsdef -t osimage -z __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute > /tmp/osimage.stanza
+cmd:chdef -t node -o $$CN servicenode= monserver=$$MN nfsserver=$$MN tftpserver=$$MN  xcatmaster=$$MN
+check:rc==0
+
+cmd:makedns -n
+check:rc==0
+cmd:if [[ "__GETNODEATTR($$CN,arch)__" = "ppc64" ]] && [[ "__GETNODEATTR($$CN,mgt)__" != "ipmi" ]]; then getmacs -D $$CN; fi
+check:rc==0
+cmd:makedhcp -n
+check:rc==0
+cmd:makedhcp -a
+check:rc==0
+cmd:a=0;while true; do [ $a -eq 100 ] && exit 1;output=$(makedhcp -q $$CN);[ $? -ne 0 ] && exit 1;echo $output|grep $$CN 2>/dev/null && exit 0;a=$[$a+1];sleep 1;done
+check:rc==0
+cmd:copycds $$ISO | grep -v "%"
+check:rc==0
+
+cmd:rootimgdir=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep rootimgdir|awk -F'=' '{print $2}'`; if [ -d $rootimgdir ]; then mv $rootimgdir $rootimgdir.regbak -f;fi
+check:rc==0
+
+cmd:pkglistfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep pkglist|awk -F'=' '{print $2}'`;cp $pkglistfile $pkglistfile.bak
+cmd:pkglistfile=$(lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep pkglist|awk -F'=' '{print $2}'); if grep SUSE /etc/*release;then echo -e "kdump\nkexec-tools\nmakedumpfile\nat\n" >> $pkglistfile; elif grep -E "Red Hat|CentOS|Rocky" /etc/*release;then echo -e "kexec-tools\ncrash\nat\n" >> $pkglistfile; fi
+check:rc==0
+
+cmd:exlistfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep exlist|awk -F'=' '{print $2}'`;cp $exlistfile $exlistfile.bak
+cmd:exlistfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep exlist|awk -F'=' '{print $2}'`; sed -i '/boot/d' $exlistfile
+check:rc==0
+
+cmd:postinstallfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep postinstall|awk -F'=' '{print $2}'`;cp $postinstallfile $postinstallfile.bak
+cmd:postinstallfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep postinstall|awk -F'=' '{print $2}'`; if grep SUSE /etc/*release;then sed -i "/\/tmp/ s/10/500/g" $postinstallfile; elif grep -E "Red Hat|CentOS|Rocky" /etc/*release;then sed -i /devpts/a"tmpfs         /var/tmp    tmpfs   defaults,size=500m   0 2" $postinstallfile;fi
+check:rc==0
+
+cmd:if [ ! -d /opt/xcat/share/xcat/tools/autotest/kdumpdir ]; then mkdir -p /opt/xcat/share/xcat/tools/autotest/kdumpdir && chmod 777 /opt/xcat/share/xcat/tools/autotest/kdumpdir; fi
+cmd:if [ ! -f /etc/exports ] ;then touch /etc/exports;else cp /etc/exports /etc/exports.bak;fi
+cmd:cat /etc/exports|grep kdumpdir; if [ "$?" -ne "0" ]; then echo "/opt/xcat/share/xcat/tools/autotest/kdumpdir *(rw,no_root_squash,sync,no_subtree_check)" >> /etc/exports; fi
+cmd:cd /etc; export exports;cd -;service nfs-server restart 
+cmd:chdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute dump=nfs://$$MN/opt/xcat/share/xcat/tools/autotest/kdumpdir
+check:rc==0
+
+cmd:if [[ "__GETNODEATTR($$CN,arch)__" = "ppc64le" ]] && [[ "__GETNODEATTR($$CN,os)__" =~ "rhels8.5" ]]; then chdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute crashkernelsize=512M@64M; else chdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute crashkernelsize=auto; fi
+check:rc==0
+
+cmd:chdef -t node $$CN -p postscripts=enablekdump
+check:rc==0
+
+cmd:rmimage  __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute
+cmd:genimage  __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute
+check:rc==0
+cmd:packimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute
+check:rc==0
+
+# Verify kdump related attributes showup in the osimage and node definitions
+cmd:lsdef -t node $$CN -i postscripts,postbootscripts
+cmd:lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute -i crashkernelsize,dump
+
+cmd:rpower $$CN off
+cmd:rinstall $$CN osimage=__GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute -V
+check:rc==0
+check:output=~Provision node\(s\)\: $$CN
+
+# Verify that the kdump attribute is included in the node file under either /tftpboot/boot/grub2 or /tftpboot/petitboot.
+cmd:if [[ "__GETNODEATTR($$CN,arch)__" = "x86_64" ]]; then cat /tftpboot/xcat/xnba/nodes/$$CN; elif [[ "__GETNODEATTR($$CN,netboot)__" = "grub2" ]]; then cat /tftpboot/boot/grub2/$$CN; elif [[ "__GETNODEATTR($$CN,netboot)__" = "petitboot" ]]; then cat /tftpboot/petitboot/$$CN; fi;
+check:output=~dump
+
+cmd:sleep 300
+cmd:a=0;while ! `lsdef -l $$CN|grep status|grep booted >/dev/null`; do sleep 10;((a++));if [ $a -gt 60 ];then break;fi done
+
+cmd:ping $$CN -c 3
+check:rc==0
+check:output=~64 bytes from $$CN
+cmd:lsdef -l $$CN | grep status
+check:rc==0
+check:output=~booted
+cmd:xdsh $$CN date
+check:rc==0
+check:output=~\d\d:\d\d:\d\d
+cmd:xdsh $$CN "echo 'echo 1 > /proc/sys/kernel/sysrq; echo c > /proc/sysrq-trigger' > /tmp/kdump.trigger"
+cmd:xdsh $$CN "chmod 755 /tmp/kdump.trigger"
+
+# at package should have been installed during provisioning.
+# If it is still missing, install it with "yum install"
+cmd:a=`xdsh $$CN rpm -q at`;if [[ $a =~ "package at is not installed" ]]; then xdsh $$CN yum install -y at; fi
+
+cmd:xdsh $$CN "service atd start"
+check:rc==0
+
+# Verify that kdump has been configured after enablekdump postscript was ran
+cmd:xdsh $$CN cat /etc/kdump.conf
+check:output=~/opt/xcat/share/xcat/tools/autotest/kdumpdir
+
+# Verify kdump parameters are in /proc/cmdline file
+cmd:xdsh $$CN cat /proc/cmdline
+
+# Check how much memory was really allocated for crashkernel
+cmd:xdsh $$CN grep "Reserving" /var/log/messages
+
+# Verify no error configuring kdump server
+cmd:xdsh $$CN cat /var/log/xcat/xcat.log | grep "The kdump server is not configured"
+check:output!="The kdump server is not configured"
+check:rc!=0
+
+cmd:xdsh $$CN "at now +1 minutes <<< /tmp/kdump.trigger"
+cmd:sleep 300
+
+cmd:vmcorefile=`find /opt/xcat/share/xcat/tools/autotest/kdumpdir/ -name vmcore`;if [[ -s $vmcorefile ]]; then echo "vmcore file is not empty";else echo "vmcore file is empty"; fi
+check:output=~not empty
+
+cmd:pkglistfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep pkglist|awk -F'=' '{print $2}'`;mv -f $pkglistfile.bak $pkglistfile
+cmd:exlistfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep exlist|awk -F'=' '{print $2}'`;mv -f $exlistfile.bak $exlistfile
+cmd:postinstallfile=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep postinstall|awk -F'=' '{print $2}'`;mv -f $postinstallfile.bak $postinstallfile
+
+cmd:if [ -f /etc/exports.bak ] ;then mv -f /etc/exports.bak /etc/exports; fi
+cmd:rm -rf /opt/xcat/share/xcat/tools/autotest/kdumpdir
+cmd:cat /tmp/node.stanza | chdef -z;rm -rf /tmp/node.stanza
+cmd:cat /tmp/osimage.stanza | chdef -z;rm -rf /tmp/osimage.stanza
+cmd:rootimgdir=`lsdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute|grep rootimgdir|awk -F'=' '{print $2}'`; if [ -d $rootimgdir.regbak ]; then mv $rootimgdir.regbak $rootimgdir -f;fi
+
+# Remove crashkernelsize and dump from the osimage definition and enablekdump from the node defintion
+cmd:chdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute crashkernelsize=
+check:rc==0
+cmd:chdef -t osimage __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-netboot-compute dump=
+check:rc==0
+cmd:chdef -t node $$CN -m postscripts=enablekdump
+check:rc==0
+end

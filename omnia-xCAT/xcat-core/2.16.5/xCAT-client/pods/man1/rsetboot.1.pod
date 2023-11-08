@@ -1,0 +1,82 @@
+
+=head1 NAME
+
+B<rsetboot> - Sets the boot device to be used for BMC-based servers for the next boot only.
+
+=head1 SYNOPSIS
+
+B<rsetboot> I<noderange> [B<hd>|B<net>|B<cd>|B<default>|B<stat>] [B<-u>] [B<-p>]
+
+B<rsetboot> [B<-h>|B<--help>|B<-v>|B<--version>|B<-V>|B<--verbose>]
+
+
+=head1 DESCRIPTION
+
+B<rsetboot> sets the boot media and boot mode that should be used on the next boot of the specified nodes.  After the nodes are booted with the specified device and boot mode (e.g. via L<rpower(1)|rpower.1>), the nodes will return to using the default boot device specified in the BIOS.
+
+=head1 OPTIONS
+
+=over 7
+
+=item B<hd>
+
+Boot from the hard disk.
+
+=item B<net>
+
+Boot over the network, using a PXE or BOOTP broadcast.
+
+=item B<cd>
+
+Boot from the CD or DVD drive.
+
+=item B<def>|B<default>
+
+Boot using the default set in BIOS.
+
+=item B<stat>
+
+Display the current boot setting.
+
+=item B<-u>
+
+To specify the next boot mode to be "UEFI Mode". (Not supported for OpenBMC)
+
+=item B<-p>
+
+To make the specified boot device and boot mode settings persistent.
+
+=back
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+
+Set nodes 1 and 3 to boot from the network on the next boot:
+
+ rsetboot node1,node3 net
+
+=item 2.
+
+Display the next-boot value for nodes 14-56 and 70-203:
+
+ rsetboot node[14-56],node[70-203] stat
+
+Or:
+
+ rsetboot node[14-56],node[70-203]
+
+=item 3.
+
+Restore the next-boot value for these nodes back to their default set in the BIOS:
+
+ rsetboot node1,node3,node[14-56],node[70-203] default
+
+=back
+
+
+=head1 SEE ALSO
+
+L<rbootseq(1)|rbootseq.1>

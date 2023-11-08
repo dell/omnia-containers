@@ -1,0 +1,51 @@
+#!/bin/sh
+#get IP address of MS
+OS=$(uname)
+echo "the OS is $OS"
+logger -t xcat  -p local4.info "the OS is $OS"
+ms_ip=$MONMASTER
+echo "MS IP is $ms_ip"
+logger -t xcat  -p local4.info "the MS is $ms_ip"
+result=$(ping -c1 $MONMASTER 2>&1)
+if [ $? -eq 0 ]; then
+    index1=$(expr index "$result" "\(")
+    index2=$(expr index "$result" "\)")
+    #ms_ip=${result:$index1+1:$index2-$index1-2}
+    pos=$(expr $index1 + 1)
+    length=$(expr $index2 - $index1)
+    length=$(expr $length - 1)
+    ms_ip=$(expr substr "$result" $pos $length)
+    echo final is $ms_ip
+else
+    logger -t xcat  -p local4.info "Gangliamon setup"
+fi
+
+CLUSTER=\"$MONSERVER\"
+echo "cluster is $CLUSTER"
+logger -t xcat  -p local4.info  "cluster is $CLUSTER"
+MASTER=$ms_ip
+#echo "The new IP is: $NEW_IP"
+#echo "I will replace now....
+gmond_conf=$(gmond --help|grep -Eo "[a-z/]+/gmond.conf")
+gmond_version=$(gmond -V|cut -d" " -f2)
+
+if [ ! -f  $gmond_conf ]; then
+    #  echo "file not found"
+    logger -t xcat  -p local4.warning "gmond configuration file not found. Generating a default one"
+    gmond -t > ${gmond_conf}
+fi
+
+echo "ganglia version ${gmond_version}"
+logger -t xcat  -p local4.info  "ganglia version ${gmond_version}"
+grep "xCAT gmond settings done" $gmond_conf
+if [ $? -gt 0 ]; then
+    /bin/cp -f $gmond_conf /etc/ganglia/gmond.conf.orig
+    sed -i -e "s/setuid = yes/setuid = no/1" ${gmond_conf}
+    sed -i -e 's/name = "unspecified"/name='$CLUSTER'/1' ${gmond_conf}
+    sed -i -e "1,40s/mcast_join = .*/host = $MASTER/" ${gmond_conf}
+    sed -i -e '/mcast_join/d' ${gmond_conf}
+    sed -i -e "/\s\+bind/d" ${gmond_conf}
+    echo "# xCAT gmond settings done sh" >> $gmond_conf
+fi
+
+exit 0

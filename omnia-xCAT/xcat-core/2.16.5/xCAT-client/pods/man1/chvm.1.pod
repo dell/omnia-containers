@@ -1,0 +1,658 @@
+=head1 NAME
+
+B<chvm> - Changes HMC-, DFM-, IVM-, KVM-, VMware-, and zVM-managed partition profiles or virtual machine attributes. For Power 775, chvm could be used to change the octant configuration values for generating LPARs; change the I/O slots assignment to LPARs within the same CEC.
+
+=head1 SYNOPSIS
+
+B<chvm> [B<-h>| B<--help>]
+
+B<chvm> [B<-v>| B<--version>]
+
+=head2 PPC (with HMC) specific:
+
+B<chvm> [B<-V>| B<--verbose>] I<noderange> [B<-p> I<profile>]
+
+B<chvm> [B<-V>| B<--verbose>] I<noderange> I<attr>=I<val> [I<attr>=I<val>...]
+
+=head2 PPC (using Direct FSP Management) specific:
+
+B<chvm> I<noderange> B<--p775> [B<-p> I<profile>]
+
+B<chvm> I<noderange> B<--p775> B<-i id> [B<-m> I<memory_interleaving>] B<-r> I<partition_rule>
+
+B<chvm> I<noderange> [B<lparname>={ * | I<name>}]
+
+B<chvm> I<noderange> [B<vmcpus=> I<min/req/max>] [B<vmmemory=> I<min/req/max>] [B<vmothersetting=hugepage:N,bsr:N>] [B<add_physlots=> I<drc_index1,drc_index2...>] [B<add_vmnics=> I<vlan1[,vlan2..]]> [B<add_vmstorage=<N|viosnode:slotid>>] [B<--vios>] [B<del_physlots=> I<drc_index1,drc_index2...>] [B<del_vadapter=> I<slotid>]
+
+
+=head2 KVM specific:
+
+B<chvm> I<noderange> [B<--cpupin> I<hostcpuset>]
+
+B<chvm> I<noderange> [B<--membind> I<numanodeset>]
+
+B<chvm> I<noderange> [B<--devpassthru> I<pcidevice>...]
+
+B<chvm> I<noderange> [B<--devdetach> I<pcidevice>...]
+
+
+=head2 VMware/KVM specific:
+
+B<chvm> I<noderange> [B<-a> I<size>] [B<-d> I<disk>] [B<-p> I<disk>] [B<--resize> I<disk>=I<size>] [B<--cpus> I<count>] [B<--mem> I<memory>]
+
+=head2 zVM specific:
+
+B<chvm> I<noderange> [B<--add3390> I<disk_pool> I<device_address> I<size> I<mode> I<read_password> I<write_password> I<multi_password>]
+
+B<chvm> I<noderange> [B<--add3390active> I<device_address> I<mode>]
+
+B<chvm> I<noderange> [B<--add9336> I<disk_pool> I<device_address> I<size> I<mode> I<read_password> I<write_password> I<multi_password>]
+
+B<chvm> I<noderange> [B<--adddisk2pool> I<function> I<region> I<volume> I<group>]
+
+B<chvm> I<noderange> [B<--addnic> I<device_address> I<type> I<device_count>]
+
+B<chvm> I<noderange> [B<--addpagespool> I<volume_address> I<volume_label> I<volume_use> I<system_config_name> I<system_config_type> I<parm_disk_owner> I<parm_disk_number> I<parm_disk_password>]
+
+B<chvm> I<noderange> [B<--addprocessor> I<device_address>]
+
+B<chvm> I<noderange> [B<--addprocessoractive> I<device_address> I<type>]
+
+B<chvm> I<noderange> [B<--addvdisk> I<device_address> I<size>]
+
+B<chvm> I<noderange> [B<--addzfcp> I<pool> I<device_address> I<loaddev> I<size> I<tag> I<wwpn> I<lun>]
+
+B<chvm> I<noderange> [B<--connectnic2guestlan> I<device_address> I<lan> I<owner>]
+
+B<chvm> I<noderange> [B<--connectnic2vswitch> I<device_address> I<vswitch>]
+
+B<chvm> I<noderange> [B<--copydisk> I<target_address> I<source_node> I<source_address>]
+
+B<chvm> I<noderange> [B<--dedicatedevice> I<virtual_device> I<real_device> I<mode>]
+
+B<chvm> I<noderange> [B<--deleteipl>]
+
+B<chvm> I<noderange> [B<--disconnectnic> I<device_address>]
+
+B<chvm> I<noderange> [B<--formatdisk> I<device_address> I<multi_password>]
+
+B<chvm> I<noderange> [B<--grantvswitch> I<vswitch>]
+
+B<chvm> I<noderange> [B<--purgerdr>]
+
+B<chvm> I<noderange> [B<--removedisk> I<device_address>]
+
+B<chvm> I<noderange> [B<--removenic> I<device_address>]
+
+B<chvm> I<noderange> [B<--removeprocessor> I<device_address>]
+
+B<chvm> I<noderange> [B<--removeloaddev> I<wwpn> I<lun>]
+
+B<chvm> I<noderange> [B<--removezfcp> I<device_address> I<wwpn> I<lun>]
+
+B<chvm> I<noderange> [B<--replacevs> I<directory_entry>]
+
+B<chvm> I<noderange> [B<--setipl> I<ipl_target> I<load_parms> I<parms>]
+
+B<chvm> I<noderange> [B<--setpassword> I<password>]
+
+B<chvm> I<noderange> [B<--setloaddev> I<wwpn> I<lun>]
+
+B<chvm> I<noderange> [B<--sharevolume> I<volume_address> I<share_enable>]
+
+B<chvm> I<noderange> [B<--undedicatedevice> I<device_address>]
+
+=head1 DESCRIPTION
+
+=head2 PPC (with HMC) specific:
+
+The chvm command modifies the partition profile for the partitions specified in noderange. A partitions current profile can be read using lsvm, modified, and piped into the chvm command, or changed with the -p flag.
+
+This command also supports to change specific partition attributes by specifying one or more "attribute equals value" pairs in command line directly, without whole partition profile.
+
+=head2 PPC (using Direct FSP Management) specific:
+
+For Power 755(use option I<--p775> to specify):
+
+chvm could be used to change the octant configuration values for generating LPARs. chvm is designed to set the Octant configure value to split the CPU and memory for partitions, and set Octant Memory interleaving value. The chvm will only set the pending attributes value. After chvm, the CEC needs to be rebooted manually for the pending values to be enabled. Before reboot the cec, the administrator can use chvm to change the partition plan. If the partition needs I/O slots, the administrator should use chvm to assign the I/O slots.
+
+chvm is also designed to assign the I/O slots to the new LPAR. Both the current IO owning lpar and the new IO owning lpar must be powered off before an IO assignment. Otherwise, if the I/O slot is belonged to an Lpar and the LPAR is power on, the command will return an error when trying to assign that slot to a different lpar.
+
+The administrator should use lsvm to get the profile content, and then edit the content, and add the node name with ":" manually before the I/O which will be assigned to the node. And then the profile can be piped into the chvm command, or changed with the -p flag.
+
+For normal power machine:
+
+chvm could be used to modify the resources assigned to partitions. The admin shall specify the attributes with options I<vmcpus>, I<vmmemory>, I<add_physlots>, I<vmothersetting>, I<add_vmnics> and/or I<add_vmstorage>. If nothing specified, nothing will be returned.
+
+
+=head2 zVM specific:
+
+The chvm command modifies the virtual machine's configuration specified in noderange.
+
+=head1 OPTIONS
+
+=head2 Common:
+
+=over 10
+
+=item B<-h>
+
+Display usage message.
+
+=item B<-v>
+
+Command Version.
+
+=back
+
+=head2 PPC (with HMC) specific:
+
+=over 10
+
+=item B<-p> I<profile>
+
+Name of an existing partition profile.
+
+=item I<attr>=I<val>
+
+Specifies one or more "attribute equals value" pairs, separated by spaces.
+
+=item B<-V>
+
+Verbose output.
+
+=back
+
+=head2 PPC (using Direct FSP Management) specific:
+
+=over 10
+
+=item B<--p775>
+
+Specify the operation is for Power 775 machines.
+
+=item B<-i>
+
+Starting numeric id of the newly created partitions. For Power 775 using Direct FSP Management, the id value only could be B<1>, B<5>, B<9>, B<13>, B<17>, B<21>, B<25> and B<29>. Shall work with option B<--p775>.
+
+=item B<-m>
+
+memory interleaving. The setting value only could be B<1> or B<2>. B<2> means B<non-interleaved> mode (also 2MC mode), the memory cannot be shared across the processors in an octant. B<1> means B<interleaved> mode (also 8MC mode) , the memory can be shared. The default value is B<1>. Shall work with option B<--p775>.
+
+=item B<-r>
+
+partition rule. Shall work with option B<--p775>.
+
+If all the octants configuration value are same in one CEC,  it will be  " B<-r>  B<0-7>:I<value>" .
+
+If the octants use the different configuration value in one cec, it will be "B<-r> B<0>:I<value1>,B<1>:I<value2>,...B<7>:I<value7>", or "B<-r> B<0>:I<value1>,B<1-7>:I<value2>" and so on.
+
+The octants configuration value for one Octant could be  B<1>, B<2>, B<3>, B<4>, B<5>. The meanings of the octants configuration value  are as following:
+
+ 1 -- 1 partition with all cpus and memory of the octant
+ 2 -- 2 partitions with a 50/50 split of cpus and memory
+ 3 -- 3 partitions with a 25/25/50 split of cpus and memory
+ 4 -- 4 partitions with a 25/25/25/25 split of cpus and memory
+ 5 -- 2 partitions with a 25/75 split of cpus and memory
+
+=item B<-p> I<profile>
+
+Name of I/O slots assignment profile. Shall work with option B<--p775>.
+
+=item B<lparname>={B<*>|B<name>}
+
+Set LPAR name for the specified lpars. If '*' specified, it means to get names from xCAT database and then set them for the specified lpars. If a string is specified, it only supports single node and the string will be set for the specified lpar. The user can use lsvm to check the lparnames for lpars.
+
+=item B<vmcpus=value> B<vmmemory=value> B<add_physlots=value> B<vmothersetting=value>
+
+To specify the parameters that will be modified.
+
+=item B<add_vmnics=value> B<add_vmstorage=value> [B<--vios>]
+
+To create new virtual adapter for the specified node.
+
+=item B<del_physlots=drc_index1,drc_index2...>
+
+To delete physical slots which are specified by the I<drc_index1,drc_index2...>.
+
+=item B<del_vadapter=slotid>
+
+To delete a virtual adapter specified by the I<slotid>.
+
+
+=back
+
+=head2 VMware/KVM specific:
+
+=over 10
+
+=item B<-a> I<size>
+
+Add a new Hard disk with size defaulting to GB.  Multiple can be added with comma separated values.
+
+=item B<--cpus> I<count>
+
+Set the number of CPUs.
+
+=item B<-d> I<disk>
+
+Deregister the Hard disk but leave the backing files.  Multiple can be done with comma separated values.  The disks are specified by SCSI id.
+
+=item B<--mem> I<memory>
+
+Set the memory size for kvm/vmware virtual machines, default unit is MB. Specify in MB or append K for KB, M for MB, or G for GB.
+
+=item B<-p> I<disk>
+
+Purge the Hard disk.  Deregisters and deletes the files.  Multiple can be done with comma separated values.  The disks are specified by SCSI id.
+
+=item B<--resize> I<disk>=I<size>
+
+Change the size of the Hard disk.  The disk in I<qcow2> format can not be set to less than its current size. The disk in I<raw> format can be resized smaller, use caution. Multiple disks can be resized by using comma separated I<disk>B<=>I<size> pairs.  The disks are specified by SCSI id.  Size defaults to GB.
+
+=back
+
+
+=head2 KVM specific:
+
+=over 10
+
+=item B<--cpupin hostcpuset>
+
+To pin guest domain virtual CPUs to physical host CPUs specified with I<hostcpuset>.
+I<hostcpuset> is a list of physical CPU numbers. Its syntax is a comma separated list and a special
+markup using '-' and '^' (ex. '0-4', '0-3,^2') can also be allowed. The '-' denotes the range and
+the '^' denotes exclusive.
+
+Note: The expression is sequentially evaluated, so "0-15,^8" is identical to "9-14,0-7,15" but not
+identical to "^8,0-15".
+
+=item B<--membind numanodeset>
+
+It is possible to restrict a guest to allocate memory from the specified set of NUMA nodes I<numanodeset>.
+If the guest vCPUs are also pinned to a set of cores located on that same set of NUMA nodes, memory
+access is local and improves memory access performance.
+
+=item B<--devpassthru pcidevice1,pcidevice2...>
+
+The PCI passthrough gives a guest VM direct access to I/O devices I<pcidevice1,pcidevice2...>.
+The PCI devices are assigned to a virtual machine, and the virtual machine can use this I/O exclusively.
+The devices list are a list of comma separated PCI device names delimited with comma, the PCI device names can be obtained by running B<virsh nodedev-list> on the host.
+
+=item B<--devdetach pcidevice1,pcidevice2...>
+
+To detaching the PCI devices which are attached to VM guest via PCI passthrough from the VM guest. The devices list are a list of comma separated PCI device names delimited with comma, the PCI device names can be obtained by running B<virsh nodedev-list> on the host.
+
+
+=back
+
+=head2 zVM specific:
+
+=over 10
+
+=item B<--add3390> I<disk_pool> I<device_address> I<size> I<mode> I<read_password> I<write_password> I<multi_password>
+
+Adds a 3390 (ECKD) disk to a virtual machine's directory entry. The device address can be automatically assigned by specifying 'auto'. The size of the disk can be specified in GB, MB, or the number of cylinders.
+
+=item B<--add3390active> I<device_address> I<mode>
+
+Adds a 3390 (ECKD) disk that is defined in a virtual machine's directory entry to that virtual server's active configuration.
+
+=item B<--add9336> I<disk_pool> I<device_address> I<size> I<mode> I<read_password> I<write_password> I<multi_password>
+
+Adds a 9336 (FBA) disk to a virtual machine's directory entry. The device address can be automatically assigned by specifying 'auto'. The size of the disk can be specified in GB, MB, or the number of blocks.
+
+=item B<--adddisk2pool> I<function> I<region> I<volume> I<group>
+
+Add a disk to a disk pool defined in the EXTENT CONTROL. Function type can be either: (4) Define region as full volume and add to group OR (5) Add existing region to group.  The disk has to already be attached to SYSTEM.
+
+=item B<--addnic> I<device_address> I<type> I<device_count>
+
+Adds a network adapter to a virtual machine's directory entry (case sensitive).
+
+=item B<--addpagespool> I<volume_addr> I<volume_label> I<volume_use> I<system_config_name> I<system_config_type> I<parm_disk_owner> I<parm_disk_number> I<parm_disk_password>
+
+Add a full volume page or spool disk to the virtual machine.
+
+=item B<--addprocessor> I<device_address>
+
+Adds a virtual processor to a virtual machine's directory entry.
+
+=item B<--addprocessoractive> I<device_address> I<type>
+
+Adds a virtual processor to a virtual machine's active configuration (case sensitive).
+
+=item B<--addvdisk> I<device_address> I<size>
+
+Adds a v-disk to a virtual machine's directory entry.
+
+=item B<--addzfcp> I<pool> I<device_address> I<loaddev> I<size> I<tag> I<wwpn> I<lun>
+
+Add a zFCP device to a device pool defined in xCAT. The device must have been
+carved up in the storage controller and configured with a WWPN/LUN before it can
+be added to the xCAT storage pool. z/VM does not have the ability to communicate
+directly with the storage controller to carve up disks dynamically. xCAT will
+find a zFCP device in the specified pool that meets the size required, if
+the WWPN and LUN are not given. The device address can be automatically assigned
+by specifying 'auto'. The WWPN/LUN can be set as the LOADDEV in the directory
+entry if (1) is specified as the 'loaddev'.
+
+=item B<--connectnic2guestlan> I<device_address> I<lan> I<owner>
+
+Connects a given network adapter to a GuestLAN.
+
+=item B<--connectnic2vswitch> I<device_address> I<vswitch>
+
+Connects a given network adapter to a VSwitch.
+
+=item B<--copydisk> I<target_address> I<source_node> I<source_address>
+
+Copy a disk attached to a given virtual server.
+
+=item B<--dedicatedevice> I<virtual_device> I<real_device> I<mode>
+
+Adds a dedicated device to a virtual machine's directory entry.
+
+=item B<--deleteipl>
+
+Deletes the IPL statement from the virtual machine's directory entry.
+
+=item B<--disconnectnic> I<device_address>
+
+Disconnects a given network adapter.
+
+=item B<--formatdisk> I<disk_address> I<multi_password>
+
+Formats a disk attached to a given virtual server (only ECKD disks supported). The disk should not be linked to any other virtual server. This command is best used after add3390().
+
+=item B<--grantvswitch> I<vswitch>
+
+Grant vSwitch access for given virtual machine.
+
+=item B<--purgerdr>
+
+Purge the reader belonging to the virtual machine
+
+=item B<--removedisk> I<device_address>
+
+Removes a minidisk from a virtual machine's directory entry.
+
+=item B<--removenic> I<device_address>
+
+Removes a network adapter from a virtual machine's directory entry.
+
+=item B<--removeprocessor> I<device_address>
+
+Removes a processor from an active virtual machine's configuration.
+
+=item B<--removeloaddev> I<wwpn> I<lun>
+
+Removes the LOADDEV statement from a virtual machine's directory entry.
+
+=item B<--removezfcp> I<device_address> I<wwpn> I<lun>
+
+Removes a given SCSI/FCP device belonging to the virtual machine.
+
+=item B<--replacevs> I<directory_entry>
+
+Replaces a virtual machine's directory entry. The directory entry can be echoed into stdin or a text file.
+
+=item B<--setipl> I<ipl_target> I<load_parms> I<parms>
+
+Sets the IPL statement for a given virtual machine.
+
+=item B<--setpassword> I<password>
+
+Sets the password for a given virtual machine.
+
+=item B<--setloaddev> I<wwpn> I<lun>
+
+Sets the LOADDEV statement in the virtual machine's directory entry.
+
+=item B<--undedicatedevice> I<device_address>
+
+Delete a dedicated device from a virtual machine's active configuration and directory entry.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+=head2 PPC (with HMC) specific:
+
+1. To change the partition profile for lpar4 using the configuration data in the file /tmp/lparfile, enter:
+
+ cat /tmp/lparfile | chvm lpar4
+
+Output is similar to:
+
+ lpar4: Success
+
+2. To change the partition profile for lpar4 to the existing profile 'prof1', enter:
+
+ chvm lpar4 -p prof1
+
+Output is similar to:
+
+ lpar4: Success
+
+3. To change partition attributes for lpar4 by specifying attribute value pairs in command line, enter:
+
+ chvm lpar4 max_mem=4096
+
+Output is similar to:
+
+ lpar4: Success
+
+=head2 PPC (using Direct FSP Management) specific:
+
+1. For Power 775, to create a new partition lpar1 on the first octant of the cec cec01, lpar1 will use all the cpu and memory of the octant 0, enter:
+
+ mkdef -t node -o lpar1 mgt=fsp groups=all parent=cec01   nodetype=lpar   hcp=cec01
+
+then:
+
+ chvm lpar1 --p775 -i 1 -m 1 -r 0:1
+
+Output is similar to:
+
+ lpar1: Success
+ cec01: Please reboot the CEC cec1 firstly, and then use chvm to assign the I/O slots to the LPARs
+
+2. For Power 775, to create new partitions lpar1-lpar8 on the whole cec cec01, each LPAR will use all the cpu and memory of each octant, enter:
+
+ mkdef -t node -o lpar1-lpar8 nodetype=lpar  mgt=fsp groups=all parent=cec01  hcp=cec01
+
+then:
+
+ chvm lpar1-lpar8 --p775 -i 1 -m 1 -r 0-7:1
+
+Output is similar to:
+
+ lpar1: Success
+ lpar2: Success
+ lpar3: Success
+ lpar4: Success
+ lpar5: Success
+ lpar6: Success
+ lpar7: Success
+ lpar8: Success
+ cec01: Please reboot the CEC cec1 firstly, and then use chvm to assign the I/O slots to the LPARs
+
+3. For Power 775 cec1, to create new partitions lpar1-lpar9, the lpar1 will use 25% CPU and 25% memory of the first octant, and lpar2 will use the left CPU and memory of the first octant. lpar3-lpar9 will use all the cpu and memory of each octant, enter:
+
+ mkdef -t node -o lpar1-lpar9 mgt=fsp groups=all parent=cec1   nodetype=lpar   hcp=cec1
+
+then:
+
+ chvm lpar1-lpar9 --p775 -i 1 -m 1  -r 0:5,1-7:1
+
+Output is similar to:
+
+ lpar1: Success
+ lpar2: Success
+ lpar3: Success
+ lpar4: Success
+ lpar5: Success
+ lpar6: Success
+ lpar7: Success
+ lpar8: Success
+ lpar9: Success
+ cec1: Please reboot the CEC cec1 firstly, and then use chvm to assign the I/O slots to the LPARs
+
+4.To change the I/O slot profile for lpar4 using the configuration data in the file /tmp/lparfile, the I/O slots information is similar to:
+
+ 4: 514/U78A9.001.0123456-P1-C17/0x21010202/2/1
+ 4: 513/U78A9.001.0123456-P1-C15/0x21010201/2/1
+ 4: 512/U78A9.001.0123456-P1-C16/0x21010200/2/1
+
+then run the command:
+
+ cat /tmp/lparfile | chvm lpar4 --p775
+
+5. To change the I/O slot profile for lpar1-lpar8 using the configuration data in the file /tmp/lparfile. Users can use the output of lsvm, remove the cec information, modify the lpar id before each I/O, and run the command as following:
+
+ chvm lpar1-lpar8 --p775 -p /tmp/lparfile
+
+6. To change the LPAR name, enter:
+
+ chvm lpar1 lparname=test_lpar01
+
+Output is similar to:
+
+ lpar1: Success
+
+7. For Normal Power machine, to modify the resource assigned to a partition:
+
+Before modify, the resource assigned to node 'lpar1' can be shown with:
+
+ lsvm lpar1
+
+The output is similar to:
+
+ lpar1: Lpar Processor Info:
+ Curr Processor Min: 1.
+ Curr Processor Req: 4.
+ Curr Processor Max: 16.
+ lpar1: Lpar Memory Info:
+ Curr Memory Min: 1.00 GB(4 regions).
+ Curr Memory Req: 4.00 GB(16 regions).
+ Curr Memory Max: 32.00 GB(128 regions).
+ lpar1: 1,513,U78AA.001.WZSGVU7-P1-T7,0x21010201,0xc03(USB Controller)
+ lpar1: 1,512,U78AA.001.WZSGVU7-P1-T9,0x21010200,0x104(RAID Controller)
+ lpar1: 1/2/2
+ lpar1: 128.
+
+To modify the resource assignment:
+
+ chvm lpar1 vmcpus=1/2/16 vmmemory=1G/8G/32G add_physlots=0x21010202
+
+The output is similar to:
+
+ lpar1: Success
+
+The resource information after modification is similar to:
+
+ lpar1: Lpar Processor Info:
+ Curr Processor Min: 1.
+ Curr Processor Req: 2.
+ Curr Processor Max: 16.
+ lpar1: Lpar Memory Info:
+ Curr Memory Min: 1.00 GB(4 regions).
+ Curr Memory Req: 8.00 GB(32 regions).
+ Curr Memory Max: 32.00 GB(128 regions).
+ lpar1: 1,514,U78AA.001.WZSGVU7-P1-C19,0x21010202,0xffff(Empty Slot)
+ lpar1: 1,513,U78AA.001.WZSGVU7-P1-T7,0x21010201,0xc03(USB Controller)
+ lpar1: 1,512,U78AA.001.WZSGVU7-P1-T9,0x21010200,0x104(RAID Controller)
+ lpar1: 1/2/2
+ lpar1: 128.
+
+Note: The physical I/O resources specified with I<add_physlots> will be appended to the specified partition. The physical I/O resources which are not specified but belonged to the partition will not be removed. For more information about I<add_physlots>, refer to L<lsvm(1)|lsvm.1>.
+
+=head2 VMware/KVM specific:
+
+ chvm vm1 -a 8,16 --mem 4096 --cpus 2
+
+Output is similar to:
+
+ vm1: node successfully changed
+
+=head2 zVM specific:
+
+1. To adds a 3390 (ECKD) disk to a virtual machine's directory entry:
+
+  chvm gpok3 --add3390 POOL1 0101 2G MR
+
+Output is similar to:
+
+  gpok3: Adding disk 0101 to LNX3... Done
+
+2. To add a network adapter to a virtual machine's directory entry:
+
+  chvm gpok3 --addnic 0600 QDIO 3
+
+Output is similar to:
+
+  gpok3: Adding NIC 0900 to LNX3... Done
+
+3. To connects a given network adapter to a GuestLAN:
+
+  chvm gpok3 --connectnic2guestlan 0600 GLAN1 LN1OWNR
+
+Output is similar to:
+
+  gpok3: Connecting NIC 0600 to GuestLan GLAN1 on LN1OWNR... Done
+
+4. To connects a given network adapter to a vSwitch:
+
+  chvm gpok3 --connectnic2vswitch 0600 VSW1
+
+Output is similar to:
+
+  gpok3: Connecting NIC 0600 to vSwitch VSW1 on LNX3... Done
+
+5. To removes a minidisk from a virtual machine's directory entry:
+
+  chvm gpok3 --removedisk 0101
+
+Output is similar to:
+
+  gpok3: Removing disk 0101 on LNX3... Done
+
+6. To Removes a network adapter from a virtual machine's directory entry:
+
+  chvm gpok3 --removenic 0700
+
+Output is similar to:
+
+  gpok3: Removing NIC 0700 on LNX3... Done
+
+7. To replaces a virtual machine's directory entry:
+
+  cat /tmp/dirEntry.txt | chvm gpok3 --replacevs
+
+Output is similar to:
+
+  gpok3: Replacing user entry of LNX3... Done
+
+8. To resize virtual machine's disk sdb to 10G and sdc to 15G:
+
+  chvm gpok3 --resize sdb=10G,sdc=15G
+
+=head1 FILES
+
+/opt/xcat/bin/chvm
+
+
+=head1 SEE ALSO
+
+L<mkvm(1)|mkvm.1>, L<lsvm(1)|lsvm.1>, L<rmvm(1)|rmvm.1>
+
+
+
+

@@ -1,0 +1,93 @@
+
+=head1 NAME
+
+B<makentp> - Setup NTP server on the management node and the service node.
+
+
+=head1 SYNOPSIS
+
+B<makentp [-h|--help]>
+
+B<makentp [-v|--version]>
+
+B<makentp [-a|--all] [-V|--verbose]>
+
+
+
+=head1 DESCRIPTION
+
+B<makentp> command sets up the NTP server on the xCAT management node and the service node.
+
+By default, it sets up the NTP server for xCAT management node. If B<-a> flag is specified, the command will setup the ntp servers for management node as well as all the service nodes that have I<servicenode.ntpserver> set. It honors the site table attributes I<extntpservers> and I<ntpservers> described below:
+
+=over 4
+
+I<site.extntpservers> -- the NTP servers for the management node to sync with. If it is empty then the NTP server will use the management node's own hardware clock to calculate the system date and time.
+
+I<site.ntpservers> -- the NTP servers for the service node and compute node to sync with. The keyword <xcatmaster> means that the node's NTP server is the node that is managing it (either its service node or the management node).
+
+=back
+
+To setup NTP on the compute node, add I<setupntp> postscript to the I<postscripts> table and run B<updatenode node -P setupntp> command.
+
+
+=head1 OPTIONS
+
+=over 10
+
+
+=item B<-a|--all>
+
+Setup NTP servers for both management node and the service node. If management node has SLES installed and used as I<ntpservers>, it is recommended to use the I<setupntp> postscript to set up NTP server for service nodes.
+
+
+=item B<-h|--help>
+
+Display usage message.
+
+
+=item B<-v|--version>
+
+Command Version.
+
+=item B<-V|--verbose>
+
+Verbose output.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+To setup NTP server on the management node:
+
+ makentp
+
+=item 2.
+To setup NTP servers on both management node and the service node:
+
+ makentp -a
+
+
+=back
+
+=head1 FILES
+
+/opt/xcat/bin/makentp
+
+
+=head1 SEE ALSO
+
+
+
+
+
+

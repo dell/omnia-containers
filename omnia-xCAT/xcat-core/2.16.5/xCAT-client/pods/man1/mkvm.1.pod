@@ -1,0 +1,370 @@
+=head1 NAME
+
+B<mkvm> - Creates HMC-, DFM-, IVM-, KVM-, VMware-, and zVM-managed partitions or virtual machines.
+
+=head1 SYNOPSIS
+
+=head2 Common:
+
+B<mkvm> [B<-h>| B<--help>]
+
+B<mkvm> [B<-v>| B<--version>]
+
+=head2 For PPC (with HMC) specific:
+
+B<mkvm> [B<-V>| B<--verbose>] I<noderange> B<-i> I<id> B<-l> I<singlenode>
+
+B<mkvm> [B<-V>| B<--verbose>] I<noderange> B<-c> I<destcec> B<-p> I<profile>
+
+B<mkvm> [B<-V>| B<--verbose>] I<noderange> B<--full>
+
+=head2 For PPC (using Direct FSP Management) specific:
+
+B<mkvm> I<noderange> [B<--full>]
+
+B<mkvm> I<noderange> [B<vmcpus=> I<min/req/max>] [B<vmmemory=> I<min/req/max>] [B<vmphyslots=> I<drc_index1,drc_index2...>] [B<vmothersetting=> I<hugepage:N,bsr:N>] [B<vmnics=> I<vlan1[,vlan2..]>] [B<vmstorage=> I<N|viosnode:slotid>] [B<--vios>]
+
+=head2 For KVM:
+
+B<mkvm> I<noderange> [B<-s|--size> I<disksize>] [B<--mem> I<memsize>] [B<--cpus> I<cpucount>] [B<-f|--force>]
+
+=head2 For VMware:
+
+B<mkvm> I<noderange> [B<-s>|B<--size> I<disksize>] [B<--mem> I<memsize>] [B<--cpus> I<cpucount>]
+
+=head2 For zVM:
+
+B<mkvm> I<noderange> [I<directory_entry_file_path>]
+
+B<mkvm> I<noderange> [I<source_virtual_machine>] [B<pool=> I<disk_pool>]
+
+=head1 DESCRIPTION
+
+=head2 For PPC (with HMC) specific:
+
+The first form of B<mkvm> command creates new partition(s) with the same profile/resources as the partition specified by I<singlenode>. The B<-i> and I<noderange> specify the starting numeric partition number and the I<noderange> for the newly created partitions, respectively. The LHEA port numbers and the HCA index numbers will be automatically increased if they are defined in the source partition.
+
+The second form of this command duplicates all the partitions from the source specified by I<profile> to the destination specified by I<destcec>. The source and destination CECs can be managed by different HMCs.
+
+Make sure the nodes in the I<noderange> is defined in the I<nodelist> table and the I<mgt> is set to 'hmc' in the I<nodehm> table before running this command.
+
+Note that the B<mkvm> command currently only supports creating standard LPARs, not virtual LPARs working with VIOS server.
+
+=head2 For PPC (using Direct FSP Management) specific:
+
+With option B<--full>, a partition using all the resources on a normal power machine will be created.
+
+If no option is specified, a partition using the parameters specified with attributes such as B<vmcpus>, B<vmmemory>, B<vmphyslots>, B<vmothersetting>, B<vmnics>, B<vmstorage> will be created. Those attributes can either be specified with '*def' commands running before or be specified with this command.
+
+=head2 For KVM and VMware:
+
+The B<mkvm> command creates a new virtual machine with I<disksize> GB of storage space, I<memsize> MB of memory, and I<cpucount> cpu(s).
+
+=head2 For zVM:
+
+The first form of B<mkvm> creates a new virtual machine based on a directory entry.
+
+The second form of this creates a new virtual machine with the same profile/resources as the specified node (cloning).
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-h|--help>
+
+Display usage message.
+
+=item B<-c>
+
+The cec (fsp) name for the destination.
+
+=item B<--cpus>
+
+Number of CPUs for the kvm/vmware virtual machine being created.
+
+=item B<--full>
+
+Request to create a new full system partition for each CEC.
+
+=item B<vmcpus=> I<value> B<vmmemory=> I<value> B<vmphyslots=> I<value> B<vmothersetting=> I<value> B<vmnics=> I<value> B<vmstorage=> I<value> [B<--vios>]
+
+To specify the parameters which are used to create a partition. The B<vmcpus>, B<vmmemory> are necessary, and the value specified with this command have a more high priority. If the value of any of the three options is not specified, the corresponding value specified for the node object will be used. If any of the three attributes is neither specified with this command nor specified with the node object, error information will be returned. To reference to L<lsvm(1)|lsvm.1> for more information about 'drc_index' for I<vmphyslots>.
+
+The option B<vios> is used to specify the partition that will be created is a VIOS partition. If specified, the value for B<vmstorage> shall be number which indicate the number of vSCSI server adapter will be created, and if no value specified for B<vmphyslots>, all the physical slot of the power machine will be assigned to VIOS partition. If not specified, it shall be in form of B<vios_name:server_slotid> to specify the vios and the virtual slot id of the vSCSI server adapter that will be connected from the Logical partition.
+
+=item B<-f|--force>
+
+If the storage already exists, remove it before creating a new virtual machine.
+
+=item B<-i>
+
+Starting numeric id of the newly created partitions.
+
+=item B<-l>
+
+The partition name of the source.
+
+=item B<--mem>
+
+Set the memory size for kvm/vmware virtual machines, default unit is MB. Specify in MB or append K for KB, M for MB, or G for GB.
+
+=item B<-p>
+
+The file that contains the profiles for the source partitions.
+
+=item B<-s|--size>
+
+Set the storage size for kvm/vmware virtual machines, default unit is GB. Specify in GB or append K for KB, M for MB, G for GB.
+
+=item B<-v|--version>
+
+Command Version.
+
+=item B<-V|--verbose>
+
+Verbose output.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+1. To create a new HMC-managed partition lpar5 based on the profile/resources of lpar4, enter:
+
+ mkdef -t node -o lpar5 mgt=hmc groups=all
+
+then:
+
+ mkvm lpar5 -i 5 -l lpar4
+
+Output is similar to:
+
+ lpar5: Success
+
+
+2. To create new HMC-managed partitions lpar5-lpar8 based on the profile/resources of lpar4, enter:
+
+ mkdef -t node -o lpar5-lpar8 mgt=hmc groups=all
+
+then:
+
+ mkvm lpar5-lpar8 -i 5 -l lpar4
+
+Output is similar to:
+
+ lpar5: Success
+ lpar6: Success
+ lpar7: Success
+ lpar8: Success
+
+
+3. To duplicate all the HMC-managed partitions associated with cec01 on cec02, first save the lpars from cec01 to a file:
+
+ lsvm lpar01-lpar04 > /tmp/myprofile
+
+then create lpars on cec02:
+
+ mkvm lpar05-lpar08 -c cec02 -p /tmp/myprofile
+
+Output is similar to:
+
+ lpar5: Success
+ lpar6: Success
+ lpar7: Success
+ lpar8: Success
+
+
+4. To duplicate all the HMC-managed partitions associated with cec01 on cec02, one is for cec01, the other is for cec02:
+
+ mkdef -t node -o lpar5,lpar6 mgt=hmc groups=all
+ chtab node=lpar5 ppc.parent=cec01
+ chtab node=lpar6 ppc.parent=cec02
+
+then create lpars on cec01 and cec02:
+
+ mkvm lpar5,lpar6 --full
+
+Output is similar to:
+
+ lpar5: Success
+ lpar6: Success
+
+
+5. To create a new zVM virtual machine (gpok3) based on a directory entry:
+
+ mkvm gpok3 /tmp/dirEntry.txt
+
+Output is similar to:
+
+ gpok3: Creating user directory entry for LNX3... Done
+
+
+6. To clone a new zVM virtual machine with the same profile/resources as the specified node:
+
+ mkvm gpok4 gpok3 pool=POOL1
+
+Output is similar to:
+
+ gpok4: Cloning gpok3
+ gpok4: Linking source disk (0100) as (1100)
+ gpok4: Linking source disk (0101) as (1101)
+ gpok4: Stopping LNX3... Done
+ gpok4: Creating user directory entry
+ gpok4: Granting VSwitch (VSW1) access for gpok3
+ gpok4: Granting VSwitch (VSW2) access for gpok3
+ gpok4: Adding minidisk (0100)
+ gpok4: Adding minidisk (0101)
+ gpok4: Disks added (2). Disks in user entry (2)
+ gpok4: Linking target disk (0100) as (2100)
+ gpok4: Copying source disk (1100) to target disk (2100) using FLASHCOPY
+ gpok4: Mounting /dev/dasdg1 to /mnt/LNX3
+ gpok4: Setting network configuration
+ gpok4: Linking target disk (0101) as (2101)
+ gpok4: Copying source disk (1101) to target disk (2101) using FLASHCOPY
+ gpok4: Powering on
+ gpok4: Detatching source disk (0101) at (1101)
+ gpok4: Detatching source disk (0100) at (1100)
+ gpok4: Starting LNX3... Done
+
+7. To create a new kvm/vmware virtual machine with 20 GB of storage, 4096 MB of memory, and 2 cpus.
+
+ mkvm vm1 -s 20 --mem 4096 --cpus 2
+
+or 
+
+ mkvm vm1 -s 20G --mem 4194304K --cpus 2
+
+or
+ 
+ mkvm vm1 -s 20480M --mem 4096M --cpus 2
+
+or
+ 
+ mkvm vm1 -s 20971520K --mem 4G --cpus 2
+
+8. To create a full partition on normal power machine.
+
+First, define a node object:
+
+ mkdef -t node -o lpar1 mgt=fsp cons=fsp nodetype=ppc,osi id=1 hcp=cec parent=cec hwtype=lpar groups=lpar,all
+
+Then, create the partition on the specified cec.
+
+ mkvm lpar1 --full
+
+The output is similar to:
+
+ lpar1: Done
+
+To query the resources allocated to node 'lpar1'
+
+ lsvm lpar1
+
+The output is similar to:
+
+  lpar1: Lpar Processor Info:
+  Curr Processor Min: 1.
+  Curr Processor Req: 16.
+  Curr Processor Max: 16.
+  lpar1: Lpar Memory Info:
+  Curr Memory Min: 0.25 GB(1 regions).
+  Curr Memory Req: 30.75 GB(123 regions).
+  Curr Memory Max: 32.00 GB(128 regions).
+  lpar1: 1,519,U78AA.001.WZSGVU7-P1-C7,0x21010207,0xffff(Empty Slot)
+  lpar1: 1,518,U78AA.001.WZSGVU7-P1-C6,0x21010206,0xffff(Empty Slot)
+  lpar1: 1,517,U78AA.001.WZSGVU7-P1-C5,0x21010205,0xffff(Empty Slot)
+  lpar1: 1,516,U78AA.001.WZSGVU7-P1-C4,0x21010204,0xffff(Empty Slot)
+  lpar1: 1,514,U78AA.001.WZSGVU7-P1-C19,0x21010202,0xffff(Empty Slot)
+  lpar1: 1,513,U78AA.001.WZSGVU7-P1-T7,0x21010201,0xc03(USB Controller)
+  lpar1: 1,512,U78AA.001.WZSGVU7-P1-T9,0x21010200,0x104(RAID Controller)
+  lpar1: 1/2/2
+  lpar1: 256.
+
+
+Note: The 'parent' attribute for node 'lpar1' is the object name of physical power machine that the full partition will be created on.
+
+9. To create a partition using some of the resources on normal power machine.
+
+Option 1:
+
+After a node object is defined, the resources that will be used for the partition shall be specified like this:
+
+ chdef lpar1 vmcpus=1/4/16 vmmemory=1G/4G/32G vmphyslots=0x21010201,0x21010200 vmothersetting=bsr:128,hugepage:2
+
+Then, create the partition on the specified cec.
+
+ mkvm lpar1
+
+Option 2:
+
+ mkvm lpar1 vmcpus=1/4/16 vmmemory=1G/4G/32G vmphyslots=0x21010201,0x21010200 vmothersetting=bsr:128,hugepage:2
+
+The output is similar to:
+
+ lpar1: Done
+
+Note: The 'vmplyslots' specify the drc index of the physical slot device. Every drc index shall be delimited with ','. The 'vmothersetting' specify two kinds of resource, bsr(Barrier Synchronization Register) specified the num of BSR arrays, hugepage(Huge Page Memory) specified the num of huge pages.
+
+To query the resources allocated to node 'lpar1'
+
+ lsvm lpar1
+
+The output is similar to:
+
+ lpar1: Lpar Processor Info:
+ Curr Processor Min: 1.
+ Curr Processor Req: 4.
+ Curr Processor Max: 16.
+ lpar1: Lpar Memory Info:
+ Curr Memory Min: 1.00 GB(4 regions).
+ Curr Memory Req: 4.00 GB(16 regions).
+ Curr Memory Max: 32.00 GB(128 regions).
+ lpar1: 1,513,U78AA.001.WZSGVU7-P1-T7,0x21010201,0xc03(USB Controller)
+ lpar1: 1,512,U78AA.001.WZSGVU7-P1-T9,0x21010200,0x104(RAID Controller)
+ lpar1: 1/2/2
+ lpar1: 128.
+
+10. To create a vios partition using some of the resources on normal power machine.
+
+ mkvm viosnode vmcpus=1/4/16 vmmemory=1G/4G/32G vmphyslots=0x21010201,0x21010200 vmnics=vlan1 vmstorage=5 --vios
+
+The resources for the node is similar to:
+
+ viosnode: Lpar Processor Info:
+ Curr Processor Min: 1.
+ Curr Processor Req: 4.
+ Curr Processor Max: 16.
+ viosnode: Lpar Memory Info:
+ Curr Memory Min: 1.00 GB(4 regions).
+ Curr Memory Req: 4.00 GB(16 regions).
+ Curr Memory Max: 32.00 GB(128 regions).
+ viosnode: 1,513,U78AA.001.WZSGVU7-P1-T7,0x21010201,0xc03(USB Controller)
+ viosnode: 1,512,U78AA.001.WZSGVU7-P1-T9,0x21010200,0x104(RAID Controller)
+ viosnode: 1,0,U8205.E6B.0612BAR-V1-C,0x30000000,vSerial Server
+ viosnode: 1,1,U8205.E6B.0612BAR-V1-C1,0x30000001,vSerial Server
+ viosnode: 1,3,U8205.E6B.0612BAR-V1-C3,0x30000003,vEth (port_vlanid=1,mac_addr=4211509276a7)
+ viosnode: 1,5,U8205.E6B.0612BAR-V1-C5,0x30000005,vSCSI Server
+ viosnode: 1,6,U8205.E6B.0612BAR-V1-C6,0x30000006,vSCSI Server
+ viosnode: 1,7,U8205.E6B.0612BAR-V1-C7,0x30000007,vSCSI Server
+ viosnode: 1,8,U8205.E6B.0612BAR-V1-C8,0x30000008,vSCSI Server
+ viosnode: 1,9,U8205.E6B.0612BAR-V1-C9,0x30000009,vSCSI Server
+ viosnode: 0/0/0
+ viosnode: 0.
+
+=head1 FILES
+
+/opt/xcat/bin/mkvm
+
+
+=head1 SEE ALSO
+
+L<chvm(1)|chvm.1>, L<lsvm(1)|lsvm.1>, L<rmvm(1)|rmvm.1>
+
+
+
+

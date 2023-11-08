@@ -1,0 +1,546 @@
+#!/bin/bash
+# IBM(c) 2018 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+#
+###################################################################
+#
+# Description:
+#     This script is used for performance testing purpose. It could
+#     generate n*250 fake nodes based on a predefined template (/opt/xcat/share/xcat/templates/objects/node/),
+#     and then run the performance testing on a batch of xCAT commands.
+#
+#     Note: It is availabe for the commands which require management node only.
+#
+# Syntax:
+#       $prog <total> [command-list-file]
+#
+###################################################################
+#set -x
+if [ -z $LC_ALL ]; then
+  export LC_ALL=C
+fi
+
+# Used for number parameter validation
+isNumber()
+{
+  expr $1 + 0 &>/dev/null
+}
+
+#####################################################################
+#
+# Parser input arguments
+#
+#####################################################################
+# Give a simple usage
+if [ -z "$1" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+  echo "Run the performance testing for the commands listed in file:"
+  echo "        [PERF_DRYRUN=y] [PERF_RUN_NODELIST=/path/to/nodelist] $0 run <command-list-file>"
+  echo " "
+  echo "Generate a bunch of fake nodes and Run the performance testing for the commands listed in file:"
+  echo "        [PERF_DRYRUN=y] [PERF_NOCREATE=y] $0 <total number of fake nodes> [command-list-file]"
+  echo " "
+  echo "Generate the script for creating the fake simulators for the given node range:"
+  echo "        $0 create <noderange> [ docker | openbmc ]"
+  exit
+fi
+
+if [ "$1" = "run" ]; then
+  PERF_RUN_WITH_ENV=1
+elif [ "$1" = "create" ]; then
+  PERF_RUN_WITH_SIM=1
+else
+  isNumber $1
+  if [ ! $? -eq 0 ]; then
+     echo "You must input an numeric string for total fake nodes number."
+     exit -1
+  fi
+fi
+
+# Source xCAT profile to make sure the xCAT commands could be executed without absolute path.
+if [ -z $XCATROOT ]; then
+  if [ -r /etc/profile.d/xcat.sh ]; then
+    . /etc/profile.d/xcat.sh
+  fi
+fi
+
+# Used for prerequiste checking for fake environment
+preChecking()
+{
+  local val=""
+  for cmd in brctl ifconfig; do
+    which $cmd  > /dev/null 2>&1
+    [  $? -ne 0 ] && val="$cmd,$val"
+  done
+  echo $val | sed s/,$//
+}
+
+if [ -z $PERF_RUN_WITH_ENV ] && [ -z $PERF_RUN_WITH_SIM ] && [ -z $PERF_DRYRUN ]; then
+  pass=$(preChecking)
+  if [ ! -z "$pass" ]; then
+    echo "Error: Missing required tools: $pass"
+    exit -1
+  fi
+fi
+
+# If the command list file is not specified, the tool will only create the stanz file for fake nodes.
+# If it is specified but not exists, the tool will exit with error.
+if [ "$PERF_RUN_WITH_SIM" = "1" ]; then
+  [ -z $2 ] && echo "ERROR: Not specify the node range." && exit -1
+elif [ ! -z $2 ]; then
+  if [ -f $2 ]; then
+    RUN_CMD_LIST=$2
+  else
+    echo "ERROR: The command list file you specified does not exist."
+    exit -1
+  fi
+elif [ "$PERF_RUN_WITH_ENV" = "1" ]; then
+  echo "ERROR: The command list file must be specified."
+  exit -1
+fi
+
+version=`lsxcatd -a 2>/dev/null | grep Version`
+if [ 0 != $? ]; then
+    echo "ERROR: xCAT daemon is not running. Start 'xcatd' service and rerun this tool."
+    exit 99
+fi
+
+# Mandatory, to specify the number of total fake nodes which will be created for testing
+FAKE_NODE_TOTAL=$1
+if [ "$PERF_RUN_WITH_ENV" = "1" ];then
+  if [ -z $PERF_RUN_NODELIST ]; then
+    PERF_RUN_NODELIST="/tmp/xcatperftest.nodels.$$"
+    nodels > $PERF_RUN_NODELIST
+  else
+    [ -f "$PERF_RUN_NODELIST" ] && ( echo "ERROR: $PERF_RUN_NODELIST does not exist."; exit 99 )
+  fi
+
+  FAKE_NODE_TOTAL=`cat $PERF_RUN_NODELIST|wc -l`
+fi
+
+# Optional, the prefix of the fake compute node name.
+# By default, it is 'fake' but it could be changed when you set environment variable `FAKE_NODE_PREFIX`
+if [ -z $FAKE_NODE_PREFIX ]; then
+  FAKE_NODE_PREFIX='fake'
+fi
+
+# Optional, the group name of all the fake compute nodes.
+# By default, it is 'perftest' but it could be changed when you set environment variable `FAKE_NODE_GROUP`
+if [ -z $FAKE_NODE_GROUP ]; then
+  FAKE_NODE_GROUP='perftest'
+fi
+
+# Mandatory, the Provision network for all the fake compute nodes. It must be a string like 'A.B', and be matched with `tabdump networks`
+# By default, it is '192.168' but it could be changed when you set environment variable `FAKE_NETWORK_PRO`
+if [ -z $FAKE_NETWORK_PRO ]; then
+  FAKE_NETWORK_PRO='192.168'
+fi
+
+# Mandatory, the BMC network for all the fake compute nodes. It must be a string like 'A.B' and no need to be defined in 'networks' table.
+# By default, it is '192.169' but it could be changed when you set environment variable `FAKE_NETWORK_BMC`
+# Note:  it could not be the same subnet as 'FAKE_NETWORK_PRO'
+if [ -z $FAKE_NETWORK_BMC ]; then
+  FAKE_NETWORK_BMC='192.169'
+fi
+
+# Optional, The network mask for the fake network object.
+# By default, it is '255.255.0.0' but it could be changed when you set environment variable `FAKE_NETWORK_MASK`
+if [ -z $FAKE_NETWORK_MASK ]; then
+  FAKE_NETWORK_MASK='255.255.0.0'
+fi
+
+# Optional, The bridge device name for the temporary interface which is required on MN as nodeset/makedhcp will check if the MN and CN in same subnet.
+# By default, it is 'perfvirbr0' but it could be changed when you set environment variable `FAKE_NETWORK_INTF`
+if [ -z $FAKE_NETWORK_INTF ]; then
+  FAKE_NETWORK_INTF='perfvirbr0'
+fi
+
+# Optional, The node template name used for generating fake nodes.
+# By default, it is '<arch>-template' but it could be changed when you set environment variable `PERF_NODETEMPL`
+if [ -z $PERF_NODETEMPL ]; then
+  PERF_NODETEMPL="`arch`-template"
+fi
+
+# Optional, The NIC used by simulator.
+if [ -z $PERF_RUN_TIMEOUT ]; then
+  PERF_RUN_TIMEOUT=3600
+fi
+
+# Optional, The NIC used by simulator.
+if [ -z $PERF_SIM_NIC ]; then
+  PERF_SIM_NIC='eth1'
+fi
+
+# Optional, The delimiter which is used for CSV.
+# By default, it is comma, but it could be changed when you set environment variable `PERF_CSV_CHAR`
+if [ -z $PERF_CSV_CHAR ]; then
+  PERF_CSV_CHAR=','
+fi
+
+# IP address assinged to node will be in [1-250]
+NODE_PER_ROW=250
+MYSUFFIX=`date +"%Y%m%d%H%M%S"`
+
+if [ -z $PERFORMANCE_DIR ]; then
+  PERFORMANCE_DIR=$XCATROOT/share/xcat/tools/autotest/result
+fi
+PERFORMANCE_NODE_TMPL=$PERFORMANCE_DIR/perf-node.tmpl
+PERFORMANCE_STANZ=$PERFORMANCE_DIR/perfstanz-$FAKE_NODE_TOTAL.$MYSUFFIX
+
+if [ -z $PERF_RPT_FILE ]; then
+  PERF_RPT_FILE=perfreport-$FAKE_NODE_TOTAL.log.$MYSUFFIX
+fi
+PERFORMANCE_REPORT=$PERFORMANCE_DIR/$PERF_RPT_FILE
+
+# Get a random node list from a file
+nodeRange()
+{
+  if [ "$PERF_RUN_WITH_ENV" = "1" ];then
+    cat "$PERF_RUN_NODELIST"|shuf -n$1|awk BEGIN{RS=EOF}'{gsub(/\n/,",");print}'
+  else
+    echo "$FAKE_NODE_PREFIX[1-$1]"
+  fi
+}
+
+# Get a random MAC address
+genMAC()
+{
+    printf '00:60:2F:%02X:%02X:%02X' $[RANDOM%256] $[RANDOM%256] $[RANDOM%256]
+}
+
+# Generate stanz file for all fake nodes
+genStanz()
+{
+  if [ ! -z $PERF_DRYRUN ]; then
+    echo $1, $2, $3, $4
+  else
+    echo -n .
+  fi
+  mgt='ipmi'
+  if [[ `arch` =~ 'ppc64' ]]; then
+    mgt='openbmc'
+  fi
+  sed -e '/Object name:/c \'"$1"':\n    objtype=node' \
+      -e '/ip=/c \    ip='"$3"'' \
+      -e '/mac=/c \    mac='"$2"'' \
+      -e '/bmc=/c \    bmc='"$4"'' \
+      -e '/mgt=/c \    mgt='"$mgt"'' \
+      -e '/bmcusername=/c \    bmcusername=root' \
+      -e '/bmcpassword=/c \    bmcpassword=0penBmc' \
+      -e '/groups=/c \    groups=all,'"$FAKE_NODE_GROUP"'' \
+      -e '/postscripts=/c \    postscripts=mypostboot' \
+      -e '/postbootscripts=/c \    postbootscripts=mypostboot' \
+      $PERFORMANCE_NODE_TMPL >> $PERFORMANCE_STANZ
+}
+
+# Create a fake xCAT node definition
+fakeNode()
+{
+  # TODO: support regular expression for IP
+  genStanz $FAKE_NODE_PREFIX$1 $(genMAC) $FAKE_NETWORK_PRO.$2.$3 $FAKE_NETWORK_BMC.$2.$3
+  #mkdef -f -t node $FAKE_NODE_PREFIX$1 --template $PERF_NODETEMPL ip=$FAKE_NETWORK_PRO.$2.$3 mac=$(genMAC) \
+  #                bmc=$FAKE_NETWORK_BMC.$2.$3 bmcpassword=fake bmcusername=fake groups=all,performance > /dev/null 2>&1
+}
+
+# Create a fake xCAT network definition
+fakeNetwork()
+{
+    lsdef -t network -o perf-net-$FAKE_NODE_PREFIX > /dev/null 2>&1
+    if [ 0 != $? ]; then
+      mkdef -t network perf-net-$FAKE_NODE_PREFIX net=$FAKE_NETWORK_PRO.0.0 mask=$FAKE_NETWORK_MASK > /dev/null
+    else
+      chdef -t network -o perf-net-$FAKE_NODE_PREFIX net=$FAKE_NETWORK_PRO.0.0 mask=$FAKE_NETWORK_MASK > /dev/null
+    fi
+}
+
+# Create a fake xCAT network definition
+fakeInterface()
+{
+  result=`ifconfig $1 2>/dev/null`
+  if [ -z "$2" ]; then
+    [  -z "$result" ] && brctl addbr $1
+    ifconfig $1 $FAKE_NETWORK_PRO.251.254 netmask $FAKE_NETWORK_MASK || echo "$1 is not configured successfully"
+    ifconfig $1:0 $FAKE_NETWORK_BMC.251.254 netmask $FAKE_NETWORK_MASK || echo "$1:0 is not configured successfully"
+  elif [ ! -z "$result" ]; then
+    ifconfig $1:0 0.0.0.0
+    ifconfig $1 down
+    brctl delbr $1 || echo "$1 is not removed successfully, you may need to clean up manually."
+  fi
+}
+
+getOSimage()
+{
+  # The OS image name used in nodeset to replace the MACRO Variable `#OSIMAGE#`.
+  # By default, it could be detectd automatically according to the arch
+  if [ -z $PERF_OSIMAGE ]; then
+
+    # covert it to an array
+    osimage_array=($(lsdef -t osimage 2>/dev/null| grep `arch`|grep 'install'|awk '/compute/ {print $1}'))
+    index=`expr $RANDOM % ${#osimage_array[@]} 2>/dev/null`
+    echo ${osimage_array[$index]}
+  else
+    echo $PERF_OSIMAGE
+  fi
+}
+
+# Create batch fake nodes stanz file for testing
+bootstrap()
+{
+  declare -i  count=0
+  [ $rack = 0 ] && rack=1
+  for i in $(seq 0 $(expr $rack - 1))
+  do
+    for j in $(seq 1 $NODE_PER_ROW)
+    do
+      count+=1
+      fakeNode $count $i $j
+      [ $(($count % $1)) = 0 ] && echo
+      [ "x$count" == "x$FAKE_NODE_TOTAL" ] && break
+    done
+  done
+}
+
+# Executing the testing on specific commands defined in command list file
+# All MACROs defined in command list file will be replaced with the real value
+runTest()
+{
+
+  cmd=$1
+  [ -z "$osimage" ] || cmd="${cmd/\#OSIMAGE\#/$osimage}"
+  if [[ $cmd =~ '#STANZ#' ]]; then
+    #mkdef -z
+    execCmd "${cmd/\#STANZ\#/$PERFORMANCE_STANZ}" "$FAKE_NODE_TOTAL"
+
+  elif [[ $cmd =~ '#NODES#' ]]; then
+    #noderange operation
+    if [ -z "$2" ]; then
+      # No SERIES defined, run command on the whole group
+      execCmd "${cmd/\#NODES\#/$FAKE_NODE_GROUP}" "$FAKE_NODE_TOTAL"
+    else
+      # run the command for each number in SERIES
+      lastnum=0
+      for num in $2
+      do
+        isNumber $num || continue
+        showcmd=$1
+        if [[ $num -le $FAKE_NODE_TOTAL ]]; then
+          execCmd "${cmd/\#NODES\#/$(nodeRange $num)}" "$num" "${showcmd/NODES/$num}"
+          lastnum=$num
+        elif [ "$PERF_RUN_WITH_ENV" = "1" ]; then
+          num=$FAKE_NODE_TOTAL
+          [[ $num -gt $lastnum ]] && execCmd "${cmd/\#NODES\#/}" "$num" "${showcmd/NODES/$num}"
+          break
+        fi
+      done
+    fi
+  elif [[ $cmd =~ '#PERFGRP#' ]]; then
+    execCmd "${cmd/\#PERFGRP\#/$FAKE_NODE_GROUP}" "$FAKE_NODE_TOTAL"
+  else
+    execCmd "$cmd" "-"
+  fi
+
+}
+
+
+# Output performance result for each command.
+printResult()
+{
+  #TODO,  more clear short desc for this command
+  desc=`echo "$1" | awk '{split($0, a, "|");print a[length(a)]}'`
+  desc=`echo "$desc" | awk '{print $1}'`
+  result=$([[ $3 = 0 ]] && echo "SUCCESS" || echo "FAIL")
+
+  if [ -z $4 ]; then
+    # RESULT; CMD; TIME; FULL COMMAND
+    echo "=====> $result$PERF_CSV_CHAR $desc$PERF_CSV_CHAR $2"
+    echo "$result$PERF_CSV_CHAR $desc$PERF_CSV_CHAR $2$PERF_CSV_CHAR \"$1\"" >> $PERFORMANCE_REPORT
+  else
+    nodepersec='-'
+    isNumber $4
+    if [ $? -eq 0 ]; then
+       nodepersec=$(printf "%.2f" `echo "scale=2;$4/$2"|bc`)
+    fi
+    # RESULT; CMD; TIME; NODES; NODES/SEC; FULL COMMAND
+    echo "=====> $result$PERF_CSV_CHAR $desc$PERF_CSV_CHAR $2$PERF_CSV_CHAR $4$PERF_CSV_CHAR $nodepersec"
+    echo "$result$PERF_CSV_CHAR $desc$PERF_CSV_CHAR $2$PERF_CSV_CHAR $4$PERF_CSV_CHAR $nodepersec$PERF_CSV_CHAR \"$1\"">> $PERFORMANCE_REPORT
+  fi
+}
+
+# Executing each command and print the result to report file
+execCmd()
+{
+  noderange=$2
+  [ -z "$3" ] && showcmd=$1 || showcmd=$3
+
+  echo "[Testing for command]: $showcmd ..."
+  if [ ! -z $PERF_DRYRUN ]; then
+    return
+  fi
+
+  start=`date +%s%3N`
+
+  #using timeout to avoid some commands hang
+  timeout $PERF_RUN_TIMEOUT bash <<EOT
+$1 > /dev/null 2>&1
+EOT
+
+  retval=$?
+  end=`date +%s%3N`
+  delta=$(printf "%.2f" `echo "scale=2;$(($end-$start))/1000"|bc`)
+
+  if [ -z $noderange ]; then
+    printResult "$1" "$delta" "$retval"
+  else
+    printResult "$1" "$delta" "$retval" "$noderange"
+  fi
+}
+
+#################################################
+# Main Loop of the performance baseline testing #
+#################################################
+mkdir -p $PERFORMANCE_DIR
+if [ "$PERF_RUN_WITH_ENV" = "1" ]; then
+  echo "Start the performance testing for commands in $RUN_CMD_LIST. Total nodes: $FAKE_NODE_TOTAL "
+
+  echo "#$version" >> $PERFORMANCE_REPORT
+  echo "#Total defined nodes number: $FAKE_NODE_TOTAL" >> $PERFORMANCE_REPORT
+  echo "#Result$PERF_CSV_CHAR Command$PERF_CSV_CHAR Time(s)$PERF_CSV_CHAR Full Commands" >> $PERFORMANCE_REPORT
+  echo "=================================================="
+
+  series=`grep '^#SERIES#' $RUN_CMD_LIST | awk  '{print $2}'`
+  if [ ! -z $series ]; then
+    series=${series//,/ }
+  fi
+  [ -z "$series" ] || echo "Apply noderange ($series) on below commands."
+
+  cmdlist=`cat $RUN_CMD_LIST`
+  IFS_BAK=$IFS
+  IFS=$'\n'
+  for line in $cmdlist
+  do
+    [ "x${line:0:1}" = "x#" ] && continue
+
+    # begin to run the command
+    IFS=$IFS_BAK
+    #execCmd "$line"
+    runTest "$line" "$series"
+    IFS=$'\n'
+  done
+  IFS=$IFS_BAK
+  IFS_BAK=
+
+  if [ -z "$PERF_DRYRUN" ]; then
+    echo
+    echo "Done. Check the performance result in $PERFORMANCE_REPORT"
+  fi
+  exit 0
+fi
+
+if [ "$PERF_RUN_WITH_SIM" = "1" ]; then
+  simmode="docker"
+  [ ! -z $3 ] && simmode=$3
+  echo "Generate the $simmode simulators for $2 ..."
+
+  PERFORMANCE_SCRIPT=$PERFORMANCE_DIR/perf-$simmode-create.sh
+  echo "#!/bin/bash" > $PERFORMANCE_SCRIPT
+
+  if [ "$simmode" = "docker" ]; then
+    lsdef $2 -i ip -c | \
+    awk -F '=' '{ print substr($1, 0 ,index($1,":")-1),$2}' | \
+    while read name ip; \
+    do \
+      echo "docker run -itd --rm --name $name --net perf-net --ip $ip --hostname $name -v /root/.ssh:/root/.ssh perf-alpine-ssh" >> $PERFORMANCE_SCRIPT; \
+    done
+  elif [ "$simmode" = "openbmc" ]; then
+    options="-d random -t 10"
+    bmcips=`lsdef $2 -i bmc -c | awk -F '=' '{printf "%s ", $2}'`
+    echo "if [ \"\$1\" = \"setup\" ]; then /tmp/perf/openbmc_simulator/simulator -n $PERF_SIM_NIC $options -r $bmcips; fi" >> $PERFORMANCE_SCRIPT
+    echo "if [ \"\$1\" = \"clean\" ]; then /tmp/perf/openbmc_simulator/simulator -c -n $PERF_SIM_NIC -r $bmcips; fi" >> $PERFORMANCE_SCRIPT
+  else
+    echo "Not supported simulator type: $simmode"
+    rm -f $PERFORMANCE_SCRIPT
+    exit -1
+  fi
+
+  echo
+  echo "Done. Check the performance script in $PERFORMANCE_SCRIPT"
+  exit 0
+fi
+
+#Get available OS image, it will be used for nodeset if possible
+osimage=$(getOSimage)
+if [ -z "$osimage" ]; then
+  echo "WARN: Cannot determine the OS image, the commands which defined with #OSIMAGE# will be failed."
+fi
+
+# Now to run the test with  fake nodes
+lsdef -t node --template $PERF_NODETEMPL > $PERFORMANCE_NODE_TMPL 2>/dev/null
+if [ 0 != $? ]; then
+    echo "ERROR: Cannot find the default template for `arch`, make sure it exists and rerun this tool."
+    echo "Or you can run this tool with PERF_NODETEMPL=<existing node template name> by specify the template which is used to create fake nodes"
+    exit 99
+fi
+
+if [ -z "$PERF_NOCREATE" ]; then
+  rack=$(expr $FAKE_NODE_TOTAL / $NODE_PER_ROW)
+
+  echo "=================================================="
+  # Starting to add fake nodes
+  bootstrap 50
+  echo
+  echo "=================================================="
+
+fi
+if [ -z "$RUN_CMD_LIST" ]; then
+  [ -z "$PERF_NOCREATE" ] && echo "Done. Check the stanz file in $PERFORMANCE_STANZ"
+  exit 0
+fi
+echo "Continue the performance testing for commands in $RUN_CMD_LIST "
+
+echo "#$version" >> $PERFORMANCE_REPORT
+echo "#Total defined nodes number: $FAKE_NODE_TOTAL" >> $PERFORMANCE_REPORT
+echo "#Result$PERF_CSV_CHAR Command$PERF_CSV_CHAR Time(s)$PERF_CSV_CHAR Nodes Number$PERF_CSV_CHAR Nodes per second$PERF_CSV_CHAR Full Commands" >> $PERFORMANCE_REPORT
+echo "=================================================="
+
+# Initial Populate the fake nodes into DB
+if [ -z "$PERF_NOCREATE" ]; then
+  #create fake network for makedns, makedhcp etc...
+  fakeNetwork
+  execCmd "cat $PERFORMANCE_STANZ | mkdef -z -f" "$FAKE_NODE_TOTAL"
+
+  [ -z "$PERF_CREATE_ONLY" ] || exit 0
+  # fake interface is required for topology with service nodes as it will determine if then Mn/Sn are
+  # in the same subnet with CNs
+  fakeInterface $FAKE_NETWORK_INTF
+fi
+
+series=`grep '^#SERIES#' $RUN_CMD_LIST | awk  '{print $2}'`
+if [ ! -z "$series" ]; then
+  series=${series//,/ }
+fi
+#echo $series
+
+cmdlist=`cat $RUN_CMD_LIST`
+IFS_BAK=$IFS
+IFS=$'\n'
+for line in $cmdlist
+do
+  [ "x${line:0:1}" = "x#" ] && continue
+
+  # begin to run the command
+  IFS=$IFS_BAK
+  runTest "$line" "$series"
+  IFS=$'\n'
+done
+IFS=$IFS_BAK
+IFS_BAK=
+
+if [ -z $PERF_NOCREATE ]; then
+  rm -f $PERFORMANCE_NODE_TMPL
+  rm -f $PERFORMANCE_STANZ
+  fakeInterface $FAKE_NETWORK_INTF del
+fi
+rm -f "/tmp/xcatperftest.nodels.$$"
+if [ -z $PERF_DRYRUN ]; then
+  echo
+  echo "Done. Check the performance result in $PERFORMANCE_REPORT"
+fi

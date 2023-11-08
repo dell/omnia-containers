@@ -1,0 +1,217 @@
+export XCATDEBUGMODE="#TABLEBLANKOKAY:site:key=xcatdebugmode:value#"
+if [ "$XCATDEBUGMODE" = "1" ] || [ "$XCATDEBUGMODE" = "2" ]; then
+    set -x
+fi
+
+#!/bin/sh
+
+killall syslogd
+syslogd -R #XCATVAR:XCATMASTER#
+log_label="xcat.deployment"
+logger -t $log_label -p "info" "============deployment starting============"
+logger -t $log_label -p "info" "Running preseeding early_command Installation script..."
+if [ ! -c /dev/vcs ]; then
+    mknod /dev/vcs c 7 0
+fi
+
+debconf-get open-iscsi/targets > /tmp/q
+
+cat >/tmp/foo.sh <<EOF
+#!/bin/sh
+
+#
+#  If no arguments:
+#
+#     1) Start child process to connect as client to master, and re-execute this script to send
+#        "installmonitor" to master.  Do not wait for child process.
+#
+#     2) Loop forever.  For each iteration, start child process as server waiting for a client
+#        connection.  Once a connection is established, child process re-executes this script to
+#        handle request from that particular client.
+#
+
+if [ \$# -eq 0 ]; then
+    xcatdhost="#XCATVAR:XCATMASTER#"
+    xcatdport="#TABLE:site:key=xcatiport:value#"
+    NODESTATUS="#TABLEBLANKOKAY:site:key=nodestatus:value#"
+
+
+    /usr/bin/nc "\$xcatdhost" "\$xcatdport" -e /tmp/foo.sh install_monitor &
+
+    if [ -z "\$NODESTATUS" ] || [ "\$NODESTATUS" != "0" -a   "\$NODESTATUS" != "N"  -a  "\$NODESTATUS" != "n" ];
+ then
+
+        /usr/bin/nc "\$xcatdhost" "\$xcatdport" -e /tmp/foo.sh installstatus installing &
+
+    fi
+
+    while true; do
+        /usr/bin/nc -l -p 3054 -e /tmp/foo.sh serve_client
+    done
+
+    exit 1                        # never reached; reboot ends this
+fi
+
+#
+#  If the script was called with the "install_monitor" argument, stdin and stdout are
+#  connected to an xCAT daemon on the master.  Write the "installmonitor" request to the
+#  daemon.
+#
+
+if [ "\$1" = "install_monitor" ]; then
+    cmd=""
+    while [ "\$cmd" != "done" ]; do
+        read cmd remainder
+
+        if [ "\$cmd" == "ready" ]; then
+            echo "installmonitor"
+        fi
+    done
+
+    exit 0
+fi
+
+#
+#  If the script was called with the "installstatus" argument, stdin and stdout are
+#  connected to an xCAT daemon on the master.
+#  Write the "installstatus xx" request to the daemon to update thenode installation status.
+if [ "\$1" = "installstatus" ]; then
+    cmd=""
+    while [ "\$cmd" != "done" ]; do
+        read cmd remainder
+
+        if [ "\$cmd" == "ready" ]; then
+            echo "installstatus \$2"
+        fi
+    done
+
+    exit 0
+fi
+
+
+
+
+#
+#  When execution reaches here, script called with "serve_client" argument, which means
+#  stdin and stdout are connected to a client.  Read the request from the client, provide
+#  the answer to the client, and terminate.
+#
+
+read cmd arg remainder
+
+case "\$cmd" in
+#UNCOMMENTOENABLEDEBUGPORT#   "sh")                        #TODO: ENABLE IF DEBUG
+#UNCOMMENTOENABLEDEBUGPORT#       output=\$(eval \$arg \$remainder)
+#UNCOMMENTOENABLEDEBUGPORT#       echo "\$output"
+#UNCOMMENTOENABLEDEBUGPORT#       echo "EOO"
+#UNCOMMENTOENABLEDEBUGPORT#       ;;
+
+    "screendump")
+        output=\$(eval chvt \$arg; cat /dev/vcs)
+        echo "\$output"
+        ;;
+
+    "stat")
+        sedcmds='/^[^ ]+ +[^ ]+ +install /h; \${ g; s,^[^ ]+ +[^ ]+ +install +([^ ]+) +[^ ]+ ([^ ]+).*,installing \1 \2,; p }'
+        output=\$(sed -nre "\$sedcmds" /target/var/log/dpkg.log 2>/dev/null)
+
+        if [ -z "\$output" ]; then
+            output="installing prep"
+        fi
+
+        echo "\$output"
+        ;;
+esac
+
+exit 0
+EOF
+
+chmod 755 /tmp/foo.sh
+
+/tmp/foo.sh >/tmp/foo.log 2>&1 &
+
+base64decode()
+{
+	h0="0";  h1="1";  h2="2";  h3="3";  h4="4";  h5="5";  h6="6";  h7="7";
+	h8="8";  h9="9"; h10="A"; h11="B"; h12="C"; h13="D"; h14="E"; h15="F";
+
+	while :
+	do
+		i=0
+		while [ "$i" -lt 4 ]
+		do
+			read -n 1 c || return
+	
+			case "${c}" in
+			"A") d=0  ;; "B") d=1  ;; "C") d=2  ;; "D") d=3  ;;
+			"E") d=4  ;; "F") d=5  ;; "G") d=6  ;; "H") d=7  ;;
+			"I") d=8  ;; "J") d=9  ;; "K") d=10 ;; "L") d=11 ;;
+			"M") d=12 ;; "N") d=13 ;; "O") d=14 ;; "P") d=15 ;;
+			"Q") d=16 ;; "R") d=17 ;; "S") d=18 ;; "T") d=19 ;;
+			"U") d=20 ;; "V") d=21 ;; "W") d=22 ;; "X") d=23 ;;
+			"Y") d=24 ;; "Z") d=25 ;; "a") d=26 ;; "b") d=27 ;;
+			"c") d=28 ;; "d") d=29 ;; "e") d=30 ;; "f") d=31 ;;
+			"g") d=32 ;; "h") d=33 ;; "i") d=34 ;; "j") d=35 ;;
+			"k") d=36 ;; "l") d=37 ;; "m") d=38 ;; "n") d=39 ;;
+			"o") d=40 ;; "p") d=41 ;; "q") d=42 ;; "r") d=43 ;;
+			"s") d=44 ;; "t") d=45 ;; "u") d=46 ;; "v") d=47 ;;
+			"w") d=48 ;; "x") d=49 ;; "y") d=50 ;; "z") d=51 ;;
+			"0") d=52 ;; "1") d=53 ;; "2") d=54 ;; "3") d=55 ;;
+			"4") d=56 ;; "5") d=57 ;; "6") d=58 ;; "7") d=59 ;;
+			"8") d=60 ;; "9") d=61 ;; "+") d=62 ;; "/") d=63 ;;
+			"=") d=0  ;;
+			*) continue ;;
+			esac
+	
+			eval "a${i}=${c}"
+			eval "b${i}=${d}"
+
+			i=$(( i + 1 ))
+		done
+	
+		o0=$(( ((b0 << 2) | (b1 >> 4)) & 0xff ))
+		o1=$(( ((b1 << 4) | (b2 >> 2)) & 0xff ))
+		o2=$(( ((b2 << 6) | b3) & 0xff ))
+	
+		[ "${a2}" == "=" ] &&
+			eval "printf \"\\x\${h$(( o0 / 16 ))}\${h$(( o0 % 16
+				))}\"" &&
+			return
+		[ "${a3}" == "=" ] &&
+			eval "printf \"\\x\${h$(( o0 / 16 ))}\${h$(( o0 % 16
+				))}\\x\${h$(( o1 / 16 ))}\${h$(( o1 % 16
+				))}\"" &&
+			return
+		eval "printf \"\\x\${h$(( o0 / 16 ))}\${h$(( o0 % 16
+			))}\\x\${h$(( o1 / 16 ))}\${h$(( o1 % 16
+			))}\\x\${h$(( o2 / 16 ))}\${h$(( o2 % 16 ))}\""
+	done
+}
+logger -t $log_label -p "info" "Generate partition file..."
+if [ -d /sys/firmware/efi ]; then
+    echo "ubuntu-efi ::" > /tmp/partitionfile
+    echo "    512 512 1024 fat32" >> /tmp/partitionfile
+    echo '    $iflabel{ gpt } $reusemethod{ } method{ efi } format{ }' >> /tmp/partitionfile
+    echo "    ." >> /tmp/partitionfile
+else
+    echo "ubuntu-boot ::" > /tmp/partitionfile
+    echo "256 256 512 ext4" >> /tmp/partitionfile
+    echo '    $primary{ } $bootable{ } method{ format } format{ } use_filesystem{ } filesystem{ ext4 } mountpoint{ /boot }' >> /tmp/partitionfile
+    echo "    ." >> /tmp/partitionfile
+fi
+echo "500 10000 1000000000 ext4" >> /tmp/partitionfile
+echo "    method{ format } format{ } use_filesystem{ } filesystem{ ext4 } mountpoint{ / }" >> /tmp/partitionfile
+echo "    ." >> /tmp/partitionfile
+echo "2048 512 300% linux-swap" >> /tmp/partitionfile
+echo "    method{ swap } format{ }" >> /tmp/partitionfile
+echo "    ." >> /tmp/partitionfile
+
+#XCA_PARTMAN_RECIPE_SCRIPT#
+#XCA_PARTMAN_DISK_SCRIPT#
+#XCA_PARTMAN_ADDITIONAL_CONFIG_SCRIPT#
+exit 0
+
+if [ "$XCATDEBUGMODE" = "1" ] || [ "$XCATDEBUGMODE" = "2" ]; then
+then
+    set +x
+fi

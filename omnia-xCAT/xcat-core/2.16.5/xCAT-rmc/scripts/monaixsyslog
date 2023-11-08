@@ -1,0 +1,518 @@
+#!/usr/bin/env perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#------------------------------------------------------------------------------
+
+=head1  monaixsyslog
+=head2
+=cut
+
+#------------------------------------------------------------------------------
+use locale;
+use Getopt::Long;
+
+my $dirname = "xcat_aix_syslog";
+my $vardir  = "/var/opt/$dirname";
+
+my $default_runfile = "$vardir/.monaixsyslog_run";
+my $default_file    = "$vardir/syslog.out";
+my $default_pri     = "*.warn";
+
+$::MAX_SENSOR_STRING = 65535;
+my ($facility_priority, $logfile, $runfile) = &getArgs();
+
+my ($syslogconf, $embedinfo);
+
+$syslogconf = "/etc/syslog.conf";
+$embedinfo  = "$facility_priority   $logfile    rotate size 4m files 1";
+
+if (!-d $vardir) { mkdir($vardir); }
+
+#check to see if this is the first time this script has been run
+if (!-e $runfile)
+{    #first time
+    if ($^O =~ /^aix/i)
+    {
+        runcmd("grep \"$embedinfo\" $syslogconf", -1);
+        if ($::RUNCMD_RC == 1)
+        {    #grep did not find embedinfo
+                #update syslog.conf
+            if (!-d $vardir) { mkdir($vardir); }
+            if (!-e $logfile)
+            {
+                touchFile($logfile);
+            }
+            runcmd("echo \"$embedinfo\" >> $syslogconf");
+            my $cmd = "refresh -s syslogd";
+            runcmd($cmd);
+        }
+        touchFile($runfile);
+    }
+    else
+    {
+        print "non-AIX platform, this scripts should not be ran.\n";
+        exit 1;
+    }
+}
+
+#Check for errors
+
+if ($^O =~ /^aix/i)
+{
+    unless (open(RUNFILE, "<$runfile"))
+    {
+        print "Cannot open file $runfile\n";
+        exit 1;
+    }
+
+    my $marker = <RUNFILE>;
+    close(RUNFILE);
+
+    my ($new_number, $new_content, $to_rfile);
+
+    # If the $runfile is empty, then we should read the $logfile from the beginning.
+    if (!$marker)
+    {
+        ($new_number, $new_content, $to_rfile) = &refreshSensorFromLogfile($logfile, 0, undef);
+    }
+    else
+    {
+        my @info = split ':::', $marker;
+        my ($last_modified_time, $line_number, $mark_content) = @info;
+
+        my @stats = stat($logfile);
+        my $time  = $stats[9];
+        if ($time == $last_modified_time)
+        {
+            # The log file has not been updated since last modified.
+            exit 0;
+        }
+
+        ($new_number, $new_content, $to_rfile) = &refreshSensorFromLogfile($logfile, $line_number, $mark_content);
+
+        # If the $to_rfile is set, then we should refresh the info from rotated file to Sensor first.
+        if ($to_rfile)
+        {
+            # Read the rotated file first.
+            my $rotated_file = "$logfile" . ".0";
+            ($new_number, $new_content, $to_rfile) = &refreshSensorFromLogfile($rotated_file, $line_number, $mark_content);
+
+            # Then read the log file just from the beginning to refresh the Sensor.
+            ($new_number, $new_content, $to_rfile) = &refreshSensorFromLogfile($logfile, 0, undef);
+        }
+    }
+
+    # Get the last modified time for this log file
+    my @stats    = stat($logfile);
+    my $new_time = $stats[9];
+
+    &updateRunfile($new_time, $new_number, $new_content, $runfile);
+}
+else
+{
+    print "non-AIX platform, this scripts should not be ran.\n";
+    exit 1;
+}
+
+exit 0;
+
+#-------------------------------------------------------------------------------
+
+=head3    getArgs
+
+	parse the command line and check the values
+
+	paras:
+	-p  :    <facility>.<priority>, the default value is "*.warn"
+	-f  :    <fifo_name>, the default value is "/var/opt/xcat_aix_syslog/syslog_fifo"
+
+=cut
+
+#-------------------------------------------------------------------------------
+sub getArgs()
+{
+    my $routine = "getArgs";
+    print "ENTERING: $routine\n" if $::DEBUG;
+
+    my @command_line = ();
+    @command_line = @ARGV;
+
+    # Checks case in GetOptions
+    $Getopt::Long::ignorecase = 0;
+
+    my ($facility_priority, $file, $runfile);
+
+    if (
+        !GetOptions(
+            'p=s' => \$facility_priority,
+            'f=s' => \$file,
+        )
+      )
+    {
+        print "LEAVING: $routine\n" if $::DEBUG;
+        exit 1;
+    }
+
+    # Set runfile mark file
+    if ($facility_priority || $file)
+    {
+        my @para = split '/', $file;
+        my $newpara = join '-', @para;
+        $runfile = "$vardir/.monaixsyslog_run" . "-$facility_priority" . "-$newpara";
+    }
+    else
+    {
+        $runfile = $default_runfile;
+    }
+
+    if (!$file)
+    {
+        $file = $default_file;
+    }
+
+    if (!$facility_priority)
+    {
+        $facility_priority = $default_pri;
+    }
+
+    return ($facility_priority, $file, $runfile);
+}
+
+#-------------------------------------------------------------------------------
+
+=head3    refreshSensorFromLogfile
+
+	read the log file line by line to refresh the Sensor
+
+    Args:
+    $file       - the log file
+    $bgnline    - the beginning line number that we should read from
+    $bgncontent - the line content related to $line
+
+    Return:
+    $i            - the line number that has been read and refreshed to Sensor.
+    $mark_content - the line content related to $i
+    $to_rfile     - the flag that indicates whether we need to read from the
+                    rotated file.
+
+=cut
+
+#-------------------------------------------------------------------------------
+sub refreshSensorFromLogfile()
+{
+    my ($file, $bgnline, $bgncontent) = @_;
+    unless (open(FILE, "<$file"))
+    {
+        # The file may be opened by syslogd.
+        exit 0;
+    }
+
+    my $i         = 0;
+    my $matchflag = 0;
+    my $to_rfile  = 0;
+    my $mark_content;
+    my $allinfo = "";
+    while (my $line = <FILE>)
+    {
+        if ($matchflag || $bgnline == 0)
+        {
+            # Start reading the file from this line and push it to the sensor
+            # and update the mark file
+            $allinfo .= $line;
+            $i            = $i + 1;
+            $mark_content = $line;
+        }
+        else
+        {
+            if ($i != $bgnline - 1)
+            {
+                $i = $i + 1;
+                next;
+            }
+
+            if ($line eq $bgncontent)
+            {
+                $matchflag = 1;
+                $i         = $i + 1;
+                next;
+            }
+            else
+            {
+                # The line number is the same, but the content is different
+                # that indicates the log file has been rotated.
+                $to_rfile = 1;
+                last;
+            }
+        }
+    }
+    if ($allinfo)
+    {
+        my $strlen = length($allinfo);
+
+        # The condition/response can not handle
+        # the long sensor String very well,
+        # use file to pass messages.
+        # file name: /var/opt/xcat_aix_syslog/tmplogmsg_$$
+        if ($strlen > $::MAX_SENSOR_STRING)
+        {
+            srand(time | $$);
+            my $filename = "$vardir/tmplogmsg_$$";
+            while (-e $filename)
+            {
+                $filename = createRandomName($filename);
+            }
+            if (open(TMPLOG, ">$filename"))
+            {
+                print TMPLOG $allinfo;
+                close TMPLOG;
+                print "XCAT_MONAIXSYSLOG_FILE:$filename";
+            }
+            else
+            {
+                #open failed, why?
+                print "OPEN_FILE_FAILED: $filename";
+            }
+        }
+        else
+        {
+            print $allinfo;
+        }
+    }
+    close(FILE);
+
+    return ($i, $mark_content, $to_rfile);
+}
+
+#-------------------------------------------------------------------------------
+
+=head3    updateRunfile
+
+	use the new marker line to update the runfile
+
+    Args:
+    $time - last mofidied time
+    $line - line number
+    $content - line content
+    $file - the run file
+
+    Return:
+    $i            - the line number that has been read and refreshed to Sensor.
+    $mark_content - the line content related to $i
+
+=cut
+
+#-------------------------------------------------------------------------------
+sub updateRunfile()
+{
+    my ($time, $line, $content, $file) = @_;
+
+    # the marker line is something like "last_modified_time:::line_number:::mark_content"
+    my $new_marker = join(":::", $time, $line, $content);
+    runcmd("echo \"$new_marker\" > $file");
+}
+
+#--------------------------------------------------------------------------------
+
+=head3    runcmd
+    Run the given cmd and return the output in an array (already chopped).  Alternatively,
+    if this function is used in a scalar context, the output is joined into a single string
+    with the newlines separating the lines.
+    Arguments:
+        command, exitcode and reference to output
+    Returns:
+        see below
+    Error:
+        Normally, if there is an error running the cmd, it will display the error msg
+        and exit with the cmds exit code, unless exitcode is given one of the
+        following values:
+             0:     display error msg, DO NOT exit on error, but set
+                $::RUNCMD_RC to the exit code.
+            -1:     DO NOT display error msg and DO NOT exit on error, but set
+                $::RUNCMD_RC to the exit code.
+            -2:    DO the default behavior (display error msg and exit with cmds
+                exit code.
+        number > 0:    Display error msg and exit with the given code
+    Example:
+        my $outref =  runcmd($cmd, -2, 1);
+    Comments:
+        If refoutput is true, then the output will be returned as a reference to
+        an array for efficiency.
+=cut
+
+#--------------------------------------------------------------------------------
+sub runcmd
+{
+    my ($cmd, $exitcode, $refoutput) = @_;
+    $::RUNCMD_RC = 0;
+    if (!($cmd =~ /2>&1$/)) { $cmd .= ' 2>&1'; }
+
+    my $outref = [];
+    @$outref = `$cmd`;
+    if ($?)
+    {
+        $::RUNCMD_RC = $? >> 8;
+        my $displayerror = 1;
+        my $rc;
+        if (defined($exitcode) && length($exitcode) && $exitcode != -2)
+        {
+            if ($exitcode > 0)
+            {
+                $rc = $exitcode;
+            }    # if not zero, exit with specified code
+            elsif ($exitcode <= 0)
+            {
+                $rc = '';    # if zero or negative, do not exit
+                if ($exitcode < 0) { $displayerror = 0; }
+            }
+        }
+        else
+        {
+            $rc = $::RUNCMD_RC;
+        }    # if exitcode not specified, use cmd exit code
+        if ($displayerror)
+        {
+            my $errmsg = '';
+            if (($^O =~ /^linux/i) && $::RUNCMD_RC == 139)
+            {
+                $errmsg = "Segmentation fault  $errmsg";
+            }
+            else
+            {
+                # The error msgs from the -api cmds are pretty messy.  Clean them up a little.
+                filterRmcApiOutput($cmd, $outref);
+                $errmsg = join('', @$outref);
+                chomp $errmsg;
+            }
+            print "Exit code $::RUNCMD_RC from command: $cmd\nError message from cmd: $errmsg\n"
+        }
+    }
+    if ($refoutput)
+    {
+        chomp(@$outref);
+        return $outref;
+    }
+    elsif (wantarray)
+    {
+        chomp(@$outref);
+        return @$outref;
+    }
+    else
+    {
+        my $line = join('', @$outref);
+        chomp $line;
+        return $line;
+    }
+}
+
+#--------------------------------------------------------------------------------
+
+=head3    filterRmcApiOutput
+    filter RMC Api Output
+    Arguments:
+        RMC command
+        Output reference
+    Returns:
+        none
+    Globals:
+        none
+    Error:
+        none
+    Example:
+          filterRmcApiOutput($cmd, $outref);
+    Comments:
+        The error msgs from the RPM -api cmds are pretty messy.
+        This routine cleans them up a little bit.
+=cut
+
+#--------------------------------------------------------------------------------
+sub filterRmcApiOutput
+{
+    my ($cmd, $outref) = @_;
+    if (!($cmd =~ m|^/usr/bin/\S+-api |)) {
+        return;
+    }    # give as much info as possible, if verbose
+
+    # Figure out the output delimiter
+    my ($d) = $cmd =~ / -D\s+(\S+)/;
+    if (length($d)) {
+        $d =~ s/^(\'|\")(.*)(\"|\')$/$2/;    # remove any surrounding quotes
+         # escape any chars perl pattern matching would intepret as special chars
+        $d =~ s/([\|\^\*\+\?\.])/\\$1/g;
+    }
+    else
+    {
+        $d = '::';
+    }    # this is the default output delimiter for the -api cmds
+    $$outref[0] =~ s/^ERROR${d}.*${d}.*${d}.*${d}.*${d}//;
+}
+
+#--------------------------------------------------------------------------------
+
+=head3  touchFile
+    Arguments: $filename, $donotExit
+    Returns: non zero return code indicates error
+    Example:  touchFile("/var/opt/xcat/touch");
+=cut
+
+#--------------------------------------------------------------------------------
+sub touchFile
+{
+    my ($filename, $donotExit) = @_;
+    my $fh;
+    my $rc = 0;
+    if (!-e $filename) {
+
+        #if the file doesn't exist we need to open and close it
+        open($fh, ">>$filename") or $rc++;
+        if ($rc > 0 && !$donotExit) {
+            print "Touch of file $filename failed with: $!\n";
+            return $rc;
+        }
+        close($fh) or $rc++;
+    }
+    else {
+        #if the file does exist we can just utime it (see the perlfunc man page entry on utime)
+        my $now = time;
+        utime($now, $now, $filename);
+    }
+    if ($rc > 0 && !$donotExit) {
+        print "Touch of file $filename failed with: $!\n";
+        return $rc;
+    }
+    return 0;
+}
+
+
+#--------------------------------------------------------------------------------
+
+=head3    createRandomName
+
+        Create a randome file name.
+
+        Arguments:
+                Prefix of name
+        Returns:
+                Prefix with 8 random letters appended
+        Error:
+                none
+        Example:
+                $file = createRandomName($namePrefix);
+        Comments:
+                None
+
+=cut
+
+#--------------------------------------------------------------------------------
+
+sub createRandomName
+{
+    my $name = shift;
+
+    my $nI;
+    for ($nI = 0 ; $nI < 8 ; $nI++)
+    {
+        my $char = ('a' .. 'z', 'A' .. 'Z')[ int(rand(52)) + 1 ];
+        $name .= $char;
+    }
+    $name;
+}
+

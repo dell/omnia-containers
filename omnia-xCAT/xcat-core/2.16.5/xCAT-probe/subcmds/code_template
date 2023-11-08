@@ -1,0 +1,238 @@
+#!/usr/bin/perl
+# IBM(c) 2016 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+#--------------------------------------------------------
+#This is a template for developing a new probe sub_command. Especially in hierarchical environment.
+#This template mainly implement the sub_comamd dispatch in hierarchical structure and basic framework of a new sub_comamd.
+#Developer only need to focus on main probe job (by implement do_main_job function) and friendly output (by implement summary_all_jobs_output function) for user.
+#This template can also be used in flat structure. but if developer think it's too heavy in flat, it's fine to develop sub command directly.
+#But in hierarchical structure, we strongly recommand using this template.
+#
+#The main dispatch policy are:
+#1. if there isn't noderange input from commmand line and  there are service nodes defined in current MN,
+#   dispatch exact same command input from STDIN to all SNs and current MN. if there isn't service nodes defined,
+#   just hanld command input from STDIN in current MN
+#2. If there is noderange input from command line by opion "-n", we will dispatch the command input from STDIN to SN which can hanle these ndoes
+#   For example, if we got command from STDIN like "probecommand -n test[1-15] -V" and test[1-5] 's SN is SN1, test[6-10]'s SN is SN2
+#   The dispatch result will be:
+#   For MN run:  probecommand -n test[11-15] -V
+#   For SN1 run: probecommand -n test[1-5] -V
+#   For SN2 run: probecommand -n test[6-10] -V
+#3. All the return message from SNs and MN will be saved in hash %summaryoutput, develper can use it when implement summary_all_jobs_output function
+#--------------------------------------------------------
+
+BEGIN { $::XCATROOT = $ENV{'XCATROOT'} ? $ENV{'XCATROOT'} : -d '/opt/xcat' ? '/opt/xcat' : '/usr'; }
+
+use lib "$::XCATROOT/probe/lib/perl";
+use probe_utils;
+use hierarchy;
+use File::Basename;
+use Data::Dumper;
+use Getopt::Long qw(:config no_ignore_case);
+
+
+my $help      = 0;    #command line attribute '-h', get usage information
+my $test      = 0;    #command line attribute '-T'
+my $hierarchy = 0;
+my $verbose   = 0;    #command line attribute '-V'
+my $noderange;        #command line attribute '-n'
+my $output = "stdout"; #used by probe_utils->send_msg("$output", "o", "xxxxxxxxxx"); print output to STDOUT
+my $is_sn  = 0;        #flag current server is SN
+my $rst    = 0;        #the exit code of current command
+my $terminal = 0;      #means get INT signal from STDIN
+
+#save all output from commands running on SNs and MN
+# one example:
+# $summaryoutput{mn} = @mn_output_history
+# $summaryoutput{SN1} = @SN1_output_history
+my %summaryoutput;
+
+my $is_sn;
+$is_sn = 1 if (-e "/etc/xCATSN");
+
+#-------------------------------------
+#            Usage
+#-------------------------------------
+# below are some options rules used by default
+#     -h : Get usage information of current sub command
+#     -V : Output more information for debug
+#     -T : To verify if $program_name can work, reserve option for probe framework, dosen't use by customer
+#     -n : In xCAT probe, -n is uesd to specify node range uniformly
+#-------------------------------------
+my $program_name = basename("$0");    #current sub_command name
+$::USAGE = "Usage:
+    $program_name -h
+    $program_name [-V]
+
+Description:
+    This is a template for developing a probe sub_command.
+    <# ADD DESCRIPTION FOR YOUR COMMAND #>
+
+Options:
+    -h : Get usage information of $program_name
+    -V : Output more information for debug
+";
+
+#------------------------------------
+# Please implement the main job of current command in do_main_job function
+# Recommand to use probe_utils->send_msg() to handle message you plan to print out to STDOUT
+# A simple example has been written in funciton.
+#------------------------------------
+sub do_main_job {
+    my $rst = 0;
+
+    probe_utils->send_msg("$output", "o", "Received node range:  $noderange");
+
+    #<#DO YOUR OWN JOB1#>
+    probe_utils->send_msg("$output", "o", "Do the first job");
+
+    #<#DO YOUR OWN JOB2#>
+    probe_utils->send_msg("$output", "f", "Do the second job");
+
+    return $rst;
+}
+
+#-------------------------------------
+# When this command return from all SNs and MN, you need to generate a summary
+# All history outpout from SNs and MN are saved in globle hash %summaryoutput.
+# $summaryoutput{mn} = @mnhistory
+# $summaryoutput{snname1} = @snname1history;
+# The entry in each histroy array isn't categorized, the message coming early is arranged before the one coming later.
+# A simple example of how to dump %summaryoutput has been written in function
+#-------------------------------------
+sub summary_all_jobs_output {
+    my $rst = 0;
+
+    #DO SUMMARY DEPENDING ON YOUR SUB_COMMAND NEED
+    probe_utils->send_msg("$output", "d", "======================do summary=====================");
+
+    #print "summaryoutput:\n";
+    #print Dumper \%summaryoutput;
+
+    foreach my $sn (keys %summaryoutput) {
+        probe_utils->send_msg("$output", "d", "[$sn]");
+        foreach my $log (@{ $summaryoutput{$sn} }) {
+            probe_utils->send_msg("$output", "d", "\t$log");
+        }
+    }
+    return $rst;
+}
+
+#-------------------------------------
+#            main process
+#-------------------------------------
+my @tmpargv = @ARGV;
+if (
+    !GetOptions("--help|h" => \$help,
+        "T"   => \$test,
+        "H"   => \$hierarchy,
+        "n=s" => \$noderange,
+        "V"   => \$verbose))
+{
+    probe_utils->send_msg("$output", "f", "Invalid parameter for $program_name");
+    probe_utils->send_msg("$output", "d", "$::USAGE");
+    exit 1;
+}
+
+if ($help) {
+    if ($output ne "stdout") {
+        probe_utils->send_msg("$output", "d", "$::USAGE");
+    } else {
+        print "$::USAGE";
+    }
+    exit 0;
+}
+
+if ($test) {
+    probe_utils->send_msg("$output", "o", "This isn't a probe tool, this is just a template for sub command coding. Use it to develop sub command which need to cover hierarchical cluster");
+    exit 0;
+}
+
+#Handle the interrupt signal from STDIN
+$SIG{TERM} = $SIG{INT} = sub {
+    $terminal = 1;
+};
+
+#if it is called by hierarchy template, just run job, not to do dispatch
+if ($hierarchy || $is_sn) {
+    $rst = do_main_job();
+    exit $rst;
+}
+
+my $hierarchy_instance = hierarchy->new();
+
+#-------starting to dispatch_cmd--------
+my @error;
+$rst = $hierarchy_instance->dispatch_cmd($noderange, \@tmpargv, \@error);
+if ($rst) {
+    probe_utils->send_msg("$output", "f", "Calculate dispatch command failed");
+    foreach (@error) {
+        probe_utils->send_msg("$output", "", "$_");
+    }
+    if ($hierarchy_instance->destory(\@error)) {
+        probe_utils->send_msg("$output", "", "$_") foreach (@error);
+    }
+    exit $rst;
+}
+
+#----------start to read reply-------
+my %reply_cache;
+while ($hierarchy_instance->read_reply(\%reply_cache)) {
+    foreach my $servers (keys %reply_cache) { #Dispatch_cmd may use SN range to dispatch cms to SNs at one time
+        my @server_array = split(",", $servers);
+        foreach my $server (@server_array) {
+            foreach (@{ $reply_cache{$servers} }) {
+                my $msg    = "";
+                my $logmsg = "";
+
+                #For cases like below:
+                #c910f02c04p04: [ok]     :All xCAT deamons are running
+                if ($reply_cache{$servers}->[$_] =~ /^(\w+)\s*:\s*(\[\w+\]\s*):\s*(.*)/) {
+                    if ("$1" eq "$server") {
+                        $logmsg = "$2: $3";
+                        $msg    = "$2:<$server>: $3";
+                    }
+
+                    #For cases like below:
+                    #c910f02c04p05: IT IS POSSIBLE THAT SOMEONE IS DOING SOMETHING NASTY!
+                } elsif ($reply_cache{$servers}->[$_] =~ /^(\w+)\s*:\s*(.*)/) {
+                    if ("$1" eq "$server") {
+                        $logmsg = "$2";
+                        $msg    = "<$server>: $2";
+                    }
+
+                    #For cases like below:
+                    #Unable to open socket connection to xcatd daemon on localhost:3001.
+                } else {
+                    if (length($reply_cache{$servers}->[$_])) {
+                        $logmsg = $reply_cache{$servers}->[$_];
+                        $msg = "[failed] :[$server]: $reply_cache{$servers}->[$_]";
+                    }
+                }
+                probe_utils->send_msg("$output", "", "$msg") if (length($msg));
+                push @{ $summaryoutput{$server} }, $logmsg if (length($logmsg));
+            }
+        }
+    }
+    if ($terminal) {
+        last;
+    }
+}
+
+#----------hierarchy_instance->destory-----------
+if ($hierarchy_instance->destory(\@error)) {
+    probe_utils->send_msg("$output", "", "$_") foreach (@error);
+}
+
+#-------------------------------------
+# summary all jobs output to display
+#-------------------------------------
+$rst = summary_all_jobs_output();
+
+exit $rst;
+
+
+
+
+
+

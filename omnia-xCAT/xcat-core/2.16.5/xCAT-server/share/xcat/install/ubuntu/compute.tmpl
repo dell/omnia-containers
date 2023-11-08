@@ -1,0 +1,150 @@
+
+### Localization
+d-i debian-installer/locale string en_US
+d-i localechooser/supported-locales multiselect en_US.UTF-8
+
+# Keyboard Selection
+d-i console-setup/ask_detect boolean false
+d-i keyboard-configuration/layoutcode string en
+
+
+
+# Use the following settings if you wish to make use of the network-console
+# component for remote installation over SSH. This only makes sense if you
+# intend to perform the remainder of the installation manually.
+#UNCOMMENTOENABLESSH#  d-i anna/choose_modules string network-console
+#d-i network-console/authorized_keys_url string http://10.0.0.1/openssh-key
+#UNCOMMENTOENABLESSH# d-i network-console/password password cluster
+#UNCOMMENTOENABLESSH# d-i network-console/password-again password cluster
+
+
+
+### Network Configuration
+
+d-i netcfg/get_hostname string unassigned-hostname
+d-i netcfg/get_domain string unassigned-domain
+d-i netcfg/wireless_wep string
+d-i netcfg/dhcp_timeout string 120
+### Mirror settings
+# If you select ftp, the mirror/country string does not need to be set.
+
+#MIRRORSPEC#
+
+# Suite to install.
+#d-i mirror/suite string testing
+# Suite to use for loading installer components (optional).
+#d-i mirror/udeb/suite string testing
+
+
+# Use the following option to add additional boot parameters for the
+# installed system (if supported by the bootloader installer).
+# Note: options passed to the installer will be added automatically.
+d-i debian-installer/add-kernel-opts string #XCATVAR:PERSKCMDLINE#
+
+### Partitioning
+# This creates a small /boot partition, suitable
+# swap, and uses the rest of the space for the root partition:
+
+d-i partman-auto/method string regular
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-md/device_remove_md boolean true
+
+#create the /tmp/partitionfile based on the uefi or legacy bios
+d-i partman/early_command string \
+{ \
+#INCLUDE_GET_INSTALL_DISK_SCRIPT#  \
+    debconf-set partman-auto/disk "$(cat /tmp/xcat.install_disk)"; \
+} >>/tmp/pre-install.log 2>&1
+d-i partman-auto/expert_recipe_file string /tmp/partitionfile
+
+# This makes partman automatically partition without confirmation, provided
+# that you told it what to do using one of the methods above.
+
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+#XCA_PARTMAN_ADDITIONAL_CFG#
+
+### Account setup
+
+d-i passwd/root-login boolean true
+d-i passwd/make-user boolean false
+
+d-i passwd/root-password-crypted password #CRYPT:passwd:key=system,username=root:password#
+
+### Clock and time zone setup
+
+d-i clock-setup/ntp boolean true
+d-i clock-setup/ntp-server string #TABLE:site:key=master:value#
+d-i clock-setup/utc boolean true
+d-i time/zone string #TABLE:site:key=timezone:value#
+
+### Apt setup
+
+d-i apt-setup/multiverse boolean false
+d-i apt-setup/universe boolean false
+d-i apt-setup/backports boolean false
+d-i apt-setup/updates boolean false
+
+
+### Boot loader installation
+
+d-i grub-installer/only_debian boolean true
+
+### Package selection
+
+tasksel tasksel/first multiselect standard
+
+# gawk required for the xCAT scripts to work
+# Otherwise it installs mawk, which doesn't work
+
+d-i pkgsel/include string #INCLUDE_DEFAULT_PKGLIST_PRESEED#
+
+d-i debian-installer/allow_unauthenticated boolean true
+d-i pkgsel/update-policy select none
+d-i pkgsel/updatedb boolean false
+
+### Finishing up the installation
+d-i finish-install/reboot_in_progress note
+
+### X configuration
+xserver-xorg xserver-xorg/autodetect_monitor boolean true
+
+xserver-xorg xserver-xorg/config/monitor/selection-method \
+  select medium
+
+xserver-xorg xserver-xorg/config/monitor/mode-list \
+  select 1024x768 @ 60 Hz
+
+
+# To workaround the "Unmount partitions that are in use?" question,
+# run the "umount /media" after the preseed is read in
+d-i preseed/early_command string \
+     { \
+     echo "Running preseeding early_command Installation script..."; \
+     wget http://`cat /tmp/xcatserver`#COLONHTTPPORT#/install/autoinst/#HOSTNAME#.pre; \
+     chmod u+x #HOSTNAME#.pre; \
+     ./#HOSTNAME#.pre; \
+     umount /media || true; \
+     } >>/tmp/pre-install.log 2>&1
+
+d-i preseed/late_command string \
+     mkdir -p /target/var/log/xcat/; \
+     { \
+     cat /tmp/pre-install.log >> /target/var/log/xcat/xcat.log; \
+     echo "Running preseeding late_command Installation script..."; \
+     wget http://`cat /tmp/xcatserver`#COLONHTTPPORT#/install/autoinst/#HOSTNAME#.post; \
+     chmod u+x #HOSTNAME#.post; \
+     cp ./#HOSTNAME#.post /target/root/post.script; \
+     mount -o bind /proc /target/proc -t proc; \
+     mount -o bind /dev /target/dev; \
+     mount -o bind /dev/pts /target/dev/pts -t devpts; \
+     mount -o bind /sys /target/sys; \
+     chroot /target /root/post.script; \
+     if [ -f /target/etc/network/interfaces ]; then \
+       cp /target/etc/network/interfaces /etc/network/interfaces; \
+     fi; \
+     } >>/target/var/log/xcat/xcat.log 2>&1
+

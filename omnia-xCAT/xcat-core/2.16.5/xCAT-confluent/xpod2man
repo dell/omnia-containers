@@ -1,0 +1,142 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+# First builds the xCAT summary man page from Synopsis of each man page.
+# Then converts all of the pod man pages into html (including links to each other)
+
+# We assume that this script is run in the xCAT-vlan-2.0 dir, so everything is
+# done relative to that.
+
+use strict;
+
+use Pod::Man;
+use Pod::Html;
+
+my $poddir   = 'pods';
+my $mandir   = 'share/man';
+my $htmldir  = 'share/doc';
+my $cachedir = '/tmp';
+
+my @pods = getPodList($poddir);
+
+print "Converting PODs to man pages...\n";
+foreach my $podfile (@pods) {
+    my $manfile = $podfile;
+    $manfile =~ s/^$poddir/$mandir/;    # change the beginning of the path
+    $manfile =~ s/\.pod$//;             # change the ending
+    my $mdir = $manfile;
+    $mdir =~ s|/[^/]*$||;               # get rid of the basename part
+    if (system("mkdir -p $mdir")) { die "Error: could not create $mdir.\n"; }
+    my ($section) = $podfile =~ /\.(\d+)\.pod$/;
+    convertpod2man($podfile, $manfile, $section);
+}
+
+my @dummyPods = createDummyPods($poddir, \@pods);
+
+print "Converting PODs to HTML pages...\n";
+
+# have to clear the cache, because old entries can cause a problem
+unlink("$cachedir/pod2htmd.tmp", "$cachedir/pod2htmi.tmp");
+foreach my $podfile (@pods) {
+    my $htmlfile = $podfile;
+    $htmlfile =~ s/^$poddir/$htmldir/;    # change the beginning of the path
+    $htmlfile =~ s/\.pod$/\.html/;        # change the ending
+    my $hdir = $htmlfile;
+    $hdir =~ s|/[^/]*$||;                 # get rid of the basename part
+    if (system("mkdir -p $hdir")) { die "Error: could not create $hdir.\n"; }
+
+    convertpod2html($podfile, $htmlfile, $poddir, $htmldir);
+}
+
+# Remove the dummy pods
+unlink @dummyPods;
+rmdir "$poddir/man7";
+
+exit;
+
+
+# To enable linking between the cmd man pages and the db man pages, need to:
+#	grep thru the cmd pods searching for references (L<>) to any section 5 man page
+#	if that pod does not exist, create an empty one that will satisfy pod2html
+#	keep track of all dummy pods created, so they can be removed later
+sub createDummyPods {
+    my ($poddir, $pods) = @_;
+    my $cmd = "grep -r -E 'L<.+\\([57]\\)\\|.+\\.[57]>' " . $poddir;
+
+    my @lines = `$cmd`;
+    if ($?) { print "Did not find any section 5 man page, creating dummy pods...\n"; print join('', @lines); }
+
+    my @dummyPods;
+    foreach my $l (@lines) {
+
+        my @matches = $l =~ /L<([^\(]+)\(([57])\)\|\1\.[57]>/g; # get all the matches in the line
+          # The above line should create the array with every other entry being the man page name
+          # and every other entry is the section # (5 or 7)
+        my $cmd;
+        while ($cmd = shift @matches) {
+
+            my $section  = shift @matches;
+            my $filename = "$poddir/man$section/$cmd.$section.pod";
+
+            if (!(grep /^$filename$/, @$pods) && !(grep /^$filename$/, @dummyPods)) { push @dummyPods, $filename; }
+        }
+    }
+
+
+    # Create these empty files
+    print "Creating empty linked-to files: ", join(', ', @dummyPods), "\n";
+    mkdir "$poddir/man7";
+    foreach my $d (@dummyPods) {
+        if (!open(TMP, ">>$d")) { warn "Could not create dummy pod file $d ($!)\n"; }
+        else                    { close TMP; }
+    }
+
+    return @dummyPods;
+}
+
+# Recursively get the list of pod man page files.
+sub getPodList {
+    my $poddir = shift;
+    my @files;
+
+    # 1st get toplevel dir listing
+    opendir(DIR, $poddir) or die "Error: could not read $poddir.\n";
+    my @topdir = grep !/^\./, readdir(DIR);    # /
+    close(DIR);
+
+    # Now go thru each subdir (these are man1, man3, etc.)
+    foreach my $mandir (@topdir) {
+        opendir(DIR, "$poddir/$mandir") or die "Error: could not read $poddir/$mandir.\n";
+        my @dir = grep !/^\./, readdir(DIR);    # /
+        close(DIR);
+        foreach my $file (@dir) {
+            push @files, "$poddir/$mandir/$file";
+        }
+    }
+    return sort @files;
+}
+
+# Create the html page for one pod.
+sub convertpod2html {
+    my ($podfile, $htmlfile, $poddir, $htmldir) = @_;
+
+    #TODO: use --css=<stylesheet> and --title=<pagetitle> to make the pages look better
+    pod2html($podfile,
+        "--outfile=$htmlfile",
+        "--podpath=man1",
+        "--podroot=$poddir",
+        "--htmldir=$htmldir",
+        "--recurse",
+        "--cachedir=$cachedir",
+    );
+
+}
+
+
+# Create the man page for one pod.
+sub convertpod2man {
+    my ($podfile, $manfile, $section) = @_;
+
+    my $parser = Pod::Man->new(section => $section);
+    $parser->parse_from_file($podfile, $manfile);
+}
