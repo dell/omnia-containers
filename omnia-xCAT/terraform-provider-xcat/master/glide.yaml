@@ -1,0 +1,18 @@
+package: .
+import:
+- package: github.com/hashicorp/terraform
+  version: v0.12.0-rc1
+  subpackages:
+  - helper/resource
+  - helper/schema
+  - helper/validation
+  - plugin
+  - terraform
+- package: github.com/tidwall/gjson
+  version: v1.2.1
+- package: github.com/xcat2/terraform-provider-xcat
+  subpackages:
+  - xcat
+ignore:
+- github.com/xcat2/terraform-provider-xcat
+flatten: true
