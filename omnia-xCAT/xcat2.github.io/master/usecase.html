@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="GCD" content="YTk3ODQ3ZWZhN2I4NzZmMzBkNTEwYjJla2e24c1eb1704104e42a76dcd13809a5">
+    <meta charset="utf-8">
+
+    <title>xCAT Use Cases</title>
+    <meta name="generator" content="Google Web Designer 5.0.1.1129">
+    <meta name="template" content="Expandable 3.0.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="webcontent/assets/title.ico" type="image/x-icon">
+    <link rel="stylesheet" href="webcontent/css/default.css" type="text/css">
+    <style type="text/css">
+html,
+    body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    }
+
+    .gwd-page-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    }
+
+    .container {
+    padding-left: 60px;
+    padding-right: 60px;
+    height: auto;
+    padding-bottom: 100px;
+    }
+
+    #back {
+    display: block;
+    left: 0px;
+    right: 0px;
+    position: absolute;
+    width: 100%;
+    top: 98px;
+    height: 60px;
+    transform-origin: 678.469px 35.5245px 0px;
+    -webkit-transform-origin: 678.469px 35.5245px 0px;
+    -moz-transform-origin: 678.469px 35.5245px 0px;
+    }
+
+    @media only screen and (max-width: 680px) {
+    #back {
+        height: 50px;
+    }
+
+    .container {
+        padding-left: 20px;
+        padding-right: 20px;
+        height: auto;
+        padding-bottom: 30px;
+    }
+    }
+
+    #head_navigator {
+    color: white;
+    padding-right: 50px;
+    padding-left: 0;
+    }
+    </style>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-135454449-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-135454449-1');
+</script>
+</head>
+
+<body>
+    <iframe src="head.html" style="display:block;" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no" width="100%" height="180px" position="absolute" bottom="0px"></iframe>
+
+    <div id="head_navigator"><img id="back" border="0" src="webcontent/assets/image_34.jpg" title="background"></div>
+
+    <div class="container">
+        <h2><a name="hpc">High Performance Computing (HPC)</a></h2>
+        <hr>
+        <br>
+
+        <p>xCAT is used to manage the servers in Summit and Sierra, two supercomputers taking the #1 and #2 spots on the Nov 2018 Top 500.</p>
+
+        <h4>Extreme scalable with hierarchy architecture</h4>
+
+        <p>To manage and provision thousands of bare-metal servers in supercomputing data center, a scalable architecture is mandatory. xCAT supports <a href="https://xcat-docs.readthedocs.io/en/stable/advanced/hierarchy/index.html">hierarchy architecture</a> with multiple Service nodes, Compute nodes are partitioned and managed by those Service Nodes.</p>
+
+        <h4>Simple and fast provisioning with diskless mode</h4>In most of HPC sites, Compute Nodes are expected to be stateless. xCAT supports <a href="https://xcat-docs.readthedocs.io/en/stable/guides/admin-guides/manage_clusters/ppc64le/diskless/index.html?highlight=diskless#">diskless installation</a>, which enables the great simplicity and flexibility in managing both the software stack ( Including out-of-box Nvidia CUDA and Mellonox OFED ) on Compute Nodes and its deployment lifecycle.
+
+        <h4>End-2-end infrastructure discovery</h4>The hierarchy topology is complicated and takes administrator too much effort to deploy on Day-0. xCAT supports rich set of <a href="https://xcat-docs.readthedocs.io/en/stable/guides/admin-guides/manage_clusters/ppc64le/discovery/index.html">discovery</a> capabilities and <a href="https://xcat-docs.readthedocs.io/en/stable/advanced/networks/onie_switches/index.html">ONIE</a> switch provisioning, it simplifies the process by iterating over the following steps: connect, describe, then discover.
+
+        <h4>Zero-touch failed server replacement</h4>Inevitably, there will be some failed servers detected. It is a simple task in xCAT to replace the fault servers. Just replace the failed server with the new one and power it on. After that, xCAT will take care of the node provisioning and information refreshing for you.<br>
+        <br>
+        <br>
+
+        <h2><a name="ai">High Performance Deep Learning (AI)</a></h2>
+        <hr>
+
+        <p>Deep Learning requires lots of computational resources to process analytics on large amounts of data, xCAT could be used to manage and deploy the Deep Learning environment.</p>
+
+        <h4>Manage Deep Learning Elements</h4>The cognitive computing environment requires to deploy servers with GPU and install deep learning frameworks and libraries. It is a burden for data scientist to manage such an environment as there are lots of dependent pieces from different sources, like RPM, Conda and Python, etc. xCAT can help you to mirror and configure those repositories for all of the dependent pieces, plus the NVIDIA hardware drivers, CUDA (parallel computing platform API) Toolkit, and NCCL (Collective Communications Library). After that, you could have an offline central repository serving for the whole deep learning cluster. In addition, integrated with <a href="https://developer.ibm.com/linuxonpower/deep-learning-powerai/">PowerAI</a>, xCAT could support the enterprise grade deep learning solution based on IBM® Power Systems™ servers.
+
+        <h4>Simple deployment of deep learning environment</h4>With the powerful bare-metal provisioning and flexible <a href="https://xcat-docs.readthedocs.io/en/stable/guides/admin-guides/manage_clusters/ppc64le/diskful/index.html">diskful osimage</a> definition, xCAT lets you deploy the deep learning clusters in minutes. Everything is automated, spend your time in developing instead of deploying. With <a href="https://xcat-docs.readthedocs.io/en/stable/advanced/xcat-inventory/index.html">xcat-inventory</a>, you can source control your environments into Git repository. And it is possible for you to take risks and try new things in the testing and agile development without worrying about the recovery.
+
+        <h4>Scalability</h4>Although deep learning environment is not so large today, a single management node is enough. But xCAT still lets you scale it beyond a single server, and quickly scale to a whole cluster.<br>
+        <br>
+        <br>
+
+        <h2><a name="cloud">HPC Development Cloud</a></h2>
+        <hr>
+
+        <p>Besides HPC cluster used for production, many HPC customers are still requiring a development environment on-premise for testing and agile developing. Virtualization environment is often used for such case as setting up a bare-metal cluster takes considerable time and effort.</p><br>
+
+        <h4>Deployment of Virtualization infrastructure</h4>xCAT supports deployment of different kinds of <a href="https://xcat-docs.readthedocs.io/en/stable/guides/admin-guides/manage_clusters/ppc64le/virtual_machines/index.html?highlight=virtualization">virtualization</a> infrastructures: Redhat RHV(KVM), IBM PowerKVM and Vmware ESXi. You can easily deploy those hypervisors on bare metal servers, and create virtual machine instances with xCAT. In addition, you can provision those virtual machines in the same way as xCAT provisions physical machines.
+
+        <h4>On-demand Elastic Scaling</h4>xCAT supports re-purposing of unused HPC servers into virtualization environment with fast re-provisioning, and move it back again when HPC workloads require on schedule. This improves the resource utilization and offers the underlying infrastructure software defined capability.
+
+        <h4>RESTful API</h4>And xCAT supports <a href="https://xcat-docs.readthedocs.io/en/stable/advanced/restapi/index.html">RESTful APIs</a>, to help with development of your own self-service portal.
+    </div><iframe src="footer.html" style="display:block;" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no" width="100%" height="240px" position="absolute" padding-bottom="0px"></iframe>
+</body>
+</html>

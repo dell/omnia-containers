@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# This script is intended to run on c910 login node.
+# It uses ssh to execute cleanup script on xcat.org
+
+SCRIPT=$(readlink -f $0)
+TARGET_DIR=/home/xcat
+TARGET=xcat@xcat.org
+
+LOGFILE=cleanup_status.out
+
+function LOGIT { 
+    DATE=`date -R`
+    echo -e "${DATE} ==> $@" >> ${LOGFILE}
+}
+
+
+# Create a new status file here, every thing else will append
+echo "----------------------- xcat.org snapshot cleanup -----------------------" > ${LOGFILE}
+
+CLEANUP_SCRIPT="$(dirname ${SCRIPT})/cleanup_snapshot_files.py"
+if [[ ! -x ${CLEANUP_SCRIPT} ]]; then
+    echo "Cound not find the ${CLEANUP_SCRIPT}, cannot continue!"
+    exit 1
+fi
+
+scp ${CLEANUP_SCRIPT} ${TARGET}:${TARGET_DIR}
+
+LOGIT "Executing snapshot cleanup..."
+ssh ${TARGET} ${TARGET_DIR}/cleanup_snapshot_files.py >> ${LOGFILE}
+
+cat ${LOGFILE}
+
+# Send out mail
+SUBJECT="==> xcat.org bi-weekly snapshot cleanup status"
+RETURN="root@`hostname -s`"
+RECIPIENT="vhu@us.ibm.com,cxhong@us.ibm.com,gurevich@us.ibm.com,besawn@us.ibm.com"
+
+mailx -s "$SUBJECT" -r ${RETURN} ${RECIPIENT} < ${LOGFILE}

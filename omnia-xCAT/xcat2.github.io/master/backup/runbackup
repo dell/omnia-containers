@@ -1,0 +1,49 @@
+#!/bin/sh
+
+TARGET=xcat@xcat.org
+
+BACKUP_DIRECTORY="/xcat/build/xcat.org_backup"
+
+LOGFILE=${BACKUP_DIRECTORY}/status.out
+
+SAVE_DIRECTORIES="./*.html ./files ./*.py ./webcontent"
+
+DATE=`date +%Y%m%d`
+FILENAME="${DATE}-xcat.org-backup.tar.gz"
+
+TARGET_TOPDIR=/var/www/xcat.org
+
+function LOGIT { 
+    DATE=`date -R`
+    echo -e "${DATE} ==> $@" >> ${LOGFILE}
+}
+
+
+if [[ -d ${BACKUP_DIRECTORY} ]]; then
+    # Create a new status file here, every thing else will append
+    echo "----------------------- xcat.org backup -----------------------" > ${LOGFILE}
+
+    LOGIT "Displaying existing backups:" 
+    LOGIT "======================================================="
+    ls -ltrh ${BACKUP_DIRECTORY}/*.tar.gz >>  ${LOGFILE} 2>&1
+    LOGIT "======================================================="
+
+    LOGIT "Executing backup..."
+    ssh ${TARGET} "cd ${TARGET_TOPDIR} && tar cvzf - ${SAVE_DIRECTORIES}" > ${BACKUP_DIRECTORY}/${FILENAME}
+
+    LOGIT "Dispaying backups, including the new one:\n"
+    LOGIT "======================================================="
+    ls -ltrh ${BACKUP_DIRECTORY}/*.tar.gz >> ${LOGFILE}
+    LOGIT "======================================================="
+else 
+    echo "ERROR! DIRECTORY FOR BACKUP DOES NOT EXIST: ${BACKUP_DIRECTORY}"
+    exit 1
+fi 
+
+cat ${BACKUP_DIRECTORY}/status.out
+# Send out mail
+SUBJECT="==> xcat.org backup status"
+RETURN="root@`hostname -s`"
+RECIPIENT="wpeter@us.ibm.com,gurevich@us.ibm.com,besawn@us.ibm.com"
+
+mailx -s "$SUBJECT" -r ${RETURN} ${RECIPIENT} < ${LOGFILE}

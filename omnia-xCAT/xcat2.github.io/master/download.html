@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="GCD" content="YTk3ODQ3ZWZhN2I4NzZmMzBkNTEwYjJla2e24c1eb1704104e42a76dcd13809a5">
+    <meta charset="utf-8">
+
+    <title>Download xCAT [2.16.5 - Stable Release]</title>
+    <meta name="generator" content="Google Web Designer 5.0.1.1129">
+    <meta name="template" content="Expandable 3.0.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="webcontent/assets/title.ico" type="image/x-icon">
+    <link href="webcontent/css/gwdpage_style.css" rel="stylesheet" data-version="12" data-exports-type="gwd-page" type="text/css">
+    <link href="webcontent/css/gwdpagedeck_style.css" rel="stylesheet" data-version="11" data-exports-type="gwd-pagedeck" type="text/css">
+    <link href="webcontent/css/gwdimage_style.css" rel="stylesheet" data-version="12" data-exports-type="gwd-image" type="text/css">
+    <link rel="stylesheet" href="webcontent/css/default.css" type="text/css">
+    <style type="text/css" id="gwd-lightbox-style">
+.gwd-lightbox {
+    overflow: hidden;
+    }
+    </style>
+    <style type="text/css" id="gwd-text-style">
+p {
+    margin: 0px;
+    }
+
+    h1 {
+    margin: 0px;
+    }
+
+    h2 {
+    margin: 0px;
+    }
+
+    h3 {
+    margin: 0px;
+    }
+    </style>
+    <style type="text/css">
+html,
+    body {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    }
+
+    .gwd-page-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    }
+
+    .container {
+    padding-left: 60px;
+    padding-right: 60px;
+    height: auto;
+    padding-bottom: 20px;
+    }
+
+    #back {
+    display: block;
+    left: 0px;
+    right: 0px;
+    position: absolute;
+    width: 100%;
+    top: 98px;
+    height: 60px;
+    transform-origin: 678.469px 35.5245px 0px;
+    -webkit-transform-origin: 678.469px 35.5245px 0px;
+    -moz-transform-origin: 678.469px 35.5245px 0px;
+    }
+
+    @media only screen and (max-width: 680px) {
+    #back {
+        height: 50px;
+    }
+
+    .container {
+        padding-left: 20px;
+        padding-right: 20px;
+        height: auto;
+        padding-bottom: 10px;
+    }
+    }
+
+    #head_navigator {
+    color: white;
+    padding-right: 50px;
+    padding-left: 0;
+    }
+    </style>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-135454449-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-135454449-1');
+</script>
+</head>
+
+<body>
+    <iframe src="head.html" style="display:block;" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no" width="100%" height="180px" position="absolute" bottom="0px"></iframe>
+
+    <div id="head_navigator"><img id="back" border="0" src="webcontent/assets/image_34.jpg" title="background"></div>
+
+    <div class="container">
+        <div class="download_main">
+            <h2>Installing with go-xcat (recommended)</h2>
+            <br>
+            On the target xCAT Management Node, run the following commands to install the latest stable version of xCAT:<br>
+            <br>
+
+            <div id="code_box">
+                <pre class="codetext">
+wget https://raw.githubusercontent.com/xcat2/xcat-core/master/xCAT-server/share/xcat/tools/go-xcat -O - &gt;/tmp/go-xcat
+chmod +x /tmp/go-xcat
+/tmp/go-xcat install
+</pre>
+            </div>
+            <br>
+          
+            <h5>Note: Starting on January 1, 2020, some newly shipped systems will require the default BMC password to be changed before they can be managed by xCAT. Use "bmcdiscover" command with "-n" option to specify new BMC password.</h5> 
+            <br><br>
+            <h2>Manual download and install of xCAT</h2>
+            <br>
+            <b><a href="#xcat-core">xCAT Core Packages (xcat-core)</a></b> is the main package containing the xCAT software.
+            <br><br>
+            <b><a href="#xcat-dep">xCAT Dependency Packages (xcat-dep)</a></b> is a package that is provided as a convenience for the user and contains dependency packages required by xCAT that are not provided by the operating system.
+            <br>
+
+            <br>
+            <p>There are 2 ways provided for downloading and installing xCAT.</p>
+
+            <ol>
+                <li>Download the <tt>tar.bz2</tt> packages for both <tt>xcat-core</tt> and <tt>xcat-dep</tt> from this download page.</li>
+                <li>Configure publicly hosted online repositories for both <tt>xcat-core</tt> and <tt>xcat-dep</tt> on your target machine.</li>
+            </ol>
+
+            <p>Then follow installation steps for <a href=https://xcat-docs.readthedocs.io/en/stable/guides/install-guides/yum/manual_install.html>Red Hat Enterprise Linux</a> or <a href=https://xcat-docs.readthedocs.io/en/stable/guides/install-guides/zypper/manual_install.html>SUSE Linux Enterprise Server</a> or <a href=https://xcat-docs.readthedocs.io/en/stable/guides/install-guides/apt/manual_install.html>Ubuntu Server LTS</a>
+
+        </div><br>
+        <br>
+
+        <hr>
+        <hr>
+        <div class="download_section">
+            <h2><a name="xcat-core">xCAT Core Packages (xcat-core)</a></h2>
+            <p> Choose either "Stable" or "Development" version
+            </p>
+            <div class="download_files">
+                <hr>
+
+                <h3><a name="release_builds">GA Release Build (Stable)</a></h3>
+
+                <h4>Linux - RPM Packages [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-core/2.16.x_Linux/xcat-core/xcat-core-2.16.5-linux.tar.bz2">xcat-core-2.16.5-linux.tar.bz2</a></li>
+
+                    <li>Public Online Repository: 
+                        <a href="https://xcat.org/files/xcat/repos/yum/latest/xcat-core/xcat-core.repo">xcat-core.repo</a></li>
+                </ul>
+
+                <h4>Linux - Debian Packages (Ubuntu) [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-core/2.16.x_Ubuntu/xcat-core/xcat-core-2.16.5-ubuntu.tar.bz2" rel="nofollow">xcat-core-2.16.5-ubuntu.tar.bz2</a></li>
+
+                    <li>Public Online Repository:<br>
+                        &nbsp; <i>For x86_64 servers:</i>
+
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=amd64] https://xcat.org/files/xcat/repos/apt/latest/xcat-core trusty main</pre>
+                        </div>
+
+                        &nbsp; <i>For ppc64el servers:</i>
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=ppc64el] https://xcat.org/files/xcat/repos/apt/latest/xcat-core trusty main</p>
+                        </div>
+                    </li>
+                </ul>
+                <hr>
+
+                <h3><a name="development_builds">Development Builds (Daily Snapshot)</a></h3>
+
+                <h4 class="linux-rpm-packages">Linux - RPM Packages [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-core/devel/Linux/core-snap/core-rpms-snap.tar.bz2">core-rpms-snap.tar.bz2</a></li>
+
+                    <li>Public Online Development Repository: 
+                        <a href="https://xcat.org/files/xcat/repos/yum/devel/core-snap/xcat-core.repo">xcat-core.repo</a></li>
+                </ul>
+
+                <h4>Linux - Debian Packages (Ubuntu) [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-core/devel/Ubuntu/core-snap/core-debs-snap.tar.bz2" rel="nofollow">core-debs-snap.tar.bz2</a></li>
+
+                    <li>Public Online Development Repository:<br>
+                        &nbsp; <i>For x86_64 servers:</i>
+
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=amd64] https://xcat.org/files/xcat/repos/apt/devel/core-snap trusty main</p>
+                        </div>
+
+                        &nbsp; <i>For ppc64el servers:</i>
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=ppc64el] https://xcat.org/files/xcat/repos/apt/devel/core-snap trusty main</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div><br>
+        <br>
+
+        <hr>
+        <hr>
+        <div class="download_section">
+            <h2><a name="xcat-dep">xCAT Dependency Packages (xcat-dep)</a></h2>
+            <p> Choose either "Stable" or "Development" version, should match the version selected for <tt>xcat-core</tt>
+            </p>
+
+            <div class="download_files">
+                <hr>
+                <h3><a name="release_builds">GA Release Build (Stable)</a></h3>
+                <h4>Linux - RPM [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Linux/?C=M;O=D">xcat-dep</a>. 
+                        Choose <tt>tar.bz2</tt> file that matches the version number of <tt>xcat-core</tt> package.</li>
+
+                    <li>Online Repository: 
+                        <a href="https://xcat.org/files/xcat/repos/yum/xcat-dep">xcat-dep online repo</a>. 
+                        Select the <b>os/arch</b> of your management node and configure yum/zypper with the provided <tt>xcat-dep.repo</tt> file found in that directory.</li>
+                </ul>
+
+                <h4>Linux - Debian (Ubuntu) [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download:
+                        <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Ubuntu/?C=M;O=D">xcat-dep</a>. 
+                        Choose the <tt>tar.bz2</tt> file that matches the version number of <tt>xcat-core</tt> package.</li>
+
+                    <li>Online Repository:<br>
+                        &nbsp; <i>For x86_64 servers:</i>
+
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=amd64] https://xcat.org/files/xcat/repos/apt/xcat-dep trusty main</pre>
+                        </div>
+
+                        &nbsp; <i>For ppc64el servers:</i>
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=ppc64el] https://xcat.org/files/xcat/repos/apt/xcat-dep trusty main</pre>
+                        </div>
+                    </li>
+                </ul>
+                <hr>
+                <h3><a name="development_builds">Development Builds (Snapshot)</a></h3>
+                <h4>Linux - RPM [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download: 
+                        <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Linux/?C=M;O=D">xcat-dep</a>. 
+                        Choose the file with the latest snapshot date.</li>
+
+                    <li>Online Repository: 
+                        <a href="https://xcat.org/files/xcat/repos/yum/devel/xcat-dep">xcat-dep online repo</a>. 
+                        Select the <b>os/arch</b> of your management node and configure yum/zypper with the provided <tt>xcat-dep.repo</tt> file found in that directory.</li>
+                </ul>
+
+                <h4>Linux - Debian (Ubuntu) [Select one of the choices below]</h4>
+
+                <ul>
+                    <li>Download:
+                        <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Ubuntu/?C=M;O=D">xcat-dep</a>. 
+                        Choose the file with the latest snapshot date.</li>
+
+                    <li>Online Repository:<br>
+                        &nbsp; <i>For x86_64 servers:</i>
+
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=amd64] https://xcat.org/files/xcat/repos/apt/devel/xcat-dep trusty main</pre>
+                        </div>
+
+                        &nbsp; <i>For ppc64el servers:</i>
+                        <div id="code_box">
+                            <pre class="codetext">&nbsp; deb [arch=ppc64el] https://xcat.org/files/xcat/repos/apt/devel/xcat-dep trusty main</pre>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div><br>
+        <br>
+        <br>
+    </div><iframe src="footer.html" style="display:block;" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no" width="100%" height="240px" position="absolute" padding-bottom="0px"></iframe>
+</body>
+</html>
