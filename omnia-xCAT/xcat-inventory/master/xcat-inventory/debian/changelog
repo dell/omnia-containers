@@ -1,0 +1,9 @@
+xcat-inventory (2.13.9-snap201801112217) UNRELEASED; urgency=medium
+
+ -- root <root@byrh02>  Thu, 11 Jan 2018 22:17:21 -0500
+
+xcat-inventory (2.9.13-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- root <root@unknown>  Wed, 12 Mar 2014 01:47:54 -0700

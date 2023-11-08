@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# IBM(c) 2018 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+# Common script to make any one the xcat rpms.  To build locally, run in the top dir of local svn repository, for example:
+#   ./makepythonrpm xcat-inventory
+
+function makepythoncli {
+    RPMNAME="$1"
+    SPEC_FILE="xcat-inventory.spec"
+    VERINFO=${VERSION}' (git commit '${GITCOMMIT}')'
+    mkdir -p $RPMROOT/SOURCES/
+    tar --exclude .svn -czvf $RPMROOT/SOURCES/$RPMNAME-${VERSION}.tar.gz $RPMNAME
+    rm -f $RPMROOT/SRPMS/$RPMNAME-$VER*rpm $RPMROOT/RPMS/noarch/$RPMNAME-$VERSION*rpm
+    echo "Building $RPMROOT/RPMS/noarch/$RPMNAME-$VERSION*.noarch.rpm $EMBEDTXT..."
+    rpmbuild -v -v -v -ta $RPMROOT/SOURCES/$RPMNAME-${VERSION}.tar.gz --define "version $VERSION" --define "release $RELEASE" --define "gitcommit $GITCOMMIT"
+    if [ $? -eq 0 ]; then
+        ls $RPMROOT/RPMS/noarch/$RPMNAME-$VERSION*.noarch.rpm
+        exit 0
+    else  
+        exit 1
+    fi
+}	
+	
+# Main code....
+
+if [ -z "$1" ]; then
+    echo 'Usage: makepythonrpm xcat-inventory'
+    exit 1
+fi
+
+RELEASE=1%{?dist}
+VERSION=`git describe --long --tags|cut -d- -f 1 | tail -c +2`
+NUMCOMMITS=`git describe --long --tags|cut -d- -f 2`
+if [ "$NUMCOMMITS" != "$VERSION"  ]; then
+    VERSION=$VERSION
+fi
+echo $VERSION > Version
+
+OSNAME=$(uname)
+GITCOMMIT=$(git rev-parse HEAD)
+RPMROOT=~/rpmbuild
+
+rpmbuild --version > /dev/null
+if [ $? -gt 0 ]; then
+   echo "Error: rpmbuild does not appear to be installed or working."
+   exit 2
+fi
+
+if [ "$1" = "xcat-inventory" ]; then
+        makepythoncli $1
+fi
+

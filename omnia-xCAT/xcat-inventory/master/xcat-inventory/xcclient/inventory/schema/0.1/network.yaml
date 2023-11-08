@@ -1,0 +1,32 @@
+!!python/dict  
+  network:
+    basic_attr:
+      net: 
+      - "T{networks.net}"
+      - "C:${{value=V{basic_attr.net}: vutil.isIPaddr(value)}}"
+      mask: 
+      - "T{networks.mask}"
+      - "C:${{value=V{basic_attr.mask}: vutil.isIPaddr(value)}}"
+      mgtifname: "T{networks.mgtifname}"
+      gateway: 
+      - "T{networks.gateway}"
+      mtu: "T{networks.mtu}"
+      domain: "T{networks.domain}"
+      vlanid: "T{networks.vlanid}"
+    pool:
+      dynamicrange: 
+      - "T{networks.dynamicrange}"
+      - "C:${{ value=V{pool.dynamicrange}: True if str(value) in [''] or vutil.isIPaddr(value) or vutil.isIPrange(value) else False}}"
+      staticrange: 
+      - "T{networks.staticrange}"
+      - "C:${{ value=V{pool.staticrange}: True if str(value) in [''] or vutil.isIPrange(value) or vutil.isIPaddr(value) else False}}"
+      staticrangeincrement: "T{networks.staticrangeincrement}"
+      nodehostname: "T{networks.nodehostname}"
+      ddnsdomain: "T{networks.ddnsdomain}"
+    service:
+      dhcpserver: "T{networks.dhcpserver}"
+      tftpserver: "T{networks.tftpserver}"
+      ntpservers: "T{networks.ntpservers}"
+      logservers: "T{networks.logservers}"
+      nameservers: "T{networks.nameservers}"
+    usercomment: "T{networks.comments}"

@@ -1,0 +1,142 @@
+#
+# Description: This template supplies a simple flat cluster example. 
+#              User can modify it based on his own xCAT management node and compute nodes.
+#              After modification, user can use xcat-inventory to import it to setup a baisic cluster.
+#                        
+
+#global settings
+site:
+  clustersite:
+    #CHANGEME
+    domain: cluster.com
+    #CHANGEME
+    forwarders: 10.5.106.2
+    #CHANGEME
+    nameservers: 192.168.1.5
+    #CHANGEME
+    master: 192.168.1.5
+
+#network definition
+network:
+  #provision network
+  provision_network:
+    basic_attr:
+      gateway: <xcatmaster>
+      #CHANGEME 
+      mask: 255.255.0.0
+      #CHANGEME
+      net: 192.168.0.0
+    service:
+      tftpserver: <xcatmaster>
+
+
+passwd:
+#OS password on compute nodes
+  system:
+    #CHANGEME
+    password: changeme
+    username: root
+
+#compute nodes
+node:
+  #openbmc controlled Power LE servers, such as IBM Power system AC922
+  node1:
+    device_info:
+      arch: ppc64le
+    device_type: server
+    engines:
+      console_engine:
+        engine_type: openbmc
+      hardware_mgt_engine:
+        engine_info:
+          #CHANGEME 
+          bmc: 50.10.2.16
+          #CHANGEME
+          bmcpassword: 0penBmc
+          #CHANGEME
+          bmcusername: root
+        engine_type: openbmc
+      netboot_engine:
+        engine_type: petitboot
+    network_info:
+      primarynic:
+        #CHANGEME 
+        ip: 192.168.1.16
+        #CHANGEME
+        mac:
+        - 70:e2:84:14:30:c0
+    obj_info:
+      groups: all
+    obj_type: node
+    role: compute
+
+  ## IPMI controlled Power LE servers, such as IBM Power S822LC 
+  #node2:
+  #  device_info:
+  #    arch: ppc64le
+  #  device_type: server
+  #  engines:
+  #    console_engine:
+  #      engine_info:
+  #        serialport: '0'
+  #        serialspeed: '115200'
+  #      engine_type: ipmi
+  #    hardware_mgt_engine:
+  #      engine_info:
+  #        #CHANGEME 
+  #        bmc: 50.10.2.16
+  #        #CHANGEME
+  #        bmcpassword: admin
+  #        #CHANGEME
+  #        bmcusername: ADMIN
+  #      engine_type: ipmi
+  #    netboot_engine:
+  #      engine_type: petitboot
+  #  network_info:
+  #    primarynic:
+  #      #CHANGEME 
+  #      ip: 192.168.1.16
+  #      #CHANGEME
+  #      mac:
+  #      - 98:be:94:59:ea:27
+  #  obj_info:
+  #    groups: all
+  #  obj_type: node
+  #  role: compute
+  #
+
+  ##X86_64 servers, such as Lenovo X3650 node, dx360M5
+  #node3:
+  #  device_info:
+  #    arch: x86_64
+  #  device_type: server
+  #  engines:
+  #    console_engine:
+  #      engine_info:
+  #        serialport: '0'
+  #        serialspeed: '115200'
+  #      engine_type: ipmi
+  #    hardware_mgt_engine:
+  #      engine_info:
+  #        #CHANGEME
+  #        bmc: 50.10.2.16
+  #        #CHANGEME
+  #        bmcpassword: PASSW0RD
+  #        #CHANGEME
+  #        bmcusername: USERID
+  #      engine_type: ipmi
+  #    netboot_engine:
+  #      engine_type: xnba
+  #    power_mgt_engine:
+  #      engine_type: ipmi
+  #  network_info:
+  #    primarynic:
+  #      #CHANGEME
+  #      ip: 192.168.1.16
+  #      #CHANGEME
+  #      mac:
+  #      - 34:40:b5:be:77:50
+  #  obj_info:
+  #    groups: all
+  #  obj_type: node
+  #  role: compute

@@ -1,0 +1,14 @@
+#!/usr/bin/python2
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+# -*- coding: utf-8 -*-
+#
+
+import sys
+
+if '/opt/xcat/lib/python' not in sys.path:
+    sys.path.insert(1, '/opt/xcat/lib/python')
+
+from xcclient.inventory.shell import main
+
+if __name__ == "__main__":
+    sys.exit(main())

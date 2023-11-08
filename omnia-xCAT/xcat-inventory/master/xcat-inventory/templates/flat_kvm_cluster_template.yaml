@@ -1,0 +1,109 @@
+#
+# Description: This template supplies a simple flat kvm cluster example.
+#              User can modify it based on his own xCAT management node and compute nodes.
+#              After modification, user can use xcat-inventory to import it to setup a baisic kvm cluster.
+#
+
+#global configuration
+site:
+  clustersite:
+    #CHANGEME 
+    domain: cluster.com
+    #CHANGEME
+    forwarders: 10.5.106.2
+    #CHANGEME
+    nameservers: 192.168.1.5
+    #CHANGEME
+    master: 192.168.1.5
+
+#network definition
+network:
+  #provision network
+  provision_network:
+    basic_attr:
+      gateway: <xcatmaster>
+      #CHANGEME
+      mask: 255.255.0.0
+      #CHANGEME
+      net: 192.168.0.0
+    service:
+      tftpserver: <xcatmaster>
+
+passwd:
+  #OS password on compute nodes
+  system:
+    #CHANGEME
+    password: changeme
+    username: root
+
+#compute nodes
+node:
+  #Power KVM node
+  vmcn1:
+    device_info:
+      arch: ppc64le
+    device_type: server
+    engines:
+      console_engine:
+        engine_info:
+          serialflow: hard
+          serialport: '0'
+          serialspeed: '115200'
+        engine_type: kvm
+      hardware_mgt_engine:
+        engine_info:
+          vmcpus: '2'
+          #make sure vmhost(hypervisor) can be accessed via ssh without password
+          #CHANGEME
+          vmhost: 192.168.1.18
+          vmmemory: '8192'
+          #the bridge name on hypervisor
+          #CHANGEME
+          vmnics: br0
+          vmstorage: dir:///var/lib/libvirt/images/
+        engine_type: kvm
+      netboot_engine:
+        engine_type: grub2
+    network_info:
+      primarynic:
+        #CHANGEME
+        ip: 192.168.1.25
+    obj_info:
+      groups: all
+    obj_type: node
+    role: compute 
+
+  ##x86_64 KVM node
+  #vmcn2:
+  #  device_info:
+  #    arch: x86_64
+  #  device_type: server
+  #  engines:
+  #    console_engine:
+  #      engine_info:
+  #        serialflow: hard
+  #        serialport: '0'
+  #        serialspeed: '115200'
+  #      engine_type: kvm
+  #    hardware_mgt_engine:
+  #      engine_info:
+  #        vmcpus: '4'
+  #        #make sure xcat management node can access the hypervisor without password
+  #        #CHANGEME 
+  #        vmhost: 192.168.1.18
+  #        vmmemory: '8192'
+  #        # brige name on vmhost(hypervisor)
+  #        #CHANGEME
+  #        vmnics: br0
+  #        vmstorage: dir:///var/lib/libvirt/images/
+  #      engine_type: kvm
+  #    netboot_engine:
+  #      engine_type: xnba
+  #  network_info:
+  #    primarynic:
+  #      #CHANGEME
+  #      ip: 192.168.1.25
+  #  obj_info:
+  #    groups: all
+  #  obj_type: node
+  #  role: compute

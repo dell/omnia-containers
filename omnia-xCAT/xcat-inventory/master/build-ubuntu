@@ -1,0 +1,120 @@
+#!/bin/bash
+#
+# Author: Yuan Bai (bybai@cn.ibm.com)
+#
+#
+printusage()
+{
+    printf "Usage: %s -c \n" $(basename $0) >&2
+    echo "    -c : Build the xcat-inventory deb package"
+}
+# For the purpose of getting the distribution name
+if [[ ! -f /etc/lsb-release ]]; then
+    echo "ERROR: Could not find /etc/lsb-release, is this script executed on a Ubuntu machine?"
+    exit 1
+fi
+. /etc/lsb-release
+# Check the necessary packages before starting the build
+declare -a packages=( "reprepro" "devscripts" "debhelper" "quilt" )
+
+for package in ${packages[@]}; do
+    RC=`dpkg -l | grep $package >> /dev/null 2>&1; echo $?`
+    if [[ ${RC} != 0 ]]; then
+        echo "ERROR: Could not find $package, install using 'apt-get install $package' to continue"
+        exit 1
+    fi
+done
+
+# Supported distributions
+dists="saucy trusty utopic xenial"
+c_flag=$1
+
+if [ -z "$c_flag" ];then
+    printusage
+    exit 2
+fi
+
+if [ "$c_flag" != "-c" ];then
+    printusage
+    exit 2
+fi
+
+# Find where this script is located to set some build variables
+old_pwd=`pwd`
+cd `dirname $0`
+curdir=`pwd`
+export HOME=/root
+
+WGET_CMD="wget"
+if [ ! -z ${LOG} ]; then
+    WGET_CMD="wget -o ${LOG}"
+fi
+
+VERSION=$(git describe --long --tags|cut -d- -f 1 | tail -c +2)
+NUMCOMMITS=$(git describe --long --tags|cut -d- -f 2)
+if [ "$NUMCOMMITS" != "$VERSION"  ]; then
+    VERSION=$VERSION
+fi
+echo $VERSION > Version
+
+if [ "$c_flag" ]
+then
+    if [ -z "$REL" ]; then
+        t=${curdir%/src/xcat-core}
+        REL=`basename $t`
+    fi
+
+    if [ "$PROMOTE" != 1 ]; then
+
+        build_machine=`hostname`
+        commit_id_long=`git rev-parse HEAD`
+
+        echo "###################################"
+        echo "# Building xcat-inventory package #"
+        echo "###################################"
+
+        #the build introduce string
+        build_string="xcat-inventory Build"
+        pkg_version="${VERSION}-c${NUMCOMMITS}"
+        VERINFO="${VERSION} (git commit $commit_id_long)"
+        echo "VERINFO $VERINFO"
+        packages="xcat-inventory"
+        cp -f $curdir/xcat-inventory/xcclient/inventory/shell.py /tmp/
+        sed -i s/\#VERSION_SUBSTITUTE\#/"$VERINFO"/g $curdir/xcat-inventory/xcclient/inventory/shell.py
+        target_archs=(all)
+        for file in $packages
+        do
+            file_low=`echo $file | tr '[A-Z]' '[a-z]'`
+            target_archs="all"
+            for target_arch in $target_archs
+            do
+                cd $file
+                CURDIR=$(pwd)
+                dch -v $pkg_version -b -c debian/changelog $build_string
+                if [ "$target_arch" = "all" ]; then
+                    CURDIR=$(pwd)
+                    dpkg-buildpackage -rfakeroot -uc -us
+                    dh_testdir
+                    dh_testroot
+                    dh_clean -d
+                fi
+                rc=$?
+                if [ $rc -gt 0 ]; then
+                    echo "Error: $file build package failed exit code $rc"
+                    exit $rc
+                fi
+                rm -f debian/files
+                sed -i -e "s/* Build//g" debian/changelog
+                cd -
+                rm -f ${file_low}_*.tar.gz
+                rm -f ${file_low}_*.changes
+                rm -f ${file_low}_*.dsc
+            done
+        done
+        if [ -f /tmp/shell.py ]; then
+            cp -f /tmp/shell.py $curdir/xcat-inventory/xcclient/inventory/shell.py
+            rm -f /tmp/shell.py
+        fi
+    fi
+
+fi

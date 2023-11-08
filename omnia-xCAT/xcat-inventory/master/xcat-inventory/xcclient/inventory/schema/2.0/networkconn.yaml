@@ -1,0 +1,6 @@
+!!python/dict
+  networkconn:
+    switch: "T{switch.switch}"
+    switchport: "T{switch.port}"
+    vlan: "T{switch.vlan}"
+    interface: "T{switch.interface}"
