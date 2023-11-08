@@ -1,0 +1,33 @@
+.codetext {
+    font-family: "Courier New", Monospace;
+    font-size: 10pt;
+    font-weight: 700;
+}
+
+.download_section {
+    padding-left: 25px;
+}
+
+.download_files {
+    padding-left: 50px;
+}
+
+.download_files hr {
+    margin-right: 25px;
+}
+
+.download_main {
+    width: 100%;
+}
+
+.download_main div {
+    padding-left: 25px;
+    padding-right: 25px;
+}
+
+.new {
+    background-color: #ffcc00;
+    box-shadow: 1px 2px 3px #cccccc;
+    padding: 2px;
+    border-radius: 5px;
+}

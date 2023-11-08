@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>Download xCAT [2.14.5 - Stable Release]</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<link rel="stylesheet" href="css/default.css">
+<link rel="stylesheet" href="css/download.css">
+</head>
+<body>
+<div id="navigator">
+<a href="/"><img id="logo" src="images/xcat-logo.png" alt="xCAT Logo" title="xCAT Logo"></a>
+<p>
+<a href="/files/">Download</a> |
+<a href="http://xcat-docs.readthedocs.io">Documentation</a> |
+<a href="https://sourceforge.net/p/xcat/mailman/">Mailling List</a> |
+<a href="https://github.com/xcat2/xcat-core/issues">Issues</a> |
+<a href="https://github.com/xcat2/xcat-core">GitHub</a> |
+<a href="http://webchat.freenode.net/?channels=xcat">IRC</a>
+</p>
+</div>
+<div class="container">
+    <div class="download_main">
+
+    <h2>Installing with go-xcat <sup class="new">New!</sup> </h2>
+
+    To easily install xCAT and handle the dependency package, a new script <b>go-xcat</b> is provided.
+    <br>
+    <br>On the target xCAT Management Node, run the following commands to install the latest version of xCAT:
+    <pre class="codetext">
+       wget https://raw.githubusercontent.com/xcat2/xcat-core/master/xCAT-server/share/xcat/tools/go-xcat -O - &gt;/tmp/go-xcat
+       chmod +x /tmp/go-xcat
+       /tmp/go-xcat
+    </pre>
+
+    <h2>Download xCAT</h2>
+
+    <p>There are a number of options provided for installing xCAT.</p>
+    <ol>
+        <li> Download the tar.bz2 packages provided on this download page</li>
+        <li> Configure the public hosted online repositories from your target machine</li>
+        <li> Clone the xcat-core project and compile from source (still requires xcat-dep)</li>
+    </ol>
+
+    <p>Regardless of the option that is chosen to install xCAT, <b>BOTH</b> <tt>xcat-core</tt> and <tt>xcat-dep</tt> are needed before starting the install.</p>
+
+    <b><a href="#xcat-core">xCAT Core Packages (xcat-core)</a></b> is the main package containing the xCAT software.  The following builds are available:
+    <ul>
+        <li><a href="#release_builds">Release Builds (Stable)</a> - latest generally available (GA) build for xCAT </li>
+        <li><a href="#snapshot_builds">Snapshot Builds</a> - snapshot build of the latest GA version of xCAT which may contain fixes but has not GAed yet </li>
+        <li><a href="#development_builds">Development Builds</a> - snapshot builds of the next version of xCAT </li>
+        <li><a href="https://sourceforge.net/p/xcat/wiki/XCAT_Developer_Guide/#building-xcat-core-from-xcat-core-git-repository">Build the xcat-core tarball from source</a> - xCAT 2.10 and later supports building the xcat-core tarball from the cloned repository.</li>
+    </ul>
+
+    <b><a href="#xcat-dep">xCAT Dependency Packages (xcat-dep)</a></b> is a tar package that is provided as a convenience for the user and contains dependency packages required by xCAT that are not provided by the operating system. 
+
+    </div>
+    <br><br>
+
+    <div class="download_section">
+        <h2><a name="xcat-core">xCAT Core Packages (xcat-core)</a></h2>
+            <div class="download_files">
+                <p><i><b>Looking for older releases of xCAT? </b>Go to the <a href="https://www.xcat.org/files/">File Manager</a> and navigate to the desired directory.</i>
+                <hr>
+
+                <h3><a name="release_builds">Release Builds (Stable) - xCAT 2.14.5</a></h3>
+                <p> This is the latest official released version of xCAT that has been fully tested. </p>
+                
+                <h4>Linux - RPM Packages</h4>
+                <ul>
+                    <li>Download <a href="https://xcat.org/files/xcat/xcat-core/2.14.x_Linux/xcat-core/xcat-core-2.14.5-linux.tar.bz2">xcat-core-2.14.5-linux.tar.bz2</a></li>
+                    <li>Linux Online Repository: <a href="https://xcat.org/files/xcat/repos/yum/2.14/xcat-core/xcat-core.repo">xcat-core.repo</a></li>
+                    <li>Latest Repository (This repo points to the latest stable build of xCAT):
+                        <a href="https://xcat.org/files/xcat/repos/yum/latest/xcat-core/xcat-core.repo">xcat-core.repo</a>
+                    </li>
+                </ul>   
+
+                <h4>Linux - Debian Packages (Ubuntu)</h4>
+                <ul>
+                    <li>Download: <a href="https://xcat.org/files/xcat/xcat-core/2.14.x_Ubuntu/xcat-core/xcat-core-2.14.5-ubuntu.tar.bz2" rel="nofollow">xcat-core-2.14.5-ubuntu.tar.bz2</a></li>
+                    <li>
+                        Ubuntu Online Repository: <br>
+                            &nbsp; <i>For x86_64 servers: </i>
+                            <p class="codetext">
+                            &nbsp; deb [arch=amd64] <a href="https://xcat.org/files/xcat/repos/apt/2.14/xcat-core/">https://xcat.org/files/xcat/repos/apt/2.14/xcat-core</a> trusty main</p>
+                            &nbsp; <i>For ppc64el servers: </i>
+                            <p class="codetext">
+                            &nbsp; deb [arch=ppc64el] <a href="https://xcat.org/files/xcat/repos/apt/2.14/xcat-core/">https://xcat.org/files/xcat/repos/apt/2.14/xcat-core</a> trusty main</p>
+                    </li>
+                    <li>
+                        Latest Repository (This repo points to the latest stable build of xCAT):<br>
+                        &nbsp; <i>For x86_64 servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=amd64] <a href="https://xcat.org/files/xcat/repos/apt/latest/xcat-core/">https://xcat.org/files/xcat/repos/apt/latest/xcat-core</a> trusty main</p>
+                        &nbsp; <i>For ppc64el servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=ppc64el] <a href="https://xcat.org/files/xcat/repos/apt/latest/xcat-core/">https://xcat.org/files/xcat/repos/apt/latest/xcat-core</a> trusty main</p>
+                    </li>
+                </ul>   
+                <hr>
+
+                <h3><a name="snapshot_builds">Snapshot Builds</a></h3>
+                <p> These are snapshot builds for the current release, which will be released in the next xCAT refresh of the currently released version </p>
+                        
+                <h4>Linux - RPM Packages</h4>
+                <ul>
+                    <li>Download <a href="https://xcat.org/files/xcat/xcat-core/2.14.x_Linux/core-snap/core-rpms-snap.tar.bz2">core-rpms-snap.tar.bz2</a></li>
+                    <li>Linux Online Repository: <a href="https://xcat.org/files/xcat/repos/yum/2.14/core-snap/xcat-core.repo">xcat-core.repo</a></li>
+                </ul>   
+
+                <h4>Linux - Debian Packages (Ubuntu)</h4>
+                <ul>
+                    <li>Download: <a href="https://xcat.org/files/xcat/xcat-core/2.14.x_Ubuntu/core-snap/core-debs-snap.tar.bz2" rel="nofollow">core-debs-snap.tar.bz2</a></li>
+                    <li>    
+                        Ubuntu Online Repository:<br> 
+                        &nbsp; <i>For x86_64 servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=amd64] <a href="https://xcat.org/files/xcat/repos/apt/2.14/core-snap">https://xcat.org/files/xcat/repos/apt/2.14/core-snap</a> trusty main</p>
+                        &nbsp; <i>For ppc64el servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=ppc64el] <a href="https://xcat.org/files/xcat/repos/apt/2.14/core-snap">https://xcat.org/files/xcat/repos/apt/2.14/core-snap</a> trusty main</p>
+                    </li>
+                </ul>   
+                <hr>
+
+                <h3><a name="development_builds">Development Builds - xCAT 2.14.6</a></h3>
+                <p> This is the latest development build we are working on for the next xCAT release </p>
+                        
+                <h4 class="linux-rpm-packages">Linux - RPM Packages</h4>
+                <ul>
+                    <li>Download <a href="https://xcat.org/files/xcat/xcat-core/devel/Linux/core-snap/core-rpms-snap.tar.bz2">core-rpms-snap.tar.bz2</a></li>
+                    <li>Linux Online Repository: <a href="https://xcat.org/files/xcat/repos/yum/devel/core-snap/xcat-core.repo">xcat-core.repo</a></li>
+                </ul>   
+
+                <h4>Linux - Debian Packages (Ubuntu)</h4>
+                <ul>
+                    <li>Download: <a href="https://xcat.org/files/xcat/xcat-core/devel/Ubuntu/core-snap/core-debs-snap.tar.bz2" rel="nofollow">core-debs-snap.tar.bz2</a></li>
+                    <li>    
+                        Ubuntu Online Repository: <br>
+                        &nbsp; <i>For x86_64 servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=amd64] <a href="https://xcat.org/files/xcat/repos/apt/devel/core-snap/">https://xcat.org/files/xcat/repos/apt/devel/core-snap</a> trusty main</p>
+                        &nbsp; <i>For ppc64el servers: </i>
+                        <p class="codetext">
+                        &nbsp; deb [arch=ppc64el] <a href="https://xcat.org/files/xcat/repos/apt/devel/core-snap/">https://xcat.org/files/xcat/repos/apt/devel/core-snap</a> trusty main</p>
+                    </li>
+                </ul>   
+                <hr>
+            </div>
+        </div>
+    <br><br>
+
+    <div class="download_section">
+        <h2><a name="xcat-dep">xCAT Dependency Packages (xcat-dep)</a></h2>
+
+        <div class="download_files">
+            <h4>Linux - RPM</h4>
+            <ul>
+                <li> Download: <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Linux/?C=M;O=D">xcat-dep</a> From the xcat-dep, it's recommended to choose the latest snap date.</li>
+                <li> Linux Online Repository: <a href="https://xcat.org/files/xcat/repos/yum/xcat-dep">xcat-dep online repo</a>.  From the online repo, select the <b>os/arch</b> of your management node and configure yum/zypper with the provided xcat-dep.repo file in that directory.</li>
+            </ul>
+            <h4> Linux - Debian (Ubuntu) </h4>
+            <ul> 
+                <li> Download: <a href="https://xcat.org/files/xcat/xcat-dep/2.x_Ubuntu/?C=M;O=D">xcat-dep</a> Choose the latest snap date </li>
+                <li> 
+                    Ubuntu Online Repository: <br>
+                    &nbsp; <i>For x86_64 servers: </i>
+                    <p class="codetext">
+                    &nbsp; deb [arch=amd64] <a href="https://xcat.org/files/xcat/repos/apt/xcat-dep/">https://xcat.org/files/xcat/repos/apt/xcat-dep</a> trusty main</p>
+                    &nbsp; <i>For ppc64el servers: </i>
+                    <p class="codetext">
+                    &nbsp; deb [arch=ppc64el] <a href="https://xcat.org/files/xcat/repos/apt/xcat-dep/">https://xcat.org/files/xcat/repos/apt/xcat-dep</a> trusty main</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <br><br><br>
+</div>
+</html>

@@ -1,0 +1,64 @@
+#!/bin/sh
+
+SCRIPT=$(readlink -f $0)
+TARGET_DIR=/home/xcat
+TARGET=xcat@xcat.org
+
+D2=$(dirname ${SCRIPT})
+D3=$(dirname ${D2})
+D4=$(dirname ${D3})
+BACKUP_DIRECTORY="${D4}/xcat.org_backup"
+
+LOGFILE=${BACKUP_DIRECTORY}/status.out
+
+function LOGIT { 
+    DATE=`date -R`
+    echo -e "${DATE} ==> $@" >> ${LOGFILE}
+}
+
+
+if [[ -d ${BACKUP_DIRECTORY} ]]; then
+    # Create a new status file here, every thing else will append
+    echo "----------------------- xcat.org backup -----------------------" > ${LOGFILE}
+
+    LOGIT "Displaying existing backups:" 
+    LOGIT "======================================================="
+    ls -ltrh ${BACKUP_DIRECTORY}/*.tar.gz >>  ${LOGFILE} 2>&1
+    LOGIT "======================================================="
+
+    BACKUP_SCRIPT="$(dirname ${SCRIPT})/backup_xcat.org.sh"
+    if [[ ! -x ${BACKUP_SCRIPT} ]]; then
+        echo "Cound not find the ${BACKUP_SCRIPT}, cannot continue!"
+        exit 1
+    fi
+
+    scp ${BACKUP_SCRIPT} ${TARGET}:${TARGET_DIR}
+
+    LOGIT "Executing backup..."
+    ssh ${TARGET} ${TARGET_DIR}/backup_xcat.org.sh
+
+    LOGIT "Copying backup file to ${BACKUP_DIRECTORY}"
+    scp ${TARGET}:${TARGET_DIR}/*xcat.org-backup.tar.gz ${BACKUP_DIRECTORY}
+
+    LOGIT "Cleaning up xcat.org..."
+    ssh ${TARGET} rm ${TARGET_DIR}/*xcat.org-backup.tar.gz 
+
+    LOGIT "NEW BACKUP FILES\n"
+    LOGIT "======================================================="
+    ls -ltrh ${BACKUP_DIRECTORY}/*.tar.gz >> ${LOGFILE}
+    LOGIT "======================================================="
+else 
+    echo "ERROR! DIRECTORY FOR BACKUP DOES NOT EXIST: ${BACKUP_DIRECTORY}"
+    exit 1
+fi 
+
+
+cat ${BACKUP_DIRECTORY}/status.out
+
+
+# Send out mail
+SUBJECT="==> xcat.org bi-weekly backup status"
+RETURN="root@c910f02c07p02"
+RECIPIENT="vhu@us.ibm.com,wxp@cn.ibm.com"
+
+mailx -s "$SUBJECT" -r ${RETURN} ${RECIPIENT} < ${LOGFILE}
