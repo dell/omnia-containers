@@ -1,0 +1,636 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+
+#
+
+#-----------------------------------------------------------------------------
+
+=head1   servicenode
+
+ On AIX and Linux :
+ This updates the service node with files necessary to access the
+ database on the MasterNode and restarts the xcat daemon
+ If uses multiple environment variables setup  by postage.pm from
+ the site table.
+ For Linux:
+   It calls xcatserver and xcatclient script to get the ssh keys, ssl
+   redentials and cfgloc file and transfer from the MN to the SN
+   to be able to access the
+   database,  setup ssh keys on the nodes and have daemon to daemon
+   commmunication between the SN and MN and have the SN access the DB.
+ For AIX:
+   The same function in xcatserver and xcatclient is in this script for
+   AIX and thus it does not call xcatserver and xcatclient.
+   We get the ssh keys, ssl
+   credentials and cfgloc file for the SN to be able to access the
+   database,  setup ssh keys on the nodes and have daemon to daemon
+   commmunication between the SN and MN and have the SN access the DB.
+
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+BEGIN
+{
+    $::XCATROOT = $ENV{'XCATROOT'} ? $ENV{'XCATROOT'} : '/opt/xcat';
+}
+
+# if AIX - make sure we include perl 5.8.2 in INC path.
+#       Needed to find perl dependencies shipped in deps tarball.
+if ($^O =~ /^aix/i) {
+    unshift(@INC, qw(/usr/opt/perl5/lib/5.8.2/aix-thread-multi /usr/opt/perl5/lib/5.8.2 /usr/opt/perl5/lib/site_perl/5.8.2/aix-thread-multi /usr/opt/perl5/lib/site_perl/5.8.2));
+}
+
+use lib "$::XCATROOT/lib/perl";
+use strict;
+
+# MAIN
+use IO::Socket;
+
+my $useSocketSSL = eval { require IO::Socket::SSL; };
+if ($useSocketSSL) {
+    require IO::Socket::SSL;
+}
+
+# MAIN
+
+my $rc  = 0;
+my $msg = "";
+
+$::osname = `uname`;
+chomp $::osname;
+
+my $log_label=$ENV{'LOGLABEL'};
+if (!$log_label) {
+    $log_label="xcat"
+}
+$::sdate = `/bin/date`;
+chomp $::sdate;
+
+$::hname = `hostname`;
+chomp $::hname;
+
+my $installdir = $ENV{'INSTALLDIR'};
+if (!$installdir) {
+    $installdir = "/install";
+}
+chomp $installdir;
+$installdir =~ s/^(\'|\")(.*)(\"|\')$/$2/;    # remove any surrounding quotes
+
+# update security certificates keys for service node
+# This section is used for the updatenode -k function, which sets the
+# UPDATESECURITY env variable
+if ($ENV{UPDATESECURITY} && $ENV{UPDATESECURITY} eq "1") {
+    $::servnode = $ENV{'MASTER'};
+
+    # only run for service node
+    if (!-f "/etc/xCATSN") {
+        exit 0;
+    }
+
+    # copy the postscripts to /install/postscripts, if not mounted
+    require xCAT::Utils;
+    my $mounted = xCAT::Utils->isMounted($installdir);
+    if ($mounted == 0) {    # not mounted
+        if (&runcmd("mkdir -p $installdir/postscripts; cp -p -R /xcatpost/* $installdir/postscripts > /dev/null 2>&1") != 0) {
+            $msg = "servicenode: Could not copy postscripts to $installdir/postscripts.\n";
+            `logger -t $log_label -p local4.warning $msg`;
+        }
+    }
+
+    # copy the certificates
+    &copycerts;
+    if ($::osname eq 'AIX') {
+
+        # get the xCAT credentials from the server
+        &getcreds;
+    } else {    # Linux
+         # call xcatserver,xcatclient to transfer the SSL credentials and cfgloc
+        `logger -t $log_label -p local4.info servicenode: running 'xcatserver -d'`;
+        &runcmd("xcatserver -d");
+        `logger -t $log_label -p local4.info servicenode: running 'xcatclient -d'`;
+        &runcmd("xcatclient -d");
+    }
+
+    exit 0;
+}
+
+
+
+if ($::osname eq 'AIX')
+{
+    # AIX service node setup
+    $rc = &setupAIXsn;
+    if ($rc != 0) {
+        my $msg = "servicenode: One or more errors occurred when attempting to configure node $::hname as an xCAT service node.\n";
+
+        #		print "$msg\n";
+        `logger -t $log_label -p local4.warning $msg`;
+    }
+}
+else
+{
+    # Linux setup
+    #  remove OpenIPMI-tools
+    #  install xcat from /install/xcat
+    #  Copy Certificates, and config file to apprpriate directories
+    #  from /install and restart xcat
+    &runcmd("rpm -e OpenIPMI-tools");
+
+    &copycerts;
+
+    `logger -t $log_label -p local4.info servicenode: running 'xcatserver -d'`;
+    &runcmd("xcatserver -d");
+    `logger -t $log_label -p local4.info servicenode: running 'xcatclient -d'`;
+    &runcmd("xcatclient -d");
+    # start xcat if it is not up when stateless or statelite
+    if ($ENV{NODESETSTATE} && ($ENV{NODESETSTATE} eq "netboot" || $ENV{NODESETSTATE} eq "statelite")) {
+        $rc = &runcmd("$::XCATROOT/bin/lsxcatd -v 2>/dev/null || service xcatd restart");
+        if ($rc != 0) {
+            $msg = " servicenode: Could not start xcat.\n\n $::outref \n";
+            `logger -t $log_label -p local4.warning "$msg"`;
+        }
+    }
+}
+
+exit $rc;
+
+#
+# Subroutines
+#
+
+# run the command
+sub runcmd
+{
+    my ($cmd) = @_;
+    my $rc = 0;
+
+    $cmd .= ' 2>&1';
+
+    # my $outref = [];
+    # @$outref = `$cmd`;
+
+    $::outref = [];
+    $::outref = `$cmd`;
+    if ($?)
+    {
+        $rc = $? >> 8;
+        if ($rc > 0)
+        {
+            my $msg = "servicenode: $cmd returned rc=$rc \n";
+            `logger -t $log_label -p local4.info  $msg`;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+# do AIX service node setup
+sub setupAIXsn
+{
+    my $error = 0;
+
+    # get the name of my service node/NIM master from the MASTER env var
+    $::servnode = $ENV{'MASTER'};
+
+    # makes it a service node
+    if (&runcmd("touch /etc/xCATSN") != 0) {
+        $msg = "servicenode: Could not touch /etc/xCATSN\n";
+        `logger -t $log_label -p local4.warning $msg`;
+    }
+
+    # copy the postscripts to /install/postscripts
+    if (&runcmd("mkdir -p $installdir/postscripts; cp -p -R /xcatpost/* $installdir/postscripts > /dev/null 2>&1") != 0) {
+        $msg = "servicenode: Could not copy postscripts to $installdir/postscripts.\n";
+        `logger -t $log_label -p local4.warning $msg`;
+    }
+
+    # check if /install/postscripts is in /etc/exports
+    if (&runcmd("/bin/cat /etc/exports 2>/dev/null | grep '$installdir/postscripts ' >/dev/null 2>&1") != 0) {
+
+        # if not add it and make sure it is exported
+        my $res;
+        if ($ENV{'USENFSV4ONAIX'} && ($ENV{'USENFSV4ONAIX'} =~ /1|Yes|yes|YES|Y|y/))
+        {
+            $res = &runcmd("echo '$installdir/postscripts -vers=3:4,ro' >> /etc/exports; exportfs -a");
+        }
+        else
+        {
+            $res = &runcmd("echo '$installdir/postscripts -ro' >> /etc/exports; exportfs -a");
+        }
+        if ($res != 0)
+        {
+            $msg = "servicenode: Could not update the /etc/exports file.\n";
+            `logger -t $log_label -p local4.warning  $msg`;
+        }
+    }
+
+    # make sure we don't have xCATMN file
+    if (-f "/etc/xCATMN") {
+        if (&runcmd("rm  /etc/xCATMN") != 0) {
+            $msg = "servicenode: Could not remove /etc/xCATMN\n";
+            `logger -t $log_label -p local4.warning $msg`;
+        }
+    }
+
+    # call copycerts
+    &copycerts;
+
+    # get the xCAT credentials from the server
+    &getcreds;
+
+    # Add the xcatd subsystem to the AIX
+    my $mkssys_cmd = "mkssys -p $::XCATROOT/sbin/xcatd -s xcatd -u 0 -S -n 15 -f 15 -a '-f' ";
+
+    if (&runcmd($mkssys_cmd) != 0) {
+        $msg = "servicenode: Could not create subsystem for xcatd. It maybe already have been added.\n";
+        `logger -t $log_label -p local4.warning $msg`;
+    }
+
+    # start xcatd
+    if (&runcmd("$::XCATROOT/sbin/restartxcatd") != 0) {
+        $msg = "servicenode: Could not start xcat.\n\n $::outref \n";
+        `logger -t $log_label -p local4.warning  $msg`;
+    }
+
+    # add xcatd to /etc/inittab???
+    my $mkitab_cmd = qq~/usr/sbin/mkitab "xcatd:2:once:$::XCATROOT/sbin/restartxcatd > /dev/console 2>&1"~;
+
+    if (&runcmd($mkitab_cmd) != 0) {
+
+        # error might just mean that the entry is already there!
+
+        #	$msg = "$::sdate servicenode: Could not add xcatd to /etc/inittab.\n";
+        #    `logger -t $log_label $msg`;
+    }
+
+    # set ulimit - so we can copy over large files - like spot
+    if (&runcmd("/usr/bin/chuser fsize=-1 root") != 0) {
+        $msg = "servicenode: Could not change ulimit\n";
+        `logger -t $log_label -p local4.warning $msg`;
+    }
+
+    # stop inetd, make sure bootp & tftp are in /etc/inetd.conf and restart
+    if (&runcmd("stopsrc -s inetd") != 0) {
+        $msg = "servicenode: Could not stop inetd.\n";
+        `logger -t $log_label -p local4.warning  $msg`;
+    }
+
+    my $tmp_inetd_file = "/etc/inetd.conf.tmp";
+    unless (open(TMPINETD, ">>$tmp_inetd_file")) {
+        $msg = "servicenode: Could not open $tmp_inetd_file.\n";
+        `logger -t $log_label  -p local4.warning  $msg`;
+    }
+
+    my $inetd_file_name = "/etc/inetd.conf";
+    unless (open(INETDFILE, "<$inetd_file_name")) {
+        $msg = "servicenode: Could not open $inetd_file_name.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    while (my $l = <INETDFILE>) {
+        chomp $l;
+        if (($l =~ /bootps/) || ($l =~ /tftp/)) {
+            $l =~ s/^\s*#/$1/;
+            print TMPINETD $l . "\n";
+        } else {
+            print TMPINETD $l . "\n";
+        }
+    }
+    close(TMPINETD);
+    close(INETDFILE);
+
+    if (&runcmd("mv $tmp_inetd_file $inetd_file_name > /dev/null 2>&1") != 0) {
+        $msg = "servicenode: Could not update /etc/inetd.conf.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    if (&runcmd("startsrc -s inetd") != 0) {
+        $msg = "servicenode: Could not restart inetd.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    # do nim master setup - master fileset already installed
+    if (&runcmd("/usr/sbin/nim_master_setup -a mk_resource=no") != 0) {
+        $msg = "servicenode: Could not run nim_master_setup.\n";
+        `logger -t $log_label  -p local4.warning  $msg`;
+    }
+
+    #
+    # TODO - can configure NIM to use SSL - "nimconfig -c"
+    #   !!!!! can't do diskless nodes w/ nimsh & SSL enabled!!!!
+    #
+
+    # restore the original .rhosts that was removed by NIM setup
+    if (&runcmd("cp /.rhosts.prev /.rhosts ") != 0) {
+        $msg = "servicenode: Could not restore the .rhosts file.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    return 0;
+}
+
+#####################################################
+#
+#  getcreds ( For AIX)  .
+# Same function in xcatserver,xcatclient for Linux
+#   Get xCAT SSL credentials and DB cfgloc file
+#
+#####################################################
+sub getcreds
+{
+    my $response = &getresponse("xcat_client_cred");
+    if (defined($response)) {
+        my $fd;
+        my $filename = "/.xcat/client-cred.pem";
+        &runcmd("mkdir -p /.xcat");
+        &runcmd("chmod 700 /.xcat > /dev/null 2>&1");
+        open($fd, '>', $filename);
+        print $fd $response;
+        close($fd);
+
+        # set the permissions
+        my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+        &runcmd($cmd);
+    }
+    else {
+        $msg = "servicenode: Could not get client-cred.pem file.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    $response = &getresponse("xcat_server_cred");
+    if (defined($response)) {
+        my $fd;
+        my $filename = "/etc/xcat/cert/server-cred.pem";
+        &runcmd("mkdir -p /etc/xcat/cert");
+        open($fd, '>', $filename);
+        print $fd $response;
+        close($fd);
+
+        # set the permissions
+        my $cmd = "chmod 600 /etc/xcat/cert/* > /dev/null 2>&1";
+        &runcmd($cmd);
+    }
+    else {
+        $msg = "servicenode: Could not get server-cred.pem file.\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+    }
+
+    $response = &getresponse("xcat_cfgloc");
+    if (defined($response)) {
+
+        # need to change entry to use the name of the server as
+        #       know by this node
+        # except for db2 which has a different format, no host
+        my $newstr;
+        if ($response =~ /^DB2:/) {
+            $newstr = $response;
+        } else {
+            my ($begin, $tmp) = split(';', $response);
+            my ($tmp2, $end, $end2) = split('\|', $tmp);
+            my ($tmp3, $oldserv) = split('=', $tmp2);
+            $newstr = "$begin;$tmp3=$::servnode|$end|$end2";
+        }
+        my $fd;
+        my $filename = "/etc/xcat/cfgloc";
+        &runcmd("mkdir -p /etc/xcat");
+        open($fd, '>', $filename);
+        print $fd $newstr;
+        close($fd);
+
+        # set the permissions
+        my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+        &runcmd($cmd);
+    }
+    else {
+        $msg = "servicenode: Could not get cfgloc file.\n";
+        `logger -t $log_label  -p local4.warning  $msg`;
+    }
+
+    return 0;
+}
+
+#####################################################
+#
+#  getresponse
+#       Request info from xcatd on the management node
+#
+#	- uses SSL socket on port 3001 to connect to MN xcatd
+#		to make the request for info
+#
+#####################################################
+sub getresponse
+{
+    my ($req) = @_;
+
+    my $port = "3001";
+    my $node = $ENV{'NODE'};
+
+    # open listener connection to wait for check from management node
+    my $lpid = &openlistener();
+
+    # open a socket to request credentials
+    my $sock = IO::Socket::SSL->new(
+        PeerAddr => $::servnode,
+        PeerPort => $port,
+        Proto    => 'tcp',
+    );
+
+    # try a few more times
+    my $times = 1;
+    while (!$sock) {
+        sleep(2);
+        $times++;
+        $sock = IO::Socket::SSL->new(
+            PeerAddr => $::servnode,
+            PeerPort => $port,
+            Proto    => 'tcp',
+        );
+        if ($times == 5) {
+            last;
+        }
+    }
+
+    unless ($sock) {
+        my $msg = "servicenode:  Cannot connect to host \'$::servnode\'\n";
+        `logger -t $log_label  -p local4.err $msg`;
+        print $msg;
+        return undef;
+    }
+
+    # request must be in XML format
+    print $sock "<xcatrequest>\n";
+    print $sock "   <command>getcredentials</command>\n";
+    print $sock "   <arg>$req</arg>\n";
+    print $sock "   <callback_port>300</callback_port>\n";
+    print $sock "</xcatrequest>\n";
+
+    #TODO - do we have to try again after waiting for a bit????
+    my $response = '';
+    my $line;
+    while (defined($line = <$sock>)) {
+
+        # skip xml tags
+        next if ($line =~ /^\s*</);
+
+        # once we get to serverdone we have the whole response
+        if ($line =~ m/<\/serverdone>/) {
+          last:
+        }
+        $response .= $line;
+    }
+
+    close($sock);
+
+    #print "resp = \'$response\'\n";
+
+    kill 2, $lpid;
+    if ($response) {
+        return $response;
+    }
+    return undef;
+}
+
+#####################################################
+#
+#  openlistener
+#   - fork a child process to respond to a check from the MN
+#
+#####################################################
+sub openlistener
+{
+    my $node = $ENV{'NODE'};
+
+    require xCAT::Utils;
+
+    # fork a child process to open a socket to listen for communication
+    #	from the server
+    my $pid = xCAT::Utils->xfork;
+    unless (defined $pid) {
+
+        # fork failed
+        $msg = "servicenode:  Could not fork process.\n";
+        `logger -t $log_label  -p local4.err $msg`;
+
+        #print $msg;
+        return undef;
+    }
+
+    if ($pid != 0) {
+
+        # This is the parent process, just return
+        return $pid;
+    }
+
+    my $listener = IO::Socket::INET->new(
+        LocalPort => '300',
+        Proto     => 'tcp',
+        Listen    => '64',
+        Reuse     => 1
+    );
+
+    unless ($listener) {
+        my $msg = "servicenode:  Cannot open socket on \'$node\'\n";
+        `logger -t $log_label  -p local4.err  $msg`;
+        print $msg;
+        exit 1;
+    }
+
+    #	xcatd sends a quick req to see if we are really asking
+    #  	for info - this listener checks for the req and says ok
+    my $client;
+    while ($client = $listener->accept()) {
+
+        # $client is the new connection
+        my $text = <$client>;
+
+        #  see if we got "CREDOKBYYOU?"
+        if ($text =~ /CREDOKBYYOU?/) {
+            print $client "CREDOKBYME";
+            close($client);
+            close($listener);
+            exit 0;
+        }
+        close($client);
+    }
+    close($client);
+    close($listener);
+    exit 0;
+}
+#####################################################
+#
+# copycerts
+# Setup the /etc/xcat/ca, /etc/xcat/cert, ~/.xcat directories with
+# SSL certificates from the /xcatpost/_xcat directory
+# These certificate are needed to access the Databases from the SN
+#####################################################
+
+sub copycerts
+{
+    my $rc = 0;
+    `touch /etc/xCATSN`;
+
+    # get roots home directory
+    my @user    = getpwuid($>);
+    my $homedir = $user[7];
+    if (-d "/xcatpost/_xcat")
+    {
+        if (!(-d "$homedir/.xcat"))
+        {
+            `mkdir -p $homedir/.xcat`;
+            `chmod 0600 $homedir/.xcat`;
+        }
+        `cp -f -rp /xcatpost/_xcat/* $homedir/.xcat`;
+        `chmod 0600 $homedir/.xcat/*`;
+    }
+    else
+    {
+        $msg = "servicenode: /xcatpost/_xcat directory does not exist\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+
+    }
+    if (-d "/xcatpost/ca")
+    {
+        if (!(-d "/etc/xcat"))
+        {
+            mkdir("/etc/xcat", 0755);
+        }
+        if (!(-d "/etc/xcat/ca"))
+        {
+            mkdir("/etc/xcat/ca", 0755);
+        }
+        `cp -f -rp /xcatpost/ca/* /etc/xcat/ca`;
+        `chmod 0600 /etc/xcat/ca/*`;
+    }
+    else
+    {
+        $msg = "servicenode: /xcatpost/ca directory does not exist\n";
+        `logger -t $log_label  -p local4.warning $msg`;
+
+    }
+
+    # if AIX, only need for AIX because xcatserver script does it for Linux
+    if ($^O =~ /^aix/i) {
+        if (-d "/xcatpost/_xcat")
+        {
+            if (!(-d "/etc/xcat"))
+            {
+                mkdir("/etc/xcat", 0755);
+            }
+            if (!(-d "/etc/xcat/cert"))
+            {
+                mkdir("/etc/xcat/cert", 0755);
+            }
+            `cp -f -rp /xcatpost/_xcat/* /etc/xcat/cert`;
+            `chmod 0600 /etc/xcat/cert/*`;
+        }
+        else
+        {
+            $msg = "servicenode: /xcatpost/_xcat directory does not exist\n";
+            `logger -t $log_label  -p local4.warning $msg`;
+        }
+    }
+    return $rc;
+}

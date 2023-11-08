@@ -1,0 +1,442 @@
+#!/bin/ksh
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+################################################################################
+#
+#	aixlitesetup
+#		- This script is used to configure the xCAT statelite support
+#			for AIX
+#
+###############################################################################
+
+SL="/.statelite"
+ROOTDIR="/"
+MOUNTDIR="$SL/mnt"   # where I mount all the trees.
+PERSISTENT="$SL/persistent"
+TMPDIR="$SL/tmpdir"
+DEFAULT="/.default"
+
+# statelite table files are in "/"
+# /statelite.table, /litefile.table, /litetree.table
+STATELITE="/statelite.table"
+LITEFILE="/litefile.table"
+LITETREE="/litetree.table"
+LOG="${ROOTDIR}/${SL}/statelite.log"
+
+ELIST=[]    # entry list, each entry will contain the type and the path
+
+# get this node name from the /etc/niminfo file
+INFO=`/usr/bin/cat /etc/niminfo | grep 'NIM_HOSTNAME'`
+ME=`echo $INFO | /usr/bin/awk -F= '{print $2}' | /usr/bin/awk -F. '{print $1}'`
+
+if [ ! -s ${STATELITE} ]; then
+	echo "no ${STATELITE} file"
+	echo "no ${STATELITE} file"  >>$LOG
+	exit 0
+fi
+if [ ! -s ${LITEFILE} ]; then
+	echo "no ${LITEFILE} file"
+	echo "no ${LITEFILE} file"  >>$LOG
+	exit 0
+fi
+
+# check the statelite.table file to see if we have
+#       a persistent dir to mount.
+ProcessStatelite () {
+
+	for i in `/usr/bin/cat $STATELITE | /usr/bin/grep -v '^#' | /usr/bin/grep $ME`
+	do
+		SERVER=`echo $i | /usr/bin/awk -F'|' '{print $2}'`
+		TOMNT=`echo $i | /usr/bin/awk -F'|' '{print $3}'`
+		OPTS=`echo $i | /usr/bin/awk -F'|' '{print $4}'`
+
+		if [ "$OPTS" = "" ]; then
+			MNTOPTS=" -o llock "
+		else
+			MNTOPTS=" -o llock -o $OPTS "
+		fi
+
+		# /.statelite/tmpdir
+		if [ ! -d ${TMPDIR} ]; then
+		    echo "mkdir -m 755 -p ${TMPDIR}" >>$LOG
+			mkdir -m 755 -p ${TMPDIR} 2>&1 >>$LOG
+		fi
+
+		# /.statelite/persistent
+		if [ ! -d ${PERSISTENT} ]; then
+		    echo "mkdir -m 755 -p ${PERSISTENT}" >>$LOG
+			mkdir -m 755 -p ${PERSISTENT} 2>&1 >>$LOG
+		fi
+
+		# mount 10.2.0.200:/nodedata /.statelite/persistent
+		echo "/usr/sbin/mount ${MNTOPTS} $SERVER:$TOMNT ${PERSISTENT}" >>$LOG
+		/usr/sbin/mount ${MNTOPTS} $SERVER:$TOMNT ${PERSISTENT} 2>&1 >>$LOG
+
+		# make a node subdir
+		# /.statelite/persistent/<nodename>
+		if [ ! -d ${PERSISTENT}/${ME} ]; then
+		    echo "mkdir -m 755 -p ${PERSISTENT}/${ME}" >>$LOG
+			mkdir -m 755 -p ${PERSISTENT}/${ME} 2>&1 >>$LOG
+		fi
+
+	done
+}
+
+# process the litefile table
+ProcessLitefile () {
+	let j=0
+	for i in `/usr/bin/cat $LITEFILE | /usr/bin/grep $ME`
+	do
+
+		type=`echo $i | /usr/bin/awk -F'|' '{print $2}'`
+		path=`echo $i | /usr/bin/awk -F'|' '{print $3}'`
+
+		# entry list one line per element
+		ELIST[$j]="$type $path";
+		let j=j+1;
+	done
+
+	# number of entries(lines) in file
+	num=${#ELIST[@]}
+
+	let i=0
+	while [ $i -lt $num ]; do
+
+      	set -- ${ELIST[$i]}
+       	etype=$1
+       	epath=$2
+
+		# ex. for /etc/foo the parent is /etc/
+		parent="`/usr/bin/dirname $epath`/"
+
+		let efound=0
+		let ptype=0
+		let ppath=0
+		while [ "$parent" != "//" ]; do
+			let j=0
+			while [ $j -lt $num ]; do
+				set -- ${ELIST[$j]}
+				jtype=$1
+				jpath=$2
+
+				# see if a parent is also one of the file entries
+				if [ "$parent" = "$jpath" ]; then
+					efound=1
+					ptype=$jtype
+					ppath=$jpath
+					break 2
+				fi
+				let j=j+1;
+			done
+			parent="`/usr/bin/dirname $parent`/"
+		done
+
+		if [ "$efound" = "1" ]; then
+			# found a parent & child on the list
+
+			cantdo=0
+
+			# check options
+			# can't do any child that has parent of ro
+			if [ "$ptype" = "ro" ]; then
+				echo "Cannot add child ($epath) when parent ($ppath) has 'ro' option." >>$LOG
+				cantdo=1
+			fi
+
+			# a persistent parent can't have a ro child
+			if [ "$ptype" = "persistent" ]; then
+				if [ "$etype" = "ro" ]; then
+					echo "Cannot add child ($epath) with 'ro' option when parent ($ppath) has 'persistent' option." >>$LOG
+					cantdo=1
+				fi
+			fi
+
+			if [ $cantdo -eq 0 ]; then
+				# ok - # put the child on into CLIST
+				cnum=${#CLIST[@]}
+				CLIST[$cnum]=${ELIST[$i]}
+			fi
+
+		else
+			# add the parents and the entries with no parents to PLIST
+			let pfound=0
+			let pnum=${#PLIST[@]}
+			let k=0
+			while [ $k -lt $pnum ]; do			
+				if [ "${PLIST[$k]}" = "${path}" ]; then
+                    pfound=1
+                fi
+				let k=k+1
+			done
+
+			if [ "$pfound" = "0" ]; then
+                # put it into PLIST
+				let plnum=${#PLIST[@]}
+                PLIST[$plnum]=${ELIST[$i]}
+            fi
+		fi
+
+		let i=i+1;	
+	done
+
+	plistnum=${#PLIST[@]}
+	n=0
+	while [ $n -lt $plistnum ]; do
+		set -- ${PLIST[$n]}
+		FindFile ${2} ${1} 0	
+		let n=n+1
+	done
+
+    plistnum=${#CLIST[@]}
+	m=0
+    while [ $m -lt $plistnum ]; do
+        set -- ${CLIST[$m]}
+        FindFile ${2} ${1} 1
+		let m=m+1
+    done
+}
+
+# mount the required directories from the server
+MountTrees () {
+	# ex. /.statelite/mnt
+	if [ ! -d ${MOUNTDIR} ]; then
+	    echo "/usr/bin/mkdir -m 755 -p $MOUNTDIR" >>$LOG
+		/usr/bin/mkdir -m 755 -p $MOUNTDIR 2>&1 >>$LOG
+	fi
+
+	for i in `/usr/bin/cat $LITETREE | /usr/bin/grep -v '^#' | /usr/bin/grep $ME`
+	do
+
+		NODE=`echo $i | /usr/bin/awk -F'|' '{print $1}'`
+		SERV=`echo $i | /usr/bin/awk -F'|' '{print $2}'`
+		DIR=`echo $i | /usr/bin/awk -F'|' '{print $3}'`
+
+		OPTS=`echo $i | /usr/bin/awk -F'|' '{print $4}'`
+
+		if [ "$OPTS" = "" ]; then
+			MOPTS=" -o llock "
+		else
+			MOPTS=" -o llock -o $OPTS "
+		fi
+
+		if [ ! -d ${MOUNTDIR}/${SERV}${DIR} ]; then
+			# ex. /.statelite/mnt/10.2.0.200/etc/
+			echo "/usr/bin/mkdir -m 755 -p ${MOUNTDIR}/${SERV}${DIR}" >>$LOG
+			/usr/bin/mkdir -m 755 -p ${MOUNTDIR}/${SERV}${DIR} 2>&1 >>$LOG
+		fi
+
+		MAX=5
+        TRIES=1
+
+		# ex. 10.2.0.200:/etc/ /.statelite/mnt/10.2.0.200/etc/
+		echo "/usr/sbin/mount ${MOPTS} $SERV:$DIR ${MOUNTDIR}/${SERV}${DIR}" >>$LOG
+        while ! /usr/sbin/mount ${MOPTS} $SERV:$DIR ${MOUNTDIR}/${SERV}${DIR}
+        do
+            if [ "$TRIES" = "$MAX" ]
+            then
+                echo "Cannot mount $i." >/dev/console
+                break
+            fi
+            TRIES=`expr $TRIES + 1`
+            S=`expr $RANDOM % 20`
+            echo "Can't mount $SERV:$DIR... Sleeping $S seconds then trying again" >>$LOG
+            sleep $S
+        done
+	done
+}
+
+#  mount the files or directories as requested
+ProcessType () {
+
+	MOUNT=$1  	#  where this is (ex. /.statelite/mnt/10.2.0.200/etc/FScfg)
+	PATH=$2	  	# file (ex. /etc/FScfg)
+	TYPE=$3		# type of file (ex. rw)
+    isChild=$4     # child = 1, parent = 0
+
+    PPATH=`/usr/bin/dirname ${2}` # ex. /etc
+	
+	case "${3}" in
+		rw)
+			# item is mounted from litetree dir or .default location ($1)
+			#	onto local file
+
+			# the local name of the file or directory
+			LOCAL=`echo ${2} |  /usr/bin/sed -e 's/\/$//'`
+
+            if [ -d ${1} ]; then
+				# if it's a dir
+				if [ ! -e ${LOCAL} ]; then
+					/usr/bin/mkdir -m 755 -p ${LOCAL}
+				fi
+            else
+				# if file
+				if [ ! -e ${LOCAL} ]; then
+					FDIR=`/usr/bin/dirname ${2}`
+                    /usr/bin/mkdir -m 755 -p ${FDIR}
+                    /usr/bin/touch ${LOCAL}
+				fi
+            fi
+
+			# ex. /.statelite/mnt/<server>/etc/lppcfg
+ 			SOURCE=`echo ${1} |  /usr/bin/sed -e 's/\/$//'`
+
+			# make sure we don't get duplicate mounts
+			/usr/sbin/umount ${LOCAL}>>$LOG > /dev/null > /dev/null 2>&1
+
+			echo "/usr/sbin/mount ${SOURCE} ${LOCAL}" >>$LOG
+			/usr/sbin/mount ${SOURCE} ${LOCAL} 2>&1 >>$LOG
+			;;
+
+        persistent)
+			# the item is copied to the /.statelite/persistent subdir
+			#  from wherever it is found ( $1 above )
+			#	the /.statelite/persistent/blah is then mounted
+			#	over the local /blah
+			# ex. /.statelite/persistent/compute02/etc
+            if [ ! -d ${PERSISTENT}/${ME}${PPATH} ]; then
+                echo "mkdir -p ${PERSISTENT}/${ME}${PPATH}" >>$LOG
+                /usr/bin/mkdir -m 755 -p ${PERSISTENT}/${ME}${PPATH} 2>&1 >>$LOG
+            fi
+
+            # if the file doesn't exist, then copy it over to persistent
+            if [ ! -e ${PERSISTENT}/${ME}${2} ]; then
+                echo "cp -p -r ${1} ${PERSISTENT}/${ME}${2}" >>$LOG
+                /usr/bin/cp -p -r ${1} ${PERSISTENT}/${ME}${2} 2>&1 >>$LOG
+            fi
+
+            LOCAL=`echo ${2} |  /usr/bin/sed -e 's/\/$//'`
+            SOURCE=`echo ${PERSISTENT}/${ME}${2}`
+
+			if [ ! -e ${LOCAL} ]; then
+
+                if [ -d ${SOURCE} ]; then
+                    # need to create local dir
+                    echo "mkdir -m 755 -p ${LOCAL}" >>$LOG
+                    /usr/bin/mkdir -m 755 -p ${LOCAL}
+
+                else
+                    # need to create local file
+					FDIR=`/usr/bin/dirname ${2}`
+					if [ ! -d ${FDIR} ]; then
+                    	/usr/bin/mkdir -m 755 -p ${FDIR}
+					fi
+                    /usr/bin/touch ${LOCAL}
+
+                fi
+            fi
+	
+			# ex. mount  /.statelite/persistent/<nodename>/blah /blah
+			# note: the dir from the statelite table is mounted over
+			#	/.statelite/persistent
+
+			# make sure we don't get duplicate mounts
+			/usr/sbin/umount ${LOCAL}>>$LOG > /dev/null 2>&1
+
+            echo "/usr/sbin/mount ${SOURCE} ${LOCAL}" >>$LOG
+            /usr/sbin/mount ${SOURCE} ${LOCAL} 2>&1 >>$LOG
+            ;;
+
+		ro)
+			# mounted file or dir is overmounted over local version
+			# $1 - mounted file or directory or default(?)
+			# $2 - file or dir name
+
+			# ex. /etc/lppcfg
+			LOCAL=`echo ${2} |  /usr/bin/sed -e 's/\/$//'`
+
+			# ex. /.statelite/mnt/<server>/etc/lppcfg
+			SOURCE=`echo ${1} |  /usr/bin/sed -e 's/\/$//'`
+
+			if [ ! -e ${LOCAL} ]; then
+
+				if [ -d ${SOURCE} ]; then
+					# need to create local dir
+					echo "mkdir  -m 755 -p ${LOCAL}" >>$LOG
+            		/usr/bin/mkdir -m 755 -p ${LOCAL} 2>&1 >>$LOG
+				else			
+					# need to create local file
+					GDIR=`/usr/bin/dirname ${2}`
+                    if [ ! -d ${GDIR} ]; then
+                        echo "/usr/bin/mkdir -m 755 -p ${GDIR}" >>$LOG
+                        /usr/bin/mkdir -m 755 -p ${GDIR} 2>&1 >>$LOG
+                    fi
+					/usr/bin/touch ${LOCAL}
+				fi
+			fi
+			# make sure we don't get duplicate mounts
+			/usr/sbin/umount ${LOCAL}>>$LOG > /dev/null 2>&1
+
+			echo "/usr/sbin/mount -o ro ${SOURCE} ${LOCAL}" >>$LOG
+			# ex. mount -o ro /.statelite/mnt/<server>/etc/lppcfg /etc/lppcfg
+			/usr/sbin/mount -o ro ${SOURCE} ${LOCAL} 2>&1 >>$LOG
+			;;
+		*)
+			;;
+	esac
+}
+
+# find a source for the file or directory
+FindFile () {
+	# $1 = Pathname to locate
+	# $2 = Type of file
+    # $3 = 0 or 1: 0 means parent, 1 means child
+	path=$1
+	type=$2
+    isChild=$3
+	FOUND=0
+
+	# this assumes the dir are already in priority order in the
+	#	/litetree.table file
+	for i in `/usr/bin/cat $LITETREE | /usr/bin/grep -v '^#' | /usr/bin/grep $ME`
+    do
+		SERVER=`echo $i | /usr/bin/awk -F'|' '{print $2}'`
+		DIR=`echo $i | /usr/bin/awk -F'|' '{print $3}'`
+		SRC=`echo ${MOUNTDIR}/${SERVER}${DIR}${path} |  /usr/bin/sed -e 's/\/\//\//'`
+
+		# ex. SRC =  /.statelite/mnt/10.2.0.200/etc/FScfg
+        # or  /.statelite/mnt/10.2.0.200/root/ssh/
+		if [ -e ${SRC} ]; then
+			# ok - we found a src for the file or dir
+			PATHEND=${#path}
+            CHAREND=`echo ${path} | /usr/bin/cut -c${PATHEND}`
+            if [ "${CHAREND}" != '/' ] && [ -d ${SRC} ]; then
+                FOUND=0
+                continue
+            fi
+
+            if [ "${CHAREND}" = "/" ] && [ -f ${SRC} ]; then
+                FOUND=0
+                continue
+            fi
+
+            FOUND=1
+            ProcessType ${SRC} ${path} ${type} ${isChild}
+            break
+		fi	
+	done
+
+	# couldn't find SRC so use the value in /.default
+	# Default behavior is to get from the image
+	if [ "$FOUND" = "0"  ]; then
+		if [ -e "${DEFAULT}${path}" ]; then
+			ProcessType ${DEFAULT}${path} ${path} ${type} ${isChild}
+		else
+			echo "Could not find ${path}" >>$LOG
+		fi
+	fi
+}
+
+###########################################################################
+# Start / MAIN / main
+###########################################################################
+
+# mount the persistent dir - if provided
+ProcessStatelite
+
+# mount all the dirs from the litetree table.
+MountTrees
+
+# process the litefile table
+ProcessLitefile
+
+exit 0

@@ -1,0 +1,447 @@
+=head1 B<NAME>
+
+B<xdcp> - Concurrently copies files to or from multiple nodes. In addition, provides an option to use B<rsync> to update the files on the managed nodes, or to an installation image on the local node.
+
+=head1 B<SYNOPSIS>
+
+B<xdcp> I<noderange>  [[B<-B> | B<--bypass>] [B<-f> I<fanout>] [B<-L>]  [B<-l>  I<user_ID>] [B<-o> I<node_options>] [B<-p>] [B<-P>] [B<-r> I<node remote copy command>] [B<-R>] [B<-t> I<timeout>] [B<-T>] [B<-v>] [B<-q>] [B<-X> I<env_list>] I<sourcefile.... targetpath>
+
+B<xdcp> I<noderange>  [B<-F> I<rsynclist input file>] [B<-r> I<node remote copy command>]
+
+B<xdcp> I<computenoderange>  [B<-s> B<-F> I<synclist input file>] [B<-r> I<node remote copy command>]
+
+B<xdcp> [B<-i> I<install image>] [B<-F> I<synclist input file>] [B<-r> I<node remote copy command>]
+
+B<xdcp> [B<-h> | B<-V> | B<-q>]
+
+
+=head1 B<DESCRIPTION>
+
+The B<xdcp> command concurrently copies files  to  or  from  remote  target
+nodes. The command issues a remote copy command for each node or device specified. When files are  pulled  from a target,  they  are  placed  into  the  I<targetpath> with the name of the
+remote node or device appended to  the  copied  I<sourcefile>  name.  The
+B</usr/bin/rcp> command is the model for syntax and security.
+If using hierarchy, then B<xdcp> runs on the service node that is servicing the compute node. The file will first be copied to the path defined in the site table, B<SNsyncfiledir> attribute, or the default path B</var/xcat/syncfiles> on the service node, if the attribute is not defined. The B<-P> flag will not automatically copy
+the files from the compute node to the Management node, hierarchically.  There
+is a two step process, see B<-P> flag.
+If the Management Node is target node, it must be defined in the xCAT database with B<nodetype=mn>. When the B<xdcp> command runs with the Management Node as the target, it does not use remote commands but uses the local OS copy (B<cp>) command.
+
+B<REMOTE> B<USER>:
+
+A I<user_ID> can be specified for the remote copy command. Remote user
+specification is identical for the B<xdcp> and B<xdsh> commands. 
+See the B<xdsh> command for more information.
+
+B<REMOTE> B<COMMAND> B<COPY>:
+
+The  B<xdcp>  command  uses  a  configurable remote copy command to execute
+remote copies on remote targets. Support is explicitly  provided  for
+Remote  Shell  B<rcp>  command,  the  OpenSSH  B<scp>  command  and  the
+B</usr/bin/rsync> command.
+
+For node targets, the remote copy command is determined by the  following order of precedence:
+
+
+1. The B<-r> flag.
+
+2. The B</usr/bin/rsync> command.
+
+B<COMMAND> B<EXECUTIONS>:
+
+The  maximum  number  of  concurrent remote copy command processes (the
+fanout) can be specified with the B<-f> flag or the DSH_FANOUT environment
+variable.  The  fanout is only restricted by the number of remote shell
+commands that can be run in  parallel.  You  can  experiment  with  the
+DSH_FANOUT  value on your management server to see if higher values are
+appropriate.
+
+A timeout value for remote copy command execution can be specified with
+the B<-t> flag or DSH_TIMEOUT environment variable. If any remote target
+does not respond within the timeout value, the B<xdcp> command displays  an
+error message and exits.
+
+The B<-T> flag provides diagnostic trace information for B<xdcp> command execution. Default settings and the actual remote copy commands that are executed to the remote targets are displayed.
+
+The B<xdcp> command can be executed silently using the B<-Q> flag; no target
+standard output or standard error is displayed.
+
+=head1 B<OPTIONS>
+
+=over 5
+
+=item I<sourcefile...>
+
+Specifies the complete path for the file to be  copied  to  or
+from  the  target.  Multiple files can be specified. When used
+with the B<-R> flag, only a single directory  can  be  specified.
+When  used  with the B<-P> flag, only a single file can be specified.
+
+=item I<targetpath>
+
+If one source file, then it specifies the file to copy the source
+file to on the target. If multiple source files, it specifies
+the directory to copy the source files to on the target.
+If the B<-P> flag is specified, the I<targetpath> is the local host location
+for the copied files.  The remote file directory structure is recreated
+under I<targetpath> and  the  remote  target  name  is  appended
+to  the   copied I<sourcefile> name in the I<targetpath> directory.
+Note: the I<targetpath> directory must exist.
+
+=item B<-B>|B<--bypass>
+
+Runs in bypass mode, use if the B<xcatd> daemon is not responding.
+
+=item B<-f>|B<--fanout> I<fanout_value>
+
+Specifies a fanout value for the maximum number of  concurrently  executing  remote shell processes. Serial execution
+can be specified by indicating a fanout value of B<1>.
+If B<-f> is not specified, a default fanout value of B<64> is used.
+
+=item B<-F>|B<--File> I<synclist input file>
+
+Specifies the path to the file that will be used to
+build the B<rsync> command.
+The format of the input file is described here: <https://xcat-docs.readthedocs.io/en/stable/guides/admin-guides/manage_clusters/common/deployment/syncfile/syncfile_synclist_file.html>
+
+On Linux B<rsync> always uses ssh remoteshell. On AIX, B<ssh> or B<rsh> is used depending on the B<site.useSSHonAIX> table attribute.
+
+=item B<-h>|B<--help>
+
+Displays usage information.
+
+
+=item B<-i>|B<--rootimg> I<install image>
+
+
+Specifies the path to the install image on the local Linux node.
+
+
+=item B<-o>|B<--node-options> I<node_options>
+
+Specifies options to pass to the remote shell  command  for
+node  targets.  The options must be specified within double
+quotation marks ("") to distinguish them from B<xdcp> options.
+
+=item B<-p>|B<--preserve>
+
+Preserves  the  source  file characteristics as implemented by
+the configured remote copy command.
+
+=item B<-P>|B<--pull>
+
+Pulls (copies) the files from the targets and places  them  in
+the I<targetpath> directory on the local host. The I<targetpath> must
+be a directory. Files pulled from  remote  machines  have
+B<._target>  appended  to  the  file  name to distinguish between
+them. When the B<-P> flag is used with the B<-R> flag,  B<._target>  is
+appended to the directory. Only one file per invocation of the
+B<xdcp> pull command can be pulled from the specified  targets.
+In hierarchy, you must first pull
+the file to the service node and then pull the file to the management
+node.
+
+=item B<-q>|B<--show-config>
+
+Displays the current environment settings for all DSH
+Utilities commands. This includes the values of all environment
+variables  and  settings  for  all  currently installed and
+valid contexts. Each setting is prefixed with  I<context>:  to
+identify the source context of the setting.
+
+
+=item B<-r>|B<--node-rcp> I<node remote copy command>
+
+Specifies  the  full  path of the remote copy command used for syncing files to node targets, such as B</usr/bin/rsync> or B</usr/bin/scp>. If not specified, B<rsync> will be used by default.
+
+Note: The synclist processing for B<-r /usr/bin/scp> has some differences with B<-r /usr/bin/rsync>:
+
+1) the B<EXECUTE> clause in synclist file is not supported with B<-r /usr/bin/scp> flag
+
+2) if the destination directory specified in synclist file is an existing file on target node, B<xdcp -r /usr/bin/scp> will fail with "scp: <destination directory>: Not a directory"
+
+3) if the destination file specified in synclist file is an existing directory on target node, B<xdcp -r /usr/bin/scp> will fail with "scp: <destination file>: Is a directory"
+
+
+=item B<-R>|B<--recursive>
+
+Recursively  copies files from a local directory to the remote
+targets, or when specified with the B<-P> flag, recursively pulls
+(copies)  files  from  a remote directory to the local host. A
+single source directory can be specified using the I<sourcefile> parameter.
+
+
+=item B<-s> I<synch service nodes>
+
+Will only sync the files listed in the synclist (B<-F>), to the service
+nodes for the input compute node list. The files will be placed in the
+directory defined by the B<site.SNsyncfiledir> table attribute, or the default
+B</var/xcat/syncfiles> directory.
+
+=item B<-t>|B<--timeout> I<timeout>
+
+Specifies the time, in seconds, to wait for output from any
+currently executing remote targets. If no output is
+available  from  any  target in the specified I<timeout>,
+B<xdsh> displays an error and terminates execution for the remote
+targets  that  failed to respond. If I<timeout> is not specified,
+B<xdsh> waits indefinitely to continue processing output  from
+all  remote  targets.  When specified with the B<-i> flag, the
+user is prompted for an additional timeout interval to wait
+for output.
+
+=item B<-T>|B<--trace>
+
+Enables trace mode. The B<xdcp> command prints diagnostic
+messages to standard output during execution to each target.
+
+=item B<-v>|B<--verify>
+
+Verifies each target before executing any  remote  commands
+on  the target. If a target is not responding, execution of
+remote commands for the target is canceled.
+
+=item B<-V>|B<--version>
+
+Displays the B<xdcp> command version information.
+
+=back
+
+
+=head1 B<Environment> B<Variables>
+
+=over 4
+
+=item B<DSH_ENVIRONMENT>
+
+Specifies a file that contains environment variable
+definitions to export to the target before executing  the  remote
+command. This variable is overridden by the B<-E> flag.
+
+=item B<DSH_FANOUT>
+
+Specifies  the fanout value. This variable is overridden by
+the B<-f> flag.
+
+=item B<DSH_NODE_OPTS>
+
+Specifies the options to use for the remote  shell  command
+with  node targets only. This variable is overridden by the
+B<-o> flag.
+
+=item B<DSH_NODE_RCP>
+
+Specifies the full path of the remote copy command  to  use
+to  copy  local scripts and local environment configuration
+files to node targets.
+
+=item B<DSH_NODE_RSH>
+
+Specifies the full path of the  remote  shell  to  use  for
+remote  command execution on node targets. This variable is
+overridden by the B<-r> flag.
+
+=item B<DSH_NODEGROUP_PATH>
+
+Specifies a colon-separated list of directories  that
+contain node group files for the B<DSH> context. When the B<-a> flag
+is specified in the B<DSH> context,  a  list  of  unique  node
+names is collected from all node group files in the path.
+
+=item B<DSH_PATH>
+
+Sets the command path to use on the targets. If B<DSH_PATH> is
+not set, the default path defined in  the  profile  of  the
+remote I<user_ID> is used.
+
+=item B<DSH_SYNTAX>
+
+Specifies the shell syntax to use on remote targets; B<ksh> or
+B<csh>. If not specified, the  B<ksh>  syntax  is  assumed.  This
+variable is overridden by the B<-S> flag.
+
+=item B<DSH_TIMEOUT>
+
+Specifies  the  time, in seconds, to wait for output from
+each remote target. This variable is overridden by the B<-t> flag.
+
+=back
+
+
+=head1 B<Exit Status>
+
+Exit  values  for  each  remote copy command execution are displayed in
+messages from the xdcp command, if the remote copy command exit value is
+non-zero.  A  non-zero return code from a remote copy command indicates
+that an error was encountered during the remote copy. If a remote  copy
+command  encounters an error, execution of the remote copy on that target is bypassed.
+
+The B<xdcp> command exit code is 0, if  the  B<xdcp>  command  executed  without
+errors  and  all remote copy commands finished with exit codes of 0. If
+internal B<xdcp> errors occur or the remote copy commands do  not  complete
+successfully,  the B<xdcp>  command exit value is greater than 0.
+
+
+
+=head1 B<Security>
+
+The  B<xdcp>  command  has no security configuration requirements.  All
+remote command security requirements  -  configuration,
+authentication,  and authorization - are imposed by the underlying remote
+command configured for B<xdsh>. The command  assumes  that  authentication
+and  authorization  is  configured  between  the  local host and the
+remote targets. Interactive password prompting is not supported;  an
+error  is displayed and execution is bypassed for a remote target if
+password prompting occurs, or if either authorization or
+authentication  to  the  remote  target fails. Security configurations as they
+pertain to the remote environment and remote shell command are
+userdefined.
+
+
+=head1 B<Examples>
+
+=over 3
+
+=item 1.
+To copy the /etc/hosts file from all  nodes in the cluster
+to the /tmp/hosts.dir directory on the local host, enter:
+
+ xdcp all -P /etc/hosts /tmp/hosts.dir
+
+A suffix specifying the name of the target is  appended  to  each
+file name. The contents of the /tmp/hosts.dir directory are similar to:
+
+ hosts._node1   hosts._node4   hosts._node7
+ hosts._node2   hosts._node5   hosts._node8
+ hosts._node3   hosts._node6
+
+=item 2.
+To copy the directory /var/log/testlogdir  from  all  targets  in
+NodeGroup1 with a fanout of 12, and save each directory on  the  local
+host as /var/log._target, enter:
+
+ xdcp NodeGroup1 -f 12 -RP /var/log/testlogdir /var/log
+
+=item 3.
+To copy  /localnode/smallfile and /tmp/bigfile to B/tmp on node1
+using rsync and input -t flag to rsync, enter:
+
+ xdcp node1 -r /usr/bin/rsync -o "-t" /localnode/smallfile /tmp/bigfile /tmp
+
+=item 4.
+To copy the /etc/hosts file from the local host to all the nodes
+in the cluster, enter:
+
+ xdcp all /etc/hosts /etc/hosts
+
+=item 5.
+To copy all the files in /tmp/testdir from the local host to all the nodes
+in the cluster, enter:
+
+ xdcp all /tmp/testdir/* /tmp/testdir
+
+=item 6.
+To copy all the files in /tmp/testdir and it's subdirectories
+from the local host to node1 in the cluster, enter:
+
+ xdcp node1 -R /tmp/testdir /tmp/testdir
+
+=item 7.
+To copy the /etc/hosts  file  from  node1  and  node2  to the
+/tmp/hosts.dir directory on the local host, enter:
+
+ xdcp node1,node2 -P /etc/hosts /tmp/hosts.dir
+
+=item 8.
+To rsync the /etc/hosts file to your compute nodes:
+
+First create a syncfile /tmp/myrsync, with this line:
+
+ /etc/hosts -> /etc/hosts
+
+or
+
+ /etc/hosts -> /etc/    (last / is required)
+
+Then run:
+
+ xdcp compute -F /tmp/myrsync
+
+=item 9.
+To rsync all the files in /home/mikev to the  compute nodes:
+
+First create a rsync file /tmp/myrsync, with this line:
+
+ /home/mikev/* -> /home/mikev/      (last / is required)
+
+Then run:
+
+ xdcp compute -F /tmp/myrsync
+
+=item 10.
+To rsync to the compute nodes, using service nodes:
+
+First create a rsync file /tmp/myrsync, with this line:
+
+ /etc/hosts /etc/passwd -> /etc
+
+or
+
+ /etc/hosts /etc/passwd -> /etc/
+
+Then run:
+
+ xdcp compute -F /tmp/myrsync
+
+=item 11.
+To rsync to the service nodes in preparation for rsyncing the compute nodes
+during an install from the service node.
+
+First create a rsync file /tmp/myrsync, with this line:
+
+ /etc/hosts /etc/passwd -> /etc
+
+Then run:
+
+ xdcp compute -s -F /tmp/myrsync
+
+
+=item 12.
+To rsync the /etc/file1 and file2 to your compute nodes and rename to  filex and filey:
+
+First create a rsync file /tmp/myrsync, with these line:
+
+ /etc/file1 -> /etc/filex
+
+ /etc/file2 -> /etc/filey
+
+Then run:
+
+ xdcp compute -F /tmp/myrsync
+
+to update the Compute Nodes
+
+=item 13.
+To rsync files in the Linux image at /install/netboot/fedora9/x86_64/compute/rootimg on the MN:
+
+First create a rsync file /tmp/myrsync, with this line:
+
+ /etc/hosts /etc/passwd -> /etc
+
+Then run:
+
+ xdcp -i /install/netboot/fedora9/x86_64/compute/rootimg -F /tmp/myrsync
+
+=item 14.
+To define the Management Node in the database so you can use xdcp, run
+
+ xcatconfig -m
+
+
+=back
+
+=head1 B<Files>
+
+
+=head1 B<SEE ALSO>
+
+L<xdsh(1)|xdsh.1>, L<noderange(3)|noderange.3>

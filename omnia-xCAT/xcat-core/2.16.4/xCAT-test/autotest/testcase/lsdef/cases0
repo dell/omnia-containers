@@ -1,0 +1,267 @@
+start:lsdef_null
+description: lsdef without any flag
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnodell groups=all
+check:rc==0
+cmd:lsdef
+check:rc==0
+check:output=~testnodell\s*\(node\)
+cmd:rmdef testnodell
+check:rc==0
+end
+
+start:lsdef_a
+description: lsdef -a and lsdef --all
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:mkdef -t network -o testnetwork net=1.2.3.0 mask=255.255.255.0
+check:rc==0
+#prune auditlog and eventlog tables
+#to avoid massive output with lsdef -a
+cmd:tabprune auditlog -a
+check:rc==0
+cmd:tabprune eventlog -a
+check:rc==0
+cmd:lsdef -a
+check:output=~testnode
+check:output=~testnetwork
+cmd:lsdef --all
+check:output=~testnode
+check:output=~testnetwork
+cmd:rmdef -t network testnetwork
+check:rc==0
+cmd:rmdef -t node testnode
+check:rc==0
+end
+
+start:lsdef_t_o_l
+description: lsdef -o -l
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:mkdef -t network -o testnetwork net=1.2.3.0 mask=255.255.255.0
+check:rc==0
+cmd:lsdef -t node -l testnode
+check:rc==0
+check:output=~groups=all
+check:output!~testnetwork
+cmd:lsdef -t network -l testnetwork
+check:rc==0
+check:output=~net=1.2.3.0
+check:output=~mask=255.255.255.0
+check:output!~testnode
+cmd:rmdef -t network testnetwork
+check:rc==0
+cmd:rmdef -t node testnode
+check:rc==0
+end
+
+start:lsdef_t_o_l_z
+description: lsdef -l -z
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:mkdef -t network -o testnetwork net=1.2.3.0 mask=255.255.255.0
+check:rc==0
+cmd:lsdef -t node -l testnode -z
+check:rc==0
+check:output=~testnode:
+check:output=~objtype=node
+check:output=~groups=all
+cmd:lsdef -t network -l testnetwork -z
+check:output=~testnetwork:
+check:output=~objtype=network
+check:output=~mask=255.255.255.0
+check:output=~net=1.2.3.0
+cmd:rmdef -t network testnetwork
+cmd:rmdef -t node testnode
+end
+
+start:lsdef_t
+description: lsdef -t
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:mkdef -t network -o testnetwork net=1.2.3.0 mask=255.255.255.0
+check:rc==0
+cmd:lsdef -t network
+check:rc==0
+check:output=~testnetwork
+check:output!~testnode
+cmd:rmdef -t network testnetwork
+cmd:rmdef -t node testnode
+end
+
+start:lsdef_t_i_o
+description: lsdef -i
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:lsdef -t node -o testnode -i groups
+check:rc==0
+check:output=~groups=all
+check:output=~testnode
+cmd:rmdef -t node testnode
+cmd:mkdef -t network -o testnetwork net=1.2.3.0 mask=255.255.255.0
+check:rc==0
+cmd:lsdef -t network -i net
+check:rc==0
+check:output=~net=1.2.3.0
+check:output!~mask
+cmd:rmdef -t network testnetwork
+end
+
+start:lsdef_t_w
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode11,testnode21 cons=hmc groups=all
+check:rc==0
+cmd:mkdef -t node -o testnode31,testnode41 cons=ipmi groups=linux
+check:rc==0
+cmd:lsdef -t node -w cons==ipmi
+check:rc==0
+check:output=~testnode31
+check:output=~testnode41
+check:output!=testnode11
+check:output!=testnode21
+cmd:lsdef -t node -w cons!~hmc
+check:rc==0
+check:output=~testnode31
+check:output=~testnode41
+check:output!=testnode11
+check:output!=testnode21
+cmd:lsdef -t node -w cons==ipmi -w groups==linux
+check:rc==0
+check:output=~testnode31
+check:output=~testnode41
+check:output!=testnode11
+check:output!=testnode21
+cmd:rmdef -t node testnode11
+cmd:rmdef -t node testnode21
+cmd:rmdef -t node testnode31
+cmd:rmdef -t node testnode41
+end
+
+start:lsdef_s
+description: lsdef -s
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:lsdef -s testnode
+check:rc==0
+check:output=~testnode\s+\(node\)
+cmd:rmdef -t node testnode
+end
+
+start:lsdef_t_auditlog
+description:lsdef -t auditlog
+label:mn_only,ci_test,db
+cmd:tabprune auditlog -a
+check:rc==0
+cmd:lsdef -t auditlog
+check:rc==0
+check:output=~auditlog|Could not find any object
+end
+
+start:lsdef_t_eventlog
+description:lsdef -t eventlog
+label:mn_only,ci_test,db
+cmd:tabprune eventlog -a
+check:rc==0
+cmd:lsdef -t eventlog
+check:rc==0
+check:output!~not a valid xCAT object type
+end
+
+start:lsdef_t_policy
+description:lsdef -t policy
+label:mn_only,ci_test,db
+cmd:lsdef -t policy
+check:rc==0
+check:output=~1\s+\(policy\)
+cmd:lsdef -t policy -o 1 -l
+check:rc==0
+check:output=~rule=allow
+end
+
+start:lsdef_t_site
+description:lsdef -t site
+label:mn_only,ci_test,db
+cmd:lsdef -t site
+check:rc==0
+check:output=~clustersite
+cmd:lsdef -t site -o clustersite -l
+check:rc==0
+check:output=~xcatdport
+end
+
+start:lsdef_t_err
+description:lsdef -t wrongtype -o
+label:mn_only,ci_test,db
+cmd:lsdef -t wrongtype -o test
+check:rc!=0
+check:output=~Error
+end
+
+start:lsdef_t_h_i
+description:lsdef -t node -h -i status
+label:mn_only,ci_test,db
+cmd:lsdef -t node -h -i status
+check:rc==0
+check:output=~status
+end
+
+start:lsdef_nics
+description:lsdef --nics
+label:mn_only,ci_test,db
+cmd:lsdef testnode1;if [ $? -eq 0 ]; then lsdef -l testnode1 -z >/tmp/testnode1.stanza ; rmdef testnode1;fi
+cmd:mkdef -t node -o testnode1 groups=all mgt=ipmi nicips.eth0=1.1.1.1
+check:rc==0
+cmd:lsdef testnode1 --nics
+check:rc==0
+check:output=~1.1.1.1
+cmd:rmdef testnode1
+check:rc==0
+cmd:lsdef testnode1
+check:output=~Could not find
+cmd:if [ -e /tmp/testnode1.stanza ]; then cat /tmp/testnode1.stanza | mkdef -z; rm -rf /tmp/testnode1.stanza; fi
+end
+
+start:lsdef_template
+description:check xCAT supported template
+label:mn_only,ci_test,db
+cmd:lsdef --template
+check:rc==0
+check:output=~hmc\-template  \(node\)
+check:output=~ppc64le\-template  \(node\)
+check:output=~ppc64lekvmguest\-template  \(node\)
+check:output=~switch\-template  \(node\)
+check:output=~x86_64\-template  \(node\)
+check:output=~x86_64kvmguest\-template  \(node\)
+end
+
+start:lsdef_template_switch_template
+description:check xCAT supported template for switch template
+label:mn_only,ci_test,db
+cmd:lsdef --template switch-template
+check:rc==0
+check:output=~Object name\: switch-template
+check:output=~groups=switch
+check:output=~nodetype=switch
+check:output=~postbootscripts\=otherpkgs
+check:output=~postscripts\=syslog\,remoteshell\,syncfiles
+check:output=~usercomment\=the switch definition template
+check:output=~postscripts\=syslog\,remoteshell\,syncfiles
+check:output=~ip\=OPTIONAL\:the ip address of the switch
+check:output=~mac\=OPTIONAL\:the MAC address of the switch
+check:output=~switchtype\=OPTIONAL\:The type of switch
+end
+
+start:lsdef_template_with_invalid_name
+label:mn_only,ci_test,db
+description:lsdef --template with invalid template name
+cmd:result=`lsdef | grep  test_with_invalid_name`; if [[ $result =~ "test_with_invalid_name" ]]; then noderm test_with_invalid_name; fi
+cmd:lsdef --template "test_with_invalid_name"
+check:rc==1
+check:output=~Error: (\[.*?\]: )?Could not find test_with_invalid_name in xCAT templates.
+end

@@ -1,0 +1,125 @@
+#!/bin/sh
+
+#
+# Sample script to install and configure GPFS
+# For AIX:
+#    Assumes the GPFS filesets and updates were installed using
+#    xCAT bundle files or some other mechanism. This script does not
+#    install additional software.
+#    It will do the following:
+#      - create /var/mmfs/etc/nsddevices that simply returns 0
+#      - add GPFS paths to profile
+# For Linux:
+#    Assumes the base GPFS rpms were installed with the xCAT 'otherpkgs'
+#    postscript (stateful install) or with the otherpkgs processing of
+#    genimage (stateless/statelite install).  This script will install any
+#    gpfs update rpms that exist on the xCAT management node in the
+#    /install/post/otherpkgs/gpfs_updates directory.
+#    This is necessary because the GPFS updates can ONLY be installed
+#    after the base rpms have been installed, and the update rpms cannot
+#    exist in any rpm repositories used by xCAT otherpkgs processing
+#    since they will confuse rpm tools such as zypper and yum.
+#    This script will also do the following:
+#      - create /var/mmfs/etc/nsddevices that simply returns 0
+#      - add GPFS paths to profile
+
+# Set installroot here ONLY if passed in as an argument
+# Don't set otherwise -- may have been set as an ENV var for this script
+#   or not set at all if this was called as a postscript
+if [ -n "$1" ]; then
+  installroot=$1
+fi
+
+OS=`uname`
+INSTALL_DIR='/install'
+UPDATES_DIR='post/otherpkgs/gpfs_updates'
+
+if [ $OS != "AIX" ]; then
+    if [ $NODESETSTATE == "install" ] || [ $NODESETSTATE == "boot" ]; then
+    #  Being run from a stateful install postscript
+    #  Copy rpms directly from the xCAT management node and install
+        mkdir -p /tmp/gpfs_updates
+        rm -f -R /tmp/gpfs_updates/*
+        cd /tmp/gpfs_updates
+#        wget -l inf -N -r --waitretry=10 --random-wait --retry-connrefused -t 10 -T 60 -nH --cut-dirs=3 ftp://$MASTER/$UPDATES_DIR/*.rpm 2> /tmp/wget.log
+        wget -l inf -N -r --waitretry=10 --random-wait --retry-connrefused -t 10 -T 60 -nH --cut-dirs=4 --reject "index.html*"  --no-parent http://$MASTER$INSTALL_DIR/$UPDATES_DIR/ 2> /tmp/wget.log
+        if [ -n "`ls *.rpm 2> /dev/null`" ] ; then
+            rpm -Uvh *.rpm
+        fi
+        cd /
+        rm -f -R /tmp/gpfs_updates
+    fi
+
+    if [ $NODESETSTATE == "genimage" ]; then
+      if [ -d $INSTALL_DIR/$UPDATES_DIR ] ;  then
+    # Being called from <image>.postinstall script
+    # Assume we are on the same machine
+        if [[ $OS = sles* ]] || [[ $OS = suse* ]] || [[ -f /etc/SuSE-release ]]; then
+        # For SLES, assume zypper is available on the system running genimage
+            zypper -R $installroot ar file:$INSTALL_DIR/$UPDATES_DIR gpfs_updates
+        #   zypper -R $installroot install gpfs.gplbin*
+            zypper --non-interactive -R $installroot update  gpfs*
+            zypper -R $installroot rr gpfs_updates
+        else
+	# For Redhat, etc., assume yum is available on the system running genimage
+             yum -y --installroot $installroot --nogpgcheck localupdate $INSTALL_DIR/$UPDATES_DIR/*.rpm
+        fi
+      fi
+    fi
+fi
+
+## Create an empty nsddevices script for GPFS
+## This assumes that the node is NOT an NSD server
+#if [ $OS == "AIX" ]; then
+#    # Create the script on the node
+#    mkdir -p $installroot/var/mmfs/etc
+#    echo 'return 0' > $installroot/var/mmfs/etc/nsddevices
+#    chmod 744 $installroot/var/mmfs/etc/nsddevices
+#else  # assume Linux
+#    if [ $NODESETSTATE == "genimage" ]; then
+#        # Create the script in the image
+#        mkdir -p $installroot/var/mmfs/etc
+#        echo 'return 0' > $installroot/var/mmfs/etc/nsddevices
+#        chmod 744 $installroot/var/mmfs/etc/nsddevices
+#    else
+#        # Create the script on the node
+#        mkdir -p /var/mmfs/etc
+#        echo 'return 0' > /var/mmfs/etc/nsddevices
+#        chmod 744 /var/mmfs/etc/nsddevices
+#    fi
+#fi
+
+
+# Add GPFS path to profile
+if [ $OS == "AIX" ]; then
+    # add to /etc/profile
+    if ! grep 'mmfs' $installroot/etc/profile > /dev/null 2>&1; then
+        echo 'export PATH=$PATH:/usr/lpp/mmfs/bin' >> $installroot/etc/profile
+    fi
+else  # assume Linux
+    gpfsprofile=/etc/profile.d/gpfs
+    if [ $NODESETSTATE == "genimage" ]; then
+       gpfsprofile=$installroot$gpfsprofile
+    fi
+    if [ ! -e $gpfsprofile.sh ]; then
+        echo 'export PATH=$PATH:/usr/lpp/mmfs/bin' > $gpfsprofile.sh
+        echo 'setenv PATH ${PATH}:/usr/lpp/mmfs/bin' > $gpfsprofile.csh
+        # Turn off LANG support since we did not install other msg catalogs
+        echo 'export LC_CTYPE=POSIX' >> $gpfsprofile.sh
+        echo 'setenv LC_CTYPE POSIX' >> $gpfsprofile.csh
+        echo 'export LC_ALL=POSIX' >> $gpfsprofile.sh
+        echo 'setenv LC_ALL POSIX' >> $gpfsprofile.csh
+        chmod 744 $gpfsprofile.sh
+        chmod 744 $gpfsprofile.csh
+    fi
+fi
+
+# If you are using a shared home directory stored in GPFS,
+#   create the symbolic link
+#
+# GPFSHOME=$installroot/gpfs/home
+# HOMEDIR=$installroot/u
+# ln -s $GPFSHOME $HOMEDIR
+
+
+

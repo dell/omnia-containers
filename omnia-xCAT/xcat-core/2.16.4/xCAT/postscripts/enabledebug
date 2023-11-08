@@ -1,0 +1,13 @@
+#!/bin/ksh
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+#
+echo "$0: the OS version is $OSVER" | logger -t xcat -p local4.info
+case $OSVER in
+	sles*|suse*|ul*)
+		perl -pi -e 's/^KERNEL_LOGLEVEL=1/KERNEL_LOGLEVEL=8/' /etc/sysconfig/syslog
+		;;
+	rh*)
+		;;
+esac
+exit 0

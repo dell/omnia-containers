@@ -1,0 +1,44 @@
+start:gettab_key_table
+label:mn_only,ci_test,db
+cmd:gettab key=xcatdport site.value
+check:rc==0
+check:output==3001
+end
+
+
+start:gettab_H
+description:gettab -H and --with-fieldname
+label:mn_only,ci_test,db
+cmd:gettab -H key=master site.value
+check:rc==0
+check:output=~site.value:
+cmd:gettab --with-fieldname key=master site.value
+check:rc==0
+check:output=~site.value:
+end
+
+start:gettab_err
+description:gettab with invalid option, invalid key, and invalid attribute
+label:mn_only,ci_test,db
+cmd:gettab -c
+check:rc!=0
+check:output=~Usage
+cmd:gettab -H groups=master site.key
+check:rc!=0
+check:output=~Error:
+cmd:gettab -H key=master site.groups
+check:rc==0
+check:output=~^$
+end
+
+
+start:gettab_h
+description:gettab -h and -? and --help
+label:mn_only,ci_test,db
+cmd:gettab -h
+check:output=~Usage
+cmd:gettab -?
+check:output=~Usage
+cmd:gettab --help
+check:output=~Usage
+end

@@ -1,0 +1,82 @@
+=head1 Name
+
+prsync - parallel rsync
+
+=head1 B<Synopsis>
+
+B<prsync> I<filename> [I<filename> I<...>] I<noderange:destinationdirectory>
+
+B<prsync>  [B<-o> I<rsyncopts>] [B<-f> I<fanout>] [I<filename> I<filename> I<...>] [I<directory> I<directory> I<...>]
+I<noderange:destinationdirectory>
+
+B<prsync> {B<-h>|B<--help>|B<-v>|B<--version>}
+
+=head1 B<Description>
+
+B<prsync> is a front-end to rsync for a single or range of nodes and/or groups in parallel.
+
+Note:  this command does not support the xcatd client/server communication and therefore must be run on the management node. It does not support hierarchy, use B<xdcp -F> to run rsync from the management node to the compute node via a service node
+
+B<prsync> is NOT multicast, but is parallel unicasts.
+
+=head1 B<Options>
+
+=over 7
+
+=item B<-o> I<rsyncopts>
+
+rsync options.  See B<rsync(1)>.
+
+=item B<-f> I<fanout>
+
+Specifies a fanout value for the maximum number of concurrently executing remote shell processes.
+
+=item I<filename>
+
+A space delimited list of files to rsync.
+
+=item I<directory>
+
+A space delimited list of directories to rsync.
+
+=item I<noderange:destination>
+
+A L<noderange(3)|noderange.3> and destination directory.  The : is required.
+
+=item B<-h>|B<--help>
+
+Print help.
+
+=item B<-v>|B<--version>
+
+Print version.
+
+=back
+
+=over 4
+
+=item B<XCATPSHFANOUT>
+
+Specifies  the fanout value. This variable is overridden by
+the B<-f> flag.  Default is 64.
+
+=back
+
+
+=head1 B<Examples>
+
+=over 3
+
+=item 1.
+
+ cd /install; prsync -o "crz" post stage:/install
+
+=item 2.
+
+ prsync passwd group rack01:/etc
+
+=back
+
+=head1 B<See> B<Also>
+
+L<noderange(3)|noderange.3>, L<pscp(1)|pscp.1>, L<pping(1)|pping.1>, L<psh(1)|psh.1>

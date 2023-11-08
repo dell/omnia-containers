@@ -1,0 +1,39 @@
+#!/bin/bash
+#step 1, determine the realm and such
+DNSDOMAIN=`dnsdomainname`
+UPDNSDOMAIN=`echo $DNSDOMAIN|tr a-z A-Z`
+LDAPBASEDN=dc=`echo $DNSDOMAIN|sed -e 's/\./,dc=/'`
+HOSTPRINC=`hostname`
+#generate a random 32 character password
+MYPASS=$(tr -dc A-Za-z0-9 </dev/urandom|head -c 32)
+
+if [ "$OSVER" = "rhels6" ]; then
+    #enable kerberos
+    authconfig --update --krb5realm=$UPDNSDOMAIN --enablekrb5kdcdns --enablekrb5
+    #change password
+    (echo $TEMPHOSTPASS;echo $MYPASS;echo $MYPASS)|kpasswd $HOSTPRINC
+    (echo $MYPASS)|kinit $HOSTPRINC
+    #KVNO=`kvno $HOSTPRINC|awk '{print $NF}'`
+    #(echo add_entry -password -p $HOSTPRINC -k $KVNO -e des;echo $MYPASS;echo wkt /etc/host.keytab)|ktutil
+    OLDUMASK=`umask`
+    umask 0077
+    echo $MYPASS > /etc/krb5.hostpass
+    umask $OLDUMASK
+#ok, time for ldap
+    LDAPSRV=`host -t SRV _ldap._tcp.$DNSDOMAIN|awk '{print $NF}'`
+#sed -ie 's/#uri ldap:\/\/127.0.0.1/uri ldap:\/\/$LDAPSRV\//' /etc/nslcd.conf
+#sed -ie 's/# base dc.*/base $LDAPBASEDN/' /etc/nslcd.conf
+    echo use_sasl on >> /etc/nslcd.conf
+    echo sasl_mech GSSAPI >> /etc/nslcd.conf
+    echo sasl_secprops maxssf=0 >> /etc/nslcd.conf
+    echo krb5_ccname /var/run/ldap_krb5cc >> /etc/nslcd.conf
+    sed -i '/# Mappings for Active Directory/,/^$/ s/^#\([^ ]\)/\1/' /etc/nslcd.conf
+    authconfig --update --enableldap --ldapserver=$LDAPSRV --ldapbasedn=$LDAPBASEDN
+    echo 'kinit '$HOSTPRINC' -c /var/run/ldap_krb5cc < /etc/krb5.hostpass >& /dev/null;chown nslcd /var/run/ldap_krb5cc' >> /etc/rc.local
+    echo 'kinit '$HOSTPRINC' -c /var/run/ldap_krb5cc < /etc/krb5.hostpass >& /dev/null;chown nslcd /var/run/ldap_krb5cc' >> /etc/cron.hourly/nslcdkrb5cc.cron
+    chmod +x /etc/cron.hourly/nslcdkrb5cc.cron
+fi
+#TODO: SLES/maybe RHEL5.  Uncomfortable with libnss_ldap without root_krb5_ccname, ldap needs diff credentials per user
+# or else the host private key must be wide open...
+
+

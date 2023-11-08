@@ -1,0 +1,71 @@
+#!/bin/bash
+
+#
+# This postscript sets up a scratch area on the local disk for stateless
+# nodes. It is for Linux only.
+# If run with -f flag, it will wipe out all the contents on the disk and
+# repartition the disk before setting up the scratch area.
+#
+#====================================================================
+ME="setupscratch"
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+mydir="/scratch"
+umount $mydir
+
+if [[ $1 != "-f" ]]
+then
+    if grep sda1 /proc/partitions >/dev/null 2>&1
+    then
+	    echo Autodetected existing /dev/sda1
+	    logger -t $log_label -p local4.info $ME Autodetected existing /dev/sda1
+	    echo Checking filesystem /dev/sda1
+	    logger -t $log_label -p local4.info $ME Checking filesystem /dev/sda1
+	    fsck -y /dev/sda1
+	    mkdir -p $mydir
+	    echo mounting existing /dev/sda1 to $mydir
+	    logger -t $log_label -p local4.info $ME mounting existing /dev/sda1 to $mydir
+	    if mount /dev/sda1 $mydir
+	    then
+		    echo
+		    echo Done!
+		    echo
+		    exit 0
+	    else
+		    echo mounting /dev/sda1 to $mydir failed
+		    logger -t $log_label -p local4.warning  $ME mounting /dev/sda1 to $mydir failed
+	    fi
+    fi
+fi
+
+
+echo Creating Partition
+logger -t $log_label -p local4.info $ME Creating Partition
+parted -s /dev/sda mklabel gpt
+parted -s -- /dev/sda mkpart primary ext4 0 -0
+if grep sda1 /proc/partitions >/dev/null 2>&1
+then
+	sleep 5
+else
+	echo failed to create partition, exiting $ME
+	logger -t $log_label -p local4.err  $ME failed to create partition, exiting $ME
+	echo
+	echo Failed!
+	echo
+	exit 1
+fi
+
+echo Creating new ext4 filesystem: /dev/sda1
+logger -t $log_label -p local4.info $ME Creating new ext4 filesystem: /dev/sda1
+mke2fs -j /dev/sda1
+mkdir -p $mydir
+echo mounting new /dev/sda1 to $mydir
+logger -t $log_label -p local4.info $ME mounting new /dev/sda1 to $mydir
+mount /dev/sda1 $mydir
+echo
+echo Done!
+echo
+exit 0

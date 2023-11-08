@@ -1,0 +1,16 @@
+bash
+nfs-utils
+openssl
+dhcpcd
+kernel-smp
+openssh
+procps
+psmisc
+resmgr
+wget
+rsync
+timezone
+ntp
+tar
+gzip
+xz

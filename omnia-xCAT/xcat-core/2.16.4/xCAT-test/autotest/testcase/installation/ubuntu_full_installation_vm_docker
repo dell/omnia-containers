@@ -1,0 +1,47 @@
+start:Full_installation_flat_docker
+os:Linux
+label:others,docker,invoke_provision
+cmd:copycds $$ISO
+check:rc==0
+cmd:makedns -n
+check:rc==0
+cmd:makeconservercf
+check:rc==0
+cmd:makedhcp -n
+check:rc==0
+cmd:mkdef -t osimage -o __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-dockerhost -u profile=compute provmethod=install
+check:rc==0
+cmd:if [[ "__GETNODEATTR($$CN,os)__" =~ "ubuntu" ]];then  ver=`cat /etc/*-release |grep "VERSION_ID"|  awk -F '"'  '{print $2}'| awk -F"." '{printf "%s%s\n",$1,$2}'` ; chdef -t osimage -o __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-dockerhost  otherpkgdir="https://apt.dockerproject.org/repo ubuntu-trusty main,http://cz.archive.ubuntu.com/ubuntu trusty main" otherpkglist="/install/custom/ubuntu$ver/ubuntu"$ver"_docker.pkglist" osdistroname="__GETNODEATTR($$CN,os)__ ";fi
+check:rc==0
+cmd:if [[ "__GETNODEATTR($$CN,os)__" =~ "ubuntu" ]];then ver=`cat /etc/*-release |grep "VERSION_ID"|  awk -F '"'  '{print $2}'| awk -F"." '{printf "%s%s\n",$1,$2}'` ; mkdir -p /install/custom/ubuntu$ver/ ;  chdef -t osimage -o __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-dockerhost otherpkglist="/install/custom/ubuntu$ver/ubuntu"$ver"_docker.pkglist"  pkglist="/install/custom/ubuntu$ver/ubuntu$ver.pkglist";fi
+check:rc==0
+cmd:if [[ "__GETNODEATTR($$CN,os)__" =~ "ubuntu" ]];then ver=`cat /etc/*-release |grep "VERSION_ID"|  awk -F '"'  '{print $2}'| awk -F"." '{printf "%s%s\n",$1,$2}'` ;for i in openssh-server ntp gawk nfs-common snmpd bridge-utils; do  cat /install/custom/ubuntu$ver/ubuntu$ver.pkglist|grep "$i$";if [ $? -ne 0 ] ; then echo "$i" >> /install/custom/ubuntu$ver/ubuntu$ver.pkglist; fi done;fi
+check:rc==0
+cmd:if [[ "__GETNODEATTR($$CN,os)__" =~ "ubuntu14.04" ]];then ver=`cat /etc/*-release |grep "VERSION_ID"|  awk -F '"'  '{print $2}'| awk -F"." '{printf "%s%s\n",$1,$2}'`; for i in docker-engine;do cat /install/custom/ubuntu$ver/ubuntu"$ver"\_docker.pkglist |grep "$i$";if [ $? -ne 0 ] ; then echo "$i" >> /install/custom/ubuntu$ver/ubuntu"$ver"\_docker.pkglist;fi done;fi
+check:rc==0
+cmd: chdef $$CN -p postbootscripts="setupdockerhost mynet0=$$MYNET0VALUE@$$DOCKERHOSIP:$$NICNAME"
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/commoncmd/retry_install.sh  $$CN __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-dockerhost
+check:rc==0
+check:output=~Provision node\(s\)\: $$CN
+
+cmd:a=0;while ! `lsdef -l $$CN|grep status|grep booted >/dev/null`; do sleep 10;((a++));if [ $a -gt 360 ];then break;fi done
+
+cmd:ping $$CN -c 3
+check:output=~64 bytes from $$CN
+check:rc==0
+cmd:lsdef -l $$CN | grep status
+check:output=~booted
+cmd:xdsh $$CN date
+check:rc==0
+cmd:xdsh $$CN "docker -v"
+check:output=~Docker version
+check:rc==0
+
+cmd:a=0;while true; do [ $a -eq 100 ] && exit 1;xdsh $$CN "docker pull $$DOCKERIMAGE";output=$(xdsh $$CN "docker images");echo $output|grep $$DOCKERIMAGE 2>/dev/null && exit 0;a=$[$a+1];sleep 1;done
+check:rc==0
+cmd:rmdef -t osimage -o __GETNODEATTR($$CN,os)__-__GETNODEATTR($$CN,arch)__-install-dockerhost
+check:rc==0
+cmd: chdef $$CN postbootscripts=
+check:rc==0
+end

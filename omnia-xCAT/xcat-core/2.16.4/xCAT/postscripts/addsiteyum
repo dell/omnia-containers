@@ -1,0 +1,29 @@
+#!/bin/bash
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+cd `dirname $0`
+if [ ! -d repos/$OSVER/$ARCH ];  then
+   logger -t $log_label -p local4.err "addsiteyum: repos/$OSVER/$ARCH is not a directory"
+   exit -1;
+fi
+for i in repos/$OSVER/$ARCH/*
+do
+   if [ ! -r "$i" ]; then
+      continue
+   fi
+   TARGFILE=`basename $i`
+   TARGFILE=`echo $TARGFILE|sed -e s/.tmpl$/.repo/`
+   sed -e s!#INSTSERVER#!$MASTER! $i > /etc/yum.repos.d/$TARGFILE
+
+   # disable the internet repos which are created by addsiteyum
+   if [ -r "/etc/yum.repos.d/CentOS-Base.repo" ]; then
+       TMP=`sed -e '/enabled/d' /etc/yum.repos.d/CentOS-Base.repo | sed -e '/^gpgkey/i enabled=0'`
+       echo "$TMP" > /etc/yum.repos.d/CentOS-Base.repo
+   fi
+
+done
+
+exit 0

@@ -1,0 +1,131 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+BEGIN
+{
+    $::XCATROOT = $ENV{'XCATROOT'} ? $ENV{'XCATROOT'} : -d '/opt/xcat' ? '/opt/xcat' : '/usr';
+}
+use lib "$::XCATROOT/lib/perl";
+
+use Cwd;
+use File::Basename;
+use xCAT::MsgUtils;
+use xCAT::Client;
+use strict;
+use Getopt::Std;
+
+my $bname = basename($0);
+
+#########################################
+# Main
+#
+#   xcatDBcmds
+#
+#	Build hash and submit request
+#
+#	Handles: mkdef, chdef, lsdef, rmdef, mknimimage, rmnimimage,
+#		nimnodeset, mkdsklsnode, rmdsklsnode, and xcat2nim commands
+#
+#	Note: The subroutines that implement these commands
+#		are, for the most part, in:
+#			/opt/xcat/lib/perl/xCAT_plugin/DBobjectdefs.pm
+#			/opt/xcat/lib/perl/xCAT_plugin/xcat2nim.pm
+#			/opt/xcat/lib/perl/xCAT_plugin/aixinstall.pm
+#			/opt/xcat/lib/perl/xCAT/DBobjUtils.pm
+#
+#########################################
+
+my $cmdref;
+
+# set the command name to pass to the plugin
+if ($bname =~ /xcatDBcmds/)
+{
+    $cmdref->{command}->[0] = shift @ARGV;
+}
+elsif ($bname =~ /^(.*$)/)
+{
+    $cmdref->{command}->[0] = $1;
+}
+else
+{
+    printf("Bad usage\n");
+    exit 1;
+}
+
+$cmdref->{cwd}->[0] = cwd();
+
+# get info from files piped in as stdin
+my $data;
+if ((($^O =~ /^linux/i) && ($ENV{'SHELL'} =~ /\/ksh$/)) || !defined($ENV{'TERM'}))
+{
+    my $rout;
+    my $rin = "";
+    vec($rin, fileno(STDIN), 1) = 1;
+    my $nfound = select($rout = $rin, "", "", 1);
+    if ($nfound)
+    {
+        while (<STDIN>) { $data .= $_; }
+        $cmdref->{stdin}->[0] = $data;
+    }
+}
+else
+{
+    unless (-t STDIN) {
+        while (<STDIN>) { $data .= $_; }
+        $cmdref->{stdin}->[0] = $data;
+    }
+}
+
+# The noderange can be specified through a noderange file
+# the noderange file can be a relative path,
+# convert the relative path to a full path.
+my @tmpargv = ();
+my @tmpv    = @ARGV;
+foreach my $a (@tmpv)
+{
+    if (!($a =~ /=/) && !($a =~ /^-/)) {
+        my @tempnr = ();
+        foreach my $nr (split(/,/, $a)) {
+            if ($nr =~ /^\^(.*)$/) {
+                my $nrf = $1;
+                if ($nrf !~ /^\//) {    #relative path
+                    $nrf = Cwd::abs_path($nrf);
+                }
+                $nrf = "\^" . $nrf;
+                push @tempnr, $nrf;
+            } else {
+                push @tempnr, $nr;
+            }
+        }
+        $a = join(',', @tempnr);
+    }
+    push @tmpargv, $a;
+}
+@ARGV = @tmpargv;
+
+# add all the cmd line args to the hash - to pass to the plugin subroutine
+foreach my $a (@ARGV)
+{
+    push(@{ $cmdref->{arg} }, $a);
+}
+
+# For some commands we need to set the noderange value
+# - don't want to depend on the order of args so need to pick
+#   the operand that doesn't have an "=" sign ( ie. attr=val format)
+my @checkcmds = ("nimnodeset", "mkdsklsnode", "rmdsklsnode", "xcat2nim", "nimnodecust");
+if (grep(/^$bname$/, @checkcmds)) {
+
+    # strip off all options
+    # use getopt instead of getopts to let long options pass through
+    getopt('ismot');
+
+    # check the operands for a noderange
+    while (my $a = shift(@ARGV)) {
+        if (!($a =~ /=/) && !($a =~ /^-/)) {
+            $cmdref->{noderange}->[0] = $a;
+            last;
+        }
+    }
+}
+
+xCAT::Client::submit_request($cmdref, \&xCAT::Client::handle_response);
+exit $xCAT::Client::EXITCODE;

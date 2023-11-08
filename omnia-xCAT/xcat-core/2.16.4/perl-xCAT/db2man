@@ -1,0 +1,526 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+# Builds the xCAT database man pages from the descriptions that are contained
+# in Schema.pm.  This script is run during the build of the perl-xCAT rpm, but
+# is not packaged in the binary form of that rpm.
+
+# We assume that this script is run in the perl-xCAT-2.0 dir, so everything is
+# done relative to that.
+
+use strict;
+use lib '.';
+
+use xCAT::Schema;
+use xCAT::Table;
+use Pod::Man;
+use Pod::Html;
+
+my $poddir   = 'pods';
+my $mandir   = 'share/man';
+my $htmldir  = 'share/doc';
+my $cachedir = "$ENV{'HOME'}/tmp";
+if (system("mkdir -p $cachedir")) { die "Error: could not create $cachedir.\n"; }
+my $isaix     = ($^O =~ /^aix/i);
+my $skiponaix = 'route|group';
+
+my $poddir5 = 'pods/man5';
+my $poddir7 = 'pods/man7';
+if (system("mkdir -p $poddir5")) { die "Error: could not create $poddir5.\n"; }
+if (system("mkdir -p $poddir7")) { die "Error: could not create $poddir7.\n"; }
+
+# Build the DB overview page.
+print "Building PODs pages for the database tables...\n";
+writesummarypage("$poddir5/xcatdb.5.pod", xCAT::Table->getDescriptions(), \%{xCAT::Schema::defspec});
+
+# Build the pod man page for each object definition
+my $defspecref = \%{xCAT::Schema::defspec};
+foreach my $defkey (keys %$defspecref) {
+    my $def   = $defspecref->{$defkey};
+    my $attrs = $def->{'attrs'};
+    writedefmanpage("$poddir7/$defkey.7.pod", $defkey, $attrs);
+}
+
+# Build the pod man page for each table.
+my $tabspecref = \%xCAT::Schema::tabspec;
+foreach my $tablekey (keys %$tabspecref) {
+    my $table        = $tabspecref->{$tablekey};
+    my $summary      = $table->{table_desc};
+    my $colorder     = $table->{cols};
+    my $descriptions = $table->{descriptions};
+    writepodmanpage("$poddir5/$tablekey.5.pod", $tablekey, $summary, $colorder, $descriptions);
+}
+
+my @pods = getPodList($poddir);
+
+#foreach (@pods) { print "$_\n"; } exit;
+
+# Build the man page for each pod.
+#mkdir($mandir) or die "Error: could not create $mandir.\n";
+print "Converting PODs to man pages...\n";
+foreach my $podfile (@pods) {
+    if ($isaix && grep(/\/($skiponaix)\.\d\.pod$/, $podfile)) { print "Skipping $podfile\n"; next; }
+    my $manfile = $podfile;
+    $manfile =~ s/^$poddir/$mandir/;    # change the beginning of the path
+    $manfile =~ s/\.pod$//;             # change the ending
+    my $mdir = $manfile;
+    $mdir =~ s|/[^/]*$||;               # get rid of the basename part
+    if (system("mkdir -p $mdir")) { die "Error: could not create $mdir.\n"; }
+    my ($section) = $podfile =~ /\.(\d+)\.pod$/;
+    convertpod2man($podfile, $manfile, $section);
+}
+
+# Build the html page for each pod.
+#mkdir($htmldir) or die "Error: could not create $htmldir.\n";
+print "Converting PODs to HTML pages...\n";
+
+# have to clear the cache, because old entries can cause a problem
+unlink("$cachedir/pod2htmd.tmp", "$cachedir/pod2htmi.tmp");
+foreach my $podfile (@pods) {
+    my $htmlfile = $podfile;
+    $htmlfile =~ s/^$poddir/$htmldir/;    # change the beginning of the path
+    $htmlfile =~ s/\.pod$/\.html/;        # change the ending
+    my $hdir = $htmlfile;
+    $hdir =~ s|/[^/]*$||;                 # get rid of the basename part
+    if (system("mkdir -p $hdir")) { die "Error: could not create $hdir.\n"; }
+    convertpod2html($podfile, $htmlfile, $poddir, $htmldir);
+}
+
+exit;
+
+
+# Recursively get the list of pod man page files.
+sub getPodList {
+    my $poddir = shift;
+    my @files;
+
+    # 1st get toplevel dir listing
+    opendir(DIR, $poddir) or die "Error: could not read $poddir.\n";
+    my @topdir = grep !/^\./, readdir(DIR);    # /
+    close(DIR);
+
+    # Now go thru each subdir (these are man1, man3, etc.)
+    foreach my $mandir (@topdir) {
+        opendir(DIR, "$poddir/$mandir") or die "Error: could not read $poddir/$mandir.\n";
+        my @dir = grep !/^\./, readdir(DIR);    # /
+        close(DIR);
+        foreach my $file (@dir) {
+            push @files, "$poddir/$mandir/$file";
+        }
+    }
+    return sort @files;
+}
+
+
+# Create the html page for one pod.
+sub convertpod2html {
+    my ($podfile, $htmlfile, $poddir, $htmldir) = @_;
+
+    #TODO: use --css=<stylesheet> and --title=<pagetitle> to make the pages look better
+    pod2html($podfile,
+        "--outfile=$htmlfile",
+        "--podpath=man5:man7",
+        "--podroot=$poddir",
+        "--htmldir=$htmldir",
+        "--recurse",
+        "--cachedir=$cachedir",
+    );
+
+}
+
+
+# Create the man page for one pod.
+sub convertpod2man {
+    my ($podfile, $manfile, $section) = @_;
+
+    my $parser = Pod::Man->new(section => $section);
+    $parser->parse_from_file($podfile, $manfile);
+}
+
+
+# Create the xcatdb man page that gives a summary description of each table.
+sub writesummarypage {
+    my $file         = shift;  # relative path file name of the man page
+    my $descriptions = shift;  # a hash containing the description of each table
+    my $defdescriptions = shift; # a hash containing the description of each object definition
+
+    open(FILE, ">$file") or die "Error: could not open $file for writing.\n";
+
+    print FILE <<'EOS1';
+=head1 NAME
+
+An overview of the xCAT database.
+
+=head1 DESCRIPTION
+
+The xCAT database contains user settings for the cluster and information gathered from the cluster.
+It consists of a series of tables, which are described below.  To get more information about a
+particular table, run man for that table name.  The tables can be manipulated directly using the
+B<tabedit> or B<chtab> commands.  They can be viewed using B<nodels> or B<tabdump>.
+
+Alternatively, the xCAT database can be viewed and edited as logical objects, instead of flat tables.
+In this mode, xCAT takes care of which table each attribute should go in.  To treat the database
+as logical object definitions, use the commands:  B<lsdef>, B<mkdef>, B<chdef>, B<rmdef>.  See Object Definitions
+below.
+
+xCAT allows the use of different database applications, depending on the needs of your cluster.
+The default database is SQLite, which is a daemonless, zero-config database.  But you could instead
+choose to use something like postgresql for greater scalability and remote access in the
+hierarchical/service node case.  To use a different database or a different location, create
+the file /etc/xcat/cfgloc.  See the appropriate xCAT docuementation for the format of the file for the database you choose.
+The following example /etc/xcat/cfgloc file is for PostgreSQL:
+
+ Pg:dbname=xcat;host=<mgmtnode>|<pgadminuserid>|<pgadminpasswd>
+
+where mgmtnode is the hostname of the management node adapter on the cluster side, and the pgadminuserid and pgadminpasswd are the database admin and password.
+
+=head2 GROUPS AND REGULAR EXPRESSIONS IN TABLES
+
+The xCAT database has a number of tables, some with rows that are keyed by node name
+(such as noderes and nodehm) and others that are not keyed by node name (for example, the policy table).
+The tables that are keyed by node name have some extra features that enable a more
+template-based style to be used:
+
+Any group name can be used in lieu of a node name in the node field, and that row will then
+provide "default" attribute values for any node in that group.  A row with a specific node name
+can then override one or more attribute values for that specific node.  For example, if the nodehm table contains:
+
+ #node,power,mgt,cons,termserver,termport,conserver,serialport,serialspeed,serialflow,getmac,cmdmapping,comments,disable
+ "mygroup",,"ipmi",,,,,,"19200",,,,,
+ "node1",,,,,,,,"115200",,,,,
+
+In the above example, the node group called mygroup sets mgt=ipmi and serialspeed=19200.  Any nodes that are in this group
+will have those attribute values, unless overridden.  For example, if node2 is a member of mygroup, it will automatically
+inherit these attribute values (even though it is not explicitly listed in this table).  In the case of node1 above, it
+inherits mgt=ipmi, but overrides the serialspeed to be 115200, instead of 19200.  A useful, typical way to use this
+capability is to create a node group for your nodes and for all the attribute values that are the same for every node,
+set them at the group level.  Then you only have to set attributes for each node that vary from node to node.
+
+xCAT extends the group capability so that it can also be used for attribute values that vary from node to node
+in a very regular pattern.  For example, if in the ipmi table you want the bmc attribute to be set to whatever the nodename is with
+"-bmc" appended to the end of it, then use this in the ipmi table:
+
+ #node,bmc,bmcport,taggedvlan,bmcid,username,password,comments,disable
+ "compute","/\z/-bmc/",,,,,,,
+
+In this example, "compute" is a node group that contains all of the compute nodes.  The 2nd attribute (bmc) is a regular
+expression that is similar to a substitution pattern.  The 1st part "\z" matches the end of the node name and substitutes "-bmc", effectively appending it to the node name.
+
+Another example is if node1 is to have IP address 10.0.0.1, node2 is to have IP address 10.0.0.2, etc.,
+then this could be represented in the hosts table with the single row:
+
+ #node,ip,hostnames,otherinterfaces,comments,disable
+ "compute","|node(\d+)|10.0.0.($1+0)|",,,,
+
+In this example, the regular expression in the ip attribute uses "|" to separate the 1st and 2nd part.  This means that
+xCAT will allow arithmetic operations in the 2nd part.  In the 1st part, "(\d+)", will match the number part of the node
+name and put that in a variable called $1.  The 2nd part
+is what value to give the ip attribute.  In this case it will set it to the string "10.0.0." and the number that is
+in $1.  (Zero is added to $1 just to remove any leading zeroes.)
+
+A more involved example is with the mp table.  If your blades have node names node01, node02, etc., and your chassis
+node names are cmm01, cmm02, etc., then you might have an mp table like:
+
+ #node,mpa,id,nodetype,comments,disable
+ "blade","|\D+(\d+)|cmm(sprintf('%02d',($1-1)/14+1))|","|\D+(\d+)|(($1-1)%14+1)|",,
+
+Before you panic, let me explain each column:
+
+=over 4
+
+=item B<blade>
+
+This is a group name.  In this example, we are assuming that all of your blades belong to this
+group.  Each time the xCAT software accesses the B<mp> table to get the management module and slot number
+of a specific blade (e.g. B<node20>), this row will match (because B<node20> is in the B<blade> group).
+Once this row is matched for B<node20>, then the processing described in the following items will take
+place.
+
+=item B<|\D+(\d+)|cmm(sprintf('%02d',($1-1)/14+1))|>
+
+This is a perl substitution pattern that will produce the value for the second column of the table (the
+management module hostname).  The text B<\D+(\d+)> between the 1st two vertical bars is
+a regular expression that matches the node
+name that was searched for in this table (in this example B<node20>).  The text that matches
+within the 1st set of parentheses is set to $1.  (If there was a 2nd set of parentheses, it would
+be set to $2, and so on.)  In our case, the \D+ matches the non-numeric part of the name
+(B<node>) and the B<\d+> matches the numeric part (B<20>).  So $1 is set to B<20>.  The text B<cmm(sprintf('%02d',($1-1)/14+1))> between the
+2nd and 3rd vertical bars produces the string that should be used as the value for the mpa attribute for node20.
+Since $1 is set to 20, the expression B<($1-1)/14+1> equals
+19/14 + 1, which equals 2.  (The division is integer division,
+so 19/14 equals 1.  Fourteen is used as the divisor, because there are 14 blades in each chassis.)  The value of 2 is then passed into sprintf() with a format string to add a leading
+zero, if necessary, to always make the number two digits.  Lastly the string B<cmm> is added to the beginning,
+making the resulting string B<cmm02>, which will be used as the hostname
+of the management module.
+
+=item B<|\D+(\d+)|(($1-1)%14+1)|>
+
+This item is similar to the one above.  This substituion pattern will produce the value for
+the 3rd column (the chassis slot number for this blade).  Because this row was
+the match for B<node20>, the parentheses
+within the 1st set of vertical bars will set $1 to 20.  Since % means modulo division, the
+expression B<($1-1)%14+1> will evaluate to B<6>.
+
+=back
+
+See http://www.perl.com/doc/manual/html/pod/perlre.html for information on perl regular expressions.
+
+=head2 Easy Regular Expressions
+
+As of xCAT 2.8.1, you can use a modified version of the regular expression support described in the previous section. You do not need to enter the node information (1st part of the expression), it will be derived from the input nodename. You only need to supply the 2nd part of the expression to determine the value to give the attribute. For examples, see
+
+http://xcat-docs.readthedocs.org/en/latest/guides/admin-guides/basic_concepts/xcat_db/regexp_db.html#easy-regular-expressions
+
+=head2 Regular Expression Helper Functions
+
+xCAT provides several functions that can simplify regular expressions.
+
+=over 4
+
+=item B<a2idx>
+
+ASCII Character to Index
+
+=item B<a2zidx>
+
+ASCII Character to 0-Index
+
+=item B<dim2idx>
+
+Dimensions to Index
+
+=item B<skip>
+
+Skip indices
+
+=item B<ipadd>
+
+Add to an IP address
+
+=back
+
+http://xcat-docs.readthedocs.org/en/latest/guides/admin-guides/basic_concepts/xcat_db/regexp_db.html#regular-expression-helper-functions
+
+=head1 OBJECT DEFINITIONS
+
+Because it can get confusing what attributes need to go in what tables, the xCAT database can also
+be viewed and edited as logical objects, instead of flat tables.  Use B<mkdef>, B<chdef>, B<lsdef>,
+and B<rmdef> to create, change, list, and delete objects.
+When using these commands, the object attributes will be stored in the same tables, as if you edited
+the tables by hand.  The only difference is that the object commands take care of knowing which tables
+all of the information should go in.
+
+=head2 B<xCAT Object Name Format>:
+
+
+B<xCAT Object Name Format> is defined by the following regex:
+
+ ^([A-Za-z-]+)([0-9]+)(([A-Za-z-]+[A-Za-z0-9-]*)*)
+
+In plain English, an object name is in B<xCAT Object Name Format> if starting from the begining there are:
+
+=over 2
+
+=item *
+
+one or more alpha characters of any case and any number of "-" in any combination
+
+=item *
+
+followed by one or more numbers
+
+=item *
+
+then optionally followed by one alpha character of any case  or "-"
+
+=item *
+
+followed by any combination of case mixed alphanumerics and "-"
+
+=back
+
+=head2 B<Object Types>
+
+To run man for any of the object definitions below, use section 7.  For example:  B<man 7 node>
+
+The object types are:
+
+=over 2
+EOS1
+
+    foreach my $def (sort keys %$defdescriptions) {
+        print FILE "\n=item L<$def(7)|$def.7>\n";
+    }
+
+    print FILE <<"EOS2";
+
+=back
+
+=head1 TABLES
+
+To manipulate the tables directly, use B<nodels(1)>, B<chtab(8)>, B<tabdump(8)>, B<tabedit(8)>,
+B<nodeadd(8)>, B<nodech(1)>.
+
+To run man for any of the table descriptions below, use section 5.  For example:  B<man 5 nodehm>
+
+The tables are:
+
+=over 2
+EOS2
+
+    foreach my $table (sort keys %$descriptions) {
+        print FILE "\n=item L<$table(5)|$table.5>\n\n" . $descriptions->{$table} . "\n";
+    }
+
+    print FILE <<"EOS3";
+
+=back
+
+=head1 SEE ALSO
+
+B<nodels(1)>, B<chtab(8)>, B<tabdump(8)>, B<tabedit(8)>, B<lsdef(1)>, B<mkdef(1)>, B<chdef(1)>, B<rmdef(1)>
+EOS3
+
+    close FILE;
+}
+
+
+# Create the man page for one object definition.
+sub writedefmanpage {
+    my $file    = shift;    # relative path file name of the man page
+    my $defname = shift;    # name of object
+    my $attrs   = shift;    # reference to the array of attributes
+
+    # Go thru the attributes, collecting the descriptions
+    # Note:  this logic is loosely taken from DBobjectdefs.pm
+    my %attrlist; # holds the attr name as the key, and the description & tables as value
+    foreach my $this_attr (@$attrs) {
+        my $attr = $this_attr->{attr_name};
+        my $desc = $this_attr->{description};
+        my ($table, $at) = split(/\./, $this_attr->{tabentry});
+        if (!defined($desc)) {
+
+            # description key not there, so go to the corresponding
+            #	entry in tabspec to get the description
+            my $schema = xCAT::Table->getTableSchema($table);
+            $desc = $schema->{descriptions}->{$at};
+        }
+
+        # Attr names can appear more than once, if they are in multiple tables.
+        # We will keep track of that based on the table attribute, because that can be duplicated too
+        if (!defined($attrlist{$attr})) {
+            $attrlist{$attr}->{'tables'} = []; # initialize the array, so we can check it below
+        }
+        my $tableattr = "$table.$at";
+        if (!grep(/^$tableattr$/, @{ $attrlist{$attr}->{'tables'} })) {
+
+            # there can be multiple entries that refer to the same table attribute
+            # if this is a new table attribute, then save the attr name and description
+            push @{ $attrlist{$attr}->{'tables'} },       $tableattr;
+            push @{ $attrlist{$attr}->{'descriptions'} }, $desc;
+        }
+    }
+
+    open(FILE, ">$file") or die "Error: could not open $file for writing.\n";
+
+    print FILE <<"EOS1";
+=head1 NAME
+
+B<$defname> - a logical object definition in the xCAT database.
+
+=head1 SYNOPSIS
+
+EOS1
+
+    print FILE "B<$defname Attributes:>  I<" . join('>, I<', sort(keys(%attrlist))) . ">\n";
+
+    print FILE <<"EOS2";
+
+=head1 DESCRIPTION
+
+Logical objects of this type are stored in the xCAT database in one or more tables.  Use the following commands
+to manipulate the objects: B<mkdef>, B<chdef>, B<lsdef>, and B<rmdef>.  These commands will take care of
+knowing which tables the object attributes should be stored in.  The attribute list below shows, in
+parentheses, what tables each attribute is stored in.
+
+=head1 $defname Attributes:
+
+=over 6
+
+EOS2
+
+    foreach my $a (sort keys %attrlist) {
+        my $d = join("\n\nor\n\n", @{ $attrlist{$a}->{'descriptions'} });
+
+        #$d =~ s/\n/\n\n/sg;      # if there are newlines, double them so pod sees a blank line, otherwise pod will ignore them
+        my $t = '(' . join(', ', @{ $attrlist{$a}->{'tables'} }) . ')';
+
+        #print FILE "\nB<$a> - $d\n";
+        print FILE "\n=item B<$a> $t\n\n$d\n";
+    }
+
+    print FILE <<"EOS3";
+
+=back
+
+=head1 SEE ALSO
+
+B<mkdef(1)>, B<chdef(1)>, B<lsdef(1)>, B<rmdef(1)>
+EOS3
+
+    close FILE;
+}
+
+
+# Create the man page for one table.
+sub writepodmanpage {
+    my $file      = shift;    # relative path file name of the man page
+    my $tablename = shift;    # name of table
+    my $summary   = shift;    # description of table
+    my $colorder = shift; # the order in which the table attributes should be presented in
+    my $descriptions = shift; # a hash containing the description of each attribute
+
+    open(FILE, ">$file") or die "Error: could not open $file for writing.\n";
+
+    print FILE <<"EOS1";
+=head1 NAME
+
+B<$tablename> - a table in the xCAT database.
+
+=head1 SYNOPSIS
+
+EOS1
+
+    print FILE "B<$tablename Attributes:>  I<" . join('>, I<', @$colorder) . ">\n";
+
+    print FILE <<"EOS2";
+
+=head1 DESCRIPTION
+
+$summary
+
+=head1 $tablename Attributes:
+
+=over 10
+
+EOS2
+
+    foreach my $a (@$colorder) {
+        my $d = $descriptions->{$a};
+
+        #$d =~ s/\n/\n\n/sg;      # if there are newlines, double them so pod sees a blank line, otherwise pod will ignore them
+        #print FILE "\nB<$a> - $d\n";
+        print FILE "\n=item B<$a>\n\n$d\n";
+    }
+
+    print FILE <<"EOS3";
+
+=back
+
+=head1 SEE ALSO
+
+B<nodels(1)>, B<chtab(8)>, B<tabdump(8)>, B<tabedit(8)>
+EOS3
+
+    close FILE;
+}

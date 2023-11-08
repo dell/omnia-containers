@@ -1,0 +1,93 @@
+#!/bin/bash
+#Used only by sysclone
+
+installmethods=''
+if [ -f "/etc/xcat/xcatinstallinfo" ];then
+    installmethods=`cat /etc/xcat/xcatinstallinfo`
+fi
+
+if [ "$installmethods" != "sysclone" ];then
+#    echo "This node didn't be installed by sysclone"
+    exit 0
+fi
+
+#update the exclude configuration file
+#do not sync the following files
+for filename in \
+    /boot/efi \
+    /boot/grub \
+    /etc/fstab \
+    /etc/grub.conf \
+    /etc/lilo.conf \
+    /etc/elilo.conf \
+    /etc/xcat \
+    /etc/yaboot.conf \
+    /etc/hosts \
+    /etc/udev/rules.d  \
+    /etc/modprobe.d/bond0.conf \
+    /etc/modprobe.d/bond1.conf \
+    /etc/ssh \
+    /etc/sysconfig/syslog \
+    /etc/syslog-ng/syslog-ng.conf \
+    /opt/xcat \
+    /root/.ssh \
+    /var/cache \
+    /xcatpost
+do
+    if [ ! -e $filename ];then
+        continue
+    fi
+
+    grep -E "^\s*${filename}\s*$" "/etc/systemimager/updateclient.local.exclude"
+    if [ $? -ne 0 ];then
+        echo "$filename" >> "/etc/systemimager/updateclient.local.exclude"
+    fi
+done
+
+#get the current image server
+str_server_ip=''
+. /opt/xcat/xcatinfo
+if [ -n "$XCATSERVER" ];then
+    str_server_ip=$XCATSERVER
+else
+    str_server_ip=$MASTER
+fi
+
+if [ -z "$str_server_ip" ];then
+    echo "Can not find out the image server."
+    exit 1
+fi
+
+str_server_ip=`echo $str_server_ip | sed "s/'//g"`
+#call system imager command to update the image
+echo "si_updateclient --server $str_server_ip --yes"
+export PERL5LIB=/usr/lib/perl5/site_perl/;LANG=C si_updateclient --server $str_server_ip --yes
+
+if [[ -f /sbin/dracut ]]; then
+    # redhat6.x/centos6.x/rhels7.x
+    echo "Running dracut to regenerate the initrd with the drivers needed by this node:"
+    arch=`uname -m`
+    #echo "arch=$arch"
+    initrdfile=`find /boot -name "initramfs-*.$arch.img"`
+    #echo "initrdfile=$initrdfile"
+    kernelversion=`echo $initrdfile |sed -e 's:/boot/initramfs-\(.*\)\.img:\1:g'`
+    #echo "kernelversion=$kernelversion"
+    mv $initrdfile $initrdfile.org
+    echo "dracut $initrdfile $kernelversion"
+    dracut $initrdfile $kernelversion
+else
+    # suse/sles and redhat5.x/centos5.x
+    echo "Running mkinitrd to regenerate the initrd with the drivers needed by this node:"
+    osvers=`cat /etc/*release|sed -e 's/.*\([0-9]\{1,\}\.[0-9]\{1,\}\).*/\1/'`
+    if [[ $osvers == 5\.* ]];then
+        initrdfile=`find /boot -name "initrd-*.img"`
+        #echo "initrdfile=$initrdfile"
+        kernelversion=`echo $initrdfile |sed -e 's:/boot/initrd-\(.*\)\.img:\1:g'`
+        #echo "kernelversion=$kernelversion"
+        mv $initrdfile $initrdfile.org
+        echo "mkinitrd $initrdfile $kernelversion"
+        mkinitrd $initrdfile $kernelversion
+    else
+        mkinitrd
+    fi
+fi

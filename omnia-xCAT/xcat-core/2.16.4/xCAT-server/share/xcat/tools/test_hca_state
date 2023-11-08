@@ -1,0 +1,233 @@
+#!/bin/bash
+
+#
+# 2012.08.19 Brian Elliott Finley <bfinley@us.ibm.com>
+#   - created
+# 2013.02.17 Brian Elliott Finley <bfinley@us.ibm.com>
+#   - added --help output
+#
+
+#
+# As per Nate Rini <nate@ucar.edu>:
+#
+#   The following (Red Hat) rpms include the version of pciutils (aka
+#   lspci) that can read gen3 correctly.
+#
+#       pciutils-3.1.10-2.el6.x86_64.rpm 
+#       pciutils-libs-3.1.10-2.el6.x86_64.rpm
+#
+#   This may impact the "PCI:" speed test performed by this script.
+#
+
+NR=$1
+THINGY=$2
+
+offer_help() {
+
+    PROGNAME=$(basename $0)
+
+    # At some point, source a file for this info for the whole suite
+    VERSION=3.2.27
+
+    cat <<EOF
+$PROGNAME (part of the BEF_Scripts for xCAT) v$VERSION
+
+Usage: $PROGNAME NODERANGE [FILTER] | xcoll
+
+    --help  Display this help output.
+
+    NODERANGE
+        An xCAT noderange on which to operate.
+
+    FILTER
+        A string to match in the output, filtering out everything else.  This
+        is passed to "egrep" and can be a simple string or a regular
+        expression.
+
+EOF
+
+    cat <<'EOF'
+Purpose:
+
+    This tool provides a quick and easily repeatable method of
+    validating key InfiniBand adapter (HCA) and node based InfiniBand
+    settings across an entire cluster.
+
+    Having consistent OFED settings, and even HCA firmware, can be very
+    important for a properly functioning InfiniBand fabric.  This tool
+    can help you confirm that your nodes are using the settings you
+    want, and if any nodes have settings descrepancies.
+
+
+Example output:
+
+    #
+    # This example shows that all of rack 14 has the same settings.
+    #
+    root@mgt1:~ # test_hca_state rack14 | xcoll
+    ====================================
+    rack14
+    ====================================
+    OFED Version: MLNX_OFED_LINUX-2.0-3.0.0.3 (OFED-2.0-3.0.0):
+    mlx4_0
+      PCI: Gen3
+      Firmware installed: 2.30.3200
+      Firmware active:    2.30.3200
+      log_num_mtt:      20
+      log_mtts_per_seg: 3
+      Port 1: InfiniBand    phys_state: 5: LinkUp
+        state: 4: ACTIVE
+        rate: 40 Gb/sec (4X FDR10)
+        symbol_error: 0
+        port_rcv_errors: 0
+      Port 2: InfiniBand    phys_state: 3: Disabled
+        state: 1: DOWN
+        rate: 10 Gb/sec (4X)
+        symbol_error: 0
+        port_rcv_errors: 0
+
+      IPoIB
+        recv_queue_size: 8192
+        send_queue_size: 8192
+        ib0:
+          Mode: datagram
+          MTU:  4092
+          Mode: up
+        ib1:
+          Mode: datagram
+          MTU:  4092
+          Mode: up
+
+
+    #
+    # This example uses a FILTER on the word 'firmware'.  In this case, we've
+    # upgraded the firmware across rack11 and rack12.
+    #
+    #   - On rack11, we've also restarted the IB stack (/etc/init.d/openibd
+    #     restart) to activate the new firmware.
+    #
+    #   - Rack 12 has also been updated, as we can see from the 'Firmware
+    #     installed' line, but it's nodes are still running with their prior
+    #     level of firmware and must reload the IB stack to have it take effect.
+    #
+    root@mgt1:~ # test_hca_state rack11,rack12 firmware | xcoll
+    ====================================
+    rack11
+    ====================================
+      Firmware installed: 2.30.3200
+      Firmware active:    2.30.3200
+
+    ====================================
+    rack12
+    ====================================
+      Firmware installed: 2.30.3200
+      Firmware active:    2.11.1260
+
+
+Author:  Brian Finley
+EOF
+}
+
+if [ -z $NR ]; then
+    offer_help
+    echo "Suggestion:  Try specifying a NODERANGE"
+    echo
+    exit 1
+fi
+
+case "$NR" in
+    #
+    # Match -h, -help, --help
+    #
+    -h*|--h*)
+        offer_help
+        exit 0
+    ;;
+esac
+
+if [ -z $THINGY ]; then
+    # Match everything if nothing is specified
+    THINGY="."
+fi
+
+xdsh $NR -t3 '
+
+echo -n "OFED Version: " ; ofed_info | head -n 1
+if [ ! -d /sys/class/infiniband ]; then
+	echo "No InfiniBand devices found."
+else
+	HCAs=$(cd /sys/class/infiniband && /bin/ls)
+	for HCA in $HCAs
+	do
+		echo $HCA
+
+    HCA_PCI_ID=$(lspci | egrep "Network controller.*Mellanox" | sed "s/ .*//")
+    PCI_SPEED=$(lspci -vvvxxx -s $HCA_PCI_ID | egrep "^70: " | perl -pi -e "s/^70: [0-9]+ [0-9]+ (\d+).*/\$1/")
+    echo -n "  PCI: "
+    if [ "$PCI_SPEED" == 83 ]; then
+        echo Gen3
+    elif [ "$PCI_SPEED" == 82 ]; then
+        echo Gen2
+    else
+        echo Dunno
+    fi
+
+	  echo -n "  Firmware installed: "; mstflint -d $HCA q | grep "FW Version" | sed "'s/FW Version: *//'"
+	  echo -n "  Firmware active:    "; cat /sys/class/infiniband/$HCA/fw_ver
+
+		MODULE=mlx4_core
+		echo -n "  log_num_mtt:      " ; cat /sys/module/$MODULE/parameters/log_num_mtt
+		echo -n "  log_mtts_per_seg: " ; cat /sys/module/$MODULE/parameters/log_mtts_per_seg
+
+	  for PORT in $(cd /sys/class/infiniband/$HCA/ports/ && /bin/ls)
+		do
+		  LINK_LAYER=$(cat /sys/class/infiniband/$HCA/ports/$PORT/link_layer)
+      echo -n "  Port $PORT: $LINK_LAYER"
+			if [ "$LINK_LAYER" = "InfiniBand" ]; then
+
+		  	for i in phys_state state rate
+				do
+	  			echo -n "    $i: "
+					cat /sys/class/infiniband/$HCA/ports/$PORT/$i
+				done
+		  	for i in symbol_error port_rcv_errors
+				do
+	  			echo -n "    $i: "
+					cat /sys/class/infiniband/$HCA/ports/$PORT/counters/$i
+				done
+
+			else
+		  	for i in phys_state state rate
+				do
+	  			echo -n "    $i: "
+					cat /sys/class/infiniband/$HCA/ports/$PORT/$i
+				done
+			fi
+		done
+	done
+
+
+	echo
+	echo "  IPoIB"
+	file=recv_queue_size ; echo -n "    $file: " ; cat /sys/module/ib_ipoib/parameters/$file
+	file=send_queue_size ; echo -n "    $file: " ; cat /sys/module/ib_ipoib/parameters/$file
+
+  for IFACE in $(cd /sys/class/net/ && /bin/ls -d ib*)
+  do
+    echo    "    $IFACE:"
+    echo -n "      Mode: " ; cat /sys/class/net/ib0/mode
+    echo -n "      MTU:  " ; cat /sys/class/net/ib0/mtu
+    echo -n "      Mode: " ; cat /sys/class/net/ib0/operstate
+  done
+fi
+' | perl -pi -e 's/(ssh: connect to host) \S+ (.*)/$1 $2/' | egrep -i "$THINGY"
+
+#for HCA in $( lspci -xxxvvv | grep Net | grep Mell | sed "'s/ .*//'" )
+#do
+#  echo -n "IB HCA FW Installed: " ; mstflint -d $HCA q | grep FW | sed "'s/.*: *//'"
+#done
+#for CA in $( ibstat -l )
+#do
+#  ibstat $CA | grep -q InfiniBand && ibstat $CA | grep Firmware | sed "'s/.*: *//'" | xargs echo "IB HCA FW Active:   "
+#done
+

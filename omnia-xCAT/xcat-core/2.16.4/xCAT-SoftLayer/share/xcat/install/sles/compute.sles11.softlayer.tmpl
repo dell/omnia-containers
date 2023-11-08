@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<!DOCTYPE profile SYSTEM "/usr/share/YaST2/include/autoinstall/profile.dtd">
+<!-- The 2 main differences from the standard xcat compute.sles11.tmpl are:
+      1. instead of dhcp settings in the networking section it puts static info there
+      2. it includes post.sles.softlayer.common instead of post.sles11 and post.sles.common -->
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <install>
+    <bootloader>
+      <write_bootloader config:type="boolean">true</write_bootloader>
+      <activate config:type="boolean">true</activate>
+      <kernel_parameters></kernel_parameters>
+      <lba_support config:type="boolean">false</lba_support>
+      <linear config:type="boolean">false</linear>
+      <location>mbr</location>
+    </bootloader>
+    <general>
+      <clock>
+        <hwclock>GMT</hwclock>
+        <timezone>#TABLE:site:key=timezone:value#</timezone>
+      </clock>
+      <keyboard>
+        <keymap>english-us</keymap>
+      </keyboard>
+      <language>en_US</language>
+      <mode>
+        <confirm config:type="boolean">false</confirm>
+        <forceboot config:type="boolean">false</forceboot>
+        <interactive_boot config:type="boolean">false</interactive_boot>
+        <reboot config:type="boolean">true</reboot>
+      </mode>
+      <mouse>
+        <id>non</id>
+      </mouse>
+      <signature-handling>
+         <accept_non_trusted_gpg_key config:type="boolean">true</accept_non_trusted_gpg_key>
+         <accept_unknown_gpg_key config:type="boolean">true</accept_unknown_gpg_key>
+         <accept_unsigned_file config:type="boolean">true</accept_unsigned_file>
+      </signature-handling>
+
+    </general>
+    <partitioning config:type="list">
+      <!-- XCAT-PARTITION-START -->
+      <drive>
+        <device>XCATPARTITIONHOOK</device>
+        <initialize config:type="boolean">true</initialize>
+        <use>all</use>
+      </drive>
+      <!-- XCAT-PARTITION-END -->
+    </partitioning>
+    <software>
+      <patterns config:type="list">
+        #INCLUDE_DEFAULT_PTRNLIST_S#
+      </patterns>
+      <packages config:type="list">
+        #INCLUDE_DEFAULT_PKGLIST_S#
+      </packages>
+    </software>
+  </install>
+  <configure>
+    <users config:type="list">
+      <user>
+        <username>root</username>
+        <user_password>#CRYPT:passwd:key=system,username=root:password#</user_password>
+        <encrypted config:type="boolean">true</encrypted>
+        <forename/>
+        <surname/>
+      </user>
+    </users>
+    <networking>
+      <dns>
+        <domain>#TABLE:site:key=domain:value#</domain>
+        <hostname>#TABLE:nodelist:$NODE:node#</hostname>
+        <nameservers config:type="list">
+          <nameserver>#XCATVAR:XCATMASTER#</nameserver>
+        </nameservers>
+        <searchlist config:type="list">
+          <search>#TABLE:site:key=domain:value#</search>
+        </searchlist>
+      </dns>
+      <interfaces config:type="list">
+        <interface>
+          <bonding_master>yes</bonding_master>
+          <bonding_module_opts>mode=4 miimon=100 downdelay=0 updelay=0 lacp_rate=fast xmit_hash_policy=1</bonding_module_opts>
+          <bonding_slave0>eth0</bonding_slave0>
+          <bonding_slave1>eth2</bonding_slave1>
+          <device>bond0</device>
+          <bootproto>static</bootproto>
+          <startmode>auto</startmode>
+          <ipaddr>#NODEIPADDR#</ipaddr>
+          <netmask>#NODENETMASK#</netmask>
+          <usercontrol>no</usercontrol>
+        </interface>
+        <interface>
+          <bootproto>none</bootproto>
+          <device>eth0</device>
+          <name>Ethernet Card 0</name>
+          <startmode>off</startmode>
+        </interface>
+        <interface>
+          <bootproto>none</bootproto>
+          <device>eth2</device>
+          <name>Ethernet Card 2</name>
+          <startmode>off</startmode>
+        </interface>
+      </interfaces>
+      <routing>
+        <ip_forward config:type="boolean">false</ip_forward>
+        <routes config:type="list">
+          <route>
+            <destination>default</destination>
+            <device>-</device>
+            <gateway>#NODEGATEWAY#</gateway>
+            <netmask>-</netmask>
+          </route>
+        </routes>
+      </routing>
+    </networking>
+    <files config:type="list">
+      <file>
+        <file_contents><![CDATA[alias bond0 bonding
+]]></file_contents>
+        <file_owner>root</file_owner>
+        <file_path>/etc/modprobe.d/bond0.conf</file_path>
+        <file_permissions>644</file_permissions>
+      </file>
+    </files>
+    <scripts>
+   #INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/pre.sles#
+   #INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/chroot.sles#
+      <post-scripts config:type="list">
+        <script>
+          <filename>xcat.sh</filename>
+          <interpreter>shell</interpreter>
+          <source>
+
+<![CDATA[
+#INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/post.sles.softlayer.common#
+#INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/post.xcat#
+
+]]>
+
+          </source>
+        </script>
+      </post-scripts>
+    </scripts>
+  </configure>
+</profile>

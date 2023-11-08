@@ -1,0 +1,10 @@
+xcat.conf etc/apache2/conf.d/
+xcat.conf etc/apache2/conf-available/
+xcat.conf.apach24 etc/apache2/conf-available/
+LICENSE.html opt/xcat/share/doc/packages/xCAT
+postscripts/* install/postscripts/
+prescripts/* install/prescripts/
+templates/* opt/xcat/share/xcat/templates/
+xCATMN etc/
+etc/logrotate.d/* etc/logrotate.d/
+etc/rsyslog.d/* etc/rsyslog.d/

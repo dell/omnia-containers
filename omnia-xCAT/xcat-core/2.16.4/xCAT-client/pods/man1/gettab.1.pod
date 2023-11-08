@@ -1,0 +1,75 @@
+=head1 NAME
+
+B<gettab> - select table rows, based on attribute criteria, and display specific attributes.
+
+=head1 SYNOPSIS
+
+B<gettab> [B<-H> | B<--with-fieldname>] I<key=value,...  table.attribute ...>
+
+B<gettab> [B<-?> | B<-h> | B<--help>]
+
+=head1 DESCRIPTION
+
+The B<gettab> command uses the specified key values to select a row in each of the tables requested.
+For each selected row, the specified attributes are displayed.  The B<gettab> command can be used instead
+of B<nodels> for tables that are not keyed by nodename (e.g. the B<site> table), or to select rows based
+on an attribute value other than nodename.
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-H|--with-fieldname>
+
+Always display table.attribute name next to result.  By default, this is done only if more than
+one table.attribute is requested.
+
+=item B<-?|-h|--help>
+
+Display usage message.
+
+=back
+
+=head1 RETURN VALUE
+
+=over 3
+
+=item 0
+The command completed successfully.
+
+=item 1
+An error has occurred.
+
+=back
+
+=head1 EXAMPLES
+
+=over 2
+
+=item 1.
+To display setting for B<master> (management node) in the site table:
+
+ gettab -H key=master site.value
+
+The output would be similar to:
+
+ site.value: mgmtnode.cluster.com
+
+=item 2.
+To display the first node or group name that has B<mgt> set to B<blade> in the nodehm table:
+
+ gettab mgt=blade nodehm.node
+
+The output would be similar to:
+
+ blades
+
+=back
+
+=head1 FILES
+
+/opt/xcat/bin/gettab
+
+=head1 SEE ALSO
+
+L<nodels(1)|nodels.1>, L<chtab(8)|chtab.8>, L<tabdump(8)|tabdump.8>

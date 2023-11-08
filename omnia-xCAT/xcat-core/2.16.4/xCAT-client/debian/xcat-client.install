@@ -1,0 +1,4 @@
+bin/* opt/xcat/bin/
+sbin/* opt/xcat/sbin/
+share/* opt/xcat/share/
+LICENSE.html opt/xcat/share/doc/packages/xCAT-client

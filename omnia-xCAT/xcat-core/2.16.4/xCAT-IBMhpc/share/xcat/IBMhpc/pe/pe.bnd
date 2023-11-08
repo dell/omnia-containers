@@ -1,0 +1,13 @@
+# AIX bundle package list for PE
+
+# POE
+I:ppe.rte
+#I:ppe.man
+I:ppe.loc.license
+
+# needed on login node
+#I:ppedev.hpct
+
+# LAPI
+I:rsct.lapi
+#I:rsct.sci

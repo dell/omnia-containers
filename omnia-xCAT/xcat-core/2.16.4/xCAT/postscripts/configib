@@ -1,0 +1,783 @@
+#!/bin/bash  
+# IBM(c) 2013 EPL license http://www.eclipse.org/legal/epl-v10.html
+# Internal script used by confignics only
+# xCAT post script for configuring ib adapters.
+# Work for both IPv4 and IPv6
+# The following are a sample of the env used:
+# NIC_IBNICS=ib0,ib1
+# NIC_IBAPORTS=1 (or 2)
+# OSVER=sles11.1
+# NICNODE=dxm360m4n04
+# NICIPS='eth0!10.1.34.242,ib1!15.0.1.242,ib2!15.0.2.242'
+# NICHOSTNAMESUFFIXES='eth1!-eth1,ib1!-ib1,ib2!-ib2'
+# NICTYPES='eth1!ethernet,ib1!infiniband,ib2!infiniband'
+# NICNETWORKS='eth0!10_1_0_0-255_255_255_0,ib1!ib1,ib2!ib2'
+# NETWORKS_LINES=3
+# NETWORKS_LINE1='netname=10_1_0_0-255_255_255_0||net=10.1.0.0||mask=255.255.255.0||mgtifname=eth1||gateway=<xcatmaster>||dhcpserver=10.1.0.205||tftpserver=10.1.0.205||nameservers=||ntpservers=||logservers=||dynamicrange=||staticrange=||staticrangeincrement=||nodehostname=||ddnsdomain=||vlanid=||domain=||mtu=||disable=||comments='
+# NETWORKS_LINE2='netname=ib1||net=15.0.1.0||mask=255.255.255.0||mgtifname=||gateway=15.0.1.254||dhcpserver=||tftpserver=||nameservers=||ntpservers=||logservers=||dynamicrange=||staticrange=||staticrangeincrement=||nodehostname=||ddnsdomain=||vlanid=||domain=||mtu=||disable=||comments='
+# NETWORKS_LINE3='netname=ib3||net=15.0.3.0||mask=255.255.255.0||mgtifname=||gateway=||dhcpserver=||tftpserver=||nameservers=||ntpservers=||logservers=||dynamicrange=||staticrange=||staticrangeincrement=||nodehostname=||ddnsdomain=||vlanid=||domain=||mtu=||disable=||comments='
+
+
+if [ "$(uname -s|tr 'A-Z' 'a-z')" = "linux" ];then
+   str_dir_name=`dirname $0`
+   . $str_dir_name/xcatlib.sh
+fi
+
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+
+########################################################################
+# nmcli_used=0: use network.service
+# nmcli_used=1: use NetworkManager
+# nmcli_used=2: RH8 postscripts stage, NetworkManager is active but nmcli cannot modify NIC configure file
+########################################################################
+nmcli_used=0
+if [ -n "$NMCLI_USED" ] ; then
+    if [ "$NMCLI_USED" = "1" ]; then
+    nmcli_used=1
+    elif [ "$NMCLI_USED" = "2" ]; then
+        nmcli_used=2
+    fi
+fi
+
+#This is the number of ports for each ib adpator.
+portnum=1
+if [ -n "$NIC_IBAPORTS" ]; then
+    portnum=$NIC_IBAPORTS
+fi
+
+# pmatch determines if 1st argument string is matched by 2nd argument pattern
+pmatch ()
+{
+  case $1 in
+    $2) return 0;;  # zero return code means string matched by pattern
+  esac
+
+  return 1          # non-zero return code means string not matched by pattern
+}
+
+convert_netmask_to_cidr() {
+    let cidrnum=0
+    OLFIFS=$IFS
+    IFS=.
+    for x in $1
+    do
+        case $x in
+            255) cidrnum=$(expr $cidrnum + 8);;
+            254) cidrnum=$(expr $cidrnum + 7);;
+            252) cidrnum=$(expr $cidrnum + 6);;
+            248) cidrnum=$(expr $cidrnum + 5);;
+            240) cidrnum=$(expr $cidrnum + 4);;
+            224) cidrnum=$(expr $cidrnum + 3);;
+            192) cidrnum=$(expr $cidrnum + 2);;
+            128) cidrnum=$(expr $cidrnum + 1);;
+            0);;
+        esac
+    done
+    IFS=$OLDIFS
+    echo $cidrnum
+}
+
+
+
+#if $NIC_IBNICS is not defined, all ib nics' configuration files will be deleted.
+if [ -z "$NIC_IBNICS" ]; then
+    echo "nothing to do."
+fi
+
+
+#find correct IB driver
+PLTFRM=`uname`
+if [[ $OSVER == rhels5*  || "$OSVER" == rhels6* || "$OSVER" == ubuntu14* ]]
+then
+    ib_driver="rdma"
+    #/sbin/service $ib_driver status
+    checkservicestatus $ib_driver
+    #if [ $? -eq 1 ]
+    if [ $? -ne 0 ]
+    then
+        ib_driver="openibd"
+        #/sbin/service $ib_driver status
+        checkservicestatus $ib_driver
+        #if [ $? -eq 1 ]
+        if [ $? -ne 0 ]
+        then
+            echo "Not found the driver dameon: rdma or openibd"
+            logger -p local4.info -t $log_label "Not found the driver dameon: rdma or openibd"
+            exit
+        fi
+    fi
+else
+    ib_driver="openibd"
+fi
+
+restart_ib_driver=0
+#make changes to the confiuration file
+if [ $PLTFRM == "Linux" ]
+then
+    if [ -f "/etc/rdma/rdma.conf" ]
+    then
+        md5f1=$(md5sum /etc/rdma/rdma.conf |cut -d' ' -f1)
+        TMP1=`sed "s/SDP_LOAD=yes/SDP_LOAD=no/g" /etc/rdma/rdma.conf`
+	echo "$TMP1" > /etc/rdma/rdma.conf
+        md5f2=$(md5sum /etc/rdma/rdma.conf |cut -d' ' -f1)
+        if [ "$md5f2" != "$md5f1" ]; then
+            restart_ib_driver=1
+        fi
+    elif [ -f "/etc/infiniband/openib.conf" ]
+    then
+        md5f1=$(md5sum /etc/infiniband/openib.conf |cut -d' ' -f1)
+        TMP1=`sed "s/SDP_LOAD=yes/SDP_LOAD=no/g" /etc/infiniband/openib.conf`
+	echo "$TMP1" > /etc/infiniband/openib.conf
+        md5f2=$(md5sum /etc/infiniband/openib.conf |cut -d' ' -f1)
+        if [ "$md5f2" != "$md5f1" ]; then
+            restart_ib_driver=1
+        fi
+    fi
+
+    if [ -f "/etc/modprobe.conf" ]
+    then
+	if [ "$portnum" == "1" ]; then
+            TMP2=`sed "/options ib_ehca nr_ports/d" /etc/modprobe.conf`
+	    echo "$TMP2" > /etc/modprobe.conf
+            echo 'options ib_ehca nr_ports=1' >> /etc/modprobe.conf
+	else
+            TMP2=`sed "/options ib_ehca nr_ports=1/d" /etc/modprobe.conf`
+	    echo "$TMP2" > /etc/modprobe.conf
+	fi
+	TMP3=`sed "/options ib_ehca lock_hcalls/d" /etc/modprobe.conf`
+	echo "$TMP3" > /etc/modprobe.conf
+        echo 'options ib_ehca lock_hcalls=0' >> /etc/modprobe.conf
+    fi
+    #/sbin/chkconfig --level 2345 $ib_driver on > /dev/null 2>&1
+    enableservice $ib_driver > /dev/null 2>&1
+    #/sbin/service $ib_driver restart
+    #restartservice $ib_driver
+    sysctl -p > /dev/null 2>&1
+fi
+
+#clean up existing ib nic configrations
+if [ $PLTFRM == "Linux" ]
+then
+    if [ -f /etc/redhat-release ]
+    then
+        OS_name="redhat"
+    elif [ -f /etc/SuSE-release ]
+    then
+        OS_name="suse"
+    elif [ -f /etc/os-release ] && cat /etc/os-release |grep NAME|grep Ubuntu>/dev/null
+	then
+        OS_name="ubuntu"
+    else
+        echo "Unsupported to config IB on this OS!"
+        logger -p local4.info -t $log_label "Unsupported to config IB on this OS!"
+        exit
+    fi
+	
+    if [ $OS_name != 'ubuntu' ]; then
+        if [ $OS_name == 'suse' ]
+        then
+            dir="/etc/sysconfig/network"
+        else
+            dir="/etc/sysconfig/network-scripts"
+        fi
+		
+        #`rm -f $dir/ifcfg-$nic` 2>&1 1>/dev/null
+        # nic aliases
+        for nic in `echo "$NIC_IBNICS" | tr "," "\n"`
+        do
+            rm -f $dir/ifcfg-$nic 2>&1 1>/dev/null
+        done
+
+    else
+        interfaces="/etc/network/interfaces"
+
+        for tmp  in `sed -n "/auto ib/=" ${interfaces}`
+        do
+            startline=`sed -n "/auto ib/=" ${interfaces}|  head -n 1`
+            endline=`sed -n "$startline,/^auto/p" ${interfaces} |wc -l`
+
+            if sed -n "$startline,/^auto/p" ${interfaces} |sed '$!d' |grep "auto" >/dev/null;then
+                endline=`expr $startline + $endline - 2`
+            else
+                endline=`expr $startline + $endline - 1`
+            fi
+
+            ((startline--))
+            temp=`sed -n ${startline}p ${interfaces}`
+            while [[ $temp =~ ^# ]]
+            do
+                ((startline--))
+                temp=`sed -n ${startline}p ${interfaces}`
+            done
+            ((startline++))
+
+            temp=`sed -n ${endline}p ${interfaces}`
+            while [[ $temp =~ ^# ]]
+            do
+                ((endline--))
+                temp=`sed -n ${endline}p ${interfaces}`
+            done
+            
+            sed -i ${startline},${endline}d ${interfaces}
+        done
+    fi
+else
+    loop_number=`lsdev | grep "IP over Infiniband Network Interface" | wc -l`
+    num=0
+    while [ $num -lt $loop_number ]
+    do
+	 if [ "$portnum" == "2" ]; then
+             num0=`expr $num \* 2`
+             num1=`expr $num0 + 1`
+             `rmdev -d -l ib$num0 >/dev/null 2>&1`
+             `rmdev -d -l ib$num1 >/dev/null 2>&1`
+             `rmdev -d -l ml$num >/dev/null 2>&1`
+             num=`expr $num + 1`
+	 else
+             `rmdev -d -l ib$num >/dev/null 2>&1`
+             n=`expr $num % 2`
+             if [ $n == 1 ]
+             then
+		 mlnum=`expr $num / 2`
+		 `rmdev -d -l ml$mlnum >/dev/null 2>&1`
+             fi
+             num=`expr $num + 1`
+	 fi
+    done
+
+    `rmdev -dl icm >/dev/null 2>&1`
+
+    #restart the managers
+    mkdev -c management -s infiniband -t icm
+    cfgmgr
+fi
+
+
+
+goodnics=""
+for nic in `echo "$NIC_IBNICS" | tr "," "\n"`
+do
+    #Get nic ips
+    nicips=""
+    for tmp in `echo "$NICIPS" | tr "," "\n"`
+    do
+        nic_tmp=`echo "$tmp" | awk -F"!" '{print $1}'`;
+            if [ $nic_tmp == $nic ]; then
+            # nicips=ip1|ip2|ip3
+            nicips=`echo "$tmp" | awk -F"!" '{print $2}'`;
+            break
+        fi
+    done
+   # echo "nic=$nic, nicip=$nicip"
+
+   #get nic networks name
+   nicnets=""
+   for tmp in `echo "$NICNETWORKS" | tr "," "\n"`
+   do
+       nic_tmp=`echo "$tmp" | awk -F"!" '{print $1}'`;
+       if [ $nic_tmp == $nic ]; then
+          # nicnets=net1|net2|net3
+          nicnets=`echo "$tmp" | awk -F"!" '{print $2}'`;
+          break
+       fi
+   done
+   #echo "nic=$nic, nicnet=$nicnet"
+
+   if [ -z "$nicnets" ]; then
+       echo "No network defined for $nic"
+       logger -p local4.info -t $log_label "No network defined for $nic"
+       continue
+   fi
+
+   unset array_nic_params
+   unset array_extra_param_names
+   unset array_extra_param_values
+   get_nic_extra_params $nic "$NICEXTRAPARAMS"
+   j=0
+   while [ $j -lt ${#array_nic_params[@]} ]
+   do
+	   token1="${array_nic_params[$j]}"
+	   echo "array_nic_params $j=$token1"
+	   j=$((j+1))
+   done
+
+   ipindex=0
+   for nicip in `echo $nicips | tr "|" "\n"`
+   do
+       ipindex=`expr $ipindex + 1`
+       nicnet=`echo $nicnets | cut -d '|' -f$ipindex`
+
+       #get netmask and gateway
+       index=0;
+       found=0
+       while [ $index -lt $NETWORKS_LINES ]
+       do
+           index=$((index+1))
+           eval netline=\$NETWORKS_LINE$index
+           if [[ -n "$netline" ]]; then
+               for tmp in `echo "$netline" | tr "\|" "\n"`
+               do
+                   key=`echo "$tmp" | awk -F"=" '{print $1}'`;
+                   case $key in
+                   netname)
+                       netname=`echo "$tmp" | awk -F"=" '{print $2}'`
+                       if [ "$netname" != "$nicnet" ];
+                       then
+                           break;
+                       fi
+                   ;;
+                  net)
+                      net=`echo "$tmp" | awk -F"=" '{print $2}'`
+                  ;;
+                  mask)
+                       netmask=`echo "$tmp" | awk -F"=" '{print $2}'`
+                       # remove the prefix "/" from ipv6 mask
+                       if echo $netmask | grep "/" 2>&1 1>/dev/null
+                       then
+                           netmask=`echo $netmask | awk -F'/' '{print $2}'`
+                       fi
+                  ;;
+                  gateway)
+                       gateway=`echo "$tmp" | awk -F"=" '{print $2}'`
+                       found=1
+                  ;;
+                 esac
+                 if [ $found -eq 1 ]; then
+                    break;
+                 fi
+              done # end for tmp in `echo "$netline" | tr "\|" "\n"`
+              if [ $found -eq 1 ]; then
+                  break;
+              fi
+          fi # end if [[ -n "$netline" ]]
+       done # end  while [ $index -lt $NETWORKS_LINES ]
+
+       #echo "found=$found"
+       #echo "index=$index netname=$nicnet net=$net mask=$netmask gateway=$gateway"
+
+       # Setup goodnics list
+       if [ "$found" == "0" ]; then
+           echo "Cannot find network $nicnet for $nic"
+           logger -p local4.info -t $log_label "Cannot find network $nicnet for $nic"
+           continue
+       else
+           if [ -z "$goodnics" ]; then
+               goodnics=$nic
+           else
+               goodnics="$goodnics,$nic"
+           fi
+       fi
+
+       #there should be only one gateway on a node and that should go through the to the xcat management node and would be set up from the install nic. Anything else should be a route
+       if [ "$gateway" == "<xcatmaster>" ] || [ "$gateway" == "&lt;xcatmaster&gt;" ]; then
+           gateway=''
+       fi
+
+	   if [ ${#array_nic_params[@]} -gt 0 ]; then
+		   str_extra_params=${array_nic_params[$ipindex-1]}
+		   parse_nic_extra_params "$str_extra_params"
+	   fi
+
+       if [ $PLTFRM == "Linux" ]
+       then
+           # Issue openibd for Linux at boot time
+
+           if [ -f /etc/sysctl.conf ]
+           then
+               TMP1=`sed "/net.ipv4.conf.$nic.arp_filter=1/d" /etc/sysctl.conf`
+	       echo "$TMP1" > /etc/sysctl.conf
+               TMP2=`sed "/net.ipv4.conf.$nic.arp_ignore=1/d" /etc/sysctl.conf`
+	       echo "$TMP2" > /etc/sysctl.conf
+               cfg="net.ipv4.conf.$nic.arp_filter=1"
+               grep "$cfg" /etc/sysctl.conf 2>&1 1>/dev/null
+               if [ $? -ne 0 ]
+               then
+                   echo "net.ipv4.conf.$nic.arp_filter=1" >> /etc/sysctl.conf
+               fi
+               cfg="net.ipv4.conf.$nic.arp_ignore=1"
+               grep "$cfg" /etc/sysctl.conf 2>&1 1>/dev/null
+               if [ $? -ne 0 ]
+               then
+                   echo "net.ipv4.conf.$nic.arp_ignore=1" >> /etc/sysctl.conf
+               fi
+           fi
+
+           if [ $OS_name == 'suse' ]
+           then
+               # First ip address
+               if [ $ipindex -eq 1 ]
+               then
+                   # Write the info to the ifcfg file
+                   echo "DEVICE=$nic
+NM_CONTROLLED=no
+BOOTPROTO=static
+STARTMODE=onboot
+IPADDR=$nicip" > $dir/ifcfg-$nic
+                    # ipv6
+                    if echo $nicip | grep : 2>&1 1>/dev/null
+                    then
+                        echo "PREFIXLEN=$netmask" >> $dir/ifcfg-$nic
+                    else
+                        echo "NETMASK=$netmask" >> $dir/ifcfg-$nic
+                    fi
+                   if [ -n "$gateway" ]; then
+                       # Do not add duplicate default gateway entry
+                       grep -E "default\\s+$gateway\\s+" /etc/sysconfig/network/routes 2>&1 1>/dev/null
+                       if [ $? -ne 0 ]; then
+                           echo "default $gateway - -" >> /etc/sysconfig/network/routes
+                       fi
+                   fi
+
+                   #add extra params
+				   i=0
+				   while [ $i -lt ${#array_extra_param_names[@]} ]
+				   do
+					   name="${array_extra_param_names[$i]}"
+					   value="${array_extra_param_values[$i]}"
+					   echo "  $i: name=$name value=$value"
+                                           grep -i "${name}" $dir/ifcfg-$nic
+                                           if [ $? -eq 0 ];then
+                                               sed -i "s/.*${name}.*/${name}=${value}/i" >> $dir/ifcfg-$nic
+                                           else
+                                               echo "${name}=${value}" >> $dir/ifcfg-$nic
+                                           fi
+					   i=$((i+1))
+				   done		
+			   else # not the first ip address
+                   echo "LABEL_$ipindex=$ipindex
+IPADDR_$ipindex=$nicip" >> $dir/ifcfg-$nic
+                    # ipv6
+                    if echo $nicip | grep : 2>&1 1>/dev/null
+                    then
+                        echo "PREFIXLEN_$ipindex=$netmask" >> $dir/ifcfg-$nic
+                    else
+                        echo "NETMASK_$ipindex=$netmask" >> $dir/ifcfg-$nic
+                    fi
+                   if [ -n "$gateway" ]; then
+                       # Do not add duplicate default gateway entry
+                       grep -E "default\\s+$gateway\\s+" /etc/sysconfig/network/routes 2>&1 1>/dev/null
+                       if [ $? -ne 0 ]; then
+                           echo "default $gateway - -" >> /etc/sysconfig/network/routes
+                       fi
+                   fi
+                   #add extra params
+				   i=0
+				   while [ $i -lt ${#array_extra_param_names[@]} ]
+				   do
+					   name="${array_extra_param_names[$i]}"
+					   value="${array_extra_param_values[$i]}"
+					   echo "  $i: name=$name value=$value"
+                                           grep -i "${name}" $dir/ifcfg-$nic
+                                           if [ $? -eq 0 ];then
+                                               sed -i "s/.*${name}.*/${name}=${value}/i" >> $dir/ifcfg-$nic
+                                           else
+                                               echo "${name}=${value}" >> $dir/ifcfg-$nic
+                                           fi
+					   i=$((i+1))
+				   done		
+                fi # end if [ $ipindex -eq 1 ]
+            elif [ $OS_name == 'redhat' ]
+            then
+               # First ip address
+               if [ $ipindex -eq 1 ]
+               then
+                   nmcontrol=""
+                   devtype=""
+                   if [ $nmcli_used -eq 0 ]; then
+                        nmcontrol="NM_CONTROLLED=no"
+                   else
+                        devtype="TYPE=InfiniBand"
+                   fi
+                   # Write the info to the ifcfg file
+                   echo "DEVICE=$nic
+$nmcontrol
+$devtype
+BOOTPROTO=none
+ONBOOT=yes
+DEFROUTE=no
+NAME=$nic
+IPADDR=$nicip" > $dir/ifcfg-$nic
+                    # ipv6
+                    if echo $nicip | grep : 2>&1 1>/dev/null
+                    then
+                        echo "PREFIXLEN=$netmask" >> $dir/ifcfg-$nic
+                    else
+                        if [[ "$OSVER" == rhels6* ]]
+                        then
+                            #get prefix from netmask, this is for IPv4 only
+                            prefix=24
+                            prefix=$(convert_netmask_to_cidr $netmask)
+                            echo "PREFIX=$prefix" >> $dir/ifcfg-$nic
+                        else
+                            echo "NETMASK=$netmask" >> $dir/ifcfg-$nic
+                        fi
+                    fi
+                    if [ -n "$gateway" ]; then
+                       echo "GATEWAY=$gateway" >> $dir/ifcfg-$nic
+                    fi
+
+
+					#add extra params
+					i=0
+					while [ $i -lt ${#array_extra_param_names[@]} ]
+					do
+						name="${array_extra_param_names[$i]}"
+						value="${array_extra_param_values[$i]}"
+						echo "  $i: name=$name value=$value"
+                                                grep -i "${name}" $dir/ifcfg-$nic
+                                                if [ $? -eq 0 ];then
+                                                    sed -i "s/.*${name}.*/${name}=${value}/i" >> $dir/ifcfg-$nic
+                                                else
+                                                    echo "${name}=${value}" >> $dir/ifcfg-$nic
+                                                fi
+						i=$((i+1))
+					done		
+               else # not the first ip address
+                   # ipv6
+                   if echo $nicip | grep : 2>&1 1>/dev/null
+                   then
+                       grep "IPV6INIT" $dir/ifcfg-$nic 2>&1 1>/dev/null
+                       # The first ipv6 address
+                       if [ $? -ne 0 ]
+                       then
+                           echo "IPV6INIT=yes
+IPV6ADDR=$nicip/$netmask" >> $dir/ifcfg-$nic
+                       else
+                           echo "IPV6ADDR_SECONDARIES=$nicip/$netmask" >> $dir/ifcfg-$nic
+                       fi
+                       if [ -n "$gateway" ]; then
+                           echo "IPV6_DEFAULTGW=$gateway" >> $dir/ifcfg-$nic
+                       fi
+                    else # ipv4 address
+                        if [ $nmcli_used -eq 0 ]; then
+                            cfgfile=$dir"/ifcfg-"$nic":"$ipindex
+                            cfgcontent= "DEVICE=$nic:$ipindex
+NM_CONTROLLED=no
+BOOTPROTO=none
+ONBOOT=yes
+NETMASK=$netmask
+IPADDR=$nicip"
+                            echo "$cfgcontent" > $cfgfile
+                        else
+                            cfgfile=$dir"/ifcfg-"$nic
+                            cfgcontent="NETMASK$ipindex=$netmask
+IPADDR$ipindex=$nicip"
+                            echo "$cfgcontent" >> $cfgfile
+                        fi
+                        if [[ "$OSVER" == rhels6* ]]
+                        then
+                            #get prefix from netmask, this is for IPv4 only
+                            prefix=24
+                            prefix=$(convert_netmask_to_cidr $netmask)
+                            echo "PREFIX=$prefix" >> $cfgfile
+                        else
+                            echo "$nicnetmask" >> $cfgfile
+                        fi
+
+                        if [ -n "$gateway" ]; then
+                            if [ $nmcli_used -eq 0 ]; then 
+                                echo "GATEWAY=$gateway" >> $cfgfile
+                            else
+                                echo "GATEWAY$ipindex=$gateway" >> $cfgfile
+                            fi
+                        fi
+
+						#add extra params
+						i=0
+						while [ $i -lt ${#array_extra_param_names[@]} ]
+						do
+							name="${array_extra_param_names[$i]}"
+							value="${array_extra_param_values[$i]}"
+							echo "  $i: name=$name value=$value"
+                                                        grep -i "${name}" $cfgfile
+                                                        if [ $? -eq 0 ];then
+                                                            sed -i "s/.*${name}.*/${name}=${value}/i" >> $cfgfile
+                                                        else
+                                                            echo "${name}=${value}" >> $cfgfile
+                                                        fi
+							i=$((i+1))
+						done		
+
+                        # need to run ifup eth1:1 for RedHat
+                        if [ $nmcli_used -eq 0 ]; then
+                            goodnics="$goodnics,$nic:$ipindex"
+                        fi
+                    fi
+                fi # end not the first ip address
+            elif [ $OS_name == 'ubuntu' ]
+            then
+                # First ip address
+                if [ $ipindex -eq 1 ]; then
+                    # ipv6
+                    if echo $nicip | grep : 2>&1 1>/dev/null
+                    then
+                        echo "auto $nic
+iface $nic inet6 static
+address $nicip
+netmask $netmask" >> /etc/network/interfaces
+
+                        if [ -n "$gateway" ]; then
+                            echo "gateway $gateway" >> /etc/network/interfaces
+                        fi
+                    # ipv4		
+                    else
+                        # Write the info to the ifcfg file
+                        echo "auto $nic
+iface $nic inet static
+address $nicip
+netmask $netmask" >> /etc/network/interfaces
+
+                        #if [ -n "$gateway" ]; then
+                        #    echo "gateway $gateway" >> /etc/network/interfaces
+                        #fi
+                    fi
+                else   # Not the first ip address
+                    # ipv6
+                    if echo $nicip | grep : 2>&1 1>/dev/null
+                    then
+                        echo "auto $nic
+iface $nic inet6 static
+address $nicip
+netmask $netmask" >> /etc/network/interfaces
+
+                        if [ -n "$gateway" ]; then
+                            echo "gateway $gateway" >> /etc/network/interfaces
+                        fi
+                    else  # ipv4
+                        echo "auto $nic:$ipindex
+iface $nic:$ipindex inet static
+address $nicip
+netmask $netmask" >> /etc/network/interfaces
+
+                        #if [ -n "$gateway" ]; then
+                        #    echo "gateway $gateway" >> /etc/network/interfaces
+                        #fi
+                    fi
+				fi
+				#add extra params
+				i=0
+				while [ $i -lt ${#array_extra_param_names[@]} ]
+				do
+					name="${array_extra_param_names[$i]}"
+					value="${array_extra_param_values[$i]}"
+					echo "  $i: name=$name value=$value"
+                                        grep -i "${name}" /etc/network/interfaces
+                                        if [ $? -eq 0 ];then
+                                            sed -i "s/.*${name}.*/${name} ${value}/i" >> /etc/network/interfaces 
+                                        else
+                                            echo "${name} ${value}" >> /etc/network/interfaces 
+                                        fi
+					i=$((i+1))
+				done
+
+           else
+                echo "Unsupported operating system"
+                logger -p local4.err -t $log_label "Unsupported operating system"
+            fi
+
+       elif [ $PLTFRM == "AIX" ]; then
+           if ( pmatch $nic "ml*" ); then #for ml* interface
+           num=${nic##ml}
+           mlt="mlt$num"
+           #Check whether the mlt is available
+           lsdev -C | grep $mlt | grep Available 2>&1 >/dev/null
+           if [ $? -ne 0 ]
+           then
+               echo "$mltnum is not available."
+               logger -p local4.info -t $log_label "$mltnum is not available."
+               continue
+           fi
+
+           #Check whether the ml0 is available
+           lsdev -C | grep $nic 2>&1 >/dev/null
+           if [ $? -ne 0 ]
+           then
+               cfgmgr 2>&1 >/dev/null
+           fi
+
+           chdev -l $nic -a state=detach 2>&1
+           chdev -l $nic -a netaddr=$nicip -a netmask=$netmask -a state=up 2>&1
+           else #assume it is ib*
+               #lsdev -C | grep icm | grep Available
+               #if [ $? -ne 0 ]
+               #then
+               #    mkdev -c management -s infiniband -t icm
+               #    if [ $? -ne 0 ]
+               #    then
+               #        mkdev -l icm
+               #        if [ $? -ne 0 ]
+               #        then
+               #            exit $?
+               #        fi
+               #    fi
+               # fi
+
+               #Configure the IB interfaces.  Customize the port num.
+               num=${nic##ib}   #this assumes that all the nics starts with 'ib'
+               if [ "$portnum" == "1" ]; then
+                   iba_num=$num
+                   ib_adapter="iba$iba_num"
+                   port=1
+               else
+                   iba_num=`expr $num / 2`
+                   ib_adapter="iba$iba_num"
+                   if [ $(($num % 2)) == 0 ]
+                   then
+                       port=1
+                   else
+                       port=2
+                   fi
+               fi
+	       if [ $NODE ]; then
+		   shortname=$NODE
+	       else
+		   shortname=`hostname -s`
+	       fi
+	       chdev -l $ib_adapter -a hostname=$shortname
+               mkiba -a $nicip -i $nic -A $ib_adapter -p $port -P -1 -S up -m $netmask
+           fi # end assume it is ib*
+       fi # end if AIX
+   done # end for nicip
+done # end for nic
+
+# echo "goodnics=$goodnics"
+# Bringup all the ib interfaces
+if [ $PLTFRM == "Linux" ]
+then
+    #/sbin/service $ib_driver restart
+    if [ "$restart_ib_driver" = "1" ]; then
+            echo "restart $ib_driver service"
+            logger -p local4.info -t $log_label "restart $ib_driver service"
+            restartservice $ib_driver
+    fi
+    for nic in `echo "$goodnics" | tr "," "\n"|sort -u`
+    do
+        sleep 5
+        if [[ "$OSVER" == rhels6* ]]
+        then
+            ip link set dev $nic up
+        else
+            if [[ "$OSVER" == ubuntu14* ]]
+            then
+                interfaces="/etc/network/interfaces"
+                for tmp in `cat $interfaces |grep "auto ib" |sort -u|awk '{print $2}'`
+                do
+                    ifdown $tmp  > /dev/null 2>&1
+                    sleep 2
+                    ifup   $tmp > /dev/null 2>&1
+                done
+            else 
+                if [ $nmcli_used -eq 1 ]; then
+                    nmcli con reload $dir/ifcfg-$nic
+                    nmcli con up $nic 2>&1
+                else
+                    ifup $nic > /dev/null 2>&1
+                fi
+            fi
+        fi
+    done
+fi

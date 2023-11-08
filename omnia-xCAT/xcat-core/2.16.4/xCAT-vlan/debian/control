@@ -1,0 +1,12 @@
+Source: xcat-vlan
+Section: admin
+Priority: extra
+Maintainer: root <root@unknown>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.4
+Homepage: https://xcat.org/
+
+Package: xcat-vlan
+Architecture: all
+Depends: xcat-client (>= 2.13-snap000000000000)
+Description: xCAT-vlan provides the xCAT vlan confiuration.

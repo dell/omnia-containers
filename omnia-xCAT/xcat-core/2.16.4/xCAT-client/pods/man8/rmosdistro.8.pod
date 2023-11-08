@@ -1,0 +1,74 @@
+
+=head1 NAME
+
+B<rmosdistro> - remove OS Distro
+
+=head1 SYNOPSIS
+
+B<rmosdistro> [B<-a>|B<--all>] [B<-f>|B<--force>] I<osdistroname> [I<osdistroname2 ...>]
+
+
+B<rmosdistro> [B<-h>|B<--help>]
+
+
+=head1 DESCRIPTION
+
+The B<rmosdistro> command removes the specified OS Distro that was created by B<copycds>. To delete all OS Distro entries, please specify B<[-a|--all]>. If the specified OS Distro is referenced by some osimage, B<[-f|force]> can be used to remove it.
+
+
+=head1 ARGUMENTS
+
+The OS Distro names to delete, delimited by blank space.
+
+
+=head1 OPTIONS
+
+=over 6
+
+=item B<-a>|B<--all>
+
+If specified, try to delete all the OS Distros.
+
+=item B<-f>|B<--force>
+
+Remove referenced OS Distros, never prompt.
+
+=item B<-h>|B<--help>
+
+Show info of rmosdistro usage.
+
+=back
+
+=head1 RETURN VALUE
+
+Zero:
+  The command completed successfully.
+
+Nonzero:
+  An Error has occurred.
+
+
+=head1 EXAMPLES
+
+=over 2
+
+=item 1.
+To remove OS Distro "rhels6.2-ppc64" and "sles11.2-ppc64":
+
+ rmosdistro rhels6.2-ppc64 sles11.2-ppc64
+
+=item 2.
+To remove OS Distro "rhels6.2-ppc64", regardless of whether is referenced by any osimage:
+
+ rmosdistro -f rhels6.2-ppc64
+
+=item 3.
+To remove all OS Distros:
+
+ rmosdistro -a
+
+
+=back
+
+
+

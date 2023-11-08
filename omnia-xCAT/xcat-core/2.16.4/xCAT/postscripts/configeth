@@ -1,0 +1,1239 @@
+#!/bin/bash
+# IBM(c) 2014 EPL license http://www.eclipse.org/legal/epl-v10.html
+# Internal script used by confignics only.
+# It configs the Ethernet adpaters on the node
+
+if [ "$(uname -s|tr 'A-Z' 'a-z')" = "linux" ];then
+   str_dir_name=`dirname $0`
+   . $str_dir_name/xcatlib.sh
+   . $str_dir_name/nicutils.sh
+fi
+error_code=0
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+#########################################################################
+# ifdown/ifup will not be executed in diskful provision postscripts stage
+#########################################################################
+reboot_nic_bool=1
+if [ -z "$UPDATENODE" ] || [ $UPDATENODE -ne 1 ] ; then
+    if [ "$NODESETSTATE" = "install" ] && ! grep "REBOOT=TRUE" /opt/xcat/xcatinfo >/dev/null 2>&1; then
+        reboot_nic_bool=0
+    fi
+fi
+########################################################################
+# networkmanager_active=0: use network.service
+# networkmanager_active=1: use NetworkManager
+# networkmanager_active=2: RH8 postscripts stage, NetworkManager is active but nmcli cannot modify NIC configure file
+########################################################################
+networkmanager_active=0
+if [ -n "$NMCLI_USED" ] ; then
+    if [ "$NMCLI_USED" = "1" ]; then
+        networkmanager_active=1
+    elif [ "$NMCLI_USED" = "2" ]; then
+        networkmanager_active=2
+    fi
+fi
+
+str_conf_file=""
+str_conf_file_xcatbak=""
+tmp_con_name=""
+function configipv4(){
+    str_if_name=$1
+    str_v4ip=$2
+    str_v4net=$3
+    str_v4mask=$4
+    num_v4num=$5 #If NIC has multiple IPs, the ordinal number of IP is num_v4num
+    str_extra_params=$6
+    str_nic_mtu=$7
+
+    #parse the extra parameters
+    if [ "$str_extra_params" != "$str_default_token" ]; then
+		parse_nic_extra_params "$str_extra_params"
+    fi	
+
+    if [ "$str_os_type" = "sles" ];then
+        str_conf_file="/etc/sysconfig/network/ifcfg-${str_if_name}"
+        if [ $num_v4num -eq 0 ];then
+            echo "DEVICE=${str_if_name}" > $str_conf_file
+            echo "BOOTPROTO=static" >> $str_conf_file
+            echo "IPADDR=${str_v4ip}" >> $str_conf_file
+            echo "NETMASK=${str_v4mask}" >> $str_conf_file
+            echo "NETWORK=${str_v4net}" >> $str_conf_file
+            echo "STARTMODE=onboot" >> $str_conf_file
+            echo "USERCONTROL=no" >> $str_conf_file
+            echo "_nm_name=static-0" >> $str_conf_file
+            if [ "$str_nic_mtu" != "$str_default_token" ]; then
+                echo "MTU=${str_nic_mtu}" >> $str_conf_file
+            fi
+	    #add extra params
+	    i=0
+	    while [ $i -lt ${#array_extra_param_names[@]} ]
+	    do
+	        name="${array_extra_param_names[$i]}"
+		value="${array_extra_param_values[$i]}"
+                echo "  $i: name=$name value=$value"
+                grep -i "${name}" $str_conf_file
+                if [ $? -eq 0 ];then
+                    sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+                else
+		    echo "${name}=${value}" >> $str_conf_file
+                fi
+        	i=$((i+1))
+	    done		
+        else
+            echo "IPADDR_${num_v4num}=${str_v4ip}" >> $str_conf_file
+            echo "NETMASK_${num_v4num}=${str_v4mask}" >> $str_conf_file
+            echo "NETWORK_${num_v4num}=${str_v4net}" >> $str_conf_file
+            echo "LABEL_${num_v4num}=${num_v4num}" >> $str_conf_file
+            if [ "$str_nic_mtu" != "$str_default_token" ]; then
+                echo "MTU_${num_v4num}=${str_nic_mtu}" >> $str_conf_file
+            fi
+	    #add extra params
+	    i=0
+	    while [ $i -lt ${#array_extra_param_names[@]} ]
+	    do
+	        name="${array_extra_param_names[$i]}"
+		value="${array_extra_param_values[$i]}"
+                echo "  $i: name=$name value=$value"
+                grep -i "${name}" $str_conf_file
+                if [ $? -eq 0 ];then
+                    sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+                else
+                    echo "${name}=${value}" >> $str_conf_file
+                fi
+		i=$((i+1))
+	    done		
+        fi
+
+        if [[ ${str_if_name} == [a-zA-Z0-9]*.[0-9]* ]]; then
+            echo "VLAN=yes" >> $str_conf_file
+        fi
+    #debian ubuntu
+    elif [ "$str_os_type" = "debian" ];then
+        str_conf_file="/etc/network/interfaces.d/${str_if_name}"
+        if [ $num_v4num -eq 0 ];then
+            echo "auto ${str_if_name}" > $str_conf_file
+            echo "iface ${str_if_name} inet static" >> $str_conf_file
+        else
+            echo "auto ${str_if_name}:${num_v4num}" >> $str_conf_file
+            echo "iface ${str_if_name}:${num_v4num} inet static" >> $str_conf_file
+        fi
+        echo "  address ${str_v4ip}" >> $str_conf_file
+        echo "  netmask ${str_v4mask}" >> $str_conf_file
+        echo "  network ${str_v4net}" >> $str_conf_file
+        if [ "$str_nic_mtu" != "$str_default_token" ]; then
+            echo "  mtu ${str_nic_mtu}" >> $str_conf_file
+        fi
+	#add extra params
+	i=0
+	while [ $i -lt ${#array_extra_param_names[@]} ]
+	do
+	    name="${array_extra_param_names[$i]}"
+	    value="${array_extra_param_values[$i]}"
+            echo "  $i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name} ${value}/i" $str_conf_file
+            else
+                echo "${name} ${value}" >> $str_conf_file
+            fi
+	    i=$((i+1))
+	done		
+        if [[ ${str_if_name} == [a-zA-Z0-9]*.[0-9]* ]]; then
+            parent_device=`echo ${str_if_name} | sed -e 's/\([a-zA-Z0-9]*\)\.[0-9]*/\1/g'`
+            echo "  vlan-raw-device ${parent_device}" >> $str_conf_file
+        fi
+    else
+        str_prefix=$(v4mask2prefix $str_v4mask)
+        # Write the info to the ifcfg file for redhat
+        con_name="xcat-"${str_if_name}
+        str_conf_file=""
+        if [ $networkmanager_active -eq 1 ]; then
+            if [ $num_v4num -eq 0 ]; then
+                is_nmcli_connection_exist $con_name
+                if [ $? -eq 0 ]; then
+                    tmp_con_name=$con_name"-tmp"
+                    nmcli con modify $con_name connection.id $tmp_con_name
+                fi
+                nmcli con add type ethernet con-name $con_name ifname ${str_if_name} ipv4.method manual  ipv4.addresses  ${str_v4ip}/${str_prefix} connection.autoconnect-priority 9
+            else
+                nmcli con modify $con_name +ipv4.addresses ${str_v4ip}/${str_prefix}
+            fi
+            str_conf_file="/etc/sysconfig/network-scripts/ifcfg-xcat-${str_if_name}"
+            str_conf_file_1="/etc/sysconfig/network-scripts/ifcfg-xcat-${str_if_name}-1"
+            if [ -f $str_conf_file_1 ]; then
+                grep -x "NAME=$con_name" $str_conf_file_1 >/dev/null 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    str_conf_file=$str_conf_file_1
+                fi
+            fi
+        elif [ $networkmanager_active -eq 2 ]; then
+            str_conf_file="/etc/sysconfig/network-scripts/ifcfg-xcat-${str_if_name}"
+            if [ $num_v4num -eq 0 ]; then
+                echo "DEVICE=${str_if_name}" > $str_conf_file
+                echo "BOOTPROTO=none" >> $str_conf_file
+                echo "IPADDR=${str_v4ip}" >> $str_conf_file
+                echo "NETMASK=${str_v4mask}" >> $str_conf_file
+                echo "NAME=xcat-${str_if_name}" >> $str_conf_file 
+                echo "ONBOOT=yes" >> $str_conf_file
+                echo "AUTOCONNECT_PRIORITY=9" >> $str_conf_file
+            else
+                echo "IPADDR$num_v4num=${str_v4ip}" >> $str_conf_file
+                echo "NETMASK$num_v4num=${str_v4mask}" >> $str_conf_file 
+            fi  
+        else
+            #If using network service, the NIC alias device format is <NIC>:<num_v4num> like eth0:1
+            if [ $num_v4num -ne 0 ]; then
+                str_if_name=${str_if_name}:${num_v4num}
+            fi
+            str_conf_file="/etc/sysconfig/network-scripts/ifcfg-${str_if_name}"
+            echo "DEVICE=${str_if_name}" > $str_conf_file
+            echo "BOOTPROTO=none" >> $str_conf_file
+            echo "NM_CONTROLLED=no" >> $str_conf_file
+            echo "IPADDR=${str_v4ip}" >> $str_conf_file
+            echo "NETMASK=${str_v4mask}" >> $str_conf_file
+            echo "ONBOOT=yes" >> $str_conf_file
+        fi
+        if [ "$str_nic_mtu" != "$str_default_token" ]; then
+            if [ $networkmanager_active -eq 1 ]; then
+                nmcli con modify $con_name mtu $str_nic_mtu
+            else
+                echo "MTU=${str_nic_mtu}" >> $str_conf_file
+            fi
+        fi
+        if [[ ${str_if_name} == [a-zA-Z0-9]*.[0-9]* ]]; then
+            echo "VLAN=yes" >> $str_conf_file
+        fi
+        #add extra params
+        i=0
+        while [ $i -lt ${#array_extra_param_names[@]} ]
+        do
+            name="${array_extra_param_names[$i]}"
+            value="${array_extra_param_values[$i]}"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+            else
+                echo "${name}=${value}" >> $str_conf_file
+            fi
+    	    i=$((i+1))
+        done
+    fi
+}
+
+configipv6(){
+    str_if_name=$1
+    str_v6ip=$2
+    str_v6net=$3
+    str_v6prefix=$4
+    num_v6num=$5
+    num_v4num=$6
+    str_v6gateway=$7
+	str_extra_params=$8
+
+    #parse the extra parameters
+    if [ "$str_extra_params" != "$str_default_token" ]; then
+		parse_nic_extra_params "$str_extra_params"
+	fi	
+
+    #remove the prefix length from the subnet
+    str_v6net=`echo $str_v6net | cut -d"/" -f 1`
+
+    #remove the "/" from mask
+    str_v6prefix=`echo $str_v6prefix | sed 's/\///'`
+
+    if [ "$str_os_type" = "sles" ];then
+        str_conf_file="/etc/sysconfig/network/ifcfg-${str_if_name}"
+        if [ $num_v4num -eq 0 -a $num_v6num -eq 0 ];then
+            echo "DEVICE=$str_if_name" > $str_conf_file
+            echo "BOOTPROTO=static" >> $str_conf_file
+            echo "NM_CONTROLLED=no" >> $str_conf_file
+            echo "STARTMODE=onboot" >> $str_conf_file
+        fi
+        echo "LABEL_ipv6${num_v6num}=ipv6$num_v6num" >> $str_conf_file
+        echo "IPADDR_ipv6${num_v6num}=${str_v6ip}" >> $str_conf_file
+        echo "PREFIXLEN_ipv6${num_v6num}=${str_v6prefix}" >> $str_conf_file
+        if [ "$str_v6gateway" != "$str_default_token" ] -a [ `echo $str_v6gateway | grep -v 'xcatmaster'` ];then
+            grep -E "default[:space:]+${str_v6gateway}[:space:]+" /etc/sysconfig/network/routes 2>&1 1>/dev/null
+            if [ $? -ne 0 ];then
+                echo "default $str_v6gateway - -" >> /etc/sysconfig/network/routes
+            fi
+        fi
+
+        #add extra params
+	i=0
+	while [ $i -lt ${#array_extra_param_names[@]} ]
+	do
+	    name="${array_extra_param_names[$i]}"
+	    value="${array_extra_param_values[$i]}"
+            echo "  $i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+            else
+                echo "${name}=${value}" >> $str_conf_file
+            fi
+	    i=$((i+1))
+	done		
+    elif [ "$str_os_type" = "debian" ];then
+        #debian or ubuntu
+        str_conf_file="/etc/network/interfaces.d/${str_if_name}"
+        if [ $num_v4num -eq 0 -a $num_v6num -eq 0 ];then
+            echo "auto ${str_if_name}" > $str_conf_file
+        fi
+        if [ $num_v6num -eq 0 ];then
+            echo "pre-up modprobe ipv6" >> $str_conf_file
+            echo "iface ${str_if_name} inet6 static" >> $str_conf_file
+            echo "  address ${str_v6ip}" >> $str_conf_file
+            echo "  netmask ${str_v6prefix}" >> $str_conf_file
+            if [ "$str_v6gateway" != "$str_default_token" ]; then
+                echo "  gateway ${str_v6gateway}" >> $str_conf_file
+            fi
+
+            #add extra params
+	    i=0
+	    while [ $i -lt ${#array_extra_param_names[@]} ]
+	    do
+	        name="${array_extra_param_names[$i]}"
+		value="${array_extra_param_values[$i]}"
+		echo "  $i: name=$name value=$value"
+                grep -i "${name}" $str_conf_file
+                if [ $? -eq 0 ];then
+                    sed -i "s/.*${name}.*/${name} ${value}/i" $str_conf_file
+                else
+                    echo "${name} ${value}" >> $str_conf_file
+                fi
+	        i=$((i+1))
+	    done		
+        else
+            echo "  post-up /sbin/ifconfig ${str_if_name} inet6 add ${str_v6ip}/${str_v6prefix}" >> $str_conf_file
+            echo "  pre-down /sbin/ifconfig ${str_if_name} inet6 del ${str_v6ip}/${str_v6prefix}" >> $str_conf_file
+        fi
+    else
+        #redhat
+        str_conf_file="/etc/sysconfig/network-scripts/ifcfg-${str_if_name}"
+        if [ $num_v4num -eq 0 -a $num_v6num -eq 0 ];then
+            echo "DEVICE=$str_if_name" > $str_conf_file
+            echo "BOOTPROTO=static" >> $str_conf_file
+            echo "NM_CONTROLLED=no" >> $str_conf_file
+            echo "ONBOOT=yes" >> $str_conf_file
+        fi
+        if [ $num_v6num -eq 0 ];then
+            echo "IPV6INIT=yes" >> $str_conf_file
+            echo "IPV6ADDR=${str_v6ip}/${str_v6prefix}" >> $str_conf_file
+        else
+            echo "IPV6ADDR_SECONDARIES=${str_v6ip}/${str_v6prefix}" >> $str_conf_file
+        fi
+        if [ "$str_v6gateway" != "$str_default_token" ] -a [ `echo $str_v6gateway | grep -v 'xcatmaster'` ];then
+            echo "IPV6_DEFAULTGW=$str_v6gateway" >> $str_conf_file
+        fi
+
+        #add extra params
+	i=0
+	while [ $i -lt ${#array_extra_param_names[@]} ]
+	do
+	    name="${array_extra_param_names[$i]}"
+	    value="${array_extra_param_values[$i]}"
+            echo "  $i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+            else
+                echo "${name}=${value}" >> $str_conf_file
+            fi
+	    i=$((i+1))
+	done		
+    fi
+}
+
+#delete all configuration file(s) on linux
+function delete_nic_config_files(){
+    str_temp_name=$1
+    #delete the configuration files
+    #delete the configuration history
+    if [ "$str_os_type" = "debian" ];then
+        rm -f /etc/network/interfaces.d/$str_temp_name 2>/dev/null
+        sed -i "/${str_temp_name}/d" /etc/network/xcat_history_important
+    elif [ "$str_os_type" = "sles" ];then
+        rm -f /etc/sysconfig/network/ifcfg-${str_temp_name} 2>/dev/null
+        sed -i "/${str_temp_name}/d" /etc/sysconfig/network/xcat_history_important
+    else
+        rm -f /etc/sysconfig/network-scripts/ifcfg-${str_temp_name} 2>/dev/null
+        rm -f /etc/sysconfig/network-scripts/ifcfg-${str_temp_name}:* 2>/dev/null
+        sed -i "/${str_temp_name}/d" /etc/sysconfig/network-scripts/xcat_history_important
+    fi
+}
+
+function add_ip_temporary(){
+    local str_ip_prefix=$1
+    local str_temp_name=$2
+    local str_ip=`echo $str_ip_prefix | awk -F'_' '{print $1}'`
+    local str_mask=`echo $str_ip_prefix | awk -F'_' '{print $2}'`
+
+    if [ "$str_os_type" = "aix" ];then
+        echo $str_ip | grep ":" > /dev/null
+        #ipv6
+        if [ $? -eq 0 ];then
+            lsattr -El $str_temp_name | grep netaddr6 | awk '{print $2}' | grep ":"
+            if [ $? -ne 0 ];then
+                chdev -l $str_temp_name -a netaddr6=$str_ip -a prefixlen=$str_mask
+            else
+                chdev -l $str_temp_name -a alias6=${str_ip}/${str_mask}
+            fi
+        #ipv4
+        else
+            lsattr -El $str_temp_name | grep netaddr | awk '{print $2}' | grep '\.'
+            if [ $? -ne 0 ];then
+                chdev -l $str_temp_name -a netaddr=${str_ip} -a netmask=${str_mask}
+            else
+                chdev -l $str_temp_name -a alias4=${str_ip},${str_mask}
+            fi
+        fi
+    else
+        echo $str_ip | grep ":" > /dev/null
+        #ipv6
+        if [ $? = 0 ];then
+            lsmod |grep -w 'ipv6'
+            if [ $? -ne 0 ];then
+                modprobe ipv6
+            fi
+            ip addr add ${str_ip}/${str_mask} dev $str_temp_name
+        #ipv4
+        else
+            str_label=''
+            ip addr show dev $str_temp_name | grep inet | grep "global" | grep -v ':' | grep "${str_temp_name}"
+            if [ $? -eq 0 ] && [ $networkmanager_active -eq 0 ]; then
+                for num_i in {1..1000}
+                do
+                    ip addr show dev $str_temp_name | grep inet | grep "global" | grep ":${num_i}"
+                    if [ $? -ne 0 ];then
+                        str_label=${str_nic_name}:${num_i}
+                        break
+                    fi
+                done
+            else
+                str_label=$str_nic_name
+            fi
+
+            str_bcase=$(v4calcbcase $str_ip $str_mask)
+            #the label is ready, add the ip address directly
+            ip addr add $str_ip/${str_mask} broadcast $str_bcase dev $str_nic_name scope global label $str_label
+            if [ $? -ne 0 ]; then
+                log_error "add the ip address $str_ip/${str_mask} failed."
+                error_code=1
+            fi
+        fi
+    fi
+}
+
+
+
+# This token is used for the value of an attributes that has not been assigned any value.
+str_default_token="default"
+
+
+str_nic_name=''
+str_os_type=`uname | tr 'A-Z' 'a-z'`
+str_cfg_dir=''
+str_temp=''
+if [ "$str_os_type" = "linux" ];then
+    str_temp=`echo $OSVER | grep -E '(sles|suse)'`
+    if [ -f "/etc/debian_version" ];then
+        debianpreconf
+        str_os_type="debian"
+        str_cfg_dir="/etc/network/"
+    elif [ -f "/etc/SuSE-release" -o -n "$str_temp" ];then
+        str_os_type="sles"
+        str_cfg_dir="/etc/sysconfig/network/"
+    elif [ -f /etc/os-release ] && cat /etc/os-release |grep NAME|grep -i SLE >/dev/null; then
+        str_os_type="sles"
+        str_cfg_dir="/etc/sysconfig/network"
+    else
+        str_os_type="redhat"
+        str_cfg_dir="/etc/sysconfig/network-scripts/"
+    fi
+else
+    echo "configeth dose not support AIX in this build"
+    exit 1
+
+fi
+
+
+log_info "configeth on $NODE: os type: $str_os_type"
+if [ "$1" = "-r" ];then
+    if [ $# -ne 2 ];then
+        log_error "configeth on $NODE: remove nic, but the nic name is missed"
+        exit 1
+    fi
+    str_nic_name=$2
+    log_info "configeth on $NODE: remove nic $str_nic_name"
+
+    if [ "$str_os_type" = "aix" ];then
+        old_ifs=$IFS
+        IFS=$'\n'
+        str_temp=`lsattr -El $str_nic_name | grep alias4 | awk '{print $2}'`
+        array_alias4_temp=($str_temp)
+        IFS=$old_ifs
+        for str_ip_alias4 in $str_temp
+        do
+            #the alias format should be ipaddr,netmask
+            echo $str_ip_alias4 | grep -E ,
+            if [ $? -eq 0 ];then
+                chdev -l $str_nic_name -a delalias4=$str_ip_alias4
+            fi
+        done
+        str_temp=`lsattr -El $str_nic_name | grep alias6 | awk '{print $2}'`
+        old_ifs=$IFS
+        IFS=$'\n'
+        array_alias6_temp=($str_temp)
+        IFS=$old_ifs
+        for str_ip_alias6 in ${array_alias6_temp[@]}
+        do
+            echo $str_ip_alias6 | grep -E /
+            if [ $? -eq 0 ];then
+                chdev -l $str_nic_name -a delalias6=$str_ip_alias6
+            fi
+        done
+        log_info "configeth on $NODE run command: chdev -l $str_nic_name -a netaddr='' -a netmask='' -a netaddr6='' -a prefixlen='' -a state=down"
+        chdev -l $str_nic_name -a netaddr='' -a netmask='' -a netaddr6='' -a prefixlen='' -a state=down
+    else
+        #shut down the nic if it is on
+        ip link show $str_nic_name | grep -i ',up'
+        if [ $? -eq 0 ];then
+            if [ "$str_os_type" = "debian" ];then
+                ifdown --force $str_nic_name
+            else
+                ip link set dev $str_nic_name  down
+            fi
+        fi
+
+        #delete the configuration files
+        delete_nic_config_files $str_nic_name
+    fi
+    exit $error_code
+elif [ "$1" = "-s" ];then
+    if [ $# -lt 2 ];then
+        log_error "configeth on $NODE: config install nic, but the nic name is missed"
+        exit 1
+    fi
+    str_inst_nic=$2
+    str_inst_ip=''
+    str_inst_mask=''
+    str_inst_gateway=''
+    str_inst_mtu=''
+    str_inst_dns=''
+    if [ "$str_os_type" = "aix" ];then
+        log_error "configeth on $NODE: aix does not support -s flag"
+        exit 1
+    elif [ -f "/etc/debian_version" ];then
+        str_lease_file="/var/lib/dhcp/dhclient."$str_inst_nic".leases"
+        if [ -e "$str_lease_file" ];then
+            str_inst_ip=`grep fixed-address $str_lease_file | tail -n 1 | awk '{print $2}' | sed 's/;$//'`
+            str_inst_mask=`grep subnet-mask $str_lease_file | tail -n 1 | awk '{print $3}' | sed 's/;$//'`
+            str_inst_gateway=`grep routers $str_lease_file | tail -n 1 | awk '{print $3}' | sed 's/;$//'`
+        else
+            if [ -n "$MACADDRESS" ];then
+                str_inst_mac=$MACADDRESS
+                inst_nic=`ip -o link |grep -i ${str_inst_mac} |awk '{print $2}'|sed 's/://g'`
+                if [ ! -z "${inst_nic}" ];then
+                    str_inst_ip=`ip -4 -o addr|grep -i ${inst_nic} |awk '{print $4}'|awk -F/ '{print $1}'`
+                    if [ ! -z "$str_inst_ip" ];then
+                        inst_prefix=`ip ro ls|grep -i ${str_inst_ip}|awk '{print $1}'|awk -F/ '{print $2}'`
+                        if [ ! -z "$inst_prefix" ];then
+                            str_inst_mask=`v4prefix2mask $inst_prefix`
+                        fi
+                    fi
+                fi
+                str_inst_gateway=`ip ro ls|grep default|awk '{print $3}'|head -1`
+            fi
+        fi
+    elif [ "$str_os_type" = "sles" ];then
+       str_lease_file="/var/lib/dhcpcd/dhcpcd-"$str_inst_nic".info"
+       if [ -e "$str_lease_file" ];then
+           str_inst_ip=`grep IPADDR $str_lease_file | tail -n 1 | awk -F'=' '{print $2}' | sed "s/'//g"`
+           str_inst_mask=`grep NETMASK $str_lease_file | tail -n 1 | awk -F'=' '{print $2}' | sed "s/'//g"`
+           str_inst_gateway=`grep GATEWAYS $str_lease_file | tail -n 1 | awk -F'=' '{print $2}' | sed "s/'//g"`
+        else
+            if [ -n "$MACADDRESS" ];then
+                str_inst_mac=$MACADDRESS
+                inst_nic=`ip -o link |grep -i ${str_inst_mac} |awk '{print $2}'|sed 's/://g'`
+                if [ ! -z "${inst_nic}" ];then
+                    str_inst_ip=`ip -4 -o addr|grep -i ${inst_nic} |awk '{print $4}'|awk -F/ '{print $1}'`
+                    if [ ! -z "$str_inst_ip" ];then
+                        inst_prefix=`ip ro ls|grep -i ${str_inst_ip}|awk '{print $1}'|awk -F/ '{print $2}'`
+                        if [ ! -z "$inst_prefix" ];then
+                            str_inst_mask=`v4prefix2mask $inst_prefix`
+                        fi
+                    fi
+                fi
+                str_inst_gateway=`ip ro ls|grep default|awk '{print $3}'|head -1`
+                echo "str_inst_gateway is $str_inst_gateway"
+            fi
+       fi
+    else
+        str_lease_file=`ls /var/lib/dhclient/*$str_inst_nic* | grep lease`
+        if [ -e "$str_lease_file" ];then
+            str_inst_ip=`grep fixed-address $str_lease_file | tail -n 1 | awk '{print $2}' | sed 's/;$//'`
+            str_inst_mask=`grep subnet-mask $str_lease_file | tail -n 1 | awk '{print $3}' | sed 's/;$//'`
+            str_inst_gateway=`grep routers $str_lease_file | tail -n 1 | awk '{print $3}' | sed 's/;$//'`
+            str_inst_dns=`grep domain-name-servers $str_lease_file | tail -n 1 | awk '{print $3}' | sed 's/;$//'`
+        else
+            if [ -n "$MACADDRESS" ];then
+                str_inst_mac=$MACADDRESS
+                inst_nic=`ip -o link |grep -i ${str_inst_mac} |awk '{print $2}'|sed 's/://g'`
+                if [ ! -z "${inst_nic}" ];then
+                    str_inst_ip=`ip -4 -o addr|grep -i ${inst_nic} |awk '{print $4}'|awk -F/ '{print $1}'`
+                    if [ ! -z "$str_inst_ip" ];then
+                        inst_prefix=`ip ro ls|grep -i ${str_inst_ip}|awk '{print $1}'|awk -F/ '{print $2}'`
+                        if [ ! -z "$inst_prefix" ];then
+                            str_inst_mask=`v4prefix2mask $inst_prefix`
+                        fi
+                    fi
+                fi
+                str_inst_gateway=`ip ro ls|grep default|awk '{print $3}'|head -1`
+            fi
+        fi
+    fi
+    if [ -n "$IPADDR" ];then
+        str_inst_ip=$IPADDR
+    fi
+
+    if [ -n "$MACADDRESS" ];then
+        str_inst_mac=$MACADDRESS
+    else
+        #str_inst_mac=`ifconfig $str_inst_nic | grep HWaddr | awk -F'HWaddr' '{print $2}' | sed 's/\s*//'`
+        str_inst_mac=`ip link show $netdev | grep ether | awk '{print $2}'`
+    fi
+    if [ -z "$str_inst_ip" -o -z "$str_inst_mask" ];then
+        log_info "configeth on $NODE: config install nic, can not find information from dhcp lease file, return."
+        exit 1
+    fi
+    str_inst_net=$(v4calcnet $str_inst_ip $str_inst_mask)
+    num_index=1
+    while [ $num_index -le $NETWORKS_LINES ];do
+        eval str_tmp=\$NETWORKS_LINE$num_index
+        str_tmp_name=`echo $str_tmp | awk -F'net=' '{print $2}' | awk -F'|' '{print $1}'`
+        if [ "$str_tmp_name" = "$str_inst_net" ];then
+            str_inst_mtu=`echo $str_tmp | awk -F'mtu=' '{print $2}' | awk -F'|' '{print $1}'`
+            break
+        fi
+        num_index=$((num_index+1))
+    done
+
+
+    #get extra configration parameters for each nic
+    #echo "str_inst_nic=$str_inst_nic, str_inst_ip=$str_inst_ip"
+	get_nic_extra_params $str_inst_nic "$NICEXTRAPARAMS"
+	if [ ${#array_nic_params[@]} -gt 0 ]; then
+		str_extra_params=${array_nic_params[0]}
+		parse_nic_extra_params "$str_extra_params"
+	fi
+
+    # cofniguring the interface
+
+    if [ -f "/etc/debian_version" ];then
+        str_conf_file="/etc/network/interfaces.d/${str_inst_nic}"
+        echo "auto ${str_inst_nic}" > $str_conf_file
+        echo "iface ${str_inst_nic} inet static" >> $str_conf_file
+        echo "  address ${str_inst_ip}" >> $str_conf_file
+        echo "  netmask ${str_inst_mask}" >> $str_conf_file
+        echo "  hwaddress ether ${str_inst_mac}" >> $str_conf_file
+        if [ -n "${str_inst_mtu}" ];then
+            echo "  mtu ${str_inst_mtu}" >> $str_conf_file
+        fi
+        if [ -n "$str_inst_gateway" ];then
+            echo "  gateway $str_inst_gateway" >> $str_conf_file
+        fi
+	#add extra params
+	i=0
+	while [ $i -lt ${#array_extra_param_names[@]} ]
+	do
+	    name="${array_extra_param_names[$i]}"
+	    value="${array_extra_param_values[$i]}"
+            echo "  $i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name} ${value}/i" $str_conf_file
+            else
+                echo "${name} ${value}" >> $str_conf_file
+            fi
+	    i=$((i+1))
+	done		
+        hostname $NODE
+        echo $NODE > /etc/hostname
+    elif [ "$str_os_type" = "sles" ];then
+        str_conf_file="/etc/sysconfig/network/ifcfg-${str_inst_nic}"
+        echo "DEVICE=${str_inst_nic}" > $str_conf_file
+        echo "BOOTPROTO=static" >> $str_conf_file
+        echo "IPADDR=${str_inst_ip}" >> $str_conf_file
+        echo "NETMASK=${str_inst_mask}" >> $str_conf_file
+        echo "HWADDR=${str_inst_mac}" >> $str_conf_file
+        if [ -n "${str_inst_mtu}" ];then
+            echo "MTU=${str_inst_mtu}" >> $str_conf_file
+        fi
+        echo "STARTMODE=onboot" >> $str_conf_file
+        if [ -n "$str_inst_gateway" ];then
+            grep -i "default" /etc/sysconfig/network/routes
+            if [ $? -eq 0 ];then
+                sed -i "s/.*default.*/default ${str_inst_gateway} - -/i" /etc/sysconfig/network/routes
+            else
+                echo "default ${str_inst_gateway} - -" >> /etc/sysconfig/network/routes
+            fi
+        fi
+
+	#add extra params
+	i=0
+	while [ $i -lt ${#array_extra_param_names[@]} ]
+	do
+	    name="${array_extra_param_names[$i]}"
+	    value="${array_extra_param_values[$i]}"
+            echo "  $i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+            else
+                echo "${name}=${value}" >> $str_conf_file
+            fi
+            i=$((i+1))
+	done		
+        hostname $NODE
+        echo $NODE > /etc/HOSTNAME
+    else
+        #write ifcfg-* file for redhat
+        con_name="xcat-"${str_inst_nic}
+        str_inst_prefix=$(v4mask2prefix ${str_inst_mask})
+        str_conf_file="/etc/sysconfig/network-scripts/ifcfg-${str_inst_nic}"
+        if [ $networkmanager_active -eq 2 ]; then
+            str_conf_file="/etc/sysconfig/network-scripts/ifcfg-$con_name"
+        fi
+        if [ $networkmanager_active -eq 1 ]; then
+            is_nmcli_connection_exist "$con_name"
+            if [ $? -eq 0 ]; then
+                tmp_con_name=${str_inst_nic}"-tmp"
+                nmcli con modify $con_name connection.id $tmp_con_name
+            fi
+            nmcli con add type ethernet con-name $con_name ifname ${str_inst_nic} ipv4.method manual ipv4.addresses  ${str_inst_ip}/${str_inst_prefix} connection.autoconnect-priority 9
+            str_conf_file_1="/etc/sysconfig/network-scripts/ifcfg-xcat-${str_inst_nic}-1"
+            if [ -f $str_conf_file_1 ]; then
+                grep $con_name $str_conf_file_1 >/dev/null 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    $str_conf_file=$str_conf_file_1
+                    #mv -f $str_conf_file_1 $str_conf_file
+                fi
+            fi
+        else
+            echo "DEVICE=${str_inst_nic}" > $str_conf_file
+            echo "IPADDR=${str_inst_ip}" >> $str_conf_file
+            echo "NETMASK=${str_inst_mask}" >> $str_conf_file
+            echo "BOOTPROTO=none" >> $str_conf_file
+            echo "ONBOOT=yes" >> $str_conf_file
+            echo "NAME=${con_name}" >> $str_conf_file
+            echo "HWADDR=${str_inst_mac}" >> $str_conf_file
+        fi
+        if [ $networkmanager_active -eq 2 ]; then
+            echo "AUTOCONNECT_PRIORITY=9" >> $str_conf_file
+        fi
+        if [ -n "${str_inst_dns}" ];then
+	        if [ $networkmanager_active -eq 1 ]; then
+		        nmcli con modify $con_name ipv4.dns ${str_inst_dns}
+                fi
+        fi
+        if [ -n "${str_inst_mtu}" ];then
+	        if [ $networkmanager_active -eq 1 ]; then
+		        nmcli con modify $con_name mtu ${str_inst_mtu}
+            else
+                echo "MTU=${str_inst_mtu}" >> $str_conf_file
+	        fi
+        fi
+        if [ -n "$str_inst_gateway" ];then
+            grep -i "GATEWAY" /etc/sysconfig/network
+            if [ $? -eq 0 ];then
+                sed -i "s/.*GATEWAY.*/GATEWAY=${str_inst_gateway}/i" /etc/sysconfig/network
+            else
+                echo "GATEWAY=${str_inst_gateway}" >> /etc/sysconfig/network
+            fi
+        fi
+	    #add extra params
+        i=0
+        while [ $i -lt ${#array_extra_param_names[@]} ]
+        do
+            name="${array_extra_param_names[$i]}"
+            value="${array_extra_param_values[$i]}"
+            echo "$i: name=$name value=$value"
+            grep -i "${name}" $str_conf_file
+            if [ $? -eq 0 ];then
+                sed -i "s/.*${name}.*/${name}=${value}/i" $str_conf_file
+            else
+                echo "${name}=${value}" >> $str_conf_file
+            fi
+            i=$((i+1))
+        done		
+
+        hostname $NODE
+        if [ -f "/etc/hostname" ]; then
+            echo $NODE > /etc/hostname
+        else
+            grep -i "HOSTNAME" /etc/sysconfig/network
+            if [ $? -eq 0 ];then
+                sed -i "s/.*HOSTNAME.*/HOSTNAME=${NODE}/i" /etc/sysconfig/network
+            else
+                echo "HOSTNAME=${NODE}" >> /etc/sysconfig/network
+            fi
+        fi
+    fi
+
+    if [ "$UPDATENODE" = "1" ] || [ "$NODESETSTATE" = "netboot" ] || [ "$NODESETSTATE" = "statelite" ] || grep "REBOOT=TRUE" /opt/xcat/xcatinfo >/dev/null 2>&1; then
+        if_state=0
+        if [ "$str_os_type" = "debian" ];then
+            ifdown --force $str_inst_nic
+        else
+            ip link set dev $str_inst_nic down
+        fi
+        if [ $networkmanager_active -eq 1 ]; then
+            nmcli con reload
+            nmcli con up $con_name
+	    else
+            ifup $str_inst_nic
+        fi
+        if [ $? -ne 0 ]; then
+            if_state=$(wait_for_ifstate $str_inst_nic UP 20 5)
+        fi
+        if [ $if_state -ne 0 ]; then
+            log_error "bring $str_inst_nic up failed."
+            error_code=1
+        fi
+    fi
+    if [ $networkmanager_active -eq 1 ] && [ -n "$tmp_con_name" ]; then
+    	if [ $error_code -eq 1 ]; then
+            nmcli con modify $tmp_con_name connection.id $con_name
+        else
+            nmcli con delete $tmp_con_name
+        fi
+    fi
+    exit $error_code
+fi
+
+#main prcess
+#1. get all ip,netmask,subnet,gateway for the nic
+#2. get current configurations
+#3. delete the undefined ips
+#4. add the new defined ips
+#5. no modification, return directly
+#3. on linux modify the configuration files
+if [ $# -ne 3 ];then
+    log_error "configeth on $NODE: paramters error currently is $@"
+    exit 1
+fi
+str_nic_name=$1
+old_ifs=$IFS
+IFS=$'|'
+array_nic_ips=($2)
+array_nic_networks=($3)
+IFS=$old_ifs
+
+if [ "$str_os_type" = "aix" ];then
+    str_temp=`lsattr -El $str_nic_name`
+else
+    str_temp=`ip addr show dev $str_nic_name`
+fi
+
+logger -t $log_label -p local4.err "configeth: old configuration: $str_temp"
+echo "configeth on $NODE: old configuration: $str_temp"
+
+
+#parse the networks tables contains
+declare -a array_ip_mask
+declare -a array_ip_status
+declare -a array_nic_network_config
+declare -a array_nic_subnet
+declare -a array_nic_netmask
+declare -a array_nic_gateway
+declare -a array_nic_mtu
+
+#get extra configration parameters for each nic
+get_nic_extra_params $str_nic_name "$NICEXTRAPARAMS"
+j=0
+while [ $j -lt ${#array_nic_params[@]} ]
+do
+	token1="${array_nic_params[$j]}"
+	echo "array_nic_params $j=$token1"
+	j=$((j+1))
+done
+
+
+str_ip_mask_pair=''
+num_index=1
+while [ $num_index -le $NETWORKS_LINES ];do
+    eval str_temp=\$NETWORKS_LINE$num_index
+    str_temp_name=`echo $str_temp | awk -F'netname=' '{print $2}' | awk -F'|' '{print $1}'`
+    num_i=0
+    while [ $num_i -lt ${#array_nic_ips[*]} ]
+    do
+        if [ "$str_temp_name" = "${array_nic_networks[$num_i]}" ];then
+            array_nic_network_config[$num_i]=$str_temp
+            break
+        fi
+        num_i=$((num_i+1))
+    done
+    num_index=$((num_index+1))
+done
+
+log_info "configeth on $NODE: new configuration"
+num_index=0
+str_ipv6_gateway=''
+while [ $num_index -lt ${#array_nic_ips[*]} ];do
+    #get the ip address and network name
+    str_ip=${array_nic_ips[$num_index]}
+    str_netname=${array_nic_networks[$num_index]}
+    if [ ! $str_netname ];then
+        log_error "configeth on $NODE: Network name is not defined on $str_nic_name for $str_ip."
+        error_code=1
+        num_index=$((num_index+1))
+        continue
+    fi
+
+    #find out the network definition
+    str_line=${array_nic_network_config[$num_index]}
+    if [ ! $str_line ];then
+        log_error "configeth on $NODE: Network object $str_netname is not defined."
+        error_code=1
+        num_index=$((num_index+1))
+        continue
+    fi
+
+    #fetch the subnet and netmask in networks definition
+    str_subnet=`echo $str_line | awk -F'net=' '{print $2}' | awk -F'|' '{print $1}'`
+    str_netmask=`echo $str_line | awk -F'mask=' '{print $2}' | awk -F'|' '{print $1}' | sed 's:^/::'`
+    str_gateway=`echo $str_line | awk -F'gateway=' '{print $2}' | awk -F'|' '{print $1}'`
+    str_mtu=`echo $str_line | awk -F'mtu=' '{print $2}' | awk -F'|' '{print $1}'`
+
+    if [ ! $str_subnet -o ! $str_netmask ];then
+        log_error "configeth on $NODE: subnet or netmask is not defined in network object $str_netname."
+        error_code=1
+        num_index=$((num_index+1))
+        continue
+    fi
+
+    array_nic_subnet[$num_index]=$str_subnet
+    array_nic_netmask[$num_index]=$str_netmask
+    array_nic_gateway[$num_index]=$str_gateway
+    array_nic_mtu[$num_index]=$str_mtu
+    echo "$str_gateway" | grep ':'
+    if [ $? -eq 0 ];then
+        str_ipv6_gateway=$str_gateway
+    fi
+    logger -t $log_label -p local4.info "configeth: $str_ip, $str_subnet, $str_netmask, $str_gateway"
+    echo "       $str_ip, $str_subnet, $str_netmask, $str_gateway"
+    #on linux, call sub rutine to define ipv4 or ipv6 address for the persitent configuration
+    if [ `echo $str_ip | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$'` ];then
+        if [ "$str_os_type" = "aix" ];then
+            hashset hash_new_config "${str_ip}_${str_netmask}" "new"
+            str_ip_mask_pair=$str_ip_mask_pair"${str_ip}_${str_netmask} "
+        else
+            str_prefix=$(v4mask2prefix $str_netmask)
+            hashset hash_new_config "${str_ip}_${str_prefix}" "new"
+            str_ip_mask_pair=$str_ip_mask_pair"${str_ip}_${str_prefix} "
+        fi
+    elif [ `echo $str_ip | grep -E ":"` ];then
+        num_ipv6_index=$((num_ipv6_index+1))
+        hashset hash_new_config "${str_ip}_${str_netmask}" "new"
+        str_ip_mask_pair=$str_ip_mask_pair"${str_ip}_${str_netmask} "
+    else
+        log_error "configeth on $NODE: the ipaddress( $str_ip ) for $str_nic_name is invalid."
+        error_code=1
+    fi
+    num_index=$((num_index+1))
+done
+
+str_ip_mask_pair=`echo "$str_ip_mask_pair" | sed -e 's/ $//'`
+
+str_old_conf=''
+if [ "$str_os_type" = "aix" ];then
+    #check the netaddr
+    str_history=`lsattr -El $str_nic_name | grep netaddr | awk '{print $2}' | grep '\.'`
+    if [ $? -eq 0 ];then
+        str_temp=`lsattr -El $str_nic_name | grep netmask | awk '{print $2}'`
+        str_old_ip=${str_history}"_"${str_temp}
+        str_ip_status=$(hashget hash_new_config $str_old_ip)
+        if [ -n "$str_ip_status" ];then
+            hashset hash_new_config $str_old_ip "old"
+        else
+            chdev -l $str_nic_name -a netaddr='' -a netmask=''
+            log_error "configeth on $NODE: delete undefined ip address $str_old_ip"
+            error_code=1
+        fi
+    fi
+
+    #check the netaddr6
+    str_history=`lsattr -El $str_nic_name | grep netaddr6 | awk '{print $2}' | grep ':'`
+    if [ $? -eq 0 ];then
+        str_temp=`lsattr -El $str_nic_name | grep prefixlen | awk '{print $2}'`
+        str_old_ip=${str_history}"_"${str_temp}
+        str_ip_status=$(hashget hash_new_config $str_old_ip)
+        if [ -n "$str_ip_status" ];then
+            hashset hash_new_config $str_old_ip "old"
+        else
+            chdev -l $str_nic_name -a netaddr6='' -a prefixlen=''
+            log_error "configeth on $NODE: delete undefined ipv6 address $str_old_ip"
+        fi
+    fi
+
+    #check the ipv4 alias
+    str_history=`lsattr -El $str_nic_name | grep alias4 | awk '{print $2}' | grep '\.'`
+    if [ $? -eq 0 ];then
+        old_ifs=$IFS
+        IFS=$'\n'
+        array_alias4_temp=($str_history)
+        IFS=$old_ifs
+        for str_temp in ${array_alias4_temp[@]}
+        do
+            str_old_ip=`echo $str_temp | tr ',' '_'`
+            str_ip_staus=$(hashget hash_new_config $str_old_ip)
+            if [ -n "$str_ip_staus" ];then
+                hashset hash_new_config $str_old_ip "old"
+            else
+                chdev -l $str_nic_name -a delalias4=$str_temp
+
+            fi
+        done
+    fi
+
+    #check the ipv6 alias
+    str_history=`lsattr -El $str_nic_name | grep alias6 | awk '{print $2}' | grep '\.'`
+    if [ $? -eq 0 ];then
+        old_ifs=$IFS
+        IFS=$'\n'
+        array_alias6_temp=($str_history)
+        IFS=$old_ifs
+        for str_temp in ${array_alias6_temp[@]}
+        do
+            str_old_ip=`$str_temp | tr '/' '_'`
+            str_ip_staus=$(hashget hash_new_config $str_old_ip)
+            if [ -n "$str_ip_staus" ];then
+                hashset hash_new_config $str_old_ip "old"
+            else
+                chdev -l $str_nic_name -a delalias6=$str_temp
+            fi
+        done
+    fi
+
+    #add the new configured ip address
+    old_ifs=$IFS
+    IFS=$' '
+    array_ip_mask_temp=($str_ip_mask_pair)
+    IFS=$old_ifs
+    for str_new_ip in ${array_ip_mask_temp[@]}
+    do
+        str_ip_status=$(hashget hash_new_config $str_new_ip)
+        if [ "$str_ip_status" = "new" ];then
+            log_info "configeth on $NODE: add $str_new_ip for $str_nic_name temporary."
+            add_ip_temporary $str_new_ip $str_nic_name
+        fi
+    done
+
+    #change the nic status to up
+    chdev -l $str_nic_name -a state=up
+    if [ $? -ne 0 ]; then
+        log_error "chdev -l $str_nic_name -a state=up failed."
+        error_code=1
+    fi
+else
+    str_history=''
+    bool_restart_flag=0
+    bool_modify_flag=0
+    str_nic_status='down'
+    str_his_file=${str_cfg_dir}xcat_history_important
+    str_history=`ip addr show dev $str_nic_name | grep inet | grep -iv dynamic | grep -iv link | grep  $str_nic_name | awk '{print $2}'`
+    old_ifs=$IFS
+    IFS=$'\n'
+    array_ip_old_temp=($str_history)
+    IFS=$old_ifs
+    ip link show dev $str_nic_name | grep -i ,up
+    if [ $? -eq 0 ];then
+        str_nic_status='up'
+        if [ -f "${str_his_file}" ];then
+            cat ${str_his_file} | grep $str_nic_name
+            if [ $? -eq 0 ];then
+                str_nic_status='up'
+                for str_old_ip in ${array_ip_old_temp[@]}
+                do
+                    str_old_ip=`echo $str_old_ip | tr '/' '_'`
+                    str_ip_staus=$(hashget hash_new_config $str_old_ip)
+                    if [ -n "$str_ip_staus" ];then
+                        hashset hash_new_config $str_old_ip "old"
+                    else
+                        bool_modify_flag=1
+                        log_info "configeth on $NODE: delete $str_old_ip for $str_nic_name temporary."
+                        str_old_ip=`echo $str_old_ip | tr '_' '/'`
+                        ip addr del $str_old_ip dev $str_nic_name
+                        if [ $? -ne 0 ]; then
+                            log_error "ip addr del $str_old_ip dev $str_nic_name failed."
+                            error_code=1
+                        fi
+                    fi
+                done
+            else
+                bool_restart_flag=1
+                bool_modify_flag=1
+            fi
+        else
+            bool_restart_flag=1
+            bool_modify_flag=1
+        fi
+    else
+        bool_restart_flag=1
+        bool_modify_flag=1
+    fi
+
+    #check if there are extra param values have been set or not
+    #if set, always restart the the nic
+    if [ ${#array_nic_params[@]} -gt 0 ]; then
+		bool_restart_flag=1
+		bool_modify_flag=1
+	fi
+			
+    if [ $bool_restart_flag = 0 ];then
+        #add the new defined ip
+        old_ifs=$IFS
+        IFS=$' '
+        array_ip_mask_temp=($str_ip_mask_pair)
+        IFS=$old_ifs
+        for str_new_ip in ${array_ip_mask_temp[@]}
+        do
+            str_ip_status=$(hashget hash_new_config $str_new_ip)
+            if [ "$str_ip_status" = "new" ];then
+                bool_modify_flag=1
+                if [ $bool_restart_flag -eq 0 ];then
+                    log_info "configeth on $NODE: add $str_new_ip for $str_nic_name temporary."
+                    add_ip_temporary $str_new_ip $str_nic_name
+                fi
+            fi
+        done
+    fi
+    #configure the ipv6 default route
+    if [ $bool_restart_flag -eq 0 -a -n "$str_ipv6_gateway" ];then
+        ip -6 route | grep default | grep $str_ipv6_gateway
+        if [ $? -ne 0 ];then
+            log_info "configeth on $NODE: the default ipv6 route changes to $str_ipv6_gateway."
+            ip -6 route del default
+            ip -6 route add default $str_ipv6_gateway dev $str_dev_name
+        fi
+    fi
+
+    #modify the configuration files
+    if [ $bool_modify_flag -eq 1 ];then
+        if [ $bool_restart_flag -eq 1 ];then
+            if [ "$str_nic_status" = "up" ];then
+                if [ "$str_os_type" = "debian" ];then
+                    ifdown --force $str_nic_name > /dev/null
+                else
+                    if [ $reboot_nic_bool -eq 1 ]; then
+                        ip link set dev $str_nic_name down > /dev/null 2>/dev/null
+                    fi
+                fi
+            fi
+            #delete all old ip address
+            for str_old_ip in ${array_ip_old_temp[@]}
+            do
+                ip addr del $str_old_ip dev $str_nic_name
+            done
+        fi
+        log_info "configeth on $NODE: $str_nic_name changed, modify the configuration files"
+        num_ipv4_index=0
+        num_ipv6_index=0
+        num_index=0
+        if [ -e "$str_his_file" ];then
+            grep $str_nic_name $str_his_file
+            if [ $? -ne 0 ];then
+                echo "${str_nic_name}" >> $str_his_file
+            fi
+        else
+            echo "${str_nic_name}" > $str_his_file
+        fi
+        #delete the old alias configuration files on redhat
+        if [ "$str_os_type" = "redhat" ];then
+            rm -f /etc/sysconfig/network-scripts/ifcfg-${str_nic_name}:* 2>/dev/null
+        fi
+        while [ $num_index -lt ${#array_nic_ips[*]} ];do
+            str_ip=${array_nic_ips[$num_index]}
+            str_subnet=${array_nic_subnet[$num_index]}
+            str_netmask=${array_nic_netmask[$num_index]}
+            str_gateway=${array_nic_gateway[$num_index]}
+            str_mtu=${array_nic_mtu[$num_index]}
+			if [ $num_index -lt ${#array_nic_params[@]} ]; then
+				str_extra_params=${array_nic_params[$num_index]}
+			else
+				str_extra_params=$str_default_token
+			fi
+
+            # make sure each parameter has a value
+			if [[ -z "$str_gateway" ]]; then
+				str_gateway=$str_default_token
+			fi
+		
+                        if [[ -z "$str_mtu" ]]; then
+                                str_mtu=$str_default_token
+                        fi
+	
+			if [ ! $str_subnet -o ! $str_netmask ];then
+                num_index=$((num_index+1))
+                continue
+            fi
+
+			
+            if [ `echo $str_ip | grep -E '^([0-9]{1,3}\.){3}[0-9]{1,3}$'` ];then
+                configipv4 $str_nic_name $str_ip $str_subnet $str_netmask $num_ipv4_index "$str_extra_params" $str_mtu
+                num_ipv4_index=$((num_ipv4_index+1))
+            elif [ `echo $str_ip | grep -E ":"` ];then
+                configipv6 $str_nic_name $str_ip $str_subnet $str_netmask $num_ipv6_index $num_ipv4_index $str_gateway "$str_extra_params"
+                num_ipv6_index=$((num_ipv6_index+1))
+            else
+                num_index=$((num_index+1))
+                continue
+            fi
+            num_index=$((num_index+1))
+        done
+    else
+        log_warn "configeth on $NODE: $str_nic_name no changed, return directly."
+    fi
+
+    #restart the nic
+    if [ $bool_restart_flag -eq 1 ];then
+        if [ "$str_os_type" = "debian" ];then
+            ifup -a -i /etc/network/interfaces.d/$str_nic_name
+            if [ $? -ne 0 ]; then
+                log_error "ifup -a -i /etc/network/interfaces.d/$str_nic_name failed."
+                error_code=1
+            fi
+        else
+            if [ $reboot_nic_bool -eq 1 ]; then
+                if_state=0
+                echo "bring up ip"
+                if [ $networkmanager_active -eq 1 ]; then
+                    nmcli con reload
+                    nmcli con up $con_name
+                else
+                    ifup $str_nic_name
+                fi
+                if [ $? -ne 0 ]; then
+                    if_state=$(wait_for_ifstate $str_nic_name UP 20 5)
+                fi
+                if [ $if_state -ne 0 ]; then
+                    log_error "bring $str_nic_name up failed."
+                    error_code=1
+                fi
+            fi
+        fi
+    fi
+fi
+if [ $networkmanager_active -eq 1 ] && [ -n "$tmp_con_name" ]; then
+    if [ $error_code -eq 1 ]; then
+        nmcli con modify $tmp_con_name connection.id $con_name
+    else
+        nmcli con delete $tmp_con_name
+    fi
+fi
+exit $error_code

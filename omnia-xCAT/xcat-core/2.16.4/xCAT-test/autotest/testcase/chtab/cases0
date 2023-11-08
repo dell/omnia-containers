@@ -1,0 +1,110 @@
+start:chtab_null
+description:Check chtab with no attr
+label:mn_only,ci_test,db
+cmd:chtab
+check:rc!=0
+check:output=~Usage
+end
+
+
+start:chtab_d
+description:check chtab -d
+label:mn_only,ci_test,db
+cmd:chtab key=rsh_test site.value=/opt/xcat/bin/rcp site.comments="the rcp command" site.disable=no
+check:rc==0
+cmd:tabdump site | grep rsh_test
+check:output=~/opt/xcat/bin/rcp
+cmd:chtab -d key=rsh_test site
+check:rc==0
+cmd:tabdump site | grep rsh_test
+check:output!=rsh_test
+end
+
+
+start:chtab_modify_node
+description:test chtab with node=XXX
+label:mn_only,ci_test,db
+cmd:chdef -t node -o testnode groups=rhels5.5
+check:rc==0
+cmd:chtab node=testnode nodelist.groups=all
+check:rc==0
+cmd:tabdump nodelist|grep testnode
+check:rc==0
+check:output=~all
+cmd:rmdef -t node testnode
+end
+
+start:chtab_modify_key
+description:check chtab with key=xxx
+label:mn_only,ci_test,db
+cmd:chtab key=rsh_test site.value=/opt/xcat/bin/rcp site.comments="the rcp command"
+check:rc==0
+cmd:tabdump site | grep rsh_test
+check:output=~/opt/xcat/bin/rcp
+check:output=~the rcp command
+cmd:chtab key=rsh_test site.value=/opt/xcat/bin/scp
+check:rc==0
+cmd:tabdump site | grep rsh_test
+check:output=~/opt/xcat/bin/scp
+cmd:chtab key=rsh_test site.value+=/opt/xcat/bin/rcp
+check:rc==0
+cmd:tabdump site | grep rsh_test
+check:output=~/opt/xcat/bin/scp,/opt/xcat/bin/rcp
+#cmd:chtab -d key=rsh_test site
+end
+
+
+start:chtab_err_symble
+description: check chtab  with error attr
+label:mn_only,ci_test,db
+cmd:chtab -t
+check:output=~Usage
+end
+
+
+start:chtab_nonexist_table
+description:chtab with nonexisting table name
+label:mn_only,db
+cmd:tabch -d key=abc123 nonexist_table1 nonexist_table2
+check:rc!=0
+check:output=~Table nonexist_table1 does not exist
+check:output=~Table nonexist_table2 does not exist
+cmd:tabch key=abc123 nonexist_table1.comments="mg"
+check:rc!=0
+check:output=~Table nonexist_table1 does not exist
+end
+
+start:chtab_err_table
+description:chtab with error table
+label:mn_only,ci_test,db
+cmd:chtab error=error site.comment=error
+check:rc!=0
+check:output=~no such column|column \"error\" does not exist|Unknown column \'error\'
+end
+
+
+start:chtab_h
+description:chtab -h and --help
+label:mn_only,ci_test,db
+cmd:chtab -h
+check:output=~Usage
+cmd:chtab --help
+check:output=~Usage
+end
+
+
+start:chtab_v
+description:chtab -v and -version
+label:mn_only,ci_test,db
+cmd:chtab -v
+check:output=~Version
+cmd:chtab -version
+check:output=~Version
+end
+
+
+
+
+
+
+

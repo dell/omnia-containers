@@ -1,0 +1,51 @@
+start:nodeset_shell
+label:others,genesis
+description: verify could log in genesis shell
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN  -g
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN -s
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN -c
+check:rc==0
+cmd:cat /tmp/genesistestlog/*
+end
+
+start:nodeset_cmdline
+label:others,genesis
+description:verify could run cmdline successfully
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN  -g
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl -n $$CN -d
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN -c
+check:rc==0
+cmd:cat /tmp/genesistestlog/*
+end
+
+start:nodeset_runimg
+label:others,genesis
+description:verify runimg could work
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl  -n $$CN  -g
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl -n $$CN -i
+check:rc==0
+cmd:perl /opt/xcat/share/xcat/tools/autotest/testcase/genesis/genesistest.pl -n $$CN -c
+check:rc==0
+cmd:cat /tmp/genesistestlog/*
+end
+start:nodeset_shell_incorrectmasterip
+label:others,genesis
+description:very if computenode need to do nodeset shell in different net with master will success
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh --check xnba
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh -c
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh --check grub2
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh -c
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh --check petitboot
+check:rc==0
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/genesis/test.sh -c
+check:rc==0
+end

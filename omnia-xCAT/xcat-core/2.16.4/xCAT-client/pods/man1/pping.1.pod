@@ -1,0 +1,81 @@
+
+=head1 NAME
+
+B<pping> - parallel ping the nodes.
+
+=head1 SYNOPSIS
+
+B<pping> [B<-i>|B<--interface> I<interfaces>] [B<-f>|B<--use_fping>] I<noderange>
+
+B<pping> [B<-h>|B<--help>]
+
+B<pping> {B<-v>|B<--version>}
+
+
+=head1 DESCRIPTION
+
+B<pping> is a utility used to ping a list of nodes in parallel.
+B<pping> will return an unsorted list of nodes with a ping or noping status.
+B<pping> front-ends B<nmap> or B<fping> if available.
+
+This command does not support the xcatd client/server communication.  It must be run on the management node.
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-i>|B<--interface> I<interfaces>
+
+A comma separated list of network interface names that should be pinged instead of the interface represented by the nodename/hostname.
+The following name resolution convention is assumed:  an interface is reachable by the hostname <nodename>-<interface>.  For example,
+the ib2 interface on node3 has a hostname of node3-ib2.
+
+If more than one interface is specified, each interface will be combined with the nodenames as described above and will be pinged in turn.
+
+=item B<-f>|B<--use_fping>
+
+Use B<fping> instead of B<nmap>
+
+=item B<-h>|B<--help>
+
+Show usage information.
+
+=item B<-v>|B<--version>
+
+Display the installed version of xCAT.
+
+=back
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+
+ pping all
+
+Output is similar to:
+
+ node1: ping
+ node2: ping
+ node3: noping
+
+=item 2.
+
+ pping all -i ib0,ib1
+
+Output is similar to:
+
+ node1-ib0: ping
+ node2-ib0: ping
+ node3-ib0: noping
+ node1-ib1: ping
+ node2-ib1: ping
+ node3-ib1: noping
+
+=back
+
+=head1 SEE ALSO
+
+L<psh(1)|psh.1>, L<noderange(3)|noderange.3>
+

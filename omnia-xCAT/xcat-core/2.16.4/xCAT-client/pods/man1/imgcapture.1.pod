@@ -1,0 +1,113 @@
+=head1 NAME
+
+B<imgcapture> - Captures an image from a Linux diskful node and create a diskless or diskful image on the management node.
+
+=head1 SYNOPSIS
+
+B<imgcapture> I<node> B<-t>|B<--type> {B<diskless>|B<sysclone>} B<-o>|B<--osimage> I<osimage> [B<-i> I<nodebootif>] [B<-n> I<nodenetdrivers>] [B<-V>|B<--verbose>]
+
+B<imgcapture> [B<-h> | B<--help>] | [B<-v> | B<--version>]
+
+=head1 DESCRIPTION
+
+The B<imgcapture> command will capture an image from one running diskful Linux node and create a diskless or diskful image for later use.
+
+The B<node> should be one diskful Linux node, managed by the xCAT MN, and the remote shell between MN and the B<node> should have been configured. AIX is not supported. VMs are not supported.
+
+The B<imgcapture> command supports two image types: B<diskless> and B<sysclone>. For the B<diskless> type, it will capture an image from one running diskful Linux node, prepares the rootimg directory, kernel and initial ramdisks for the B<liteimg>/B<packimage> command to generate the statelite/stateless rootimg. For the B<sysclone> type, it will capture an image from one running diskful Linux node, create an osimage which can be used to clone other diskful Linux nodes.
+
+The B<diskless> type:
+
+The attributes of osimage will be used to capture and prepare the root image. The B<osver>, B<arch> and B<profile> attributes for the stateless/statelite image to be created are duplicated from the B<node>'s attribute. If the B<-p|--profile> I<profile> option is specified, the image will be created under "/<I<installroot>>/netboot/<osver>/<arch>/<I<profile>>/rootimg".
+
+The default files/directories excluded in the image are specified by /opt/xcat/share/xcat/netboot/<os>/<I<profile>>.<osver>.<arch>.imgcapture.exlist; also, you can put your customized file (<I<profile>>.<osver>.<arch>.imgcapture.exlist) to /install/custom/netboot/<osplatform>. The directories in the default I<.imgcapture.exlist> file are necessary to capture the image from the diskful Linux node managed by xCAT, don't remove it.
+
+The image captured will be extracted into the /<I<installroot>>/netboot/<B<osver>>/<B<arch>>/<B<profile>>/rootimg directory.
+
+After the B<imgcapture> command returns without any errors, you can customize the rootimg and run the B<liteimg>/B<packimage> command with the options you want.
+
+The B<sysclone> type:
+
+xCAT leverages the Open Source Tool - Systemimager to capture the osimage from the B<node>, and put it into /<I<installroot>>/B<sysclone>/B<images> directory.
+
+The B<imgcapture> command will create the I<osimage> definition after the image is captured successfully, you can use this osimage and B<nodeset> command to clone diskful nodes.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-t>|B<--type>
+
+Specify the osimage type you want to capture, two types are supported: diskless and sysclone.
+
+=item B<-p|--profile> I<profile>
+
+Assign I<profile> as the profile of the image to be created.
+
+=item B<-o|--osimage> I<osimage>
+
+The osimage name.
+
+=item B<-i> I<nodebootif>
+
+The network interface the diskless node will boot over (e.g. eth0), which is used by the B<genimage> command to generate initial ramdisks.
+
+=item B<-n> I<nodenetdrivers>
+
+The driver modules needed for the network interface, which is used by the B<genimage> command to generate initial ramdisks.
+
+By default, the B<genimage> command can provide drivers for the following network interfaces:
+
+For x86 or x86_64 platform:
+
+    tg3 bnx2 bnx2x e1000 e1000e igb m1x_en
+
+For ppc64 platform:
+
+    e1000 e1000e igb ibmveth ehea
+
+For S390x:
+
+    qdio ccwgroup
+
+If the network interface is not in the above list, you'd better specify the driver modules with this option.
+
+=item B<-h|--help>
+
+Display the usage message.
+
+=item B<-v|--version>
+
+Display the version.
+
+=item B<-V|--verbose>
+
+Verbose output.
+
+=back
+
+=head1 RETRUN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+B<node1> is one diskful Linux node, which is managed by xCAT.
+
+1. There's one pre-defined I<osimage>. In order to capture and prepare the diskless root image for I<osimage>, run the command:
+
+ imgcapture node1 -t diskless -o osimage
+
+2. In order to capture the diskful image from B<node1> and create the I<osimage> B<img1>, run the command:
+
+ imgcapture node1 -t sysclone -o img1
+
+=head1 FILES
+
+/opt/xcat/bin/imgcapture
+
+=head1 SEE ALSO
+
+L<genimage(1)|genimage.1>, L<imgimport(1)|imgimport.1>, L<imgexport(1)|imgexport.1>, L<packimage(1)|packimage.1>, L<liteimg(1)|liteimg.1>, L<nodeset(8)|nodeset.8>

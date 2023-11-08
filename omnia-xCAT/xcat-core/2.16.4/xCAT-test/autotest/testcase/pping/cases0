@@ -1,0 +1,32 @@
+start:pping_h
+label:others,parallel_cmds
+cmd:pping -h
+check:rc==0
+check:output=~Usage
+cmd:pping --help
+check:rc==0
+end
+
+start:pping_v
+label:others,parallel_cmds
+cmd:pping -v
+check:rc==0
+check:output=~Version
+cmd:pping -v
+check:rc==0
+check:output=~Version
+end
+
+start:pping_node
+label:others,parallel_cmds
+cmd:pping $$CN
+check:rc==0
+check:output=~ping|noping
+end
+
+start:pping_invalidnode
+label:others,parallel_cmds
+cmd:pping test
+check:rc!=0
+check:output=~Warning: (\[.*?\]: )?Invalid nodes in noderange:test
+end

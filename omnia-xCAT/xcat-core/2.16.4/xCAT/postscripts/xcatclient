@@ -1,0 +1,60 @@
+#!/bin/bash
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+#
+# This routine transfers the client credentials from ~/.xcat on the MN
+# to the SN for Linux.
+# It only does something, if called with the -d flag.
+# The -d flag was implemented when the call to the routine was moved
+# from the postscript table into the servicenode postscript.
+#
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+if [ ! $1 ]; then
+   logger -t $log_label -p local4.err "xcatclient call without -d, doing nothing."
+   exit 0
+fi
+if [ $1 != "-d" ]; then
+   logger -t $log_label  -p local4.err "xcatclient call without -d, doing nothing."
+   exit 0
+fi
+logger -t $log_label -p local4.info "xcatclient call with -d. getting credentials and cfgloc "
+
+if [ ! -x /usr/bin/openssl ]; then #Unless we have openssl stup
+   logger -t $log_label -p local4.err "$0: /usr/bin/openssl is not executable"
+   exit -1
+fi
+USEOPENSSLFORXCAT=1 #Declare 2.3 style SSL
+RETURNVAL=0
+export USEOPENSSLFORXCAT
+   allowcred.awk &
+   CREDPID=$!
+   sleep 1
+   mkdir -p /root/.xcat
+   chmod 700 /root/.xcat
+   getcredentials.awk xcat_client_cred > /tmp/xcat_client_cred
+   grep -E '<error>' /tmp/xcat_client_cred
+   if [ $? -ne 0 ]; then
+     cat /tmp/xcat_client_cred | grep -v '<'|sed -e 's/&lt;/</' -e 's/&gt;/>/' -e 's/&amp;/&/' -e 's/&quot/"/' -e "s/&apos;/'/" > /root/.xcat/client-cred.pem
+     CONT=`cat /root/.xcat/client-cred.pem`
+     while [ -z "$CONT" ]; do
+      SLI=$(awk 'BEGIN{srand(); printf("%d\n",rand()*10)}')
+      SLI=$((10 + $SLI))
+      sleep $SLI
+      getcredentials.awk xcat_client_cred | grep -v '<'|sed -e 's/&lt;/</' -e 's/&gt;/>/' -e 's/&amp;/&/' -e 's/&quot/"/' -e "s/&apos;/'/" > /root/.xcat/client-cred.pem
+       CONT=`cat /root/.xcat/client-cred.pem`
+     done
+   else
+     ERR_MSG=`sed -n 's%.*<error>\(.*\)</error>.*%\1%p' /tmp/xcat_client_cred`
+     logger -t $log_label -p local4.err xcat_client_cred Error: $ERR_MSG
+     RETURNVAL=-1
+   fi
+   rm /tmp/xcat_client_cred
+
+   chmod 600 /root/.xcat/client-cred.pem
+   cp _xcat/ca.pem /root/.xcat/ca.pem
+   kill -9 $CREDPID
+   exit $RETURNVAL

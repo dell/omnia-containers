@@ -1,0 +1,200 @@
+=head1 NAME
+
+B<chdef> - Change xCAT data object definitions.
+
+=head1 SYNOPSIS
+
+B<chdef> [B<-h>|B<--help>] [B<-t> I<object-types>]
+
+B<chdef> [B<-t> I<object-types>] [B<-o> I<object-names>] [B<-n> I<new-name>] [I<node>]
+
+B<chdef> [B<-V>|B<--verbose>] [B<-t> I<object-types>] [B<-o> I<object-names>]
+[B<-d>|B<--dynamic>] [B<-p>|B<--plus>] [B<-m>|B<--minus>] [B<-z>|B<--stanza>]
+[[B<-w> I<attr>==I<val>] [B<-w> I<attr>=~I<val>] ...] [I<noderange>] [I<attr=val> [I<attr=val...>]] [B<-u> [B<provmethod=> {B<install> | B<netboot> | B<statelite>}] [B<profile=>I<xxx>] [B<osvers>=I<value>] [B<osarch>=I<value>]]
+
+=head1 DESCRIPTION
+
+This command is used to change xCAT object definitions which are stored in the xCAT database.  The default is to replace any existing attribute value with the one specified on the command line. The command will also create a new definition if one doesn't exist.
+
+This command also can be used to change the xCAT object name to a new name. Note: the site,monitoring types can NOT be supported.
+
+=head1 OPTIONS
+
+=over 10
+
+=item I<attr=val [attr=val ...]>
+
+Specifies one or more "attribute equals value" pairs, separated by spaces. Attr=val pairs must be specified last on the command line. Use the help option to get a list of valid attributes for each object type.
+
+=item B<-d|--dynamic>
+
+Use the dynamic option to change dynamic node groups definition. This option must be used with -w option.
+
+=item B<-h|--help>
+
+Display usage message.
+
+=item B<-m|--minus>
+
+If the value of the attribute is a list then this option may be used to remove one or more items from the list.
+
+=item B<-n> I<new-name>
+
+Change the current object name to the new-name which is specified by the -n option.
+Objects of type site, group and monitoring cannot be renamed with the -n option.
+Note: For the B<-n> option, only one node can be specified. For some special nodes such as fsp, bpa, frame, cec etc., their name is referenced in their own hcp attribute, or the hcp attribute of other nodes. If you use B<-n> option, you must manually change all hcp attributes that refer to this name.
+
+=item I<noderange>
+
+A set of comma delimited node names and/or group names. (must be the first parameter) See the "noderange" man page for details on supported formats.
+
+=item B<-o> I<object-names>
+
+A set of comma delimited object names.
+
+=item B<-p|--plus>
+
+This option will add the specified values to the existing value of the attribute.  It will create a comma-separated list of values.
+
+=item B<-t> I<object-types>
+
+A set of comma delimited object types.  Use the help option to get a list of valid object types.
+
+=item B<-V|--verbose>
+
+Verbose mode.
+
+=item B<-w> I<attr==val> B<-w> I<attr=~val> ...
+
+Use one or multiple -w flags to specify the selection string that can be used to select objects. The operators ==, !=, =~ and !~ are available. Use the help option to get a list of valid attributes for each object type.
+
+Operator descriptions:
+        ==        Select nodes where the attribute value is exactly this value.
+        !=        Select nodes where the attribute value is not this specific value.
+        =~        Select nodes where the attribute value matches this regular expression.
+        !~        Select nodes where the attribute value does not match this regular expression.
+
+Note: the operator !~ will be parsed by shell, if you want to use !~ in the selection string, use single quote instead. For example:-w 'mgt!~ipmi'.
+
+=item B<-z|--stanza>
+
+Indicates that the file being piped to the command is in stanza format. See the xcatstanzafile man page for details on using xCAT stanza files.
+
+=item B<-u>
+
+Fill in the attributes such as template file, pkglist file and otherpkglist file of osimage object based on the specified parameters. It will search "/install/custom/" directory first, and then "/opt/xcat/share/".
+
+Note: this option only works for objtype B<osimage>.
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+
+To change a site definition.
+
+ chdef -t site -o clustersite installdir=/xcatinstall
+
+=item 2.
+
+To change a basic node definition.
+
+ chdef -t node -o node01 groups="all,aix"
+
+(The group definitions are also created if they don't already exist.)
+
+=item 3.
+
+To add another group to the "groups" attribute in the previous example.
+
+ chdef -p -t node -o node01 groups="compute"
+
+=item 4.
+
+To remove the "all" group from the "groups" attribute in the previous example.
+
+ chdef -m -t node -o node01 groups="all"
+
+=item 5.
+
+To replace the current "groups" attribute value of "node01".
+
+ chdef -t node -o node01 groups="linux"
+
+=item 6.
+
+To add "node01" to the "members" attribute of a group definition called "LinuxNodes".
+
+ chdef -p -t group -o LinuxNodes members="node01"
+
+=item 7.
+
+To update a set of definitions based on information contained in the stanza file mystanzafile.
+
+ cat mystanzafile | chdef -z
+
+=item 8.
+
+To update a dynamic node group definition to add the cons=hmc wherevals pair.
+
+ chdef -t group -o dyngrp -d -p -w cons==hmc
+
+=item 9.
+
+To change the node object name from node1 to node2.
+
+ chdef -t node -o node1 -n node2
+
+=item 10.
+
+To change the node hwtype, this command will change the value of ppc.nodetype.
+
+ chdef -t node -o node1 hwtype=lpar
+
+=item 11.
+
+To change the policy table for policy number 7.0 for admin1
+
+ chdef -t policy -o 7.0 name=admin1 rule=allow
+
+=item 12.
+
+To change the node nic attributes
+
+ chdef -t node -o cn1 nicips.eth0="1.1.1.1|1.2.1.1" nicnetworks.eth0="net1|net2" nictypes.eth0="Ethernet"
+
+
+=item 13.
+
+To update an osimage definition.
+
+ chdef redhat6img -u provmethod=install
+
+=back
+
+
+=head1 FILES
+
+$XCATROOT/bin/chdef
+
+(The XCATROOT environment variable is set when xCAT is installed. The
+default value is "/opt/xcat".)
+
+
+=head1 NOTES
+
+This command is part of the xCAT software product.
+
+
+=head1 SEE ALSO
+
+L<mkdef(1)|mkdef.1>, L<lsdef(1)|lsdef.1>, L<rmdef(1)|rmdef.1>, L<xcatstanzafile(5)|xcatstanzafile.5>

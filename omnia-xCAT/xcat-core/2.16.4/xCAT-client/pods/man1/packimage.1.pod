@@ -1,0 +1,82 @@
+=head1 NAME
+
+B<packimage> - Packs the stateless image from the chroot file system.
+
+=head1 SYNOPSIS
+
+B<packimage [-h| --help]>
+
+B<packimage  [-v| --version]>
+
+B<packimage> [B<-m>|B<--method> B<cpio|tar|squashfs>] [B<-c>|B<--compress> B<gzip|pigz|xz>] [B<--nosyncfiles>] I<imagename>
+
+=head1 DESCRIPTION
+
+Packs the stateless image from the chroot file system into a file to be sent to the node for a diskless boot.
+
+Note: For an osimage that is deployed on a cluster, running B<packimage> will overwrite the existing rootimage file and be unavailable to the compute nodes while B<packimage> is running.
+
+=head1 PARAMETERS
+
+I<imagename> specifies the name of a OS image definition to be used. The specification for the image is stored in the I<osimage> table and I<linuximage> table.
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-h>
+
+Display usage message.
+
+=item B<-v>
+
+Command Version.
+
+=item B<-m| --method> 
+
+Archive Method (cpio, tar, squashfs (requires overlayFS or aufs modules during provisioning), default is cpio)
+
+=item B<-c| --compress> 
+
+Compress Method (pigz, gzip, xz, default is pigz/gzip)
+
+=item B<--nosyncfiles> 
+
+Bypass of syncfiles requested, will not sync files to root image directory
+
+=back
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+1. To pack the osimage 'rhels7.1-x86_64-netboot-compute':
+
+ packimage rhels7.1-x86_64-netboot-compute
+
+2. To pack the osimage 'rhels7.1-x86_64-netboot-compute' with "tar" to archive and "pigz" to compress:
+
+ packimage -m tar -c pigz rhels7.1-x86_64-netboot-compute
+
+3. To pack the osimage 'rhels7.1-x86_64-netboot-compute' without syncing files:
+
+ packimage --nosyncfiles rhels7.1-x86_64-netboot-compute
+
+=head1 FILES
+
+/opt/xcat/sbin/packimage
+
+
+=head1 NOTES
+
+This command is part of the xCAT software product.
+
+=head1 SEE ALSO
+
+L<genimage(1)|genimage.1>
+
+

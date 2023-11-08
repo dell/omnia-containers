@@ -1,0 +1,62 @@
+=head1 NAME
+
+B<monstart> - Starts a plug-in module to monitor the xCAT cluster.
+
+=head1 SYNOPSIS
+
+B<monstart [-h| --help]>
+
+B<monstart [-v| --version]>
+
+B<monstart> I<name> I<[noderange]> [B<-r|--remote>]
+
+
+=head1 DESCRIPTION
+
+This command is used to start a 3rd party software, (for example start the daemons), to monitor the xCAT cluster. The operation is performed on the management node and the service nodes of the given nodes.  The operation will also be performed on the nodes if the B<-r> option is specified.
+
+
+=head1 PARAMETERS
+
+I<name> is the name of the monitoring plug-in module. For example, if the I<name> is called I<xxx>, then the actual file name that the xcatd looks for is I</opt/xcat/lib/perl/xCAT_monitoring/xxx.pm>. Use B<monls -a> command to list all the monitoring plug-in modules that can be used.
+
+I<noderange> is the nodes to be monitored. If omitted, all nodes will be monitored.
+
+=head1 OPTIONS
+
+
+B<-h | --help>          Display usage message.
+
+B<-r | --remote>        Specifies that the operation will also be performed on the nodes. For example, the 3rd party monitoring software daemons on the nodes will also be started.
+
+B<-v | --version>       Command Version.
+
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+=head1 EXAMPLES
+
+1. To start gangliamon plug-in module (which interacts with Ganglia monitoring software) to monitor the xCAT cluster, enter:
+
+  monstart gangliamon -r
+
+2. To start xcatmon plug-in module to feed the node liveness status to xCAT's I<nodelist> table, enter:
+
+  monstart rmcmon
+
+
+=head1 FILES
+
+/opt/xcat/bin/monstart
+
+
+=head1 SEE ALSO
+
+L<monls(1)|monls.1>, L<monstop(1)|monstop.1>, L<monadd(1)|monadd.1>, L<monrm(1)|monrm.1>, L<moncfg(1)|moncfg.1>, L<mondecfg(1)|mondecfg.1>
+
+
+

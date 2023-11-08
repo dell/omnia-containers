@@ -1,0 +1,98 @@
+=head1 NAME
+
+B<makenetworks> - Gather cluster network information and add it to the xCAT database.
+
+=head1 SYNOPSIS
+
+B<makenetworks> [B<-h> | B<--help> ]
+
+B<makenetworks> [B<-v> | B<--version>]
+
+B<makenetworks> [B<-V> | B<--verbose>] [B<-d>|B<--display>]
+
+=head1 DESCRIPTION
+
+The B<makenetworks> command can be used to gather network information from an xCAT cluster environment and create corresponding network definitions in the xCAT database.
+
+Every network that will be used to install a cluster node must be defined in the xCAT database.
+
+The default behavior is to gather network information from the management node, and any configured xCAT service nodes, and automatically save that information in the xCAT database.
+
+You can use the B<-d> option to display the network information without writing it to the database.
+
+You can also redirect the output to a file that can be used with the xCAT B<mkdef> command to define the networks.
+
+For example:
+
+	makenetworks -d > mynetstanzas
+
+	cat mynetstanzas | mkdef -z
+
+This features allows you to verify and modify the network information before writing it to the database.
+
+When the network information is gathered a default value is created for the "netname" attribute.  This is done to make it possible to use the B<mkdef>, B<chdef>, B<lsdef>, and B<rmdef> commands to manage this data.
+
+The default naming convention is to use a hyphen separated "net" and "mask" values with the "." replaced by "_". (ex. "8_124_47_64-255_255_255_0")
+
+You can also modify the xCAT "networks" database table directly using the xCAT B<tabedit> command.
+
+   	tabedit networks
+
+
+Note: The B<makenetworks> command is run automatically when xCAT is installed on a Linux management node.
+
+=head1 OPTIONS
+
+B<-d|--display>       Display the network definitions but do not write to the definitions to the xCAT database. The output will be in stanza file format and can be redirected to a stanza file that can be used with B<mkdef> or B<chdef> commands to create or modify the network definitions.
+
+B<-h | --help>         Display usage message.
+
+B<-v | --version>      Command Version.
+
+B<-V |--verbose>       Verbose mode.
+
+=head1 RETURN VALUE
+
+=over 2
+
+=item 0.
+The command completed successfully.
+
+=item 1.
+An error has occurred.
+
+=back
+
+=head1 EXAMPLES
+
+=over 2
+
+=item 1.
+Gather cluster network information and create xCAT network definitions.
+
+	makenetworks
+
+=item 2.
+Display cluster network information but do not write the network definitions to the xCAT database.
+
+	makenetworks -d
+
+The output would be one or more stanzas of information similar to the following. The line that ends with a colon is the value of the "netname" attribute and is the name of the network object to use with the B<lsdef>, B<mkdef>, B<chdef> and B<rmdef> commands.
+
+ 9_114_37_0-255_255_255_0:
+    objtype=network
+    gateway=9.114.37.254
+    mask=255.255.255.0
+    net=9.114.37.0
+    mgtifname=ens3
+    mtu=1500
+
+=back
+
+=head1 FILES
+
+/opt/xcat/sbin/makenetworks
+
+=head1 SEE ALSO
+
+L<makedhcp(8)|makedhcp.8>

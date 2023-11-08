@@ -1,0 +1,10 @@
+./usr/share/man/*
+./var/cache/yum*
+./usr/share/doc*
+./usr/share/gnome*
+./usr/share/zoneinfo*
+./usr/share/cracklib*
+./usr/share/info*
+./usr/share/omf*
+./usr/lib/perl5*
+./boot*

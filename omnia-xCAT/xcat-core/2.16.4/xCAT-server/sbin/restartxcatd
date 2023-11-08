@@ -1,0 +1,305 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+
+#-----------------------------------------------------------------------------
+
+=head1 restartxcatd
+
+ restartxcatd  - this routine is used to restart the xcatd process group.
+
+     Linux: It will perform the xcatd fast restart. The 'xcatd fast restart'
+         has two advantages compares to the 'service stop and then start'.
+             1. The interval of xcatd out of service is very short.
+             2. The in processing request which initiated by old xcatd will
+                not be stopped by force. The old xcatd will hand over the sockets
+                to new xcatd, but old xcat will still be waiting for the in processing
+                request to finish before the exit.
+
+         It does the same thing as 'service xcatd restart' on NON-systemd OS like
+             rh6.x and sles11.x. But for the systemd enabled OS like rh7 and sles12,
+             the 'service xcatd restart' just do the 'stop and start' instead of
+             'xcatd fast restart'.
+
+         SO, it's recommended to use 'restartxcatd' command to restart xcatd on
+             systemd enable system like rh7 and sles12 instead of 'service xcatd restart' or
+             'systemctl restart xcatd'.
+
+     AIX: It runs 'stopsrc -s xcatd' to stop xcatd first if xcatd is active,
+         then runs 'startsrc -s xcatd' to start xcatd.
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+BEGIN
+{
+    $::XCATROOT =
+      $ENV{'XCATROOT'} ? $ENV{'XCATROOT'}
+      : -d '/opt/xcat' ? '/opt/xcat'
+      :                  '/usr';
+}
+use lib "$::XCATROOT/lib/perl";
+use Getopt::Long;
+use File::Basename;
+use xCAT::MsgUtils;
+use xCAT::Utils;
+
+my $cmd = basename($0);
+
+# for auditing
+my $current_userid = getpwuid($>);
+my $rsp            = {};
+my $host           = `hostname`;
+$host =~ s/\s*//g;    # remove blanks
+
+# check the arguments
+&parse_args($cmd);
+
+$rsp->{syslogdata}->[0] = "restartxcatd invoked by $current_userid.\n";
+$rsp->{userid}->[0]     = $current_userid;
+$rsp->{clientname}->[0] = $host;
+$rsp->{clienttype}->[0] = "cli";
+$rsp->{command}->[0]    = $cmd;
+$rsp->{status}->[0]     = "allowed";
+xCAT::MsgUtils->message("SA", $rsp);    # syslog and auditlog
+
+
+# for Linux specific
+if (xCAT::Utils->isLinux())
+{
+    print "Restarting xCATd                                           ";
+    if (-r "/etc/profile.d/xcat.sh") {
+        $cmd = ". /etc/profile.d/xcat.sh;";
+    }
+
+    $cmd .= "xcatd -p /var/run/xcatd.pid";
+    xCAT::Utils->runcmd("$cmd", -1);
+    if ($::RUNCMD_RC == 0) {
+        print "[  OK  ]\n";
+        system("logger -p local4.info -t xcat Restart xcatd: [ OK ].");
+        exit 0;
+    } else {
+        print "[ FAILED  ]\n";
+        system("logger -p local4.info -t xcat Restart xcatd: [ FAILED ].");
+        exit 1;
+    }
+} elsif (!(xCAT::Utils->isAIX())) {
+    xCAT::MsgUtils->message("E", "Error: This command should only be run on Linux or AIX.");
+    exit 1;
+}
+
+# Following code is for AIX only
+
+$::RE_CHECK_NUM = 10; # the times to check the result of command, the checking interval is 1 second
+
+my $rc;
+my @output;
+my $inoperative = 0;
+my $check_num;
+
+# Check whether the xcatd subsystem has been created
+$cmd    = "/usr/bin/lssrc -s xcatd | grep \"xcatd Subsystem is not on file\"";
+@output = `$cmd`;
+if (scalar(@output)) {
+
+    # create the subsystem if it does not exist
+    $cmd = "mkssys -p $::XCATROOT/sbin/xcatd -s xcatd -u 0 -S -n 15 -f 15 -a \"-f\"";
+    $rc = system($cmd);
+    if ($rc >> 8) {
+        xCAT::MsgUtils->message("E", "Error: Cannot create the xcatd subsystem.\n");
+        exit 1;
+    }
+}
+
+# Check the current status of xcatd subsystem
+$cmd    = "lssrc -s xcatd | grep 'xcatd' | grep 'inoperative'";
+@output = `$cmd`;
+if (scalar(@output)) {
+    if ($::VERBOSE) {
+        xCAT::MsgUtils->message("I", "xcatd subsystem in inoperative status.\n");
+    }
+    $inoperative = 1;
+}
+
+if (!$inoperative) {    # active
+                        # Stop the xcatd subsystem
+    $cmd = "/usr/bin/stopsrc -s xcatd";
+    $rc  = system($cmd);
+    if ($rc >> 8) {
+        xCAT::MsgUtils->message("E", "Error: Cannot run stopsrc command correctly.\n");
+        exit 1;
+    }
+
+    # Wait for end of the xcatd subsystem
+    $check_num = $::RE_CHECK_NUM;
+    while ($check_num > 0) {
+        $cmd    = "lssrc -s xcatd | grep 'xcatd' | grep 'inoperative'";
+        @output = `$cmd`;
+        if (scalar(@output) == 0) {
+            sleep 1;
+        } else {
+            last;
+        }
+        $check_num--;
+    }
+
+    if ($check_num <= 0) {
+        xCAT::MsgUtils->message("E", "Error: Cannot stop the xcatd subsystem correctly.\n");
+        exit 1;
+    } else {
+        if ($::VERBOSE) {
+            xCAT::MsgUtils->message("I", "Stopped the xcatd subsystem.\n");
+        }
+    }
+}
+
+# Kill xcatd manually if needed
+$cmd    = "ps -ef | grep xcatd: | grep -v grep";
+@output = `$cmd`;
+if (scalar(@output)) {
+    $cmd    = "ps -ef | grep xcatd | grep 'SSL listener'";
+    @output = `$cmd`;
+    foreach my $ps (@output) {
+        $ps =~ s/^\s+//;    # strip any leading spaces
+        my ($uid, $pid, $ppid, $desc) = split /\s+/, $ps;
+        my $cmd = "/usr/bin/kill -15 -$pid >/dev/null 2>&1";
+        `$cmd`;
+    }
+
+    # Kill the xcatd by force if it still there
+    $cmd    = "ps -ef | grep xcatd: | grep -v grep";
+    @output = `$cmd`;
+    foreach my $ps (@output) {
+        $ps =~ s/^\s+//;    # strip any leading spaces
+        my ($uid, $pid, $ppid, $desc) = split /\s+/, $ps;
+        my $cmd = "/usr/bin/kill -9 $pid >/dev/null 2>&1";
+        `$cmd`;
+    }
+    $check_num = $::RE_CHECK_NUM;
+    while ($check_num > 0) {
+        $cmd    = "ps -ef | grep xcatd: | grep -v grep";
+        @output = `$cmd`;
+        if (scalar(@output)) {
+            sleep 1;
+        } else {
+            last;
+        }
+        $check_num--;
+    }
+    if ($check_num <= 0) {
+        xCAT::MsgUtils->message("E", "Error: Cannot kill the xcatd processes correctly.\n");
+        exit 1;
+    }
+}
+
+# Start the xcatd subsystem
+$cmd = "/usr/bin/startsrc -s xcatd";
+
+if ($ENV{XCATRELOAD} || $ENV{XCATROOT} || $ENV{PATH}) {
+    $cmd .= " -e \"";
+    if ($ENV{XCATRELOAD}) {
+        $cmd .= " XCATRELOAD=$ENV{XCATRELOAD}";
+    }
+    if ($ENV{XCATROOT}) {
+        $cmd .= " XCATROOT=$ENV{XCATROOT}";
+    }
+    if ($ENV{PATH}) {
+        $cmd .= " PATH=$ENV{PATH}";
+    }
+    $cmd .= "\"";
+}
+$rc = system($cmd);
+if ($rc >> 8) {
+    xCAT::MsgUtils->message("E", "Error: Cannot run startsrc command correctly.\n");
+    exit 1;
+}
+
+# Sleep a while to make sure the startsrc has completed it's work
+sleep 3;
+
+# Check the status of xcatd subsystem
+$check_num = $::RE_CHECK_NUM;
+while ($check_num > 0) {
+    $cmd = "lssrc -s xcatd | grep 'xcatd' | grep 'active'";
+    my @output = `$cmd`;
+    if (scalar(@output) == 0) {
+        sleep 1;
+    } else {
+        last;
+    }
+    $check_num--;
+}
+
+if ($check_num <= 0) {
+    xCAT::MsgUtils->message("E", "Error: Cannot start the xcatd subsystem correctly.\n");
+    exit 1;
+}
+
+# now see if we can really talk to the database, up to a minute
+$wait = 60;
+while ($wait > 0) {
+    sleep 10;
+    $wait = $wait - 10;
+    xCAT::Utils->runcmd("$::XCATROOT/sbin/tabdump site", -1);
+    if ($::RUNCMD_RC == 0) {
+        $wait = 0;
+    }
+}
+if ($::VERBOSE) {
+    xCAT::MsgUtils->message("I", "Started the xcatd subsystem.\n");
+}
+
+exit 0;
+
+#-----------------------------------------------------------------------------
+
+=head3 parse_args
+
+  Parses for input
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+
+sub parse_args
+{
+    my $usagemsg = "restartxcatd [[-h|--help] | [-v|--version] | [-r|--reload]] [-V|--verbose]\n";
+
+    Getopt::Long::Configure("posix_default");
+    Getopt::Long::Configure("no_gnu_compat");
+    Getopt::Long::Configure("bundling");
+    if (
+        !GetOptions(
+            'h|help'    => \$::HELP,
+            'r|reload'  => \$::RELOAD,
+            'v|version' => \$::VERSION,
+            'V|verbose' => \$::VERBOSE
+        )
+      )
+    {
+        xCAT::MsgUtils->message("E", $usagemsg);
+        exit 1;
+    }
+    if ($::HELP)
+    {
+        xCAT::MsgUtils->message("I", $usagemsg);
+        exit 0;
+    }
+    if ($::RELOAD)
+    {
+        $ENV{XCATRELOAD} = "yes";
+    }
+    if ($::VERSION)
+    {
+        my $version = xCAT::Utils->Version();
+        $version .= "\n";
+        xCAT::MsgUtils->message("I", $version);
+        exit 0;
+    }
+
+}
+
+
+

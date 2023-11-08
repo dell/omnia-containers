@@ -1,0 +1,45 @@
+start:noderm_noderange
+description:noderm testnode1,testnode2
+label:mn_only,ci_test,db
+cmd:nodeadd testnode1,testnode2 groups=all
+check:rc==0
+cmd:lsdef -t node testnode1,testnode2
+check:output=~testnode1
+check:output=~testnode2
+cmd:noderm testnode1,testnode2
+check:rc==0
+cmd:lsdef -t node testnode1,testnode2
+check:output=~Could not find an object named 'testnode1' of type 'node'.
+check:output=~Could not find an object named 'testnode2' of type 'node'.
+end
+
+start:noderm_h
+description:noderm -h
+label:mn_only,ci_test,db
+cmd:noderm -h
+check:output=~Usage
+cmd:noderm --help
+check:output=~Usage
+end
+
+start:noderm_null
+description:noderm
+label:mn_only,ci_test,db
+cmd:noderm
+check:output=~Usage
+end
+
+start:noderm_err_node
+description:noderm err
+label:mn_only,ci_test,db
+cmd:rmdef -t node testnode
+cmd:noderm testnode
+check:rc!=0
+check:output=~Invalid nodes and/or groups in noderange: testnode
+end
+
+
+
+
+
+

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+#the postscript to enable snmpd in ONIE compatible switches
+
+if ! cat /etc/os-release |grep -i  '^NAME=[ "]*Cumulus Linux[ "]*$' >/dev/null 2>&1 ; then
+    echo "This script is only supported on Cumulus OS in ONIE switch"
+    exit 2
+fi
+
+#define conf file
+snmp_conf="/etc/snmp/snmpd.conf"
+if [ ! -f  "$snmp_conf" ]; then
+    echo "/etc/snmp/snmpd.conf doesn't not exist"
+    exit -1
+fi
+
+[ -f ${snmp_conf}.orig ] || cp $snmp_conf ${snmp_conf}.orig
+
+#get snmp attribute
+#NOTE: the length of SNMP Password has to be min=8
+xCATSettingsOID="xCAT setting"
+snmpversion=$SNMPVERSION
+snmpuser=$SNMPUSER
+snmppwd=$SNMPPASSWD
+snmppriv=$SNMPPRIV
+snmpauth=$SNMPAUTH
+snmpc=$SNMPC
+community="public"
+
+#Get cumulus orig conf file
+grep "$xCATSettingsOID" $snmp_conf 2>&1 1> /dev/null
+if [ $? -eq 0 ]; then
+    cp ${snmp_conf}.cumulus $snmp_conf
+fi
+
+# config snmpd to all the listening address
+net add snmp-server listening-address all
+
+if [[ "$snmpversion" =~ "3" ]]; then
+    #set up snmp version 3
+    if [ -n "$snmpuser" ] && [ -n "$snmpauth" ] && [ -n "$snmppwd" ]; then
+        len=${#snmppwd}
+        if [ $len -lt 8 ]; then
+            echo "SNMP v3 specification requires password to have a minimum of 8 characters"
+            exit -1
+        fi
+        snmpauth=`echo $snmpauth | awk '{print tolower($0)}'`
+        if [ -n "$snmppriv" ]; then
+            snmppriv=`echo $snmppriv | awk '{print tolower($0)}'`
+            net add snmp-server username $snmpuser auth-$snmpauth $snmppwd encrypt-$snmppriv $snmppwd
+        else
+            net add snmp-server username $snmpuser auth-$snmpauth $snmppwd
+        fi
+    else
+        echo "Please define user/password/auth for SNMP v3 specification"
+        exit -1
+    fi
+elif [ -n "$snmppwd" ]; then
+    community=$snmppwd
+elif [ -n "$snmpc" ]; then
+    community=$snmpc
+fi
+
+net add snmp-server readonly-community $community access any
+net commit
+
+#create snmpd restart conf file
+mkdir -p /etc/systemd/system/snmpd.service.d
+restart_conf="/etc/systemd/system/snmpd.service.d/restart.conf"
+echo "[Service]" > $restart_conf
+echo "Restart=always" >> $restart_conf
+echo "RestartSec=60" >> $restart_conf
+
+systemctl enable snmpd
+systemctl restart snmpd
+

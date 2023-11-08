@@ -1,0 +1,361 @@
+#!/bin/bash
+if [ "$(uname -s|tr '[:upper:]' '[:lower:]')" = "linux" ];then
+   str_dir_name=$(dirname $0)
+   . $str_dir_name/xcatlib.sh
+fi
+#written in bash for fewest prerequisites
+function get_def_interface {
+    #gethostbyname on `hostname` would be helpful, but since we
+    #are in bash, the best alternative is to use ping to get at it
+    #don't want to grep in /etc/hosts or presume DNS
+    #we are, however, presuming ipv4 for the moment
+    retval=$(ping -c 1 "$(hostname)"|head -n 1|cut -d\( -f 2|cut -d\) -f 1)
+    if [ -z "$retval" -o "127.0.0.1" = "$retval" ]; then #ok, that didn't pan out, now we grab the first address that looks sane
+        #retval=`ifconfig|grep inet" " |grep -v addr:127.0.0.1|grep -v 'addr:169.254'|head -n 1|cut -d: -f 2|cut -d' ' -f 1`
+        retval=$(ip -4 -oneline addr show|grep -v "127.0.0.1"|grep -v '169.254'|head -n 1|awk -F 'inet ' '{print $2}'|awk -F '/' '{print $1}')
+    fi
+    if [ -z "$retval" ]; then
+        echo "ERROR: Unable to reasonably guess the 'default' interface" >&2
+        exit 1
+    fi
+    #iface=`ifconfig|grep -v inet6|egrep '(Link|inet)'|grep -B1 'addr:'$retval |head -n 1|awk '{print $1}'`
+    iface=$(ip -4 -oneline addr show|grep -i $retval|awk -F ':' '{print $2}'|awk -F ' ' '{print $1}'|grep -o "[^ ]\+\( \+[^ ]\+\)*")
+    if [ -z "$iface" ]; then
+        echo "ERROR: Unable to reasonably guess the default interface" >&2
+        exit 1
+    fi
+    if brctl show | grep ^$iface &> /dev/null; then #
+        OIFS=$IFS
+        IFS=$'\n'
+        INMATCH=0
+        for brline in $(brctl show); do
+            IFS=$OIFS
+            if [ "$(expr match "$brline" $iface)" == ${#iface} ]; then
+                INMATCH=1
+            elif [ "$(expr match "$brline" " ")" != 1 ]; then
+                INMATCH=0
+            fi
+            if [ "$INMATCH" == 1 ];  then
+                if ! ethtool -i "$(echo $brline|awk '{print $NF}')"|grep "driver: tun" >& /dev/null; then
+                    iface=$(echo $brline|awk '{print $NF}')
+                    echo "$iface"
+                    IFS=$OFIS
+                    return
+                fi
+            fi
+    done
+    IFS=$OFIS
+    else
+        echo "$iface"
+    fi
+}
+
+#before modify the configuration on ubuntu/debian, should preparse the interface file
+#By default, All nics configuration are saved into /etc/network/interfaces, it is difficult for xcat to configure nic
+#So only use source /etc/network/interfaces.d/* in "/etc/network/interfaces"
+#create files under /etc/network/interfaces.d/ for each nic, then it is similar with the readhat and sles
+function debianpreconf(){
+    #create the config sub dir
+    if [ ! -d "/etc/network/interfaces.d" ];then
+        mkdir -p "/etc/network/interfaces.d"
+    fi
+    #search xcat flag
+    XCATFLAG=$(grep "#XCAT_CONFIG" /etc/network/interfaces)
+    if [ -n "$XCATFLAG" ];then
+        return
+    fi
+
+    #back up the old interface configure
+    if [ ! -e "/etc/network/interfaces.bak" ];then
+        mv /etc/network/interfaces /etc/network/interfaces.bak
+    fi
+
+    #create the new config file
+    echo "#XCAT_CONFIG" > /etc/network/interfaces
+    echo "source /etc/network/interfaces.d/*" >> /etc/network/interfaces
+
+    CONFFILE=''
+
+    #read the backfile
+    while read LINE; do
+        if [ ! "$LINE" ];then
+            continue
+        fi
+        FIRSTCHAR=${LINE:0:1}
+        if [ $FIRSTCHAR = '#' ];then
+            continue
+        fi
+
+        CONFTYPE=$(echo $LINE | cut -d" " -f1)
+        if [ $CONFTYPE = 'auto' -o $CONFTYPE = 'allow-hotplug' ];then
+            LINE=${LINE#$CONFTYPE}
+            for NICNAME in $LINE; do
+                echo "$CONFTYPE $NICNAME" > "/etc/network/interfaces.d/$NICNAME"
+            done
+        elif [ $CONFTYPE = 'iface' -o $CONFTYPE = 'mapping' ];then
+            #find out the nic name, should think about the eth0:1
+            NICNAME=$(echo $LINE | cut -d" " -f 2 | cut -d":" -f 1)
+            CONFFILE="/etc/network/interfaces.d/$NICNAME"
+            if [ ! -e $CONFFILE ];then
+                echo "auto $NICNAME" > $CONFFILE
+            fi
+
+            #write lines into the conffile
+            echo $LINE >> $CONFFILE
+        else
+            echo $LINE >> $CONFFILE
+        fi
+
+    done </etc/network/interfaces.bak
+}
+
+if [ "storageprereq" = "$1"  ]; then
+    MOUNTURI="$2"
+    DIRNAME=$(echo $MOUNTURI|sed -e 's!nfs://!nfs_!')
+    MOUNTPATH=$(echo $DIRNAME|sed -e 's!nfs_!!'|sed -e 's!/!:/!')
+    if mount|grep $MOUNTPATH > /dev/null; then
+        exit 0;
+    fi
+    mkdir -p /var/lib/xcat/vmnt/$DIRNAME
+    mount $MOUNTPATH /var/lib/xcat/vmnt/$DIRNAME
+elif [ "bridgeprereq" = "$1" ]; then
+    # load the bridge module first
+    modprobe bridge
+
+    NETDESC="$2"
+
+    if echo "$NETDESC"|grep ':'> /dev/null; then
+        PORTS=$(echo "$NETDESC"|cut -d: -f 1)
+        BNAME=$(echo "$NETDESC"|cut -d: -f 2)
+    else
+        if [ -n "$NETDESC" ]; then
+            BNAME=$NETDESC
+        else
+            BNAME=default
+        fi
+
+        # get the port for installation
+        if [ -n "$INSTALLNIC" ]; then
+            PORTS=$INSTALLNIC
+        elif [ -n "$PRIMARYNIC" ]; then
+            PORTS=$PRIMARYNIC
+	else
+            PORTS=$(get_def_interface)
+        fi
+
+        if [ -z "$PORTS" ] || [[ "$PORTS" =~ ^(mac|MAC)$ ]]; then
+            if [ -n "$MACADDRESS" ] ; then
+                PORTS=$(ip -oneline link show|grep -i ether|grep -i $MACADDRESS |awk -F ':' '{print $2}'|grep -o "[^ ]\+\( \+[^ ]\+\)*")
+            else
+                echo "should configure mac in $NODE definition."
+                exit 1
+            fi
+        fi
+
+    fi
+
+    # To check whether the brctl have been installed
+    if ! which brctl &> /dev/null; then
+        echo "No bridge-utils installed, pls install it first"
+        exit 1
+    fi
+
+    if brctl showstp "$BNAME" &> /dev/null; then
+        echo "$BNAME already exists"
+        exit 0
+    fi
+
+    if [ -z "$PORTS" ]; then #This has been checked many times before in theory, check again just in case
+        exit 1
+    fi
+
+    #TO check whether the NIC had been attached to another bridge
+    bridgename=$(brctl show |grep $PORTS)
+    if [ ! -z "$bridgename" ]; then
+        echo "Device $PORTS is already a member of another bridge"
+        exit 1
+    fi
+
+
+    #For now, we only support bridge name==network name.  This precludes
+    #the config of the same vlan number on multiple fabrics, but
+    #will cover that flexibility later if demanded (with 4k vlan ids,
+    #I think it would be unwise to reuse them as it could confuse anyway)
+    if echo "$PORTS"|grep '&'; then #we have bonding... fun to be had
+    #To be slack, going to just support one bond for now..
+        modprobe bonding miimon=100 mode=4
+        PORTS="${PORTS//&/ }"
+        ip link set bond0 up
+        for p in $PORTS; do
+            #TODO: we are only going to manage the default
+            #route for now
+            saveroutes=$(ip route | grep default| grep "dev $p"|grep via|sed -e 's/dev .*//')
+            OIFS=$IFS
+            IFS=$'\n'
+            saveip=$(ip addr show dev $p scope global|grep inet|grep -v dynamic|sed -e 's/inet.//'|sed -e 's/[^ ]*$//')
+            if [ ! -z "$saveip" ]; then
+                for line in $saveip; do
+                    ip addr add dev bond0 $line
+                done
+            fi
+            IFS=$OIFS
+            ifenslave bond0 $p
+            if [ ! -z "$saveroutes" ]; then
+                ip route add $saveroutes
+            fi
+        done
+        PORTS=bond0
+    fi
+    if echo "$BNAME"|egrep '^vl(an)?[0123456789]' > /dev/null; then
+        vlan="yes"
+        TNAME=${BNAME##vl}
+        TNAME=${TNAME##an}
+        #We have a vlan... more fun
+        modprobe 8021q
+        vconfig add $PORTS $TNAME
+        vconfig set_flag $PORTS.$TNAME 2 1 #Turn on GVRP where supported
+        ip link set $PORTS.$TNAME up
+        PORTORG=$PORTS
+        PORTS=$PORTS.$TNAME
+    fi
+    #Now, $PORTS is 'the' physical device to participate in a bridge
+    #TODO: we are only going to manage the default
+    #route for now
+    brctl addbr $BNAME
+    brctl setfd $BNAME 0 #fast forwarding
+    ip link set $BNAME up
+    saveroutes="$(ip route | grep default| grep "dev $PORTS"|grep via|sed -e 's/dev .*//')"
+    saveip="$(ip -4 -o addr show dev $PORTS scope global | sed 's/.*inet //'| sed 's/\( global \).*/\1/')"
+    if [ ! -z "$saveip" ]; then
+        while read line; do
+            ip addr add dev $BNAME ${line//dynamic}
+        done <<<"$saveip"
+    else
+        if [ ! -z "$3" ]; then
+            ip addr add dev $BNAME $3
+        fi
+    fi
+    brctl addif $BNAME $PORTS
+    if [ ! -z "$saveip" ]; then
+        while read line; do
+            ip addr del dev $PORTS ${line//dynamic}
+        done <<<"$saveip"
+    fi
+    if [ ! -z "$saveroutes" ]; then
+        ip route add $saveroutes
+    fi
+
+    #now save the settings into the config files so that they will be persistent among reboots
+    if [[ $OSVER = sles* ]] || [[ $OSVER = suse* ]] || [[ -f /etc/SuSE-release ]]; then
+        nwdir="/etc/sysconfig/network"
+        isSLES=1
+    elif [ -f "/etc/debian_version" ];then
+        debianpreconf
+        nwdir="/etc/network/interfaces.d"
+        isDebian=1
+        getcap /usr/bin/qemu-system-x86_64 | grep cap_net_admin
+        if [ $? -ne 0 ];then
+            setcap cap_net_admin=ei /usr/bin/qemu-system-x86_64
+        fi
+    else
+        nwdir="/etc/sysconfig/network-scripts"
+    fi
+
+     #write into the network configuration file
+    if [[ $isSLES -eq 1 ]]; then
+        { cat <<EOF
+DEVICE='$PORTS'
+ONBOOT='yes'
+BRIDGE='$BNAME'
+EOF
+        mac=$(ip addr show dev $PORTS scope global|grep link|sed -e 's/link\/ether//'|sed -e 's/brd.*$//'|sed -e 's/[ ]*//')
+        if [ ! -z "$mac" ]; then
+            echo "HWADDR='$mac'"
+        fi
+        if [ ! -z "$vlan" ]; then
+            echo "VLAN='yes'"
+        fi; } >"$nwdir/ifcfg-$PORTS"
+        { cat <<EOF
+DEVICE='$BNAME'
+TYPE='Bridge'
+ONBOOT='yes'
+PEERDNS='yes'
+DELAY='0'
+EOF
+        if [ ! -z "$3" ]; then
+            echo "IPADDR='$3'"
+            if [ ! -z "$4" ]; then
+                echo "NETMASK='$4'"
+            fi
+        else
+            echo "BOOTPROTO=dhcp"
+        fi; } >$nwdir/ifcfg-$BNAME
+    elif [ $isDebian ];then
+        #ubuntu/debian
+        echo "auto $PORTS" >$nwdir/$PORTS
+        echo "iface $PORTS inet manual" >> $nwdir/$PORTS
+
+        if [ ! -z "$vlan" ];then
+            echo "  vlan-raw-device $PORTORG"
+        fi
+
+        { echo "auto $BNAME"
+        if [ ! -z "$3" ];then
+            echo "iface $BNAME inet static"
+            echo "  address $3"
+            if [ ! -z "$4" ];then
+                echo "  netmask $4"
+            else
+                echo "  netmask 255.255.255.0"
+            fi
+        else
+            my_subnet=$(ip -4 -o addr show dev "$BNAME" scope global | awk '!/dynamic/{print $4}' )
+            if [ ! -z "$my_subnet" ]; then
+                bridge_ip="${my_subnet//\/*}"
+                bridge_mask="${my_subnet##*\/}"
+                bridge_mask=$(v4prefix2mask "$bridge_mask")
+                echo "iface $BNAME inet static"
+                echo "  address $bridge_ip"
+                echo "  netmask $bridge_mask";
+            else
+                echo "iface $BNAME inet dhcp"
+            fi
+        fi
+        echo "  bridge_ports $PORTS"
+        echo "  bridge_stp off"
+        echo "  bridge_fd 0"
+        echo "  bridge_maxwait 0"; } > "$nwdir/$BNAME"
+    else
+        # Migrate some PORTS configuration to Bridge:
+        ATTRS="$(egrep '^BOOTPROTO|^IPADDR|^NETMASK|^NETWORK|^GATEWAY' $nwdir/ifcfg-$PORTS)"
+        { cat <<EOF
+DEVICE=$PORTS
+ONBOOT=yes
+BRIDGE=$BNAME
+EOF
+        mac=$(ip -0 -o addr show dev "$PORTS" scope global|awk '{print $(NF-2)}')
+        if [ ! -z "$mac" ]; then
+            echo "HWADDR=$mac"
+        fi
+        if [ ! -z "$vlan" ]; then
+            echo "VLAN=yes"
+        fi; } >"$nwdir/ifcfg-$PORTS"
+        { cat <<EOF
+DEVICE=$BNAME
+TYPE=Bridge
+ONBOOT=yes
+PEERDNS=yes
+DELAY=0
+EOF
+        if [ ! -z "$3" ]; then
+            echo "IPADDR=$3"
+            if [ ! -z "$4" ]; then
+                echo "NETMASK=$4"
+            fi
+        else
+            echo "$ATTRS"
+        fi ; }  > "$nwdir/ifcfg-$BNAME"
+    fi
+
+    ifdown "$BNAME"; ifup "$BNAME"
+fi #END bridge config.
