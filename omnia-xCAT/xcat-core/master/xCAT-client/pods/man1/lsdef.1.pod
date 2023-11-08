@@ -1,0 +1,260 @@
+=head1 NAME
+
+B<lsdef> - Use this command to list xCAT data object definitions.
+
+=head1 SYNOPSIS
+
+B<lsdef> [B<-h>|B<--help>] [B<-t> I<object-types>] [B<-i> I<attr-list>]
+
+B<lsdef> [B<-V>|B<--verbose>] [B<-a>|B<--all>] [B<-S>]
+[B<-t> I<object-types>] [B<-o> I<object-names>] [B<-z>|B<--stanza>] [B<-i> I<attr-list> | [B<-l>|B<--long>] | [B<-s>|B<--short>]]
+[B<-c>|B<--compress>] [B<--osimage>] [B<--nics>] [[B<-w> I<attr>==I<val>]
+[B<-w> I<attr>=~I<val>] ...] [I<noderange>]
+
+B<lsdef> [B<-a>|B<--all>] [B<-t> I<object-types>] [B<-z>|B<--stanza>]
+[B<-i> I<attr-list> | [B<-l>|B<--long>] | [B<-s>|B<--short>]] [B<--template> [I<template-object-name>]]
+
+=head1 DESCRIPTION
+
+This command is used to display xCAT object definitions which are stored
+in the xCAT database and xCAT object definition templates shipped in xCAT.
+
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-a|--all>
+
+Display all definitions.
+For performance consideration, the auditlog and eventlog objects will not be listed.
+To list auditlog or eventlog objects, use B<lsdef -t auditlog> or B<lsdef -t eventlog> instead.
+
+=item B<-c|--compress>
+
+Display information in compressed mode, each output line has format "<object name>: <data>".
+The output can be passed to command B<xcoll> or B<xdshbak> for formatted output.
+The B<-c> flag must be used with B<-i> flag.
+
+=item B<-h|--help>
+
+Display usage message.
+
+=item B<-i> I<attr-list>
+
+Comma separated list of attribute names to display.
+
+=item B<-l|--long>
+
+List the complete object definition.
+
+=item B<-s|--short>
+
+Only list the object names.
+
+=item B<-S>
+
+List all the hidden nodes (FSP/BPA nodes) with other ones.
+
+=item I<noderange>
+
+A set of comma delimited node names and/or group names.
+See the "noderange" man page for details on supported formats.
+
+=item B<-o> I<object-names>
+
+A set of comma delimited object names.
+
+=item B<--template> [I<template-object-name>]
+
+Show the object definition templates I<template-object-name>  shipped in xCAT. If no I<template-object-name> is specified, all the object definition templates of the specified type B<-t> I<object-types> will be listed. Use B<-a|--all> option to list all the object definition templates.
+
+=item B<--osimage>
+
+Show all the osimage information for the node.
+
+=item B<--nics>
+
+Show the nics configuration information for the node.
+
+=item B<-t> I<object-types>
+
+A set of comma delimited object types. Use the help option to get a list of valid objects.
+
+=item B<-V|--verbose>
+
+Verbose mode.
+
+=item B<-w> I<attr==val> B<-w> I<attr=~val> ...
+
+Use one or multiple B<-w> flags to specify the selection string that can be used to select objects. The operators ==, !=, =~ and !~ are available. Use the help option to get a list of valid attributes for each object type.
+
+Operator descriptions:
+
+        ==        Select nodes where the attribute value is exactly this value.
+        !=        Select nodes where the attribute value is not this specific value.
+        =~        Select nodes where the attribute value matches this regular expression.
+        !~        Select nodes where the attribute value does not match this regular expression.
+
+Note: if the "val" fields includes spaces or any other characters that will be parsed by shell, the "attr<operator>val" needs to be quoted. If the operator is "!~", the "attr<operator>val" needs to be quoted using single quote.
+
+=item B<-z|--stanza>
+
+Display output in stanza format. See the "xcatstanzafile" man page for details on using xCAT stanza files. And default is to list complete object definition, use B<-i> to specify the attribute scope.
+
+=back
+
+
+=head1 RETURN VALUE
+
+0 The command completed successfully.
+
+1 An error has occurred.
+
+
+=head1 EXAMPLES
+
+=over 4
+
+=item 1.
+
+To display a description of all the valid attributes that could be used
+when defining an xCAT node.
+
+ lsdef -t node -h
+
+=item 2.
+
+To get a list of all the objects that have been defined.
+
+ lsdef -a
+
+=item 3.
+
+To get all the attributes of the node1
+
+ lsdef node1
+   OR
+ lsdef -t node node1
+   OR
+ lsdef -t node -o node1
+
+=item 4.
+
+To get the object name of node1 instead of all the attributes
+
+ lsdef -s node1
+
+=item 5.
+
+To get a list of all the network definitions.
+
+ lsdef -t network
+
+=item 6.
+
+To get a complete listing of all network definitions.
+
+ lsdef -l -t network
+
+=item 7.
+
+To list the whole xCAT database and write it to a stanza file. (backup database)
+
+ lsdef -a -l -z > mydbstanzafile
+
+=item 8.
+
+To list the MAC and install adapter name for each node.
+
+ lsdef -t node -i mac,installnic
+
+=item 9.
+
+To list an osimage definition named "aix53J".
+
+ lsdef -t osimage -l -o aix53J
+
+=item 10.
+
+To list all node definitions that have a status value of "booting".
+
+ lsdef -t node -w status==booting
+
+=item 11.
+
+To list all the attributes of the group "service".
+
+ lsdef -l -t group -o service
+
+=item 12.
+
+To list all the attributes of the nodes that are members of the group "service".
+
+ lsdef -t node -l service
+
+=item 13.
+
+To get a listing of object definitions that includes information about
+what xCAT database tables are used to store the data.
+
+ lsdef -V -l -t node -o node01
+
+=item 14.
+
+To list the hidden nodes that can't be seen with other flags.
+The hidden nodes are FSP/BPAs.
+
+ lsdef -S
+
+
+=item 15.
+
+To list the nodes status and use B<xcoll> to format the output.
+
+ lsdef -t node -i status -c | xcoll
+
+=item 16.
+
+To display the description for some specific attributes that could be used
+when defining an xCAT node.
+
+ lsdef -t node -h -i profile,pprofile
+
+=item 17.
+
+To display the nics configuration information for node cn1.
+
+ lsdef cn1 --nics
+
+=item 18.
+
+To list all the object definition templates shipped in xCAT.
+
+ lsdef --template -a
+
+=item 19.
+
+To display the details of "node" object definition template "ppc64le-template" shipped in xCAT.
+
+ lsdef -t node --template ppc64le-template
+
+=item 20.
+
+To list all the "node" object definition templates shipped in xCAT.
+
+ lsdef -t node --template
+
+=back
+
+=head1 FILES
+
+/opt/xcat/bin/lsdef
+
+=head1 NOTES
+
+This command is part of the xCAT software product.
+
+=head1 SEE ALSO
+
+L<mkdef(1)|mkdef.1>, L<chdef(1)|chdef.1>, L<rmdef(1)|rmdef.1>, L<xcatstanzafile(5)|xcatstanzafile.5>

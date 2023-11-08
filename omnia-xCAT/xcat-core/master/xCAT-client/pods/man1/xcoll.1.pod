@@ -1,0 +1,75 @@
+=head1 B<NAME>
+
+B<xcoll> - Formats and consolidates the output of the B<psh>, B<rinv> commands.
+
+=head1 B<SYNOPSIS>
+
+B<xcoll> [B<-n>] [B<-c>]
+
+=head1 B<DESCRIPTION>
+
+The  B<xcoll> command formats and consolidates output from the B<psh,rinv> command. The B<xcoll>
+command takes, as input, lines in the following format:
+
+groupname: line of output from remote command, will use group name, if defined
+
+The B<xcoll> command formats the lines as follows and writes them  to
+standard  output. Assume that the output from node3 and node4
+is identical:
+
+ ====================================
+ node1 or nodegroup name
+ ====================================
+ .
+ .
+ lines from psh for node1 with hostnames stripped off
+ .
+ .
+
+ ====================================
+ node2 or nodegroup name
+ ====================================
+ .
+ .
+ lines from psh for node2 with hostnames stripped off
+ .
+ .
+
+ ====================================
+ node3, node4 or nodegroup name
+ ====================================
+ .
+ .
+ lines from psh for node 3 with hostnames stripped off
+ .
+ .
+
+=head1 B<OPTIONS>
+
+=over 3
+
+=item B<-c>
+
+Display a total nodecount for each set of output.
+
+=item B<-n>
+
+Display output as nodenames instead of groupnames.
+
+=back
+
+=head1 B<EXAMPLES>
+
+=over 3
+
+=item 1.
+To  display the results of a command issued on several nodes, in
+the format used in the Description, enter:
+
+ psh node1,node2,node3 cat /etc/passwd | xcoll
+
+=back
+
+=head1 B<SEE ALSO>
+
+L<psh(1)|psh.1>, L<xdshbak(1)|xdshbak.1> ,L<xdshcoll(1)|xdshcoll.1>

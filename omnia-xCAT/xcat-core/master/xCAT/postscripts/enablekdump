@@ -1,0 +1,289 @@
+#!/bin/bash
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+#
+
+
+if [ "$(uname -s|tr 'A-Z' 'a-z')" = "linux" ];then
+   str_dir_name=`dirname $0`
+   . $str_dir_name/xcatlib.sh
+fi
+
+
+# create /etc/sysconfig/network-scripts/
+pmatch ()
+{
+  case $1 in
+    $2) return 0;;  # zero return code means string matched by pattern
+  esac
+
+  return 1          # non-zero return code means string not matched by pattern
+}
+
+for i in `/bin/cat /proc/cmdline`; do
+    KEY=`/bin/echo $i  | /bin/awk -F= '{print $1}'`
+    if [ "$KEY" = "ifname" ]; then
+        ifname=`/bin/echo $i | /bin/awk -F= '{print $2}'`
+        MACX=${ifname#*:}
+        ETHX=${ifname%:$MACX*}
+        break
+    elif [ "$KEY" = "netdev" ]; then
+        ETHX=`/bin/echo $i | /bin/awk -F= '{print $2}'`
+        MACX=`/sbin/ip link show $ETHX | /bin/grep ether | /bin/awk '{print $2}'`
+        break
+    elif [ "$KEY" = "BOOTIF" ]; then
+        MACX=`/bin/echo $i | /bin/awk -F= '{print $2}'|sed -e 's/^01-//' -e 's/-/:/g'`
+        #ETHX=`/sbin/ifconfig | /bin/grep -i $MACX | /bin/awk '{print $1}'`
+        ETHX=`/sbin/ip -oneline link show |/bin/grep -i $MACX |/bin/awk -F ":" '{print $2}'|/bin/grep -o "[^ ]\+\( \+[^ ]\+\)*"`
+        break
+    fi
+done
+
+if [ ! -z "$MACX" ] && [ ! -z "$ETHX" ]; then
+	if (pmatch $OSVER "sle*") || (pmatch $OSVER "suse*") || [ -f /etc/SuSE-release ] || [ -f /etc/SUSE-brand ]; then
+		CONFFILE=$MNTDIR/etc/sysconfig/network/ifcfg-$ETHX
+	fi
+	if (pmatch $OSVER "fedora*") || (pmatch $OSVER "rhel6*") || (pmatch $OSVER "rhels6*") || [ -f /etc/fedora-release ] || [ -f /etc/redhat-release ];then
+		CONFFILE=$MNTDIR/etc/sysconfig/network-scripts/ifcfg-$ETHX
+	fi
+    if [ ! -e $CONFFILE ]; then
+        /bin/touch $CONFFILE
+    fi
+    if (pmatch $ETHX "hf*") ; then
+        IP=`/sbin/ifconfig $ETHX | /bin/grep -i "inet addr" | awk '{print $2}' | awk -F: '{print $2}'`
+        MASK=`/sbin/ifconfig $ETHX | /bin/grep -i "inet addr" | awk '{print $4}' | awk -F: '{print $2}'`
+        echo "DEVICE=$ETHX" > $CONFFILE
+        echo "BOOTPROTO=static" >> $CONFFILE
+        echo "HWADDR=$MACX" >> $CONFFILE
+        echo "ONBOOT=yes" >> $CONFFILE
+        echo "IPADDR=$IP" >> $CONFFILE
+        echo "NETMASK=$MASK" >> $CONFFILE
+    fi
+fi
+
+
+for i in `cat /proc/cmdline`; do
+    KEY=`echo $i | awk -F= '{print $1}'`
+    if [ "$KEY" = "dump" ]; then
+        DUMP=`echo $i |awk -F= '{print $2}'`
+        if [ ! -z "$XCAT" ]; then
+            break
+        fi
+    elif [ "$KEY" = "XCAT" ]; then
+        XCAT=`echo $i |awk -F= '{print $2}'`
+        if [ ! -z "$DUMP" ]; then
+            break
+        fi
+    fi
+done
+
+if [ ! -z "$DUMP" ]; then
+    # parse "dump=<proto>://<nfsserver_IP>/<directory>"
+    KDPATH=${DUMP#*:}
+    KDPROTO=${DUMP%:$KDPATH*}
+
+    KDPATH=${KDPATH/\/\//}
+    KDIP=`echo $KDPATH | cut -d'/' -f1`
+    KDPATH=${KDPATH/$KDIP/}
+    retval=0
+
+    # if "dump=<proto>:///<directory>", use $xcatmaster as the default NFS server
+    if [ -z $KDIP ]; then
+        KDIP=${XCAT%:*}
+    fi
+
+    # workaround for RHEL6
+    # the $KDIP:$KDPATH directory will be used to generate the initrd for kdump service
+    MOUNTPATH=""
+    if (pmatch $OSVER "*6\.*"); then
+	MOUNTPATH="/tmp"
+    elif (pmatch $OSVER "*[78]\.*"); then
+        MOUNTPATH="/mnt"
+    else
+	MOUNTPATH="/var/tmp"
+    fi
+
+    if [ "$KDPROTO" = "nfs" ]; then
+	if (pmatch $OSVER "sle*") || (pmatch $OSVER "suse*") || [ -f /etc/SuSE-release ] || [ -f /etc/SUSE-brand ]; then
+            if (pmatch $OSVER "*10*"); then
+                #run mkinitrd to generater the kdump-init base
+                if (pmatch $ARCH "x86*"); then
+                    /sbin/mkinitrd -m "nfs tg3 bnx2 bnx2x e1000 e1000e igb mlx_en be2net af_packet firmware_class"
+                else
+                    /sbin/mkinitrd -m "nfs be2net e1000e ibmveth igb firmware_class tg3 e1000"
+                fi
+                /bin/mkdir -p /var/tmp/tempinit
+                cd /boot/
+                KDUMPINIT=`ls initrd-*-kdump`
+                /bin/cp /boot/${KDUMPINIT} /var/tmp/tempinit/
+                #change to the /var/tmp/tempinit/ directory
+                cd /var/tmp/tempinit/
+                /bin/zcat ${KDUMPINIT} | /bin/cpio -id
+                /bin/rm -f ${KDUMPINIT}
+                /bin/mkdir -p ./var/lib/dhcpcd/
+                /bin/mkdir -p ./lib/udev/devices/
+                if (pmatch $ARCH "ppc*"); then
+                    /bin/mkdir -p ./lib/power6/
+                    /bin/mkdir -p ./lib/power7/
+                fi
+                /bin/cp -r /lib/udev/devices/* ./lib/udev/devices/
+                for file in "/sbin/ifconfig /usr/bin/clear /bin/touch /bin/grep /sbin/dhcpcd /sbin/ip /bin/awk /bin/makedumpfile"
+                do
+                    for line in `ldd $file`
+                    do
+                        if [ ${line:0:1} = "/"  ]; then
+                            line=`echo $line | grep -v :`
+                            if [ $line ];then
+                                if [ ! -e .$line ];then
+                                    /bin/cp -L  $line .$line
+                                fi
+                            fi
+                        fi
+                    done
+                    /bin/cp $file "./bin/"
+                 done
+
+                #modify the original init to support dump to an nfs server
+                cat > ./bin/dumpfile << EOF
+#!/bin/bash
+if [ -e /proc/vmcore ];then
+    /bin/touch /var/lib/dhcpcd/dhcpcd-$ETHX.info
+    for i in 1 2 3 4 5 6 7 8 9 10
+    do
+        /bin/dhcpcd $ETHX
+        /bin/sleep 2
+        temp=\`/bin/ifconfig | /bin/grep inet\`
+        if [ -n "\$temp" ]; then
+            break
+        fi
+        echo -e "Failed to acquire address, retrying"
+    done
+
+    if [ -z "\$temp" ];then
+        exit
+    fi
+
+    HOSTNAME=`hostname`
+
+    /bin/mkdir /mnt
+    /bin/mount -t nfs -o nolock ${KDIP}:${KDPATH} /mnt
+    if [ -e /mnt/$HOSTNAME ];then
+        /bin/rm -f /mnt/$HOSTNAME
+    fi
+    /bin/makedumpfile -c /proc/vmcore /mnt/$HOSTNAME
+    /bin/umount -l /mnt
+    /sbin/reboot -d -f
+fi
+EOF
+                chmod a+x ./bin/dumpfile
+                /bin/sed -i "s/^# No multipath support/ \/bin\/dumpfile\n/" ./init
+                /bin/rm -f /boot/${KDUMPINIT}
+                /usr/bin/find . | cpio -H newc -o|gzip -9 -c - > /boot/${KDUMPINIT}
+                cd /
+                /bin/rm -rf "/var/tmp/tempinit"
+                #service kdump restart
+                restartservice kdump
+                retval=$?
+            else
+                /bin/mount -o nolock $KDIP:$KDPATH $MOUNTPATH
+	        KDTEMPPATH=${KDPATH//\//\\\/}
+	        KDTEMPPATH="nfs:\/\/${KDIP}${KDTEMPPATH}\/${NODE}"
+	        sed -i "s/^KDUMP_SAVEDIR=.*$/KDUMP_SAVEDIR=\"${KDTEMPPATH}\"/" /etc/sysconfig/kdump
+                sed -i "s/^KDUMP_COPY_KERNEL=.*$/KDUMP_COPY_KERNEL=\"no\"/" /etc/sysconfig/kdump
+                sed -i "s/^KDUMP_PRESCRIPT=.*$/KDUMP_PRESCRIPT=\"\/tmp\/createdir\"/" /etc/sysconfig/kdump
+                sed -i "s/^KDUMP_REQUIRED_PROGRAMS=.*$/KDUMP_REQUIRED_PROGRAMS=\"\/tmp\/createdir\"/" /etc/sysconfig/kdump
+                TEMPDELAY=$(($RANDOM%30))
+                #work around for the kdump on sles 11.2
+                echo "/bin/mkdir -p /root/tmp/" > /tmp/createdir
+                #following 5 lines is the work around for kdump on multiply nodes
+                echo "/bin/sleep ${TEMPDELAY}" >> /tmp/createdir
+                echo "/bin/mount -o nolock ${KDIP}:${KDPATH} /tmp" >> /tmp/createdir
+                echo "/bin/mkdir -p /tmp/${NODE}" >> /tmp/createdir
+                echo "/bin/sleep ${TEMPDELAY}" >> /tmp/createdir
+                echo "/bin/umount /tmp" >> /tmp/createdir
+                /bin/chmod 777 /tmp/createdir
+                #change the mount and remount shell scripts' name, workaround for kdump on stateless node
+                oldmount=`ls /lib/mkinitrd/boot/*-mount.sh`
+                oldremount=`ls /lib/mkinitrd/boot/*-remount.sh`
+                mv $oldmount ${oldmount}.bak
+                mv $oldremount ${oldremount}.bak
+	        /etc/init.d/boot.kdump restart
+                mv ${oldmount}.bak $oldmount
+                mv ${oldremount}.bak $oldremount
+            fi
+	else
+            if (pmatch $OSVER "rhel[78]*") || (pmatch $OSVER "rhels[78]*");then
+               nfsvers=$(/usr/sbin/rpcinfo -p $KDIP|grep -w nfs|awk /tcp/'{print $2}'|sort)
+               nfsver=0
+               if [ -n "$nfsvers" ]; then
+                   for i in $nfsvers
+                   do
+                       if [ $i -eq 3 ] && ! [ grep -w nfs /proc/filesystems >/dev/null 2>&1 ]; then
+                           if (pmatch $OSVER "rhel8*") || (pmatch $OSVER "rhels8*");then
+                               # For RHEL8 do not mount with vers=3 option
+                               continue
+                           fi
+                           nfsver=3
+                           break
+                       elif [ $i -eq 4 ] && ! [ grep -w nfs4 /proc/filesystems >/dev/null 2>&1 ]; then
+                           nfsver=4
+                           break
+                       fi
+                   done
+                   if [ $nfsver -ne 0 ]; then
+                       /bin/mount -o vers=$nfsver $KDIP:$KDPATH $MOUNTPATH
+                   else
+                       /bin/mount -o nolock $KDIP:$KDPATH $MOUNTPATH
+                   fi
+               else
+                   /bin/echo "nfs server is not available"
+               fi
+               [ -d $MOUNTPATH/var/crash ] || mkdir -p $MOUNTPATH/var/crash
+
+               #The initramfs used in kdump does not need "root", however, the initramfs refused to continue
+               #if no valid "root" provided in redhat7.1 kdump; As a workaround,we provide a fake "root=nfs:$KDIP:$KDPATH"
+               #with a dummy "proc" inside, which will fake "root=nfs:$KDIP:$KDPATH" as a valid root directory
+               [ -e $MOUNTPATH/proc ] || echo "Dummy file: fake the /proc to pass the checking of 'root=' inside dracut-cmdline " > $MOUNTPATH/proc
+
+               echo "nfs $KDIP:$KDPATH" > /etc/kdump.conf
+               echo "default shell" >> /etc/kdump.conf
+               echo "path /var/crash" >> /etc/kdump.conf
+               echo "core_collector makedumpfile -c --message-level 1 -d 31" >> /etc/kdump.conf
+               #strip "xcat" out of the initramfs for kdump
+               echo "dracut_args --omit \"xcat\"" >> /etc/kdump.conf
+               #strip the unnecessary kernel options from /proc/cmdline
+               #the modified "cmdline" will be used as the kernel options
+               #for kdump initramfs; otherwise, the "service kdump restart" will fail
+               #with "command line overflow" since the kernel options are longer than 255 chars`
+               kdumpcmdline=
+               for i in $(cat /proc/cmdline)
+                   do
+                       if [[ $i == console=* ]] || [[ $i == crashkernel=* ]]; then
+                             kdumpcmdline="$kdumpcmdline $i "
+                       fi
+               done
+               sed -i "s#^[\t ]*KDUMP_COMMANDLINE=\"#KDUMP_COMMANDLINE=\"$kdumpcmdline#" /etc/sysconfig/kdump
+               if (pmatch $OSVER "rhel7*") || (pmatch $OSVER "rhels7*"); then
+                   sed -i "s#^[\t ]*KDUMP_COMMANDLINE_APPEND=\"#KDUMP_COMMANDLINE_APPEND=\"root=nfs:$KDIP:$KDPATH #" /etc/sysconfig/kdump
+               fi
+               [ -f /etc/dracut.conf ] && mv /etc/dracut.conf  /tmp/dracut.conf
+               restartservice kdump
+               retval=$?
+               [ -f /tmp/dracut.conf ] && mv /tmp/dracut.conf /etc/dracut.conf
+	    elif (pmatch $OSVER "fedora*") || (pmatch $OSVER "rhel6*") || (pmatch $OSVER "rhels6*") || [ -f /etc/fedora-release ] || [ -f /etc/redhat-release ];then
+                /bin/mount -o nolock $KDIP:$KDPATH $MOUNTPATH
+		echo "net $KDIP:$KDPATH" > /etc/kdump.conf
+                echo "link_delay 180" >> /etc/kdump.conf
+		#/etc/init.d/kdump restart
+		restartservice kdump
+		retval=$?
+	    fi
+	fi
+    fi
+
+    /bin/umount -l $MOUNTPATH
+else
+    /bin/echo "The kdump server is not configured"
+fi
+
+exit $retval

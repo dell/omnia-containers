@@ -1,0 +1,327 @@
+start:chdef_null
+description:chdef without any flag
+label:mn_only,ci_test,db
+cmd:chdef
+check:output=~Usage
+end
+
+start:chdef_t_node
+description:chdef -t node
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:chdef -t node -o testnode groups=aix
+check:rc==0
+cmd:lsdef -t node -l testnode
+check:rc==0
+check:output=~groups=aix
+cmd:chdef testnode groups=linux
+check:rc==0
+cmd:lsdef -t node -l testnode
+check:rc==0
+check:output=~groups=linux
+cmd:chdef -t node -o testnode postscripts="syslog,remoteshell,syncfiles"
+check:rc==0
+check:output!~Error
+check:output=~Warning: (\[.*?\]: )?testnode: postscripts 'syslog' is already included
+check:output=~Warning: (\[.*?\]: )?testnode: postscripts 'remoteshell' is already included
+check:output=~Warning: (\[.*?\]: )?testnode: postscripts 'syncfiles' is already included
+cmd:chdef -t node -o testnode postbootscripts=otherpkgs
+check:rc==0
+check:output!~Error
+check:output=~Warning: (\[.*?\]: )?testnode: postbootscripts 'otherpkgs' is already included
+cmd:rmdef -t node testnode
+check:rc==0
+end
+
+start:chdef_t_network
+description:chdef -t network
+label:mn_only,ci_test,db
+cmd:chdef -t network -o testnetwork net=111.222.33.0 mask=255.255.255.254
+check:rc==0
+cmd:lsdef -t network -l testnetwork
+check:rc==0
+check:output=~net=111.222.33.0
+check:output=~mask=255.255.255.254
+cmd:chdef -t network -o testnetwork net=111.222.34.0 mask=255.255.255.254 gateway=111.222.34.1
+check:rc==0
+cmd:lsdef -t network -l testnetwork
+check:rc==0
+check:output=~net=111.222.34.0
+check:output=~mask=255.255.255.254
+check:output=~gateway=111.222.34.1
+cmd:rmdef -t network testnetwork
+end
+
+start:chdef_p
+description:chdef -p -t node
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:chdef -p -t node -o testnode groups=aix
+check:rc==0
+cmd:lsdef -t node -l testnode
+check:output=~groups=all,aix
+cmd:rmdef -t node testnode
+end
+
+start:chdef_m
+description:chdef -m -t node
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all,testgroup
+check:rc==0
+cmd:chdef -m -t node -o testnode groups=testgroup
+check:rc==0
+cmd:lsdef -t node -l testnode
+check:output!~testgroup
+cmd:rmdef -t node testnode
+end
+
+start:chdef_z
+description:chdef -z
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode groups=all
+check:rc==0
+cmd:lsdef testnode -z > /tmp/testnode.stanza
+check:rc==0
+cmd:perl -pi -e 's/all/aix/g' /tmp/testnode.stanza
+cmd:cat /tmp/testnode.stanza | chdef -z
+check:rc==0
+cmd:lsdef testnode -l
+check:rc==0
+check:output=~groups=aix
+cmd:rm -f /tmp/testnode.stanza
+cmd:rmdef -t node testnode
+check:rc==0
+end
+
+start:chdef_group
+description:chdef with node group
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode1-testnode2 mgt=hmc cons=hmc groups=all,systemp
+check:rc==0
+cmd:mkdef -t node -o testnode3-testnode4 mgt=ipmi cons=ipmi groups=all,systemx
+check:rc==0
+cmd:mkdef -t group -o testgrp1 members=testnode1,testnode3
+check:rc==0
+cmd:lsdef -s testgrp1
+check:rc==0
+check:output=~testnode1
+check:output=~testnode3
+check:output!~testnode2
+check:output!~testnode4
+cmd:chdef -t group -o testgrp1 -p members=testnode2,testnode4
+check:rc==0
+cmd:lsdef -s testgrp1
+check:rc==0
+check:output=~testnode1
+check:output=~testnode3
+check:output=~testnode2
+check:output=~testnode4
+cmd:chdef -t group -o testgrp1 -m members=testnode1,testnode2
+check:rc==0
+cmd:lsdef -s testgrp1
+check:rc==0
+check:output!~testnode1
+check:output=~testnode3
+check:output!~testnode2
+check:output=~testnode4
+cmd:rmdef -t group testgrp1
+check:rc==0
+cmd:rmdef -t node -o testnode1-testnode4
+check:rc==0
+end
+
+
+start:chdef_group_p
+label:mn_only,ci_test,db
+cmd:chdef abcnode1 -p groups=abc
+check:rc==0
+cmd:chdef abcnode2 -p groups=abcabc
+check:rc==0
+cmd:chdef -t group abc members=abcnode2
+check:rc==0
+cmd:nodels abc
+check:output!~abcnode1
+check:output=~abcnode2
+cmd:rmdef abcnode1
+cmd:rmdef abcnode2
+end
+
+
+
+start:chdef_dynamic_group
+description:chdef with dynamic node group
+label:mn_only,ci_test,db
+cmd:tabdump nodegroup
+cmd:tabdump nodelist
+cmd:mkdef -t node -o testnode1-testnode2 mgt=hmc cons=hmc groups=all,systemp
+check:rc==0
+cmd:tabdump nodelist|grep testnode
+cmd:mkdef -t node -o testnode3-testnode4 mgt=hmc cons=ipmi groups=all,systemx
+check:rc==0
+cmd:tabdump nodelist|grep testnode
+cmd:mkdef -t group -o dyngrp -d -w cons==hmc
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -s dyngrp
+check:rc==0
+check:output=~testnode1
+check:output=~testnode2
+check:output!~testnode3
+check:output!~testnode4
+cmd:chdef -t group -o dyngrp -d -w mgt==hmc
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -s dyngrp
+check:rc==0
+check:output=~testnode1
+check:output=~testnode2
+check:output=~testnode3
+check:output=~testnode4
+cmd:chdef -t group -o dyngrp -d -p -w cons==hmc -w groups=~systemp
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -s dyngrp
+check:rc==0
+check:output=~testnode1
+check:output=~testnode2
+check:output!~testnode3
+check:output!~testnode4
+cmd:lsdef -t group -o dyngrp
+check:rc==0
+check:output=~wherevals=mgt==hmc::cons==hmc::groups=~systemp
+cmd:chdef -t group -o dyngrp -d -m -w cons==hmc -w groups=~systemp
+check:rc==0
+cmd:tabdump nodegroup
+cmd:lsdef -s dyngrp
+check:output=~testnode1
+check:output=~testnode2
+check:output=~testnode3
+check:output=~testnode4
+cmd:rmdef -t group -o dyngrp
+check:rc==0
+cmd:tabdump nodegroup
+cmd:rmdef -t node -o testnode1-testnode4
+check:rc==0
+end
+
+start:chdef_multiple_keys
+description:mkdef support for multiple keys in a table, such as ppcdirect
+label:mn_only,ci_test,db
+cmd: mkdef -t node -o testfsp mgt=fsp cons=fsp groups=all,fsp nodetype=fsp passwd.HMC=abc123 passwd.general=abc123 passwd.admin=abc123
+check:rc==0
+cmd:lsdef testfsp
+check:rc==0
+check:output=~passwd.HMC=abc123
+check:output=~passwd.general=abc123
+check:output=~passwd.admin=abc123
+cmd:chdef -t node -o testfsp groups=fsp passwd.HMC=HMC passwd.general=general passwd.admin=admin
+check:rc==0
+cmd:lsdef testfsp
+check:rc==0
+check:output=~passwd.HMC=HMC
+check:output=~passwd.general=general
+check:output=~passwd.admin=admin
+cmd:rmdef -t node -o testfsp
+check:rc==0
+end
+
+start:chdef_n
+description:chdef -n
+label:mn_only,ci_test,db
+cmd:mkdef -t node -o testnode1 mgt=hmc cons=hmc groups=all,systemp
+check:rc==0
+cmd:chdef testnode1 -n testnode2
+check:rc==0
+cmd:lsdef testnode1
+check:output=~Could not find
+cmd:lsdef testnode2
+check:rc==0
+check:output=~Object name
+check:output=~mgt=hmc
+check:output=~cons=hmc
+check:output=~groups=all,systemp
+cmd:rmdef testnode2
+check:rc==0
+end
+
+start:chdef_t_o_error
+description:chdef -t wrongtype
+label:mn_only,ci_test,db
+cmd:chdef -t wrongtype -o testnode groups=all,aix
+check:rc!=0
+check:output=~not a valid
+end
+
+
+start:chdef_template
+description:try to change a template, a new node is created according to chdef.
+label:mn_only,ci_test,db
+cmd:result=`lsdef | grep  switch-template`; if [[ $result =~ "switch-template" ]]; then echo $result; noderm switch-template; fi
+cmd:chdef -t node -o switch-template groups=test
+check:output=~1 object definitions have been created or modified
+check:output=~New object definitions \'switch-template\' have been created
+check:rc==0
+cmd:lsdef switch-template
+check:output=~Object name\: switch\-template
+check:output=~groups\=test
+check:rc==0
+cmd:noderm switch-template
+check:rc==0
+end
+
+start:chdef_site_check
+description:This case is use to check site table could be changed successfully
+label:mn_only,db
+cmd:var=`lsdef -t site clustersite -i dhcplease|grep 'dhcplease=' |awk -F= '{print $2}'`;echo $var>/tmp/sitevalue;chdef -t site clustersite dhcplease=300
+check:rc==0
+check:output=~1 object definitions have been created or modified.
+cmd:lsdef -t site clustersite -i dhcplease|grep 'dhcplease=' |awk -F= '{print $2}'
+check:output=~300
+cmd:if [ -f  /tmp/sitevalue ];then var=`cat /tmp/sitevalue`;chdef -t site clustersite dhcplease=$var;rm -rf /tmp/sitevalue;fi
+check:rc==0
+end
+
+start:chdef_network_not_exist
+description:This case is use to create a network, but not set net and mask. 
+label:mn_only,db
+cmd:chdef -t network aaaaa_not_exist
+check:output=~No object definitions have been created or modified
+#check:rc!=0
+cmd:chdef -t network aaaaa_not_exist mtu=1500
+check:rc!=0
+check:output=~Net or mask value should not be empty
+cmd:chdef -t network aaaaa_not_exist mtu=1500 net=10.0.0.0
+check:rc!=0
+check:output=~Net or mask value should not be empty
+cmd:chdef -t network aaaaa_not_exist mtu=1500 mask=255.255.255.0
+check:rc!=0
+check:output=~Net or mask value should not be empty
+cmd:chdef -t network aaaaa_not_exist mask=255.255.255.0 net=100.0.0.0 mtu=1500
+check:rc==0
+check:output=~1 object definitions have been created or modified
+cmd:lsdef -t network aaaaa_not_exist
+check:rc==0
+cmd:chdef -t network aaaaa_not_exist gateway=10.0.0.101
+check:rc==0
+cmd:lsdef -t network aaaaa_not_exist -i gateway
+check:output=~10.0.0.101
+cmd:chdef -t network bbbbb_not_exist mask=255.255.255.0 net=100.0.0.0
+check:rc!=0
+check:output=~A network definition called 'aaaaa_not_exist' already exists
+cmd:echo '
+bbbbb_not_exist:
+    objtype=network
+    net=150.0.0.0
+' > /tmp/bbbbb_not_exist.def
+cmd:cat /tmp/bbbbb_not_exist.def |mkdef -z
+check:rc!=0
+check:output=~Net or mask value should not be empty
+cmd:lsdef -t network -o bbbbb_not_exist
+check:rc!=0
+cmd:rmdef -t network -o aaaaa_not_exist
+check:rc==0
+cmd:rm -rf /tmp/bbbbb_not_exist.def
+end
+

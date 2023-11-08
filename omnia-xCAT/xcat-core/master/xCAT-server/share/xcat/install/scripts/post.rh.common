@@ -1,0 +1,64 @@
+#!/bin/bash
+#
+# Setup hostname
+#
+echo "post scripts" >/root/post.log
+
+[ $XCATDEBUGMODE ] || export XCATDEBUGMODE="#TABLEBLANKOKAY:site:key=xcatdebugmode:value#"
+[ $MASTER_IP ] || export MASTER_IP="#ENV:MASTER_IP#"
+#INCLUDE:#ENV:XCATROOT#/share/xcat/install/scripts/scriptlib#
+
+export PRINIC=#TABLEBLANKOKAY:noderes:THISNODE:primarynic#
+if [ "$PRINIC" == "mac" ]
+then
+    export PRINIC='#GETPRINICMAC:THISNODE#'
+fi
+if [ -z "$PRINIC" ]
+then
+    for karg in $(cat /proc/cmdline |sed -e 's/-/:/g' -e 's/ /\n/g'); do
+        if  [ "${karg%%=*}" = "BOOTIF" ]; then
+            MACADDR="${karg#*=}";
+            #The BOOTIF in pxelinux will be the MAC address with the hardware type code as a prefix
+            #such as BOOTIF=01-40-f2-e9-68-de-90
+            if [ "${#MACADDR}" == "20" ]; then
+               MACADDR=${MACADDR:3:21}
+            fi
+            #export PRINIC=`ifconfig -a|grep -i "hwaddr ${karg#*=01:}"|awk '{print $1}'`
+            export PRINIC=`ip -o link|grep -i "$MACADDR"|awk  '{print $2}'|sed s/://`
+        fi
+    done
+    if [ -z "$PRINIC" ]; then
+        export PRINIC=eth0
+    fi
+fi
+if [ -z "$PRINIC" ]
+then
+    export PRINIC=eth0
+elif [[ `echo "$PRINIC" | grep -sqE ^[A-Fa-f0-9]+:[A-Fa-f0-9]+:[A-Fa-f0-9]+:[A-Fa-f0-9]+:[A-Fa-f0-9]+:[A-Fa-f0-9]+$ ;echo $?` == "0" ]]; then
+    #export PRINIC=`ifconfig -a | grep -i "HWaddr $PRINIC" | awk '{print $1}'`
+    export PRINIC=`ip -o link|grep -i "$PRINIC"|awk  '{print $2}'|sed s/://`
+fi
+
+#IP=$(ifconfig $PRINIC | grep inet | awk '{print $2}' | awk -F: '{print $2}')
+IP=$(ip -4 -o a sh dev $PRINIC | awk  '/inet/{print $4}' | head -n 1 | awk -F '/' '{print $1}')
+if [ -z "$IP" ]
+then
+	dhclient $PRINIC
+	#IP=$(ifconfig $PRINIC | grep inet | awk '{print $2}' | awk -F: '{print $2}')
+        IP=$(ip -4 -o a sh dev $PRINIC | awk  '/inet/{print $4}' | head -n 1 | awk -F '/' '{print $1}')
+fi
+
+export HOSTNAME=$(host $IP 2>/dev/null | awk '{print $5}' | awk -F. '{print $1}')
+
+if [ "$XCATDEBUGMODE" = "1" ] || [ "$XCATDEBUGMODE" = "2" ]; then
+   msgutil_r "$MASTER_IP" "debug" "PRINIC=$PRINIC, IP=$IP,HOSTNAME=$HOSTNAME" "/var/log/xcat/xcat.log"
+fi
+
+hostname $HOSTNAME
+
+if [ -f /boot/efi/efi/redhat/grub.conf ]; then #RedHat bug, grub.efi corrupts console unless we are careful...
+	sed -i s/^terminal.*// /boot/efi/efi/redhat/grub.conf
+	bootpart=$(sed -e 's/#.*//' /boot/efi/efi/redhat/grub.conf |grep root|grep -v kernel|head -n 1|awk '{print $2}')
+	bootpart="${bootpart%\\n}"
+	sed -i s!^serial.*!splashimage=$bootpart/boot/grub/splash.xpm.gz! /boot/efi/efi/redhat/grub.conf
+fi

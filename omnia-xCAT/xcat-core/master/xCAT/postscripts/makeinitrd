@@ -1,0 +1,39 @@
+#!/bin/bash
+#Used only by sysclone
+
+# This SI post-install script is needed because the initrd that autoyast/kickstart/ubuntu builds when installing
+# sles/rh/ubuntu on the golden node may not have the drivers when that initrd runs on the node that is
+# being deployed with this image (specifically, drivers to be able to mount the disk).
+# So rebuild the initrd on the to-node after putting the image on the disk, but before rebooting.
+
+#todo: Make this script work on red hat by checking for dracut and using that if it exists.
+#		And do whatever is necessary on ubuntu.
+
+if [[ -f /sbin/dracut ]]; then
+    # redhat6.x/centos6.x/rhels7.x
+    echo "Running dracut to regenerate the initrd with the drivers needed by this node:"
+    arch=`uname -m`
+    #echo "arch=$arch"
+    initrdfile=`find /boot -name "initramfs-*.$arch.img"`
+    #echo "initrdfile=$initrdfile"
+    kernelversion=`echo $initrdfile |sed -e 's:/boot/initramfs-\(.*\)\.img:\1:g'`
+    #echo "kernelversion=$kernelversion"
+    mv $initrdfile $initrdfile.org
+    echo "dracut $initrdfile $kernelversion"
+    dracut $initrdfile $kernelversion
+else
+    # suse/sles and redhat5.x/centos5.x
+    echo "Running mkinitrd to regenerate the initrd with the drivers needed by this node:"
+    osvers=`cat /etc/*release|sed -e 's/.*\([0-9]\{1,\}\.[0-9]\{1,\}\).*/\1/'`
+    if [[ $osvers == 5\.* ]];then
+        initrdfile=`find /boot -name "initrd-*.img"`
+        #echo "initrdfile=$initrdfile"
+        kernelversion=`echo $initrdfile |sed -e 's:/boot/initrd-\(.*\)\.img:\1:g'`
+        #echo "kernelversion=$kernelversion"
+        mv $initrdfile $initrdfile.org
+        echo "mkinitrd $initrdfile $kernelversion"
+        mkinitrd $initrdfile $kernelversion
+    else
+        mkinitrd
+    fi
+fi

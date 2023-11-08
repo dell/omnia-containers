@@ -1,0 +1,12 @@
+#INCLUDE:compute.rhels7.pkglist#
+
+#For Cuda
+kernel-devel
+gcc
+pciutils
+dkms
+#To install cuda-runtime-7-5
+#cuda-runtime-7-5
+#To install cuda-runtime-8-0
+cuda-runtime-8-0
+

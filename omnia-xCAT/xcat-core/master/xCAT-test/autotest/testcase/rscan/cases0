@@ -1,0 +1,88 @@
+start:rscan_noderange
+label:others,hctrl_hmc
+hcp:hmc
+cmd:rscan __GETNODEATTR($$CN,hcp)__
+check:rc==0
+check:output=~lpar\s+\w+\s+\d+\s+\w{4}-\w{3}\s+\w{7}\s+[\w|-]+
+check:output=~cec\s+[\w|-]+\s+\w{4}-\w{3}\s+\w{7}
+check:output=~hmc\s+__GETNODEATTR($$CN,hcp)__\s+\w{4}-\w{3}\s+\w{7}
+end
+start:rscan_x
+label:others,hctrl_hmc
+hcp:hmc
+cmd:rscan __GETNODEATTR($$CN,hcp)__ -x
+check:rc==0
+check:output=~<parent>[\w-]+</parent>
+end
+start:rscan_z
+label:others,hctrl_hmc
+hcp:hmc
+cmd:rscan __GETNODEATTR($$CN,hcp)__ -z
+check:rc==0
+check:output=~hcp=__GETNODEATTR($$CN,hcp)__
+end
+start:rscan_w
+label:others,hctrl_hmc
+hcp:hmc
+cmd:lsdef -t node all -z > /tmp/all.stanza
+cmd:lsdef -t node -l $$CN -z > /tmp/$$CN.stanza
+check:rc==0
+cmd:perl -pi -e 's/$$CN/testnode/g' /tmp/$$CN.stanza
+cmd:cat /tmp/$$CN.stanza | mkdef -z
+cmd:rmdef $$CN
+cmd:rscan __GETNODEATTR(testnode,hcp)__  -w
+check:rc==0
+check:output=~lpar\s+\w+\s+\d+\s+\w{4}-\w{3}\s+\w{7}\s+[\w|-]+
+check:output=~cec\s+[\w|-]+\s+\w{4}-\w{3}\s+\w{7}
+check:output=~hmc\s+__GETNODEATTR($$CN,hcp)__+\s+\w{4}-\w{3}\s+\w{7}
+cmd:lsdef -l $$CN
+check:rc==0
+check:output=~hcp=__GETNODEATTR($$CN,hcp)__
+cmd:rmdef all
+cmd:cat /tmp/all.stanza | mkdef -z
+cmd:chtab -d node=$$SN servicenode
+cmd:rm -f /tmp/all.stanza
+cmd:rm -f /tmp/$$CN.stanza
+end
+start:rscan_x_w
+label:others,hctrl_hmc
+hcp:hmc
+cmd:lsdef -t node all -z > /tmp/all.stanza
+cmd:lsdef -t node -l $$CN -z > /tmp/$$CN.stanza
+check:rc==0
+cmd:perl -pi -e 's/$$CN/testnode/g' /tmp/$$CN.stanza
+cmd:cat /tmp/$$CN.stanza | mkdef -z
+cmd:rmdef $$CN
+cmd:rscan __GETNODEATTR(testnode,hcp)__  -x -w
+check:rc==0
+check:output=~<parent>[\w-]+</parent>
+cmd:lsdef -l $$CN
+check:rc==0
+check:output=~hcp=__GETNODEATTR($$CN,hcp)__
+cmd:rmdef all
+cmd:cat /tmp/all.stanza | mkdef -z
+cmd:chtab -d node=$$SN servicenode
+cmd:rm -f /tmp/all.stanza
+cmd:rm -f /tmp/$$CN.stanza
+end
+start:rscan_z_w
+label:others,hctrl_hmc
+hcp:hmc
+cmd:lsdef -t node all -z > /tmp/all.stanza
+cmd:lsdef -t node -l $$CN -z > /tmp/$$CN.stanza
+check:rc==0
+cmd:perl -pi -e 's/$$CN/testnode/g' /tmp/$$CN.stanza
+cmd:cat /tmp/$$CN.stanza | mkdef -z
+cmd:rmdef $$CN
+cmd:rscan __GETNODEATTR(testnode,hcp)__  -z -w
+check:rc==0
+check:output=~parent=[\w-]+
+check:lsdef -l $$CN
+check:rc==0
+check:output=~parent=[\w-]+
+cmd:rmdef all
+cmd:cat /tmp/all.stanza | mkdef -z
+cmd:chtab -d node=$$SN servicenode
+cmd:rm -f /tmp/all.stanza
+cmd:rm -f /tmp/$$CN.stanza
+end

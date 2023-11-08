@@ -1,0 +1,58 @@
+start:nodeadd_null
+description:nodeadd without any flag
+label:mn_only,ci_test,db
+cmd:nodeadd
+check:output=~Usage
+end
+
+start:nodeadd_noderange
+label:mn_only,ci_test,db
+cmd:nodeadd testnode1-testnode2 groups="lpar,all" nodetype.nodetype="lpar,osi"
+check:rc==0
+cmd:lsdef -i groups,nodetype testnode1
+check:rc==0
+check:output=~testnode1
+check:output=~groups=lpar,all
+check:output=~nodetype=lpar,osi
+cmd:lsdef -i groups,nodetype testnode2
+check:rc==0
+check:output=~testnode2
+check:output=~groups=lpar,all
+check:output=~nodetype=lpar,osi
+cmd:rmdef -t node -o testnode1-testnode2
+end
+
+start:nodeadd_noderange_nodetype
+label:mn_only,ci_test,db
+cmd:nodeadd testnode1-testnode2 groups=all,rhel5 nodetype.os=rhel5
+check:rc=0
+cmd:lsdef -i groups,os testnode1
+check:rc=0
+check:output=~testnode1
+check:output=~groups=all,rhel5
+check:output=~os=rhel5
+cmd:lsdef -i groups,os testnode2
+check:rc=0
+check:output=~groups=all,rhel5
+check:output=~os=rhel5
+cmd:rmdef -t node -o testnode1-testnode2
+end
+
+start:nodeadd_v
+label:mn_only,ci_test,db
+cmd:nodeadd -v
+check:output=~Version
+end
+
+start:nodeadd_h
+label:mn_only,ci_test,db
+cmd:nodeadd -h
+check:output=~Usage
+end
+
+start:nodeadd_err_symbol
+label:mn_only,ci_test,db
+cmd:nodeadd testnode magt=unknown
+check:rc!=0
+check:output=~Error
+end

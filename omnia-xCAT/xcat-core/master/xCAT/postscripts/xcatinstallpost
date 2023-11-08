@@ -1,0 +1,162 @@
+#!/bin/bash
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#################################################################
+#
+#   xCAT script for running postboot scripts for full install case.
+#################################################################
+
+. /xcatpost/xcatlib.sh
+log_label="xcat.deployment"
+if [ -f /xcatpost/mypostscript.post ]; then
+    XCATDEBUGMODE=`grep 'XCATDEBUGMODE=' /xcatpost/mypostscript.post |cut -d= -f2 | tr -d \'\" | tr A-Z a-z `
+    MASTER_IP=`grep '^MASTER_IP=' /xcatpost/mypostscript.post |cut -d= -f2|sed s/\'//g`
+    OSVER=`grep '^OSVER=' /xcatpost/mypostscript.post |cut -d= -f2|sed s/\'//g`
+    NODE=`grep '^NODE=' /xcatpost/mypostscript.post |cut -d= -f2|sed s/\'//g`
+    IMAGE=`grep '^PROVMETHOD=' /xcatpost/mypostscript.post |cut -d= -f2|sed s/\'//g`
+    CLEANUPDISKFULLXCATPOST=`grep CLEANUPDISKFULLXCATPOST= /xcatpost/mypostscript |awk -F = '{print $2}' | tr -d \'\" | tr A-Z a-z`
+fi
+
+
+if [ ! `uname` = Linux ]; then
+   msgutil_r "$MASTER_IP" "error" "The OS is not Linux" "/var/log/xcat/xcat.log" "$log_label"
+   exit
+fi
+SLI=$(awk 'BEGIN{srand(); printf("%d\n",rand()*10)}')
+sleep $SLI
+
+XCATINFOFILE=/opt/xcat/xcatinfo
+MACADDR=`grep MACADDRESS= /xcatpost/mypostscript.post | awk -F = '{ print $2 }'| sed "s/\'//g"`
+INSTALLNIC=`ip -o link | grep -i "$MACADDR" | awk '{ print $2 }' | sed "s/://"`
+
+
+# the network between the node and MASTER might be not well configured and activated when running the PBS sometimes
+# need to make sure...
+RETRY=0
+while true; do
+    #check whether the network access between MN/CN and the node is ready
+    ping $MASTER_IP -c 1 >/dev/null && break
+
+    RETRY=$[ $RETRY + 1 ]
+
+    if [ $RETRY -eq 90 ];then
+       #timeout, complain and exit
+       msgutil_r "$MASTER_IP" "error" "the network between the node and $MASTER_IP is not ready, please check[retry=$RETRY]..." "/var/log/xcat/xcat.log" "$log_label"
+       exit 1
+    fi
+
+    #sleep sometime before the next scan
+    sleep 2
+done
+
+
+cd /xcatpost;
+PATH=/xcatpost:$PATH
+export PATH
+# To support the postscripts in the subdirectories under /install/postscripts
+#chmod +x /xcatpost/*;
+chmod -R +x `find /xcatpost/ -maxdepth 1 -print | grep -E -v '^(/xcatpost/|/xcatpost/_xcat|/xcatpost/_ssh|/xcatpost/ca|/xcatpost/hostkeys)$'`
+
+POST_IN_DIR="/xcatpost"
+
+if [ -x /usr/bin/openssl ]; then
+     SIP=`grep "^MASTER=" ${POST_IN_DIR}/mypostscript.post  |cut -d= -f2`
+     XCATSERVER="$SIP:3001"
+     export XCATSERVER
+     USEOPENSSLFORXCAT=1 #Though this is the only method going forward, flag to allow backward compatibility with 2.2 generated netboot images
+     export USEOPENSSLFORXCAT
+fi
+
+#  Regardless of where mypostscript.post was found, modify and run it in /xcatpost.
+
+DHCP_TMP=`sed 's/\(DHCPINTERFACES=\)\(.*\)$/\1"\2"/' /xcatpost/mypostscript.post`
+echo "$DHCP_TMP" > /xcatpost/mypostscript.post
+
+#mark that the first reboot after installation is finished
+grep 'REBOOT' /opt/xcat/xcatinfo > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    sed -i "s/REBOOT=.*/REBOOT=TRUE/" /opt/xcat/xcatinfo
+else
+    echo "REBOOT=TRUE" >> /opt/xcat/xcatinfo
+fi
+
+#add node name to xcatinfo
+grep 'NODE' /opt/xcat/xcatinfo > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    sed -i "s/NODE=.*/NODE=$NODE/" /opt/xcat/xcatinfo
+else
+    echo "NODE=$NODE" >> /opt/xcat/xcatinfo
+fi
+
+#add image name to xcatinfo
+grep 'IMAGENAME' /opt/xcat/xcatinfo > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    sed -i "s/IMAGENAME=.*/IMAGENAME=$IMAGE/" /opt/xcat/xcatinfo
+else
+    echo "IMAGENAME=$IMAGE" >> /opt/xcat/xcatinfo
+fi
+
+# Store the SERVICEGROUP into the xcatinfo file for statful installation
+sn_group=`grep '^SERVICEGROUP' /xcatpost/mypostscript |cut -d= -f2 | tr -d \'\"`
+if [ "x" != "x$sn_group" ]; then
+  # Change or add SERVICEGROUP line if service node pool defined.
+  grep 'SERVICEGROUP=' $XCATINFOFILE > /dev/null 2>&1
+  if [ $? -eq 0 ]; then
+    sed -i "s/SERVICEGROUP=.*/SERVICEGROUP=$sn_group/" $XCATINFOFILE
+  else
+    echo "SERVICEGROUP=$sn_group" >> $XCATINFOFILE
+  fi
+else
+  # Remove SERVICEGROUP line if no service node pool defined.
+  sed -i "/SERVICEGROUP=.*/d" $XCATINFOFILE
+fi
+
+[ -f /xcatpost/mypostscript ] && NODESTATUS=`grep 'NODESTATUS=' /xcatpost/mypostscript |awk -F = '{print $2}'|tr -d \'\" | tr A-Z a-z `
+[ -z "$NODESTATUS" ] && NODESTATUS="1"
+
+CNS=$NODESTATUS
+if [ -z "$CNS" ] || [[ "$CNS" =~ ^(1|yes|y)$ ]]; then
+#update the node status during the postbootscript running
+#TMP=`sed "/postbootscripts-start-here/ i\updateflag.awk \\$MASTER 3002 \\"installstatus configuring\\"" /xcatpost/mypostscript.post`
+#echo "$TMP"> /xcatpost/mypostscript.post
+
+echo "
+
+[ -f /opt/xcat/xcatinfo ] && grep 'POSTSCRIPTS_RC=1' /opt/xcat/xcatinfo >/dev/null 2>&1 && return_value=1
+
+
+if [ \"\$return_value\" -eq \"0\" ]; then
+    if [ \"\$XCATDEBUGMODE\" = \"1\" ] || [ \"\$XCATDEBUGMODE\" = \"2\" ]; then
+        msgutil_r \"\$MASTER_IP\" \"debug\" \"node booted, reporting status...\" \"/var/log/xcat/xcat.log\" \"\$log_label\"
+    fi
+    updateflag.awk \$MASTER 3002 \"installstatus booted\"
+    msgutil_r \$MASTER_IP \"info\" \"provision completed.(\$NODE)\" \"/var/log/xcat/xcat.log\" \"\$log_label\"
+else
+    if [ \"\$XCATDEBUGMODE\" = \"1\" ] || [ \"\$XCATDEBUGMODE\" = \"2\" ]; then
+        msgutil_r \"\$MASTER_IP\" \"debug\" \"node boot failed, reporting status...\" \"/var/log/xcat/xcat.log\" \"\$log_label\"
+    fi
+    updateflag.awk \$MASTER 3002 \"installstatus failed\"
+    msgutil_r \$MASTER_IP \"error\" \"provision completed with error.(\$NODE)\" \"/var/log/xcat/xcat.log\" \"\$log_label\"
+fi
+" >> /xcatpost/mypostscript.post
+fi
+
+# If "cleanupdiskfullxcatpost" install was requested, remove all /xcapost
+# files (except updateflag.awk ) if postscripts ran without an error
+if [[ "$CLEANUPDISKFULLXCATPOST" =~ ^(1|yes|y)$ ]]; then
+echo "
+if [ \"\$return_value\" -eq \"0\" ]; then
+  cd /
+  find /xcatpost/ -type f -not -name 'updateflag.awk' -delete
+  find /xcatpost/ -type d -empty -delete
+  msgutil_r \$MASTER_IP \"info\" \"cleanup of /xcatpost completed.(\$NODE)\" \"/var/log/xcat/xcat.log\" \"\$log_label\"
+fi
+" >> /xcatpost/mypostscript.post
+fi
+
+chmod +x /xcatpost/mypostscript.post
+if [ -x /xcatpost/mypostscript.post ];then
+   msgutil_r "$MASTER_IP" "info" "Running /xcatpost/mypostscript.post" "/var/log/xcat/xcat.log" "$log_label"
+   /xcatpost/mypostscript.post
+   msgutil_r "$MASTER_IP" "info" "/xcatpost/mypostscript.post return" "/var/log/xcat/xcat.log" "$log_label"
+   msgutil_r "$MASTER_IP" "info" "=============deployment ending====================" "/var/log/xcat/xcat.log" "$log_label"
+fi

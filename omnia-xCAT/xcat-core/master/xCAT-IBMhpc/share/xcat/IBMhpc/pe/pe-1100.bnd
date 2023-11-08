@@ -1,0 +1,16 @@
+# AIX bundle package list for PE
+
+### TEMPORARY for xCAT 2.6
+
+# POE
+#I:ppe.man
+I:ppe.openshmem
+I:ppe.rte
+I:ppe.loc.license
+
+# PE HPC toolkit, needed on login node
+#I:ppedev.hpct
+
+# MetaCluster (checkpoint/restore)
+I:mdcr
+

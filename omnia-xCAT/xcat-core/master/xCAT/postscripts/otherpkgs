@@ -1,0 +1,1124 @@
+#!/bin/bash
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+#-------------------------------------------------------------------------------
+#=head1  otherpkgs  - only runs on Linux
+#=head2  It gets the extra rpms and install/update them.
+#        The environment variable OTHERPKGS contains the rpms to be installed/updated.
+#        On MN, You need to:
+#        1. put rpms under /install/post/otherpkgs/os/arch directory where 'os' and 'arch'
+#           can be found in the nodetype table.
+#        2. put the name of the packages to /opt/xcat/share/xcat/netboot(install)/platform
+#           directory. The file name is one of the following:
+#              profile.os.arch.otherpkgs.pkglist
+#              profile.os.otherpkgs.pkglist
+#              profile.arch.otherpkgs.pkglist
+#              profile.otherpkgs.pkglist
+#   The install/deployment process will pick up the rpms and install them on the nodes.
+#   However, if the nodes have already installed and up and running, you can run the following
+#   command to have the extra rpms installed:
+#       updatenode noderange otherpkgs
+#
+#=cut
+#-------------------------------------------------------------------------------
+
+#enable debug
+#set -x
+if [ -n "$LOGLABEL" ]; then
+    log_label=$LOGLABEL
+else
+    log_label="xcat"
+fi
+
+if [ -f /etc/os-release ] && cat /etc/os-release |grep -i -e "^NAME=[ \"']*Cumulus Linux[ \"']*$" >/dev/null 2>&1 ; then
+   #TODO
+   echo "Cumulus OS is not supported yet, nothing to do..."
+   logger -t $log_label -p local4.info "Cumulus OS is not supported yet, nothing to do..."
+   exit 0
+fi
+
+# pmatch determines if 1st argument string is matched by 2nd argument pattern
+
+pmatch ()
+{
+  case $1 in
+    $2) return 0;;  # zero return code means string matched by pattern
+  esac
+
+  return 1          # non-zero return code means string not matched by pattern
+}
+
+##
+##  The following routines implement the notion of an array.
+##  The POSIX shell does not support arrays.
+##  With these routines, an array conceptually called "my_array" is implmented using the following series
+##  of variables:
+##
+##      my_array__ARRAY_HIGH_INDEX  - holds the highest index used in the array
+##      my_array__0   - value for element 0 of my_array: my_array[0] in standard array notation
+##      my_array__1   - value for element 1 of my_array: my_array[1] in standard array notation
+##         .                             .
+##         .                             .
+##         .                             .
+##
+
+#
+#  array_empty - make the array whose name is given by $1 empty (with no elements).
+#
+#    sample call:  array_empty my_array
+#
+
+array_empty ()
+{
+    local array_name="$1"
+    local high_ndx_varname="${array_name}__ARRAY_HIGH_INDEX"
+    local elem_varname
+    local high_ndx
+    local ndx
+
+    # Determine current element count
+
+    eval "high_ndx=\$${high_ndx_varname}"
+
+    if [ -z "$high_ndx" ]; then
+        return
+    fi
+
+    # Unset all previously defined element variables and the high index variable
+
+    ndx=0
+
+    while [ $ndx -le $high_ndx ]; do
+        elem_varname="${array_name}__${ndx}"
+
+        eval "unset ${elem_varname}"
+
+        ndx=$(expr $ndx + 1)
+    done
+
+    eval "unset ${high_ndx_varname}"
+}
+
+#
+#  array_get_size - return the size of the array whose name is given by $1.
+#                   The size, which is the highest index plus one is written to standard output
+#
+#    sample call:  size=$(array_get_size my_array)
+#
+
+array_get_size ()
+{
+    local array_name="$1"
+
+    local high_ndx_varname="${array_name}__ARRAY_HIGH_INDEX"
+    local high_ndx
+
+    eval "high_ndx=\$${high_ndx_varname}"
+
+    if [ -z "$high_ndx" ]; then
+        high_ndx=-1
+    fi
+
+    echo $(expr $high_ndx + 1)
+}
+
+#
+#  array_set_element - set an element to a value.  $1 is the array name, $2 is the element index,
+#                      $3 is the element value.
+#
+#    sample call:  array_set_element my_array index "the new element value"
+#
+
+array_set_element ()
+{
+    local array_name="$1"
+    local ndx="$2"
+    local elem_value="$3"
+    local high_ndx_varname="${array_name}__ARRAY_HIGH_INDEX"
+    local elem_varname
+    local high_ndx
+
+    # Set specified element to specified value
+
+    elem_varname="${array_name}__${ndx}"
+
+    eval "${elem_varname}=\"${elem_value}\""
+
+    # Adjust high index
+
+    eval "high_ndx=\$${high_ndx_varname}"
+
+    if [ -z "$high_ndx" ]; then
+        high_ndx=-1
+    fi
+
+    if [ $ndx -gt $high_ndx ]; then
+        eval "${high_ndx_varname}=${ndx}"
+    fi
+}
+
+#
+#  array_get_element - get an element's value.  $1 is the array name, $2 is the element index.
+#
+#    sample call:  value=$(array_get_element my_array index)
+#
+
+array_get_element ()
+{
+    local array_name="$1"
+    local ndx="$2"
+
+    eval "echo \"\$${array_name}__${ndx}\""
+}
+
+##
+##  End of set routines.
+##
+
+##
+## Begin the means to update apt's view of Ubuntu repo's if necessary.
+##
+
+# *** IMPORTANT *** IMPORTANT *** IMPORTANT *** IMPORTANT *** IMPORTANT ***
+# Call apt_get_update_if_repos_changed before ALL apt-* calls. Examples:
+#
+# apt_get_update_if_repos_changed $REPOFILE
+# apt-get install $PACKAGES
+#
+# apt_get_update_if_repos_changed $REPOFILE
+# apt-get -y remove $repo_pkgs_postremove
+# *** IMPORTANT *** IMPORTANT *** IMPORTANT *** IMPORTANT *** IMPORTANT ***
+
+prev_ubuntu_repo_lastmod=
+
+# required argument: REPOFILE
+apt_get_update_if_repos_changed()
+{
+	# Obtain file last modification timestamp. Ignore stderr because file
+	# non-existence is not an error, but just another indication of modification.
+	# It's okay if REPOFILE isn't set because that is interpreted as acceptable
+	# file non-existence.
+	curr_ubuntu_repo_lastmod=`stat -c "%y" $1 2>/dev/null`
+
+	if [ "$prev_ubuntu_repo_lastmod" != "$curr_ubuntu_repo_lastmod" ];then
+		apt-get -y update 1>/dev/null 2>/dev/null
+		prev_ubuntu_repo_lastmod=$curr_ubuntu_repo_lastmod
+	fi
+}
+
+##
+## End the means to update apt's view of Ubuntu repo's if necessary.
+##
+# Main - start of other pkgs
+#do nothing for diskless deployment case because it is done in the image already
+
+RETURNVAL=0
+repoonly=0
+argnum=$#
+args=$@
+if [ $argnum -eq 1 ]; then
+    if ( pmatch "$args" "--repoonly" ); then
+        repoonly=1
+    else
+        echo "$(basename $0): option $args is not supported"
+        exit 1
+    fi
+elif [ $argnum -gt 1 ]; then
+    echo "$(basename $0): only option \"--repoonly\"is supported"
+    exit 1
+fi
+if [ "$(uname -s)" = "AIX" ]; then
+      logger -p local4.info -t $log_label "otherpkgs not support on AIX, exiting "
+      exit 0
+  else
+      logger -p local4.info -t $log_label "Running otherpkgs "
+fi
+if [ -z "$UPDATENODE" ] || [ $UPDATENODE -ne 1 ]; then
+  if [ "$NODESETSTATE" = "netboot" -o \
+     "$NODESETSTATE" = "statelite" -o \
+     "$NODESETSTATE" = "diskless" -o \
+     "$NODESETSTATE" = "dataless" ]
+  then
+      echo "  Did not install any extra packages."
+      exit 0
+  fi
+fi
+
+if ! pmatch $OSVER "rhel*" && [ "$repoonly" -eq 1 ]; then
+    echo "$0: the option \"repoonly\" only support rhel right now"
+    exit 0
+fi
+
+if [ -z "$OTHERPKGS_INDEX" ] && [ "$repoonly" -ne 1 ]; then
+  echo "$(basename $0): no extra rpms to install"
+  exit 0
+fi
+
+if [ -z "$NFSSERVER" ]; then
+    NFSSERVER=$MASTER
+fi
+
+if [ -z "$INSTALLDIR" ]; then
+    INSTALLDIR="/install"
+fi
+
+#check if /install is mounted on the server
+mounted=0;
+result=`mount |grep " $INSTALLDIR " |grep $NFSSERVER`
+if [ $? -eq 0 ]; then
+    mounted=1
+fi
+
+if [ -n "$OTHERPKGDIR" ]; then
+    OLDIFS=$IFS
+    IFS=$','
+    dir_array=($OTHERPKGDIR)
+    for dir in ${dir_array[@]}
+    do
+        dirtype=${dir:0:4}
+        if [ $dirtype = 'http' ]; then
+            OTHERPKGDIR_INTERNET="${OTHERPKGDIR_INTERNET}${dir} ,"
+        else
+            OTHERPKGDIR_LOCAL=$dir
+        fi
+    done
+    OTHERPKGDIR=$OTHERPKGDIR_LOCAL
+    IFS=$OLDIFS
+fi
+
+#OTHERPKGDIR is set only when the provmethod is the os image name
+#when it is not set, we need to figure it out here
+if [ -z "$OTHERPKGDIR" ]; then
+    if [ $mounted -eq 0 ]; then
+        OTHERPKGDIR="${NFSSERVER}:${HTTPPORT}$INSTALLDIR/post/otherpkgs/$OSVER/$ARCH"
+    else
+        OTHERPKGDIR="$INSTALLDIR/post/otherpkgs/$OSVER/$ARCH"
+    fi
+
+    if ( pmatch "$OSVER" "ubuntu*" ); then
+        OTHERPKGDIR=""
+    fi
+else
+    if [ $mounted -eq 0 ]; then
+	OTHERPKGDIR=${NFSSERVER}:${HTTPPORT}${OTHERPKGDIR}
+    fi
+fi
+
+#########################
+##start collecting the repositories for os
+if [ -z "$OSPKGDIR" ]; then
+    OSPKGDIR="$INSTALLDIR/$OSVER/$ARCH"
+fi
+
+if [ "$KERNELDIR" != "" ]; then
+    OSPKGDIR="$OSPKGDIR,$KERNELDIR"
+fi
+
+    OIFS=$IFS
+    IFS=$','
+    if ( pmatch "$OSVER" "ubuntu*" ); then
+        IFS=$(printf ',')
+    fi
+
+    array_ospkgdirs=($OSPKGDIR)
+    IFS=$OIFS
+    array_empty os_path
+    index=0
+    for dir in  ${array_ospkgdirs[@]}
+    do
+
+        default_pkgdir="$INSTALLDIR/$OSVER/$ARCH"
+        OSPKGDIR="$OSPKGDIR"
+        if [ $mounted -eq 0 ]; then
+            #OSPKGDIR="$OSPKGDIR"
+            ospkgdir="${NFSSERVER}:${HTTPPORT}$dir"
+        else
+            ospkgdir="$dir"
+        fi
+
+        # for the os base pkg dir(default_pkgdir) , there are some special cases.
+        # (1)for rhels6, there is one repodata in the os base dir; so keep it here, and handle the other cases below
+        # (2)for sles, we should specified the baseurl should be ./install/sles11/ppc64/1
+        # (3)for SL5, we should append the /SL
+        # (4)for rhels8/9, centos8/9, ol8/9, alma8/9 and rocky8/9 we should append /BaseOS and /AppStream to base directory
+        # (5) for other os, we just keep it here.
+        # For other pkg paths, we just keep it here.
+        if [ $dir == $default_pkgdir ] || [ $dir == "$default_pkgdir/" ]; then
+            if ( pmatch "$OSVER" "sle*" ); then
+                OSPKGDIR="$OSPKGDIR/1"
+                ospkgdir="$ospkgdir/1"
+            elif ( pmatch "$OSVER" "SL5*" ); then
+                OSPKGDIR="$OSPKGDIR/SL"
+                ospkgdir="$ospkgdir/SL"
+            fi
+        fi
+        if ( ! pmatch "$OSVER" "rhels[89]*" && 
+             ! pmatch "$OSVER" "centos[89]*" && 
+             ! pmatch "$OSVER" "rocky[89]*" &&
+             ! pmatch "$OSVER" "alma[89]*" &&
+             ! pmatch "$OSVER" "ol[89]*"); then
+        # For rhels8/9, centos8/9, ol8/9, and rocky8/9 do not put $ospkgdir by itself
+            array_set_element os_path $index $ospkgdir
+        fi
+
+        if ( pmatch "$OSVER" "rhel*" || 
+             pmatch "$OSVER" "centos*" || 
+             pmatch "$OSVER" "rocky*" ||
+             pmatch "$OSVER" "alma*" ||
+             pmatch "$OSVER" "ol*"); then
+            #default_pkgdir="$INSTALLDIR/$OSVER/$ARCH"
+            if [ $dir == $default_pkgdir ] || [ $dir == "$default_pkgdir/" ]; then
+
+                if ( pmatch "$OSVER" "rhels6*" ); then
+                   if [ $ARCH == "ppc64" ]; then
+                       ospkgdir_ok="$ospkgdir/Server"
+                       index=$(expr $index + 1)
+                       array_set_element os_path $index $ospkgdir_ok
+                   fi
+
+                   if [ $ARCH == "x86_64" ]; then
+                        for arg in "Server" "ScalableFileSystem" "HighAvailability" "ResilientStorage" "LoadBalancer"
+                        do
+                            ospkgdir_ok="$ospkgdir/$arg"
+                            index=$(expr $index + 1)
+                            array_set_element os_path $index $ospkgdir_ok
+                        done
+                    fi
+
+                elif ( pmatch "$OSVER" "rhels5*" ); then
+                     # for rhels5, the repodata is in ./Server, ./Cluster, ./CusterStorage, not in ./
+                     ospkgdir_ok="$ospkgdir/Server"
+                     array_set_element os_path $index $ospkgdir_ok
+
+                     if [ $ARCH == "x86_64" ]; then
+                         for arg in "Cluster" "ClusterStorage"
+                         do
+                             ospkgdir_ok="$ospkgdir/$arg"
+                             index=$(expr $index + 1)
+                             array_set_element os_path $index $ospkgdir_ok
+                         done
+                     fi   # x86_64
+                elif ( pmatch "$OSVER" "rhels[89]*" || 
+                       pmatch "$OSVER" "centos[89]*" || 
+                       pmatch "$OSVER" "rocky[89]*" ||
+                       pmatch "$OSVER" "alma[89]*" ||
+                       pmatch "$OSVER" "ol[89]*"); then
+                     # for rhels8/9, centos8/9, ol8/9, alma8/9 and rocky8/9 the repodata is in ./BaseOS, ./AppStream, not in ./
+                     for arg in "BaseOS" "AppStream"
+                     do
+                         ospkgdir_ok="$ospkgdir/$arg"
+                         array_set_element os_path $index $ospkgdir_ok
+                         index=$(expr $index + 1)
+                     done
+                fi # if...elif..fi
+             fi  # eq default_pkgdir
+          fi    # match rhel*
+
+          index=$(expr $index + 1)
+
+    done
+
+#fi
+
+
+#if [ "$SDKDIR" != "" ]; then
+#    if [ $mounted -eq 0 ]; then
+#        SDKDIR="$NFSSERVER/$SDKDIR"
+#    fi
+#fi
+
+##end collecting the repositories for os
+#########################
+if [ $VERBOSE  ]; then
+  echo NFSSERVER=$NFSSERVER
+fi
+logger -p local4.info -t $log_label "NFSSERVER=$NFSSERVER"
+if [ $VERBOSE  ]; then
+  echo OTHERPKGDIR=$OTHERPKGDIR
+fi
+logger -p local4.info -t $log_label "OTHERPKGDIR=$OTHERPKGDIR"
+
+#if [ -x "/sbin/dhcpcd" ]; then
+#    dhcpcd -n $PRIMARYNIC
+#fi
+
+#check if the node has yum or zypper installed, it will try yum first, then zypper and last rpm
+# for rpm based machines, or check if apt is installed, then it will use apt then dpkg
+
+hasrpm=0
+hasyum=0
+haszypper=0
+hasapt=0
+hasdpkg=0
+supdatecommand="rpm -Uvh --replacepkgs"
+sremovecommand="rpm -ev"
+
+#In ubuntu, rpm can be installed, if rpm is installed,ubuntu will use rpm
+#So dpkg --version should be in front of rpm --version
+result=`dpkg --version 2>/dev/null`
+if [ $? -eq 0 ]; then
+    hasdpkg=1
+    supdatecommand="dpkg -i"
+    sremovecommand="dpkg -r"
+    result=`dpkg -l apt`
+    if [ $? -eq 0 ]; then
+         hasapt=1
+    fi
+else
+    result=`rpm --version 2>/dev/null`
+    if [ $? -eq 0 ]; then
+         hasrpm=1
+         result=`rpm -q yum`
+         if [ $? -eq 0 ]; then
+              hasyum=1
+         else
+              result=`rpm -q zypper`
+              if [ "$?" = "0" ]; then
+              haszypper=1
+              fi
+         fi
+    fi
+fi
+
+
+
+
+###########
+##start generating the os pkg repositories
+if ( ! ( pmatch "$OSVER" "sles10*" ) && [ $haszypper -eq 1 ] ); then
+    old_repo=`zypper lr |grep -e "^[0-9]" | cut -f2 -d '|'`
+    for x in $old_repo
+    do
+        if ( ( pmatch "$x" "xCAT-$OSVER*" ) || ( pmatch "$x" "$OSVER-path*" ) || ( pmatch "$x" "xcat-otherpkgs*" ) ); then
+             result=`zypper rr "$x"`
+        fi
+    done
+    result=`zypper --non-interactive refresh 2>&1`
+
+    SUM=$(array_get_size os_path)
+    i=0
+
+    if [ $SUM -eq 0 ]; then
+
+        if [ $mounted -eq 0 ]; then
+	    path="http://$OSPKGDIR"
+        else
+            path="file://$OSPKGDIR"
+        fi
+        result=`zypper ar $path xCAT-$OSVER 2>&1`
+        if [ $? -ne 0 ]; then
+	    if ( ! pmatch "$result" "*exists*" ); then
+	        logger -t $log_label -p local4.info "ospkgs: zypper ar $path xCAT-$OSVER\n    $result"
+                if [ $VERBOSE  ]; then
+	          echo "ospkgs: zypper ar $path xCAT-$OSVER"
+	          echo "    $result"
+	        fi
+	    fi
+        fi
+    else
+        while [ $i -lt $SUM ]; do
+            OSPKGDIR=$(array_get_element os_path $i)
+            if [ $mounted -eq 0 ]; then
+                path="http://$OSPKGDIR"
+            else
+                path="file://$OSPKGDIR"
+            fi
+            result=`zypper ar $path xCAT-$OSVER-"path$i"  2>&1`
+            if [ $? -ne 0 ]; then
+	        if ( ! pmatch "$result" "*exists*" ); then
+	            logger -t $log_label -p local4.info "ospkgs: zypper ar $path xCAT-$OSVER-path$i\n    $result"
+                  if [ $VERBOSE  ]; then
+	            echo "ospkgs: zypper ar $path xCAT-$OSVER-path$i"
+	            echo "    $result"
+	          fi
+	        fi
+            fi
+
+            i=$((i+1))
+        done
+    fi
+
+    #adds SDK repository. The SDKDIR is a comma separated list of
+    #directory names. For example:
+    #SDKDIR='/install/sles12/x86_64/sdk1,/install/sles12/x86_64/sdk2'
+    if [ "$SDKDIR" != "" ]; then
+        OIFS=$IFS
+        IFS=$','
+        for sdk_src in $SDKDIR; do
+            bname=`basename $sdk_src`
+            if [ $mounted -eq 0 ]; then
+                sdk_src="http://${NFSSERVER}:${HTTPPORT}/$sdk_src"
+            else
+                sdk_src="file://$sdk_src"
+            fi
+            result=`zypper ar $sdk_src xCAT-$OSVER-$bname 2>&1`
+            if [ $? -ne 0 ]; then
+                if ( ! pmatch "$result" "*exists*" ); then
+                    logger -t $log_label -p local4.info "otherpkgs: zypper ar $sdk_src xCAT-$OSVER-bname\n    $result"
+                    if [ $VERBOSE ]; then
+                        echo "otherpkgs: zypper ar $sdk_src xCAT-$OSVER-bname"
+                        echo "    $result"
+                    fi
+                fi
+            fi
+        done
+        IFS=$OIFS
+    fi
+
+    result=`zypper --non-interactive --no-gpg-checks refresh 2>&1`
+
+elif ( ((pmatch "$OSVER" "rhel*") || (pmatch "$OSVER" "centos*") || (pmatch "$OSVER" "SL*")) && [ $hasyum -eq 1 ] ); then
+    #remove old repo files
+    mkdir -p /etc/yum.repos.d
+    if [ `ls -1 /etc/yum.repos.d/local-repository*.repo 2>/dev/null | wc -l` -gt 0 ]; then
+        result=`rm /etc/yum.repos.d/local-repository*.repo 2>&1`
+    fi
+    rm /etc/yum.repos.d/$OSVER-path*.repo >/dev/null 2>&1
+    result=`rm /etc/yum.repos.d/xCAT-$OSVER-path*.repo 2>&1`
+    result=`rm /etc/yum.repos.d/xCAT-otherpkgs*.repo 2>&1`
+
+    result=`yum clean all`
+
+    SUM=$(array_get_size os_path)
+    i=0
+
+      while [ $i -lt $SUM ]; do
+           REPOFILE="/etc/yum.repos.d/xCAT-$OSVER-path$i.repo"
+           OSPKGDIR=$(array_get_element os_path $i)
+
+
+           if [ ! -f $REPOFILE ]; then
+	       echo "[xCAT-$OSVER-path$i]" > $REPOFILE
+	       echo "name=xCAT-$OSVER-path$i" >> $REPOFILE
+	       if [ $mounted -eq 0 ]; then
+	           echo "baseurl=http://$OSPKGDIR" >> $REPOFILE
+	       else
+	           echo "baseurl=file://$OSPKGDIR" >> $REPOFILE
+	       fi
+	       echo "enabled=1" >> $REPOFILE
+	       echo "gpgcheck=0" >> $REPOFILE
+               echo "skip_if_unavailable=True" >> $REPOFILE
+           fi
+           i=$((i+1))
+      done
+fi
+
+##end generating the os pkg repositories
+###########
+
+
+###########
+
+# To support the #NEW_INSTALL_LIST# entry in otherpkgs.pkglist files,
+# multiple lists of packages are provided to this script in the form:
+#  OTHERPKGS1, OTHERPKGS2, ... OTHERPKSn where n=OTHERPKGS_INDEX
+# Each sublist will be installed in a separate call (separate pass
+#  through this loop)
+op_index=1
+#echo "OTHERPKGS_INDEX = $OTHERPKGS_INDEX"
+while [ $op_index -le $OTHERPKGS_INDEX ]; do
+    eval pkglist=\$OTHERPKGS$op_index
+    eval envlist=\$ENVLIST$op_index
+    #echo "pkglist = $pkglist"
+    if [ $hasyum -eq 1 ]; then
+        mkdir -p /etc/yum.repos.d
+        result=`rm /etc/yum.repos.d/xCAT-otherpkgs*.repo 2>&1`
+        result=`yum clean all`
+        repo_base="/etc/yum.repos.d"
+    elif [ $haszypper -eq 1 ]; then
+        #remove old repo
+        old_repo=`zypper sl |grep xcat-otherpkgs | cut -f2 -d '|'`
+        for x in $old_repo
+        do
+            result=`zypper sd $x`
+        done
+	result=`zypper --non-interactive refresh 2>&1`
+    if [ $VERBOSE  ]; then
+	   echo "otherpkgs: zypper --non-interactive refresh"
+	   echo "    $result"
+	fi
+    repo_base="/tmp"
+    elif [ $hasapt -eq 1 ] ; then
+        mkdir -p /etc/apt/sources.list.d
+	result=`rm /etc/apt/sources.list.d/xCAT-otherpkgs*.list 2>&1`
+	repo_base="/etc/apt/sources.list.d"
+    fi
+
+
+    urlrepoindex=0
+    #add repo for url repos in otherpkgdir
+    if [ -n "OTHERPKGDIR_INTERNET" ];then
+         OIFS=$IFS
+         IFS=','
+         OTHERPKGDIRLIST_INTERNET=($OTHERPKGDIR_INTERNET)
+
+
+         for url in ${OTHERPKGDIRLIST_INTERNET[@]}
+         do
+            if [ $hasyum -eq 1 ] || [ $haszypper -eq 1 ] ; then
+                REPOFILE="$repo_base/xCAT-otherpkgs$urlrepoindex.repo"
+                echo "[xcat-otherpkgs$urlrepoindex]" > $REPOFILE
+                echo "name=xcat-otherpkgs$urlrepoindex" >> $REPOFILE
+                echo "baseurl=$url" >> $REPOFILE
+                echo "enabled=1" >> $REPOFILE
+                echo "gpgcheck=0" >> $REPOFILE
+                echo "skip_if_unavailable=True" >> $REPOFILE
+
+            elif [ $hasapt -eq 1 ] ; then 
+                REPOFILE="$repo_base/xCAT-otherpkgs${urlrepoindex}.list"
+                echo "deb "$url >> $REPOFILE
+            fi
+            urlrepoindex=$[urlrepoindex+1]
+         done
+
+         IFS=$OIFS
+    fi
+
+    array_empty repo_path
+    repo_pkgs=""
+    repo_pkgs_preremove=""
+    repo_pkgs_postremove=""
+    plain_pkgs=""
+    plain_pkgs_preremove=""
+    plain_pkgs_postremove=""
+    array_empty handled_path
+    oifs=$IFS
+    IFS=$','
+    pkgsarray=($pkglist)
+    IFS=$oifs
+    echo "pkgsarray: ${pkgsarray[@]}, ${#pkgsarray[@]}"
+    echo "yum: $hasyum, apt: $hasapt, zypper: $haszypper"
+    for x in ${pkgsarray[@]}
+    do
+        #check if the file name starts with -- or -.
+        #If it is start with -,  then the rpm must be removed before installing other packages
+        #If it is start with --, then the rpm will be removed after  installing other packages
+        string_type=0;  #nornmal rpm
+        pos=`expr index  $x -`
+        if [ $pos -eq 1 ]; then
+	    x=`echo ${x#-}`
+	    pos=`expr index  $x -`
+	    if [ $pos -eq 1 ]; then
+	        x=`echo ${x#-}`
+	        string_type=1  #start with --
+	    else
+	        string_type=-1 #start with -
+	    fi
+        fi
+	
+        if [ $hasyum -eq 0 ] && [ $haszypper -eq 0 ] && [ $hasapt -eq 0 ]; then
+	    if [  $string_type -eq -1 ]; then
+	        plain_pkgs_preremove="$plain_pkgs_preremove $x"
+            elif [  $string_type -eq 1 ]; then
+	        plain_pkgs_postremove="$plain_pkgs_postremove $x"
+	    else
+	        plain_pkgs="$plain_pkgs $x*"
+	    fi
+	    continue
+        fi
+
+        if [  $string_type -eq -1 ]; then
+	    repo_pkgs_preremove="$repo_pkgs_preremove $x"
+        elif [  $string_type -eq 1 ]; then
+	    repo_pkgs_postremove="$repo_pkgs_postremove $x"
+        else
+	    fn=`basename $x`
+	    path=`dirname $x`
+	    whole_path=$OTHERPKGDIR
+            if [[ ! $OSVER =~ ^debian ]]; then
+            #    echo "rhel package path"
+	        whole_path=$OTHERPKGDIR/$path
+                whole_path=${whole_path%.}
+            fi
+	
+            #find out if this path has already handled
+	    try_repo=1
+	    rc=1
+	    i=0
+	    while [ $i -lt $(array_get_size handled_path) ]; do
+	        if [ $(array_get_element handled_path $i) = $path ]; then
+		    try_repo=0
+		    j=0
+		    while [ $j -lt $(array_get_size repo_path) ]; do
+		        if [ $(array_get_element repo_path $j) = $path ]; then
+			    rc=0
+			    break
+		        fi
+		        j=$((j+1))
+		    done
+		    break
+	        fi
+	        i=$((i+1))
+	    done
+	
+	
+            #try to add the path to the repo
+	    if [ $try_repo -eq 1 ]; then
+	        index=$(array_get_size repo_path)
+                localrepoindex=$[urlrepoindex+index]
+		if [ $hasyum -eq 1 ] || [ $haszypper -eq 1 ] ; then
+	            REPOFILE="$repo_base/xCAT-otherpkgs$localrepoindex.repo"
+	            echo "[xcat-otherpkgs$localrepoindex]" > $REPOFILE
+	            echo "name=xcat-otherpkgs$localrepoindex" >> $REPOFILE
+	            if [ $mounted -eq 0 ]; then
+		        echo "baseurl=http://$whole_path" >> $REPOFILE
+	            else
+		        echo "baseurl=file://$whole_path" >> $REPOFILE
+	            fi
+	            echo "enabled=1" >> $REPOFILE
+	            echo "gpgcheck=0" >> $REPOFILE
+                    echo "skip_if_unavailable=True" >> $REPOFILE
+                if [ $hasyum -eq 1 ]; then
+                    yum clean all
+                fi
+                if [ $haszypper -eq 1 ]; then
+	                     result=`zypper --non-interactive refresh 2>&1`
+                         if [ $VERBOSE  ]; then
+	                       echo "otherpkgs: zypper --non-interactive refresh"
+	                       echo "    $result"
+	                     fi
+                fi
+		elif [ $hasapt -eq 1 ] ; then
+		    REPOFILE="$repo_base/xCAT-otherpkgs$localrepoindex.list"
+		    if [ -n "$OTHERPKGDIR" ];then
+                        if [ $mounted -eq 0 ]; then
+		            type=http
+	                else
+		            type=file
+	                fi
+                        echo "deb $type://$whole_path ./"  > $REPOFILE
+                    fi
+		fi
+	    fi
+	        if [ $hasyum -eq 1 ]; then
+	            #use yum
+		    result=`yum --showduplicates list $fn 2>&1`
+		    if [ $? -eq 0 ]; then
+		        rc=0
+		        array_set_element repo_path $index $path
+		    #else
+		        #rm $REPOFILE
+		    fi
+	        elif [ $haszypper -eq 1 ]; then
+                    #use zypper
+                    if ( pmatch "$OSVER" "sles10*" ); then
+                        result=`zypper sa -r $REPOFILE << EOF
+y
+EOF`
+                    else
+                        result=`zypper ar -c $REPOFILE`
+                    fi
+
+		    result=`zypper --non-interactive refresh xcat-otherpkgs$index 2>&1`
+		    if [ $? -eq 0 ]; then
+		        rc=0
+		        array_set_element repo_path $index $path
+		    else
+                        #on sles10, the $? always 1, even the refresh is success.
+                        if ( pmatch "$OSVER" "sles10*" ); then
+                            rc=0
+                            array_set_element repo_path $index $path
+                        else
+		            result=`zypper sd xcat-otherpkgs$index`
+                        fi
+		    fi
+		elif [ $hasapt -eq 1 ]; then
+		    #use apt
+			apt_get_update_if_repos_changed $REPOFILE
+			result=`apt-cache show $fn 2>&1`
+
+		    if [ $? -eq 0 ]; then
+		        rc=0
+				array_set_element repo_path $index $path
+		    else
+		        rm $REPOFILE
+		    fi
+
+	        fi
+	    if [ $rc -eq 0 ]; then
+	        repo_pkgs="$repo_pkgs $fn"
+	    else
+                #now no hope we have to use rpm command
+	        plain_pkgs="$plain_pkgs $x*"
+	    fi
+	    array_set_element handled_path $(array_get_size handled_path) $path
+        fi
+    done
+
+
+    if [ "$repoonly" -eq 1 ]; then
+        echo "otherpkgs: "repoonly set, so ignore pkg installation ...""
+        op_index=$((op_index+1))
+        continue
+    fi
+    #now update all the existing rpms
+    if [ $hasyum -eq 1 ]; then
+        if [ $VERBOSE  ]; then
+          echo "$envlist yum -y upgrade"
+        fi
+        result=`eval $envlist yum -y upgrade 2>&1`
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+        fi
+        logger -p local4.info -t $log_label "$result"
+        if [ $VERBOSE  ]; then
+          echo "$result"
+        fi
+    elif [ $haszypper -eq 1 ]; then
+        if [ $VERBOSE  ]; then
+          echo "$envlist zypper --non-interactive update --auto-agree-with-licenses"
+        fi
+	result=`eval $envlist zypper --non-interactive update --auto-agree-with-licenses 2>&1`
+
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+        fi
+        logger -p local4.info -t $log_label "$result"
+        if [ $VERBOSE  ]; then
+          echo "$result"
+        fi
+    elif [ $hasapt -eq 1 ]; then
+	apt_get_update_if_repos_changed $REPOFILE
+        if [ $VERBOSE  ]; then
+          echo "$envlist DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated --force-yes -o Dpkg::Options::='--force-confold' -o Dpkg::Options::='--force-confdef' upgrade"
+        fi
+        result=`eval $envlist DEBIAN_FRONTEND=noninteractive apt-get -y --allow-unauthenticated --force-yes -o Dpkg::Options::='--force-confold' -o Dpkg::Options::='--force-confdef' upgrade 2>&1`
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+        fi
+	logger -p local4.info -t $log_label "$result"
+        if [ $VERBOSE  ]; then
+	  echo "$result"
+        fi
+    fi
+
+    #echo "repo_pkgs=$repo_pkgs,\nrepo_pkgs_preremove=$repo_pkgs_preremove,\nrepo_pkgs_postremove=$repo_pkgs_postremove"
+    #echo "plain_pkgs=$plain_pkgs,\nplain_pkgs_preremove=$plain_pkgs_preremove,\nplain_pkgs_postremove=$plain_pkgs_postremove"
+
+
+    #Now we have parsed the input, let's remove rpms if is specified with -
+    if [ "$repo_pkgs_preremove" != "" ]; then
+        if [ $hasyum -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+              echo "$envlist yum -y remove $repo_pkgs_preremove"
+            fi
+            result=`eval $envlist yum -y remove $repo_pkgs_preremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+            fi
+            logger -p local4.info -t $log_label "$result"
+            if [ $VERBOSE  ]; then
+              echo "$result"
+            fi
+        elif [ $haszypper -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+              echo "$envlist zypper remove -y $repo_pkgs_preremove"
+            fi
+	    result=`eval $envlist zypper remove -y $repo_pkgs_preremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+            fi
+            logger -p local4.info -t $log_label "$result"
+            if [ $VERBOSE  ]; then
+              echo "$result"
+            fi
+	elif [ $hasapt -eq 1 ]; then
+  	    apt_get_update_if_repos_changed $REPOFILE
+            if [ $VERBOSE  ]; then
+	      echo "DEBIAN_FRONTEND=noninteractive apt-get -y remove $repo_pkgs_preremove"
+            fi
+	    result=`DEBIAN_FRONTEND=noninteractive apt-get -y remove $repo_pkgs_preremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+            fi
+            logger -p local4.info -t $log_label "$result"
+            if [ $VERBOSE  ]; then
+              echo "$result"
+            fi
+        fi
+    fi
+
+    if [ "$plain_pkgs_preremove" != "" ]; then
+        if [ $VERBOSE  ]; then
+          echo "$envlist $sremovecommand $plain_pkgs_preremove"
+        fi
+        result=`eval $envlist $sremovecommand $plain_pkgs_preremove 2>&1`
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+        fi
+        logger -p local4.info -t $log_label "$result"
+        if [ $VERBOSE  ]; then
+          echo "$result"
+        fi
+    fi
+
+
+    #installation using yum or zypper
+    if [ "$repo_pkgs" != "" ]; then
+        if [ $hasyum -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+             echo "$envlist yum -y install $repo_pkgs"
+            fi
+            result=`eval $envlist yum -y install $repo_pkgs 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+              logger -p local4.err -t $log_label "$envlist yum -y install $repo_pkgs failed."
+            fi
+	    logger -p local4.info -t $log_label "$repo_pkgs installed."
+            if [ $VERBOSE  ]; then
+              echo "$result"
+            fi
+        elif [ $haszypper -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+              echo "$envlist zypper install -y $repo_pkgs"
+            fi
+	    result=`eval $envlist zypper install -y $repo_pkgs 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+              logger -p local4.err -t $log_label "$envlist zypper install -y $repo_pkgs 2>&1 failed."
+	    fi
+            logger -p local4.info -t $log_label "$repo_pkgs installed."
+            if [ $VERBOSE  ]; then
+              echo "$result"
+	    fi
+            #remove the repos
+            #old_repo=`zypper lr -u |grep xcat-otherpkgs | cut -f2 -d '|'`
+            #for x in $old_repo
+            #do
+            #    result=`zypper sd $x`
+            #done
+	elif [ $hasapt -eq 1 ]; then
+	    apt_get_update_if_repos_changed $REPOFILE
+            if [ $VERBOSE  ]; then
+	      echo "$envlist DEBIAN_FRONTEND=noninteractive apt-get -q -y --force-yes  -o Dpkg::Options::='--force-confold' -o Dpkg::Options::='--force-confdef' install $repo_pkgs"
+	    fi
+	    result=`eval $envlist DEBIAN_FRONTEND=noninteractive apt-get -q -y --force-yes  -o Dpkg::Options::='--force-confold' -o Dpkg::Options::='--force-confdef' install $repo_pkgs 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+              logger -p local4.err -t $log_label "install $repo_pkgs failed."
+	    fi
+	    logger -p local4.info -t $log_label "$repo_pkgs installed."
+            if [ $VERBOSE  ]; then
+             echo "$result"
+	    fi
+        fi
+    fi
+
+    #Handle the rest with rpm
+    if [ "$plain_pkgs" != "" -a -n "$OTHERPKGDIR" ]; then
+        echo "Warning: the packages $plain_pkgs could not be found in the yum/apt repository, falling back to rpm/dpkg command. If you want your packages to be installed with yum/apt, verify yum/apt is installed and createrepo/dpkg-scanpackages has been run."
+        logger -p local4.info -t $log_label "Warning: the packages $plain_pkgs could not be found in the yum/apt repository, falling back to rpm/dpkg command. If you want your packages to be installed with yum/apt, verify yum/apt is installed and createrepo/dpkg-scanpackages has been run."
+        if [ $mounted -eq 0 ]; then
+	    dir_no_ftproot=${OTHERPKGDIR#*$INSTALLDIR/}
+            mkdir -p /xcatpost/$dir_no_ftproot
+            rm -f -R /xcatpost/$dir_no_ftproot/*
+            mkdir -p /tmp/postage/
+            rm -f -R /tmp/postage/*
+            cd /tmp/postage
+
+	    wget -l inf -N -r --waitretry=10 --random-wait --retry-connrefused -e robots=off -t 0 -T 60 --reject "index.html*" --no-parent http://$OTHERPKGDIR/ 2> /tmp/wget.log
+
+            cd /tmp/postage/$NFSSERVER$INSTALLDIR
+            mv $dir_no_ftproot/* /xcatpost/$dir_no_ftproot;
+            rm -rf $dir_no_ftproot
+            cd /xcatpost/$dir_no_ftproot
+        else
+            cd $OTHERPKGDIR
+        fi
+
+        if [ $VERBOSE  ]; then
+          echo "$envlist $supdatecommand $plain_pkgs"
+        fi
+        result=`eval $envlist $supdatecommand $plain_pkgs 2>&1`
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+	fi
+        logger -p local4.info -t $log_label "$plain_pkgs installed."
+        if [ $VERBOSE  ]; then
+          echo "$result"
+	fi
+
+        if [ $mounted -eq 0 ]; then
+	    cd /xcatpost
+	    dir_no_ftproot=${OTHERPKGDIR#*$INSTALLDIR/}
+            dir_no_ftproot=${dir_no_ftproot%%/*}
+            rm -f -R $dir_no_ftproot
+        fi
+    fi
+
+    #remove more rpms if specified with --
+    if [ "$repo_pkgs_postremove" != "" ]; then
+        if [ $hasyum -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+             echo "$envlist yum -y remove $repo_pkgs_postremove"
+            fi
+            result=`eval $envlist yum -y remove $repo_pkgs_postremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+	    fi
+            logger -p local4.info -t $log_label "$repo_pkgs_postremove removed."
+            if [ $VERBOSE  ]; then
+              echo "$result"
+	    fi
+        elif [ $haszypper -eq 1 ]; then
+            if [ $VERBOSE  ]; then
+              echo "$envlist zypper remove -y $repo_pkgs_postremove"
+	    fi
+	    result=`eval $envlist zypper remove -y $repo_pkgs_postremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+	    fi
+            logger -p local4.info -t $log_label "$repo_pkgs_postremove removed."
+            if [ $VERBOSE  ]; then
+              echo "$result"
+	    fi
+        elif [ $hasapt -eq 1 ]; then
+            apt_get_update_if_repos_changed $REPOFILE
+            if [ $VERBOSE  ]; then
+              echo "$envlist apt-get -y remove $repo_pkgs_postremove"
+	    fi
+            result=`eval $envlist apt-get -y remove $repo_pkgs_postremove 2>&1`
+            R=$?
+            if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+	    fi
+            logger -p local4.info  -t $log_label "$repo_pkgs_postremove removed."
+            if [ $VERBOSE  ]; then
+              echo "$result"
+	    fi
+        fi
+    fi
+
+    if [ "$plain_pkgs_postremove" != "" ]; then
+        if [ $VERBOSE  ]; then
+           echo "$envlist $sremovecommand $plain_pkgs_postremove"
+        fi
+        result=`eval $envlist $sremovecommand $plain_pkgs_postremove 2>&1`
+        R=$?
+        if [ $R -ne 0 ]; then
+              RETURNVAL=$R
+	fi
+        logger -p local4.info -t $log_label "$plain_pkgs_postremove removed."
+        if [ $VERBOSE  ]; then
+          echo "$result"
+	fi
+    fi
+
+    op_index=$((op_index+1))
+done
+
+exit $RETURNVAL
+

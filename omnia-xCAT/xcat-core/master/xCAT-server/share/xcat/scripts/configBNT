@@ -1,0 +1,651 @@
+#!/usr/bin/env perl
+
+#---------------------------------------------------------
+# Configure Ethnet BNT switches
+#---------------------------------------------------------
+
+BEGIN
+{
+  $::XCATROOT = $ENV{'XCATROOT'} ? $ENV{'XCATROOT'} : '/opt/xcat';
+  $::XCATDIR  = $ENV{'XCATDIR'}  ? $ENV{'XCATDIR'}  : '/etc/xcat';
+}
+use lib "$::XCATROOT/lib/perl";
+
+
+use strict;
+use Socket;
+use Getopt::Long;
+use Expect;
+use Net::Ping;
+use xCAT::Usage;
+use xCAT::NodeRange;
+use xCAT::NetworkUtils;
+use xCAT::Utils;
+use xCAT::Table;
+use xCAT::MsgUtils;
+
+Getopt::Long::Configure("bundling");
+$Getopt::Long::ignorecase = 0;
+
+#global variables
+my @nodes;
+my @filternodes;
+
+
+$::SWITCH_TYPE="EthSwitch::BNT";
+
+#---------------------------------------------------------
+# Main
+#---------------------------------------------------------
+# parse the options
+if (
+    !GetOptions(
+                'h|help'     => \$::HELP,
+                'switches=s' => \$::SWITCH,
+                'port=s'     => \$::PORT,
+                'vlan=s'     => \$::VLAN,
+                'user=s'     => \$::USER,
+                'password=s' => \$::PASSWORD,
+                'group=s'    => \$::GROUP,
+                'snmp'       => \$::SNMP,
+		'ip'         => \$::IP,
+                'name'       => \$::NAME,
+                'all'        => \$::ALL,
+                'V'          => \$::VERBOSE,
+                'desc=s'     => \$::DESC,
+    )
+  )
+{
+    &usage;
+    exit(1);
+}
+
+# display the usage if -h or --help is specified
+if ($::HELP)
+{
+    &usage;
+    exit(0);
+}
+
+my $current_usr = getpwuid($>);
+if ($current_usr ne "root")
+{
+    print "Can't run this command for non-root user\n";
+    exit(1);
+}
+
+my $switchestab;
+my $switchhash;
+my $passwdtab;
+my @passwd_ent;
+
+#set community string for switch
+my $community = "public";
+my @snmpcs = xCAT::TableUtils->get_site_attribute("snmpc");
+my $tmp    = $snmpcs[0];
+if (defined($tmp)) { $community = $tmp }
+
+if ($::SWITCH) {
+    my @filternodes = xCAT::NodeRange::noderange( $::SWITCH );
+    if (nodesmissed) {
+        my $nodenotdefined = join(',', nodesmissed);
+        xCAT::MsgUtils->message("I","The following nodes are not defined in xCAT: $nodenotdefined");
+    }
+    # check switch attributes
+    $switchestab =  xCAT::Table->new('switches');
+    $switchhash = $switchestab->getNodesAttribs(\@filternodes,['switchtype','sshusername','sshpassword','protocol','password','snmpversion']);
+
+    # get switch username and password from passwd
+    $passwdtab = xCAT::Table->new('passwd');
+    @passwd_ent = $passwdtab->getAttribs({ key => "switch" }, [ 'username', 'password' ]);
+
+    foreach my $fsw (@filternodes)  {
+        if (($switchhash->{$fsw}->[0]->{switchtype}) =~ /BNT/) {
+            # use switches table first
+            if ((!defined($switchhash->{$fsw}->[0]->{sshusername})) &&
+                (!defined($switchhash->{$fsw}->[0]->{sshpassword})) ) {
+                if (defined($passwd_ent[0]->{username})) {
+                   $switchhash->{$fsw}->[0]->{sshusername} = $passwd_ent[0]->{username};
+                }
+                if (defined($passwd_ent[0]->{password})) {
+                   $switchhash->{$fsw}->[0]->{sshpassword} = $passwd_ent[0]->{password};
+                }
+            }
+            if (!defined($switchhash->{$fsw}->[0]->{password})) {
+                $switchhash->{$fsw}->[0]->{password} = $community;
+            }
+            push @nodes, $fsw;
+        } else {
+            xCAT::MsgUtils->message("E","The $fsw is not BNT switch, will not config");
+        }
+    }
+    unless (@nodes) {
+        xCAT::MsgUtils->message("E","No valid switches provided.");
+        exit(1);
+    }
+} else {
+    xCAT::MsgUtils->message("E","A switch must be provided using the --switches keyword");
+    &usage;
+    exit(1);
+}
+
+#get mac address for the switches
+my $mactab = xCAT::Table->new("mac");
+my $machash = $mactab->getNodesAttribs(\@nodes,['mac']);
+
+my $switches = join(",",@nodes);
+my $cmd;
+my $vlan;
+my $port;
+my $sub_req;
+my $rc;
+
+if (($::IP) || ($::ALL)) {
+    config_ip();
+}
+if (($::NAME) || ($::ALL)) {
+    config_hostname();
+}
+if (($::SNMP) || ($::ALL)) {
+    config_snmp();
+}
+if ($::VLAN) {
+    config_vlan();
+}
+if ($::DESC) {
+    config_desc();
+}
+
+sub config_ip {
+    my @config_switches;
+    my @discover_switches;
+    my $nodetab = xCAT::Table->new('hosts');
+    my $nodehash = $nodetab->getNodesAttribs(\@nodes,['ip','otherinterfaces']);
+    # get netmask from network table
+    my $nettab = xCAT::Table->new("networks");
+    my @nets;
+    if ($nettab) {
+        @nets = $nettab->getAllAttribs('net','mask');
+    }
+
+    foreach my $switch (@nodes) {
+        print "change $switch to static IP address\n";
+
+        #makesure host is in the /etc/hosts
+        $cmd = "makehosts $switch";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+
+        my $dip= $nodehash->{$switch}->[0]->{otherinterfaces};
+        my $mac= $machash->{$switch}->[0]->{mac};
+        if (!$dip) {
+            print "ERROR: Add otherinterfaces attribute for discover IP: chdef $switch otherinterfaces=x.x.x.x\n";
+            next;
+        }
+
+        #Validate if this IP is reachable
+        my $p = Net::Ping->new();
+        if (!$p->ping($dip)) {
+            print "$dip is not reachable\n";
+            next;
+        }
+
+        my $static_ip= $nodehash->{$switch}->[0]->{ip};
+
+        # don't need to set if ip addresses are same
+        if ($dip eq $static_ip) {
+            print "static IP $static_ip and discovery IP $dip is same, will not process command for $switch\n";
+            $cmd = "chdef $switch otherinterfaces=";
+            $rc= xCAT::Utils->runcmd($cmd, 0);
+            next;
+        }
+
+        #get hostname
+        my $dswitch = xCAT::NetworkUtils->gethostname($dip);
+
+        # if hostnames are same, created different one for discovery name
+        if ($dswitch eq $switch) {
+            $dswitch="$switch-discovery";
+        }
+
+        #if not defined, need to create one for xdsh to use
+        if (!$dswitch) {
+            my $ip_str = $dip;
+            $ip_str =~ s/\./\-/g;
+            $dswitch = "switch-$ip_str";
+        }
+        $cmd = "chdef -t node -o $dswitch groups=switch ip=$dip switchtype=BNT username=root password=admin  nodetype=switch";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+        $cmd = "makehosts $dswitch";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+
+        #get netmask
+        my $mask;
+        foreach my $net (@nets) {
+            if (xCAT::NetworkUtils::isInSameSubnet( $net->{'net'}, $static_ip, $net->{'mask'}, 0)) {
+                $mask=$net->{'mask'};
+                last;
+            }
+        }
+
+        print "Changing IP address of $dswitch to $static_ip...\n";
+        # For RackSwitch G8124
+        if ($mac =~ /fc\:cf\:62/i) {
+            $cmd="xdsh $dswitch -t 10 --devicetype EthSwitch::BNT 'enable;configure terminal;show interface ip;interface ip-mgmt enable;interface ip-mgmt address $static_ip $mask;exit' ";
+        } elsif ($mac =~ /6c\:ae\:8b/i){
+            print "this is BNT G8264-T switch\n";
+            $cmd="xdsh $dswitch -t 10 --devicetype EthSwitch::BNT '/cfg/l3/if 128/maskplen $mask;/cfg/l3/if 128/addr $static_ip;apply' ";
+        } else {
+            $cmd="xdsh $dswitch -t 10 --devicetype EthSwitch::BNT 'enable;configure terminal;show interface ip;interface ip 1;ip address $static_ip;exit;exit' ";
+        }
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+
+        # check if static ip address is reachable
+        my $retry = 0;
+        my $retry_failed = 1;
+        while ($retry < 3) {
+            if (!$p->ping($static_ip)) {
+                $retry = $retry + 1;
+                print "sleep 10\n";
+                sleep 10;
+            } else {
+                $retry_failed = 0;
+                last;
+            }
+        }
+        print "retry $retry_failed\n";
+        if ($retry_failed) {
+            print "Failed to set up static IP address: $static_ip for $switch\n";
+            push (@discover_switches, $dswitch);
+            next;
+        }
+
+        push (@discover_switches, $dswitch);
+        push (@config_switches, $switch);
+    }
+    if (@config_switches) {
+        #update switch status
+        my $csw = join(",",@config_switches);
+        $cmd = "chdef $csw status=ip_configured otherinterfaces=";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+        print "$csw: IP address configured\n";
+    }
+    if (@discover_switches) {
+        my $dsw = join(",",@discover_switches);
+        #remove discover switch from xCATdb and /etc/hosts
+        $cmd = "makehosts -d $dsw";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+        $cmd = "rmdef $dsw";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+    }
+}
+
+sub config_hostname {
+    my @config_switches;
+    my $switchtab = xCAT::Table->new('switches');
+    my $switchhash = $switchtab->getNodesAttribs(\@nodes,['sshusername','sshpassword']);
+
+    foreach my $switch (@nodes) {
+        my $user= $switchhash->{$switch}->[0]->{sshusername};
+        my $pwd= $switchhash->{$switch}->[0]->{sshpassword};
+        my $mac= $machash->{$switch}->[0]->{mac};
+        if ((!$user)||(!$pwd)) {
+            print "switch ssh username or password is not define, add default one\n";
+            $cmd = "chdef $switch username=root password=admin";
+            $rc= xCAT::Utils->runcmd($cmd, 0);
+        }
+        if ($mac =~ /6c\:ae\:8b/i){
+            $cmd="xdsh $switch --devicetype EthSwitch::BNT '/cfg/sys/hprompt enable;/cfg/sys/ssnmp/name $switch;apply' ";
+        } else {
+            $cmd="xdsh $switch --devicetype EthSwitch::BNT 'enable;configure terminal;hostname $switch;write memory;exit' ";
+        }
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+        if ($::RUNCMD_RC != 0) {
+            xCAT::MsgUtils->message("E","Failed to setup hostname for $switch");
+            print "$switch:  Failed to setup hostname\n";
+            next;
+        }
+        print "$switch:  Hostname changed to $switch\n";
+        push (@config_switches, $switch);
+    }
+    if (@config_switches) {
+        #update switch status
+        my $csw = join(",",@config_switches);
+        $cmd = "chdef $csw status=hostname_configured" ;
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+    }
+}
+
+#setup secure SNMP v3
+sub config_snmp {
+    my $snmp_user;
+    my $snmp_passwd;
+    my $snmp_group;
+    my @config_switches;
+
+    if ($::USER) {
+        $snmp_user = $::USER;
+    } else {
+        $snmp_user = "xcatadmin\r";
+    }
+    if ($::PASSWORD) {
+        $snmp_passwd = $::PASSWORD;
+    } else {
+        # Need a special character
+        $snmp_passwd = "xcatadminpassw1rd\@snmp\r";
+    }
+    if ($::GROUP) {
+        $snmp_group = $::GROUP;
+    } else {
+        $snmp_group = "xcatgroup\r";
+    }
+
+    foreach my $switch (@nodes) {
+        my $mysw;
+        my $username;
+        my $passwd;
+        my $protocol;
+        my $snmppass;
+        my $snmpversion;
+
+        my $login_cmd;
+
+        $username = $switchhash->{$switch}->[0]->{sshusername};
+        $passwd = $switchhash->{$switch}->[0]->{sshpassword};
+        $protocol = $switchhash->{$switch}->[0]->{protocol};
+        if ($switchhash->{$switch}->[0]->{snmpversion} =~ /3/) {
+            $snmppass=$community;
+        } else {
+            $snmppass = $switchhash->{$switch}->[0]->{password};
+        }
+
+        if ($protocol =~ /telnet/) {
+            $login_cmd = "telnet $switch\r";
+        } else {
+            $login_cmd = "ssh $username\@$switch\r";
+        }
+
+        #get hostname on the switch in case hostname is different
+        my $ccmd = "snmpwalk -Os -v1 -c $snmppass $switch 1.3.6.1.2.1.1.5";
+        my $result = xCAT::Utils->runcmd($ccmd, 0);
+        my ($desc,$switchhost) = split /: /, $result;
+        if (!$switchhost) {
+            $switchhost=$switch;
+        }
+
+        my $mac= $machash->{$switch}->[0]->{mac};
+        if ($mac =~ /6c\:ae\:8b/i){
+            my $rc = config_G8264($switch,$login_cmd, $passwd, $snmp_user,$snmp_passwd,$snmp_group);
+            if ($rc == 0){
+                push (@config_switches, $switch);
+            }
+            next;
+        }
+
+        my $enable_cmd="enable\r";
+        my $config_cmd="configure terminal\r";
+        my $exit_cmd="exit\r";
+
+        my $user_prompt   = "username: ";
+        my $pwd_prompt   = "assword: ";
+        my $sw_prompt = "$switchhost>";
+        my $enable_prompt="$switchhost#";
+        my $config_prompt="^.*\\\(config\\\)\#";
+
+        $mysw = new Expect;
+        my $timeout = 20;
+        #my $login_cmd = "telnet $switch\r";
+
+        print "Setup SNMP server for $switch, $username, $passwd\n";
+        #create a SNMP user
+        my $cfg_user1="snmp-server user 5 name $snmp_user\r";
+        my $cfg_user2="snmp-server user 5 authentication-protocol sha authentication-password\r";
+        #create a SNMP group
+        my $cfg_group1="snmp-server group 5 group-name $snmp_group\r";
+        my $cfg_group2="snmp-server group 5 user-name $snmp_user\r";
+        my $cfg_group3="snmp-server group 5 security usm\r";
+        #Add access permission
+        my $cfg_access1="snmp-server access 5 name $snmp_group\r";
+        my $cfg_access2="snmp-server access 5 level authNoPriv\r";
+        my $cfg_access3="snmp-server access 5 security usm\r";
+        my $cfg_access4="snmp-server access 5 read-view iso\r";
+
+        $mysw->debug(0);
+        $mysw->log_stdout(0);    # suppress stdout output..
+
+        unless ($mysw->spawn($login_cmd))
+        {
+            $mysw->soft_close();
+            print "Unable to run $login_cmd\n";
+            next;
+        }
+        my @result = $mysw->expect(
+            $timeout,
+            [
+                $user_prompt,
+                sub {
+                    $mysw->clear_accum();
+                    $mysw->send("$username\r");
+                    $mysw->clear_accum();
+                    $mysw->exp_continue();
+                }
+            ],
+            [
+                $pwd_prompt,
+                sub {
+                    $mysw->clear_accum();
+                    $mysw->send("$passwd\r");
+                    $mysw->clear_accum();
+                    $mysw->exp_continue();
+                }
+            ],
+            [
+                "-re", $enable_prompt,
+                sub {
+                    $mysw->clear_accum();
+                    $mysw->send($config_cmd);
+                    $mysw->exp_continue();
+                }
+            ],
+            [
+                "-re", $config_prompt,
+                sub {
+                    $mysw->clear_accum();
+                    $mysw->send($cfg_user1);
+                    $mysw->send($cfg_user2);
+                    $mysw->send("$passwd\r");
+                    $mysw->send($snmp_passwd);
+                    $mysw->send($snmp_passwd);
+                    sleep 1;
+                    $mysw->clear_accum();
+                    # create snmp group
+                    $mysw->send($cfg_group1);
+                    $mysw->send($cfg_group2);
+                    $mysw->send($cfg_group3);
+                    $mysw->clear_accum();
+                    $mysw->send($cfg_access1);
+                    $mysw->send($cfg_access2);
+                    $mysw->send($cfg_access3);
+                    $mysw->send($cfg_access4);
+                    $mysw->clear_accum();
+                    $mysw->send("write memory\r");
+                    $mysw->send($exit_cmd);
+                    $mysw->send($exit_cmd);
+                }
+            ],
+            [
+                "-re", $sw_prompt,
+                sub {
+                    $mysw->clear_accum();
+                    $mysw->send($enable_cmd);
+                    $mysw->exp_continue();
+                }
+            ],
+        );
+        ##########################################
+        # Expect error - report and quit
+        ##########################################
+        if (defined($result[1]))
+        {
+            my $errmsg = $result[1];
+            $mysw->soft_close();
+            print "Failed expect command $errmsg\n";
+            exit(1);
+        }
+        $mysw->soft_close();
+        push (@config_switches, $switch);
+    }
+    if (@config_switches) {
+        #update switch status
+        my $csw = join(",",@config_switches);
+        $cmd = "chdef $csw status=switch_configured snmpversion=3 snmpauth=sha snmpprivacy=authNoPriv snmpusername=$snmp_user snmppassword=$snmp_passwd";
+        $rc= xCAT::Utils->runcmd($cmd, 0);
+        print "$csw: SNMP configured\n";
+    }
+}
+
+sub config_G8264 {
+    my $switch = shift;
+    my $login_cmd = shift;
+    my $passwd = shift;
+    my $snmp_user = shift;
+    my $snmp_passwd = shift;
+    my $snmp_group = shift;
+    my $cmd;
+
+    $cmd="xdsh $switch --devicetype EthSwitch::BNT '/cfg/sys/ssnmp/snmpv3/usm 5/name $snmp_user;/cfg/sys/ssnmp/snmpv3/usm 5/auth sha;/cfg/sys/ssnmp/snmpv3/usm 5/priv none;/cfg/sys/ssnmp/snmpv3/group 5/model usm;/cfg/sys/ssnmp/snmpv3/group 5/uname $snmp_user;/cfg/sys/ssnmp/snmpv3/group 5/gname $snmp_group;/cfg/sys/ssnmp/snmpv3/access 5/name $snmp_group;/cfg/sys/ssnmp/snmpv3/access 5/model usm;/cfg/sys/ssnmp/snmpv3/access 5/level authNoPriv;apply' ";
+
+    $rc= xCAT::Utils->runcmd($cmd, 0);
+
+    #use expect to set password
+    my $mysw = new Expect;
+    my $timeout = 20;
+    my $pwd_prompt   = "assword: ";
+    my $main_prompt="Main#";
+    my $authpw_cmd = "/cfg/sys/ssnmp/snmpv3/usm 5/authpw\r";
+
+    $mysw->debug(0);
+    $mysw->log_stdout(0);    # suppress stdout output..
+
+    unless ($mysw->spawn($login_cmd))
+    {
+        $mysw->soft_close();
+        print "Unable to run $login_cmd\n";
+        return 1;
+    }
+    my @result = $mysw->expect(
+        $timeout,
+        [
+            $pwd_prompt,
+            sub {
+                $mysw->clear_accum();
+                $mysw->send("$passwd\r");
+                $mysw->clear_accum();
+                $mysw->exp_continue();
+            }
+        ],
+        [
+            "-re", $main_prompt,
+            sub {
+                $mysw->clear_accum();
+                $mysw->send($authpw_cmd);
+                $mysw->send("$passwd\r");
+                $mysw->send($snmp_passwd);
+                $mysw->send($snmp_passwd);
+                sleep 1;
+                $mysw->clear_accum();
+                $mysw->send("apply\r");
+                $mysw->send("save\r");
+                $mysw->send("y\r");
+                $mysw->send("exit\r");
+            }
+        ],
+    );
+    if (defined($result[1]))
+    {
+        my $errmsg = $result[1];
+        $mysw->soft_close();
+        print "Failed expect command $errmsg\n";
+        return 1;
+    }
+    $mysw->soft_close();
+    return 0;
+}
+
+sub config_vlan {
+    if ($::PORT) {
+        $port = $::PORT;
+    } else {
+        &usage;
+        exit(1);
+    }
+    $vlan = $::VLAN;
+    print "Tagging VLAN=$vlan for $switches port $port\n";
+    #create vlan, tagged vlan
+    $cmd = "xdsh $switches --devicetype EthSwitch::BNT 'enable;configure terminal;vlan $vlan;exit;interface port $port;switchport mode trunk;switchport trunk allowed vlan $vlan;write memory;exit;exit' ";
+    $rc= xCAT::Utils->runcmd($cmd, 0);
+    if ($::RUNCMD_RC != 0) {
+        xCAT::MsgUtils->message("E","Failed to setup VLAN number");
+        print "$switches:  Failed to setup VLAN\n";
+    }
+
+}
+
+sub config_desc {
+    # checking for port number, switches is checked earlier
+    if ($::PORT) {
+       $port = $::PORT;
+    } else {
+        xCAT::MsgUtils->message("E","Error - When setting description, a port must be provided.");
+        &usage;
+        exit(1);
+    }
+
+    my $cmd_prefix = "xdsh $switches --devicetype $::SWITCH_TYPE";
+    my $cmd;
+
+    # Build up the commands for easier readability
+    $cmd = $cmd . "enable\;";
+    $cmd = $cmd . "configure terminal\;";
+    $cmd = $cmd . "interface port $port\;";
+    $cmd = $cmd . "description \\\"$::DESC\\\"\;";
+    $cmd = $cmd . "write memory\;";
+    $cmd = $cmd . "exit\;exit\;";
+
+    my $final_cmd = $cmd_prefix . " \"" . $cmd . "\"";
+    print "Setting description=\"$::DESC\" on port $port of switches=$switches\n";
+    if ($::VERBOSE) {
+        print "Executing cmd: \n==> $final_cmd\n";
+    }
+    $rc= xCAT::Utils->runcmd($final_cmd, 0);
+    if ($::RUNCMD_RC != 0) {
+        xCAT::MsgUtils->message("E","Failed to set a description on the port: $port");
+    }
+}
+
+#---------------------------------------------------------
+
+=head3    usage
+
+        Displays message for -h option
+
+=cut
+
+#---------------------------------------------------------
+sub usage
+{
+    print "Usage:
+    configBNT -h│--help
+    configBNT --switches switchnames --ip
+    configBNT --switches switchnames --name
+    configBNT --switches switchnames --snmp [--user snmp_user] [--password snmp_password] [--group snmp_group]
+    configBNT --switches switchnames --port port --vlan vlan
+
+    To set the IP address, hostname and config snmp:
+        configBNT --switches switchnames --all
+
+    To set the description for a port on the switch:
+        configBNT --switches switchnames --port port --desc \"description\"
+    \n";
+}
+
+

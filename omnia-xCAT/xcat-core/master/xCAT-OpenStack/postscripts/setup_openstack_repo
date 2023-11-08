@@ -1,0 +1,80 @@
+#!/bin/sh
+# IBM(c) 2013 EPL license http://www.eclipse.org/legal/epl-v10.html
+#-------------------------------------------------------------------------------
+#=head1  setup_openstack_repo
+#=head2  This command adds the OpenStack repository to the node. It is run
+#        as a postscript.
+#        Usage:
+#        For OpenStack Grizzly: setup_openstack_repo
+#        For other OpenStack versions: setup_openstack_repo folsom
+#
+#=cut
+#-------------------------------------------------------------------------------
+
+pmatch ()
+{
+  case $1 in
+    $2) return 0;;  # zero return code means string matched by pattern
+  esac
+
+  return 1          # non-zero return code means string not matched by pattern
+}
+
+# is_lsb_ubuntu exit status indicates whether system appears to be Ubuntu.
+# Using required /etc/lsb-release file, instead of optional lsb_release command.
+is_lsb_ubuntu ()
+{
+    awk '
+        (match($0, "^[ \t]*DISTRIB_ID=") == 1) {    # A DISTRIB_ID line
+            id = substr($0, RLENGTH + 1)            # Save its value
+        }
+
+        END {
+            # Examine last DISTRIB_ID value to see if Ubuntu indicated
+
+            if (match(id, "^(Ubuntu|\"Ubuntu\")[ \t]*$") == 1) {
+                exit 0    # Ubuntu
+            }
+            exit 1        # Not Ubuntu
+        }
+
+    ' /etc/lsb-release >/dev/null 2>&1
+
+    # Routine exit status is exit status of the last command -- the awk script.
+    #
+    #   Note: if /etc/lsb-release does not exist, the exit status indicates
+    #         failure (not Ubuntu), which is the correct outcome.
+}
+
+if [ "$(uname -s)" = "Linux" ]; then
+    if ( pmatch "$OSVER" "ubuntu*" ) || ( is_lsb_ubuntu ); then
+	urelease="precise" #default release name
+	urelease=`cat /etc/lsb-release |grep DISTRIB_CODENAME |cut -d= -f2`
+
+        opsrelease="grizzly"
+        if [[ -n "$1" ]]; then
+	    opsrelease=$1
+	fi	
+	echo "deb http://ubuntu-cloud.archive.canonical.com/ubuntu ${urelease}-updates/${opsrelease} main" >  /etc/apt/sources.list.d/${opsrelease}.list
+
+        #Refresh the repository
+	apt-get install ubuntu-cloud-keyring -y
+	apt-get update
+
+	echo "Added the OpenStack ${opsrelease} version for Ubuntu ${urelease} release to the repository, Please modify this script if you need a different version."
+
+    elif ( pmatch "$OSVER" "rh*" ) || [ -f /etc/redhat-release ]; then
+	#use yum repository
+	echo "Red Hat. Please refer to http://sourceforge.net/apps/mediawiki/xcat/index.php?title=Deploying_OpenStack for how to setup OpenStack repository for Red Hat".
+    else
+	echo "OpenStack deployment with xCAT is not supported on this platform yet.".
+    fi
+else
+    echo "OpenStack is not supported on this platform."
+fi
+
+
+
+
+
+

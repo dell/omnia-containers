@@ -1,0 +1,433 @@
+#!/usr/bin/perl
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+#(C)IBM Corp
+
+#
+
+#-----------------------------------------------------------------------------
+
+=head1   aixremoteshell
+
+   This sets up the remote shell for root on the AIX node,such that root can
+   login with no password. The default is /bin/rsh and
+   /bin/rcp but can be overriden by setting the useSSHonAIX attribute in the
+   site table to yes, in which case we will use ssh/scp.
+   The aixremoteshell postscripts will be called from remoteshell postscript
+   when on an AIX node.  It will input a -d ( for do)  flag, to indicate to run
+   If the flag is not input, the routine will do nothing.  This is to have only
+   remoteshell in the postscripts table whether supporting AIX or Linux,
+   and better support mixed clusters.
+
+=cut
+
+#-----------------------------------------------------------------------------
+
+#
+#  If USESSHONAIX does not exist or is no or 0 then
+#     setup .rhosts on the node
+#  else (ssh)
+#     setup the ssh keys on the node
+#  end
+
+# MAIN
+use strict;
+use IO::Socket;
+my $useSocketSSL = eval { require IO::Socket::SSL; };
+if ($useSocketSSL) {
+    require IO::Socket::SSL;
+}
+use Getopt::Long;
+my $rc = 0;
+
+# Override from site table
+my $usesshonaix           = $ENV{'USESSHONAIX'};
+my $master                = $ENV{'MASTER'};
+my $node                  = $ENV{'NODE'};
+my $nodetype              = $ENV{'NTYPE'};
+my $enablesshbetweennodes = $ENV{'ENABLESSHBETWEENNODES'};
+my $msg;
+my $home;
+my $cmd;
+my $runscript;
+my $username = "root";
+Getopt::Long::Configure("bundling");
+Getopt::Long::Configure("pass_through");
+GetOptions(
+    'd|do' => \$runscript
+);
+
+#  the postscript only runs if called with -d flag from remoteshell
+unless ($runscript) {
+    my $msg = "aixremoteshell called without -d flag, do nothing.";
+    `logger -t xcat -p local4.err $msg`;
+    exit 0;
+}
+
+my @root = split ':', (`/bin/grep ^$username /etc/passwd 2>&1`);
+$home = $root[5];
+
+#  root home directory must be root system
+$rc = &runcmd("chown root $home");
+if ($rc != 0)
+{
+    my $msg = "It fails to chown root $home";
+    `logger -t xcat -p local4.err $msg`;
+    exit 1;
+}
+$rc = &runcmd("chgrp system $home");
+if ($rc != 0)
+{
+    my $msg = "It fails to chgrp system $home";
+    `logger -t xcat  -p local4.err $msg`;
+    exit 1;
+}
+
+$usesshonaix =~ tr/a-z/A-Z/;    # convert to upper
+if ((!defined($usesshonaix)) || ($usesshonaix eq "0") || ($usesshonaix eq "NO"))
+{                               # setting up rsh
+                                # setup .rhosts if not already setup
+    $cmd = "/bin/grep \"^$master root\" /.rhosts";
+    `$cmd 2>&1`;
+    my $rc = $? >> 8;
+    if ($rc)
+    {                           # if not found, then add entry in .rhosts
+        &runcmd("/bin/echo $master root >> /.rhosts");
+        chmod 0600, "/.rhosts";
+    }
+
+}
+else
+{
+    # setting up ssh
+    if (&setupSSH != 0) {
+        my $msg = "Failed to setup ssh on $node.\n";
+        `logger -t xcat  -p local4.err  $msg`;
+
+        #	print $msg;
+        exit 0;
+    }
+}
+
+exit 0;
+
+#
+# Subroutines
+#
+
+sub setupSSH
+{
+    my $sshdconfig = "/etc/ssh/sshd_config";
+    my $sshconfig  = "/etc/ssh/ssh_config";
+
+    if (-e $sshdconfig)
+    {    # ssh installed
+        my $tmp = "$sshdconfig.ORIG";
+        if (!(-e "$sshdconfig.ORIG"))
+        {
+            &runcmd("cp $sshdconfig $sshdconfig.ORIG");
+        }
+        &runcmd("echo \"KeyRegenerationInterval 0\" >>$sshdconfig");
+        &runcmd("echo \"X11Forwarding yes\" >>$sshdconfig");
+        &runcmd("echo \"MaxStartups 1024\" >>$sshdconfig");
+        &runcmd("echo \"ListenAddress ::\" >>$sshdconfig");
+        &runcmd("echo \"ListenAddress 0.0.0.0\" >>$sshdconfig");
+
+        #&runcmd("echo \"PasswordAuthentication no\" >>$sshdconfig");
+        if (!(-e "$sshconfig.ORIG"))
+        {
+            &runcmd("cp $sshconfig $sshconfig.ORIG");
+        }
+        &runcmd("echo \"StrictHostKeyChecking no\" >>$sshconfig");
+    }
+    else
+    {    # ssh not installed
+        my $msg = "Failed to setup ssh on $node, ssh not installed. \n";
+        `logger -t xcat -p local4.err  $msg`;
+        exit 0;
+    }
+
+    if (-e "/xcatpost/_ssh")
+    {    # ssh public key available
+        $rc = &runcmd("mkdir -p /.ssh");
+        if ($rc == 0)
+        {
+            $rc = &runcmd("cp -fp /xcatpost/_ssh/* /.ssh");
+            if ($rc == 0)
+            {
+                $rc = &runcmd("chmod 0700 /.ssh");
+                $rc = &runcmd("chmod 0600 /.ssh/*");
+            }
+        }
+    }
+    else
+    {    # ssh keys not available
+        my $msg = "Failed to setup ssh on $node, ssh keys not available. \n";
+        `logger -t xcat  -p local4.err $msg`;
+        exit 0;
+    }
+
+    #  get the name of my service node/NIM master from /etc/xcatinfo
+    #  ! use value of MASTER env variable instead
+    $::servnode = $master;
+
+    my $response = &getresponse("ssh_dsa_hostkey");
+    if (defined($response)) {
+        my $fd;
+        my $filename = "/etc/ssh/ssh_host_dsa_key";
+        &runcmd("mkdir -p /etc/ssh");
+        open($fd, '>', $filename);
+        print $fd $response;
+        close($fd);
+
+        # set the permissions
+        my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+        &runcmd($cmd);
+    }
+    else {
+        $msg = "aixremoteshell: Could not get ssh_host_dsa_key file.\n";
+        `logger -t xcat  -p local4.err  $msg`;
+    }
+
+    my $response = &getresponse("ssh_rsa_hostkey");
+    if (defined($response)) {
+        my $fd;
+        my $filename = "/etc/ssh/ssh_host_rsa_key";
+        &runcmd("mkdir -p /etc/ssh");
+        open($fd, '>', $filename);
+        print $fd $response;
+        close($fd);
+
+        # set the permissions
+        my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+        &runcmd($cmd);
+    }
+    else {
+        $msg = "aixremoteshell: Could not get ssh_host_rsa_key file.\n";
+        `logger -t xcat  -p local4.err $msg`;
+    }
+
+    # is there is a ecdsa host key on the node, then get the one from the MN/SN
+    my $filename = "/etc/ssh/ssh_host_ecdsa_key";
+    if (-e $filename) {
+        my $response = &getresponse("ssh_ecdsa_hostkey");
+        if (defined($response)) {
+            my $fd;
+            &runcmd("mkdir -p /etc/ssh");
+            open($fd, '>', $filename);
+            print $fd $response;
+            close($fd);
+
+            # set the permissions
+            my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+            &runcmd($cmd);
+        }
+        else {
+            $msg = "aixremoteshell: Could not get ssh_host_ecdsa_key file.\n";
+            `logger -t xcat  -p local4.err $msg`;
+        }
+    }
+
+    # is there is a ed25519 host key on the node, then get the one from the MN/SN
+    my $filename = "/etc/ssh/ssh_host_ed25519_key";
+    if (-e $filename) {
+        my $response = &getresponse("ssh_ed25519_hostkey");
+        if (defined($response)) {
+            my $fd;
+            &runcmd("mkdir -p /etc/ssh");
+            open($fd, '>', $filename);
+            print $fd $response;
+            close($fd);
+
+            # set the permissions
+            my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+            &runcmd($cmd);
+        }
+        else {
+            $msg = "aixremoteshell: Could not get ssh_host_ed25519_key file.\n";
+            `logger -t xcat  -p local4.err $msg`;
+        }
+    }
+    if ($nodetype eq "service") {
+        &runcmd("mkdir -p /etc/xcat/hostkeys; cp /etc/ssh/ssh* /etc/xcat/hostkeys/. > /dev/null 2>&1");
+    }
+
+    # Decide whether to enable passwordless ssh between the nodes
+    if ($enablesshbetweennodes eq "YES") {
+        my $response = &getresponse("ssh_root_key");
+        if (defined($response)) {
+            my $fd;
+            my $filename = "/.ssh/id_rsa";
+            &runcmd("mkdir -p /.ssh");
+            open($fd, '>', $filename);
+            print $fd $response;
+            close($fd);
+
+            # set the permissions
+            my $cmd = "chmod 600 $filename > /dev/null 2>&1";
+            &runcmd($cmd);
+
+            if (-f "/.ssh/id_rsa") {
+                &runcmd("ssh-keygen -y -f /.ssh/id_rsa > /.ssh/id_rsa.pub");
+            }
+        }
+        else {
+            $msg = "aixremoteshell: Could not get id_rsa file.\n";
+            `logger -t xcat  -p local4.err  $msg`;
+        }
+    }
+
+    return 0;
+}
+
+#####################################################
+#
+#  getresponse
+#       Request info from xcatd on the management node
+#
+#	- uses SSL socket on port 3001 to connect to MN xcatd
+#		to make the request for info
+#
+#####################################################
+sub getresponse
+{
+    my ($req) = @_;
+
+    my $port = "3001";
+
+    # open listener connection to wait for check from management node
+    my $lpid = &openlistener();
+
+    # open a socket to request credentials
+    my $sock = IO::Socket::SSL->new(
+        PeerAddr => $::servnode,
+        PeerPort => $port,
+        Proto    => 'tcp',
+    );
+
+    unless ($sock) {
+        my $msg = "aixremoteshell: Cannot connect to host \'$::servnode\'\n";
+        `logger -t xcat  -p local4.err  $msg`;
+
+        #print $msg;
+        kill 2, $lpid;
+        return undef;
+    }
+
+    # request must be in XML format
+    print $sock "<xcatrequest>\n";
+    print $sock "   <command>getcredentials</command>\n";
+    print $sock "   <arg>$req</arg>\n";
+    print $sock "   <callback_port>300</callback_port>\n";
+    print $sock "</xcatrequest>\n";
+
+    #TODO - do we have to try again after waiting for a bit????
+    my $response = '';
+    my $line;
+    while (defined($line = <$sock>)) {
+
+        # skip xml tags
+        next if ($line =~ /^\s*</);
+
+        # once we get to serverdone we have the whole response
+        if ($line =~ m/<\/serverdone>/) {
+          last:
+        }
+        $response .= $line;
+    }
+
+    close($sock);
+
+    kill 2, $lpid;
+    if ($response) {
+        return $response;
+    }
+    return undef;
+}
+
+#####################################################
+#
+#  openlistener
+#   - fork a child process to respond to a check from the MN
+#
+#####################################################
+sub openlistener
+{
+    my $node = $ENV{'NODE'};
+
+    # fork a child process to open a socket to listen for communication
+    #	from the server
+    my $pid = fork;
+    unless (defined $pid) {
+
+        # fork failed
+        $msg = "aixremoteshell: Could not fork process.\n";
+        `logger -t xcat  -p local4.err  $msg`;
+        print $msg;
+        return undef;
+    }
+
+    if ($pid != 0) {
+
+        # This is the parent process, just return
+        return $pid;
+    }
+
+    my $listener = IO::Socket::INET->new(
+        LocalPort => '300',
+        Proto     => 'tcp',
+        Listen    => '64',
+        Reuse     => 1
+    );
+
+    unless ($listener) {
+        my $msg = "aixremoteshell: Cannot open socket on \'$node\'\n";
+        `logger -t xcat  -p local4.err $msg`;
+        print $msg;
+        exit 1;
+    }
+
+    #	xcatd sends a quick req to see if we are really asking
+    #  	for info - this listener checks for the req and says ok
+    my $client;
+    while ($client = $listener->accept()) {
+
+        # $client is the new connection
+        my $text = <$client>;
+
+        #  see if we got "CREDOKBYYOU?"
+        if ($text =~ /CREDOKBYYOU?/) {
+            print $client "CREDOKBYME";
+            close($client);
+            close($listener);
+            exit 0;
+        }
+        close($client);
+    }
+    close($client);
+    close($listener);
+    exit 0;
+}
+
+#
+# run the command
+#
+sub runcmd
+{
+    my ($cmd) = @_;
+    my $rc = 0;
+    $cmd .= ' 2>&1';
+    $::outref = `$cmd`;
+    if ($?)
+    {
+        $rc = $? >> 8;
+        if ($rc > 0)
+        {
+            my $msg = "$cmd returned rc=$rc @$::outref\n";
+            `logger -t xcat  -p local4.info $msg`;
+
+            #			print $msg;
+        }
+    }
+    return 0;
+}
+

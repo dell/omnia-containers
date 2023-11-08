@@ -1,0 +1,62 @@
+# Bundle file combining all HPC packages
+# (should be identical to using each bundle file individually)
+
+# GPFS
+I:gpfs.msg.en_US
+I:gpfs.base
+# The gpfs.docs.data lpp contains the man pages for GPFS
+# By default, this will not be installed into node images
+#I:gpfs.docs.data
+
+
+# AIX Bundle file for compiler runtime packages
+I:xlC.rte
+I:xlfrte
+I:xlfrte.aix53
+I:xlfrte.msg.en_US
+I:xlsmp.aix53.rte
+I:xlsmp.msg.en_US.rte
+I:xlsmp.rte
+
+
+# AIX bundle package list for PE
+
+# POE
+I:ppe.rte
+#I:ppe.man
+I:ppe.loc.license
+
+# needed on login node
+#I:ppedev.hpct
+
+# LAPI
+#I:rsct.lapi
+#I:rsct.sci
+
+# AIX bundle file for ESSL and PESSL packages
+
+# ESSL
+I:essl.rte.up
+I:essl.rte.mp
+I:essl.rte
+I:essl.msg.en_US
+#I:essl.msg.En_US
+#I:essl.man.en_US
+I:essl.loc.license
+
+# PESSL
+I:pessl.rte.up
+I:pessl.rte.mp
+I:pessl.rte
+I:pessl.msg.en_US
+#I:pessl.msg.En_US
+#I:pessl.man.en_US
+I:pessl.loc.license
+
+
+# AIX bundle file for LoadLeveler packages
+# LoadL
+#I:LoadL
+I:LoadL.resmgr
+
+

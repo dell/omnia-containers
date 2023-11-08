@@ -1,0 +1,156 @@
+=head1 Name
+
+B<rvitals> - remote hardware vitals
+
+=head1 B<Synopsis>
+
+B<rvitals> [B<-h>|B<--help>|B<-v>|B<--version>]
+
+=head2 FSP/LPAR (with HMC) specific:
+
+B<rvitals> I<noderange> {B<temp>|B<voltage>|B<lcds>|B<all>}
+
+=head2 CEC/LPAR/Frame (using Direct FSP Management) specific:
+
+B<rvitals> I<noderange> {B<rackenv>|B<lcds>|B<all>} [B<-V>| B<--verbose>]
+
+=head2 MPA specific:
+
+B<rvitals> I<noderange> {B<temp>|B<voltage>|B<wattage>|B<fanspeed>|B<power>|B<leds>|B<summary>|B<all>}
+
+=head2 Blade specific:
+
+B<rvitals> I<noderange> {B<temp>|B<wattage>|B<fanspeed>|B<leds>|B<summary>|B<all>}
+
+=head2 BMC specific:
+
+B<rvitals> I<noderange> {B<temp>|B<voltage>|B<wattage>|B<fanspeed>|B<power>|B<leds>|B<all>}
+
+=head2 OpenPOWER (IPMI) specific:
+
+B<rvitals> I<noderange> [B<temp>|B<voltage>|B<wattage>|B<fanspeed>|B<power>|B<leds>|B<chassis>|B<all>]
+
+=head2 OpenPOWER (OpenBMC) specific:
+
+B<rvitals> I<noderange> [B<temp>|B<voltage>|B<wattage>|B<fanspeed>|B<power>|B<leds>|B<altitude>|B<all>] [B<-V>| B<--verbose>]
+
+=head1 B<Description>
+
+B<rvitals>  Retrieves hardware vital information from the on-board Service
+Processor for a single or range of nodes and groups.
+
+=head1 B<Options>
+
+=over 7
+
+=item B<cputemp>
+
+Retrieves CPU temperatures.
+
+=item B<disktemp>
+
+Retrieves HD back plane temperatures.
+
+=item B<ambtemp>
+
+Retrieves ambient temperatures.
+
+=item B<temp>
+
+Retrieves all temperatures.
+
+=item B<voltage>
+
+Retrieves power supply and VRM voltage readings.
+
+=item B<fanspeed>
+
+Retrieves fan speeds.
+
+=item B<lcds>
+
+Retrieves LCDs status.
+
+=item B<rackenv>
+
+Retrieves rack environmentals.
+
+=item B<leds>
+
+Retrieves LEDs status.
+
+=item B<chassis>
+
+Retrieves chassis status.
+
+=item B<altitude>
+
+Retrieves altitude related attributes.
+
+=item B<power>
+
+Retrieves power status.
+
+=item B<powertime>
+
+Retrieves total power uptime.  This value only increases, unless
+the Service Processor flash gets updated.  This option is not valid
+for x86 architecture systems.
+
+=item B<reboot>
+
+Retrieves  total  number of reboots.  This value only increases,
+unless the Service Processor flash gets updated.  This option
+is not valid for x86 architecture systems.
+
+=item B<state>
+
+Retrieves the system state.
+
+=item B<all>
+
+All of the above.
+
+=item B<-h>|B<--help>
+
+Print help.
+
+=item B<-v>|B<--version>
+
+Print version.
+
+=back
+
+
+=head1 B<Examples>
+
+ rvitals node5 all
+
+Output is similar to:
+
+ node5: CPU 1 Temperature: + 29.00 C (+ 84.2 F)
+ node5: CPU 2 Temperature: + 19.00 C (+ 66.2 F)
+ node5: DASD Sensor 1 Temperature: + 32.00 C (+ 89.6 F)
+ node5: System Ambient Temperature Temperature: + 26.00 C (+ 78.8 F)
+ node5: +5V Voltage: +  5.01V
+ node5: +3V Voltage: +  3.29V
+ node5: +12V Voltage: + 11.98V
+ node5: +2.5V Voltage: +  2.52V
+ node5: VRM1 Voltage: +  1.61V
+ node5: VRM2 Voltage: +  1.61V
+ node5: Fan 1 Percent of max:   100%
+ node5: Fan 2 Percent of max:   100%
+ node5: Fan 3 Percent of max:   100%
+ node5: Fan 4 Percent of max:   100%
+ node5: Fan 5 Percent of max:   100%
+ node5: Fan 6 Percent of max:   100%
+ node5: Current Power Status On
+ node5: Current LCD1: SuSE Linux
+ node5: Power On Seconds  11855915
+ node5: Number of Reboots   930
+ node5: System State Booting OS or in unsupported OS
+
+
+=head1 B<SEE ALSO>
+
+L<rpower(1)|rpower.1>, L<rinv(1)|rinv.1>

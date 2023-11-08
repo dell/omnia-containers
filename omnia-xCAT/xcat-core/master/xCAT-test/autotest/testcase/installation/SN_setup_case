@@ -1,0 +1,108 @@
+start:SN_setup_case
+os:Linux
+label:sn_diskful,provision
+#stop:yes
+cmd:fdisk -l
+cmd:df -T
+cmd:XCAT_DATABASE=$$XCAT_DATABASE /opt/xcat/share/xcat/tools/autotest/testcase/installation/pre_deploy_sn __GETNODEATTR($$SN,os)__  __GETNODEATTR($$SN,arch)__
+check:rc==0
+
+cmd:chtab key=nameservers site.value="<xcatmaster>"
+check:rc==0
+
+cmd:makedns -n
+check:rc==0
+cmd:if [ -x /usr/bin/goconserver ]; then makegocons $$SN; else makeconservercf $$SN;fi 
+check:rc==0
+#cmd:cat /etc/conserver.cf | grep $$SN
+#check:output=~$$SN
+cmd:sleep 20
+cmd:if [[ "__GETNODEATTR($$SN,arch)__" = "ppc64" ]]; then getmacs -D $$SN -V; fi
+check:rc==0
+cmd:makedhcp -n
+check:rc==0
+cmd:makedhcp -a
+check:rc==0
+cmd:sleep 2
+cmd:if cat /etc/*release |grep SUSE >/dev/null;then cat /var/lib/dhcp/db/dhcpd.leases|grep $$SN;elif cat /etc/*release |grep "Red Hat\|Rocky\|AlmaLinux" >/dev/null;then cat /var/lib/dhcpd/dhcpd.leases|grep $$SN;fi
+check:output=~$$SN
+cmd:chdef -t node $$SN groups=service,all
+check:rc==0
+cmd:chdef -t group -o service profile=service  primarynic=mac installnic=mac
+check:rc==0
+cmd:chdef -t group -o service setupnfs=1 setupdhcp=1 setuptftp=1 setupnameserver=1 setupconserver=2 setupntp=1
+check:rc==0
+cmd:chdef -t group -o service nfsserver=$$MN tftpserver=$$MN xcatmaster=$$MN monserver=$$MN
+check:rc==0
+cmd:chtab node=service postscripts.postscripts="servicenode"
+check:rc==0
+
+cmd:copycds $$ISO
+check:rc==0
+
+cmd:chdef -t site clustersite installloc="/install"
+check:rc==0
+
+cmd:cd /install/post/otherpkgs/__GETNODEATTR($$SN,os)__/__GETNODEATTR($$SN,arch)__/xcat/xcat-core && createrepo .
+check:rc==0
+
+cmd:if [[ "__GETNODEATTR($$SN,os)__" =~ "rh" ]]; then path="rh";path2="rh";elif [[ "__GETNODEATTR($$SN,os)__" =~ "sle" ]];then path="sles";path2="sles";elif [[ "__GETNODEATTR($$SN,os)__" =~ "ol" ]];then path="ol";path2="rh";elif [[ "__GETNODEATTR($$SN,os)__" =~ "rocky" ]];then path="rocky";path2="rh";elif [[ "__GETNODEATTR($$SN,os)__" =~ "alma" ]];then path="alma";path2="rh";fi; ver="__GETNODEATTR($$SN,os)__"; tmp=${ver%%.*};ver=`echo "$tmp"|sed 's:[a-zA-Z]::g'`;cd /install/post/otherpkgs/__GETNODEATTR($$SN,os)__/__GETNODEATTR($$SN,arch)__/xcat/xcat-dep/$path2$ver/__GETNODEATTR($$SN,arch)__ && createrepo .;
+check:rc==0
+
+cmd:chdef -t osimage __GETNODEATTR($$SN,os)__-__GETNODEATTR($$SN,arch)__-install-service otherpkgdir=/install/post/otherpkgs/__GETNODEATTR($$SN,os)__/__GETNODEATTR($$SN,arch)__
+check:rc==0
+
+cmd:if [[ "__GETNODEATTR($$SN,os)__" =~ "rh" ]]; then path="rh";elif [[ "__GETNODEATTR($$SN,os)__" =~ "sle" ]];then path="sles";elif [[ "__GETNODEATTR($$SN,os)__" =~ "ol" ]];then path="ol";elif [[ "__GETNODEATTR($$SN,os)__" =~ "rocky" ]];then path="rocky";elif [[ "__GETNODEATTR($$SN,os)__" =~ "alma" ]];then path="alma";fi; ver="__GETNODEATTR($$SN,os)__"; chdef -t osimage __GETNODEATTR($$SN,os)__-__GETNODEATTR($$SN,arch)__-install-service otherpkglist=/opt/xcat/share/xcat/install/$path/service.${ver%%.*}.__GETNODEATTR($$SN,arch)__.otherpkgs.pkglist;
+check:rc==0
+
+#add support python in sn
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/installation/SN_install_openbmc_py.sh __GETNODEATTR($$SN,arch)__ __GETNODEATTR($$SN,os)__ $$PYTHON_DEP_FED_DIR $$PYTHON_DEP_EPEL_DIR $$PYTHON_DEP_EXTRAS_DIR
+check:rc==0
+
+
+cmd:/opt/xcat/share/xcat/tools/autotest/testcase/commoncmd/retry_install.sh  $$SN __GETNODEATTR($$SN,os)__-__GETNODEATTR($$SN,arch)__-install-service
+check:rc==0
+check:output=~Provision node\(s\)\: $$SN
+
+cmd:if [[ -f /var/lib/dhcp/db/dhcpd.leases ]]; then cat /var/lib/dhcp/db/dhcpd.leases; elif [[ -f /var/lib/dhcpd/dhcpd.leases ]];then cat /var/lib/dhcpd/dhcpd.leases;elif [[ -f /var/lib/dhcp/dhcpd.leases ]];then cat /var/lib/dhcp/dhcpd.leases; fi
+
+cmd:ping $$SN -c 3
+check:rc==0
+check:output=~64 bytes from $$SN
+cmd:lsdef -l $$SN | grep status
+check:rc==0
+check:output=~booted
+cmd:xdsh $$SN date
+check:rc==0
+check:output=~\d\d:\d\d:\d\d
+#after bug 2586 is fixed, following 2 lines should be removed.
+cmd:if [[ "__GETNODEATTR($$SN,os)__" =~ "sle" ]];then xdsh $$SN service xcatd restart; fi
+check:rc==0
+cmd:xdsh $$SN "ps -ef |grep xcatd"
+check:rc==0
+check:output=~xcatd:
+cmd:xdsh $$SN "lsdef"
+check:rc==0
+check:output=~$$SN: $$SN
+cmd:xdsh $$SN "tabdump site"
+check:rc==0
+check:output=~tftpdir
+cmd:xdsh $$SN "mount"
+check:rc==0
+check:output=~/install on /install
+cmd:xdsh $$SN "mount"
+check:rc==0
+check:output=~/tftpboot on /tftpboot
+cmd:xdsh $$SN cat /opt/xcat/xcatinfo
+check:rc==0
+check:output=~NODE=$$SN
+check:output=~IMAGENAME=__GETNODEATTR($$SN,os)__-__GETNODEATTR($$SN,arch)__-install-service
+cmd:if rpm -qa|grep xCAT-openbmc-py 2>&1; then xdsh $$SN "rpm -qa|grep xCAT-openbmc-py";else echo "There is no xCAT-openbmc-py installed in MN, skip check xCAT-openbmc-py installation in SN"; exit 0;fi
+check:rc==0
+cmd:xdsh $$SN  "cat /var/log/xcat/xcat.log"
+cmd:if [[ "__GETNODEATTR($$SN,arch)__" =~ "x86_64" ]]; then if [[ "__GETNODEATTR($$SN,os)__" =~ "sle" ]];then xdsh $$SN "zypper -n install perl-Sys-Virt"; elif [[ "__GETNODEATTR($$SN,os)__" =~ "rh" || "__GETNODEATTR($$SN,os)__" =~ "ol" || "__GETNODEATTR($$SN,os)__" =~ "rocky" || "__GETNODEATTR($$SN,os)__" =~ "alma" ]];then xdsh $$SN "yum install -y perl-Sys-Virt";fi;fi
+check:rc==0
+cmd:makentp -a
+check:rc==0
+cmd:if [ -x /usr/bin/goconserver ]; then makegocons -d $$SN; else makeconservercf -d $$SN;fi
+end

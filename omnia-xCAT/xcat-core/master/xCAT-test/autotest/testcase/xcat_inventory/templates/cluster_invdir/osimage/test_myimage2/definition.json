@@ -1,0 +1,20 @@
+{
+    "osimage": {
+        "test_myimage2": {
+            "diskpartitionspec": "/tmp/test_myimage2/partitionfile",
+            "filestosync": "/tmp/test_myimage2/synclists",
+            "genimgoptions": {
+                "exlist": "/tmp/test_myimage2/exlist",
+                "postinstall": "/tmp/test_myimage2/postinstall"
+            },
+            "imagetype": "linux",
+            "package_selection": {
+                "otherpkglist": "/tmp/test_myimage2/otherpkglist",
+                "pkglist": "/opt/xcat/share/xcat/install/rh/compute.rhels7.pkglist"
+            },
+            "provision_mode": "install",
+            "template": "/opt/xcat/share/xcat/install/rh/compute.rhels7.tmpl"
+        }
+    },
+    "schema_version": "1.0"
+}

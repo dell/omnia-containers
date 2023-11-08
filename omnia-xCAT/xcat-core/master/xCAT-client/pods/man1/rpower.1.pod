@@ -1,0 +1,287 @@
+=head1 NAME
+
+B<rpower> - remote power control of nodes
+
+=head1 SYNOPSIS
+
+B<rpower> I<noderange> [B<--nodeps>] [B<on>|B<onstandby>|B<off>|B<suspend>|B<stat>|B<state>|B<reset>|B<boot>] [B<-m> I<table.column>==I<expectedstatus> [B<-m> I<table.column>=~I<expectedstatus>]] [B<-t> I<timeout>] [B<-r> I<retrycount>]
+
+B<rpower> [B<-h>|B<--help>|B<-v>|B<--version>]
+
+=head2 BMC (using IPMI):
+
+B<rpower> I<noderange> [B<on>|B<off>|B<softoff>|B<reset>|B<boot>|B<cycle>|B<stat>|B<state>|B<status>|B<wake>|B<suspend> [B<-w> I<timeout>] [B<-o>] [B<-r>]]
+
+B<rpower> I<noderange> [B<pduon>|B<pduoff>|B<pdustat>|B<pdureset>]
+
+=head2 OpenPOWER BMC (using IPMI):
+
+B<rpower> I<noderange> [B<on>|B<off>|B<reset>|B<boot>|B<stat>|B<state>|B<status>]
+
+B<rpower> I<noderange> [B<pduon>|B<pduoff>|B<pdustat>|B<pdureset>]
+
+=head2 OpenPOWER OpenBMC:
+
+B<rpower> I<noderange> [B<off>|B<on>|B<softoff>|B<reset>|B<boot>|B<bmcreboot>|B<bmcstate>|B<stat>|B<state>|B<status>]
+
+=head2 PPC (with IVM or HMC) specific:
+
+B<rpower> I<noderange> [B<--nodeps>] {B<of>}
+
+=head2 CEC (with HMC) specific:
+
+B<rpower> I<noderange> [B<on>|B<off>|B<reset>|B<boot>|B<onstandby>]
+
+=head2 LPAR (with HMC) specific:
+
+B<rpower> I<noderange> [B<on>|B<off>|B<stat>|B<state>|B<reset>|B<boot>|B<of>|B<sms>|B<softoff>]
+
+=head2 CEC (using Direct FSP Management) specific:
+
+B<rpower> I<noderange> [B<onstandby>|B<stat>|B<state>] [B<-T tooltype>]
+
+B<rpower> I<noderange> [B<on>|B<off>|B<resetsp>]
+
+=head2 Frame (using Direct FSP Management) specific:
+
+B<rpower> I<noderange> [B<rackstandby>|B<exit_rackstandby>|B<stat>|B<state>|B<resetsp>]
+
+=head2 LPAR (using Direct FSP Management) specific:
+
+B<rpower> I<noderange> [B<on>|B<off>|B<stat>|B<state>|B<reset>|B<boot>|B<of>|B<sms>]
+
+=head2 Blade (using Direct FSP Management) specific:
+
+B<rpower> I<noderange> [B<on>|B<onstandby>|B<off>|B<stat>|B<state>|B<sms>]
+
+=head2 Blade specific:
+
+B<rpower> I<noderange> [B<cycle>|B<softoff>]
+
+=head2 Lenovo High-Density Server specific:
+
+B<rpower> I<noderange> [B<on>|B<off>|B<reset>|B<boot>|B<reseat>]
+
+=head2 zVM specific:
+
+B<rpower> I<noderange> [B<on>|B<off>|B<reset>|B<stat>|B<softoff>]
+
+=head2 pdu specific:
+
+B<rpower> I<noderange> [B<stat>|B<off>|B<on>|B<reset>]
+
+=head1 DESCRIPTION
+
+B<rpower> controls the power for a single or range of nodes,  via the out-of-band path.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<on>
+
+Turn power on.
+
+=item B<onstandby>
+
+Turn power on to standby state
+
+=item B<-T>
+
+The value could be B<lpar> or B<fnm>. The tooltype value B<lpar> is for xCAT and B<fnm> is for CNM. The default value is "B<lpar>". For cold start in the large cluster, it will save a lot of time if the admins use "B<rpower> I<noderange> B<onstandby> B<-T> B<fnm>" to power on all the CECs from the management node through the B<fnm> connections.
+
+=item B<rackstandby>
+
+Places the rack in the rack standby state. It requires that all CECs and DE be powered off before it will run.
+
+=item B<exit_rackstandby>
+
+Exit Rack standby will be the default state that a rack goes into when power is initially applied to the rack. It simply moves the BPA from Rack standby to both bpa's in standby state.
+
+=item B<resetsp>
+
+Reboot the service processor. If there are primary and secondary FSPs/BPAs of one cec/frame, it will reboot them almost at the same time.
+
+=item B<softoff>
+
+Attempt to request clean shutdown of OS (may not detect failures in completing command)
+
+=item B<off>
+
+Turn power off.
+
+=item B<suspend>
+
+Suspend the target nodes execution.
+
+The B<suspend> action could be run together with B<-w> B<-o> B<-r>.
+
+Refer to the following steps to enable the B<suspend> function:
+
+1. Add the 'acpid' and 'suspend'(the suspend package is not needed on RHEL) package to the .pkglist of your osimage so that the required package could be installed correctly to your target system.
+
+2. Add two configuration files for the base function:
+
+ /etc/pm/config.d/suspend
+     S2RAM_OPTS="--force --vbe_save --vbe_post --vbe_mode"
+
+ /etc/acpi/events/suspend_event
+     event=button/sleep.*
+     action=/usr/sbin/pm-suspend
+
+3. Add the hook files for your specific applications which need specific action before or after the suspend action.
+
+Refer to the 'pm-utils' package for how to create the specific hook files.
+
+=item B<wake>
+
+Wake up the target nodes which is in B<suspend> state.
+
+Don't try to run B<wake> against the 'on' state node, it would cause the node gets to 'off' state.
+
+For some of xCAT hardware such as NeXtScale, it may need to enable S3 before using B<wake>. The following steps can be used to enable S3. Reference L<pasu(1)|pasu.1> for "pasu" usage.
+
+ [root@xcatmn home]# echo "set Power.S3Enable Enable" > power-setting
+ [root@xcatmn home]# pasu -b power-setting node01
+ node01: Batch mode start.
+ node01: [set Power.S3Enable Enable]
+ node01: Power.S3Enable=Enable
+ node01:
+ node01: Beginning intermediate batch update.
+ node01: Waiting for command completion status.
+ node01: Command completed successfully.
+ node01: Completed intermediate batch update.
+ node01: Batch mode completed successfully.
+
+ [root@xcatmn home]# pasu node01 show all|grep -i s3
+ node01: IMM.Community_HostIPAddress3.1=
+ node01: IMM.Community_HostIPAddress3.2=
+ node01: IMM.Community_HostIPAddress3.3=
+ node01: IMM.DNS_IP_Address3=0.0.0.0
+ node01: IMM.IPv6DNS_IP_Address3=::
+ node01: Power.S3Enable=Enable
+
+=item B<stat>|B<state>
+
+Print the current power state/status.
+
+=item B<reset>
+
+Send a hard reset.
+
+=item B<boot>
+
+If off, then power on.
+If on, then hard reset.
+This option is recommended over B<cycle>.
+
+=item B<cycle>
+
+Power off, then on.
+
+=item B<reseat>
+
+For Lenovo high-density servers, simulates unplugging and replugging the node into the chassis.
+
+=item B<of>
+
+Boot the node to open firmware console mode.
+
+=item B<sms>
+
+Boot the node to open firmware SMS menu mode.
+
+=item B<-m> I<table.column>==I<expectedstatus> B<-m> I<table.column>=~I<expectedstatus>
+
+Use one or multiple B<-m> flags to specify the node attributes and the expected status for the node installation monitoring and automatic retry mechanism. The operators ==, !=, =~ and !~ are valid. This flag must be used with -t flag.
+
+Note: if the "val" fields includes spaces or any other characters that will be parsed by shell, the "attr<oper-ator>val" needs to be quoted. If the operator is "!~", the "attr<operator>val" needs to be quoted using single quote.
+
+=item B<--nodeps>
+
+Do not use dependency table (default is to use dependency table). Valid only with B<on|off|boot|reset|cycle> for blade power method and B<on|off|reset|softoff> for hmc/fsp power method.
+
+=item B<-r> I<retrycount>
+
+specify the number of retries that the monitoring process will perform before declaring the failure. The default value is 3. Setting the retrycount to 0 means only monitoring the os installation progress and will not re-initiate the installation if the node status has not been changed to the expected value after timeout. This flag must be used with -m flag.
+
+=item B<-t> I<timeout>
+
+Specify the timeout, in minutes, to wait for the expectedstatus specified by -m flag. This is a required flag if the -m flag is specified.
+
+Power off, then on.
+
+=item B<-w> I<timeout>
+
+To set the I<timeout> for the B<suspend> action to wait for the success.
+
+=item B<-o>
+
+To specify that the target node will be power down if B<suspend> action failed.
+
+=item B<-r>
+
+To specify that the target node will be reset if B<suspend> action failed.
+
+=item B<pause>
+
+To pause all processes in the instance.
+
+=item B<unpause>
+
+To unpause all processes in the instance.
+
+=item B<bmcreboot>
+
+To reboot BMC.
+
+=item B<bmcstate>
+
+To get state of the BMC.
+
+=item B<state>
+
+To get state of the instance.
+
+=item B<-h>|B<--help>
+
+Prints out a brief usage message.
+
+=item B<-v>|B<--version>
+
+Display the version number.
+
+=back
+
+
+=head1 EXAMPLES
+
+=over 3
+
+=item 1.
+To display power status of nodes4 and note5
+
+ rpower node4,node5 stat
+
+Output is similar to:
+
+ node4: on
+ node5: off
+
+=item 2.
+To power on node5
+
+ rpower node5 on
+
+Output is similar to:
+
+ node5: on
+
+=back
+
+
+=head1 SEE ALSO
+
+L<noderange(3)|noderange.3>, L<rcons(1)|rcons.1>, L<rinv(1)|rinv.1>, L<rvitals(1)|rvitals.1>, L<rscan(1)|rscan.1>
+
+

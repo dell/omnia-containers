@@ -1,0 +1,65 @@
+#!/bin/bash
+# IBM(c) 2013 EPL license http://www.eclipse.org/legal/epl-v10.html
+
+
+
+if [ "$(uname -s|tr 'A-Z' 'a-z')" = "linux" ];then
+   str_dir_name=`dirname $0`
+   . $str_dir_name/xcatlib.sh
+fi
+
+
+#-------------------------------------------------------------------------------
+#=head1  configure_chef_server
+#=head2  This command configures the chef server on a xCAT node.
+#        It is used by install_chef_client on Ubuntu and chef kit on RH.
+#        It also can be used postscripts on diskless
+#    usage:
+#      1. configure the chef server using updatenode
+#            updatenode <noderange> -P "config_chef_server"
+#      2. configure chef server during os provisioning
+#            chef <noderange> -p postscripts=config_chef_server
+#=cut
+#-------------------------------------------------------------------------------
+HOME='/root/'
+export HOME
+/usr/bin/chef-server-ctl reconfigure
+if [ $? -ne 0 ]
+then
+    errmsg="Failed to run chef-server-ctl reconfigure on $node"
+    logger -t xcat -p local4.err $errmsg
+    echo $errmsg
+    exit 1
+fi
+
+# for ubuntu
+if [ -e "/etc/lsb-release" ]
+then
+    apt-get install nfs-kernel-server portmap nfs-common  -y
+
+    grep "/etc/chef-server" /etc/exports
+    if [ $? -ne 0 ]
+    then
+        echo -e "\n/etc/chef-server *(rw,no_root_squash,sync,no_subtree_check)\n" >> /etc/exports
+    fi
+    #sudo /etc/init.d/nfs-kernel-server restart
+    sudo restartservice nfs-kernel-server
+    if [ $? -ne 0 ]
+    then
+        errmsg="Failed to run sudo /etc/init.d/nfs-kernel-server restart on $node"
+        logger -t xcat -p local4.err $errmsg
+        echo $errmsg
+        exit 1
+    fi
+    #service portmap restart
+    startservice portmap
+    if [ $? -ne 0 ]
+    then
+        errmsg="Failed to run service portmap restart on $node"
+        logger -t xcat -p local4.err $errmsg
+        echo $errmsg
+        exit 1
+    fi
+fi
+
+exit 0;

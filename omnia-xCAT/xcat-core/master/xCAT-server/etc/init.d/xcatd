@@ -1,0 +1,156 @@
+#!/bin/sh
+# IBM(c) 2007 EPL license http://www.eclipse.org/legal/epl-v10.html
+# chkconfig: 345 85 60
+# description: xCAT management service
+# processname: xcatd
+
+### BEGIN INIT INFO
+# Provides: xcatd
+# Required-Start: $network $syslog
+# Required-Stop:
+# Should-Start: mysql
+# Default-Start: 3 4 5
+# Default-stop: 0 1 2 6
+# Short-Description: xcatd
+# Description: xCAT management service
+### END INIT INFO
+
+# This avoids the perl locale warnings
+if [ -z $LC_ALL ]; then
+  export LC_ALL=C
+fi
+
+if [ -r /etc/sysconfig/xcat ]; then
+	. /etc/sysconfig/xcat
+fi
+
+RHSuccess()
+{
+    success
+    echo
+}
+
+RHFailure()
+{
+    failure
+    echo
+}
+MStatus()
+{
+  PID=`cat /var/run/xcatd.pid`
+  if [ -z "$PID" ]; then
+    echo "xcatd service is not running"
+    return 3
+  fi
+  ps $PID|grep xcatd: > /dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    RVAL=0
+    echo "xcatd service is running"
+  else
+    RVAL=3
+    echo "xcatd service is not running"
+  fi
+  return $RVAL
+}
+
+if [ -f /etc/init.d/functions ]; then
+  #echo RH
+  . /etc/init.d/functions
+  START_DAEMON=daemon
+  STATUS=MStatus
+  LOG_SUCCESS=RHSuccess
+  LOG_FAILURE=RHFailure
+  LOG_WARNING=passed
+elif [ -f /lib/lsb/init-functions ]; then
+  . /lib/lsb/init-functions
+  START_DAEMON=start_daemon
+  STATUS=MStatus
+  LOG_SUCCESS=log_success_msg
+  LOG_FAILURE=log_failure_msg
+  LOG_WARNING=log_warning_msg
+else
+  echo "Error, don't know how to start on this platform"
+  exit 1
+fi
+
+case $1 in
+restart)
+  echo -n "Restarting xcatd "
+  if [ -r /etc/profile.d/xcat.sh ]; then
+       . /etc/profile.d/xcat.sh
+  fi
+   xcatd -p /var/run/xcatd.pid && $LOG_SUCCESS || $LOG_FAILURE
+  ;;
+reload)
+  echo -n "Reloading xcatd "
+  if [ -r /etc/profile.d/xcat.sh ]; then
+       . /etc/profile.d/xcat.sh
+  fi
+  export XCATRELOAD=yes
+  xcatd -p /var/run/xcatd.pid && $LOG_SUCCESS || $LOG_FAILURE
+  ;;
+status)
+  $STATUS
+  ;;
+stop)
+  echo -n "Stopping xcatd "
+  $STATUS > /dev/null 2>&1
+  if [ "$?" != "0" ]; then
+    echo -n "xcatd not running, not stopping "
+    $LOG_WARNING
+    echo
+    exit 0
+  fi
+  kill -TERM `cat /var/run/xcatd.pid`
+  i=0;
+  while $STATUS > /dev/null 2>&1 && [ $i -lt 30 ]; do
+    sleep .1
+    i=$((i+1))
+  done
+  $STATUS > /dev/null 2>&1
+
+  if [ "$?" = "0" ]; then
+    kill -KILL -`cat /var/run/xcatd.pid`
+    i=0
+    while $STATUS > /dev/null 2>&1 && [ $i -lt 30 ]; do
+      sleep .1
+      i=$((i+1))
+    done
+  fi
+
+  $STATUS > /dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    $LOG_FAILURE
+    exit 0
+  fi
+  rm /var/run/xcatd.pid
+  $LOG_SUCCESS
+  ;;
+start)
+  $STATUS > /dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    echo -n "xcatd already running "
+    $LOG_WARNING
+    echo
+    exit
+  fi
+  echo -n "Starting xcatd "
+  #/var/run/ is a symlink on /run and that's just a tmpfs mount created on boot on ubuntu.
+  #if there is not this directory, create first
+  if [ ! -d /var/run/xcat ];then
+    mkdir -p /var/run/xcat
+  fi
+  #xcatroot=`head -n1 /etc/profile.d/xcat.sh`
+  #export $xcatroot
+  # When this script is invoked via the service cmd on RH, it doesn't have PATH
+  # set either, so we run our profile entry to get everything set up properly.
+  if [ -r /etc/profile.d/xcat.sh ]; then
+	. /etc/profile.d/xcat.sh
+  fi
+  xcatd -p /var/run/xcatd.pid && $LOG_SUCCESS || $LOG_FAILURE
+  ;;
+esac
+
+
+
+

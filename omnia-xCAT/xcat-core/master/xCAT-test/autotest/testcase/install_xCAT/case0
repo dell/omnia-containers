@@ -1,0 +1,87 @@
+start:install_xCAT_on_rhels_sles
+description:install xCAT with go-xcat tool in a fresh environment for rhels and sles
+label:xcat_install
+os:Linux
+stop:yes
+cmd:if grep "Red Hat" /etc/*release >/dev/null; then yum install -y yum-utils bzip2; fi
+check:rc==0
+cmd:cp /core-*-snap.tar.bz2 /install_xCAT_xcat-core.tar.bz2
+check:rc==0
+cmd:cp /xcat-dep*.tar.bz2 /install_xCAT_xcat-dep.tar.bz2
+check:rc==0
+cmd:ls /go-xcat
+check:rc==0
+cmd:chmod 777 /go-xcat; /go-xcat --xcat-core=/install_xCAT_xcat-core.tar.bz2 --xcat-dep=/install_xCAT_xcat-dep.tar.bz2  -y install;
+check:rc==0
+cmd:source "/etc/profile.d/xcat.sh";env;lsxcatd -v
+check:rc==0
+check:output=~Version
+cmd:service xcatd status
+check:rc==0
+check:output=~running
+cmd:rm -rf /install_xCAT_xcat-core.tar.bz2 /install_xCAT_xcat-dep.tar.bz2
+
+# Check host keys supported by the operating system and report new ones, if any.
+cmd:echo -e "dsa\necdsa\ned25519\nrsa\nrsa1" > /tmp/known_host_keys
+check:rc==0
+cmd:ssh-keygen --help 2>&1 | grep "\[-t" | sed -E 's/.*(\[\-t.*)/\1/' | cut -d "[" -f2 | cut -d "]" -f1 | sed 's/-t//' | sed 's/|//g' | xargs -n 1 | grep -v '\-sk' > /tmp/current_os_host_keys
+check:rc==0
+cmd:diff /tmp/known_host_keys /tmp/current_os_host_keys
+check:output!~>
+cmd:rm -f /tmp/known_host_keys /tmp/current_os_host_keys
+check:rc==0
+
+# Obtain the highest version of TLS supported by OpenSSL/TLS.
+cmd:openssl s_client --help 2>&1 | grep "\-tls1" | awk '{print $1}' | sort | tail -1
+check:rc==0
+end
+
+start:install_xCAT_on_ubuntu
+description:install xCAT with go-xcat tool in a fresh environment for ubuntu
+label:xcat_install
+os:Linux
+stop:yes
+cmd:arc_all=`uname -a`; code=`lsb_release -sc`;if [[ $arc_all =~ "ppc64le" ]]; then arch="ppc64el";else arch="x86_64";fi; cp "/opt/xcat/share/xcat/tools/autotest/testcase/go_xcat/$code-$arch.sources.list" "/etc/apt/sources.list"
+cmd:apt-get clean;apt-get update
+check:rc==0
+cmd:arc_all=`uname -a`; if [[ $arc_all =~ "x86_64" ]]; then echo '* libraries/restart-without-asking boolean true' | debconf-set-selections; fi
+cmd:debconf-show libssl1.1
+cmd:cp /core-*-snap.tar.bz2 /install_xCAT_xcat-core.tar.bz2
+check:rc==0
+cmd:cp /xcat-dep*.tar.bz2 /install_xCAT_xcat-dep.tar.bz2
+check:rc==0
+cmd:ls /go-xcat
+check:rc==0
+cmd:service goconserver status
+cmd:service conserver status
+cmd:chmod 777 /go-xcat; /go-xcat --xcat-core=/install_xCAT_xcat-core.tar.bz2 --xcat-dep=/install_xCAT_xcat-dep.tar.bz2  -y install;
+check:rc==0
+cmd:source "/etc/profile.d/xcat.sh";env;lsxcatd -v
+check:rc==0
+check:output=~Version
+cmd:service goconserver status
+cmd:service conserver status
+cmd:service xcatd status
+check:rc==0
+check:output=~running
+cmd:rm -rf /install_xCAT_xcat-core.tar.bz2 /install_xCAT_xcat-dep.tar.bz2
+cmd:service goconserver stop
+cmd:service conserver stop
+cmd:sleep 5
+cmd:service goconserver status
+cmd:service conserver status
+
+# Check host keys supported by the operating system and report new ones, if any.
+cmd:echo -e "dsa\necdsa\ned25519\nrsa\nrsa1" > /tmp/known_host_keys
+check:rc==0
+cmd:ssh-keygen --help 2>&1 | grep "\[-t" | sed -E 's/.*(\[\-t.*)/\1/' | cut -d "[" -f2 | cut -d "]" -f1 | sed 's/-t//' | sed 's/|//g' | xargs -n 1 | grep -v '\-sk' > /tmp/current_os_host_keys
+check:rc==0
+cmd:diff /tmp/known_host_keys /tmp/current_os_host_keys
+check:output!~>
+cmd:rm -f /tmp/known_host_keys /tmp/current_os_host_keys
+check:rc==0
+
+# Obtain the highest version of TLS supported by OpenSSL/TLS.
+cmd:openssl s_client --help 2>&1 | grep "\-tls1" | awk '{print $1}' | sort | tail -1
+check:rc==0
+end

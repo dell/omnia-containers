@@ -1,0 +1,17 @@
+@base
+@x11
+openssl
+ntp
+rsync
+nmap
+perl-DBI
+vsftpd
+perl-IO-Tty
+perl-Expect
+perl-SNMP
+unixODBC
+perl-Net-DNS
+perl-DBD-mysql
+mariadb-client
+libmysqlclient18
+

@@ -1,0 +1,105 @@
+=head1 Name
+
+B<reventlog> - retrieve or clear remote hardware event logs
+
+=head1 B<Synopsis>
+
+B<reventlog> I<noderange> [I<number-of-entries> [B<-s>]|B<all [-s]>|B<clear>]
+
+B<reventlog> [B<-h>|B<--help>|B<-v>|B<--version>]
+
+=head2 OpenPOWER OpenBMC specific :
+
+B<reventlog> I<noderange> [B<resolved=>{I<id-list>|B<LED>}]
+
+
+=head1 B<Description>
+
+B<reventlog>  can  display any number of remote hardware event log entries
+or clear them for a range of nodes.  Hardware  event
+logs are stored on each servers service processor.
+
+=head1 B<Options>
+
+=over 7
+
+=item I<number-of-entries>
+
+Retrieve the specified number of entries from the nodes' service processors.
+
+=item B<all>
+
+Retrieve all entries.
+
+=item B<-s>
+
+To sort the entries from latest (always the last entry in event DB) to oldest (always the first entry in event DB). If B<number-of-entries> specified, the latest B<number-of-entries> events will be output in the order of latest to oldest.
+
+=item B<clear>
+
+Clear event logs.
+
+=item B<resolved=>{I<id-list>|B<LED>}
+
+Mark event log entries as resolved. Use comma separated list of entry ids to specify individual entries. Use B<LED> to mark as resolved all event log entries that contribute to LED fault.
+
+=item B<-h>|B<--help>
+
+Print help.
+
+=item B<-v>|B<--version>
+
+Print version.
+
+=back
+
+
+=head1 B<Examples>
+
+=over 2
+
+=item 1.
+List last 5 event log entries from node4 and node5
+
+ reventlog node4,node5 5
+
+Output is similar to:
+
+ node4: SERVPROC I 09/06/00 15:23:33 Remote Login Successful User ID = USERID[00]
+ node4: SERVPROC I 09/06/00 15:23:32 System spn1 started a RS485 connection with us[00]
+ node4: SERVPROC I 09/06/00 15:22:35 RS485 connection to system spn1 has ended[00]
+ node4: SERVPROC I 09/06/00 15:22:32 Remote Login Successful User  ID  = USERID[00]
+ node4: SERVPROC I 09/06/00 15:22:31 System spn1 started a RS485 connection with us[00]
+ node5: SERVPROC I 09/06/00 15:22:32 Remote Login Successful User  ID  = USERID[00]
+ node5: SERVPROC I 09/06/00 15:22:31 System spn1 started a RS485 connection with us[00]
+ node5: SERVPROC I 09/06/00 15:21:34 RS485 connection to system spn1 has ended[00]
+ node5: SERVPROC I 09/06/00 15:21:30 Remote Login Successful User ID = USERID[00]
+ node5: SERVPROC I 09/06/00 15:21:29 System spn1 started a RS485 connection with us[00]
+
+=item 2.
+Clear all event log entries from node4 and node5
+
+ reventlog node4,node5 clear
+
+Output is similar to:
+
+ node4: clear
+ node5: clear
+
+=item 3.
+Mark as resolved all event log entries from node4 that contribute to LED fault
+
+ reventlog node4 resolved=LED
+
+Output is similar to:
+
+ Attempting to resolve the following log entries: LED...
+ node4: Resolved 51.
+ node4: Resolved 52.
+ node4: Resolved 58.
+
+=back
+
+=head1 SEE ALSO
+
+L<rpower(1)|rpower.1>, L<monstart(1)|monstart.1>

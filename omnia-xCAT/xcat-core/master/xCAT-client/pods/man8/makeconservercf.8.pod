@@ -1,0 +1,115 @@
+=head1 NAME
+
+B<makeconservercf> - creates the conserver configuration file from info in the xCAT database
+
+=head1 SYNOPSIS
+
+B<makeconservercf> [B<-V|--verbose>] [B<-d|--delete>] [I<noderange>]
+
+B<makeconservercf> [B<-V|--verbose>] [B<-C|--cleanup>]
+
+B<makeconservercf> [B<-V|--verbose>] [B<-l|--local>] [I<noderange>]
+
+B<makeconservercf> [B<-V|--verbose>] [B<-c|--conserver>] [I<noderange>]
+
+B<makeconservercf> [B<-V|--verbose>] I<noderange> [B<-t|--trust>] I<hosts>
+
+B<makeconservercf> [B<-h|--help|-v|--version>]
+
+
+=head1 DESCRIPTION
+
+The B<makeconservercf> command will write out the /etc/conserver.cf, using information from the nodehm table
+and related tables (e.g. mp, ipmi, ppc).  Normally, B<makeconservercf> will write all nodes to the /etc/conserver.cf
+file.  If a I<noderange> is specified, it will write only those nodes to the file.  In either case, if a node
+does not have nodehm.cons set, it will not be written to the file.
+
+If B<-d> is specified, B<makeconservercf> will remove specified nodes from /etc/conserver.cf file. If I<noderange> is not specified, all xCAT nodes will be removed from /etc/conserver.cf file.
+
+If B<-C|--cleanup> is specified, B<makeconservercf> will remove console configuration entries from /etc/conserver.cf for the nodes whose definitions have been removed from xCATdb. B<Don't> specify any noderange.
+
+In the case of a hierarchical cluster (i.e. one with service nodes) B<makeconservercf> will determine
+which nodes will have their consoles accessed from the management node and which from a service node
+(based on the nodehm.conserver attribute).  The /etc/conserver.cf file will be created accordingly on
+all relevant management/service nodes.  If B<-l> is specified, it will only create the local file.
+
+
+=head1 OPTIONS
+
+=over 10
+
+=item B<-d|--delete>
+
+Delete rather than add or refresh the nodes specified as a noderange.
+
+=item B<-C|--cleanup>
+
+Remove the entries for the nodes whose definitions have been removed from xCAT db.
+
+=item B<-c|--conserver>
+
+Only set up the conserver on the conserver host. If no conserver host
+is set for nodes, the conserver gets set up only on the management node.
+
+=item B<-l|--local>
+
+Only run B<makeconservercf> locally and create the local /etc/conserver.cf.  The default is to also
+run it on all service nodes, if there are any.
+
+=item B<-t|--trust> I<hosts>
+
+Add additional trusted hosts into /etc/conserver.cf. The I<hosts> are comma separated list of
+ip addresses or host names.
+
+=item B<-v|--version>
+
+Display version.
+
+=item B<-V|--verbose>
+
+Verbose mode.
+
+=item B<-h|--help>
+
+Display usage message.
+
+=back
+
+
+=head1 RETURN VALUE
+
+=over 2
+
+=item 0.
+The command completed successfully.
+
+=item 1.
+An error has occurred.
+
+=back
+
+=head1 EXAMPLES
+
+=over 2
+
+=item 1.
+To create conserver configuration for all the nodes.
+
+ makeconservercf
+
+=item 2.
+To create conserver configuration for nodes node01-node10.
+
+ makeconservercf node01-node10
+
+=item 3.
+To remove conserver configuration for node01.
+
+ makeconservercf -d node01
+
+=back
+
+=head1 SEE ALSO
+
+L<rcons(1)|rcons.1>
+

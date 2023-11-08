@@ -1,0 +1,53 @@
+#!/bin/bash
+#Used only by sysclone
+
+. /tmp/post-install/variables.txt
+
+#delete the udev rule in the image
+rule_file="/etc/udev/rules.d/*net_persistent_names.rules"
+if ls $rule_file >/dev/null 2>&1;then
+    rm -f $rule_file
+fi
+
+hostname $HOSTNAME
+
+#write the config files, the device name may change after reboot
+#so use the dhcp for all interface
+#device_names=`ifconfig -a | grep -i hwaddr | grep -i 'Ethernet' | grep -v usb| awk '{print $1}'`
+device_names=`ip link |grep "BROADCAST" |awk '{print $2}'   | sed s/://`
+str_cfg_file=''
+if [ -d "/etc/sysconfig/network-scripts/" ];then
+    #redhat
+    if [ -f "/etc/hostname" ]; then #RH7
+        echo $HOSTNAME > /etc/hostname
+    else
+        grep -i HOSTNAME /etc/sysconfig/network
+        if [ $? -eq 0 ];then
+            sed -i "s/HOSTNAME=.*/HOSTNAME=$HOSTNAME/g" /etc/sysconfig/network
+        else
+            echo "HOSTNAME=$HOSTNAME" >> /etc/sysconfig/network
+        fi
+    fi
+    for i in $device_names;do
+        str_cfg_file="/etc/sysconfig/network-scripts/ifcfg-$i"
+        echo "DEVICE=$i" > $str_cfg_file
+        echo "BOOTPROTO=dhcp" >> $str_cfg_file
+        echo "NM_CONTROLLED=yes" >> $str_cfg_file
+        echo "ONBOOT=yes" >> $str_cfg_file
+    done
+elif [ -d "/etc/sysconfig/network/" ];then
+    #suse
+    echo "$HOSTNAME" > /etc/HOSTNAME
+    for i in $device_names;do
+        str_cfg_file="/etc/sysconfig/network/ifcfg-$i"
+        echo "DEVICE=$i" > $str_cfg_file
+        echo "BOOTPROTO=dhcp" >> $str_cfg_file
+        echo "STARTMODE=onboot" >> $str_cfg_file
+        echo "DHCLIENT_PRIMARY_DEVICE=yes" >> $str_cfg_file
+    done
+else
+    #ubuntu
+    echo "Does not support ubuntu."
+    exit 1
+fi
+

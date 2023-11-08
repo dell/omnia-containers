@@ -1,0 +1,573 @@
+=head1 B<NAME>
+
+B<xdsh> - Concurrently runs remote commands on multiple nodes (Management Node, Service Nodes, compute nodes), or an install image.
+
+=head1 B<SYNOPSIS>
+
+B<xdsh> I<noderange> [B<-B> | B<--bypass>]  [B<--devicetype> I<type_of_device>] [B<-e>] [B<-E> I<environment_file>]  [B<-f> I<fanout>]
+[B<-L>]  [B<-l>  I<userID>] [B<-m>] [B<-o> I<node_options>] [B<-Q>] [B<-r> I<node_remote_shell>] [B<-s>] [B<-S> {B<csh>|B<ksh>}] [B<-t> I<timeout>]
+[B<-T>] [B<-v>] [B<-X> I<env_list>] [B<-z>] [B<--sudo>] I<command_list>
+
+B<xdsh> I<noderange>  [B<-K>]
+
+B<xdsh> I<noderange>  [B<-K>] [B<-l>  I<userID>] B<--devicetype> I<type_of_device>
+
+B<xdsh> [B<-i> I<image path | nim image name>] I<command_list>
+
+B<xdsh> I<noderange>  [B<-c>]
+
+B<xdsh> [B<-h> | B<-V> | B<-q>]
+
+=head1 B<DESCRIPTION>
+
+The B<xdsh> command runs commands in parallel on remote nodes and/or the Management Node.   The B<xdsh> command issues  a
+remote shell command for each target specified, and returns the output
+from all targets,
+formatted so that command results  from  all  nodes  can  be  managed.
+If the command is to be executed  on the Management Node, it does not use a remote shell command, but uses the local OS copy or shell command. The Management Node must be defined in the xCAT database. The best way to do this is to use the B<xcatconfig -m> option.
+The B<xdsh> command is an xCAT Distributed Shell Utility.
+
+
+B<COMMAND> B<SPECIFICATION>:
+
+The commands to execute on the  targets  are  specified by the
+I<command_list>  B<xdsh>  parameter, or executing a local script using the B<-e> flag.
+
+The syntax for the I<command_list> B<xdsh> parameter is as follows:
+
+I<command>[; I<command>]...
+
+
+where I<command> is the command to run on the remote
+target. Quotation marks are required to ensure that all commands in the
+list are executed remotely, and that any special characters are interpreted
+correctly on the remote target. A script file on the local host can be
+executed on each of the remote targets by using the B<-e> flag. If B<-e> is specified, I<command_list> is the
+script name and arguments to the script. For example:
+
+xdsh hostname -e I<script_filename> [I<arguments>]...
+
+The I<script_filename> file is copied to a random  filename  in  the  B</tmp> directory on each remote target and then executed on the targets.
+
+The B<xdsh> command does not work with any interactive commands, including
+those that read from standard input.
+
+B<REMOTE> B<SHELL> B<COMMAND>:
+
+The  B<xdsh>  command  uses a configurable remote shell command to execute
+remote commands on the remote targets. Support is  explicitly  provided
+for  AIX  Remote  Shell and OpenSSH, but any secure remote command that
+conforms to the IETF (Internet Engineering Task  Force)  Secure  Remote
+Command Protocol can be used.
+
+The remote shell is determined as follows, in order of precedence:
+
+1. The B<-r> flag.
+
+2. The B<DSH_NODE_RSH> environment variable.
+
+3. The default node remote shell as defined by the target I<context>.
+
+4. The B</usr/bin/ssh> command.
+
+The  remote shell options are determined as follows, in order of precedence:
+
+1. The B<-o> flag.
+
+2. The B<DSH_NODE_OPTS> environment variable.
+
+B<REMOTE> B<SHELL> B<ENVIRONMENT>:
+
+The shell environment used on the remote target defaults to  the  shell
+defined for the I<user_ID> on the remote target.  The command
+syntax that B<xdsh> uses to form the remote commands can be specified using the B<-S> flag. If B<-S> is not specified, the syntax defaults to B<sh> syntax.
+
+When  commands  are  executed  on  the  remote target, the path used is
+determined by the B<DSH_PATH> environment variable defined in the shell of
+the  current  user. If B<DSH_PATH> is not set, the path used is the remote
+shell default path. For example, to set the local path for  the  remote
+targets, use:
+
+DSH_PATH=$PATH
+
+The  B<-E> flag exports a local environment definition file to each remote
+target. Environment variables specified in this file are defined in the
+remote shell environment before the I<command_list> is executed.
+The file should be executable and contain one environment variable per line.
+
+B<COMMAND> B<EXECUTION>:
+
+The  maximum  number  of concurrent remote shell command processes (the
+fanout) can be specified with the B<-f> flag or with the B<DSH_FANOUT>
+environment variable. The fanout is only restricted by the number of remote
+shell commands that can be run in parallel. You can experiment with the
+B<DSH_FANOUT>  value on your management server to see if higher values are
+appropriate.
+
+A timeout value for remote command execution can be specified with  the
+B<-t>  flag  or  with  the B<DSH_TIMEOUT> environment variable. If any remote
+target does not provide output to either standard  output  or  standard
+error  within  the  timeout  value,  B<xdsh> displays an error message and
+exits.
+
+If streaming mode is specified with the B<-s> flag, output is returned  as
+it  becomes available from each target, instead of waiting for the
+I<command_list> to complete on all targets before returning output. This  can
+improve performance but causes the output to be unsorted.
+
+The  B<-z> flag displays the exit code from the last command issued on the
+remote node in I<command_list>. Note that OpenSSH behaves differently;  it
+returns  the  exit status of the last remote command issued as its exit
+status. If  the  command  issued  on the remote node is run in the
+background, the exit status is not displayed.
+
+The B<-m> flag monitors execution of the B<xdsh> command by  printing  status
+messages to standard output. Each status message is preceded by B<dsh>.
+
+The B<-T> flag provides diagnostic trace information for the execution of
+the B<xdsh> command. Default settings and the actual remote shell commands
+executed on the remote targets are displayed.
+
+No error detection  or recovery mechanism is provided for remote
+targets. The B<xdsh> command output to standard error and standard output can
+be analyzed to determine the appropriate course of action.
+
+B<COMMAND> B<OUTPUT>:
+
+The  B<xdsh>  command  waits  until complete output is available from each
+remote shell process and then displays that  output  before  initiating
+new  remote shell processes. This default behavior is overridden by the
+B<-s> flag.
+
+The B<xdsh> command output consists of standard error and standard  output
+from the remote commands. The B<xdsh> standard output is the standard
+output from the remote shell command. The B<xdsh> standard error is the
+standard  error  from the remote shell command.  Each line is prefixed with
+the host name of the node that produced the output. The  host  name  is
+followed  by  the  B<:>  character and a command output line. A filter for
+displaying identical outputs grouped by node  is  provided  separately.
+See the B<xdshbak> command for more information.
+
+A  command  can  be run silently using the B<-Q> flag; no output from each
+target's standard output or standard error is displayed.
+
+B<SIGNALS>:
+
+Signal 2 (INT), Signal 3 (QUIT), and Signal 15 (TERM) are propagated to
+the commands executing on the remote targets.
+
+Signal  19  (CONT),  Signal  17 (STOP), and Signal 18 (TSTP) default to
+B<xdsh>; the B<xdsh> command responds normally to these signals, but the
+signals  do  not have an effect on remotely executing commands. Other
+signals are caught by B<xdsh> and have their default effects on the B<xdsh> command;
+all current child processes, through propagation to remotely
+running commands, are terminated (SIGTERM).
+
+=head1 B<OPTIONS>
+
+=over 5
+
+=item B<-B>|B<--bypass>
+
+Runs in bypass mode, use if the xcatd daemon is hung.
+
+=item B<-c>|B<--cleanup>
+
+This flag will have B<xdsh> remove all files from the subdirectories of the
+the directory on the service nodes, where B<xdcp> stages the copy to the
+compute nodes as defined in the site table SNsyncfiledir and nodesyncfiledir
+attribute, when the target is a service node.
+
+It can also be used to remove the nodesyncfiledir directory on the compute
+nodes, which keeps the backup copies of files for the B<xdcp> APPEND function
+support, if a compute node is the target.
+
+=item B<-e>|B<--execute>
+
+Indicates  that I<command_list> specifies a local script
+filename and arguments to be executed on  the  remote  targets.
+The  script  file  is copied to the remote targets and then
+remotely   executed   with   the   given   arguments.   The
+B<DSH_NODE_RCP>  environment variables specify the remote copy
+command to use to copy the script file to node targets.
+
+=item B<-E>|B<--environment> I<environment_file>
+
+Specifies that the  I<environment_file>  contains  environment
+variable definitions to export to the target before
+executing the  I<command_list>.
+
+=item B<--devicetype> I<type_of_device>
+
+Specify a user-defined device type that references the location
+of relevant device configuration file. The devicetype value must
+correspond to a valid device configuration file.
+xCAT ships some default configuration files
+for Ethernet switches and IB switches under
+I</opt/xcat/share/xcat/devicetype> directory. If you want to overwrite
+any of the configuration files, copy them to I</var/opt/xcat/>
+directory and customize.
+For example, I<base/IBSwitch/Qlogic/config> is the configuration
+file location if devicetype is specified as IBSwitch::Qlogic.
+xCAT will first search config file using I</var/opt/xcat/> as the base.
+If not found, it will search for it using
+I</opt/xcat/share/xcat/devicetype/> as the base.
+
+=item B<-f>|B<--fanout> I<fanout_value>
+
+Specifies a fanout value for the maximum number of  concurrently  executing  remote shell processes. Serial execution can be specified by indicating a fanout value of B<1>. If  B<-f> is not specified, a default fanout value of B<64> is used.
+
+=item B<-h>|B<--help>
+
+Displays usage information.
+
+
+=item B<-i>|B<--rootimg> I<install image>
+
+For Linux, Specifies the path to the install image on the local node.
+For AIX, specifies the name of the osimage on the local node. Run B<lsnim>
+for valid names.
+B<xdsh> will B<chroot> (B<xcatchroot> for AIX) to this path and run the B<xdsh> command against the
+install image.  No other B<xdsh> flags, environment variables apply with
+this input.  A noderange is not accepted. Only runs on the local host,
+normally the Management Node. The command you run must not prompt for input, the prompt will not be returned to you, and it will appear that B<xdsh> hangs.
+
+=item B<-K>|B<--ssh-setup>
+
+=item B<-K>|B<--ssh-setup>  B<-l>|B<--user> I<user_ID> B<--devicetype> I<type_of_device>
+
+Set up the SSH keys for the user running the command to the specified node list.
+The userid must have the same uid, gid and password as the userid on the node
+where the keys will be setup.
+
+If the current user is root,  root's public ssh keys will be put in the
+authorized_keys* files under roots .ssh directory on the node(s).
+If the current user is non-root, the user must be in the policy table and have credential to run the B<xdsh> command.
+The non-root users public ssh keys and root's public ssh keys will be put in
+the authorized_keys* files under the non-root users .ssh directory on the node(s).
+Other device types, such as IB switch, are also supported.  The
+device should be defined as a node and nodetype should be defined
+as switch before connecting.
+The B<xdsh -K> command must be run from the Management Node.
+
+=item B<-l>|B<--user> I<user_ID>
+
+Specifies a remote user name to use for remote command execution.
+
+=item B<-L>|B<--no-locale>
+
+Specifies to not export the locale definitions of the local
+host to the remote targets. Local host  locale  definitions
+are exported by default to each remote target.
+
+=item B<-m>|B<--monitor>
+
+Monitors  remote  shell execution by displaying status
+messages during execution on each target.
+
+=item B<-o>|B<--node-options> I<node_options>
+
+Specifies options to pass to the remote shell  command  for
+node  targets.  The options must be specified within double
+quotation marks ("") to distinguish them from B<xdsh> options.
+
+=item B<-q>|B<--show-config>
+
+Displays the current environment settings for all DSH
+Utilities commands. This includes the values of all environment
+variables  and  settings  for  all  currently installed and
+valid contexts. Each setting is prefixed with  I<context>:  to
+identify the source context of the setting.
+
+=item B<-Q>|B<--silent>
+
+Specifies silent mode. No target output is written to standard output or  standard  error.  Monitoring  messages are written to standard output.
+
+=item B<-r>|B<--node-rsh> I<node_remote_shell>
+
+
+Specifies the path of the remote shell command used
+for remote command execution on node targets.
+
+
+=item B<-s>|B<--stream>
+
+Specifies that output is returned as it  becomes  available
+from  each  target, instead of waiting for the I<command_list> to
+be completed on a target before returning output.
+
+=item B<-S>|B<--syntax> {B<csh>|B<ksh>}
+
+Specifies the shell syntax to be used on the remote target.
+If not specified, the B<ksh> syntax is used.
+
+=item B<--sudo>
+
+Adding the B<--sudo> flag to the B<xdsh> command will have B<xdsh> run B<sudo> before
+running the command.  This is particular useful when using the B<-e> option.
+This is required when you input B<-l> with a non-root user id and want that id
+to be able to run as root on the node.  The non-root userid will must be
+previously defined as an xCAT user, see process for defining non-root ids in
+xCAT and setting up for using B<xdsh>.  The userid B<sudo> setup will have
+to be done by the admin on the node.  This includes, allowing all commands that
+you would like to run with B<xdsh> by using B<visudo> to edit the /etc/sudoers file.
+You must disable ssh tty requirements by commenting out or removing this line in the /etc/sudoes file "#Defaults    requiretty".
+See the document https://xcat-docs.readthedocs.io/en/stable/advanced/security/security.html#granting-users-xcat-privileges for B<sudo> setup requirements.
+This is not supported in a hierarchical cluster, where the nodes are serviced by service nodes.
+
+=item B<-t>|B<--timeout> I<timeout>
+
+Specifies the time, in seconds, to wait for output from any
+currently executing remote targets. If no output is
+available  from  any  target in the specified I<timeout>, B<xdsh>
+displays an error and terminates execution for the remote
+targets  that  failed to respond. If I<timeout> is not specified,
+B<xdsh> waits indefinitely to continue processing output  from
+all  remote  targets. The exception is the B<-K> flag which defaults
+to 10 seconds.
+
+=item B<-T>|B<--trace>
+
+Enables trace mode. The B<xdsh> command prints diagnostic
+messages to standard output during execution to each target.
+
+=item B<-v>|B<--verify>
+
+Verifies each target before executing any  remote  commands
+on  the target. If a target is not responding, execution of
+remote commands for the target is canceled. When  specified
+with the B<-i> flag, the user is prompted to retry the
+verification request.
+
+=item B<-V>|B<--version>
+
+Displays the B<xdsh> command version information.
+
+=item B<-X> I<env_list>
+
+Ignore B<xdsh> environment variables. This option can take  an
+argument  which  is  a  comma separated list of environment
+variable names that should B<NOT> be ignored. If there  is  no
+argument  to  this  option,  or  the  argument  is an empty
+string, all B<xdsh> environment variables will be ignored.
+This option is useful when running B<xdsh> from within other
+scripts when you don't want the user's environment affecting
+the behavior of B<xdsh>.
+
+=item B<-z>|B<--exit-status>
+
+Displays the exit status for  the  last  remotely  executed
+non-asynchronous  command  on  each  target. If the command
+issued on the remote node is run  in  the  background,  the
+exit status is not displayed.
+
+Exit  values  for  each remote shell execution are displayed in
+messages from the B<xdsh> command, if the remote  shell  exit  values  are
+non-zero.  A non-zero return code from a remote shell indicates that
+an error was encountered in the remote shell. This  return  code  is
+unrelated  to  the  exit  code  of the remotely issued command. If a
+remote shell encounters an error, execution of the remote command on
+that target is bypassed.
+
+The  B<xdsh>  command  exit  code  is B<0> if the command executed without
+errors and all remote shell commands finished with exit codes of  B<0>.
+If  internal  B<xdsh>  errors occur or the remote shell commands do not
+complete successfully, the B<xdsh> command exit value is  greater  than
+B<0>.  The exit value is increased by B<1> for each successive instance of
+an unsuccessful remote command execution.  If  the  remotely  issued
+command  is  run  in  the  background, the exit code of the remotely
+issued command is B<0>.
+
+=back
+
+
+=head1 B<Environment> B<Variables>
+
+=over 4
+
+=item B<DEVICETYPE>
+
+Specify a user-defined device type.  See B<--devicetype> flag.
+
+
+=item B<DSH_ENVIRONMENT>
+
+Specifies a file that contains environment variable
+definitions to export to the target before executing  the  remote
+command. This variable is overridden by the B<-E> flag.
+
+=item B<DSH_FANOUT>
+
+Specifies  the fanout value. This variable is overridden by
+the B<-f> flag.
+
+=item B<DSH_NODE_OPTS>
+
+Specifies the options to use for the remote  shell  command
+with  node targets only. This variable is overridden by the
+B<-o> flag.
+
+=item B<DSH_NODE_RCP>
+
+Specifies the full path of the remote copy command  to  use
+to  copy  local scripts and local environment configuration
+files to node targets.
+
+=item B<DSH_NODE_RSH>
+
+Specifies the full path of the  remote  shell  to  use  for
+remote  command execution on node targets. This variable is
+overridden by the B<-r> flag.
+
+=item B<DSH_PATH>
+
+Sets the command path to use on the targets. If B<DSH_PATH> is
+not set, the default path defined in  the  profile  of  the
+remote I<user_ID> is used.
+
+=item B<DSH_REMOTE_PASSWORD>
+
+If B<DSH_REMOTE_PASSWORD> is set to the password of the
+userid (usually root) that will B<ssh> to the node, then when
+you use the B<-K> flag, you will not be prompted for a password.
+
+
+=item B<DSH_SYNTAX>
+
+Specifies the shell syntax to use on remote targets; B<ksh> or
+B<csh>. If not specified, the  B<ksh>  syntax is assumed.  This
+variable is overridden by the B<-S> flag.
+
+=item B<DSH_TIMEOUT>
+
+Specifies the time, in seconds, to wait for output from
+each remote target. This variable is overridden by the B<-t> flag.
+
+=item B<DSH_VERIFY>
+
+Verifies each target before executing any remote commands on the target. If a target is not responding, execution of remote commands for the target is canceled. This variable is overridden by the B<-v> flag.
+
+=back
+
+=head1 B<Compatibility with AIX dsh>
+
+To provide backward compatibility for scripts written using B<dsh> in
+AIX and CSM, a tool has been provided B<groupfiles4dsh>,
+which will build node group files from the
+xCAT database that can be used by B<dsh>. See B<man groupfiles4dsh>.
+
+=head1 B<SECURITY>
+
+The  B<xdsh>  command  has no security configuration requirements.  All
+remote command security requirements  -  configuration,
+authentication,  and authorization - are imposed by the underlying remote
+command configured for B<xdsh>. The command  assumes  that  authentication
+and  authorization  is  configured  between  the  local host and the
+remote targets. Interactive password prompting is not supported;  an
+error  is displayed and execution is bypassed for a remote target if
+password prompting occurs, or if either authorization or
+authentication  to  the  remote  target fails. Security configurations as they
+pertain to the remote environment and remote shell command are
+user defined.
+
+
+=head1 B<EXIT STATUS>
+
+The B<xdsh> command exit code is 0 if the command executed without errors and all remote shell commands finished with exit codes of 0. If internal B<dsh> errors occur or the remote shell commands do not complete successfully, the B<dsh> command exit value is greater than 0. The exit value is increased by 1 for each successive instance of an unsuccessful remote command execution.  If the remotely issued command is run in the background, the exit code of the remotely issued command is 0.
+
+
+=head1 B<EXAMPLES>
+
+=over 3
+
+=item 1.
+To set up the SSH keys for root on node1, run as root:
+
+ xdsh node1 -K
+
+=item 2.
+To run the B<ps -ef> command on node targets B<node1> and B<node2>, enter:
+
+ xdsh node1,node2 "ps -ef"
+
+=item 3.
+To run the B<ps> command on node targets B<node1> and run the remote command with the B<-v> and B<-t> flag, enter:
+
+ xdsh node1,node2  -o "-v -t" ps
+
+=item 4.
+To execute the commands contained in B<myfile> in the B<XCAT>
+context on several node targets, with a fanout of B<1>, enter:
+
+ xdsh node1,node2 -f 1 -e myfile
+
+=item 5.
+To run the B<ps> command on node1 and ignore all the B<dsh>
+environment variable except the DSH_NODE_OPTS, enter:
+
+ xdsh node1 -X `DSH_NODE_OPTS' ps
+
+=item 6.
+To run on Linux, the B<xdsh> command B<rpm -qa | grep xCAT>
+on the service node fedora9 diskless image, enter:
+
+ xdsh -i /install/netboot/fedora9/x86_64/service/rootimg "rpm -qa | grep xCAT"
+
+=item 7.
+To run on AIX, the B<xdsh> command B<lslpp -l | grep bos> on the NIM 611dskls spot, enter:
+
+ xdsh -i 611dskls "/usr/bin/lslpp -l | grep bos"
+
+=item 8.
+To cleanup the service node directory that stages the copy of files to the nodes, enter:
+
+ xdsh servicenoderange -c
+
+=item 9.
+To define the QLogic IB switch as a node and to set up the SSH keys for IB switch
+B<qswitch> with device configuration file
+B</var/opt/xcat/IBSwitch/Qlogic/config> and user name B<username>, enter
+
+ chdef -t node -o qswitch groups=all nodetype=switch
+
+ xdsh qswitch -K -l username --devicetype IBSwitch::Qlogic
+
+=item 10.
+To define the Management Node  in the database so you can use B<xdsh>, enter
+
+ xcatconfig -m
+
+=item 11.
+To define the Mellanox switch as a node and run a command to show the ssh keys.
+B<mswitch> with and user name B<username>, enter
+
+ chdef -t node -o mswitch groups=all nodetype=switch
+
+ xdsh mswitch -l admin --devicetype IBSwitch::Mellanox  'enable;configure terminal;show ssh server host-keys'
+
+=item 12.
+To define a BNT Ethernet switch as a node and run a command to create a new vlan with vlan id 3 on the switch.
+
+ chdef myswitch groups=all
+
+ tabch switch=myswitch switches.sshusername=admin switches.sshpassword=passw0rd switches.protocol=[ssh|telnet]
+
+where I<admin> and I<passw0rd> are the SSH user name and password for the switch.
+
+If it is for Telnet, add I<tn:> in front of the user name: I<tn:admin>.
+
+ dsh myswitch --devicetype EthSwitch::BNT 'enable;configure terminal;vlan 3;end;show vlan'
+
+=item 13.
+To run B<xdsh> with the non-root userid "user1" that has been setup as an xCAT userid and with B<sudo> on node1 and node2 to run as root, do the following, see xCAT doc https://xcat-docs.readthedocs.io/en/stable/advanced/security/security.html#granting-users-xcat-privileges:
+
+ xdsh node1,node2 --sudo -l user1 "cat /etc/passwd"
+
+=back
+
+=head1 B<Files>
+
+
+=head1 B<SEE ALSO>
+
+L<xdshbak(1)|xdshbak.1>, L<noderange(3)|noderange.3>, L<groupfiles4dsh(1)|groupfiles4dsh.1>
