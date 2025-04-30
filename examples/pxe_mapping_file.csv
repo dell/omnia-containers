@@ -1,5 +1,0 @@
-MAC,Hostname,IP
-xx:yy:zz:aa:bb:cc,manager,10.5.0.101
-aa:bb:cc:dd:ee:ff,login,10.5.0.102
-aa:bb:cc:xx:yy:zz,node1,10.5.0.103
-dd:ee:ff:aa:bb:cc,node2,10.5.0.104

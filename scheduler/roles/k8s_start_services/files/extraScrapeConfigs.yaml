@@ -1,4 +1,0 @@
-- job_name: Slurm-exporter-prometheus
-  static_configs:
-  - targets:
-    - localhost:8080

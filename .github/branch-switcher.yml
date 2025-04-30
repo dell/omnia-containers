@@ -1,4 +1,0 @@
-preferredBranch: devel
-switchComment: >
-  Hey @{{author}}, the base branch of your pull request has been changed
-  to {{preferredBranch}}. Have a nice day! :wave:

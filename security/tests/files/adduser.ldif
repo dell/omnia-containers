@@ -1,6 +1,0 @@
-dn: cn=user348 validation3196,ou=users, dc=dell,dc=com
-cn: user348
-sn: validation3196
-objectClass: inetOrgPerson
-userPassword: 836
-uid: user348

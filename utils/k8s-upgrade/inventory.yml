@@ -1,8 +1,0 @@
-all:
-  children:
-    manager:
-      hosts:
-        compute104.omnia.local:
-    compute: 
-      hosts:
-        compute105.omnia.local:

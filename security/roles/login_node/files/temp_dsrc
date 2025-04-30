@@ -1,7 +1,0 @@
-# /root/.dsrc file for administering the ldap1 instance
-
-[ldap1]
-
-uri = ldapi://%%2fvar%%2frun%%2fslapd-ldap1.socket
-basedn = dc=omnia,dc=test
-binddn = cn=Directory Manager

@@ -1,7 +1,0 @@
----
-# upgrade k8s worker nodes
-- name: "Upgrading k8s compute nodes version to {{ k8s_upgrade_version }}"
-  ansible.builtin.include_tasks: compute-upgrade.yml
-  loop: "{{ k8s_versions }}"
-  when:
-    - "{{ item <= k8s_upgrade_version }}"
