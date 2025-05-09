@@ -1,0 +1,17 @@
+- name: Converge
+  hosts: oim
+  become: true
+  tasks:
+    - name: Run local_repo playbook inside omnia_core container on remote host
+      command: >
+        podman exec omnia_core /bin/bash -c
+        'cd /omnia && ansible-playbook /omnia/local_repo/local_repo.yml'
+      register: result
+
+    - name: Show playbook output (stdout)
+      debug:
+        var: result.stdout
+
+    - name: Show playbook errors (stderr)
+      debug:
+        var: result.stderr

@@ -1,0 +1,5 @@
+//ORDER OF THE SCENARIOS TO BE EXECUTED AND VALIDATED
+prepare_oim
+local_repo
+discovery_provision
+omnia

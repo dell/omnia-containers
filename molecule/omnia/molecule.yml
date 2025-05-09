@@ -1,0 +1,18 @@
+dependency:
+  name: galaxy
+platforms:
+  - name: local
+    hosts: localhost
+provisioner:
+  name: ansible
+
+verifier:
+  name: testinfra
+  options:
+    s: true
+    v: true
+    
+scenario:
+  test_sequence:
+    - converge
+    - verify

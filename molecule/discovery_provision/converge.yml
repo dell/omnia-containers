@@ -1,0 +1,17 @@
+- name: Converge
+  hosts: oim
+  become: true
+  tasks:
+    - name: Run discovery_provision playbook inside omnia_core container on remote host
+      command: >
+        podman exec omnia_core /bin/bash -c
+        'cd /omnia && ansible-playbook /omnia/discovery_provision.yml'
+      register: result
+
+    - name: Show playbook output (stdout)
+      debug:
+        var: result.stdout
+
+    - name: Show playbook errors (stderr)
+      debug:
+        var: result.stderr
