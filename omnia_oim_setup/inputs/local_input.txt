@@ -1,0 +1,4 @@
+default:2
+omnia_shared_path:
+password:
+confirm_password:
