@@ -1,10 +1,15 @@
 dependency:
   name: galaxy
+
 platforms:
   - name: local
     hosts: localhost
+    
 provisioner:
   name: ansible
+  inventory:
+    links:
+      hosts: ../inv
 
 verifier:
   name: testinfra
