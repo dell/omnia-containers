@@ -44,6 +44,5 @@ subprocess-tee==0.4.2
 testinfra==6.0.0
 tzdata==2024.2
 wcmatch==10.0
+config
 bs4
-sshpass
-getpass

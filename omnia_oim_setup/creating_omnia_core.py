@@ -12,7 +12,7 @@ def update_config(oim_ip, oim_pass):
 OIM_IP = "{oim_ip}"
 OIM_PASS = "{oim_pass}"
 '''
-    config_path = os.path.join(script_dir, 'config.py')
+    config_path = os.path.join(script_dir, '../config.py')
     with open(config_path, "w") as config_file:
         config_file.write(config_content)
         
