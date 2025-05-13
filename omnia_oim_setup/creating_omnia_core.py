@@ -15,6 +15,49 @@ OIM_PASS = "{oim_pass}"
     config_path = os.path.join(script_dir, '../config.py')
     with open(config_path, "w") as config_file:
         config_file.write(config_content)
+
+def copy_dell_certificate(nfs_user, nfs_ip, nfs_password, ip, password, cert_path):
+    
+    # Step 1: Copy the certificate directory from NFS/Gateway to the OIM.
+    print("Copying certificate from NFS/Gateway to the OIM.")
+    
+    scp_command = [
+    "sshpass", "-p", password,
+    "ssh", "-o", "StrictHostKeyChecking=no",
+    f"root@{ip}",
+    f"sshpass -p {nfs_password} scp -r {nfs_user}@{nfs_ip}:{cert_path} /root/"
+    ]
+    
+    try:
+        result = subprocess.run(scp_command, capture_output=True, text=True)
+        if result.returncode == 0:
+            print("✅ certificate successfully")
+        else:
+            print("❌ Failed to copy certificate:")
+            print(result.stderr)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+     # Step 2: SSH into the remote machine and install the certificate
+    remote_cmd = (
+        "cd /root/ && "
+        "yum install -y ca-certificates && "
+        "update-ca-trust force-enable && "
+        "cp dellca2018-bundle.crt /etc/pki/ca-trust/source/anchors/ && "
+        "update-ca-trust extract"
+    )
+    ssh_command = [
+        "sshpass", "-p", password,
+        "ssh", "-o", "StrictHostKeyChecking=no",
+        f"root@{ip}", remote_cmd
+    ]
+    result = subprocess.run(ssh_command, capture_output=True, text=True)
+    if result.returncode == 0:
+        print("✅ Certificate installed successfully")
+        print(result.stdout)
+    else:
+        print("❌ Failed to install certificate:")
+        print(result.stderr)
         
 def login_to_registry(ip, password, username, registry_password):
     ssh_command = [
@@ -167,7 +210,17 @@ def inv_creation(ip, username, password):
 
     print("Inventory file 'inv' has been created.")
     
-
+def handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input):
+    if login_to_registry(oim_ip, oim_pass, registry_user, registry_pass):
+        for img in images:
+            pull_podman_images(oim_ip, oim_pass, img)
+        download_omnia_startup(oim_ip, oim_pass, branch_name)
+        inv_creation(oim_ip, oim_username, oim_pass)
+        executing_omnia_startup(oim_ip, oim_pass, startup_input)
+        run_pytest_for()
+    else:
+        print("\nFailed to log in to the registry.")
+    
 def main():
     oim_ip = input("Enter OIM IP: ")
     oim_username = input("Enter OIM username: ")
@@ -176,11 +229,12 @@ def main():
     registry_pass = getpass.getpass("Enter Artifactory password: ")
     branch_name = input("Enter branch name you want to download: ")
     
-    try:
+    while True:
         startup_input = int(input("Choose the type of Omnia shared path\n1. NFS\n2. Local\nEnter choice: "))
-    except ValueError:
-        print("❌ Please enter a valid number (1 or 2).")
-        return
+        if startup_input == 1 or startup_input == 2:
+            break
+        else:
+            print("\nInvalid input. Please enter '1' or '2'.")
 
     images = [
         "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_core:latest",
@@ -191,14 +245,25 @@ def main():
     
     update_config(oim_ip, oim_pass)
 
+    while True:
+        cert = input("\nDo you want to copy the Dell certificate? [yes or no]: \n---Ensure you have an NFS server with the Dell certificate already present--- ").strip().lower()
 
-    if login_to_registry(oim_ip, oim_pass, registry_user, registry_pass):
-        for img in images:
-            pull_podman_images(oim_ip, oim_pass, img)
-        download_omnia_startup(oim_ip, oim_pass, branch_name)
-        executing_omnia_startup(oim_ip, oim_pass, startup_input)
-        run_pytest_for()
-        inv_creation(oim_ip, oim_username, oim_pass)
+        if cert == 'yes':
+            nfs_ip = input("\nEnter NFS/gateway IP: ")
+            nfs_user = input("\nEnter NFS/gateay user: ")
+            nfs_pass = getpass.getpass("\nEnter NFS/gateway password: ")
+            cert_path = input("\nEnter the certificate path on your NFS/gateway: ")
 
+            copy_dell_certificate(nfs_user, nfs_ip, nfs_pass, oim_ip, oim_pass, cert_path)
+            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input)
+            break  # exit the loop after successful processing
+
+        elif cert == 'no':
+            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input)
+            break  # exit the loop after successful processing
+
+        else:
+            print("\nInvalid input. Please enter 'yes' or 'no'.")
+        
 if __name__ == "__main__":
     main()
