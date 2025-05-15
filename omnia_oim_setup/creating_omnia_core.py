@@ -7,10 +7,25 @@ import getpass
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(script_dir, 'inputs')
 
-def update_config(oim_ip, oim_pass):
+def download_sshpass_in_oim(ip, password):
+    ssh_command = [
+        "sshpass", "-p", password,
+        "ssh", "-o", "StrictHostKeyChecking=no", f"root@{ip}",
+        f"sudo dnf install -y sshpass && sshpass -V"
+    ]
+    result = subprocess.run(ssh_command, capture_output=True, text=True)
+    if result.returncode == 0:
+        print("✅ sshpass download successful")
+        return True
+    else:
+        print("❌ sshpass download failed:")
+        print(result.stderr)
+        return False
+
+def update_config(ip, password):
     config_content = f'''
-OIM_IP = "{oim_ip}"
-OIM_PASS = "{oim_pass}"
+OIM_IP = "{ip}"
+OIM_PASS = "{password}"
 '''
     config_path = os.path.join(script_dir, '../config.py')
     with open(config_path, "w") as config_file:
@@ -244,6 +259,7 @@ def main():
     ]
     
     update_config(oim_ip, oim_pass)
+    download_sshpass_in_oim(oim_ip, oim_pass)
 
     while True:
         cert = input("\nDo you want to copy the Dell certificate? [yes or no]: \n---Ensure you have an NFS server with the Dell certificate already present--- ").strip().lower()
