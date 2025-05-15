@@ -4,12 +4,14 @@
 install_rhel() {
     sudo dnf update -y
     sudo dnf install -y python3.11
+    sudo dnf install sshpass
 }
 
 # Function to install packages on Ubuntu
 install_ubuntu() {
     sudo apt update -y
     sudo apt install -y python3.11 python3.11-venv
+    sudo apt install sshpass
 }
 
 # Detect the OS and call the appropriate function
