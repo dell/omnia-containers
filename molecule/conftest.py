@@ -3,6 +3,7 @@ import json
 import sys
 import pytest
 import os
+import re
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import config
