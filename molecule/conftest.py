@@ -73,4 +73,45 @@ def get_required_pcs_resources(run_sshpass_command):
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
         pytest.fail(f"Unexpected error: {e}")
-      
+
+        
+@pytest.fixture
+def get_file_from_container():    
+    def _get_file_from_container(run_sshpass_command, file_path):
+        # Run `podman exec` inside the container to cat the file
+        cmd = f"podman exec omnia_core cat {file_path}"
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, f"❌ Failed to read file from container:\n{result.stderr}"
+        return result.stdout
+    return _get_file_from_container
+
+
+@pytest.fixture
+def extract_create_table_sql():
+    def _extract_create_table_sql(content, table="nodeinfo"):
+        # Matches the SQL string defined as: sql = '''CREATE TABLE IF NOT EXISTS ...'''
+        pattern = (
+            rf"sql\s*=\s*'''CREATE TABLE IF NOT EXISTS .*?{table}\s*\((.*?)\)'''"
+        )
+        match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
+        if not match:
+            raise ValueError(f"❌ Could not find CREATE TABLE definition for '{table}'")
+        return f"CREATE TABLE {match.group(0).split('CREATE TABLE', 1)[1]}"
+    return _extract_create_table_sql
+
+
+@pytest.fixture
+def extract_columns_from_create_sql():
+    def _extract_columns_from_create_sql(sql):
+        inside = sql.split('(', 1)[1].rsplit(')', 1)[0]
+        lines = inside.splitlines()
+
+        columns = set()
+        for line in lines:
+            line = line.strip().rstrip(',')
+            if not line or line.upper().startswith(("PRIMARY", "FOREIGN", "CONSTRAINT")):
+                continue
+            column_name = line.split()[0].strip('"')
+            columns.add(column_name.lower())
+        return columns
+    return _extract_columns_from_create_sql
