@@ -31,3 +31,16 @@ def test_omnia_inventroy_files(run_sshpass_command):
     
     print("\n✅ All the inventory files exist.")
     
+def test_compute_hostname_ip(run_sshpass_command):
+    print("\nVerifying that the compute_hostname_ip file is not empty.")
+    
+    file_path = "/opt/omnia/omnia_inventory/compute_hostname_ip"
+    cmd = f"podman exec -it {CONTAINER_NAME} cat {file_path}"
+    
+    result = run_sshpass_command(cmd)
+    assert result.returncode == 0, f"❌ Failed to read file: {result.stderr}"
+
+    lines = result.stdout.strip().splitlines()
+    assert len(lines) > 2, print(f"Contents is missing from file compute_hostname_ip.")
+    
+    print("compute_hostname_ip file is not empty.")
