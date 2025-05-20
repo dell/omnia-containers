@@ -4,7 +4,7 @@ CONTAINER_NAME = "omnia_core"
 
 def test_omnia_inventroy_files(run_sshpass_command):
     
-    print("\nTesting for omnia_inventory files")
+    print("\nVerifying omnia_inventory files")
     
     files_to_be_created = ["cluster_layout", "compute_cpu_amd", "compute_cpu_intel", "compute_gpu_amd", "compute_gpu_intel", "compute_gpu_nvidia", "compute_hostname_ip"]
     
@@ -32,6 +32,7 @@ def test_omnia_inventroy_files(run_sshpass_command):
     print("\n✅ All the inventory files exist.")
     
 def test_compute_hostname_ip(run_sshpass_command):
+    
     print("\nVerifying that the compute_hostname_ip file is not empty.")
     
     file_path = "/opt/omnia/omnia_inventory/compute_hostname_ip"
