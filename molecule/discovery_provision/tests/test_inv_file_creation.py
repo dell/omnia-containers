@@ -23,7 +23,7 @@ def test_omnia_inventroy_files(run_sshpass_command):
             files_not_created.append(inv)
     
     if files_created:
-        print("Following inventory files exist:\n" + "\n".join(files_created))
+        print("\nFollowing inventory files exist:\n" + "\n".join(files_created))
     
     assert files_created, print(f"\nNo inventory files exist in omnia_inventory.")
     
@@ -42,6 +42,6 @@ def test_compute_hostname_ip(run_sshpass_command):
     assert result.returncode == 0, f"❌ Failed to read file: {result.stderr}"
 
     lines = result.stdout.strip().splitlines()
-    assert len(lines) > 2, print(f"Contents is missing from file compute_hostname_ip.")
+    assert len(lines) > 2, print(f"\nContents is missing from file compute_hostname_ip.")
     
-    print("compute_hostname_ip file is not empty.")
+    print("\ncompute_hostname_ip file is not empty.")
