@@ -1,2 +1,8 @@
 OIM_IP = ""
 OIM_PASS = ""
+
+#FREEIPA USER DETAILS
+FREEIPA_USERNAME = "testuser"
+PASSWORD = "password"
+FIRST_NAME = "Test"
+LAST_NAME = "User"
