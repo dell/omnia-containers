@@ -39,10 +39,10 @@ def get_required_containers(run_sshpass_command):
         softwares = data.get("softwares", [])
         if any(software.get("name") == "k8s" for software in softwares):
             print("\nk8s found.\n")
-            return ["omnia_pcs", "omnia_provision", "omnia_pulp", "omnia_kubespray"]
+            return ["omnia_pcs", "omnia_provision", "pulp", "omnia_kubespray"]
         else:
             print(f"k8s not found. Skipping omnia_kubespray container.")
-            return ["omnia_pcs", "omnia_provision", "omnia_pulp"]
+            return ["omnia_pcs", "omnia_provision", "pulp"]
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
@@ -66,10 +66,10 @@ def get_required_pcs_resources(run_sshpass_command):
         softwares = data.get("softwares", [])
         if any(software.get("name") == "k8s" for software in softwares):
             print("\nk8s found.\n")
-            return ["omnia_core", "omnia_pulp", "omnia_provision", "omnia_kubespray"]
+            return ["omnia_core", "pulp", "omnia_provision", "omnia_kubespray"]
         else:
             print(f"k8s not found. Skipping omnia_kubespray container.")
-            return ["omnia_core", "omnia_provision", "omnia_pulp"]
+            return ["omnia_core", "omnia_provision", "pulp"]
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
