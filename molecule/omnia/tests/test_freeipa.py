@@ -17,8 +17,14 @@ password = config.PASSWORD
 first_name = config.FIRST_NAME
 last_name = config.LAST_NAME
 
+job_name = "job_test.slurm"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+script_path = os.path.join(script_dir, "scripts")
+source = os.path.join(script_dir, script_path)
+destination = '/mnt/omnia_home_share/'
+
 @pytest.mark.qtest_id("TC-3215")
-def test_FreeIPA_services(run_sshpass_command, auth_server, remote_user="root", container_name="omnia_core"):
+def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, remote_user="root", container_name="omnia_core"):
     # Step 1: Check if FreeIPA is present in the config
     cmd = f"podman exec {container_name} cat {software_config_path}"
     result = run_sshpass_command(cmd)
@@ -32,6 +38,7 @@ def test_FreeIPA_services(run_sshpass_command, auth_server, remote_user="root", 
         if not any(software.get("name") == "freeipa" for software in softwares):
             pytest.skip("Skipping FreeIPA tests: 'freeipa' not found in software_config.json")
         print("\n✅ FreeIPA found in software_config.json. Proceeding with service checks.")
+        sync_directories(source, destination)
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
@@ -86,7 +93,7 @@ def test_FreeIPA_services(run_sshpass_command, auth_server, remote_user="root", 
         else:
             print(f"\n✅ All FreeIPA services are running on {node_ip}")
 
-@pytest.mark.qtest_id("TC-3216")
+
 def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
     """
     Add a user to FreeIPA from within the omnia_core container and verify.
@@ -135,8 +142,7 @@ def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
             print(f"\n✅ User '{username}' added successfully on {node_ip}.")
             print("\nUser Details:\n" + add_result.stdout.strip())
             
-
-@pytest.mark.qtest_id("TC-3217")
+            
 def test_login_from_node(kube_node, auth_server, remote_user="root", container_name="omnia_core"):
     """
     Test IPA user login to each kube node from within the omnia_core container.
@@ -217,3 +223,138 @@ def test_login_from_node(kube_node, auth_server, remote_user="root", container_n
                 pytest.fail(f"Login failed on node {node_ip} when it should succeed.")
             else:
                 print(f"\n✅ Login successful for user '{username}' on {node_ip}.")
+                
+def test_replace_node_value(slurm_control_node, remote_user="root", container_name="omnia_core"):
+    """
+    Replaces node and task values in a Slurm job script based on available resources.
+    """
+    for host in slurm_control_node:
+        try:
+            node_ip = host.backend.host
+
+            # Build the command to fetch node count using sinfo
+            node_count_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"\"podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"sinfo --noheader -o '%D'\""
+            )
+
+            # Run the command
+            result = subprocess.run(node_count_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                pytest.fail(f"Failed to fetch node count: {result.stderr}")
+
+            node_count = result.stdout.strip()
+            if not node_count.isdigit():
+                pytest.fail("Node count is invalid or empty.")
+            print(f"Node count from {node_ip}: {node_count}")
+
+            # Build the script update command
+            update_script_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"\"sed -i \\\"s/^#SBATCH --ntasks=n/#SBATCH --ntasks={node_count}/\\\" /home/scripts/{job_name} && "
+                f"sed -i \\\"s/^#SBATCH --nodes=n/#SBATCH --nodes={node_count}/\\\" /home/scripts/{job_name}\"'"
+            )
+
+
+            # Run the update command
+            update_result = subprocess.run(update_script_cmd, shell=True, capture_output=True, text=True)
+            if update_result.returncode != 0:
+                pytest.fail(f"Failed to update job script: {update_result.stderr}")
+
+            print(f"Updated job script on {node_ip} successfully.")
+
+        except Exception as e:
+            pytest.fail(f"Error on node {host.backend.host}: {e}")
+
+def test_slurm_job_submission(slurm_control_node, remote_user="root", container_name="omnia_core"):
+    """
+    Submit a Slurm job from the IPA user via a nested SSH from the OIM host to omnia_core container to auth server.
+    """        
+    
+    print("n---------Testing Slurm job submission using freeipa user----------\n")
+     
+    for host in slurm_control_node:
+        try:
+            node_ip = host.backend.host
+
+            submit_job_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"\"podman exec {container_name} bash -c '"
+                f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"\\\"sshpass -p {password} ssh -o StrictHostKeyChecking=no {username}@{node_ip} "
+                f"\\\\\\\"whoami && sbatch /home/scripts/{job_name}\\\\\\\"\\\"'\""
+            )
+
+            result = subprocess.run(submit_job_cmd, shell=True, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                pytest.fail(f"\n❌ SSH or job submission failed:\n{result.stderr.strip()}")
+
+            output_lines = result.stdout.strip().splitlines()
+
+            if not output_lines:
+                pytest.fail(f"\n❌ No output received. Possible SSH or command error.")
+
+            logged_in_user = output_lines[0].strip()
+            print("\nlogged_in_user: ",logged_in_user)
+            if logged_in_user != username:
+                pytest.fail(f"\n❌ Logged in user mismatch: expected '{username}', got '{logged_in_user}'")
+            else:
+                print(f"\nLogged in successfully to the freeipa user: {username}")
+
+            if "Submitted batch job" not in output_lines[-1]:
+                pytest.fail(f"\n❌ Job submission failed:\n{result.stdout.strip()}")
+
+            job_id = output_lines[-1].split()[-1]
+            print(f"\n✅ Job submitted with user '{logged_in_user}' on {node_ip}. Job ID: {job_id}")
+
+        except Exception as e:
+            pytest.fail(f"❌ Exception on node {node_ip}: {str(e)}")
+
+
+
+        # Wait for the job to complete (no timeout)
+        while True:
+            check_job_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"\"podman exec {container_name} bash -c '"
+                f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"\\\"sshpass -p {password} ssh -o StrictHostKeyChecking=no {username}@{node_ip} "
+                f"\\\\\\\"squeue -j {job_id}\\\\\\\"\\\"'\""
+            )
+
+            result = subprocess.run(check_job_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                pytest.fail(f"Failed to check job status: {result.stderr}")
+
+            if job_id not in result.stdout:
+                print(f"\n✅ Job {job_id} completed.")
+                break
+
+            print(f"⏳ Waiting for job {job_id}... still running.")
+            time.sleep(5)  # Poll every 5 seconds
+
+
+
+        # Validate job output
+        job_output_path = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"\"podman exec {container_name} bash -c '"
+                f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"\\\"sshpass -p {password} ssh -o StrictHostKeyChecking=no {username}@{node_ip} "
+                f"\\\\\\\"cat output_{job_id}.log\\\\\\\"\\\"'\""
+            )
+        
+        result = subprocess.run(job_output_path, shell=True, capture_output=True, text=True)
+        
+        if "Running as user: testuser" in result.stdout:
+            print("\n✅Job successfully executed as Freeipa user")
+        elif "Running as user: root":
+            pytest.fail(print(f"\nJob executed as root user"))
+            
+        if "Hello world" in result.stdout:
+            print("\n✅mpi job executed successfully")
+        else:
+            pytest.fail(print("\nmpi job failed."))
