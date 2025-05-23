@@ -4,19 +4,27 @@ import sys
 import pytest
 import os
 import re
+import testinfra
+import testinfra.utils.ansible_runner
+import shutil
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import config
 
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+inventory_path = os.path.join(script_dir, "inv")
+os.environ['ANSIBLE_INVENTORY'] = inventory_path
+
 oim_ip = config.OIM_IP
-password = config.OIM_PASS
+oim_password = config.OIM_PASS
 software_config_path = "/opt/omnia/input/project_default/software_config.json"
 
 @pytest.fixture
 def run_sshpass_command():
     def _run(cmd):
         ssh_command = [
-            "sshpass", "-p", password,
+            "sshpass", "-p", oim_password,
             "ssh", "-o", "StrictHostKeyChecking=no",
             f"root@{oim_ip}", cmd
         ]
@@ -66,15 +74,14 @@ def get_required_pcs_resources(run_sshpass_command):
         softwares = data.get("softwares", [])
         if any(software.get("name") == "k8s" for software in softwares):
             print("\nk8s found.\n")
-            return ["omnia_core", "pulp", "omnia_provision", "omnia_kubespray"]
+            return ["omnia_core", "omnia_pulp", "omnia_provision", "omnia_kubespray"]
         else:
             print(f"k8s not found. Skipping omnia_kubespray container.")
-            return ["omnia_core", "omnia_provision", "pulp"]
+            return ["omnia_core", "omnia_provision", "omnia_pulp"]
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
         pytest.fail(f"Unexpected error: {e}")
-
         
 @pytest.fixture
 def get_file_from_container():    
@@ -85,7 +92,6 @@ def get_file_from_container():
         assert result.returncode == 0, f"❌ Failed to read file from container:\n{result.stderr}"
         return result.stdout
     return _get_file_from_container
-
 
 @pytest.fixture
 def extract_create_table_sql():
@@ -99,7 +105,6 @@ def extract_create_table_sql():
             raise ValueError(f"❌ Could not find CREATE TABLE definition for '{table}'")
         return f"CREATE TABLE {match.group(0).split('CREATE TABLE', 1)[1]}"
     return _extract_create_table_sql
-
 
 @pytest.fixture
 def extract_columns_from_create_sql():
@@ -116,3 +121,110 @@ def extract_columns_from_create_sql():
             columns.add(column_name.lower())
         return columns
     return _extract_columns_from_create_sql
+
+
+@pytest.fixture
+def kube_control_plane():
+    testinfra_hosts = [
+        'ansible://kube_control_plane',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+@pytest.fixture
+def kube_node():
+    testinfra_hosts = [
+        'ansible://kube_node',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+# Fixture for etcd nodes
+@pytest.fixture
+def etcd():
+    testinfra_hosts = [
+        'ansible://etcd',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+# Fixture for auth_server nodes
+@pytest.fixture
+def auth_server():
+    testinfra_hosts = [
+        'ansible://auth_server',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+# Fixture for slurm_control_node
+@pytest.fixture
+def slurm_control_node():
+    testinfra_hosts = [
+        'ansible://slurm_control_node',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+# Fixture for slurm_node
+@pytest.fixture
+def slurm_node():
+    testinfra_hosts = [
+        'ansible://slurm_node',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+# Fixture for login nodes
+@pytest.fixture
+def login():
+    testinfra_hosts = [
+        'ansible://login',
+    ]
+    return testinfra.get_hosts(testinfra_hosts)
+
+@pytest.fixture
+def all_hosts():
+    hosts = {
+        'kube_control_plane': testinfra.get_hosts(['ansible://kube_control_plane']),
+        'kube_node': testinfra.get_hosts(['ansible://kube_node']),
+        'etcd': testinfra.get_hosts(['ansible://etcd']),
+        'auth_server': testinfra.get_hosts(['ansible://auth_server']),
+        'slurm_control_node': testinfra.get_hosts(['ansible://slurm_control_node']),
+        'slurm_node': testinfra.get_hosts(['ansible://slurm_node']),
+        'login': testinfra.get_hosts(['ansible://login']),
+    }
+    return hosts
+
+@pytest.fixture
+def get_unique_ips():
+    def _get_unique_ips(nodes):
+        """
+        This function extracts unique IPs (or hostnames) from a list of node objects.
+        It eliminates any duplicates by using a set and returns a list of unique hostnames/IPs.
+        This is useful when we need to ensure that a node is only checked once, even if it appears multiple times.
+
+        Parameters:
+        - nodes (list): A list of node objects.
+
+        Returns:
+        - list: A list of unique IPs (or hostnames) extracted from the nodes list.
+        """
+        unique_ips = set(host.backend.host for host in nodes)  # Use a set to eliminate duplicates
+        return list(unique_ips)  # Return the unique IPs as a list
+    return _get_unique_ips
+
+@pytest.fixture
+def sync_directories():
+    def _sync_directories(source, destination):
+        scp_command = [
+            "sshpass", "-p", oim_password,
+            "scp","-r", "-o", "StrictHostKeyChecking=no",
+            source, f"root@{oim_ip}:{destination}"
+        ]
+        try:
+            scp_result = subprocess.run(scp_command, capture_output=True, text=True)
+            if scp_result.returncode != 0:
+                print("❌ Failed to copy input file to remote host:")
+                print(scp_result.stderr)
+            else:
+                print(f"Copied file: {source} -> {destination}")
+        except Exception as e:
+            print(f"❌ SCP error: {e}")
+            
+    return _sync_directories
+
