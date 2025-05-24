@@ -144,6 +144,19 @@ def test_job_submission(run_sshpass_command, slurm_control_node, remote_user="ro
     Submit a Slurm job via a nested SSH from the OIM host to omnia_core container to auth server.
     If FreeIPA is configured, run as FreeIPA user; otherwise, run as root.
     """
+    
+    print("\nInstalling sshpass in the slurm_control_node for validation purpose.")
+    slurm_control_node_ips = [host.backend.host for host in slurm_control_node]
+    
+    for ip in slurm_control_node_ips:
+        # Install sshpass (if needed)
+        install_cmd = (
+            f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+            f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no {ip} "
+            f"\"sudo yum install -y sshpass\"'"
+        )
+        subprocess.run(install_cmd, shell=True)
+        
     cmd = f"podman exec {container_name} cat {software_config_path}"
     result = run_sshpass_command(cmd)
 
