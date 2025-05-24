@@ -23,6 +23,7 @@ script_path = os.path.join(script_dir, "scripts")
 source = os.path.join(script_dir, script_path)
 destination = '/mnt/omnia_home_share/'
 
+@pytest.mark.dependency(name='freeipa')
 @pytest.mark.qtest_id("TC-3215")
 def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, remote_user="root", container_name="omnia_core"):
     # Step 1: Check if FreeIPA is present in the config
@@ -38,7 +39,6 @@ def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, re
         if not any(software.get("name") == "freeipa" for software in softwares):
             pytest.skip("Skipping FreeIPA tests: 'freeipa' not found in software_config.json")
         print("\n✅ FreeIPA found in software_config.json. Proceeding with service checks.")
-        sync_directories(source, destination)
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
@@ -93,7 +93,7 @@ def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, re
         else:
             print(f"\n✅ All FreeIPA services are running on {node_ip}")
 
-
+@pytest.mark.dependency(depends=["freeipa"])
 def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
     """
     Add a user to FreeIPA from within the omnia_core container and verify.
@@ -141,89 +141,94 @@ def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
         else:
             print(f"\n✅ User '{username}' added successfully on {node_ip}.")
             print("\nUser Details:\n" + add_result.stdout.strip())
-            
-            
-def test_login_from_node(kube_node, auth_server, remote_user="root", container_name="omnia_core"):
+     
+@pytest.mark.dependency(depends=["freeipa"])
+def test_login_from_node(all_hosts, get_unique_ips, auth_server, remote_user="root", container_name="omnia_core"):
     """
-    Test IPA user login to each kube node from within the omnia_core container.
-    If Slurm is configured, the user should only be able to login from auth server node.
+    Test IPA user login to each node. When Slurm is configured, login should only work from auth_server nodes.
     """
-    assert kube_node, "❌ No nodes found in 'kube_node' group. Aborting test."
-    assert auth_server, "❌ No nodes found in 'auth_server' group. Aborting test."
 
-    print("\n------------ Test: Login IPA User from Node -------------")
+    all_nodes = []
+    for key in all_hosts:
+        all_nodes.extend(all_hosts[key])
+    unique_ips = get_unique_ips(all_nodes)
+    
+    print("\nInstalling sshpass in the auth_server node for validation purpose.")
+    auth_server_ips = [host.backend.host for host in auth_server]
+    
+    for ip in auth_server_ips:
+        # Install sshpass (if needed)
+        install_cmd = (
+            f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+            f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no {ip} "
+            f"\"sudo yum install -y sshpass\"'"
+        )
+        subprocess.run(install_cmd, shell=True)
 
-    # Step 0: Check if Slurm is present in software_config.json
-    slurm_enabled = False
+    # Step 0: Check if Slurm is enabled
     software_config_cmd = (
         f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
         f"'podman exec {container_name} cat {software_config_path}'"
     )
 
-    config_result = subprocess.run(software_config_cmd, shell=True, capture_output=True, text=True)
-    if config_result.returncode != 0:
-        pytest.fail(f"❌ Failed to fetch software_config.json from container. Error:\n{config_result.stderr.strip()}")
+    result = subprocess.run(software_config_cmd, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        pytest.fail(f"❌ Failed to read software_config.json: {result.stderr.strip()}")
 
     try:
-        config_data = json.loads(config_result.stdout)
-        slurm_enabled = any(
-            software.get("name") == "slurm" for software in config_data.get("softwares", [])
-        )
-        print(f"🔍 Slurm enabled: {slurm_enabled}")
-    except json.JSONDecodeError as e:
-        pytest.fail(f"❌ Failed to parse software_config.json: {e}")
+        config_data = json.loads(result.stdout)
+        slurm_enabled = any(sw.get("name") == "slurm" for sw in config_data.get("softwares", []))
+        print(f"\n🔍 Slurm enabled: {slurm_enabled}")
+    except json.JSONDecodeError:
+        pytest.fail("❌ Invalid JSON in software_config.json")
 
-    auth_server_ips = [host.backend.host for host in auth_server]
+    for ip in unique_ips:
+        print(f"\n🔍 Testing login on node: {ip}")
 
-    for host in kube_node:
-        node_ip = getattr(host.backend, "host", None)
-        if not node_ip or not isinstance(node_ip, str) or not node_ip.strip():
-            pytest.fail(f"❌ Invalid or missing node IP for host: {host}")
-
-        print(f"\n🔍 Testing login to node: {node_ip}")
-
-        # Step 1: Install sshpass on the node via container
-        install_cmd = (
-            f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
-            f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-            f"\"sudo yum install -y sshpass\"'"
-        )
-
-        install_result = subprocess.run(install_cmd, shell=True, capture_output=True, text=True)
-        if install_result.returncode != 0:
-            print(f"❌ Failed to install sshpass on {node_ip}.\nError:\n{install_result.stderr.strip()}")
-            pytest.fail(f"sshpass installation failed on {node_ip}")
-
-        # Step 2: Test login
+        # Test login
         ssh_test_cmd = (
             f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
-            f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-            f"\"sshpass -p {password} ssh -o StrictHostKeyChecking=no {username}@{node_ip} whoami\"'"
+            f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no {ip} "
+            f"\"sshpass -p {password} ssh -o StrictHostKeyChecking=no {username}@{ip} whoami\"'"
         )
-
-        login_result = subprocess.run(ssh_test_cmd, shell=True, capture_output=True, text=True)
-        login_success = username in login_result.stdout.strip()
+        result = subprocess.run(ssh_test_cmd, shell=True, capture_output=True, text=True)
+        login_success = username in result.stdout.strip()
 
         if slurm_enabled:
-            if node_ip in auth_server_ips:
-                if not login_success:
-                    print(f"\n❌ Login failed from auth server node {node_ip} when it should succeed.\nError:\n{login_result.stderr.strip()}")
-                    pytest.fail(f"Login failed from auth server node: {node_ip}")
-                else:
-                    print(f"\n✅ Login successful for user '{username}' from auth server node {node_ip}.")
+            if ip in auth_server_ips:
+                assert login_success, f"❌ Expected login to succeed on {ip}, but it failed."
+                print(f"✅ Login succeeded on {ip}")
             else:
-                if login_success:
-                    print(f"\n❌ Login succeeded from non-auth node {node_ip} with Slurm enabled, which is not allowed.")
-                    pytest.fail(f"Login should not succeed from compute node {node_ip} when Slurm is enabled.")
-                else:
-                    print(f"\n✅ Login correctly failed from compute node {node_ip} with Slurm enabled.")
+                assert not login_success, f"❌ Login should not succeed on non-auth node {ip}"
+                print(f"✅ Login blocked on compute node {ip}")
         else:
-            if not login_success:
-                print(f"\n❌ Login failed for user '{username}' on {node_ip}.\nError:\n{login_result.stderr.strip()}")
-                pytest.fail(f"Login failed on node {node_ip} when it should succeed.")
-            else:
-                print(f"\n✅ Login successful for user '{username}' on {node_ip}.")
-                
+            assert login_success, f"❌ Login failed on {ip} with Slurm disabled."
+            print(f"✅ Login succeeded on {ip}")
+
+
+@pytest.mark.dependency(name='slurm')
+def test_slurm_in_software_config(sync_directories, run_sshpass_command, auth_server, remote_user="root", container_name="omnia_core"):
+    # Step 1: Check if FreeIPA is present in the config
+    cmd = f"podman exec {container_name} cat {software_config_path}"
+    result = run_sshpass_command(cmd)
+
+    if result.returncode != 0:
+        pytest.fail(f"Failed to fetch file from container: {result.stderr}")
+
+    try:
+        data = json.loads(result.stdout)
+        softwares = data.get("softwares", [])
+        if not any(software.get("name") == "slurm" for software in softwares):
+            pytest.skip(print("\nSlurm not found in software_config.json file, skipping slurm jobs."))
+        print("\n✅ slurm found in software_config.json. Verifying slurm job using freeipa user")
+        sync_directories(source, destination)
+        
+    except json.JSONDecodeError:
+        pytest.fail("Invalid JSON in software_config.json")
+    except Exception as e:
+        pytest.fail(f"Unexpected error: {e}")
+
+@pytest.mark.dependency(depends=["slurm"])
 def test_replace_node_value(slurm_control_node, remote_user="root", container_name="omnia_core"):
     """
     Replaces node and task values in a Slurm job script based on available resources.
@@ -268,6 +273,7 @@ def test_replace_node_value(slurm_control_node, remote_user="root", container_na
         except Exception as e:
             pytest.fail(f"Error on node {host.backend.host}: {e}")
 
+@pytest.mark.dependency(depends=["slurm"])
 def test_slurm_job_submission(slurm_control_node, remote_user="root", container_name="omnia_core"):
     """
     Submit a Slurm job from the IPA user via a nested SSH from the OIM host to omnia_core container to auth server.
@@ -348,13 +354,16 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
             )
         
         result = subprocess.run(job_output_path, shell=True, capture_output=True, text=True)
+        output = result.stdout.strip()
         
         if "Running as user: testuser" in result.stdout:
-            print("\n✅Job successfully executed as Freeipa user")
+            print(f"\n✅Job successfully executed as Freeipa user" + f"\nOutput:\n{output}")
         elif "Running as user: root":
-            pytest.fail(print(f"\nJob executed as root user"))
+            pytest.fail(print(f"\nJob executed as root user" + f"\nOutput:\n{output}"))
             
         if "Hello world" in result.stdout:
-            print("\n✅mpi job executed successfully")
+            print("\n✅mpi job executed successfully" + f"\nOutput:\n{output}")
         else:
-            pytest.fail(print("\nmpi job failed."))
+            pytest.fail(print("\nmpi job failed." + f"\nOutput:\n{output}"))
+
+
