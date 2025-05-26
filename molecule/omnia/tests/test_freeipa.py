@@ -206,7 +206,7 @@ def test_login_from_node(all_hosts, get_unique_ips, auth_server, remote_user="ro
             print(f"✅ Login succeeded on {ip}")
 
 
-@pytest.mark.dependency(name='slurm')
+@pytest.mark.dependency(depends=["freeipa"], name='slurm')
 def test_slurm_in_software_config(sync_directories, run_sshpass_command, auth_server, remote_user="root", container_name="omnia_core"):
     # Step 1: Check if FreeIPA is present in the config
     cmd = f"podman exec {container_name} cat {software_config_path}"
