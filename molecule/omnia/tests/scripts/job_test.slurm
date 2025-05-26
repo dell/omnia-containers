@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=mpi_matrix_mult_python
-#SBATCH --output=/home/output_%j.log
-#SBATCH --error=/home/error_%j.log
+#SBATCH --output=/home/testuser/output_%j.log
+#SBATCH --error=/home/testuser/error_%j.log
 #SBATCH --ntasks=n
 #SBATCH --nodes=n
 #SBATCH --time=00:10:00
