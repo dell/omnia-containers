@@ -14,15 +14,62 @@ password = config.PASSWORD
 
 software_config_path = "/opt/omnia/input/project_default/software_config.json"
 
-job_name = "job_test.slurm"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(script_dir, "scripts")
 source = os.path.join(script_dir, script_path)
 destination = '/mnt/omnia_home_share/'    
 
-def run_slurm_job(target_user, node_ip, job_name, container_name, oim_ip, oim_password, password):
+def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_ip, oim_password, password):
     print(f"\n🚀 Submitting Slurm job on {node_ip} as '{target_user}'")
 
+    if target_user  == "testuser":
+        job_name = "slurm_user.sh"
+    elif target_user  == "root":
+        job_name = "slurm_root.sh"
+    else:
+        pytest.fail(print("\nInvalid username"))
+    
+    for host in slurm_control_node:
+        try:
+            node_ip = host.backend.host
+
+            # Build the command to fetch node count using sinfo
+            node_count_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
+                f"\"podman exec omnia_core ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"sinfo --noheader -o '%D'\""
+            )
+
+            # Run the command
+            result = subprocess.run(node_count_cmd, shell=True, capture_output=True, text=True)
+            if result.returncode != 0:
+                pytest.fail(f"Failed to fetch node count: {result.stderr}")
+
+            node_count = result.stdout.strip()
+            if not node_count.isdigit():
+                pytest.fail("Node count is invalid or empty.")
+            print(f"Node count from {node_ip}: {node_count}")
+
+            # Build the script update command
+            update_script_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
+                f"'podman exec omnia_core ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"\"sed -i \\\"s/^#SBATCH --ntasks=n/#SBATCH --ntasks={node_count}/\\\" /home/scripts/{job_name} && "
+                f"sed -i \\\"s/^#SBATCH --nodes=n/#SBATCH --nodes={node_count}/\\\" /home/scripts/{job_name}\"'"
+            )
+
+
+            # Run the update command
+            update_result = subprocess.run(update_script_cmd, shell=True, capture_output=True, text=True)
+            if update_result.returncode != 0:
+                pytest.fail(f"Failed to update job script: {update_result.stderr}")
+
+            print(f"Updated job script on {node_ip} successfully.")
+
+        except Exception as e:
+            pytest.fail(f"Error on node {host.backend.host}: {e}")
+            
+    
     if target_user != "root":
         submit_job_cmd = (
             f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
@@ -81,13 +128,20 @@ def run_slurm_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pa
         time.sleep(5)
 
     # Check output
-    
-    output_cmd = (
-        f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
-        f"\"podman exec {container_name} bash -c '"
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-        f"\\\"cat /home/testuser/output_{job_id}.log\\\"'\""
-    )
+    if target_user != "root":
+        output_cmd = (
+            f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
+            f"\"podman exec {container_name} bash -c '"
+            f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+            f"\\\"cat /home/testuser/output_{job_id}.log \\\"'\""
+        )
+    else:
+        output_cmd = (
+            f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
+            f"\"podman exec {container_name} bash -c '"
+            f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+            f"\\\"cat /home/output_{job_id}.log \\\"'\""
+        )
 
     result = subprocess.run(output_cmd, shell=True, capture_output=True, text=True)
     output = result.stdout.strip()
@@ -173,51 +227,6 @@ def test_slurmd_status(slurm_node, remote_user="root", container_name="omnia_cor
         pytest.fail(f"❌ slurmd is not running on {host.backend.host}.\nStatus Output:\n{result.stdout.strip()}")
 
     print(f"✅ slurmd is ACTIVE on {host.backend.host}.")
-
-@pytest.mark.dependency(depends=["slurm"])       
-def test_replace_node_value(slurm_control_node, remote_user="root", container_name="omnia_core"):
-    """
-    Replaces node and task values in a Slurm job script based on available resources.
-    """
-    for host in slurm_control_node:
-        try:
-            node_ip = host.backend.host
-
-            # Build the command to fetch node count using sinfo
-            node_count_cmd = (
-                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
-                f"\"podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-                f"sinfo --noheader -o '%D'\""
-            )
-
-            # Run the command
-            result = subprocess.run(node_count_cmd, shell=True, capture_output=True, text=True)
-            if result.returncode != 0:
-                pytest.fail(f"Failed to fetch node count: {result.stderr}")
-
-            node_count = result.stdout.strip()
-            if not node_count.isdigit():
-                pytest.fail("Node count is invalid or empty.")
-            print(f"Node count from {node_ip}: {node_count}")
-
-            # Build the script update command
-            update_script_cmd = (
-                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
-                f"'podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-                f"\"sed -i \\\"s/^#SBATCH --ntasks=n/#SBATCH --ntasks={node_count}/\\\" /home/scripts/{job_name} && "
-                f"sed -i \\\"s/^#SBATCH --nodes=n/#SBATCH --nodes={node_count}/\\\" /home/scripts/{job_name}\"'"
-            )
-
-
-            # Run the update command
-            update_result = subprocess.run(update_script_cmd, shell=True, capture_output=True, text=True)
-            if update_result.returncode != 0:
-                pytest.fail(f"Failed to update job script: {update_result.stderr}")
-
-            print(f"Updated job script on {node_ip} successfully.")
-
-        except Exception as e:
-            pytest.fail(f"Error on node {host.backend.host}: {e}")
             
             
 def test_slurm_job_as_root(slurm_control_node):
@@ -225,9 +234,9 @@ def test_slurm_job_as_root(slurm_control_node):
     for host in slurm_control_node:
         node_ip = host.backend.host
         run_slurm_job(
+            slurm_control_node,
             target_user="root",
             node_ip=node_ip,
-            job_name=job_name,
             container_name="omnia_core",
             oim_ip=oim_ip,
             oim_password=oim_password,
@@ -255,9 +264,9 @@ def test_slurm_job_as_freeipa_user(run_sshpass_command, slurm_control_node):
     for host in slurm_control_node:
         node_ip = host.backend.host
         run_slurm_job(
+            slurm_control_node,
             target_user=username,
             node_ip=node_ip,
-            job_name=job_name,
             container_name="omnia_core",
             oim_ip=oim_ip,
             oim_password=oim_password,
