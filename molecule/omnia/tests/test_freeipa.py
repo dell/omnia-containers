@@ -362,8 +362,8 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
             pytest.fail(print(f"\nJob executed as root user" + f"\nOutput:\n{output}"))
             
         if "Hello world" in result.stdout:
-            print("\n✅mpi job executed successfully" + f"\nOutput:\n{output}")
+            print("\n✅mpi job executed successfully")
         else:
-            pytest.fail(print("\nmpi job failed." + f"\nOutput:\n{output}"))
+            pytest.fail(print("\nmpi job failed."))
 
 
