@@ -279,7 +279,7 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
     Submit a Slurm job from the IPA user via a nested SSH from the OIM host to omnia_core container to auth server.
     """        
     
-    print("n---------Testing Slurm job submission using freeipa user----------\n")
+    print("\n---------Testing Slurm job submission using freeipa user----------\n")
      
     for host in slurm_control_node:
         try:
