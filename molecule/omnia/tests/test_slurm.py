@@ -86,7 +86,7 @@ def run_slurm_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pa
         f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no root@{oim_ip} "
         f"\"podman exec {container_name} bash -c '"
         f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
-        f"\\\"cat /home/output_{job_id}.log\\\"'\""
+        f"\\\"cat /home/testuser/output_{job_id}.log\\\"'\""
     )
 
     result = subprocess.run(output_cmd, shell=True, capture_output=True, text=True)
