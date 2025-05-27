@@ -309,6 +309,59 @@ def test_all_pods_running(kube_control_plane, remote_user="root", container_name
 
     print("\n✅ All pods are in 'Running' or 'Completed' state across all control plane nodes.")
 
+def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", container_name="omnia_core"):
+    kube_nodes_inv = []
+    mismatched_nodes = []
+
+    # Step 1: Collect inventory IPs
+    for host in kube_node:
+        node_ip = host.backend.host
+        kube_nodes_inv.append(node_ip)
+
+    print(f"📦 Inventory node IPs: {kube_nodes_inv}")
+
+    # Step 2: Query kubectl on control plane node(s)
+    for host in kube_control_plane:
+        node_ip = host.backend.host
+        print(f"\nConnecting to control plane node: {node_ip}")
+
+        try:
+            ssh_cmd = (
+                f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
+                f"\"podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
+                f"kubectl get nodes --no-headers -o custom-columns=NAME:.metadata.name\""
+            )
+
+            result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
+
+            if result.returncode != 0:
+                print(f"❌ Failed to retrieve node list on {node_ip}: {result.stderr.strip()}")
+                failed_nodes.append(node_ip)
+                continue
+
+            output = result.stdout.strip()
+            kube_nodes = output.splitlines()
+            print(f"\nOutput from control plane {node_ip}:\n{kube_nodes}")
+
+            # Step 3: Validate strict match
+            missing_nodes = [ip for ip in kube_nodes_inv if ip not in kube_nodes]   #ip in inv but not in o/p
+            extra_nodes = [name for name in kube_nodes if name not in kube_nodes_inv] #ip in o/p but not in inv
+
+            if missing_nodes:
+                print(f"\nMissing nodes in the output fron kube nodes: {missing_nodes}")
+                mismatched_nodes.extend(missing_nodes)
+
+            if extra_nodes:
+                print(f"\nExtra/unexpected nodes in output fron kube nodes: {extra_nodes}")
+                mismatched_nodes.extend(extra_nodes)
+
+        except Exception as e:
+            print(f"\n❌ Error on the node {node_ip}: {e}")
+
+    # Step 4: Final result
+    if mismatched_nodes:
+        pytest.fail(print(f"\nMismatched nodes: {mismatched_nodes}"))
+
 
 @pytest.mark.dependency(depends=["k8s"])
 def test_k8s_job_as_root_user(kube_control_plane):
