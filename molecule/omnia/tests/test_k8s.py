@@ -20,7 +20,7 @@ expect_k8s_version = "v1.31.4"
 
 job_name = "test-k8s.job"
 script_dir = os.path.dirname(os.path.abspath(__file__))
-script_path = os.path.join(script_dir, "scripts")
+script_path = os.path.join(script_dir, "../../scripts")
 source = os.path.join(script_dir, script_path)
 destination = '/mnt/omnia_home_share/'
 
