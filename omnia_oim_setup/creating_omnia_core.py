@@ -7,21 +7,6 @@ import getpass
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(script_dir, 'inputs')
 
-def download_sshpass_in_oim(ip, password):
-    ssh_command = [
-        "sshpass", "-p", password,
-        "ssh", "-o", "StrictHostKeyChecking=no", f"root@{ip}",
-        f"sudo dnf install -y sshpass && sshpass -V"
-    ]
-    result = subprocess.run(ssh_command, capture_output=True, text=True)
-    if result.returncode == 0:
-        print("✅ sshpass download successful")
-        return True
-    else:
-        print("❌ sshpass download failed:")
-        print(result.stderr)
-        return False
-
 def update_config(ip, password):
     config_content = f'''
 OIM_IP = "{ip}"
