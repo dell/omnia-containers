@@ -15,7 +15,7 @@ password = config.PASSWORD
 software_config_path = "/opt/omnia/input/project_default/software_config.json"
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-script_path = os.path.join(script_dir, "scripts")
+script_path = os.path.join(script_dir, "../../scripts")
 source = os.path.join(script_dir, script_path)
 destination = '/mnt/omnia_home_share/'    
 
