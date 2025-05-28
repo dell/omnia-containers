@@ -202,7 +202,7 @@ def inv_creation(ip, username, password):
     {ip} ansible_user={username} ansible_password={password}
     """
     
-    inv_path = os.path.join(script_dir, '../molecule/oim_inv')
+    inv_path = os.path.join(script_dir, '../molecule/inv')
     
     # Write to a file
     with open(inv_path, "w") as file:
