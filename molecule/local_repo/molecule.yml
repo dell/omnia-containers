@@ -9,7 +9,7 @@ provisioner:
   name: ansible
   inventory:
     links:
-      hosts: ../inv
+      hosts: ../oim_inv
 
 verifier:
   name: testinfra
