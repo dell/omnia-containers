@@ -23,7 +23,7 @@ import config
 
 ip = config.OIM_IP
 password = config.OIM_PASS
-user = config.USERNAME
+user = config.OIM_USERNAME
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(script_dir, 'inputs')
