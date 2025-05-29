@@ -1,6 +1,6 @@
 OIM_IP = ""
 OIM_PASS = ""
-
+OIM_USERNAME = ""
 #FREEIPA USER DETAILS
 FREEIPA_USERNAME = "testuser"
 PASSWORD = "password"
