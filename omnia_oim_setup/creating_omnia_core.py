@@ -42,8 +42,8 @@ def update_config(ip, password, username):
         elif re.match(r'^\s*OIM_PASS\s*=', line):
             updated_lines.append(f'OIM_PASS = "{password}"\n')
             found_pass = True
-        elif re.match(r'^\s*USERNAME\s*=', line):  # Match actual key in your config
-            updated_lines.append(f'USERNAME = "{username}"\n')
+        elif re.match(r'^\s*OIM_USERNAME\s*=', line):  # Match actual key in your config
+            updated_lines.append(f'OIM_USERNAME = "{username}"\n')
             found_username = True
         else:
             updated_lines.append(line)
@@ -54,7 +54,7 @@ def update_config(ip, password, username):
     if not found_pass:
         updated_lines.append(f'OIM_PASS = "{password}"\n')
     if not found_username:
-        updated_lines.append(f'USERNAME = "{username}"\n')
+        updated_lines.append(f'OIM_USERNAME = "{username}"\n')
 
     # Write back updated config
     with open(config_path, 'w') as file:
