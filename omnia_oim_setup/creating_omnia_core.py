@@ -3,18 +3,49 @@ import sys
 import os
 import pytest
 import getpass
+import re
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(script_dir, 'inputs')
 
-def update_config(ip, password):
-    config_content = f'''
-OIM_IP = "{ip}"
-OIM_PASS = "{password}"
-'''
+import os
+import re
+
+def update_config(ip, password, username):
     config_path = os.path.join(script_dir, '../config.py')
-    with open(config_path, "w") as config_file:
-        config_file.write(config_content)
+
+    # Read existing lines
+    with open(config_path, 'r') as file:
+        lines = file.readlines()
+
+    updated_lines = []
+    found_ip = found_pass = found_username = False
+
+    for line in lines:
+        if re.match(r'^\s*OIM_IP\s*=', line):
+            updated_lines.append(f'OIM_IP = "{ip}"\n')
+            found_ip = True
+        elif re.match(r'^\s*OIM_PASS\s*=', line):
+            updated_lines.append(f'OIM_PASS = "{password}"\n')
+            found_pass = True
+        elif re.match(r'^\s*USERNAME\s*=', line):  # Match actual key in your config
+            updated_lines.append(f'USERNAME = "{username}"\n')
+            found_username = True
+        else:
+            updated_lines.append(line)
+
+    # Append any missing variables
+    if not found_ip:
+        updated_lines.append(f'OIM_IP = "{ip}"\n')
+    if not found_pass:
+        updated_lines.append(f'OIM_PASS = "{password}"\n')
+    if not found_username:
+        updated_lines.append(f'USERNAME = "{username}"\n')
+
+    # Write back updated config
+    with open(config_path, 'w') as file:
+        file.writelines(updated_lines)
+
 
 def copy_dell_certificate(nfs_user, nfs_ip, nfs_password, ip, password, cert_path):
     
@@ -31,7 +62,7 @@ def copy_dell_certificate(nfs_user, nfs_ip, nfs_password, ip, password, cert_pat
     try:
         result = subprocess.run(scp_command, capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ certificate successfully")
+            print("✅ certificate copied successfully")
         else:
             print("❌ Failed to copy certificate:")
             print(result.stderr)
@@ -92,132 +123,11 @@ def pull_podman_images(ip, password, image_name):
             print(result.stderr)
     except Exception as e:
         print(f"❌ Error: {e}")
-
-def download_omnia_startup(ip, password, branch_name):
-    url = f"https://raw.githubusercontent.com/dell/omnia/{branch_name}/omnia_startup.sh"
     
-    ssh_command = [
-        "sshpass", "-p", password,
-        "ssh", "-o", "StrictHostKeyChecking=no",
-        f"root@{ip}",
-        f"rm -f omnia_startup.sh && wget {url}"
-    ]
-
-    try:
-        result = subprocess.run(ssh_command, capture_output=True, text=True)
-        if result.returncode == 0:
-            print("✅ omnia_startup.sh downloaded successfully")
-        else:
-            print("❌ Failed to download omnia_startup.sh:")
-            print(result.stderr)
-    except Exception as e:
-        print(f"❌ Error: {e}")
-
-def executing_omnia_startup(ip, password, startup_input):
-    if startup_input == 1:
-        local_input_file = f"{input_path}/nfs_input.txt"
-    elif startup_input == 2:
-        local_input_file = f"{input_path}/local_input.txt"
-    else:
-        print("\n❌ Invalid input type.")
-        sys.exit(1)
-
-    filename = os.path.basename(local_input_file)
-    remote_dir = "/root/inputs"
-    remote_clean_input_path = f"{remote_dir}/cleaned_input.txt"
-
-
-    clean_input_lines = []
-    
-    with open(local_input_file, "r") as f:
-        for line in f:
-            parts = line.strip().split(":", 1)
-            if len(parts) == 2:
-                clean_input_lines.append(parts[1].strip())
-
-    clean_input_file = "cleaned_input.txt"
-    with open(clean_input_file, "w") as f:
-        f.write("\n".join(clean_input_lines))
-
-
-    # Step 1: Ensure remote directory exists
-    create_dir_cmd = [
-        "sshpass", "-p", password,
-        "ssh", "-o", "StrictHostKeyChecking=no",
-        f"root@{ip}", f"mkdir -p {remote_dir}"
-    ]
-    try:
-        subprocess.run(create_dir_cmd, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to create directory on remote host:\n{e.stderr}")
-        return
-
-    # Step 2: Copy input file to remote host
-    scp_command = [
-        "sshpass", "-p", password,
-        "scp", "-o", "StrictHostKeyChecking=no",
-        clean_input_file, f"root@{ip}:{remote_clean_input_path}"
-    ]
-    try:
-        scp_result = subprocess.run(scp_command, capture_output=True, text=True)
-        if scp_result.returncode != 0:
-            print("❌ Failed to copy input file to remote host:")
-            print(scp_result.stderr)
-            return
-    except Exception as e:
-        print(f"❌ SCP error: {e}")
-        return
-
-    # Step 3: Run script with input redirection on remote host
-    ssh_command = [
-    "sshpass", "-p", password,
-    "ssh", "-o", "StrictHostKeyChecking=no", f"root@{ip}",
-    f"chmod +x omnia_startup.sh && ./omnia_startup.sh < {remote_clean_input_path}"
-    ]
-
-    try:
-        result = subprocess.run(ssh_command, capture_output=True, text=True)
-        if "Omnia core container is already running" in result.stdout or "Failed to intiatiate omnia_core container cleanup." in result.stdout:
-            print("\nOmnia core container is already running.")
-            sys.exit(1)
-        
-        elif result.returncode == 0:
-            print("✅ omnia_startup.sh executed successfully with automated input")
-            print(result.stdout)
-            
-        else:
-            print("❌ Script failed:")
-            print(result.stderr)
-    except Exception as e:
-        print(f"❌ SSH error: {e}")
-
-def run_pytest_for():
-    exit_code = pytest.main([f'{script_dir}/tests/test_startup_validation.py'])
-    if exit_code != 0:
-        raise Exception(f"Tests for creating omnia core failed")
-
-def inv_creation(ip, username, password):
-    # Generate inventory file content
-    inventory_content = f"""[oim]
-    {ip} ansible_user={username} ansible_password={password}
-    """
-    
-    inv_path = os.path.join(script_dir, '../molecule/inv')
-    
-    # Write to a file
-    with open(inv_path, "w") as file:
-        file.write(inventory_content)
-
-    print("Inventory file 'inv' has been created.")
-    
-def handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input):
+def handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, oim_username):
     if login_to_registry(oim_ip, oim_pass, registry_user, registry_pass):
         for img in images:
             pull_podman_images(oim_ip, oim_pass, img)
-        download_omnia_startup(oim_ip, oim_pass, branch_name)
-        inv_creation(oim_ip, oim_username, oim_pass)
-        executing_omnia_startup(oim_ip, oim_pass, startup_input)
-        run_pytest_for()
     else:
         print("\nFailed to log in to the registry.")
     
@@ -227,14 +137,6 @@ def main():
     oim_pass = getpass.getpass("Enter OIM user password: ")
     registry_user = input("Enter Artifactory username: ")
     registry_pass = getpass.getpass("Enter Artifactory password: ")
-    branch_name = input("Enter branch name you want to download: ")
-    
-    while True:
-        startup_input = int(input("Choose the type of Omnia shared path\n1. NFS\n2. Local\nEnter choice: "))
-        if startup_input == 1 or startup_input == 2:
-            break
-        else:
-            print("\nInvalid input. Please enter '1' or '2'.")
 
     images = [
         "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_core:latest",
@@ -243,11 +145,10 @@ def main():
         "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_provision:latest"
     ]
     
-    update_config(oim_ip, oim_pass)
-    download_sshpass_in_oim(oim_ip, oim_pass)
+    update_config(oim_ip, oim_pass, oim_username)
 
     while True:
-        cert = input("\nDo you want to copy the Dell certificate? [yes or no]: \n---Ensure you have an NFS server with the Dell certificate already present--- ").strip().lower()
+        cert = input("\n---Ensure you have an NFS server with the Dell certificate already present---\nDo you want to copy the Dell certificate? [yes or no]: ").strip().lower()
 
         if cert == 'yes':
             nfs_ip = input("\nEnter NFS/gateway IP: ")
@@ -256,11 +157,11 @@ def main():
             cert_path = input("\nEnter the certificate path on your NFS/gateway: ")
 
             copy_dell_certificate(nfs_user, nfs_ip, nfs_pass, oim_ip, oim_pass, cert_path)
-            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input)
+            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, oim_username)
             break  # exit the loop after successful processing
 
         elif cert == 'no':
-            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, branch_name, oim_username, startup_input)
+            handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, oim_username)
             break  # exit the loop after successful processing
 
         else:
