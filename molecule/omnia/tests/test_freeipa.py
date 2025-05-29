@@ -12,12 +12,13 @@ oim_password = config.OIM_PASS
 
 software_config_path = "/opt/omnia/input/project_default/software_config.json"
 
+job_name = "slurm_user.sh"
+
 username = config.FREEIPA_USERNAME
 password = config.PASSWORD
 first_name = config.FIRST_NAME
 last_name = config.LAST_NAME
 
-job_name = "job_test.slurm"
 script_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(script_dir, "../../scripts")
 source = os.path.join(script_dir, script_path)
@@ -305,6 +306,7 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
 
             logged_in_user = output_lines[0].strip()
             print("\nlogged_in_user: ",logged_in_user)
+
             if logged_in_user != username:
                 pytest.fail(f"\n❌ Logged in user mismatch: expected '{username}', got '{logged_in_user}'")
             else:
