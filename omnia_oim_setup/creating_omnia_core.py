@@ -76,12 +76,12 @@ def copy_dell_certificate(nfs_user, nfs_ip, nfs_password, ip, password, cert_pat
     try:
         result = subprocess.run(scp_command, capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ certificate copied successfully")
+            print("certificate copied successfully")
         else:
-            print("❌ Failed to copy certificate:")
+            print("Failed to copy certificate:")
             print(result.stderr)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
      # Step 2: SSH into the remote machine and install the certificate
     remote_cmd = (
@@ -98,10 +98,10 @@ def copy_dell_certificate(nfs_user, nfs_ip, nfs_password, ip, password, cert_pat
     ]
     result = subprocess.run(ssh_command, capture_output=True, text=True)
     if result.returncode == 0:
-        print("✅ Certificate installed successfully")
+        print("Certificate installed successfully")
         print(result.stdout)
     else:
-        print("❌ Failed to install certificate:")
+        print("Failed to install certificate:")
         print(result.stderr)
         
 def login_to_registry(ip, password, username, registry_password):
@@ -112,10 +112,10 @@ def login_to_registry(ip, password, username, registry_password):
     ]
     result = subprocess.run(ssh_command, capture_output=True, text=True)
     if result.returncode == 0:
-        print("✅ Registry login successful")
+        print("Registry login successful")
         return True
     else:
-        print("❌ Registry login failed:")
+        print("Registry login failed:")
         print(result.stderr)
         return False
 
@@ -130,13 +130,13 @@ def pull_podman_images(ip, password, image_name):
         print(f"\nPulling image on {ip}: {image_name}")
         result = subprocess.run(ssh_command, capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ Success:")
+            print("Success:")
             print(result.stdout)
         else:
-            print("❌ Failed:")
+            print("Failed:")
             print(result.stderr)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
     
 def handle_common_tasks(oim_ip, oim_pass, registry_user, registry_pass, images, oim_username):
     if login_to_registry(oim_ip, oim_pass, registry_user, registry_pass):
