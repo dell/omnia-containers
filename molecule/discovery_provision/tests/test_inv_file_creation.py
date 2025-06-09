@@ -43,7 +43,7 @@ def test_omnia_inventroy_files(run_sshpass_command):
     
     assert not files_not_created, print("\nFollowing Inventory files are not created:\n" + "\n".join(files_not_created))
     
-    print("\n✅ All the inventory files exist.")
+    print("\nAll the inventory files exist.")
     
 def test_compute_hostname_ip(run_sshpass_command):
     
@@ -53,7 +53,7 @@ def test_compute_hostname_ip(run_sshpass_command):
     cmd = f"podman exec -it {CONTAINER_NAME} cat {file_path}"
     
     result = run_sshpass_command(cmd)
-    assert result.returncode == 0, f"❌ Failed to read file: {result.stderr}"
+    assert result.returncode == 0, f"Failed to read file: {result.stderr}"
 
     lines = result.stdout.strip().splitlines()
     assert len(lines) > 2, print(f"\nContents is missing from file compute_hostname_ip.")
