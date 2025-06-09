@@ -24,11 +24,11 @@ def get_provision_password():
         recheck_passwd = getpass.getpass("")
 
         if recheck_passwd != password:
-            print("\n❌ Passwords do not match. Please try again.\n", flush=True)
+            print("\nPasswords do not match. Please try again.\n", flush=True)
         elif not password.strip():
-            print("\n⚠️ Password cannot be empty. Please try again.\n", flush=True)
+            print("\nPassword cannot be empty. Please try again.\n", flush=True)
         else:
-            print("\n✅ Password confirmed.\n", flush=True)
+            print("\nPassword confirmed.\n", flush=True)
             return password
 
 def test_postgres_db(run_sshpass_command, get_file_from_container, extract_create_table_sql, extract_columns_from_create_sql):
@@ -38,20 +38,20 @@ def test_postgres_db(run_sshpass_command, get_file_from_container, extract_creat
 
     # Get file content from container
     file_content = get_file_from_container(run_sshpass_command, create_omniadb_file_path)
-    assert file_content, "\n❌ Step 1 failed: File content is empty or could not be read."
-    print("\n✅ Step 1 passed: File content fetched.")
+    assert file_content, "\nStep 1 failed: File content is empty or could not be read."
+    print("\nStep 1 passed: File content fetched.")
 
     # Extract CREATE TABLE SQL for nodeinfo
     try:
         sql = extract_create_table_sql(file_content, table="nodeinfo")
-        print("\n✅ Step 2 passed: CREATE TABLE SQL extracted.")
+        print("\nStep 2 passed: CREATE TABLE SQL extracted.")
     except Exception as e:
-        pytest.fail(f"\n❌ Step 2 failed: {e}")
+        pytest.fail(f"\nStep 2 failed: {e}")
 
     # Extract expected column names from the SQL
     expected_columns = extract_columns_from_create_sql(sql)
-    assert expected_columns, "\n❌ Step 3 failed: No columns extracted from SQL."
-    print(f"\n✅ Step 3 passed: Expected columns: {sorted(expected_columns)}")
+    assert expected_columns, "\nStep 3 failed: No columns extracted from SQL."
+    print(f"\nStep 3 passed: Expected columns: {sorted(expected_columns)}")
     print(f"Number of expected columns: {len(expected_columns)}")
     
     # Build query to fetch actual columns from DB
@@ -66,17 +66,17 @@ def test_postgres_db(run_sshpass_command, get_file_from_container, extract_creat
     )
 
     result = run_sshpass_command(cmd)
-    assert result.returncode == 0, print(f"\n❌ Failed to query column names.\nError:\n{result.stderr}")
+    assert result.returncode == 0, print(f"\nFailed to query column names.\nError:\n{result.stderr}")
 
     actual_columns = set(line.strip().lower() for line in result.stdout.splitlines() if line.strip())
-    print(f"\n✅ Extracted actual columns: {sorted(actual_columns)}")
+    print(f"\nExtracted actual columns: {sorted(actual_columns)}")
     print(f"Number of actual columns: {len(actual_columns)}")
 
     # Compare expected vs actual
     missing = expected_columns - actual_columns
     extra = actual_columns - expected_columns
 
-    assert not missing, print(f"\n❌ Missing expected columns: {missing}")
-    assert not extra, print(f"\n❌ Found unexpected extra columns: {extra}")
+    assert not missing, print(f"\nMissing expected columns: {missing}")
+    assert not extra, print(f"\nFound unexpected extra columns: {extra}")
 
-    print("\n🎉 Postgres DB schema verification passed!")
+    print("\nPostgres DB schema verification passed!")
