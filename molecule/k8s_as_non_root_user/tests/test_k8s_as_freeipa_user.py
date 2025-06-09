@@ -47,7 +47,7 @@ def run_ssh_command(oim_ip, container_name, node_ip, inner_cmd, oim_password):
     return subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
 def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip, oim_password, password):
-    print(f"\n🚀 Submitting k8s job on {node_ip} as '{target_user}'")
+    print(f"\nSubmitting k8s job on {node_ip} as '{target_user}'")
 
     job_name = "test-k8s.job"
 
@@ -63,20 +63,20 @@ def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip
     result = subprocess.run(submit_job_cmd, shell=True, capture_output=True, text=True)
     
     if result.returncode != 0:
-        pytest.fail(print(f"\n❌ Job submission failed:\n{result.stderr.strip()}"))
-    print("\n✅ Job submitted successfully!")        
+        pytest.fail(print(f"\nJob submission failed:\n{result.stderr.strip()}"))
+    print("\nJob submitted successfully!")        
         
     # Wait for pod to start
     time.sleep(10)
 
     output_lines = result.stdout.strip().splitlines()
     if not output_lines:
-        pytest.fail("\n❌ No output received after job submission.")
+        pytest.fail("\nNo output received after job submission.")
         
     logged_in_user = output_lines[0].strip()
     if logged_in_user != target_user:
-        pytest.fail(f"\n❌ Logged in user mismatch: expected '{target_user}', got '{logged_in_user}'")
-    print(f"✅ Logged in as {logged_in_user}")
+        pytest.fail(f"\nLogged in user mismatch: expected '{target_user}', got '{logged_in_user}'")
+    print(f"Logged in as {logged_in_user}")
     
     # get pods
     result = run_ssh_command(
@@ -86,7 +86,7 @@ def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip
     )
     
     if result.returncode != 0:
-        pytest.fail(print(f"❌ Failed to get pods: {result.stderr.strip()}"))
+        pytest.fail(print(f"Failed to get pods: {result.stderr.strip()}"))
         
     pod_name = None
     for line in result.stdout.strip().splitlines():
@@ -95,13 +95,13 @@ def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip
             pod_name = cols[0]
             pod_status = cols[2]
             if pod_status == "Completed":
-                print(f"\n✅ Pod '{pod_name}' completed successfully.")
+                print(f"\nPod '{pod_name}' completed successfully.")
             else:
-                pytest.fail(print(f"\n❌ Pod '{pod_name}' did not complete successfully. Status: {pod_status}"))
+                pytest.fail(print(f"\nPod '{pod_name}' did not complete successfully. Status: {pod_status}"))
             break
 
     if not pod_name:
-        pytest.fail(print("\n❌ 'k8s-example-job' pod not found."))
+        pytest.fail(print("\n'k8s-example-job' pod not found."))
 
     # Get logs
     result = run_ssh_command(
@@ -110,14 +110,14 @@ def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"❌ Failed to get logs: {result.stderr.strip()}"))
+        pytest.fail(print(f"Failed to get logs: {result.stderr.strip()}"))
     logs = result.stdout.strip()
-    print(f"\n📦 Logs from pod '{pod_name}':\n{logs}")
+    print(f"\nLogs from pod '{pod_name}':\n{logs}")
 
     if "Hello from k8s" in logs:
-        print("\n✅ Job log contains expected output.")
+        print("\nJob log contains expected output.")
     else:
-        pytest.fail(print(f"\n❌ Unexpected job output:\n{logs}"))
+        pytest.fail(print(f"\nUnexpected job output:\n{logs}"))
 
     # Delete job
     result = run_ssh_command(
@@ -126,27 +126,27 @@ def run_k8s_job(kube_control_plane, target_user, node_ip, container_name, oim_ip
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"\n❌ Job deletion failed:\n{result.stderr.strip()}"))
+        pytest.fail(print(f"\nJob deletion failed:\n{result.stderr.strip()}"))
     print("\nJob deleted successfully.")
               
 
 def test_k8s_job_as_freeipa_user(run_sshpass_command, kube_control_plane):
-    print("\n🧪 Checking FreeIPA presence...\n")
+    print("\nChecking FreeIPA presence...\n")
 
     cmd = f"podman exec omnia_core cat {software_config_path}"
     result = run_sshpass_command(cmd)
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to read software_config.json: {result.stderr}")
+        pytest.fail(f"Failed to read software_config.json: {result.stderr}")
 
     try:
         data = json.loads(result.stdout)
         softwares = data.get("softwares", [])
         if not any(s.get("name") == "freeipa" for s in softwares):
-            pytest.skip("⚠️ FreeIPA not found. Skipping FreeIPA user job test.")
+            pytest.skip("FreeIPA not found. Skipping FreeIPA user job test.")
     except Exception as e:
-        pytest.fail(f"❌ Error parsing software_config.json: {str(e)}")
+        pytest.fail(f"Error parsing software_config.json: {str(e)}")
 
-    print("\n✅ FreeIPA found. Running job as FreeIPA user.\n")
+    print("\nFreeIPA found. Running job as FreeIPA user.\n")
     for host in kube_control_plane:
         node_ip = host.backend.host
         run_k8s_job(
