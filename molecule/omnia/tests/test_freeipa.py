@@ -53,14 +53,14 @@ def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, re
         softwares = data.get("softwares", [])
         if not any(software.get("name") == "freeipa" for software in softwares):
             pytest.skip("Skipping FreeIPA tests: 'freeipa' not found in software_config.json")
-        print("\n✅ FreeIPA found in software_config.json. Proceeding with service checks.")
+        print("\nFreeIPA found in software_config.json. Proceeding with service checks.")
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
     except Exception as e:
         pytest.fail(f"Unexpected error: {e}")
 
     # Step 2: Check auth_server group presence
-    assert auth_server, "❌ No nodes found in 'auth_server' group in the inventory."
+    assert auth_server, "No nodes found in 'auth_server' group in the inventory."
 
     # Step 3: Check FreeIPA services on each node
     for host in auth_server:
@@ -75,11 +75,11 @@ def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, re
         result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
         if result.returncode != 0:
-            pytest.fail(f"❌ Failed to run ipactl status on node {node_ip}:\n{result.stderr.strip()}")
+            pytest.fail(f"Failed to run ipactl status on node {node_ip}:\n{result.stderr.strip()}")
 
         output = result.stdout.strip()
         if not output:
-            pytest.fail(f"❌ No output from ipactl status on node {node_ip}")
+            pytest.fail(f"No output from ipactl status on node {node_ip}")
 
         print("\n--- Service Status Output ---")
         print(output)
@@ -101,25 +101,25 @@ def test_FreeIPA_services(sync_directories, run_sshpass_command, auth_server, re
                 failing_services.append(f"{service}: {status}")
 
         if running_services:
-            print(f"\n✅ Running services on {node_ip}:\n" + "\n".join(f"  ✔ {svc}" for svc in running_services))
+            print(f"\nRunning services on {node_ip}:\n" + "\n".join(f"  ✔ {svc}" for svc in running_services))
         if failing_services:
-            fail_msg = f"\n❌ Failing services on {node_ip}:\n" + "\n".join(f"  ✖ {svc}" for svc in failing_services)
+            fail_msg = f"\nFailing services on {node_ip}:\n" + "\n".join(f"  ✖ {svc}" for svc in failing_services)
             pytest.fail(fail_msg)
         else:
-            print(f"\n✅ All FreeIPA services are running on {node_ip}")
+            print(f"\nAll FreeIPA services are running on {node_ip}")
 
 @pytest.mark.dependency(depends=["freeipa"])
 def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
     """
     Add a user to FreeIPA from within the omnia_core container and verify.
     """
-    assert auth_server, "❌ No nodes found in 'auth_server' group in the inventory. Aborting test."
+    assert auth_server, "No nodes found in 'auth_server' group in the inventory. Aborting test."
 
     print("\n------------ Test: Add IPA User -------------")
 
     for host in auth_server:
         node_ip = host.backend.host
-        print(f"\n🔍 Connecting to auth server: {node_ip}")
+        print(f"\nConnecting to auth server: {node_ip}")
 
         # Step 1: Check if the user already exists
         check_cmd = (
@@ -132,7 +132,7 @@ def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
         time.sleep(15)  # Short wait to avoid race conditions
 
         if result.returncode == 0:
-            print(f"⚠️  User '{username}' already exists on {node_ip}. Skipping creation.")
+            print(f"User '{username}' already exists on {node_ip}. Skipping creation.")
             print("\nUser Details:\n" + result.stdout.strip())
             continue
 
@@ -150,11 +150,11 @@ def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
         add_result = subprocess.run(add_cmd, shell=True, capture_output=True, text=True)
 
         if add_result.returncode != 0 or "User login" not in add_result.stdout:
-            print(f"\n❌ Failed to add user '{username}' on {node_ip}.")
+            print(f"\nFailed to add user '{username}' on {node_ip}.")
             print("Error Output:\n" + add_result.stderr.strip())
             pytest.fail(f"User creation failed on {node_ip}")
         else:
-            print(f"\n✅ User '{username}' added successfully on {node_ip}.")
+            print(f"\nUser '{username}' added successfully on {node_ip}.")
             print("\nUser Details:\n" + add_result.stdout.strip())
      
 @pytest.mark.dependency(depends=["freeipa"])
@@ -188,17 +188,17 @@ def test_login_from_node(all_hosts, get_unique_ips, auth_server, remote_user="ro
 
     result = subprocess.run(software_config_cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to read software_config.json: {result.stderr.strip()}")
+        pytest.fail(f"Failed to read software_config.json: {result.stderr.strip()}")
 
     try:
         config_data = json.loads(result.stdout)
         slurm_enabled = any(sw.get("name") == "slurm" for sw in config_data.get("softwares", []))
-        print(f"\n🔍 Slurm enabled: {slurm_enabled}")
+        print(f"\nSlurm enabled: {slurm_enabled}")
     except json.JSONDecodeError:
-        pytest.fail("❌ Invalid JSON in software_config.json")
+        pytest.fail("Invalid JSON in software_config.json")
 
     for ip in unique_ips:
-        print(f"\n🔍 Testing login on node: {ip}")
+        print(f"\nTesting login on node: {ip}")
 
         # Test login
         ssh_test_cmd = (
@@ -211,14 +211,14 @@ def test_login_from_node(all_hosts, get_unique_ips, auth_server, remote_user="ro
 
         if slurm_enabled:
             if ip in auth_server_ips:
-                assert login_success, f"❌ Expected login to succeed on {ip}, but it failed."
-                print(f"✅ Login succeeded on {ip}")
+                assert login_success, f"Expected login to succeed on {ip}, but it failed."
+                print(f"Login succeeded on {ip}")
             else:
-                assert not login_success, f"❌ Login should not succeed on non-auth node {ip}"
-                print(f"✅ Login blocked on compute node {ip}")
+                assert not login_success, f"Login should not succeed on non-auth node {ip}"
+                print(f"Login blocked on compute node {ip}")
         else:
-            assert login_success, f"❌ Login failed on {ip} with Slurm disabled."
-            print(f"✅ Login succeeded on {ip}")
+            assert login_success, f"Login failed on {ip} with Slurm disabled."
+            print(f"Login succeeded on {ip}")
 
 
 @pytest.mark.dependency(depends=["freeipa"], name='slurm')
@@ -235,7 +235,7 @@ def test_slurm_in_software_config(sync_directories, run_sshpass_command, auth_se
         softwares = data.get("softwares", [])
         if not any(software.get("name") == "slurm" for software in softwares):
             pytest.skip(print("\nSlurm not found in software_config.json file, skipping slurm jobs."))
-        print("\n✅ slurm found in software_config.json. Verifying slurm job using freeipa user")
+        print("\nslurm found in software_config.json. Verifying slurm job using freeipa user")
         sync_directories(source, destination)
         
     except json.JSONDecodeError:
@@ -311,29 +311,29 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
             result = subprocess.run(submit_job_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                pytest.fail(f"\n❌ SSH or job submission failed:\n{result.stderr.strip()}")
+                pytest.fail(f"\nSSH or job submission failed:\n{result.stderr.strip()}")
 
             output_lines = result.stdout.strip().splitlines()
 
             if not output_lines:
-                pytest.fail(f"\n❌ No output received. Possible SSH or command error.")
+                pytest.fail(f"\nNo output received. Possible SSH or command error.")
 
             logged_in_user = output_lines[0].strip()
             print("\nlogged_in_user: ",logged_in_user)
 
             if logged_in_user != username:
-                pytest.fail(f"\n❌ Logged in user mismatch: expected '{username}', got '{logged_in_user}'")
+                pytest.fail(f"\nLogged in user mismatch: expected '{username}', got '{logged_in_user}'")
             else:
                 print(f"\nLogged in successfully to the freeipa user: {username}")
 
             if "Submitted batch job" not in output_lines[-1]:
-                pytest.fail(f"\n❌ Job submission failed:\n{result.stdout.strip()}")
+                pytest.fail(f"\nJob submission failed:\n{result.stdout.strip()}")
 
             job_id = output_lines[-1].split()[-1]
-            print(f"\n✅ Job submitted with user '{logged_in_user}' on {node_ip}. Job ID: {job_id}")
+            print(f"\nJob submitted with user '{logged_in_user}' on {node_ip}. Job ID: {job_id}")
 
         except Exception as e:
-            pytest.fail(f"❌ Exception on node {node_ip}: {str(e)}")
+            pytest.fail(f"Exception on node {node_ip}: {str(e)}")
 
 
 
@@ -352,10 +352,10 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
                 pytest.fail(f"Failed to check job status: {result.stderr}")
 
             if job_id not in result.stdout:
-                print(f"\n✅ Job {job_id} completed.")
+                print(f"\nJob {job_id} completed.")
                 break
 
-            print(f"⏳ Waiting for job {job_id}... still running.")
+            print(f"Waiting for job {job_id}... still running.")
             time.sleep(5)  # Poll every 5 seconds
 
 
@@ -373,12 +373,12 @@ def test_slurm_job_submission(slurm_control_node, remote_user="root", container_
         output = result.stdout.strip()
         
         if "Running as user: testuser" in result.stdout:
-            print(f"\n✅Job successfully executed as Freeipa user" + f"\nOutput:\n{output}")
+            print(f"\nJob successfully executed as Freeipa user" + f"\nOutput:\n{output}")
         elif "Running as user: root":
             pytest.fail(print(f"\nJob executed as root user" + f"\nOutput:\n{output}"))
             
         if "Hello world" in result.stdout:
-            print("\n✅mpi job executed successfully")
+            print("\nmpi job executed successfully")
         else:
             pytest.fail(print("\nmpi job failed."))
 
