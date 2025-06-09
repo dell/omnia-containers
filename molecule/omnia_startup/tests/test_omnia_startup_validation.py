@@ -34,12 +34,12 @@ def run_sshpass_command(cmd):
     return subprocess.run(ssh_cmd, capture_output=True, text=True)
 
 def test_omnia_core_container_is_up():
-    print("\n📦 Checking required containers...\n")
+    print("\nChecking required containers...\n")
 
     cmd = "podman ps --all --format '{{.Names}}: {{.Status}}'"
     result = run_sshpass_command(cmd)
 
-    assert result.returncode == 0, f"\n❌ SSH command failed:\n{result.stderr}"
+    assert result.returncode == 0, f"\nSSH command failed:\n{result.stderr}"
 
     output = result.stdout.strip().splitlines()
     status_map = {line.split(": ")[0]: line.split(": ")[1] for line in output if ": " in line}
@@ -56,10 +56,10 @@ def test_omnia_core_container_is_up():
         else:
             running.append(f"{container}: {status_map[container]}")
 
-    assert not missing, print(f"\n❌ Missing containers:\n" + "\n".join(missing))
-    assert not not_running, print(f"\n❌ Containers not running:\n" + "\n".join(not_running))
+    assert not missing, print(f"\nMissing containers:\n" + "\n".join(missing))
+    assert not not_running, print(f"\nContainers not running:\n" + "\n".join(not_running))
 
-    print("\n✅ All required containers are running:\n" + "\n".join(running))
+    print("\nAll required containers are running:\n" + "\n".join(running))
         
 def test_ssh_to_omnia_core_container():
 
@@ -73,8 +73,8 @@ def test_ssh_to_omnia_core_container():
 
     try:
         result = subprocess.run(ssh_command, capture_output=True, text=True)
-        assert result.returncode == 0, print(f"\n❌ Failed to exec into omnia_core: {result.stderr}")
-        assert "CONTAINER_ACCESS_SUCCESS" in result.stdout, print("\n❌ Container did not return expected output.")
-        print("\n✅ Successfully accessed omnia_core container.")
+        assert result.returncode == 0, print(f"\nFailed to exec into omnia_core: {result.stderr}")
+        assert "CONTAINER_ACCESS_SUCCESS" in result.stdout, print("\nContainer did not return expected output.")
+        print("\nSuccessfully accessed omnia_core container.")
     except Exception as e:
-        pytest.fail(f"❌ Error accessing omnia_core container: {e}")
+        pytest.fail(f"Error accessing omnia_core container: {e}")
