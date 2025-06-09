@@ -67,7 +67,7 @@ def get_os_details(ip, oim):
     result = run_remote_cmd(oim, ssh_cmd)
 
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to fetch OS info from {ip}: {result.stderr.strip()}")
+        pytest.fail(f"Failed to fetch OS info from {ip}: {result.stderr.strip()}")
 
     os_name, os_version = None, None
     for line in result.stdout.strip().splitlines():
@@ -77,7 +77,7 @@ def get_os_details(ip, oim):
             os_version = line.split("=", 1)[1].strip('"')
 
     if not os_name or not os_version:
-        pytest.fail(f"❌ Could not parse OS on {ip}. Raw:\n{result.stdout}")
+        pytest.fail(f"Could not parse OS on {ip}. Raw:\n{result.stdout}")
 
     return os_name, os_version
 
@@ -91,7 +91,7 @@ def test_os_name_and_version(all_hosts, get_unique_ips, oim_connection_details):
     unique_ips = get_unique_ips(all_nodes)
 
     oim_name, oim_ver = get_os_details(oim_connection_details["ip"], oim_connection_details)
-    print(f"🧭 OIM OS: {oim_name} {oim_ver}")
+    print(f"OIM OS: {oim_name} {oim_ver}")
 
     mismatches = []
 
@@ -102,15 +102,15 @@ def test_os_name_and_version(all_hosts, get_unique_ips, oim_connection_details):
             mismatches.append((ip, name, ver))
 
     if mismatches:
-        msg = "\n❌ OS version mismatches:\n" + "\n".join(
+        msg = "\nOS version mismatches:\n" + "\n".join(
             f"{ip} Expected: {oim_name} {oim_ver}, Got: {name} {ver}" for ip, name, ver in mismatches
         )
         pytest.fail(msg)
 
 
 def test_domain_name(all_hosts, get_unique_ips, oim_connection_details, provisioned_domain_name):
-    print("\n🔍 Checking domain name of compute nodes")
-    print(f"✅ Expected domain name: {provisioned_domain_name}")
+    print("\nChecking domain name of compute nodes")
+    print(f"Expected domain name: {provisioned_domain_name}")
 
     all_nodes = []
     for group in all_hosts:
@@ -129,13 +129,13 @@ def test_domain_name(all_hosts, get_unique_ips, oim_connection_details, provisio
             mismatches.append((ip, domain))
 
     if mismatches:
-        pytest.fail("\n❌ Domain mismatches:\n" + "\n".join(f"{ip} Got: {dom}" for ip, dom in mismatches))
+        pytest.fail("\nDomain mismatches:\n" + "\n".join(f"{ip} Got: {dom}" for ip, dom in mismatches))
     else:
-        print("✅ All nodes have expected domain")
+        print("All nodes have expected domain")
 
 
 def test_hostname_matches_hosts_file(all_hosts, get_unique_ips, oim_connection_details, etc_hosts_map):
-    print("\n🔍 Validating hostnames from /etc/hosts")
+    print("\nValidating hostnames from /etc/hosts")
 
     all_nodes = []
     for group in all_hosts:
@@ -147,7 +147,7 @@ def test_hostname_matches_hosts_file(all_hosts, get_unique_ips, oim_connection_d
     for ip in unique_ips:
         expected = etc_hosts_map.get(ip)
         if not expected:
-            print(f"⚠️ No hostname for {ip} in /etc/hosts")
+            print(f"No hostname for {ip} in /etc/hosts")
             continue
 
         cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {ip} hostname -s"
@@ -159,8 +159,8 @@ def test_hostname_matches_hosts_file(all_hosts, get_unique_ips, oim_connection_d
             mismatches.append((ip, expected, hostname))
 
     if mismatches:
-        pytest.fail("\n❌ Hostname mismatches:\n" + "\n".join(
+        pytest.fail("\nHostname mismatches:\n" + "\n".join(
             f"{ip} Expected: {exp}, Got: {got}" for ip, exp, got in mismatches
         ))
     else:
-        print("✅ All hostnames match")
+        print("All hostnames match")
