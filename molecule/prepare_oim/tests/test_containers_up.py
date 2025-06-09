@@ -23,7 +23,7 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
     cmd = "podman ps --all --format '{{.Names}}: {{.Status}}'"
     result = run_sshpass_command(cmd)
 
-    assert result.returncode == 0, f"\n❌ SSH command failed: {result.stderr}"
+    assert result.returncode == 0, f"\nSSH command failed: {result.stderr}"
 
     containers_not_running = []
     containers_missing = []
@@ -46,13 +46,13 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
             containers_missing.append(container)
 
     assert not containers_missing, (
-        f"\n❌ The following required containers are missing:\n" + "\n".join(containers_missing)
+        f"\nThe following required containers are missing:\n" + "\n".join(containers_missing)
     )
     assert not containers_not_running, (
-        f"\n❌ The following required containers are not running:\n" + "\n".join(containers_not_running)
+        f"\nThe following required containers are not running:\n" + "\n".join(containers_not_running)
     )
 
-    print(f"\n✅ The following required containers are running:\n" + "\n".join(containers_running))
+    print(f"\nThe following required containers are running:\n" + "\n".join(containers_running))
 
     
 def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command):
@@ -83,7 +83,7 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command):
     assert not missing, f"Missing resources in PCS status: {missing}"
     assert not not_started, f"Resources not started: {not_started}"
 
-    print("\n✅ All PCS resources are present and started.")
+    print("\nAll PCS resources are present and started.")
 
 
 def test_pulp_status(run_sshpass_command):
