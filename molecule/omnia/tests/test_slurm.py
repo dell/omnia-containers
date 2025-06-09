@@ -34,7 +34,7 @@ source = os.path.join(script_dir, script_path)
 destination = '/mnt/omnia_home_share/'    
 
 def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_ip, oim_password, password):
-    print(f"\n🚀 Submitting Slurm job on {node_ip} as '{target_user}'")
+    print(f"\nSubmitting Slurm job on {node_ip} as '{target_user}'")
 
     if target_user  == "testuser":
         job_name = "slurm_user.sh"
@@ -57,11 +57,11 @@ def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_
             # Run the command
             result = subprocess.run(node_count_cmd, shell=True, capture_output=True, text=True)
             if result.returncode != 0:
-                pytest.fail(f"Failed to fetch node count: {result.stderr}")
+                pytest.fail(print(f"Failed to fetch node count: {result.stderr}"))
 
             node_count = result.stdout.strip()
             if not node_count.isdigit():
-                pytest.fail("Node count is invalid or empty.")
+                pytest.fail(print("Node count is invalid or empty."))
             print(f"Node count from {node_ip}: {node_count}")
 
             # Build the script update command
@@ -81,7 +81,7 @@ def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_
             print(f"Updated job script on {node_ip} successfully.")
 
         except Exception as e:
-            pytest.fail(f"Error on node {host.backend.host}: {e}")
+            pytest.fail(print(f"Error on node {host.backend.host}: {e}"))
             
     
     if target_user != "root":
@@ -103,22 +103,22 @@ def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_
 
     result = subprocess.run(submit_job_cmd, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
-        pytest.fail(f"\n❌ Job submission failed:\n{result.stderr.strip()}")
+        pytest.fail(print(f"\nJob submission failed:\n{result.stderr.strip()}"))
 
     output_lines = result.stdout.strip().splitlines()
     if not output_lines:
-        pytest.fail("\n❌ No output received after job submission.")
+        pytest.fail(print("\nNo output received after job submission."))
 
     logged_in_user = output_lines[0].strip()
     if logged_in_user != target_user:
-        pytest.fail(f"\n❌ Logged in user mismatch: expected '{target_user}', got '{logged_in_user}'")
-    print(f"✅ Logged in as {logged_in_user}")
+        pytest.fail(f"\nLogged in user mismatch: expected '{target_user}', got '{logged_in_user}'")
+    print(f"Logged in as {logged_in_user}")
 
     if "Submitted batch job" not in output_lines[-1]:
-        pytest.fail(f"\n❌ Job not submitted:\n{result.stdout.strip()}")
+        pytest.fail(print(f"\nJob not submitted:\n{result.stdout.strip()}"))
 
     job_id = output_lines[-1].split()[-1]
-    print(f"✅ Job submitted. Job ID: {job_id}")
+    print(f"Job submitted. Job ID: {job_id}")
 
     # Wait for job to complete
     while True:
@@ -132,13 +132,13 @@ def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_
 
         result = subprocess.run(check_job_cmd, shell=True, capture_output=True, text=True)
         if result.returncode != 0:
-            pytest.fail(f"❌ Failed to check job status: {result.stderr}")
+            pytest.fail(print(f"Failed to check job status: {result.stderr}"))
 
         if job_id not in result.stdout:
-            print(f"✅ Job {job_id} completed.")
+            print(f"Job {job_id} completed.")
             break
 
-        print(f"⏳ Waiting for job {job_id}...")
+        print(f"Waiting for job {job_id}...")
         time.sleep(5)
 
     # Check output
@@ -161,12 +161,12 @@ def run_slurm_job(slurm_control_node, target_user, node_ip, container_name, oim_
     output = result.stdout.strip()
 
     if f"Running as user: {target_user}" not in output:
-        pytest.fail(f"❌ Job did not run as expected user: {target_user}\nOutput:\n{output}")
+        pytest.fail(print(f"Job did not run as expected user: {target_user}\nOutput:\n{output}"))
 
     if "Hello world" in output:
-        print(f"✅ Job executed successfully as '{target_user}'\n📄 Output:\n{output}")
+        print(f"Job executed successfully as '{target_user}'\n📄 Output:\n{output}")
     else:
-        pytest.fail(f"❌ MPI job failed for user: {target_user}\nOutput:\n{output}")
+        pytest.fail(print(f"MPI job failed for user: {target_user}\nOutput:\n{output}"))
 
 @pytest.mark.dependency(name='slurm')
 def test_slurmctld_status(sync_directories, run_sshpass_command, slurm_control_node, remote_user="root", container_name="omnia_core"):
@@ -176,14 +176,14 @@ def test_slurmctld_status(sync_directories, run_sshpass_command, slurm_control_n
     result = run_sshpass_command(cmd)
 
     if result.returncode != 0:
-        pytest.fail(f"Failed to fetch file from container: {result.stderr}")
+        pytest.fail(print(f"Failed to fetch file from container: {result.stderr}"))
 
     try:
         data = json.loads(result.stdout)
         softwares = data.get("softwares", [])
         if not any(software.get("name") == "slurm" for software in softwares):
-            pytest.skip("Skipping slurm tests: 'slurm' not found in software_config.json")
-        print("\n✅ slurm found in software_config.json. Proceeding with service checks.")
+            pytest.skip(print("Skipping slurm tests: 'slurm' not found in software_config.json"))
+        print("\nslurm found in software_config.json. Proceeding with service checks.")
         sync_directories(source, destination)
     except json.JSONDecodeError:
         pytest.fail("Invalid JSON in software_config.json")
@@ -192,12 +192,12 @@ def test_slurmctld_status(sync_directories, run_sshpass_command, slurm_control_n
         
         
     # Step 2: Check slurm_control_node group presence
-    assert slurm_control_node, "❌ No nodes found in 'slurm_control_node' group in the inventory."
+    assert slurm_control_node, "No nodes found in 'slurm_control_node' group in the inventory."
 
     # Step 3: Check slurmctld status on slurm head node
     for host in slurm_control_node:
         node_ip = host.backend.host
-        print(f"\n🔍 Checking slurmctld status on slurm head node: {node_ip}")
+        print(f"\nChecking slurmctld status on slurm head node: {node_ip}")
 
     ssh_cmd = (
         f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
@@ -208,23 +208,23 @@ def test_slurmctld_status(sync_directories, run_sshpass_command, slurm_control_n
     result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to run slurmctld status on head node {node_ip}:\n{result.stderr.strip()}")
+        pytest.fail(print(f"Failed to run slurmctld status on head node {node_ip}:\n{result.stderr.strip()}"))
 
     if "Active: active (running)" not in result.stdout:
-        pytest.fail(f"❌ slurmctld is not running on {host.backend.host}.\nStatus Output:\n{result.stdout.strip()}")
+        pytest.fail(print(f"slurmctld is not running on {host.backend.host}.\nStatus Output:\n{result.stdout.strip()}"))
 
-    print(f"✅ slurmctld is ACTIVE on {host.backend.host}.")
+    print(f"slurmctld is ACTIVE on {host.backend.host}.")
     
 @pytest.mark.dependency(depends=["slurm"])
 def test_slurmd_status(slurm_node, remote_user="root", container_name="omnia_core"):       
         
     # Step 1: Check slurm_node group presence
-    assert slurm_node, "❌ No nodes found in 'slurm_node' group in the inventory."
+    assert slurm_node, "No nodes found in 'slurm_node' group in the inventory."
 
     # Step 2: Check slurmd status on slurm head node
     for host in slurm_node:
         node_ip = host.backend.host
-        print(f"\n🔍 Checking slurmd status on slurm head node: {node_ip}")
+        print(f"\nChecking slurmd status on slurm head node: {node_ip}")
 
     ssh_cmd = (
         f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
@@ -235,22 +235,22 @@ def test_slurmd_status(slurm_node, remote_user="root", container_name="omnia_cor
     result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to run slurmd status on head node {node_ip}:\n{result.stderr.strip()}")
+        pytest.fail(print(f"Failed to run slurmd status on head node {node_ip}:\n{result.stderr.strip()}"))
 
     if "Active: active (running)" not in result.stdout:
-        pytest.fail(f"❌ slurmd is not running on {host.backend.host}.\nStatus Output:\n{result.stdout.strip()}")
+        pytest.fail(print(f"slurmd is not running on {host.backend.host}.\nStatus Output:\n{result.stdout.strip()}"))
 
-    print(f"✅ slurmd is ACTIVE on {host.backend.host}.")
+    print(f"slurmd is ACTIVE on {host.backend.host}.")
     
 
 @pytest.mark.dependency(depends=["slurm"])
 def test_slurm_node_state(slurm_control_node, remote_user="root", container_name="omnia_core"):
     # Step 1: Check slurm_node group presence
-    assert slurm_control_node, "❌ No nodes found in 'slurm_node' group in the inventory."
+    assert slurm_control_node, "No nodes found in 'slurm_node' group in the inventory."
 
     for host in slurm_control_node:
         node_ip = host.backend.host
-        print(f"\n🔍 Checking slurm node states from control node: {node_ip}")
+        print(f"\nChecking slurm node states from control node: {node_ip}")
 
         try:
             # Step 2: Run sinfo command inside the container via SSH
@@ -263,7 +263,7 @@ def test_slurm_node_state(slurm_control_node, remote_user="root", container_name
             result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                pytest.fail(f"❌ Failed to run sinfo on head node {node_ip}:\n{result.stderr.strip()}")
+                pytest.fail(print(f"Failed to run sinfo on head node {node_ip}:\n{result.stderr.strip()}"))
 
             output = result.stdout
 
@@ -288,18 +288,18 @@ def test_slurm_node_state(slurm_control_node, remote_user="root", container_name
                     print(f"   - {node}: {state}")
 
             if non_idle_nodes:
-                print(f"\n❌ Nodes not in idle state:")
+                print(f"\nNodes not in idle state:")
                 for node, state in non_idle_nodes:
                     print(f"   - {node}: {state}")
-                pytest.fail("Some SLURM nodes are not in 'idle' state.")
+                pytest.fail(print("Some slurm nodes are not in 'idle' state."))
 
         except Exception as e:
-            pytest.fail(f"❌ Exception occurred while checking SLURM nodes on {node_ip}: {e}")
+            pytest.fail(print(f"Exception occurred while checking SLURM nodes on {node_ip}: {e}"))
 
 
 @pytest.mark.dependency(depends=["slurm"])            
 def test_slurm_job_as_root(slurm_control_node):
-    print("\n🧪 Running Slurm job as ROOT user\n")
+    print("\nRunning Slurm job as ROOT user\n")
     for host in slurm_control_node:
         node_ip = host.backend.host
         run_slurm_job(
@@ -315,22 +315,22 @@ def test_slurm_job_as_root(slurm_control_node):
 
 @pytest.mark.dependency(depends=["slurm"])
 def test_slurm_job_as_freeipa_user(run_sshpass_command, slurm_control_node):
-    print("\n🧪 Checking FreeIPA presence...\n")
+    print("\nChecking FreeIPA presence...\n")
 
     cmd = f"podman exec omnia_core cat {software_config_path}"
     result = run_sshpass_command(cmd)
     if result.returncode != 0:
-        pytest.fail(f"❌ Failed to read software_config.json: {result.stderr}")
+        pytest.fail(print(f"Failed to read software_config.json: {result.stderr}"))
 
     try:
         data = json.loads(result.stdout)
         softwares = data.get("softwares", [])
         if not any(s.get("name") == "freeipa" for s in softwares):
-            pytest.skip("⚠️ FreeIPA not found. Skipping FreeIPA user job test.")
+            pytest.skip(print("FreeIPA not found. Skipping FreeIPA user job test."))
     except Exception as e:
-        pytest.fail(f"❌ Error parsing software_config.json: {str(e)}")
+        pytest.fail(print(f"Error parsing software_config.json: {str(e)}"))
 
-    print("\n✅ FreeIPA found. Running job as FreeIPA user.\n")
+    print("\nFreeIPA found. Running job as FreeIPA user.\n")
     for host in slurm_control_node:
         node_ip = host.backend.host
         run_slurm_job(
