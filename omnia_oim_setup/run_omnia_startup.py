@@ -41,12 +41,12 @@ def download_omnia_startup(branch_name):
     try:
         result = subprocess.run(ssh_command, capture_output=True, text=True)
         if result.returncode == 0:
-            print("✅ omnia_startup.sh downloaded successfully")
+            print("omnia_startup.sh downloaded successfully")
         else:
-            print("❌ Failed to download omnia_startup.sh:")
+            print("Failed to download omnia_startup.sh:")
             print(result.stderr)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 def executing_omnia_startup(startup_input):
     if startup_input == 1:
@@ -54,7 +54,7 @@ def executing_omnia_startup(startup_input):
     elif startup_input == 2:
         local_input_file = f"{input_path}/local_input.txt"
     else:
-        print("\n❌ Invalid input type.")
+        print("\nInvalid input type.")
         sys.exit(1)
 
     filename = os.path.basename(local_input_file)
@@ -84,7 +84,7 @@ def executing_omnia_startup(startup_input):
     try:
         subprocess.run(create_dir_cmd, check=True, capture_output=True, text=True)
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to create directory on remote host:\n{e.stderr}")
+        print(f"Failed to create directory on remote host:\n{e.stderr}")
         return
 
     # Step 2: Copy input file to remote host
@@ -96,11 +96,11 @@ def executing_omnia_startup(startup_input):
     try:
         scp_result = subprocess.run(scp_command, capture_output=True, text=True)
         if scp_result.returncode != 0:
-            print("❌ Failed to copy input file to remote host:")
+            print("Failed to copy input file to remote host:")
             print(scp_result.stderr)
             return
     except Exception as e:
-        print(f"❌ SCP error: {e}")
+        print(f"SCP error: {e}")
         return
 
     # Step 3: Run script with input redirection on remote host
@@ -117,14 +117,14 @@ def executing_omnia_startup(startup_input):
             sys.exit(1)
         
         elif result.returncode == 0:
-            print("✅ omnia_startup.sh executed successfully with automated input")
+            print("omnia_startup.sh executed successfully with automated input")
             print(result.stdout)
             
         else:
-            print("❌ Script failed:")
+            print("Script failed:")
             print(result.stderr)
     except Exception as e:
-        print(f"❌ SSH error: {e}")
+        print(f"SSH error: {e}")
 
 def run_pytest_for():
     exit_code = pytest.main([f'{script_dir}/tests/test_startup_validation.py'])
