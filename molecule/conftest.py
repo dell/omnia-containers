@@ -103,7 +103,7 @@ def get_file_from_container():
         # Run `podman exec` inside the container to cat the file
         cmd = f"podman exec omnia_core cat {file_path}"
         result = run_sshpass_command(cmd)
-        assert result.returncode == 0, f"❌ Failed to read file from container:\n{result.stderr}"
+        assert result.returncode == 0, f"Failed to read file from container:\n{result.stderr}"
         return result.stdout
     return _get_file_from_container
 
@@ -116,7 +116,7 @@ def extract_create_table_sql():
         )
         match = re.search(pattern, content, re.IGNORECASE | re.DOTALL)
         if not match:
-            raise ValueError(f"❌ Could not find CREATE TABLE definition for '{table}'")
+            raise ValueError(f"Could not find CREATE TABLE definition for '{table}'")
         return f"CREATE TABLE {match.group(0).split('CREATE TABLE', 1)[1]}"
     return _extract_create_table_sql
 
@@ -233,12 +233,12 @@ def sync_directories():
         try:
             scp_result = subprocess.run(scp_command, capture_output=True, text=True)
             if scp_result.returncode != 0:
-                print("❌ Failed to copy input file to remote host:")
+                print("Failed to copy input file to remote host:")
                 print(scp_result.stderr)
             else:
                 print(f"Copied file: {source} -> {destination}")
         except Exception as e:
-            print(f"❌ SCP error: {e}")
+            print(f"error: {e}")
             
     return _sync_directories
 
