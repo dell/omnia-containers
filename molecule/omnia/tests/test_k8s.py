@@ -56,7 +56,7 @@ def run_ssh_command(oim_ip, container_name, node_ip, inner_cmd, oim_password):
     return subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
 def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_password):
-    print(f"\n🚀 Submitting k8s job on {node_ip} as '{target_user}'")
+    print(f"\nSubmitting k8s job on {node_ip} as '{target_user}'")
 
     # Submit job
     result = run_ssh_command(
@@ -65,8 +65,8 @@ def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pass
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"\n❌ Job submission failed:\n{result.stderr.strip()}"))
-    print("\n✅ Job submitted successfully!")
+        pytest.fail(print(f"\nJob submission failed:\n{result.stderr.strip()}"))
+    print("\nJob submitted successfully!")
 
     # Wait for pod to start
     time.sleep(10)
@@ -78,7 +78,7 @@ def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pass
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"❌ Failed to get pods: {result.stderr.strip()}"))
+        pytest.fail(print(f"Failed to get pods: {result.stderr.strip()}"))
 
     pod_name = None
     for line in result.stdout.strip().splitlines():
@@ -87,13 +87,13 @@ def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pass
             pod_name = cols[0]
             pod_status = cols[2]
             if pod_status == "Completed":
-                print(f"\n✅ Pod '{pod_name}' completed successfully.")
+                print(f"\nPod '{pod_name}' completed successfully.")
             else:
-                pytest.fail(print(f"\n❌ Pod '{pod_name}' did not complete successfully. Status: {pod_status}"))
+                pytest.fail(print(f"\nPod '{pod_name}' did not complete successfully. Status: {pod_status}"))
             break
 
     if not pod_name:
-        pytest.fail(print("\n❌ 'k8s-example-job' pod not found."))
+        pytest.fail(print("\n'k8s-example-job' pod not found."))
 
     # Get logs
     result = run_ssh_command(
@@ -102,14 +102,14 @@ def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pass
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"❌ Failed to get logs: {result.stderr.strip()}"))
+        pytest.fail(print(f"Failed to get logs: {result.stderr.strip()}"))
     logs = result.stdout.strip()
-    print(f"\n📦 Logs from pod '{pod_name}':\n{logs}")
+    print(f"\nLogs from pod '{pod_name}':\n{logs}")
 
     if "Hello from k8s" in logs:
-        print("\n✅ Job log contains expected output.")
+        print("\nJob log contains expected output.")
     else:
-        pytest.fail(print(f"\n❌ Unexpected job output:\n{logs}"))
+        pytest.fail(print(f"\nUnexpected job output:\n{logs}"))
 
     # Delete job
     result = run_ssh_command(
@@ -118,7 +118,7 @@ def run_k8s_job(target_user, node_ip, job_name, container_name, oim_ip, oim_pass
         oim_password
     )
     if result.returncode != 0:
-        pytest.fail(print(f"\n❌ Job deletion failed:\n{result.stderr.strip()}"))
+        pytest.fail(print(f"\nJob deletion failed:\n{result.stderr.strip()}"))
     print("\nJob deleted successfully.")
 
         
@@ -139,11 +139,11 @@ def test_k8s_installation(sync_directories, run_sshpass_command, kube_control_pl
         k8s_config = next((s for s in softwares if s.get("name") == "k8s"), None)
         if not k8s_config:
             pytest.skip(print("Skipping k8s tests: 'k8s' not found in software_config.json"))
-        print("\n✅ 'k8s' found in software_config.json.")
+        print("\n'k8s' found in software_config.json.")
         sync_directories(source, destination)
 
         # Step 2: Check kube_control_plane group presence
-        assert kube_control_plane, "❌ No nodes found in 'kube_control_plane' group in the inventory."
+        assert kube_control_plane, "No nodes found in 'kube_control_plane' group in the inventory."
     
         for host in kube_control_plane:
             node_ip = host.backend.host
@@ -159,7 +159,7 @@ def test_k8s_installation(sync_directories, run_sshpass_command, kube_control_pl
             result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                pytest.fail(print(f"❌ Failed to run kubectl version on node {node_ip}:\n{result.stderr.strip()}"))
+                pytest.fail(print(f"Failed to run kubectl version on node {node_ip}:\n{result.stderr.strip()}"))
 
             k8s_version = result.stdout
             
@@ -207,9 +207,9 @@ def test_kubelet_service(kube_node, remote_user="root", container_name="omnia_co
 
             if kubelet_active == "active":
                 success_nodes.append(node_ip)
-                print(f"✅ Kubelet is active on node: {node_ip}")
+                print(f"Kubelet is active on node: {node_ip}")
             else:
-                print(f"❌ Kubelet is not active on node: {node_ip} (status: {kubelet_active})")
+                print(f"Kubelet is not active on node: {node_ip} (status: {kubelet_active})")
                 failed_nodes.append(node_ip)
 
         except Exception as e:
@@ -219,7 +219,7 @@ def test_kubelet_service(kube_node, remote_user="root", container_name="omnia_co
     if len(success_nodes) == count:
         print("All the nodes have kubelet running successfully!")
     else:
-        print(f"❌ Kubelet is not running on nodes: {failed_nodes}")
+        print(f"Kubelet is not running on nodes: {failed_nodes}")
         pytest.fail(print(f"Kubelet service inactive on nodes: {failed_nodes}"))
 
 
@@ -235,10 +235,10 @@ def test_kubectl_commands(kube_control_plane, remote_user="root", container_name
 
     for host in kube_control_plane:
         node_ip = host.backend.host
-        print(f"\n🔍 Connecting to node: {node_ip}")
+        print(f"\nConnecting to node: {node_ip}")
 
         for cmd in kubectl_cmds:
-            print(f"▶️ Running: {cmd}")
+            print(f"Running: {cmd}")
             ssh_cmd = (
                 f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
                 f"\"podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node_ip} "
@@ -248,10 +248,10 @@ def test_kubectl_commands(kube_control_plane, remote_user="root", container_name
             result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                print(f"❌ Command '{cmd}' failed on node {node_ip}: {result.stderr.strip()}")
+                print(f"Command '{cmd}' failed on node {node_ip}: {result.stderr.strip()}")
                 failed_cmds.append((node_ip, cmd))
             else:
-                print(f"✅ Command succeeded on {node_ip}")
+                print(f"Command succeeded on {node_ip}")
 
     if failed_cmds:
         error_details = "\n".join([f"Node: {node}, Command: {command}" for node, command in failed_cmds])
@@ -272,7 +272,7 @@ def test_all_pods_running(kube_control_plane, remote_user="root", container_name
 
     for host in kube_control_plane:
         node_ip = host.backend.host
-        print(f"\n🔍 Connecting to node: {node_ip}")
+        print(f"\nConnecting to node: {node_ip}")
 
         try:
             ssh_cmd = (
@@ -284,12 +284,12 @@ def test_all_pods_running(kube_control_plane, remote_user="root", container_name
             result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                print(f"❌ Failed to retrieve pods on node {node_ip}: {result.stderr.strip()}")
+                print(f"Failed to retrieve pods on node {node_ip}: {result.stderr.strip()}")
                 failed_nodes.append(node_ip)
                 continue
 
             output = result.stdout.strip()
-            print(f"📄 Output from node {node_ip}:\n{output}")
+            print(f"Output from node {node_ip}:\n{output}")
 
             lines = output.splitlines()
 
@@ -303,7 +303,7 @@ def test_all_pods_running(kube_control_plane, remote_user="root", container_name
                     all_pod_statuses.append((node_ip, namespace, pod_name, ready, status))
 
         except Exception as e:
-            pytest.fail(print(f"\n❌ Error while connecting to node {node_ip}: {e}"))
+            pytest.fail(print(f"\nError while connecting to node {node_ip}: {e}"))
 
     not_running_pods = [
         (node, namespace, pod, ready, status)
@@ -312,16 +312,16 @@ def test_all_pods_running(kube_control_plane, remote_user="root", container_name
     ]
 
     if failed_nodes:
-        pytest.fail(print(f"\n❌ Failed to retrieve pod information from nodes: {failed_nodes}"))
+        pytest.fail(print(f"\nFailed to retrieve pod information from nodes: {failed_nodes}"))
 
     if not_running_pods:
         error_summary = "\n".join([
             f"Node: {node} | Namespace: {namespace} | Pod: {pod} | Status: {status}"
             for node, namespace, pod, ready, status in not_running_pods
         ])
-        pytest.fail(print(f"\n❌ Some pods are not in a healthy state:\n{error_summary}"))
+        pytest.fail(print(f"\nSome pods are not in a healthy state:\n{error_summary}"))
 
-    print("\n✅ All pods are in 'Running' or 'Completed' state across all control plane nodes.")
+    print("\nAll pods are in 'Running' or 'Completed' state across all control plane nodes.")
 
 def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", container_name="omnia_core"):
     kube_nodes_inv = []
@@ -332,7 +332,7 @@ def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", c
         node_ip = host.backend.host
         kube_nodes_inv.append(node_ip)
 
-    print(f"📦 Inventory node IPs: {kube_nodes_inv}")
+    print(f"Inventory node IPs: {kube_nodes_inv}")
 
     # Step 2: Query kubectl on control plane node(s)
     for host in kube_control_plane:
@@ -349,7 +349,7 @@ def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", c
             result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True)
 
             if result.returncode != 0:
-                print(f"❌ Failed to retrieve node list on {node_ip}: {result.stderr.strip()}")
+                print(f"Failed to retrieve node list on {node_ip}: {result.stderr.strip()}")
                 failed_nodes.append(node_ip)
                 continue
 
@@ -370,7 +370,7 @@ def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", c
                 mismatched_nodes.extend(extra_nodes)
 
         except Exception as e:
-            print(f"\n❌ Error on the node {node_ip}: {e}")
+            print(f"\nError on the node {node_ip}: {e}")
 
     # Step 4: Final result
     if mismatched_nodes:
@@ -379,7 +379,7 @@ def test_list_of_kube_nodes(kube_node, kube_control_plane, remote_user="root", c
 
 @pytest.mark.dependency(depends=["k8s"])
 def test_k8s_job_as_root_user(kube_control_plane):
-    print("\n🧪 Running k8s job as ROOT user\n")
+    print("\nRunning k8s job as ROOT user\n")
     for host in kube_control_plane:
         node_ip = host.backend.host
         run_k8s_job(
