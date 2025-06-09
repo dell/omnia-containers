@@ -34,16 +34,16 @@ def test_softwares_downloaded():
     try:
         result = subprocess.run(ssh_command, capture_output=True, text=True, timeout=15)
     except Exception as e:
-        pytest.fail(f"\n❌ SSH or command execution failed: {e}")
+        pytest.fail(f"\nSSH or command execution failed: {e}")
 
     if result.returncode not in [0, 1]:
-        pytest.fail(f"\n❌ Command error: {result.stderr.strip()}")
+        pytest.fail(f"\nCommand error: {result.stderr.strip()}")
 
     output = result.stdout.strip()
 
     if output:
         failed_packages = [line.split(",")[0] for line in output.splitlines()]
-        print(f"\n❌ The following packages failed: {', '.join(failed_packages)}")
+        print(f"\nThe following packages failed: {', '.join(failed_packages)}")
         pytest.fail("One or more packages failed to install.")
     else:
-        print("\n✅ All packages installed successfully.")
+        print("\nAll packages installed successfully.")
