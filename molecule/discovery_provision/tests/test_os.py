@@ -1,17 +1,3 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-
 import pytest
 import subprocess
 import yaml
@@ -19,6 +5,9 @@ import config
 
 oim_ip = config.OIM_IP
 oim_password = config.OIM_PASS
+
+container_name = "omnia_provision"
+remote_user = "root"
 
 @pytest.fixture
 def oim_connection_details():
@@ -28,21 +17,32 @@ def oim_connection_details():
         "container": "omnia_core",
         "user": "root"
     }
-    
-@pytest.fixture
-def etc_hosts_map(oim_connection_details):
-    result = run_remote_cmd(oim_connection_details, "cat /etc/hosts")
-    if result.returncode != 0:
-        pytest.fail(f"Failed to fetch /etc/hosts: {result.stderr.strip()}")
 
-    ip_map = {}
-    for line in result.stdout.strip().splitlines():
-        if line.startswith("#") or not line.strip():
+@pytest.fixture
+def compute_nodes(run_sshpass_command):
+    file_path = "/opt/omnia/omnia_inventory/compute_hostname_ip"
+    cmd = f"podman exec {container_name} cat {file_path}"
+    result = run_sshpass_command(cmd)
+
+    assert result.returncode == 0, f"Failed to read compute_hostname_ip file: {result.stderr}"
+
+    compute_nodes = []
+    collect = False
+    for line in result.stdout.splitlines():
+        line = line.strip()
+        if line.startswith("[") and line.endswith("]"):
+            collect = (line == "[compute_hostname_ip]")
             continue
-        parts = line.split()
-        if len(parts) >= 2:
-            ip_map[parts[0]] = parts[1]
-    return ip_map
+        if collect and line and not line.startswith("#"):
+            # extract hostname before first space
+            hostname = line.split()[0]
+            compute_nodes.append(hostname)
+
+    if not compute_nodes:
+        pytest.fail(print("No nodes found."))
+    
+    print("\nCompute nodes: ", compute_nodes)
+    return compute_nodes
 
 @pytest.fixture
 def provisioned_domain_name(oim_connection_details):
@@ -54,13 +54,6 @@ def provisioned_domain_name(oim_connection_details):
         return config_data.get("domain_name")
     except yaml.YAMLError as e:
         pytest.fail(f"YAML parsing error: {e}")
-
-def run_remote_cmd(oim, inner_cmd):
-    full_cmd = (
-        f"sshpass -p {oim['password']} ssh -o StrictHostKeyChecking=no {oim['user']}@{oim['ip']} "
-        f"'podman exec {oim['container']} {inner_cmd}'"
-    )
-    return subprocess.run(full_cmd, shell=True, capture_output=True, text=True)
 
 def get_os_details(ip, oim):
     ssh_cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {ip} cat /etc/os-release"
@@ -81,86 +74,80 @@ def get_os_details(ip, oim):
 
     return os_name, os_version
 
+def run_remote_cmd(oim, inner_cmd):
+    full_cmd = (
+        f"sshpass -p {oim['password']} ssh -o StrictHostKeyChecking=no {oim['user']}@{oim['ip']} "
+        f"'podman exec {oim['container']} {inner_cmd}'"
+    )
+    return subprocess.run(full_cmd, shell=True, capture_output=True, text=True)
 
-def test_os_name_and_version(all_hosts, get_unique_ips, oim_connection_details):
-    print("\n🔍 Testing OS version on nodes")
-
-    all_nodes = []
-    for group in all_hosts:
-        all_nodes.extend(all_hosts[group])
-    unique_ips = get_unique_ips(all_nodes)
+def test_os_name_and_version(compute_nodes, oim_connection_details):
+    print("\nTesting OS version on nodes")
 
     oim_name, oim_ver = get_os_details(oim_connection_details["ip"], oim_connection_details)
     print(f"OIM OS: {oim_name} {oim_ver}")
 
     mismatches = []
 
-    for ip in unique_ips:
-        name, ver = get_os_details(ip, oim_connection_details)
-        print(f"{ip} - OS: {name} {ver}")
+    for node in compute_nodes:
+        node = node.split('.')[0]
+        name, ver = get_os_details(node, oim_connection_details)
+        print(f"{node} - OS: {name} {ver}")
         if (name, ver) != (oim_name, oim_ver):
-            mismatches.append((ip, name, ver))
+            mismatches.append((node, name, ver))
 
     if mismatches:
         msg = "\nOS version mismatches:\n" + "\n".join(
-            f"{ip} Expected: {oim_name} {oim_ver}, Got: {name} {ver}" for ip, name, ver in mismatches
+            f"{node} Expected: {oim_name} {oim_ver}, Got: {name} {ver}" for node, name, ver in mismatches
         )
         pytest.fail(msg)
 
 
-def test_domain_name(all_hosts, get_unique_ips, oim_connection_details, provisioned_domain_name):
+def test_domain_name(compute_nodes, oim_connection_details, provisioned_domain_name):
     print("\nChecking domain name of compute nodes")
-    print(f"Expected domain name: {provisioned_domain_name}")
-
-    all_nodes = []
-    for group in all_hosts:
-        all_nodes.extend(all_hosts[group])
-    unique_ips = get_unique_ips(all_nodes)
-
+    print(f"\nExpected domain name: {provisioned_domain_name}")
     mismatches = []
 
-    for ip in unique_ips:
-        cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {ip} hostname -d"
+    for node in compute_nodes:
+        node = node.split('.')[0]
+        cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node} hostname -d"
         result = run_remote_cmd(oim_connection_details, cmd)
         domain = result.stdout.strip()
 
-        print(f"{ip} - Domain: {domain}")
+        print(f"{node} - Domain: {domain}")
         if provisioned_domain_name != domain:
-            mismatches.append((ip, domain))
+            mismatches.append((node, domain))
 
     if mismatches:
-        pytest.fail("\nDomain mismatches:\n" + "\n".join(f"{ip} Got: {dom}" for ip, dom in mismatches))
+        pytest.fail("\nDomain mismatches:\n" + "\n".join(f"{node} Got: {dom}" for node, dom in mismatches))
     else:
-        print("All nodes have expected domain")
+        print("\nAll nodes have expected domain")
 
 
-def test_hostname_matches_hosts_file(all_hosts, get_unique_ips, oim_connection_details, etc_hosts_map):
+def test_hostname(compute_nodes, oim_connection_details):
     print("\nValidating hostnames from /etc/hosts")
-
-    all_nodes = []
-    for group in all_hosts:
-        all_nodes.extend(all_hosts[group])
-    unique_ips = get_unique_ips(all_nodes)
 
     mismatches = []
 
-    for ip in unique_ips:
-        expected = etc_hosts_map.get(ip)
+    for node in compute_nodes:
+        node = node.split('.')[0]
+        expected = node
         if not expected:
-            print(f"No hostname for {ip} in /etc/hosts")
+            print(f"No hostname for {node} in /etc/hosts")
             continue
 
-        cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {ip} hostname -s"
+        cmd = f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node} hostname -s"
         result = run_remote_cmd(oim_connection_details, cmd)
         hostname = result.stdout.strip()
 
-        print(f"{ip} - Expected: {expected}, Got: {hostname}")
+        print(f"{node} - Expected: {expected}, Got: {hostname}")
         if hostname != expected:
-            mismatches.append((ip, expected, hostname))
+            mismatches.append((node, expected, hostname))
 
     if mismatches:
         pytest.fail("\nHostname mismatches:\n" + "\n".join(
-            f"{ip} Expected: {exp}, Got: {got}" for ip, exp, got in mismatches
+            f"{node} Expected: {exp}, Got: {got}" for node, exp, got in mismatches
         ))
     else:
         print("All hostnames match")
+
