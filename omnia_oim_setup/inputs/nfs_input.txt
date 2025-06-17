@@ -1,4 +1,5 @@
 default(Don't change):1
+(1) external nfs (2) internal nfs:
 NFS server IP:
 NFS server share path:
 Omnia share path: 
