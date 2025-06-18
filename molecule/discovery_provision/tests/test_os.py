@@ -60,9 +60,9 @@ def compute_nodes(run_sshpass_command):
 
 @pytest.fixture
 def provisioned_domain_name(oim_connection_details):
-    result = run_remote_cmd(oim_connection_details, "cat /opt/omnia/input/project_default/provision_config.yml")
+    result = run_remote_cmd(oim_connection_details, "cat /opt/omnia/.data/oim_metadata.yml")
     if result.returncode != 0:
-        pytest.fail(f"Failed to read provision config: {result.stderr.strip()}")
+        pytest.fail(f"Failed to read domain_name from oim_metadata.yml: {result.stderr.strip()}")
     try:
         config_data = yaml.safe_load(result.stdout)
         return config_data.get("domain_name")
