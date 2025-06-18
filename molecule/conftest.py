@@ -242,3 +242,93 @@ def sync_directories():
             
     return _sync_directories
 
+
+test_results = []
+
+# Hook to capture test case results (ID, Name, Status)
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+    if report.when == "call":  # Capture results for executed tests only
+        test_name = item.nodeid.split("::")[-1]  # Full test function name
+        scenario_name = os.getenv("MOLECULE_SCENARIO_NAME", "default")  # Scenario Name
+        qtest_marker = item.get_closest_marker("qtest_id")
+        qtest_id = qtest_marker.args[0] if qtest_marker else "N/A"  # Extract qTest ID
+        status = "Passed" if report.passed else "Failed" if report.failed else "Skipped"
+        
+        # Append results to global list
+        test_results.append((scenario_name, qtest_id, test_name, status))
+
+
+def pytest_sessionfinish(session, exitstatus):
+    if test_results:
+        scenario_name = test_results[0][0]  # Get the scenario name from the first test result
+    else:
+        scenario_name = "default"
+
+    filename = f"{scenario_name}.html"
+
+    # **Count Test Case Results**
+    total_tests = len(test_results)
+    passed_tests = sum(1 for _, _, _, status in test_results if status == "Passed")
+    failed_tests = sum(1 for _, _, _, status in test_results if status == "Failed")
+    skipped_tests = sum(1 for _, _, _, status in test_results if status == "Skipped")
+
+    # Generate HTML content
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <title>Molecule Test Results</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 10px; text-align: left; }}
+        th {{ background-color: #f4f4f4; }}
+        .passed {{ color: green; }}
+        .failed {{ color: red; }}
+        .skipped {{ color: orange; }}
+        .summary {{ margin-top: 20px; font-size: 18px; }}
+    </style>
+</head>
+<body>
+    <h2>Molecule Test Results Summary</h2>
+
+    <!-- Summary Section -->
+    <div class="summary">
+        <strong>Total Test Cases:</strong> {total_tests} <br>
+        <strong>Passed:</strong> <span class="passed">{passed_tests}</span> <br>
+        <strong>Failed:</strong> <span class="failed">{failed_tests}</span> <br>
+        <strong>Skipped:</strong> <span class="skipped">{skipped_tests}</span> <br>
+    </div>
+
+    <table>
+        <tr>
+            <th>Scenario Name</th>
+            <th>Test Case ID</th>
+            <th>Test Name</th>
+            <th>Test Status</th>
+        </tr>"""
+
+    # Add test results to the HTML table
+    for scenario, qtest_id, test_name, status in test_results:
+        status_class = "passed" if status == "Passed" else "failed" if status == "Failed" else "skipped"
+        html_content += f"""
+        <tr>
+            <td>{scenario}</td>
+            <td>{qtest_id}</td>
+            <td>{test_name}</td>
+            <td class="{status_class}">{status}</td>
+        </tr>"""
+
+    html_content += """
+    </table>
+</body>
+</html>"""
+
+    # Save to an HTML file
+    with open(filename, "w") as file:
+        file.write(html_content)
+
+    print(f"\nMolecule test results saved to {filename}")
+    print(f"Summary: Total={total_tests}, Passed={passed_tests}, Failed={failed_tests}, Skipped={skipped_tests}")
