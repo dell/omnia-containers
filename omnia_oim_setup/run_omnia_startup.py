@@ -15,153 +15,222 @@
 import subprocess
 import sys
 import os
-import pytest
-import getpass
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-import config
-
-
-ip = config.OIM_IP
-password = config.OIM_PASS
-user = config.OIM_USERNAME
+import argparse
+import re
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-input_path = os.path.join(script_dir, 'inputs')
+input_path = "/home/omnia_input/inputs"
 
-def download_omnia_startup(branch_name):
+def update_config(ip, password, username):
+    config_path = os.path.join(script_dir, '../config.py')
+
+    with open(config_path, 'r') as file:
+        lines = file.readlines()
+
+    updated_lines = []
+    found_ip = found_pass = found_username = False
+
+    for line in lines:
+        if re.match(r'\s*OIM_IP\s*=\s*', line):
+            updated_lines.append(f'OIM_IP = "{ip}"\n')
+            found_ip = True
+        elif re.match(r'\s*OIM_PASS\s*=\s*', line):
+            updated_lines.append(f'OIM_PASS = "{password}"\n')
+            found_pass = True
+        elif re.match(r'\s*OIM_USERNAME\s*=\s*', line):
+            updated_lines.append(f'OIM_USERNAME = "{username}"\n')
+            found_username = True
+        else:
+            updated_lines.append(line)
+
+    if not found_ip:
+        updated_lines.append(f'OIM_IP = "{ip}"\n')
+    if not found_pass:
+        updated_lines.append(f'OIM_PASS = "{password}"\n')
+    if not found_username:
+        updated_lines.append(f'OIM_USERNAME = "{username}"\n')
+
+    with open(config_path, 'w') as file:
+        file.writelines(updated_lines)
+
+def inv_creation(ip, user, password):
+    inv_path = os.path.join(script_dir, '../molecule/inv')
+    content = f"""[oim]
+{ip} ansible_user={user} ansible_password={password}
+"""
+    with open(inv_path, 'w') as f:
+        f.write(content)
+    print("Inventory file 'inv' has been created.")
+
+def download_omnia_startup(ip, password, branch_name):
     url = f"https://raw.githubusercontent.com/dell/omnia/{branch_name}/omnia_startup.sh"
-    
-    ssh_command = [
-        "sshpass", "-p", password,
-        "ssh", "-o", "StrictHostKeyChecking=no",
-        f"root@{ip}",
-        f"rm -f omnia_startup.sh && wget {url}"
-    ]
-
+    cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+           f"root@{ip}", f"rm -f omnia_startup.sh && wget {url}"]
     try:
-        result = subprocess.run(ssh_command, capture_output=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode == 0:
             print("omnia_startup.sh downloaded successfully")
         else:
-            print("Failed to download omnia_startup.sh:")
-            print(result.stderr)
+            print("Download failed:", result.stderr)
     except Exception as e:
         print(f"Error: {e}")
 
-def executing_omnia_startup(startup_input):
-    if startup_input == 1:
-        local_input_file = f"{input_path}/nfs_input.txt"
-    elif startup_input == 2:
-        local_input_file = f"{input_path}/local_input.txt"
-    else:
-        print("\nInvalid input type.")
-        sys.exit(1)
+def cleanup_omnia_container(ip, password):
+    try:
+        cleanup_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                       f"root@{ip}",
+                       "podman exec omnia_core bash -c 'cd /omnia/utils && ansible-playbook oim_cleanup.yml'"]
+        cleanup = subprocess.run(cleanup_cmd, capture_output=True, text=True)
+        print(cleanup.stdout)
+        if cleanup.returncode != 0:
+            print("Cleanup failed:", cleanup.stderr)
+            return False
 
-    filename = os.path.basename(local_input_file)
+        remove_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                      f"root@{ip}",
+                      "podman rm -f omnia_core && podman rmi -f $(podman images -q)"]
+        remove = subprocess.run(remove_cmd, capture_output=True, text=True)
+        print(remove.stdout)
+        return remove.returncode == 0
+      
+    except Exception as e:
+        print(f"Cleanup error: {e}")
+        return False
+
+def execute_omnia_startup(ip, password, startup_input):
+    file_map = {1: "nfs_input.txt", 2: "local_input.txt"}
+    if startup_input not in file_map:
+        print("Invalid input type.")
+        return False
+
+    local_input = os.path.join(input_path, file_map[startup_input])
     remote_dir = "/root/inputs"
-    remote_clean_input_path = f"{remote_dir}/cleaned_input.txt"
-
-
-    clean_input_lines = []
-    
-    with open(local_input_file, "r") as f:
-        for line in f:
-            parts = line.strip().split(":", 1)
-            if len(parts) == 2:
-                clean_input_lines.append(parts[1].strip())
-
-    clean_input_file = "cleaned_input.txt"
-    with open(clean_input_file, "w") as f:
-        f.write("\n".join(clean_input_lines))
-
-
-    # Step 1: Ensure remote directory exists
-    create_dir_cmd = [
-        "sshpass", "-p", password,
-        "ssh", "-o", "StrictHostKeyChecking=no",
-        f"root@{ip}", f"mkdir -p {remote_dir}"
-    ]
-    try:
-        subprocess.run(create_dir_cmd, check=True, capture_output=True, text=True)
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to create directory on remote host:\n{e.stderr}")
-        return
-
-    # Step 2: Copy input file to remote host
-    scp_command = [
-        "sshpass", "-p", password,
-        "scp", "-o", "StrictHostKeyChecking=no",
-        clean_input_file, f"root@{ip}:{remote_clean_input_path}"
-    ]
-    try:
-        scp_result = subprocess.run(scp_command, capture_output=True, text=True)
-        if scp_result.returncode != 0:
-            print("Failed to copy input file to remote host:")
-            print(scp_result.stderr)
-            return
-    except Exception as e:
-        print(f"SCP error: {e}")
-        return
-
-    # Step 3: Run script with input redirection on remote host
-    ssh_command = [
-    "sshpass", "-p", password,
-    "ssh", "-o", "StrictHostKeyChecking=no", f"root@{ip}",
-    f"chmod +x omnia_startup.sh && ./omnia_startup.sh < {remote_clean_input_path}"
-    ]
+    remote_input = f"{remote_dir}/cleaned_input.txt"
+    clean_local = "cleaned_input.txt"
 
     try:
-        result = subprocess.run(ssh_command, capture_output=True, text=True)
-        if "Omnia core container is already running" in result.stdout or "Failed to intiatiate omnia_core container cleanup." in result.stdout:
-            print("\nOmnia core container is already running.")
-            sys.exit(1)
-        
-        elif result.returncode == 0:
-            print("omnia_startup.sh executed successfully with automated input")
+        with open(local_input, "r") as f:
+            lines = [line.strip().split(":", 1)[1].strip() for line in f if ":" in line]
+        with open(clean_local, "w") as f:
+            f.write("\n".join(lines))
+
+        subprocess.run(["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                        f"root@{ip}", f"mkdir -p {remote_dir}"], check=True)
+
+        subprocess.run(["sshpass", "-p", password, "scp", "-o", "StrictHostKeyChecking=no",
+                        clean_local, f"root@{ip}:{remote_input}"], check=True)
+
+        cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+               f"root@{ip}", f"chmod +x omnia_startup.sh && ./omnia_startup.sh < {remote_input}"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            print("omnia_startup.sh executed successfully")
             print(result.stdout)
-            
+            # Clean up remote input file
+            cleanup_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                          f"root@{ip}", f"rm -f {remote_input}"]
+            try:
+                subprocess.run(cleanup_cmd, capture_output=True, text=True)
+                print("Remote input file cleaned up")
+            except Exception as e:
+                print(f"Warning: Failed to clean up remote input file: {e}")
+            return True
         else:
-            print("Script failed:")
-            print(result.stderr)
+            print("Execution failed:", result.stderr)
+            return False
     except Exception as e:
-        print(f"SSH error: {e}")
+        print(f"Execution error: {e}")
+        return False
+    finally:
+        if os.path.exists(clean_local):
+            os.remove(clean_local)
 
-def run_pytest_for():
-    exit_code = pytest.main([f'{script_dir}/tests/test_startup_validation.py'])
-    if exit_code != 0:
-        raise Exception(f"Tests for creating omnia core failed")
+def executing_omnia_startup(ip, password, startup_input):
+    check_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                 f"root@{ip}", "podman ps | grep omnia_core"]
+    check = subprocess.run(check_cmd, capture_output=True, text=True)
 
-def inv_creation():
-    # Generate inventory file content
-    inventory_content = f"""[oim]
-    {ip} ansible_user={user} ansible_password={password}
-    """
-    
-    inv_path = os.path.join(script_dir, '../molecule/oim_inv')
-    
-    # Write to a file
-    with open(inv_path, "w") as file:
-        file.write(inventory_content)
+    if check.returncode == 0 or "Failed to initiate omnia_core container cleanup." in check.stdout:
+        if not cleanup_omnia_container(ip, password):
+            print("Cleanup failed. Aborting.")
+            return False
 
-    print("Inventory file 'inv' has been created.")
-    
+    return execute_omnia_startup(ip, password, startup_input)
 
+def login_to_registry(ip, password, username, registry_password):
+    cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+           f"root@{ip}", f"podman login nssm.artifactory.cec.lab.emc.com -u {username} -p {registry_password}"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode == 0:
+        print("Registry login successful")
+        return True
+    else:
+        print("Registry login failed:", result.stderr)
+        return False
+
+def pull_podman_images(ip, password, image_name):
+    cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+           f"root@{ip}", f"podman pull {image_name}"]
+    try:
+        print(f"Pulling {image_name} on {ip}...")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        print(result.stdout if result.returncode == 0 else result.stderr)
+    except Exception as e:
+        print(f"Error pulling image: {e}")
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--oim-ip', required=True)
+    parser.add_argument('--oim-username', required=True)
+    parser.add_argument('--oim-password', required=True)
+    parser.add_argument('--branch-name', default='staging')
+    parser.add_argument('--startup-type', required=True, type=int)
+    parser.add_argument('--registry-user', required=True)
+    parser.add_argument('--registry-password', required=True)
+    args = parser.parse_args()
 
-    branch_name = input("Enter branch name you want to download: ")
+    if args.startup_type not in [1, 2]:
+        print("Startup type must be 1 (NFS) or 2 (Local)")
+        sys.exit(1)
 
-    while True:
-        startup_input = int(input("Choose the type of Omnia shared path\n1. NFS\n2. Local\nEnter choice: "))
-        if startup_input == 1 or startup_input == 2:
-            break
-        else:
-            print("\nInvalid input. Please enter '1' or '2'.")
+    ip = args.oim_ip
+    password = args.oim_password
+    user = args.oim_username
 
-    download_omnia_startup(branch_name)
-    inv_creation()
-    executing_omnia_startup(startup_input)
-    run_pytest_for()
+    update_config(ip, password, user)
+    download_omnia_startup(ip, password, args.branch_name)
+    inv_creation(ip, user, password)
+
+    # Check if omnia_core is running and clean up if so
+    check_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+                 f"root@{ip}", "podman ps | grep omnia_core"]
+    check = subprocess.run(check_cmd, capture_output=True, text=True)
+
+    if check.returncode == 0:
+        print("omnia_core is running. Performing cleanup...")
+        if not cleanup_omnia_container(ip, password):
+            print("Cleanup failed. Aborting.")
+            sys.exit(1)
+
+    # Login and pull fresh images
+    if login_to_registry(ip, password, args.registry_user, args.registry_password):
+        images = [
+            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_core:latest",
+            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_kubespray:v2.27.0",
+            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_pcs:latest",
+            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_provision:latest"
+        ]
+        for img in images:
+            pull_podman_images(ip, password, img)
+    else:
+        print("Skipping image pulls due to registry login failure.")
+        sys.exit(1)
+
+    # Run the omnia startup only after everything else is clean
+    if not execute_omnia_startup(ip, password, args.startup_type):
+        print("Omnia startup failed.")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
