@@ -27,7 +27,7 @@ import config
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-inventory_path = os.path.join(script_dir, "inv")
+inventory_path = os.path.join(script_dir, "/home/omnia_input/inv")
 os.environ['ANSIBLE_INVENTORY'] = inventory_path
 
 oim_ip = config.OIM_IP
