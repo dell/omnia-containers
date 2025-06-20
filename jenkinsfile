@@ -1,0 +1,297 @@
+def failedStages = []
+
+pipeline {
+    agent {
+        node {
+            label 'omnia-jenkins'
+        }
+    }
+
+    parameters {
+        string(name: 'OIM_IP', defaultValue: '', description: 'IP address of the OIM server')
+        string(name: 'OIM_USERNAME', defaultValue: '', description: 'OIM username')
+        password(name: 'OIM_PASSWORD', defaultValue: '', description: 'OIM user password')
+        string(name: 'HOST_IP', defaultValue: '', description: 'Validation server IP address')
+        string(name: 'HOST_USERNAME', defaultValue: 'host', description: 'Username for validation server')
+        password(name: 'HOST_PASSWORD', defaultValue: 'host_pass', description: 'Password for validation server')
+        string(name: 'ARTIFACTORY_USERNAME', defaultValue: '', description: 'Artifactory username')
+        password(name: 'ARTIFACTORY_PASSWORD', defaultValue: '', description: 'Artifactory password')
+        string(name: 'BRANCH_NAME', defaultValue: 'staging', description: 'Git branch name to download')
+        choice(name: 'STARTUP_TYPE', choices: ['1', '2'], description: '1 for NFS, 2 for Local')
+        string(name: 'NFS_PATH', defaultValue: '', description: 'NFS path for input files')
+        string(name: 'PROVISION_PASSWORD', defaultValue: '', description: 'Provision password for database operations')
+    }
+    options {
+        disableConcurrentBuilds()
+        skipDefaultCheckout()
+        timestamps()
+    }
+    
+    environment {
+        VALIDATION_SUITE_DIR = '/root/omnia_automation/automation'
+        OMNIA_VENV_DIR = '/opt/omnia'
+        OMNIA_INPUT_DIR = '/home/omnia_input'
+    }
+    
+    stages {
+
+        stage('Clone Omnia test repository') {
+            steps {
+                script {
+                    try {
+                        echo "Cloning Omnia test repository.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                            "rm -rf /root/omnia_automation/automation && cd /root/omnia_automation/ && git clone -b automation https://github.com/Rohith-Ravut/automation.git"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Cloning Omnia test repository as failed"
+                        failedStages.add('Cloning Omnia test repository')
+                        error("Cloning Omnia test repository stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Installing Prerequisites') {
+            steps {
+                script {
+                    try {
+                        echo "Installing prerequisites.."
+                            sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
+                            "cd ${VALIDATION_SUITE_DIR} && ./prerequisites.sh"
+                            """
+                    } catch (Exception e) {
+                        echo "Marking stage Installing Prerequisites as failed"
+                        failedStages.add('Installing Prerequisites')
+                        error("Installing Prerequisites stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Run Omnia Startup') {
+            steps {
+                script {
+                    try {
+                        echo "Running Omnia startup.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
+                            "cd ${VALIDATION_SUITE_DIR}/omnia_oim_setup && \
+                            source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && \
+                            python run_omnia_startup.py \
+                                --oim-ip ${params.OIM_IP} \
+                                --oim-username ${params.OIM_USERNAME} \
+                                --oim-password ${params.OIM_PASSWORD} \
+                                --branch-name ${params.BRANCH_NAME} \
+                                --startup-type ${params.STARTUP_TYPE} \
+                                --registry-user ${params.ARTIFACTORY_USERNAME} \
+                                --registry-password ${params.ARTIFACTORY_PASSWORD}"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Run Omnia Startup as failed"
+                        echo "Error details: ${e.message}"
+                        failedStages.add('Run Omnia Startup')
+                        error("Run Omnia Startup stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Verifying Omnia startup') {
+            steps {
+                script {
+                    try {
+                        echo "Verifying Omnia startup.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                            "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s omnia_startup"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Verifying Omnia startup as failed"
+                        failedStages.add('Verifying Omnia startup')
+                        error("Verifying Omnia startup stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Copying input files to OIM') {
+            steps {
+                script {
+                    try {
+                        echo "Copying input files to OIM.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' scp -r -o StrictHostKeyChecking=no \
+                            ${OMNIA_INPUT_DIR}/project_default ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/input/
+                            sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no \
+                            ${OMNIA_INPUT_DIR}/inv ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Copying input files to OIM as failed"
+                        failedStages.add('Copying input files to OIM')
+                        error("Copying input files to OIM stage failed")
+                    }
+                }
+            }
+        }
+        
+        stage('Prepare OIM') {
+            steps {
+                script {
+                    try {
+                        echo "Executing prepare_oim.yml.."
+                        sh """
+                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/prepare_oim/prepare_oim.yml'"
+                        """
+
+                        echo "Verifying prepare_oim.yml.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                            "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s prepare_oim"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Prepare OIM as failed"
+                        failedStages.add('Prepare OIM')
+                        error("Prepare OIM stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Local Repository') {
+            steps {
+                script {
+                    try {
+                        echo "Executing local_repo.yml.."
+                        sh """
+                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/local_repo/local_repo.yml'"
+                        """
+
+                        echo "Verifying local_repo.yml.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                            "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s local_repo"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Local Repository as failed"
+                        failedStages.add('Local Repository')
+                        error("Local Repository stage failed")
+                    }
+                }
+            }
+        }
+
+        stage('Discovery Provision') {
+            steps {
+                script {
+                    
+                    try {
+                        echo "Executing discovery_provision.yml.."
+                        sh """
+                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/discovery_provision.yml'"
+                        """
+                        
+                        echo "Verifying discovery_provision.yml.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
+                            "bash -c 'export PROVISION_PASSWORD=${params.PROVISION_PASSWORD} && source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s discovery_provision'"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Discovery Provision as failed"
+                        failedStages.add('Discovery Provision')
+                        error("Discovery Provision stage failed")
+                    }
+                }
+            }
+        }
+
+
+        stage('Omnia.yml') {
+            steps {
+                script {
+                    try {
+                        echo "Executing omnia.yml.."
+                        sh """
+                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/omnia.yml -i /opt/omnia/inv'"
+                        """
+                        
+                        echo "Verifying omnia.yml.."
+                        sh """
+                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking-no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                            "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s omnia"
+                        """
+                    } catch (Exception e) {
+                        echo "Marking stage Omnia.yml as failed"
+                        failedStages.add('Omnia.yml')
+                        error("Omnia.yml stage failed")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                echo "Sending success email..."
+                echo "Job Name: ${env.JOB_NAME}"
+                echo "Build URL: ${env.BUILD_URL}"
+                echo "Email recipient: rohith.ravut@dell.com, venkateswara.vatam@dell.com"
+                
+                try {
+                    emailext(
+                        subject: "Jenkins Job Success: ${env.JOB_NAME}",
+                        body: "All stages completed successfully in job ${env.JOB_NAME}\n\nBuild URL: ${env.BUILD_URL}",
+                        to: 'rohith.ravut@dell.com, venkateswara.vatam@dell.com',
+                        attachmentsPattern: 'omnia_startup.html,prepare_oim.html,local_repo.html,discovery_provision.html,omnia.html'
+                    )
+                    echo "Success email sent successfully"
+                } catch (Exception e) {
+                    echo "Failed to send success email: ${e.message}"
+                }
+            }
+        }
+        always {
+            script {
+                // Always fetch reports regardless of previous stage failures
+                sh """
+                    sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP}:${VALIDATION_SUITE_DIR}/molecule/omnia_startup/omnia_startup.html . || true
+                    sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP}:${VALIDATION_SUITE_DIR}/molecule/prepare_oim/prepare_oim.html . || true
+                    sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP}:${VALIDATION_SUITE_DIR}/molecule/local_repo/local_repo.html . || true
+                    sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP}:${VALIDATION_SUITE_DIR}/molecule/discovery_provision/discovery_provision.html . || true
+                    sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP}:${VALIDATION_SUITE_DIR}/molecule/omnia/omnia.html . || true
+                """
+            }
+        }
+        failure {
+            script {
+                if (failedStages.size() > 0) {
+                    def failedStagesList = failedStages.join(', ')
+                    echo "Sending failure email..."
+                    echo "Job Name: ${env.JOB_NAME}"
+                    echo "Build URL: ${env.BUILD_URL}"
+                    echo "Failed stages: ${failedStagesList}"
+                    echo "Email recipient: rohith.ravut@dell.com, venkateswara.vatam@dell.com"      
+                    try {
+                        emailext(
+                            subject: "Jenkins Job Failed: ${env.JOB_NAME}",
+                            body: "The following stage(s) failed in job ${env.JOB_NAME}: ${failedStagesList}\n\nBuild URL: ${env.BUILD_URL}",
+                            to: 'rohith.ravut@dell.com, venkateswara.vatam@dell.com',
+                            attachmentsPattern: 'omnia_startup.html,prepare_oim.html,local_repo.html,discovery_provision.html,omnia.html'
+                        )
+                        echo "Failure email sent successfully"
+                    } catch (Exception e) {
+                        echo "Failed to send failure email: ${e.message}"
+                    }
+                }
+            }
+        }
+    }
+}
+   
