@@ -137,7 +137,7 @@ def test_add_user(auth_server, remote_user="root", container_name="omnia_core"):
             continue
 
         # Step 2: Add user
-        print(f"➕ Adding user '{username}' on {node_ip}...")
+        print(f"Adding user '{username}' on {node_ip}...")
 
         add_cmd = (
             f"sshpass -p {oim_password} ssh -o StrictHostKeyChecking=no {remote_user}@{oim_ip} "
