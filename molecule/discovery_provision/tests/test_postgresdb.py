@@ -12,17 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import argparse
+import os
 import pytest
 
 def test_postgres_db(run_sshpass_command, get_file_from_container, extract_create_table_sql, extract_columns_from_create_sql):
     create_omniadb_file_path = "/opt/omnia/shared_libraries/provision/db_operations/create_omniadb_tables.py"
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--provision-password', required=True)
-    args = parser.parse_args()
-    
-    provision_password = args.provision_password
+    provision_password = os.getenv("PROVISION_PASSWORD")
+    assert provision_password, "Missing environment variable: PROVISION_PASSWORD"
     # Get file content from container
     file_content = get_file_from_container(run_sshpass_command, create_omniadb_file_path)
     assert file_content, "\nStep 1 failed: File content is empty or could not be read."
