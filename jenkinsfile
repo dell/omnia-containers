@@ -40,10 +40,10 @@ pipeline {
                 script {
                     try {
                         echo "Cloning Omnia test repository.."
-                        sh """
-                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
-                            "rm -rf /root/omnia_automation/automation && cd /root/omnia_automation/ && git clone -b automation https://github.com/Rohith-Ravut/automation.git"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                        //     "rm -rf /root/omnia_automation/automation && cd /root/omnia_automation/ && git clone -b automation https://github.com/Rohith-Ravut/automation.git"
+                        // """
                     } catch (Exception e) {
                         echo "Marking stage Cloning Omnia test repository as failed"
                         failedStages.add('Cloning Omnia test repository')
@@ -58,10 +58,10 @@ pipeline {
                 script {
                     try {
                         echo "Installing prerequisites.."
-                            sh """
-                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
-                            "cd ${VALIDATION_SUITE_DIR} && ./prerequisites.sh"
-                            """
+                            // sh """
+                            // sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
+                            // "cd ${VALIDATION_SUITE_DIR} && ./prerequisites.sh"
+                            // """
                     } catch (Exception e) {
                         echo "Marking stage Installing Prerequisites as failed"
                         failedStages.add('Installing Prerequisites')
@@ -76,19 +76,19 @@ pipeline {
                 script {
                     try {
                         echo "Running Omnia startup.."
-                        sh """
-                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
-                            "cd ${VALIDATION_SUITE_DIR}/omnia_oim_setup && \
-                            source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && \
-                            python run_omnia_startup.py \
-                                --oim-ip ${params.OIM_IP} \
-                                --oim-username ${params.OIM_USERNAME} \
-                                --oim-password ${params.OIM_PASSWORD} \
-                                --branch-name ${params.BRANCH_NAME} \
-                                --startup-type ${params.STARTUP_TYPE} \
-                                --registry-user ${params.ARTIFACTORY_USERNAME} \
-                                --registry-password ${params.ARTIFACTORY_PASSWORD}"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
+                        //     "cd ${VALIDATION_SUITE_DIR}/omnia_oim_setup && \
+                        //     source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && \
+                        //     python run_omnia_startup.py \
+                        //         --oim-ip ${params.OIM_IP} \
+                        //         --oim-username ${params.OIM_USERNAME} \
+                        //         --oim-password ${params.OIM_PASSWORD} \
+                        //         --branch-name ${params.BRANCH_NAME} \
+                        //         --startup-type ${params.STARTUP_TYPE} \
+                        //         --registry-user ${params.ARTIFACTORY_USERNAME} \
+                        //         --registry-password ${params.ARTIFACTORY_PASSWORD}"
+                        // """
                     } catch (Exception e) {
                         echo "Marking stage Run Omnia Startup as failed"
                         echo "Error details: ${e.message}"
