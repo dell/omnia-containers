@@ -259,7 +259,7 @@ def main():
         clone_cmd = [
             "sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
             f"root@{ip}",
-            f"podman exec omnia_core bash -c 'cd / && git clone -b {args.branch_name} https://github.com/dell/omnia.git .'",
+            f"podman exec omnia_core bash -c 'cd / && git clone -b {args.branch_name} https://github.com/dell/omnia.git'",
         ]
         try:
             result = subprocess.run(clone_cmd, capture_output=True, text=True)
