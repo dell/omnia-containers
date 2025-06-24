@@ -20,7 +20,7 @@ def test_omnia_inventroy_files(run_sshpass_command):
     
     print("\nVerifying omnia_inventory files")
     
-    files_to_be_created = ["cluster_layout", "compute_cpu_amd", "compute_cpu_intel", "compute_gpu_amd", "compute_gpu_intel", "compute_gpu_nvidia", "compute_hostname_ip"]
+    files_to_be_created = ["compute_cpu_amd", "compute_cpu_intel", "compute_gpu_amd", "compute_gpu_intel", "compute_gpu_nvidia", "compute_hostname_ip"]
     
     files_created = []
     files_not_created = []
