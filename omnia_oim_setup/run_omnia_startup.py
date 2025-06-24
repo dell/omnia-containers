@@ -97,6 +97,8 @@ def cleanup_omnia_container(ip, password):
         print(f"Cleanup error: {e}")
         return False
 
+
+
 def execute_omnia_startup(ip, password, startup_input):
     file_map = {1: "nfs_input.txt", 2: "local_input.txt"}
     if startup_input not in file_map:
@@ -201,6 +203,9 @@ def main():
     download_omnia_startup(ip, password, args.branch_name)
     inv_creation(ip, user, password)
 
+    # Check if branch is not staging and perform cleanup if needed
+    
+
     # Check if omnia_core is running and clean up if so
     check_cmd = ["sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
                  f"root@{ip}", "podman ps | grep omnia_core"]
@@ -230,7 +235,41 @@ def main():
     if not execute_omnia_startup(ip, password, args.startup_type):
         print("Omnia startup failed.")
         sys.exit(1)
+    
+    if args.branch_name != 'staging':
+        print(f"Branch is {args.branch_name}, performing omnia folder cleanup and clone...")
+        
+        # SSH into omnia_core and remove omnia folder
+        remove_cmd = [
+            "sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+            f"root@{ip}",
+            "podman exec omnia_core bash -c 'rm -rf /omnia'"
+        ]
+        try:
+            result = subprocess.run(remove_cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Error removing omnia folder: {result.stderr}")
+                sys.exit(1)
+            print("Successfully removed and recreated omnia folder")
+        except Exception as e:
+            print(f"Error during omnia folder cleanup: {e}")
+            sys.exit(1)
 
+        # Clone the specific branch into omnia folder
+        clone_cmd = [
+            "sshpass", "-p", password, "ssh", "-o", "StrictHostKeyChecking=no",
+            f"root@{ip}",
+            f"podman exec omnia_core bash -c 'cd /omnia && git clone -b {args.branch_name} https://github.com/dell/omnia.git .'",
+        ]
+        try:
+            result = subprocess.run(clone_cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Error cloning branch {args.branch_name}: {result.stderr}")
+                sys.exit(1)
+            print(f"Successfully cloned branch {args.branch_name} into omnia folder")
+        except Exception as e:
+            print(f"Error during branch clone: {e}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
