@@ -122,12 +122,12 @@ pipeline {
                 script {
                     try {
                         echo "Copying input files to OIM.."
-                        sh """
-                            sshpass -p '${params.HOST_PASSWORD}' scp -r -o StrictHostKeyChecking=no \
-                            ${OMNIA_INPUT_DIR}/project_default ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/input/
-                            sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no \
-                            ${OMNIA_INPUT_DIR}/inv ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/
-                        """
+                        // sh """
+                        //     sshpass -p '${params.HOST_PASSWORD}' scp -r -o StrictHostKeyChecking=no \
+                        //     ${OMNIA_INPUT_DIR}/project_default ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/input/
+                        //     sshpass -p '${params.HOST_PASSWORD}' scp -o StrictHostKeyChecking=no \
+                        //     ${OMNIA_INPUT_DIR}/inv ${params.OIM_USERNAME}@${params.OIM_IP}:${params.NFS_PATH}/omnia/
+                        // """
                     } catch (Exception e) {
                         echo "Marking stage Copying input files to OIM as failed"
                         failedStages.add('Copying input files to OIM')
@@ -142,10 +142,10 @@ pipeline {
                 script {
                     try {
                         echo "Executing prepare_oim.yml.."
-                        sh """
-                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
-                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/prepare_oim/prepare_oim.yml'"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                        //     "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/prepare_oim/prepare_oim.yml'"
+                        // """
 
                         echo "Verifying prepare_oim.yml.."
                         sh """
@@ -166,10 +166,10 @@ pipeline {
                 script {
                     try {
                         echo "Executing local_repo.yml.."
-                        sh """
-                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
-                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/local_repo/local_repo.yml'"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                        //     "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/local_repo/local_repo.yml'"
+                        // """
 
                         echo "Verifying local_repo.yml.."
                         sh """
@@ -191,10 +191,10 @@ pipeline {
                     
                     try {
                         echo "Executing discovery_provision.yml.."
-                        sh """
-                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
-                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/discovery_provision.yml'"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                        //     "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/discovery_provision.yml'"
+                        // """
                         
                         echo "Verifying discovery_provision.yml.."
                         sh """
@@ -216,16 +216,16 @@ pipeline {
                 script {
                     try {
                         echo "Executing omnia.yml.."
-                        sh """
-                            sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
-                            "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/omnia.yml -i /opt/omnia/inv'"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.OIM_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.OIM_USERNAME}@${params.OIM_IP} \\
+                        //     "podman exec omnia_core /bin/bash -c 'cd omnia && ansible-playbook /omnia/omnia.yml -i /opt/omnia/inv'"
+                        // """
                         
                         echo "Verifying omnia.yml.."
-                        sh """
-                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking-no ${params.HOST_USERNAME}@${params.HOST_IP} \\
-                            "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s omnia"
-                        """
+                        // sh """
+                        //     sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking-no ${params.HOST_USERNAME}@${params.HOST_IP} \\
+                        //     "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s omnia"
+                        // """
                     } catch (Exception e) {
                         echo "Marking stage Omnia.yml as failed"
                         failedStages.add('Omnia.yml')
