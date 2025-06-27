@@ -91,5 +91,5 @@ def test_pulp_status(run_sshpass_command):
     cmd = f"podman exec -it omnia_core pulp status"
     
     result = run_sshpass_command(cmd)
-    assert result.returncode == 0, f"\npulp status is disabled.\nError:\n{result.stderr}"
+    assert result.returncode == 0, print(f"\npulp status is disabled.\nError:\n{result.stderr}")
     print("\npulp status is active")
