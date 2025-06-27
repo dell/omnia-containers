@@ -80,8 +80,8 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command):
         if not any("Started" in line for line in lines):
             not_started.append(res)
 
-    assert not missing, f"Missing resources in PCS status: {missing}"
-    assert not not_started, f"Resources not started: {not_started}"
+    assert not missing, print(f"Missing resources in PCS status: {missing}")
+    assert not not_started, print(f"Resources not started: {not_started}")
 
     print("\nAll PCS resources are present and started.")
 
