@@ -45,10 +45,10 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
         if not found:
             containers_missing.append(container)
 
-    assert not containers_missing, (
+    assert not containers_missing, print(
         f"\nThe following required containers are missing:\n" + "\n".join(containers_missing)
     )
-    assert not containers_not_running, (
+    assert not containers_not_running, print(
         f"\nThe following required containers are not running:\n" + "\n".join(containers_not_running)
     )
 
