@@ -81,36 +81,6 @@ def get_required_containers(run_sshpass_command):
             pytest.fail(f"Unexpected error: {e}")
     return _get_required_containers
 
-        
-@pytest.fixture
-def get_required_pcs_resources(run_sshpass_command):
-    """
-    Returns a function that fetches required PCS resources based on presence of 'k8s' in config.
-    Supports both OIM and OIM_HA via the `use_ha` flag.
-    """
-    def _get_required_pcs_resources(use_ha=False):
-        cmd = f"podman exec omnia_core cat {software_config_path}"
-        result = run_sshpass_command(cmd, use_ha=use_ha)
-
-        if result.returncode != 0:
-            pytest.fail(f"Failed to fetch file from container: {result.stderr}")
-
-        try:
-            data = json.loads(result.stdout)
-            softwares = data.get("softwares", [])
-            if any(software.get("name") == "k8s" for software in softwares):
-                print(f"\nk8s found on {'OIM_HA' if use_ha else 'OIM'} node.\n")
-                return ["omnia_core", "pulp", "omnia_provision", "omnia_kubespray"]
-            else:
-                print(f"\nk8s not found on {'OIM_HA' if use_ha else 'OIM'} node.\n")
-                return ["omnia_core", "omnia_provision", "pulp"]
-        except json.JSONDecodeError:
-            pytest.fail("Invalid JSON in software_config.json")
-        except Exception as e:
-            pytest.fail(f"Unexpected error: {e}")
-    
-    return _get_required_pcs_resources
-        
 @pytest.fixture
 def get_file_from_container():    
     def _get_file_from_container(run_sshpass_command, file_path):
@@ -220,20 +190,39 @@ def get_compute_nodes():
     return _get
     
 @pytest.fixture
-def get_required_pcs_resources_HA():
-    def _get(run_sshpass_command):
-        cmd = f"podman exec omnia_core cat /opt/omnia/input/project_default/software_config.json"
-        result = run_sshpass_command(cmd)
+def get_required_pcs_resources():
+    """
+    Returns a function that fetches required PCS resources based on presence of 'k8s' in config.
+    Supports both OIM and OIM_HA via the `use_ha` flag and includes VIPs.
+    """
+    def _get(run_sshpass_command, use_ha=False, include_vips=False):
+        cmd = "podman exec omnia_core cat /opt/omnia/input/project_default/software_config.json"
+        result = run_sshpass_command(cmd, use_ha=use_ha)
+        
         assert result.returncode == 0, f"Failed to fetch software config: {result.stderr}"
+
         try:
             data = json.loads(result.stdout)
             softwares = data.get("softwares", [])
             has_k8s = any(s.get("name") == "k8s" for s in softwares)
-            base = ["admin_VIP", "bmc_VIP", "omnia_core", "omnia_provision", "pulp"]
-            return base + ["omnia_kubespray"] if has_k8s else base
+
+            base_resources = ["omnia_core", "omnia_provision", "pulp"]
+            if has_k8s:
+                base_resources.append("omnia_kubespray")
+
+            if include_vips:
+                base_resources = ["admin_VIP", "bmc_VIP"] + base_resources
+
+            print(f"\nk8s {'found' if has_k8s else 'not found'} on {'OIM_HA' if use_ha else 'OIM'} node.")
+            return base_resources
+
         except json.JSONDecodeError:
             pytest.fail("Invalid JSON in software_config.json")
+        except Exception as e:
+            pytest.fail(f"Unexpected error: {e}")
+    
     return _get
+
 
 @pytest.fixture
 def check_pcs_resource_status():
