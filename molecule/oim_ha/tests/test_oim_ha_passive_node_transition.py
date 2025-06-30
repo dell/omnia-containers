@@ -91,7 +91,7 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, 
     - Running on the expected node
     """
     expected_node = get_hostname(run_sshpass_command, use_ha=True)
-    expected_resources = get_required_pcs_resources(use_ha=True)
+    expected_resources = get_required_pcs_resources(run_sshpass_command, use_ha=True, include_vips=True)
 
     cmd = "podman exec -it omnia_pcs pcs resource"
     result = run_sshpass_command(cmd, use_ha=True)
@@ -99,6 +99,7 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, 
     assert result.returncode == 0, f"SSH command failed: {result.stderr}"
 
     pcs_output = result.stdout
+    print(pcs_output)
 
     missing_resources = []
     not_started_resources = []
