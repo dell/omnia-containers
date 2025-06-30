@@ -40,6 +40,12 @@ def update_config(ip, password, username):
         elif re.match(r'\s*OIM_USERNAME\s*=\s*', line):
             updated_lines.append(f'OIM_USERNAME = "{username}"\n')
             found_username = True
+        elif re.match(r'\s*OIM_HA_IP\s*=\s*', line):
+            updated_lines.append(f'OIM_HA_IP = "{ip}"\n')
+            found_ha_ip = True
+        elif re.match(r'\s*OIM_HA_PASS\s*=\s*', line):
+            updated_lines.append(f'OIM_HA_PASS = "{password}"\n')
+            found_ha_pass = True
         else:
             updated_lines.append(line)
 
@@ -49,6 +55,10 @@ def update_config(ip, password, username):
         updated_lines.append(f'OIM_PASS = "{password}"\n')
     if not found_username:
         updated_lines.append(f'OIM_USERNAME = "{username}"\n')
+    if not found_ha_ip:
+        updated_lines.append(f'OIM_HA_IP = "{ip}"\n')
+    if not found_ha_pass:
+        updated_lines.append(f'OIM_HA_PASS = "{password}"\n')
 
     with open(config_path, 'w') as file:
         file.writelines(updated_lines)
@@ -185,6 +195,8 @@ def main():
     parser.add_argument('--oim-ip', required=True)
     parser.add_argument('--oim-username', required=True)
     parser.add_argument('--oim-password', required=True)
+    parser.add_argument('--oim-ha-ip', required=True)
+    parser.add_argument('--oim-ha-password', required=True)
     parser.add_argument('--branch-name', default='staging')
     parser.add_argument('--startup-type', required=True, type=int)
     parser.add_argument('--registry-user', required=True)
@@ -198,8 +210,11 @@ def main():
     ip = args.oim_ip
     password = args.oim_password
     user = args.oim_username
+    ha_ip = args.oim_ha_ip
+    ha_password = args.oim_ha_password
 
     update_config(ip, password, user)
+    update_config(ha_ip, ha_password, user)
     download_omnia_startup(ip, password, args.branch_name)
     inv_creation(ip, user, password)
 
