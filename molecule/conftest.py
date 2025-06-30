@@ -21,6 +21,7 @@ import re
 import testinfra
 import testinfra.utils.ansible_runner
 import shutil
+import yaml
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 import config
@@ -30,20 +31,28 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 inventory_path = os.path.join(script_dir, "/home/omnia_input/inv")
 os.environ['ANSIBLE_INVENTORY'] = inventory_path
 
+software_config_path = "/opt/omnia/input/project_default/software_config.json"
+
 oim_ip = config.OIM_IP
 oim_password = config.OIM_PASS
-software_config_path = "/opt/omnia/input/project_default/software_config.json"
+
+oim_ha_ip = config.OIM_HA_IP
+oim_ha_password = config.OIM_HA_PASS
 
 @pytest.fixture
 def run_sshpass_command():
-    def _run(cmd):
+    def _run(cmd, use_ha=False):
+        ip = config.OIM_HA_IP if use_ha else config.OIM_IP
+        password = config.OIM_HA_PASS if use_ha else config.OIM_PASS
+
         ssh_command = [
-            "sshpass", "-p", oim_password,
+            "sshpass", "-p", password,
             "ssh", "-o", "StrictHostKeyChecking=no",
-            f"root@{oim_ip}", cmd
+            f"root@{ip}", cmd
         ]
         return subprocess.run(ssh_command, capture_output=True, text=True)
     return _run
+
 
 @pytest.fixture
 def get_required_containers(run_sshpass_command):
@@ -136,6 +145,141 @@ def extract_columns_from_create_sql():
         return columns
     return _extract_columns_from_create_sql
 
+@pytest.fixture(scope="session")
+def get_oim_shared_path():
+    def _get_oim_shared_path(run_sshpass_command):
+        """Read OIM metadata file and return the shared path"""
+        # Get metadata from container
+        cmd = f"podman exec omnia_core cat /opt/omnia/.data/oim_metadata.yml"
+        result = run_sshpass_command(cmd)
+        
+        if result.returncode != 0:
+            pytest.fail(f"Failed to fetch OIM metadata: {result.stderr}")
+                
+        # Parse YAML and get shared path
+        metadata = yaml.safe_load(result.stdout)
+        shared_path = metadata.get('oim_shared_path')
+        
+        if not shared_path:
+            pytest.fail("oim_shared_path not found in metadata")
+
+        print(f"\noim_shared_path: {shared_path}")
+        return shared_path
+    return _get_oim_shared_path
+
+@pytest.fixture
+def check_if_oim_ha_is_enabled():
+    def _check(run_sshpass_command):
+        cmd = f"podman exec omnia_core cat /opt/omnia/input/project_default/high_availability_config.yml"
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, f"Failed to fetch HA config: {result.stderr}"
+        if "enable_oim_ha: true" not in result.stdout:
+            pytest.skip("Skipping OIM HA tests: Not enabled.")
+        return True
+    return _check
+
+@pytest.fixture
+def get_oim_ha_nodes():
+    def _get(run_sshpass_command):
+        cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/cluster_layout"
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, f"Failed to fetch cluster layout: {result.stderr}"
+
+        nodes, collect = [], False
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("[") and line.endswith("]"):
+                collect = (line == "[oim_ha_node]")
+            elif collect and line:
+                nodes.append(line.strip())
+        assert nodes, "No oim_ha_node entries found."
+        return [n.split('.')[0] for n in nodes]
+    return _get
+
+@pytest.fixture
+def get_compute_nodes():
+    def _get(run_sshpass_command):
+        cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/compute_hostname_ip"
+        result = run_sshpass_command(cmd, use_ha=True)
+        assert result.returncode == 0, f"Failed to fetch compute nodes: {result.stderr}"
+
+        nodes, collect = [], False
+        for line in result.stdout.splitlines():
+            line = line.strip()
+            if line.startswith("[") and line.endswith("]"):
+                collect = (line == "[compute_hostname_ip]")
+            elif collect and line:
+                nodes.append(line.strip())
+        assert nodes, "No compute_hostname_ip entries found."
+        return [n.split('.')[0] for n in nodes]
+    return _get
+    
+@pytest.fixture
+def get_required_pcs_resources_HA():
+    def _get(run_sshpass_command):
+        cmd = f"podman exec omnia_core cat /opt/omnia/input/project_default/software_config.json"
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, f"Failed to fetch software config: {result.stderr}"
+        try:
+            data = json.loads(result.stdout)
+            softwares = data.get("softwares", [])
+            has_k8s = any(s.get("name") == "k8s" for s in softwares)
+            base = ["admin_VIP", "bmc_VIP", "omnia_core", "omnia_provision", "pulp"]
+            return base + ["omnia_kubespray"] if has_k8s else base
+        except json.JSONDecodeError:
+            pytest.fail("Invalid JSON in software_config.json")
+    return _get
+
+@pytest.fixture
+def check_pcs_resource_status():
+    def _check(output, resources, expected_node):
+        missing, not_started = [], []
+        for res in resources:
+            lines = [line.strip() for line in output.splitlines() if res in line]
+            if not lines:
+                missing.append(res)
+            elif not any(f"Started {expected_node}" in line for line in lines):
+                not_started.append(res)
+        return missing, not_started
+    return _check
+
+@pytest.fixture
+def get_hostname():
+    def _get(run_sshpass_command):
+        result = run_sshpass_command("hostname -s")
+        assert result.returncode == 0, f"Failed to get hostname: {result.stderr}"
+        return result.stdout.strip()
+    return _get
+
+@pytest.fixture
+def check_pcs_daemon_status():
+    def _check(run_sshpass_command, node):
+        cmd = (
+            f"podman exec omnia_core ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "
+            f"{node} podman exec omnia_pcs pcs status"
+        )
+        result = run_sshpass_command(cmd)
+        if result.returncode != 0:
+            return False, "PCS status fetch failed"
+        out = result.stdout.lower()
+        if "corosync: active/enabled" not in out:
+            return False, "corosync not active"
+        if "pacemaker: active/enabled" not in out:
+            return False, "pacemaker not active"
+        return True, ""
+    return _check
+
+@pytest.fixture
+def parse_online_nodes():
+    def _parse(output):
+        for line in output.splitlines():
+            line = line.strip()
+            if line.startswith("* Online:") and '[' in line:
+                return [n.strip() for n in line.split('[', 1)[1].split(']')[0].split()]
+            elif line.startswith("Online:"):
+                return [n.strip() for n in line.split(':', 1)[1].split()]
+        return []
+    return _parse
 
 @pytest.fixture
 def kube_control_plane():
