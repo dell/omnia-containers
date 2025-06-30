@@ -23,12 +23,12 @@ def test_virtual_ips_configured_on_active_node(get_virtual_ips, get_system_ips, 
     """
     # Get virtual IPs from config
     cmd = f"podman exec {container_name} cat /opt/omnia/input/project_default/high_availability_config.yml"
-    result = run_sshpass_command(cmd, use_ha=True)
+    result = run_sshpass_command(cmd)
     admin_ip, bmc_ip = get_virtual_ips(result)
 
     # Get system IPs from OIM HA node
     cmd = "hostname -I"
-    result = run_sshpass_command(cmd, use_ha=True)
+    result = run_sshpass_command(cmd)
     system_ips = get_system_ips(result)
 
     # Verify virtual IPs are present
