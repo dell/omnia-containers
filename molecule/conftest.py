@@ -173,9 +173,9 @@ def get_oim_ha_nodes():
 
 @pytest.fixture
 def get_compute_nodes():
-    def _get(run_sshpass_command):
+    def _get(run_sshpass_command, use_ha=False):
         cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/compute_hostname_ip"
-        result = run_sshpass_command(cmd)
+        result = run_sshpass_command(cmd, use_ha=use_ha)
         assert result.returncode == 0, f"Failed to fetch compute nodes: {result.stderr}"
 
         nodes, collect = [], False
