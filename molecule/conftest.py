@@ -53,58 +53,63 @@ def run_sshpass_command():
         return subprocess.run(ssh_command, capture_output=True, text=True)
     return _run
 
-
 @pytest.fixture
 def get_required_containers(run_sshpass_command):
     """
-    Determines which containers are required based on presence of 'k8s' in software_config.json.
+    Returns a function to determine required containers based on the presence of 'k8s'
+    in software_config.json. Supports both OIM and OIM_HA via `use_ha` flag.
     """
-    cmd = f"podman exec omnia_core cat {software_config_path}"
-    result = run_sshpass_command(cmd)
+    def _get_required_containers(use_ha=False):
+        cmd = f"podman exec omnia_core cat {software_config_path}"
+        result = run_sshpass_command(cmd, use_ha=use_ha)
 
-    if result.returncode != 0:
-        pytest.fail(f"Failed to fetch file from container: {result.stderr}")
+        if result.returncode != 0:
+            pytest.fail(f"Failed to fetch file from container: {result.stderr}")
 
-    try:
-        data = json.loads(result.stdout)
-        softwares = data.get("softwares", [])
-        if any(software.get("name") == "k8s" for software in softwares):
-            print("\nk8s found.\n")
-            return ["omnia_pcs", "omnia_provision", "pulp", "omnia_kubespray"]
-        else:
-            print(f"k8s not found. Skipping omnia_kubespray container.")
-            return ["omnia_pcs", "omnia_provision", "pulp"]
-    except json.JSONDecodeError:
-        pytest.fail("Invalid JSON in software_config.json")
-    except Exception as e:
-        pytest.fail(f"Unexpected error: {e}")
+        try:
+            data = json.loads(result.stdout)
+            softwares = data.get("softwares", [])
+            if any(software.get("name") == "k8s" for software in softwares):
+                print(f"\nk8s found on {'OIM_HA' if use_ha else 'OIM'} node.\n")
+                return ["omnia_pcs", "omnia_provision", "pulp", "omnia_kubespray"]
+            else:
+                print(f"\nk8s not found on {'OIM_HA' if use_ha else 'OIM'} node. Skipping omnia_kubespray.\n")
+                return ["omnia_pcs", "omnia_provision", "pulp"]
+        except json.JSONDecodeError:
+            pytest.fail("Invalid JSON in software_config.json")
+        except Exception as e:
+            pytest.fail(f"Unexpected error: {e}")
+    return _get_required_containers
 
         
-@pytest.fixture        
+@pytest.fixture
 def get_required_pcs_resources(run_sshpass_command):
     """
-    Determines which containers are required based on presence of 'k8s' in software_config.json.
+    Returns a function that fetches required PCS resources based on presence of 'k8s' in config.
+    Supports both OIM and OIM_HA via the `use_ha` flag.
     """
-    cmd = f"podman exec omnia_core cat {software_config_path}"
+    def _get_required_pcs_resources(use_ha=False):
+        cmd = f"podman exec omnia_core cat {software_config_path}"
+        result = run_sshpass_command(cmd, use_ha=use_ha)
+
+        if result.returncode != 0:
+            pytest.fail(f"Failed to fetch file from container: {result.stderr}")
+
+        try:
+            data = json.loads(result.stdout)
+            softwares = data.get("softwares", [])
+            if any(software.get("name") == "k8s" for software in softwares):
+                print(f"\nk8s found on {'OIM_HA' if use_ha else 'OIM'} node.\n")
+                return ["omnia_core", "pulp", "omnia_provision", "omnia_kubespray"]
+            else:
+                print(f"\nk8s not found on {'OIM_HA' if use_ha else 'OIM'} node.\n")
+                return ["omnia_core", "omnia_provision", "pulp"]
+        except json.JSONDecodeError:
+            pytest.fail("Invalid JSON in software_config.json")
+        except Exception as e:
+            pytest.fail(f"Unexpected error: {e}")
     
-    result = run_sshpass_command(cmd)
-
-    if result.returncode != 0:
-        pytest.fail(f"Failed to fetch file from container: {result.stderr}")
-
-    try:
-        data = json.loads(result.stdout)
-        softwares = data.get("softwares", [])
-        if any(software.get("name") == "k8s" for software in softwares):
-            print("\nk8s found.\n")
-            return ["omnia_core", "pulp", "omnia_provision", "omnia_kubespray"]
-        else:
-            print(f"k8s not found. Skipping omnia_kubespray container.")
-            return ["omnia_core", "omnia_provision", "pulp"]
-    except json.JSONDecodeError:
-        pytest.fail("Invalid JSON in software_config.json")
-    except Exception as e:
-        pytest.fail(f"Unexpected error: {e}")
+    return _get_required_pcs_resources
         
 @pytest.fixture
 def get_file_from_container():    
@@ -200,7 +205,7 @@ def get_oim_ha_nodes():
 def get_compute_nodes():
     def _get(run_sshpass_command):
         cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/compute_hostname_ip"
-        result = run_sshpass_command(cmd, use_ha=True)
+        result = run_sshpass_command(cmd)
         assert result.returncode == 0, f"Failed to fetch compute nodes: {result.stderr}"
 
         nodes, collect = [], False
@@ -245,8 +250,8 @@ def check_pcs_resource_status():
 
 @pytest.fixture
 def get_hostname():
-    def _get(run_sshpass_command):
-        result = run_sshpass_command("hostname -s")
+    def _get(run_sshpass_command, use_ha=False):
+        result = run_sshpass_command("hostname -s", use_ha=use_ha)
         assert result.returncode == 0, f"Failed to get hostname: {result.stderr}"
         return result.stdout.strip()
     return _get
