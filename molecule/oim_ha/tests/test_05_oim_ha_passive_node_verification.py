@@ -21,7 +21,7 @@ def test_omnia_pcs_passive_nodes(run_sshpass_command, get_oim_ha_nodes, check_if
             print(f"\nChecking omnia_pcs on node: {node}")
             cmd = (
                 f"podman exec {container_name} ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "
-                f"{node} podmannn ps --filter name=omnia_pcs --format '{{{{.Status}}}}'"
+                f"{node} podman ps --filter name=omnia_pcs --format '{{{{.Status}}}}'"
             )
             result = run_sshpass_command(cmd)
             if result.returncode != 0 or not result.stdout.startswith("Up"):
@@ -62,7 +62,7 @@ def test_pcs_daemon_passive_nodes(run_sshpass_command, get_oim_ha_nodes, check_p
         pytest.fail(f"Error in test_pcs_daemon_passive_nodes: {str(e)}")
 
 @pytest.mark.dependency(name='test_omnia_pcs_passive_nodes')
-def test_pcs_resources_passive_nodes(run_sshpass_command, get_required_pcs_resources_HA, check_pcs_resource_status, get_hostname, get_oim_ha_nodes):
+def test_pcs_resources_passive_nodes(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname, get_oim_ha_nodes):
     print("\nVerifying PCS resources on passive nodes")
     global omnia_pcs_resources_passive_nodes
     try:
@@ -71,7 +71,7 @@ def test_pcs_resources_passive_nodes(run_sshpass_command, get_required_pcs_resou
         
         active = get_hostname(run_sshpass_command)
         print(f"Active node: {active}")
-        resources = get_required_pcs_resources_HA(run_sshpass_command)
+        resources = get_required_pcs_resources(run_sshpass_command, include_vips=True)
         print(f"Required PCS resources: {resources}")
         
         for node in nodes:
