@@ -1,3 +1,17 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import pytest
 
 @pytest.mark.dependency(name="test_omnia_pcs_active_node")
@@ -13,10 +27,10 @@ def test_omnia_pcs_active_node(run_sshpass_command,check_if_oim_ha_is_enabled):
         pytest.fail(f"Error in test_omnia_pcs_active_node: {str(e)}")
 
 @pytest.mark.dependency(name="test_pcs_resources_active_node", depends=["test_omnia_pcs_active_node"])
-def test_pcs_resources_active_node(run_sshpass_command, get_required_pcs_resources_HA, check_pcs_resource_status, get_hostname):
+def test_pcs_resources_active_node(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname):
     print("\nVerifying PCS resources on active node")
     try:
-        resources = get_required_pcs_resources_HA(run_sshpass_command)
+        resources = get_required_pcs_resources(run_sshpass_command, include_vips=True)
         print(f"Required PCS resources: {resources}")
         hostname = get_hostname(run_sshpass_command)
         print(f"Active node hostname: {hostname}")
