@@ -18,15 +18,15 @@ import pytest
 @pytest.mark.qtest_id("TC-3702")
 def test_passive_node_postgres_db_access(run_sshpass_command):
     print("\nVerifying PostgreSQL DB access on passive node\n")
-    provision_password = os.getenv("PROVISION_PASSWORD")
-    assert provision_password, "Missing environment variable: PROVISION_PASSWORD"
+    postgres_password = os.getenv("POSTGRES_PASSWORD")
+    assert postgres_password, "Missing environment variable: POSTGRES_PASSWORD"
 
     # Simple query to test connection
     query = "SELECT version();"
     
     # Construct podman psql command
     cmd = (
-        f"podman exec -e PGPASSWORD='{provision_password}' omnia_provision "    
+        f"podman exec -e PGPASSWORD='{postgres_password}' omnia_provision "    
         f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
     )
 
