@@ -282,6 +282,34 @@ def parse_online_nodes():
     return _parse
 
 @pytest.fixture
+def get_system_ips():
+    def _get_system_ips(result):
+        """Get all IP addresses from a remote system"""
+        try:
+            if result.returncode == 0:
+                return [ip.strip() for ip in result.stdout.split()]
+            return []
+        except Exception as e:
+            pytest.fail(f"Error getting system IPs: {e}")
+    return _get_system_ips
+
+@pytest.fixture
+def get_virtual_ips():
+    def _get_virtual_ips(result):
+        """Read virtual IPs from configuration file"""
+        try:
+            if result.returncode != 0:
+                pytest.fail(f"Failed to fetch project default configuration: {result.stderr}")
+            config = yaml.safe_load(result.stdout)
+            return (
+                config['oim_ha']['admin_virtual_ip_address'],
+                config['oim_ha']['bmc_virtual_ip_address']
+            )
+        except Exception as e:
+            pytest.fail(f"Error reading configuration: {e}")
+    return _get_virtual_ips
+
+@pytest.fixture
 def kube_control_plane():
     testinfra_hosts = [
         'ansible://kube_control_plane',
