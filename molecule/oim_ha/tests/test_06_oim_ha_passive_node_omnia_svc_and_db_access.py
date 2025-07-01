@@ -14,9 +14,20 @@
 
 import os
 import pytest
+import time
 
+def reboot(run_sshpass_command):
+    cmd = "reboot"
+    result = run_sshpass_command(cmd)
+    assert result.returncode == 0, f"Failed to reboot active node: {result.stderr}"
+    
 @pytest.mark.qtest_id("TC-3702")
 def test_passive_node_postgres_db_access(run_sshpass_command):
+    print("\nRebooting active node\n")
+    reboot(run_sshpass_command)
+    
+    time.sleep(120)
+
     print("\nVerifying PostgreSQL DB access on passive node\n")
     postgres_password = os.getenv("POSTGRES_PASSWORD")
     assert postgres_password, "Missing environment variable: POSTGRES_PASSWORD"
