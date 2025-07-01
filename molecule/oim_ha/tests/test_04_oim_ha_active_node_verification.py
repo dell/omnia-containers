@@ -16,10 +16,10 @@ import pytest
 
 @pytest.mark.dependency(name="test_omnia_pcs_active_node")
 def test_omnia_pcs_active_node_TC_3698(run_sshpass_command,check_if_oim_ha_is_enabled):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     global omnia_pcs_active_node
     print("\nVerifying omnia_pcs container status on active node")
     try:
-        check_if_oim_ha_is_enabled(run_sshpass_command)
         cmd = f"podman ps --filter name=omnia_pcs --format '{{{{.Status}}}}'"
         result = run_sshpass_command(cmd)
         assert result.returncode == 0 and result.stdout.startswith("Up"), "omnia_pcs not running on active node"
@@ -94,8 +94,11 @@ def test_online_node_list_active_node_TC_3698(run_sshpass_command, parse_online_
 
 # This is the master summary for TC-3698
 @pytest.mark.qtest_id("TC-3698")
-def test_tc_3698_summary():
-    if omnia_pcs_active_node and omnia_pcs_daemon_active_node and omnia_pcs_resources_active_node and omnia_pcs_online_node_list_active_node: 
-        print("TC-3698 checks failed")
+def test_tc_3698_summary(check_if_oim_ha_is_enabled, run_sshpass_command):
+    if check_if_oim_ha_is_enabled(run_sshpass_command):
+        if omnia_pcs_active_node and omnia_pcs_daemon_active_node and omnia_pcs_resources_active_node and omnia_pcs_online_node_list_active_node: 
+            print("All TC-3698 checks Passed")
+        else:
+            pytest.fail("TC-3698 checks Failed")
     else:
-        pytest.fail("All TC-3698 checks passed")
+        pytest.skip("OIM HA is not enabled")
