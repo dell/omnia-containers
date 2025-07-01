@@ -19,7 +19,7 @@ pipeline {
         string(name: 'BRANCH_NAME', defaultValue: 'staging', description: 'Git branch name to download')
         choice(name: 'STARTUP_TYPE', choices: ['1', '2'], description: '1 for NFS, 2 for Local')
         string(name: 'NFS_PATH', defaultValue: '', description: 'NFS path for input files')
-        string(name: 'PROVISION_PASSWORD', defaultValue: '', description: 'Provision password for database operations')
+        string(name: 'POSTGRES_PASSWORD', defaultValue: '', description: 'Provision password for database operations')
     }
     options {
         disableConcurrentBuilds()
@@ -199,7 +199,7 @@ pipeline {
                         echo "Verifying discovery_provision.yml.."
                         sh """
                             sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
-                            "bash -c 'export PROVISION_PASSWORD=${params.PROVISION_PASSWORD} && source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s discovery_provision'"
+                            "bash -c 'export POSTGRES_PASSWORD=${params.POSTGRES_PASSWORD} && source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s discovery_provision'"
                         """
                     } catch (Exception e) {
                         echo "Marking stage Discovery Provision as failed"
