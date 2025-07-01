@@ -18,10 +18,10 @@ container_name = "omnia_core"
 
 @pytest.mark.dependency(name='test_omnia_pcs_passive_nodes')
 def test_omnia_pcs_passive_nodes_TC_3699(run_sshpass_command, get_oim_ha_nodes, check_if_oim_ha_is_enabled):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     print("\nVerifying omnia_pcs container status on passive nodes")
     global omnia_pcs_passive_nodes
     try:
-        check_if_oim_ha_is_enabled(run_sshpass_command)
         nodes = get_oim_ha_nodes(run_sshpass_command)
         print(f"Checking omnia_pcs containers on nodes: {nodes}")
         
@@ -143,8 +143,12 @@ def test_online_node_list_passive_node_TC_3699(run_sshpass_command, parse_online
 
 # This is the master summary for TC-3699
 @pytest.mark.qtest_id("TC-3699")
-def test_tc_3699_summary():
-    if omnia_pcs_passive_nodes and omnia_pcs_daemon_passive_nodes and omnia_pcs_resources_passive_nodes and omnia_pcs_online_node_list_passive_nodes: 
-        print("TC-3699 checks failed")
+def test_tc_3699_summary(check_if_oim_ha_is_enabled, run_sshpass_command):
+
+    if check_if_oim_ha_is_enabled(run_sshpass_command):
+        if omnia_pcs_passive_nodes and omnia_pcs_daemon_passive_nodes and omnia_pcs_resources_passive_nodes and omnia_pcs_online_node_list_passive_nodes: 
+            print("All TC-3699 checks Passed")
+        else:
+            pytest.fail("TC-3699 checks Failed")
     else:
-        pytest.fail("All TC-3699 checks passed")
+        pytest.skip("OIM HA is not enabled")
