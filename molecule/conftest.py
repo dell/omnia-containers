@@ -155,39 +155,47 @@ def check_if_oim_ha_is_enabled():
 
 @pytest.fixture
 def get_oim_ha_nodes():
-    def _get(run_sshpass_command):
-        cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/cluster_layout"
-        result = run_sshpass_command(cmd)
-        assert result.returncode == 0, f"Failed to fetch cluster layout: {result.stderr}"
+    def _get_oim_ha_nodes(run_sshpass_command):
+        postgres_password = os.getenv("POSTGRES_PASSWORD")
+        assert postgres_password, print("Missing environment variable: POSTGRES_PASSWORD")
 
-        nodes, collect = [], False
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            if line.startswith("[") and line.endswith("]"):
-                collect = (line == "[oim_ha_node]")
-            elif collect and line:
-                nodes.append(line.strip())
-        assert nodes, "No oim_ha_node entries found."
-        return [n.split('.')[0] for n in nodes]
-    return _get
+        query = "SELECT node FROM cluster.nodeinfo WHERE role = 'oim_ha_node';"
+
+        cmd = (
+            f"podman exec -e PGPASSWORD='{postgres_password}' omnia_provision "
+            f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
+        )
+
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, print(f"\nFailed to query column names.\nError:\n{result.stderr}")
+
+        oim_ha_nodes = result.stdout.strip().splitlines()
+
+        return oim_ha_nodes
+    return _get_oim_ha_nodes
 
 @pytest.fixture
 def get_compute_nodes():
-    def _get(run_sshpass_command, use_ha=False):
-        cmd = f"podman exec omnia_core cat /opt/omnia/omnia_inventory/compute_hostname_ip"
-        result = run_sshpass_command(cmd, use_ha=use_ha)
-        assert result.returncode == 0, f"Failed to fetch compute nodes: {result.stderr}"
+    def _get_compute_nodes(run_sshpass_command):    
+        postgres_password = os.getenv("POSTGRES_PASSWORD")
+        assert postgres_password, print("Missing environment variable: POSTGRES_PASSWORD")
 
-        nodes, collect = [], False
-        for line in result.stdout.splitlines():
-            line = line.strip()
-            if line.startswith("[") and line.endswith("]"):
-                collect = (line == "[compute_hostname_ip]")
-            elif collect and line:
-                nodes.append(line.strip())
-        assert nodes, "No compute_hostname_ip entries found."
-        return [n.split('.')[0] for n in nodes]
-    return _get
+        query = "SELECT node FROM cluster.nodeinfo WHERE role = 'default';"
+
+        cmd = (
+            f"podman exec -e PGPASSWORD='{postgres_password}' omnia_provision "
+            f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
+        )
+
+        result = run_sshpass_command(cmd)
+        assert result.returncode == 0, print(f"\nFailed to query column names.\nError:\n{result.stderr}")
+
+        compute_nodes = result.stdout.strip().splitlines()
+    
+        print("\nCompute nodes: ", compute_nodes)
+        
+        return compute_nodes
+    return _get_compute_nodes
     
 @pytest.fixture
 def get_required_pcs_resources():
