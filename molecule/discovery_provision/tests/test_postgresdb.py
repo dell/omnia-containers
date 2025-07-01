@@ -18,8 +18,8 @@ import pytest
 def test_postgres_db(run_sshpass_command, get_file_from_container, extract_create_table_sql, extract_columns_from_create_sql):
     create_omniadb_file_path = "/opt/omnia/shared_libraries/provision/db_operations/create_omniadb_tables.py"
 
-    provision_password = os.getenv("PROVISION_PASSWORD")
-    assert provision_password, "Missing environment variable: PROVISION_PASSWORD"
+    postgres_password = os.getenv("POSTGRES_PASSWORD")
+    assert postgres_password, "Missing environment variable: POSTGRES_PASSWORD"
     # Get file content from container
     file_content = get_file_from_container(run_sshpass_command, create_omniadb_file_path)
     assert file_content, "\nStep 1 failed: File content is empty or could not be read."
@@ -45,7 +45,7 @@ def test_postgres_db(run_sshpass_command, get_file_from_container, extract_creat
     )
 
     cmd = (
-        f"podman exec -e PGPASSWORD='{provision_password}' omnia_provision "
+        f"podman exec -e PGPASSWORD='{postgres_password}' omnia_provision "
         f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
     )
 
