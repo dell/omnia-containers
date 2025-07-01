@@ -15,7 +15,8 @@
 import pytest
 
 @pytest.mark.dependency(name="test_omnia_pcs_active_node")
-def test_omnia_pcs_active_node(run_sshpass_command,check_if_oim_ha_is_enabled):
+def test_omnia_pcs_active_node_TC_3698(run_sshpass_command,check_if_oim_ha_is_enabled):
+    global omnia_pcs_active_node
     print("\nVerifying omnia_pcs container status on active node")
     try:
         check_if_oim_ha_is_enabled(run_sshpass_command)
@@ -23,11 +24,13 @@ def test_omnia_pcs_active_node(run_sshpass_command,check_if_oim_ha_is_enabled):
         result = run_sshpass_command(cmd)
         assert result.returncode == 0 and result.stdout.startswith("Up"), "omnia_pcs not running on active node"
         print(f"omnia_pcs container is running on active node with status: {result.stdout.strip()}")
+        omnia_pcs_active_node = True
     except Exception as e:
         pytest.fail(f"Error in test_omnia_pcs_active_node: {str(e)}")
 
 @pytest.mark.dependency(name="test_pcs_resources_active_node", depends=["test_omnia_pcs_active_node"])
-def test_pcs_resources_active_node(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname):
+def test_pcs_resources_active_node_TC_3698(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname):
+    global omnia_pcs_resources_active_node
     print("\nVerifying PCS resources on active node")
     try:
         resources = get_required_pcs_resources(run_sshpass_command, include_vips=True)
@@ -40,11 +43,13 @@ def test_pcs_resources_active_node(run_sshpass_command, get_required_pcs_resourc
         assert not missing, f"Missing PCS resources: {missing}"
         assert not not_started, f"Resources not started on active node: {not_started}"
         print("All required PCS resources are present and started on active node")
+        omnia_pcs_resources_active_node = True
     except Exception as e:
         pytest.fail(f"Error in test_pcs_resources_active_node: {str(e)}")
 
 @pytest.mark.dependency(name="test_pcs_daemon_active_node", depends=["test_omnia_pcs_active_node"])
-def test_pcs_daemon_active_node(run_sshpass_command, get_hostname):
+def test_pcs_daemon_active_node_TC_3698(run_sshpass_command, get_hostname):
+    global omnia_pcs_daemon_active_node
     print("\nVerifying PCS daemon status on active node")
     try:
         hostname = get_hostname(run_sshpass_command)
@@ -56,11 +61,13 @@ def test_pcs_daemon_active_node(run_sshpass_command, get_hostname):
         assert "corosync: active/enabled" in output, f"corosync not active/enabled on {hostname}"
         assert "pacemaker: active/enabled" in output, f"pacemaker not active/enabled on {hostname}"
         print(f"Both corosync and pacemaker daemons are active on active node {hostname}")
+        omnia_pcs_daemon_active_node = True
     except Exception as e:
         pytest.fail(f"Error in test_pcs_daemon_active_node: {str(e)}")
 
 @pytest.mark.dependency(name="test_online_node_list_active_node", depends=["test_omnia_pcs_active_node"])
-def test_online_node_list_active_node(run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname):
+def test_online_node_list_active_node_TC_3698(run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname):
+    global omnia_pcs_online_node_list_active_node
     print("\nVerifying online node status from active node")
     try:
         result = run_sshpass_command("podman exec omnia_pcs pcs status")
@@ -81,18 +88,14 @@ def test_online_node_list_active_node(run_sshpass_command, parse_online_nodes, g
             assert not offline_nodes, f"Not all expected nodes are online: {offline_nodes}"
         
         print("All expected nodes are online in the PCS cluster")
+        omnia_pcs_online_node_list_active_node = True
     except Exception as e:
         pytest.fail(f"Error in test_online_node_list_active_node: {str(e)}")
 
 # This is the master summary for TC-3698
 @pytest.mark.qtest_id("TC-3698")
-@pytest.mark.dependency(
-    depends=[
-        "test_omnia_pcs_active_node",
-        "test_pcs_resources_active_node",
-        "test_pcs_daemon_active_node",
-        "test_online_node_list_active_node"
-    ]
-)
 def test_tc_3698_summary():
-    print("All TC-3698 checks passed")
+    if omnia_pcs_active_node and omnia_pcs_daemon_active_node and omnia_pcs_resources_active_node and omnia_pcs_online_node_list_active_node: 
+        print("TC-3698 checks failed")
+    else:
+        pytest.fail("All TC-3698 checks passed")
