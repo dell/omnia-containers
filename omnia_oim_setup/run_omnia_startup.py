@@ -236,7 +236,7 @@ def main():
     if login_to_registry(ip, password, args.registry_user, args.registry_password):
         images = [
             "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_core:latest",
-            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_kubespray:v2.27.0",
+            "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_kubespray:v2.28.0",
             "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_pcs:latest",
             "nssm.artifactory.cec.lab.emc.com/openmanage-docker/omnia_provision:latest"
         ]
