@@ -16,12 +16,11 @@ import pytest
 
 container_name = "omnia_core"
 
-@pytest.mark.dependency(name='test_omnia_pcs_passive_nodes')
-def test_omnia_pcs_passive_nodes_TC_3699(run_sshpass_command, get_oim_ha_nodes, check_if_oim_ha_is_enabled):
+def test_omnia_pcs_passive_nodes_TC_3699(check_if_oim_ha_is_enabled, run_sshpass_command, get_oim_ha_nodes):
     check_if_oim_ha_is_enabled(run_sshpass_command)
-    print("\nVerifying omnia_pcs container status on passive nodes")
     global omnia_pcs_passive_nodes
     try:
+        print("\nVerifying omnia_pcs container status on passive nodes")
         nodes = get_oim_ha_nodes(run_sshpass_command)
         print(f"Checking omnia_pcs containers on nodes: {nodes}")
         
@@ -47,11 +46,13 @@ def test_omnia_pcs_passive_nodes_TC_3699(run_sshpass_command, get_oim_ha_nodes, 
     except Exception as e:
         pytest.fail(f"Error in test_omnia_pcs_passive_nodes: {str(e)}")
 
-@pytest.mark.dependency(name="test_pcs_daemon_passive_nodes", depends=["test_omnia_pcs_passive_nodes"])
-def test_pcs_daemon_passive_nodes_TC_3699(run_sshpass_command, get_oim_ha_nodes, check_pcs_daemon_status):
-    print("\nVerifying PCS daemon status on passive nodes")
+
+def test_pcs_daemon_passive_nodes_TC_3699(check_if_oim_ha_is_enabled, run_sshpass_command, get_oim_ha_nodes, check_pcs_daemon_status):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+    
     global omnia_pcs_daemon_passive_nodes
     try:
+        print("\nVerifying PCS daemon status on passive nodes")
         nodes = get_oim_ha_nodes(run_sshpass_command)
         print(f"Checking PCS daemons on nodes: {nodes}")
         
@@ -70,11 +71,13 @@ def test_pcs_daemon_passive_nodes_TC_3699(run_sshpass_command, get_oim_ha_nodes,
     except Exception as e:
         pytest.fail(f"Error in test_pcs_daemon_passive_nodes: {str(e)}")
 
-@pytest.mark.dependency(name="test_pcs_resources_passive_nodes", depends=["test_omnia_pcs_passive_nodes"])
-def test_pcs_resources_passive_nodes_TC_3699(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname, get_oim_ha_nodes):
-    print("\nVerifying PCS resources on passive nodes")
+
+def test_pcs_resources_passive_nodes_TC_3699(check_if_oim_ha_is_enabled, run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname, get_oim_ha_nodes):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+    
     global omnia_pcs_resources_passive_nodes
     try:
+        print("\nVerifying PCS resources on passive nodes")
         nodes = get_oim_ha_nodes(run_sshpass_command)
         print(f"Checking PCS resources on nodes: {nodes}")
         
@@ -106,11 +109,12 @@ def test_pcs_resources_passive_nodes_TC_3699(run_sshpass_command, get_required_p
     except Exception as e:
         pytest.fail(f"Error in test_pcs_resources_passive_nodes: {str(e)}")
 
-@pytest.mark.dependency(name="test_online_node_list_passive_node", depends=["test_omnia_pcs_passive_nodes"])
-def test_online_node_list_passive_node_TC_3699(run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname):
-    print("\nVerifying online node status from passive nodes")
+def test_online_node_list_passive_node_TC_3699(check_if_oim_ha_is_enabled, run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+    
     global omnia_pcs_online_node_list_passive_nodes
     try:
+        print("\nVerifying online node status from passive nodes")
         oim_ha_nodes = get_oim_ha_nodes(run_sshpass_command)
 
         for node in oim_ha_nodes:
@@ -143,7 +147,7 @@ def test_online_node_list_passive_node_TC_3699(run_sshpass_command, parse_online
 
 # This is the master summary for TC-3699
 @pytest.mark.qtest_id("TC-3699")
-def test_tc_3699_summary(check_if_oim_ha_is_enabled, run_sshpass_command):
+def test_oim_ha_passive_node_verification(check_if_oim_ha_is_enabled, run_sshpass_command):
 
     if check_if_oim_ha_is_enabled(run_sshpass_command):
         if omnia_pcs_passive_nodes and omnia_pcs_daemon_passive_nodes and omnia_pcs_resources_passive_nodes and omnia_pcs_online_node_list_passive_nodes: 
