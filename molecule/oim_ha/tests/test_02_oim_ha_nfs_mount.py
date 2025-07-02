@@ -17,10 +17,11 @@ import pytest
 container_name = "omnia_core"
 
 @pytest.mark.qtest_id("TC-3696")
-def test_nfs_mount(run_sshpass_command, get_oim_ha_nodes, get_oim_shared_path):
+def test_nfs_mount(run_sshpass_command, get_oim_ha_nodes, get_oim_shared_path, check_if_oim_ha_is_enabled):
     """
     Test that the shared path exists on all OIM_HA nodes from cluster layout
     """
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     # Get shared path from OIM metadata
     shared_path = get_oim_shared_path(run_sshpass_command)
     
