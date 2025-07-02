@@ -16,7 +16,9 @@
 import pytest
 
 @pytest.mark.qtest_id("TC-3703")
-def test_oim_ha_reboot_passwordless_ssh_compute_nodes(get_compute_nodes, run_sshpass_command):
+def test_oim_ha_reboot_passwordless_ssh_compute_nodes(get_compute_nodes, run_sshpass_command, check_if_oim_ha_is_enabled):
+
+    check_if_oim_ha_is_enabled(run_sshpass_command)
 
     print("\nVerifying passwordless SSH to compute nodes\n")
     compute_nodes = get_compute_nodes(run_sshpass_command, use_ha=True)
@@ -38,7 +40,9 @@ def test_oim_ha_reboot_passwordless_ssh_compute_nodes(get_compute_nodes, run_ssh
         print("\nPasswordless SSH to all compute nodes successful!")
 
 @pytest.mark.qtest_id("TC-3704")
-def test_oim_ha_reboot_passwordless_ssh_omnia_core(run_sshpass_command):
+def test_oim_ha_reboot_passwordless_ssh_omnia_core(run_sshpass_command, check_if_oim_ha_is_enabled):
+
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     
     print("\nVerifying passwordless SSH to omnia_core\n")
     ssh_command = "ssh -o StrictHostKeyChecking=no omnia_core uname -n"
