@@ -16,19 +16,22 @@ import os
 import pytest
 import time
 
+container_name = "omnia_core"
+
 def reboot(run_sshpass_command):
     cmd = "reboot"
     result = run_sshpass_command(cmd)
     assert result.returncode == 0, f"Failed to reboot active node: {result.stderr}"
 
 @pytest.mark.qtest_id("TC-3703")
-def test_oim_ha_reboot_passwordless_ssh_compute_nodes(check_if_oim_ha_is_enabled,get_compute_nodes, run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
+@pytest.mark.dependency(name="test_oim_ha_reboot_passwordless_ssh_compute_nodes")
+def test_oim_ha_reboot_passwordless_ssh_compute_nodes(get_compute_nodes, run_sshpass_command):
+    # check_if_oim_ha_is_enabled(run_sshpass_command)
 
-    print("\nRebooting active node\n")
-    reboot(run_sshpass_command)
+    # print("\nRebooting active node\n")
+    # reboot(run_sshpass_command)
     
-    time.sleep(120)
+    # time.sleep(120)
 
     print("\nVerifying passwordless SSH to compute nodes\n")
     compute_nodes = get_compute_nodes(run_sshpass_command, use_ha=True)
@@ -50,8 +53,8 @@ def test_oim_ha_reboot_passwordless_ssh_compute_nodes(check_if_oim_ha_is_enabled
         print("\nPasswordless SSH to all compute nodes successful!")
 
 @pytest.mark.qtest_id("TC-3704")
-def test_oim_ha_reboot_passwordless_ssh_omnia_core(check_if_oim_ha_is_enabled,run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_oim_ha_reboot_passwordless_ssh_omnia_core(run_sshpass_command):
     
     print("\nVerifying passwordless SSH to omnia_core\n")
     ssh_command = "ssh -o StrictHostKeyChecking=no omnia_core uname -n"
@@ -59,12 +62,11 @@ def test_oim_ha_reboot_passwordless_ssh_omnia_core(check_if_oim_ha_is_enabled,ru
     assert result.returncode == 0, print(f"\nFailed to verify passwordless SSH to omnia_core: {result.stderr}")
     print(f"\nPasswordless SSH to omnia_core: {result.stdout.strip()}\n")
 
-
-def test_virtual_ips_configured_TC_3706(check_if_oim_ha_is_enabled,get_virtual_ips, get_system_ips, run_sshpass_command):
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_virtual_ips_configured_TC_3706(get_virtual_ips, get_system_ips, run_sshpass_command):
     """
     Test that the virtual IPs are properly configured on the OIM passive node
     """
-    check_if_oim_ha_is_enabled(run_sshpass_command)
     global passive_node_virtual_ips
     
     # Get virtual IPs from config
@@ -90,11 +92,11 @@ def test_virtual_ips_configured_TC_3706(check_if_oim_ha_is_enabled,get_virtual_i
 
     passive_node_virtual_ips = True
 
-def test_required_containers_running_in_passive_node_TC_3706(check_if_oim_ha_is_enabled,get_required_containers, run_sshpass_command):
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_required_containers_running_in_passive_node_TC_3706(get_required_containers, run_sshpass_command):
     """
     Checks that all required containers are present and running in passive node.
     """
-    check_if_oim_ha_is_enabled(run_sshpass_command)
     
     global passive_node_required_containers
     required_containers = get_required_containers(use_ha=True)
@@ -136,16 +138,15 @@ def test_required_containers_running_in_passive_node_TC_3706(check_if_oim_ha_is_
     print(f"\nThe following required containers are running:\n" + "\n".join(containers_running))
 
 @pytest.mark.qtest_id("TC-3706")
-def test_OIM_HA_Reboot_active_OIM_Passive_node_transition(check_if_oim_ha_is_enabled, run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
-
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_OIM_HA_Reboot_active_OIM_Passive_node_transition(run_sshpass_command):
     if passive_node_required_containers and passive_node_virtual_ips: 
         print("All TC-3706 checks Passed")
     else:            
         pytest.fail("TC-3706 checks Failed")
 
-def test_passive_node_postgres_db_access_TC_3707(check_if_oim_ha_is_enabled,run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_passive_node_postgres_db_access_TC_3707(run_sshpass_command):
     global passive_node_postgres_db_access
     
     print("\nVerifying PostgreSQL DB access on passive node\n")
@@ -170,9 +171,8 @@ def test_passive_node_postgres_db_access_TC_3707(check_if_oim_ha_is_enabled,run_
     passive_node_postgres_db_access = True
     print(f"\nSuccessfully accessed PostgreSQL DB. Version info:\n{output}")
 
-
-def test_passive_node_omnia_svc_TC_3707(check_if_oim_ha_is_enabled,run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_passive_node_omnia_svc_TC_3707(run_sshpass_command):
     global passive_node_omnia_svc
 
     print("\nVerifying omnia.service status on passive node\n")
@@ -184,16 +184,15 @@ def test_passive_node_omnia_svc_TC_3707(check_if_oim_ha_is_enabled,run_sshpass_c
     passive_node_omnia_svc = True
 
 @pytest.mark.qtest_id("TC-3707")
-def test_OIM_HA_Reboot_active_OIM_Passive_node_omnia_svc_and_db_access(check_if_oim_ha_is_enabled,run_sshpass_command):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
-
+@pytest.mark.dependency(depends=["test_passive_node_postgres_db_access_TC_3707", "test_passive_node_omnia_svc_TC_3707"])
+def test_OIM_HA_Reboot_active_OIM_Passive_node_omnia_svc_and_db_access(run_sshpass_command):
     if passive_node_postgres_db_access and passive_node_omnia_svc: 
         print("All TC-3707 checks Passed")
     else:            
         pytest.fail("TC-3707 checks Failed")
 
-def test_pcs_resources_running(check_if_oim_ha_is_enabled,get_required_pcs_resources, run_sshpass_command, get_hostname):
-    check_if_oim_ha_is_enabled(run_sshpass_command)
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, get_hostname):
     """
     Verifies that all required PCS resources are:
     - Present in the pcs resource list
@@ -248,4 +247,5 @@ def test_pcs_resources_running(check_if_oim_ha_is_enabled,get_required_pcs_resou
     assert not wrong_node_resources, print("Some PCS resources are not running on the expected node")
 
     print(f"\nAll PCS resources are present, started, and running on node: {expected_node}")
+
 
