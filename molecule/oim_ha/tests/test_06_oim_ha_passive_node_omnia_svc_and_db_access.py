@@ -22,7 +22,10 @@ def reboot(run_sshpass_command):
     assert result.returncode == 0, f"Failed to reboot active node: {result.stderr}"
     
 @pytest.mark.qtest_id("TC-3702")
-def test_passive_node_postgres_db_access(run_sshpass_command):
+def test_passive_node_postgres_db_access(run_sshpass_command, check_if_oim_ha_is_enabled):
+
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+    
     print("\nRebooting active node\n")
     reboot(run_sshpass_command)
     
@@ -49,7 +52,10 @@ def test_passive_node_postgres_db_access(run_sshpass_command):
     print(f"\nSuccessfully accessed PostgreSQL DB. Version info:\n{output}")
 
 @pytest.mark.qtest_id("TC-3702")
-def test_passive_node_omnia_svc(run_sshpass_command):
+def test_passive_node_omnia_svc(run_sshpass_command, check_if_oim_ha_is_enabled):
+
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+
     print("\nVerifying omnia.service status on passive node\n")
     cmd = "podman exec omnia_provision systemctl is-active omnia.service"
     result = run_sshpass_command(cmd, use_ha=True)
