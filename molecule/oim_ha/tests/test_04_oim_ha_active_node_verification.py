@@ -14,7 +14,6 @@
 
 import pytest
 
-@pytest.mark.dependency(name="test_omnia_pcs_active_node")
 def test_omnia_pcs_active_node_TC_3698(run_sshpass_command,check_if_oim_ha_is_enabled):
     check_if_oim_ha_is_enabled(run_sshpass_command)
     global omnia_pcs_active_node
@@ -28,8 +27,8 @@ def test_omnia_pcs_active_node_TC_3698(run_sshpass_command,check_if_oim_ha_is_en
     except Exception as e:
         pytest.fail(f"Error in test_omnia_pcs_active_node: {str(e)}")
 
-@pytest.mark.dependency(name="test_pcs_resources_active_node", depends=["test_omnia_pcs_active_node"])
-def test_pcs_resources_active_node_TC_3698(run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname):
+def test_pcs_resources_active_node_TC_3698(check_if_oim_ha_is_enabled, run_sshpass_command, get_required_pcs_resources, check_pcs_resource_status, get_hostname):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     global omnia_pcs_resources_active_node
     print("\nVerifying PCS resources on active node")
     try:
@@ -47,8 +46,8 @@ def test_pcs_resources_active_node_TC_3698(run_sshpass_command, get_required_pcs
     except Exception as e:
         pytest.fail(f"Error in test_pcs_resources_active_node: {str(e)}")
 
-@pytest.mark.dependency(name="test_pcs_daemon_active_node", depends=["test_omnia_pcs_active_node"])
-def test_pcs_daemon_active_node_TC_3698(run_sshpass_command, get_hostname):
+def test_pcs_daemon_active_node_TC_3698(run_sshpass_command, get_hostname, check_if_oim_ha_is_enabled):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     global omnia_pcs_daemon_active_node
     print("\nVerifying PCS daemon status on active node")
     try:
@@ -65,8 +64,8 @@ def test_pcs_daemon_active_node_TC_3698(run_sshpass_command, get_hostname):
     except Exception as e:
         pytest.fail(f"Error in test_pcs_daemon_active_node: {str(e)}")
 
-@pytest.mark.dependency(name="test_online_node_list_active_node", depends=["test_omnia_pcs_active_node"])
-def test_online_node_list_active_node_TC_3698(run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname):
+def test_online_node_list_active_node_TC_3698(run_sshpass_command, parse_online_nodes, get_oim_ha_nodes, get_hostname, check_if_oim_ha_is_enabled):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     global omnia_pcs_online_node_list_active_node
     print("\nVerifying online node status from active node")
     try:
@@ -94,7 +93,7 @@ def test_online_node_list_active_node_TC_3698(run_sshpass_command, parse_online_
 
 # This is the master summary for TC-3698
 @pytest.mark.qtest_id("TC-3698")
-def test_tc_3698_summary(check_if_oim_ha_is_enabled, run_sshpass_command):
+def test_oim_ha_active_node_verification(check_if_oim_ha_is_enabled, run_sshpass_command):
     if check_if_oim_ha_is_enabled(run_sshpass_command):
         if omnia_pcs_active_node and omnia_pcs_daemon_active_node and omnia_pcs_resources_active_node and omnia_pcs_online_node_list_active_node: 
             print("All TC-3698 checks Passed")
