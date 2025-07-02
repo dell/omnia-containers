@@ -17,10 +17,13 @@ import pytest
 container_name = "omnia_core"
 
 @pytest.mark.qtest_id("TC-3701")
-def test_virtual_ips_configured(get_virtual_ips, get_system_ips, run_sshpass_command):
+def test_virtual_ips_configured(get_virtual_ips, get_system_ips, run_sshpass_command, check_if_oim_ha_is_enabled):
     """
     Test that the virtual IPs are properly configured on the OIM passive node
     """
+
+    check_if_oim_ha_is_enabled(run_sshpass_command, use_ha=True)
+    
     # Get virtual IPs from config
     cmd = f"podman exec {container_name} cat /opt/omnia/input/project_default/high_availability_config.yml"
     result = run_sshpass_command(cmd, use_ha=True)
@@ -42,10 +45,12 @@ def test_virtual_ips_configured(get_virtual_ips, get_system_ips, run_sshpass_com
     assert admin_status, "Admin virtual IP is not configured"
     assert bmc_status, "BMC virtual IP is not configured"
         
-def test_required_containers_running(get_required_containers, run_sshpass_command):
+def test_required_containers_running(get_required_containers, run_sshpass_command, check_if_oim_ha_is_enabled):
     """
     Checks that all required containers are present and running in podman.
     """
+    check_if_oim_ha_is_enabled(run_sshpass_command, use_ha=True)
+    
     required_containers = get_required_containers(use_ha=True)
 
     cmd = "podman ps --all --format '{{.Names}}: {{.Status}}'"
@@ -83,13 +88,16 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
     print(f"\nThe following required containers are running:\n" + "\n".join(containers_running))
 
     
-def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, get_hostname):
+def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, get_hostname, check_if_oim_ha_is_enabled):
     """
     Verifies that all required PCS resources are:
     - Present in the pcs resource list
     - Started
     - Running on the expected node
     """
+
+    check_if_oim_ha_is_enabled(run_sshpass_command, use_ha=True)
+    
     expected_node = get_hostname(run_sshpass_command, use_ha=True)
     expected_resources = get_required_pcs_resources(run_sshpass_command, use_ha=True, include_vips=True)
 
@@ -139,7 +147,9 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, 
     print(f"\nAll PCS resources are present, started, and running on node: {expected_node}")
 
 
-def test_pulp_status(run_sshpass_command):
+def test_pulp_status(run_sshpass_command, check_if_oim_ha_is_enabled):
+
+    check_if_oim_ha_is_enabled(run_sshpass_command, use_ha=True)
     
     cmd = f"podman exec -it omnia_core pulp status"
     
