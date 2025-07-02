@@ -17,10 +17,11 @@ import pytest
 container_name = "omnia_core"
 
 @pytest.mark.qtest_id("TC-3693")
-def test_virtual_ips_configured_on_active_node(get_virtual_ips, get_system_ips, run_sshpass_command):
+def test_virtual_ips_configured_on_active_node(get_virtual_ips, get_system_ips, run_sshpass_command, check_if_oim_ha_is_enabled):
     """
     Test that the virtual IPs are properly configured on the OIM active node
     """
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     # Get virtual IPs from config
     cmd = f"podman exec {container_name} cat /opt/omnia/input/project_default/high_availability_config.yml"
     result = run_sshpass_command(cmd)
