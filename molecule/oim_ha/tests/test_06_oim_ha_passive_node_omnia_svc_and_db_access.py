@@ -24,7 +24,7 @@ def reboot(run_sshpass_command):
 @pytest.mark.qtest_id("TC-3702")
 def test_passive_node_postgres_db_access(run_sshpass_command, check_if_oim_ha_is_enabled):
 
-    check_if_oim_ha_is_enabled(run_sshpass_command, use_ha=True)
+    check_if_oim_ha_is_enabled(run_sshpass_command)
     
     print("\nRebooting active node\n")
     reboot(run_sshpass_command)
