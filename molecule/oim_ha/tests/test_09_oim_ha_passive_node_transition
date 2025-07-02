@@ -25,13 +25,13 @@ def reboot(run_sshpass_command):
 
 @pytest.mark.qtest_id("TC-3703")
 @pytest.mark.dependency(name="test_oim_ha_reboot_passwordless_ssh_compute_nodes")
-def test_oim_ha_reboot_passwordless_ssh_compute_nodes(get_compute_nodes, run_sshpass_command):
-    # check_if_oim_ha_is_enabled(run_sshpass_command)
+def test_oim_ha_reboot_passwordless_ssh_compute_nodes(check_if_oim_ha_is_enabled, get_compute_nodes, run_sshpass_command):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
 
-    # print("\nRebooting active node\n")
-    # reboot(run_sshpass_command)
+    print("\nRebooting active node\n")
+    reboot(run_sshpass_command)
     
-    # time.sleep(120)
+    time.sleep(120)
 
     print("\nVerifying passwordless SSH to compute nodes\n")
     compute_nodes = get_compute_nodes(run_sshpass_command, use_ha=True)
@@ -247,5 +247,4 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, 
     assert not wrong_node_resources, print("Some PCS resources are not running on the expected node")
 
     print(f"\nAll PCS resources are present, started, and running on node: {expected_node}")
-
 
