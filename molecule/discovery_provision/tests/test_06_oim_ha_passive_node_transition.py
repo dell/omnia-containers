@@ -1,0 +1,250 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+import os
+import pytest
+import time
+
+container_name = "omnia_core"
+
+def reboot(run_sshpass_command):
+    cmd = "reboot"
+    result = run_sshpass_command(cmd)
+    assert result.returncode == 0, f"Failed to reboot active node: {result.stderr}"
+
+@pytest.mark.qtest_id("TC-3703")
+@pytest.mark.dependency(name="test_oim_ha_reboot_passwordless_ssh_compute_nodes")
+def test_oim_ha_reboot_passwordless_ssh_compute_nodes(check_if_oim_ha_is_enabled, get_compute_nodes, run_sshpass_command):
+    check_if_oim_ha_is_enabled(run_sshpass_command)
+
+    print("\nRebooting active node\n")
+    reboot(run_sshpass_command)
+    
+    time.sleep(120)
+
+    print("\nVerifying passwordless SSH to compute nodes\n")
+    compute_nodes = get_compute_nodes(run_sshpass_command, use_ha=True)
+    print(f"Checking compute nodes: {compute_nodes}")
+
+    failed_nodes = []
+    for node in compute_nodes:
+        cmd = f"podman exec omnia_core ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 {node} hostname -s"
+        result = run_sshpass_command(cmd, use_ha=True)
+        if result.returncode != 0:
+            failed_nodes.append(node)
+            print(f"\nFailed SSH to compute node {node}: {result.stderr.strip()}")
+        else:
+            print(f"\nSSH to compute node {node}: {result.stdout.strip()}")
+
+    if failed_nodes:
+        pytest.fail(f"\nPasswordless SSH check failed for compute nodes: {failed_nodes}")
+    else:
+        print("\nPasswordless SSH to all compute nodes successful!")
+
+@pytest.mark.qtest_id("TC-3704")
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_oim_ha_reboot_passwordless_ssh_omnia_core(run_sshpass_command):
+    
+    print("\nVerifying passwordless SSH to omnia_core\n")
+    ssh_command = "ssh -o StrictHostKeyChecking=no omnia_core uname -n"
+    result = run_sshpass_command(ssh_command, use_ha=True)
+    assert result.returncode == 0, print(f"\nFailed to verify passwordless SSH to omnia_core: {result.stderr}")
+    print(f"\nPasswordless SSH to omnia_core: {result.stdout.strip()}\n")
+
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_virtual_ips_configured_TC_3706(get_virtual_ips, get_system_ips, run_sshpass_command):
+    """
+    Test that the virtual IPs are properly configured on the OIM passive node
+    """
+    global passive_node_virtual_ips
+    
+    # Get virtual IPs from config
+    cmd = f"podman exec {container_name} cat /opt/omnia/input/project_default/high_availability_config.yml"
+    result = run_sshpass_command(cmd, use_ha=True)
+    admin_ip, bmc_ip = get_virtual_ips(result)
+
+    # Get system IPs from OIM HA node
+    cmd = "hostname -I"
+    result = run_sshpass_command(cmd, use_ha=True)
+    system_ips = get_system_ips(result)
+
+    # Verify virtual IPs are present
+    admin_status = admin_ip in system_ips
+    bmc_status = bmc_ip in system_ips
+
+    print("\nVirtual IP Status on passive node")
+    print(f"Admin IP: {'Configured' if admin_status else 'Not Configured'}")
+    print(f"BMC IP: {'Configured' if bmc_status else 'Not Configured'}")
+
+    assert admin_status, print("Admin virtual IP is not configured")
+    assert bmc_status, print("BMC virtual IP is not configured")
+
+    passive_node_virtual_ips = True
+
+@pytest.mark.dependency(depends=["test_oim_ha_reboot_passwordless_ssh_compute_nodes"])
+def test_required_containers_running_in_passive_node_TC_3706(get_required_containers, run_sshpass_command):
+    """
+    Checks that all required containers are present and running in passive node.
+    """
+    
+    global passive_node_required_containers
+    required_containers = get_required_containers(use_ha=True)
+
+    cmd = "podman ps --all --format '{{.Names}}: {{.Status}}'"
+    result = run_sshpass_command(cmd, use_ha=True)
+
+    assert result.returncode == 0, f"\nSSH command failed: {result.stderr}"
+
+    containers_not_running = []
+    containers_missing = []
+    containers_running = []
+
+    for container in required_containers:
+        found = False
+        for line in result.stdout.splitlines():
+            if ": " not in line:
+                continue
+            name, status = line.split(": ", 1)
+            if container in name:
+                found = True
+                if "Up" not in status:
+                    containers_not_running.append(f"{container}: {status}")
+                else:
+                    containers_running.append(f"{container}: {status}")
+                break
+        if not found:
+            containers_missing.append(container)
+
+    assert not containers_missing, print(
+        f"\nThe following required containers are missing:\n" + "\n".join(containers_missing)
+    )
+    assert not containers_not_running, print(
+        f"\nThe following required containers are not running:\n" + "\n".join(containers_not_running)
+    )
+
+    passive_node_required_containers = True
+
+    print(f"\nThe following required containers are running:\n" + "\n".join(containers_running))
+
+@pytest.mark.qtest_id("TC-3706")
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_OIM_HA_Reboot_active_OIM_Passive_node_transition(run_sshpass_command):
+    if passive_node_required_containers and passive_node_virtual_ips: 
+        print("All TC-3706 checks Passed")
+    else:            
+        pytest.fail("TC-3706 checks Failed")
+
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_passive_node_postgres_db_access_TC_3707(run_sshpass_command):
+    global passive_node_postgres_db_access
+    
+    print("\nVerifying PostgreSQL DB access on passive node\n")
+    postgres_password = os.getenv("POSTGRES_PASSWORD")
+    assert postgres_password, "Missing environment variable: POSTGRES_PASSWORD"
+
+    # Simple query to test connection
+    query = "SELECT version();"
+    
+    # Construct podman psql command
+    cmd = (
+        f"podman exec -e PGPASSWORD='{postgres_password}' omnia_provision "    
+        f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
+    )
+
+    result = run_sshpass_command(cmd, use_ha=True)
+    assert result.returncode == 0, f"Failed to connect to PostgreSQL DB: {result.stderr}"
+
+    output = result.stdout.strip()
+    assert output, print("No output received from PostgreSQL DB.")
+
+    passive_node_postgres_db_access = True
+    print(f"\nSuccessfully accessed PostgreSQL DB. Version info:\n{output}")
+
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_passive_node_omnia_svc_TC_3707(run_sshpass_command):
+    global passive_node_omnia_svc
+
+    print("\nVerifying omnia.service status on passive node\n")
+    cmd = "podman exec omnia_provision systemctl is-active omnia.service"
+    result = run_sshpass_command(cmd, use_ha=True)
+    assert result.returncode == 0 and result.stdout.strip() == "active", \
+        print(f"\nomnia.service is inactive: {result.stdout.strip()}")
+    print("\nomnia.service is active.")
+    passive_node_omnia_svc = True
+
+@pytest.mark.qtest_id("TC-3707")
+@pytest.mark.dependency(depends=["test_passive_node_postgres_db_access_TC_3707", "test_passive_node_omnia_svc_TC_3707"])
+def test_OIM_HA_Reboot_active_OIM_Passive_node_omnia_svc_and_db_access(run_sshpass_command):
+    if passive_node_postgres_db_access and passive_node_omnia_svc: 
+        print("All TC-3707 checks Passed")
+    else:            
+        pytest.fail("TC-3707 checks Failed")
+
+@pytest.mark.dependency(depends=["test_required_containers_running_in_passive_node_TC_3706"])
+def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, get_hostname):
+    """
+    Verifies that all required PCS resources are:
+    - Present in the pcs resource list
+    - Started
+    - Running on the expected node
+    """
+    
+    expected_node = get_hostname(run_sshpass_command, use_ha=True)
+    expected_resources = get_required_pcs_resources(run_sshpass_command, use_ha=True, include_vips=True)
+
+    cmd = "podman exec -it omnia_pcs pcs resource"
+    result = run_sshpass_command(cmd, use_ha=True)
+
+    assert result.returncode == 0, f"SSH command failed: {result.stderr}"
+
+    pcs_output = result.stdout
+    print(pcs_output)
+
+    missing_resources = []
+    not_started_resources = []
+    wrong_node_resources = []
+
+    for res in expected_resources:
+        lines = [line.strip() for line in pcs_output.splitlines() if res in line]
+        
+        if not lines:
+            missing_resources.append(res)
+            continue
+
+        # Look for "Started <node>"
+        started_line = next((line for line in lines if "Started" in line), None)
+        if not started_line:
+            not_started_resources.append(res)
+            continue
+
+        parts = started_line.split()
+        node = parts[-1] if len(parts) >= 2 else None
+        if node != expected_node:
+            wrong_node_resources.append((res, node))
+
+    if missing_resources:
+        print(f"\nMissing resources from PCS output: {missing_resources}")
+    if not_started_resources:
+        print(f"\nResources found but not started: {not_started_resources}")
+    if wrong_node_resources:
+        print("\nResources running on the wrong node:")
+        for res, node in wrong_node_resources:
+            print(f"  Resource: {res}, Running on: {node}, Expected: {expected_node}")
+
+    assert not missing_resources, print("Some PCS resources are missing")
+    assert not not_started_resources, print("Some PCS resources are not started")
+    assert not wrong_node_resources, print("Some PCS resources are not running on the expected node")
+
+    print(f"\nAll PCS resources are present, started, and running on node: {expected_node}")
+
