@@ -155,7 +155,7 @@ def check_if_oim_ha_is_enabled():
 
 @pytest.fixture
 def get_oim_ha_nodes():
-    def _get_oim_ha_nodes(run_sshpass_command):
+    def _get_oim_ha_nodes(run_sshpass_command, use_ha=False):
         postgres_password = os.getenv("POSTGRES_PASSWORD")
         assert postgres_password, print("Missing environment variable: POSTGRES_PASSWORD")
 
@@ -166,7 +166,7 @@ def get_oim_ha_nodes():
             f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
         )
 
-        result = run_sshpass_command(cmd)
+        result = run_sshpass_command(cmd, use_ha=use_ha)
         assert result.returncode == 0, print(f"\nFailed to query column names.\nError:\n{result.stderr}")
 
         oim_ha_nodes = result.stdout.strip().splitlines()
@@ -176,7 +176,7 @@ def get_oim_ha_nodes():
 
 @pytest.fixture
 def get_compute_nodes():
-    def _get_compute_nodes(run_sshpass_command):    
+    def _get_compute_nodes(run_sshpass_command, use_ha=False):    
         postgres_password = os.getenv("POSTGRES_PASSWORD")
         assert postgres_password, print("Missing environment variable: POSTGRES_PASSWORD")
 
@@ -187,7 +187,7 @@ def get_compute_nodes():
             f"psql -q -U postgres -d omniadb -t -A -c \"{query}\""
         )
 
-        result = run_sshpass_command(cmd)
+        result = run_sshpass_command(cmd, use_ha=use_ha)
         assert result.returncode == 0, print(f"\nFailed to query column names.\nError:\n{result.stderr}")
 
         compute_nodes = result.stdout.strip().splitlines()
