@@ -247,4 +247,3 @@ def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command, 
     assert not wrong_node_resources, print("Some PCS resources are not running on the expected node")
 
     print(f"\nAll PCS resources are present, started, and running on node: {expected_node}")
-
