@@ -29,7 +29,7 @@ def update_config(ip, password, username):
         lines = file.readlines()
 
     updated_lines = []
-    found_ip = found_pass = found_username = False
+    found_ip = found_pass = found_username = found_ha_ip = found_ha_pass = False
 
     for line in lines:
         if re.match(r'\s*OIM_IP\s*=\s*', line):
