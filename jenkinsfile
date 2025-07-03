@@ -78,22 +78,7 @@ pipeline {
                 script {
                     try {
                         echo "Running Omnia startup.."
-                        sh """
-                            sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \
-                            "cd ${VALIDATION_SUITE_DIR}/omnia_oim_setup && \
-                            source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && \
-                            python run_omnia_startup.py \
-                                --oim-ip ${params.OIM_IP} \
-                                --oim-username ${params.OIM_USERNAME} \
-                                --oim-password ${params.OIM_PASSWORD} \
-                                --oim-ha-ip ${params.OIM_HA_IP} \
-                                --oim-ha-password ${params.OIM_HA_PASSWORD} \
-                                --branch-name ${params.BRANCH_NAME} \
-                                --startup-type ${params.STARTUP_TYPE} \
-                                --registry-user ${params.ARTIFACTORY_USERNAME} \
-                                --registry-password ${params.ARTIFACTORY_PASSWORD}"
-                        """
-
+                    
                         sh """
                             sshpass -p '${params.HOST_PASSWORD}' ssh -o StrictHostKeyChecking=no ${params.HOST_USERNAME}@${params.HOST_IP} \\
                             "source ${OMNIA_VENV_DIR}/omnia_test/bin/activate && cd ${VALIDATION_SUITE_DIR} && molecule verify -s omnia_startup"
