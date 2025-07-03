@@ -22,7 +22,7 @@ import re
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = "/home/omnia_input/inputs"
 
-def update_config(ip, password, username):
+def update_config(ip, password, username, ha_ip, ha_password):
     config_path = os.path.join(script_dir, '../config.py')
 
     with open(config_path, 'r') as file:
@@ -42,10 +42,10 @@ def update_config(ip, password, username):
             updated_lines.append(f'OIM_USERNAME = "{username}"\n')
             found_username = True
         elif re.match(r'\s*OIM_HA_IP\s*=\s*', line):
-            updated_lines.append(f'OIM_HA_IP = "{ip}"\n')
+            updated_lines.append(f'OIM_HA_IP = "{ha_ip}"\n')
             found_ha_ip = True
         elif re.match(r'\s*OIM_HA_PASS\s*=\s*', line):
-            updated_lines.append(f'OIM_HA_PASS = "{password}"\n')
+            updated_lines.append(f'OIM_HA_PASS = "{ha_password}"\n')
             found_ha_pass = True
         else:
             updated_lines.append(line)
@@ -57,9 +57,9 @@ def update_config(ip, password, username):
     if not found_username:
         updated_lines.append(f'OIM_USERNAME = "{username}"\n')
     if not found_ha_ip:
-        updated_lines.append(f'OIM_HA_IP = "{ip}"\n')
+        updated_lines.append(f'OIM_HA_IP = "{ha_ip}"\n')
     if not found_ha_pass:
-        updated_lines.append(f'OIM_HA_PASS = "{password}"\n')
+        updated_lines.append(f'OIM_HA_PASS = "{ha_password}"\n')
 
     with open(config_path, 'w') as file:
         file.writelines(updated_lines)
@@ -214,8 +214,7 @@ def main():
     ha_ip = args.oim_ha_ip
     ha_password = args.oim_ha_password
 
-    update_config(ip, password, user)
-    update_config(ha_ip, ha_password, user)
+    update_config(ip, password, user, ha_ip, ha_password)
     download_omnia_startup(ip, password, args.branch_name)
     inv_creation(ip, user, password)
 
