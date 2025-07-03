@@ -18,7 +18,7 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
     """
     Checks that all required containers are present and running in podman.
     """
-    required_containers = get_required_containers
+    required_containers = get_required_containers()
 
     cmd = "podman ps --all --format '{{.Names}}: {{.Status}}'"
     result = run_sshpass_command(cmd)
@@ -57,7 +57,7 @@ def test_required_containers_running(get_required_containers, run_sshpass_comman
     
 def test_pcs_resources_running(get_required_pcs_resources, run_sshpass_command):
     # List of expected resource names and their group
-    expected_resources = get_required_pcs_resources
+    expected_resources = get_required_pcs_resources(run_sshpass_command)
     
     cmd = f"podman exec -it omnia_pcs pcs resource"
     
