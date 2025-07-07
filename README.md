@@ -37,12 +37,23 @@ cd automation && ./molecule.sh all
 To run tests scenario by scenario:
 
 ```bash
-cd automation && ./molecule.sh scenario_name 
+cd automation && ./molecule.sh test scenario_name 
 ```
 
 ex:- 
 ```bash
-cd automation && ./molecule.sh prepare_oim 
+cd automation && ./molecule.sh test prepare_oim 
+```
+
+To only verify scenario by scenario:
+
+```bash
+cd automation && ./molecule.sh verify scenario_name 
+```
+
+ex:- 
+```bash
+cd automation && ./molecule.sh verify prepare_oim 
 ```
 
 ### Jenkins Integration
