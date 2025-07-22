@@ -142,6 +142,20 @@ def get_oim_shared_path():
         return shared_path
     return _get_oim_shared_path
 
+@pytest.fixture(scope="session")
+def nfs_client_params_data():
+    def _get_params(run_sshpass_command):
+        cmd = "podman exec omnia_core cat /opt/omnia/input/project_default/storage_config.yml"
+        result = run_sshpass_command(cmd)
+        if result.returncode != 0:
+            pytest.fail(f"Failed to fetch storage_config.yml: {result.stderr}")
+        try:
+            config_data = yaml.safe_load(result.stdout)
+            return config_data.get("nfs_client_params", [])
+        except Exception as e:
+            pytest.fail(f"Error parsing storage_config.yml: {e}")
+    return _get_params
+
 @pytest.fixture
 def check_if_oim_ha_is_enabled():
     def _check(run_sshpass_command):
