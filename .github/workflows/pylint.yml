@@ -1,0 +1,56 @@
+name: Pylint
+
+on:
+  pull_request:
+    branches:
+      - automation
+      - release_1.7.1
+      - pub/service_cluster_telemetry
+      - pub/multiple_login_node
+      - pub/local_repo_arch
+      - pub/k8s_plugins
+      - pub/service_cluster_kafka
+      - pub/provision_arch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    env:
+      PYLINT_THRESHOLD: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible pylint kubernetes prettytable requests passlib
+
+      - name: Get changed Python files (excluding deleted)
+        id: changed-files
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          CHANGED=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }} HEAD -- '*.py' || true)
+
+          FILES=""
+          for f in $CHANGED; do
+            if [ -f "$f" ]; then
+              FILES="$FILES $f"
+            fi
+          done
+
+          FILES=$(echo "$FILES" | xargs)  # Trim extra spaces
+
+          echo "Filtered files: $FILES"
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+      - name: Run pylint on changed files
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "Running pylint on: ${{ steps.changed-files.outputs.files }}"
+          pylint ${{ steps.changed-files.outputs.files }} --fail-under=${PYLINT_THRESHOLD}
