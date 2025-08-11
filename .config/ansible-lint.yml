@@ -1,0 +1,11 @@
+---
+
+skip_list:
+  - var-naming
+  - unresolved-module
+  - fqcn[canonical]
+  - internal-error
+  - role-name[path]
+
+verbosity: 1
+profile: production
