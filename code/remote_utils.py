@@ -1,5 +1,4 @@
-# remote_utils.py
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#  Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,26 +11,25 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-# Copyright (c) 2025 Your Name or Company
-# Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-import subprocess
 import logging
+import subprocess
 from typing import Tuple
 
-logging.basicConfig(level=logging.INFO)
-
 """
-This module provides utility functions to perform remote operations via SSH and SCP.
+Utility functions for performing remote operations via SSH and SCP.
 
-It includes functionality to:
-- Copy files to a remote machine using `scp` with password authentication.
-- Run commands on a remote machine over SSH.
-- Check if a remote node is reachable using `ping`.
+Includes:
+- File copying with SCP using sshpass
+- Remote command execution over SSH
+- Node reachability check via ping
 
-Note: This script uses `sshpass`, which exposes passwords on the command line.
-It's intended for quick automation tasks in trusted environments only.
+NOTE: This uses `sshpass`, which exposes the password on the command line.
+Use only in trusted environments.
 """
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
 
 def copy_file_to_remote(
     user: str,
@@ -41,14 +39,7 @@ def copy_file_to_remote(
     remote_path: str
 ) -> Tuple[int, str, str]:
     """
-    Copy a file from the local machine to a remote machine using SCP.
-
-    Args:
-        user (str): Username for SSH login.
-        password (str): Password for SSH login.
-        ip (str): IP address of the remote host.
-        local_path (str): Path to the local file.
-        remote_path (str): Destination path on the remote host.
+    Copy a file from the local system to a remote host using SCP.
 
     Returns:
         tuple: (return_code, stdout, stderr)
@@ -66,14 +57,15 @@ def copy_file_to_remote(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=15
+            timeout=15,
+            check=False  # Fix W1510
         )
         return result.returncode, result.stdout.strip(), result.stderr.strip()
     except subprocess.TimeoutExpired:
-        logging.error("SCP file copy timed out")
-        return -1, "", "File copy timed out"
+        logging.error("SCP operation timed out.")
+        return -1, "", "Timeout"
     except subprocess.SubprocessError as exc:
-        logging.error("SCP file copy failed: %s", exc)
+        logging.error("SCP operation failed: %s", exc)
         return -1, "", str(exc)
 
 
@@ -84,13 +76,7 @@ def run_remote_command(
     cmd: str
 ) -> Tuple[int, str, str]:
     """
-    Run a shell command on a remote machine via SSH.
-
-    Args:
-        user (str): Username for SSH login.
-        password (str): Password for SSH login.
-        ip (str): IP address of the remote host.
-        cmd (str): Shell command to execute on the remote host.
+    Run a command on a remote host over SSH.
 
     Returns:
         tuple: (return_code, stdout, stderr)
@@ -108,12 +94,13 @@ def run_remote_command(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=10
+            timeout=10,
+            check=False  # Fix W1510
         )
         return result.returncode, result.stdout.strip(), result.stderr.strip()
     except subprocess.TimeoutExpired:
-        logging.error("SSH command timed out")
-        return -1, "", "Command timed out"
+        logging.error("SSH command timed out.")
+        return -1, "", "Timeout"
     except subprocess.SubprocessError as exc:
         logging.error("SSH command failed: %s", exc)
         return -1, "", str(exc)
@@ -125,12 +112,7 @@ def check_node_reachability(
     timeout: int = 5
 ) -> Tuple[bool, str]:
     """
-    Check if a node is reachable using ping.
-
-    Args:
-        ip (str): IP address of the node to check.
-        count (int): Number of ping packets to send.
-        timeout (int): Timeout in seconds for each ping packet.
+    Check if a remote node is reachable using ping.
 
     Returns:
         tuple: (reachable, output)
@@ -142,12 +124,13 @@ def check_node_reachability(
             ping_command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            timeout=10,
+            check=False  # Fix W1510
         )
         if result.returncode == 0:
-            return True, result.stdout
-        return False, result.stderr
+            return True, result.stdout.strip()
+        return False, result.stderr.strip()
     except subprocess.SubprocessError as exc:
         logging.error("Ping failed: %s", exc)
         return False, str(exc)
-
