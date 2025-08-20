@@ -8,11 +8,35 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+"""
+Loads environment variables for remote connection and file transfer.
+
+Expected variables:
+- DEST_IP
+- DEST_USER
+- DEST_PASS
+- LOCAL_FILE
+- REMOTE_PATH
+"""
 
 import os
+import sys
 
-DEST_IP = os.environ["DEST_IP"]
-DEST_USER = os.environ["DEST_USER"]
-DEST_PASS = os.environ["DEST_PASS"]
-LOCAL_FILE = os.environ["LOCAL_FILE"]
-REMOTE_PATH = os.environ["REMOTE_PATH"]
+DEST_IP: str = os.getenv("DEST_IP")
+DEST_USER: str = os.getenv("DEST_USER")
+DEST_PASS: str = os.getenv("DEST_PASS")
+LOCAL_FILE: str = os.getenv("LOCAL_FILE")
+REMOTE_PATH: str = os.getenv("REMOTE_PATH")
+
+# Validate required variables
+REQUIRED_VARS = {
+    "DEST_IP": DEST_IP,
+    "DEST_USER": DEST_USER,
+    "DEST_PASS": DEST_PASS,
+    "LOCAL_FILE": LOCAL_FILE,
+    "REMOTE_PATH": REMOTE_PATH,
+}
+
+missing = [key for key, value in REQUIRED_VARS.items() if not value]
+if missing:
+    sys.exit(f"Missing required environment variables: {', '.join(missing)}")
