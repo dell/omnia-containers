@@ -12,8 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-# Main server details
-
  
 # Container details
 CONTAINER_NAME = "omnia_provision"
@@ -23,7 +21,6 @@ DB_CREDENTIALS = {
     "user": "postgres",
     "password": "Dell1234",
     "database": "omniadb"
-
 }
  
 # Table/column details

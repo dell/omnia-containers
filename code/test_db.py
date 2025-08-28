@@ -14,11 +14,14 @@
 
 import db_utils
 import vars
-import pytest
 import mesgs
 
 
 def test_fetch_full_nodeinfo_table():
+    """
+    Test that the full nodeinfo table query returns non-empty result.
+    """
+
     rows = db_utils.run_full_table_query(
         vars.DB_CREDENTIALS,
         vars.TABLE_NODEINFO,
@@ -29,6 +32,9 @@ def test_fetch_full_nodeinfo_table():
 
 
 def test_all_nodes_status_booted():
+    """
+    Test that all nodes in the nodeinfo table have a booted status.
+    """
         
     status_map = db_utils.run_status_query(
         vars.DB_CREDENTIALS,
