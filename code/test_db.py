@@ -14,7 +14,7 @@
 
 import db_utils
 import vars
-import mesgs
+import validation_msg
 
 
 def test_fetch_full_nodeinfo_table():
@@ -28,7 +28,7 @@ def test_fetch_full_nodeinfo_table():
         vars.CONTAINER_NAME,
         vars.FULL_QUERY
     )
-    assert rows.strip(), f"{vars.NO_DATA_MSG} {vars.TABLE_NODEINFO}"
+    assert rows.strip(), f"{validation_msg.NO_DATA_MSG} {vars.TABLE_NODEINFO}"
 
 
 def test_all_nodes_status_booted():
@@ -42,5 +42,5 @@ def test_all_nodes_status_booted():
         vars.CONTAINER_NAME,
         vars.STATUS_QUERY
     )
-    assert status_map, f"{vars.NO_STATUS_MSG} {vars.TABLE_NODEINFO}"
+    assert status_map, f"{validation_msg.NO_STATUS_MSG} {vars.TABLE_NODEINFO}"
     
