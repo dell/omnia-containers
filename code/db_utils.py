@@ -89,7 +89,7 @@ def run_status_query(db_credentials, table_name, container_name, row):
         node, status = parts[0], parts[1]
         node_status_map[node] = status
 
-        if node.lower() != 'oim' and status.lower() != 'booted':
+        if node.lower() != 'oim' and status.lower() != vars.EXPECTED_STATUS:
             invalid_nodes[node] = status
 
     print("Node status map:", node_status_map)
@@ -98,7 +98,7 @@ def run_status_query(db_credentials, table_name, container_name, row):
         print("Nodes with invalid status:")
         for node, status in invalid_nodes.items():
             print(f"  {node}: {status}")
-        raise RuntimeError(f"Some nodes are not in 'booted' state: {invalid_nodes}")
+        raise RuntimeError(f"Some nodes are not in '{vars.EXPECTED_STATUS}' state: {invalid_nodes}")
 
-    print("All nodes are in 'booted' state.")
+    print("All nodes are in '{vars.EXPECTED_STATUS}' state.")
     return node_status_map
