@@ -1,0 +1,6 @@
+setuptools==80.9.0
+-e .
+paramiko==4.0.0
+pylint==3.3.8
+pytest==8.4.1
+requests==2.32.5
