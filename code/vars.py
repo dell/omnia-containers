@@ -19,7 +19,7 @@ CONTAINER_NAME = "omnia_provision"
 # DB credentials
 DB_CREDENTIALS = {
     "user": "postgres",
-    "password": "Dell1234",
+    "password": "",
     "database": "omniadb"
 }
  
