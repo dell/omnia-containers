@@ -77,6 +77,19 @@ build_omnia_kubespray() {
     cd - || exit
 }
 
+build_omnia_auth() {
+    echo "Building omnia_auth image..."
+    cd "$AUTH_DIR" || exit
+    podman build -t omnia_auth:latest -f Dockerfile
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}omnia_auth image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("omnia_auth")
+    else
+        echo -e "${RED}omnia_auth image build failed.${NC}"
+        FAILED_BUILDS+=("omnia_auth")
+    fi
+    cd - || exit
+}
 
 # Default parameterized values
 OMNIA_VERSION="pub/ochami"
@@ -123,6 +136,9 @@ XCAT_VERSION="2.17"
 PROVISION_IMAGE_FILE="omnia_provision"
 PROVISION_IMAGE_NAME="omnia_provision"
 
+# Auth container variables
+AUTH_DIR="ContainerFile/auth"
+
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers
@@ -146,6 +162,14 @@ else
                 ;;
             kubespray)
                 build_omnia_kubespray
+                ;;
+            auth)
+                build_omnia_auth
+                ;;
+            pipeline)
+                build_omnia_core
+                build_omnia_kubespray
+                build_omnia_auth
                 ;;
             *)
                 echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs, kubespray.${NC}"

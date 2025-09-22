@@ -1,6 +1,6 @@
 # Omnia 2.0 Image Build Script for all containers
 
-This repository contains a script to build multiple containers images using `Podman`. The script allows you to build different images like `omnia_core`, `omnia_provision`, `omnia_pcs`, and `omnia_kubespray`.
+This repository contains a script to build multiple containers images using `Podman`. The script allows you to build different images like `omnia_core`, `omnia_auth`, `omnia_provision`, `omnia_pcs`, and `omnia_kubespray`.
 
 ## Prerequisites
 
@@ -14,6 +14,7 @@ Before executing the script, ensure that you have the following installed:
 The `build_images.sh` script builds the following containers:
 
 - **omnia_core**: image for core Omnia container - `core`.
+- **omnia_auth**: image for core Omnia container - `auth`.
 - **omnia_provision**: image used for provisioning container - `provision`.
 - **omnia_pcs**: image for PCS container - `pcs`.
 - **omnia_kubespray**: image for Kubespray container - `kubespray`.
@@ -34,10 +35,10 @@ You can specify which container image to build by passing a comma-separated list
 To build only the provision and pcs container image:
 
 ```bash
-./build_images.sh provision,pcs
+./build_images.sh core,auth,kubespray
 ```
 * For kubespray image, defualt kubespray_version is `v2.28.0`
-* For core image, default omnia_branch is `pub/new_architecture`
+* For core image, default omnia_branch is `pub/ochami`
 
 ```bash
 ./build_images.sh core,kubespray kubespray_version=v2.26.0 omnia_branch=staging
