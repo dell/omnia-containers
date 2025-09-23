@@ -1,5 +1,5 @@
 # Dockerfile for Omnia-Kubespray container
-FROM fedora:38
+FROM fedora:40
 
 # Set environment variables
 ENV LANG=C.UTF-8 \
