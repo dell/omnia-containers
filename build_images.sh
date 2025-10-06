@@ -143,8 +143,7 @@ AUTH_DIR="ContainerFile/auth"
 if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers
     build_omnia_core
-    build_omnia_provision
-    build_omnia_pcs
+    build_omnia_auth
     build_omnia_kubespray
 else
     # Loop through each container specified in the arguments and build
