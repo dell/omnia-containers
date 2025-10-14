@@ -67,7 +67,7 @@ If we want specific omnia branch keeping kubespray as default then we can use li
 If we want specific omnia branch and kubespray version both then we can use like below:
 
 ```bash
-./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/new_architecture
+./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/ochami
 ```
 
 
