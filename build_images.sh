@@ -192,7 +192,7 @@ if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
         echo -e "2. Make the script executable:"
         echo -e "   ${BLUE}chmod +x omnia.sh${NC}"
         echo -e "3. Execute the script to create the core container and configure passwordless SSH:"
-        echo -e "   ${BLUE}./omnia.sh${NC}"
+        echo -e "   ${BLUE}./omnia.sh --install${NC}"
     fi
 fi
 if [ ${#FAILED_BUILDS[@]} -ne 0 ]; then
