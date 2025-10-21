@@ -41,7 +41,7 @@ To build only the provision and pcs container image:
 * For core image, default omnia_branch is `pub/ochami`
 
 ```bash
-./build_images.sh core,kubespray kubespray_version=v2.26.0 omnia_branch=staging
+./build_images.sh core,kubespray kubespray_version=v2.28.0 omnia_branch=v2.0.0.0-rc2
 ```
 
 ### 2. **Building All images**
@@ -51,6 +51,14 @@ Syntax:
 
 ```bash
 ./build_images.sh all
+
+
+If we want specific omnia branch/version keeping kubespray as default then we can use like below:
+
+```bash
+./build_images.sh all omnia_branch=v2.0.0.0-rc2
+```
+
 ```
 If we want specific kubespray_version image then we can use like below:
 
@@ -58,11 +66,6 @@ If we want specific kubespray_version image then we can use like below:
 ./build_images.sh all kubespray_version=v2.28.0
 ```
 
-If we want specific omnia branch keeping kubespray as default then we can use like below:
-
-```bash
-./build_images.sh all omnia_branch=staging
-```
 
 If we want specific omnia branch and kubespray version both then we can use like below:
 
