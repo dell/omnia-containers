@@ -187,8 +187,9 @@ if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
     if [[ " ${SUCCESSFUL_BUILDS[*]} " =~ " omnia_core " ]]; then
         echo -e "\n${GREEN}omnia_core image built successfully!${NC}"
         echo -e "${YELLOW}Next steps:${NC}"
-        echo -e "1. Download the omnia_startup.sh script:"
-        echo -e "   ${BLUE}wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh${NC}"
+        echo -e "1. Download the omnia.sh script:"
+        echo -e "   ${BLUE}If you're using a tagged version of Omnia, run the following command: wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh${NC}"
+        echo -e "   ${BLUE}If you're using a specific branch of Omnia, run the following command: wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh${NC}"
         echo -e "2. Make the script executable:"
         echo -e "   ${BLUE}chmod +x omnia.sh${NC}"
         echo -e "3. Execute the script to create the core container and configure passwordless SSH:"
