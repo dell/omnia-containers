@@ -17,6 +17,7 @@ Prerequisites
           "cluster_os_version": "10.0",
            "repo_config": "always",
            "softwares": [
+                {"name": "default_packages", "arch": ["x86_64","aarch64"]}
                 {"name": "nfs", "arch": ["x86_64","aarch64"]},
                 {"name": "service_k8s","version": "1.31.4", "arch": ["x86_64"]}
             ],
