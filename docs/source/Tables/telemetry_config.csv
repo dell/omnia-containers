@@ -23,7 +23,3 @@ kafka_configurations > ``topic_partitions``,Conditional Mandatory,"* **Type**: I
 * The number of partitions for each Kafka topic.
 * Increasing this can improve throughput but also increases storage or overhead.
 * **Default value**:  1"
-,,
-,,
-,,
-,,
