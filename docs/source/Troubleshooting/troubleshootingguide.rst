@@ -119,7 +119,7 @@ When you run the omnia.yml or service_k8s_cluster.yml files, sometimes one of th
 
         kubectl get pods -A
 
-Ensure that two CoreDNS pods are in the 'Running' state.
+Ensure that the CoreDNS pods are in the 'Running' state.
 
 5. Ensure that you rerun the playbook.
 
