@@ -110,7 +110,7 @@ When you run the omnia.yml or service_k8s_cluster.yml files, sometimes one of th
 
         kubectl edit deployment <coredns-deployment-name> -n kube-system:
 
-1. Locate the ‘replicas’ field in the editor and change the value from 3 to 2.
+1. Locate the ‘replicas’ field in the editor and change the value to the number of kube controller nodes.
 2. Save the changes. Kubernetes automatically restarts the CoreDNS deployment.
 
 4. Wait a few minutes for the pods to restart and verify the CoreDNS status:
