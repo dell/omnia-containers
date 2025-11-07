@@ -88,7 +88,7 @@ For more information, see `Logs <../Logging/OIM_logs.html>`_.
 Troubleshooting CoreDNS pod in pending state
 =================================================================
 
-When you run the omnia.yml, scheduler.yml, or service_k8s_cluster.yml files, sometimes one of the CoreDNS pods remains in the pending state after the Kubernetes installation. This issue is caused by the dns-autoscaler adjusting the CoreDNS replica counts based on the total number of CPU cores across all the cluster nodes. In some environments, this scaling calculation can lead to an unsupported replica count, resulting in pending pods.
+When you run the omnia.yml or service_k8s_cluster.yml files, sometimes one of the CoreDNS pods remains in the pending state after the Kubernetes installation. This issue is caused by the dns-autoscaler adjusting the CoreDNS replica counts based on the total number of CPU cores across all the cluster nodes. In some environments, this scaling calculation can lead to an unsupported replica count, resulting in pending pods.
 
 **Resolution**: Do the following:
 
@@ -110,7 +110,7 @@ When you run the omnia.yml, scheduler.yml, or service_k8s_cluster.yml files, som
 
         kubectl edit deployment <coredns-deployment-name> -n kube-system:
 
-1. Locate the ‘replicas’ field in the editor and change the value from 3 to 2.
+1. Locate the ‘replicas’ field in the editor and change the value to the number of kube controller nodes.
 2. Save the changes. Kubernetes automatically restarts the CoreDNS deployment.
 
 4. Wait a few minutes for the pods to restart and verify the CoreDNS status:
@@ -119,8 +119,9 @@ When you run the omnia.yml, scheduler.yml, or service_k8s_cluster.yml files, som
 
         kubectl get pods -A
 
-Ensure that two CoreDNS pods are in the 'Running' state.
+Ensure that the CoreDNS pods are in the 'Running' state.
 
+5. Ensure that you rerun the playbook.
 
 
 
