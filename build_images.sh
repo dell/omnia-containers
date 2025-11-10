@@ -25,7 +25,7 @@ build_omnia_core() {
 	if [ "$BUILD_ACTION" = "load" ]; then
 	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:latest --file Dockerfile --platform linux/amd64 --load .
 	elif [ "$BUILD_ACTION" = "push" ]; then
-	    docker buildx build   --build-arg OMNIA_VERSION="pub/ochami" -t docker.io/dellhpcomniaaisolution/omnia_core:latest --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+	    docker buildx build   --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
 	else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -81,21 +81,7 @@ build_omnia_kubespray() {
     echo -e "Using Kubespray version: ${YELLOW}${KUBESPRAY_VERSION}${NC}"
     echo -e "${RED}---------------------------------${NC}"
     cd "$KUBESPRAY_DIR" || exit
-    if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" -f Dockerfile
-    elif [ "$BUILD_TOOL" = "docker" ]; then
-        if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache --build-arg  KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" --file Dockerfile --platform linux/amd64 --load .
-        elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache --build-arg  KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" --file Dockerfile --platform linux/amd64  --provenance=true --sbom=true --push .
-        else
-            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
-            exit 1
-        fi
-    else
-        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
-        exit 1
-    fi
+    podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" -f Dockerfile
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}omnia_kubespray image built successfully.${NC}"
@@ -114,9 +100,9 @@ build_omnia_auth() {
         podman build -t omnia_auth:latest -f Dockerfile
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build -t docker.io/dellhpcomniaaisolution/omnia_auth:latest --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build -t omnia_auth:latest --file Dockerfile --platform linux/amd64 --load .
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build -t docker.io/dellhpcomniaaisolution/omnia_auth:latest --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+            docker buildx build -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -141,7 +127,7 @@ OMNIA_VERSION="pub/ochami"
 KUBESPRAY_VERSION='v2.28.0'
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
-DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution/"
+OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution/"
 
 # Parse command line arguments
 for arg in "$@"; do
@@ -197,7 +183,6 @@ if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers
     build_omnia_core
     build_omnia_auth
-    build_omnia_kubespray
 else
     # Loop through each container specified in the arguments and build
     IFS=',' read -r -a containers <<< "$1"
@@ -220,7 +205,6 @@ else
                 ;;
             pipeline)
                 build_omnia_core
-                build_omnia_kubespray
                 build_omnia_auth
                 ;;
             *)
