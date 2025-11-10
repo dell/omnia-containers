@@ -43,7 +43,7 @@ OIM (Omnia Infrastructure Manager) Prerequisites
 
         git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.0.0.0-rc2 
         cd omnia-artifactory
-        ./build_images.sh all
+        ./build_images.sh all omnia_branch=v2.0.0.0-rc2
 
    * For detailed build instructions, refer to the
      `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
