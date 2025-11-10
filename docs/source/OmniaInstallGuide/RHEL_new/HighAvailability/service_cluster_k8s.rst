@@ -167,7 +167,7 @@ Accessing Kubernetes Dashboard Using LoadBalancer and Token Authentication
 
 In the editor, modify ``type: ClusterIP`` to ``type: LoadBalancer`` and save.
 
-2.  Check for the External LoadBalancer IP. ::
+2. Check for the External LoadBalancer IP. ::
 
     kubectl get svc kubernetes-dashboard -n kube-system
 
