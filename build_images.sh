@@ -25,7 +25,7 @@ build_omnia_core() {
 	if [ "$BUILD_ACTION" = "load" ]; then
 	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:latest --file Dockerfile --platform linux/amd64 --load .
 	elif [ "$BUILD_ACTION" = "push" ]; then
-	    docker buildx build   --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
 	else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -95,14 +95,15 @@ build_omnia_kubespray() {
 
 build_omnia_auth() {
     echo "Building omnia_auth image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
     cd "$AUTH_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_auth:latest -f Dockerfile
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build -t omnia_auth:latest --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --no-cache -t omnia_auth:latest --file Dockerfile --platform linux/amd64 --load .
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -127,7 +128,7 @@ OMNIA_VERSION="pub/ochami"
 KUBESPRAY_VERSION='v2.28.0'
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
-OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution/"
+OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Parse command line arguments
 for arg in "$@"; do
