@@ -5,10 +5,19 @@ FROM fedora:40
 ARG OMNIA_VERSION=staging
 
 # Update the system and install Python 3.12
-RUN dnf -y install python3 python3-pip git git-lfs openssh-server \
+RUN dnf -y install python3 python3-pip git openssh-server \
     iproute systemd passwd openssl jq createrepo yum-utils \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
     dnf clean all
+
+# Install Git LFS version 1.23.8 (secure version)
+
+RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
+    tar -xvzf git-lfs-linux-amd64-v3.7.1.tar.gz && \
+    cd git-lfs-3.7.1 && \
+    ./install.sh && \
+    git lfs install && \
+    cd .. && rm -rf git-lfs-3.7.1 git-lfs-linux-amd64-v3.7.1.tar.gz
 
 RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 
