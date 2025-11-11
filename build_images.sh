@@ -95,6 +95,7 @@ build_omnia_kubespray() {
 
 build_omnia_auth() {
     echo "Building omnia_auth image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
     cd "$AUTH_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_auth:latest -f Dockerfile
@@ -127,7 +128,7 @@ OMNIA_VERSION="pub/ochami"
 KUBESPRAY_VERSION='v2.28.0'
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
-OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution/"
+OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Parse command line arguments
 for arg in "$@"; do
