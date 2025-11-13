@@ -67,7 +67,7 @@ Steps
    :keepspace:
 
 3. Fill  the ``omnia_config.yml``,  ``high_availability_config.yml`` (for `service cluster HA <../HighAvailability/service_cluster_ha.html>`_), and ``storage_config.yml``. The nfs_name mentioned in ``storage_config.yml`` should match the ``nfs_storage_name`` of the entries for the ``service_k8s_cluster`` in ``omnia_config.yml`` where deployment is set to true.
-   See `Input parameters for the cluster <../OmniaCluster/schedulerinputparams.html>`_. See the following sample:
+   See `Input parameters for the cluster <../OmniaCluster/schedulerinputparams.html>`_. See the following sample. The NFS share is utilized by the Kubernetes cluster to mount necessary resources.
 
     ::
 
