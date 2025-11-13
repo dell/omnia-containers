@@ -35,5 +35,5 @@ Mandatory",The dynamic range of IPs to be provisioned on target nodes. **Default
 
 ``IP address``
 
-Mandatory","External DNS server IP addresses for the admin network.
+Optional","External DNS server IP addresses for the admin network.
  "
