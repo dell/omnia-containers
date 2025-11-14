@@ -67,7 +67,7 @@ Steps
    :keepspace:
 
 3. Fill  the ``omnia_config.yml``,  ``high_availability_config.yml`` (for `service cluster HA <../HighAvailability/service_cluster_ha.html>`_), and ``storage_config.yml``. The nfs_name mentioned in ``storage_config.yml`` should match the ``nfs_storage_name`` of the entries for the ``service_k8s_cluster`` in ``omnia_config.yml`` where deployment is set to true.
-   See `Input parameters for the cluster <../OmniaCluster/schedulerinputparams.html>`_. See the following sample:
+   See `Input parameters for the cluster <../OmniaCluster/schedulerinputparams.html>`_. See the following sample. The NFS share is utilized by the Kubernetes cluster to mount necessary resources.
 
     ::
 
@@ -157,6 +157,34 @@ After deploying Kubernetes, the following additional packages are installed on t
         * The path to PVC is mentioned under ``{{ nfs_server_share_path }}``.
 
     Click `here <https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner>`_ for more information.
+
+Accessing Kubernetes Dashboard Using LoadBalancer and Token Authentication
+==================================================================================
+
+1. Edit the Dashboard Service to Use LoadBalancer. ::
+
+    kubectl edit svc kubernetes-dashboard -n kube-system
+
+In the editor, modify ``type: ClusterIP`` to ``type: LoadBalancer`` and save.
+
+2. Check for the External LoadBalancer IP. ::
+
+    kubectl get svc kubernetes-dashboard -n kube-system
+
+3. Create admin service account and role binding. ::
+
+    kubectl create serviceaccount dashboard-admin-sa -n kube-system
+    kubectl create clusterrolebinding dashboard-admin-sa \
+       --clusterrole=cluster-admin \
+       --serviceaccount=kube-system:dashboard-admin-sa
+
+4. Generate the Admin Login Token. ::
+
+    kubectl -n kube-system create token dashboard-admin-sa
+
+Copy the resulting token string.
+
+5.  Access the Kubernetes Dashboard. In your web browser, go to  <https://<EXTERNAL-IP>/> select Token authentication, and paste your token to log in.
 
 
 
