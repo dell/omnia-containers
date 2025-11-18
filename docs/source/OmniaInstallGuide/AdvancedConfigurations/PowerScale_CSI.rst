@@ -159,6 +159,14 @@ Expected Results
 * If there are errors during CSI driver installation, the whole ``omnia.yml`` playbook execution does not stop or fail. It pauses for 30 seconds with CSI driver installation failure error message and then proceeds with rest of the playbook execution.
 * For an unsuccessful driver installation scenario, the user first needs to follow the manual removal steps mentioned below from the ``kube_control_plane``, and then re-run the ``omnia.yml`` playbook for CSI driver installation.
 
+.. note:: After executing the ``service_k8s_cluster.yml`` playbook sucessfully, log in to the master ``kube_control_plane`` and verify the isilon pod status with the command ``kubectl get pods -A``. If no isilon pods are listed, do the following:
+       
+        1.  Untaint all the ``kube_control_plane`` mentioned in the inventory by using the following command for each of the kube_control_plane_IP. ::
+            
+             kubectl taint nodes <kube_control_plane_IP> node-role.kubernetes.io/control-plane:NoSchedule-
+
+        2. Rerun the ``service_k8s_cluster.yml`` playbook.
+
 Post installation
 -------------------
 
