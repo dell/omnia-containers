@@ -17,15 +17,16 @@ build_omnia_core() {
     echo "Building omnia_core image..."
     echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Core Tag: ${YELLOW}${CORE_TAG}${NC}"
     echo -e "${RED}---------------------------------${NC}"
     cd "$OMNIA_CORE_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:latest -f Dockerfile
+        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} -f Dockerfile
     elif [ "$BUILD_TOOL" = "docker" ]; then
 	if [ "$BUILD_ACTION" = "load" ]; then
-	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:latest --file Dockerfile --platform linux/amd64 --load .
+	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
 	elif [ "$BUILD_ACTION" = "push" ]; then
-	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
 	else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -47,8 +48,9 @@ build_omnia_core() {
 # Function to build omnia_provision image
 build_omnia_provision() {
     echo "Building omnia_provision image..."
+    echo -e "Using Provision Tag: ${YELLOW}${PROVISION_TAG}${NC}"
     cd "$PROVISION_DIR" || exit
-    podman build --build-arg xcat_version="$XCAT_VERSION" --cap-add=ALL -t omnia_provision:latest -f Dockerfile
+    podman build --build-arg xcat_version="$XCAT_VERSION" --cap-add=ALL -t omnia_provision:${PROVISION_TAG} -f Dockerfile
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}omnia_provision image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_provision")
@@ -62,8 +64,9 @@ build_omnia_provision() {
 # Function to build omnia_pcs image
 build_omnia_pcs() {
     echo "Building omnia_pcs image..."
+    echo -e "Using PCS Tag: ${YELLOW}${PCS_TAG}${NC}"
     cd "$PCS_CONTAINER_DIR" || exit
-    podman build -t omnia_pcs:latest -f Dockerfile
+    podman build -t omnia_pcs:${PCS_TAG} -f Dockerfile
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}omnia_pcs image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_pcs")
@@ -79,9 +82,13 @@ build_omnia_kubespray() {
     echo "Building omnia_kubespray image..."
     # Check if the argument is provided in the format kubespray_version=v2.27.0
     echo -e "Using Kubespray version: ${YELLOW}${KUBESPRAY_VERSION}${NC}"
+    echo -e "Using Kubespray Tag: ${YELLOW}${KUBESPRAY_TAG}${NC}"
     echo -e "${RED}---------------------------------${NC}"
     cd "$KUBESPRAY_DIR" || exit
-    podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" -f Dockerfile
+    # Use KUBESPRAY_TAG-KUBESPRAY_VERSION format for kubespray to maintain version tracking
+    FINAL_KUBESPRAY_TAG="${KUBESPRAY_TAG}-${KUBESPRAY_VERSION}"
+    echo -e "Final Kubespray Tag: ${YELLOW}${FINAL_KUBESPRAY_TAG}${NC}"
+    podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$FINAL_KUBESPRAY_TAG" -f Dockerfile
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}omnia_kubespray image built successfully.${NC}"
@@ -93,17 +100,50 @@ build_omnia_kubespray() {
     cd - || exit
 }
 
+# Function to build ubuntu_ldms image
+build_ubuntu_ldms() {
+    echo "Building ubuntu_ldms image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Ubuntu LDMS Tag: ${YELLOW}${UBUNTU_LDMS_TAG}${NC}"
+    cd "$UBUNTU_LDMS_DIR" || exit
+    if [ "$BUILD_TOOL" = "podman" ]; then
+        podman build -t ubuntu_ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
+    elif [ "$BUILD_TOOL" = "docker" ]; then
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache -t ubuntu_ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --load .
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --provenance=true --sbom=true --push .
+        else
+            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
+        exit 1
+    fi
+
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}ubuntu_ldms image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("ubuntu_ldms")
+    else
+        echo -e "${RED}ubuntu_ldms image build failed.${NC}"
+        FAILED_BUILDS+=("ubuntu_ldms")
+    fi
+    cd - || exit
+}
+
 build_omnia_auth() {
     echo "Building omnia_auth image..."
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Auth Tag: ${YELLOW}${AUTH_TAG}${NC}"
     cd "$AUTH_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t omnia_auth:latest -f Dockerfile
+        podman build -t omnia_auth:${AUTH_TAG} -f Dockerfile
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t omnia_auth:latest --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --no-cache -t omnia_auth:${AUTH_TAG} --file Dockerfile --platform linux/amd64 --load .
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:latest" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -130,6 +170,16 @@ BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
+# Default image tags for each container (can be overridden individually)
+CORE_TAG="latest"
+AUTH_TAG="latest"
+PROVISION_TAG="latest"
+PCS_TAG="latest"
+KUBESPRAY_TAG="latest"
+UBUNTU_LDMS_TAG="latest"
+# Global fallback tag (used when image_tag= is specified)
+IMAGE_TAG="latest"
+
 # Parse command line arguments
 for arg in "$@"; do
     if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
@@ -140,7 +190,27 @@ for arg in "$@"; do
         BUILD_TOOL="${arg#build_tool=}"
     elif [[ "$arg" =~ ^build_action=.*$ ]]; then
         BUILD_ACTION="${arg#build_action=}"
-
+    elif [[ "$arg" =~ ^image_tag=.*$ ]]; then
+        IMAGE_TAG="${arg#image_tag=}"
+        # Set all container tags to the same value when image_tag is used
+        CORE_TAG="$IMAGE_TAG"
+        AUTH_TAG="$IMAGE_TAG"
+        PROVISION_TAG="$IMAGE_TAG"
+        PCS_TAG="$IMAGE_TAG"
+        KUBESPRAY_TAG="$IMAGE_TAG"
+        UBUNTU_LDMS_TAG="$IMAGE_TAG"
+    elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
+        CORE_TAG="${arg#core_tag=}"
+    elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
+        AUTH_TAG="${arg#auth_tag=}"
+    elif [[ "$arg" =~ ^provision_tag=.*$ ]]; then
+        PROVISION_TAG="${arg#provision_tag=}"
+    elif [[ "$arg" =~ ^pcs_tag=.*$ ]]; then
+        PCS_TAG="${arg#pcs_tag=}"
+    elif [[ "$arg" =~ ^kubespray_tag=.*$ ]]; then
+        KUBESPRAY_TAG="${arg#kubespray_tag=}"
+    elif [[ "$arg" =~ ^ubuntu_ldms_tag=.*$ ]]; then
+        UBUNTU_LDMS_TAG="${arg#ubuntu_ldms_tag=}"
     fi
 done
 
@@ -179,11 +249,15 @@ PROVISION_IMAGE_NAME="omnia_provision"
 # Auth container variables
 AUTH_DIR="ContainerFile/auth"
 
+# Ubuntu LDMS container variables
+UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
+
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers
     build_omnia_core
     build_omnia_auth
+    build_ubuntu_ldms
 else
     # Loop through each container specified in the arguments and build
     IFS=',' read -r -a containers <<< "$1"
@@ -204,12 +278,15 @@ else
             auth)
                 build_omnia_auth
                 ;;
+            ubuntu-ldms)
+                build_ubuntu_ldms
+                ;;
             pipeline)
                 build_omnia_core
                 build_omnia_auth
                 ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs, kubespray.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs, kubespray, auth, ubuntu-ldms.${NC}"
                 exit 1
                 ;;
         esac

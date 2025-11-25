@@ -43,6 +43,7 @@ The `build_images.sh` script builds the following containers:
 - **omnia_provision**: image used for provisioning container - `provision`.
 - **omnia_pcs**: image for PCS container - `pcs`.
 - **omnia_kubespray**: image for Kubespray container - `kubespray`.
+- **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 
 ## Script Usage
 
@@ -52,7 +53,7 @@ You can specify which container image to build by passing a comma-separated list
 
 #### Syntax:
 ```bash
-./build_images.sh <container1,container2,...> kubespray_version=v<version> omnia_branch=<branch_name> build_tool=<podman_or_docker>
+./build_images.sh <container1,container2,...> [kubespray_version=v<version>] [omnia_branch=<branch_name>] [build_tool=<podman_or_docker>] [image_tag=<tag_version>] [core_tag=<tag>] [auth_tag=<tag>] [provision_tag=<tag>] [pcs_tag=<tag>] [kubespray_tag=<tag>] [ubuntu_ldms_tag=<tag>]
 ```
 
 #### Example
@@ -64,9 +65,42 @@ To build only the core and auth container image:
 ```
 * For core image, default omnia_branch is `pub/ochami`
 * By default, build_tool is considered as podman
+* By default, all image tags are `latest`
+* `image_tag=<tag>` sets all containers to the same tag
+* Individual container tags: `core_tag`, `auth_tag`, `provision_tag`, `pcs_tag`, `kubespray_tag`, `ubuntu_ldms_tag`
 
 ```bash
 ./build_images.sh core,kubespray kubespray_version=v2.28.0 omnia_branch=v2.0.0.0-rc2
+```
+
+To build with a specific image tag for all containers (e.g., version 1.0):
+
+```bash
+./build_images.sh core,auth image_tag=1.0
+```
+
+To build with different tags for different containers:
+
+```bash
+./build_images.sh core,auth core_tag=1.0 auth_tag=2.0
+```
+
+To build core with version 1.0 and auth with latest:
+
+```bash
+./build_images.sh core,auth core_tag=1.0
+```
+
+To build ubuntu-ldms monitoring container:
+
+```bash
+./build_images.sh ubuntu-ldms
+```
+
+To build ubuntu-ldms with specific tag:
+
+```bash
+./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
 ```
 
 ### 2. **Building All images**
@@ -97,6 +131,24 @@ If we want specific omnia branch/version with docker tool then we can use like b
 ./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker
 ```
 
+To build all images with a specific tag (e.g., version 1.0):
+
+```bash
+./build_images.sh all image_tag=1.0
+```
+
+To build all images with custom tag and docker tool:
+
+```bash
+./build_images.sh all image_tag=1.0 build_tool=docker
+```
+
+To build all images with different individual tags:
+
+```bash
+./build_images.sh all core_tag=1.0 auth_tag=1.1 provision_tag=2.0 pcs_tag=1.5 kubespray_tag=3.0 ubuntu_ldms_tag=2.1
+```
+
 OR, without passing any argument - this will build all the container and will use `podman` as the default build_tool
 
 ```bash
@@ -111,10 +163,24 @@ If we want specific omnia branch and kubespray version both built with docker th
 ./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/ochami build_tool=docker
 ```
 
-**Note**: `kubespray_version` should be second argument for the script.
-For kubespray image, default kubespray_version is `v2.28.0`
-Follow below k8s to kubespray version map while choosing kubespray version:
-Currently we support v2.26.0, v2.27.0, v2.28.0 versions of kubespray
+To build all images with custom tag, specific versions and docker:
+
+```bash
+./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/ochami build_tool=docker image_tag=1.0
+```
+
+To build all images with mixed individual tags and global settings:
+
+```bash
+./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/ochami build_tool=docker core_tag=1.0 auth_tag=1.2
+```
+
+**Note**: 
+- `kubespray_version` should be second argument for the script.
+- For kubespray image, default kubespray_version is `v2.28.0`
+- Kubespray images use a combined tag format: `<kubespray_tag>-<kubespray_version>` (e.g., `1.0-v2.28.0` or `latest-v2.28.0`)
+- Follow below k8s to kubespray version map while choosing kubespray version:
+- Currently we support v2.26.0, v2.27.0, v2.28.0 versions of kubespray
 ```yml
 k8s_to_kubespray:
   "1.29.5": "v2.27.0"
