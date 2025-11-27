@@ -24,7 +24,7 @@ dependencies = [
     "logger==1.4",
     "prettytable==3.17.0",
     "toml==0.10.2",
-    "http-client==0.3.0",
+    "http_client==0.1.22",
     "gitPython==3.1.45",
     "ansible-lint==25.11.1",
     "jmespath==1.0.1"
