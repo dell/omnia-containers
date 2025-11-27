@@ -11,6 +11,21 @@ RUN dnf -y update && \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
     dnf clean all
 
+# Install latest Go version with specific crypto version
+RUN curl -LO https://go.dev/dl/go1.25.4.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.4.linux-amd64.tar.gz && \
+    rm go1.25.4.linux-amd64.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Install specific golang.org/x/crypto version v0.43.0
+RUN mkdir -p /tmp/crypto-update && \
+    cd /tmp/crypto-update && \
+    go mod init crypto-update && \
+    go get golang.org/x/crypto@v0.43.0 && \
+    echo "Installed crypto version:" && \
+    go list -m golang.org/x/crypto && \
+    cd / && rm -rf /tmp/crypto-update
+
 # Install Git LFS latest version (3.7.1) with security updates
 RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
     tar -xvzf git-lfs-linux-amd64-v3.7.1.tar.gz && \
