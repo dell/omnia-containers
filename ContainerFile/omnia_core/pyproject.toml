@@ -27,6 +27,5 @@ dependencies = [
     "http_client==0.1.22",
     "gitPython==3.1.45",
     "ansible-lint==25.11.1",
-    "jmespath==1.0.1",
-    "urllib3==2.5.0"
+    "jmespath==1.0.1"
 ]
