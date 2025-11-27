@@ -136,25 +136,25 @@ build_ubuntu_ldms() {
     
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo ""
-        echo -e "Registry: ${CYAN}docker.io/$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${CYAN}docker.io/$OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}${NC}"
+        echo -e "Registry: ${CYAN}$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${CYAN}$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
         echo ""
     fi
     
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t ubuntu_ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
+        podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
         BUILD_RESULT=$?
-        IMAGE_DESTINATION="Local (Podman): ubuntu_ldms:${UBUNTU_LDMS_TAG}"
+        IMAGE_DESTINATION="Local (Podman): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t ubuntu_ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --load .
+            docker buildx build --no-cache -t ubuntu-ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --load .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Local (Docker): ubuntu_ldms:${UBUNTU_LDMS_TAG}"
+            IMAGE_DESTINATION="Local (Docker): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
