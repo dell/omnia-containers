@@ -45,7 +45,7 @@ RUN pip3 install --no-cache-dir -r /tmp/kubespray/pip_requirements.txt \
     && find /usr -type d -name '*__pycache__' -prune -exec rm -rf {} \;
 
 # Install/sync python packages using the uv.lock
-RUN pip3 install uv
+RUN pip3 install uv==0.9.13
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv sync --locked --inexact

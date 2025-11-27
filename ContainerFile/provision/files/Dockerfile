@@ -27,7 +27,7 @@ RUN dnf install -y python3.11 python3.11-pip python3-devel gcc \
     && dnf clean all
 
 # Install/sync python packages using the uv.lock
-RUN pip3 install uv
+RUN pip3 install uv==0.9.13
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv sync --locked
