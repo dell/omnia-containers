@@ -131,7 +131,16 @@ build_omnia_kubespray() {
 build_ubuntu_ldms() {
     echo "Building ubuntu_ldms image..."
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Ubuntu LDMS Tag: ${YELLOW}${UBUNTU_LDMS_TAG}${NC}"
+    
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo ""
+        echo -e "Registry: ${CYAN}docker.io/$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${CYAN}docker.io/$OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}${NC}"
+        echo ""
+    fi
+    
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t ubuntu_ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
