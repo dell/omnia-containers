@@ -19,7 +19,12 @@ build_omnia_core() {
     echo "Building omnia_core image..."
     echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Core Tag: ${YELLOW}${CORE_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
+        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_core:${CORE_TAG}${NC}"
+    fi
     echo -e "${RED}---------------------------------${NC}"
     cd "$OMNIA_CORE_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
@@ -168,7 +173,13 @@ build_ubuntu_ldms() {
 build_omnia_auth() {
     echo "Building omnia_auth image..."
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Auth Tag: ${YELLOW}${AUTH_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
+        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_auth:${AUTH_TAG}${NC}"
+    fi
+    echo -e "${RED}---------------------------------${NC}"
     cd "$AUTH_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_auth:${AUTH_TAG} -f Dockerfile
