@@ -77,6 +77,7 @@ RUN echo "Create /build directory" \
     && if [ ! -d "/build" ] ; then mkdir /build ; fi
 
 COPY configure.aggregator.sh  /build/scripts/configure.sh
+RUN chmod +x /build/scripts/configure.sh
 
 RUN echo "Checkout ovis-ldms source" \
     && cd /build \
