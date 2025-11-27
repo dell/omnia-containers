@@ -136,7 +136,7 @@ RUN apt-get update \
     python3-pip \
     tmux \
     traceroute \
-    fping \
+    telnet \
     tree \
     vim
 
