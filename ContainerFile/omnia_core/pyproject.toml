@@ -19,7 +19,7 @@ dependencies = [
     "PyMySQL==1.1.2",
     "omsdk==1.2.518",
     "pysnmp==7.1.22",
-    "kubernetes==34.1.0",
+    "kubernetes==32.0.1",
     "cryptography==46.0.3",
     "logger==1.4",
     "prettytable==3.17.0",
@@ -27,5 +27,6 @@ dependencies = [
     "http_client==0.1.22",
     "gitPython==3.1.45",
     "ansible-lint==25.11.1",
-    "jmespath==1.0.1"
+    "jmespath==1.0.1",
+    "urllib3"==2.5.0"
 ]
