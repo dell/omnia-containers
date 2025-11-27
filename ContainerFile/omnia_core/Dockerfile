@@ -11,13 +11,13 @@ RUN dnf -y update && \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
     dnf clean all
 
-# Install Git LFS latest version (3.8.0) with patched golang crypto libraries (fixes CVE in golang.org/x/crypto)
-RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.8.0/git-lfs-linux-amd64-v3.8.0.tar.gz && \
-    tar -xvzf git-lfs-linux-amd64-v3.8.0.tar.gz && \
-    cd git-lfs-3.8.0 && \
+# Install Git LFS latest version (3.7.1) with security updates
+RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
+    tar -xvzf git-lfs-linux-amd64-v3.7.1.tar.gz && \
+    cd git-lfs-3.7.1 && \
     ./install.sh && \
     git lfs install && \
-    cd .. && rm -rf git-lfs-3.8.0 git-lfs-linux-amd64-v3.8.0.tar.gz
+    cd .. && rm -rf git-lfs-3.7.1 git-lfs-linux-amd64-v3.7.1.tar.gz
 
 # Verify Git LFS version to ensure security patch is applied
 RUN git lfs version
