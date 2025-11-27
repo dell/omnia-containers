@@ -88,12 +88,12 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
 # Install a specific version of Ansible with security updates
 RUN pip install --no-cache-dir "ansible-core==2.16.14rc1"
 
+# Install ansible-galaxy collections from galaxy_requirements.yml
+RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
+
 # Additional security: Clean up any cached vulnerable packages
 RUN dnf -y autoremove && \
     rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
-
-# Install ansible-galaxy collections from galaxy_requirements.yml
-RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
 
 # Git clone omnia repository
 RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
