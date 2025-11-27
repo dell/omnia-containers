@@ -11,6 +11,8 @@ NC='\033[0m' # No Color
 # Arrays to store build status
 SUCCESSFUL_BUILDS=()
 FAILED_BUILDS=()
+LOADED_IMAGES=()
+PUSHED_IMAGES=()
 
 # Function to build omnia_core image
 build_omnia_core() {
@@ -22,11 +24,17 @@ build_omnia_core() {
     cd "$OMNIA_CORE_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} -f Dockerfile
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): omnia_core:${CORE_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
 	if [ "$BUILD_ACTION" = "load" ]; then
 	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
+	    BUILD_RESULT=$?
+	    IMAGE_DESTINATION="Local (Docker): omnia_core:${CORE_TAG}"
 	elif [ "$BUILD_ACTION" = "push" ]; then
 	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+	    BUILD_RESULT=$?
+	    IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}"
 	else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -35,9 +43,14 @@ build_omnia_core() {
         echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
         exit 1
     fi
-    if [ $? -eq 0 ]; then
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}omnia_core image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_core")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
     else
         echo -e "${RED}omnia_core image build failed.${NC}"
         FAILED_BUILDS+=("omnia_core")
@@ -51,9 +64,12 @@ build_omnia_provision() {
     echo -e "Using Provision Tag: ${YELLOW}${PROVISION_TAG}${NC}"
     cd "$PROVISION_DIR" || exit
     podman build --build-arg xcat_version="$XCAT_VERSION" --cap-add=ALL -t omnia_provision:${PROVISION_TAG} -f Dockerfile
-    if [ $? -eq 0 ]; then
+    BUILD_RESULT=$?
+    IMAGE_DESTINATION="Local (Podman): omnia_provision:${PROVISION_TAG}"
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}omnia_provision image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_provision")
+        LOADED_IMAGES+=("$IMAGE_DESTINATION")
     else
         echo -e "${RED}omnia_provision image build failed.${NC}"
         FAILED_BUILDS+=("omnia_provision")
@@ -67,9 +83,12 @@ build_omnia_pcs() {
     echo -e "Using PCS Tag: ${YELLOW}${PCS_TAG}${NC}"
     cd "$PCS_CONTAINER_DIR" || exit
     podman build -t omnia_pcs:${PCS_TAG} -f Dockerfile
-    if [ $? -eq 0 ]; then
+    BUILD_RESULT=$?
+    IMAGE_DESTINATION="Local (Podman): omnia_pcs:${PCS_TAG}"
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}omnia_pcs image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_pcs")
+        LOADED_IMAGES+=("$IMAGE_DESTINATION")
     else
         echo -e "${RED}omnia_pcs image build failed.${NC}"
         FAILED_BUILDS+=("omnia_pcs")
@@ -89,10 +108,13 @@ build_omnia_kubespray() {
     FINAL_KUBESPRAY_TAG="${KUBESPRAY_TAG}-${KUBESPRAY_VERSION}"
     echo -e "Final Kubespray Tag: ${YELLOW}${FINAL_KUBESPRAY_TAG}${NC}"
     podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$FINAL_KUBESPRAY_TAG" -f Dockerfile
+    BUILD_RESULT=$?
+    IMAGE_DESTINATION="Local (Podman): omnia_kubespray:$FINAL_KUBESPRAY_TAG"
 
-    if [ $? -eq 0 ]; then
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}omnia_kubespray image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_kubespray")
+        LOADED_IMAGES+=("$IMAGE_DESTINATION")
     else
         echo -e "${RED}omnia_kubespray image build failed.${NC}"
         FAILED_BUILDS+=("omnia_kubespray")
@@ -108,11 +130,17 @@ build_ubuntu_ldms() {
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t ubuntu_ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): ubuntu_ldms:${UBUNTU_LDMS_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache -t ubuntu_ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): ubuntu_ldms:${UBUNTU_LDMS_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/ubuntu_ldms:${UBUNTU_LDMS_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -122,9 +150,14 @@ build_ubuntu_ldms() {
         exit 1
     fi
 
-    if [ $? -eq 0 ]; then
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}ubuntu_ldms image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("ubuntu_ldms")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
     else
         echo -e "${RED}ubuntu_ldms image build failed.${NC}"
         FAILED_BUILDS+=("ubuntu_ldms")
@@ -139,11 +172,17 @@ build_omnia_auth() {
     cd "$AUTH_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t omnia_auth:${AUTH_TAG} -f Dockerfile
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): omnia_auth:${AUTH_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache -t omnia_auth:${AUTH_TAG} --file Dockerfile --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): omnia_auth:${AUTH_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
@@ -153,9 +192,14 @@ build_omnia_auth() {
         exit 1
     fi
 
-    if [ $? -eq 0 ]; then
+    if [ $BUILD_RESULT -eq 0 ]; then
         echo -e "${GREEN}omnia_auth image built successfully.${NC}"
         SUCCESSFUL_BUILDS+=("omnia_auth")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
     else
         echo -e "${RED}omnia_auth image build failed.${NC}"
         FAILED_BUILDS+=("omnia_auth")
@@ -294,13 +338,35 @@ else
 fi
 
 # Summary of builds
-echo -e "\n${BLUE}Build Summary:${NC}"
+echo -e "\n${BLUE}=== BUILD SUMMARY ===${NC}"
 if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
-    echo -e "${GREEN}Successfully built:${YELLOW} ${SUCCESSFUL_BUILDS[*]} ${NC}"
+    echo -e "${GREEN}Successfully built containers:${YELLOW} ${SUCCESSFUL_BUILDS[*]} ${NC}"
+    
+    # Show loaded images (local)
+    if [ ${#LOADED_IMAGES[@]} -ne 0 ]; then
+        echo -e "\n${BLUE}📦 Images loaded locally:${NC}"
+        for image in "${LOADED_IMAGES[@]}"; do
+            echo -e "  ${GREEN}✓${NC} ${image}"
+        done
+    fi
+    
+    # Show pushed images (registry)
+    if [ ${#PUSHED_IMAGES[@]} -ne 0 ]; then
+        echo -e "\n${BLUE}🚀 Images pushed to registry:${NC}"
+        for image in "${PUSHED_IMAGES[@]}"; do
+            echo -e "  ${GREEN}✓${NC} ${image}"
+        done
+        echo -e "\n${YELLOW}Registry Images Available:${NC}"
+        echo -e "You can now pull these images from the registry using:"
+        for image in "${PUSHED_IMAGES[@]}"; do
+            registry_image=$(echo "$image" | sed 's/Registry: //')
+            echo -e "  ${BLUE}docker pull ${registry_image}${NC}"
+        done
+    fi
 
     # Check if omnia_core is successfully built and show the next steps for the user
     if [[ " ${SUCCESSFUL_BUILDS[*]} " =~ " omnia_core " ]]; then
-        echo -e "\n${GREEN}omnia_core image built successfully!${NC}"
+        echo -e "\n${GREEN}🎉 omnia_core image built successfully!${NC}"
         echo -e "${YELLOW}Next steps:${NC}"
         echo -e "1. Download the omnia.sh script:"
         echo -e "   ${BLUE}If you're using a tagged version of Omnia, run the following command: wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh${NC}"
@@ -311,9 +377,20 @@ if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
         echo -e "   ${BLUE}./omnia.sh --install${NC}"
     fi
 fi
+
 if [ ${#FAILED_BUILDS[@]} -ne 0 ]; then
-    echo -e "${RED}Failed builds:${MAGENTA} ${FAILED_BUILDS[*]} ${NC}"
+    echo -e "\n${RED}❌ Failed builds:${MAGENTA} ${FAILED_BUILDS[*]} ${NC}"
     exit 1
 else
-    echo -e "${GREEN}All requested images built successfully!${NC}"
+    if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
+        echo -e "\n${GREEN}🎉 All requested images built successfully!${NC}"
+        
+        # Summary statistics
+        total_local=${#LOADED_IMAGES[@]}
+        total_pushed=${#PUSHED_IMAGES[@]}
+        echo -e "\n${BLUE}📊 Build Statistics:${NC}"
+        echo -e "  • Total containers built: ${YELLOW}${#SUCCESSFUL_BUILDS[@]}${NC}"
+        echo -e "  • Images loaded locally: ${YELLOW}${total_local}${NC}"
+        echo -e "  • Images pushed to registry: ${YELLOW}${total_pushed}${NC}"
+    fi
 fi
