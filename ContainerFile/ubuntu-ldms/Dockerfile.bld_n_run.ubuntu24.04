@@ -3,10 +3,9 @@
 #FROM ovishpc/ovis-ubuntu-build as ldms_builder
 FROM ubuntu:24.04 as ldms_builder
 
-#ARG OVIS_TAG="v4.5.1"
-ARG OVIS_TAG="main"
+#ARG and ENV declarations for OVIS_TAG and REPO
+ARG OVIS_TAG="v4.5.1"
 ENV TAG=${OVIS_TAG}
-
 ARG OVIS_REPO="https://github.com/ovis-hpc/ovis.git"
 ENV REPO=${OVIS_REPO}
 
@@ -60,6 +59,7 @@ RUN apt-get update \
     tree \
     vim
 
+RUN pip3 install --upgrade pip==25.3
 
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
@@ -82,7 +82,7 @@ RUN chmod +x /build/scripts/configure.sh
 RUN echo "Checkout ovis-ldms source" \
     && cd /build \
     && git clone --depth 1 --branch $TAG  $REPO
-   
+
 RUN echo "Build ldms" \
     && cd /build/ovis \
     && rm -rf .version \
@@ -142,6 +142,8 @@ RUN apt-get update \
     tree \
     vim
 
+
+RUN pip3 install --upgrade pip==25.3
 
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security (runner stage)
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
