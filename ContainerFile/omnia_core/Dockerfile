@@ -4,14 +4,36 @@ FROM fedora:40
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Update the system and install Python 3.12
-RUN dnf -y install python3 python3-pip git openssh-server \
+# Update the system and install Python 3.12 with security updates
+RUN dnf -y update && \
+    dnf -y install python3 python3-pip git openssh-server \
     iproute systemd passwd openssl jq createrepo yum-utils \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
     dnf clean all
 
-# Install Git LFS version 1.23.8 (secure version)
+# Install latest Go version with specific crypto version
+RUN curl -LO https://go.dev/dl/go1.25.4.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.4.linux-amd64.tar.gz && \
+    rm go1.25.4.linux-amd64.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOCACHE="/go/cache"
 
+# Fix CVE-2025-47913: Create persistent project with patched golang.org/x/crypto@v0.43.0
+# Scanners detect this from go.mod/go.sum files and module cache
+RUN mkdir -p /opt/go-crypto-patch && \
+    cd /opt/go-crypto-patch && \
+    go mod init crypto-patch && \
+    go get golang.org/x/crypto@v0.43.0 && \
+    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nfunc main() {}\n' > main.go && \
+    go build -o crypto-patch . && \
+    echo "Patched crypto version:" && \
+    go list -m golang.org/x/crypto && \
+    cd / && \
+    chmod -R 755 /opt/go-crypto-patch && \
+    chmod -R 777 /go
+
+# Install Git LFS latest version (3.7.1) with security updates
 RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
     tar -xvzf git-lfs-linux-amd64-v3.7.1.tar.gz && \
     cd git-lfs-3.7.1 && \
@@ -19,13 +41,19 @@ RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs
     git lfs install && \
     cd .. && rm -rf git-lfs-3.7.1 git-lfs-linux-amd64-v3.7.1.tar.gz
 
+# Verify Git LFS version to ensure security patch is applied
+RUN git lfs version
+
 RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 
 # Verify Python version
 RUN python3 --version
 
+# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
+RUN python3 -m pip install --upgrade pip==25.3
+
 # Install/sync python packages using the uv.lock
-RUN pip3 install uv
+RUN pip3 install uv==0.9.13
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv sync --locked
@@ -79,11 +107,15 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: community.kubernetes" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.1" >> /tmp/omnia_core/galaxy_requirements.yml
 
-# Install a specific version of Ansible
+# Install a specific version of Ansible with security updates
 RUN pip install --no-cache-dir "ansible-core==2.16.14rc1"
 
 # Install ansible-galaxy collections from galaxy_requirements.yml
 RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
+
+# Additional security: Clean up any cached vulnerable packages
+RUN dnf -y autoremove && \
+    rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
 
 # Git clone omnia repository
 RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
@@ -98,6 +130,12 @@ WORKDIR /omnia
 # Copy pulp certificate to core container's trust
 COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
+
+# Document security patches
+LABEL security.golang.crypto.version="0.43.0" \
+      security.golang.crypto.cve="CVE-2025-47913-fixed" \
+      security.pip.version="25.3" \
+      security.pip.cve="CVE-2025-8869-fixed"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

@@ -1,6 +1,6 @@
 # Omnia 2.0 Image Build Script for all containers
 
-This repository contains a script to build multiple containers images using either `Podman` or `Docker`. The script allows you to build different images like `omnia_core`, `omnia_auth`, `omnia_provision`, `omnia_pcs`, and `omnia_kubespray`.
+This repository contains a script to build multiple containers images using either `Podman` or `Docker`. The script allows you to build different images like `omnia_core`, `omnia_auth`, `omnia_pcs`, and `ubuntu_ldms`.
 
 ## Prerequisites
 
@@ -39,10 +39,9 @@ docker buildx ls
 The `build_images.sh` script builds the following containers:
 
 - **omnia_core**: image for core Omnia container - `core`.
-- **omnia_auth**: image for core Omnia container - `auth`.
-- **omnia_provision**: image used for provisioning container - `provision`.
+- **omnia_auth**: image for auth Omnia container - `auth`.
 - **omnia_pcs**: image for PCS container - `pcs`.
-- **omnia_kubespray**: image for Kubespray container - `kubespray`.
+- **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 
 ## Script Usage
 
@@ -52,7 +51,7 @@ You can specify which container image to build by passing a comma-separated list
 
 #### Syntax:
 ```bash
-./build_images.sh <container1,container2,...> kubespray_version=v<version> omnia_branch=<branch_name> build_tool=<podman_or_docker>
+./build_images.sh <container1,container2,...> [omnia_branch=<branch_name>] [build_tool=<podman_or_docker>] [build_action=<load_or_push>] [image_tag=<tag_version>] [core_tag=<tag>] [auth_tag=<tag>] [pcs_tag=<tag>] [ubuntu_ldms_tag=<tag>]
 ```
 
 #### Example
@@ -62,11 +61,41 @@ To build only the core and auth container image:
 ```bash
 ./build_images.sh core,auth
 ```
-* For core image, default omnia_branch is `pub/ochami`
+* For core image, default omnia_branch is `staging`
 * By default, build_tool is considered as podman
+* By default, build_action is considered as load
+* By default, all image tags are `latest`
+* `image_tag=<tag>` sets all containers to the same tag
+* Individual container tags: `core_tag`, `auth_tag`, `pcs_tag`, `ubuntu_ldms_tag`
+
+To build with a specific image tag for all containers (e.g., version 1.0):
 
 ```bash
-./build_images.sh core,kubespray kubespray_version=v2.28.0 omnia_branch=v2.0.0.0-rc2
+./build_images.sh core,auth image_tag=1.0
+```
+
+To build with different tags for different containers:
+
+```bash
+./build_images.sh core,auth core_tag=1.0 auth_tag=1.0
+```
+
+To build core with specific version and auth with default (latest):
+
+```bash
+./build_images.sh core,auth core_tag=1.0
+```
+
+To build ubuntu-ldms monitoring container:
+
+```bash
+./build_images.sh ubuntu-ldms
+```
+
+To build ubuntu-ldms with specific tag:
+
+```bash
+./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
 ```
 
 ### 2. **Building All images**
@@ -97,31 +126,48 @@ If we want specific omnia branch/version with docker tool then we can use like b
 ./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker
 ```
 
+To build all images with a specific tag (e.g., version 1.0):
+
+```bash
+./build_images.sh all image_tag=1.0
+```
+
+To build all images with custom tag and docker tool:
+
+```bash
+./build_images.sh all image_tag=1.0 build_tool=docker
+```
+
+To build all images with different individual tags:
+
+```bash
+./build_images.sh all core_tag=1.0 auth_tag=1.0 pcs_tag=1.0 ubuntu_ldms_tag=1.0
+```
+
 OR, without passing any argument - this will build all the container and will use `podman` as the default build_tool
 
 ```bash
 ./build_images.sh
 ```
 
-### 3. **Building Kubespray image**
+### 3. **Pushing Images to Registry**
 
-If we want specific omnia branch and kubespray version both built with docker then we can use like below:
+To build and push images to Docker registry (requires build_tool=docker):
 
 ```bash
-./build_images.sh all kubespray_version=v2.28.0 omnia_branch=pub/ochami build_tool=docker
+./build_images.sh all build_tool=docker build_action=push image_tag=1.0
 ```
 
-**Note**: `kubespray_version` should be second argument for the script.
-For kubespray image, default kubespray_version is `v2.28.0`
-Follow below k8s to kubespray version map while choosing kubespray version:
-Currently we support v2.26.0, v2.27.0, v2.28.0 versions of kubespray
-```yml
-k8s_to_kubespray:
-  "1.29.5": "v2.27.0"
-  "1.31.4": "v2.28.0"
+To push specific containers:
+
+```bash
+./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0
 ```
 
-
+**Note**: 
+- `build_action=push` requires `build_tool=docker`
+- Default registry is `docker.io/dellhpcomniaaisolution`
+- Registry can be customized by modifying `OMNIA_DOCKER_REGISTERY` variable in the script
 
 ## Updating Python Packages
 
