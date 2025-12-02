@@ -63,25 +63,6 @@ build_omnia_core() {
     cd - || exit
 }
 
-# Function to build omnia_provision image
-build_omnia_provision() {
-    echo "Building omnia_provision image..."
-    echo -e "Using Provision Tag: ${YELLOW}${PROVISION_TAG}${NC}"
-    cd "$PROVISION_DIR" || exit
-    podman build --build-arg xcat_version="$XCAT_VERSION" --cap-add=ALL -t omnia_provision:${PROVISION_TAG} -f Dockerfile
-    BUILD_RESULT=$?
-    IMAGE_DESTINATION="Local (Podman): omnia_provision:${PROVISION_TAG}"
-    if [ $BUILD_RESULT -eq 0 ]; then
-        echo -e "${GREEN}omnia_provision image built successfully.${NC}"
-        SUCCESSFUL_BUILDS+=("omnia_provision")
-        LOADED_IMAGES+=("$IMAGE_DESTINATION")
-    else
-        echo -e "${RED}omnia_provision image build failed.${NC}"
-        FAILED_BUILDS+=("omnia_provision")
-    fi
-    cd - || exit
-}
-
 # Function to build omnia_pcs image
 build_omnia_pcs() {
     echo "Building omnia_pcs image..."
@@ -101,45 +82,17 @@ build_omnia_pcs() {
     cd - || exit
 }
 
-# Function to build omnia_kubespray image
-build_omnia_kubespray() {
-    echo "Building omnia_kubespray image..."
-    # Check if the argument is provided in the format kubespray_version=v2.27.0
-    echo -e "Using Kubespray version: ${YELLOW}${KUBESPRAY_VERSION}${NC}"
-    echo -e "Using Kubespray Tag: ${YELLOW}${KUBESPRAY_TAG}${NC}"
-    echo -e "${RED}---------------------------------${NC}"
-    cd "$KUBESPRAY_DIR" || exit
-    # Use KUBESPRAY_TAG-KUBESPRAY_VERSION format for kubespray to maintain version tracking
-    FINAL_KUBESPRAY_TAG="${KUBESPRAY_TAG}-${KUBESPRAY_VERSION}"
-    echo -e "Final Kubespray Tag: ${YELLOW}${FINAL_KUBESPRAY_TAG}${NC}"
-    podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$FINAL_KUBESPRAY_TAG" -f Dockerfile
-    BUILD_RESULT=$?
-    IMAGE_DESTINATION="Local (Podman): omnia_kubespray:$FINAL_KUBESPRAY_TAG"
-
-    if [ $BUILD_RESULT -eq 0 ]; then
-        echo -e "${GREEN}omnia_kubespray image built successfully.${NC}"
-        SUCCESSFUL_BUILDS+=("omnia_kubespray")
-        LOADED_IMAGES+=("$IMAGE_DESTINATION")
-    else
-        echo -e "${RED}omnia_kubespray image build failed.${NC}"
-        FAILED_BUILDS+=("omnia_kubespray")
-    fi
-    cd - || exit
-}
-
 # Function to build ubuntu_ldms image
 build_ubuntu_ldms() {
     echo "Building ubuntu_ldms image..."
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Ubuntu LDMS Tag: ${YELLOW}${UBUNTU_LDMS_TAG}${NC}"
-    
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo ""
-        echo -e "Registry: ${CYAN}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${CYAN}$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
-        echo ""
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
     fi
+    echo -e "${RED}---------------------------------${NC}"
     
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
@@ -229,7 +182,6 @@ build_omnia_auth() {
 
 # Default parameterized values
 OMNIA_VERSION="pub/ochami"
-KUBESPRAY_VERSION='v2.28.0'
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
@@ -237,9 +189,7 @@ OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="latest"
 AUTH_TAG="latest"
-PROVISION_TAG="latest"
 PCS_TAG="latest"
-KUBESPRAY_TAG="latest"
 UBUNTU_LDMS_TAG="latest"
 # Global fallback tag (used when image_tag= is specified)
 IMAGE_TAG="latest"
@@ -248,8 +198,6 @@ IMAGE_TAG="latest"
 for arg in "$@"; do
     if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
         OMNIA_VERSION="${arg#omnia_branch=}"
-    elif [[ "$arg" =~ ^kubespray_version=.*$ ]]; then
-        KUBESPRAY_VERSION="${arg#kubespray_version=}"
     elif [[ "$arg" =~ ^build_tool=.*$ ]]; then
         BUILD_TOOL="${arg#build_tool=}"
     elif [[ "$arg" =~ ^build_action=.*$ ]]; then
@@ -259,56 +207,24 @@ for arg in "$@"; do
         # Set all container tags to the same value when image_tag is used
         CORE_TAG="$IMAGE_TAG"
         AUTH_TAG="$IMAGE_TAG"
-        PROVISION_TAG="$IMAGE_TAG"
         PCS_TAG="$IMAGE_TAG"
-        KUBESPRAY_TAG="$IMAGE_TAG"
         UBUNTU_LDMS_TAG="$IMAGE_TAG"
     elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
         CORE_TAG="${arg#core_tag=}"
     elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
         AUTH_TAG="${arg#auth_tag=}"
-    elif [[ "$arg" =~ ^provision_tag=.*$ ]]; then
-        PROVISION_TAG="${arg#provision_tag=}"
     elif [[ "$arg" =~ ^pcs_tag=.*$ ]]; then
         PCS_TAG="${arg#pcs_tag=}"
-    elif [[ "$arg" =~ ^kubespray_tag=.*$ ]]; then
-        KUBESPRAY_TAG="${arg#kubespray_tag=}"
     elif [[ "$arg" =~ ^ubuntu_ldms_tag=.*$ ]]; then
         UBUNTU_LDMS_TAG="${arg#ubuntu_ldms_tag=}"
     fi
 done
-
-# Set SSH_PORT based on KUBESPRAY_VERSION
-case "$KUBESPRAY_VERSION" in
-  v2.26.0)
-    SSH_PORT="2226"
-    ;;
-  v2.27.0)
-    SSH_PORT="2227"
-    ;;
-  v2.28.0)
-    SSH_PORT="2228"
-    ;;
-  *)
-    echo "Error: Unknown or unsupported KUBESPRAY_VERSION: $KUBESPRAY_VERSION. Supported versions are v2.26.0, v2.27.0, v2.28.0"
-    exit 1
-    ;;
-esac
 
 # Omnia core container variables
 OMNIA_CORE_DIR="ContainerFile/omnia_core"
 
 # PCS container variables
 PCS_CONTAINER_DIR="ContainerFile/pcs_container"
-
-# Kubespray container variables
-KUBESPRAY_DIR="ContainerFile/kubespray"
-
-# Provision container variables
-PROVISION_DIR="ContainerFile/provision/files"
-XCAT_VERSION="2.17"
-PROVISION_IMAGE_FILE="omnia_provision"
-PROVISION_IMAGE_NAME="omnia_provision"
 
 # Auth container variables
 AUTH_DIR="ContainerFile/auth"
@@ -327,17 +243,11 @@ else
     IFS=',' read -r -a containers <<< "$1"
     for container in "${containers[@]}"; do
         case "$container" in
-            provision)
-                build_omnia_provision
-                ;;
             core)
                 build_omnia_core
                 ;;
             pcs)
                 build_omnia_pcs
-                ;;
-            kubespray)
-                build_omnia_kubespray
                 ;;
             auth)
                 build_omnia_auth
@@ -350,7 +260,7 @@ else
                 build_omnia_auth
                 ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs, kubespray, auth, ubuntu-ldms.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: core, pcs, auth, ubuntu-ldms.${NC}"
                 exit 1
                 ;;
         esac
