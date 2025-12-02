@@ -77,10 +77,10 @@ To build with a specific image tag for all containers (e.g., version 1.0):
 To build with different tags for different containers:
 
 ```bash
-./build_images.sh core,auth core_tag=1.0 auth_tag=2.0
+./build_images.sh core,auth core_tag=1.0 auth_tag=1.0
 ```
 
-To build core with version 1.0 and auth with latest:
+To build core with specific version and auth with default (latest):
 
 ```bash
 ./build_images.sh core,auth core_tag=1.0
@@ -141,7 +141,7 @@ To build all images with custom tag and docker tool:
 To build all images with different individual tags:
 
 ```bash
-./build_images.sh all core_tag=1.0 auth_tag=1.1 pcs_tag=1.5 ubuntu_ldms_tag=2.1
+./build_images.sh all core_tag=1.0 auth_tag=1.0 pcs_tag=1.0 ubuntu_ldms_tag=1.0
 ```
 
 OR, without passing any argument - this will build all the container and will use `podman` as the default build_tool
@@ -161,7 +161,7 @@ To build and push images to Docker registry (requires build_tool=docker):
 To push specific containers:
 
 ```bash
-./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.1
+./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0
 ```
 
 **Note**: 
