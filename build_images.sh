@@ -242,6 +242,10 @@ else
     IFS=',' read -r -a containers <<< "$1"
     for container in "${containers[@]}"; do
         case "$container" in
+            all)
+                build_omnia_core
+                build_omnia_auth
+                ;;
             core)
                 build_omnia_core
                 ;;
@@ -260,7 +264,7 @@ else
                 build_ubuntu_ldms
                 ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: core, pcs, auth, ubuntu-ldms.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline.${NC}"
                 exit 1
                 ;;
         esac
