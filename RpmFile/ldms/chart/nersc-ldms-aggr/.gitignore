@@ -1,6 +1,0 @@
-manifest.yaml
-ldms_machine_config.json
-values.yaml
-out_dir
-nersc-ldms-aggr/templates/cm.nersc-ldms-bin.yaml
-nersc-ldms-aggr/templates/cm.nersc-ldms-conf.yaml
