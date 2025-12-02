@@ -157,6 +157,8 @@ To build and push images to Docker registry (requires build_tool=docker):
 ```bash
 ./build_images.sh all build_tool=docker build_action=push image_tag=1.0
 ```
+To push specific containers:
+
 ```bash
 ./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0
 ```
@@ -166,7 +168,6 @@ To build and push images to Docker registry (requires build_tool=docker):
 - Default registry is `docker.io/dellhpcomniaaisolution`
 - Registry can be customized by modifying `OMNIA_DOCKER_REGISTERY` variable in the script
 
-To push specific containers:
 
 # **Building LDMS PRODUCER RPM Package**
 
