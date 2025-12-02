@@ -181,7 +181,7 @@ build_omnia_auth() {
 }
 
 # Default parameterized values
-OMNIA_VERSION="pub/ochami"
+OMNIA_VERSION="staging"
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"

@@ -61,7 +61,7 @@ To build only the core and auth container image:
 ```bash
 ./build_images.sh core,auth
 ```
-* For core image, default omnia_branch is `pub/ochami`
+* For core image, default omnia_branch is `staging`
 * By default, build_tool is considered as podman
 * By default, build_action is considered as load
 * By default, all image tags are `latest`
