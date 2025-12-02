@@ -1,0 +1,12 @@
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: bridge
+  namespace: telem
+spec:
+  bootstrapServers: cluster-kafka-bootstrap:9092
+  enableMetrics: true
+  http:
+    port: 8080
+  replicas: 1

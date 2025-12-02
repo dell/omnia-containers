@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nersc-ldms-stream
+  namespace: {{ .Values.namespace }}
+spec:
+  serviceName: nersc-ldms-stream
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nersc-ldms-stream
+  template:
+    metadata:
+      labels:
+        app: nersc-ldms-stream
+      annotations:
+        service.cray.io/public: "true"
+        {{- if .Values.net_atat_def }}
+        k8s.v1.cni.cncf.io/networks: ipvlan-ldms-agg-cmn
+        {{- end }}
+    spec:
+      hostname: nersc-ldms-stream
+      {{- if .Values.imagePullSecretsOption }}
+      {{- toYaml .Values.imagePullSecretsOption | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: stream
+          {{- with .Values.image }}
+          image: {{ .registry }}{{ .repository }}:{{ .tag | toString }}
+          {{- end }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - /bin/bash
+            - -c
+            - /ldms_bin/start_munge.bash /ldms_conf/nersc-munge-key_munge.conf && while [ 1 ]; do source /ldms_conf/ldms-env.nersc-ldms-stream-0.sh && /ldms_bin/ldmsd_stream.bash; echo -n "\nLDMSD stream RESTARTED, EXIT CODE $?\n"; sleep 5; done
+          env:
+            - name: MY_CONTAINER_NAME
+              value: stream
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: ldms-conf
+              mountPath: /ldms_conf
+            - name: ldms-bin
+              mountPath: /ldms_bin
+{{- if $.Values.authVolMountOption }}
+{{- toYaml $.Values.authVolMountOption | nindent 12 }}
+{{- end }}
+          resources:
+            {{- toYaml $.Values.stream.resources | nindent 12 }}
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      hostname: nersc-ldms-stream
+      priority: 0
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      subdomain: nersc-ldms-stream
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
+      volumes:
+        - name: ldms-conf
+          configMap:
+            name: nersc-ldms-conf
+        - name: ldms-bin
+          configMap:
+            name: nersc-ldms-bin
+            defaultMode: 0500
+{{- if .Values.authVolOption }}
+{{ toYaml .Values.authVolOption | nindent 8 }}
+{{- end }}

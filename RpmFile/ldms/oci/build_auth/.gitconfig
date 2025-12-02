@@ -1,0 +1,9 @@
+[user]
+    name = Robot Build
+    email = robot@lbl.gov
+
+[credential]
+	helper = store
+
+[http]
+	sslVerify = false

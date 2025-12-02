@@ -1,0 +1,28 @@
+{{- if .Values.net_atat_def }}
+{{- range $net_name, $net := .Values.net_atat_def }}
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: {{ $net.name }}
+  namespace: {{ $.Values.namespace }}
+  annotations:
+   "helm.sh/resource-policy": keep
+spec:
+  config: |
+    {
+      "cniVersion": "0.3.0",
+      "name": {{ $net.name | quote }},
+      "type": "ipvlan",
+      "master": {{ $net.iface | quote }}, 
+      "mode": "l2",
+      "ipam": {
+        "type": "host-local",
+        "subnet": {{ $net.subnet | quote }},
+        "rangeStart": {{ $net.rangeStart | quote }},
+        "rangeEnd": {{ $net.rangeEnd | quote }},
+        "routes" : {{- toYaml $net.routes | nindent 8 }}
+      }
+    }
+{{- end }}
+{{- end }}

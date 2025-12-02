@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    alpha.monitoring.coreos.com/non-namespaced: "true"
+  labels:
+    export: ldmsd-agg
+  name: nersc-ldms-aggr
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  {{- range .Values.aggs }}
+  - name: {{ .name }}
+    port: {{ .port }}
+    protocol: TCP
+    targetPort: {{ .port }}
+  {{- end }}
+  selector:
+    app: nersc-ldms-aggr
+  sessionAffinity: None
+  type: ClusterIP

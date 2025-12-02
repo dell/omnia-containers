@@ -1,0 +1,38 @@
+{
+  "sys_opts": {
+    "system" : "dell",
+    "namespace": "telem",
+    "imagePullSecretsOption": {
+      "imagePullSecrets": [
+          {"name": "registry-auth-token"}
+      ]
+    }
+  },
+  "node_types": {
+    "r7525": {
+      "host_map_file": "out_dir/host_map.r7525.json",
+      "alias": "r7525",
+      "agg_count": 1,
+      "store_split": 999999,
+      "sampler": {
+        "name": "nersc",
+        "port": 6002,
+        "auth_type": "ovis",
+        "auth_secret": "nersc-ldms-ovis-auth",
+        "auth_secret_file": "ldmsauth.conf"
+      },
+      "auth_type": "munge",
+      "auth_secret": "nersc-munge-key",
+      "auth_secret_file": "munge.key",
+      "mem": "128M",
+      "exporterPort": 9101
+    }
+  },
+  "stream": {
+    "auth_type": "ovis",
+    "auth_secret": "nersc-ldms-omni-ovis",
+    "auth_secret_file": "omni.ldmsauth.conf",
+    "mem": "128M",
+    "exporterPort": 9101
+  }
+}

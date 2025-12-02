@@ -1,0 +1,16 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: nersc-ldms
+  namespace: telem
+  labels:
+    strimzi.io/cluster: "cluster"
+spec:
+  partitions: 2
+  replicas: 2
+  config:
+    retention.ms: 3600000
+    cleanup.policy: delete
+    retention.bytes: 1099511627776
+
+

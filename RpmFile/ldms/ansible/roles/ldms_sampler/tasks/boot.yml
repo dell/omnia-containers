@@ -1,0 +1,154 @@
+---
+
+- name: Node personalization
+  block:
+  - name: Set the auth_node_type
+    set_fact:
+      auth_node_type: "{% if 'Management' in group_names %}ncn{% else %}compute{% endif %}"
+
+  - name: get ldms auth secret from vault
+    uri:
+      url: "{{ vault_url }}/v1/syskv/ldms/{{ auth_node_type }}"
+      method: GET
+      headers:
+        X-Vault-Token: "{{ vault_token }}"
+    delegate_to: 127.0.0.1
+    run_once: True
+    register: ldmsauth_raw
+    check_mode: no
+    when: ( 'Management' in group_names )
+  
+  - set_fact:
+      ldmsauth: "{{ ldmsauth_raw['json']['data']['secretword'] }}"
+    when: ( 'Management' in group_names )
+
+  - name: "Test if directory exists: /etc/sysconfig/ldms.d/ClusterSecrets"
+    stat:
+      path: /etc/sysconfig/ldms.d/ClusterSecrets
+    register: secrets_dir 
+    when: ( 'Management' in group_names )
+  
+  - name: Create secrets_dir if missing
+    file:
+      path: /etc/sysconfig/ldms.d/ClusterSecrets
+      state: directory
+      mode: 0755
+      group: root
+      owner: root
+    when: ( 'Management' in group_names ) and (secrets_dir.stat.exists == false)
+
+  - name: "Test if auth file exists: /etc/sysconfig/ldms.d/ClusterSecrets/*ldmsauth.conf"
+    stat:
+      path: "/etc/sysconfig/ldms.d/ClusterSecrets/{{auth_node_type}}.ldmsauth.conf"
+    register: secret_file
+    when: ( 'Management' in group_names ) 
+
+  - name: Write ldms auth secret if missing
+    copy:
+      content: "secretword={{ ldmsauth }}\n"
+      dest: "/etc/sysconfig/ldms.d/ClusterSecrets/{{auth_node_type}}.ldmsauth.conf"
+      owner: root
+      mode: 0600
+    when: ( 'Management' in group_names ) and (secret_file.stat.exists == false)
+
+  - name: Count CXIs
+    shell: |
+      lspci | fgrep -ci 'Ethernet controller: Cray Inc Cassini' || :
+    register: cxi_count 
+    check_mode: false
+    changed_when: false
+
+  - name: Has CXI bool
+    set_fact:
+      has_cxi: '{{cxi_count.stdout != "0"}}'
+
+  - name: Show fact has_cxi
+    debug:
+        msg: "has_cxi: {{ has_cxi }}, cxi_count:{{ cxi_count.stdout }}" 
+  
+  - name: Count GPUs
+    shell: |
+      lspci | fgrep -ci nvidia || :
+    register: gpu_count 
+    check_mode: false
+    changed_when: false
+
+  - name: Has GPU bool
+    set_fact:
+      has_gpu: '{{gpu_count.stdout != "0"}}'
+
+  - name: Show fact has_gpu
+    debug:
+        msg: "has_gpu: {{ has_gpu }}, gpu_count:{{ gpu_count.stdout }}" 
+
+  - name: Start nvidia-dcgm.service
+    systemd:
+      daemon_reload: yes
+      enabled: true
+      state: restarted
+      name:  nvidia-dcgm.service
+    when: has_gpu|bool
+    ignore_errors: yes
+
+  - name: (re)start nvidia-dcgm.service
+    systemd:
+      daemon_reload: yes
+      enabled: true
+      state: restarted
+      name:  nvidia-dcgm.service
+    when: has_gpu|bool
+
+  - name: Create LDMS sampler env 
+    template:
+      src: ldmsd.sampler.env.j2 
+      dest: /opt/ovis-ldms/etc/ldms/ldmsd.sampler.generated.env
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes
+
+  - name: Create LDMS sampler configuration
+    template:
+      src: ldmsd.sampler.conf.j2 
+      dest: /opt/ovis-ldms/etc/ldms/ldmsd.sampler.generated.conf 
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes
+  
+  - name: "Test if auth file exists: /etc/systemd/system/ldmsd.sampler.service.d"
+    stat:
+      path: /etc/systemd/system/ldmsd.sampler.service.d
+    register: systemd_override_dir
+  
+  - name: Create sysemd override directory for ldmsd.sampler.service.d if missing
+    file:
+      path: /etc/systemd/system/ldmsd.sampler.service.d 
+      state: directory
+      mode: 0755
+      group: root
+      owner: root
+    when: systemd_override_dir.stat.exists == false
+  
+  - name: Override ldmsd.sampler.service configuration
+    template:
+      src: override.conf.j2 
+      dest: /etc/systemd/system/ldmsd.sampler.service.d/override.conf
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes
+     
+  - name: Reload and Restart ldmsd.sampler.service
+    systemd:
+      daemon_reload: yes
+      enabled: true
+      state: restarted
+      name: ldmsd.sampler.service 
+    ignore_errors: yes
+
+  - name: Start ldmsd.sampler.service. issue 4879
+    systemd:
+      enabled: true
+      state: started
+      name: ldmsd.sampler.service 

@@ -1,0 +1,155 @@
+# build ldms
+
+#FROM ovishpc/ovis-ubuntu-build as ldms_builder
+FROM ubuntu:24.04 as ldms_builder
+
+#ARG OVIS_TAG="v4.5.1"
+ARG OVIS_TAG="main"
+ENV TAG=${OVIS_TAG}
+
+ARG OVIS_REPO="https://github.com/ovis-hpc/ovis.git"
+ENV REPO=${OVIS_REPO}
+
+ENV PYTHONPATH "${PYTHONPATH}:/opt/ovis-ldms/lib/python3.12/site-packages"
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update \
+    && apt-get install -y \
+    automake \
+    autotools-dev \
+    bison \
+    build-essential \
+    bzip2 \
+    curl \
+    dnsutils \
+    doxygen \
+    flex \
+    gcc \
+    gettext \
+    git \
+    gzip \
+    hostname \
+    libibverbs-dev \
+    libjansson-dev \
+    libavro-dev \
+    libavro23 \
+    librdkafka-dev \
+    python3-pyverbs \
+    librdmacm-dev \
+    libcurl4-openssl-dev \
+    iputils-ping \
+    libmunge-dev \
+    jq \
+    less \
+    libpapi-dev \
+    libpfm4 \
+    libpfm4-dev \
+    libssl3 \
+    libssl-dev \
+    libtool \
+    m4 \
+    make \
+    openssl \
+    papi-tools \
+    pkg-config \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-docutils \
+    traceroute \
+    tree \
+    vim
+
+# Broken cython ships with ubuntu:24.04
+RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
+
+# libserdes needed by avro_kafka
+RUN echo "Build libserdes" \
+    && git clone https://github.com/confluentinc/libserdes.git \
+    && cd libserdes/ \
+    && ./configure \
+    && make \
+    && make install \
+    && ls -alF /usr/local/lib/libserdes.so
+
+RUN echo "Create /build directory" \
+    && if [ ! -d "/build" ] ; then mkdir /build ; fi
+
+COPY oci/configure.aggregator.sh  /build/scripts/configure.sh
+COPY oci/build_auth/* /root/
+
+RUN echo "Checkout ovis-ldms source" \
+    && cd /build \
+    && git clone --depth 1 --branch $TAG  $REPO
+   
+RUN echo "Build ldms" \
+    && cd /build/ovis \
+    && rm -rf .version \
+    && autoreconf --install \
+    && ./autogen.sh \
+    && ../scripts/configure.sh \
+    && make \
+    && make install \
+    && tree /opt/ovis-ldms \
+    && du -sh /opt/ovis-ldms
+
+# runner environment
+# TODO: Optimize once working: shrink runner image
+# TODO:  apt-get install --no-install-recommends -y \
+# TODO:  rm -rf /root/.cache/pip/*
+
+FROM ubuntu:24.04
+
+ARG VER="0.1"
+ENV VER=${VER}
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH "${PYTHONPATH}:/opt/ovis-ldms/lib/python3.12/site-packages"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    bison \
+    bzip2 \
+    curl \
+    dnsutils \
+    flex \
+    fping \
+    gettext \
+    gzip \
+    hostname \
+    ibverbs-providers \
+    iputils-ping \
+    iproute2 \
+    jq \
+    less \
+    libavro23 \
+    libpapi-dev \
+    libpfm4 \
+    librdkafka1 \
+    libssl3 \
+    munge \
+    net-tools \
+    openssl \
+    papi-tools \
+    pdsh \
+    python3 \
+    python3-dev \
+    python3-pip \
+    tmux \
+    traceroute \
+    telnet \
+    tree \
+    vim
+
+# Broken cython ships with ubuntu:24.04
+RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
+
+# ldms exporter needs these
+RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages click prometheus_client ;'
+
+COPY --from=ldms_builder /opt/ovis-ldms /opt/ovis-ldms
+COPY --from=ldms_builder /usr/local/lib/ /usr/local/lib/libserdes.so
+COPY testing /testing
+
+#LABEL maintainer="YOUR NAME HERE <YOUR EMAIL HERE>" version=$VER
+CMD /bin/bash

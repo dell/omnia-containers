@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nersc-ldms-exporter
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: nersc-ldms-exporter
+spec:
+  jobLabel: nersc-ldms-exporter
+  selector:
+    matchLabels:
+      app: nersc-ldms-exporter
+  namespaceSelector:
+    matchNames:
+    - {{ .Values.namespace }}
+  endpoints:
+  - interval: {{ .Values.pollingInterval }}
+    port: metrics
+    scrapeTimeout: {{ .Values.scrapeTimeout }}

@@ -1,0 +1,38 @@
+apiVersion: manifests/v1beta1
+metadata:
+  name: nersc-ldms-aggr
+spec:
+  charts:
+    - name: nersc-ldms-aggr
+      version: 0.1.0
+      namespace: sma
+      values:
+        namespace: sma
+        image:
+          registry: registry.local
+          repository: /nersc/ubuntu-ldms-agg
+          tag: 20250804T0856
+        pollingInterval: "60s"
+        exporterPort: 9101
+        scrapeTimeout: "45s"
+        exportLabel:
+          export: ldms-metrics
+        statefulSet:
+          exporter:
+            replicas: 0
+        net_atat_def: null
+        stream:
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+        agg:
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi
+        store:
+          resources:
+            limits:
+              cpu: 1
+              memory: 1Gi

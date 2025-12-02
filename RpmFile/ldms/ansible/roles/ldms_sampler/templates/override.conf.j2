@@ -1,0 +1,6 @@
+[Unit]
+{% if has_gpu %}
+After=nvidia-dcgm.service
+{% endif %}
+[Service]
+EnvironmentFile = /opt/ovis-ldms/etc/ldms/ldmsd.sampler.generated.env

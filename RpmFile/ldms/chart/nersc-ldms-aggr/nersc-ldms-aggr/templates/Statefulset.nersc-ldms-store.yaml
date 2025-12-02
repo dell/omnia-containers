@@ -1,0 +1,82 @@
+{{- range .Values.statefulSet.store }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nersc-ldms-store-{{ .name }}
+  namespace: {{ $.Values.namespace }}
+spec:
+  serviceName: nersc-ldms-store
+  replicas: {{ .replicas | int }}
+  selector:
+    matchLabels:
+      app: nersc-ldms-store
+  template:
+    metadata:
+      labels:
+        app: nersc-ldms-store
+    spec:
+      {{- if $.Values.imagePullSecretsOption }}
+      {{- toYaml $.Values.imagePullSecretsOption | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: store
+          {{- with $.Values.image }}
+          image: {{ .registry }}{{ .repository }}:{{ .tag | toString }}
+          {{- end }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - /bin/bash
+            - -c
+            - /ldms_bin/start_munge.bash /ldms_conf/nersc-munge-key_munge.conf && while [ 1 ]; do source /ldms_conf/ldms-env.${MY_POD_NAME}.sh && /ldms_bin/ldmsd.bash; echo -n "\nLDMSD ${MY_POD_NAME} RESTARTED, EXIT CODE $?\n"; sleep 5; done
+          env:
+            - name: MY_CONTAINER_NAME
+              value: store
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: ldms-conf
+              mountPath: /ldms_conf
+            - name: ldms-bin
+              mountPath: /ldms_bin
+{{- if $.Values.authVolMountOption }}
+{{- toYaml $.Values.authVolMountOption | nindent 12 }}
+{{- end }}
+      priority: 0
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      subdomain: nersc-ldms-store
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+        - effect: NoExecute
+          key: node.kubernetes.io/unreachable
+          operator: Exists
+          tolerationSeconds: 300
+      volumes:
+        - name: ldms-conf
+          configMap:
+            name: nersc-ldms-conf
+        - name: ldms-bin
+          configMap:
+            name: nersc-ldms-bin
+            defaultMode: 0500
+{{- if $.Values.authVolOption }}
+{{ toYaml $.Values.authVolOption | nindent 8 }}
+{{- end }}
+{{- end }}
+

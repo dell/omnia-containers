@@ -1,0 +1,8 @@
+---
+- name: Image customization
+  block:
+
+  - name: Install ldms package
+    ansible.builtin.package:
+      name: ovis-ldms
+      state: present
