@@ -65,10 +65,11 @@ dnf install -y \
     tree \
     vim \
     wget \
-    slurm \
-    slurm-devel \
     which 
-
+# Install slurm packages
+dnf install -y \
+    slurm \
+    slurm-devel
 #--------------------------------
 # CLEAN
 #--------------------------------

@@ -121,6 +121,36 @@ k8s_to_kubespray:
   "1.31.4": "v2.28.0"
 ```
 
+# **Building LDMS PRODUCER RPM Package**
+
+The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It accepts two optional parameters: `SLURM_REPO_URL` and `SLURM_REPO_NAME`.
+
+#### Syntax:
+```bash
+./build_rpm.sh -u [SLURM_REPO_URL] -n [SLURM_REPO_NAME] 
+```
+
+#### Example
+
+- To build the RPM package without any optional parameters:
+
+  ```bash
+  ./build_rpm.sh
+  ```
+
+- To build the RPM package with both SLURM repository URL and name:
+
+  ```bash
+  ./build_rpm.sh -u https://example.com/slurm-repo -n x86_64_slurm_custom
+  ```
+
+- To build the RPM package with both SLURM repository URL and name:
+
+  ```bash
+  ./build_rpm.sh https://example.com/slurm-repo x86_64_slurm_custom
+  ```
+
+**Note**: If the `SLURM_REPO_URL` is provided, the script will use it to fetch the necessary dependencies. If `SLURM_REPO_NAME` is provided, it will be used to name the RPM package accordingly.
 
 
 ## Updating Python Packages

@@ -1,9 +1,52 @@
 #!/bin/bash
 set -e
+# Parse command-line inputs for SLURM repo URL and name.
+print_usage() {
+    echo "Usage: $0 -u|--url <SLURM_REPO_URL> -n|--name <SLURM_REPO_NAME>"
+    echo "       or: $0 <SLURM_REPO_URL> <SLURM_REPO_NAME>"
+}
 
-# Repository details
-SLURM_REPO_URL="http://100.96.22.157/repo/slurm/rhel/10.0/x86_64/"
-SLURM_REPO_NAME="x86_64_slurm_custom"
+SLURM_REPO_URL=""
+SLURM_REPO_NAME=""
+
+# Support both flags and positional args
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -u|--url)
+            SLURM_REPO_URL="$2"
+            shift 2
+            ;;
+        -n|--name)
+            SLURM_REPO_NAME="$2"
+            shift 2
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            # accept two positional args if flags not used
+            if [[ -z "$SLURM_REPO_URL" ]]; then
+                SLURM_REPO_URL="$1"
+            elif [[ -z "$SLURM_REPO_NAME" ]]; then
+                SLURM_REPO_NAME="$1"
+            else
+                echo "Unexpected argument: $1"
+                print_usage
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$SLURM_REPO_URL" || -z "$SLURM_REPO_NAME" ]]; then
+    echo "Warning: SLURM_REPO_URL and SLURM_REPO_NAME are not provided, user might not be able to generate ldms slurm metrics."
+    print_usage
+fi
+
+echo "Using SLURM_REPO_URL=$SLURM_REPO_URL"
+echo "Using SLURM_REPO_NAME=$SLURM_REPO_NAME"
 
 # Get the current working directory
 CURRENT_DIR=$(pwd)
@@ -44,4 +87,11 @@ else
     echo "Directory $TARGET_DIR does not exist."
 fi
 echo "Starting container build..."
-bash "./start_build_container.rockylinux10.bash" "$SLURM_REPO_URL" "$SLURM_REPO_NAME"
+if [[ -n "$SLURM_REPO_URL" && -n "$SLURM_REPO_NAME" ]]; then
+    echo "Starting container build with SLURM_REPO_URL=$SLURM_REPO_URL and SLURM_REPO_NAME=$SLURM_REPO_NAME"
+    bash "./start_build_container.rockylinux10.bash" "$SLURM_REPO_URL" "$SLURM_REPO_NAME"
+else
+    echo "Warning: Starting container build without SLURM "
+    bash "./start_build_container.rockylinux10.bash"
+fi
+

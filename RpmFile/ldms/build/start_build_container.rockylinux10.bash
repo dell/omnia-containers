@@ -10,8 +10,7 @@ fi
 
 # Take inputs
 if [ $# -lt 2 ]; then
-    echo "Usage: $0 <repo_url> <repo_name>"
-    exit 1
+    echo "Warning: slurm repo_url and slurm repo_name are not set"
 fi
 
 REPO_URL="$1"
@@ -43,14 +42,26 @@ echo "Detected/Selected architecture: $ARCH_NAME"
 echo
 echo "Start build container. From there: pushd /builds/ovis/ && ../scripts/build_ldms.rockylinux10.bash"
 
-podman run -it --rm \
-  --arch "$ARCH_NAME" \
-  --mount type=bind,source="$LDMS_REPO",target=/builds/ovis,z \
-  --mount type=bind,source="$SCRIPT_DIR",target=/builds/scripts,z \
-  rockylinux:10.0 \
-  bash -c "
-    echo 'Configuring repo inside container...'
-    cat <<EOF > /etc/yum.repos.d/${REPO_NAME}.repo
+if [[ -z "$REPO_URL" && -z "$REPO_NAME" ]]; then
+  echo "Warning: SLURM_REPO_URL and SLURM_REPO_NAME must be provided."
+   podman run -it --rm \
+    --arch "$ARCH_NAME" \
+    --mount type=bind,source="$LDMS_REPO",target=/builds/ovis,z \
+    --mount type=bind,source="$SCRIPT_DIR",target=/builds/scripts,z \
+    rockylinux:10.0 \
+    bash -c "
+        echo 'Running LDMS build...'
+        pushd /builds/ovis/ && ../scripts/build_ldms.rockylinux10.bash
+    "
+else
+    podman run -it --rm \
+    --arch "$ARCH_NAME" \
+    --mount type=bind,source="$LDMS_REPO",target=/builds/ovis,z \
+    --mount type=bind,source="$SCRIPT_DIR",target=/builds/scripts,z \
+    rockylinux:10.0 \
+    bash -c "
+        echo 'Configuring repo inside container...'
+        cat <<EOF > /etc/yum.repos.d/${REPO_NAME}.repo
 [${REPO_NAME}]
 name=${REPO_NAME}
 baseurl=${REPO_URL}
@@ -58,8 +69,9 @@ enabled=1
 gpgcheck=0
 EOF
 
-    dnf clean all && dnf repolist
+        dnf clean all && dnf repolist
 
-    echo 'Running LDMS build...'
-    pushd /builds/ovis/ && ../scripts/build_ldms.rockylinux10.bash
-  "
+        echo 'Running LDMS build...'
+        pushd /builds/ovis/ && ../scripts/build_ldms.rockylinux10.bash
+    "
+fi
