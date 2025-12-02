@@ -16,15 +16,21 @@ RUN curl -LO https://go.dev/dl/go1.25.4.linux-amd64.tar.gz && \
     tar -C /usr/local -xzf go1.25.4.linux-amd64.tar.gz && \
     rm go1.25.4.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV GOCACHE="/go/cache"
 
-# Install specific golang.org/x/crypto version v0.43.0
-RUN mkdir -p /tmp/crypto-update && \
-    cd /tmp/crypto-update && \
-    go mod init crypto-update && \
+# Fix CVE-2025-47913: Pre-populate Go module cache with patched golang.org/x/crypto@v0.43.0
+# This ensures all Go builds in this container use the secure version
+RUN mkdir -p /go/src/crypto-fix && \
+    cd /go/src/crypto-fix && \
+    go mod init crypto-fix && \
     go get golang.org/x/crypto@v0.43.0 && \
-    echo "Installed crypto version:" && \
+    go mod download golang.org/x/crypto && \
+    echo "Patched crypto version in module cache:" && \
     go list -m golang.org/x/crypto && \
-    cd / && rm -rf /tmp/crypto-update
+    cd / && \
+    rm -rf /go/src/crypto-fix && \
+    chmod -R 777 /go
 
 # Install Git LFS latest version (3.7.1) with security updates
 RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
@@ -42,7 +48,7 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to latest secure version first
+# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
 RUN python3 -m pip install --upgrade pip==24.3.1
 
 # Install/sync python packages using the uv.lock

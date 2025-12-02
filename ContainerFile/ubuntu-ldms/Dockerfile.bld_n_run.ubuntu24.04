@@ -59,6 +59,9 @@ RUN apt-get update \
     tree \
     vim
 
+# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
+RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==25.3
+
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
 
@@ -140,6 +143,8 @@ RUN apt-get update \
     tree \
     vim
 
+# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability) - runner stage
+RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed pip==25.3
 
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security (runner stage)
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
