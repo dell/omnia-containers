@@ -237,7 +237,6 @@ if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers
     build_omnia_core
     build_omnia_auth
-    build_ubuntu_ldms
 else
     # Loop through each container specified in the arguments and build
     IFS=',' read -r -a containers <<< "$1"
@@ -258,6 +257,7 @@ else
             pipeline)
                 build_omnia_core
                 build_omnia_auth
+                build_ubuntu_ldms
                 ;;
             *)
                 echo -e "${RED}Invalid container: $container. Available options: core, pcs, auth, ubuntu-ldms.${NC}"
