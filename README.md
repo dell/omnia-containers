@@ -93,10 +93,29 @@ The `build_images.sh` script builds the following containers:
 - `pipeline` - Builds: core, auth, and ubuntu-ldms containers
 
 **Parameter Validation:**
-The script validates that only relevant parameters are used for each container type:
-- Using `auth_tag` when building only `core` will result in an error
-- Using `omnia_branch` when building `auth` or `pcs` (without core) will result in an error
-- When building core without specifying `omnia_branch`, a warning is shown with the default branch (`staging`)
+The script validates parameters in two stages with context-specific error messages:
+
+1. **Invalid parameter names** - Shows only valid parameters for the specific container(s) being built
+   ```bash
+   # Example: Building core with invalid parameter
+   ./build_images.sh core sas=1
+   # Error: Invalid parameter(s): sas
+   # Valid parameters for 'core': build_tool build_action image_tag core_tag omnia_branch
+   ```
+
+2. **Wrong container-specific parameters** - Validates tag parameters match the container type
+   ```bash
+   # Example: Using auth_tag when building only core
+   ./build_images.sh core auth_tag=1.0
+   # Error: Parameter 'auth_tag' is not valid for container 'core'
+   # Valid parameters for 'core': build_tool build_action image_tag core_tag omnia_branch
+   ```
+
+3. **Default branch warning** - When building core without specifying `omnia_branch`
+   ```bash
+   ./build_images.sh core
+   # ⚠️ Warning: omnia_branch not specified, using default branch: staging
+   ```
 
 ---
 

@@ -209,8 +209,9 @@ COMMON_PARAMS=("build_tool" "build_action" "image_tag")
 
 # Store container-specific parameters for later validation
 CONTAINER_PARAMS=()
+INVALID_PARAMS=()
 
-# Parse command line arguments
+# Parse command line arguments - first pass to collect parameters
 for arg in "$@"; do
     # Skip the first argument if it's a container name or list of containers
     if [[ "$arg" != *"="* ]]; then
@@ -220,11 +221,9 @@ for arg in "$@"; do
     # Extract parameter name
     param_name="${arg%%=*}"
     
-    # Validate parameter name
+    # Check if parameter is valid (exists in VALID_PARAMS)
     if [[ ! " ${VALID_PARAMS[@]} " =~ " ${param_name} " ]]; then
-        echo -e "${RED}Error: Invalid parameter '${param_name}'${NC}"
-        echo -e "${YELLOW}Valid parameters are: ${VALID_PARAMS[*]}${NC}"
-        exit 1
+        INVALID_PARAMS+=("$param_name")
     fi
     
     # Store for container-specific validation later
@@ -310,7 +309,16 @@ validate_container_params() {
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers (core and auth) - all tag parameters are valid
-    validate_container_params "all" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "omnia_branch"
+    ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "omnia_branch")
+    
+    # Check for invalid parameters first
+    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+        echo -e "${YELLOW}Valid parameters for 'all': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+        exit 1
+    fi
+    
+    validate_container_params "all" "${ALLOWED_TAG_PARAMS[@]}"
     build_omnia_core
     build_omnia_auth
 else
@@ -350,6 +358,13 @@ else
                 ;;
         esac
     done
+    
+    # Check for invalid parameters with context-specific message
+    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+        echo -e "${YELLOW}Valid parameters for '$1': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+        exit 1
+    fi
     
     # Validate parameters against the combined allowed list
     validate_container_params "$1" "${ALLOWED_TAG_PARAMS[@]}"
