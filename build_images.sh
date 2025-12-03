@@ -74,24 +74,6 @@ build_omnia_pcs() {
     cd - || exit
 }
 
-# Function to build omnia_kubespray image
-build_omnia_kubespray() {
-    echo "Building omnia_kubespray image..."
-    # Check if the argument is provided in the format kubespray_version=v2.27.0
-    echo -e "Using Kubespray version: ${YELLOW}${KUBESPRAY_VERSION}${NC}"
-    echo -e "${RED}---------------------------------${NC}"
-    cd "$KUBESPRAY_DIR" || exit
-    podman build --build-arg KUBESPRAY_VERSION="$KUBESPRAY_VERSION" --build-arg SSH_PORT="$SSH_PORT" -t "omnia_kubespray:$KUBESPRAY_VERSION" -f Dockerfile
-
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}omnia_kubespray image built successfully.${NC}"
-        SUCCESSFUL_BUILDS+=("omnia_kubespray")
-    else
-        echo -e "${RED}omnia_kubespray image build failed.${NC}"
-        FAILED_BUILDS+=("omnia_kubespray")
-    fi
-    cd - || exit
-}
 
 build_omnia_auth() {
     echo "Building omnia_auth image..."
@@ -125,7 +107,6 @@ build_omnia_auth() {
 
 # Default parameterized values
 OMNIA_VERSION="pub/ochami"
-KUBESPRAY_VERSION='v2.28.0'
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
@@ -134,8 +115,6 @@ OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 for arg in "$@"; do
     if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
         OMNIA_VERSION="${arg#omnia_branch=}"
-    elif [[ "$arg" =~ ^kubespray_version=.*$ ]]; then
-        KUBESPRAY_VERSION="${arg#kubespray_version=}"
     elif [[ "$arg" =~ ^build_tool=.*$ ]]; then
         BUILD_TOOL="${arg#build_tool=}"
     elif [[ "$arg" =~ ^build_action=.*$ ]]; then
@@ -144,31 +123,11 @@ for arg in "$@"; do
     fi
 done
 
-# Set SSH_PORT based on KUBESPRAY_VERSION
-case "$KUBESPRAY_VERSION" in
-  v2.26.0)
-    SSH_PORT="2226"
-    ;;
-  v2.27.0)
-    SSH_PORT="2227"
-    ;;
-  v2.28.0)
-    SSH_PORT="2228"
-    ;;
-  *)
-    echo "Error: Unknown or unsupported KUBESPRAY_VERSION: $KUBESPRAY_VERSION. Supported versions are v2.26.0, v2.27.0, v2.28.0"
-    exit 1
-    ;;
-esac
-
 # Omnia core container variables
 OMNIA_CORE_DIR="ContainerFile/omnia_core"
 
 # PCS container variables
 PCS_CONTAINER_DIR="ContainerFile/pcs_container"
-
-# Kubespray container variables
-KUBESPRAY_DIR="ContainerFile/kubespray"
 
 # Provision container variables
 PROVISION_DIR="ContainerFile/provision/files"
@@ -198,9 +157,6 @@ else
             pcs)
                 build_omnia_pcs
                 ;;
-            kubespray)
-                build_omnia_kubespray
-                ;;
             auth)
                 build_omnia_auth
                 ;;
@@ -209,7 +165,7 @@ else
                 build_omnia_auth
                 ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs, kubespray.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: provision, core, pcs.${NC}"
                 exit 1
                 ;;
         esac
