@@ -194,8 +194,27 @@ UBUNTU_LDMS_TAG="latest"
 # Global fallback tag (used when image_tag= is specified)
 IMAGE_TAG="latest"
 
+# Valid parameter names
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag")
+VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline")
+
 # Parse command line arguments
 for arg in "$@"; do
+    # Skip the first argument if it's a container name or list of containers
+    if [[ "$arg" != *"="* ]]; then
+        continue
+    fi
+    
+    # Extract parameter name
+    param_name="${arg%%=*}"
+    
+    # Validate parameter name
+    if [[ ! " ${VALID_PARAMS[@]} " =~ " ${param_name} " ]]; then
+        echo -e "${RED}Error: Invalid parameter '${param_name}'${NC}"
+        echo -e "${YELLOW}Valid parameters are: ${VALID_PARAMS[*]}${NC}"
+        exit 1
+    fi
+    
     if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
         OMNIA_VERSION="${arg#omnia_branch=}"
     elif [[ "$arg" =~ ^build_tool=.*$ ]]; then
@@ -220,6 +239,27 @@ for arg in "$@"; do
     fi
 done
 
+# Validate build_tool value
+if [[ "$BUILD_TOOL" != "podman" && "$BUILD_TOOL" != "docker" ]]; then
+    echo -e "${RED}Error: Invalid build_tool value '${BUILD_TOOL}'${NC}"
+    echo -e "${YELLOW}Valid values are: podman, docker${NC}"
+    exit 1
+fi
+
+# Validate build_action value
+if [[ "$BUILD_ACTION" != "load" && "$BUILD_ACTION" != "push" ]]; then
+    echo -e "${RED}Error: Invalid build_action value '${BUILD_ACTION}'${NC}"
+    echo -e "${YELLOW}Valid values are: load, push${NC}"
+    exit 1
+fi
+
+# Validate that push requires docker
+if [[ "$BUILD_ACTION" == "push" && "$BUILD_TOOL" != "docker" ]]; then
+    echo -e "${RED}Error: build_action=push requires build_tool=docker${NC}"
+    echo -e "${YELLOW}Please set build_tool=docker when using build_action=push${NC}"
+    exit 1
+fi
+
 # Omnia core container variables
 OMNIA_CORE_DIR="ContainerFile/omnia_core"
 
@@ -234,7 +274,7 @@ UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
 
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
-    # Build all containers
+    # Build all containers (core and auth)
     build_omnia_core
     build_omnia_auth
 else

@@ -43,131 +43,214 @@ The `build_images.sh` script builds the following containers:
 - **omnia_pcs**: image for PCS container - `pcs`.
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 
+## Quick Reference - Common Commands
+
+```bash
+# Build all containers (default: podman, latest tags)
+./build_images.sh all
+
+# Build all with Docker and specific tag
+./build_images.sh all build_tool=docker image_tag=1.0
+
+# Build and push all to registry
+./build_images.sh all build_tool=docker build_action=push image_tag=1.0
+
+# Build specific containers
+./build_images.sh core,auth image_tag=1.0
+
+# Build pipeline (core + auth + ubuntu-ldms)
+./build_images.sh pipeline image_tag=1.0
+
+# Build with specific Omnia branch
+./build_images.sh all omnia_branch=v2.0.0.0-rc2 image_tag=2.0
+```
+
 ## Script Usage
 
-### 1. **Building Specific image**
+### Available Parameters
 
-You can specify which container image to build by passing a comma-separated list of container names as an argument.
+**Container Options:** `all`, `core`, `pcs`, `auth`, `ubuntu-ldms`, `pipeline`
 
-#### Syntax:
+**Optional Parameters:**
+- `omnia_branch=<branch>` - Omnia branch/tag to use (default: `staging`)
+- `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
+- `build_action=<load|push>` - Action after build (default: `load`)
+- `image_tag=<tag>` - Set same tag for all containers (default: `latest`)
+- `core_tag=<tag>` - Individual tag for omnia_core (default: `latest`)
+- `auth_tag=<tag>` - Individual tag for omnia_auth (default: `latest`)
+- `pcs_tag=<tag>` - Individual tag for omnia_pcs (default: `latest`)
+- `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (default: `latest`)
+
+**Special Options:**
+- `all` - Builds: core and auth containers only
+- `pipeline` - Builds: core, auth, and ubuntu-ldms containers
+
+---
+
+### 1. Building ALL Images
+
+Build core and auth containers (the primary Omnia containers).
+
+#### Basic - Default Settings
 ```bash
-./build_images.sh <container1,container2,...> [omnia_branch=<branch_name>] [build_tool=<podman_or_docker>] [build_action=<load_or_push>] [image_tag=<tag_version>] [core_tag=<tag>] [auth_tag=<tag>] [pcs_tag=<tag>] [ubuntu_ldms_tag=<tag>]
-```
-
-#### Example
-
-To build only the core and auth container image:
-
-```bash
-./build_images.sh core,auth
-```
-* For core image, default omnia_branch is `staging`
-* By default, build_tool is considered as podman
-* By default, build_action is considered as load
-* By default, all image tags are `latest`
-* `image_tag=<tag>` sets all containers to the same tag
-* Individual container tags: `core_tag`, `auth_tag`, `pcs_tag`, `ubuntu_ldms_tag`
-
-To build with a specific image tag for all containers (e.g., version 1.0):
-
-```bash
-./build_images.sh core,auth image_tag=1.0
-```
-
-To build with different tags for different containers:
-
-```bash
-./build_images.sh core,auth core_tag=1.0 auth_tag=1.0
-```
-
-To build core with specific version and auth with default (latest):
-
-```bash
-./build_images.sh core,auth core_tag=1.0
-```
-
-To build ubuntu-ldms monitoring container:
-
-```bash
-./build_images.sh ubuntu-ldms
-```
-
-To build ubuntu-ldms with specific tag:
-
-```bash
-./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
-```
-
-### 2. **Building All images**
-
-To build all available container's images, you can pass all as an argument.
-
-Syntax:
-
-```bash
+# Build all with defaults (podman, latest tags)
 ./build_images.sh all
 ```
 
-If we want to build all the images with docker tool then we can use like below:
+**Note:** Running `./build_images.sh` without parameters also defaults to building core and auth containers.
 
+#### With Docker
 ```bash
+# Build all images with Docker
 ./build_images.sh all build_tool=docker
 ```
 
-If we want specific omnia branch/version keeping build_tool as default then we can use like below:
-
+#### With Omnia Branch/Version
 ```bash
+# Build all with specific Omnia branch (default tool: podman)
 ./build_images.sh all omnia_branch=v2.0.0.0-rc2
-```
 
-If we want specific omnia branch/version with docker tool then we can use like below:
-
-```bash
+# Build all with specific branch and Docker
 ./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker
+
+# Build all with staging branch (default)
+./build_images.sh all omnia_branch=staging
 ```
 
-To build all images with a specific tag (e.g., version 1.0):
-
+#### With Unified Tag for All Images
 ```bash
+# Build all with same tag "1.0"
 ./build_images.sh all image_tag=1.0
-```
 
-To build all images with custom tag and docker tool:
-
-```bash
+# Build all with tag "1.0" using Docker
 ./build_images.sh all image_tag=1.0 build_tool=docker
+
+# Build all with tag "2.0" and specific branch
+./build_images.sh all omnia_branch=v2.0.0.0-rc2 image_tag=2.0
 ```
 
-To build all images with different individual tags:
-
+#### With Individual Tags per Container
 ```bash
-./build_images.sh all core_tag=1.0 auth_tag=1.0 pcs_tag=1.0 ubuntu_ldms_tag=1.0
+# Build all (core and auth) with different tags
+./build_images.sh all core_tag=1.0 auth_tag=1.1
+
+# Build all with individual tags using Docker
+./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1
 ```
 
-OR, without passing any argument - this will build all the container and will use `podman` as the default build_tool
+---
 
+### 2. Building Specific Images
+
+Build individual containers or specific combinations.
+
+#### Single Container Builds
 ```bash
-./build_images.sh
+# Build only core
+./build_images.sh core
+
+# Build only core with specific tag
+./build_images.sh core core_tag=1.0
+
+# Build only core with Docker
+./build_images.sh core build_tool=docker core_tag=1.0
+
+# Build only auth
+./build_images.sh auth
+
+# Build only auth with specific tag
+./build_images.sh auth auth_tag=1.0
+
+# Build only pcs
+./build_images.sh pcs
+
+# Build only pcs with specific tag
+./build_images.sh pcs pcs_tag=1.0
+
+# Build only ubuntu-ldms
+./build_images.sh ubuntu-ldms
+
+# Build only ubuntu-ldms with specific tag
+./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
 ```
 
-### 3. **Pushing Images to Registry**
-
-To build and push images to Docker registry (requires build_tool=docker):
-
+#### Multiple Specific Containers
 ```bash
+# Build core and auth only
+./build_images.sh core,auth
+
+# Build core and auth with same tag
+./build_images.sh core,auth image_tag=1.0
+
+# Build core and auth with different tags
+./build_images.sh core,auth core_tag=1.0 auth_tag=1.1
+
+# Build core and auth with Docker
+./build_images.sh core,auth build_tool=docker core_tag=1.0 auth_tag=1.0
+
+# Build auth and ubuntu-ldms
+./build_images.sh auth,ubuntu-ldms auth_tag=1.0 ubuntu_ldms_tag=1.0
+
+# Build core, auth, and ubuntu-ldms
+./build_images.sh core,auth,ubuntu-ldms image_tag=1.0
+```
+
+#### Pipeline Builds (core + auth + ubuntu-ldms)
+```bash
+# Build pipeline containers with defaults
+./build_images.sh pipeline
+
+# Build pipeline with unified tag
+./build_images.sh pipeline image_tag=1.0
+
+# Build pipeline with individual tags
+./build_images.sh pipeline core_tag=1.0 auth_tag=1.1 ubuntu_ldms_tag=1.2
+
+# Build pipeline with Docker
+./build_images.sh pipeline build_tool=docker image_tag=1.0
+
+# Build pipeline with specific Omnia branch
+./build_images.sh pipeline omnia_branch=v2.0.0.0-rc2 image_tag=1.0
+```
+
+---
+
+### 3. Pushing Images to Registry
+
+Build and push images to Docker registry (requires `build_tool=docker` and `build_action=push`).
+
+#### Push ALL Images
+```bash
+# Build and push all images (core and auth) with unified tag
 ./build_images.sh all build_tool=docker build_action=push image_tag=1.0
+
+# Build and push all with individual tags
+./build_images.sh all build_tool=docker build_action=push core_tag=1.0 auth_tag=1.1
+
+# Build and push all with specific branch
+./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker build_action=push image_tag=2.0
 ```
 
-To push specific containers:
-
+#### Push Specific Images
 ```bash
+# Build and push only core and auth
 ./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0
+
+# Build and push only ubuntu-ldms
+./build_images.sh ubuntu-ldms build_tool=docker build_action=push ubuntu_ldms_tag=1.0
+
+# Build and push pipeline containers
+./build_images.sh pipeline build_tool=docker build_action=push image_tag=1.0
+
+# Build and push pcs only
+./build_images.sh pcs build_tool=docker build_action=push pcs_tag=1.0
 ```
 
-**Note**: 
-- `build_action=push` requires `build_tool=docker`
-- Default registry is `docker.io/dellhpcomniaaisolution`
+**Important Notes:**
+- ⚠️ `build_action=push` **requires** `build_tool=docker`
+- Default registry: `docker.io/dellhpcomniaaisolution`
 - Registry can be customized by modifying `OMNIA_DOCKER_REGISTERY` variable in the script
+- Pushed images include SBOM and provenance metadata for security
 
 ## Updating Python Packages
 
