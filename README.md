@@ -162,7 +162,6 @@ To push specific containers:
 ```bash
 ./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0
 ```
-
 **Note**: 
 - `build_action=push` requires `build_tool=docker`
 - Default registry is `docker.io/dellhpcomniaaisolution`
@@ -171,11 +170,11 @@ To push specific containers:
 
 # **Building LDMS PRODUCER RPM Package**
 
-The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It accepts two optional parameters: `SLURM_REPO_URL` and `SLURM_REPO_NAME`.
+The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It accepts three optional parameters: `LDMS_TAGGED_VERSION`, `SLURM_REPO_URL` and `SLURM_REPO_NAME`.
 
 #### Syntax:
 ```bash
-./build_rpm.sh -u [SLURM_REPO_URL] -n [SLURM_REPO_NAME] 
+./build_rpm.sh -v [LDMS_TAGGED_VERSION]-u [SLURM_REPO_URL] -n [SLURM_REPO_NAME]
 ```
 
 #### Example
@@ -189,13 +188,7 @@ The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It a
 - To build the RPM package with both SLURM repository URL and name:
 
   ```bash
-  ./build_rpm.sh -u https://example.com/slurm-repo -n x86_64_slurm_custom
-  ```
-
-- To build the RPM package with both SLURM repository URL and name:
-
-  ```bash
-  ./build_rpm.sh https://example.com/slurm-repo x86_64_slurm_custom
+  ./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
   ```
 
 **Note**: If the `SLURM_REPO_URL` is provided, the script will use it to fetch the necessary dependencies. If `SLURM_REPO_NAME` is provided, it will be used to name the RPM package accordingly.

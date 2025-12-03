@@ -8,10 +8,14 @@ print_usage() {
 
 SLURM_REPO_URL=""
 SLURM_REPO_NAME=""
-
-# Support both flags and positional args
+LDMS_VERSION="4.5.1"
+# Parse command-line option for LDMS version
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        -v|--version)
+            LDMS_VERSION="$2"
+            shift 2
+            ;;
         -u|--url)
             SLURM_REPO_URL="$2"
             shift 2
@@ -25,11 +29,13 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            # accept two positional args if flags not used
+            # accept positional args if flags not used
             if [[ -z "$SLURM_REPO_URL" ]]; then
                 SLURM_REPO_URL="$1"
             elif [[ -z "$SLURM_REPO_NAME" ]]; then
                 SLURM_REPO_NAME="$1"
+            elif [[ -z "$LDMS_VERSION" ]]; then
+                LDMS_VERSION="$1"
             else
                 echo "Unexpected argument: $1"
                 print_usage
@@ -39,10 +45,9 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
+echo "Using LDMS_VERSION=$LDMS_VERSION"
 if [[ -z "$SLURM_REPO_URL" || -z "$SLURM_REPO_NAME" ]]; then
     echo "Warning: SLURM_REPO_URL and SLURM_REPO_NAME are not provided, user might not be able to generate ldms slurm metrics."
-    print_usage
 fi
 
 echo "Using SLURM_REPO_URL=$SLURM_REPO_URL"
@@ -66,7 +71,7 @@ cd "$DEST_DIR"
 
 if [ ! -d "ovis" ]; then
     echo "Cloning OVIS repository..."
-    git clone "$REPO_URL"
+    git clone --branch v"$LDMS_VERSION" --depth 1 "$REPO_URL"
 else
     echo "Repository already exists. Updating..."
     cd ovis
