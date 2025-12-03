@@ -17,6 +17,12 @@ PUSHED_IMAGES=()
 # Function to build omnia_core image
 build_omnia_core() {
     echo "Building omnia_core image..."
+    
+    # Check if omnia_branch was explicitly set
+    if [[ ! " ${CONTAINER_PARAMS[@]} " =~ " omnia_branch " ]]; then
+        echo -e "${YELLOW}⚠️  Warning: omnia_branch not specified, using default branch: ${OMNIA_VERSION}${NC}"
+    fi
+    
     echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
@@ -194,8 +200,35 @@ UBUNTU_LDMS_TAG="latest"
 # Global fallback tag (used when image_tag= is specified)
 IMAGE_TAG="latest"
 
-# Parse command line arguments
+# Valid parameter names
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag")
+VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline")
+
+# Common parameters valid for all container types
+COMMON_PARAMS=("build_tool" "build_action" "image_tag")
+
+# Store container-specific parameters for later validation
+CONTAINER_PARAMS=()
+INVALID_PARAMS=()
+
+# Parse command line arguments - first pass to collect parameters
 for arg in "$@"; do
+    # Skip the first argument if it's a container name or list of containers
+    if [[ "$arg" != *"="* ]]; then
+        continue
+    fi
+    
+    # Extract parameter name
+    param_name="${arg%%=*}"
+    
+    # Check if parameter is valid (exists in VALID_PARAMS)
+    if [[ ! " ${VALID_PARAMS[@]} " =~ " ${param_name} " ]]; then
+        INVALID_PARAMS+=("$param_name")
+    fi
+    
+    # Store for container-specific validation later
+    CONTAINER_PARAMS+=("$param_name")
+    
     if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
         OMNIA_VERSION="${arg#omnia_branch=}"
     elif [[ "$arg" =~ ^build_tool=.*$ ]]; then
@@ -220,6 +253,27 @@ for arg in "$@"; do
     fi
 done
 
+# Validate build_tool value
+if [[ "$BUILD_TOOL" != "podman" && "$BUILD_TOOL" != "docker" ]]; then
+    echo -e "${RED}Error: Invalid build_tool value '${BUILD_TOOL}'${NC}"
+    echo -e "${YELLOW}Valid values are: podman, docker${NC}"
+    exit 1
+fi
+
+# Validate build_action value
+if [[ "$BUILD_ACTION" != "load" && "$BUILD_ACTION" != "push" ]]; then
+    echo -e "${RED}Error: Invalid build_action value '${BUILD_ACTION}'${NC}"
+    echo -e "${YELLOW}Valid values are: load, push${NC}"
+    exit 1
+fi
+
+# Validate that push requires docker
+if [[ "$BUILD_ACTION" == "push" && "$BUILD_TOOL" != "docker" ]]; then
+    echo -e "${RED}Error: build_action=push requires build_tool=docker${NC}"
+    echo -e "${YELLOW}Please set build_tool=docker when using build_action=push${NC}"
+    exit 1
+fi
+
 # Omnia core container variables
 OMNIA_CORE_DIR="ContainerFile/omnia_core"
 
@@ -232,14 +286,90 @@ AUTH_DIR="ContainerFile/auth"
 # Ubuntu LDMS container variables
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
 
+# Function to validate container-specific parameters
+validate_container_params() {
+    local container=$1
+    local allowed_params=("${@:2}")
+    
+    for param in "${CONTAINER_PARAMS[@]}"; do
+        # Skip common parameters (always valid)
+        if [[ " ${COMMON_PARAMS[@]} " =~ " ${param} " ]]; then
+            continue
+        fi
+        
+        # Check if parameter is in allowed list for this container
+        if [[ ! " ${allowed_params[@]} " =~ " ${param} " ]]; then
+            echo -e "${RED}Error: Parameter '${param}' is not valid for container '${container}'${NC}"
+            echo -e "${YELLOW}Valid parameters for '${container}': ${COMMON_PARAMS[*]} ${allowed_params[*]}${NC}"
+            exit 1
+        fi
+    done
+}
+
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
-    # Build all containers
+    # Build all containers (core and auth) - all tag parameters are valid
+    ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "omnia_branch")
+    
+    # Check for invalid parameters first
+    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+        echo -e "${YELLOW}Valid parameters for 'all': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+        exit 1
+    fi
+    
+    validate_container_params "all" "${ALLOWED_TAG_PARAMS[@]}"
     build_omnia_core
     build_omnia_auth
 else
     # Loop through each container specified in the arguments and build
     IFS=',' read -r -a containers <<< "$1"
+    
+    # Collect allowed parameters for the combination of containers
+    ALLOWED_TAG_PARAMS=()
+    BUILDING_CORE=false
+    
+    for container in "${containers[@]}"; do
+        case "$container" in
+            all)
+                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "omnia_branch")
+                BUILDING_CORE=true
+                ;;
+            core)
+                ALLOWED_TAG_PARAMS+=("core_tag" "omnia_branch")
+                BUILDING_CORE=true
+                ;;
+            pcs)
+                ALLOWED_TAG_PARAMS+=("pcs_tag")
+                ;;
+            auth)
+                ALLOWED_TAG_PARAMS+=("auth_tag")
+                ;;
+            ubuntu-ldms)
+                ALLOWED_TAG_PARAMS+=("ubuntu_ldms_tag")
+                ;;
+            pipeline)
+                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "omnia_branch")
+                BUILDING_CORE=true
+                ;;
+            *)
+                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline.${NC}"
+                exit 1
+                ;;
+        esac
+    done
+    
+    # Check for invalid parameters with context-specific message
+    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+        echo -e "${YELLOW}Valid parameters for '$1': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+        exit 1
+    fi
+    
+    # Validate parameters against the combined allowed list
+    validate_container_params "$1" "${ALLOWED_TAG_PARAMS[@]}"
+    
+    # Now build the containers
     for container in "${containers[@]}"; do
         case "$container" in
             all)
@@ -262,10 +392,6 @@ else
                 build_omnia_core
                 build_omnia_auth
                 build_ubuntu_ldms
-                ;;
-            *)
-                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline.${NC}"
-                exit 1
                 ;;
         esac
     done

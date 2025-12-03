@@ -161,8 +161,10 @@ RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setupt
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages click prometheus_client ;'
 
 COPY --from=ldms_builder /opt/ovis-ldms /opt/ovis-ldms
-COPY --from=ldms_builder /usr/local/lib/libserdes.so /usr/local/lib/libserdes.so
-# COPY testing /testing  # Commented out - testing directory does not exist
+COPY --from=ldms_builder /usr/local/lib/ /usr/local/lib/libserdes.so
+
+# Update shared library cache so libserdes.so.1 can be found
+RUN ldconfig
 
 #LABEL maintainer="YOUR NAME HERE <YOUR EMAIL HERE>" version=$VER
 CMD /bin/bash
