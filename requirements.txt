@@ -1,0 +1,17 @@
+# Core dependencies
+PyYAML>=6.0
+
+# Testing
+pytest>=7.0.0
+pytest-testinfra>=8.0.0
+molecule>=5.0.0
+molecule-plugins>=23.0.0
+
+# Ansible
+ansible-core>=2.14.0
+
+# SSH (optional, for remote checks)
+paramiko>=3.0.0
+
+# Install this package (runs setup.py)
+-e .
