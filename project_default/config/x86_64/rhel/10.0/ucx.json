@@ -1,0 +1,12 @@
+{
+  "ucx": {
+    "cluster": [
+      { "package": "ucx",
+        "type": "tarball",
+        "url": "https://github.com/openucx/ucx/releases/download/v{{ ucx_version }}/ucx-{{ ucx_version }}.tar.gz"
+      },
+      {"package": "gcc-c++", "type": "rpm", "repo_name": "x86_64_appstream"},
+      {"package": "make", "type": "rpm", "repo_name": "x86_64_appstream"}
+    ]
+  }
+}

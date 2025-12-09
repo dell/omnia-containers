@@ -1,0 +1,276 @@
+---
+# Converge playbook for prepare_oim validation
+#
+# Workflow:
+# 1. Check omnia_core container is running
+# 2. Execute prepare_oim playbook inside omnia_core container
+# 3. Gather information for pytest validation
+
+- name: Prepare OIM - Execute playbook in omnia_core and validate
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    # Container settings
+    container_runtime: "{{ lookup('env', 'CONTAINER_RUNTIME') | default('podman', true) }}"
+    omnia_core_container: "{{ lookup('env', 'OMNIA_CORE_CONTAINER') | default('omnia_core', true) }}"
+    omnia_auth_container: "{{ lookup('env', 'OMNIA_AUTH_CONTAINER') | default('omnia_auth', true) }}"
+
+    # Playbook settings - runs inside omnia_core as: ansible-playbook prepare_oim/prepare_oim.yml
+    prepare_oim_playbook: "{{ lookup('env', 'PREPARE_OIM_PLAYBOOK') | default('prepare_oim/prepare_oim.yml', true) }}"
+    playbook_timeout: "{{ lookup('env', 'PLAYBOOK_TIMEOUT') | default(1800, true) }}"
+
+    # Local input files path (in automation repo - user configures these)
+    # Can be overridden via environment variable LOCAL_INPUT_PATH
+    local_input_path: "{{ lookup('env', 'LOCAL_INPUT_PATH') | default(playbook_dir + '/../../project_default', true) }}"
+
+    # Config paths (inside omnia_core container)
+    container_input_path: "/opt/omnia/input/project_default"
+    software_config_path: "{{ container_input_path }}/software_config.json"
+    omnia_credential_file: "{{ container_input_path }}/omnia_config_credentials.yml"
+    vault_password_file: "{{ container_input_path }}/.omnia_config_credentials_key"
+
+    # Set config_file_status=true to skip credential prompts (credentials already exist)
+    skip_credential_prompts: true
+
+  tasks:
+    # =========================================================================
+    # Step 1: Display target host information
+    # =========================================================================
+    - name: Display target host information
+      ansible.builtin.debug:
+        msg: |
+          Target Host: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Container Runtime: {{ container_runtime }}
+
+    # =========================================================================
+    # Step 2: Check omnia_core container is running
+    # =========================================================================
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell: |
+        {{ container_runtime }} ps -a --format "{{ '{{' }}.Names{{ '}}' }}:{{ '{{' }}.Status{{ '}}' }}" | grep -E "^{{ omnia_core_container }}:"
+      register: omnia_core_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container not found
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container not found!
+          Please ensure Omnia is properly deployed.
+          Run: {{ container_runtime }} ps -a | grep omnia_core
+      when: omnia_core_check.rc != 0
+
+    - name: Check if omnia_core is running
+      ansible.builtin.set_fact:
+        omnia_core_running: "{{ 'Up' in omnia_core_check.stdout }}"
+
+    - name: Start omnia_core if not running
+      ansible.builtin.shell: |
+        {{ container_runtime }} start {{ omnia_core_container }}
+      when: not omnia_core_running
+      register: start_result
+
+    - name: Display omnia_core status
+      ansible.builtin.debug:
+        msg: "omnia_core container status: {{ omnia_core_check.stdout }}"
+
+    # =========================================================================
+    # Step 3: Copy input files from automation repo into omnia_core container
+    # =========================================================================
+    - name: Copy input files from local path to omnia_core container
+      ansible.builtin.shell: |
+        {{ container_runtime }} cp {{ local_input_path }}/. {{ omnia_core_container }}:{{ container_input_path }}/
+      register: copy_result
+      changed_when: true
+
+    - name: Display copy result
+      ansible.builtin.debug:
+        msg: "Input files copied from {{ local_input_path }} to {{ omnia_core_container }}:{{ container_input_path }}/"
+
+    - name: Verify input files in container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ omnia_core_container }} ls -la {{ container_input_path }}/
+      register: container_files
+      changed_when: false
+
+    - name: Display container input files
+      ansible.builtin.debug:
+        var: container_files.stdout_lines
+
+    # =========================================================================
+    # Step 4: Execute prepare_oim playbook inside omnia_core container
+    # =========================================================================
+    - name: Check if prepare_oim playbook exists in container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ omnia_core_container }} test -f /omnia/{{ prepare_oim_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "prepare_oim playbook (/omnia/{{ prepare_oim_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute prepare_oim playbook in omnia_core container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec -w /omnia {{ omnia_core_container }} \
+          ansible-playbook {{ prepare_oim_playbook }} -v \
+          -e "config_file_status=true" \
+          -e "cred_file_status=true" \
+          --vault-password-file {{ vault_password_file }}
+      register: playbook_result
+      timeout: "{{ playbook_timeout | int }}"
+      when: "'EXISTS' in playbook_check.stdout"
+      failed_when: false
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          PREPARE_OIM PLAYBOOK EXECUTION OUTPUT
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Show full playbook output
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
+
+    - name: Warn if playbook execution failed (continue with validation)
+      ansible.builtin.debug:
+        msg: |
+          ⚠️  WARNING: prepare_oim playbook execution failed!
+          Return code: {{ playbook_result.rc }}
+          Error: {{ playbook_result.stderr | default('No error message') }}
+          
+          Continuing with validation of existing deployment state...
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Set playbook execution status
+      ansible.builtin.set_fact:
+        playbook_success: "{{ playbook_result.rc | default(1) == 0 }}"
+
+    - name: Skip playbook if not found
+      ansible.builtin.fail:
+        msg: "prepare_oim playbook not found at /omnia/{{ prepare_oim_playbook }}."
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    # =========================================================================
+    # Step 4: Read software_config.json for LDAP status
+    # =========================================================================
+    - name: Read software_config.json from omnia_core container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ omnia_core_container }} cat {{ software_config_path }}
+      register: software_config_content
+      changed_when: false
+      failed_when: false
+
+    - name: Parse software_config.json
+      ansible.builtin.set_fact:
+        software_config: "{{ software_config_content.stdout | from_json }}"
+      when: software_config_content.rc == 0
+      failed_when: false
+
+    - name: Check if LDAP/OpenLDAP is configured in softwares
+      ansible.builtin.set_fact:
+        ldap_enabled: "{{ software_config.softwares | default([]) | selectattr('name', 'equalto', 'openldap') | list | length > 0 }}"
+      when: software_config is defined
+
+    - name: Set LDAP disabled if config not found
+      ansible.builtin.set_fact:
+        ldap_enabled: false
+      when: software_config is not defined
+
+    - name: Display LDAP status
+      ansible.builtin.debug:
+        msg: "LDAP/OpenLDAP enabled: {{ ldap_enabled }}"
+
+    - name: Export LDAP status for pytest
+      ansible.builtin.copy:
+        content: |
+          LDAP_ENABLED={{ ldap_enabled | string | lower }}
+          SOFTWARE_CONFIG_PATH={{ software_config_path }}
+          CONTAINER_RUNTIME={{ container_runtime }}
+          OMNIA_AUTH_CONTAINER={{ omnia_auth_container }}
+        dest: /tmp/molecule_env_vars
+        mode: '0644'
+
+    # =========================================================================
+    # Step 5: Gather information for pytest validation
+    # =========================================================================
+    - name: Gather all container information
+      ansible.builtin.shell: |
+        {{ container_runtime }} ps -a --format "{{ '{{' }}.Names{{ '}}' }}:{{ '{{' }}.Status{{ '}}' }}"
+      register: container_info
+      changed_when: false
+      failed_when: false
+
+    - name: Export container info for pytest
+      ansible.builtin.copy:
+        content: "{{ container_info.stdout }}"
+        dest: /tmp/molecule_container_info.txt
+        mode: '0644'
+
+    - name: Display container status
+      ansible.builtin.debug:
+        var: container_info.stdout_lines
+
+    - name: Check omnia.target status
+      ansible.builtin.systemd:
+        name: omnia.target
+      register: omnia_target_status
+      failed_when: false
+
+    - name: Display omnia.target status
+      ansible.builtin.debug:
+        msg: |
+          omnia.target state: {{ omnia_target_status.status.ActiveState | default('unknown') }}
+          omnia.target enabled: {{ omnia_target_status.status.UnitFileState | default('unknown') }}
+
+    - name: Get omnia.target dependencies
+      ansible.builtin.shell: |
+        systemctl list-dependencies omnia.target --plain 2>/dev/null || echo "OMNIA_TARGET_NOT_FOUND"
+      register: omnia_dependencies
+      changed_when: false
+      failed_when: false
+
+    - name: Export omnia dependencies for pytest
+      ansible.builtin.copy:
+        content: "{{ omnia_dependencies.stdout }}"
+        dest: /tmp/omnia_dependencies.txt
+        mode: '0644'
+
+    - name: Get all service statuses for omnia.target dependencies
+      ansible.builtin.shell: |
+        systemctl list-dependencies omnia.target --plain 2>/dev/null | while read svc; do
+          status=$(systemctl is-active "$svc" 2>/dev/null || echo "unknown")
+          echo "$svc:$status"
+        done
+      register: dependency_statuses
+      changed_when: false
+      failed_when: false
+
+    - name: Export dependency statuses for pytest
+      ansible.builtin.copy:
+        content: "{{ dependency_statuses.stdout }}"
+        dest: /tmp/omnia_dependency_statuses.txt
+        mode: '0644'
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: Validation preparation complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          prepare_oim converge complete!
+          ============================================
+          - omnia_core container: {{ 'Running' if omnia_core_running else 'Started' }}
+          - prepare_oim playbook: Executed (rc={{ playbook_result.rc | default('N/A') }})
+          - LDAP/OpenLDAP enabled: {{ ldap_enabled }}
+          - Ready for pytest verification
+          ============================================

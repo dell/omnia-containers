@@ -1,0 +1,7 @@
+# Molecule testing dependencies for local_repo
+molecule>=6.0.0
+molecule-plugins[docker]>=23.0.0
+ansible-core>=2.15.0
+pytest>=7.0.0
+pytest-testinfra>=10.0.0
+paramiko>=3.0.0

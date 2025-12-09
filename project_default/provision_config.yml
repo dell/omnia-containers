@@ -1,0 +1,47 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+---
+
+# ***********************************************************************
+# DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
+# SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
+# ***********************************************************************
+
+#### Mandatory
+# This depicts the path where user has kept the PXE mapping file.
+# The mapping file consists of the Service tag, Admin MAC,Hostname and its respective admin IP address and/or BMC IP.
+# Ensure that admin IPs given in mapping file are within the network defined in the network_spec.yml
+# A templates for mapping file exists in omnia/examples, namely, pxe_mapping_file.csv
+# Format of csv: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
+pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
+
+#### Mandatory
+# Timezone that needs to be set during OS provisioning.
+# Available timezones are provided in common/library/module_utils/input_validation/common_utils/timezone.txt
+# Default: "GMT"
+# Few accepted values: EST,CET,MST,CST6CDT,PST8PDT
+timezone: "Asia/Kolkata"
+
+#### Mandatory
+# Language that needs to be set during OS provisioning.
+# Only language supported is "en_US.UTF-8"
+language: "en_US.UTF-8"
+
+#### Mandatory
+# Default lease time needs to be used by DHCP
+# Unit: seconds
+# Min: 21600
+# Default: 86400
+# Max: 31536000
+default_lease_time: "86400"

@@ -1,0 +1,44 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+---
+
+# This file is used to specify the network configuration.
+#
+# 'admin_network' is a mandatory field, essential for PXE boot and host communication."
+#
+# The 'admin_network' section contains the following variables:
+# - 'oim_nic_name': The name of the interface on the OIM server associated with the admin network.
+# - 'netmask_bits': The number of bits in the subnet mask.
+# - 'primary_oim_admin_ip': The admin IP address of the OIM server which is configured.
+# - 'primary_oim_bmc_ip': The iDRAC  IP address of the OIM server,
+#     Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server.
+#     Optional — can be omitted if iDRAC telemetry for the OIM server is not required.
+# - 'dynamic_range': The range of dynamic IP addresses available on the admin network.
+# - 'dns': The list of external DNS server IP address for the admin network.
+# - 'ntp_servers': The list of NTP servers for the admin network. Each NTP server entry should include: 
+#     - 'address': The IP address or hostname of the NTP server.
+#     - 'type': The type of NTP entry, either 'server' or 'pool'.
+#     Example:  
+#     ntp_servers:
+#       - { address: "172.16.10.80", type: "server" }
+
+Networks:
+- admin_network:
+    oim_nic_name: "eno1np0"
+    netmask_bits: "16"
+    primary_oim_admin_ip: "172.16.107.254"
+    primary_oim_bmc_ip: "" 
+    dynamic_range: "172.16.107.100-172.16.107.110"
+    dns: []
+    ntp_servers: []

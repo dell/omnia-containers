@@ -1,0 +1,277 @@
+---
+# Converge playbook for local_repo validation
+#
+# Workflow:
+# 1. SSH to OIM server (handled by Ansible connection)
+# 2. Check Pulp container is running without errors
+# 3. Validate custom repo accessibility
+# 4. Execute local_repo playbook inside omnia_core container
+# 5. Prepare environment for pytest validation
+
+- name: Local Repo - Execute playbook in omnia_core and validate
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    # Container settings
+    container_runtime: "{{ lookup('env', 'CONTAINER_RUNTIME') | default('podman', true) }}"
+    omnia_core_container: "{{ lookup('env', 'OMNIA_CORE_CONTAINER') | default('omnia_core', true) }}"
+    pulp_container: "{{ lookup('env', 'PULP_CONTAINER') | default('pulp', true) }}"
+
+    # Playbook settings
+    local_repo_playbook: "{{ lookup('env', 'LOCAL_REPO_PLAYBOOK') | default('/omnia/local_repo/local_repo.yml', true) }}"
+    local_repo_inventory: "{{ lookup('env', 'LOCAL_REPO_INVENTORY') | default('/opt/omnia/inventory', true) }}"
+    playbook_timeout: "{{ lookup('env', 'PLAYBOOK_TIMEOUT') | default(1800, true) }}"
+
+    # Status file paths
+    top_level_status_file: "{{ lookup('env', 'TOP_LEVEL_STATUS_FILE') | default('/opt/omnia/offline/status.csv', true) }}"
+    package_status_dir: "{{ lookup('env', 'PACKAGE_STATUS_DIR') | default('/opt/omnia/offline/packages', true) }}"
+
+    # Custom repo settings
+    custom_repo_base_url: "{{ lookup('env', 'CUSTOM_REPO_BASE_URL') | default('http://localhost:8080', true) }}"
+
+  tasks:
+    # =========================================================================
+    # Step 1: Display target host information
+    # =========================================================================
+    - name: Display target host information
+      ansible.builtin.debug:
+        msg: |
+          Target Host: {{ inventory_hostname }}
+          Ansible Host: {{ ansible_host }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Container Runtime: {{ container_runtime }}
+
+    # =========================================================================
+    # Step 2: Check Pulp container is running without errors
+    # =========================================================================
+    - name: Check if Pulp container exists
+      ansible.builtin.shell: |
+        {{ container_runtime }} ps -a --format "{{ '{{' }}.Names{{ '}}' }}:{{ '{{' }}.Status{{ '}}' }}" | grep -E "^{{ pulp_container }}:"
+      register: pulp_check
+      changed_when: false
+      failed_when: false
+
+    - name: Set Pulp container status facts
+      ansible.builtin.set_fact:
+        pulp_container_exists: "{{ pulp_check.rc == 0 }}"
+        pulp_container_running: "{{ pulp_check.rc == 0 and 'Up' in pulp_check.stdout }}"
+
+    - name: Display Pulp container status
+      ansible.builtin.debug:
+        msg: |
+          Pulp container exists: {{ pulp_container_exists }}
+          Pulp container running: {{ pulp_container_running }}
+          Status: {{ pulp_check.stdout | default('Not found') }}
+
+    - name: Check Pulp container health
+      ansible.builtin.shell: |
+        {{ container_runtime }} inspect --format '{{ '{{' }}.State.Health.Status{{ '}}' }}' {{ pulp_container }} 2>/dev/null || echo "no_health_check"
+      register: pulp_health
+      changed_when: false
+      failed_when: false
+      when: pulp_container_exists
+
+    - name: Check Pulp container logs for errors
+      ansible.builtin.shell: |
+        {{ container_runtime }} logs --tail 50 {{ pulp_container }} 2>&1 | grep -iE "(error|fatal|critical|exception)" | head -10 || echo "NO_ERRORS"
+      register: pulp_logs_errors
+      changed_when: false
+      failed_when: false
+      when: pulp_container_exists
+
+    - name: Export Pulp status for pytest
+      ansible.builtin.lineinfile:
+        path: /tmp/molecule_local_repo_env
+        line: "{{ item }}"
+        create: true
+        mode: '0644'
+      loop:
+        - "PULP_CONTAINER_EXISTS={{ pulp_container_exists | string | lower }}"
+        - "PULP_CONTAINER_RUNNING={{ pulp_container_running | string | lower }}"
+        - "PULP_HEALTH={{ pulp_health.stdout | default('unknown') }}"
+        - "PULP_HAS_ERRORS={{ 'false' if pulp_logs_errors.stdout is defined and 'NO_ERRORS' in pulp_logs_errors.stdout else 'true' }}"
+
+    # =========================================================================
+    # Step 3: Validate custom repo accessibility
+    # =========================================================================
+    - name: Check custom repo accessibility (Pulp API status)
+      ansible.builtin.uri:
+        url: "{{ custom_repo_base_url }}/pulp/api/v3/status/"
+        method: GET
+        timeout: 30
+        validate_certs: false
+      register: repo_access
+      failed_when: false
+
+    - name: Display repo accessibility status
+      ansible.builtin.debug:
+        msg: |
+          Custom repo URL: {{ custom_repo_base_url }}
+          API accessible: {{ repo_access.status | default('N/A') == 200 }}
+          Response: {{ repo_access.status | default('Connection failed') }}
+
+    - name: Export repo accessibility for pytest
+      ansible.builtin.lineinfile:
+        path: /tmp/molecule_local_repo_env
+        line: "REPO_ACCESSIBLE={{ 'true' if repo_access.status is defined and repo_access.status == 200 else 'false' }}"
+        create: true
+        mode: '0644'
+
+    # =========================================================================
+    # Step 4: Check omnia_core container is running
+    # =========================================================================
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell: |
+        {{ container_runtime }} ps -a --format "{{ '{{' }}.Names{{ '}}' }}:{{ '{{' }}.Status{{ '}}' }}" | grep -E "^{{ omnia_core_container }}:"
+      register: omnia_core_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container not found
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container not found!
+          Please ensure Omnia is properly deployed.
+          Run: {{ container_runtime }} ps -a | grep omnia_core
+      when: omnia_core_check.rc != 0
+
+    - name: Check if omnia_core is running
+      ansible.builtin.set_fact:
+        omnia_core_running: "{{ 'Up' in omnia_core_check.stdout }}"
+
+    - name: Start omnia_core if not running
+      ansible.builtin.shell: |
+        {{ container_runtime }} start {{ omnia_core_container }}
+      when: not omnia_core_running
+      register: start_result
+
+    # =========================================================================
+    # Step 5: Execute local_repo playbook inside omnia_core container
+    # =========================================================================
+    - name: Check if local_repo playbook exists in container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ omnia_core_container }} test -f {{ local_repo_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "local_repo playbook: {{ playbook_check.stdout }}"
+
+    - name: Execute local_repo playbook in omnia_core container
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ omnia_core_container }} \
+          ansible-playbook -i {{ local_repo_inventory }} {{ local_repo_playbook }}
+      register: playbook_result
+      timeout: "{{ playbook_timeout | int }}"
+      when: "'EXISTS' in playbook_check.stdout"
+      failed_when: false
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          Playbook Return Code: {{ playbook_result.rc | default('N/A') }}
+          Playbook Output: {{ playbook_result.stdout_lines | default(['No output']) | join('\n') }}
+      when: playbook_result is defined
+
+    - name: Export playbook result for pytest
+      ansible.builtin.lineinfile:
+        path: /tmp/molecule_local_repo_env
+        line: "PLAYBOOK_RC={{ playbook_result.rc | default('-1') }}"
+        create: true
+        mode: '0644'
+
+    - name: Warn if playbook failed
+      ansible.builtin.debug:
+        msg: |
+          WARNING: local_repo playbook execution failed!
+          Return code: {{ playbook_result.rc }}
+          Error: {{ playbook_result.stderr | default('No error message') }}
+          Continuing with validation...
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Skip playbook if not found
+      ansible.builtin.debug:
+        msg: "local_repo playbook not found at {{ local_repo_playbook }}. Skipping playbook execution."
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    # =========================================================================
+    # Step 6: Gather Pulp command validation info
+    # =========================================================================
+    - name: Test Pulp repository list command
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ pulp_container }} pulp rpm repository list 2>&1 || echo "COMMAND_FAILED"
+      register: pulp_repo_list
+      changed_when: false
+      failed_when: false
+      when: pulp_container_running | default(false)
+
+    - name: Test Pulp remote list command
+      ansible.builtin.shell: |
+        {{ container_runtime }} exec {{ pulp_container }} pulp rpm remote list 2>&1 || echo "COMMAND_FAILED"
+      register: pulp_remote_list
+      changed_when: false
+      failed_when: false
+      when: pulp_container_running | default(false)
+
+    - name: Export Pulp command results for pytest
+      ansible.builtin.copy:
+        content: |
+          PULP_REPO_LIST_RC={{ pulp_repo_list.rc | default('-1') }}
+          PULP_REMOTE_LIST_RC={{ pulp_remote_list.rc | default('-1') }}
+        dest: /tmp/pulp_commands_result.txt
+        mode: '0644'
+      when: pulp_container_running | default(false)
+
+    # =========================================================================
+    # Step 7: Check status files for package download validation
+    # =========================================================================
+    - name: Check if top-level status file exists
+      ansible.builtin.stat:
+        path: "{{ top_level_status_file }}"
+      register: status_file_stat
+
+    - name: Read top-level status file if exists
+      ansible.builtin.slurp:
+        src: "{{ top_level_status_file }}"
+      register: status_file_content
+      when: status_file_stat.stat.exists
+
+    - name: Export status file info for pytest
+      ansible.builtin.lineinfile:
+        path: /tmp/molecule_local_repo_env
+        line: "{{ item }}"
+        create: true
+        mode: '0644'
+      loop:
+        - "STATUS_FILE_EXISTS={{ status_file_stat.stat.exists | string | lower }}"
+        - "STATUS_FILE_PATH={{ top_level_status_file }}"
+        - "PACKAGE_STATUS_DIR={{ package_status_dir }}"
+
+    - name: Copy status file for pytest analysis
+      ansible.builtin.copy:
+        src: "{{ top_level_status_file }}"
+        dest: /tmp/local_repo_status.csv
+        remote_src: true
+        mode: '0644'
+      when: status_file_stat.stat.exists
+      failed_when: false
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: Validation preparation complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          local_repo converge complete!
+          ============================================
+          - Pulp container: {{ 'Running' if pulp_container_running | default(false) else 'Not running' }}
+          - Custom repo accessible: {{ 'Yes' if repo_access.status is defined and repo_access.status == 200 else 'No' }}
+          - omnia_core container: {{ 'Running' if omnia_core_running else 'Started' }}
+          - local_repo playbook: {{ 'Executed (rc=' ~ playbook_result.rc ~ ')' if playbook_result is defined and playbook_result.rc is defined else 'Skipped' }}
+          - Status file exists: {{ status_file_stat.stat.exists }}
+          - Ready for pytest verification
+          ============================================
