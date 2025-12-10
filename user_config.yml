@@ -1,0 +1,180 @@
+# =============================================================================
+# OIM Prerequisite Check - User Configuration
+# =============================================================================
+# Fill in the values below according to your environment.
+# This file is read by the automation scripts.
+# Sections are ordered to match the check execution sequence.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Execution Control
+# -----------------------------------------------------------------------------
+# Set to true to continue running all checks even if some fail
+# Set to false to stop immediately on first failure
+skip_on_failure: true
+
+# -----------------------------------------------------------------------------
+# 0. Target OIM Server (Remote Execution) - REQUIRED
+# -----------------------------------------------------------------------------
+# Set to OIM server IP to run checks remotely via SSH.
+oim_server_ip: "10.134.123.11"
+
+# SSH username for remote OIM server (default: root)
+oim_ssh_user: ""
+
+# SSH password for remote OIM server (REQUIRED)
+oim_ssh_password: ""
+
+# SSH port (default: 22)
+oim_ssh_port: 22
+
+# -----------------------------------------------------------------------------
+# 1. IPMI Tool - No configuration needed (auto-installed if missing)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# 2. Hardware Requirements (Optional - defaults are usually fine)
+# -----------------------------------------------------------------------------
+# Minimum CPU cores required
+min_cores: 4
+
+# Minimum memory required (in GB)
+min_memory_gb: 8
+
+# Minimum disk space required (in GB)
+min_disk_gb: 50
+
+# -----------------------------------------------------------------------------
+# 3. OS Validation
+# -----------------------------------------------------------------------------
+# Required OS name (e.g., "rhel", "centos", "rocky")
+required_os: "rhel"
+
+# Required OS version (e.g., "10", "9.3")
+required_os_version: "10"
+
+# Required kernel version (must match exactly)
+# Example: "6.12.0-55.9.1.el10_0.x86_64"
+# Leave empty to skip kernel version check
+required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
+
+# -----------------------------------------------------------------------------
+# 4. Network Interfaces
+# -----------------------------------------------------------------------------
+# PXE interface name (for provisioning)
+pxe_interface: "eno8303"
+
+# Public interface name (for internet access)
+public_interface: "eno8403"
+
+# -----------------------------------------------------------------------------
+# 5. PXE NIC IP Configuration
+# -----------------------------------------------------------------------------
+# PXE interface IP address with subnet (CIDR notation)
+# If not set or empty, default is 172.16.107.254/24
+pxe_ip: "172.16.107.254/24"
+
+# Force reconfigure PXE NIC even if already configured
+# Set to true to remove existing IP and apply new configuration
+force_configure_pxe: true
+
+# -----------------------------------------------------------------------------
+# 6. NFS Configuration
+# -----------------------------------------------------------------------------
+# NFS server IP address
+nfs_server_ip: ""
+
+# NFS share path on the server
+nfs_share_path: ""
+
+# Minimum NFS capacity required (in GB)
+nfs_min_capacity_gb: 100
+
+# -----------------------------------------------------------------------------
+# 7. Internet Connectivity - No configuration needed (pings 8.8.8.8 via public interface)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# 8. Podman Configuration
+# -----------------------------------------------------------------------------
+# Minimum Podman version required
+podman_min_version: "5.0.0"
+
+# -----------------------------------------------------------------------------
+# 9. RHEL Repository - No configuration needed (checks dnf repolist)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# 10. Git - No configuration needed (auto-installed if missing)
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# 11-12. Container Image Build (Optional - controlled by reconfigure_images)
+# -----------------------------------------------------------------------------
+# Set to true to clone Omnia Artifactory and build container images
+# Set to false to skip git clone and container build steps
+reconfigure_images: true
+
+# -----------------------------------------------------------------------------
+# 11. Omnia Artifactory Repository (Only if reconfigure_images: true)
+# -----------------------------------------------------------------------------
+# Omnia Artifactory Git repository URL (default: https://github.com/dell/omnia-artifactory.git)
+# Leave empty to use default, or set your own URL
+omnia_repo_url: ""
+
+# Artifactory branch to clone (default: omnia-container)
+# Leave empty to use default, or set your own branch
+artifactory_branch: ""
+
+# Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
+omnia_clone_path: ""
+
+# -----------------------------------------------------------------------------
+# 12. Container Build Configuration (Only if reconfigure_images: true)
+# -----------------------------------------------------------------------------
+# Container images to build (comma-separated, default: core)
+# Example: "core" or "core,auth"
+container_images: "core"
+
+# Omnia branch for container build (REQUIRED - no default)
+# This is passed to build_images.sh as omnia_branch parameter
+# Example: "main" or "release-1.6"
+omnia_branch: "pub/k8s_telemetry"
+
+# =============================================================================
+# prepare_oim Playbook Credentials (Required for automation)
+# =============================================================================
+# These credentials are passed to the prepare_oim playbook to avoid
+# interactive prompts during automated execution.
+# Leave empty to skip (playbook will prompt interactively if run manually)
+
+# -----------------------------------------------------------------------------
+# Prepare OIM Credentials
+# -----------------------------------------------------------------------------
+# MinIO S3 password (for object storage)
+minio_s3_password: ""
+
+# Pulp password (for package repository)
+pulp_password: ""
+
+# Docker Hub credentials (optional - for pulling images)
+docker_username: ""
+docker_password: ""
+
+# -----------------------------------------------------------------------------
+# OpenLDAP Credentials (Required if openldap in software_config.json)
+# -----------------------------------------------------------------------------
+openldap_db_username: "admin"
+openldap_db_password: ""
+
+# -----------------------------------------------------------------------------
+# Provision Credentials (Optional)
+# -----------------------------------------------------------------------------
+provision_password: ""
+bmc_username: ""
+bmc_password: ""
+
+# -----------------------------------------------------------------------------
+# Slurm Credentials (Optional)
+# -----------------------------------------------------------------------------
+slurm_db_password: ""

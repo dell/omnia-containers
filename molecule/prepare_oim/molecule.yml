@@ -1,0 +1,48 @@
+---
+# Molecule configuration for prepare_oim validation
+# 
+# Workflow:
+# 1. SSH to OIM server
+# 2. Execute prepare_oim playbook inside omnia_core container
+# 3. Exit container and validate:
+#    - OpenCHAMI containers and service status
+#    - Auth container/service (if LDAP in software_config.json)
+#    - omnia.target and dependencies
+#
+# Uses automation_library for variables and messages
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: oim-instance
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml
+  inventory:
+    host_vars:
+      oim-instance:
+        ansible_host: localhost
+        ansible_connection: local
+
+verifier:
+  name: testinfra
+  directory: test
+  options:
+    v: true
+    s: true
+
+scenario:
+  name: prepare_oim
+  test_sequence:
+    - dependency
+    - syntax
+    - converge
+    - verify
+    - cleanup
+    - destroy

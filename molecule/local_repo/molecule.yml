@@ -1,0 +1,48 @@
+---
+# Molecule configuration for local_repo validation
+#
+# Workflow:
+# 1. SSH to OIM server
+# 2. Validate Pulp container is running without errors
+# 3. Validate custom repo is accessible from OIM
+# 4. Execute local_repo playbook inside omnia_core container
+# 5. Validate Pulp commands (pulp rpm repository list, etc.)
+# 6. Validate package download status via status.csv files
+#
+# Uses automation_library for variables and messages
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: oim-instance
+
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml
+  inventory:
+    host_vars:
+      oim-instance:
+        ansible_host: localhost
+        ansible_connection: local
+
+verifier:
+  name: testinfra
+  directory: test
+  options:
+    v: true
+    s: true
+
+scenario:
+  name: local_repo
+  test_sequence:
+    - dependency
+    - syntax
+    - converge
+    - verify
+    - cleanup
+    - destroy

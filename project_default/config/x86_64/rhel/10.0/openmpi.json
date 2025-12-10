@@ -1,0 +1,14 @@
+{
+  "openmpi": {
+    "cluster": [
+      { "package": "openmpi",
+        "type": "tarball",
+        "url": "https://download.open-mpi.org/release/open-mpi/v{{ openmpi_version.split('.')[:2] | join('.') }}/openmpi-{{ openmpi_version }}.tar.gz"
+      },
+      {"package": "pmix-devel", "type": "rpm", "repo_name": "x86_64_appstream"},
+      {"package": "munge-devel", "type": "rpm", "repo_name": "x86_64_codeready-builder"},
+      {"package": "gcc-c++", "type": "rpm", "repo_name": "x86_64_appstream"},
+      {"package": "make", "type": "rpm", "repo_name": "x86_64_appstream"}
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "openmpi": {
+    "cluster": [
+      { "package": "openmpi",
+        "type": "tarball",
+        "url": "https://download.open-mpi.org/release/open-mpi/v{{ openmpi_version.split('.')[:2] | join('.') }}/openmpi-{{ openmpi_version }}.tar.gz"
+      }
+    ]
+  }
+}

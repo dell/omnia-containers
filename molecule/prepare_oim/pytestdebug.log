@@ -1,0 +1,1127 @@
+versions pytest-9.0.2, python-3.12.9.final.0
+invocation_dir=/root/automation_2.0/molecule/prepare_oim
+cwd=/root/automation_2.0/molecule/prepare_oim
+args=('--ansible-inventory', '/root/.ansible/tmp/molecule.B-u0.prepare_oim/inventory', '--connection', 'ansible', '--debug', '-p', 'no:cacheprovider', '-s', '/root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py', '-vvv')
+
+  pytest_cmdline_main [hook]
+      config: <_pytest.config.Config object at 0x7efe5b854320>
+    pytest_plugin_registered [hook]
+        plugin: <Session  exitstatus='<UNSET>' testsfailed=0 testscollected=0>
+        plugin_name: session
+        manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+    finish pytest_plugin_registered --> [] [hook]
+    pytest_configure [hook]
+        config: <_pytest.config.Config object at 0x7efe5b854320>
+    early skip of rewriting module: faulthandler [assertion]
+      pytest_plugin_registered [hook]
+          plugin: <class '_pytest.legacypath.LegacyTmpdirPlugin'>
+          plugin_name: legacypath-tmpdir
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+    early skip of rewriting module: pdb [assertion]
+    early skip of rewriting module: cmd [assertion]
+    early skip of rewriting module: code [assertion]
+    early skip of rewriting module: codeop [assertion]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+          plugin_name: 139630925295984
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.config.Config object at 0x7efe5b854320>
+          plugin_name: pytestconfig
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.mark' from '/usr/local/lib/python3.12/site-packages/_pytest/mark/__init__.py'>
+          plugin_name: mark
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.main' from '/usr/local/lib/python3.12/site-packages/_pytest/main.py'>
+          plugin_name: main
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.runner' from '/usr/local/lib/python3.12/site-packages/_pytest/runner.py'>
+          plugin_name: runner
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.fixtures' from '/usr/local/lib/python3.12/site-packages/_pytest/fixtures.py'>
+          plugin_name: fixtures
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.helpconfig' from '/usr/local/lib/python3.12/site-packages/_pytest/helpconfig.py'>
+          plugin_name: helpconfig
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.python' from '/usr/local/lib/python3.12/site-packages/_pytest/python.py'>
+          plugin_name: python
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.terminal' from '/usr/local/lib/python3.12/site-packages/_pytest/terminal.py'>
+          plugin_name: terminal
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.debugging' from '/usr/local/lib/python3.12/site-packages/_pytest/debugging.py'>
+          plugin_name: debugging
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.unittest' from '/usr/local/lib/python3.12/site-packages/_pytest/unittest.py'>
+          plugin_name: unittest
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.capture' from '/usr/local/lib/python3.12/site-packages/_pytest/capture.py'>
+          plugin_name: capture
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.skipping' from '/usr/local/lib/python3.12/site-packages/_pytest/skipping.py'>
+          plugin_name: skipping
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.legacypath' from '/usr/local/lib/python3.12/site-packages/_pytest/legacypath.py'>
+          plugin_name: legacypath
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.tmpdir' from '/usr/local/lib/python3.12/site-packages/_pytest/tmpdir.py'>
+          plugin_name: tmpdir
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.monkeypatch' from '/usr/local/lib/python3.12/site-packages/_pytest/monkeypatch.py'>
+          plugin_name: monkeypatch
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.recwarn' from '/usr/local/lib/python3.12/site-packages/_pytest/recwarn.py'>
+          plugin_name: recwarn
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.pastebin' from '/usr/local/lib/python3.12/site-packages/_pytest/pastebin.py'>
+          plugin_name: pastebin
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.assertion' from '/usr/local/lib/python3.12/site-packages/_pytest/assertion/__init__.py'>
+          plugin_name: assertion
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.junitxml' from '/usr/local/lib/python3.12/site-packages/_pytest/junitxml.py'>
+          plugin_name: junitxml
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.doctest' from '/usr/local/lib/python3.12/site-packages/_pytest/doctest.py'>
+          plugin_name: doctest
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.setuponly' from '/usr/local/lib/python3.12/site-packages/_pytest/setuponly.py'>
+          plugin_name: setuponly
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.setupplan' from '/usr/local/lib/python3.12/site-packages/_pytest/setupplan.py'>
+          plugin_name: setupplan
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.unraisableexception' from '/usr/local/lib/python3.12/site-packages/_pytest/unraisableexception.py'>
+          plugin_name: unraisableexception
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.threadexception' from '/usr/local/lib/python3.12/site-packages/_pytest/threadexception.py'>
+          plugin_name: threadexception
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.warnings' from '/usr/local/lib/python3.12/site-packages/_pytest/warnings.py'>
+          plugin_name: warnings
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.logging' from '/usr/local/lib/python3.12/site-packages/_pytest/logging.py'>
+          plugin_name: logging
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.reports' from '/usr/local/lib/python3.12/site-packages/_pytest/reports.py'>
+          plugin_name: reports
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.faulthandler' from '/usr/local/lib/python3.12/site-packages/_pytest/faulthandler.py'>
+          plugin_name: faulthandler
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.subtests' from '/usr/local/lib/python3.12/site-packages/_pytest/subtests.py'>
+          plugin_name: subtests
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module 'testinfra.plugin' from '/usr/local/lib/python3.12/site-packages/testinfra/plugin.py'>
+          plugin_name: pytest11.testinfra
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_testinfra_renamed' from '/usr/local/lib/python3.12/site-packages/_testinfra_renamed.py'>
+          plugin_name: pytest11._testinfra_renamed
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <CaptureManager _method='no' _global_capturing=<MultiCapture out=None err=None in_=None _state='suspended' _in_suspended=False> _capture_fixture=None>
+          plugin_name: capturemanager
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module 'test.conftest' from '/root/automation_2.0/molecule/prepare_oim/test/conftest.py'>
+          plugin_name: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+          plugin_name: session
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <class '_pytest.legacypath.LegacyTmpdirPlugin'>
+          plugin_name: legacypath-tmpdir
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.terminal.TerminalReporter object at 0x7efe5b37e480>
+          plugin_name: terminalreporter
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.logging.LoggingPlugin object at 0x7efe5b37c3e0>
+          plugin_name: logging-plugin
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+    finish pytest_configure --> [] [hook]
+    pytest_sessionstart [hook]
+        session: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+          plugin_name: 139630925295984
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.config.Config object at 0x7efe5b854320>
+          plugin_name: pytestconfig
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.mark' from '/usr/local/lib/python3.12/site-packages/_pytest/mark/__init__.py'>
+          plugin_name: mark
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.main' from '/usr/local/lib/python3.12/site-packages/_pytest/main.py'>
+          plugin_name: main
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.runner' from '/usr/local/lib/python3.12/site-packages/_pytest/runner.py'>
+          plugin_name: runner
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.fixtures' from '/usr/local/lib/python3.12/site-packages/_pytest/fixtures.py'>
+          plugin_name: fixtures
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.helpconfig' from '/usr/local/lib/python3.12/site-packages/_pytest/helpconfig.py'>
+          plugin_name: helpconfig
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.python' from '/usr/local/lib/python3.12/site-packages/_pytest/python.py'>
+          plugin_name: python
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.terminal' from '/usr/local/lib/python3.12/site-packages/_pytest/terminal.py'>
+          plugin_name: terminal
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.debugging' from '/usr/local/lib/python3.12/site-packages/_pytest/debugging.py'>
+          plugin_name: debugging
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.unittest' from '/usr/local/lib/python3.12/site-packages/_pytest/unittest.py'>
+          plugin_name: unittest
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.capture' from '/usr/local/lib/python3.12/site-packages/_pytest/capture.py'>
+          plugin_name: capture
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.skipping' from '/usr/local/lib/python3.12/site-packages/_pytest/skipping.py'>
+          plugin_name: skipping
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.legacypath' from '/usr/local/lib/python3.12/site-packages/_pytest/legacypath.py'>
+          plugin_name: legacypath
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.tmpdir' from '/usr/local/lib/python3.12/site-packages/_pytest/tmpdir.py'>
+          plugin_name: tmpdir
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.monkeypatch' from '/usr/local/lib/python3.12/site-packages/_pytest/monkeypatch.py'>
+          plugin_name: monkeypatch
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.recwarn' from '/usr/local/lib/python3.12/site-packages/_pytest/recwarn.py'>
+          plugin_name: recwarn
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.pastebin' from '/usr/local/lib/python3.12/site-packages/_pytest/pastebin.py'>
+          plugin_name: pastebin
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.assertion' from '/usr/local/lib/python3.12/site-packages/_pytest/assertion/__init__.py'>
+          plugin_name: assertion
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.junitxml' from '/usr/local/lib/python3.12/site-packages/_pytest/junitxml.py'>
+          plugin_name: junitxml
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.doctest' from '/usr/local/lib/python3.12/site-packages/_pytest/doctest.py'>
+          plugin_name: doctest
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.setuponly' from '/usr/local/lib/python3.12/site-packages/_pytest/setuponly.py'>
+          plugin_name: setuponly
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.setupplan' from '/usr/local/lib/python3.12/site-packages/_pytest/setupplan.py'>
+          plugin_name: setupplan
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.unraisableexception' from '/usr/local/lib/python3.12/site-packages/_pytest/unraisableexception.py'>
+          plugin_name: unraisableexception
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.threadexception' from '/usr/local/lib/python3.12/site-packages/_pytest/threadexception.py'>
+          plugin_name: threadexception
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.warnings' from '/usr/local/lib/python3.12/site-packages/_pytest/warnings.py'>
+          plugin_name: warnings
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.logging' from '/usr/local/lib/python3.12/site-packages/_pytest/logging.py'>
+          plugin_name: logging
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.reports' from '/usr/local/lib/python3.12/site-packages/_pytest/reports.py'>
+          plugin_name: reports
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.faulthandler' from '/usr/local/lib/python3.12/site-packages/_pytest/faulthandler.py'>
+          plugin_name: faulthandler
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_pytest.subtests' from '/usr/local/lib/python3.12/site-packages/_pytest/subtests.py'>
+          plugin_name: subtests
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module 'testinfra.plugin' from '/usr/local/lib/python3.12/site-packages/testinfra/plugin.py'>
+          plugin_name: pytest11.testinfra
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module '_testinfra_renamed' from '/usr/local/lib/python3.12/site-packages/_testinfra_renamed.py'>
+          plugin_name: pytest11._testinfra_renamed
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <CaptureManager _method='no' _global_capturing=<MultiCapture out=None err=None in_=None _state='suspended' _in_suspended=False> _capture_fixture=None>
+          plugin_name: capturemanager
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <module 'test.conftest' from '/root/automation_2.0/molecule/prepare_oim/test/conftest.py'>
+          plugin_name: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+          plugin_name: session
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <class '_pytest.legacypath.LegacyTmpdirPlugin'>
+          plugin_name: legacypath-tmpdir
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.terminal.TerminalReporter object at 0x7efe5b37e480>
+          plugin_name: terminalreporter
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.logging.LoggingPlugin object at 0x7efe5b37c3e0>
+          plugin_name: logging-plugin
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_plugin_registered [hook]
+          plugin: <_pytest.fixtures.FixtureManager object at 0x7efe5b3b3410>
+          plugin_name: funcmanage
+          manager: <_pytest.config.PytestPluginManager object at 0x7efe5bb3b170>
+      finish pytest_plugin_registered --> [] [hook]
+      pytest_report_header [hook]
+          config: <_pytest.config.Config object at 0x7efe5b854320>
+          start_path: /root/automation_2.0/molecule/prepare_oim
+          startdir: /root/automation_2.0/molecule/prepare_oim
+      early skip of rewriting module: email.parser [assertion]
+      early skip of rewriting module: email.feedparser [assertion]
+      finish pytest_report_header --> [['rootdir: /root', 'plugins: testinfra-10.2.2, testinfra-6.0.0'], ['using: pytest-9.0.2', 'registered third-party plugins:', '  pytest-testinfra-10.2.2 at /usr/local/lib/python3.12/site-packages/testinfra/plugin.py', '  testinfra-6.0.0 at /usr/local/lib/python3.12/site-packages/_testinfra_renamed.py']] [hook]
+    finish pytest_sessionstart --> [] [hook]
+    pytest_collection [hook]
+        session: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+    perform_collect <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0> ['/root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py'] [collection]
+        pytest_collectstart [hook]
+            collector: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+        finish pytest_collectstart --> [] [hook]
+        pytest_make_collect_report [hook]
+            collector: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+        processing argument CollectionArgument(path=PosixPath('/root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py'), parts=[], parametrization=None, module_name=None, original_index=0) [collection]
+            pytest_collect_directory [hook]
+                path: /root
+                parent: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+            finish pytest_collect_directory --> <Dir root> [hook]
+            pytest_collectstart [hook]
+                collector: <Dir root>
+            finish pytest_collectstart --> [] [hook]
+            pytest_make_collect_report [hook]
+                collector: <Dir root>
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.ansible
+                  path: /root/.ansible
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.bash_history
+                  path: /root/.bash_history
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.bash_history
+                  path: /root/.bash_history
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.bash_logout
+                  path: /root/.bash_logout
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.bash_logout
+                  path: /root/.bash_logout
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.bash_profile
+                  path: /root/.bash_profile
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.bash_profile
+                  path: /root/.bash_profile
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.bashrc
+                  path: /root/.bashrc
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.bashrc
+                  path: /root/.bashrc
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.cache
+                  path: /root/.cache
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.codeium
+                  path: /root/.codeium
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.cshrc
+                  path: /root/.cshrc
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.cshrc
+                  path: /root/.cshrc
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.gnupg
+                  path: /root/.gnupg
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.lesshst
+                  path: /root/.lesshst
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.lesshst
+                  path: /root/.lesshst
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.pytest_cache
+                  path: /root/.pytest_cache
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.regctl
+                  path: /root/.regctl
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.s3cfg
+                  path: /root/.s3cfg
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.s3cfg
+                  path: /root/.s3cfg
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.ssh
+                  path: /root/.ssh
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.tcshrc
+                  path: /root/.tcshrc
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.tcshrc
+                  path: /root/.tcshrc
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.viminfo
+                  path: /root/.viminfo
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.viminfo
+                  path: /root/.viminfo
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.vscode-server
+                  path: /root/.vscode-server
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.wget-hsts
+                  path: /root/.wget-hsts
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/.wget-hsts
+                  path: /root/.wget-hsts
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/.windsurf-server
+                  path: /root/.windsurf-server
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/CascadeProjects
+                  path: /root/CascadeProjects
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/CascadeProjects
+                  parent: <Dir root>
+              finish pytest_collect_directory --> <Dir CascadeProjects> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/anaconda-ks.cfg
+                  path: /root/anaconda-ks.cfg
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/anaconda-ks.cfg
+                  path: /root/anaconda-ks.cfg
+              finish pytest_collect_file --> [] [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0
+                  parent: <Dir root>
+              finish pytest_collect_directory --> <Dir automation_2.0> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/omnia-artifactory
+                  path: /root/omnia-artifactory
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/omnia-artifactory
+                  parent: <Dir root>
+              finish pytest_collect_directory --> <Dir omnia-artifactory> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/omnia.sh
+                  path: /root/omnia.sh
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir root>
+                  file_path: /root/omnia.sh
+                  path: /root/omnia.sh
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/tanmay-test-ai
+                  path: /root/tanmay-test-ai
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/tanmay-test-ai
+                  parent: <Dir root>
+              finish pytest_collect_directory --> <Dir tanmay-test-ai> [hook]
+            finish pytest_make_collect_report --> <CollectReport '.' lenresult=4 outcome='passed'> [hook]
+            pytest_collectstart [hook]
+                collector: <Dir automation_2.0>
+            finish pytest_collectstart --> [] [hook]
+            pytest_make_collect_report [hook]
+                collector: <Dir automation_2.0>
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/.config
+                  path: /root/automation_2.0/.config
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/.git
+                  path: /root/automation_2.0/.git
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/.github
+                  path: /root/automation_2.0/.github
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/.gitignore
+                  path: /root/automation_2.0/.gitignore
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/.gitignore
+                  path: /root/automation_2.0/.gitignore
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/.pytest_cache
+                  path: /root/automation_2.0/.pytest_cache
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/CODE_OF_CONDUCT.md
+                  path: /root/automation_2.0/CODE_OF_CONDUCT.md
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/CODE_OF_CONDUCT.md
+                  path: /root/automation_2.0/CODE_OF_CONDUCT.md
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/CONTRIBUTING.md
+                  path: /root/automation_2.0/CONTRIBUTING.md
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/CONTRIBUTING.md
+                  path: /root/automation_2.0/CONTRIBUTING.md
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/LICENSE
+                  path: /root/automation_2.0/LICENSE
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/LICENSE
+                  path: /root/automation_2.0/LICENSE
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/README.md
+                  path: /root/automation_2.0/README.md
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/README.md
+                  path: /root/automation_2.0/README.md
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/automation_library
+                  path: /root/automation_2.0/automation_library
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/automation_library
+                  parent: <Dir automation_2.0>
+              finish pytest_collect_directory --> <Package automation_library> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/diya
+                  path: /root/automation_2.0/diya
+              finish pytest_ignore_collect --> True [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/molecule
+                  parent: <Dir automation_2.0>
+              finish pytest_collect_directory --> <Dir molecule> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/omnia_automation.egg-info
+                  path: /root/automation_2.0/omnia_automation.egg-info
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/omnia_automation.egg-info
+                  parent: <Dir automation_2.0>
+              finish pytest_collect_directory --> <Dir omnia_automation.egg-info> [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/requirements.txt
+                  path: /root/automation_2.0/requirements.txt
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/requirements.txt
+                  path: /root/automation_2.0/requirements.txt
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/run_prereq_check.py
+                  path: /root/automation_2.0/run_prereq_check.py
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/run_prereq_check.py
+                  path: /root/automation_2.0/run_prereq_check.py
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/setup.py
+                  path: /root/automation_2.0/setup.py
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/setup.py
+                  path: /root/automation_2.0/setup.py
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/user_config.yml
+                  path: /root/automation_2.0/user_config.yml
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir automation_2.0>
+                  file_path: /root/automation_2.0/user_config.yml
+                  path: /root/automation_2.0/user_config.yml
+              finish pytest_collect_file --> [] [hook]
+            finish pytest_make_collect_report --> <CollectReport 'automation_2.0' lenresult=3 outcome='passed'> [hook]
+            pytest_collectstart [hook]
+                collector: <Dir molecule>
+            finish pytest_collectstart --> [] [hook]
+            pytest_make_collect_report [hook]
+                collector: <Dir molecule>
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/local_repo
+                  path: /root/automation_2.0/molecule/local_repo
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/molecule/local_repo
+                  parent: <Dir molecule>
+              finish pytest_collect_directory --> <Dir local_repo> [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/molecule/prepare_oim
+                  parent: <Dir molecule>
+              finish pytest_collect_directory --> <Dir prepare_oim> [hook]
+            finish pytest_make_collect_report --> <CollectReport 'automation_2.0/molecule' lenresult=2 outcome='passed'> [hook]
+            pytest_collectstart [hook]
+                collector: <Dir prepare_oim>
+            finish pytest_collectstart --> [] [hook]
+            pytest_make_collect_report [hook]
+                collector: <Dir prepare_oim>
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/README.md
+                  path: /root/automation_2.0/molecule/prepare_oim/README.md
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir prepare_oim>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/README.md
+                  path: /root/automation_2.0/molecule/prepare_oim/README.md
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/converge.yml
+                  path: /root/automation_2.0/molecule/prepare_oim/converge.yml
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir prepare_oim>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/converge.yml
+                  path: /root/automation_2.0/molecule/prepare_oim/converge.yml
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/molecule.yml
+                  path: /root/automation_2.0/molecule/prepare_oim/molecule.yml
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir prepare_oim>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/molecule.yml
+                  path: /root/automation_2.0/molecule/prepare_oim/molecule.yml
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/pytestdebug.log
+                  path: /root/automation_2.0/molecule/prepare_oim/pytestdebug.log
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir prepare_oim>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/pytestdebug.log
+                  path: /root/automation_2.0/molecule/prepare_oim/pytestdebug.log
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/requirements.txt
+                  path: /root/automation_2.0/molecule/prepare_oim/requirements.txt
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Dir prepare_oim>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/requirements.txt
+                  path: /root/automation_2.0/molecule/prepare_oim/requirements.txt
+              finish pytest_collect_file --> [] [hook]
+              pytest_collect_directory [hook]
+                  path: /root/automation_2.0/molecule/prepare_oim/test
+                  parent: <Dir prepare_oim>
+              finish pytest_collect_directory --> <Package test> [hook]
+            finish pytest_make_collect_report --> <CollectReport 'automation_2.0/molecule/prepare_oim' lenresult=1 outcome='passed'> [hook]
+            pytest_collectstart [hook]
+                collector: <Package test>
+            finish pytest_collectstart --> [] [hook]
+            pytest_make_collect_report [hook]
+                collector: <Package test>
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/test/__init__.py
+                  path: /root/automation_2.0/molecule/prepare_oim/test/__init__.py
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Package test>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/test/__init__.py
+                  path: /root/automation_2.0/molecule/prepare_oim/test/__init__.py
+              finish pytest_collect_file --> [] [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/test/__pycache__
+                  path: /root/automation_2.0/molecule/prepare_oim/test/__pycache__
+              finish pytest_ignore_collect --> True [hook]
+              pytest_ignore_collect [hook]
+                  config: <_pytest.config.Config object at 0x7efe5b854320>
+                  collection_path: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+                  path: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+              finish pytest_ignore_collect --> None [hook]
+              pytest_collect_file [hook]
+                  parent: <Package test>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+                  path: /root/automation_2.0/molecule/prepare_oim/test/conftest.py
+              finish pytest_collect_file --> [] [hook]
+              pytest_collect_file [hook]
+                  parent: <Package test>
+                  file_path: /root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py
+                  path: /root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py
+                pytest_pycollect_makemodule [hook]
+                    parent: <Package test>
+                    module_path: /root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py
+                    path: /root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py
+                finish pytest_pycollect_makemodule --> <Module test_prepare_oim.py> [hook]
+              finish pytest_collect_file --> [<Module test_prepare_oim.py>] [hook]
+            finish pytest_make_collect_report --> <CollectReport 'automation_2.0/molecule/prepare_oim/test' lenresult=1 outcome='passed'> [hook]
+        finish pytest_make_collect_report --> <CollectReport '' lenresult=1 outcome='passed'> [hook]
+        pytest_collectreport [hook]
+            report: <CollectReport '' lenresult=1 outcome='passed'>
+        finish pytest_collectreport --> [] [hook]
+    genitems <Module test_prepare_oim.py> [collection]
+      pytest_collectstart [hook]
+          collector: <Module test_prepare_oim.py>
+      finish pytest_collectstart --> [] [hook]
+      pytest_make_collect_report [hook]
+          collector: <Module test_prepare_oim.py>
+      find_module called for: test.test_prepare_oim [assertion]
+      matched test file (was specified on cmdline): '/root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py' [assertion]
+      found cached rewritten pyc for /root/automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py [assertion]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: @py_builtins
+            obj: <module 'builtins' (built-in)>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: @pytest_ar
+            obj: <module '_pytest.assertion.rewrite' from '/usr/local/lib/python3.12/site-packages/_pytest/assertion/rewrite.py'>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: os
+            obj: <module 'os' (frozen)>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: sys
+            obj: <module 'sys' (built-in)>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: json
+            obj: <module 'json' from '/usr/lib64/python3.12/json/__init__.py'>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: pytest
+            obj: <module 'pytest' from '/usr/local/lib/python3.12/site-packages/pytest/__init__.py'>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: PREPARE_OIM_VARS
+            obj: {'omnia_core_container': 'omnia_core', 'omnia_auth_container': 'omnia_auth', 'container_runtime': 'podman', 'prepare_oim_playbook': 'prepare_oim/prepare_oim.yml', 'prepare_oim_timeout': 1800, 'software_config_path': '/opt/omnia/input/project_default/software_config.json', 'openchami_containers': ['omnia_core', 'pulp', 'minio-server', 'step-ca', 'postgres', 'hydra', 'opaal-idp', 'smd', 'opaal', 'bss', 'cloud-init-server', 'haproxy', 'coresmd', 'registry'], 'auth_containers': ['omnia_auth'], 'auth_service_names': ['omnia_auth.service'], 'omnia_target_name': 'omnia.target', 'omnia_critical_dependencies': ['omnia_core.service', 'omnia_auth.service', 'pulp.service', 'registry.service', 'minio.service', 'openchami.target'], 'openchami_services': ['bss.service', 'cloud-init-server.service', 'coresmd.service', 'haproxy.service', 'hydra.service', 'opaal-idp.service', 'opaal.service', 'smd.service', 'step-ca.service', 'postgres.service'], 'ldap_software_name': 'openldap', 'ldap_base_dn': 'dc=omnia,dc=test', 'ldap_admin_dn': 'cn=admin,dc=omnia,dc=test', 'slapd_conf_path': '/etc/openldap/slapd.conf', 'container_health_check_timeout': 30, 'service_check_timeout': 10, 'command_timeout': 30}
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: PREPARE_OIM_MSGS
+            obj: {'ssh_connect_start': 'Connecting to OIM server {server}...', 'ssh_connect_success': 'Successfully connected to OIM server {server}', 'ssh_connect_fail': 'Failed to connect to OIM server {server}: {error}', 'ssh_connect_instruction': "\nACTION REQUIRED: Cannot connect to OIM server.\n- Verify OIM server IP '{server}' is correct in user_config.yml\n- Check SSH credentials (oim_ssh_user, oim_ssh_password)\n- Ensure SSH service is running on the server\n- Test manually: ssh {user}@{server}\n- Error: {error}\n", 'omnia_core_check_start': 'Checking omnia_core container status...', 'omnia_core_running': 'omnia_core container is running', 'omnia_core_not_running': 'omnia_core container is NOT running', 'omnia_core_not_found': 'omnia_core container not found', 'omnia_core_exec_start': 'Executing command in omnia_core container...', 'omnia_core_exec_success': 'Command executed successfully in omnia_core', 'omnia_core_exec_fail': 'Failed to execute command in omnia_core: {error}', 'omnia_core_not_running_instruction': '\nACTION REQUIRED: omnia_core container is not running.\n- Start the container: {runtime} start omnia_core\n- Check container status: {runtime} ps -a | grep omnia_core\n- View container logs: {runtime} logs omnia_core\n', 'omnia_core_not_found_instruction': '\nACTION REQUIRED: omnia_core container does not exist.\n- Verify Omnia installation is complete\n- Check container list: {runtime} ps -a\n- Re-run Omnia deployment if needed\n', 'playbook_start': 'Starting prepare_oim playbook execution...', 'playbook_success': 'prepare_oim playbook completed successfully', 'playbook_fail': 'prepare_oim playbook execution FAILED: {error}', 'playbook_timeout': 'prepare_oim playbook execution timed out after {timeout}s', 'playbook_not_found': 'prepare_oim playbook not found at {path}', 'playbook_fail_instruction': '\nACTION REQUIRED: prepare_oim playbook failed.\n- Check playbook logs for details\n- Verify inventory file exists at {inventory}\n- Run manually inside omnia_core:\n  ansible-playbook -i {inventory} {playbook}\n- Error: {error}\n', 'playbook_not_found_instruction': '\nACTION REQUIRED: prepare_oim playbook not found.\n- Expected path: {path}\n- Verify Omnia installation is complete\n- Check if playbook exists inside omnia_core container\n', 'openchami_check_start': 'Validating OpenCHAMI containers...', 'openchami_all_running': 'All OpenCHAMI containers are running ({count} containers)', 'openchami_containers_missing': 'Missing OpenCHAMI containers: {containers}', 'openchami_containers_not_running': 'OpenCHAMI containers not running: {containers}', 'openchami_containers_unhealthy': 'Unhealthy OpenCHAMI containers: {containers}', 'openchami_validation_pass': 'OpenCHAMI container validation PASSED', 'openchami_validation_fail': 'OpenCHAMI container validation FAILED', 'openchami_missing_instruction': '\nACTION REQUIRED: Required OpenCHAMI containers are missing.\n- Missing containers: {containers}\n- Check if prepare_oim playbook completed successfully\n- View container list: {runtime} ps -a\n- Re-run prepare_oim playbook if needed\n', 'openchami_not_running_instruction': '\nACTION REQUIRED: OpenCHAMI containers are not running.\n- Stopped containers: {containers}\n- Start containers: {runtime} start <container_name>\n- Check container logs: {runtime} logs <container_name>\n- Restart OpenCHAMI service: systemctl restart openchami\n', 'openchami_unhealthy_instruction': '\nACTION REQUIRED: OpenCHAMI containers are unhealthy.\n- Unhealthy containers: {containers}\n- Check container health: {runtime} inspect <container_name>\n- View container logs: {runtime} logs <container_name>\n- Restart unhealthy containers: {runtime} restart <container_name>\n', 'openchami_service_check_start': 'Checking OpenCHAMI service status...', 'openchami_service_running': 'OpenCHAMI service is running', 'openchami_service_not_running': 'OpenCHAMI service is NOT running', 'openchami_service_not_found': 'OpenCHAMI service not found', 'openchami_service_enabled': 'OpenCHAMI service is enabled', 'openchami_service_disabled': 'OpenCHAMI service is NOT enabled', 'openchami_service_not_running_instruction': '\nACTION REQUIRED: OpenCHAMI service is not running.\n- Start service: systemctl start openchami\n- Check status: systemctl status openchami\n- View logs: journalctl -u openchami\n', 'auth_check_start': 'Validating auth containers and service...', 'auth_check_skip': 'Skipping auth validation - LDAP not configured', 'auth_ldap_enabled': 'LDAP is enabled in software_config.json', 'auth_ldap_disabled': 'LDAP is NOT enabled in software_config.json', 'auth_containers_running': 'All auth containers are running', 'auth_containers_missing': 'Missing auth containers: {containers}', 'auth_containers_not_running': 'Auth containers not running: {containers}', 'auth_service_running': 'Auth service is running', 'auth_service_not_running': 'Auth service is NOT running', 'auth_validation_pass': 'Auth validation PASSED', 'auth_validation_fail': 'Auth validation FAILED', 'auth_validation_skip': 'Auth validation SKIPPED (LDAP not configured)', 'auth_missing_instruction': '\nACTION REQUIRED: Auth containers are missing but LDAP is enabled.\n- Missing containers: {containers}\n- LDAP is configured in software_config.json\n- Re-run prepare_oim playbook to deploy auth containers\n- Or disable LDAP in software_config.json if not needed\n', 'auth_not_running_instruction': '\nACTION REQUIRED: Auth containers are not running but LDAP is enabled.\n- Stopped containers: {containers}\n- Start containers: {runtime} start <container_name>\n- Check logs: {runtime} logs <container_name>\n', 'auth_service_not_running_instruction': '\nACTION REQUIRED: Auth service is not running but LDAP is enabled.\n- Start auth service: systemctl start <auth_service>\n- Check status: systemctl status <auth_service>\n- View logs: journalctl -u <auth_service>\n', 'omnia_target_check_start': 'Validating omnia.target and dependencies...', 'omnia_target_exists': 'omnia.target exists', 'omnia_target_not_found': 'omnia.target NOT found', 'omnia_target_active': 'omnia.target is active', 'omnia_target_inactive': 'omnia.target is NOT active (state: {state})', 'omnia_target_enabled': 'omnia.target is enabled', 'omnia_target_disabled': 'omnia.target is NOT enabled', 'omnia_target_validation_pass': 'omnia.target validation PASSED', 'omnia_target_validation_fail': 'omnia.target validation FAILED', 'omnia_target_not_found_instruction': '\nACTION REQUIRED: omnia.target systemd unit not found.\n- Verify Omnia installation is complete\n- Check if unit file exists: ls /etc/systemd/system/omnia.target\n- Re-run Omnia deployment if needed\n', 'omnia_target_inactive_instruction': '\nACTION REQUIRED: omnia.target is not active.\n- Current state: {state}\n- Start target: systemctl start omnia.target\n- Check status: systemctl status omnia.target\n- View logs: journalctl -u omnia.target\n', 'dependencies_check_start': 'Checking omnia.target dependencies...', 'dependencies_all_active': 'All omnia.target dependencies are active ({count} dependencies)', 'dependencies_inactive': 'Inactive dependencies: {dependencies}', 'dependencies_failed': 'Failed dependencies: {dependencies}', 'dependencies_validation_pass': 'Dependencies validation PASSED', 'dependencies_validation_fail': 'Dependencies validation FAILED', 'dependencies_inactive_instruction': '\nACTION REQUIRED: Some omnia.target dependencies are not active.\n- Inactive dependencies: {dependencies}\n- Start each dependency: systemctl start <dependency>\n- Check status: systemctl status <dependency>\n- View logs: journalctl -u <dependency>\n', 'dependencies_failed_instruction': '\nACTION REQUIRED: Some omnia.target dependencies have failed.\n- Failed dependencies: {dependencies}\n- Reset failed state: systemctl reset-failed <dependency>\n- Restart dependency: systemctl restart <dependency>\n- Check logs: journalctl -u <dependency>\n', 'runtime_check_start': 'Checking container runtime...', 'runtime_found': 'Container runtime found: {runtime}', 'runtime_not_found': 'No container runtime (podman/docker) found', 'runtime_not_found_instruction': '\nACTION REQUIRED: No container runtime found.\n- Install podman: dnf install -y podman\n- Or install docker: dnf install -y docker-ce\n- Verify installation: podman --version or docker --version\n', 'software_config_check_start': 'Reading software_config.json...', 'software_config_found': 'software_config.json found at {path}', 'software_config_not_found': 'software_config.json NOT found at {path}', 'software_config_parse_error': 'Failed to parse software_config.json: {error}', 'software_config_not_found_instruction': '\nACTION REQUIRED: software_config.json not found.\n- Expected path: {path}\n- Verify Omnia configuration is complete\n- Create or copy software_config.json to the expected location\n', 'validation_start': 'Starting prepare_oim validation...', 'validation_complete': 'prepare_oim validation complete', 'validation_all_passed': 'All validations PASSED', 'validation_some_failed': 'Validation completed with {failed_count} failures', 'assert_container_runtime': 'Container runtime ({runtime}) must be available', 'assert_container_exists': "Container '{container}' must exist", 'assert_container_running': "Container '{container}' must be running", 'assert_container_healthy': "Container '{container}' must be healthy", 'assert_service_exists': "Service '{service}' must exist", 'assert_service_running': "Service '{service}' must be running", 'assert_service_enabled': "Service '{service}' must be enabled", 'assert_target_exists': "Target '{target}' must exist", 'assert_target_active': "Target '{target}' must be active", 'assert_dependency_active': "Dependency '{dependency}' must be active", 'assert_ldap_required': 'LDAP is enabled - auth components are required', 'assert_ssh_connection': 'SSH connection to {server} must succeed', 'assert_playbook_success': 'prepare_oim playbook must complete successfully'}
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Module test_prepare_oim.py>
+            name: TestPrepareOIM
+            obj: <class 'test.test_prepare_oim.TestPrepareOIM'>
+        finish pytest_pycollect_makeitem --> <Class TestPrepareOIM> [hook]
+      finish pytest_make_collect_report --> <CollectReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py' lenresult=1 outcome='passed'> [hook]
+    genitems <Class TestPrepareOIM> [collection]
+      pytest_collectstart [hook]
+          collector: <Class TestPrepareOIM>
+      finish pytest_collectstart --> [] [hook]
+      pytest_make_collect_report [hook]
+          collector: <Class TestPrepareOIM>
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: test_prepare_oim_validation
+            obj: <function TestPrepareOIM.test_prepare_oim_validation at 0x7efe5b3c65c0>
+          pytest_generate_tests [hook]
+              metafunc: <_pytest.python.Metafunc object at 0x7efe5b3d6030>
+          finish pytest_generate_tests --> [] [hook]
+        finish pytest_pycollect_makeitem --> [<Function test_prepare_oim_validation>] [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _detect_container_runtime
+            obj: <function TestPrepareOIM._detect_container_runtime at 0x7efe5b3c6660>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _validate_openchami_containers
+            obj: <function TestPrepareOIM._validate_openchami_containers at 0x7efe5b3c6700>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _validate_omnia_target
+            obj: <function TestPrepareOIM._validate_omnia_target at 0x7efe5b3c67a0>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _check_ldap_enabled
+            obj: <function TestPrepareOIM._check_ldap_enabled at 0x7efe5b3c6840>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _validate_auth_containers
+            obj: <function TestPrepareOIM._validate_auth_containers at 0x7efe5b3c68e0>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _validate_auth_service
+            obj: <function TestPrepareOIM._validate_auth_service at 0x7efe5b3c6980>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _validate_ldap_configuration
+            obj: <function TestPrepareOIM._validate_ldap_configuration at 0x7efe5b3c6a20>
+        finish pytest_pycollect_makeitem --> None [hook]
+        pytest_pycollect_makeitem [hook]
+            collector: <Class TestPrepareOIM>
+            name: _report_results
+            obj: <function TestPrepareOIM._report_results at 0x7efe5b3c6ac0>
+        finish pytest_pycollect_makeitem --> None [hook]
+      finish pytest_make_collect_report --> <CollectReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM' lenresult=1 outcome='passed'> [hook]
+    genitems <Function test_prepare_oim_validation> [collection]
+      pytest_itemcollected [hook]
+          item: <Function test_prepare_oim_validation>
+      finish pytest_itemcollected --> [] [hook]
+      pytest_collectreport [hook]
+          report: <CollectReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM' lenresult=1 outcome='passed'>
+      finish pytest_collectreport --> [] [hook]
+      pytest_collectreport [hook]
+          report: <CollectReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py' lenresult=1 outcome='passed'>
+      finish pytest_collectreport --> [] [hook]
+      pytest_collection_modifyitems [hook]
+          session: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+          config: <_pytest.config.Config object at 0x7efe5b854320>
+          items: [<Function test_prepare_oim_validation>]
+      finish pytest_collection_modifyitems --> [] [hook]
+      pytest_collection_finish [hook]
+          session: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=0>
+        pytest_report_collectionfinish [hook]
+            config: <_pytest.config.Config object at 0x7efe5b854320>
+            items: [<Function test_prepare_oim_validation>]
+            start_path: /root/automation_2.0/molecule/prepare_oim
+            startdir: /root/automation_2.0/molecule/prepare_oim
+        finish pytest_report_collectionfinish --> [] [hook]
+      finish pytest_collection_finish --> [] [hook]
+    finish pytest_collection --> None [hook]
+    pytest_runtestloop [hook]
+        session: <Session  exitstatus=<ExitCode.OK: 0> testsfailed=0 testscollected=1>
+      pytest_runtest_protocol [hook]
+          item: <Function test_prepare_oim_validation>
+          nextitem: None
+        pytest_runtest_logstart [hook]
+            nodeid: automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation
+            location: ('automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py', 25, 'TestPrepareOIM.test_prepare_oim_validation')
+        finish pytest_runtest_logstart --> [] [hook]
+        pytest_runtest_setup [hook]
+            item: <Function test_prepare_oim_validation>
+          pytest_fixture_setup [hook]
+              fixturedef: <FixtureDef argname='host' scope='session' baseid='automation_2.0/molecule/prepare_oim/test'>
+              request: <SubRequest 'host' for <Function test_prepare_oim_validation>>
+          matched marked file 'testinfra.backend.local' (from 'testinfra') [assertion]
+          find_module called for: testinfra.backend.local [assertion]
+          found cached rewritten pyc for /usr/local/lib/python3.12/site-packages/testinfra/backend/local.py [assertion]
+          finish pytest_fixture_setup --> <testinfra.host.Host local> [hook]
+        finish pytest_runtest_setup --> None [hook]
+        pytest_runtest_makereport [hook]
+            item: <Function test_prepare_oim_validation>
+            call: <CallInfo when='setup' result: None>
+        finish pytest_runtest_makereport --> <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='setup' outcome='passed'> [hook]
+        pytest_runtest_logreport [hook]
+            report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='setup' outcome='passed'>
+          pytest_report_teststatus [hook]
+              report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='setup' outcome='passed'>
+              config: <_pytest.config.Config object at 0x7efe5b854320>
+          finish pytest_report_teststatus --> ('', '', '') [hook]
+        finish pytest_runtest_logreport --> [] [hook]
+        pytest_runtest_call [hook]
+            item: <Function test_prepare_oim_validation>
+          pytest_pyfunc_call [hook]
+              pyfuncitem: <Function test_prepare_oim_validation>
+          matched marked file 'testinfra.modules.file' (from 'testinfra') [assertion]
+          find_module called for: testinfra.modules.file [assertion]
+          found cached rewritten pyc for /usr/local/lib/python3.12/site-packages/testinfra/modules/file.py [assertion]
+          matched marked file 'testinfra.modules.systeminfo' (from 'testinfra') [assertion]
+          find_module called for: testinfra.modules.systeminfo [assertion]
+          found cached rewritten pyc for /usr/local/lib/python3.12/site-packages/testinfra/modules/systeminfo.py [assertion]
+          finish pytest_pyfunc_call --> True [hook]
+        finish pytest_runtest_call --> None [hook]
+        pytest_runtest_makereport [hook]
+            item: <Function test_prepare_oim_validation>
+            call: <CallInfo when='call' result: None>
+        finish pytest_runtest_makereport --> <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='call' outcome='passed'> [hook]
+        pytest_runtest_logreport [hook]
+            report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='call' outcome='passed'>
+          pytest_report_teststatus [hook]
+              report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='call' outcome='passed'>
+              config: <_pytest.config.Config object at 0x7efe5b854320>
+          finish pytest_report_teststatus --> ('passed', '.', 'PASSED') [hook]
+        finish pytest_runtest_logreport --> [] [hook]
+        pytest_runtest_teardown [hook]
+            item: <Function test_prepare_oim_validation>
+            nextitem: None
+          pytest_fixture_post_finalizer [hook]
+              fixturedef: <FixtureDef argname='host' scope='session' baseid='automation_2.0/molecule/prepare_oim/test'>
+              request: <SubRequest 'host' for <Function test_prepare_oim_validation>>
+          finish pytest_fixture_post_finalizer --> [] [hook]
+        finish pytest_runtest_teardown --> None [hook]
+        pytest_runtest_makereport [hook]
+            item: <Function test_prepare_oim_validation>
+            call: <CallInfo when='teardown' result: None>
+        finish pytest_runtest_makereport --> <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='teardown' outcome='passed'> [hook]
+        pytest_runtest_logreport [hook]
+            report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='teardown' outcome='passed'>
+          pytest_report_teststatus [hook]
+              report: <TestReport 'automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation' when='teardown' outcome='passed'>
+              config: <_pytest.config.Config object at 0x7efe5b854320>
+          finish pytest_report_teststatus --> ('', '', '') [hook]
+        finish pytest_runtest_logreport --> [] [hook]
+        pytest_runtest_logfinish [hook]
+            nodeid: automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py::TestPrepareOIM::test_prepare_oim_validation
+            location: ('automation_2.0/molecule/prepare_oim/test/test_prepare_oim.py', 25, 'TestPrepareOIM.test_prepare_oim_validation')
+        finish pytest_runtest_logfinish --> [] [hook]
+      finish pytest_runtest_protocol --> True [hook]
+    finish pytest_runtestloop --> True [hook]
+    pytest_sessionfinish [hook]
+        session: <Session  exitstatus=0 testsfailed=0 testscollected=1>
+        exitstatus: 0
+      pytest_terminal_summary [hook]
+          terminalreporter: <_pytest.terminal.TerminalReporter object at 0x7efe5b37e480>
+          exitstatus: 0
+          config: <_pytest.config.Config object at 0x7efe5b854320>
+      finish pytest_terminal_summary --> [] [hook]
+    finish pytest_sessionfinish --> [] [hook]
+    pytest_unconfigure [hook]
+        config: <_pytest.config.Config object at 0x7efe5b854320>
+    finish pytest_unconfigure --> [] [hook]
