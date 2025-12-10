@@ -11,13 +11,13 @@
 # -----------------------------------------------------------------------------
 # Set to true to continue running all checks even if some fail
 # Set to false to stop immediately on first failure
-skip_on_failure: true
+skip_on_failure: false
 
 # -----------------------------------------------------------------------------
 # 0. Target OIM Server (Remote Execution) - REQUIRED
 # -----------------------------------------------------------------------------
 # Set to OIM server IP to run checks remotely via SSH.
-oim_server_ip: "10.134.123.11"
+oim_server_ip: "10.16.0.58"
 
 # SSH username for remote OIM server (default: root)
 oim_ssh_user: ""
@@ -62,10 +62,10 @@ required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
 # 4. Network Interfaces
 # -----------------------------------------------------------------------------
 # PXE interface name (for provisioning)
-pxe_interface: "eno8303"
+pxe_interface: "eno1"
 
 # Public interface name (for internet access)
-public_interface: "eno8403"
+public_interface: "eno2"
 
 # -----------------------------------------------------------------------------
 # 5. PXE NIC IP Configuration
@@ -85,7 +85,7 @@ force_configure_pxe: true
 nfs_server_ip: ""
 
 # NFS share path on the server
-nfs_share_path: ""
+nfs_share_path: "/mnt/ninja/automation"
 
 # Minimum NFS capacity required (in GB)
 nfs_min_capacity_gb: 100
@@ -120,14 +120,14 @@ reconfigure_images: true
 # -----------------------------------------------------------------------------
 # Omnia Artifactory Git repository URL (default: https://github.com/dell/omnia-artifactory.git)
 # Leave empty to use default, or set your own URL
-omnia_repo_url: ""
+omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
 
 # Artifactory branch to clone (default: omnia-container)
 # Leave empty to use default, or set your own branch
-artifactory_branch: ""
+artifactory_branch: "omnia-container"
 
 # Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
-omnia_clone_path: ""
+omnia_clone_path: "/opt/omnia-artifactory"
 
 # -----------------------------------------------------------------------------
 # 12. Container Build Configuration (Only if reconfigure_images: true)
@@ -138,5 +138,6 @@ container_images: "core"
 
 # Omnia branch for container build (REQUIRED - no default)
 # This is passed to build_images.sh as omnia_branch parameter
-# Example: "main" or "release-1.6"
+# Can be a branch (e.g., "main", "pub/k8s_telemetry") or a tag (e.g., "v1.6.0")
+# The tool will automatically try both branch and tag URLs when downloading omnia.sh
 omnia_branch: "pub/k8s_telemetry"

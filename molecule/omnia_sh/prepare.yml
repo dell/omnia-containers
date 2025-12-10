@@ -1,0 +1,96 @@
+---
+# =============================================================================
+# Molecule Prepare - Check Prerequisites on OIM Server
+# =============================================================================
+
+- name: Prepare - Validate config files locally
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Check if omnia_sh_config.yml exists
+      ansible.builtin.stat:
+        path: "{{ project_dir }}/omnia_sh_config.yml"
+      register: omnia_sh_config
+
+    - name: Fail if omnia_sh_config.yml not found
+      ansible.builtin.fail:
+        msg: "omnia_sh_config.yml not found at {{ project_dir }}/omnia_sh_config.yml"
+      when: not omnia_sh_config.stat.exists
+
+    - name: Check if user_config.yml exists
+      ansible.builtin.stat:
+        path: "{{ project_dir }}/user_config.yml"
+      register: user_config
+
+    - name: Fail if user_config.yml not found
+      ansible.builtin.fail:
+        msg: "user_config.yml not found at {{ project_dir }}/user_config.yml"
+      when: not user_config.stat.exists
+
+    - name: Config files validated
+      ansible.builtin.debug:
+        msg: "Config files exist locally"
+
+
+- name: Prepare - Check prerequisites on OIM server
+  hosts: oim_server
+  gather_facts: true
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running prerequisites check on OIM server: {{ ansible_host }}"
+
+    - name: Check Podman is installed
+      ansible.builtin.command:
+        cmd: podman --version
+      register: podman_version
+      changed_when: false
+
+    - name: Display Podman version
+      ansible.builtin.debug:
+        msg: "Podman version: {{ podman_version.stdout }}"
+
+    - name: Check hostname has domain
+      ansible.builtin.command:
+        cmd: hostname -d
+      register: hostname_domain
+      changed_when: false
+      failed_when: hostname_domain.stdout == ""
+
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ ansible_fqdn }} (domain: {{ hostname_domain.stdout }})"
+
+    - name: Check if omnia.sh exists
+      ansible.builtin.stat:
+        path: /opt/omnia-artifactory/omnia.sh
+      register: omnia_sh_script
+
+    - name: Fail if omnia.sh not found
+      ansible.builtin.fail:
+        msg: |
+          omnia.sh not found at /opt/omnia-artifactory/omnia.sh on OIM server {{ ansible_host }}
+          Run the OIM prerequisite check first to download it:
+            python3 run_prereq_check.py
+      when: not omnia_sh_script.stat.exists
+
+    - name: Check if omnia_core image exists
+      ansible.builtin.shell:
+        cmd: podman images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E 'omnia_core'
+      register: omnia_core_image
+      changed_when: false
+      failed_when: false
+
+    - name: Display omnia_core image status
+      ansible.builtin.debug:
+        msg: "{{ 'omnia_core image found: ' + omnia_core_image.stdout if omnia_core_image.rc == 0 else 'omnia_core image not found (will be pulled during install)' }}"
+
+    - name: Prerequisites check passed
+      ansible.builtin.debug:
+        msg: "All prerequisites passed on OIM server {{ ansible_host }}. Ready to run omnia.sh --install"

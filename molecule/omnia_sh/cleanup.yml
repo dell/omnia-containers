@@ -1,0 +1,57 @@
+---
+# =============================================================================
+# Molecule Cleanup - Run omnia.sh --uninstall on OIM Server
+# =============================================================================
+
+- name: Cleanup - Run omnia.sh --uninstall on OIM server
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_sh_path: "/opt/omnia-artifactory/omnia.sh"
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running cleanup on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell:
+        cmd: podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
+      register: container_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Skip cleanup if container doesn't exist
+      ansible.builtin.debug:
+        msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping cleanup"
+      when: container_exists.rc != 0
+
+    - name: Run omnia.sh --uninstall with auto-confirm
+      ansible.builtin.shell:
+        cmd: echo "y" | {{ omnia_sh_path }} --uninstall
+      register: uninstall_result
+      when: container_exists.rc == 0
+      failed_when: false
+      timeout: 120
+
+    - name: Force remove container if uninstall failed
+      ansible.builtin.shell:
+        cmd: |
+          systemctl stop {{ container_name }}.service 2>/dev/null || true
+          podman rm -f {{ container_name }} 2>/dev/null || true
+      when: container_exists.rc == 0
+      changed_when: false
+      failed_when: false
+
+    - name: Verify container removed
+      ansible.builtin.shell:
+        cmd: podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Cleanup result
+      ansible.builtin.debug:
+        msg: "{{ 'Container removed successfully from ' + ansible_host if container_check.rc != 0 else 'Warning: Container may still exist on ' + ansible_host }}"

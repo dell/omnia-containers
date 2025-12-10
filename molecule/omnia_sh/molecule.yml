@@ -1,0 +1,60 @@
+# =============================================================================
+# Molecule Configuration for omnia.sh Testing
+# =============================================================================
+#
+# This scenario tests the omnia.sh script on the REMOTE OIM server.
+# All playbooks and tests run on the OIM server specified in user_config.yml.
+#
+# Usage:
+#   molecule test -s omnia_sh           # Full test (converge + verify + destroy)
+#   molecule converge -s omnia_sh       # Run omnia.sh --install only
+#   molecule verify -s omnia_sh         # Run verification tests only
+#   molecule destroy -s omnia_sh        # Run omnia.sh --uninstall
+#
+# Configuration:
+#   - user_config.yml: OIM server IP, SSH credentials, NFS settings
+#   - omnia_sh_config.yml: omnia.sh user inputs (share_option, password, paths)
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    prepare: prepare.yml
+    converge: converge.yml
+    cleanup: cleanup.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+
+verifier:
+  name: testinfra
+  env:
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+  options:
+    v: true
+    s: true
+    connection: ssh
+
+scenario:
+  name: omnia_sh
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - cleanup
+    - destroy

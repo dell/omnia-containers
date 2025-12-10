@@ -1,6 +1,38 @@
-"""Messages for OIM prerequisite checks with user-friendly error instructions."""
+"""
+OIM Prerequisite Check - User-Facing Messages.
 
-OIM_PREREQ_MSGS = {
+This module contains all user-facing messages, status strings, and error
+instructions for the OIM prerequisite check tool.
+
+Message Naming Convention:
+    - *_check_start: Message shown when a check begins
+    - *_pass / *_success: Message shown when a check passes
+    - *_fail: Message shown when a check fails
+    - *_instruction: Detailed instructions for fixing a failure
+
+Placeholders:
+    Messages use Python string formatting with named placeholders.
+    Example: "OS validation passed: {os_name} {os_version}"
+    
+    Common placeholders:
+        {config_path}   - Path to user_config.yml
+        {interface}     - Network interface name
+        {server}        - Server IP address
+        {error}         - Error message from command
+        {version}       - Software version string
+
+Usage:
+    from automation_library.messages.oim_prereq_msgs import OIM_PREREQ_MSGS
+    
+    # Format a message with placeholders
+    msg = OIM_PREREQ_MSGS["os_check_pass"].format(os_name="rhel", os_version="10")
+
+Author: Dell Technologies
+"""
+
+from typing import Dict
+
+OIM_PREREQ_MSGS: Dict[str, str] = {
     # ==========================================================================
     # OS Validation
     # ==========================================================================
@@ -35,7 +67,7 @@ ACTION REQUIRED: Upgrade hardware to meet minimum requirements.
 - Minimum CPU cores: {min_cores} (Current: {cores})
 - Minimum Memory: {min_memory_gb} GB (Current: {memory_gb} GB)
 - Minimum Disk: {min_disk_gb} GB (Current: {disk_gb} GB)
-- Or adjust requirements in user_config.yml if this is intentional.
+- Or adjust requirements in {config_path} if this is intentional.
 """,
 
     # ==========================================================================
@@ -67,13 +99,13 @@ ACTION REQUIRED: Install IPMI tool manually.
     "iface_public_found": "Public interface found and UP: {interface}",
     "iface_public_not_found": "Public interface NOT FOUND: {interface}",
     "iface_public_down": "Public interface is DOWN: {interface}",
-    "iface_not_configured": "Interface name not configured in user_config.yml",
+    "iface_not_configured": "Interface name not configured",
     
     # Error instructions for Network Interfaces
     "iface_pxe_not_found_instruction": """
 ACTION REQUIRED: PXE interface '{interface}' does not exist.
 - Check the interface name: ip link show
-- Update 'pxe_interface' in user_config.yml with correct interface name.
+- Update 'pxe_interface' in {config_path} with correct interface name.
 - Available interfaces can be found with: ls /sys/class/net/
 """,
     "iface_pxe_down_instruction": """
@@ -85,7 +117,7 @@ ACTION REQUIRED: PXE interface '{interface}' is DOWN.
     "iface_public_not_found_instruction": """
 ACTION REQUIRED: Public interface '{interface}' does not exist.
 - Check the interface name: ip link show
-- Update 'public_interface' in user_config.yml with correct interface name.
+- Update 'public_interface' in {config_path} with correct interface name.
 - Available interfaces can be found with: ls /sys/class/net/
 """,
     "iface_public_down_instruction": """
@@ -109,7 +141,7 @@ ACTION REQUIRED: Public interface '{interface}' is DOWN.
 ACTION REQUIRED: Failed to configure PXE NIC IP.
 - Check if you have root/sudo privileges.
 - Manually configure: sudo ip addr add {ip} dev {interface}
-- Or set 'pxe_ip' in user_config.yml and re-run.
+- Or set 'pxe_ip' in {config_path} and re-run.
 - Error: {error}
 """,
 
@@ -121,7 +153,7 @@ ACTION REQUIRED: Failed to configure PXE NIC IP.
     "nfs_not_reachable": "NFS server NOT reachable: {server}",
     "nfs_capacity_pass": "NFS capacity validation passed: {capacity_gb} GB",
     "nfs_capacity_fail": "NFS capacity INSUFFICIENT: {capacity_gb} GB (minimum: {min_capacity_gb} GB)",
-    "nfs_not_configured": "NFS server IP not configured in user_config.yml",
+    "nfs_not_configured": "NFS server IP not configured",
     
     # Error instructions for NFS
     "nfs_not_reachable_instruction": """
@@ -129,26 +161,26 @@ ACTION REQUIRED: Cannot reach NFS server '{server}'.
 - Check if NFS server is running and accessible.
 - Verify network connectivity: ping {server}
 - Check firewall rules on both server and client.
-- Verify 'nfs_server_ip' in user_config.yml is correct.
+- Verify 'nfs_server_ip' in {config_path} is correct.
 """,
     "nfs_capacity_instruction": """
 ACTION REQUIRED: NFS storage capacity is insufficient.
 - Available: {capacity_gb} GB
 - Required: {min_capacity_gb} GB
 - Either increase NFS storage capacity, or
-- Reduce 'nfs_min_capacity_gb' in user_config.yml if this is acceptable.
+- Reduce 'nfs_min_capacity_gb' in {config_path} if this is acceptable.
 """,
     "nfs_mount_fail_instruction": """
 ACTION REQUIRED: Cannot mount NFS share.
 - Error: {error}
 - Check if NFS share is exported: showmount -e {server}
-- Verify share path '{share_path}' is correct in user_config.yml.
+- Verify share path '{share_path}' is correct in {config_path}.
 - Check NFS client is installed: rpm -q nfs-utils
 - Install if missing: sudo dnf install -y nfs-utils
 """,
     "nfs_not_configured_instruction": """
 ACTION REQUIRED: NFS server not configured.
-- Set 'nfs_server_ip' in user_config.yml with your NFS server IP.
+- Set 'nfs_server_ip' in {config_path} with your NFS server IP.
 - Set 'nfs_share_path' with the NFS export path.
 """,
 
@@ -160,7 +192,7 @@ ACTION REQUIRED: NFS server not configured.
     "internet_not_available": "Internet connectivity NOT available via {interface}",
     "internet_ping_success": "Ping to {host} successful via {interface}",
     "internet_ping_fail": "Ping to {host} FAILED via {interface}",
-    "internet_no_public_interface": "Public interface not configured in user_config.yml",
+    "internet_no_public_interface": "Public interface not configured",
     
     # Error instructions for Internet
     "internet_fail_instruction": """
@@ -226,7 +258,7 @@ ACTION REQUIRED: Podman version is too old.
 - Current version: {version}
 - Minimum required: {min_version}
 - Upgrade Podman: sudo dnf update -y podman
-- Or adjust 'podman_min_version' in user_config.yml if acceptable.
+- Or adjust 'podman_min_version' in {config_path} if acceptable.
 """,
 
     # ==========================================================================
@@ -235,23 +267,101 @@ ACTION REQUIRED: Podman version is too old.
     "omnia_clone_start": "Cloning Omnia repository...",
     "omnia_clone_success": "Omnia repository cloned/updated successfully",
     "omnia_clone_fail": "Omnia repository clone FAILED: {error}",
-    "omnia_repo_not_configured": "Omnia repository URL not configured in user_config.yml",
+    "omnia_repo_not_configured": "Omnia repository URL not configured",
     
     # Error instructions for Omnia Repository
     "omnia_clone_instruction": """
 ACTION REQUIRED: Failed to clone Omnia repository.
 - Check internet connectivity.
 - Verify Git is installed: git --version
-- Check repository URL in user_config.yml.
+- Check repository URL in {config_path}.
 - Try manually: git clone {repo_url} {clone_path}
 - Error: {error}
 """,
     "omnia_repo_not_configured_instruction": """
 ACTION REQUIRED: Omnia repository not configured.
-- Set 'omnia_repo_url' in user_config.yml (default: https://github.com/dell/omnia.git)
+- Set 'omnia_repo_url' in {config_path} (default: https://github.com/dell/omnia.git)
 - Set 'omnia_branch' (default: main)
 - Set 'omnia_clone_path' (default: /opt/omnia)
 """,
+
+    # ==========================================================================
+    # Container Build
+    # ==========================================================================
+    "container_build_start": "Building container images...",
+    "container_build_success": "Container images built successfully: {images}",
+    "container_build_fail": "Container build FAILED: {error}",
+    "container_build_skipped": "Skipped (reconfigure_images: false)",
+    
+    # Error instructions for Container Build
+    "container_build_instruction": """
+ACTION REQUIRED: Container build failed.
+- Command: ./build_images.sh {images} omnia_branch={omnia_branch}
+- Exit code: {exit_code}
+- Check the output above for errors.
+- Check if Podman is running correctly.
+- Verify network connectivity for pulling base images.
+""",
+    "container_images_not_configured": """
+ACTION REQUIRED: Set 'container_images' in {config_path}.
+- Specify comma-separated container images to build.
+- Example: container_images: "core" or container_images: "core,auth"
+""",
+    "omnia_branch_not_configured": """
+ACTION REQUIRED: Set 'omnia_branch' in {config_path}.
+- This specifies which Omnia branch to use for container build.
+- Example: omnia_branch: "main" or omnia_branch: "release-1.6"
+""",
+    "build_script_not_found": """
+ACTION REQUIRED: Script not found at {script_path}.
+- Check if repository was cloned correctly.
+- Verify the artifactory_branch contains build_images.sh.
+""",
+    "clone_path_not_found": """
+ACTION REQUIRED: Directory {clone_path} does not exist.
+- Run the Omnia Artifactory check first to clone the repository.
+- Or set 'omnia_clone_path' in {config_path} if using a different path.
+""",
+
+    # ==========================================================================
+    # Download omnia.sh
+    # ==========================================================================
+    "omnia_sh_download_start": "Downloading omnia.sh...",
+    "omnia_sh_download_success": "omnia.sh downloaded from {ref_type}: {omnia_branch}",
+    "omnia_sh_download_fail": "Failed to download omnia.sh",
+    
+    # Error instructions for Download omnia.sh
+    "omnia_sh_download_instruction": """
+ACTION REQUIRED: Could not download omnia.sh from '{omnia_branch}'.
+- Tried branch URL: {branch_url}
+- Tried tag URL: {tag_url}
+- Both failed. Check if '{omnia_branch}' is a valid branch or tag in the Omnia repository.
+- Verify network connectivity and URL accessibility.
+""",
+    "omnia_sh_branch_not_configured": """
+ACTION REQUIRED: Set 'omnia_branch' in {config_path}.
+- This specifies which Omnia branch/tag to download omnia.sh from.
+- Example: omnia_branch: "main" or omnia_branch: "v1.6.0"
+""",
+    "omnia_sh_dir_create_fail": "Failed to create directory {clone_path}",
+
+    # ==========================================================================
+    # SSH Connection
+    # ==========================================================================
+    "ssh_connection_ok": "SSH connection OK",
+    "ssh_connection_fail": "SSH connection FAILED: {error}",
+    "oim_server_not_configured": """
+ACTION REQUIRED: OIM Server IP not configured.
+- Edit {config_path}
+- Set 'oim_server_ip' to your OIM server IP address
+- Set 'oim_ssh_user' (default: root)
+- Set 'oim_ssh_password' with SSH password
+""",
+    "ssh_password_not_configured": """
+ACTION REQUIRED: SSH password not configured.
+- Set 'oim_ssh_password' in {config_path}
+""",
+    "ssh_check_config": "Check oim_server_ip, oim_ssh_user, and oim_ssh_password in {config_path}",
 
     # ==========================================================================
     # General

@@ -1,0 +1,2 @@
+# Python requirements for omnia_sh molecule scenario
+pexpect>=4.8.0

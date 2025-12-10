@@ -7,7 +7,7 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from ..vars.oim_prereq_vars import OIM_PREREQ_VARS
+from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
 
 
@@ -73,6 +73,7 @@ class PrereqReport:
     """Generate detailed prerequisite check report with Linux theme."""
     
     WIDTH = 80  # Terminal width
+    TOTAL_CHECKS = 13  # Total number of checks in the full suite
     
     def __init__(self):
         self.start_time = datetime.now()
@@ -202,18 +203,37 @@ class PrereqReport:
         # Results summary
         pass_pct = (self.passed / total * 100) if total > 0 else 0
         
+        # Color the percentage based on pass rate
+        if pass_pct == 100:
+            pct_color = Colors.BRIGHT_GREEN
+        elif pass_pct >= 75:
+            pct_color = Colors.BRIGHT_YELLOW
+        else:
+            pct_color = Colors.BRIGHT_RED
+        
+        not_executed = self.TOTAL_CHECKS - total
         print(f"  {Colors.DIM}┌─ Results Overview{Colors.RESET}")
         print(f"  {Colors.DIM}│{Colors.RESET}")
-        print(f"  {Colors.DIM}│{Colors.RESET}  Total Checks : {Colors.BOLD}{Colors.WHITE}{total}{Colors.RESET}")
+        print(f"  {Colors.DIM}│{Colors.RESET}  Total Checks : {Colors.BOLD}{Colors.WHITE}{self.TOTAL_CHECKS}{Colors.RESET}")
+        print(f"  {Colors.DIM}│{Colors.RESET}  Executed     : {Colors.WHITE}{total}{Colors.RESET}")
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_GREEN}{Symbols.CHECK} Passed{Colors.RESET}      : {Colors.BRIGHT_GREEN}{self.passed}{Colors.RESET}")
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_RED}{Symbols.CROSS} Failed{Colors.RESET}      : {Colors.BRIGHT_RED}{self.failed}{Colors.RESET}")
+        print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.DIM}○ Not Executed{Colors.RESET}: {Colors.DIM}{not_executed}{Colors.RESET}")
         print(f"  {Colors.DIM}│{Colors.RESET}")
         
-        # Progress bar
-        bar_width = 40
-        filled = int(bar_width * pass_pct / 100)
-        bar = f"{Colors.BRIGHT_GREEN}{'█' * filled}{Colors.DIM}{'░' * (bar_width - filled)}{Colors.RESET}"
-        print(f"  {Colors.DIM}│{Colors.RESET}  Progress    : [{bar}] {pass_pct:.0f}%")
+        # Progress bar - 11 segments for 11 checks (passed=green, failed=red, remaining=gray)
+        bar_segments = []
+        for i, check in enumerate(self.checks):
+            if check["passed"]:
+                bar_segments.append(f"{Colors.BRIGHT_GREEN}███{Colors.RESET}")
+            else:
+                bar_segments.append(f"{Colors.BRIGHT_RED}███{Colors.RESET}")
+        # Add remaining uncompleted checks as gray
+        remaining = self.TOTAL_CHECKS - total
+        for _ in range(remaining):
+            bar_segments.append(f"{Colors.DIM}░░░{Colors.RESET}")
+        bar = "".join(bar_segments)
+        print(f"  {Colors.DIM}│{Colors.RESET}  Progress    : [{bar}] {self.passed}/{self.TOTAL_CHECKS} passed")
         print(f"  {Colors.DIM}└{'─' * 40}{Colors.RESET}")
         print()
         
@@ -467,6 +487,7 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
 
 def check_ipmi_tool() -> Dict:
     """Check if IPMI tool is installed, install if not."""
+    _log("Checking IPMI tool...", "INFO")
     ipmi_tool = OIM_PREREQ_VARS["ipmi_tool"]
     rc, stdout, stderr = run_command([ipmi_tool, "-V"])
     
@@ -618,6 +639,7 @@ def get_os_info() -> Dict:
 
 def validate_os() -> Dict:
     """Validate OS against required OS, version, and kernel."""
+    _log("Validating OS...", "INFO")
     os_info = get_os_info()
     required_os = OIM_PREREQ_VARS.get("required_os", "rhel").lower()
     required_version = OIM_PREREQ_VARS.get("required_os_version", "10")
@@ -633,7 +655,7 @@ def validate_os() -> Dict:
             "passed": False, 
             "os_info": os_info, 
             "message": f"OS mismatch: {actual_os} != {required_os}",
-            "details": f"ACTION REQUIRED: OS does not match.\n- Required: {required_os}\n- Actual: {actual_os}\n- Update 'required_os' in user_config.yml if this OS is acceptable."
+            "details": f"ACTION REQUIRED: OS does not match.\n- Required: {required_os}\n- Actual: {actual_os}\n- Update 'required_os' in {USER_CONFIG_PATH} if this OS is acceptable."
         }
     
     # Check OS version
@@ -643,7 +665,7 @@ def validate_os() -> Dict:
             "passed": False, 
             "os_info": os_info, 
             "message": f"OS version mismatch: {actual_version} != {required_version}",
-            "details": f"ACTION REQUIRED: OS version does not match.\n- Required: {required_version}\n- Actual: {actual_version}\n- Update 'required_os_version' in user_config.yml or upgrade OS."
+            "details": f"ACTION REQUIRED: OS version does not match.\n- Required: {required_version}\n- Actual: {actual_version}\n- Update 'required_os_version' in {USER_CONFIG_PATH} or upgrade OS."
         }
     
     # Check kernel version if required
@@ -654,7 +676,7 @@ def validate_os() -> Dict:
                 "passed": False, 
                 "os_info": os_info, 
                 "message": f"Kernel version mismatch: {actual_kernel} != {required_kernel}",
-                "details": f"ACTION REQUIRED: Kernel version does not match.\n- Required: {required_kernel}\n- Actual: {actual_kernel}\n- Update 'required_kernel_version' in user_config.yml or upgrade kernel."
+                "details": f"ACTION REQUIRED: Kernel version does not match.\n- Required: {required_kernel}\n- Actual: {actual_kernel}\n- Update 'required_kernel_version' in {USER_CONFIG_PATH} or upgrade kernel."
             }
     
     return {"passed": True, "os_info": os_info, "message": OIM_PREREQ_MSGS["os_check_pass"].format(os_name=os_info["name"], os_version=os_info["version"])}
@@ -695,6 +717,7 @@ def get_network_interfaces() -> List[Dict]:
 
 def validate_network_interfaces() -> Dict:
     """Validate PXE and Public interfaces are available and UP."""
+    _log("Validating network interfaces...", "INFO")
     pxe_iface = OIM_PREREQ_VARS["pxe_interface"]
     public_iface = OIM_PREREQ_VARS["public_interface"]
     
@@ -711,7 +734,7 @@ def validate_network_interfaces() -> Dict:
                 "name": "pxe_interface",
                 "passed": False,
                 "message": OIM_PREREQ_MSGS["iface_pxe_not_found"].format(interface=pxe_iface),
-                "instruction": OIM_PREREQ_MSGS["iface_pxe_not_found_instruction"].format(interface=pxe_iface)
+                "instruction": OIM_PREREQ_MSGS["iface_pxe_not_found_instruction"].format(interface=pxe_iface, config_path=USER_CONFIG_PATH)
             })
         elif pxe_info["state"] != "up":
             results["passed"] = False
@@ -732,7 +755,7 @@ def validate_network_interfaces() -> Dict:
             "name": "pxe_interface",
             "passed": False,
             "message": OIM_PREREQ_MSGS["iface_not_configured"],
-            "instruction": "ACTION REQUIRED: Set 'pxe_interface' in user_config.yml with your PXE network interface name."
+            "instruction": f"ACTION REQUIRED: Set 'pxe_interface' in {USER_CONFIG_PATH} with your PXE network interface name."
         })
         results["passed"] = False
     
@@ -747,7 +770,7 @@ def validate_network_interfaces() -> Dict:
                 "name": "public_interface",
                 "passed": False,
                 "message": OIM_PREREQ_MSGS["iface_public_not_found"].format(interface=public_iface),
-                "instruction": OIM_PREREQ_MSGS["iface_public_not_found_instruction"].format(interface=public_iface)
+                "instruction": OIM_PREREQ_MSGS["iface_public_not_found_instruction"].format(interface=public_iface, config_path=USER_CONFIG_PATH)
             })
         elif public_info["state"] != "up":
             results["passed"] = False
@@ -768,7 +791,7 @@ def validate_network_interfaces() -> Dict:
             "name": "public_interface",
             "passed": False,
             "message": OIM_PREREQ_MSGS["iface_not_configured"],
-            "instruction": "ACTION REQUIRED: Set 'public_interface' in user_config.yml with your public network interface name."
+            "instruction": f"ACTION REQUIRED: Set 'public_interface' in {USER_CONFIG_PATH} with your public network interface name."
         })
         results["passed"] = False
     
@@ -802,8 +825,8 @@ def configure_pxe_nic() -> Dict:
         return {
             "passed": False,
             "configured": False,
-            "message": "PXE interface not configured in user_config.yml",
-            "details": "Set 'pxe_interface' in user_config.yml"
+            "message": f"PXE interface not configured in {USER_CONFIG_PATH}",
+            "details": f"Set 'pxe_interface' in {USER_CONFIG_PATH}"
         }
     
     # Check if interface exists
@@ -813,7 +836,7 @@ def configure_pxe_nic() -> Dict:
             "passed": False,
             "configured": False,
             "message": f"PXE interface {pxe_iface} does not exist",
-            "details": "Check interface name in user_config.yml"
+            "details": f"Check interface name in {USER_CONFIG_PATH}"
         }
     
     # Get current IP
@@ -831,26 +854,22 @@ def configure_pxe_nic() -> Dict:
             "already_configured": True,
             "current_ip": current_ip,
             "message": f"PXE NIC {pxe_iface} already configured with IP: {current_ip}",
-            "details": f"To reconfigure, set 'force_configure_pxe: true' in user_config.yml"
+            "details": f"To reconfigure, set 'force_configure_pxe: true' in {USER_CONFIG_PATH}"
         }
     
-    # Case 2: Force reconfigure - remove existing IP first
+    # Case 2: Force reconfigure - flush all IPs first
     if current_ip and force_configure:
-        _log(f"Force reconfigure enabled. Removing existing IP {current_ip}...", "INFO")
-        # Extract IP without subnet for removal
-        ip_only = current_ip.split("/")[0] if "/" in current_ip else current_ip
-        rc, stdout, stderr = run_command(["ip", "addr", "del", current_ip, "dev", pxe_iface])
+        _log(f"Force reconfigure enabled. Flushing all IPs from {pxe_iface}...", "INFO")
+        # Flush all IPv4 addresses from the interface
+        rc, stdout, stderr = run_shell(f"ip addr flush dev {pxe_iface}")
         if rc != 0:
-            # Try without subnet
-            rc, stdout, stderr = run_command(["ip", "addr", "flush", "dev", pxe_iface])
-            if rc != 0:
-                return {
-                    "passed": False,
-                    "configured": False,
-                    "message": f"Failed to remove existing IP from {pxe_iface}",
-                    "details": f"Error: {stderr}"
-                }
-        _log(f"Removed existing IP {current_ip}", "OK")
+            _log(f"Warning: ip addr flush failed: {stderr}", "WARN")
+            # Try to delete specific IP as fallback
+            ip_only = current_ip.split("/")[0] if "/" in current_ip else current_ip
+            run_shell(f"ip addr del {current_ip} dev {pxe_iface} 2>/dev/null")
+            run_shell(f"ip addr del {ip_only}/16 dev {pxe_iface} 2>/dev/null")
+            run_shell(f"ip addr del {ip_only}/24 dev {pxe_iface} 2>/dev/null")
+        _log(f"Flushed IPs from {pxe_iface}", "OK")
     
     # Case 3: Configure new IP
     _log(f"Configuring PXE NIC {pxe_iface} with IP {pxe_ip}...", "INFO")
@@ -860,8 +879,8 @@ def configure_pxe_nic() -> Dict:
         pxe_ip = f"{pxe_ip}/24"  # Add default subnet if not provided
         _log(f"Added default subnet, using: {pxe_ip}", "DEBUG")
     
-    # Add IP address
-    rc, stdout, stderr = run_command(["ip", "addr", "add", pxe_ip, "dev", pxe_iface])
+    # Add IP address (use replace to handle existing IPs)
+    rc, stdout, stderr = run_shell(f"ip addr replace {pxe_ip} dev {pxe_iface}")
     if rc != 0:
         return {
             "passed": False,
@@ -911,7 +930,7 @@ def check_nfs_reachable() -> Dict:
         return {
             "reachable": False,
             "message": "NFS server IP not configured",
-            "details": OIM_PREREQ_MSGS["nfs_not_configured_instruction"]
+            "details": OIM_PREREQ_MSGS["nfs_not_configured_instruction"].format(config_path=USER_CONFIG_PATH)
         }
     
     # Step 1: Ping NFS server
@@ -923,7 +942,7 @@ def check_nfs_reachable() -> Dict:
             "reachable": False,
             "server": nfs_server,
             "message": f"NFS server {nfs_server} is NOT reachable",
-            "details": OIM_PREREQ_MSGS["nfs_not_reachable_instruction"].format(server=nfs_server)
+            "details": OIM_PREREQ_MSGS["nfs_not_reachable_instruction"].format(server=nfs_server, config_path=USER_CONFIG_PATH)
         }
     
     _log(f"NFS server {nfs_server} is reachable", "OK")
@@ -949,7 +968,7 @@ def check_nfs_reachable() -> Dict:
             "reachable": True,
             "server": nfs_server,
             "message": f"NFS server {nfs_server} is reachable (share path not configured)",
-            "details": "Set 'nfs_share_path' in user_config.yml to check capacity"
+            "details": f"Set 'nfs_share_path' in {USER_CONFIG_PATH} to check capacity"
         }
     
     # Step 4: Check if NFS share is exported
@@ -963,9 +982,32 @@ def check_nfs_reachable() -> Dict:
             "details": f"ACTION REQUIRED: showmount failed.\n- Error: {stderr}\n- Check if NFS server is running: systemctl status nfs-server\n- Check firewall allows NFS: firewall-cmd --list-services"
         }
     
-    # Check if our path is in the exports (normalize paths - remove trailing slashes)
+    # Check if our path is in the exports or is a subdirectory of an exported path
     nfs_path_normalized = nfs_path.rstrip("/")
-    if nfs_path_normalized not in stdout and nfs_path not in stdout:
+    export_found = False
+    parent_export = None
+    
+    # Parse exports from showmount output
+    for line in stdout.strip().split("\n"):
+        if line.strip() and not line.startswith("Export"):
+            # Extract export path (first part before space)
+            export_path = line.strip().split()[0] if line.strip().split() else ""
+            export_path_normalized = export_path.rstrip("/")
+            
+            # Check exact match
+            if nfs_path_normalized == export_path_normalized or nfs_path == export_path:
+                export_found = True
+                _log(f"NFS share {nfs_path} found in exports (exact match)", "OK")
+                break
+            
+            # Check if configured path is a subdirectory of an exported path
+            if nfs_path_normalized.startswith(export_path_normalized + "/"):
+                export_found = True
+                parent_export = export_path
+                _log(f"NFS share {nfs_path} is subdirectory of exported path {export_path}", "OK")
+                break
+    
+    if not export_found:
         _log(f"NFS share {nfs_path} not found in exports", "WARN")
         # Format available exports nicely
         exports_list = "\n".join([f"  - {line.strip()}" for line in stdout.strip().split("\n") if line.strip() and not line.startswith("Export")])
@@ -973,10 +1015,8 @@ def check_nfs_reachable() -> Dict:
             "reachable": False,
             "server": nfs_server,
             "message": f"NFS share '{nfs_path}' NOT found on server",
-            "details": f"ACTION REQUIRED: The NFS share path does not exist on the server.\n- Configured path: {nfs_path}\n- Available exports on {nfs_server}:\n{exports_list}\n- Update 'nfs_share_path' in user_config.yml with a valid export path."
+            "details": f"ACTION REQUIRED: The NFS share path does not exist on the server.\n- Configured path: {nfs_path}\n- Available exports on {nfs_server}:\n{exports_list}\n- Update 'nfs_share_path' in {USER_CONFIG_PATH} with a valid export path."
         }
-    
-    _log(f"NFS share {nfs_path} found in exports", "OK")
     
     # Step 5: Mount temporarily and check capacity
     _log(f"Mounting NFS share temporarily to check capacity...", "INFO")
@@ -1052,7 +1092,7 @@ def check_nfs_reachable() -> Dict:
             "capacity_gb": capacity_gb,
             "message": f"NFS capacity INSUFFICIENT: {capacity_gb} GB < {min_capacity} GB required",
             "details": OIM_PREREQ_MSGS["nfs_capacity_instruction"].format(
-                capacity_gb=capacity_gb, min_capacity_gb=min_capacity
+                capacity_gb=capacity_gb, min_capacity_gb=min_capacity, config_path=USER_CONFIG_PATH
             )
         }
     
@@ -1072,6 +1112,7 @@ def check_nfs_reachable() -> Dict:
 
 def check_internet() -> Dict:
     """Check internet connectivity via public interface using ping."""
+    _log("Checking internet connectivity...", "INFO")
     public_iface = OIM_PREREQ_VARS["public_interface"]
     check_host = OIM_PREREQ_VARS["internet_check_host"]
     timeout = OIM_PREREQ_VARS["internet_timeout"]
@@ -1080,7 +1121,7 @@ def check_internet() -> Dict:
         return {
             "available": False,
             "message": "Public interface not configured",
-            "details": "ACTION REQUIRED: Set 'public_interface' in user_config.yml"
+            "details": f"ACTION REQUIRED: Set 'public_interface' in {USER_CONFIG_PATH}"
         }
     
     # Ping via specific interface
@@ -1111,6 +1152,7 @@ def check_internet() -> Dict:
 
 def check_rhel_repo() -> Dict:
     """Check if any RHEL repository is configured."""
+    _log("Checking RHEL repositories...", "INFO")
     rc, stdout, stderr = run_shell("dnf repolist 2>/dev/null")
     
     if rc == 0 and stdout:
@@ -1138,6 +1180,7 @@ def check_rhel_repo() -> Dict:
 
 def check_git() -> Dict:
     """Check if Git is installed."""
+    _log("Checking Git installation...", "INFO")
     rc, stdout, stderr = run_command(["git", "--version"])
     
     if rc == 0:
@@ -1180,7 +1223,7 @@ def install_git() -> Dict:
         "success": False,
         "message": "Git installation FAILED",
         "error": stderr,
-        "details": OIM_PREREQ_MSGS["git_install_instruction"].format(error=stderr)
+        "details": OIM_PREREQ_MSGS["git_install_instruction"].format(error=stderr, config_path=USER_CONFIG_PATH)
     }
 
 
@@ -1201,7 +1244,7 @@ def ensure_git_installed() -> Dict:
         "installed": False,
         "version": None,
         "message": install_result.get("message", "Git installation failed"),
-        "details": install_result.get("details", OIM_PREREQ_MSGS["git_install_instruction"].format(error="Unknown error"))
+        "details": install_result.get("details", OIM_PREREQ_MSGS["git_install_instruction"].format(error="Unknown error", config_path=USER_CONFIG_PATH))
     }
 
 
@@ -1244,7 +1287,7 @@ def check_podman() -> Dict:
             "version": version,
             "message": f"Podman version {version} is BELOW minimum {min_version}",
             "details": OIM_PREREQ_MSGS["podman_version_instruction"].format(
-                version=version, min_version=min_version
+                version=version, min_version=min_version, config_path=USER_CONFIG_PATH
             )
         }
     
@@ -1272,7 +1315,7 @@ def clone_omnia_repo() -> Dict:
         return {
             "passed": False,
             "message": "Omnia repository URL not configured",
-            "details": OIM_PREREQ_MSGS["omnia_repo_not_configured_instruction"]
+            "details": OIM_PREREQ_MSGS["omnia_repo_not_configured_instruction"].format(config_path=USER_CONFIG_PATH)
         }
     
     _log(f"Repo URL: {repo_url}", "DEBUG")
@@ -1307,41 +1350,90 @@ def clone_omnia_repo() -> Dict:
             "passed": False,
             "message": f"Failed to clone Omnia artifactory",
             "details": OIM_PREREQ_MSGS["omnia_clone_instruction"].format(
-                repo_url=repo_url, clone_path=clone_path, error=stderr
+                repo_url=repo_url, clone_path=clone_path, error=stderr, config_path=USER_CONFIG_PATH
             )
-        }
-    
-    # Download omnia.sh script using omnia_branch
-    omnia_branch = OIM_PREREQ_VARS.get("omnia_branch", "")
-    if omnia_branch and omnia_branch.strip():
-        omnia_sh_url = f"https://raw.githubusercontent.com/dell/omnia/refs/heads/{omnia_branch}/omnia.sh"
-        
-        # Delete existing omnia.sh if present
-        run_shell(f"rm -f {clone_path}/omnia.sh 2>/dev/null")
-        
-        _log(f"Downloading omnia.sh from {omnia_sh_url}...", "INFO")
-        rc, stdout, stderr = run_shell(f"cd {clone_path} && wget -q {omnia_sh_url} -O omnia.sh", timeout=60)
-        if rc != 0:
-            return {
-                "passed": False,
-                "message": f"Failed to download omnia.sh",
-                "details": f"ACTION REQUIRED: Could not download omnia.sh.\n- URL: {omnia_sh_url}\n- Error: {stderr or stdout}\n- Check if omnia_branch '{omnia_branch}' is valid."
-            }
-        
-        # Make it executable
-        run_shell(f"chmod +x {clone_path}/omnia.sh")
-        _log(f"omnia.sh downloaded and made executable", "INFO")
-        
-        return {
-            "passed": True,
-            "message": f"Omnia artifactory cloned to {clone_path}",
-            "details": f"Branch: {branch}\nomnia.sh downloaded from branch: {omnia_branch}"
         }
     
     return {
         "passed": True,
         "message": f"Omnia artifactory cloned to {clone_path}",
-        "details": f"Branch: {branch}\nNote: omnia.sh not downloaded (omnia_branch not set)"
+        "details": f"Branch: {branch}"
+    }
+
+
+def download_omnia_sh() -> Dict:
+    """Download omnia.sh script from the specified omnia_branch."""
+    _log("Downloading omnia.sh...", "INFO")
+    clone_path = OIM_PREREQ_VARS["omnia_clone_path"]
+    omnia_branch = OIM_PREREQ_VARS.get("omnia_branch", "")
+    
+    if not omnia_branch or not omnia_branch.strip():
+        return {
+            "passed": False,
+            "message": "omnia_branch not configured",
+            "details": OIM_PREREQ_MSGS["omnia_sh_branch_not_configured"].format(config_path=USER_CONFIG_PATH)
+        }
+    
+    # Create directory if it doesn't exist
+    rc, _, _ = run_shell(f"test -d {clone_path}")
+    if rc != 0:
+        _log(f"Creating directory {clone_path}...", "INFO")
+        rc, _, stderr = run_shell(f"mkdir -p {clone_path}")
+        if rc != 0:
+            return {
+                "passed": False,
+                "message": OIM_PREREQ_MSGS["omnia_sh_dir_create_fail"].format(clone_path=clone_path),
+                "details": f"Error: {stderr}"
+            }
+    
+    # Delete existing omnia.sh if present
+    _log(f"Removing existing omnia.sh if present...", "DEBUG")
+    run_shell(f"rm -f {clone_path}/omnia.sh 2>/dev/null")
+    
+    # Try both branch URL and tag URL
+    branch_url = f"https://raw.githubusercontent.com/dell/omnia/refs/heads/{omnia_branch}/omnia.sh"
+    tag_url = f"https://raw.githubusercontent.com/dell/omnia/refs/tags/{omnia_branch}/omnia.sh"
+    
+    # Try branch URL first
+    _log(f"Trying branch URL: {branch_url}...", "INFO")
+    rc, stdout, stderr = run_shell(f"cd {clone_path} && wget -q {branch_url} -O omnia.sh", timeout=60)
+    
+    if rc == 0:
+        # Verify file was downloaded (not empty/error page)
+        rc_check, size, _ = run_shell(f"stat -c%s {clone_path}/omnia.sh 2>/dev/null")
+        if rc_check == 0 and size.strip().isdigit() and int(size.strip()) > 100:
+            run_shell(f"chmod +x {clone_path}/omnia.sh")
+            _log(f"omnia.sh downloaded from branch: {omnia_branch}", "OK")
+            return {
+                "passed": True,
+                "message": OIM_PREREQ_MSGS["omnia_sh_download_success"].format(ref_type="branch", omnia_branch=omnia_branch),
+                "details": f"URL: {branch_url}\nLocation: {clone_path}/omnia.sh"
+            }
+    
+    # Branch URL failed, try tag URL
+    _log(f"Branch URL failed, trying tag URL: {tag_url}...", "INFO")
+    run_shell(f"rm -f {clone_path}/omnia.sh 2>/dev/null")
+    rc, stdout, stderr = run_shell(f"cd {clone_path} && wget -q {tag_url} -O omnia.sh", timeout=60)
+    
+    if rc == 0:
+        # Verify file was downloaded (not empty/error page)
+        rc_check, size, _ = run_shell(f"stat -c%s {clone_path}/omnia.sh 2>/dev/null")
+        if rc_check == 0 and size.strip().isdigit() and int(size.strip()) > 100:
+            run_shell(f"chmod +x {clone_path}/omnia.sh")
+            _log(f"omnia.sh downloaded from tag: {omnia_branch}", "OK")
+            return {
+                "passed": True,
+                "message": OIM_PREREQ_MSGS["omnia_sh_download_success"].format(ref_type="tag", omnia_branch=omnia_branch),
+                "details": f"URL: {tag_url}\nLocation: {clone_path}/omnia.sh"
+            }
+    
+    # Both URLs failed
+    return {
+        "passed": False,
+        "message": OIM_PREREQ_MSGS["omnia_sh_download_fail"],
+        "details": OIM_PREREQ_MSGS["omnia_sh_download_instruction"].format(
+            omnia_branch=omnia_branch, branch_url=branch_url, tag_url=tag_url
+        )
     }
 
 
@@ -1357,7 +1449,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "omnia_branch not configured",
-            "details": "ACTION REQUIRED: Set 'omnia_branch' in user_config.yml.\n- This specifies which Omnia branch to use for container build.\n- Example: omnia_branch: \"main\" or omnia_branch: \"release-1.6\""
+            "details": OIM_PREREQ_MSGS["omnia_branch_not_configured"].format(config_path=USER_CONFIG_PATH)
         }
     
     # Check required: container_images
@@ -1365,7 +1457,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "container_images not configured",
-            "details": "ACTION REQUIRED: Set 'container_images' in user_config.yml.\n- Specify comma-separated container images to build.\n- Example: container_images: \"core\" or container_images: \"core,auth\""
+            "details": OIM_PREREQ_MSGS["container_images_not_configured"].format(config_path=USER_CONFIG_PATH)
         }
     
     # Check if clone path exists
@@ -1374,7 +1466,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "Omnia artifactory not cloned",
-            "details": f"ACTION REQUIRED: Directory {clone_path} does not exist.\n- Run the Omnia Artifactory check first to clone the repository.\n- Or set 'omnia_clone_path' in user_config.yml if using a different path."
+            "details": OIM_PREREQ_MSGS["clone_path_not_found"].format(clone_path=clone_path, config_path=USER_CONFIG_PATH)
         }
     
     # Check if build_images.sh exists
@@ -1384,7 +1476,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "build_images.sh not found",
-            "details": f"ACTION REQUIRED: Script not found at {build_script}.\n- Check if repository was cloned correctly.\n- Verify the artifactory_branch contains build_images.sh."
+            "details": OIM_PREREQ_MSGS["build_script_not_found"].format(script_path=build_script)
         }
     
     # Make script executable
@@ -1392,23 +1484,63 @@ def build_container_images() -> Dict:
     
     _log(f"Running: ./build_images.sh {container_images} omnia_branch={omnia_branch}", "INFO")
     
-    # Run build_images.sh with container images and omnia_branch
-    rc, stdout, stderr = run_shell(
-        f"cd {clone_path} && ./build_images.sh {container_images} omnia_branch={omnia_branch}",
-        timeout=1800  # 30 minutes timeout for building images
-    )
+    # Run build_images.sh with LIVE output streaming
+    build_cmd = f"cd {clone_path} && ./build_images.sh {container_images} omnia_branch={omnia_branch}"
+    
+    if _is_remote_mode():
+        ssh_cmd = _get_ssh_command()
+        escaped_cmd = build_cmd.replace("'", "'\\''")
+        full_cmd = f"{ssh_cmd} '{escaped_cmd}'"
+    else:
+        full_cmd = build_cmd
+    
+    # Stream output in real-time
+    output_lines = []
+    try:
+        process = subprocess.Popen(
+            full_cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        
+        # Read and print output line by line
+        for line in iter(process.stdout.readline, ''):
+            if line:
+                line = line.rstrip()
+                output_lines.append(line)
+                print(line)
+        
+        process.wait(timeout=1800)  # 30 minutes timeout
+        rc = process.returncode
+        
+    except subprocess.TimeoutExpired:
+        process.kill()
+        print(f"TIMEOUT: Build exceeded 30 minutes")
+        rc = -1
+        output_lines.append("TIMEOUT: Build exceeded 30 minutes")
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        rc = -1
+        output_lines.append(f"ERROR: {str(e)}")
+    
+    stdout = "\n".join(output_lines)
     
     if rc == 0:
         return {
             "passed": True,
-            "message": f"Container images built successfully: {container_images}",
-            "details": f"Images: {container_images}\nOmnia Branch: {omnia_branch}\n{stdout[-500:] if len(stdout) > 500 else stdout}"
+            "message": OIM_PREREQ_MSGS["container_build_success"].format(images=container_images),
+            "details": f"Images: {container_images}\nOmnia Branch: {omnia_branch}"
         }
     
     return {
         "passed": False,
         "message": f"Failed to build container images: {container_images}",
-        "details": f"ACTION REQUIRED: Container build failed.\n- Command: ./build_images.sh {container_images} omnia_branch={omnia_branch}\n- Error: {stderr or stdout}\n- Check if Podman is running correctly.\n- Verify network connectivity for pulling base images."
+        "details": OIM_PREREQ_MSGS["container_build_instruction"].format(
+            images=container_images, omnia_branch=omnia_branch, exit_code=rc
+        )
     }
 
 
@@ -1442,15 +1574,14 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     
     # Show loaded configuration in a nice box
     print(f"  {Colors.DIM}┌─ Configuration{Colors.RESET}")
-    # Get project root (where user_config.yml is located)
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    config_path = os.path.join(project_root, "user_config.yml")
+    # Use the exported config path
+    config_path = USER_CONFIG_PATH
     print(f"  {Colors.DIM}│{Colors.RESET}  Config File     : {Colors.WHITE}{config_path}{Colors.RESET}")
-    skip_fail = OIM_PREREQ_VARS.get('skip_on_failure', True)
-    if skip_fail:
-        print(f"  {Colors.DIM}│{Colors.RESET}  Skip on Failure : {Colors.BRIGHT_GREEN}true{Colors.RESET} (continue on failure)")
+    # Use the actual runtime stop_on_failure value (not from config)
+    if stop_on_failure:
+        print(f"  {Colors.DIM}│{Colors.RESET}  Stop on Failure : {Colors.BRIGHT_YELLOW}true{Colors.RESET} (stop on first failure)")
     else:
-        print(f"  {Colors.DIM}│{Colors.RESET}  Skip on Failure : {Colors.BRIGHT_YELLOW}false{Colors.RESET} (stop on first failure)")
+        print(f"  {Colors.DIM}│{Colors.RESET}  Stop on Failure : {Colors.BRIGHT_GREEN}false{Colors.RESET} (continue on failure)")
     
     # Show target OIM server
     oim_ip = OIM_PREREQ_VARS.get('oim_server_ip', '')
@@ -1492,7 +1623,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
         print(f"  {Colors.BRIGHT_RED}{Symbols.CROSS} ERROR: OIM Server IP not configured{Colors.RESET}")
         print()
         print(f"  {Colors.BRIGHT_YELLOW}ACTION REQUIRED:{Colors.RESET}")
-        print(f"  {Colors.DIM}  1. Edit user_config.yml{Colors.RESET}")
+        print(f"  {Colors.DIM}  1. Edit: {config_path}{Colors.RESET}")
         print(f"  {Colors.DIM}  2. Set 'oim_server_ip' to your OIM server IP address{Colors.RESET}")
         print(f"  {Colors.DIM}  3. Set 'oim_ssh_user' (default: root){Colors.RESET}")
         print(f"  {Colors.DIM}  4. Set 'oim_ssh_password' with SSH password{Colors.RESET}")
@@ -1501,20 +1632,20 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
             "passed": False,
             "passed_count": 0,
             "failed_count": 1,
-            "checks": {"OIM Server Config": {"passed": False, "message": "oim_server_ip not configured in user_config.yml"}}
+            "checks": {"OIM Server Config": {"passed": False, "message": f"oim_server_ip not configured in {config_path}"}}
         }
     
     if not ssh_password:
         print(f"  {Colors.BRIGHT_RED}{Symbols.CROSS} ERROR: SSH password not configured{Colors.RESET}")
         print()
         print(f"  {Colors.BRIGHT_YELLOW}ACTION REQUIRED:{Colors.RESET}")
-        print(f"  {Colors.DIM}  Set 'oim_ssh_password' in user_config.yml{Colors.RESET}")
+        print(f"  {Colors.DIM}  Set 'oim_ssh_password' in: {config_path}{Colors.RESET}")
         print()
         return {
             "passed": False,
             "passed_count": 0,
             "failed_count": 1,
-            "checks": {"SSH Config": {"passed": False, "message": "oim_ssh_password not configured in user_config.yml"}}
+            "checks": {"SSH Config": {"passed": False, "message": f"oim_ssh_password not configured in {config_path}"}}
         }
     
     # Install sshpass for password authentication
@@ -1534,7 +1665,8 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     rc, stdout, stderr = run_command(["echo", "SSH_OK"])
     if rc != 0 or "SSH_OK" not in stdout:
         print(f"  {Colors.BRIGHT_RED}{Symbols.CROSS}{Colors.RESET} SSH connection FAILED: {stderr}")
-        print(f"  {Colors.DIM}  Check oim_server_ip, oim_ssh_user, and oim_ssh_password in user_config.yml{Colors.RESET}")
+        print(f"  {Colors.DIM}  Check oim_server_ip, oim_ssh_user, and oim_ssh_password in:{Colors.RESET}")
+        print(f"  {Colors.WHITE}  {config_path}{Colors.RESET}")
         return {
             "passed": False,
             "passed_count": 0,
@@ -1549,14 +1681,22 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     
     all_passed = True
     
-    # Check 1: IPMI Tool
+    # Check 1: RHEL Repository (check first before installing anything)
+    result = check_rhel_repo()
+    passed = result.get("found", False)
+    details = "\n".join(result.get("repos", [])) if result.get("repos") else ""
+    _report.add_check("RHEL Repository", passed, result.get("message", ""), details)
+    if not passed and stop_on_failure:
+        return _finish_report(_report, False, save_report)
+    
+    # Check 2: IPMI Tool
     result = check_ipmi_tool()
     passed = result.get("installed", False)
     _report.add_check("IPMI Tool", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 2: Hardware Inventory
+    # Check 3: Hardware Inventory
     result = validate_hardware()
     passed = result.get("passed", False)
     details = ""
@@ -1578,7 +1718,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 3: OS Validation
+    # Check 4: OS Validation
     result = validate_os()
     passed = result.get("passed", False)
     details = ""
@@ -1593,7 +1733,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 4: Network Interfaces
+    # Check 5: Network Interfaces
     result = validate_network_interfaces()
     passed = result.get("passed", False)
     details = ""
@@ -1608,7 +1748,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 5: PXE NIC IP Configuration
+    # Check 6: PXE NIC IP Configuration
     result = configure_pxe_nic()
     passed = result.get("passed", False)
     details = result.get("details", "")
@@ -1620,36 +1760,28 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 6: NFS Server
+    # Check 7: NFS Server
     result = check_nfs_reachable()
     passed = result.get("reachable", False)
     _report.add_check("NFS Server", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 7: Internet Connectivity
+    # Check 8: Internet Connectivity
     result = check_internet()
     passed = result.get("available", False)
     _report.add_check("Internet Connectivity", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 8: Podman
+    # Check 9: Podman
     result = check_podman()
     passed = result.get("passed", False)
     _report.add_check("Podman", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 9: RHEL Repository
-    result = check_rhel_repo()
-    passed = result.get("found", False)
-    details = "\n".join(result.get("repos", [])) if result.get("repos") else ""
-    _report.add_check("RHEL Repository", passed, result.get("message", ""), details)
-    if not passed and stop_on_failure:
-        return _finish_report(_report, False, save_report)
-    
-    # Check 10: Git Installation (only if reconfigure_images is true)
+    # Check 10-12: Git, Omnia Artifactory Clone, Build Container Images (only if reconfigure_images is true)
     reconfigure_images = OIM_PREREQ_VARS.get("reconfigure_images", False)
     
     if reconfigure_images:
@@ -1670,9 +1802,16 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
         result = build_container_images()
         passed = result.get("passed", False)
         _report.add_check("Container Images", passed, result.get("message", ""), result.get("details", ""))
+        if not passed and stop_on_failure:
+            return _finish_report(_report, False, save_report)
     else:
         _log("Skipping Git, Omnia Artifactory, and Container Build (reconfigure_images: false)", "INFO")
         _report.add_check("Container Build", True, "Skipped (reconfigure_images: false)", "Set 'reconfigure_images: true' in user_config.yml to enable")
+    
+    # Check 13: Download omnia.sh (always runs - creates directory if needed)
+    result = download_omnia_sh()
+    passed = result.get("passed", False)
+    _report.add_check("Download omnia.sh", passed, result.get("message", ""), result.get("details", ""))
     
     # Determine final status
     all_passed = _report.failed == 0
