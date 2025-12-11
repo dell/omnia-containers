@@ -5,15 +5,26 @@
 # This scenario tests the omnia.sh script on the REMOTE OIM server.
 # All playbooks and tests run on the OIM server specified in user_config.yml.
 #
-# Usage:
-#   molecule test -s omnia_sh           # Full test (converge + verify + destroy)
-#   molecule converge -s omnia_sh       # Run omnia.sh --install only
-#   molecule verify -s omnia_sh         # Run verification tests only
-#   molecule destroy -s omnia_sh        # Run omnia.sh --uninstall
+# USAGE:
+# ------
+# Default test (keeps container running for other tests):
+#   molecule test -s omnia_sh
+#
+# Individual steps:
+#   molecule create -s omnia_sh         # Create inventory only
+#   molecule converge -s omnia_sh       # Run omnia.sh --install
+#   molecule verify -s omnia_sh         # Run pytest verification tests
+#   molecule cleanup -s omnia_sh        # Run omnia.sh --uninstall (MANUAL)
+#
+# Full cycle with cleanup (when you want fresh install):
+#   molecule test -s omnia_sh && molecule cleanup -s omnia_sh
 #
 # Configuration:
 #   - user_config.yml: OIM server IP, SSH credentials, NFS settings
 #   - omnia_sh_config.yml: omnia.sh user inputs (share_option, password, paths)
+#
+# NOTE: Cleanup is NOT in the default test sequence. Container stays running
+#       after tests so other modules can use it. Run cleanup manually when needed.
 #
 # =============================================================================
 
@@ -45,10 +56,13 @@ verifier:
   options:
     v: true
     s: true
-    connection: ssh
+    tb: short
+  additional_files_or_dirs:
+    - "-v"
 
 scenario:
   name: omnia_sh
+  # Default test sequence - NO CLEANUP (container stays running)
   test_sequence:
     - dependency
     - syntax
@@ -56,5 +70,4 @@ scenario:
     - prepare
     - converge
     - verify
-    - cleanup
-    - destroy
+    # cleanup is NOT included - run manually: molecule cleanup -s omnia_sh

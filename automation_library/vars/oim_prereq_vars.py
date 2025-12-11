@@ -107,6 +107,14 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     "oim_ssh_port": _user_config.get("oim_ssh_port", 22),
     
     # =========================================================================
+    # HOSTNAME CONFIGURATION (FIRST TASK)
+    # =========================================================================
+    # Hostname to set on the OIM server (must include domain)
+    
+    # oim_hostname: FQDN to set (e.g., "oim.omnia.test")
+    "oim_hostname": _user_config.get("oim_hostname", ""),
+    
+    # =========================================================================
     # OS VALIDATION
     # =========================================================================
     # Requirements for the operating system on the target server

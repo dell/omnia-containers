@@ -1,19 +1,57 @@
 """
-Omnia.sh Test - User-Facing Messages.
+Omnia.sh - Messages and Test Variables.
 
-This module contains all messages, status strings, and error instructions
-for the omnia.sh test automation.
-
-Message Naming Convention:
-    - *_start: Message shown when an action begins
-    - *_success: Message shown when an action succeeds
-    - *_fail: Message shown when an action fails
-    - *_instruction: Detailed instructions for fixing a failure
-
-Author: Dell Technologies
+This module contains all messages, status strings, error instructions,
+and test variables for the omnia.sh automation.
 """
 
 from typing import Dict
+from automation_library.vars.omnia_sh_vars import OMNIA_SH_VARS
+from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS
+
+# =============================================================================
+# TEST VARIABLES (for molecule/pytest tests)
+# =============================================================================
+
+TEST_VARS = {
+    "container_file": "/etc/containers/systemd/omnia_core.container",
+    "service_name": f"{OMNIA_SH_VARS['container_name']}.service",
+    "metadata_file": f"{OMNIA_SH_VARS['omnia_shared_path']}/omnia/.data/oim_metadata.yml",
+    "ssh_alias": OMNIA_SH_VARS["container_name"],
+    "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
+    "ssh_timeout": 5,
+}
+
+# Test names (displayed in test output header)
+TEST_NAMES = {
+    "container_file": "Verify omnia_core.container file exists",
+    "service_running": "Verify omnia_core service is running",
+    "metadata_file": "Verify oim_metadata.yml file exists",
+    "ssh_to_container": "Verify passwordless SSH: OIM server → omnia_core",
+    "ssh_from_container": "Verify passwordless SSH: omnia_core → OIM server",
+}
+
+# Test log messages
+TEST_LOG_MSGS = {
+    "file_exists": "File exists",
+    "file_not_found": "File NOT found",
+    "service_active": "Service is active",
+    "service_inactive": "Service is {status}",
+    "ssh_success": "Passwordless SSH successful",
+    "ssh_failed": "Passwordless SSH FAILED",
+}
+
+# Test assert messages
+TEST_ASSERT_MSGS = {
+    "file_not_found": "File not found: {path}",
+    "service_not_active": "Expected 'active', got '{status}'",
+    "ssh_failed": "SSH failed: {error}",
+    "config_missing": "oim_server_ip not configured",
+}
+
+# =============================================================================
+# FUNCTION MESSAGES (for omnia_sh_func.py)
+# =============================================================================
 
 OMNIA_SH_MSGS: Dict[str, str] = {
     

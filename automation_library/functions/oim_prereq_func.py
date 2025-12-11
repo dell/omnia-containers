@@ -73,7 +73,7 @@ class PrereqReport:
     """Generate detailed prerequisite check report with Linux theme."""
     
     WIDTH = 80  # Terminal width
-    TOTAL_CHECKS = 13  # Total number of checks in the full suite
+    TOTAL_CHECKS = 14  # Total number of checks in the full suite (added hostname)
     
     def __init__(self):
         self.start_time = datetime.now()
@@ -482,7 +482,120 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
 
 
 # =============================================================================
-# 1.1 IPMI Tool - Install and Validate
+# 1. HOSTNAME CONFIGURATION (FIRST TASK)
+# =============================================================================
+
+def configure_hostname() -> Dict:
+    """
+    Configure hostname on the OIM server.
+    
+    This is the FIRST task that runs before all other checks.
+    Sets the hostname using hostnamectl and verifies it has a domain.
+    
+    Returns:
+        Dict with 'passed', 'configured', 'hostname', 'domain', 'message'
+    """
+    _log(OIM_PREREQ_MSGS["hostname_check_start"], "INFO")
+    
+    target_hostname = OIM_PREREQ_VARS.get("oim_hostname", "")
+    
+    # Check if hostname is configured in user_config.yml
+    if not target_hostname:
+        return {
+            "passed": False,
+            "configured": False,
+            "hostname": "",
+            "domain": "",
+            "message": OIM_PREREQ_MSGS["hostname_not_configured"],
+            "instruction": OIM_PREREQ_MSGS["hostname_instruction"]
+        }
+    
+    # Validate hostname format (must contain a dot for domain)
+    if "." not in target_hostname:
+        return {
+            "passed": False,
+            "configured": False,
+            "hostname": target_hostname,
+            "domain": "",
+            "message": OIM_PREREQ_MSGS["hostname_invalid"],
+            "instruction": OIM_PREREQ_MSGS["hostname_instruction"]
+        }
+    
+    # Get current hostname
+    rc, current_hostname, _ = run_command(["hostname", "-f"])
+    current_hostname = current_hostname.strip() if rc == 0 else ""
+    
+    _log(f"Current hostname: {current_hostname or 'not set'}", "INFO")
+    _log(f"Target hostname: {target_hostname}", "INFO")
+    
+    # Check if already configured correctly
+    if current_hostname == target_hostname:
+        # Verify domain
+        rc, domain, _ = run_command(["hostname", "-d"])
+        domain = domain.strip() if rc == 0 else ""
+        
+        if domain:
+            _log(OIM_PREREQ_MSGS["hostname_already_set"].format(hostname=target_hostname), "OK")
+            return {
+                "passed": True,
+                "configured": True,
+                "already_configured": True,
+                "hostname": target_hostname,
+                "domain": domain,
+                "message": OIM_PREREQ_MSGS["hostname_already_set"].format(hostname=target_hostname),
+                "details": f"Domain: {domain}"
+            }
+    
+    # Set the hostname
+    _log(OIM_PREREQ_MSGS["hostname_set_start"].format(hostname=target_hostname), "INFO")
+    
+    rc, stdout, stderr = run_command(["hostnamectl", "set-hostname", target_hostname])
+    if rc != 0:
+        return {
+            "passed": False,
+            "configured": False,
+            "hostname": target_hostname,
+            "domain": "",
+            "message": OIM_PREREQ_MSGS["hostname_set_fail"].format(error=stderr),
+            "instruction": OIM_PREREQ_MSGS["hostname_manual_instruction"].format(
+                hostname=target_hostname, error=stderr
+            )
+        }
+    
+    # Verify the hostname was set
+    rc, new_hostname, _ = run_command(["hostname", "-f"])
+    new_hostname = new_hostname.strip() if rc == 0 else ""
+    
+    rc, domain, _ = run_command(["hostname", "-d"])
+    domain = domain.strip() if rc == 0 else ""
+    
+    if new_hostname == target_hostname and domain:
+        _log(OIM_PREREQ_MSGS["hostname_set_pass"].format(hostname=target_hostname), "OK")
+        return {
+            "passed": True,
+            "configured": True,
+            "already_configured": False,
+            "hostname": new_hostname,
+            "domain": domain,
+            "message": OIM_PREREQ_MSGS["hostname_set_pass"].format(hostname=target_hostname),
+            "details": f"Domain: {domain}"
+        }
+    
+    # Hostname set but verification failed
+    return {
+        "passed": False,
+        "configured": False,
+        "hostname": new_hostname or target_hostname,
+        "domain": domain,
+        "message": f"Hostname set but verification failed. Expected: {target_hostname}, Got: {new_hostname}",
+        "instruction": OIM_PREREQ_MSGS["hostname_manual_instruction"].format(
+            hostname=target_hostname, error="Verification failed"
+        )
+    }
+
+
+# =============================================================================
+# 2. IPMI Tool - Install and Validate
 # =============================================================================
 
 def check_ipmi_tool() -> Dict:
@@ -857,19 +970,46 @@ def configure_pxe_nic() -> Dict:
             "details": f"To reconfigure, set 'force_configure_pxe: true' in {USER_CONFIG_PATH}"
         }
     
-    # Case 2: Force reconfigure - flush all IPs first
-    if current_ip and force_configure:
-        _log(f"Force reconfigure enabled. Flushing all IPs from {pxe_iface}...", "INFO")
-        # Flush all IPv4 addresses from the interface
-        rc, stdout, stderr = run_shell(f"ip addr flush dev {pxe_iface}")
-        if rc != 0:
-            _log(f"Warning: ip addr flush failed: {stderr}", "WARN")
-            # Try to delete specific IP as fallback
-            ip_only = current_ip.split("/")[0] if "/" in current_ip else current_ip
-            run_shell(f"ip addr del {current_ip} dev {pxe_iface} 2>/dev/null")
-            run_shell(f"ip addr del {ip_only}/16 dev {pxe_iface} 2>/dev/null")
-            run_shell(f"ip addr del {ip_only}/24 dev {pxe_iface} 2>/dev/null")
-        _log(f"Flushed IPs from {pxe_iface}", "OK")
+    # Case 2: Force reconfigure - flush ALL IPs first
+    if force_configure:
+        _log(f"Force reconfigure enabled. Removing ALL IPs from {pxe_iface}...", "INFO")
+        
+        # Get the NetworkManager connection name for this interface
+        rc, nm_conn, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
+        nm_conn = nm_conn.strip() if rc == 0 else ""
+        
+        if nm_conn:
+            _log(f"Found NetworkManager connection '{nm_conn}' for {pxe_iface}", "INFO")
+            # Remove all IPv4 addresses from NetworkManager connection
+            run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '' 2>/dev/null")
+            run_shell(f"nmcli con mod '{nm_conn}' ipv4.method manual 2>/dev/null")
+        
+        # First, flush ALL IPv4 addresses from the interface
+        _log(f"Flushing all IPv4 addresses from {pxe_iface}...", "INFO")
+        run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
+        
+        # Get any remaining IPs (in case flush didn't get everything)
+        rc, all_ips_output, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep inet | awk '{{print $2}}'")
+        all_ips = all_ips_output.strip().split("\n") if all_ips_output.strip() else []
+        
+        if all_ips and all_ips[0]:
+            _log(f"Found {len(all_ips)} remaining IP(s), removing individually...", "INFO")
+            
+            # Delete each IP individually
+            for ip in all_ips:
+                if ip.strip():
+                    _log(f"Removing IP: {ip}", "INFO")
+                    run_shell(f"ip addr del {ip} dev {pxe_iface} 2>/dev/null")
+            
+            # Final flush
+            run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
+        
+        # Verify all IPs are removed
+        rc, remaining, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep inet | wc -l")
+        if remaining.strip() == "0":
+            _log(f"All IPs removed from {pxe_iface}", "OK")
+        else:
+            _log(f"Warning: {remaining.strip()} IP(s) may still remain on {pxe_iface}", "WARN")
     
     # Case 3: Configure new IP
     _log(f"Configuring PXE NIC {pxe_iface} with IP {pxe_ip}...", "INFO")
@@ -879,7 +1019,19 @@ def configure_pxe_nic() -> Dict:
         pxe_ip = f"{pxe_ip}/24"  # Add default subnet if not provided
         _log(f"Added default subnet, using: {pxe_ip}", "DEBUG")
     
-    # Add IP address (use replace to handle existing IPs)
+    # Try to configure via NetworkManager first (persistent)
+    rc, nm_conn, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
+    nm_conn = nm_conn.strip() if rc == 0 else ""
+    
+    if nm_conn:
+        _log(f"Configuring IP via NetworkManager connection '{nm_conn}'...", "INFO")
+        # Set the new IP via NetworkManager
+        run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '{pxe_ip}'")
+        run_shell(f"nmcli con mod '{nm_conn}' ipv4.method manual")
+        # Apply changes
+        run_shell(f"nmcli con up '{nm_conn}' 2>/dev/null")
+    
+    # Also add IP directly (immediate effect)
     rc, stdout, stderr = run_shell(f"ip addr replace {pxe_ip} dev {pxe_iface}")
     if rc != 0:
         return {
@@ -1681,7 +1833,19 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     
     all_passed = True
     
-    # Check 1: RHEL Repository (check first before installing anything)
+    # Check 1: HOSTNAME CONFIGURATION (FIRST TASK)
+    result = configure_hostname()
+    passed = result.get("passed", False)
+    details = result.get("details", "")
+    if result.get("already_configured"):
+        details = f"Already set: {result.get('hostname', '')}\nDomain: {result.get('domain', '')}"
+    elif result.get("hostname"):
+        details = f"Hostname: {result.get('hostname', '')}\nDomain: {result.get('domain', '')}"
+    _report.add_check("Hostname Configuration", passed, result.get("message", ""), details)
+    if not passed and stop_on_failure:
+        return _finish_report(_report, False, save_report)
+    
+    # Check 2: RHEL Repository (check before installing anything)
     result = check_rhel_repo()
     passed = result.get("found", False)
     details = "\n".join(result.get("repos", [])) if result.get("repos") else ""
@@ -1689,14 +1853,14 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 2: IPMI Tool
+    # Check 3: IPMI Tool
     result = check_ipmi_tool()
     passed = result.get("installed", False)
     _report.add_check("IPMI Tool", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 3: Hardware Inventory
+    # Check 4: Hardware Inventory
     result = validate_hardware()
     passed = result.get("passed", False)
     details = ""
@@ -1718,7 +1882,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 4: OS Validation
+    # Check 5: OS Validation
     result = validate_os()
     passed = result.get("passed", False)
     details = ""
@@ -1733,7 +1897,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 5: Network Interfaces
+    # Check 6: Network Interfaces
     result = validate_network_interfaces()
     passed = result.get("passed", False)
     details = ""
@@ -1748,7 +1912,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 6: PXE NIC IP Configuration
+    # Check 7: PXE NIC IP Configuration (flush ALL IPs and reset)
     result = configure_pxe_nic()
     passed = result.get("passed", False)
     details = result.get("details", "")
@@ -1760,28 +1924,28 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 7: NFS Server
+    # Check 8: NFS Server
     result = check_nfs_reachable()
     passed = result.get("reachable", False)
     _report.add_check("NFS Server", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 8: Internet Connectivity
+    # Check 9: Internet Connectivity
     result = check_internet()
     passed = result.get("available", False)
     _report.add_check("Internet Connectivity", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 9: Podman
+    # Check 10: Podman
     result = check_podman()
     passed = result.get("passed", False)
     _report.add_check("Podman", passed, result.get("message", ""), result.get("details", ""))
     if not passed and stop_on_failure:
         return _finish_report(_report, False, save_report)
     
-    # Check 10-12: Git, Omnia Artifactory Clone, Build Container Images (only if reconfigure_images is true)
+    # Check 11-13: Git, Omnia Artifactory Clone, Build Container Images (only if reconfigure_images is true)
     reconfigure_images = OIM_PREREQ_VARS.get("reconfigure_images", False)
     
     if reconfigure_images:
@@ -1791,14 +1955,14 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
         if not passed and stop_on_failure:
             return _finish_report(_report, False, save_report)
         
-        # Check 11: Omnia Artifactory Clone
+        # Check 12: Omnia Artifactory Clone
         result = clone_omnia_repo()
         passed = result.get("passed", False)
         _report.add_check("Omnia Artifactory", passed, result.get("message", ""), result.get("details", ""))
         if not passed and stop_on_failure:
             return _finish_report(_report, False, save_report)
         
-        # Check 12: Build Container Images
+        # Check 13: Build Container Images
         result = build_container_images()
         passed = result.get("passed", False)
         _report.add_check("Container Images", passed, result.get("message", ""), result.get("details", ""))
@@ -1808,7 +1972,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
         _log("Skipping Git, Omnia Artifactory, and Container Build (reconfigure_images: false)", "INFO")
         _report.add_check("Container Build", True, "Skipped (reconfigure_images: false)", "Set 'reconfigure_images: true' in user_config.yml to enable")
     
-    # Check 13: Download omnia.sh (always runs - creates directory if needed)
+    # Check 14: Download omnia.sh (always runs - creates directory if needed)
     result = download_omnia_sh()
     passed = result.get("passed", False)
     _report.add_check("Download omnia.sh", passed, result.get("message", ""), result.get("details", ""))

@@ -34,6 +34,32 @@ from typing import Dict
 
 OIM_PREREQ_MSGS: Dict[str, str] = {
     # ==========================================================================
+    # Hostname Configuration (FIRST TASK)
+    # ==========================================================================
+    "hostname_check_start": "Checking hostname configuration...",
+    "hostname_set_start": "Setting hostname to {hostname}...",
+    "hostname_set_pass": "Hostname set successfully: {hostname}",
+    "hostname_already_set": "Hostname already configured: {hostname}",
+    "hostname_verify_pass": "Hostname verified: {hostname} (domain: {domain})",
+    "hostname_set_fail": "Failed to set hostname: {error}",
+    "hostname_invalid": "Hostname is invalid or missing domain",
+    "hostname_not_configured": "Hostname not configured in user_config.yml",
+    
+    # Error instructions for Hostname
+    "hostname_instruction": """
+ACTION REQUIRED: Configure hostname in user_config.yml.
+- Set 'oim_hostname' to a valid FQDN (e.g., "oim.omnia.test")
+- The hostname MUST include a domain (hostname.domain.tld)
+- Example: oim_hostname: "oim.omnia.test"
+""",
+    "hostname_manual_instruction": """
+ACTION REQUIRED: Manually set hostname.
+- Run: hostnamectl set-hostname {hostname}
+- Verify: hostname -f
+- Error: {error}
+""",
+
+    # ==========================================================================
     # OS Validation
     # ==========================================================================
     "os_check_start": "Checking OS compatibility...",

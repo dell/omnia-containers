@@ -17,10 +17,10 @@ skip_on_failure: false
 # 0. Target OIM Server (Remote Execution) - REQUIRED
 # -----------------------------------------------------------------------------
 # Set to OIM server IP to run checks remotely via SSH.
-oim_server_ip: "10.16.0.58"
+oim_server_ip: ""
 
 # SSH username for remote OIM server (default: root)
-oim_ssh_user: ""
+oim_ssh_user: "root"
 
 # SSH password for remote OIM server (REQUIRED)
 oim_ssh_password: ""
@@ -29,11 +29,19 @@ oim_ssh_password: ""
 oim_ssh_port: 22
 
 # -----------------------------------------------------------------------------
-# 1. IPMI Tool - No configuration needed (auto-installed if missing)
+# 1. Hostname Configuration (FIRST TASK - runs before everything else)
+# -----------------------------------------------------------------------------
+# Hostname to set for the OIM server (FQDN format required)
+# Example: "oim.omnia.test" or "oim-server.lab.local"
+# The hostname MUST include a domain (e.g., hostname.domain.tld)
+oim_hostname: ""
+
+# -----------------------------------------------------------------------------
+# 2. IPMI Tool - No configuration needed (auto-installed if missing)
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# 2. Hardware Requirements (Optional - defaults are usually fine)
+# 3. Hardware Requirements (Optional - defaults are usually fine)
 # -----------------------------------------------------------------------------
 # Minimum CPU cores required
 min_cores: 4
@@ -45,7 +53,7 @@ min_memory_gb: 8
 min_disk_gb: 50
 
 # -----------------------------------------------------------------------------
-# 3. OS Validation
+# 4. OS Validation
 # -----------------------------------------------------------------------------
 # Required OS name (e.g., "rhel", "centos", "rocky")
 required_os: "rhel"
@@ -59,7 +67,7 @@ required_os_version: "10"
 required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
 
 # -----------------------------------------------------------------------------
-# 4. Network Interfaces
+# 5. Network Interfaces
 # -----------------------------------------------------------------------------
 # PXE interface name (for provisioning)
 pxe_interface: "eno1"
@@ -68,11 +76,11 @@ pxe_interface: "eno1"
 public_interface: "eno2"
 
 # -----------------------------------------------------------------------------
-# 5. PXE NIC IP Configuration
+# 6. PXE NIC IP Configuration
 # -----------------------------------------------------------------------------
 # PXE interface IP address with subnet (CIDR notation)
 # If not set or empty, default is 172.16.107.254/24
-pxe_ip: "172.16.107.254/24"
+pxe_ip: ""
 
 # Force reconfigure PXE NIC even if already configured
 # Set to true to remove existing IP and apply new configuration

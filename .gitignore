@@ -10,3 +10,6 @@ dist/
 
 # Test cache
 .pytest_cache/
+
+# Test reports (generated)
+reports/
