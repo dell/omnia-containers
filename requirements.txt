@@ -6,3 +6,5 @@ pexpect==4.9.0
 pytest==9.0.2
 pytest-testinfra==10.2.2
 PyYAML==6.0.1
+
+-e .

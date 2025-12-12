@@ -13,3 +13,4 @@ dist/
 
 # Test reports (generated)
 reports/
+.venv/

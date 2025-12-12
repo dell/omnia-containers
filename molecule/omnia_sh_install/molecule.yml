@@ -35,12 +35,9 @@ provisioner:
   env:
     ANSIBLE_VERBOSITY: 1
     ANSIBLE_HOST_KEY_CHECKING: "false"
-    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
 
 verifier:
   name: testinfra
-  env:
-    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
   options:
     v: true
     s: true
