@@ -9,7 +9,7 @@ import pytest
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from automation_library.testing import (
+from automation_library.core import (
     get_testinfra_host, TestReport, set_current_report, get_current_report, get_test_output
 )
 
@@ -17,6 +17,8 @@ from automation_library.testing import (
 def pytest_configure(config):
     """Pytest configuration."""
     config.addinivalue_line("filterwarnings", "ignore::pytest.PytestCollectionWarning")
+    # Register custom markers
+    config.addinivalue_line("markers", "cleanup: marks tests as cleanup verification (deselected by default)")
 
 
 def pytest_sessionstart(session):
@@ -24,14 +26,16 @@ def pytest_sessionstart(session):
     module_name = "unknown"
     if session.config.args:
         path = session.config.args[0]
-        if "omnia_sh" in path:
-            module_name = "omnia_sh"
-        elif "oim_prereq" in path:
-            module_name = "oim_prereq"
-        else:
-            parts = path.split("/")
+        # Extract scenario name from path (e.g., molecule/omnia_sh_install/tests -> omnia_sh_install)
+        parts = path.split("/")
+        for i, part in enumerate(parts):
+            if part == "molecule" and i + 1 < len(parts):
+                module_name = parts[i + 1]
+                break
+        # Fallback to old logic
+        if module_name == "unknown":
             for part in parts:
-                if part and part != "tests":
+                if part and part != "tests" and part != "molecule":
                     module_name = part
                     break
     

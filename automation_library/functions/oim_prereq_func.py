@@ -9,60 +9,7 @@ from typing import Dict, List, Optional, Tuple
 
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-
-
-# =============================================================================
-# Terminal Colors and Styling (Linux Theme)
-# =============================================================================
-
-class Colors:
-    """ANSI color codes for terminal output."""
-    # Reset
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-    DIM = "\033[2m"
-    
-    # Regular colors
-    BLACK = "\033[30m"
-    RED = "\033[31m"
-    GREEN = "\033[32m"
-    YELLOW = "\033[33m"
-    BLUE = "\033[34m"
-    MAGENTA = "\033[35m"
-    CYAN = "\033[36m"
-    WHITE = "\033[37m"
-    
-    # Bright colors
-    BRIGHT_RED = "\033[91m"
-    BRIGHT_GREEN = "\033[92m"
-    BRIGHT_YELLOW = "\033[93m"
-    BRIGHT_BLUE = "\033[94m"
-    BRIGHT_MAGENTA = "\033[95m"
-    BRIGHT_CYAN = "\033[96m"
-    
-    # Background
-    BG_RED = "\033[41m"
-    BG_GREEN = "\033[42m"
-    BG_YELLOW = "\033[43m"
-    BG_BLUE = "\033[44m"
-
-
-class Symbols:
-    """Unicode symbols for status indicators."""
-    CHECK = "✔"
-    CROSS = "✘"
-    ARROW = "➜"
-    BULLET = "●"
-    CIRCLE = "○"
-    BOX = "■"
-    DASH = "─"
-    PIPE = "│"
-    CORNER_TL = "┌"
-    CORNER_TR = "┐"
-    CORNER_BL = "└"
-    CORNER_BR = "┘"
-    TEE_L = "├"
-    TEE_R = "┤"
+from ..core.formatting import Colors, Symbols, log as _log, set_debug_mode
 
 
 # =============================================================================
@@ -328,34 +275,6 @@ class PrereqReport:
 
 # Global report instance
 _report = None
-_debug_mode = False  # Set to True to show DEBUG messages
-
-
-def set_debug_mode(enabled: bool):
-    """Enable or disable debug mode."""
-    global _debug_mode
-    _debug_mode = enabled
-
-
-def _log(message: str, level: str = "INFO"):
-    """Print log message with timestamp."""
-    global _debug_mode
-    
-    # Skip DEBUG messages unless debug mode is enabled
-    if level == "DEBUG" and not _debug_mode:
-        return
-    
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    colors = {
-        "INFO": "\033[94m",    # Blue
-        "DEBUG": "\033[90m",   # Gray
-        "WARN": "\033[93m",    # Yellow
-        "ERROR": "\033[91m",   # Red
-        "OK": "\033[92m",      # Green
-    }
-    reset = "\033[0m"
-    color = colors.get(level, "")
-    print(f"{color}[{timestamp}] [{level}] {message}{reset}")
 
 
 # Global flag for remote execution mode

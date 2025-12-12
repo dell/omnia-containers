@@ -1,0 +1,24 @@
+# =============================================================================
+# Shared task to setup dynamic inventory from user_config.yml
+# Include this in playbooks that need to connect to OIM server
+# =============================================================================
+
+- name: Load user_config.yml
+  ansible.builtin.include_vars:
+    file: "{{ project_dir }}/user_config.yml"
+    name: user_config
+
+- name: Add OIM server to inventory dynamically
+  ansible.builtin.add_host:
+    name: oim_server
+    groups: oim
+    ansible_host: "{{ user_config.oim_server_ip }}"
+    ansible_user: "{{ user_config.oim_ssh_user | default('root') }}"
+    ansible_password: "{{ user_config.oim_ssh_password }}"
+    ansible_port: "{{ user_config.oim_ssh_port | default(22) }}"
+    ansible_connection: ssh
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
+- name: Display target server
+  ansible.builtin.debug:
+    msg: "Target OIM server: {{ user_config.oim_server_ip }}"

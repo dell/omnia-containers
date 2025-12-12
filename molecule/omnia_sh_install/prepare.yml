@@ -3,43 +3,42 @@
 # Molecule Prepare - Check Prerequisites on OIM Server
 # =============================================================================
 
-- name: Prepare - Validate config files locally
+- name: Prepare - Validate config files and setup inventory
   hosts: localhost
   connection: local
   gather_facts: false
 
   vars:
-    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
 
   tasks:
-    - name: Check if omnia_sh_config.yml exists
-      ansible.builtin.stat:
-        path: "{{ project_dir }}/omnia_sh_config.yml"
-      register: omnia_sh_config
-
-    - name: Fail if omnia_sh_config.yml not found
-      ansible.builtin.fail:
-        msg: "omnia_sh_config.yml not found at {{ project_dir }}/omnia_sh_config.yml"
-      when: not omnia_sh_config.stat.exists
-
     - name: Check if user_config.yml exists
       ansible.builtin.stat:
         path: "{{ project_dir }}/user_config.yml"
-      register: user_config
+      register: user_config_stat
 
     - name: Fail if user_config.yml not found
       ansible.builtin.fail:
         msg: "user_config.yml not found at {{ project_dir }}/user_config.yml"
-      when: not user_config.stat.exists
+      when: not user_config_stat.stat.exists
 
-    - name: Config files validated
-      ansible.builtin.debug:
-        msg: "Config files exist locally"
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for prepare
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
 
 
 - name: Prepare - Check prerequisites on OIM server
   hosts: oim_server
   gather_facts: true
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
 
   tasks:
     - name: Display target OIM server
@@ -69,13 +68,13 @@
 
     - name: Check if omnia.sh exists
       ansible.builtin.stat:
-        path: /opt/omnia-artifactory/omnia.sh
+        path: "{{ omnia_sh_path }}"
       register: omnia_sh_script
 
     - name: Fail if omnia.sh not found
       ansible.builtin.fail:
         msg: |
-          omnia.sh not found at /opt/omnia-artifactory/omnia.sh on OIM server {{ ansible_host }}
+          omnia.sh not found at {{ omnia_sh_path }} on OIM server {{ ansible_host }}
           Run the OIM prerequisite check first to download it:
             python3 run_prereq_check.py
       when: not omnia_sh_script.stat.exists

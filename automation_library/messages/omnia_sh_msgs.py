@@ -24,29 +24,50 @@ TEST_VARS = {
 
 # Test names (displayed in test output header)
 TEST_NAMES = {
+    # Install verification
+    "container_running": "Verify omnia_core container is running",
     "container_file": "Verify omnia_core.container file exists",
     "service_running": "Verify omnia_core service is running",
     "metadata_file": "Verify oim_metadata.yml file exists",
     "ssh_to_container": "Verify passwordless SSH: OIM server → omnia_core",
     "ssh_from_container": "Verify passwordless SSH: omnia_core → OIM server",
+    # Cleanup verification
+    "cleanup_container_removed": "Verify omnia_core container is removed",
+    "cleanup_service_removed": "Verify omnia_core.container file is removed",
+    "cleanup_fstab_removed": "Verify fstab entry is removed",
+    "cleanup_mount_removed": "Verify omnia_shared_path is unmounted",
 }
 
 # Test log messages
 TEST_LOG_MSGS = {
+    "container_running": "Container is running",
+    "container_not_running": "Container is NOT running",
     "file_exists": "File exists",
     "file_not_found": "File NOT found",
     "service_active": "Service is active",
     "service_inactive": "Service is {status}",
     "ssh_success": "Passwordless SSH successful",
     "ssh_failed": "Passwordless SSH FAILED",
+    # Cleanup messages
+    "cleanup_container_removed": "Container removed successfully",
+    "cleanup_container_still_running": "Container is still running",
+    "cleanup_service_removed": "Service file removed",
+    "cleanup_service_exists": "Service file still exists",
+    "cleanup_fstab_removed": "fstab entry removed",
+    "cleanup_fstab_exists": "fstab entry still exists",
+    "cleanup_mount_removed": "Mount point removed",
+    "cleanup_mount_exists": "Still mounted",
 }
 
 # Test assert messages
 TEST_ASSERT_MSGS = {
+    "container_not_running": "Container '{name}' is not running. Status: {status}",
     "file_not_found": "File not found: {path}",
     "service_not_active": "Expected 'active', got '{status}'",
     "ssh_failed": "SSH failed: {error}",
     "config_missing": "oim_server_ip not configured",
+    # Cleanup asserts
+    "cleanup_failed": "Cleanup verification failed: {error}",
 }
 
 # =============================================================================

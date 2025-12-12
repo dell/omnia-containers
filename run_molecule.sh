@@ -4,26 +4,29 @@
 # =============================================================================
 #
 # Usage:
-#   ./run_molecule.sh [command] [scenario]
+#   ./run_molecule.sh <scenario> <command>
+#   ./run_molecule.sh all <command>              # Run all scenarios
 #
 # Commands:
-#   test      - Run tests (install + verify, NO cleanup) [DEFAULT]
-#   full      - Run full cycle (install + verify + cleanup)
-#   verify    - Run verification tests only (container must exist)
-#   install   - Run omnia.sh --install only
-#   cleanup   - Run omnia.sh --uninstall only
-#   status    - Check container status on OIM server
+#   test      - Run full test (create + prepare + converge + verify)
+#   verify    - Run verification tests only
+#   converge  - Run converge only (install/cleanup action)
+#   create    - Create inventory only
+#   prepare   - Run prepare only
+#   list      - List available scenarios
 #
 # Scenarios:
-#   omnia_sh  - Test omnia.sh script [DEFAULT]
+#   omnia_sh_install - Install omnia.sh and verify
+#   omnia_sh_cleanup - Cleanup omnia.sh and verify
+#   all              - Run all scenarios (reports appended)
+#   (more scenarios can be added)
 #
 # Examples:
-#   ./run_molecule.sh                    # Default: test omnia_sh
-#   ./run_molecule.sh test               # Install + verify (keeps container)
-#   ./run_molecule.sh full               # Full cycle with cleanup
-#   ./run_molecule.sh verify             # Verify only
-#   ./run_molecule.sh cleanup            # Cleanup only
-#   ./run_molecule.sh status             # Check container status
+#   ./run_molecule.sh omnia_sh_install test      # Install + verify
+#   ./run_molecule.sh omnia_sh_install verify    # Verify install only
+#   ./run_molecule.sh omnia_sh_cleanup test      # Cleanup + verify
+#   ./run_molecule.sh all test                   # Run ALL scenarios
+#   ./run_molecule.sh list                       # List scenarios
 #
 # =============================================================================
 
@@ -36,102 +39,173 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Default values
-COMMAND="${1:-test}"
-SCENARIO="${2:-omnia_sh}"
-
 # Change to script directory
 cd "$(dirname "$0")"
+
+# Parse arguments
+SCENARIO="$1"
+COMMAND="$2"
+
+# Handle special commands that don't need scenario
+case "$SCENARIO" in
+    list|--list)
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BLUE}  Available Molecule Scenarios${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        for dir in molecule/*/; do
+            if [[ -f "${dir}molecule.yml" ]]; then
+                name=$(basename "$dir")
+                echo -e "  ${GREEN}${name}${NC}"
+            fi
+        done
+        echo ""
+        exit 0
+        ;;
+    
+    help|--help|-h|"")
+        echo "Usage: $0 <scenario> <command>"
+        echo ""
+        echo "Commands:"
+        echo "  test      - Run full test (create + prepare + converge + verify)"
+        echo "  verify    - Run verification tests only"
+        echo "  converge  - Run converge only"
+        echo "  create    - Create inventory only"
+        echo "  prepare   - Run prepare only"
+        echo ""
+        echo "Scenarios:"
+        echo "  <name>    - Run specific scenario"
+        echo "  all       - Run ALL scenarios (reports appended)"
+        echo ""
+        echo "Special Commands:"
+        echo "  list      - List available scenarios"
+        echo "  help      - Show this help"
+        echo ""
+        echo "Examples:"
+        echo "  $0 omnia_sh_install test      # Install + verify"
+        echo "  $0 omnia_sh_install verify    # Verify install only"
+        echo "  $0 omnia_sh_cleanup test      # Cleanup + verify"
+        echo "  $0 all test                   # Run ALL scenarios"
+        echo "  $0 list                       # List scenarios"
+        exit 0
+        ;;
+    
+    all)
+        # Run all scenarios with shared report ID
+        # Order: install scenarios first, then cleanup scenarios
+        COMMAND="${COMMAND:-test}"
+        export OMNIA_REPORT_ID=$(cat /proc/sys/kernel/random/uuid | cut -c1-8)
+        
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${BLUE}  Omnia Molecule Test Runner - ALL SCENARIOS${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "  Command   : ${GREEN}${COMMAND}${NC}"
+        echo -e "  Report ID : ${GREEN}${OMNIA_REPORT_ID}${NC}"
+        echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+        echo ""
+        
+        # Build ordered list: install first, cleanup last
+        SCENARIOS=""
+        for dir in molecule/*/; do
+            if [[ -f "${dir}molecule.yml" ]]; then
+                name=$(basename "$dir")
+                if [[ "$name" == *"_install"* ]]; then
+                    SCENARIOS="$name $SCENARIOS"
+                elif [[ "$name" == *"_cleanup"* ]]; then
+                    SCENARIOS="$SCENARIOS $name"
+                else
+                    SCENARIOS="$SCENARIOS $name"
+                fi
+            fi
+        done
+        
+        FAILED=0
+        for name in $SCENARIOS; do
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}➜ Running: ${name} ${COMMAND}${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            
+            if molecule "${COMMAND}" -s "${name}"; then
+                echo -e "${GREEN}✔ ${name} completed${NC}"
+            else
+                echo -e "${RED}✘ ${name} failed${NC}"
+                FAILED=1
+            fi
+            echo ""
+        done
+        
+        if [[ $FAILED -eq 0 ]]; then
+            echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+            echo -e "${GREEN}  ✔ ALL SCENARIOS COMPLETED SUCCESSFULLY${NC}"
+            echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+        else
+            echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+            echo -e "${RED}  ✘ SOME SCENARIOS FAILED${NC}"
+            echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+            exit 1
+        fi
+        exit 0
+        ;;
+esac
+
+# Validate scenario exists
+if [[ ! -d "molecule/${SCENARIO}" ]]; then
+    echo -e "${RED}Error: Scenario '${SCENARIO}' not found${NC}"
+    echo "Run '$0 list' to see available scenarios."
+    exit 1
+fi
+
+# Default command
+COMMAND="${COMMAND:-test}"
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}  Omnia Molecule Test Runner${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
-echo -e "  Command  : ${GREEN}${COMMAND}${NC}"
 echo -e "  Scenario : ${GREEN}${SCENARIO}${NC}"
+echo -e "  Command  : ${GREEN}${COMMAND}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
 case "$COMMAND" in
     test)
-        echo -e "${YELLOW}➜ Running test (install + verify, NO cleanup)...${NC}"
-        echo -e "${YELLOW}  Container will remain running after tests.${NC}"
+        echo -e "${YELLOW}➜ Running full test...${NC}"
         echo ""
         molecule test -s "$SCENARIO"
         echo ""
-        echo -e "${GREEN}✔ Test completed. Container is still running.${NC}"
-        echo -e "${YELLOW}  Run './run_molecule.sh cleanup' to remove container.${NC}"
-        ;;
-    
-    full)
-        echo -e "${YELLOW}➜ Running full cycle (install + verify + cleanup)...${NC}"
-        echo ""
-        molecule test -s "$SCENARIO"
-        molecule cleanup -s "$SCENARIO"
-        echo ""
-        echo -e "${GREEN}✔ Full cycle completed. Container removed.${NC}"
+        echo -e "${GREEN}✔ Test completed.${NC}"
         ;;
     
     verify)
         echo -e "${YELLOW}➜ Running verification tests only...${NC}"
         echo ""
         molecule verify -s "$SCENARIO"
+        echo ""
+        echo -e "${GREEN}✔ Verify completed.${NC}"
         ;;
     
-    install|converge)
-        echo -e "${YELLOW}➜ Running omnia.sh --install...${NC}"
+    converge)
+        echo -e "${YELLOW}➜ Running converge...${NC}"
         echo ""
         molecule converge -s "$SCENARIO"
         echo ""
-        echo -e "${GREEN}✔ Install completed.${NC}"
-        ;;
-    
-    cleanup|destroy|uninstall)
-        echo -e "${YELLOW}➜ Running omnia.sh --uninstall...${NC}"
-        echo ""
-        molecule cleanup -s "$SCENARIO"
-        echo ""
-        echo -e "${GREEN}✔ Cleanup completed. Container removed.${NC}"
-        ;;
-    
-    status)
-        echo -e "${YELLOW}➜ Checking container status on OIM server...${NC}"
-        echo ""
-        # Load config
-        OIM_IP=$(grep "oim_server_ip:" user_config.yml | awk '{print $2}' | tr -d '"')
-        OIM_PASS=$(grep "oim_ssh_password:" user_config.yml | awk '{print $2}' | tr -d '"')
-        
-        echo -e "  OIM Server: ${GREEN}${OIM_IP}${NC}"
-        echo ""
-        
-        sshpass -p "$OIM_PASS" ssh -o StrictHostKeyChecking=no root@"$OIM_IP" \
-            "echo '=== Container Status ===' && podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' | grep -E 'NAMES|omnia' || echo 'No omnia containers found'"
+        echo -e "${GREEN}✔ Converge completed.${NC}"
         ;;
     
     create)
         echo -e "${YELLOW}➜ Creating inventory...${NC}"
+        echo ""
         molecule create -s "$SCENARIO"
+        echo ""
+        echo -e "${GREEN}✔ Create completed.${NC}"
         ;;
     
     prepare)
-        echo -e "${YELLOW}➜ Running prepare (prerequisites check)...${NC}"
+        echo -e "${YELLOW}➜ Running prepare...${NC}"
+        echo ""
         molecule prepare -s "$SCENARIO"
-        ;;
-    
-    help|--help|-h)
-        echo "Usage: $0 [command] [scenario]"
         echo ""
-        echo "Commands:"
-        echo "  test      - Run tests (install + verify, NO cleanup) [DEFAULT]"
-        echo "  full      - Run full cycle (install + verify + cleanup)"
-        echo "  verify    - Run verification tests only"
-        echo "  install   - Run omnia.sh --install only"
-        echo "  cleanup   - Run omnia.sh --uninstall only"
-        echo "  status    - Check container status on OIM server"
-        echo "  create    - Create inventory only"
-        echo "  prepare   - Run prerequisites check"
-        echo ""
-        echo "Scenarios:"
-        echo "  omnia_sh  - Test omnia.sh script [DEFAULT]"
+        echo -e "${GREEN}✔ Prepare completed.${NC}"
         ;;
     
     *)

@@ -1,0 +1,49 @@
+# =============================================================================
+# Molecule Configuration for omnia.sh Cleanup Testing
+# =============================================================================
+#
+# This module runs omnia.sh --uninstall and verifies cleanup was successful.
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh cleanup          # Run uninstall + verify cleanup
+#   ./run_molecule.sh verify cleanup   # Verify cleanup only
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: ../omnia_sh/create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+
+verifier:
+  name: testinfra
+  env:
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: omnia_sh_cleanup
+  test_sequence:
+    - create
+    - converge
+    - verify

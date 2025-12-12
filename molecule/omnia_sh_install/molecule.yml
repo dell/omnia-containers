@@ -1,0 +1,57 @@
+# =============================================================================
+# Molecule Configuration for omnia.sh Install Testing
+# =============================================================================
+#
+# This module runs omnia.sh --install and verifies installation.
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh test       # Install + verify
+#   ./run_molecule.sh verify     # Verify only
+#   ./run_molecule.sh install    # Install only
+#
+# Configuration:
+#   - user_config.yml: All configuration settings
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    prepare: prepare.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+
+verifier:
+  name: testinfra
+  env:
+    PYTHONPATH: "${MOLECULE_PROJECT_DIRECTORY}"
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: omnia_sh_install
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify

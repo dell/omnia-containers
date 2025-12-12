@@ -1,0 +1,64 @@
+---
+# =============================================================================
+# Molecule Converge - Run omnia.sh --uninstall on OIM Server
+# =============================================================================
+
+- name: Cleanup - Setup inventory and load config
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for cleanup
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+- name: Cleanup - Run omnia.sh --uninstall on OIM server
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
+    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running cleanup on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell:
+        cmd: podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
+      register: container_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Skip cleanup if container doesn't exist
+      ansible.builtin.debug:
+        msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping uninstall"
+      when: container_exists.rc != 0
+
+    - name: Run omnia.sh --uninstall with auto-confirm
+      ansible.builtin.shell:
+        cmd: echo "y" | {{ omnia_sh_path }} --uninstall
+      register: uninstall_result
+      when: container_exists.rc == 0
+      timeout: 120
+
+    - name: Fail if uninstall failed
+      ansible.builtin.fail:
+        msg: "omnia.sh --uninstall failed: {{ uninstall_result.stderr | default('Unknown error') }}"
+      when: container_exists.rc == 0 and uninstall_result.rc != 0
+
+    - name: Cleanup completed
+      ansible.builtin.debug:
+        msg: "omnia.sh --uninstall completed on {{ ansible_host }}"
+      when: container_exists.rc == 0

@@ -1,22 +1,37 @@
 # =============================================================================
-# OIM Prerequisite Check - User Configuration
+# Omnia Infrastructure Manager (OIM) - User Configuration
 # =============================================================================
+#
+# This is the single configuration file for all OIM automation tasks:
+#   - Prerequisite validation checks
+#   - Container image build
+#   - Omnia.sh installation and testing
+#
 # Fill in the values below according to your environment.
-# This file is read by the automation scripts.
-# Sections are ordered to match the check execution sequence.
+# All automation scripts read from this file.
+#
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Execution Control
-# -----------------------------------------------------------------------------
+# =============================================================================
+# EXECUTION CONTROL
+# =============================================================================
 # Set to true to continue running all checks even if some fail
 # Set to false to stop immediately on first failure
 skip_on_failure: false
 
-# -----------------------------------------------------------------------------
-# 0. Target OIM Server (Remote Execution) - REQUIRED
-# -----------------------------------------------------------------------------
-# Set to OIM server IP to run checks remotely via SSH.
+# #############################################################################
+#                                                                             #
+#                      OIM PREREQUISITE CONFIGURATION                         #
+#                                                                             #
+# #############################################################################
+# Settings for OIM server prerequisite checks (run_prereq_check.py)
+
+# =============================================================================
+# TARGET OIM SERVER
+# =============================================================================
+# Remote OIM server where all operations will be executed via SSH
+
+# OIM server IP address (REQUIRED)
 oim_server_ip: ""
 
 # SSH username for remote OIM server (default: root)
@@ -28,21 +43,19 @@ oim_ssh_password: ""
 # SSH port (default: 22)
 oim_ssh_port: 22
 
-# -----------------------------------------------------------------------------
-# 1. Hostname Configuration (FIRST TASK - runs before everything else)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# HOSTNAME CONFIGURATION
+# =============================================================================
 # Hostname to set for the OIM server (FQDN format required)
 # Example: "oim.omnia.test" or "oim-server.lab.local"
 # The hostname MUST include a domain (e.g., hostname.domain.tld)
 oim_hostname: ""
 
-# -----------------------------------------------------------------------------
-# 2. IPMI Tool - No configuration needed (auto-installed if missing)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# HARDWARE REQUIREMENTS
+# =============================================================================
+# Minimum hardware specifications required for OIM server
 
-# -----------------------------------------------------------------------------
-# 3. Hardware Requirements (Optional - defaults are usually fine)
-# -----------------------------------------------------------------------------
 # Minimum CPU cores required
 min_cores: 4
 
@@ -52,9 +65,11 @@ min_memory_gb: 8
 # Minimum disk space required (in GB)
 min_disk_gb: 50
 
-# -----------------------------------------------------------------------------
-# 4. OS Validation
-# -----------------------------------------------------------------------------
+# =============================================================================
+# OS VALIDATION
+# =============================================================================
+# Operating system requirements for OIM server
+
 # Required OS name (e.g., "rhel", "centos", "rocky")
 required_os: "rhel"
 
@@ -66,18 +81,17 @@ required_os_version: "10"
 # Leave empty to skip kernel version check
 required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
 
-# -----------------------------------------------------------------------------
-# 5. Network Interfaces
-# -----------------------------------------------------------------------------
+# =============================================================================
+# NETWORK INTERFACES
+# =============================================================================
+# Network interface configuration for OIM server
+
 # PXE interface name (for provisioning)
-pxe_interface: "eno1"
+pxe_interface: ""
 
 # Public interface name (for internet access)
-public_interface: "eno2"
+public_interface: ""
 
-# -----------------------------------------------------------------------------
-# 6. PXE NIC IP Configuration
-# -----------------------------------------------------------------------------
 # PXE interface IP address with subnet (CIDR notation)
 # If not set or empty, default is 172.16.107.254/24
 pxe_ip: ""
@@ -86,66 +100,80 @@ pxe_ip: ""
 # Set to true to remove existing IP and apply new configuration
 force_configure_pxe: true
 
-# -----------------------------------------------------------------------------
-# 6. NFS Configuration
-# -----------------------------------------------------------------------------
+# =============================================================================
+# NFS CONFIGURATION
+# =============================================================================
+# NFS server settings for shared storage
+
 # NFS server IP address
 nfs_server_ip: ""
 
 # NFS share path on the server
-nfs_share_path: "/mnt/ninja/automation"
+nfs_share_path: ""
 
 # Minimum NFS capacity required (in GB)
 nfs_min_capacity_gb: 100
 
-# -----------------------------------------------------------------------------
-# 7. Internet Connectivity - No configuration needed (pings 8.8.8.8 via public interface)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# PODMAN CONFIGURATION
+# =============================================================================
+# Container runtime requirements
 
-# -----------------------------------------------------------------------------
-# 8. Podman Configuration
-# -----------------------------------------------------------------------------
 # Minimum Podman version required
 podman_min_version: "5.0.0"
 
-# -----------------------------------------------------------------------------
-# 9. RHEL Repository - No configuration needed (checks dnf repolist)
-# -----------------------------------------------------------------------------
+# =============================================================================
+# CONTAINER IMAGE BUILD
+# =============================================================================
+# Settings for building Omnia container images
 
-# -----------------------------------------------------------------------------
-# 10. Git - No configuration needed (auto-installed if missing)
-# -----------------------------------------------------------------------------
-
-# -----------------------------------------------------------------------------
-# 11-12. Container Image Build (Optional - controlled by reconfigure_images)
-# -----------------------------------------------------------------------------
 # Set to true to clone Omnia Artifactory and build container images
 # Set to false to skip git clone and container build steps
 reconfigure_images: true
 
-# -----------------------------------------------------------------------------
-# 11. Omnia Artifactory Repository (Only if reconfigure_images: true)
-# -----------------------------------------------------------------------------
-# Omnia Artifactory Git repository URL (default: https://github.com/dell/omnia-artifactory.git)
-# Leave empty to use default, or set your own URL
+# Omnia Artifactory Git repository URL
+# Leave empty to use default: https://github.com/dell/omnia-artifactory.git
 omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
 
 # Artifactory branch to clone (default: omnia-container)
-# Leave empty to use default, or set your own branch
 artifactory_branch: "omnia-container"
 
 # Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
 omnia_clone_path: "/opt/omnia-artifactory"
 
-# -----------------------------------------------------------------------------
-# 12. Container Build Configuration (Only if reconfigure_images: true)
-# -----------------------------------------------------------------------------
 # Container images to build (comma-separated, default: core)
 # Example: "core" or "core,auth"
 container_images: "core"
 
-# Omnia branch for container build (REQUIRED - no default)
+# Omnia branch for container build (REQUIRED)
 # This is passed to build_images.sh as omnia_branch parameter
 # Can be a branch (e.g., "main", "pub/k8s_telemetry") or a tag (e.g., "v1.6.0")
-# The tool will automatically try both branch and tag URLs when downloading omnia.sh
 omnia_branch: "pub/k8s_telemetry"
+
+# #############################################################################
+#                                                                             #
+#                         OMNIA.SH INSTALLATION                               #
+#                                                                             #
+# #############################################################################
+# Configuration for omnia.sh --install command
+# These settings are used when running molecule converge or omnia.sh --install
+
+# Storage option (REQUIRED)
+# Choose how omnia will store data:
+#   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path above)
+#   "Local" - Use local disk storage
+share_option: "NFS"
+
+# NFS type (only if share_option is "NFS")
+#   "external" - External NFS server (outside OIM) - for HA and K8s clusters
+#   "internal" - NFS server on OIM itself - for flat provisioning only
+nfs_type: "external"
+
+# Omnia shared path (REQUIRED)
+# This is the local directory where omnia data will be stored
+# - For external NFS: This path will be used as mount point for NFS share
+# - For Local: This directory will store omnia data directly
+omnia_shared_path: "/opt/omnia"
+
+# Root password for accessing omnia_core container via SSH (REQUIRED)
+omnia_core_password: "dell"

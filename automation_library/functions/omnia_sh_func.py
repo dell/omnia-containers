@@ -10,7 +10,13 @@ Usage:
         run_omnia_sh_install,
         verify_container_running,
         verify_ssh_connection,
-        cleanup_omnia
+        cleanup_omnia,
+        # Test verification functions
+        check_container_running,
+        check_file_exists,
+        check_service_running,
+        check_ssh_to_container,
+        check_ssh_from_container,
     )
 
 Author: Dell Technologies
@@ -19,42 +25,11 @@ Author: Dell Technologies
 import os
 import subprocess
 import time
-from datetime import datetime
 from typing import Dict, Any, Tuple, Optional
 
 from ..vars.omnia_sh_vars import OMNIA_SH_VARS, get_omnia_sh_path, validate_config
-from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
-
-
-# =============================================================================
-# LOGGING
-# =============================================================================
-
-_debug_mode = False
-
-
-def set_debug_mode(enabled: bool) -> None:
-    """Enable or disable debug mode."""
-    global _debug_mode
-    _debug_mode = enabled
-
-
-def _log(message: str, level: str = "INFO") -> None:
-    """Print log message with timestamp."""
-    if level == "DEBUG" and not _debug_mode:
-        return
-    
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    colors = {
-        "INFO": "\033[94m",    # Blue
-        "DEBUG": "\033[90m",   # Gray
-        "WARN": "\033[93m",    # Yellow
-        "ERROR": "\033[91m",   # Red
-        "OK": "\033[92m",      # Green
-    }
-    reset = "\033[0m"
-    color = colors.get(level, "")
-    print(f"{color}[{timestamp}] [{level}] {message}{reset}")
+from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS
+from ..core.formatting import log as _log, set_debug_mode
 
 
 # =============================================================================
@@ -827,4 +802,346 @@ def _build_test_result(results: list, total: int, passed: int, failed: int) -> D
         "failed_count": failed,
         "results": results,
         "summary": summary
+    }
+
+
+# =============================================================================
+# TEST VERIFICATION FUNCTIONS (for pytest/testinfra)
+# =============================================================================
+# These functions are called by test_omnia_sh.py to verify installation.
+# They return structured results that the test file uses for assertions.
+
+def check_container_running(host) -> Dict[str, Any]:
+    """
+    Check if omnia_core container is running.
+    
+    Args:
+        host: testinfra host object
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    container_name = OMNIA_SH_VARS["container_name"]
+    
+    cmd = host.run(f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep {container_name}")
+    
+    if cmd.rc == 0 and container_name in cmd.stdout:
+        # Get detailed info
+        status_cmd = host.run(
+            f"podman ps --format '{{{{.Names}}}}|{{{{.Status}}}}|{{{{.Image}}}}|{{{{.Ports}}}}' | grep {container_name}"
+        )
+        parts = status_cmd.stdout.strip().split('|')
+        
+        return {
+            "success": True,
+            "details": {
+                "container": parts[0] if len(parts) > 0 else container_name,
+                "status": parts[1] if len(parts) > 1 else "unknown",
+                "image": parts[2] if len(parts) > 2 else "unknown",
+                "ports": parts[3] if len(parts) > 3 else "none",
+            },
+            "error": None
+        }
+    
+    # Check if exists but not running
+    exists_cmd = host.run(f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' | grep {container_name}")
+    if exists_cmd.rc == 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Container exists but not running: {exists_cmd.stdout.strip()}"
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": "Container does not exist"
+    }
+
+
+def check_file_exists(host, path: str) -> Dict[str, Any]:
+    """
+    Check if a file exists on the remote host.
+    
+    Args:
+        host: testinfra host object
+        path: file path to check
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    f = host.file(path)
+    
+    if f.exists:
+        info = host.run(f"ls -la {path}").stdout.strip()
+        return {
+            "success": True,
+            "details": info,
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"File not found: {path}"
+    }
+
+
+def check_service_running(host, service_name: str = None) -> Dict[str, Any]:
+    """
+    Check if a systemd service is running.
+    
+    Args:
+        host: testinfra host object
+        service_name: service name (default: omnia_core.service)
+    
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    service_name = service_name or TEST_VARS["service_name"]
+    
+    status = host.run(f"systemctl is-active {service_name}").stdout.strip()
+    info = host.run(f"systemctl status {service_name} --no-pager -l 2>/dev/null | head -10").stdout.strip()
+    
+    if status == "active":
+        return {
+            "success": True,
+            "status": status,
+            "details": info,
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "status": status,
+        "details": info,
+        "error": f"Service is {status}"
+    }
+
+
+def check_ssh_to_container(host, timeout: int = 5) -> Dict[str, Any]:
+    """
+    Check passwordless SSH from OIM server to omnia_core container.
+    
+    Args:
+        host: testinfra host object
+        timeout: SSH connection timeout
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    alias = TEST_VARS["ssh_alias"]
+    
+    cmd = host.run(f"ssh -o BatchMode=yes -o ConnectTimeout={timeout} {alias} 'whoami && pwd && echo SSH_OK'")
+    output = cmd.stdout.strip()
+    
+    if cmd.rc == 0 and "SSH_OK" in output:
+        lines = output.split('\n')
+        return {
+            "success": True,
+            "details": {
+                "user": lines[0] if len(lines) > 0 else "unknown",
+                "workdir": lines[1] if len(lines) > 1 else "unknown",
+                "connection": "passwordless (no password prompt)"
+            },
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": cmd.stderr.strip() or "SSH connection failed"
+    }
+
+
+def check_ssh_from_container(host, oim_ip: str, timeout: int = 5) -> Dict[str, Any]:
+    """
+    Check passwordless SSH from omnia_core container back to OIM server.
+    
+    Args:
+        host: testinfra host object
+        oim_ip: OIM server IP address
+        timeout: SSH connection timeout
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    alias = TEST_VARS["ssh_alias"]
+    
+    cmd = host.run(
+        f"ssh -o BatchMode=yes -o ConnectTimeout={timeout} {alias} "
+        f"'ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout={timeout} {oim_ip} "
+        f"whoami && echo SSH_REVERSE_OK'"
+    )
+    output = cmd.stdout.strip()
+    
+    if cmd.rc == 0 and "SSH_REVERSE_OK" in output:
+        lines = output.split('\n')
+        return {
+            "success": True,
+            "details": {
+                "user": lines[0] if len(lines) > 0 else "unknown",
+                "target": oim_ip,
+                "connection": "passwordless (key-based auth)"
+            },
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": cmd.stderr.strip() or "Reverse SSH connection failed"
+    }
+
+
+def check_metadata_file(host) -> Dict[str, Any]:
+    """
+    Check if oim_metadata.yml file exists and return its content.
+    
+    Args:
+        host: testinfra host object
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    path = TEST_VARS["metadata_file"]
+    f = host.file(path)
+    
+    if f.exists:
+        content = host.run(f"head -15 {path}").stdout.strip()
+        return {
+            "success": True,
+            "details": content,
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"Metadata file not found: {path}"
+    }
+
+
+# =============================================================================
+# CLEANUP VERIFICATION FUNCTIONS (for pytest/testinfra)
+# =============================================================================
+# These functions verify that cleanup was successful.
+
+def check_container_not_running(host) -> Dict[str, Any]:
+    """
+    Verify omnia_core container is NOT running (cleanup verification).
+    
+    Args:
+        host: testinfra host object
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    container_name = OMNIA_SH_VARS["container_name"]
+    
+    # Check if container is running
+    cmd = host.run(f"podman ps --format '{{{{.Names}}}}' | grep -q {container_name}")
+    
+    if cmd.rc != 0:
+        # Container not running - good
+        return {
+            "success": True,
+            "details": f"Container {container_name} is not running",
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"Container {container_name} is still running"
+    }
+
+
+def check_service_not_exists(host) -> Dict[str, Any]:
+    """
+    Verify omnia_core.service file does NOT exist (cleanup verification).
+    
+    Args:
+        host: testinfra host object
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    service_file = TEST_VARS["container_file"]  # /etc/containers/systemd/omnia_core.container
+    
+    f = host.file(service_file)
+    
+    if not f.exists:
+        return {
+            "success": True,
+            "details": f"Service file {service_file} removed",
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"Service file still exists: {service_file}"
+    }
+
+
+def check_fstab_entry_removed(host, omnia_shared_path: str = None) -> Dict[str, Any]:
+    """
+    Verify fstab entry for omnia_shared_path is removed (cleanup verification).
+    
+    Args:
+        host: testinfra host object
+        omnia_shared_path: path to check in fstab (default from config)
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    if omnia_shared_path is None:
+        omnia_shared_path = OMNIA_SH_VARS.get("omnia_shared_path", "/opt/omnia")
+    
+    cmd = host.run(f"grep -E '\\s+{omnia_shared_path}\\s+' /etc/fstab")
+    
+    if cmd.rc != 0:
+        # No entry found - good
+        return {
+            "success": True,
+            "details": f"No fstab entry for {omnia_shared_path}",
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"fstab entry still exists: {cmd.stdout.strip()}"
+    }
+
+
+def check_mount_removed(host, omnia_shared_path: str = None) -> Dict[str, Any]:
+    """
+    Verify omnia_shared_path is NOT mounted (cleanup verification).
+    
+    Args:
+        host: testinfra host object
+        omnia_shared_path: path to check (default from config)
+    
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    if omnia_shared_path is None:
+        omnia_shared_path = OMNIA_SH_VARS.get("omnia_shared_path", "/opt/omnia")
+    
+    cmd = host.run(f"mountpoint -q {omnia_shared_path}")
+    
+    if cmd.rc != 0:
+        # Not a mount point - good
+        return {
+            "success": True,
+            "details": f"{omnia_shared_path} is not mounted",
+            "error": None
+        }
+    
+    return {
+        "success": False,
+        "details": None,
+        "error": f"{omnia_shared_path} is still mounted"
     }

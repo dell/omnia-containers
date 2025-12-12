@@ -1,0 +1,201 @@
+---
+# =============================================================================
+# Molecule Converge - Run omnia.sh --install on OIM Server
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Run omnia.sh --install on OIM server
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    # All config from user_config.yml
+    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
+    share_option: "{{ user_config.share_option | default('NFS') }}"
+    nfs_type: "{{ user_config.nfs_type | default('external') }}"
+    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
+    omnia_core_password: "{{ user_config.omnia_core_password | default('') }}"
+    # container_name is hardcoded in omnia.sh script - cannot be changed
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running omnia.sh --install on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container is already running
+      ansible.builtin.shell:
+        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Skip install if container already running
+      ansible.builtin.debug:
+        msg: "omnia_core container is already running. Skipping install and cleanup."
+      when: container_check.rc == 0
+
+    # =========================================================================
+    # PRE-INSTALL CLEANUP (only if container is NOT running)
+    # =========================================================================
+
+    - name: Check if omnia_shared_path is a mount point
+      ansible.builtin.shell:
+        cmd: mountpoint -q {{ omnia_shared_path }} && echo "mounted" || echo "not_mounted"
+      register: mount_check
+      changed_when: false
+      failed_when: false
+      when: container_check.rc != 0
+
+    - name: Unmount omnia_shared_path if mounted
+      ansible.builtin.shell:
+        cmd: umount {{ omnia_shared_path }}
+      when: container_check.rc != 0 and mount_check.stdout == "mounted"
+      failed_when: false
+
+    - name: Remove fstab entry for omnia_shared_path
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        regexp: '.*\s+{{ omnia_shared_path }}\s+.*'
+        state: absent
+      when: container_check.rc != 0
+
+    - name: Check if nested omnia directory exists
+      ansible.builtin.stat:
+        path: "{{ omnia_shared_path }}/omnia"
+      register: nested_omnia_dir
+      when: container_check.rc != 0
+
+    - name: Remove nested omnia directory if exists
+      ansible.builtin.file:
+        path: "{{ omnia_shared_path }}/omnia"
+        state: absent
+      when: container_check.rc != 0 and nested_omnia_dir.stat.exists | default(false)
+
+    - name: Check if omnia_shared_path directory is clean
+      ansible.builtin.find:
+        paths: "{{ omnia_shared_path }}"
+        file_type: any
+      register: shared_path_contents
+      when: container_check.rc != 0
+      failed_when: false
+
+    - name: Display cleanup status
+      ansible.builtin.debug:
+        msg: "{{ omnia_shared_path }} is {{ 'empty and ready' if (shared_path_contents.matched | default(0)) == 0 else 'not empty (' + (shared_path_contents.matched | string) + ' items found)' }}"
+      when: container_check.rc != 0
+
+    # =========================================================================
+    # INSTALL CONFIGURATION
+    # =========================================================================
+
+    - name: Display configuration
+      ansible.builtin.debug:
+        msg:
+          - "Share Option: {{ share_option }}"
+          - "NFS Type: {{ nfs_type | default('N/A') }}"
+          - "NFS Server IP: {{ user_config.nfs_server_ip | default('N/A') }}"
+          - "NFS Share Path: {{ user_config.nfs_share_path | default('N/A') }}"
+          - "Omnia Shared Path: {{ omnia_shared_path }}"
+      when: container_check.rc != 0
+
+    - name: Make omnia.sh executable
+      ansible.builtin.file:
+        path: "{{ omnia_sh_path }}"
+        mode: '0755'
+      when: container_check.rc != 0
+
+    - name: Create input file for NFS External
+      ansible.builtin.copy:
+        content: |
+          1
+          1
+          {{ user_config.nfs_server_ip }}
+          {{ user_config.nfs_share_path }}
+          {{ omnia_shared_path }}
+          {{ omnia_core_password }}
+          {{ omnia_core_password }}
+        dest: /tmp/omnia_sh_inputs.txt
+        mode: '0600'
+      when: container_check.rc != 0 and share_option == "NFS" and nfs_type == "external"
+
+    - name: Create input file for NFS Internal
+      ansible.builtin.copy:
+        content: |
+          1
+          2
+          {{ user_config.nfs_server_ip }}
+          {{ user_config.nfs_share_path }}
+          {{ omnia_core_password }}
+          {{ omnia_core_password }}
+        dest: /tmp/omnia_sh_inputs.txt
+        mode: '0600'
+      when: container_check.rc != 0 and share_option == "NFS" and nfs_type == "internal"
+
+    - name: Create input file for Local
+      ansible.builtin.copy:
+        content: |
+          2
+          {{ omnia_shared_path }}
+          {{ omnia_core_password }}
+          {{ omnia_core_password }}
+        dest: /tmp/omnia_sh_inputs.txt
+        mode: '0600'
+      when: container_check.rc != 0 and share_option == "Local"
+
+    - name: Run omnia.sh --install with inputs
+      ansible.builtin.shell:
+        cmd: "{{ omnia_sh_path }} --install < /tmp/omnia_sh_inputs.txt"
+      register: install_result
+      timeout: 600
+      when: container_check.rc != 0
+
+    - name: Remove input file
+      ansible.builtin.file:
+        path: /tmp/omnia_sh_inputs.txt
+        state: absent
+      when: container_check.rc != 0
+
+    - name: Display install output
+      ansible.builtin.debug:
+        var: install_result.stdout_lines
+      when: container_check.rc != 0 and install_result is defined
+
+    - name: Wait for container to start (fresh install)
+      ansible.builtin.shell:
+        cmd: |
+          for i in $(seq 1 30); do
+            if podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core; then
+              echo "Container started"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Timeout waiting for container"
+          exit 1
+      register: container_wait
+      changed_when: false
+      when: container_check.rc != 0
+
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "{{ 'Container already running - skipped install' if container_check.rc == 0 else 'omnia.sh --install completed successfully' }} on OIM server {{ ansible_host }}"
