@@ -38,7 +38,7 @@ def pytest_sessionstart(session):
                 if part and part != "tests" and part != "molecule":
                     module_name = part
                     break
-    
+
     report_id = os.environ.get("OMNIA_REPORT_ID")
     report = TestReport(module_name, report_id)
     set_current_report(report)
@@ -56,17 +56,17 @@ def pytest_runtest_makereport(item, call):
     """Hook to capture test results and output."""
     outcome = yield
     result = outcome.get_result()
-    
+
     if result.when == "call":
         report = get_current_report()
         if report:
             passed = result.outcome == "passed"
             duration = result.duration if hasattr(result, "duration") else 0
             error = str(result.longrepr) if result.longrepr else None
-            
+
             # Get captured test output from logger
             output = get_test_output(item.name)
-            
+
             report.add_result(
                 test_name=item.name,
                 passed=passed,

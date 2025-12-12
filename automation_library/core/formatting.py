@@ -10,6 +10,7 @@ Contains:
 
 import os
 import sys
+from datetime import datetime
 
 
 def _supports_color() -> bool:
@@ -40,7 +41,7 @@ class Colors:
     RESET = "\033[0m" if _USE_COLOR else ""
     BOLD = "\033[1m" if _USE_COLOR else ""
     DIM = "\033[2m" if _USE_COLOR else ""
-    
+
     # Regular colors
     BLACK = "\033[30m" if _USE_COLOR else ""
     RED = "\033[31m" if _USE_COLOR else ""
@@ -51,7 +52,7 @@ class Colors:
     CYAN = "\033[36m" if _USE_COLOR else ""
     WHITE = "\033[37m" if _USE_COLOR else ""
     GRAY = "\033[90m" if _USE_COLOR else ""
-    
+
     # Bright colors
     BRIGHT_RED = "\033[91m" if _USE_COLOR else ""
     BRIGHT_GREEN = "\033[92m" if _USE_COLOR else ""
@@ -59,7 +60,7 @@ class Colors:
     BRIGHT_BLUE = "\033[94m" if _USE_COLOR else ""
     BRIGHT_MAGENTA = "\033[95m" if _USE_COLOR else ""
     BRIGHT_CYAN = "\033[96m" if _USE_COLOR else ""
-    
+
     # Background
     BG_RED = "\033[41m" if _USE_COLOR else ""
     BG_GREEN = "\033[42m" if _USE_COLOR else ""
@@ -81,7 +82,7 @@ class Symbols:
     CIRCLE = "○"
     BOX = "■"
     TRIANGLE = "▶"
-    
+
     # Box drawing
     DASH = "─"
     PIPE = "│"
@@ -97,8 +98,6 @@ class Symbols:
 # LOGGING
 # =============================================================================
 
-from datetime import datetime
-
 _debug_mode = False
 
 
@@ -111,14 +110,14 @@ def set_debug_mode(enabled: bool) -> None:
 def log(message: str, level: str = "INFO") -> None:
     """
     Print log message with timestamp and color.
-    
+
     Args:
         message: Message to log
         level: Log level (INFO, DEBUG, WARN, ERROR, OK)
     """
     if level == "DEBUG" and not _debug_mode:
         return
-    
+
     timestamp = datetime.now().strftime("%H:%M:%S")
     level_colors = {
         "INFO": Colors.BRIGHT_BLUE,
@@ -146,45 +145,45 @@ def get_test_output(test_name: str = None) -> str:
 class TestLogger:
     """
     Structured test output logger for pytest/molecule tests.
-    
+
     Usage:
         log = TestLogger("Verify container exists")
         log.check("Checking file...")
         log.passed("File exists", "details here")
     """
-    
+
     def __init__(self, test_name: str):
         global _last_output
         self.test_name = test_name
         self._output_lines = []
         self._add_line("")
         self._add_line(f"  {Colors.BRIGHT_CYAN}{Colors.BOLD}{Symbols.TRIANGLE} {test_name}{Colors.RESET}")
-    
+
     def _add_line(self, line: str):
         """Add line to output and print."""
         global _last_output
         self._output_lines.append(line)
         print(line)
         _last_output = "\n".join(self._output_lines)
-    
+
     def check(self, message: str):
         """Log check being performed."""
         self._add_line(f"  {Colors.BRIGHT_YELLOW}{Symbols.ARROW}{Colors.RESET} {message}")
-    
+
     def passed(self, message: str, details: str = None):
         """Log passed result."""
         self._add_line(f"  {Colors.BRIGHT_GREEN}{Symbols.CHECK} PASS:{Colors.RESET} {message}")
         if details:
             for line in details.split('\n'):
                 self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")
-    
+
     def failed(self, message: str, details: str = None):
         """Log failed result."""
         self._add_line(f"  {Colors.BRIGHT_RED}{Symbols.CROSS} FAIL:{Colors.RESET} {message}")
         if details:
             for line in details.split('\n'):
                 self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")
-    
+
     def get_output(self) -> str:
         """Get all captured output."""
         return "\n".join(self._output_lines)

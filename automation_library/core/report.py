@@ -3,13 +3,14 @@ Test Report Generator for molecule/pytest tests.
 Organizes reports by server (IP/hostname).
 """
 
-import os
 import json
-import uuid
+import os
 import socket
-import yaml
+import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 
 def _get_project_root() -> str:
@@ -34,10 +35,10 @@ def _get_server_info() -> Dict[str, str]:
             # Try to resolve hostname from IP
             try:
                 hostname = socket.gethostbyaddr(ip)[0]
-            except:
+            except (socket.herror, socket.gaierror, OSError):
                 hostname = ip
         return {"ip": ip, "hostname": hostname}
-    except:
+    except (IOError, yaml.YAMLError):
         return {"ip": "localhost", "hostname": "localhost"}
 
 
@@ -164,22 +165,21 @@ def _generate_html(data: Dict[str, Any]) -> str:
             <div class="meta">Generated: ''' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '''</div>
         </header>
 '''
-    
+
     servers = data.get("servers", {})
     if not servers:
         html += '<div class="no-servers">No test results yet. Run tests to generate report.</div>'
     else:
         html += '<div class="layout"><div class="sidebar"><div class="server-list"><h3><span class="icon icon-server">⬡</span> Targets</h3>'
-        
+
         # Server list sidebar
         first_server = True
         for server_ip, server_data in servers.items():
             runs = server_data.get("runs", [])
             total_passed = sum(r["summary"]["passed"] for r in runs)
             total_failed = sum(r["summary"]["failed"] for r in runs)
-            hostname = server_data.get("hostname", server_ip)
             active = "active" if first_server else ""
-            
+
             html += f'''
             <div class="server-item {active}" onclick="showServer('{server_ip}')">
                 <div class="server-ip">{server_ip}</div>
@@ -190,9 +190,9 @@ def _generate_html(data: Dict[str, Any]) -> str:
                 </div>
             </div>'''
             first_server = False
-        
+
         html += '</div></div><div class="main">'
-        
+
         # Server content panels
         first_server = True
         test_id = 0
@@ -203,7 +203,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
             total_failed = sum(r["summary"]["failed"] for r in runs)
             total_tests = total_passed + total_failed
             active = "active" if first_server else ""
-            
+
             html += f'''
             <div class="server-content {active}" id="server-{server_ip.replace('.', '-')}">
                 <h2 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
@@ -217,7 +217,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     <div class="card total"><div class="number">{len(runs)}</div><div class="label">Pipelines</div></div>
                 </div>
 '''
-            
+
             run_id = 0
             for run in reversed(runs):
                 run_id += 1
@@ -225,7 +225,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                 badge_text = f'{run["summary"]["passed"]}/{run["summary"]["total"]}' if status == "passed" else f'{run["summary"]["failed"]} FAIL'
                 collapsed = "collapsed" if run_id > 1 else ""
                 unique_run_id = f"{server_ip.replace('.', '-')}-{run_id}"
-                
+
                 # Get modules list (new format) or create from old format
                 modules = run.get("modules", [])
                 if not modules and "results" in run:
@@ -236,13 +236,12 @@ def _generate_html(data: Dict[str, Any]) -> str:
                         "summary": run["summary"],
                         "duration_seconds": run.get("total_duration_seconds", 0)
                     }]
-                
+
                 num_modules = len(modules)
-                module_names = ", ".join(m["module"] for m in modules)
-                
+
                 # Calculate total duration for run
                 total_duration = sum(m.get("duration_seconds", 0) for m in modules)
-                
+
                 html += f'''
                 <div class="run {collapsed}" id="run-{unique_run_id}">
                     <div class="run-header" onclick="toggleRun('{unique_run_id}')">
@@ -260,13 +259,13 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     </div>
                     <div class="run-body">
 '''
-                
+
                 # Render each module
                 for mod_idx, module in enumerate(modules):
                     mod_status = "passed" if module["summary"]["failed"] == 0 else "failed"
                     mod_badge = f'{module["summary"]["passed"]}/{module["summary"]["total"]}'
                     mod_id = f"{unique_run_id}-mod-{mod_idx}"
-                    
+
                     html += f'''
                         <div class="module" id="module-{mod_id}">
                             <div class="module-header" onclick="toggleModule('{mod_id}')">
@@ -278,13 +277,13 @@ def _generate_html(data: Dict[str, Any]) -> str:
                             </div>
                             <div class="module-body">
 '''
-                    
+
                     for test in module["results"]:
                         test_id += 1
                         test_status = "passed" if test["status"] == "PASSED" else "failed"
                         icon = "✓" if test_status == "passed" else "✗"
                         has_output = test.get("details") or test.get("error")
-                        
+
                         html += f'''
                             <div class="test-item" id="test-{test_id}">
                                 <div class="test-row" onclick="toggleTest(event, {test_id})">
@@ -308,16 +307,16 @@ def _generate_html(data: Dict[str, Any]) -> str:
                                 html += f'<div class="error-box">Error:\n{error_text}</div>'
                             html += '</div>'
                         html += '</div>'
-                    
+
                     html += '</div></div>'
-                
+
                 html += '</div></div>'
-            
+
             html += '</div>'
             first_server = False
-        
+
         html += '</div></div>'
-    
+
     html += '''
         <footer>Omnia Automation Framework</footer>
     </div>
@@ -341,27 +340,27 @@ def _generate_html(data: Dict[str, Any]) -> str:
     </script>
 </body>
 </html>'''
-    
+
     return html
 
 
 class TestReport:
     """Test report generator - organizes by server."""
-    
+
     def __init__(self, module_name: str, report_id: str = None):
         self.module_name = module_name
         self.report_id = report_id or str(uuid.uuid4())[:8]
         self.start_time = datetime.now()
         self.results: List[Dict[str, Any]] = []
         self.server_info = _get_server_info()
-        
+
         print(f"\n┌{'─'*68}┐")
         print(f"│  {'SERVER:':<12} {self.server_info['ip']:<52} │")
         print(f"│  {'MODULE:':<12} {module_name:<52} │")
         print(f"│  {'REPORT ID:':<12} {self.report_id:<52} │")
         print(f"└{'─'*68}┘\n")
-    
-    def add_result(self, test_name: str, passed: bool, duration: float = 0.0, 
+
+    def add_result(self, test_name: str, passed: bool, duration: float = 0.0,
                    details: str = None, error: str = None):
         result = {
             "test_name": test_name,
@@ -374,13 +373,13 @@ class TestReport:
         if error:
             result["error"] = error
         self.results.append(result)
-    
+
     def save(self) -> str:
         end_time = datetime.now()
         duration = (end_time - self.start_time).total_seconds()
         passed = sum(1 for r in self.results if r["status"] == "PASSED")
         failed = sum(1 for r in self.results if r["status"] == "FAILED")
-        
+
         # Module data (tests grouped by module)
         module_data = {
             "module": self.module_name,
@@ -390,43 +389,43 @@ class TestReport:
             "summary": {"total": len(self.results), "passed": passed, "failed": failed},
             "results": self.results,
         }
-        
+
         report = _load_report()
         server_ip = self.server_info["ip"]
-        
+
         # Initialize server entry if not exists
         if "servers" not in report:
             report["servers"] = {}
-        
+
         if server_ip not in report["servers"]:
             report["servers"][server_ip] = {
                 "hostname": self.server_info["hostname"],
                 "runs": []
             }
-        
+
         # Update hostname in case it changed
         report["servers"][server_ip]["hostname"] = self.server_info["hostname"]
-        
+
         # Find existing run with same report_id
         runs = report["servers"][server_ip]["runs"]
         existing_run_idx = next(
-            (i for i, r in enumerate(runs) if r.get("report_id") == self.report_id), 
+            (i for i, r in enumerate(runs) if r.get("report_id") == self.report_id),
             None
         )
-        
+
         if existing_run_idx is not None:
             # Same report_id - add/update module within run
             run = runs[existing_run_idx]
             if "modules" not in run:
                 # Migrate old format to new format
                 run["modules"] = []
-            
+
             # Find existing module or add new
             existing_mod_idx = next(
                 (i for i, m in enumerate(run["modules"]) if m.get("module") == self.module_name),
                 None
             )
-            
+
             if existing_mod_idx is not None:
                 # Extend existing module results
                 run["modules"][existing_mod_idx]["results"].extend(self.results)
@@ -440,7 +439,7 @@ class TestReport:
             else:
                 # Add new module to run
                 run["modules"].append(module_data)
-            
+
             # Update run summary
             run["end_time"] = end_time.isoformat()
             all_passed = sum(m["summary"]["passed"] for m in run["modules"])
@@ -460,19 +459,19 @@ class TestReport:
                 "modules": [module_data],
             }
             runs.append(run_data)
-        
+
         # Save JSON
         _save_json(report)
-        
+
         # Generate HTML
         html_file = os.path.join(_get_report_dir(), "test_report.html")
         with open(html_file, "w") as f:
             f.write(_generate_html(report))
-        
+
         # Print summary
         status_color = "\033[92m" if failed == 0 else "\033[91m"
         reset = "\033[0m"
-        
+
         print(f"\n┌{'─'*68}┐")
         print(f"│  {'REPORT SAVED':<64} │")
         print(f"├{'─'*68}┤")
@@ -484,7 +483,7 @@ class TestReport:
         print(f"│  📄 JSON: reports/test_report.json{'':<30} │")
         print(f"│  🌐 HTML: reports/test_report.html{'':<30} │")
         print(f"└{'─'*68}┘\n")
-        
+
         return html_file
 
 

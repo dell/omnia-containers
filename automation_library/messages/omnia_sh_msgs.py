@@ -75,21 +75,21 @@ TEST_ASSERT_MSGS = {
 # =============================================================================
 
 OMNIA_SH_MSGS: Dict[str, str] = {
-    
+
     # =========================================================================
     # CONFIGURATION VALIDATION
     # =========================================================================
     "config_valid": "Configuration validation passed",
     "config_invalid": "Configuration validation failed",
     "config_error": "Configuration error: {error}",
-    
+
     # =========================================================================
     # PREREQUISITES
     # =========================================================================
     "prereq_check_start": "Checking prerequisites for omnia.sh...",
     "prereq_check_pass": "All prerequisites met",
     "prereq_check_fail": "Prerequisites check failed",
-    
+
     "podman_installed": "Podman is installed: {version}",
     "podman_not_installed": "Podman is NOT installed",
     "podman_install_instruction": """
@@ -97,7 +97,7 @@ ACTION REQUIRED: Install Podman.
 - Run: sudo dnf install -y podman
 - Verify: podman --version
 """,
-    
+
     "hostname_valid": "Hostname is valid: {hostname}",
     "hostname_invalid": "Hostname is invalid or not configured with domain",
     "hostname_instruction": """
@@ -105,7 +105,7 @@ ACTION REQUIRED: Configure hostname with domain.
 - Set hostname: hostnamectl set-hostname <hostname>.<domain>
 - Example: hostnamectl set-hostname oim.example.com
 """,
-    
+
     "image_found": "Omnia core image found: {image}:{tag}",
     "image_not_found": "Omnia core image not found locally",
     "image_pull_start": "Pulling omnia_core image from Docker Hub...",
@@ -116,7 +116,7 @@ ACTION REQUIRED: Build omnia_core image locally.
 - Clone: git clone https://github.com/dell/omnia-artifactory -b omnia-container
 - Build: cd omnia-artifactory && ./build_images.sh core omnia_branch=<branch>
 """,
-    
+
     # =========================================================================
     # OMNIA.SH EXECUTION
     # =========================================================================
@@ -127,7 +127,7 @@ ACTION REQUIRED: Download omnia.sh script.
 - Ensure omnia.sh is present in the expected location.
 - Or run the OIM prereq check to download it.
 """,
-    
+
     "install_start": "Starting omnia.sh --install...",
     "install_success": "omnia.sh --install completed successfully",
     "install_fail": "omnia.sh --install failed",
@@ -139,11 +139,11 @@ ACTION REQUIRED: omnia.sh installation failed.
 - Check if shared path exists and is writable.
 - Error: {error}
 """,
-    
+
     "uninstall_start": "Starting omnia.sh --uninstall...",
     "uninstall_success": "omnia.sh --uninstall completed successfully",
     "uninstall_fail": "omnia.sh --uninstall failed",
-    
+
     # =========================================================================
     # CONTAINER VERIFICATION
     # =========================================================================
@@ -157,11 +157,11 @@ ACTION REQUIRED: Container is not running.
 - Check systemd service: systemctl status {container_name}.service
 - Try restarting: systemctl restart {container_name}.service
 """,
-    
+
     "container_wait_start": "Waiting for container to start (timeout: {timeout}s)...",
     "container_wait_success": "Container started successfully",
     "container_wait_timeout": "Container did not start within {timeout} seconds",
-    
+
     # =========================================================================
     # SSH VERIFICATION
     # =========================================================================
@@ -175,7 +175,7 @@ ACTION REQUIRED: SSH connection failed.
 - Check SSH config: cat ~/.ssh/config | grep omnia_core
 - Try manual SSH: ssh -p {ssh_port} root@localhost
 """,
-    
+
     # =========================================================================
     # DIRECTORY VERIFICATION
     # =========================================================================
@@ -188,7 +188,7 @@ ACTION REQUIRED: Required directory not found.
 - Check if omnia.sh completed successfully.
 - Check shared path permissions.
 """,
-    
+
     # =========================================================================
     # CLEANUP
     # =========================================================================
@@ -196,7 +196,7 @@ ACTION REQUIRED: Required directory not found.
     "cleanup_success": "Cleanup completed successfully",
     "cleanup_fail": "Cleanup failed: {error}",
     "cleanup_skip": "Skipping cleanup (cleanup_after_test: false)",
-    
+
     # =========================================================================
     # TEST RESULTS
     # =========================================================================

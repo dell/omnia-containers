@@ -23,36 +23,36 @@ from .oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 # =============================================================================
 
 OMNIA_SH_VARS: Dict[str, Any] = {
-    
+
     # =========================================================================
     # USER INPUTS - all from user_config.yml
     # =========================================================================
-    
+
     # NFS settings (section 6)
     "nfs_server_ip": OIM_PREREQ_VARS.get("nfs_server_ip", ""),
     "nfs_share_path": OIM_PREREQ_VARS.get("nfs_share_path", ""),
-    
+
     # Clone path (section 11)
     "omnia_clone_path": OIM_PREREQ_VARS.get("omnia_clone_path", "/opt/omnia-artifactory"),
-    
+
     # Omnia.sh install settings (section 13)
     "share_option": OIM_PREREQ_VARS.get("share_option", "NFS"),
     "nfs_type": OIM_PREREQ_VARS.get("nfs_type", "external"),
     "omnia_shared_path": OIM_PREREQ_VARS.get("omnia_shared_path", "/opt/omnia"),
     "omnia_core_password": OIM_PREREQ_VARS.get("omnia_core_password", ""),
-    
+
     # =========================================================================
     # SCRIPT DEFAULTS - same as omnia.sh (DO NOT OVERRIDE)
     # =========================================================================
-    
+
     "container_name": "omnia_core",      # Hardcoded in omnia.sh
     "ssh_port": 2222,                     # Hardcoded in omnia.sh
     "container_image_tag": "1.0",         # Hardcoded in omnia.sh
-    
+
     # =========================================================================
     # TEST TIMEOUTS (internal use only)
     # =========================================================================
-    
+
     "command_timeout": 30,
     "install_timeout": 600,
     "container_start_timeout": 60,
@@ -62,7 +62,7 @@ OMNIA_SH_VARS: Dict[str, Any] = {
 def get_omnia_sh_path() -> str:
     """
     Get the path to omnia.sh script.
-    
+
     Returns:
         Absolute path to omnia.sh
     """
@@ -72,36 +72,36 @@ def get_omnia_sh_path() -> str:
 def validate_config() -> Dict[str, Any]:
     """
     Validate user inputs for omnia.sh execution.
-    
+
     Returns:
         Dict with 'valid' (bool) and 'errors' (list of error messages)
     """
     errors = []
-    
-    # Check omnia_sh_config.yml exists
-    if not os.path.exists(_OMNIA_SH_CONFIG_FILE):
-        errors.append(f"omnia_sh_config.yml not found at {_OMNIA_SH_CONFIG_FILE}")
+
+    # Check user_config.yml exists
+    if not os.path.exists(USER_CONFIG_PATH):
+        errors.append(f"user_config.yml not found at {USER_CONFIG_PATH}")
         return {"valid": False, "errors": errors}
-    
-    # Check required user inputs from omnia_sh_config.yml
+
+    # Check required user inputs
     if not OMNIA_SH_VARS["share_option"]:
-        errors.append(f"share_option not set in {OMNIA_SH_CONFIG_PATH}")
-    
+        errors.append(f"share_option not set in {USER_CONFIG_PATH}")
+
     if not OMNIA_SH_VARS["omnia_shared_path"]:
-        errors.append(f"omnia_shared_path not set in {OMNIA_SH_CONFIG_PATH}")
-    
+        errors.append(f"omnia_shared_path not set in {USER_CONFIG_PATH}")
+
     if not OMNIA_SH_VARS["omnia_core_password"]:
-        errors.append(f"omnia_core_password not set in {OMNIA_SH_CONFIG_PATH}")
-    
-    # Check NFS inputs from user_config.yml (only if NFS selected)
+        errors.append(f"omnia_core_password not set in {USER_CONFIG_PATH}")
+
+    # Check NFS inputs (only if NFS selected)
     if OMNIA_SH_VARS["share_option"] == "NFS":
         if not OMNIA_SH_VARS["nfs_type"]:
-            errors.append(f"nfs_type not set in {OMNIA_SH_CONFIG_PATH}")
+            errors.append(f"nfs_type not set in {USER_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_server_ip"]:
             errors.append(f"nfs_server_ip not set in {USER_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_share_path"]:
             errors.append(f"nfs_share_path not set in {USER_CONFIG_PATH}")
-    
+
     return {
         "valid": len(errors) == 0,
         "errors": errors

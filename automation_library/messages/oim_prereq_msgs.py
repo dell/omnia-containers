@@ -13,7 +13,7 @@ Message Naming Convention:
 Placeholders:
     Messages use Python string formatting with named placeholders.
     Example: "OS validation passed: {os_name} {os_version}"
-    
+
     Common placeholders:
         {config_path}   - Path to user_config.yml
         {interface}     - Network interface name
@@ -23,7 +23,7 @@ Placeholders:
 
 Usage:
     from automation_library.messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-    
+
     # Format a message with placeholders
     msg = OIM_PREREQ_MSGS["os_check_pass"].format(os_name="rhel", os_version="10")
 
@@ -44,7 +44,7 @@ OIM_PREREQ_MSGS: Dict[str, str] = {
     "hostname_set_fail": "Failed to set hostname: {error}",
     "hostname_invalid": "Hostname is invalid or missing domain",
     "hostname_not_configured": "Hostname not configured in user_config.yml",
-    
+
     # Error instructions for Hostname
     "hostname_instruction": """
 ACTION REQUIRED: Configure hostname in user_config.yml.
@@ -66,7 +66,7 @@ ACTION REQUIRED: Manually set hostname.
     "os_check_pass": "OS validation passed: {os_name} {os_version}",
     "os_check_fail": "OS validation FAILED: {os_name} {os_version} is not supported",
     "os_not_detected": "Could not detect OS information",
-    
+
     # Error instructions for OS
     "os_error_instruction": """
 ACTION REQUIRED: Install a supported operating system.
@@ -86,7 +86,7 @@ ACTION REQUIRED: Install a supported operating system.
     "hw_disk_pass": "Disk validation passed: {disk_gb} GB",
     "hw_disk_fail": "Disk validation FAILED: {disk_gb} GB (minimum: {min_disk_gb} GB)",
     "hw_dimms_info": "DIMM slots: {dimm_count}",
-    
+
     # Error instructions for Hardware
     "hw_error_instruction": """
 ACTION REQUIRED: Upgrade hardware to meet minimum requirements.
@@ -104,7 +104,7 @@ ACTION REQUIRED: Upgrade hardware to meet minimum requirements.
     "ipmi_not_installed": "IPMI tool not installed, attempting installation...",
     "ipmi_install_success": "IPMI tool installed successfully",
     "ipmi_install_fail": "IPMI tool installation FAILED: {error}",
-    
+
     # Error instructions for IPMI
     "ipmi_error_instruction": """
 ACTION REQUIRED: Install IPMI tool manually.
@@ -126,7 +126,7 @@ ACTION REQUIRED: Install IPMI tool manually.
     "iface_public_not_found": "Public interface NOT FOUND: {interface}",
     "iface_public_down": "Public interface is DOWN: {interface}",
     "iface_not_configured": "Interface name not configured",
-    
+
     # Error instructions for Network Interfaces
     "iface_pxe_not_found_instruction": """
 ACTION REQUIRED: PXE interface '{interface}' does not exist.
@@ -161,7 +161,7 @@ ACTION REQUIRED: Public interface '{interface}' is DOWN.
     "pxe_nic_configured": "PXE NIC {interface} configured with IP: {ip}",
     "pxe_nic_config_fail": "PXE NIC configuration FAILED: {error}",
     "pxe_nic_force_reconfig": "Force reconfigure enabled, removing existing IP...",
-    
+
     # Error instructions for PXE NIC Configuration
     "pxe_nic_config_instruction": """
 ACTION REQUIRED: Failed to configure PXE NIC IP.
@@ -178,9 +178,9 @@ ACTION REQUIRED: Failed to configure PXE NIC IP.
     "nfs_reachable": "NFS server reachable: {server}",
     "nfs_not_reachable": "NFS server NOT reachable: {server}",
     "nfs_capacity_pass": "NFS capacity validation passed: {capacity_gb} GB",
-    "nfs_capacity_fail": "NFS capacity INSUFFICIENT: {capacity_gb} GB (minimum: {min_capacity_gb} GB)",
+    "nfs_capacity_fail": "NFS capacity INSUFFICIENT: {capacity_gb} GB (min: {min_capacity_gb} GB)",
     "nfs_not_configured": "NFS server IP not configured",
-    
+
     # Error instructions for NFS
     "nfs_not_reachable_instruction": """
 ACTION REQUIRED: Cannot reach NFS server '{server}'.
@@ -219,7 +219,7 @@ ACTION REQUIRED: NFS server not configured.
     "internet_ping_success": "Ping to {host} successful via {interface}",
     "internet_ping_fail": "Ping to {host} FAILED via {interface}",
     "internet_no_public_interface": "Public interface not configured",
-    
+
     # Error instructions for Internet
     "internet_fail_instruction": """
 ACTION REQUIRED: No internet connectivity via '{interface}'.
@@ -236,7 +236,7 @@ ACTION REQUIRED: No internet connectivity via '{interface}'.
     "repo_check_start": "Checking RHEL repositories...",
     "repo_found": "RHEL repository found: {repo}",
     "repo_not_found": "No RHEL repository configured",
-    
+
     # Error instructions for RHEL Repo
     "repo_not_found_instruction": """
 ACTION REQUIRED: No RHEL repository found.
@@ -255,7 +255,7 @@ ACTION REQUIRED: No RHEL repository found.
     "git_install_success": "Git installed successfully from RHEL repo",
     "git_install_fail": "Git installation FAILED: {error}",
     "git_repo_not_found": "No RHEL repository found to install Git",
-    
+
     # Error instructions for Git
     "git_install_instruction": """
 ACTION REQUIRED: Failed to install Git.
@@ -272,7 +272,7 @@ ACTION REQUIRED: Failed to install Git.
     "podman_not_installed": "Podman NOT installed",
     "podman_version_pass": "Podman version OK: {version}",
     "podman_version_fail": "Podman version {version} is BELOW minimum {min_version}",
-    
+
     # Error instructions for Podman
     "podman_not_installed_instruction": """
 ACTION REQUIRED: Podman is not installed.
@@ -294,7 +294,7 @@ ACTION REQUIRED: Podman version is too old.
     "omnia_clone_success": "Omnia repository cloned/updated successfully",
     "omnia_clone_fail": "Omnia repository clone FAILED: {error}",
     "omnia_repo_not_configured": "Omnia repository URL not configured",
-    
+
     # Error instructions for Omnia Repository
     "omnia_clone_instruction": """
 ACTION REQUIRED: Failed to clone Omnia repository.
@@ -318,7 +318,7 @@ ACTION REQUIRED: Omnia repository not configured.
     "container_build_success": "Container images built successfully: {images}",
     "container_build_fail": "Container build FAILED: {error}",
     "container_build_skipped": "Skipped (reconfigure_images: false)",
-    
+
     # Error instructions for Container Build
     "container_build_instruction": """
 ACTION REQUIRED: Container build failed.
@@ -355,7 +355,7 @@ ACTION REQUIRED: Directory {clone_path} does not exist.
     "omnia_sh_download_start": "Downloading omnia.sh...",
     "omnia_sh_download_success": "omnia.sh downloaded from {ref_type}: {omnia_branch}",
     "omnia_sh_download_fail": "Failed to download omnia.sh",
-    
+
     # Error instructions for Download omnia.sh
     "omnia_sh_download_instruction": """
 ACTION REQUIRED: Could not download omnia.sh from '{omnia_branch}'.

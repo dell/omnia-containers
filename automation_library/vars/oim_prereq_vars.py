@@ -6,7 +6,7 @@ sensible defaults for all prerequisite check parameters.
 
 Usage:
     from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
-    
+
     # Access a variable
     server_ip = OIM_PREREQ_VARS["oim_server_ip"]
 
@@ -44,18 +44,18 @@ USER_CONFIG_PATH = _USER_CONFIG_FILE
 def _load_user_config() -> Dict[str, Any]:
     """
     Load user configuration from YAML file.
-    
+
     Returns:
         Dict containing user configuration, or empty dict if file not found/invalid.
-    
+
     Note:
         Silently returns empty dict on errors to allow defaults to be used.
     """
     if os.path.exists(_USER_CONFIG_FILE):
         try:
-            with open(_USER_CONFIG_FILE, "r") as f:
+            with open(_USER_CONFIG_FILE, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f) or {}
-        except Exception:
+        except (IOError, yaml.YAMLError):
             return {}
     return {}
 
@@ -67,7 +67,7 @@ _user_config = _load_user_config()
 # =============================================================================
 # OIM PREREQUISITE VARIABLES
 # =============================================================================
-# 
+#
 # This dictionary contains all configuration variables for prerequisite checks.
 # Values are loaded from user_config.yml with defaults as fallback.
 #
@@ -79,173 +79,176 @@ _user_config = _load_user_config()
 # =============================================================================
 
 OIM_PREREQ_VARS: Dict[str, Any] = {
-    
+
     # =========================================================================
     # EXECUTION CONTROL
     # =========================================================================
     # Controls how the tool behaves when a check fails
-    
+
     # skip_on_failure: If True, continue running checks even if one fails
     #                  If False, stop immediately on first failure
     "skip_on_failure": _user_config.get("skip_on_failure", True),
-    
+
     # =========================================================================
     # TARGET OIM SERVER (Remote Execution)
     # =========================================================================
     # SSH connection details for the remote OIM server where checks are run
-    
+
     # oim_server_ip: IP address of the target OIM server (REQUIRED)
     "oim_server_ip": _user_config.get("oim_server_ip", ""),
-    
+
     # oim_ssh_user: SSH username for remote connection
     "oim_ssh_user": _user_config.get("oim_ssh_user", "root"),
-    
+
     # oim_ssh_password: SSH password for remote connection (REQUIRED)
     "oim_ssh_password": _user_config.get("oim_ssh_password", ""),
-    
+
     # oim_ssh_port: SSH port number
     "oim_ssh_port": _user_config.get("oim_ssh_port", 22),
-    
+
     # =========================================================================
     # HOSTNAME CONFIGURATION (FIRST TASK)
     # =========================================================================
     # Hostname to set on the OIM server (must include domain)
-    
+
     # oim_hostname: FQDN to set (e.g., "oim.omnia.test")
     "oim_hostname": _user_config.get("oim_hostname", ""),
-    
+
     # =========================================================================
     # OS VALIDATION
     # =========================================================================
     # Requirements for the operating system on the target server
-    
+
     # required_os: Expected OS name (e.g., "rhel", "centos", "rocky")
     "required_os": _user_config.get("required_os", "rhel"),
-    
+
     # required_os_version: Expected OS version (e.g., "10", "9.3")
     "required_os_version": _user_config.get("required_os_version", "10"),
-    
+
     # required_kernel_version: Expected kernel version (empty = skip check)
     "required_kernel_version": _user_config.get("required_kernel_version", ""),
-    
+
     # =========================================================================
     # NETWORK INTERFACES
     # =========================================================================
     # Network interface configuration for PXE and public networks
-    
+
     # pxe_interface: Name of the PXE/provisioning network interface (e.g., "eno1")
     "pxe_interface": _user_config.get("pxe_interface", ""),
-    
+
     # pxe_ip: IP address to assign to PXE interface (CIDR notation)
     "pxe_ip": _user_config.get("pxe_ip", "") or "172.16.107.254/24",
-    
+
     # force_configure_pxe: If True, reconfigure PXE IP even if already set
     "force_configure_pxe": _user_config.get("force_configure_pxe", False),
-    
+
     # public_interface: Name of the public/internet-facing interface (e.g., "eno2")
     "public_interface": _user_config.get("public_interface", ""),
-    
+
     # =========================================================================
     # NFS CONFIGURATION
     # =========================================================================
     # NFS server details for shared storage
-    
+
     # nfs_server: IP address of the NFS server
     "nfs_server": _user_config.get("nfs_server_ip", ""),
-    
+
     # nfs_share_path: NFS export path (e.g., "/mnt/share")
     "nfs_share_path": _user_config.get("nfs_share_path", ""),
-    
+
     # nfs_min_capacity_gb: Minimum required NFS capacity in GB
     "nfs_min_capacity_gb": _user_config.get("nfs_min_capacity_gb", 100),
-    
+
     # =========================================================================
     # PODMAN CONFIGURATION
     # =========================================================================
     # Container runtime requirements
-    
+
     # podman_min_version: Minimum required Podman version (e.g., "4.0.0")
     "podman_min_version": _user_config.get("podman_min_version", "4.0.0"),
-    
+
     # =========================================================================
     # OMNIA ARTIFACTORY REPOSITORY
     # =========================================================================
     # Git repository settings for cloning Omnia Artifactory
-    
+
     # omnia_repo_url: Git URL for Omnia Artifactory repository
-    "omnia_repo_url": _user_config.get("omnia_repo_url", "") or "https://github.com/dell/omnia-artifactory.git",
-    
+    "omnia_repo_url": (
+        _user_config.get("omnia_repo_url", "") or
+        "https://github.com/dell/omnia-artifactory.git"
+    ),
+
     # artifactory_branch: Branch to clone from Omnia Artifactory repo
     "artifactory_branch": _user_config.get("artifactory_branch", "") or "omnia-container",
-    
+
     # omnia_clone_path: Local path where repository will be cloned
     "omnia_clone_path": _user_config.get("omnia_clone_path", "") or "/opt/omnia-artifactory",
-    
+
     # =========================================================================
     # CONTAINER BUILD CONFIGURATION
     # =========================================================================
     # Settings for building container images
-    
+
     # reconfigure_images: If True, clone repo and build container images
     #                     If False, skip git clone and container build
     "reconfigure_images": _user_config.get("reconfigure_images", False),
-    
+
     # container_images: Comma-separated list of images to build (e.g., "core,auth")
     "container_images": _user_config.get("container_images", "") or "core",
-    
+
     # omnia_branch: Omnia branch for container build and omnia.sh download
     #               Can be a branch name (e.g., "main") or tag (e.g., "v1.6.0")
     "omnia_branch": _user_config.get("omnia_branch", ""),
-    
+
     # =========================================================================
     # HARDWARE REQUIREMENTS
     # =========================================================================
     # Minimum hardware specifications for the target server
-    
+
     # min_cores: Minimum number of CPU cores required
     "min_cores": _user_config.get("min_cores", 4),
-    
+
     # min_memory_gb: Minimum RAM required in GB
     "min_memory_gb": _user_config.get("min_memory_gb", 16),
-    
+
     # min_disk_gb: Minimum disk space required in GB
     "min_disk_gb": _user_config.get("min_disk_gb", 100),
-    
+
     # =========================================================================
     # INTERNET CONNECTIVITY (Fixed Defaults)
     # =========================================================================
     # Settings for internet connectivity check - not user configurable
-    
+
     # internet_check_host: Host to ping for internet connectivity test
     "internet_check_host": "8.8.8.8",
-    
+
     # internet_timeout: Timeout in seconds for ping test
     "internet_timeout": 10,
-    
+
     # =========================================================================
     # IPMI TOOL (Fixed Defaults)
     # =========================================================================
     # IPMI tool settings - not user configurable
-    
+
     # ipmi_tool: Command name for IPMI tool
     "ipmi_tool": "ipmitool",
-    
+
     # ipmi_package: Package name to install if IPMI tool is missing
     "ipmi_package": "ipmitool",
-    
+
     # =========================================================================
     # GIT (Fixed Defaults)
     # =========================================================================
     # Git settings - not user configurable
-    
+
     # git_package: Package name to install if Git is missing
     "git_package": "git",
-    
+
     # =========================================================================
     # TIMEOUTS (Fixed Defaults)
     # =========================================================================
     # Command execution timeouts - not user configurable
-    
+
     # command_timeout: Default timeout in seconds for shell commands
     "command_timeout": 30,
 }
