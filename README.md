@@ -2,6 +2,13 @@
 
 Automation library for OIM (Omnia Infrastructure Manager) deployment, testing, and management.
 
+## Overview
+
+This framework provides:
+- **Prerequisite Validation** - Validates OIM server meets all requirements
+- **Container Image Build** - Clones repository and builds Omnia container images
+- **Automated Testing** - Molecule-based infrastructure testing with detailed reports
+
 ## Quick Start
 
 ```bash
@@ -11,15 +18,46 @@ cd omnia-artifactory
 
 # 2. Setup virtual environment
 ./setup_env.sh
-
-# 3. Activate the environment
 source .venv/bin/activate
 
-# 4. Configure your settings
+# 3. Configure your settings
 vi user_config.yml
 
-# 5. Run tests
+# 4. Run prerequisite checks
+oim-prereq-check
+
+# 5. Run molecule tests (optional)
 ./run_molecule.sh all test
+```
+
+## Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. CONFIGURE                                               │
+│     Edit user_config.yml with target server details         │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  2. PREREQUISITE CHECK (oim-prereq-check)                   │
+│     • Validates hardware, OS, network                       │
+│     • Configures PXE interface                              │
+│     • Verifies NFS connectivity                             │
+│     • Clones omnia-artifactory repository                   │
+│     • Builds container images                               │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  ✓ OIM SERVER READY FOR DEPLOYMENT                          │
+│     All prerequisites passed. Server is ready for omnia.sh  │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│  3. MOLECULE TESTS (optional)                               │
+│     • Runs omnia.sh installation                            │
+│     • Validates deployment                                  │
+│     • Generates HTML/JSON reports                           │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Installation
