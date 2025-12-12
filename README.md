@@ -1,32 +1,65 @@
-# OIM Prerequisite Check Tool
+# Omnia Automation Framework
 
-Tool to validate prerequisites for OIM (Omnia Infrastructure Manager) deployment on a remote server.
-
-> **Note:** This is the prerequisite check tool only. Full automation is under development.
+Automation library for OIM (Omnia Infrastructure Manager) deployment, testing, and management.
 
 ## Quick Start
 
 ```bash
-# 1. Clone/navigate to the project
-cd /opt/omnia/balaji/omnia_automation
+# 1. Clone the repository
+git clone https://github.com/dell/omnia-artifactory.git
+cd omnia-artifactory
 
-# 2. Install the tool
-pip install -r requirements.txt
+# 2. Setup virtual environment
+./setup_env.sh
 
-# 3. Configure your settings
+# 3. Activate the environment
+source .venv/bin/activate
+
+# 4. Configure your settings
 vi user_config.yml
 
-# 4. Run the prerequisite check
-oim-prereq-check
+# 5. Run tests
+./run_molecule.sh all test
 ```
 
 ## Installation
 
 ```bash
+# Option 1: Using setup script (recommended)
+./setup_env.sh
+source .venv/bin/activate
+
+# Option 2: Manual installation
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-This installs all dependencies and the `oim-prereq-check` command.
+## Molecule Testing
+
+Run automated infrastructure tests:
+
+```bash
+# List available scenarios
+./run_molecule.sh list
+
+# Run all scenarios
+./run_molecule.sh all test
+
+# Run specific scenario
+./run_molecule.sh <scenario> test
+
+# Other commands
+./run_molecule.sh <scenario> converge   # Run playbooks only
+./run_molecule.sh <scenario> verify     # Run tests only
+./run_molecule.sh <scenario> destroy    # Cleanup
+```
+
+### Test Reports
+
+After running tests, reports are generated in `reports/`:
+- `test_report.json` - JSON format
+- `test_report.html` - Interactive HTML report
 
 ## Configuration
 
@@ -73,29 +106,17 @@ omnia_branch: "pub/k8s_telemetry"    # Required if reconfigure_images is true
 skip_on_failure: true                # true=continue all checks, false=stop on first failure
 ```
 
-## Usage
+## Prerequisite Check
+
+Validate OIM server prerequisites before deployment:
 
 ```bash
-# Run prerequisite checks
-oim-prereq-check
-
-# Show help
-oim-prereq-check --help
-
-# Run with debug output
-oim-prereq-check --debug
-
-# Override config: stop on first failure
-oim-prereq-check --stop-on-failure
-
-# Override config: continue on failure
-oim-prereq-check --continue-on-failure
-
-# Don't save report file
-oim-prereq-check --no-report
+oim-prereq-check              # Run all checks
+oim-prereq-check --debug      # With debug output
+oim-prereq-check --help       # Show help
 ```
 
-## Checks Performed
+### Checks Performed
 
 | # | Check | Description |
 |---|-------|-------------|
@@ -112,36 +133,40 @@ oim-prereq-check --no-report
 | 11 | Omnia Artifactory | Clone repository & download omnia.sh (if reconfigure_images=true) |
 | 12 | Container Images | Build container images (if reconfigure_images=true) |
 
-## Report
+## Project Structure
 
-After running, a report is saved to:
 ```
-oim_prereq_report.txt
+omnia-artifactory/
+├── user_config.yml           # ← EDIT THIS FILE
+├── requirements.txt          # Dependencies
+├── setup.py                  # Package setup
+├── setup_env.sh              # Virtual environment setup
+├── run_molecule.sh           # Molecule test runner
+├── run_prereq_check.py       # Prerequisite check runner
+├── README.md
+├── automation_library/
+│   ├── core/                 # Core utilities
+│   │   ├── formatting.py     # Logging and colors
+│   │   ├── host.py           # Testinfra host utilities
+│   │   └── report.py         # Test report generator
+│   ├── vars/                 # Configuration variables
+│   ├── messages/             # User-facing messages
+│   └── functions/            # Business logic
+├── molecule/
+│   ├── conftest.py           # Pytest configuration
+│   ├── shared/               # Shared tasks
+│   └── <scenario>/           # Test scenarios
+│       ├── molecule.yml
+│       ├── converge.yml
+│       └── tests/
+└── reports/                  # Generated test reports
 ```
 
 ## Requirements
 
-- Python 3.9+
-- `sshpass` (auto-installed if using password authentication)
-- Remote server accessible via SSH
-
-## Project Structure
-
-```
-omnia_automation/
-├── user_config.yml          # ← EDIT THIS FILE
-├── run_prereq_check.py      # Main runner script
-├── requirements.txt         # Dependencies
-├── setup.py                 # Package setup
-├── README.md
-└── automation_library/
-    ├── vars/
-    │   └── oim_prereq_vars.py
-    ├── messages/
-    │   └── oim_prereq_msgs.py
-    └── functions/
-        └── oim_prereq_func.py
-```
+- Python 3.12+
+- SSH access to target OIM server
+- `sshpass` (auto-installed if needed)
 
 ## License
 
