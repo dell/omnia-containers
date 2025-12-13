@@ -1,0 +1,54 @@
+# =============================================================================
+# Molecule Configuration for prepare_oim Testing
+# =============================================================================
+#
+# This module runs prepare_oim.yml playbook inside omnia_core container
+# and verifies the deployment was successful.
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh prepare_oim test       # Run playbook + verify
+#   ./run_molecule.sh prepare_oim converge   # Run playbook only
+#   ./run_molecule.sh prepare_oim verify     # Verify only
+#
+# Configuration:
+#   - user_config.yml: OIM server connection settings
+#   - input/software_config.json: Determines if auth container is required
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: prepare_oim
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify
