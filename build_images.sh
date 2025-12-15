@@ -366,7 +366,7 @@ KAFKAPUMP_TAG="1.0"
 VICTORIAPUMP_TAG="1.0"
 TELEMETRY_RECEIVER_TAG="1.0"
 # Global fallback tag (used when image_tag= is specified)
-IMAGE_TAG="latest"
+IMAGE_TAG="1.0"
 
 # iDRAC Telemetry specific settings
 IDRAC_TELEMETRY_VERSION="main"  # Default branch/tag for iDRAC-Telemetry-Reference-Tools

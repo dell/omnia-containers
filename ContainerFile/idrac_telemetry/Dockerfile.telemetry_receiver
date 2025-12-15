@@ -15,9 +15,6 @@ ARG GROUP_ID
 ARG USERNAME
 ARG GROUPNAME
 ARG IDRAC_TELEMETRY_VERSION
-ARG VERSION
-ARG COMMIT_SHA
-ARG BUILD_DATE
 
 WORKDIR /build
 
@@ -37,22 +34,22 @@ RUN go mod download
 
 # Build all binaries with version information
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s -X main.Version=${VERSION} -X main.CommitSHA=${COMMIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
+    -ldflags="-w -s" \
     -o /build/idrac-telemetry-receiver \
     ./cmd/idrac-telemetry-receiver
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s -X main.Version=${VERSION} -X main.CommitSHA=${COMMIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
+    -ldflags="-w -s" \
     -o /build/dbdiscauth \
     ./cmd/dbdiscauth
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s -X main.Version=${VERSION} -X main.CommitSHA=${COMMIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
+    -ldflags="-w -s" \
     -o /build/configui \
     ./cmd/configui
 
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-w -s -X main.Version=${VERSION} -X main.CommitSHA=${COMMIT_SHA} -X main.BuildDate=${BUILD_DATE}" \
+    -ldflags="-w -s" \
     -o /build/redfishread \
     ./cmd/redfishread
 
@@ -84,10 +81,7 @@ COPY --from=builder /build/redfishread /redfishread
 LABEL org.opencontainers.image.title="iDRAC Telemetry Receiver" \
       org.opencontainers.image.description="Complete iDRAC Telemetry Collection Service" \
       org.opencontainers.image.vendor="Dell Technologies" \
-      org.opencontainers.image.source="https://github.com/dell/iDRAC-Telemetry-Reference-Tools" \
-      org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.revision="${COMMIT_SHA}" \
-      org.opencontainers.image.created="${BUILD_DATE}"
+      org.opencontainers.image.source="https://github.com/dell/iDRAC-Telemetry-Reference-Tools"
 
 USER ${USERNAME}
 ENTRYPOINT ["/idrac-telemetry-receiver"]
