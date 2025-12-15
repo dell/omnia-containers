@@ -20,7 +20,7 @@ def load_user_config() -> Dict[str, Any]:
     """Load user_config.yml."""
     config_path = os.path.join(_get_project_root(), "user_config.yml")
     if os.path.exists(config_path):
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     return {}
 
@@ -30,9 +30,11 @@ def _is_local_ip(ip: str) -> bool:
     if ip in ["localhost", "127.0.0.1", ""]:
         return True
     try:
-        result = subprocess.run(["hostname", "-I"], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(
+            ["hostname", "-I"], capture_output=True, text=True, timeout=5, check=False
+        )
         return ip in result.stdout.strip().split()
-    except Exception:
+    except (OSError, subprocess.SubprocessError):
         return False
 
 
@@ -59,11 +61,12 @@ def get_testinfra_host() -> testinfra.host.Host:
     os.makedirs(inventory_dir, exist_ok=True)
     inventory_path = os.path.join(inventory_dir, "inventory.ini")
 
-    with open(inventory_path, "w") as f:
-        f.write(f"[all]\n")
+    with open(inventory_path, "w", encoding="utf-8") as f:
+        f.write("[all]\n")
         f.write(f"oim_server ansible_host={oim_ip} ansible_user={ssh_user} ")
         f.write(f"ansible_port={ssh_port} ansible_ssh_pass={ssh_password} ")
-        f.write(f"ansible_connection=ssh ")
-        f.write(f"ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'\n")
+        f.write("ansible_connection=ssh ")
+        ssh_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        f.write(f"ansible_ssh_common_args='{ssh_args}'\n")
 
     return testinfra.get_host("ansible://oim_server", ansible_inventory=inventory_path)

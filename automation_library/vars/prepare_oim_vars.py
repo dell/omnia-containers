@@ -23,8 +23,8 @@ def _get_project_root() -> str:
 
 
 def _load_software_config() -> Dict[str, Any]:
-    """Load software_config.json from input directory."""
-    config_path = os.path.join(_get_project_root(), "input", "software_config.json")
+    """Load software_config.json from project_default directory."""
+    config_path = os.path.join(_get_project_root(), "project_default", "software_config.json")
     if os.path.exists(config_path):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
