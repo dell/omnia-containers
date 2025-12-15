@@ -186,6 +186,171 @@ build_omnia_auth() {
     cd - || exit
 }
 
+# Function to build kafkapump image (iDRAC Telemetry)
+build_kafkapump() {
+    echo "Building kafkapump image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
+    echo -e "Using Telemetry Version: ${YELLOW}${IDRAC_TELEMETRY_VERSION}${NC}"
+    echo -e "Using KafkaPump Tag: ${YELLOW}${KAFKAPUMP_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}${NC}"
+    fi
+    echo -e "${RED}---------------------------------${NC}"
+    
+    cd "$IDRAC_TELEMETRY_DIR" || exit
+    if [ "$BUILD_TOOL" = "podman" ]; then
+        podman build --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+            -t kafkapump:${KAFKAPUMP_TAG} -f Dockerfile.kafkapump .
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): kafkapump:${KAFKAPUMP_TAG}"
+    elif [ "$BUILD_TOOL" = "docker" ]; then
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t kafkapump:${KAFKAPUMP_TAG} --file Dockerfile.kafkapump --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): kafkapump:${KAFKAPUMP_TAG}"
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t "$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}" --file Dockerfile.kafkapump \
+                --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}"
+        else
+            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
+        exit 1
+    fi
+
+    if [ $BUILD_RESULT -eq 0 ]; then
+        echo -e "${GREEN}kafkapump image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("kafkapump")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
+    else
+        echo -e "${RED}kafkapump image build failed.${NC}"
+        FAILED_BUILDS+=("kafkapump")
+    fi
+    cd - || exit
+}
+
+# Function to build victoriapump image (iDRAC Telemetry)
+build_victoriapump() {
+    echo "Building victoriapump image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
+    echo -e "Using Telemetry Version: ${YELLOW}${IDRAC_TELEMETRY_VERSION}${NC}"
+    echo -e "Using VictoriaPump Tag: ${YELLOW}${VICTORIAPUMP_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}${NC}"
+    fi
+    echo -e "${RED}---------------------------------${NC}"
+    
+    cd "$IDRAC_TELEMETRY_DIR" || exit
+    if [ "$BUILD_TOOL" = "podman" ]; then
+        podman build --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+            -t victoriapump:${VICTORIAPUMP_TAG} -f Dockerfile.victoriapump .
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): victoriapump:${VICTORIAPUMP_TAG}"
+    elif [ "$BUILD_TOOL" = "docker" ]; then
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t victoriapump:${VICTORIAPUMP_TAG} --file Dockerfile.victoriapump --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): victoriapump:${VICTORIAPUMP_TAG}"
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t "$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}" --file Dockerfile.victoriapump \
+                --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}"
+        else
+            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
+        exit 1
+    fi
+
+    if [ $BUILD_RESULT -eq 0 ]; then
+        echo -e "${GREEN}victoriapump image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("victoriapump")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
+    else
+        echo -e "${RED}victoriapump image build failed.${NC}"
+        FAILED_BUILDS+=("victoriapump")
+    fi
+    cd - || exit
+}
+
+# Function to build telemetry_receiver image (iDRAC Telemetry)
+build_telemetry_receiver() {
+    echo "Building telemetry_receiver image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
+    echo -e "Using Telemetry Version: ${YELLOW}${IDRAC_TELEMETRY_VERSION}${NC}"
+    echo -e "Using Telemetry Receiver Tag: ${YELLOW}${TELEMETRY_RECEIVER_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
+    fi
+    echo -e "${RED}---------------------------------${NC}"
+    
+    cd "$IDRAC_TELEMETRY_DIR" || exit
+    if [ "$BUILD_TOOL" = "podman" ]; then
+        podman build --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+            -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} -f Dockerfile.telemetry_receiver .
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+    elif [ "$BUILD_TOOL" = "docker" ]; then
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} --file Dockerfile.telemetry_receiver --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache --build-arg IDRAC_TELEMETRY_VERSION="$IDRAC_TELEMETRY_VERSION" \
+                -t "$OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}" --file Dockerfile.telemetry_receiver \
+                --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+        else
+            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
+        exit 1
+    fi
+
+    if [ $BUILD_RESULT -eq 0 ]; then
+        echo -e "${GREEN}telemetry_receiver image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("telemetry_receiver")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
+    else
+        echo -e "${RED}telemetry_receiver image build failed.${NC}"
+        FAILED_BUILDS+=("telemetry_receiver")
+    fi
+    cd - || exit
+}
+
 # Default parameterized values
 OMNIA_VERSION="staging"
 BUILD_TOOL="podman"
@@ -193,16 +358,22 @@ BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
-CORE_TAG="1.0"
-AUTH_TAG="1.0"
-PCS_TAG="1.0"
-UBUNTU_LDMS_TAG="1.0"
+CORE_TAG="latest"
+AUTH_TAG="latest"
+PCS_TAG="latest"
+UBUNTU_LDMS_TAG="latest"
+KAFKAPUMP_TAG="latest"
+VICTORIAPUMP_TAG="latest"
+TELEMETRY_RECEIVER_TAG="latest"
 # Global fallback tag (used when image_tag= is specified)
-IMAGE_TAG="1.0"
+IMAGE_TAG="latest"
+
+# iDRAC Telemetry specific settings
+IDRAC_TELEMETRY_VERSION="main"  # Default branch/tag for iDRAC-Telemetry-Reference-Tools
 
 # Valid parameter names
-VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag")
-VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline")
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "idrac_telemetry_version")
+VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver")
 
 # Common parameters valid for all container types
 COMMON_PARAMS=("build_tool" "build_action" "image_tag")
@@ -242,6 +413,9 @@ for arg in "$@"; do
         AUTH_TAG="$IMAGE_TAG"
         PCS_TAG="$IMAGE_TAG"
         UBUNTU_LDMS_TAG="$IMAGE_TAG"
+        KAFKAPUMP_TAG="$IMAGE_TAG"
+        VICTORIAPUMP_TAG="$IMAGE_TAG"
+        TELEMETRY_RECEIVER_TAG="$IMAGE_TAG"
     elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
         CORE_TAG="${arg#core_tag=}"
     elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
@@ -250,6 +424,14 @@ for arg in "$@"; do
         PCS_TAG="${arg#pcs_tag=}"
     elif [[ "$arg" =~ ^ubuntu_ldms_tag=.*$ ]]; then
         UBUNTU_LDMS_TAG="${arg#ubuntu_ldms_tag=}"
+    elif [[ "$arg" =~ ^kafkapump_tag=.*$ ]]; then
+        KAFKAPUMP_TAG="${arg#kafkapump_tag=}"
+    elif [[ "$arg" =~ ^victoriapump_tag=.*$ ]]; then
+        VICTORIAPUMP_TAG="${arg#victoriapump_tag=}"
+    elif [[ "$arg" =~ ^telemetry_receiver_tag=.*$ ]]; then
+        TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}"
+    elif [[ "$arg" =~ ^idrac_telemetry_version=.*$ ]]; then
+        IDRAC_TELEMETRY_VERSION="${arg#idrac_telemetry_version=}"
     fi
 done
 
@@ -285,6 +467,9 @@ AUTH_DIR="ContainerFile/auth"
 
 # Ubuntu LDMS container variables
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
+
+# iDRAC Telemetry container variables
+IDRAC_TELEMETRY_DIR="ContainerFile/idrac_telemetry"
 
 # Function to validate container-specific parameters
 validate_container_params() {
@@ -352,8 +537,20 @@ else
                 ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "omnia_branch")
                 BUILDING_CORE=true
                 ;;
+            telemetry)
+                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "idrac_telemetry_version")
+                ;;
+            kafkapump)
+                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "idrac_telemetry_version")
+                ;;
+            victoriapump)
+                ALLOWED_TAG_PARAMS+=("victoriapump_tag" "idrac_telemetry_version")
+                ;;
+            telemetry-receiver)
+                ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag" "idrac_telemetry_version")
+                ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver.${NC}"
                 exit 1
                 ;;
         esac
@@ -392,6 +589,20 @@ else
                 build_omnia_core
                 build_omnia_auth
                 build_ubuntu_ldms
+                ;;
+            telemetry)
+                build_kafkapump
+                build_victoriapump
+                build_telemetry_receiver
+                ;;
+            kafkapump)
+                build_kafkapump
+                ;;
+            victoriapump)
+                build_victoriapump
+                ;;
+            telemetry-receiver)
+                build_telemetry_receiver
                 ;;
         esac
     done
