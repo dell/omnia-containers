@@ -160,6 +160,23 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     "nfs_min_capacity_gb": _user_config.get("nfs_min_capacity_gb", 100),
 
     # =========================================================================
+    # OMNIA.SH INSTALLATION
+    # =========================================================================
+    # Settings for omnia.sh --install command
+
+    # share_option: Storage option ("NFS" or "Local")
+    "share_option": _user_config.get("share_option", "NFS"),
+
+    # nfs_type: NFS type ("external" or "internal")
+    "nfs_type": _user_config.get("nfs_type", "external"),
+
+    # omnia_shared_path: Local path for omnia data storage
+    "omnia_shared_path": _user_config.get("omnia_shared_path", "/opt/omnia"),
+
+    # omnia_core_password: Root password for omnia_core container SSH
+    "omnia_core_password": _user_config.get("omnia_core_password", ""),
+
+    # =========================================================================
     # PODMAN CONFIGURATION
     # =========================================================================
     # Container runtime requirements

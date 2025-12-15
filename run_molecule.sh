@@ -5,7 +5,7 @@
 #
 # Usage:
 #   ./run_molecule.sh <scenario> <command>
-#   ./run_molecule.sh all <command>              # Run all scenarios
+#   ./run_molecule.sh all <command>              # Run install + prepare_oim
 #
 # Commands:
 #   test      - Run full test (create + prepare + converge + verify)
@@ -18,7 +18,7 @@
 # Scenarios:
 #   omnia_sh_install - Install omnia.sh and verify
 #   omnia_sh_cleanup - Cleanup omnia.sh and verify
-#   all              - Run all scenarios (reports appended)
+#   all              - Run omnia_sh_install + prepare_oim (not cleanup)
 #   (more scenarios can be added)
 #
 # Examples:
@@ -75,7 +75,7 @@ case "$SCENARIO" in
         echo ""
         echo "Scenarios:"
         echo "  <name>    - Run specific scenario"
-        echo "  all       - Run ALL scenarios (reports appended)"
+        echo "  all       - Run omnia_sh_install + prepare_oim (not cleanup)"
         echo ""
         echo "Special Commands:"
         echo "  list      - List available scenarios"
@@ -104,20 +104,9 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         
-        # Build ordered list: install first, cleanup last
-        SCENARIOS=""
-        for dir in molecule/*/; do
-            if [[ -f "${dir}molecule.yml" ]]; then
-                name=$(basename "$dir")
-                if [[ "$name" == *"_install"* ]]; then
-                    SCENARIOS="$name $SCENARIOS"
-                elif [[ "$name" == *"_cleanup"* ]]; then
-                    SCENARIOS="$SCENARIOS $name"
-                else
-                    SCENARIOS="$SCENARIOS $name"
-                fi
-            fi
-        done
+        # Build ordered list: omnia_sh_install first, then prepare_oim
+        # Note: cleanup scenarios are NOT included in "all" - run them explicitly
+        SCENARIOS="omnia_sh_install prepare_oim"
         
         FAILED=0
         for name in $SCENARIOS; do

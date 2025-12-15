@@ -27,6 +27,7 @@
 
   vars:
     user_config: "{{ hostvars['localhost']['user_config'] }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
     # All config from user_config.yml
     omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
@@ -36,6 +37,9 @@
     omnia_core_password: "{{ user_config.omnia_core_password | default('') }}"
     # container_name is hardcoded in omnia.sh script - cannot be changed
     container_name: "omnia_core"
+    # project_default paths
+    project_default_src: "{{ project_dir }}/project_default"
+    project_default_dest: "/opt/omnia/input/project_default"
 
   tasks:
     - name: Display target OIM server
@@ -196,6 +200,54 @@
       changed_when: false
       when: container_check.rc != 0
 
-    - name: Display result
+    - name: Display install result
       ansible.builtin.debug:
         msg: "{{ 'Container already running - skipped install' if container_check.rc == 0 else 'omnia.sh --install completed successfully' }} on OIM server {{ ansible_host }}"
+
+    # =========================================================================
+    # COPY PROJECT_DEFAULT INTO CONTAINER (via SSH port 2222)
+    # =========================================================================
+
+    - name: Sync project_default to container via rsync
+      ansible.builtin.shell:
+        cmd: >
+          rsync -avz --delete
+          -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          {{ project_default_src }}/
+          root@{{ ansible_host }}:{{ project_default_dest }}/
+      delegate_to: localhost
+      changed_when: true
+
+    # =========================================================================
+    # GENERATE VAULT KEY FOR CREDENTIALS (same as Omnia mechanism)
+    # =========================================================================
+
+    - name: Generate ansible vault key
+      ansible.builtin.set_fact:
+        omnia_credentials_vault_key: "{{ lookup('password', '/dev/null chars=ascii_letters length=20') }}"
+
+    - name: Create vault key file in container
+      ansible.builtin.shell:
+        cmd: >
+          sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          root@{{ ansible_host }}
+          "echo '{{ omnia_credentials_vault_key }}' > {{ project_default_dest }}/.omnia_config_credentials_key && chmod 600 {{ project_default_dest }}/.omnia_config_credentials_key"
+      delegate_to: localhost
+      changed_when: true
+      no_log: true
+
+    - name: Encrypt omnia_config_credentials.yml in container
+      ansible.builtin.shell:
+        cmd: >
+          sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          root@{{ ansible_host }}
+          "cd {{ project_default_dest }} && ansible-vault encrypt omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key"
+      delegate_to: localhost
+      changed_when: true
+      failed_when: false
+
+    - name: Display final result
+      ansible.builtin.debug:
+        msg: "omnia.sh --install, project_default sync, and vault key generation completed on OIM server {{ ansible_host }}"

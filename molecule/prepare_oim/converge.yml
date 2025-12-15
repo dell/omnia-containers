@@ -21,18 +21,15 @@
         cacheable: true
 
 
-- name: Converge - Copy input files and run prepare_oim.yml
+- name: Converge - Run prepare_oim.yml in omnia_core container
   hosts: oim_server
   gather_facts: false
 
   vars:
     user_config: "{{ hostvars['localhost']['user_config'] }}"
-    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
-    input_dir: "{{ project_dir }}/input"
     oim_input_dir: "/opt/omnia/input/project_default"
     omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
     prepare_oim_playbook: "/omnia/prepare_oim/prepare_oim.yml"
-    ssh_alias: "omnia_core"
 
   tasks:
     - name: Display target OIM server
@@ -56,42 +53,6 @@
       when: container_check.rc != 0
 
     # =========================================================================
-    # COPY INPUT FILES INTO OMNIA_CORE CONTAINER
-    # =========================================================================
-
-    - name: Create temp directory on OIM server
-      ansible.builtin.file:
-        path: /tmp/omnia_input
-        state: directory
-        mode: '0755'
-
-    - name: Copy input files from automation repo to OIM server
-      ansible.posix.synchronize:
-        src: "{{ input_dir }}/"
-        dest: "/tmp/omnia_input/"
-      delegate_to: localhost
-
-    - name: Copy input files into omnia_core container
-      ansible.builtin.command:
-        cmd: podman cp /tmp/omnia_input/. omnia_core:{{ oim_input_dir }}/
-      changed_when: true
-
-    - name: Cleanup temp directory
-      ansible.builtin.file:
-        path: /tmp/omnia_input
-        state: absent
-
-    - name: Verify input files in container
-      ansible.builtin.command:
-        cmd: podman exec omnia_core ls -la {{ oim_input_dir }}/
-      register: container_files
-      changed_when: false
-
-    - name: Display container input files
-      ansible.builtin.debug:
-        var: container_files.stdout_lines
-
-    # =========================================================================
     # RUN PREPARE_OIM PLAYBOOK
     # =========================================================================
 
@@ -109,10 +70,7 @@
       ansible.builtin.shell:
         cmd: |
           podman exec -w /omnia omnia_core \
-            ansible-playbook prepare_oim/prepare_oim.yml -v \
-            -e "config_file_status=true" \
-            -e "cred_file_status=true" \
-            --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+            ansible-playbook prepare_oim/prepare_oim.yml -v
       register: playbook_result
       timeout: 1800
       when: "'EXISTS' in playbook_check.stdout"
@@ -123,16 +81,11 @@
       ansible.builtin.debug:
         msg: |
           ============================================
-          PREPARE_OIM PLAYBOOK EXECUTION OUTPUT
+          PREPARE_OIM PLAYBOOK EXECUTION COMPLETE
           ============================================
           Return Code: {{ playbook_result.rc | default('N/A') }}
           ============================================
       when: playbook_result is defined
-
-    - name: Show full playbook output
-      ansible.builtin.debug:
-        var: playbook_result.stdout_lines
-      when: playbook_result is defined and playbook_result.stdout_lines is defined
 
     - name: Fail if playbook execution failed
       ansible.builtin.fail:
