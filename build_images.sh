@@ -216,9 +216,9 @@ build_kafkapump() {
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
-    cd "${IDRAC_TELEMETRY_CLONE_DIR}/docker-compose-files" || exit 1
+    cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg CMD=kafkapump -t kafkapump:${KAFKAPUMP_TAG} -f Dockerfile --context ..
+        podman build --build-arg CMD=kafkapump -t kafkapump:${KAFKAPUMP_TAG} -f docker-compose-files/Dockerfile .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): kafkapump:${KAFKAPUMP_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
@@ -273,9 +273,9 @@ build_victoriapump() {
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
-    cd "${IDRAC_TELEMETRY_CLONE_DIR}/docker-compose-files" || exit 1
+    cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg CMD=victoriapump -t victoriapump:${VICTORIAPUMP_TAG} -f Dockerfile --context ..
+        podman build --build-arg CMD=victoriapump -t victoriapump:${VICTORIAPUMP_TAG} -f docker-compose-files/Dockerfile .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): victoriapump:${VICTORIAPUMP_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
@@ -330,9 +330,9 @@ build_telemetry_receiver() {
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
-    cd "${IDRAC_TELEMETRY_CLONE_DIR}/docker-compose-files" || exit 1
+    cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} -f Dockerfile.telemetry_receiver --context ..
+        podman build -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} -f docker-compose-files/Dockerfile.telemetry_receiver .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then

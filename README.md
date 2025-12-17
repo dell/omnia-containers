@@ -458,7 +458,7 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 | `victoriapump_tag` | Image tag for VictoriaPump | `latest` | `victoriapump`, `telemetry` |
 | `telemetry_receiver_tag` | Image tag for Telemetry Receiver | `latest` | `telemetry-receiver`, `telemetry` |
 
-**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `ebd2ca1`. To use a different version, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `ebd2ca1`. To use a different branch/tag/commit, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
 
 ---
 
