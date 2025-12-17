@@ -79,9 +79,6 @@ The `build_images.sh` script builds the following containers:
 
 # Build specific telemetry container
 ./build_images.sh kafkapump image_tag=1.0
-
-# Build telemetry with specific iDRAC repo version
-./build_images.sh telemetry idrac_telemetry_version=main image_tag=latest
 ```
 
 ## Script Usage
@@ -104,10 +101,11 @@ The `build_images.sh` script builds the following containers:
 - `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`, `pipeline`)
 
 **iDRAC Telemetry Container-Specific Parameters:**
-- `idrac_telemetry_version=<branch|tag>` - iDRAC Telemetry repo version (default: `main`, valid with: `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`)
 - `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`)
 - `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`)
 - `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`)
+
+**Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `ebd2ca1`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
 - `all` - Builds: core and auth containers only
@@ -356,7 +354,7 @@ The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It a
 
 # **Building iDRAC Telemetry Containers**
 
-The build script now supports building containers for iDRAC Telemetry Reference Tools components. These containers are built from the source code in the [iDRAC-Telemetry-Reference-Tools repository](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+The build script now supports building containers for iDRAC Telemetry Reference Tools components. The script automatically clones the [iDRAC-Telemetry-Reference-Tools repository](https://github.com/dell/iDRAC-Telemetry-Reference-Tools) at commit `ebd2ca1` and uses its Dockerfiles to build the images.
 
 ## Components
 
@@ -382,10 +380,7 @@ Complete telemetry collection service that includes:
 ./build_images.sh telemetry
 
 # Build all with specific tag
-./build_images.sh telemetry image_tag=v1.0.0
-
-# Build all with specific iDRAC Telemetry repo version
-./build_images.sh telemetry idrac_telemetry_version=v1.2.0 image_tag=1.2.0
+./build_images.sh telemetry image_tag=v1.0
 ```
 
 ### Build Individual Telemetry Containers
@@ -395,23 +390,10 @@ Complete telemetry collection service that includes:
 ./build_images.sh kafkapump
 
 # Build only VictoriaPump with specific tag
-./build_images.sh victoriapump victoriapump_tag=v1.0.0
+./build_images.sh victoriapump victoriapump_tag=v1.0
 
 # Build only Telemetry Receiver
 ./build_images.sh telemetry-receiver telemetry_receiver_tag=latest
-```
-
-### Build with Different iDRAC Telemetry Versions
-
-```bash
-# Build from main branch (default)
-./build_images.sh telemetry
-
-# Build from specific tag
-./build_images.sh telemetry idrac_telemetry_version=v1.5.0
-
-# Build from specific branch
-./build_images.sh telemetry idrac_telemetry_version=develop
 ```
 
 ### Build and Push to Registry
@@ -439,27 +421,26 @@ Complete telemetry collection service that includes:
   victoriapump_tag=victoria-v1.0 \
   telemetry_receiver_tag=receiver-v1.0
 
-# Build multiple with mixed tags
-./build_images.sh kafkapump,victoriapump \
-  image_tag=1.0.0 \
-  idrac_telemetry_version=main
+# Build multiple with specific tags
+./build_images.sh kafkapump,victoriapump image_tag=1.0
 ```
 
 ## Container Details
 
-### Dockerfile Locations
+### Dockerfile Source
 
-- **KafkaPump**: `ContainerFile/idrac_telemetry/Dockerfile.kafkapump`
-- **VictoriaPump**: `ContainerFile/idrac_telemetry/Dockerfile.victoriapump`
-- **Telemetry Receiver**: `ContainerFile/idrac_telemetry/Dockerfile.telemetry_receiver`
+Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
+- **KafkaPump**: Uses `docker-compose-files/Dockerfile` with `CMD=kafkapump`
+- **VictoriaPump**: Uses `docker-compose-files/Dockerfile` with `CMD=victoriapump`
+- **Telemetry Receiver**: Uses `docker-compose-files/Dockerfile.telemetry_receiver`
 
 ### Build Process
 
-1. Clones iDRAC-Telemetry-Reference-Tools repository at specified version
-2. Downloads Go dependencies
-3. Builds static binaries with version information
+1. Clones iDRAC-Telemetry-Reference-Tools repository at commit `ebd2ca1` (if not already cloned)
+2. Uses Dockerfiles from the cloned repository
+3. Builds static binaries from source code
 4. Creates minimal scratch-based images
-5. Includes SBOM and provenance metadata (when pushed)
+5. Includes SBOM and provenance metadata (when pushed to registry)
 
 ### Image Characteristics
 
@@ -473,10 +454,11 @@ Complete telemetry collection service that includes:
 
 | Parameter | Description | Default | Valid With |
 |-----------|-------------|---------|------------|
-| `idrac_telemetry_version` | Git branch/tag of iDRAC-Telemetry-Reference-Tools | `main` | `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver` |
 | `kafkapump_tag` | Image tag for KafkaPump | `latest` | `kafkapump`, `telemetry` |
 | `victoriapump_tag` | Image tag for VictoriaPump | `latest` | `victoriapump`, `telemetry` |
 | `telemetry_receiver_tag` | Image tag for Telemetry Receiver | `latest` | `telemetry-receiver`, `telemetry` |
+
+**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `ebd2ca1`. To use a different version, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
 
 ---
 
