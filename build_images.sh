@@ -377,15 +377,15 @@ BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
-CORE_TAG="latest"
-AUTH_TAG="latest"
-PCS_TAG="latest"
-UBUNTU_LDMS_TAG="latest"
-KAFKAPUMP_TAG="latest"
-VICTORIAPUMP_TAG="latest"
-TELEMETRY_RECEIVER_TAG="latest"
+CORE_TAG="1.0"
+AUTH_TAG="1.0"
+PCS_TAG="1.0"
+UBUNTU_LDMS_TAG="1.0"
+KAFKAPUMP_TAG="1.0"
+VICTORIAPUMP_TAG="1.0"
+TELEMETRY_RECEIVER_TAG="1.0"
 # Global fallback tag (used when image_tag= is specified)
-IMAGE_TAG="latest"
+IMAGE_TAG="1.0"
 
 # Valid parameter names
 VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag")
