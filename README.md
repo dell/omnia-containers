@@ -105,7 +105,7 @@ The `build_images.sh` script builds the following containers:
 - `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`)
 - `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`)
 
-**Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `ebd2ca1`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
+**Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
 - `all` - Builds: core and auth containers only
@@ -354,7 +354,7 @@ The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It a
 
 # **Building iDRAC Telemetry Containers**
 
-The build script now supports building containers for iDRAC Telemetry Reference Tools components. The script automatically clones the [iDRAC-Telemetry-Reference-Tools repository](https://github.com/dell/iDRAC-Telemetry-Reference-Tools) at commit `ebd2ca1` and uses its Dockerfiles to build the images.
+The build script now supports building containers for iDRAC Telemetry Reference Tools components. The script automatically clones the [iDRAC-Telemetry-Reference-Tools repository](https://github.com/dell/iDRAC-Telemetry-Reference-Tools) at commit `e86fecb` and uses its Dockerfiles to build the images.
 
 ## Components
 
@@ -436,7 +436,7 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 
 ### Build Process
 
-1. Clones iDRAC-Telemetry-Reference-Tools repository at commit `ebd2ca1` (if not already cloned)
+1. Clones iDRAC-Telemetry-Reference-Tools repository at commit `e86fecb` (if not already cloned)
 2. Uses Dockerfiles from the cloned repository
 3. Builds static binaries from source code
 4. Creates minimal scratch-based images
@@ -458,7 +458,7 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 | `victoriapump_tag` | Image tag for VictoriaPump | `latest` | `victoriapump`, `telemetry` |
 | `telemetry_receiver_tag` | Image tag for Telemetry Receiver | `latest` | `telemetry-receiver`, `telemetry` |
 
-**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `ebd2ca1`. To use a different branch/tag/commit, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `e86fecb`. To use a different branch/tag/commit, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
 
 ---
 

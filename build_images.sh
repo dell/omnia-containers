@@ -192,9 +192,10 @@ clone_idrac_telemetry_repo() {
         echo -e "${YELLOW}Cloning iDRAC-Telemetry-Reference-Tools at commit ${IDRAC_TELEMETRY_COMMIT}...${NC}"
         git clone https://github.com/dell/iDRAC-Telemetry-Reference-Tools.git "$IDRAC_TELEMETRY_CLONE_DIR"
         cd "$IDRAC_TELEMETRY_CLONE_DIR" || exit 1
+        git fetch --all
         git checkout "$IDRAC_TELEMETRY_COMMIT"
         cd - > /dev/null || exit 1
-        echo -e "${GREEN}Repository cloned successfully.${NC}"
+        echo -e "${GREEN}Repository cloned and checked out to ${IDRAC_TELEMETRY_COMMIT}.${NC}"
     else
         echo -e "${YELLOW}iDRAC-Telemetry-Reference-Tools already cloned.${NC}"
     fi
@@ -485,7 +486,7 @@ AUTH_DIR="ContainerFile/auth"
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
 
 # iDRAC Telemetry container variables
-IDRAC_TELEMETRY_COMMIT="ebd2ca1"
+IDRAC_TELEMETRY_COMMIT="e86fecb"
 IDRAC_TELEMETRY_CLONE_DIR=".idrac-telemetry-tools"
 
 # Function to validate container-specific parameters
