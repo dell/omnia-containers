@@ -513,31 +513,95 @@ validate_container_params() {
 }
 
 # Parse command line arguments
-if [[ $# -eq 0 || "$1" == "all" ]]; then
-    # Build all containers - all tag parameters are valid
-    ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "omnia_branch")
+# Set default to 'oim' if no arguments provided
+CONTAINER_ARG="${1:-oim}"
+
+# Handle single container options with direct building
+case "$CONTAINER_ARG" in
+    oim)
+        # Build OIM containers (core and auth) - required for Omnia deployment
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "omnia_branch")
+        
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for 'oim': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+        
+        validate_container_params "oim" "${ALLOWED_TAG_PARAMS[@]}"
+        build_omnia_core
+        build_omnia_auth
+        ;;
     
-    # Check for invalid parameters first
-    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
-        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
-        echo -e "${YELLOW}Valid parameters for 'all': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
-        exit 1
-    fi
+    all)
+        # Build all containers
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+        
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for 'all': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+        
+        validate_container_params "all" "${ALLOWED_TAG_PARAMS[@]}"
+        build_omnia_core
+        build_omnia_auth
+        build_ubuntu_ldms
+        build_kafkapump
+        build_victoriapump
+        build_telemetry_receiver
+        ;;
     
-    validate_container_params "all" "${ALLOWED_TAG_PARAMS[@]}"
-    build_omnia_core
-    build_omnia_auth
-else
-    # Loop through each container specified in the arguments and build
-    IFS=',' read -r -a containers <<< "$1"
+    pipeline)
+        # Build pipeline containers (internal use)
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+        
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for 'pipeline': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+        
+        validate_container_params "pipeline" "${ALLOWED_TAG_PARAMS[@]}"
+        build_omnia_core
+        build_omnia_auth
+        build_ubuntu_ldms
+        build_kafkapump
+        build_victoriapump
+        build_telemetry_receiver
+        ;;
     
-    # Collect allowed parameters for the combination of containers
-    ALLOWED_TAG_PARAMS=()
-    BUILDING_CORE=false
+    telemetry)
+        # Build telemetry containers
+        ALLOWED_TAG_PARAMS=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag")
+        
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for 'telemetry': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+        
+        validate_container_params "telemetry" "${ALLOWED_TAG_PARAMS[@]}"
+        build_kafkapump
+        build_victoriapump
+        build_telemetry_receiver
+        ;;
+    
+    *)
+        # Handle individual containers or comma-separated lists
+        IFS=',' read -r -a containers <<< "$CONTAINER_ARG"
+        
+        # Collect allowed parameters for the combination of containers
+        ALLOWED_TAG_PARAMS=()
+        BUILDING_CORE=false
     
     for container in "${containers[@]}"; do
         case "$container" in
             all)
+                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                BUILDING_CORE=true
+                ;;
+            oim)
                 ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "omnia_branch")
                 BUILDING_CORE=true
                 ;;
@@ -571,7 +635,7 @@ else
                 ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag")
                 ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver.${NC}"
                 exit 1
                 ;;
         esac
@@ -591,6 +655,14 @@ else
     for container in "${containers[@]}"; do
         case "$container" in
             all)
+                build_omnia_core
+                build_omnia_auth
+                build_ubuntu_ldms
+                build_kafkapump
+                build_victoriapump
+                build_telemetry_receiver
+                ;;
+            oim)
                 build_omnia_core
                 build_omnia_auth
                 ;;
@@ -630,7 +702,8 @@ else
                 ;;
         esac
     done
-fi
+        ;;
+esac
 
 # Summary of builds
 echo -e "\n${BLUE}=== BUILD SUMMARY ===${NC}"

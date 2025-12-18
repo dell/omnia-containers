@@ -1,6 +1,6 @@
 # Omnia 2.0 Image Build Script for all containers
 
-This repository contains a script to build multiple containers images using either `Podman` or `Docker`. The script allows you to build different images like `omnia_core`, `omnia_auth`, `omnia_pcs`, and `ubuntu_ldms`.
+This repository contains a script to build multiple containers images using either `Podman` or `Docker`. The script allows you to build different images like `omnia_core`, `omnia_auth`, and `ubuntu_ldms`.
 
 ## Prerequisites
 
@@ -41,7 +41,6 @@ The `build_images.sh` script builds the following containers:
 ### Omnia Containers
 - **omnia_core**: image for core Omnia container - `core`.
 - **omnia_auth**: image for auth Omnia container - `auth`.
-- **omnia_pcs**: image for PCS container - `pcs`.
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 - **kafkapump**: Kafka data pump for iDRAC telemetry - `kafkapump`.
 - **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
@@ -50,21 +49,21 @@ The `build_images.sh` script builds the following containers:
 ## Quick Reference - Common Commands
 
 ```bash
-# Build all containers (default: podman, latest tags, staging branch)
+# Build OIM containers (core + auth) - default behavior
 ./build_images.sh
 # ⚠️ Warning will be shown about using default branch: staging
 
-# Build all with specific Omnia branch
+# Build OIM with specific Omnia branch
+./build_images.sh oim omnia_branch=v2.0.0.0-rc3
+
+# Build ALL containers (everything)
 ./build_images.sh all omnia_branch=v2.0.0.0-rc3
 
-# Build all with Docker and specific tag
-./build_images.sh all build_tool=docker image_tag=1.0 omnia_branch=staging
+# Build OIM with Docker and specific tag
+./build_images.sh oim build_tool=docker image_tag=1.0 omnia_branch=staging
 
 # Build specific containers (core + auth)
 ./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc3
-
-# Build pipeline (core + auth + ubuntu-ldms)
-./build_images.sh pipeline image_tag=1.0 omnia_branch=staging
 
 # Build only core with specific branch
 ./build_images.sh core omnia_branch=v2.0.0.0-rc3 core_tag=2.0
@@ -80,7 +79,7 @@ The `build_images.sh` script builds the following containers:
 
 ### Available Parameters
 
-**Container Options:** `all`, `core`, `pcs`, `auth`, `ubuntu-ldms`, `pipeline`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`
+**Container Options:** `oim`, `all`, `core`, `auth`, `ubuntu-ldms`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`
 
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
@@ -90,23 +89,22 @@ The `build_images.sh` script builds the following containers:
 **Note:** By default, `build_action=load` loads all built images into your local container engine (Podman or Docker) making them immediately available for use. This is the recommended action for users.
 
 **Omnia Container-Specific Parameters:**
-- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `staging`, valid with: `core`, `all`, `pipeline`)
+- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `staging`, valid with: `core`, `oim`, `all`)
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
-- `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `all`, `pipeline`)
-- `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `all`, `pipeline`)
-- `pcs_tag=<tag>` - Individual tag for omnia_pcs (valid with: `pcs`)
-- `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `pipeline`)
+- `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `oim`, `all`)
+- `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `oim`, `all`)
+- `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`)
 
 **iDRAC Telemetry Container-Specific Parameters:**
-- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`, `pipeline`)
-- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `pipeline`)
-- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `pipeline`)
+- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`, `all`)
+- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `all`)
+- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `all`)
 
 **Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
-- `all` - Builds: core and auth containers only
-- `pipeline` - Builds: core, auth, ubuntu-ldms, and all telemetry containers
+- `oim` - Builds: core and auth containers (required for Omnia deployment) - **This is the default**
+- `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver)
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
 **Parameter Validation:**
@@ -136,70 +134,93 @@ The script validates parameters in two stages with context-specific error messag
 
 ---
 
-### 1. Building ALL Images
+### 1. Building OIM Containers (Core + Auth)
 
-Build core and auth containers (the primary Omnia containers).
+Build core and auth containers required for Omnia deployment. This is the default and most common option.
 
 #### Basic - Default Settings
 ```bash
-# Build all with defaults (podman, latest tags, staging branch) - no parameters needed
+# Build OIM containers with defaults (podman, latest tags, staging branch) - no parameters needed
 ./build_images.sh
 # ⚠️ Warning: omnia_branch not specified, using default branch: staging
 
-# OR explicitly specify 'all'
-./build_images.sh all
+# OR explicitly specify 'oim'
+./build_images.sh oim
 # ⚠️ Warning: omnia_branch not specified, using default branch: staging
 
-# Build all with explicit branch (no warning)
-./build_images.sh all omnia_branch=staging
+# Build OIM with explicit branch (no warning)
+./build_images.sh oim omnia_branch=staging
 ```
 
-Both commands build core and auth containers with default settings (podman, latest tags, staging branch).
+These commands build core and auth containers with default settings (podman, latest tags, staging branch).
 
 #### With Docker
 ```bash
-# Build all images with Docker
-./build_images.sh all build_tool=docker
+# Build OIM containers with Docker
+./build_images.sh oim build_tool=docker
 ```
 
 #### With Omnia Branch/Version
 ```bash
-# Build all with specific Omnia branch (default tool: podman) - no warning
-./build_images.sh all omnia_branch=v2.0.0.0-rc3
+# Build OIM with specific Omnia branch (default tool: podman) - no warning
+./build_images.sh oim omnia_branch=v2.0.0.0-rc3
 
-# Build all with specific branch and Docker - no warning
-./build_images.sh all omnia_branch=v2.0.0.0-rc3 build_tool=docker
+# Build OIM with specific branch and Docker - no warning
+./build_images.sh oim omnia_branch=v2.0.0.0-rc3 build_tool=docker
 
-# Build all with explicit staging branch (same as default but no warning)
-./build_images.sh all omnia_branch=staging
+# Build OIM with explicit staging branch (same as default but no warning)
+./build_images.sh oim omnia_branch=staging
 ```
 
 **Note:** Explicitly specifying `omnia_branch=staging` suppresses the warning even though staging is the default.
 
-#### With Unified Tag for All Images
+#### With Unified Tag
 ```bash
-# Build all with same tag "1.0"
-./build_images.sh all image_tag=1.0
+# Build OIM with same tag "1.0"
+./build_images.sh oim image_tag=1.0
 
-# Build all with tag "1.0" using Docker
-./build_images.sh all image_tag=1.0 build_tool=docker
+# Build OIM with tag "1.0" using Docker
+./build_images.sh oim image_tag=1.0 build_tool=docker
 
-# Build all with tag "2.0" and specific branch
-./build_images.sh all omnia_branch=v2.0.0.0-rc3 image_tag=2.0
+# Build OIM with tag "2.0" and specific branch
+./build_images.sh oim omnia_branch=v2.0.0.0-rc3 image_tag=2.0
 ```
 
 #### With Individual Tags per Container
 ```bash
-# Build all (core and auth) with different tags
-./build_images.sh all core_tag=1.0 auth_tag=1.1
+# Build OIM (core and auth) with different tags
+./build_images.sh oim core_tag=1.0 auth_tag=1.1
 
-# Build all with individual tags using Docker
-./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1
+# Build OIM with individual tags using Docker
+./build_images.sh oim build_tool=docker core_tag=1.0 auth_tag=1.1
 ```
 
 ---
 
-### 2. Building Specific Images
+### 2. Building ALL Containers
+
+Build all available containers including Omnia containers and telemetry components.
+
+```bash
+# Build all containers with defaults
+./build_images.sh all
+
+# Build all with specific branch
+./build_images.sh all omnia_branch=v2.0.0.0-rc3
+
+# Build all with unified tag
+./build_images.sh all image_tag=1.0
+
+# Build all with Docker
+./build_images.sh all build_tool=docker image_tag=1.0
+
+# Build all with individual tags
+./build_images.sh all core_tag=1.0 auth_tag=1.1 ubuntu_ldms_tag=1.2
+```
+
+---
+
+### 3. Building Specific Images
 
 Build individual containers or specific combinations.
 
@@ -223,12 +244,6 @@ Build individual containers or specific combinations.
 # Build only auth with specific tag
 ./build_images.sh auth auth_tag=1.0
 
-# Build only pcs (omnia_branch not valid here)
-./build_images.sh pcs
-
-# Build only pcs with specific tag
-./build_images.sh pcs pcs_tag=1.0
-
 # Build only ubuntu-ldms (omnia_branch not valid here)
 ./build_images.sh ubuntu-ldms
 
@@ -236,7 +251,7 @@ Build individual containers or specific combinations.
 ./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
 ```
 
-**Note:** `omnia_branch` is only valid when building containers that include `core` (i.e., `core`, `all`, `pipeline`, or any combination including `core`).
+**Note:** `omnia_branch` is only valid when building containers that include `core` (i.e., `core`, `oim`, `all`, or any combination including `core`).
 
 #### Multiple Specific Containers
 ```bash
@@ -262,38 +277,20 @@ Build individual containers or specific combinations.
 ./build_images.sh core,auth,ubuntu-ldms image_tag=1.0
 ```
 
-**Note:** When building multiple containers, only the tag parameters for those specific containers are valid. For example, using `pcs_tag` when building `core,auth` will result in an error.
-
-#### Pipeline Builds (core + auth + ubuntu-ldms)
-```bash
-# Build pipeline containers with defaults
-./build_images.sh pipeline
-
-# Build pipeline with unified tag
-./build_images.sh pipeline image_tag=1.0
-
-# Build pipeline with individual tags
-./build_images.sh pipeline core_tag=1.0 auth_tag=1.1 ubuntu_ldms_tag=1.2
-
-# Build pipeline with Docker
-./build_images.sh pipeline build_tool=docker image_tag=1.0
-
-# Build pipeline with specific Omnia branch
-./build_images.sh pipeline omnia_branch=v2.0.0.0-rc3 image_tag=1.0
-```
+**Note:** When building multiple containers, only the tag parameters for those specific containers are valid. For example, using `ubuntu_ldms_tag` when building `core,auth` will result in an error.
 
 ---
 
-### 3. Understanding Image Loading (Default Behavior)
+### 4. Understanding Image Loading (Default Behavior)
 
 By default, the script uses `build_action=load` which builds and loads images into your local container engine.
 
 #### What Happens with Load (Default)
 ```bash
 # These commands automatically load images locally
-./build_images.sh all omnia_branch=v2.0.0.0-rc3
+./build_images.sh oim omnia_branch=v2.0.0.0-rc3
 ./build_images.sh core,auth image_tag=1.0
-./build_images.sh pipeline
+./build_images.sh all
 ```
 
 **After building, images are immediately available:**
@@ -313,10 +310,10 @@ While `load` is the default, you can explicitly specify it:
 
 ```bash
 # Explicitly use load action (same as default)
-./build_images.sh all build_action=load image_tag=1.0
+./build_images.sh oim build_action=load image_tag=1.0
 
 # Load with Docker instead of Podman
-./build_images.sh all build_tool=docker build_action=load image_tag=1.0
+./build_images.sh oim build_tool=docker build_action=load image_tag=1.0
 ```
 
 
