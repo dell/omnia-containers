@@ -43,9 +43,7 @@ The `build_images.sh` script builds the following containers:
 - **omnia_auth**: image for auth Omnia container - `auth`.
 - **omnia_pcs**: image for PCS container - `pcs`.
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
-
-### iDRAC Telemetry Containers
-- **kafkapump**: Apache Kafka data pump for iDRAC telemetry - `kafkapump`.
+- **kafkapump**: Kafka data pump for iDRAC telemetry - `kafkapump`.
 - **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
 - **telemetry_receiver**: Complete telemetry collection service - `telemetry-receiver`.
 
@@ -61,9 +59,6 @@ The `build_images.sh` script builds the following containers:
 
 # Build all with Docker and specific tag
 ./build_images.sh all build_tool=docker image_tag=1.0 omnia_branch=staging
-
-# Build and push all to registry
-./build_images.sh all build_tool=docker build_action=push image_tag=1.0 omnia_branch=staging
 
 # Build specific containers (core + auth)
 ./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc2
@@ -89,8 +84,10 @@ The `build_images.sh` script builds the following containers:
 
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
-- `build_action=<load|push>` - Action after build (default: `load`)
+- `build_action=<load|push>` - Action after build (default: `load` - loads images locally for use)
 - `image_tag=<tag>` - Set same tag for all containers (default: `latest`)
+
+**Note:** By default, `build_action=load` loads all built images into your local container engine (Podman or Docker) making them immediately available for use. This is the recommended action for users.
 
 **Omnia Container-Specific Parameters:**
 - `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `staging`, valid with: `core`, `all`, `pipeline`)
@@ -109,7 +106,6 @@ The `build_images.sh` script builds the following containers:
 
 **Special Options:**
 - `all` - Builds: core and auth containers only
-- `pipeline` - Builds: core, auth, and ubuntu-ldms containers
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
 **Parameter Validation:**
@@ -120,7 +116,7 @@ The script validates parameters in two stages with context-specific error messag
    # Example: Building core with invalid parameter
    ./build_images.sh core sas=1
    # Error: Invalid parameter(s): sas
-   # Valid parameters for 'core': build_tool build_action image_tag core_tag omnia_branch
+   # Valid parameters for 'core': build_tool image_tag core_tag omnia_branch
    ```
 
 2. **Wrong container-specific parameters** - Validates tag parameters match the container type
@@ -128,7 +124,7 @@ The script validates parameters in two stages with context-specific error messag
    # Example: Using auth_tag when building only core
    ./build_images.sh core auth_tag=1.0
    # Error: Parameter 'auth_tag' is not valid for container 'core'
-   # Valid parameters for 'core': build_tool build_action image_tag core_tag omnia_branch
+   # Valid parameters for 'core': build_tool image_tag core_tag omnia_branch
    ```
 
 3. **Default branch warning** - When building core without specifying `omnia_branch`
@@ -287,43 +283,57 @@ Build individual containers or specific combinations.
 
 ---
 
-### 3. Pushing Images to Registry
+### 3. Understanding Image Loading (Default Behavior)
 
-Build and push images to Docker registry (requires `build_tool=docker` and `build_action=push`).
+By default, the script uses `build_action=load` which builds and loads images into your local container engine.
 
-#### Push ALL Images
+#### What Happens with Load (Default)
 ```bash
-# Build and push all images (core and auth) with unified tag and branch
-./build_images.sh all build_tool=docker build_action=push image_tag=1.0 omnia_branch=staging
-
-# Build and push all with individual tags and specific branch
-./build_images.sh all build_tool=docker build_action=push core_tag=1.0 auth_tag=1.1 omnia_branch=v2.0.0.0-rc2
-
-# Build and push all with specific branch and tag
-./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker build_action=push image_tag=2.0
+# These commands automatically load images locally
+./build_images.sh all omnia_branch=v2.0.0.0-rc2
+./build_images.sh core,auth image_tag=1.0
+./build_images.sh pipeline
 ```
 
-#### Push Specific Images
+**After building, images are immediately available:**
+
 ```bash
-# Build and push only core and auth (includes core, so omnia_branch is valid)
-./build_images.sh core,auth build_tool=docker build_action=push core_tag=1.0 auth_tag=1.0 omnia_branch=staging
+# For Podman (default)
+podman images | grep omnia
+# Output shows: omnia_core:latest, omnia_auth:latest, etc.
 
-# Build and push only ubuntu-ldms (no core, so omnia_branch not valid)
-./build_images.sh ubuntu-ldms build_tool=docker build_action=push ubuntu_ldms_tag=1.0
-
-# Build and push pipeline containers (includes core, so omnia_branch is valid)
-./build_images.sh pipeline build_tool=docker build_action=push image_tag=1.0 omnia_branch=v2.0.0.0-rc2
-
-# Build and push pcs only (no core, so omnia_branch not valid)
-./build_images.sh pcs build_tool=docker build_action=push pcs_tag=1.0
+# For Docker
+docker images | grep omnia
+# Output shows: omnia_core:latest, omnia_auth:latest, etc.
 ```
 
-**Important Notes:**
-- ⚠️ `build_action=push` **requires** `build_tool=docker`
-- Default registry: `docker.io/dellhpcomniaaisolution`
-- Registry can be customized by modifying `OMNIA_DOCKER_REGISTERY` variable in the script
-- Pushed images include SBOM and provenance metadata for security
+**Using the built images:**
+```bash
+# Run a container from the built image
+podman run -it omnia_core:latest /bin/bash
 
+# Or with Docker
+docker run -it omnia_core:latest /bin/bash
+```
+
+#### Explicitly Specify Load Action
+While `load` is the default, you can explicitly specify it:
+
+```bash
+# Explicitly use load action (same as default)
+./build_images.sh all build_action=load image_tag=1.0
+
+# Load with Docker instead of Podman
+./build_images.sh all build_tool=docker build_action=load image_tag=1.0
+```
+
+**Benefits of Load Action:**
+- ✅ Images are immediately available in your local environment
+- ✅ No need for registry credentials or network access
+- ✅ Fast iteration during development and testing
+- ✅ Works with both Podman and Docker
+
+---
 
 # **Building LDMS PRODUCER RPM Package**
 
@@ -396,22 +406,6 @@ Complete telemetry collection service that includes:
 ./build_images.sh telemetry-receiver telemetry_receiver_tag=latest
 ```
 
-### Build and Push to Registry
-
-```bash
-# Push all telemetry containers to registry
-./build_images.sh telemetry \
-  build_tool=docker \
-  build_action=push \
-  image_tag=1.0.0
-
-# Push specific telemetry container
-./build_images.sh kafkapump \
-  build_tool=docker \
-  build_action=push \
-  kafkapump_tag=v1.0.0
-```
-
 ### Build with Individual Tags
 
 ```bash
@@ -440,7 +434,6 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 2. Uses Dockerfiles from the cloned repository
 3. Builds static binaries from source code
 4. Creates minimal scratch-based images
-5. Includes SBOM and provenance metadata (when pushed to registry)
 
 **Note**: To use a different commit/branch/tag, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
 

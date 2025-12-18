@@ -8,6 +8,11 @@ YELLOW='\033[1;33m'
 MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
+# Install git if not present
+echo -e "${BLUE}Installing git...${NC}"
+dnf install -y git
+echo -e "${GREEN}Git installation complete.${NC}\n"
+
 # Arrays to store build status
 SUCCESSFUL_BUILDS=()
 FAILED_BUILDS=()
@@ -605,6 +610,9 @@ else
                 build_omnia_core
                 build_omnia_auth
                 build_ubuntu_ldms
+                build_kafkapump
+                build_victoriapump
+                build_telemetry_receiver
                 ;;
             telemetry)
                 build_kafkapump
