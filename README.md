@@ -55,19 +55,19 @@ The `build_images.sh` script builds the following containers:
 # ⚠️ Warning will be shown about using default branch: staging
 
 # Build all with specific Omnia branch
-./build_images.sh all omnia_branch=v2.0.0.0-rc2
+./build_images.sh all omnia_branch=v2.0.0.0-rc3
 
 # Build all with Docker and specific tag
 ./build_images.sh all build_tool=docker image_tag=1.0 omnia_branch=staging
 
 # Build specific containers (core + auth)
-./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc2
+./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc3
 
 # Build pipeline (core + auth + ubuntu-ldms)
 ./build_images.sh pipeline image_tag=1.0 omnia_branch=staging
 
 # Build only core with specific branch
-./build_images.sh core omnia_branch=v2.0.0.0-rc2 core_tag=2.0
+./build_images.sh core omnia_branch=v2.0.0.0-rc3 core_tag=2.0
 
 # Build all telemetry containers
 ./build_images.sh telemetry
@@ -165,10 +165,10 @@ Both commands build core and auth containers with default settings (podman, late
 #### With Omnia Branch/Version
 ```bash
 # Build all with specific Omnia branch (default tool: podman) - no warning
-./build_images.sh all omnia_branch=v2.0.0.0-rc2
+./build_images.sh all omnia_branch=v2.0.0.0-rc3
 
 # Build all with specific branch and Docker - no warning
-./build_images.sh all omnia_branch=v2.0.0.0-rc2 build_tool=docker
+./build_images.sh all omnia_branch=v2.0.0.0-rc3 build_tool=docker
 
 # Build all with explicit staging branch (same as default but no warning)
 ./build_images.sh all omnia_branch=staging
@@ -185,7 +185,7 @@ Both commands build core and auth containers with default settings (podman, late
 ./build_images.sh all image_tag=1.0 build_tool=docker
 
 # Build all with tag "2.0" and specific branch
-./build_images.sh all omnia_branch=v2.0.0.0-rc2 image_tag=2.0
+./build_images.sh all omnia_branch=v2.0.0.0-rc3 image_tag=2.0
 ```
 
 #### With Individual Tags per Container
@@ -209,7 +209,7 @@ Build individual containers or specific combinations.
 ./build_images.sh core
 
 # Build only core with specific branch
-./build_images.sh core omnia_branch=v2.0.0.0-rc2
+./build_images.sh core omnia_branch=v2.0.0.0-rc3
 
 # Build only core with specific tag and branch
 ./build_images.sh core core_tag=1.0 omnia_branch=staging
@@ -244,7 +244,7 @@ Build individual containers or specific combinations.
 ./build_images.sh core,auth
 
 # Build core and auth with specific branch
-./build_images.sh core,auth omnia_branch=v2.0.0.0-rc2
+./build_images.sh core,auth omnia_branch=v2.0.0.0-rc3
 
 # Build core and auth with same tag
 ./build_images.sh core,auth image_tag=1.0
@@ -279,7 +279,7 @@ Build individual containers or specific combinations.
 ./build_images.sh pipeline build_tool=docker image_tag=1.0
 
 # Build pipeline with specific Omnia branch
-./build_images.sh pipeline omnia_branch=v2.0.0.0-rc2 image_tag=1.0
+./build_images.sh pipeline omnia_branch=v2.0.0.0-rc3 image_tag=1.0
 ```
 
 ---
@@ -291,7 +291,7 @@ By default, the script uses `build_action=load` which builds and loads images in
 #### What Happens with Load (Default)
 ```bash
 # These commands automatically load images locally
-./build_images.sh all omnia_branch=v2.0.0.0-rc2
+./build_images.sh all omnia_branch=v2.0.0.0-rc3
 ./build_images.sh core,auth image_tag=1.0
 ./build_images.sh pipeline
 ```
