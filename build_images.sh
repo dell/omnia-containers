@@ -372,7 +372,7 @@ build_telemetry_receiver() {
 }
 
 # Default parameterized values
-OMNIA_VERSION="staging"
+OMNIA_VERSION="main"
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
