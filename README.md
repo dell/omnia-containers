@@ -316,32 +316,6 @@ While `load` is the default, you can explicitly specify it:
 ./build_images.sh oim build_tool=docker build_action=load image_tag=1.0
 ```
 
-
-# **Building LDMS PRODUCER RPM Package**
-
-The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It accepts three optional parameters: `LDMS_TAGGED_VERSION`, `SLURM_REPO_URL` and `SLURM_REPO_NAME`.
-
-#### Syntax:
-```bash
-./build_rpm.sh -v [LDMS_TAGGED_VERSION]-u [SLURM_REPO_URL] -n [SLURM_REPO_NAME]
-```
-
-#### Example
-
-- To build the RPM package without any optional parameters:
-
-  ```bash
-  ./build_rpm.sh
-  ```
-
-- To build the RPM package with both SLURM repository URL and name:
-
-  ```bash
-  ./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
-  ```
-
-**Note**: If the `SLURM_REPO_URL` is provided, the script will use it to fetch the necessary dependencies. If `SLURM_REPO_NAME` is provided, it will be used to name the RPM package accordingly.
-
 ---
 
 # **Building iDRAC Telemetry Containers**
@@ -418,6 +392,33 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 4. Creates minimal scratch-based images
 
 **Note**: To use a different commit/branch/tag, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+
+---
+
+# **Building LDMS PRODUCER RPM Package**
+
+The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It accepts three optional parameters: `LDMS_TAGGED_VERSION`, `SLURM_REPO_URL` and `SLURM_REPO_NAME`.
+
+#### Syntax:
+```bash
+./build_rpm.sh -v [LDMS_TAGGED_VERSION]-u [SLURM_REPO_URL] -n [SLURM_REPO_NAME]
+```
+
+#### Example
+
+- To build the RPM package without any optional parameters:
+
+  ```bash
+  ./build_rpm.sh
+  ```
+
+- To build the RPM package with both SLURM repository URL and name:
+
+  ```bash
+  ./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
+  ```
+
+**Note**: If the `SLURM_REPO_URL` is provided, the script will use it to fetch the necessary dependencies. If `SLURM_REPO_NAME` is provided, it will be used to name the RPM package accordingly.
 
 ---
 
