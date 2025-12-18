@@ -94,18 +94,18 @@ The `build_images.sh` script builds the following containers:
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
 - `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `all`, `pipeline`)
 - `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `all`, `pipeline`)
-- `pcs_tag=<tag>` - Individual tag for omnia_pcs (valid with: `pcs`, `all`)
-- `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`, `pipeline`)
+- `pcs_tag=<tag>` - Individual tag for omnia_pcs (valid with: `pcs`)
+- `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `pipeline`)
 
 **iDRAC Telemetry Container-Specific Parameters:**
-- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`, `all`, `pipeline`)
-- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `all`, `pipeline`)
-- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `all`, `pipeline`)
+- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`, `pipeline`)
+- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `pipeline`)
+- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `pipeline`)
 
 **Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
-- `all` - Builds: all containers (core, auth, pcs, ubuntu-ldms, kafkapump, victoriapump, and telemetry-receiver)
+- `all` - Builds: core and auth containers only
 - `pipeline` - Builds: core, auth, ubuntu-ldms, and all telemetry containers
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
@@ -138,7 +138,7 @@ The script validates parameters in two stages with context-specific error messag
 
 ### 1. Building ALL Images
 
-Build all available containers including Omnia containers (core, auth, pcs, ubuntu-ldms) and telemetry containers (kafkapump, victoriapump, telemetry-receiver).
+Build core and auth containers (the primary Omnia containers).
 
 #### Basic - Default Settings
 ```bash
@@ -154,7 +154,7 @@ Build all available containers including Omnia containers (core, auth, pcs, ubun
 ./build_images.sh all omnia_branch=staging
 ```
 
-Both commands build all containers with default settings (podman, latest tags, staging branch).
+Both commands build core and auth containers with default settings (podman, latest tags, staging branch).
 
 #### With Docker
 ```bash
@@ -190,11 +190,11 @@ Both commands build all containers with default settings (podman, latest tags, s
 
 #### With Individual Tags per Container
 ```bash
-# Build all containers with different tags (example showing core and auth tags)
+# Build all (core and auth) with different tags
 ./build_images.sh all core_tag=1.0 auth_tag=1.1
 
-# Build all with individual tags using Docker (can specify any container-specific tags)
-./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1 ubuntu_ldms_tag=1.0
+# Build all with individual tags using Docker
+./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1
 ```
 
 ---

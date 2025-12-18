@@ -515,7 +515,7 @@ validate_container_params() {
 # Parse command line arguments
 if [[ $# -eq 0 || "$1" == "all" ]]; then
     # Build all containers - all tag parameters are valid
-    ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+    ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "omnia_branch")
     
     # Check for invalid parameters first
     if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
@@ -527,11 +527,6 @@ if [[ $# -eq 0 || "$1" == "all" ]]; then
     validate_container_params "all" "${ALLOWED_TAG_PARAMS[@]}"
     build_omnia_core
     build_omnia_auth
-    build_omnia_pcs
-    build_ubuntu_ldms
-    build_kafkapump
-    build_victoriapump
-    build_telemetry_receiver
 else
     # Loop through each container specified in the arguments and build
     IFS=',' read -r -a containers <<< "$1"
@@ -543,7 +538,7 @@ else
     for container in "${containers[@]}"; do
         case "$container" in
             all)
-                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "omnia_branch")
                 BUILDING_CORE=true
                 ;;
             core)
@@ -598,11 +593,6 @@ else
             all)
                 build_omnia_core
                 build_omnia_auth
-                build_omnia_pcs
-                build_ubuntu_ldms
-                build_kafkapump
-                build_victoriapump
-                build_telemetry_receiver
                 ;;
             core)
                 build_omnia_core
