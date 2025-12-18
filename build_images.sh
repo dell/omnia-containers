@@ -447,8 +447,6 @@ for arg in "$@"; do
         VICTORIAPUMP_TAG="${arg#victoriapump_tag=}"
     elif [[ "$arg" =~ ^telemetry_receiver_tag=.*$ ]]; then
         TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}"
-    elif [[ "$arg" =~ ^idrac_telemetry_version=.*$ ]]; then
-        IDRAC_TELEMETRY_VERSION="${arg#idrac_telemetry_version=}"
     fi
 done
 
@@ -556,16 +554,16 @@ else
                 BUILDING_CORE=true
                 ;;
             telemetry)
-                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "idrac_telemetry_version")
+                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag")
                 ;;
             kafkapump)
-                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "idrac_telemetry_version")
+                ALLOWED_TAG_PARAMS+=("kafkapump_tag")
                 ;;
             victoriapump)
-                ALLOWED_TAG_PARAMS+=("victoriapump_tag" "idrac_telemetry_version")
+                ALLOWED_TAG_PARAMS+=("victoriapump_tag")
                 ;;
             telemetry-receiver)
-                ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag" "idrac_telemetry_version")
+                ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag")
                 ;;
             *)
                 echo -e "${RED}Invalid container: $container. Available options: all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver.${NC}"

@@ -442,23 +442,7 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 4. Creates minimal scratch-based images
 5. Includes SBOM and provenance metadata (when pushed to registry)
 
-### Image Characteristics
-
-- **Base Image**: `scratch` (minimal, no OS overhead)
-- **User**: Non-root (`telemetry` user)
-- **Size**: ~10-20 MB per image
-- **Architecture**: `linux/amd64` (default, configurable)
-- **Security**: Includes CA certificates, runs as non-root
-
-### Parameters
-
-| Parameter | Description | Default | Valid With |
-|-----------|-------------|---------|------------|
-| `kafkapump_tag` | Image tag for KafkaPump | `latest` | `kafkapump`, `telemetry` |
-| `victoriapump_tag` | Image tag for VictoriaPump | `latest` | `victoriapump`, `telemetry` |
-| `telemetry_receiver_tag` | Image tag for Telemetry Receiver | `latest` | `telemetry-receiver`, `telemetry` |
-
-**Note**: The iDRAC-Telemetry-Reference-Tools repository is cloned at commit `e86fecb`. To use a different branch/tag/commit, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+**Note**: To use a different commit/branch/tag, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
 
 ---
 
