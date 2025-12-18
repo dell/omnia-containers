@@ -308,15 +308,6 @@ docker images | grep omnia
 # Output shows: omnia_core:latest, omnia_auth:latest, etc.
 ```
 
-**Using the built images:**
-```bash
-# Run a container from the built image
-podman run -it omnia_core:latest /bin/bash
-
-# Or with Docker
-docker run -it omnia_core:latest /bin/bash
-```
-
 #### Explicitly Specify Load Action
 While `load` is the default, you can explicitly specify it:
 
