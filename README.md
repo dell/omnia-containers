@@ -98,14 +98,15 @@ The `build_images.sh` script builds the following containers:
 - `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`, `pipeline`)
 
 **iDRAC Telemetry Container-Specific Parameters:**
-- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`)
-- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`)
-- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`)
+- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`, `all`, `pipeline`)
+- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `all`, `pipeline`)
+- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `all`, `pipeline`)
 
 **Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
-- `all` - Builds: core and auth containers only
+- `all` - Builds: all containers (core, auth, pcs, ubuntu-ldms, kafkapump, victoriapump, and telemetry-receiver)
+- `pipeline` - Builds: core, auth, ubuntu-ldms, and all telemetry containers
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
 **Parameter Validation:**
@@ -137,7 +138,7 @@ The script validates parameters in two stages with context-specific error messag
 
 ### 1. Building ALL Images
 
-Build core and auth containers (the primary Omnia containers).
+Build all available containers including Omnia containers (core, auth, pcs, ubuntu-ldms) and telemetry containers (kafkapump, victoriapump, telemetry-receiver).
 
 #### Basic - Default Settings
 ```bash
@@ -153,7 +154,7 @@ Build core and auth containers (the primary Omnia containers).
 ./build_images.sh all omnia_branch=staging
 ```
 
-Both commands build core and auth containers with default settings (podman, latest tags, staging branch).
+Both commands build all containers with default settings (podman, latest tags, staging branch).
 
 #### With Docker
 ```bash
@@ -189,11 +190,11 @@ Both commands build core and auth containers with default settings (podman, late
 
 #### With Individual Tags per Container
 ```bash
-# Build all (core and auth) with different tags
+# Build all containers with different tags (example showing core and auth tags)
 ./build_images.sh all core_tag=1.0 auth_tag=1.1
 
-# Build all with individual tags using Docker
-./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1
+# Build all with individual tags using Docker (can specify any container-specific tags)
+./build_images.sh all build_tool=docker core_tag=1.0 auth_tag=1.1 ubuntu_ldms_tag=1.0
 ```
 
 ---
@@ -327,13 +328,6 @@ While `load` is the default, you can explicitly specify it:
 ./build_images.sh all build_tool=docker build_action=load image_tag=1.0
 ```
 
-**Benefits of Load Action:**
-- ✅ Images are immediately available in your local environment
-- ✅ No need for registry credentials or network access
-- ✅ Fast iteration during development and testing
-- ✅ Works with both Podman and Docker
-
----
 
 # **Building LDMS PRODUCER RPM Package**
 
