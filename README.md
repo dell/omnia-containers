@@ -38,10 +38,16 @@ docker buildx ls
 
 The `build_images.sh` script builds the following containers:
 
+### Omnia Containers
 - **omnia_core**: image for core Omnia container - `core`.
 - **omnia_auth**: image for auth Omnia container - `auth`.
 - **omnia_pcs**: image for PCS container - `pcs`.
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
+
+### iDRAC Telemetry Containers
+- **kafkapump**: Apache Kafka data pump for iDRAC telemetry - `kafkapump`.
+- **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
+- **telemetry_receiver**: Complete telemetry collection service - `telemetry-receiver`.
 
 ## Quick Reference - Common Commands
 
@@ -67,20 +73,26 @@ The `build_images.sh` script builds the following containers:
 
 # Build only core with specific branch
 ./build_images.sh core omnia_branch=v2.0.0.0-rc2 core_tag=2.0
+
+# Build all telemetry containers
+./build_images.sh telemetry
+
+# Build specific telemetry container
+./build_images.sh kafkapump image_tag=1.0
 ```
 
 ## Script Usage
 
 ### Available Parameters
 
-**Container Options:** `all`, `core`, `pcs`, `auth`, `ubuntu-ldms`, `pipeline`
+**Container Options:** `all`, `core`, `pcs`, `auth`, `ubuntu-ldms`, `pipeline`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`
 
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
 - `build_action=<load|push>` - Action after build (default: `load`)
 - `image_tag=<tag>` - Set same tag for all containers (default: `latest`)
 
-**Container-Specific Parameters:**
+**Omnia Container-Specific Parameters:**
 - `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `staging`, valid with: `core`, `all`, `pipeline`)
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
 - `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `all`, `pipeline`)
@@ -88,9 +100,17 @@ The `build_images.sh` script builds the following containers:
 - `pcs_tag=<tag>` - Individual tag for omnia_pcs (valid with: `pcs`, `all`)
 - `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`, `pipeline`)
 
+**iDRAC Telemetry Container-Specific Parameters:**
+- `kafkapump_tag=<tag>` - Individual tag for kafkapump (valid with: `kafkapump`, `telemetry`)
+- `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`)
+- `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`)
+
+**Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
+
 **Special Options:**
 - `all` - Builds: core and auth containers only
 - `pipeline` - Builds: core, auth, and ubuntu-ldms containers
+- `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
 **Parameter Validation:**
 The script validates parameters in two stages with context-specific error messages:
@@ -329,6 +349,102 @@ The `build_rpm.sh` script is designed to create LDMS producer RPM packages. It a
   ```
 
 **Note**: If the `SLURM_REPO_URL` is provided, the script will use it to fetch the necessary dependencies. If `SLURM_REPO_NAME` is provided, it will be used to name the RPM package accordingly.
+
+---
+
+# **Building iDRAC Telemetry Containers**
+
+The build script now supports building containers for iDRAC Telemetry Reference Tools components. The script automatically clones the [iDRAC-Telemetry-Reference-Tools repository](https://github.com/dell/iDRAC-Telemetry-Reference-Tools) at commit `e86fecb` and uses its Dockerfiles to build the images.
+
+## Components
+
+### 1. **KafkaPump** (`kafkapump`)
+Data pump that publishes iDRAC telemetry data to Apache Kafka topics.
+
+### 2. **VictoriaPump** (`victoriapump`)  
+Data pump that publishes iDRAC telemetry data to VictoriaMetrics.
+
+### 3. **Telemetry Receiver** (`telemetry-receiver`)
+Complete telemetry collection service that includes:
+- `idrac-telemetry-receiver` - Main telemetry receiver
+- `dbdiscauth` - Database discovery and authentication
+- `configui` - Configuration UI  
+- `redfishread` - Redfish API reader
+
+## Usage Examples
+
+### Build All Telemetry Containers
+
+```bash
+# Build all three telemetry containers with default settings
+./build_images.sh telemetry
+
+# Build all with specific tag
+./build_images.sh telemetry image_tag=v1.0
+```
+
+### Build Individual Telemetry Containers
+
+```bash
+# Build only KafkaPump
+./build_images.sh kafkapump
+
+# Build only VictoriaPump with specific tag
+./build_images.sh victoriapump victoriapump_tag=v1.0
+
+# Build only Telemetry Receiver
+./build_images.sh telemetry-receiver telemetry_receiver_tag=latest
+```
+
+### Build and Push to Registry
+
+```bash
+# Push all telemetry containers to registry
+./build_images.sh telemetry \
+  build_tool=docker \
+  build_action=push \
+  image_tag=1.0.0
+
+# Push specific telemetry container
+./build_images.sh kafkapump \
+  build_tool=docker \
+  build_action=push \
+  kafkapump_tag=v1.0.0
+```
+
+### Build with Individual Tags
+
+```bash
+# Build all telemetry containers with different tags
+./build_images.sh telemetry \
+  kafkapump_tag=kafka-v1.0 \
+  victoriapump_tag=victoria-v1.0 \
+  telemetry_receiver_tag=receiver-v1.0
+
+# Build multiple with specific tags
+./build_images.sh kafkapump,victoriapump image_tag=1.0
+```
+
+## Container Details
+
+### Dockerfile Source
+
+Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
+- **KafkaPump**: Uses `docker-compose-files/Dockerfile` with `CMD=kafkapump`
+- **VictoriaPump**: Uses `docker-compose-files/Dockerfile` with `CMD=victoriapump`
+- **Telemetry Receiver**: Uses `docker-compose-files/Dockerfile.telemetry_receiver`
+
+### Build Process
+
+1. Clones iDRAC-Telemetry-Reference-Tools repository at commit `e86fecb` (if not already cloned)
+2. Uses Dockerfiles from the cloned repository
+3. Builds static binaries from source code
+4. Creates minimal scratch-based images
+5. Includes SBOM and provenance metadata (when pushed to registry)
+
+**Note**: To use a different commit/branch/tag, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+
+---
 
 ## Updating Python Packages
 
