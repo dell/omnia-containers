@@ -1,6 +1,7 @@
 #!/bin/bash
 
 pkg_file="ovis-ldms.tar.gz"
+ARCH=$(uname -m)
 
 echo "Install epel-release"
 dnf install -y epel-release
@@ -200,16 +201,15 @@ fpm \
 --rpm-group root \
 --description "This package provides the LDMS commands and libraries.\n* ldmsd: the LDMS daemon, which can run as sampler or aggregator (or both).\n* ldms_ls: the tool to list metric information of an ldmsd.\n* ldmsctl: the tool to control an ldmsd." \
 --rpm-summary "LDMS - Lighweight Distributed Metric Service" \
---package ovis-ldms-$(cat .version).x86_64.rpm \
+--package ovis-ldms-$(cat .version).${ARCH}.rpm \
 $pkg_file
 
 echo "[>>] List rpm created"
 ls -tlr *tar.gz *.rpm
 echo "[>>] List files in rpm"
-rpm -qlp "ovis-ldms-$(cat .version).x86_64.rpm"
+rpm -qlp "ovis-ldms-$(cat .version).${ARCH}.rpm"
 echo "[>>] Show rpm scripts"
-rpm -qp --scripts "ovis-ldms-$(cat .version).x86_64.rpm"
+rpm -qp --scripts "ovis-ldms-$(cat .version).${ARCH}.rpm"
 echo "[>>] Show rpm info"
-rpm -qi "ovis-ldms-$(cat .version).x86_64.rpm"
+rpm -qi "ovis-ldms-$(cat .version).${ARCH}.rpm"
 echo "[--] Success"
-
