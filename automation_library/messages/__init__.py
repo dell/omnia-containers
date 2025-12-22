@@ -7,6 +7,6 @@ Usage:
 """
 
 from .oim_prereq_msgs import OIM_PREREQ_MSGS
-from .omnia_sh_msgs import OMNIA_SH_MSGS
+from ..omnia_sh.messages.omnia_sh_msgs import OMNIA_SH_MSGS
 
 __all__ = ["OIM_PREREQ_MSGS", "OMNIA_SH_MSGS"]

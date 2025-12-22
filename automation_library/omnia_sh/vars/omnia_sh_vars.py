@@ -5,7 +5,7 @@ This module loads all configuration from user_config.yml.
 All omnia.sh related settings are now in user_config.yml (section 13).
 
 Usage:
-    from automation_library.vars.omnia_sh_vars import OMNIA_SH_VARS
+    from automation_library.omnia_sh.vars.omnia_sh_vars import OMNIA_SH_VARS
 
 Author: Dell Technologies
 """
@@ -13,7 +13,7 @@ Author: Dell Technologies
 import os
 from typing import Dict, Any
 
-from .oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from ...vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 
 
 # =============================================================================

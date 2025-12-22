@@ -7,10 +7,10 @@ Usage:
 """
 
 # OIM Prereq Functions
-from .oim_prereq_func import run_all_prereq_checks
+from ..checks import run_all_prereq_checks
 
 # Omnia.sh Functions
-from .omnia_sh_func import (
+from ..omnia_sh.functions.omnia_sh_func import (
     run_full_test as run_omnia_sh_test,
     run_omnia_sh_install,
     run_omnia_sh_uninstall,
