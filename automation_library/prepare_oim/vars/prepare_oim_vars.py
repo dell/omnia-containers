@@ -14,12 +14,14 @@ import json
 import os
 from typing import Dict, Any, List
 
-from .oim_prereq_vars import OIM_PREREQ_VARS
+from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 
 def _get_project_root() -> str:
     """Get the project root directory."""
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # File is at automation_library/prepare_oim/vars/prepare_oim_vars.py
+    # Need to go up 4 levels: vars -> prepare_oim -> automation_library -> project_root
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def _load_software_config() -> Dict[str, Any]:
