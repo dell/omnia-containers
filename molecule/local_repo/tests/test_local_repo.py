@@ -14,13 +14,13 @@ Validations:
 """
 
 from automation_library.core import TestLogger
-from automation_library.messages.local_repo_msgs import (
+from automation_library.local_repo.messages.local_repo_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,
     TEST_VARS,
 )
-from automation_library.functions.local_repo_func import (
+from automation_library.local_repo.functions.local_repo_func import (
     check_container_running,
     check_pulp_cli_repository_list,
     check_status_csv_all_packages_downloaded,
