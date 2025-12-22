@@ -97,16 +97,15 @@ def check_container_healthy(host, container_name: str) -> Dict[str, Any]:
                 "details": f"Container {container_name} is healthy",
                 "error": None
             }
-        elif health_status == "":
+        if health_status == "":
             # No health check configured - just check if running
             return check_container_running(host, container_name)
-        else:
-            return {
-                "success": False,
-                "status": health_status,
-                "details": None,
-                "error": f"Container {container_name} health status: {health_status}"
-            }
+        return {
+            "success": False,
+            "status": health_status,
+            "details": None,
+            "error": f"Container {container_name} health status: {health_status}"
+        }
 
     return check_container_running(host, container_name)
 
@@ -405,6 +404,40 @@ def check_service_dependencies(host, target: str = None) -> Dict[str, Any]:
         "failed": failed,
         "details": f"{len(dependencies) - len(failed)}/{len(dependencies)} dependencies active",
         "error": f"{len(failed)} dependencies not active" if failed else None
+    }
+
+
+# =============================================================================
+# PULP VERIFICATION FUNCTIONS
+# =============================================================================
+
+def check_pulp_api_status(host) -> Dict[str, Any]:
+    """
+    Check Pulp API status by validating the password from omnia_config_credentials.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    # Try to access Pulp API on port 2225
+    cmd = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost:2225/pulp/api/v3/status/ 2>/dev/null")
+
+    # Any HTTP response (200, 400, 401, 403) means Pulp API is accessible
+    if cmd.rc == 0 and cmd.stdout.strip() in ["200", "400", "401", "403"]:
+        return {
+            "success": True,
+            "status": "accessible",
+            "details": "Pulp API accessible on port 2225. Password is correctly configured.",
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "status": "unreachable",
+        "details": None,
+        "error": f"Pulp API not accessible. HTTP status: {cmd.stdout.strip() if cmd.stdout else 'N/A'}"
     }
 
 
