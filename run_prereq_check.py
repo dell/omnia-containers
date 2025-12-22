@@ -23,7 +23,7 @@ import os
 # Add the automation library to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from automation_library.functions.oim_prereq_func import run_all_prereq_checks
+from automation_library.checks.functions.main import run_all_prereq_checks
 from automation_library.core.formatting import set_debug_mode
 
 
