@@ -50,6 +50,8 @@ TEST_NAMES = {
     # OpenChami verification
     "ochami_bss_status": "Verify OpenChami BSS service status",
     "ochami_smd_status": "Verify OpenChami SMD service status",
+    # Pulp verification
+    "pulp_api_status": "Verify Pulp API password is correctly configured",
 }
 
 # Test log messages
@@ -74,6 +76,9 @@ TEST_LOG_MSGS = {
     "ochami_bss_fail": "OpenChami BSS service check failed",
     "ochami_smd_ok": "OpenChami SMD service is running",
     "ochami_smd_fail": "OpenChami SMD service check failed",
+    # Pulp messages
+    "pulp_api_ok": "Pulp API password is correctly configured",
+    "pulp_api_fail": "Pulp API password validation failed",
 }
 
 # Test assert messages (user-friendly with instructions)
@@ -140,6 +145,20 @@ TEST_ASSERT_MSGS = {
 ║   3. Check OpenChami logs: ls -la /opt/omnia/log/openchami/
 ║   4. Verify OpenChami containers are running: podman ps | grep -E 'bss|smd'
 ║   5. Re-run prepare_oim.yml if OpenChami was not deployed
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_api_failed": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PULP API PASSWORD VALIDATION FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Status: {status}
+║ Error: {error}
+║
+║ HOW TO FIX:
+║   1. Check Pulp container: podman ps | grep pulp
+║   2. Check Pulp logs: podman logs pulp
+║   3. Verify pulp_password in omnia_config_credentials.yml
+║   4. Test API manually: curl http://localhost:2225/pulp/api/v3/status/
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "validation_failed": "Validation failed: {error}",

@@ -80,6 +80,9 @@ CORE_CONTAINERS: List[str] = [
 # Auth container (only required when LDAP is in software_config.json)
 AUTH_CONTAINER: str = "omnia_auth"
 
+# Pulp container (for local repo management)
+PULP_CONTAINER: str = "pulp"
+
 
 # =============================================================================
 # PREPARE OIM VARIABLES

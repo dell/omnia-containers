@@ -48,7 +48,9 @@
 
     - name: Check if omnia_core container is already running
       ansible.builtin.shell:
-        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
       register: container_check
       changed_when: false
       failed_when: false
@@ -71,9 +73,10 @@
       when: container_check.rc != 0
 
     - name: Unmount omnia_shared_path if mounted
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: umount {{ omnia_shared_path }}
       when: container_check.rc != 0 and mount_check.stdout == "mounted"
+      changed_when: true
       failed_when: false
 
     - name: Remove fstab entry for omnia_shared_path
@@ -104,8 +107,12 @@
       failed_when: false
 
     - name: Display cleanup status
+      vars:
+        status_msg: >-
+          {{ 'empty and ready' if (shared_path_contents.matched | default(0)) == 0
+          else 'not empty (' + (shared_path_contents.matched | string) + ' items found)' }}
       ansible.builtin.debug:
-        msg: "{{ omnia_shared_path }} is {{ 'empty and ready' if (shared_path_contents.matched | default(0)) == 0 else 'not empty (' + (shared_path_contents.matched | string) + ' items found)' }}"
+        msg: "{{ omnia_shared_path }} is {{ status_msg }}"
       when: container_check.rc != 0
 
     # =========================================================================
@@ -171,6 +178,7 @@
         cmd: "{{ omnia_sh_path }} --install < /tmp/omnia_sh_inputs.txt"
       register: install_result
       timeout: 600
+      changed_when: install_result.rc == 0
       when: container_check.rc != 0
 
     - name: Remove input file
@@ -187,6 +195,7 @@
     - name: Wait for container to start (fresh install)
       ansible.builtin.shell:
         cmd: |
+          set -o pipefail
           for i in $(seq 1 30); do
             if podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core; then
               echo "Container started"
@@ -196,23 +205,30 @@
           done
           echo "Timeout waiting for container"
           exit 1
+      args:
+        executable: /bin/bash
       register: container_wait
       changed_when: false
       when: container_check.rc != 0
 
     - name: Display install result
+      vars:
+        result_msg: >-
+          {{ 'Container already running - skipped install' if container_check.rc == 0
+          else 'omnia.sh --install completed successfully' }}
       ansible.builtin.debug:
-        msg: "{{ 'Container already running - skipped install' if container_check.rc == 0 else 'omnia.sh --install completed successfully' }} on OIM server {{ ansible_host }}"
+        msg: "{{ result_msg }} on OIM server {{ ansible_host }}"
 
     # =========================================================================
     # COPY PROJECT_DEFAULT INTO CONTAINER (via SSH port 2222)
     # =========================================================================
 
-    - name: Sync project_default to container via rsync
+    - name: Sync project_default to container via rsync  # noqa: command-instead-of-module
       ansible.builtin.shell:
         cmd: >
           rsync -avz --delete
-          -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
           {{ project_default_src }}/
           root@{{ ansible_host }}:{{ project_default_dest }}/
       delegate_to: localhost
@@ -232,7 +248,9 @@
           sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
           -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
           root@{{ ansible_host }}
-          "echo '{{ omnia_credentials_vault_key }}' > {{ project_default_dest }}/.omnia_config_credentials_key && chmod 600 {{ project_default_dest }}/.omnia_config_credentials_key"
+          "echo '{{ omnia_credentials_vault_key }}' >
+          {{ project_default_dest }}/.omnia_config_credentials_key &&
+          chmod 600 {{ project_default_dest }}/.omnia_config_credentials_key"
       delegate_to: localhost
       changed_when: true
       no_log: true

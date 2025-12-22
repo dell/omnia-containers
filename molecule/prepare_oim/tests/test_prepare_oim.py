@@ -13,7 +13,6 @@ import pytest
 from automation_library.core import TestLogger
 from automation_library.prepare_oim.vars import (
     OPENCHAMI_CONTAINERS,
-    CORE_CONTAINERS,
     AUTH_CONTAINER,
     PULP_CONTAINER,
     is_ldap_enabled,
@@ -96,9 +95,9 @@ def test_openchami_containers(host):
     summary = f"{len(passed_containers)}/{len(OPENCHAMI_CONTAINERS)} containers running"
 
     if failed_containers:
-        log.failed(f"OpenCHAMI containers check failed", f"{summary}\n{details}")
+        log.failed("OpenCHAMI containers check failed", f"{summary}\n{details}")
     else:
-        log.passed(f"All OpenCHAMI containers running", f"{summary}\n{details}")
+        log.passed("All OpenCHAMI containers running", f"{summary}\n{details}")
 
     assert len(failed_containers) == 0, (
         f"OpenCHAMI containers check failed: {summary}\n"

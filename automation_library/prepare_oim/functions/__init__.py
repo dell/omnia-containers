@@ -9,7 +9,6 @@ from .prepare_oim_func import (
     check_openchami_target,
     check_service_dependencies,
     check_pulp_api_status,
-    get_pulp_password_from_vault,
 )
 
 __all__ = [
@@ -19,5 +18,4 @@ __all__ = [
     "check_openchami_target",
     "check_service_dependencies",
     "check_pulp_api_status",
-    "get_pulp_password_from_vault",
 ]
