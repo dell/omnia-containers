@@ -1,17 +1,3 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # =============================================================================
 # Omnia Infrastructure Manager (OIM) - User Configuration
 # =============================================================================
@@ -46,13 +32,13 @@ skip_on_failure: false
 # Remote OIM server where all operations will be executed via SSH
 
 # OIM server IP address (REQUIRED)
-oim_server_ip: ""
+oim_server_ip: "100.98.68.201"
 
 # SSH username for remote OIM server (default: root)
-oim_ssh_user: ""
+oim_ssh_user: "root"
 
 # SSH password for remote OIM server (REQUIRED)
-oim_ssh_password: ""
+oim_ssh_password: "dell"
 
 # SSH port (default: 22)
 oim_ssh_port: 22
@@ -100,24 +86,15 @@ required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
 # =============================================================================
 # Network interface configuration for OIM server
 
-# Network type: "dedicated" or "lom" (Lights Out Management)
-# - dedicated: Separate interfaces for PXE and iDRAC (default)
-# - lom: Single interface shared between PXE and iDRAC (requires two IPs)
-network_type: "dedicated"
-
 # PXE interface name (for provisioning)
-pxe_interface: "eno1"
+pxe_interface: ""
 
 # Public interface name (for internet access)
-public_interface: "eno2"
+public_interface: ""
 
 # PXE interface IP address with subnet (CIDR notation)
 # If not set or empty, default is 172.16.107.254/24
 pxe_ip: ""
-
-# iDRAC IP address (only used when network_type is "lom")
-# This IP will be configured on the same interface as PXE for LOM setups
-idrac_ip: ""
 
 # Force reconfigure PXE NIC even if already configured
 # Set to true to remove existing IP and apply new configuration
@@ -152,7 +129,7 @@ podman_min_version: "5.0.0"
 
 # Set to true to clone Omnia Artifactory and build container images
 # Set to false to skip git clone and container build steps
-reconfigure_images: false
+reconfigure_images: true
 
 # Omnia Artifactory Git repository URL
 # Leave empty to use default: https://github.com/dell/omnia-artifactory.git
@@ -171,7 +148,7 @@ container_images: "core"
 # Omnia branch for container build (REQUIRED)
 # This is passed to build_images.sh as omnia_branch parameter
 # Can be a branch (e.g., "main", "pub/k8s_telemetry") or a tag (e.g., "v1.6.0")
-omnia_branch: "main"
+omnia_branch: "pub/k8s_telemetry"
 
 # #############################################################################
 #                                                                             #
@@ -199,4 +176,4 @@ nfs_type: "external"
 omnia_shared_path: "/opt/omnia"
 
 # Root password for accessing omnia_core container via SSH (REQUIRED)
-omnia_core_password: ""
+omnia_core_password: "dell"

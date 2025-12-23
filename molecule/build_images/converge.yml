@@ -1,0 +1,243 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run build_image_x86_64.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Validate prerequisites and run build_image_x86_64.yml
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+    input_dir: "{{ project_dir }}/input"
+    oim_input_dir: "/opt/omnia/input/project_default"
+    build_image_playbook: "/omnia/build_image_x86_64/build_image_x86_64.yml"
+    s3_container_name: "minio-server"
+    registry_container_name: "registry"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running build_image_x86_64 on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
+      register: omnia_core_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container is not running on {{ ansible_host }}.
+          Please run omnia.sh --install first.
+      when: omnia_core_check.rc != 0
+
+    - name: Check if minio-server container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q "^{{ s3_container_name }}$"
+      args:
+        executable: /bin/bash
+      register: s3_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if minio-server container is not running
+      ansible.builtin.fail:
+        msg: |
+          S3 container '{{ s3_container_name }}' is not running on {{ ansible_host }}.
+          Check: podman ps -a | grep {{ s3_container_name }}
+          Logs:  podman logs {{ s3_container_name }}
+      when: s3_check.rc != 0
+
+    - name: Check if registry container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q "^{{ registry_container_name }}$"
+      args:
+        executable: /bin/bash
+      register: registry_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if registry container is not running
+      ansible.builtin.fail:
+        msg: |
+          Registry container '{{ registry_container_name }}' is not running on {{ ansible_host }}.
+          Check: podman ps -a | grep {{ registry_container_name }}
+          Logs:  podman logs {{ registry_container_name }}
+      when: registry_check.rc != 0
+
+    - name: Create temp directory on OIM server
+      ansible.builtin.file:
+        path: "/tmp/omnia_input"
+        state: directory
+        mode: '0755'
+
+    - name: Copy input files from automation repo to OIM server
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../input/"
+        dest: "/tmp/omnia_input/"
+        decrypt: false
+        mode: preserve
+      delegate_to: localhost
+
+    - name: Copy input files into omnia_core container
+      ansible.builtin.command:
+        cmd: podman cp /tmp/omnia_input/. omnia_core:{{ oim_input_dir }}/
+      changed_when: true
+
+    - name: Cleanup temp directory
+      ansible.builtin.file:
+        path: /tmp/omnia_input
+        state: absent
+
+    - name: Verify input files in container
+      ansible.builtin.command:
+        cmd: podman exec omnia_core ls -la {{ oim_input_dir }}/
+      register: container_files
+      changed_when: false
+
+    - name: Display container input files
+      ansible.builtin.debug:
+        var: container_files.stdout_lines
+
+    - name: Check if pxe_mapping_file.csv exists in container
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f {{ oim_input_dir }}/pxe_mapping_file.csv && echo "EXISTS" || echo "NOT_FOUND"
+      register: pxe_mapping_check
+      changed_when: false
+
+    - name: Fail if pxe_mapping_file.csv not found
+      ansible.builtin.fail:
+        msg: |
+          pxe_mapping_file.csv not found at {{ oim_input_dir }}/pxe_mapping_file.csv
+          This file is required for build_image_x86_64.yml playbook.
+      when: "'NOT_FOUND' in pxe_mapping_check.stdout"
+
+    - name: Check if build_image_x86_64 playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f {{ build_image_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "build_image_x86_64 playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute build_image_x86_64 playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia omnia_core \
+            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v \
+            --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+      register: playbook_result
+      timeout: 3600
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Show build_image_x86_64 playbook output
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                   BUILD_IMAGE_X86_64 PLAYBOOK EXECUTION FAILED               ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. S3 logs: podman logs {{ s3_container_name }}
+          ║   3. Registry logs: podman logs {{ registry_container_name }}
+          ║   4. Re-run manually inside omnia_core container:
+          ║        podman exec -w /omnia -it omnia_core bash
+          ║        ansible-playbook build_image_x86_64/build_image_x86_64.yml -v \
+          ║          --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+          ║
+          ║ STDERR:
+          ║   {{ playbook_result.stderr | default('No error message') }}
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Check if functional_group.yml was created
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f {{ oim_input_dir }}/functional_group.yml && echo "EXISTS" || echo "NOT_FOUND"
+      register: functional_group_check
+      changed_when: false
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0
+
+    - name: Display functional_group.yml check result
+      ansible.builtin.debug:
+        msg: "functional_group.yml: {{ functional_group_check.stdout }}"
+      when: functional_group_check is defined
+
+    - name: Verify S3 bucket has images
+      ansible.builtin.shell:
+        cmd: s3cmd ls -Hr s3://boot-images 2>&1 | head -20
+      register: s3_images
+      changed_when: false
+      failed_when: false
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0
+
+    - name: Display S3 bucket contents
+      ansible.builtin.debug:
+        var: s3_images.stdout_lines
+      when: s3_images is defined and s3_images.stdout_lines is defined
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "build_image_x86_64 playbook not found at {{ build_image_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    - name: Build_images converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          build_images converge complete!
+          ============================================
+          - omnia_core container: Running
+          - minio-server container: Running
+          - registry container: Running
+          - build_image_x86_64 playbook: Executed successfully
+          - Ready for pytest verification
+          ============================================

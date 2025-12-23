@@ -1,0 +1,134 @@
+---
+# =============================================================================
+# Molecule Converge - Run build_image_x86_64.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Run build_image_x86_64.yml in omnia_core container
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    oim_input_dir: "/opt/omnia/input/project_default"
+    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
+    build_image_playbook: "/omnia/build_image_x86_64/build_image_x86_64.yml"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running build_image_x86_64 on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container is not running on {{ ansible_host }}.
+          Please run omnia.sh --install first.
+      when: container_check.rc != 0
+
+    # =========================================================================
+    # RUN BUILD_IMAGE_X86_64 PLAYBOOK
+    # =========================================================================
+
+    - name: Check if build_image_x86_64 playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f /omnia/build_image_x86_64/build_image_x86_64.yml && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "build_image_x86_64 playbook (/omnia/build_image_x86_64/build_image_x86_64.yml): {{ playbook_check.stdout }}"
+
+    - name: Execute build_image_x86_64 playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia omnia_core \
+            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v
+      register: playbook_result
+      timeout: 3600
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          BUILD_IMAGE_X86_64 PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                 BUILD_IMAGE_X86_64 PLAYBOOK EXECUTION FAILED                 ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   The build_image_x86_64.yml playbook failed during execution inside omnia_core.
+          ║
+          ║ POSSIBLE CAUSES:
+          ║   - S3/Minio container not running or misconfigured
+          ║   - Registry container not running
+          ║   - pxe_mapping.csv missing or invalid
+          ║   - Network connectivity issues
+          ║   - Insufficient disk space for image builds
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Check logs: ls -la /opt/omnia/log/
+          ║   3. Check container status: podman ps -a
+          ║   4. Check S3 bucket: s3cmd ls -Hr s3://boot-images
+          ║   5. Re-run manually inside omnia_core container
+          ║
+          ║ STDERR:
+          ║   {{ playbook_result.stderr | default('No error message') }}
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "build_image_x86_64 playbook not found at /omnia/build_image_x86_64/build_image_x86_64.yml"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    - name: Build Image x86_64 converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          build_image_x86_64 converge complete!
+          ============================================
+          - omnia_core container: Running
+          - build_image_x86_64 playbook: Executed successfully
+          - Ready for pytest verification
+          ============================================

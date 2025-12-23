@@ -1,17 +1,3 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Test Report Generator for molecule/pytest tests.
 Organizes reports by server (IP/hostname).
@@ -228,7 +214,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     <div class="card total"><div class="number">{total_tests}</div><div class="label">Tests</div></div>
                     <div class="card passed"><div class="number">{total_passed}</div><div class="label">Passed</div></div>
                     <div class="card failed"><div class="number">{total_failed}</div><div class="label">Failed</div></div>
-                    <div class="card total"><div class="number">{len(runs)}</div><div class="label">Test Runs</div></div>
+                    <div class="card total"><div class="number">{len(runs)}</div><div class="label">Pipelines</div></div>
                 </div>
 '''
 
@@ -262,7 +248,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                         <h4>
                             <span class="run-expand">▼</span>
                             <span class="icon icon-run">▶</span>
-                            <span>Test Run #{run["report_id"]}</span>
+                            <span>Pipeline #{run["report_id"]}</span>
                             <span class="badge {status}">{badge_text}</span>
                             <span style="color: #8b949e; font-size: 0.8em; margin-left: 10px;">{num_modules} scenario(s)</span>
                         </h4>

@@ -1,17 +1,3 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 """
 Testinfra tests for omnia.sh cleanup verification.
 
@@ -22,10 +8,10 @@ Usage:
 """
 
 from automation_library.core import TestLogger
-from automation_library.omnia_sh.messages.omnia_sh_msgs import (
+from automation_library.messages.omnia_sh_msgs import (
     TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
-from automation_library.omnia_sh.functions.omnia_sh_func import (
+from automation_library.functions.omnia_sh_func import (
     check_container_not_running,
     check_service_not_exists,
     check_fstab_entry_removed,
