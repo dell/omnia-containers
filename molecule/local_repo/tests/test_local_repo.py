@@ -27,9 +27,11 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_software_packages_in_pulp,
     check_pulp_api_status,
     check_pulp_repositories_synced,
-    check_pulp_distributions_published,
     check_pulp_no_failed_tasks,
     check_pulp_content_accessible,
+    check_pulp_distributions_match_config,
+    check_nfs_mounts_in_pulp,
+    check_nfs_storage_permissions,
 )
 
 
@@ -156,25 +158,6 @@ def test_pulp_repositories_synced(host):
         assert False, ASSERT_MSGS["pulp_repos_not_synced"].format(details=result.get("details") or result.get("error") or "")
 
 
-def test_pulp_distributions_published(host):
-    """
-    Verify Pulp RPM distributions are published.
-    
-    This test:
-    1. Lists all RPM distributions
-    2. Checks each has a publication or repository attached
-    """
-    log = TestLogger(TEST_NAMES["pulp_distributions_published"])
-    log.check("Checking Pulp distributions publication status")
-    
-    result = check_pulp_distributions_published(host)
-    if result["success"]:
-        log.passed(LOG_MSGS["pulp_distributions_ok"], result.get("details") or "")
-    else:
-        log.failed(LOG_MSGS["pulp_distributions_missing"], result.get("details") or "")
-        assert False, ASSERT_MSGS["pulp_distributions_missing"].format(details=result.get("details") or result.get("error") or "")
-
-
 def test_pulp_no_failed_tasks(host):
     """
     Verify no failed tasks in Pulp task queue.
@@ -212,3 +195,64 @@ def test_pulp_content_accessible(host):
     else:
         log.failed(LOG_MSGS["pulp_content_not_accessible"], result.get("details") or "")
         assert False, ASSERT_MSGS["pulp_content_not_accessible"].format(details=result.get("details") or result.get("error") or "")
+
+
+def test_pulp_distributions_match_config(host):
+    """
+    Verify Pulp distributions match expected repos from local_repo_config.yml.
+
+    This test:
+    1. Loads local_repo_config.yml from omnia_core container
+    2. Extracts expected repo names from omnia_repo_url_rhel_{arch} keys
+    3. Verifies each expected {arch}_{name} distribution exists in Pulp
+    """
+    log = TestLogger(TEST_NAMES["pulp_distributions_match_config"])
+    log.check("Matching Pulp distributions against local_repo_config.yml")
+
+    result = check_pulp_distributions_match_config(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["pulp_distributions_match_ok"], result.get("details") or "")
+    else:
+        log.failed(LOG_MSGS["pulp_distributions_match_fail"], result.get("details") or "")
+        assert False, ASSERT_MSGS["pulp_distributions_not_match_config"].format(details=result.get("details") or result.get("error") or "")
+
+
+def test_nfs_mounts_in_pulp(host):
+    """
+    Verify NFS mounts are present inside the Pulp container.
+
+    This test:
+    1. Checks for required NFS mount points (/var/lib/pulp, /var/lib/pgsql, /var/log/pulp)
+    2. Verifies each mount is of type NFS
+    3. Reports NFS server source for each mount
+    """
+    log = TestLogger(TEST_NAMES["nfs_mounts_in_pulp"])
+    log.check("Checking NFS mounts inside Pulp container")
+
+    result = check_nfs_mounts_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["nfs_mounts_ok"], result.get("details") or "")
+    else:
+        log.failed(LOG_MSGS["nfs_mounts_missing"], result.get("details") or "")
+        assert False, ASSERT_MSGS["nfs_mounts_missing"].format(details=result.get("details") or result.get("error") or "")
+
+
+def test_nfs_storage_permissions(host):
+    """
+    Verify NFS storage permissions and read/write access in Pulp container.
+
+    This test:
+    1. Checks /var/lib/pulp exists
+    2. Verifies ownership and permissions
+    3. Tests read access
+    4. Tests write access (creates and removes temp file)
+    """
+    log = TestLogger(TEST_NAMES["nfs_storage_permissions"])
+    log.check("Checking NFS storage permissions and access")
+
+    result = check_nfs_storage_permissions(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["nfs_permissions_ok"], result.get("details") or "")
+    else:
+        log.failed(LOG_MSGS["nfs_permissions_fail"], result.get("details") or "")
+        assert False, ASSERT_MSGS["nfs_permissions_fail"].format(details=result.get("details") or result.get("error") or "")

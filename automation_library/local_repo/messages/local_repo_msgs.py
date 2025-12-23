@@ -32,6 +32,9 @@ TEST_NAMES = {
     "pulp_distributions_published": "Verify Pulp distributions are published",
     "pulp_no_failed_tasks": "Verify no failed tasks in Pulp",
     "pulp_content_accessible": "Verify Pulp content is accessible via HTTP",
+    "pulp_distributions_match_config": "Verify Pulp distributions match local_repo_config.yml",
+    "nfs_mounts_in_pulp": "Verify NFS mounts in Pulp container",
+    "nfs_storage_permissions": "Verify NFS storage permissions and access",
 }
 
 
@@ -61,6 +64,12 @@ TEST_LOG_MSGS = {
     "pulp_has_failed_tasks": "Failed tasks found in Pulp",
     "pulp_content_accessible": "Pulp content is accessible via HTTP",
     "pulp_content_not_accessible": "Pulp content is not accessible",
+    "pulp_distributions_match_ok": "All expected distributions found in Pulp",
+    "pulp_distributions_match_fail": "Some expected distributions missing from Pulp",
+    "nfs_mounts_ok": "All required NFS mounts verified in Pulp container",
+    "nfs_mounts_missing": "Some NFS mounts missing in Pulp container",
+    "nfs_permissions_ok": "NFS storage permissions verified (read/write access)",
+    "nfs_permissions_fail": "NFS storage permission check failed",
 }
 
 
@@ -199,6 +208,47 @@ TEST_ASSERT_MSGS = {
 ║   1. Check distribution exists: pulp rpm distribution list
 ║   2. Verify content URL: curl -s <pulp_url>/pulp/content/<repo>/repodata/repomd.xml
 ║   3. Check nginx/pulp content app: podman logs pulp
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_distributions_not_match_config": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PULP DISTRIBUTIONS DO NOT MATCH CONFIG
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check local_repo_config.yml for omnia_repo_url_rhel_* entries
+║   2. List Pulp distributions: pulp rpm distribution list --field name
+║   3. Verify local_repo.yml ran successfully
+║   4. Re-run local_repo.yml to create missing distributions
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "nfs_mounts_missing": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ NFS MOUNTS MISSING IN PULP CONTAINER
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check NFS server is accessible from host
+║   2. Verify NFS exports on server: showmount -e <nfs_server>
+║   3. Check container mount config in podman/docker compose
+║   4. Restart pulp container after fixing mounts
+║   5. Verify mounts: podman exec pulp mount | grep nfs
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "nfs_permissions_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ NFS STORAGE PERMISSION CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check NFS export permissions on server (rw vs ro)
+║   2. Verify ownership: podman exec pulp ls -la /var/lib/pulp
+║   3. Check NFS server allows writes from this client
+║   4. Test write access: podman exec pulp touch /var/lib/pulp/test
+║   5. Check SELinux/AppArmor if enabled
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 }

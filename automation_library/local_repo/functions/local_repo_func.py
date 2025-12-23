@@ -6,6 +6,8 @@ import json
 import re
 from typing import Dict, Any, List
 
+import yaml
+
 from ..vars.local_repo_vars import LOCAL_REPO_VARS
 from ..messages.local_repo_msgs import LOCAL_REPO_MSGS
 
@@ -998,3 +1000,343 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
             "details": "",
             "error": "Invalid distribution list response",
         }
+
+
+def load_local_repo_config_from_container(host) -> Dict[str, Any]:
+    """Load local_repo_config.yml from omnia_core container."""
+    oim_input_dir = LOCAL_REPO_VARS.get("oim_input_dir", "/opt/omnia/input/project_default")
+    config_path = f"{oim_input_dir}/local_repo_config.yml"
+
+    result = read_file_in_omnia_core(host, config_path)
+    if not result["success"]:
+        return {
+            "success": False,
+            "config": {},
+            "error": f"Failed to read {config_path}: {result.get('error', '')}",
+        }
+
+    content = result.get("content", "")
+    if not content.strip():
+        return {
+            "success": False,
+            "config": {},
+            "error": f"{config_path} is empty",
+        }
+
+    try:
+        config = yaml.safe_load(content) or {}
+        return {"success": True, "config": config, "error": None}
+    except yaml.YAMLError as e:
+        return {
+            "success": False,
+            "config": {},
+            "error": f"Invalid YAML in {config_path}: {str(e)}",
+        }
+
+
+def check_pulp_distributions_match_config(host) -> Dict[str, Any]:
+    """
+    Verify Pulp distributions match expected repos from local_repo_config.yml.
+
+    Steps:
+    1. Load local_repo_config.yml from omnia_core container
+    2. Extract expected repo names per arch from omnia_repo_url_rhel_{arch}
+    3. Get actual Pulp distributions via `pulp rpm distribution list`
+    4. For each expected repo, check if {arch}_{name} exists in Pulp
+    5. Report matched/missing distributions
+    """
+    # Step 1: Load local_repo_config.yml
+    config_result = load_local_repo_config_from_container(host)
+    if not config_result["success"]:
+        return {
+            "success": False,
+            "total_expected": 0,
+            "matched": 0,
+            "missing": 0,
+            "missing_distributions": [],
+            "details": "",
+            "error": config_result.get("error", "Failed to load config"),
+        }
+
+    config = config_result.get("config", {})
+
+    # Step 2: Build expected distributions per arch
+    expected = []
+    for arch in ["x86_64", "aarch64"]:
+        key = f"omnia_repo_url_rhel_{arch}"
+        repos = config.get(key, []) or []
+        if not isinstance(repos, list):
+            continue
+        for repo in repos:
+            if not isinstance(repo, dict):
+                continue
+            name = (repo.get("name") or "").strip()
+            if name:
+                expected.append({
+                    "arch": arch,
+                    "repo_name": name,
+                    "expected_dist": f"{arch}_{name}",
+                })
+
+    if not expected:
+        return {
+            "success": True,
+            "total_expected": 0,
+            "matched": 0,
+            "missing": 0,
+            "missing_distributions": [],
+            "details": "No repos defined in omnia_repo_url_rhel_* keys",
+            "error": None,
+        }
+
+    # Step 3: Get actual Pulp distributions
+    cmd = run_in_omnia_core(host, "pulp rpm distribution list --field name 2>/dev/null")
+    if not cmd["success"]:
+        return {
+            "success": False,
+            "total_expected": len(expected),
+            "matched": 0,
+            "missing": len(expected),
+            "missing_distributions": expected,
+            "details": "",
+            "error": f"pulp rpm distribution list failed: {cmd.get('stderr', '')}",
+        }
+
+    stdout = (cmd.get("stdout") or "").strip()
+    actual_dists = set()
+    if stdout and stdout != "[]":
+        try:
+            dists = json.loads(stdout)
+            for dist in dists:
+                name = (dist.get("name") or "").strip()
+                if name:
+                    actual_dists.add(name)
+        except json.JSONDecodeError:
+            return {
+                "success": False,
+                "total_expected": len(expected),
+                "matched": 0,
+                "missing": len(expected),
+                "missing_distributions": expected,
+                "details": stdout[:200],
+                "error": "Invalid JSON from distribution list",
+            }
+
+    # Step 4: Match expected vs actual
+    matched = []
+    missing = []
+    for exp in expected:
+        dist_name = exp["expected_dist"]
+        if dist_name in actual_dists:
+            matched.append(exp)
+        else:
+            missing.append(exp)
+
+    # Step 5: Build results
+    total_expected = len(expected)
+    matched_count = len(matched)
+    missing_count = len(missing)
+
+    details = (
+        f"Expected: {total_expected}\n"
+        f"Found: {matched_count}\n"
+        f"Missing: {missing_count}"
+    )
+
+    if matched:
+        details += "\n\nMatched distributions:\n" + "\n".join(
+            [f"  - {m['expected_dist']} ({m['arch']}/{m['repo_name']})" for m in matched[:10]]
+        )
+        if len(matched) > 10:
+            details += f"\n  ... and {len(matched) - 10} more"
+
+    if missing:
+        details += "\n\nMissing distributions:\n" + "\n".join(
+            [f"  - {m['expected_dist']} ({m['arch']}/{m['repo_name']})" for m in missing[:10]]
+        )
+        if len(missing) > 10:
+            details += f"\n  ... and {len(missing) - 10} more"
+
+    return {
+        "success": missing_count == 0,
+        "total_expected": total_expected,
+        "matched": matched_count,
+        "missing": missing_count,
+        "matched_distributions": matched,
+        "missing_distributions": missing,
+        "details": details,
+        "error": None if missing_count == 0 else f"{missing_count} expected distributions not found in Pulp",
+    }
+
+
+def run_in_pulp_container(host, cmd: str) -> Dict[str, Any]:
+    """Run a command in pulp container using bash -c."""
+    container = LOCAL_REPO_VARS["pulp_container"]
+    res = host.run(f"podman exec {container} bash -c \"{cmd}\"")
+    return {
+        "success": res.rc == 0,
+        "rc": res.rc,
+        "stdout": res.stdout or "",
+        "stderr": res.stderr or "",
+    }
+
+
+def check_nfs_mounts_in_pulp(host) -> Dict[str, Any]:
+    """
+    Verify NFS mounts are present inside the Pulp container.
+    
+    Checks for critical NFS mount points:
+    - /var/lib/pulp (Pulp storage)
+    - /var/lib/pgsql (PostgreSQL data)
+    - /var/log/pulp (Pulp logs)
+    """
+    required_mounts = [
+        {"path": "/var/lib/pulp", "description": "Pulp storage"},
+        {"path": "/var/lib/pgsql", "description": "PostgreSQL data"},
+        {"path": "/var/log/pulp", "description": "Pulp logs"},
+    ]
+    
+    # Get all NFS mounts inside pulp container
+    cmd = run_in_pulp_container(host, "mount | grep 'type nfs'")
+    if not cmd["success"] and cmd["rc"] != 1:  # rc=1 means no matches (grep)
+        return {
+            "success": False,
+            "total_mounts": 0,
+            "verified_mounts": [],
+            "missing_mounts": [m["path"] for m in required_mounts],
+            "details": "",
+            "error": f"Failed to check mounts: {cmd.get('stderr', '')}",
+        }
+    
+    mount_output = cmd.get("stdout", "")
+    
+    verified = []
+    missing = []
+    
+    for mount in required_mounts:
+        path = mount["path"]
+        desc = mount["description"]
+        # Check if mount path appears in mount output
+        if f" on {path} type nfs" in mount_output or f" {path} " in mount_output:
+            # Extract NFS server info
+            for line in mount_output.split("\n"):
+                if f" on {path} " in line or f" {path} " in line:
+                    # Parse NFS source (e.g., 100.98.69.235:/mnt/...)
+                    parts = line.split(" on ")
+                    nfs_source = parts[0] if parts else "unknown"
+                    verified.append({
+                        "path": path,
+                        "description": desc,
+                        "nfs_source": nfs_source.strip(),
+                        "status": "mounted",
+                    })
+                    break
+        else:
+            missing.append({
+                "path": path,
+                "description": desc,
+                "status": "not_mounted",
+            })
+    
+    total = len(required_mounts)
+    verified_count = len(verified)
+    missing_count = len(missing)
+    
+    details = (
+        f"Total required: {total}\n"
+        f"Verified: {verified_count}\n"
+        f"Missing: {missing_count}"
+    )
+    
+    if verified:
+        details += "\n\nVerified NFS mounts:\n" + "\n".join(
+            [f"  - {v['path']} ({v['description']})\n    Source: {v['nfs_source']}" for v in verified]
+        )
+    
+    if missing:
+        details += "\n\nMissing NFS mounts:\n" + "\n".join(
+            [f"  - {m['path']} ({m['description']})" for m in missing]
+        )
+    
+    return {
+        "success": missing_count == 0,
+        "total_mounts": total,
+        "verified_count": verified_count,
+        "missing_count": missing_count,
+        "verified_mounts": verified,
+        "missing_mounts": missing,
+        "details": details,
+        "error": None if missing_count == 0 else f"{missing_count} required NFS mounts not found",
+    }
+
+
+def check_nfs_storage_permissions(host) -> Dict[str, Any]:
+    """
+    Verify NFS storage permissions and read/write access in Pulp container.
+    
+    Checks:
+    - /var/lib/pulp ownership and permissions
+    - Read/write access test
+    """
+    storage_path = "/var/lib/pulp"
+    
+    # Check if path exists
+    exists_cmd = run_in_pulp_container(host, f"test -d {storage_path} && echo 'exists'")
+    if "exists" not in exists_cmd.get("stdout", ""):
+        return {
+            "success": False,
+            "path": storage_path,
+            "exists": False,
+            "readable": False,
+            "writable": False,
+            "details": f"Storage path {storage_path} does not exist",
+            "error": f"Storage path {storage_path} not found",
+        }
+    
+    # Get ownership and permissions
+    stat_cmd = run_in_pulp_container(host, f"stat -c '%U:%G %a' {storage_path}")
+    ownership = stat_cmd.get("stdout", "").strip() if stat_cmd["success"] else "unknown"
+    
+    # Test read access
+    read_cmd = run_in_pulp_container(host, f"ls {storage_path} >/dev/null 2>&1 && echo 'readable'")
+    readable = "readable" in read_cmd.get("stdout", "")
+    
+    # Test write access (create and remove temp file)
+    test_file = f"{storage_path}/.nfs_write_test_{host.backend.get_hostname()}"
+    write_cmd = run_in_pulp_container(
+        host, 
+        f"touch {test_file} 2>/dev/null && rm -f {test_file} && echo 'writable'"
+    )
+    writable = "writable" in write_cmd.get("stdout", "")
+    
+    # Get disk usage
+    df_cmd = run_in_pulp_container(host, f"df -h {storage_path} | tail -1")
+    disk_info = df_cmd.get("stdout", "").strip() if df_cmd["success"] else "unknown"
+    
+    success = readable and writable
+    
+    details = (
+        f"Path: {storage_path}\n"
+        f"Ownership: {ownership}\n"
+        f"Readable: {'Yes' if readable else 'No'}\n"
+        f"Writable: {'Yes' if writable else 'No'}\n"
+        f"Disk: {disk_info}"
+    )
+    
+    error = None
+    if not readable:
+        error = f"Storage path {storage_path} is not readable"
+    elif not writable:
+        error = f"Storage path {storage_path} is not writable"
+    
+    return {
+        "success": success,
+        "path": storage_path,
+        "exists": True,
+        "ownership": ownership,
+        "readable": readable,
+        "writable": writable,
+        "disk_info": disk_info,
+        "details": details,
+        "error": error,
+    }
