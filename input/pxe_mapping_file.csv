@@ -1,0 +1,4 @@
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
+slurm_control_node_x86_64,grp2,HVVWPT3,,slurm-control-node,ec:2a:72:34:f7:26,172.16.107.202,ec:2a:72:3c:c1:f2,100.96.26.24
+slurm_node_x86_64,grp1,ABC1234,,slurm-node-1,ec:2a:72:f9:9c:ee,172.16.107.203,ec:2a:72:f9:9c:e8,100.96.26.18
+slurm_node_x86_64,grp1,6K7T8X2,,slurm-node-2,b0:26:28:56:40:3f,172.16.107.205,f4:02:70:a9:85:2c,100.96.26.25
