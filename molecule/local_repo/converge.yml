@@ -1,0 +1,434 @@
+---
+# =============================================================================
+# Molecule Converge - Run local_repo.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Load local_repo_config.yml
+      ansible.builtin.include_vars:
+        file: "{{ project_dir }}/input/local_repo_config.yml"
+        name: local_repo_config
+
+    - name: Build list of repo URLs
+      ansible.builtin.set_fact:
+        local_repo_urls: >-
+          {{
+            (
+              (local_repo_config.user_repo_url_x86_64 | default([], true))
+              + (local_repo_config.user_repo_url_aarch64 | default([], true))
+              + (local_repo_config.rhel_os_url_x86_64 | default([], true))
+              + (local_repo_config.rhel_os_url_aarch64 | default([], true))
+              + (local_repo_config.omnia_repo_url_rhel_x86_64 | default([], true))
+              + (local_repo_config.omnia_repo_url_rhel_aarch64 | default([], true))
+            )
+            | map(attribute='url')
+            | select('string')
+            | list
+          }}
+        cacheable: true
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        local_repo_urls: "{{ local_repo_urls | default([]) }}"
+        cacheable: true
+
+
+- name: Converge - Validate pulp, repo access, and run local_repo.yml
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+    input_dir: "{{ project_dir }}/input"
+    oim_input_dir: "/opt/omnia/input/project_default"
+    local_repo_playbook: "/omnia/local_repo/local_repo.yml"
+    local_repo_urls: "{{ hostvars['localhost']['local_repo_urls'] | default([]) }}"
+    pulp_container_name: "pulp"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running local_repo on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
+      register: omnia_core_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container is not running on {{ ansible_host }}.
+          Please run omnia.sh --install first.
+      when: omnia_core_check.rc != 0
+
+    - name: Check if pulp container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q "^{{ pulp_container_name }}$"
+      args:
+        executable: /bin/bash
+      register: pulp_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if pulp container is not running
+      ansible.builtin.fail:
+        msg: |
+          Pulp container '{{ pulp_container_name }}' is not running on {{ ansible_host }}.
+          Check: podman ps -a | grep {{ pulp_container_name }}
+          Logs:  podman logs {{ pulp_container_name }}
+      when: pulp_check.rc != 0
+
+    - name: Check pulp container health status (if available)
+      ansible.builtin.shell:
+        cmd: podman inspect --format '{{ '{{' }}.State.Health.Status{{ '}}' }}' {{ pulp_container_name }} 2>/dev/null || true
+      register: pulp_health
+      changed_when: false
+
+    - name: Display pulp health status
+      ansible.builtin.debug:
+        msg: "Pulp health status: {{ pulp_health.stdout | default('') | trim | default('(none)') }}"
+
+    - name: Wait for Pulp API to become ready (HTTPS)
+      ansible.builtin.shell:
+        cmd: |
+          for i in $(seq 1 60); do
+            if curl -k -sSf --max-time 5 https://127.0.0.1:2225/pulp/api/v3/status/ >/dev/null; then
+              echo "READY"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "TIMEOUT"
+          exit 1
+      register: pulp_api_ready
+      changed_when: false
+
+    - name: Check pulp logs for persistent lock errors
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman logs --tail 200 {{ pulp_container_name }} 2>&1 | grep -E "s6-rc: fatal: unable to take locks" || true
+      args:
+        executable: /bin/bash
+      register: pulp_lock_errors
+      changed_when: false
+
+    - name: Display pulp lock errors (if any)
+      ansible.builtin.debug:
+        msg: |
+          Pulp log lock messages detected (continuing because API is READY):
+          {{ pulp_lock_errors.stdout }}
+      when: pulp_lock_errors.stdout is defined and pulp_lock_errors.stdout | trim | length > 0
+
+    - name: Check pulp logs for fatal errors
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman logs --since 5m {{ pulp_container_name }} 2>&1 | \
+            grep -E "(Traceback|FATAL|\[ERROR\]|ERROR:)" | \
+            grep -v -E "s6-rc: fatal: unable to take locks" | \
+            grep -v -E "database system is starting up|database system is shutting down" || true
+      args:
+        executable: /bin/bash
+      register: pulp_fatal_errors
+      changed_when: false
+
+    - name: Fail if fatal errors found in pulp logs
+      ansible.builtin.fail:
+        msg: |
+          Fatal errors detected in pulp logs:
+          {{ pulp_fatal_errors.stdout }}
+      when:
+        - pulp_api_ready is defined
+        - "'READY' in pulp_api_ready.stdout"
+        - pulp_fatal_errors.stdout is defined
+        - pulp_fatal_errors.stdout | trim | length > 0
+
+    - name: Fail if no repo URLs found in local_repo_config.yml
+      ansible.builtin.fail:
+        msg: |
+          No repository URLs were found in input/local_repo_config.yml.
+          Cannot validate custom repo accessibility.
+      when: local_repo_urls | length == 0
+
+    - name: Validate custom repo URLs are reachable from OIM
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        method: HEAD
+        return_content: false
+        follow_redirects: all
+        timeout: 10
+        validate_certs: false
+        status_code:
+          - 200
+          - 401
+          - 403
+          - 301
+          - 302
+          - 307
+          - 308
+      loop: "{{ local_repo_urls }}"
+      register: repo_reachability
+      changed_when: false
+
+    - name: Create temp directory on OIM server
+      ansible.builtin.file:
+        path: "/tmp/omnia_input"
+        state: directory
+        mode: '0755'
+
+    - name: Copy input files from automation repo to OIM server
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../input/"
+        dest: "/tmp/omnia_input/"
+        decrypt: false
+        mode: preserve
+      delegate_to: localhost
+
+    - name: Copy input files into omnia_core container
+      ansible.builtin.command:
+        cmd: podman cp /tmp/omnia_input/. omnia_core:{{ oim_input_dir }}/
+      changed_when: true
+
+    - name: Cleanup temp directory
+      ansible.builtin.file:
+        path: /tmp/omnia_input
+        state: absent
+
+    - name: Verify input files in container
+      ansible.builtin.command:
+        cmd: podman exec omnia_core ls -la {{ oim_input_dir }}/
+      register: container_files
+      changed_when: false
+
+    - name: Display container input files
+      ansible.builtin.debug:
+        var: container_files.stdout_lines
+
+    - name: Check if local_repo playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f {{ local_repo_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "local_repo playbook ({{ local_repo_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute local_repo playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia omnia_core \
+            ansible-playbook local_repo/local_repo.yml -v \
+            --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+      register: playbook_result
+      timeout: 3600
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Show local_repo playbook output
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                      LOCAL_REPO PLAYBOOK EXECUTION FAILED                    ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Pulp logs: podman logs {{ pulp_container_name }}
+          ║   3. Host logs: ls -la /local/omnia/log/pulp
+          ║   4. Re-run manually inside omnia_core container:
+          ║        podman exec -w /omnia -it omnia_core bash
+          ║        ansible-playbook local_repo/local_repo.yml -v \
+          ║          --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+          ║
+          ║ STDERR:
+          ║   {{ playbook_result.stderr | default('No error message') }}
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Validate Pulp API after local_repo playbook
+      ansible.builtin.uri:
+        url: "https://127.0.0.1:2225/pulp/api/v3/status/"
+        method: GET
+        return_content: false
+        timeout: 10
+        validate_certs: false
+        status_code: 200
+      register: pulp_api_post
+      changed_when: false
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0
+
+    - name: Validate pulp CLI (pulp rpm repository list)
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec omnia_core bash -lc "pulp rpm repository list" 2>/dev/null || \
+          podman exec {{ pulp_container_name }} bash -lc "pulp rpm repository list"
+      args:
+        executable: /bin/bash
+      register: pulp_repo_list
+      changed_when: false
+      failed_when: pulp_repo_list.rc != 0
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0
+
+    - name: Locate newest status.csv inside omnia_core
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec omnia_core bash -lc \
+            "find /opt/omnia /local/omnia /omnia -name status.csv -printf '%T@ %p\n' 2>/dev/null | sort -nr | head -1 | awk '{print \$2}'"
+      args:
+        executable: /bin/bash
+      register: status_csv_path
+      changed_when: false
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0
+
+    - name: Fail if status.csv not found
+      ansible.builtin.fail:
+        msg: |
+          status.csv not found inside omnia_core.
+          Searched: /opt/omnia, /local/omnia, /omnia
+          Please check local_repo logs under /opt/omnia and /local/omnia.
+      when:
+        - playbook_result is defined
+        - playbook_result.rc is defined
+        - playbook_result.rc == 0
+        - status_csv_path.stdout is not defined or status_csv_path.stdout | trim | length == 0
+
+    - name: Display status.csv path
+      ansible.builtin.debug:
+        msg: "Using status.csv: {{ status_csv_path.stdout | trim }}"
+      when:
+        - status_csv_path.stdout is defined
+        - status_csv_path.stdout | trim | length > 0
+
+    - name: Check status.csv for FAIL entries
+      ansible.builtin.shell:
+        cmd: |
+          podman exec omnia_core bash -lc "grep -i 'fail' '{{ status_csv_path.stdout | trim }}' || true"
+      register: status_csv_failures
+      changed_when: false
+      when:
+        - status_csv_path.stdout is defined
+        - status_csv_path.stdout | trim | length > 0
+
+    - name: Display status.csv failures (if any)
+      ansible.builtin.debug:
+        msg: |
+          Top-level status.csv indicates failures (will validate per-package CSVs next):
+          {{ status_csv_failures.stdout }}
+      when:
+        - status_csv_failures.stdout is defined
+        - status_csv_failures.stdout | trim | length > 0
+
+    - name: Parse status.csv for per-package CSV references (only if failures present)
+      ansible.builtin.shell:
+        cmd: |
+          podman exec omnia_core bash -lc "python3 - <<'PY'
+          import csv
+          import os
+          p = r'{{ status_csv_path.stdout | trim }}'
+          b = os.path.dirname(p)
+          refs = set()
+          for row in csv.DictReader(open(p, newline='')):
+            for v in row.values():
+              if isinstance(v, str) and v.strip().endswith('.csv'):
+                vv = v.strip()
+                refs.add(vv if vv.startswith('/') else os.path.join(b, vv))
+          print('\\n'.join(sorted(refs)))
+          PY"
+      register: status_csv_parsed
+      changed_when: false
+      when:
+        - status_csv_failures.stdout is defined
+        - status_csv_failures.stdout | trim | length > 0
+
+    - name: Status.csv shows no failures
+      ansible.builtin.debug:
+        msg: "Top-level status.csv shows no FAIL entries; per-package CSV validation not required."
+      when:
+        - status_csv_failures.stdout is defined
+        - status_csv_failures.stdout | trim | length == 0
+
+    - name: Set per-package CSV list from parsed status
+      ansible.builtin.set_fact:
+        per_package_csvs: "{{ status_csv_parsed.stdout_lines | default([]) }}"
+      when:
+        - status_csv_failures.stdout is defined
+        - status_csv_failures.stdout | trim | length > 0
+        - status_csv_parsed is defined
+
+    - name: Fail if status.csv has failures but no per-package CSV references
+      ansible.builtin.fail:
+        msg: |
+          Top-level status.csv contains failures, but no per-package CSV references were found.
+          status.csv: {{ status_csv_path.stdout | trim }}
+      when:
+        - status_csv_failures.stdout is defined
+        - status_csv_failures.stdout | trim | length > 0
+        - per_package_csvs is not defined or per_package_csvs | length == 0
+
+    - name: Validate per-package CSVs referenced by status.csv
+      ansible.builtin.shell:
+        cmd: |
+          podman exec omnia_core bash -lc "test -f '{{ item }}' && (grep -i 'fail' '{{ item }}' || true) || echo '__MISSING__'"
+      loop: "{{ per_package_csvs }}"
+      register: per_package_csv_checks
+      changed_when: false
+      when:
+        - per_package_csvs is defined
+        - per_package_csvs | length > 0
+
+    - name: Fail if any per-package CSV is missing or contains failures
+      ansible.builtin.fail:
+        msg: |
+          One or more per-package CSVs indicate failures or are missing.
+          Details:
+          {{ per_package_csv_checks.results | map(attribute='item') | zip(per_package_csv_checks.results | map(attribute='stdout')) | list }}
+      when:
+        - per_package_csv_checks is defined
+        - per_package_csv_checks.results is defined
+        - per_package_csv_checks.results | selectattr('stdout', 'search', '__MISSING__|fail') | list | length > 0
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "local_repo playbook not found at {{ local_repo_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    - name: Local_repo converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          local_repo converge complete!
+          ============================================
+          - omnia_core container: Running
+          - pulp container: Running
+          - local_repo playbook: Executed successfully
+          - Ready for pytest verification
+          ============================================

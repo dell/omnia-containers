@@ -1,0 +1,50 @@
+# =============================================================================
+# Molecule Configuration for local_repo Testing
+# =============================================================================
+#
+# This module runs local_repo.yml playbook inside omnia_core container
+# and verifies local repository synchronization was successful.
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh local_repo test       # Run playbook + verify
+#   ./run_molecule.sh local_repo converge   # Run playbook only
+#   ./run_molecule.sh local_repo verify     # Verify only
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: local_repo
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify

@@ -29,7 +29,7 @@ from typing import Dict, Any, Tuple, Optional
 
 from ..vars.omnia_sh_vars import OMNIA_SH_VARS, get_omnia_sh_path, validate_config
 from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS
-from ..core.formatting import log as _log
+from ...core.formatting import log as _log
 
 
 # =============================================================================
@@ -150,7 +150,7 @@ def check_podman() -> Dict[str, Any]:
     """
     _log("Checking Podman installation...", "INFO")
 
-    rc, stdout, stderr = run_command(["podman", "--version"])
+    rc, stdout, _ = run_command(["podman", "--version"])
 
     if rc == 0:
         version = stdout.replace("podman version ", "")
@@ -222,7 +222,10 @@ def check_omnia_core_image() -> Dict[str, Any]:
     tag = OMNIA_SH_VARS["container_image_tag"]
 
     # Check for image with specific tag
-    rc, stdout, _ = run_shell(f"podman images --format '{{{{.Repository}}}}:{{{{.Tag}}}}' | grep -E 'omnia_core:{tag}'")
+    rc, stdout, _ = run_shell(
+        f"podman images --format '{{{{.Repository}}}}:{{{{.Tag}}}}' | "
+        f"grep -E 'omnia_core:{tag}'"
+    )
 
     if rc == 0 and stdout:
         _log(OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag=tag), "OK")
@@ -230,11 +233,16 @@ def check_omnia_core_image() -> Dict[str, Any]:
             "found": True,
             "image": "omnia_core",
             "tag": tag,
-            "message": OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag=tag)
+            "message": OMNIA_SH_MSGS["image_found"].format(
+                image="omnia_core", tag=tag
+            )
         }
 
     # Check for latest tag as fallback
-    rc, stdout, _ = run_shell("podman images --format '{{.Repository}}:{{.Tag}}' | grep -E 'omnia_core:latest'")
+    rc, stdout, _ = run_shell(
+        "podman images --format '{{.Repository}}:{{.Tag}}' | "
+        "grep -E 'omnia_core:latest'"
+    )
 
     if rc == 0 and stdout:
         _log(OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag="latest"), "OK")
@@ -582,7 +590,7 @@ def verify_ssh_connection() -> Dict[str, Any]:
     ssh_port = OMNIA_SH_VARS["ssh_port"]
 
     # Try SSH connection using the omnia_core alias (uses ssh config)
-    rc, stdout, stderr = run_shell(
+    rc, stdout, _ = run_shell(
         "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 omnia_core 'echo SSH_OK'",
         timeout=30
     )

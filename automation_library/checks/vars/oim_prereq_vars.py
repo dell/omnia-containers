@@ -29,8 +29,9 @@ import yaml
 # =============================================================================
 
 # Path to user config file (in project root, next to requirements.txt)
-# automation_library/vars/oim_prereq_vars.py -> go up 3 levels to project root
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# automation_library/checks/vars/oim_prereq_vars.py -> go up 4 levels to project root
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 _USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "user_config.yml")
 
 # Export config path for use in error messages
@@ -43,7 +44,7 @@ USER_CONFIG_PATH = _USER_CONFIG_FILE
 
 def _load_user_config() -> Dict[str, Any]:
     """
-    Load user configuration from YAML file.
+    Load user configuration from YAML file with error handling and validation.
 
     Returns:
         Dict containing user configuration, or empty dict if file not found/invalid.
@@ -133,11 +134,17 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     # =========================================================================
     # Network interface configuration for PXE and public networks
 
+    # network_type: Network configuration type ("dedicated" or "lom")
+    "network_type": _user_config.get("network_type", "dedicated"),
+
     # pxe_interface: Name of the PXE/provisioning network interface (e.g., "eno1")
     "pxe_interface": _user_config.get("pxe_interface", ""),
 
     # pxe_ip: IP address to assign to PXE interface (CIDR notation)
     "pxe_ip": _user_config.get("pxe_ip", "") or "172.16.107.254/24",
+
+    # idrac_ip: IP address for iDRAC (only used when network_type is "lom")
+    "idrac_ip": _user_config.get("idrac_ip", "") or "172.16.107.253/24",
 
     # force_configure_pxe: If True, reconfigure PXE IP even if already set
     "force_configure_pxe": _user_config.get("force_configure_pxe", False),

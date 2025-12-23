@@ -8,10 +8,10 @@ Usage:
 """
 
 from automation_library.core import TestLogger
-from automation_library.messages.omnia_sh_msgs import (
+from automation_library.omnia_sh.messages.omnia_sh_msgs import (
     TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
-from automation_library.functions.omnia_sh_func import (
+from automation_library.omnia_sh.functions.omnia_sh_func import (
     check_container_not_running,
     check_service_not_exists,
     check_fstab_entry_removed,

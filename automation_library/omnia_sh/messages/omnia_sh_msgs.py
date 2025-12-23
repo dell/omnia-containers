@@ -6,8 +6,8 @@ and test variables for the omnia.sh automation.
 """
 
 from typing import Dict
-from automation_library.vars.omnia_sh_vars import OMNIA_SH_VARS
-from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS
+from ..vars.omnia_sh_vars import OMNIA_SH_VARS
+from ...vars import OIM_PREREQ_VARS
 
 # =============================================================================
 # TEST VARIABLES (for molecule/pytest tests)

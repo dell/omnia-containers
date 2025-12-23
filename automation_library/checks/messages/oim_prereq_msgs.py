@@ -270,8 +270,10 @@ ACTION REQUIRED: Failed to install Git.
     "podman_check_start": "Checking Podman installation...",
     "podman_installed": "Podman installed: {version}",
     "podman_not_installed": "Podman NOT installed",
+    "podman_version_ok": "Podman version {version} >= {min_version}",
     "podman_version_pass": "Podman version OK: {version}",
     "podman_version_fail": "Podman version {version} is BELOW minimum {min_version}",
+    "podman_version_low": "Podman version {version} is BELOW minimum {min_version}",
 
     # Error instructions for Podman
     "podman_not_installed_instruction": """
@@ -376,18 +378,52 @@ ACTION REQUIRED: Set 'omnia_branch' in {config_path}.
     # ==========================================================================
     "ssh_connection_ok": "SSH connection OK",
     "ssh_connection_fail": "SSH connection FAILED: {error}",
-    "oim_server_not_configured": """
-ACTION REQUIRED: OIM Server IP not configured.
-- Edit {config_path}
-- Set 'oim_server_ip' to your OIM server IP address
-- Set 'oim_ssh_user' (default: root)
-- Set 'oim_ssh_password' with SSH password
-""",
-    "ssh_password_not_configured": """
-ACTION REQUIRED: SSH password not configured.
-- Set 'oim_ssh_password' in {config_path}
-""",
-    "ssh_check_config": "Check oim_server_ip, oim_ssh_user, and oim_ssh_password in {config_path}",
+    "ssh_connection_test_start": "Testing SSH connection to {user}@{server}...",
+    "ssh_connection_success": "SSH connection to {user}@{server} successful",
+    "ssh_connection_failed": "SSH connection failed to {user}@{server}",
+    "ssh_connection_error": "Connection error: {error}",
+    "ssh_running_locally": "Running locally",
+    "oim_server_not_configured": "OIM server IP not configured",
+    "oim_server_not_configured_details": ("Configuration missing: oim_server_ip is required "
+                                          "for remote execution"),
+    "ssh_password_not_configured": "SSH password not configured",
+    "ssh_password_not_configured_details": ("Configuration missing: oim_ssh_password is required "
+                                            "for remote execution"),
+    "ssh_check_config": ("Check oim_server_ip, oim_ssh_user, and oim_ssh_password "
+                         "in {config_path}"),
+
+    # ==========================================================================
+    # Network Configuration
+    # ==========================================================================
+    "pxe_interface_not_configured": "PXE interface not configured",
+    "pxe_interface_not_configured_details": ("Configuration missing: pxe_interface is required "
+                                             "for network setup"),
+    "pxe_interface_not_exist": "PXE interface {interface} does not exist on target server",
+    "pxe_interface_not_exist_details": ("Interface {interface} not found - verify interface name "
+                                        "or check available interfaces"),
+    "ip_validation_failed": "IP configuration validation failed: {message}",
+    "ip_conflict_detected": "PXE IP and iDRAC IP cannot be the same: {ip}",
+    "ip_format_invalid": "Invalid IP format: {error}",
+    "ip_configuration_valid": "IP configuration is valid",
+    "network_type_lom": "lom",
+    "network_type_dedicated": "dedicated",
+    "pxe_nic_force_reconfigure": "Force reconfigure enabled. Removing ALL IPs from {interface}...",
+    "pxe_nic_no_ips_found": "No IPs found on {interface}",
+    "pxe_nic_ips_removed": "All IPs successfully removed from {interface}",
+    "pxe_nic_configuring_lom": ("Configuring LOM network: PXE IP {pxe_ip} and iDRAC IP {idrac_ip} "
+                                "on {interface}..."),
+    "pxe_nic_configuring_dedicated": ("Configuring dedicated network: PXE IP {pxe_ip} "
+                                      "on {interface}..."),
+    "pxe_nic_lom_configured": "LOM network configured on {interface}",
+    "pxe_nic_dedicated_configured": "Dedicated network configured on {interface}",
+    "pxe_nic_lom_success": "LOM network configured successfully with IPs: {ips}",
+    "pxe_nic_dedicated_success": "Dedicated network configured successfully with IP: {ip}",
+    "interface_state_check": "Interface {interface} initial state: {state}",
+    "interface_bring_up": "Bringing interface {interface} UP...",
+    "interface_bring_up_warning": "Warning: Could not bring interface up initially: {error}",
+    "interface_final_state": "Interface {interface} final state: {state}",
+    "interface_not_up_warning": ("Warning: Interface {interface} is not UP "
+                                 "after configuration"),
 
     # ==========================================================================
     # General
@@ -395,5 +431,6 @@ ACTION REQUIRED: SSH password not configured.
     "validation_start": "Starting OIM prerequisite validation...",
     "validation_complete": "OIM prerequisite validation complete",
     "validation_passed": "All prerequisite checks passed",
-    "validation_failed": "Prerequisite validation failed: {failed_count} checks failed",
+    "validation_failed": ("Prerequisite validation failed: {failed_count} "
+                          "checks failed"),
 }

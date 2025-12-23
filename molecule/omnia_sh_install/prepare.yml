@@ -81,14 +81,20 @@
 
     - name: Check if omnia_core image exists
       ansible.builtin.shell:
-        cmd: podman images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E 'omnia_core'
+        cmd: set -o pipefail && podman images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E 'omnia_core'
+      args:
+        executable: /bin/bash
       register: omnia_core_image
       changed_when: false
       failed_when: false
 
     - name: Display omnia_core image status
+      vars:
+        image_msg: >-
+          {{ 'omnia_core image found: ' + omnia_core_image.stdout if omnia_core_image.rc == 0
+          else 'omnia_core image not found (will be pulled during install)' }}
       ansible.builtin.debug:
-        msg: "{{ 'omnia_core image found: ' + omnia_core_image.stdout if omnia_core_image.rc == 0 else 'omnia_core image not found (will be pulled during install)' }}"
+        msg: "{{ image_msg }}"
 
     - name: Prerequisites check passed
       ansible.builtin.debug:
