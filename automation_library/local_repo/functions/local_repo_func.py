@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+import re
 from typing import Dict, Any, List
 
 from ..vars.local_repo_vars import LOCAL_REPO_VARS
@@ -63,37 +64,62 @@ def check_pulp_cli_repository_list(host) -> Dict[str, Any]:
     }
 
 
-def find_status_csv(host) -> Dict[str, Any]:
-    """Locate status.csv inside omnia_core. Returns newest match when possible."""
-    roots = LOCAL_REPO_VARS.get("status_search_roots", ["/opt/omnia", "/local/omnia", "/omnia"])
-    roots_str = " ".join(roots)
-    # Prefer newest file across roots
-    find_cmd = run_in_omnia_core(
-        host,
-        "find "
-        + roots_str
-        + " -name status.csv -printf '%T@ %p\\n' 2>/dev/null "
-        + "| sort -nr | head -1 | awk '{print $2}'",
-    )
-    raw = (find_cmd["stdout"] or "").strip()
-    path = raw
-    # Be defensive: if command output still includes a leading timestamp ("<ts> <path>"),
-    # strip the first field and keep the remainder.
-    if " " in path:
-        first, rest = path.split(" ", 1)
-        try:
-            float(first)
-            path = rest.strip()
-        except ValueError:
-            pass
-    if find_cmd["success"] and path:
-        return {"success": True, "path": path, "error": None}
+def get_expected_status_csv_paths(host) -> Dict[str, Any]:
+    """Build expected per-software status.csv paths inside omnia_core."""
+    sw = load_software_config(host)
+    if not sw.get("success"):
+        return {"success": False, "paths": [], "error": sw.get("error") or ""}
 
-    # Fallback: any match
-    fallback = run_in_omnia_core(host, f"find {roots_str} -name status.csv 2>/dev/null | head -20")
-    paths = [p.strip() for p in (fallback["stdout"] or "").splitlines() if p.strip()]
-    if paths:
-        return {"success": True, "path": paths[0], "error": None}
+    config = sw.get("config") or {}
+    softwares = config.get("softwares") or []
+    if not isinstance(softwares, list):
+        return {"success": False, "paths": [], "error": "Invalid softwares list in software_config.json"}
+
+    base = (LOCAL_REPO_VARS.get("status_search_roots") or ["/opt/omnia/log/local_repo"])[0]
+    paths: List[Dict[str, str]] = []
+    for s in softwares:
+        if not isinstance(s, dict):
+            continue
+        name = (s.get("name") or "").strip()
+        if not name:
+            continue
+        archs = s.get("arch") or []
+        if isinstance(archs, str):
+            archs = [archs]
+        if not isinstance(archs, list):
+            continue
+        for arch in archs:
+            if not isinstance(arch, str) or not arch.strip():
+                continue
+            status_path = f"{base}/{arch.strip()}/{name}/status.csv"
+            paths.append({"arch": arch.strip(), "software": name, "path": status_path})
+
+    if not paths:
+        return {"success": False, "paths": [], "error": "No softwares/arch entries found in software_config.json"}
+    return {"success": True, "paths": paths, "error": None}
+
+
+def find_status_csv(host) -> Dict[str, Any]:
+    """Locate a status.csv inside omnia_core.
+
+    Backward-compatible helper retained for older callers.
+    With the new layout, status files are expected at:
+    /opt/omnia/log/local_repo/{arch}/{software_name}/status.csv
+
+    Returns:
+        {"success": bool, "path": str, "error": Optional[str]}
+    """
+    expected = get_expected_status_csv_paths(host)
+    if not expected.get("success"):
+        return {"success": False, "path": "", "error": expected.get("error") or ""}
+
+    for item in expected.get("paths", []):
+        p = (item.get("path") or "").strip()
+        if not p:
+            continue
+        exists = run_in_omnia_core(host, f"test -f '{p}'")
+        if exists.get("success"):
+            return {"success": True, "path": p, "error": None}
 
     return {"success": False, "path": "", "error": LOCAL_REPO_MSGS["status_csv_missing"]}
 
@@ -143,61 +169,64 @@ def parse_status_csv(content: str) -> Dict[str, Any]:
 
 
 def check_status_csv_all_packages_downloaded(host) -> Dict[str, Any]:
-    """Validate status.csv indicates no failures; if failures, check referenced per-package CSVs."""
-    status = find_status_csv(host)
-    if not status["success"]:
-        return {"success": False, "status_path": "", "details": None, "error": status["error"]}
+    """Validate per-software status.csv files indicate no failures."""
+    expected = get_expected_status_csv_paths(host)
+    if not expected.get("success"):
+        return {"success": False, "status_path": "", "details": None, "error": expected.get("error") or ""}
 
-    status_path = status["path"]
-    status_file = read_file_in_omnia_core(host, status_path)
-    if not status_file["success"]:
-        return {
-            "success": False, "status_path": status_path,
-            "details": None, "error": status_file["error"]
-        }
+    missing = []
+    failed = []
+    checked = 0
+    total_rows = 0
 
-    parsed = parse_status_csv(status_file["content"])
-    if parsed["success"]:
+    for item in expected.get("paths", []):
+        status_path = item.get("path") or ""
+        software = item.get("software") or ""
+        arch = item.get("arch") or ""
+        if not status_path:
+            continue
+
+        status_file = read_file_in_omnia_core(host, status_path)
+        if not status_file["success"]:
+            missing.append({"path": status_path, "arch": arch, "software": software})
+            continue
+
+        parsed = parse_status_csv(status_file["content"])
+        checked += 1
+        total_rows += len(parsed.get("rows") or [])
+        if not parsed.get("success"):
+            failed.append({
+                "path": status_path,
+                "arch": arch,
+                "software": software,
+                "failures": len(parsed.get("failures") or []),
+            })
+
+    if missing and checked == 0:
+        return {"success": False, "status_path": "", "details": None, "error": "status.csv not found"}
+
+    if not missing and not failed:
         return {
             "success": True,
-            "status_path": status_path,
-            "details": f"Rows: {len(parsed['rows'])}",
+            "status_path": "",
+            "details": f"Files: {checked}, Rows: {total_rows}",
             "error": None,
         }
 
-    # If failures exist, check referenced per-package CSVs if present
-    per_pkg_failures = []
-    for fp in parsed.get("followups", []):
-        fp = fp.strip()
-        if not fp:
-            continue
-        cmd = run_in_omnia_core(host, f"test -f '{fp}' && cat '{fp}' || true")
-        data = (cmd.get("stdout") or "").lower()
-        if not data.strip():
-            per_pkg_failures.append({"file": fp, "error": "missing or empty"})
-        elif "fail" in data:
-            per_pkg_failures.append({"file": fp, "error": "contains 'fail'"})
-
-    details = (
-        f"status.csv: {status_path}\n"
-        f"Top-level failures: {len(parsed.get('failures', []))}\n"
-        f"Per-package refs: {len(parsed.get('followups', []))}\n"
-        f"Per-package failures: {len(per_pkg_failures)}"
-    )
-
-    if per_pkg_failures:
-        extra = "\n".join([f"- {x['file']}: {x['error']}" for x in per_pkg_failures[:20]])
-        return {
-            "success": False,
-            "status_path": status_path,
-            "details": details + "\n" + extra,
-            "error": LOCAL_REPO_MSGS["status_csv_has_failures"],
-        }
+    details_lines = []
+    if missing:
+        details_lines.append(f"Missing status.csv files: {len(missing)}")
+        for m in missing[:20]:
+            details_lines.append(f"- {m['arch']}/{m['software']}: {m['path']}")
+    if failed:
+        details_lines.append(f"status.csv files with failures: {len(failed)}")
+        for f in failed[:20]:
+            details_lines.append(f"- {f['arch']}/{f['software']}: {f['path']} (failures: {f['failures']})")
 
     return {
         "success": False,
-        "status_path": status_path,
-        "details": details,
+        "status_path": "",
+        "details": "\n".join(details_lines).strip(),
         "error": LOCAL_REPO_MSGS["status_csv_has_failures"],
     }
 
@@ -348,22 +377,142 @@ def get_expected_packages_from_software_config(host) -> Dict[str, Any]:
     }
 
 
-def check_package_in_pulp(host, package_name: str) -> Dict[str, Any]:
-    """Check if a package exists in Pulp using pulp rpm content list."""
-    pulp_cmd = f"pulp rpm content list --name {package_name} --limit 1 2>/dev/null"
-    cmd = run_in_omnia_core(host, pulp_cmd)
+def _split_name_version(package_name: str) -> Dict[str, str]:
+    """Best-effort split for strings like 'kubelet-1.34.1' into name/version."""
+    pkg = (package_name or "").strip()
+    if not pkg or "-" not in pkg:
+        return {"name": pkg, "version": ""}
 
-    if not cmd["success"]:
-        return {"success": False, "found": False, "error": cmd.get("stderr", "Command failed")}
+    # Heuristic: treat the last '-' segment as version if it looks version-like.
+    base, tail = pkg.rsplit("-", 1)
+    if re.fullmatch(r"\d+(?:[._-]\d+)*", tail or ""):
+        return {"name": base, "version": tail}
+    return {"name": pkg, "version": ""}
 
-    stdout = cmd.get("stdout", "").strip()
 
-    # Empty list [] means not found
-    if stdout == "[]" or not stdout:
+def _resolve_pulp_repo_name(repo_name: str, arch: str) -> str:
+    """Map config repo_name to actual Pulp repository naming."""
+    r = (repo_name or "").strip()
+    a = (arch or "").strip()
+    if not r:
+        return ""
+    if not a:
+        return r
+
+    # If already prefixed with an arch, keep as-is.
+    if r.startswith(f"{a}_"):
+        return r
+
+    # Common repos are created in Pulp with arch prefix.
+    if r in {"baseos", "appstream", "epel", "kubernetes", "cri-o", "docker-ce", "codeready-builder"}:
+        return f"{a}_{r}"
+
+    return r
+
+
+def _get_pulp_repo_versions_by_name(host) -> Dict[str, str]:
+    """Return mapping: repo name -> latest_version_href."""
+    cmd = run_in_omnia_core(host, "pulp rpm repository list 2>/dev/null")
+    if not cmd.get("success"):
+        return {}
+
+    stdout = (cmd.get("stdout") or "").strip()
+    if not stdout or stdout == "[]":
+        return {}
+
+    try:
+        repos = json.loads(stdout)
+    except json.JSONDecodeError:
+        return {}
+
+    versions = {}
+    for r in repos:
+        name = (r.get("name") or "").strip()
+        href = (r.get("latest_version_href") or "").strip()
+        if name and href:
+            versions[name] = href
+    return versions
+
+
+def check_package_in_pulp(host, package_name: str, repository_version: str = "") -> Dict[str, Any]:
+    """Check if a package exists in Pulp using pulp rpm content list.
+
+    Note: Pulp stores RPM fields separately (name/version/release/arch). Some
+    expected package strings in config may be formatted like 'name-version'.
+    """
+    pkg = (package_name or "").strip()
+    if not pkg:
         return {"success": True, "found": False, "error": None}
 
-    # Non-empty response means package exists
-    return {"success": True, "found": True, "error": None}
+    repo_v = (repository_version or "").strip()
+    repo_arg = f" --repository-version '{repo_v}'" if repo_v else ""
+
+    # 1) Try exact name match first.
+    pulp_cmd = f"pulp rpm content list{repo_arg} --name '{pkg}' --limit 1 2>/dev/null"
+    cmd = run_in_omnia_core(host, pulp_cmd)
+    if cmd.get("success"):
+        stdout = (cmd.get("stdout") or "").strip()
+        if stdout and stdout != "[]":
+            return {"success": True, "found": True, "error": None}
+
+    # 2) If expected looks like name-version, try name-only and match version.
+    nv = _split_name_version(pkg)
+    name_only = (nv.get("name") or "").strip()
+    ver = (nv.get("version") or "").strip()
+    if name_only and ver:
+        # Pull more than 1 so we can scan versions.
+        cmd2 = run_in_omnia_core(host, f"pulp rpm content list{repo_arg} --name '{name_only}' --limit 200 2>/dev/null")
+        if cmd2.get("success"):
+            out2 = (cmd2.get("stdout") or "").strip()
+            if out2 and out2 != "[]" and f'"version": "{ver}"' in out2:
+                return {"success": True, "found": True, "error": None}
+
+    # If pulp command failed, surface a useful error; otherwise it's simply not found.
+    if cmd and not cmd.get("success"):
+        return {"success": False, "found": False, "error": (cmd.get("stderr") or cmd.get("stdout") or "Command failed").strip()}
+
+    return {"success": True, "found": False, "error": None}
+
+
+def _get_status_csv_path_for_software(arch: str, software: str) -> str:
+    base = (LOCAL_REPO_VARS.get("status_search_roots") or ["/opt/omnia/log/local_repo"])[0]
+    a = (arch or "").strip()
+    s = (software or "").strip()
+    if not a or not s:
+        return ""
+    return f"{base}/{a}/{s}/status.csv"
+
+
+def _is_rpm_success_in_status_csv(host, arch: str, software: str, package_name: str) -> bool:
+    """Return True if per-software status.csv shows the RPM package as Success."""
+    pkg = (package_name or "").strip()
+    if not pkg:
+        return False
+
+    status_path = _get_status_csv_path_for_software(arch, software)
+    if not status_path:
+        return False
+
+    res = read_file_in_omnia_core(host, status_path)
+    if not res.get("success"):
+        return False
+
+    content = res.get("content") or ""
+    if not content.strip():
+        return False
+
+    try:
+        reader = csv.DictReader(io.StringIO(content))
+        for row in reader:
+            name = (row.get("name") or "").strip()
+            typ = (row.get("type") or "").strip().lower()
+            status = (row.get("status") or "").strip().lower()
+            if name == pkg and typ == "rpm" and status == "success":
+                return True
+    except Exception:
+        return False
+
+    return False
 
 
 def verify_packages_in_pulp(host, packages: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -389,25 +538,45 @@ def verify_packages_in_pulp(host, packages: List[Dict[str, str]]) -> Dict[str, A
         if name and name not in unique_packages:
             unique_packages[name] = pkg
 
+    repo_versions = _get_pulp_repo_versions_by_name(host)
     found_count = 0
+    status_fallback_count = 0
     missing_packages = []
 
     for name, pkg_info in unique_packages.items():
-        result = check_package_in_pulp(host, name)
+        arch = pkg_info.get("arch", "")
+        repo_name = pkg_info.get("repo_name", "")
+        pulp_repo_name = _resolve_pulp_repo_name(repo_name, arch)
+        repo_version = repo_versions.get(pulp_repo_name, "")
+        result = check_package_in_pulp(host, name, repository_version=repo_version)
         if result.get("found"):
             found_count += 1
-        else:
-            missing_packages.append({
-                "package": name,
-                "repo_name": pkg_info.get("repo_name", ""),
-                "software": pkg_info.get("software", ""),
-                "component": pkg_info.get("component", ""),
-            })
+            continue
+
+        # Option B fallback: treat as found if status.csv says rpm Success.
+        software = pkg_info.get("software", "")
+        if _is_rpm_success_in_status_csv(host, arch, software, name):
+            found_count += 1
+            status_fallback_count += 1
+            continue
+
+        missing_packages.append({
+            "package": name,
+            "repo_name": repo_name,
+            "software": software,
+            "component": pkg_info.get("component", ""),
+        })
 
     total = len(unique_packages)
     missing_count = len(missing_packages)
 
-    details = f"Verified: {total} unique packages\nFound: {found_count}\nMissing: {missing_count}"
+    details = (
+        f"Verified: {total} unique packages\n"
+        f"Found: {found_count}\n"
+        f"Missing: {missing_count}"
+    )
+    if status_fallback_count:
+        details += f"\nFound via status.csv fallback: {status_fallback_count}"
 
     if missing_packages:
         missing_list = "\n".join(

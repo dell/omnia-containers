@@ -15,7 +15,7 @@ from typing import Dict, Any, List
 
 import yaml
 
-from ...vars.oim_prereq_vars import OIM_PREREQ_VARS
+from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 
 def _get_project_root() -> str:
@@ -89,7 +89,7 @@ LOCAL_REPO_VARS: Dict[str, Any] = {
     "repo_urls": _extract_repo_urls(_LOCAL_REPO_CONFIG),
 
     # Status file search roots
-    "status_search_roots": ["/opt/omnia", "/local/omnia", "/omnia"],
+    "status_search_roots": ["/opt/omnia/log/local_repo"],
 
     # Timeouts
     "pulp_api_timeout_seconds": 300,
