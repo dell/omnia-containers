@@ -230,13 +230,13 @@ build_kafkapump() {
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache --build-arg CMD=kafkapump -t kafkapump:${KAFKAPUMP_TAG} \
-                --file Dockerfile --platform linux/amd64 --load ..
+                --file docker-compose-files/Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): kafkapump:${KAFKAPUMP_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache --build-arg CMD=kafkapump \
-                -t "$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}" --file Dockerfile \
-                --platform linux/amd64 --provenance=true --sbom=true --push ..
+                -t "$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}" --file docker-compose-files/Dockerfile \
+                --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}"
         else
@@ -287,13 +287,13 @@ build_victoriapump() {
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache --build-arg CMD=victoriapump -t victoriapump:${VICTORIAPUMP_TAG} \
-                --file Dockerfile --platform linux/amd64 --load ..
+                --file docker-compose-files/Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): victoriapump:${VICTORIAPUMP_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache --build-arg CMD=victoriapump \
-                -t "$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}" --file Dockerfile \
-                --platform linux/amd64 --provenance=true --sbom=true --push ..
+                -t "$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}" --file docker-compose-files/Dockerfile \
+                --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}"
         else
@@ -344,12 +344,12 @@ build_telemetry_receiver() {
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} \
-                --file Dockerfile.telemetry_receiver --platform linux/amd64 --load ..
+                --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}" \
-                --file Dockerfile.telemetry_receiver --platform linux/amd64 --provenance=true --sbom=true --push ..
+                --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
         else
