@@ -1,3 +1,17 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 Testinfra tests for prepare_oim verification.
 
@@ -11,20 +25,21 @@ Usage:
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.vars.prepare_oim_vars import (
+from automation_library.prepare_oim.vars import (
     OPENCHAMI_CONTAINERS,
-    CORE_CONTAINERS,
     AUTH_CONTAINER,
+    PULP_CONTAINER,
     is_ldap_enabled,
 )
-from automation_library.messages.prepare_oim_msgs import (
+from automation_library.prepare_oim.messages import (
     TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
-from automation_library.functions.prepare_oim_func import (
+from automation_library.prepare_oim.functions import (
     check_container_running,
     check_auth_container,
     check_omnia_target,
     check_openchami_target,
+    check_pulp_api_status,
     check_service_dependencies,
 )
 
@@ -33,9 +48,9 @@ from automation_library.functions.prepare_oim_func import (
 # CONTAINER TESTS
 # =============================================================================
 
-@pytest.mark.parametrize("container", CORE_CONTAINERS)
-def test_core_container_running(host, container):
-    """Verify core infrastructure containers are running."""
+def test_pulp_container(host):
+    """Verify Pulp container is running."""
+    container = PULP_CONTAINER
     log = TestLogger(TEST_NAMES["container_running"].format(container=container))
     log.check(f"Checking container: {container}")
 
@@ -51,21 +66,57 @@ def test_core_container_running(host, container):
     )
 
 
-@pytest.mark.parametrize("container", OPENCHAMI_CONTAINERS)
-def test_openchami_container_running(host, container):
-    """Verify OpenChami containers are running."""
-    log = TestLogger(TEST_NAMES["container_running"].format(container=container))
-    log.check(f"Checking container: {container}")
+def test_pulp_api_password(host):
+    """Verify Pulp API password from omnia_config_credentials.yml is correctly configured."""
+    log = TestLogger(TEST_NAMES["pulp_api_status"])
+    log.check("Validating pulp_password from omnia_config_credentials.yml against Pulp API")
 
-    result = check_container_running(host, container)
+    result = check_pulp_api_status(host)
 
     if result["success"]:
-        log.passed(LOG_MSGS["container_running"].format(container=container), result["status"])
+        log.passed(LOG_MSGS["pulp_api_ok"], result["details"])
     else:
-        log.failed(LOG_MSGS["container_not_running"].format(container=container), result["error"])
+        log.failed(LOG_MSGS["pulp_api_fail"], result["error"])
 
-    assert result["success"], ASSERT_MSGS["container_not_running"].format(
-        container=container, status=result["status"]
+    assert result["success"], ASSERT_MSGS["pulp_api_failed"].format(
+        status=result["status"], error=result["error"]
+    )
+
+
+def test_openchami_containers(host):
+    """Verify all OpenCHAMI containers are running."""
+    log = TestLogger("Verify OpenCHAMI containers are running")
+    log.check(f"Checking {len(OPENCHAMI_CONTAINERS)} OpenCHAMI containers")
+
+    passed_containers = []
+    failed_containers = []
+
+    for container in OPENCHAMI_CONTAINERS:
+        result = check_container_running(host, container)
+        if result["success"]:
+            passed_containers.append({"name": container, "status": result["status"]})
+        else:
+            failed_containers.append({"name": container, "status": result["status"], "error": result["error"]})
+
+    # Build detailed output
+    details_lines = []
+    for c in passed_containers:
+        details_lines.append(f"✔ {c['name']}: {c['status']}")
+    for c in failed_containers:
+        details_lines.append(f"✘ {c['name']}: {c['status']}")
+
+    details = "\n".join(details_lines)
+    summary = f"{len(passed_containers)}/{len(OPENCHAMI_CONTAINERS)} containers running"
+
+    if failed_containers:
+        log.failed("OpenCHAMI containers check failed", f"{summary}\n{details}")
+    else:
+        log.passed("All OpenCHAMI containers running", f"{summary}\n{details}")
+
+    assert len(failed_containers) == 0, (
+        f"OpenCHAMI containers check failed: {summary}\n"
+        f"Failed containers:\n" +
+        "\n".join([f"  - {c['name']}: {c['status']}" for c in failed_containers])
     )
 
 
