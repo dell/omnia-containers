@@ -1,0 +1,116 @@
+---
+# =============================================================================
+# Molecule Converge - Prepare Slurm environment for job queueing tests
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for Slurm tests
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Verify Slurm cluster is ready for testing
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    slurm_control_node: "{{ user_config.slurm_control_node | default('172.16.107.102') }}"
+    slurm_node_2: "{{ user_config.slurm_node_2 | default('172.16.107.105') }}"
+    omnia_core_alias: "omnia_core"
+
+  tasks:
+    - name: Display target Slurm nodes
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SLURM JOB QUEUEING TEST SETUP
+          ============================================
+          Control Node: {{ slurm_control_node }}
+          Compute Node: {{ slurm_node_2 }}
+          Via: {{ omnia_core_alias }}
+          ============================================
+
+    # =========================================================================
+    # VERIFY SLURMCTLD IS RUNNING
+    # =========================================================================
+
+    - name: Check if slurmctld is running on control node
+      ansible.builtin.shell:
+        cmd: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            {{ omnia_core_alias }} "ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 {{ slurm_control_node }} 'systemctl is-active slurmctld'"
+      register: slurmctld_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display slurmctld status
+      ansible.builtin.debug:
+        msg: "slurmctld status: {{ slurmctld_check.stdout | default('unknown') }}"
+
+    - name: Fail if slurmctld is not running
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    SLURMCTLD IS NOT RUNNING                                   ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Status: {{ slurmctld_check.stdout | default('unknown') }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   The slurmctld daemon is not active on {{ slurm_control_node }}.
+          ║
+          ║ HOW TO FIX:
+          ║   1. SSH to control node: ssh {{ slurm_control_node }}
+          ║   2. Check status: systemctl status slurmctld
+          ║   3. Start service: systemctl start slurmctld
+          ║   4. View logs: journalctl -u slurmctld
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: slurmctld_check.rc != 0 or slurmctld_check.stdout != 'active'
+
+    # =========================================================================
+    # VERIFY SLURM NODES
+    # =========================================================================
+
+    - name: Get Slurm node status
+      ansible.builtin.shell:
+        cmd: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+            {{ omnia_core_alias }} "ssh -o BatchMode=yes -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 {{ slurm_control_node }} 'sinfo -N -o \"%N|%T|%P|%c\" --noheader'"
+      register: sinfo_result
+      changed_when: false
+      failed_when: false
+
+    - name: Display Slurm node status
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SLURM NODE STATUS
+          ============================================
+          {{ sinfo_result.stdout | default('No nodes found') }}
+          ============================================
+
+    - name: Slurm converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SLURM JOB QUEUEING CONVERGE COMPLETE
+          ============================================
+          - slurmctld: Running
+          - Nodes: {{ sinfo_result.stdout_lines | default([]) | length }}
+          - Ready for pytest verification
+          ============================================
