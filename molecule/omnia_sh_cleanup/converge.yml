@@ -50,7 +50,7 @@
 
     - name: Check if omnia_core container exists
       ansible.builtin.shell:
-        cmd: podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
+        cmd: set -o pipefail && podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
       register: container_exists
       changed_when: false
       failed_when: false
@@ -62,10 +62,11 @@
 
     - name: Run omnia.sh --uninstall with auto-confirm
       ansible.builtin.shell:
-        cmd: echo "y" | {{ omnia_sh_path }} --uninstall
+        cmd: set -o pipefail && echo "y" | {{ omnia_sh_path }} --uninstall
       register: uninstall_result
       when: container_exists.rc == 0
       timeout: 120
+      changed_when: uninstall_result.rc == 0
 
     - name: Fail if uninstall failed
       ansible.builtin.fail:
