@@ -1,0 +1,115 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Prepare - Check Prerequisites on OIM Server
+# =============================================================================
+
+- name: Prepare - Validate config files and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Check if user_config.yml exists
+      ansible.builtin.stat:
+        path: "{{ project_dir }}/user_config.yml"
+      register: user_config_stat
+
+    - name: Fail if user_config.yml not found
+      ansible.builtin.fail:
+        msg: "user_config.yml not found at {{ project_dir }}/user_config.yml"
+      when: not user_config_stat.stat.exists
+
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for prepare
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Prepare - Check prerequisites on OIM server
+  hosts: oim_server
+  gather_facts: true
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running prerequisites check on OIM server: {{ ansible_host }}"
+
+    - name: Check Podman is installed
+      ansible.builtin.command:
+        cmd: podman --version
+      register: podman_version
+      changed_when: false
+
+    - name: Display Podman version
+      ansible.builtin.debug:
+        msg: "Podman version: {{ podman_version.stdout }}"
+
+    - name: Check hostname has domain
+      ansible.builtin.command:
+        cmd: hostname -d
+      register: hostname_domain
+      changed_when: false
+      failed_when: hostname_domain.stdout == ""
+
+    - name: Display hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ ansible_fqdn }} (domain: {{ hostname_domain.stdout }})"
+
+    - name: Check if omnia.sh exists
+      ansible.builtin.stat:
+        path: "{{ omnia_sh_path }}"
+      register: omnia_sh_script
+
+    - name: Fail if omnia.sh not found
+      ansible.builtin.fail:
+        msg: |
+          omnia.sh not found at {{ omnia_sh_path }} on OIM server {{ ansible_host }}
+          Run the OIM prerequisite check first to download it:
+            python3 run_prereq_check.py
+      when: not omnia_sh_script.stat.exists
+
+    - name: Check if omnia_core image exists
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E 'omnia_core'
+      args:
+        executable: /bin/bash
+      register: omnia_core_image
+      changed_when: false
+      failed_when: false
+
+    - name: Display omnia_core image status
+      vars:
+        image_msg: >-
+          {{ 'omnia_core image found: ' + omnia_core_image.stdout if omnia_core_image.rc == 0
+          else 'omnia_core image not found (will be pulled during install)' }}
+      ansible.builtin.debug:
+        msg: "{{ image_msg }}"
+
+    - name: Prerequisites check passed
+      ansible.builtin.debug:
+        msg: "All prerequisites passed on OIM server {{ ansible_host }}. Ready to run omnia.sh --install"

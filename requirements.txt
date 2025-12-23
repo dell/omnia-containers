@@ -1,0 +1,10 @@
+ansible-core==2.20.1
+molecule==25.12.0
+molecule-plugins==25.8.12
+paramiko==4.0.0
+pexpect==4.9.0
+pytest==9.0.2
+pytest-testinfra==10.2.2
+PyYAML==6.0.1
+
+-e .
