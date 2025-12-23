@@ -70,7 +70,7 @@
       ansible.builtin.shell:
         cmd: |
           podman exec -w /omnia omnia_core \
-            ansible-playbook -i localhost, -c local prepare_oim/prepare_oim.yml -v
+            ansible-playbook prepare_oim/prepare_oim.yml -v
       register: playbook_result
       timeout: 1800
       when: "'EXISTS' in playbook_check.stdout"
@@ -86,41 +86,6 @@
           Return Code: {{ playbook_result.rc | default('N/A') }}
           ============================================
       when: playbook_result is defined
-
-    - name: Display playbook stdout (on failure)
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          PREPARE_OIM PLAYBOOK STDOUT (failure)
-          ============================================
-          {{ playbook_result.stdout | default('') }}
-      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Display playbook stderr (on failure)
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          PREPARE_OIM PLAYBOOK STDERR (failure)
-          ============================================
-          {{ playbook_result.stderr | default('') }}
-      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Detect interactive prompts in prepare_oim playbook (vars_prompt/pause)
-      ansible.builtin.shell:
-        cmd: |
-          podman exec omnia_core sh -lc "grep -nE 'vars_prompt|pause:|prompt:' -n /omnia/prepare_oim/prepare_oim.yml || true"
-      register: playbook_prompt_scan
-      changed_when: false
-      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
-
-    - name: Display interactive prompt scan results
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          PREPARE_OIM PLAYBOOK PROMPT SCAN
-          ============================================
-          {{ playbook_prompt_scan.stdout | default('') }}
-      when: playbook_prompt_scan is defined
 
     - name: Fail if playbook execution failed
       ansible.builtin.fail:
@@ -148,9 +113,6 @@
           ║
           ║ STDERR:
           ║   {{ playbook_result.stderr | default('No error message') }}
-          ║
-          ║ STDOUT:
-          ║   {{ playbook_result.stdout | default('No output') }}
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
 
