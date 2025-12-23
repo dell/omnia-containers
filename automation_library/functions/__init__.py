@@ -21,6 +21,9 @@ from .omnia_sh_func import (
     cleanup_omnia,
 )
 
+# Discovery Validation Functions
+from .discovery_func import run_all_discovery_validations, run_discovery
+
 __all__ = [
     # Prereq
     "run_all_prereq_checks",
@@ -33,4 +36,7 @@ __all__ = [
     "verify_directories",
     "check_omnia_sh_prerequisites",
     "cleanup_omnia",
+    # Discovery
+    "run_discovery",
+    "run_all_discovery_validations",
 ]

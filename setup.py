@@ -43,6 +43,7 @@ setup(
         "console_scripts": [
             # Prerequisite check tool
             "oim-prereq-check=run_prereq_check:main",
+            "oim-discovery-validate=run_discovery_validation:main",
             # Future tools will be added here:
             # "oim-deploy=automation_library.oim_deploy:main",
             # "oim-configure=automation_library.oim_configure:main",

@@ -1,0 +1,12 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+disable=
+    line-too-long,
+    too-many-lines,
+    too-many-locals,
+    too-many-branches,
+    too-many-return-statements,
+    too-many-arguments,
+    too-many-positional-arguments,
+    missing-function-docstring

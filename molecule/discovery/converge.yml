@@ -1,0 +1,78 @@
+---
+# =============================================================================
+# Molecule Converge - Optionally run discovery command (if configured)
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Run discovery workflow command (optional)
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    discovery_cmd: "{{ (user_config.discovery_validation.discovery_playbook_cmd | default('')) }}"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running discovery converge on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container is not running on {{ ansible_host }}.
+          Please run omnia.sh --install first.
+      when: container_check.rc != 0
+
+    - name: Fail if discovery_playbook_cmd is not set
+      ansible.builtin.fail:
+        msg: |
+          discovery_validation.discovery_playbook_cmd is empty in user_config.yml.
+          Set it to the exact command you run for discovery (must exit with rc=0).
+      when: discovery_cmd | length == 0
+
+    - name: Execute discovery workflow command
+      ansible.builtin.shell:
+        cmd: "{{ discovery_cmd }}"
+      register: discovery_result
+      changed_when: discovery_result.rc == 0
+      failed_when: false
+
+    - name: Fail if discovery command failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                        DISCOVERY EXECUTION FAILED                           ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ discovery_result.rc }}
+          ║
+          ║ STDERR:
+          ║   {{ discovery_result.stderr | default('No error message') }}
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: discovery_result.rc != 0

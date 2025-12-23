@@ -8,7 +8,6 @@ import tempfile
 from typing import Dict, Any
 
 import yaml
-import testinfra
 
 
 def _get_project_root() -> str:
@@ -38,12 +37,20 @@ def _is_local_ip(ip: str) -> bool:
         return False
 
 
-def get_testinfra_host() -> testinfra.host.Host:
+def get_testinfra_host():
     """
     Get testinfra host connected to OIM server.
 
     Always reads IP directly from user_config.yml to avoid hostname resolution issues.
     """
+    try:
+        import testinfra  # type: ignore
+    except ModuleNotFoundError as e:
+        raise ModuleNotFoundError(
+            "Missing dependency 'testinfra'. Install requirements.txt (pytest-testinfra) "
+            "or run within the repo's configured virtualenv."
+        ) from e
+
     config = load_user_config()
     oim_ip = config.get("oim_server_ip", "localhost")
 
