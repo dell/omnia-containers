@@ -11,16 +11,16 @@ Usage:
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.vars.prepare_oim_vars import (
+from automation_library.prepare_oim.vars.prepare_oim_vars import (
     OPENCHAMI_CONTAINERS,
     CORE_CONTAINERS,
     AUTH_CONTAINER,
     is_ldap_enabled,
 )
-from automation_library.messages.prepare_oim_msgs import (
+from automation_library.prepare_oim.messages.prepare_oim_msgs import (
     TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
-from automation_library.functions.prepare_oim_func import (
+from automation_library.prepare_oim.functions.prepare_oim_func import (
     check_container_running,
     check_auth_container,
     check_omnia_target,

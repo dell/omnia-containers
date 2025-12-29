@@ -35,7 +35,6 @@ setup(
     include_package_data=True,
     package_data={
         "automation_library": ["*.yml", "*.yaml"],
-        "automation_library.vars": ["*.yml", "*.yaml"],
     },
     python_requires=">=3.12",
     install_requires=read_requirements(),
@@ -43,7 +42,6 @@ setup(
         "console_scripts": [
             # Prerequisite check tool
             "oim-prereq-check=run_prereq_check:main",
-            "oim-discovery-validate=run_discovery_validation:main",
             # Future tools will be added here:
             # "oim-deploy=automation_library.oim_deploy:main",
             # "oim-configure=automation_library.oim_configure:main",

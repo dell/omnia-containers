@@ -1,0 +1,1 @@
+"""omnia_sh module."""

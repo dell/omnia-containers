@@ -5,7 +5,7 @@ This module loads all configuration for prepare_oim automation.
 Reads from user_config.yml and input/software_config.json.
 
 Usage:
-    from automation_library.vars.prepare_oim_vars import PREPARE_OIM_VARS
+    from automation_library.prepare_oim.vars.prepare_oim_vars import PREPARE_OIM_VARS
 
 Author: Dell Technologies
 """
@@ -14,7 +14,7 @@ import json
 import os
 from typing import Dict, Any, List
 
-from .oim_prereq_vars import OIM_PREREQ_VARS
+from automation_library.checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 
 def _get_project_root() -> str:

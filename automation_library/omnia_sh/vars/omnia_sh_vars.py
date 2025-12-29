@@ -13,7 +13,7 @@ Author: Dell Technologies
 import os
 from typing import Dict, Any
 
-from .oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from automation_library.checks.vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 
 
 # =============================================================================

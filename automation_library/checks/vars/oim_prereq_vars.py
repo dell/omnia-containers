@@ -5,7 +5,7 @@ This module loads user configuration from user_config.yml and provides
 sensible defaults for all prerequisite check parameters.
 
 Usage:
-    from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+    from automation_library.checks.vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 
     # Access a variable
     server_ip = OIM_PREREQ_VARS["oim_server_ip"]

@@ -1,6 +1,9 @@
 """Testinfra tests for discovery workflow validation.
 
-Validates post-discovery cluster readiness.
+Validates post-discovery cluster readiness (verify-only tests).
+
+NOTE: Discovery playbook execution and prechecks are handled in Molecule converge phase.
+      These tests only verify the post-run cluster state.
 
 Usage:
     ./run_molecule.sh discovery test
@@ -10,10 +13,7 @@ Usage:
 import os
 
 from automation_library.core import TestLogger
-from automation_library.functions.discovery_func import (
-    validate_openchami_container,
-    validate_s3_provisioning_images,
-    validate_discovery_execution,
+from automation_library.discovery.functions.discovery_func import (
     validate_node_boot,
     validate_packages_by_group,
     validate_bmc_group_csv,
@@ -58,51 +58,6 @@ def _assert_result_with_success_msg(log: TestLogger, result: dict, success_msg: 
         log.failed(result.get("name", "check"), result.get("error") or result.get("details") or "")
 
     assert result.get("success"), result.get("error") or result.get("details") or "Validation failed"
-
-
-def test_openchami_container(host):
-    log = TestLogger("Validate OpenCHAMI container")
-    log.check("Checking OpenCHAMI container")
-    result = validate_openchami_container(host)
-
-    if _is_verbose() and result.get("podman_ps"):
-        log.check(f"podman ps -a output:\n{result['podman_ps']}")
-
-    _assert_result_with_success_msg(
-        log,
-        result,
-        "The openchami container is running without errors.",
-    )
-
-
-def test_provisioning_images_in_s3(host):
-    log = TestLogger("Validate provisioning images in S3")
-    log.check("Checking required objects")
-    result = validate_s3_provisioning_images(host)
-    _assert_result_with_success_msg(
-        log,
-        result,
-        "All required images for provisioning are available in the S3 bucket.",
-    )
-
-
-def test_discovery_execution(host):
-    log = TestLogger("Validate discovery execution")
-    log.check("Running discovery playbook and checking success")
-    result = validate_discovery_execution(host)
-    
-    # Show playbook output if available
-    if _is_verbose() and result.get("output"):
-        output_lines = result["output"].split("\n")[-20:]  # Last 20 lines
-        output_summary = "\n".join(line for line in output_lines if line.strip())
-        if output_summary:
-            log.check(f"Playbook output:\n{output_summary}")
-    
-    _assert_result_with_success_msg(
-        log,
-        result,
-        "discovery.yml runs successfully with exit code 0.",
-    )
 
 
 def test_node_boot_validation(host):

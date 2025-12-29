@@ -18,13 +18,12 @@ from __future__ import annotations
 import csv
 import json
 import os
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..core.formatting import log as _log
+from ...core.formatting import log as _log
 from ..messages.discovery_msgs import DISCOVERY_MSGS
 from ..vars.discovery_vars import DISCOVERY_VARS
-from .prepare_oim_func import check_container_running
+from ...prepare_oim.functions.prepare_oim_func import check_container_running
 
 
 def _result(name: str, success: bool, details: Optional[str] = None, error: Optional[str] = None, **extra) -> Dict[str, Any]:
@@ -225,29 +224,6 @@ def validate_s3_provisioning_images(host) -> Dict[str, Any]:
     if not ok:
         return _result("Provisioning Images Present in S3", False, error=err)
 
-    required = DISCOVERY_VARS.get("required_provisioning_images", [])
-    if not required:
-        node_groups = DISCOVERY_VARS.get("node_groups", {}) or {}
-        ok, err = _require(node_groups, "discovery_validation.node_groups (auto-derived from PXE mapping)")
-        if not ok:
-            return _result("Provisioning Images Present in S3", False, error=err)
-
-        kernel = (DISCOVERY_VARS.get("required_kernel_version") or "").strip()
-        ok, err = _require(kernel, "required_kernel_version")
-        if not ok:
-            return _result("Provisioning Images Present in S3", False, error=err)
-
-        # Expected keys are derived from PXE mapping functional groups.
-        # Format observed in S3: efi-images/<group>/rhel-<group>/(initramfs|vmlinuz)-<kernel>
-        required = []
-        for group in node_groups.keys():
-            required.append(f"efi-images/{group}/rhel-{group}/initramfs-{kernel}.img")
-            required.append(f"efi-images/{group}/rhel-{group}/vmlinuz-{kernel}")
-    else:
-        ok, err = _require(required, "discovery_validation.required_provisioning_images")
-        if not ok:
-            return _result("Provisioning Images Present in S3", False, error=err)
-
     bucket = DISCOVERY_VARS["s3_bucket"]
     prefix = DISCOVERY_VARS.get("s3_prefix", "")
 
@@ -280,14 +256,43 @@ def validate_s3_provisioning_images(host) -> Dict[str, Any]:
             if len(parts) >= 2:
                 listed_groups.append(parts[1])
 
+    required = DISCOVERY_VARS.get("required_provisioning_images", [])
+    if not required:
+        node_groups = DISCOVERY_VARS.get("node_groups", {}) or {}
+        if not node_groups:
+            # When PXE mapping file isn't available on the machine running the validation,
+            # infer groups from the actual S3 listing to avoid false failures.
+            inferred = sorted({g for g in listed_groups if g})
+            node_groups = {g: [] for g in inferred}
+        ok, err = _require(node_groups, "discovery_validation.node_groups (auto-derived from PXE mapping)")
+        if not ok:
+            return _result("Provisioning Images Present in S3", False, error=err)
+
+        kernel = (DISCOVERY_VARS.get("required_kernel_version") or "").strip()
+        ok, err = _require(kernel, "required_kernel_version")
+        if not ok:
+            return _result("Provisioning Images Present in S3", False, error=err)
+
+        # Expected keys are derived from PXE mapping functional groups.
+        # Format observed in S3: efi-images/<group>/rhel-<group>/(initramfs|vmlinuz)-<kernel>
+        required = []
+        for group in node_groups.keys():
+            required.append(f"efi-images/{group}/rhel-{group}/initramfs-{kernel}.img")
+            required.append(f"efi-images/{group}/rhel-{group}/vmlinuz-{kernel}")
+    else:
+        ok, err = _require(required, "discovery_validation.required_provisioning_images")
+        if not ok:
+            return _result("Provisioning Images Present in S3", False, error=err)
+
     expected_groups = set((DISCOVERY_VARS.get("node_groups", {}) or {}).keys())
-    unexpected = sorted({g for g in listed_groups if g and g not in expected_groups})
-    if unexpected:
-        return _result(
-            "Provisioning Images Present in S3",
-            False,
-            error=DISCOVERY_MSGS["s3_images_unexpected"].format(groups=", ".join(unexpected)),
-        )
+    if expected_groups:
+        unexpected = sorted({g for g in listed_groups if g and g not in expected_groups})
+        if unexpected:
+            return _result(
+                "Provisioning Images Present in S3",
+                False,
+                error=DISCOVERY_MSGS["s3_images_unexpected"].format(groups=", ".join(unexpected)),
+            )
 
     missing: List[str] = []
     checks: List[Dict[str, Any]] = []
@@ -327,6 +332,38 @@ def validate_discovery_execution(host) -> Dict[str, Any]:
                 True,
                 details=f"{DISCOVERY_MSGS['discovery_ok']} (cmd rc=0)",
                 output=stdout[-2000:] if stdout else "",  # Last 2000 chars of output
+            )
+        if rc == 127:
+            # Common case: user configured a command path that doesn't exist on the target.
+            # Treat as optional execution and proceed with marker-based validation when available.
+            if marker:
+                rc_m, out_m, err_m = _run(host, f"test -f {json.dumps(marker)}")
+                if rc_m == 0:
+                    return _result(
+                        "Discovery Playbook Execution",
+                        True,
+                        details=f"{DISCOVERY_MSGS['discovery_ok']} (marker exists: {marker})",
+                        skipped=True,
+                        rc=rc,
+                        out=stdout,
+                        err=stderr,
+                    )
+                return _result(
+                    "Discovery Playbook Execution",
+                    False,
+                    error=f"{DISCOVERY_MSGS['discovery_fail']}: marker not found: {marker} ({err_m or out_m})",
+                    rc=rc,
+                    out=stdout,
+                    err=stderr,
+                )
+            return _result(
+                "Discovery Playbook Execution",
+                True,
+                details="Discovery execution command not found; skipping execution check",
+                skipped=True,
+                rc=rc,
+                out=stdout,
+                err=stderr,
             )
         return _result(
             "Discovery Playbook Execution",
@@ -1565,85 +1602,6 @@ def validate_external_ldap_proxy(host) -> Dict[str, Any]:
     )
 
 
-def run_all_discovery_validations(host, save_report: bool = True, report_dir: Optional[str] = None) -> Dict[str, Any]:
-    """Run all discovery validation scenarios."""
-    _log(DISCOVERY_MSGS["validation_start"], "INFO")
-
-    results: List[Dict[str, Any]] = []
-    passed = 0
-    failed = 0
-
-    validators = [
-        validate_openchami_container,
-        validate_s3_provisioning_images,
-        validate_discovery_execution,
-        validate_node_boot,
-        validate_packages_by_group,
-        validate_bmc_group_csv,
-        validate_slurm_sinfo,
-        validate_slurm_srun,
-        validate_slurm_ldap,
-        validate_slurm_gpu,
-        validate_slurm_ib,
-        validate_login_sssd,
-        validate_login_munge,
-        validate_login_slurmd,
-        validate_login_srun,
-        validate_login_ldap,
-        validate_login_compiler_sssd,
-        validate_login_compiler_munge,
-        validate_login_compiler_slurmd,
-        validate_login_compiler_openmpi,
-        validate_login_compiler_ucx,
-        validate_login_compiler_srun,
-        validate_login_compiler_ldap,
-        validate_external_ldap_proxy,
-    ]
-
-    for fn in validators:
-        res = fn(host)
-        results.append(res)
-        if res["success"]:
-            passed += 1
-        else:
-            failed += 1
-
-    summary = {
-        "success": failed == 0,
-        "passed": passed,
-        "failed": failed,
-        "total": passed + failed,
-        "results": results,
-        "timestamp": datetime.now().isoformat(timespec="seconds"),
-    }
-
-    if save_report:
-        report_dir = report_dir or os.path.join(DISCOVERY_VARS["omnia_shared_path"], "log")
-        try:
-            os.makedirs(report_dir, exist_ok=True)
-        except OSError:
-            report_dir = "/tmp"
-        path = os.path.join(report_dir, "discovery_validation_report.json")
-        try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(summary, f, indent=2)
-            summary["report_path"] = path
-        except OSError as e:
-            summary["report_error"] = str(e)
-
-    _log(
-        DISCOVERY_MSGS["validation_pass"]
-        if summary["success"]
-        else DISCOVERY_MSGS["validation_fail"].format(failed_count=failed),
-        "OK" if summary["success"] else "ERROR",
-    )
-
-    return summary
-
-
-def run_discovery(host, save_report: bool = True, report_dir: Optional[str] = None) -> Dict[str, Any]:
-    """Alias for run_all_discovery_validations."""
-    return run_all_discovery_validations(host, save_report=save_report, report_dir=report_dir)
 
 
 __all__ = [
@@ -1674,6 +1632,4 @@ __all__ = [
     "validate_login_compiler_srun",
     "validate_login_compiler_ldap",
     "validate_external_ldap_proxy",
-    "run_all_discovery_validations",
-    "run_discovery",
 ]

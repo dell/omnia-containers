@@ -5,13 +5,14 @@ A Python library for automating OIM prerequisite checks and omnia.sh testing.
 
 Modules:
     - core: Formatting, logging, host utilities, reports
-    - functions: Prereq checks, omnia.sh operations
-    - messages: User-facing messages
-    - vars: Configuration variables
+    - checks: OIM prerequisite checks
+    - omnia_sh: omnia.sh validation
+    - prepare_oim: prepare_oim validation
+    - discovery: discovery validation
 
 Usage:
     from automation_library.core import TestLogger, Colors
-    from automation_library.functions import run_all_prereq_checks
+    from automation_library.checks.functions.oim_prereq_func import run_all_prereq_checks
 """
 
 __version__ = "0.1.0"

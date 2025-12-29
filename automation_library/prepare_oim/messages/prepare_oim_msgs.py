@@ -10,7 +10,7 @@ Author: Dell Technologies
 from typing import Dict
 # is_ldap_enabled imported for potential future use
 # pylint: disable=unused-import
-from automation_library.vars.prepare_oim_vars import (
+from automation_library.prepare_oim.vars.prepare_oim_vars import (
     PREPARE_OIM_VARS,
     OPENCHAMI_CONTAINERS,
     CORE_CONTAINERS,

@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from ..core.formatting import Colors, Symbols, log as _log
+from ...core.formatting import Colors, Symbols, log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 
