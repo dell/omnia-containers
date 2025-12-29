@@ -1,0 +1,52 @@
+# =============================================================================
+# Molecule Configuration for discovery Testing
+# =============================================================================
+#
+# This scenario validates discovery workflow post-run state using testinfra.
+#
+# USAGE:
+#   ./run_molecule.sh discovery test
+#   ./run_molecule.sh discovery converge
+#   ./run_molecule.sh discovery verify
+#
+# Configuration:
+#   - user_config.yml: OIM server connection settings
+#   - user_config.yml: discovery_validation section for cluster specifics
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: discovery
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify
