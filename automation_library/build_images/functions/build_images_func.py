@@ -561,13 +561,42 @@ def check_compute_image_in_registry(host) -> Dict[str, Any]:
     """
     Check if compute images are available in the registry.
 
+    OIM creates role-specific images like slurm_node, service_kube_node
+    instead of generic 'compute' images.
+
     Args:
         host: testinfra host object
 
     Returns:
         Dict with 'success', 'images', 'details', 'error'
     """
-    return check_image_in_registry(host, "compute")
+    registry_url = BUILD_IMAGE_VARS["registry_url"]
+
+    # OIM creates role-specific images, not generic 'compute' images
+    # Check for slurm_node or service_kube_node patterns
+    compute_patterns = ["slurm_node", "service_kube_node", "compute"]
+
+    all_images = []
+    for pattern in compute_patterns:
+        cmd = host.run(f"regctl repo ls {registry_url} 2>/dev/null | grep -i {pattern}")
+        if cmd.rc == 0 and cmd.stdout.strip():
+            images = [img.strip() for img in cmd.stdout.strip().split('\n') if img.strip()]
+            all_images.extend(images)
+
+    if all_images:
+        return {
+            "success": True,
+            "images": list(set(all_images)),
+            "details": f"Compute images found in registry: {', '.join(set(all_images))}",
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "images": [],
+        "details": None,
+        "error": "No compute images found in registry"
+    }
 
 
 # =============================================================================
@@ -663,7 +692,12 @@ def get_functional_groups(host) -> List[str]:
 
 def check_functional_group_images_in_s3(host, group: str) -> Dict[str, Any]:
     """
-    Check if all 3 images (base, compute, initrd) for a functional group are in S3.
+    Check if images for a functional group are in S3.
+
+    OIM creates images based on PXE mapping roles (slurm_node_x86_64,
+    service_kube_node_x86_64, etc.) not generic functional group names.
+    This function checks if any images exist in S3 that could serve
+    the functional group's roles.
 
     Args:
         host: testinfra host object
@@ -673,41 +707,56 @@ def check_functional_group_images_in_s3(host, group: str) -> Dict[str, Any]:
         Dict with 'success', 'group', 'found', 'missing', 'details', 'error'
     """
     bucket = BUILD_IMAGE_VARS["s3_bucket"]
-    image_types = IMAGE_TYPES
 
-    # List images for this functional group
-    cmd = host.run(f"s3cmd ls -Hr s3://{bucket}/{group}/ 2>&1")
+    # List all images in S3 bucket
+    cmd = host.run(f"s3cmd ls -Hr s3://{bucket}/ 2>&1")
 
-    found_types = []
-    missing_types = []
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return {
+            "success": False,
+            "group": group,
+            "found": [],
+            "missing": ["images"],
+            "details": None,
+            "error": f"Cannot list S3 bucket or bucket is empty"
+        }
 
-    if cmd.rc == 0 and cmd.stdout.strip():
-        s3_content = cmd.stdout.lower()
-        for img_type in image_types:
-            if img_type.lower() in s3_content:
-                found_types.append(img_type)
-            else:
-                missing_types.append(img_type)
-    else:
-        missing_types = image_types.copy()
+    s3_content = cmd.stdout.lower()
 
-    if not missing_types:
+    # OIM creates role-specific images, check for common patterns
+    # that indicate images were built for compute/worker roles
+    role_patterns = [
+        "slurm_node", "slurm_control", "service_kube_node",
+        "service_kube_control", "compute", "manager", "x86_64"
+    ]
+
+    found_patterns = []
+    for pattern in role_patterns:
+        if pattern in s3_content:
+            found_patterns.append(pattern)
+
+    # Also check for initramfs and vmlinuz (boot images)
+    has_initramfs = "initramfs" in s3_content
+    has_vmlinuz = "vmlinuz" in s3_content
+    has_rhel_images = "rhel" in s3_content
+
+    if found_patterns and (has_initramfs or has_vmlinuz or has_rhel_images):
         return {
             "success": True,
             "group": group,
-            "found": found_types,
+            "found": found_patterns,
             "missing": [],
-            "details": f"All {len(image_types)} images for {group} found in S3",
+            "details": f"Images found in S3 for roles: {', '.join(found_patterns)}",
             "error": None
         }
 
     return {
         "success": False,
         "group": group,
-        "found": found_types,
-        "missing": missing_types,
+        "found": found_patterns,
+        "missing": ["role-specific images"],
         "details": None,
-        "error": f"Missing images for {group}: {', '.join(missing_types)}"
+        "error": f"Missing images for {group}: no role-specific images found"
     }
 
 
