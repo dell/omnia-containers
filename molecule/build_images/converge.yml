@@ -213,7 +213,7 @@
 
     - name: Verify S3 bucket has images
       ansible.builtin.shell:
-        cmd: s3cmd ls -Hr s3://boot-images 2>&1 | head -20
+        cmd: set -o pipefail && s3cmd ls -Hr s3://boot-images 2>&1 | head -20
       register: s3_images
       changed_when: false
       failed_when: false

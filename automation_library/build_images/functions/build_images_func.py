@@ -170,7 +170,8 @@ def check_functional_group_valid(host) -> Dict[str, Any]:
         }
 
     # Read and validate YAML inside omnia_core container
-    cmd = host.run(f"podman exec omnia_core python3 -c \"import yaml; print(yaml.safe_load(open('{path}')))\" 2>&1")
+    yaml_cmd = BUILD_IMAGE_VARS["yaml_validate_cmd"].format(path=path)
+    cmd = host.run(yaml_cmd)
 
     if cmd.rc == 0:
         return {
