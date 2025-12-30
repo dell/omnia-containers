@@ -44,14 +44,14 @@ The `build_images.sh` script builds the following containers:
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 - **kafkapump**: Kafka data pump for iDRAC telemetry - `kafkapump`.
 - **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
-- **telemetry_receiver**: Complete telemetry collection service - `telemetry-receiver`.
+- **telemetry-receiver**: Complete telemetry collection service - `telemetry-receiver`.
 
 ## Quick Reference - Common Commands
 
 ```bash
 # Build OIM containers (core + auth) - default behavior
 ./build_images.sh
-# ⚠️ Warning will be shown about using default branch: staging
+# ⚠️ Warning will be shown about using default branch: main
 
 # Build OIM with specific Omnia branch
 ./build_images.sh oim omnia_branch=v2.0.0.0-rc3
@@ -84,12 +84,12 @@ The `build_images.sh` script builds the following containers:
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
 - `build_action=<load|push>` - Action after build (default: `load` - loads images locally for use)
-- `image_tag=<tag>` - Set same tag for all containers (default: `latest`)
+- `image_tag=<tag>` - Set same tag for all containers (default: `1.0`)
 
 **Note:** By default, `build_action=load` loads all built images into your local container engine (Podman or Docker) making them immediately available for use. This is the recommended action for users.
 
 **Omnia Container-Specific Parameters:**
-- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `staging`, valid with: `core`, `oim`, `all`)
+- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `main`, valid with: `core`, `oim`, `all`)
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
 - `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `oim`, `all`)
 - `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `oim`, `all`)
@@ -129,7 +129,7 @@ The script validates parameters in two stages with context-specific error messag
 3. **Default branch warning** - When building core without specifying `omnia_branch`
    ```bash
    ./build_images.sh core
-   # ⚠️ Warning: omnia_branch not specified, using default branch: staging
+   # ⚠️ Warning: omnia_branch not specified, using default branch: main
    ```
 
 ---
@@ -140,19 +140,19 @@ Build core and auth containers required for Omnia deployment. This is the defaul
 
 #### Basic - Default Settings
 ```bash
-# Build OIM containers with defaults (podman, latest tags, staging branch) - no parameters needed
+# Build OIM containers with defaults (podman, 1.0 tags, main branch) - no parameters needed
 ./build_images.sh
-# ⚠️ Warning: omnia_branch not specified, using default branch: staging
+# ⚠️ Warning: omnia_branch not specified, using default branch: main
 
 # OR explicitly specify 'oim'
 ./build_images.sh oim
-# ⚠️ Warning: omnia_branch not specified, using default branch: staging
+# ⚠️ Warning: omnia_branch not specified, using default branch: main
 
 # Build OIM with explicit branch (no warning)
 ./build_images.sh oim omnia_branch=staging
 ```
 
-These commands build core and auth containers with default settings (podman, latest tags, staging branch).
+These commands build core and auth containers with default settings (podman, 1.0 tags, main branch).
 
 #### With Docker
 ```bash
@@ -168,11 +168,11 @@ These commands build core and auth containers with default settings (podman, lat
 # Build OIM with specific branch and Docker - no warning
 ./build_images.sh oim omnia_branch=v2.0.0.0-rc3 build_tool=docker
 
-# Build OIM with explicit staging branch (same as default but no warning)
-./build_images.sh oim omnia_branch=staging
+# Build OIM with explicit main branch (same as default but no warning)
+./build_images.sh oim omnia_branch=main
 ```
 
-**Note:** Explicitly specifying `omnia_branch=staging` suppresses the warning even though staging is the default.
+**Note:** Explicitly specifying `omnia_branch=main` suppresses the warning even though main is the default.
 
 #### With Unified Tag
 ```bash
@@ -233,7 +233,7 @@ Build individual containers or specific combinations.
 ./build_images.sh core omnia_branch=v2.0.0.0-rc3
 
 # Build only core with specific tag and branch
-./build_images.sh core core_tag=1.0 omnia_branch=staging
+./build_images.sh core core_tag=1.0 omnia_branch=main
 
 # Build only core with Docker
 ./build_images.sh core build_tool=docker core_tag=1.0
