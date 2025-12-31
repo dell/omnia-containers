@@ -164,8 +164,7 @@
       ansible.builtin.shell:
         cmd: |
           podman exec -w /omnia omnia_core \
-            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v \
-            --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v
       register: playbook_result
       timeout: 3600
       when: "'EXISTS' in playbook_check.stdout"
@@ -191,8 +190,7 @@
           ║   3. Registry logs: podman logs {{ registry_container_name }}
           ║   4. Re-run manually inside omnia_core container:
           ║        podman exec -w /omnia -it omnia_core bash
-          ║        ansible-playbook build_image_x86_64/build_image_x86_64.yml -v \
-          ║          --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+          ║        ansible-playbook build_image_x86_64/build_image_x86_64.yml -v
           ║
           ║ STDERR:
           ║   {{ playbook_result.stderr | default('No error message') }}
