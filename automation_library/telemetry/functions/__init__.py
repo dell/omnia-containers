@@ -15,21 +15,7 @@
 """Telemetry functions module."""
 
 from .telemetry_func import (
-    run_telemetry_playbook,
-    verify_telemetry_pods,
-    verify_victoria_metrics,
-    verify_kafka,
-    verify_idrac_telemetry,
-    check_telemetry_prerequisites,
-    check_service_cluster_ready,
-    check_telemetry_config,
-    check_victoria_pods_running,
-    check_kafka_pods_running,
-    check_idrac_telemetry_pods_running,
-    check_telemetry_namespace,
     get_service_kube_node_count,
     verify_idrac_telemetry_pod_count,
-    get_idrac_telemetry_pods_on_k8s,
-    get_all_telemetry_pods,
     verify_all_telemetry_pods_running,
 )

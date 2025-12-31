@@ -23,14 +23,9 @@ for iDRAC telemetry, VictoriaMetrics, Kafka, and LDMS components.
 """
 
 from .functions.telemetry_func import (
-    run_telemetry_playbook,
-    verify_telemetry_pods,
-    verify_victoria_metrics,
-    verify_kafka,
-    verify_idrac_telemetry,
-    check_telemetry_prerequisites,
-    check_service_cluster_ready,
-    check_telemetry_config,
+    get_service_kube_node_count,
+    verify_idrac_telemetry_pod_count,
+    verify_all_telemetry_pods_running,
 )
 from .vars.telemetry_vars import TELEMETRY_VARS, validate_telemetry_config
 from .messages.telemetry_msgs import TELEMETRY_MSGS, TEST_NAMES
