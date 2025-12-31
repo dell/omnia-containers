@@ -129,7 +129,12 @@ case "$SCENARIO" in
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            if molecule "${COMMAND}" -s "${name}"; then
+            # Create log file for this scenario
+            LOG_FILE="/tmp/molecule_${name}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+            export MOLECULE_LOG_FILE="$LOG_FILE"
+            export MOLECULE_COMMAND="${COMMAND}"
+            
+            if molecule "${COMMAND}" -s "${name}" 2>&1 | tee "$LOG_FILE"; then
                 echo -e "${GREEN}✔ ${name} completed${NC}"
             else
                 echo -e "${RED}✘ ${name} failed${NC}"
@@ -174,7 +179,10 @@ case "$COMMAND" in
     test)
         echo -e "${YELLOW}➜ Running full test...${NC}"
         echo ""
-        molecule test -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="test"
+        molecule test -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Test completed.${NC}"
         ;;
@@ -182,7 +190,10 @@ case "$COMMAND" in
     verify)
         echo -e "${YELLOW}➜ Running verification tests only...${NC}"
         echo ""
-        molecule verify -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="verify"
+        molecule verify -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Verify completed.${NC}"
         ;;
@@ -190,7 +201,10 @@ case "$COMMAND" in
     converge)
         echo -e "${YELLOW}➜ Running converge...${NC}"
         echo ""
-        molecule converge -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="converge"
+        molecule converge -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Converge completed.${NC}"
         ;;
