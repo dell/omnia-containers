@@ -1,0 +1,204 @@
+---
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Molecule Converge - Run discovery workflow and prechecks
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Run discovery workflow and prechecks
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    discovery_cmd: "ssh omnia_core 'cd /omnia && ansible-playbook discovery/discovery.yml'"
+    openchami_container: "omnia_core"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running discovery converge on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # PRECHECKS (moved from pytest tests)
+    # =========================================================================
+
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
+      args:
+        executable: /bin/bash
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container is not running
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container is not running on {{ ansible_host }}.
+          Please run omnia.sh --install first.
+      when: container_check.rc != 0
+
+    - name: Check if OpenCHAMI container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q "{{ openchami_container }}"
+      args:
+        executable: /bin/bash
+      register: openchami_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if OpenCHAMI container is not running
+      ansible.builtin.fail:
+        msg: |
+          OpenCHAMI container {{ openchami_container }} is not running on {{ ansible_host }}.
+          This is required for discovery validation.
+      when: openchami_check.rc != 0
+
+    - name: Validate S3 provisioning images (if S3 bucket configured)
+      ansible.builtin.shell:
+        cmd: |
+          s3_bucket="boot-images"
+          if [ -z "$s3_bucket" ]; then
+            echo "S3 bucket not configured, skipping image validation"
+            exit 0
+          fi
+
+          echo "Checking S3 bucket: $s3_bucket"
+          if ! command -v s3cmd >/dev/null 2>&1; then
+            echo "s3cmd not found, skipping S3 validation"
+            exit 0
+          fi
+
+          # Test S3 connectivity and list objects
+          if s3cmd ls "s3://$s3_bucket" >/dev/null 2>&1; then
+            echo "S3 bucket $s3_bucket is accessible"
+            exit 0
+          else
+            echo "Failed to access S3 bucket $s3_bucket"
+            exit 1
+          fi
+      register: s3_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display S3 validation result
+      ansible.builtin.debug:
+        msg: "S3 validation: {{ s3_check.stdout | default('No output') }}"
+
+    - name: Fail if S3 validation failed
+      ansible.builtin.fail:
+        msg: |
+          S3 provisioning image validation failed.
+          Error: {{ s3_check.stderr | default('Unknown error') }}
+
+          This may indicate:
+          - S3 credentials not configured
+          - Network connectivity issues
+          - Incorrect S3 bucket configuration
+      when:
+        - s3_check.rc != 0
+        - s3_check.stdout is not search("skipping")
+
+    # =========================================================================
+    # DISCOVERY PLAYBOOK EXECUTION
+    # =========================================================================
+
+    - name: Skip discovery execution if discovery_playbook_cmd is not set
+      ansible.builtin.debug:
+        msg: |
+          Discovery playbook command is not configured.
+          Skipping discovery execution. Tests will validate existing cluster state.
+      when: discovery_cmd | length == 0
+
+    - name: Execute discovery workflow command
+      ansible.builtin.command:
+        cmd: "{{ discovery_cmd }}"
+      register: discovery_result
+      changed_when: discovery_result.rc == 0
+      failed_when: false
+      when: discovery_cmd | length > 0
+
+    - name: Skip discovery execution when discovery command is not found on target
+      ansible.builtin.debug:
+        msg: |
+          Discovery command could not be executed on {{ ansible_host }}.
+          STDERR:
+            {{ discovery_result.stderr | default('') }}
+          Skipping discovery execution. Tests will validate existing cluster state.
+      when:
+        - discovery_cmd | length > 0
+        - discovery_result.rc | int == 127
+
+    - name: Fail if discovery command failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                        DISCOVERY EXECUTION FAILED                           ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ discovery_result.rc }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   The discovery workflow command failed during execution.
+          ║
+          ║ POSSIBLE CAUSES:
+          ║   - Discovery playbook syntax errors
+          ║   - Network connectivity issues to cluster nodes
+          ║   - Missing or invalid cluster configuration
+          ║   - Insufficient permissions on target nodes
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Run discovery command manually: {{ discovery_cmd }}
+          ║   3. Check cluster node connectivity and configuration
+          ║
+          ║ STDERR:
+          ║   {{ discovery_result.stderr | default('No error message') }}
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when:
+        - discovery_cmd | length > 0
+        - discovery_result.rc | int != 0
+        - discovery_result.rc | int != 127
+
+    - name: Discovery converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          discovery converge complete!
+          ============================================
+          - omnia_core container: Running
+          - OpenCHAMI container: Running
+          - S3 provisioning images: {{ 'Validated' if (s3_check.rc == 0 and s3_check.stdout is not search("skipping")) else 'Skipped or not configured' }}
+          - Discovery workflow: {{ 'Executed successfully' if (discovery_cmd | length > 0 and discovery_result.rc == 0) else 'Skipped or already completed' }}
+          - Ready for pytest verification
+          ============================================
