@@ -1,0 +1,105 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Check PXE mapping file and verify idrac-telemetry pod count
+---
+- name: Read provision_config.yml to get pxe_mapping_file_path
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ provision_config_path }}
+  register: provision_config_content
+  changed_when: false
+
+- name: Extract pxe_mapping_file_path from provision_config.yml
+  ansible.builtin.set_fact:
+    pxe_mapping_file_path: >-
+      {{ provision_config_content.stdout |
+         regex_search('pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?', '\1') |
+         first | default('') | trim }}
+
+- name: Display extracted pxe_mapping_file_path
+  ansible.builtin.debug:
+    msg: "PXE mapping file path: {{ pxe_mapping_file_path | default('NOT FOUND') }}"
+
+- name: Check PXE mapping file exists
+  ansible.builtin.shell:
+    cmd: podman exec {{ container_name }} test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
+  register: pxe_mapping_check
+  changed_when: false
+  when: pxe_mapping_file_path | default('') | length > 0
+
+- name: Read PXE mapping file content
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ pxe_mapping_file_path }}
+  register: pxe_mapping_content
+  changed_when: false
+  when:
+    - pxe_mapping_file_path | default('') | length > 0
+    - pxe_mapping_check.stdout is defined
+    - "'EXISTS' in pxe_mapping_check.stdout"
+
+- name: Extract service_kube_node service_tags from PXE mapping file (CSV format)
+  ansible.builtin.set_fact:
+    service_kube_node_tags: "{{ pxe_mapping_content.stdout | regex_findall('service_kube_node[^,]*,[^,]*,([^,]+),') }}"
+  when: pxe_mapping_content.stdout is defined
+
+- name: Display service_kube_node service_tags
+  ansible.builtin.debug:
+    msg: "service_kube_node service_tags: {{ service_kube_node_tags | default([]) }}"
+
+- name: Count slurm_node entries with PARENT_SERVICE_TAG matching service_kube_node service_tags
+  ansible.builtin.set_fact:
+    slurm_node_with_service_parent_count: >-
+      {{ pxe_mapping_content.stdout |
+         regex_findall('slurm_node[^,]*,[^,]*,[^,]*,(' +
+         (service_kube_node_tags | default([]) | join('|')) + '),') | length }}
+  when:
+    - pxe_mapping_content.stdout is defined
+    - service_kube_node_tags | default([]) | length > 0
+
+- name: Display slurm_node with service_kube_node parent count
+  ansible.builtin.debug:
+    msg: "slurm_node entries with service_kube_node parent: {{ slurm_node_with_service_parent_count | default(0) }}"
+
+- name: Count idrac-telemetry pod entries in service_cluster_metadata.yml
+  ansible.builtin.set_fact:
+    idrac_telemetry_pod_count: "{{ service_cluster_metadata_content.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
+
+- name: Calculate expected idrac-telemetry pod count (service_kube_node count + 1 for mgmt)
+  ansible.builtin.set_fact:
+    expected_idrac_pod_count: "{{ (service_kube_node_tags | default([]) | length | int) + 1 }}"
+
+- name: Display idrac-telemetry pod count verification
+  ansible.builtin.debug:
+    msg: |
+      service_kube_node count: {{ service_kube_node_tags | default([]) | length }}
+      slurm_node with service_kube_node parent: {{ slurm_node_with_service_parent_count | default(0) }}
+      idrac-telemetry pod entries in service_cluster_metadata.yml: {{ idrac_telemetry_pod_count }}
+      Expected pod count (service_kube_node + 1 for mgmt): {{ expected_idrac_pod_count }}
+      Match: {{ 'YES' if idrac_telemetry_pod_count | int == expected_idrac_pod_count | int else 'NO' }}
+
+- name: Fail if idrac-telemetry pod count does not match expected
+  ansible.builtin.fail:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                    PREREQUISITE CHECK FAILED                                 ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ idrac-telemetry pod count mismatch in service_cluster_metadata.yml
+      ║
+      ║ Found: {{ idrac_telemetry_pod_count }} idrac-telemetry pod entries
+      ║ Expected: {{ expected_idrac_pod_count }} (service_kube_node count {{ service_kube_node_tags | default([]) | length }} + 1 for mgmt)
+      ║
+      ║ Each service_kube_node should have an idrac-telemetry pod entry,
+      ║ plus idrac-telemetry-0 for the management layer.
+      ╚══════════════════════════════════════════════════════════════════════════════╝
+  when: idrac_telemetry_pod_count | int != expected_idrac_pod_count | int

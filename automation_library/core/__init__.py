@@ -22,7 +22,14 @@ Modules:
 """
 
 from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
-from .host import get_testinfra_host, load_user_config
+from .host import (
+    get_testinfra_host,
+    load_user_config,
+    run_on_oim,
+    run_in_container,
+    run_on_remote_node,
+    get_node_admin_ip,
+)
 from .report import TestReport, get_current_report, set_current_report
 
 __all__ = [
@@ -36,6 +43,10 @@ __all__ = [
     # Host
     "get_testinfra_host",
     "load_user_config",
+    "run_on_oim",
+    "run_in_container",
+    "run_on_remote_node",
+    "get_node_admin_ip",
     # Report
     "TestReport",
     "get_current_report",
