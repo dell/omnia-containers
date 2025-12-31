@@ -164,9 +164,9 @@
       ansible.builtin.shell:
         cmd: |
           podman exec -w /omnia omnia_core \
-            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v
+            ansible-playbook build_image_x86_64/build_image_x86_64.yml -i /opt/omnia/inventory/oim_inventory -v
       register: playbook_result
-      timeout: 3600
+      timeout: 7200
       when: "'EXISTS' in playbook_check.stdout"
       changed_when: playbook_result.rc == 0
       failed_when: false
