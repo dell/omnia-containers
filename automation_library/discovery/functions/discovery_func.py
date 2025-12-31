@@ -45,6 +45,7 @@ def _run(host, cmd: str) -> Tuple[int, str, str]:
 
 
 def _run_in_container(host, inner_cmd: str) -> Tuple[int, str, str]:
+    """Run a command inside the discovery container or on the host directly."""
     if not bool(DISCOVERY_VARS.get("run_checks_in_container", True)):
         return _run(host, inner_cmd)
 
@@ -70,6 +71,7 @@ def _require(value: Any, item_name: str) -> Tuple[bool, Optional[str]]:
 
 
 def _parse_hostport(value: str, default_port: int) -> Tuple[str, int]:
+    """Parse host:port string and return (host, port) tuple with default port fallback."""
     v = (value or "").strip()
     if not v:
         return "", default_port
@@ -121,6 +123,7 @@ _SLAPD_PROXY_CACHE: Dict[str, Any] = {}
 
 
 def _slapd_meta_proxy_status(host) -> Dict[str, Any]:
+    """Check if slapd.conf is configured for external LDAP proxy using meta backend."""
     # slapd.conf belongs to the LDAP service container.
     auth_container = "omnia_auth"
     cr = check_container_running(host, auth_container)
@@ -424,6 +427,7 @@ def _ssh_run(host, node: str, user: str, remote_cmd: str, timeout_sec: int = 30)
 
 
 def _slurm_has_allocatable_nodes(sinfo_text: str) -> Tuple[bool, str]:
+    """Check if Slurm cluster has nodes in allocatable states (idle, mix, alloc)."""
     states: List[str] = []
     for line in (sinfo_text or "").splitlines():
         s = line.strip().lower()
@@ -560,7 +564,7 @@ def validate_packages_by_group(host) -> Dict[str, Any]:
 
 
 def _load_expected_bmc_groups(pxe_mapping_file: str) -> Tuple[Dict[str, str], Optional[str]]:
-    """Return mapping of BMC_IP -> GROUP_NAME derived from pxe_mapping_file.csv."""
+    """Load expected BMC IP to group name mappings from PXE mapping CSV file."""
     if not pxe_mapping_file or not os.path.exists(pxe_mapping_file):
         return {}, f"PXE mapping file not found: {pxe_mapping_file}"
 
@@ -778,6 +782,7 @@ def validate_slurm_cluster(host) -> Dict[str, Any]:
 
 
 def _slurm_controller_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
+    """Get Slurm controller hostname or return skip result if not configured."""
     controller = (DISCOVERY_VARS.get("slurm_controller") or "").strip()
     if not controller:
         return "", _result(
@@ -790,6 +795,7 @@ def _slurm_controller_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
 
 
 def _login_node_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
+    """Get login node hostname or return skip result if not configured."""
     node = (DISCOVERY_VARS.get("login_node") or "").strip()
     if not node:
         return "", _result(
@@ -802,6 +808,7 @@ def _login_node_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
 
 
 def _login_compiler_node_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
+    """Get login compiler node hostname or return skip result if not configured."""
     node = (DISCOVERY_VARS.get("login_compiler_node") or "").strip()
     if not node:
         return "", _result(
@@ -814,6 +821,7 @@ def _login_compiler_node_or_skip() -> Tuple[str, Optional[Dict[str, Any]]]:
 
 
 def _ensure_ssh_ok(host, node: str, user: str, password: str, scenario_name: str) -> Optional[Dict[str, Any]]:
+    """Ensure SSH connection to node is working, return error result if not."""
     ssh_ok, ssh_msg = _ssh_check(host, node, user, password)
     if not ssh_ok:
         return _result(scenario_name, False, error=f"Unable to SSH to {node}: {ssh_msg}")
@@ -828,6 +836,7 @@ def _ensure_ssh_ok(host, node: str, user: str, password: str, scenario_name: str
 
 
 def _systemctl_active_check(host, node: str, user: str, svc: str, scenario_name: str) -> Dict[str, Any]:
+    """Check if a systemd service is active on a remote node via SSH."""
     rc, out, err = _ssh_run(host, node, user, f"systemctl is-active {svc}", timeout_sec=15)
     active = (out or "").strip() == "active"
     status_out = ""
@@ -848,6 +857,7 @@ def _systemctl_active_check(host, node: str, user: str, svc: str, scenario_name:
 
 
 def validate_slurm_sinfo(host) -> Dict[str, Any]:
+    """Validate Slurm sinfo command execution and node states."""
     controller, skip = _slurm_controller_or_skip()
     if skip:
         skip["name"] = "Slurm sinfo"
@@ -876,6 +886,7 @@ def validate_slurm_sinfo(host) -> Dict[str, Any]:
 
 
 def validate_slurm_srun(host) -> Dict[str, Any]:
+    """Validate Slurm srun command execution with immediate scheduling."""
     controller, skip = _slurm_controller_or_skip()
     if skip:
         skip["name"] = "Slurm srun"
@@ -924,6 +935,7 @@ def validate_slurm_srun(host) -> Dict[str, Any]:
 
 
 def validate_slurm_ldap(host) -> Dict[str, Any]:
+    """Validate LDAP user lookup on Slurm controller node."""
     controller, skip = _slurm_controller_or_skip()
     if skip:
         skip["name"] = "Slurm LDAP"
@@ -973,6 +985,7 @@ def validate_slurm_ldap(host) -> Dict[str, Any]:
 
 
 def validate_slurm_gpu(host) -> Dict[str, Any]:
+    """Validate GPU availability on specified GPU test nodes via srun nvidia-smi."""
     controller, skip = _slurm_controller_or_skip()
     if skip:
         skip["name"] = "Slurm GPU"
@@ -1015,6 +1028,7 @@ def validate_slurm_gpu(host) -> Dict[str, Any]:
 
 
 def validate_slurm_ib(host) -> Dict[str, Any]:
+    """Validate InfiniBand connectivity on specified IB test nodes via srun ibstat/ibv_devinfo."""
     controller, skip = _slurm_controller_or_skip()
     if skip:
         skip["name"] = "Slurm IB"
@@ -1129,6 +1143,7 @@ def validate_login_node(host) -> Dict[str, Any]:
 
 
 def validate_login_sssd(host) -> Dict[str, Any]:
+    """Validate sssd service is active on login node."""
     node, skip = _login_node_or_skip()
     if skip:
         skip["name"] = "Login Node sssd"
@@ -1142,6 +1157,7 @@ def validate_login_sssd(host) -> Dict[str, Any]:
 
 
 def validate_login_munge(host) -> Dict[str, Any]:
+    """Validate munge service is active on login node."""
     node, skip = _login_node_or_skip()
     if skip:
         skip["name"] = "Login Node munge"
@@ -1155,6 +1171,7 @@ def validate_login_munge(host) -> Dict[str, Any]:
 
 
 def validate_login_slurmd(host) -> Dict[str, Any]:
+    """Validate slurmd service is active on login node."""
     node, skip = _login_node_or_skip()
     if skip:
         skip["name"] = "Login Node slurmd"
@@ -1168,6 +1185,7 @@ def validate_login_slurmd(host) -> Dict[str, Any]:
 
 
 def validate_login_srun(host) -> Dict[str, Any]:
+    """Validate srun command execution from login node."""
     node, skip = _login_node_or_skip()
     if skip:
         skip["name"] = "Login Node srun"
@@ -1191,6 +1209,7 @@ def validate_login_srun(host) -> Dict[str, Any]:
 
 
 def validate_login_ldap(host) -> Dict[str, Any]:
+    """Validate LDAP user lookup on login node."""
     node, skip = _login_node_or_skip()
     if skip:
         skip["name"] = "Login Node LDAP"
@@ -1330,6 +1349,7 @@ def validate_login_compiler_node(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_sssd(host) -> Dict[str, Any]:
+    """Validate sssd service is active on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler sssd"
@@ -1343,6 +1363,7 @@ def validate_login_compiler_sssd(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_munge(host) -> Dict[str, Any]:
+    """Validate munge service is active on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler munge"
@@ -1356,6 +1377,7 @@ def validate_login_compiler_munge(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_slurmd(host) -> Dict[str, Any]:
+    """Validate slurmd service is active on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler slurmd"
@@ -1369,6 +1391,7 @@ def validate_login_compiler_slurmd(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_openmpi(host) -> Dict[str, Any]:
+    """Validate OpenMPI installation and availability on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler OpenMPI"
@@ -1406,6 +1429,7 @@ def validate_login_compiler_openmpi(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_ucx(host) -> Dict[str, Any]:
+    """Validate UCX installation and availability on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler UCX"
@@ -1441,6 +1465,7 @@ def validate_login_compiler_ucx(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_srun(host) -> Dict[str, Any]:
+    """Validate srun command execution from login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler srun"
@@ -1464,6 +1489,7 @@ def validate_login_compiler_srun(host) -> Dict[str, Any]:
 
 
 def validate_login_compiler_ldap(host) -> Dict[str, Any]:
+    """Validate LDAP user lookup on login compiler node."""
     node, skip = _login_compiler_node_or_skip()
     if skip:
         skip["name"] = "Login Compiler LDAP"

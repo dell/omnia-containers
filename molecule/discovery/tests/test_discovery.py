@@ -47,9 +47,6 @@ def _assert_result(log: TestLogger, result: dict):
     assert result.get("success"), result.get("error") or result.get("details") or "Validation failed"
 
 
-def _is_verbose() -> bool:
-    return str(os.environ.get("DISCOVERY_VERBOSE", "")).strip().lower() in {"1", "true", "yes", "y"}
-
 
 def _assert_result_with_success_msg(log: TestLogger, result: dict, success_msg: str):
     if result.get("success"):
@@ -68,11 +65,6 @@ def test_node_boot_validation(host):
     # Show booted and non-booted node lists
     booted = result.get("booted_nodes", [])
     non_booted = result.get("non_booted_nodes", [])
-    if _is_verbose():
-        if booted:
-            log.check(f"Booted nodes: {', '.join(booted)}")
-        if non_booted:
-            log.check(f"Non-booted nodes: {', '.join(non_booted)}")
     
     _assert_result_with_success_msg(
         log,
@@ -88,9 +80,6 @@ def test_package_installation(host):
     
     # Show missing packages if any
     missing = result.get("missing", [])
-    if _is_verbose() and missing:
-        for m in missing[:10]:  # Show first 10 missing
-            log.check(f"Missing: {m.get('package')} on {m.get('node')} ({m.get('group')})")
     
     _assert_result_with_success_msg(
         log,
@@ -104,8 +93,6 @@ def test_bmc_group_file(host):
     log.check("Checking bmc_group_data.csv generation")
     result = validate_bmc_group_csv(host)
 
-    if _is_verbose() and result.get("csv_content"):
-        log.check(f"bmc_group_data.csv content:\n{result['csv_content']}")
 
     _assert_result_with_success_msg(
         log,
@@ -115,16 +102,6 @@ def test_bmc_group_file(host):
 
 
 def _assert_simple_command_result(log: TestLogger, result: dict, success_msg: str):
-    if _is_verbose() and (result.get("out") or result.get("err") or result.get("status")):
-        status = (result.get("status") or "").strip()
-        if status:
-            log.check(
-                f"rc={result.get('rc')}\nstdout:\n{(result.get('out') or '').strip()}\nstderr:\n{(result.get('err') or '').strip()}\nstatus:\n{status}"
-            )
-        else:
-            log.check(
-                f"rc={result.get('rc')}\nstdout:\n{(result.get('out') or '').strip()}\nstderr:\n{(result.get('err') or '').strip()}"
-            )
     _assert_result_with_success_msg(log, result, success_msg)
 
 
@@ -252,10 +229,6 @@ def test_external_ldap_proxy(host):
     log.check("Checking external LDAP proxy via ldapsearch in omnia_auth")
     result = validate_external_ldap_proxy(host)
 
-    if _is_verbose() and (result.get("out") or result.get("err")):
-        log.check(
-            f"ldapsearch (target={result.get('target')} user={result.get('ldap_user')}): rc={result.get('rc')}\nstdout:\n{(result.get('out') or '').strip()}\nstderr:\n{(result.get('err') or '').strip()}"
-        )
 
     _assert_result_with_success_msg(
         log,

@@ -79,13 +79,13 @@
             echo "S3 bucket not configured, skipping image validation"
             exit 0
           fi
-          
+
           echo "Checking S3 bucket: $s3_bucket"
           if ! command -v s3cmd >/dev/null 2>&1; then
             echo "s3cmd not found, skipping S3 validation"
             exit 0
           fi
-          
+
           # Test S3 connectivity and list objects
           if s3cmd ls "s3://$s3_bucket" >/dev/null 2>&1; then
             echo "S3 bucket $s3_bucket is accessible"
@@ -107,12 +107,12 @@
         msg: |
           S3 provisioning image validation failed.
           Error: {{ s3_check.stderr | default('Unknown error') }}
-          
+
           This may indicate:
           - S3 credentials not configured
           - Network connectivity issues
           - Incorrect S3 bucket configuration
-      when: 
+      when:
         - s3_check.rc != 0
         - s3_check.stdout is not search("skipping")
 
@@ -128,7 +128,7 @@
       when: discovery_cmd | length == 0
 
     - name: Execute discovery workflow command
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: "{{ discovery_cmd }}"
       register: discovery_result
       changed_when: discovery_result.rc == 0
@@ -159,9 +159,7 @@
           ║
           ║ POSSIBLE CAUSES:
           ║   - Discovery playbook syntax errors
-          ║   - Network connectivity issues to cluster nodes
           ║   - Missing or invalid cluster configuration
-          ║   - Insufficient permissions on target nodes
           ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
