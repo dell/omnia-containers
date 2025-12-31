@@ -72,8 +72,8 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
     # =========================================================================
     "omnia_shared_path": OIM_PREREQ_VARS.get("omnia_shared_path", "/opt/omnia"),
     "build_image_playbook": "/omnia/build_image_x86_64/build_image_x86_64.yml",
-    "functional_group_path": "/opt/omnia/input/project_default/functional_group.yml",
-    "pxe_mapping_path": "/opt/omnia/input/project_default/pxe_mapping_file.csv",
+    "functional_group_path": OIM_PREREQ_VARS.get("functional_group_path", "/opt/omnia/input/project_default/functional_group.yml"),
+    "pxe_mapping_path": OIM_PREREQ_VARS.get("pxe_mapping_path", "/opt/omnia/input/project_default/pxe_mapping_file.csv"),
 
     # =========================================================================
     # S3 SETTINGS
