@@ -1,0 +1,34 @@
+"""
+Slurm messages module.
+
+Exports messages from both slurm_job_queueing and insufficient_resources modules.
+"""
+
+from .slurm_job_queueing_msgs import (
+    TEST_VARS as SLURM_JOB_QUEUEING_TEST_VARS,
+    TEST_NAMES as SLURM_JOB_QUEUEING_TEST_NAMES,
+    TEST_LOG_MSGS as SLURM_JOB_QUEUEING_LOG_MSGS,
+    TEST_ASSERT_MSGS as SLURM_JOB_QUEUEING_ASSERT_MSGS,
+    SLURM_JOB_QUEUEING_MSGS,
+)
+
+from .insufficient_resources_msgs import (
+    TEST_VARS as INSUFFICIENT_RESOURCES_TEST_VARS,
+    TEST_NAMES as INSUFFICIENT_RESOURCES_TEST_NAMES,
+    TEST_LOG_MSGS as INSUFFICIENT_RESOURCES_LOG_MSGS,
+    TEST_ASSERT_MSGS as INSUFFICIENT_RESOURCES_ASSERT_MSGS,
+)
+
+__all__ = [
+    # slurm_job_queueing messages
+    "SLURM_JOB_QUEUEING_TEST_VARS",
+    "SLURM_JOB_QUEUEING_TEST_NAMES",
+    "SLURM_JOB_QUEUEING_LOG_MSGS",
+    "SLURM_JOB_QUEUEING_ASSERT_MSGS",
+    "SLURM_JOB_QUEUEING_MSGS",
+    # insufficient_resources messages
+    "INSUFFICIENT_RESOURCES_TEST_VARS",
+    "INSUFFICIENT_RESOURCES_TEST_NAMES",
+    "INSUFFICIENT_RESOURCES_LOG_MSGS",
+    "INSUFFICIENT_RESOURCES_ASSERT_MSGS",
+]

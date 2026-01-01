@@ -1,0 +1,56 @@
+# =============================================================================
+# Molecule Configuration for insufficient_resources Testing
+# =============================================================================
+#
+# This module tests Slurm behavior when jobs request more resources than available:
+# - Excessive CPU requests
+# - Excessive memory requests
+# - GPU requests when none available
+# - Combined excessive resource requests
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh slurm/insufficient_resources test       # Run playbook + verify
+#   ./run_molecule.sh slurm/insufficient_resources converge   # Run playbook only
+#   ./run_molecule.sh slurm/insufficient_resources verify     # Verify only
+#
+# Configuration:
+#   - user_config.yml: Slurm cluster connection settings
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: slurm_control_node
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: insufficient_resources
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify

@@ -1,0 +1,26 @@
+---
+# =============================================================================
+# Molecule Create - Setup inventory and verify connectivity
+# =============================================================================
+
+- name: Create - Setup Slurm cluster inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../../shared/tasks/setup_inventory.yml
+
+    - name: Test SSH connection to Slurm control node
+      ansible.builtin.wait_for:
+        host: "{{ user_config.slurm_control_node_ip | default(user_config.oim_server_ip) }}"
+        port: "{{ user_config.slurm_ssh_port | default(22) }}"
+        timeout: 30
+
+    - name: Slurm control node ready
+      ansible.builtin.debug:
+        msg: "Slurm control node {{ user_config.slurm_control_node_ip | default(user_config.oim_server_ip) }} is reachable via SSH"

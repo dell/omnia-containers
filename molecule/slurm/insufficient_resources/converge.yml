@@ -1,0 +1,102 @@
+---
+# =============================================================================
+# Molecule Converge - Verify Slurm insufficient resources handling
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for Slurm control node play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Verify Slurm insufficient resources handling on control node
+  hosts: slurm_control_node
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+
+  tasks:
+    - name: Display target Slurm control node
+      ansible.builtin.debug:
+        msg: "Verifying Slurm insufficient resources handling on: {{ ansible_host }}"
+
+    - name: Check if slurmctld service is running
+      ansible.builtin.shell:
+        cmd: systemctl is-active slurmctld
+      register: slurmctld_check
+      changed_when: false
+      failed_when: false
+
+    - name: Display slurmctld status
+      ansible.builtin.debug:
+        msg: "slurmctld status: {{ slurmctld_check.stdout }}"
+
+    - name: Fail if slurmctld is not running
+      ansible.builtin.fail:
+        msg: |
+          slurmctld service is not running on {{ ansible_host }}.
+          Please ensure Slurm is properly installed and configured.
+      when: slurmctld_check.rc != 0
+
+    # =========================================================================
+    # VERIFY CLUSTER RESOURCES
+    # =========================================================================
+
+    - name: Get cluster resource information
+      ansible.builtin.shell:
+        cmd: sinfo -N -o '%N|%c|%m|%G' --noheader
+      register: sinfo_result
+      changed_when: false
+      failed_when: false
+
+    - name: Display cluster resources
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SLURM CLUSTER RESOURCES
+          ============================================
+          Node|CPUs|Memory|GPUs
+          {{ sinfo_result.stdout | default('No nodes found') }}
+          ============================================
+
+    - name: Get partition information
+      ansible.builtin.shell:
+        cmd: sinfo -o '%P|%a|%l|%D|%N' --noheader
+      register: partition_result
+      changed_when: false
+      failed_when: false
+
+    - name: Display partition information
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SLURM PARTITIONS
+          ============================================
+          Partition|Avail|TimeLimit|Nodes|NodeList
+          {{ partition_result.stdout | default('No partitions found') }}
+          ============================================
+
+    - name: Insufficient resources converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          insufficient_resources converge complete!
+          ============================================
+          - slurmctld service: Running
+          - Cluster resources: Retrieved
+          - Partitions: Verified
+          - Ready for pytest verification
+          ============================================
