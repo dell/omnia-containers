@@ -14,7 +14,7 @@
 
 """Telemetry variables module."""
 
-from .telemetry_vars import (
+from .idrac_telemetry_vars import (
     TELEMETRY_VARS,
     validate_telemetry_config,
     PROVISION_CONFIG_PATH,
@@ -24,4 +24,18 @@ from .telemetry_vars import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     IDRAC_TELEMETRY_POD_PREFIX,
     STABILITY_WAIT_TIME,
+    CMD_TEMPLATES,
+)
+
+from .kafka_vars import (
+    TELEMETRY_CONFIG_PATH,
+    SOFTWARE_CONFIG_PATH,
+    KAFKA_BOOTSTRAP_SERVER,
+    KAFKA_CLUSTER_CA_SECRET,
+    KAFKA_USER_SECRET,
+    KAFKA_STRIMZI_IMAGE,
+    KAFKA_MTLS_TEST_JOB_PREFIX,
+    KAFKA_CMD_TEMPLATES,
+    LDMS_AGGR_POD_PREFIX,
+    LDMS_STORE_POD_PREFIX,
 )

@@ -15,17 +15,15 @@
 """
 Omnia Automation Library
 
-A Python library for automating OIM prerequisite checks and omnia.sh testing.
+A Python library for automating Omnia deployment verification and testing.
 
 Modules:
     - core: Formatting, logging, host utilities, reports
-    - functions: Prereq checks, omnia.sh operations
-    - messages: User-facing messages
-    - vars: Configuration variables
-
-Usage:
-    from automation_library.core import TestLogger, Colors
-    from automation_library.functions import run_all_prereq_checks
+    - checks: Prerequisite checks and validations
+    - omnia_sh: omnia.sh operations and verification
+    - local_repo: Local repository automation
+    - prepare_oim: OIM preparation automation
+    - telemetry: Telemetry (iDRAC, Kafka, LDMS) automation and verification
 """
 
 __version__ = "0.1.0"

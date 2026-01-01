@@ -22,7 +22,7 @@ import re
 import yaml
 from typing import Dict, Any, List
 
-from ..vars.telemetry_vars import (
+from ..vars.idrac_telemetry_vars import (
     TELEMETRY_VARS,
     PROVISION_CONFIG_PATH,
     TELEMETRY_NAMESPACE,
@@ -462,7 +462,7 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
 
     Args:
         host: Testinfra host object
-        admin_ip: Admin IP of K8s node
+        admin_ip: Admin IP of K8s node (kube_vip)
 
     Returns:
         Dict with success, pod_results, error
@@ -579,7 +579,7 @@ def get_receiver_logs(host, admin_ip: str, pod_name: str, tail_lines: int = 500)
 
     Args:
         host: Testinfra host object
-        admin_ip: Admin IP of K8s node
+        admin_ip: Admin IP of K8s node (kube_vip)
         pod_name: Pod name (e.g., idrac-telemetry-0)
         tail_lines: Number of log lines to retrieve
 
@@ -617,7 +617,7 @@ def get_service_tag_via_redfish(
 
     Args:
         host: Testinfra host object
-        admin_ip: Admin IP of K8s node
+        admin_ip: Admin IP of K8s node (kube_vip)
         idrac_ip: iDRAC IP address
         idrac_user: iDRAC username
         idrac_password: iDRAC password
@@ -659,7 +659,7 @@ def get_idrac_credentials_from_mysql(
 
     Args:
         host: Testinfra host object
-        admin_ip: Admin IP of K8s node
+        admin_ip: Admin IP of K8s node (kube_vip)
         pod_name: Name of the idrac-telemetry pod
         mysql_user: MySQL username
         mysql_password: MySQL password
@@ -849,7 +849,7 @@ def verify_receiver_collecting_metrics(
 
     Args:
         host: Testinfra host object
-        admin_ip: Admin IP of K8s node
+        admin_ip: Admin IP of K8s node (kube_vip)
 
     Returns:
         Dict with success, pod_results, error
