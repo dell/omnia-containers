@@ -1,0 +1,58 @@
+# =============================================================================
+# Molecule Configuration for insufficient_resources Testing
+# =============================================================================
+#
+# This module tests Slurm job submission with insufficient resources.
+# Validates that jobs requesting more resources than available are handled
+# correctly (PENDING with valid reason or rejected with appropriate error).
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh insufficient_resources test       # Run playbook + verify
+#   ./run_molecule.sh insufficient_resources converge   # Run playbook only
+#   ./run_molecule.sh insufficient_resources verify     # Verify only
+#
+# Test Scenarios:
+#   - Submit jobs requesting higher CPU than available
+#   - Submit jobs requesting higher memory than available
+#   - Submit jobs requesting GPUs when none available
+#   - Validate PENDING state with appropriate reasons
+#   - Validate job rejection with appropriate errors
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: slurm_control_node
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: insufficient_resources
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify
