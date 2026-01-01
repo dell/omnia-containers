@@ -21,6 +21,13 @@ from .insufficient_resources_vars import (
     RESOURCE_TYPES,
 )
 
+from .pam_slurm_adopt_vars import (
+    PAM_SLURM_ADOPT_VARS,
+    SSH_ACCESS_STATES,
+    JOB_END_STATES,
+    JOB_ACTIVE_STATES,
+)
+
 __all__ = [
     # slurm_job_queueing vars
     "SLURM_JOB_QUEUEING_VARS",
@@ -35,4 +42,9 @@ __all__ = [
     "RESOURCE_REJECTION_ERRORS",
     "INSUFFICIENT_RESOURCES_JOB_STATES",
     "RESOURCE_TYPES",
+    # pam_slurm_adopt vars
+    "PAM_SLURM_ADOPT_VARS",
+    "SSH_ACCESS_STATES",
+    "JOB_END_STATES",
+    "JOB_ACTIVE_STATES",
 ]

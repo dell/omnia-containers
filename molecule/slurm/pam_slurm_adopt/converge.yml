@@ -1,20 +1,6 @@
-
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 ---
 # =============================================================================
-# Molecule Converge - Verify Slurm job queueing functionality
+# Molecule Converge - Verify PAM Slurm Adopt configuration
 # =============================================================================
 
 - name: Converge - Load configuration and setup inventory
@@ -35,7 +21,7 @@
         cacheable: true
 
 
-- name: Converge - Verify Slurm job queueing on control node
+- name: Converge - Verify PAM Slurm Adopt on control node
   hosts: slurm_control_node
   gather_facts: false
 
@@ -45,7 +31,7 @@
   tasks:
     - name: Display target Slurm control node
       ansible.builtin.debug:
-        msg: "Verifying Slurm job queueing on: {{ ansible_host }}"
+        msg: "Verifying PAM Slurm Adopt on: {{ ansible_host }}"
 
     - name: Check if slurmctld service is running
       ansible.builtin.shell:
@@ -66,65 +52,49 @@
       when: slurmctld_check.rc != 0
 
     # =========================================================================
-    # VERIFY SLURM CLUSTER STATUS
+    # VERIFY PAM SLURM ADOPT CONFIGURATION
     # =========================================================================
 
-    - name: Get Slurm cluster info
+    - name: Check PAM Slurm Adopt configuration
       ansible.builtin.shell:
-        cmd: sinfo -N -o '%N|%T|%P|%c|%m' --noheader
-      register: sinfo_result
+        cmd: grep -r "pam_slurm_adopt" /etc/pam.d/ 2>/dev/null || echo "PAM Slurm Adopt not configured"
+      register: pam_config
       changed_when: false
       failed_when: false
 
-    - name: Display Slurm node status
+    - name: Display PAM configuration
       ansible.builtin.debug:
         msg: |
           ============================================
-          SLURM CLUSTER NODE STATUS
+          PAM SLURM ADOPT CONFIGURATION
           ============================================
-          {{ sinfo_result.stdout | default('No nodes found') }}
+          {{ pam_config.stdout | default('Not found') }}
           ============================================
 
-    - name: Get Slurm scheduler configuration
+    - name: Get available compute nodes
       ansible.builtin.shell:
-        cmd: scontrol show config | grep -E 'SchedulerType|SelectType|PriorityType'
-      register: scheduler_config
+        cmd: sinfo -N -o '%N|%T' --noheader | grep -v 'down\|drain' | head -5
+      register: compute_nodes
       changed_when: false
       failed_when: false
 
-    - name: Display scheduler configuration
+    - name: Display available compute nodes
       ansible.builtin.debug:
         msg: |
           ============================================
-          SLURM SCHEDULER CONFIGURATION
+          AVAILABLE COMPUTE NODES
           ============================================
-          {{ scheduler_config.stdout | default('Unable to get config') }}
+          {{ compute_nodes.stdout | default('No available nodes') }}
           ============================================
 
-    - name: Get current job queue status
-      ansible.builtin.shell:
-        cmd: squeue -o '%i|%j|%T|%r' --noheader | head -20
-      register: squeue_result
-      changed_when: false
-      failed_when: false
-
-    - name: Display job queue status
+    - name: PAM Slurm Adopt converge complete
       ansible.builtin.debug:
         msg: |
           ============================================
-          SLURM JOB QUEUE STATUS
-          ============================================
-          {{ squeue_result.stdout | default('Queue is empty') }}
-          ============================================
-
-    - name: Slurm job queueing converge complete
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          slurm_job_queueing converge complete!
+          pam_slurm_adopt converge complete!
           ============================================
           - slurmctld service: Running
-          - Cluster nodes: Verified
-          - Scheduler config: Retrieved
+          - PAM configuration: Checked
+          - Compute nodes: Verified
           - Ready for pytest verification
           ============================================

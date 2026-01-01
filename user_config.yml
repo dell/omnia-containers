@@ -32,7 +32,7 @@ skip_on_failure: false
 # Remote OIM server where all operations will be executed via SSH
 
 # OIM server IP address (REQUIRED)
-oim_server_ip: "182.168.0.75"
+oim_server_ip: ""
 
 # SSH username for remote OIM server (default: root)
 oim_ssh_user: "root"

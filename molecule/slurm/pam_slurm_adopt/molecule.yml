@@ -1,0 +1,55 @@
+# =============================================================================
+# Molecule Configuration for pam_slurm_adopt Testing
+# =============================================================================
+#
+# This module tests PAM Slurm Adopt functionality:
+# - SSH access for job owners during active jobs
+# - Automatic logout when job ends
+# - SSH access denial after job completion
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh slurm/pam_slurm_adopt test       # Run playbook + verify
+#   ./run_molecule.sh slurm/pam_slurm_adopt converge   # Run playbook only
+#   ./run_molecule.sh slurm/pam_slurm_adopt verify     # Verify only
+#
+# Configuration:
+#   - user_config.yml: Slurm cluster connection settings
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: slurm_control_node
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: pam_slurm_adopt
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify
