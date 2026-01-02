@@ -53,11 +53,20 @@ case "$SCENARIO" in
         echo -e "${BLUE}  Available Molecule Scenarios${NC}"
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
+        # List top-level scenarios
         for dir in molecule/*/; do
             if [[ -f "${dir}molecule.yml" ]]; then
                 name=$(basename "$dir")
                 echo -e "  ${GREEN}${name}${NC}"
             fi
+            # Check for nested scenarios (e.g., slurm/pam_slurm_adopt)
+            for subdir in "${dir}"*/; do
+                if [[ -f "${subdir}molecule.yml" ]]; then
+                    parent=$(basename "$dir")
+                    child=$(basename "$subdir")
+                    echo -e "  ${GREEN}${parent}/${child}${NC}"
+                fi
+            done
         done
         echo ""
         exit 0
@@ -145,6 +154,20 @@ if [[ ! -d "molecule/${SCENARIO}" ]]; then
     exit 1
 fi
 
+# Check if this is a nested scenario (e.g., slurm/pam_slurm_adopt)
+# Molecule requires the scenario name to be the leaf directory name
+# and we need to set the base config path
+if [[ "$SCENARIO" == */* ]]; then
+    # Nested scenario - extract parent and child
+    PARENT_DIR=$(dirname "$SCENARIO")
+    SCENARIO_NAME=$(basename "$SCENARIO")
+    export MOLECULE_BASE_CONFIG="molecule/${PARENT_DIR}/molecule.yml"
+    MOLECULE_SCENARIO_DIR="molecule/${SCENARIO}"
+else
+    SCENARIO_NAME="$SCENARIO"
+    MOLECULE_SCENARIO_DIR="molecule/${SCENARIO}"
+fi
+
 # Default command
 COMMAND="${COMMAND:-test}"
 
@@ -156,11 +179,41 @@ echo -e "  Command  : ${GREEN}${COMMAND}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
+# Function to run molecule with proper path handling
+run_molecule() {
+    local cmd="$1"
+    if [[ "$SCENARIO" == */* ]]; then
+        # For nested scenarios, we need to temporarily symlink or use MOLECULE_GLOB
+        # Molecule expects scenarios directly under molecule/ directory
+        # Solution: Create a temporary symlink
+        local LINK_NAME="${SCENARIO_NAME}"
+        local LINK_PATH="molecule/${LINK_NAME}"
+        local TARGET_PATH="${SCENARIO}"
+        
+        # Remove existing symlink if it exists
+        [[ -L "$LINK_PATH" ]] && rm "$LINK_PATH"
+        
+        # Create symlink from molecule/<scenario_name> -> <parent>/<scenario_name>
+        ln -sf "${TARGET_PATH#molecule/}" "$LINK_PATH" 2>/dev/null || ln -sf "../molecule/${TARGET_PATH}" "$LINK_PATH"
+        
+        # Run molecule
+        molecule "$cmd" -s "$SCENARIO_NAME"
+        local result=$?
+        
+        # Cleanup symlink
+        [[ -L "$LINK_PATH" ]] && rm "$LINK_PATH"
+        
+        return $result
+    else
+        molecule "$cmd" -s "$SCENARIO_NAME"
+    fi
+}
+
 case "$COMMAND" in
     test)
         echo -e "${YELLOW}➜ Running full test...${NC}"
         echo ""
-        molecule test -s "$SCENARIO"
+        run_molecule test
         echo ""
         echo -e "${GREEN}✔ Test completed.${NC}"
         ;;
@@ -168,7 +221,7 @@ case "$COMMAND" in
     verify)
         echo -e "${YELLOW}➜ Running verification tests only...${NC}"
         echo ""
-        molecule verify -s "$SCENARIO"
+        run_molecule verify
         echo ""
         echo -e "${GREEN}✔ Verify completed.${NC}"
         ;;
@@ -176,7 +229,7 @@ case "$COMMAND" in
     converge)
         echo -e "${YELLOW}➜ Running converge...${NC}"
         echo ""
-        molecule converge -s "$SCENARIO"
+        run_molecule converge
         echo ""
         echo -e "${GREEN}✔ Converge completed.${NC}"
         ;;
@@ -184,7 +237,7 @@ case "$COMMAND" in
     create)
         echo -e "${YELLOW}➜ Creating inventory...${NC}"
         echo ""
-        molecule create -s "$SCENARIO"
+        run_molecule create
         echo ""
         echo -e "${GREEN}✔ Create completed.${NC}"
         ;;
@@ -192,7 +245,7 @@ case "$COMMAND" in
     prepare)
         echo -e "${YELLOW}➜ Running prepare...${NC}"
         echo ""
-        molecule prepare -s "$SCENARIO"
+        run_molecule prepare
         echo ""
         echo -e "${GREEN}✔ Prepare completed.${NC}"
         ;;
