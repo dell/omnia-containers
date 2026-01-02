@@ -27,7 +27,6 @@ PAM_SLURM_ADOPT_VARS = {
     "ssh_timeout": 10,  # SSH connection timeout
     "poll_interval": 2,  # Polling interval for job state
     "slurm_control_node": "172.16.107.202",
-    "slurm_compute_node": "172.16.107.205",  # Compute node IP for SSH tests
     "omnia_core_alias": "omnia_core",
     "test_user": "root",  # User to test SSH access with
 }
