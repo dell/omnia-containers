@@ -13,7 +13,7 @@
 
   tasks:
     - name: Setup dynamic inventory
-      ansible.builtin.include_tasks: "{{ project_dir }}/molecule/shared/tasks/setup_inventory.yml"
+      ansible.builtin.include_tasks: ../../shared/tasks/setup_inventory.yml
 
     - name: Test SSH connection to Slurm control node
       ansible.builtin.wait_for:

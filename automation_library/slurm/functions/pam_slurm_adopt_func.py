@@ -163,35 +163,28 @@ def check_pam_slurm_adopt_configured(host) -> Dict[str, Any]:
 # COMPUTE NODE FUNCTIONS
 # =============================================================================
 
-def get_available_compute_node(host, retries: int = 3, retry_delay: int = 5) -> Dict[str, Any]:
+def get_available_compute_node(host) -> Dict[str, Any]:
     """
     Get an available compute node for testing.
 
     Args:
         host: testinfra host object or SSHHost
-        retries: number of retries if no node is available
-        retry_delay: delay between retries in seconds
 
     Returns:
         Dict with 'success', 'node', 'error'
     """
-    for attempt in range(retries):
-        # Get nodes that are idle or mixed (can accept jobs)
-        cmd = host.run("sinfo -N -o '%N|%T' --noheader | grep -E 'idle|mixed|allocated' | head -1")
-        
-        if cmd.rc == 0 and cmd.stdout:
-            parts = cmd.stdout.split('|')
-            if parts:
-                node_name = parts[0].strip()
-                return {
-                    "success": True,
-                    "node": node_name,
-                    "error": None
-                }
-        
-        # Wait before retrying
-        if attempt < retries - 1:
-            time.sleep(retry_delay)
+    # Get nodes that are idle or mixed (can accept jobs)
+    cmd = host.run("sinfo -N -o '%N|%T' --noheader | grep -E 'idle|mixed|allocated' | head -1")
+    
+    if cmd.rc == 0 and cmd.stdout:
+        parts = cmd.stdout.split('|')
+        if parts:
+            node_name = parts[0].strip()
+            return {
+                "success": True,
+                "node": node_name,
+                "error": None
+            }
     
     return {
         "success": False,
@@ -204,7 +197,7 @@ def get_available_compute_node(host, retries: int = 3, retry_delay: int = 5) -> 
 # JOB SUBMISSION FUNCTIONS
 # =============================================================================
 
-def submit_job_to_compute_node(host, node: str, duration: int = 120, user: str = None, run_as_user: str = None) -> Dict[str, Any]:
+def submit_job_to_compute_node(host, node: str, duration: int = 120, user: str = None) -> Dict[str, Any]:
     """
     Submit a job to a specific compute node.
 
@@ -212,29 +205,18 @@ def submit_job_to_compute_node(host, node: str, duration: int = 120, user: str =
         host: testinfra host object or SSHHost
         node: target compute node name
         duration: job duration in seconds
-        user: user to report in result (default from config)
-        run_as_user: user to actually run the job as (uses sudo -u if specified)
+        user: user to run the job as (default from config)
 
     Returns:
         Dict with 'success', 'job_id', 'user', 'error'
     """
     user = user or PAM_SLURM_ADOPT_VARS["test_user"]
-    actual_user = run_as_user or user
     
     # Submit job with specific node requirement
-    # If run_as_user is specified, use sudo to submit as that user
-    if run_as_user and run_as_user != "root":
-        sbatch_cmd = (
-            f"sudo -u {run_as_user} sbatch --job-name=pam_test --nodelist={node} "
-            f"--time=00:{duration//60 + 1}:00 --nodes=1 --ntasks=1 --wrap='sleep {duration}; hostname'"
-        )
-    else:
-        sbatch_cmd = (
-            f"sbatch --job-name=pam_test --nodelist={node} --time=00:{duration//60 + 1}:00 "
-            f"--nodes=1 --ntasks=1 --wrap='sleep {duration}; hostname'"
-        )
-    
-    cmd = host.run(sbatch_cmd)
+    cmd = host.run(
+        f"sbatch --job-name=pam_test --nodelist={node} --time=00:{duration//60 + 1}:00 "
+        f"--nodes=1 --ntasks=1 --wrap='sleep {duration}; hostname'"
+    )
     
     if cmd.rc == 0:
         match = re.search(r'Submitted batch job (\d+)', cmd.stdout)
@@ -242,7 +224,7 @@ def submit_job_to_compute_node(host, node: str, duration: int = 120, user: str =
             return {
                 "success": True,
                 "job_id": match.group(1),
-                "user": actual_user,
+                "user": user,
                 "node": node,
                 "error": None
             }
@@ -407,16 +389,13 @@ def cancel_slurm_job(host, job_id: str) -> Dict[str, Any]:
 # SSH ACCESS TEST FUNCTIONS
 # =============================================================================
 
-def check_ssh_access_to_node(host, node: str, user: str = None) -> Dict[str, Any]:
+def test_ssh_access_to_node(host, node: str, user: str = None) -> Dict[str, Any]:
     """
     Test SSH access to a compute node for a specific user.
-    
-    This function tests SSH access directly from the local machine via omnia_core
-    to the compute node IP, bypassing the control node SSH key issues.
 
     Args:
-        host: testinfra host object or SSHHost (control node) - used for context
-        node: target compute node name (will be resolved to IP)
+        host: testinfra host object or SSHHost (control node)
+        node: target compute node name/IP
         user: user to test SSH access for
 
     Returns:
@@ -424,33 +403,17 @@ def check_ssh_access_to_node(host, node: str, user: str = None) -> Dict[str, Any
     """
     user = user or PAM_SLURM_ADOPT_VARS["test_user"]
     ssh_timeout = PAM_SLURM_ADOPT_VARS["ssh_timeout"]
-    compute_node_ip = PAM_SLURM_ADOPT_VARS["slurm_compute_node"]
-    omnia_core = PAM_SLURM_ADOPT_VARS["omnia_core_alias"]
     
-    # Test SSH access directly from omnia_core to compute node IP
-    # This bypasses the control node SSH key setup issues
-    ssh_cmd = (
-        f'ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout={ssh_timeout} '
-        f'{omnia_core} "ssh -o BatchMode=yes -o StrictHostKeyChecking=no '
-        f'-o ConnectTimeout={ssh_timeout} {user}@{compute_node_ip} \'echo SSH_SUCCESS\' 2>&1"'
+    # Try to SSH from control node to compute node
+    cmd = host.run(
+        f"ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout={ssh_timeout} "
+        f"{user}@{node} 'echo SSH_SUCCESS' 2>&1"
     )
     
-    try:
-        result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=30)
-        cmd_rc = result.returncode
-        cmd_stdout = result.stdout.strip()
-        cmd_stderr = result.stderr.strip()
-    except Exception as e:
-        return {
-            "access_allowed": False,
-            "output": str(e),
-            "error": f"SSH command failed: {str(e)}"
-        }
-    
-    if cmd_rc == 0 and "SSH_SUCCESS" in cmd_stdout:
+    if cmd.rc == 0 and "SSH_SUCCESS" in cmd.stdout:
         return {
             "access_allowed": True,
-            "output": cmd_stdout,
+            "output": cmd.stdout,
             "error": None
         }
     
@@ -463,7 +426,7 @@ def check_ssh_access_to_node(host, node: str, user: str = None) -> Dict[str, Any
         "not allowed",
     ]
     
-    output = cmd_stdout + cmd_stderr
+    output = cmd.stdout + cmd.stderr
     is_pam_rejection = any(indicator.lower() in output.lower() for indicator in pam_rejection_indicators)
     
     return {
