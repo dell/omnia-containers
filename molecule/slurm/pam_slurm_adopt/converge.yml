@@ -13,7 +13,19 @@
 
   tasks:
     - name: Setup dynamic inventory
-      ansible.builtin.include_tasks: ../../shared/tasks/setup_inventory.yml
+      ansible.builtin.include_tasks: "{{ project_dir }}/molecule/shared/tasks/setup_inventory.yml"
+
+    - name: Add Slurm control node to inventory (via OIM server)
+      ansible.builtin.add_host:
+        name: slurm_control_node
+        groups: slurm
+        ansible_host: "{{ user_config.oim_server_ip }}"
+        ansible_user: "{{ user_config.oim_ssh_user | default('root') }}"
+        ansible_password: "{{ user_config.oim_ssh_password }}"
+        ansible_port: "{{ user_config.oim_ssh_port | default(22) }}"
+        ansible_connection: ssh
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        slurm_control_node_ip: "{{ user_config.slurm_control_node_ip | default('172.16.107.202') }}"
 
     - name: Set facts for Slurm control node play
       ansible.builtin.set_fact:
@@ -21,21 +33,22 @@
         cacheable: true
 
 
-- name: Converge - Verify PAM Slurm Adopt on control node
+- name: Converge - Verify PAM Slurm Adopt on control node (via omnia_core)
   hosts: slurm_control_node
   gather_facts: false
 
   vars:
     user_config: "{{ hostvars['localhost']['user_config'] }}"
+    slurm_control_ip: "{{ slurm_control_node_ip | default('172.16.107.202') }}"
 
   tasks:
     - name: Display target Slurm control node
       ansible.builtin.debug:
-        msg: "Verifying PAM Slurm Adopt on: {{ ansible_host }}"
+        msg: "Verifying PAM Slurm Adopt on Slurm control node: {{ slurm_control_ip }} (via OIM server: {{ ansible_host }})"
 
-    - name: Check if slurmctld service is running
+    - name: Check if slurmctld service is running (via omnia_core)
       ansible.builtin.shell:
-        cmd: systemctl is-active slurmctld
+        cmd: podman exec omnia_core ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ slurm_control_ip }} "systemctl is-active slurmctld"
       register: slurmctld_check
       changed_when: false
       failed_when: false
@@ -47,7 +60,7 @@
     - name: Fail if slurmctld is not running
       ansible.builtin.fail:
         msg: |
-          slurmctld service is not running on {{ ansible_host }}.
+          slurmctld service is not running on {{ slurm_control_ip }}.
           Please ensure Slurm is properly installed and configured.
       when: slurmctld_check.rc != 0
 
@@ -55,9 +68,9 @@
     # VERIFY PAM SLURM ADOPT CONFIGURATION
     # =========================================================================
 
-    - name: Check PAM Slurm Adopt configuration
+    - name: Check PAM Slurm Adopt configuration (via omnia_core)
       ansible.builtin.shell:
-        cmd: grep -r "pam_slurm_adopt" /etc/pam.d/ 2>/dev/null || echo "PAM Slurm Adopt not configured"
+        cmd: podman exec omnia_core ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ slurm_control_ip }} "grep -r 'pam_slurm_adopt' /etc/pam.d/ 2>/dev/null || echo 'PAM Slurm Adopt not configured'"
       register: pam_config
       changed_when: false
       failed_when: false
@@ -71,9 +84,9 @@
           {{ pam_config.stdout | default('Not found') }}
           ============================================
 
-    - name: Get available compute nodes
+    - name: Get available compute nodes (via omnia_core)
       ansible.builtin.shell:
-        cmd: sinfo -N -o '%N|%T' --noheader | grep -v 'down\|drain' | head -5
+        cmd: podman exec omnia_core ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null {{ slurm_control_ip }} "sinfo -N -o '%N|%T' --noheader | grep -v 'down\|drain' | head -5"
       register: compute_nodes
       changed_when: false
       failed_when: false
