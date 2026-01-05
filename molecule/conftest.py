@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """
 Shared pytest configuration for all molecule scenarios.
 """
 
 import os
 import sys
+import io
 import pytest
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,6 +26,31 @@ sys.path.insert(0, PROJECT_ROOT)
 from automation_library.core import (
     get_testinfra_host, TestReport, set_current_report, get_current_report, get_test_output
 )
+
+
+class _TeeStream:
+    def __init__(self, primary, buffer):
+        self._primary = primary
+        self._buffer = buffer
+
+    def write(self, s):
+        self._buffer.write(s)
+        return self._primary.write(s)
+
+    def flush(self):
+        try:
+            self._buffer.flush()
+        except Exception:
+            pass
+        return self._primary.flush()
+
+    def isatty(self):
+        isatty = getattr(self._primary, "isatty", None)
+        return bool(isatty and isatty())
+
+    @property
+    def encoding(self):
+        return getattr(self._primary, "encoding", "utf-8")
 
 
 def pytest_configure(config):
@@ -66,28 +91,71 @@ def pytest_sessionfinish(session, exitstatus):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_call(item):
+    buf = io.StringIO()
+    orig_out, orig_err = sys.stdout, sys.stderr
+    sys.stdout = _TeeStream(orig_out, buf)
+    sys.stderr = _TeeStream(orig_err, buf)
+    try:
+        yield
+    finally:
+        sys.stdout, sys.stderr = orig_out, orig_err
+        item._omnia_captured_output = buf.getvalue()
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Hook to capture test results and output."""
     outcome = yield
     result = outcome.get_result()
 
-    if result.when == "call":
-        report = get_current_report()
-        if report:
-            passed = result.outcome == "passed"
-            duration = result.duration if hasattr(result, "duration") else 0
-            error = str(result.longrepr) if result.longrepr else None
+    report = get_current_report()
+    if not report:
+        return
 
-            # Get captured test output from logger
-            output = get_test_output(item.name)
+    if result.when not in {"call", "setup"}:
+        return
 
-            report.add_result(
-                test_name=item.name,
-                passed=passed,
-                duration=duration,
-                details=output if output else None,
-                error=error if not passed else None
-            )
+    if result.when == "setup" and result.outcome != "skipped":
+        return
+
+    duration = result.duration if hasattr(result, "duration") else 0
+    output = getattr(item, "_omnia_captured_output", None) or get_test_output(item.name)
+
+    skip_reason = None
+    if result.outcome == "skipped":
+        longrepr = getattr(result, "longrepr", None)
+        if isinstance(longrepr, tuple) and len(longrepr) >= 3:
+            skip_reason = longrepr[2]
+        else:
+            skip_reason = str(longrepr) if longrepr else "Skipped"
+
+        print(f"\nSKIPPED REASON: {skip_reason}")
+
+    if result.outcome == "passed":
+        status = "PASSED"
+    elif result.outcome == "failed":
+        status = "FAILED"
+    else:
+        status = "SKIPPED"
+
+    error = None
+    if status == "FAILED":
+        error = str(result.longrepr) if result.longrepr else None
+
+    details = output if output else None
+    if status == "SKIPPED" and skip_reason:
+        details = (details + "\n" if details else "") + f"SKIPPED: {skip_reason}"
+
+    report.add_result(
+        {
+            "test_name": item.name,
+            "status": status,
+            "duration": duration,
+            "details": details,
+            "error": error,
+        },
+    )
 
 
 @pytest.fixture(scope="module")

@@ -107,16 +107,19 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .server-stats { display: flex; gap: 10px; margin-top: 5px; font-size: 0.75em; }
         .server-stats .passed { color: #238636; }
         .server-stats .failed { color: #f85149; }
+        .server-stats .skipped { color: #d29922; }
         .server-content { display: none; }
         .server-content.active { display: block; }
         .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
         .card.passed { border-left: 4px solid #238636; }
         .card.failed { border-left: 4px solid #f85149; }
+        .card.skipped { border-left: 4px solid #d29922; }
         .card.total { border-left: 4px solid #1f6feb; }
         .card .number { font-size: 1.8em; font-weight: bold; }
         .card.passed .number { color: #238636; }
         .card.failed .number { color: #f85149; }
+        .card.skipped .number { color: #d29922; }
         .card.total .number { color: #1f6feb; }
         .card .label { color: #8b949e; text-transform: uppercase; font-size: 0.7em; letter-spacing: 1px; }
         .run { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
@@ -127,6 +130,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         .badge.passed { background: #238636; color: white; }
         .badge.failed { background: #f85149; color: white; }
+        .badge.skipped { background: #d29922; color: #0d1117; }
         .run-meta { display: flex; gap: 12px; color: #8b949e; font-size: 0.75em; margin-top: 6px; flex-wrap: wrap; }
         .run-expand { color: #8b949e; font-size: 1em; transition: transform 0.3s; }
         .run.collapsed .run-expand { transform: rotate(-90deg); }
@@ -148,6 +152,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .test-status { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 9px; flex-shrink: 0; }
         .test-status.passed { background: #238636; }
         .test-status.failed { background: #f85149; }
+        .test-status.skipped { background: #d29922; color: #0d1117; }
         .test-name { flex: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.82em; }
         .test-duration { color: #8b949e; font-size: 0.75em; min-width: 60px; text-align: right; display: flex; align-items: center; gap: 4px; }
         .test-time { color: #8b949e; font-size: 0.75em; min-width: 85px; text-align: right; margin-left: 8px; display: flex; align-items: center; gap: 4px; }
@@ -168,6 +173,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .logs-content { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.65em; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; line-height: 1.3; color: #c9d1d9; }
         .output-box .pass { color: #238636; }
         .output-box .fail { color: #f85149; }
+        .output-box .skip { color: #d29922; }
         .output-box .check { color: #1f6feb; }
         .output-box .header { color: #8b949e; }
         .error-box { background: #f8514922; border: 1px solid #f85149; border-radius: 6px; padding: 10px; margin-top: 6px; font-family: monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; color: #f85149; }
@@ -200,8 +206,9 @@ def _generate_html(data: Dict[str, Any]) -> str:
         first_server = True
         for server_ip, server_data in servers.items():
             runs = server_data.get("runs", [])
-            total_passed = sum(r["summary"]["passed"] for r in runs)
-            total_failed = sum(r["summary"]["failed"] for r in runs)
+            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
+            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
+            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
             active = "active" if first_server else ""
 
             html += f'''
@@ -210,6 +217,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                 <div class="server-stats">
                     <span class="passed">✓ {total_passed}</span>
                     <span class="failed">✗ {total_failed}</span>
+                    <span class="skipped">↷ {total_skipped}</span>
                     <span>{len(runs)} runs</span>
                 </div>
             </div>'''
@@ -222,9 +230,10 @@ def _generate_html(data: Dict[str, Any]) -> str:
         test_id = 0
         for server_ip, server_data in servers.items():
             runs = server_data.get("runs", [])
-            total_passed = sum(r["summary"]["passed"] for r in runs)
-            total_failed = sum(r["summary"]["failed"] for r in runs)
-            total_tests = total_passed + total_failed
+            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
+            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
+            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
+            total_tests = total_passed + total_failed + total_skipped
             active = "active" if first_server else ""
 
             html += f'''
@@ -237,6 +246,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     <div class="card total"><div class="number">{total_tests}</div><div class="label">Tests</div></div>
                     <div class="card passed"><div class="number">{total_passed}</div><div class="label">Passed</div></div>
                     <div class="card failed"><div class="number">{total_failed}</div><div class="label">Failed</div></div>
+                    <div class="card skipped"><div class="number">{total_skipped}</div><div class="label">Skipped</div></div>
                     <div class="card total"><div class="number">{len(runs)}</div><div class="label">Test Runs</div></div>
                 </div>
 '''
@@ -244,8 +254,15 @@ def _generate_html(data: Dict[str, Any]) -> str:
             run_id = 0
             for run in reversed(runs):
                 run_id += 1
-                status = "passed" if run["summary"]["failed"] == 0 else "failed"
-                badge_text = f'{run["summary"]["passed"]}/{run["summary"]["total"]}' if status == "passed" else f'{run["summary"]["failed"]} FAIL'
+                run_summary = run.get("summary") or {}
+                run_failed = run_summary.get("failed", 0)
+                run_passed = run_summary.get("passed", 0)
+                run_skipped = run_summary.get("skipped", 0)
+                run_total = run_summary.get("total", run_passed + run_failed + run_skipped)
+                status = "passed" if run_failed == 0 else "failed"
+                badge_text = f'{run_passed}/{run_total}' if status == "passed" else f'{run_failed} FAIL'
+                if run_skipped:
+                    badge_text += f' ({run_skipped} SKIP)'
                 collapsed = "collapsed" if run_id > 1 else ""
                 unique_run_id = f"{server_ip.replace('.', '-')}-{run_id}"
 
@@ -285,8 +302,15 @@ def _generate_html(data: Dict[str, Any]) -> str:
 
                 # Render each module
                 for mod_idx, module in enumerate(modules):
-                    mod_status = "passed" if module["summary"]["failed"] == 0 else "failed"
-                    mod_badge = f'{module["summary"]["passed"]}/{module["summary"]["total"]}'
+                    mod_summary = module.get("summary") or {}
+                    mod_failed = mod_summary.get("failed", 0)
+                    mod_passed = mod_summary.get("passed", 0)
+                    mod_skipped = mod_summary.get("skipped", 0)
+                    mod_total = mod_summary.get("total", mod_passed + mod_failed + mod_skipped)
+                    mod_status = "passed" if mod_failed == 0 else "failed"
+                    mod_badge = f'{mod_passed}/{mod_total}'
+                    if mod_skipped:
+                        mod_badge += f' ({mod_skipped} SKIP)'
                     mod_id = f"{unique_run_id}-mod-{mod_idx}"
 
                     html += f'''
@@ -348,8 +372,15 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     # Then add test cases
                     for test in module["results"]:
                         test_id += 1
-                        test_status = "passed" if test["status"] == "PASSED" else "failed"
-                        icon = "✓" if test_status == "passed" else "✗"
+                        if test.get("status") == "PASSED":
+                            test_status = "passed"
+                            icon = "✓"
+                        elif test.get("status") == "SKIPPED":
+                            test_status = "skipped"
+                            icon = "↷"
+                        else:
+                            test_status = "failed"
+                            icon = "✗"
                         has_output = test.get("details") or test.get("error")
 
                         html += f'''
@@ -368,6 +399,8 @@ def _generate_html(data: Dict[str, Any]) -> str:
                                 output = _escape_html(test["details"])
                                 output = output.replace("✔ PASS:", "<span class='pass'>✔ PASS:</span>")
                                 output = output.replace("✘ FAIL:", "<span class='fail'>✘ FAIL:</span>")
+                                output = output.replace("↷ SKIP:", "<span class='skip'>↷ SKIP:</span>")
+                                output = output.replace("SKIP:", "<span class='skip'>SKIP:</span>")
                                 output = output.replace("→", "<span class='check'>→</span>")
                                 output = output.replace("=" * 70, "<span class='header'>" + "=" * 70 + "</span>")
                                 html += f'<div class="output-box">{output}</div>'
@@ -476,11 +509,38 @@ class TestReport:
                 return None, command_type
         return None, command_type
 
-    def add_result(self, test_name: str, passed: bool, duration: float = 0.0,
-                   details: str = None, error: str = None):
+    def add_result(self, test_name: Any, passed: bool = False, duration: float = 0.0,
+                   details: str = None, error: str = None, status: str = None):
+        if isinstance(test_name, dict):
+            payload = test_name
+            normalized_status = str(payload.get("status") or "").strip().upper()
+            if normalized_status not in {"PASSED", "FAILED", "SKIPPED"}:
+                payload_passed = bool(payload.get("passed"))
+                normalized_status = "PASSED" if payload_passed else "FAILED"
+
+            duration_seconds = payload.get("duration_seconds")
+            if duration_seconds is None:
+                duration_seconds = payload.get("duration", 0.0)
+
+            result = {
+                "test_name": payload.get("test_name") or payload.get("name") or "<unknown>",
+                "status": normalized_status,
+                "timestamp": payload.get("timestamp") or datetime.now().isoformat(),
+                "duration_seconds": round(float(duration_seconds or 0.0), 3),
+            }
+            if payload.get("details"):
+                result["details"] = payload.get("details")
+            if payload.get("error"):
+                result["error"] = payload.get("error")
+            self.results.append(result)
+            return
+
+        normalized_status = (status or "").strip().upper()
+        if normalized_status not in {"PASSED", "FAILED", "SKIPPED"}:
+            normalized_status = "PASSED" if passed else "FAILED"
         result = {
             "test_name": test_name,
-            "status": "PASSED" if passed else "FAILED",
+            "status": normalized_status,
             "timestamp": datetime.now().isoformat(),
             "duration_seconds": round(duration, 3),
         }
@@ -495,6 +555,7 @@ class TestReport:
         duration = (end_time - self.start_time).total_seconds()
         passed = sum(1 for r in self.results if r["status"] == "PASSED")
         failed = sum(1 for r in self.results if r["status"] == "FAILED")
+        skipped = sum(1 for r in self.results if r["status"] == "SKIPPED")
 
         # Capture playbook logs and command type before saving
         if self.playbook_logs is None:
@@ -506,7 +567,7 @@ class TestReport:
             "start_time": self.start_time.isoformat(),
             "end_time": end_time.isoformat(),
             "duration_seconds": round(duration, 3),
-            "summary": {"total": len(self.results), "passed": passed, "failed": failed},
+            "summary": {"total": len(self.results), "passed": passed, "failed": failed, "skipped": skipped},
             "results": self.results,
             "playbook_logs": self.playbook_logs,
             "molecule_command": self.molecule_command,
@@ -557,6 +618,7 @@ class TestReport:
                     "total": len(all_results),
                     "passed": sum(1 for r in all_results if r["status"] == "PASSED"),
                     "failed": sum(1 for r in all_results if r["status"] == "FAILED"),
+                    "skipped": sum(1 for r in all_results if r["status"] == "SKIPPED"),
                 }
             else:
                 # Add new module to run
@@ -566,10 +628,12 @@ class TestReport:
             run["end_time"] = end_time.isoformat()
             all_passed = sum(m["summary"]["passed"] for m in run["modules"])
             all_failed = sum(m["summary"]["failed"] for m in run["modules"])
+            all_skipped = sum((m.get("summary") or {}).get("skipped", 0) for m in run["modules"])
             run["summary"] = {
-                "total": all_passed + all_failed,
+                "total": all_passed + all_failed + all_skipped,
                 "passed": all_passed,
                 "failed": all_failed,
+                "skipped": all_skipped,
             }
         else:
             # New run
@@ -577,7 +641,7 @@ class TestReport:
                 "report_id": self.report_id,
                 "start_time": self.start_time.isoformat(),
                 "end_time": end_time.isoformat(),
-                "summary": {"total": len(self.results), "passed": passed, "failed": failed},
+                "summary": {"total": len(self.results), "passed": passed, "failed": failed, "skipped": skipped},
                 "modules": [module_data],
             }
             runs.append(run_data)
@@ -600,7 +664,7 @@ class TestReport:
         print(f"│  {'Server:':<14} {server_ip:<50} │")
         print(f"│  {'Report ID:':<14} {self.report_id:<50} │")
         print(f"│  {'Duration:':<14} {duration:.2f}s{'':<46} │")
-        print(f"│  {'Results:':<14} {status_color}{passed} passed, {failed} failed{reset}{'':<36} │")
+        print(f"│  {'Results:':<14} {status_color}{passed} passed, {failed} failed{reset}, {skipped} skipped{'':<26} │")
         print(f"├{'─'*68}┤")
         print(f"│  📄 JSON: reports/test_report.json{'':<30} │")
         print(f"│  🌐 HTML: reports/test_report.html{'':<30} │")
