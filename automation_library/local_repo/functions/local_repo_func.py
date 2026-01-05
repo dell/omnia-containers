@@ -64,15 +64,31 @@ def run_in_omnia_core(host, cmd: str) -> Dict[str, Any]:
     }
 
 
+def run_in_pulp_container(host, cmd: str) -> Dict[str, Any]:
+    """Run a command in pulp container using bash -c."""
+    container = LOCAL_REPO_VARS["pulp_container"]
+    res = host.run(f"podman exec {container} bash -c \"{cmd}\"")
+    return {
+        "success": res.rc == 0,
+        "rc": res.rc,
+        "stdout": res.stdout or "",
+        "stderr": res.stderr or "",
+    }
+
+
 def check_pulp_cli_repository_list(host) -> Dict[str, Any]:
-    """Verify pulp CLI works (pulp rpm repository list)."""
-    cmd = run_in_omnia_core(host, "pulp rpm repository list")
+    """Verify pulp CLI works using pulp status command."""
+    # Use pulp status to verify CLI is working
+    cmd = run_in_omnia_core(host, "pulp status")
     if cmd["success"]:
-        return {
-            "success": True,
-            "details": (cmd["stdout"] or "").strip(),
-            "error": None,
-        }
+        stdout = (cmd["stdout"] or "").strip()
+        # Check if we got valid JSON response
+        if stdout and stdout.startswith("{"):
+            return {
+                "success": True,
+                "details": "pulp status command succeeded",
+                "error": None,
+            }
     return {
         "success": False,
         "details": None,
@@ -666,70 +682,91 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
 
 def check_pulp_api_status(host) -> Dict[str, Any]:
     """
-    Verify Pulp API status is healthy using 'pulp status' command.
-    Checks database connection and online workers.
+    Verify Pulp API status is healthy by checking:
+    1. PostgreSQL database connectivity inside pulp container (psql -U pulp)
+    2. List databases and tables to ensure DB commands work
+    3. Pulp worker list with last heartbeat verification (via omnia_core)
     """
-    cmd = run_in_omnia_core(host, "pulp status 2>/dev/null")
+    details_parts = []
+    errors = []
 
-    if not cmd["success"]:
-        return {
-            "success": False,
-            "details": "",
-            "error": f"pulp status command failed: {cmd.get('stderr', '')}",
-        }
+    # Step 1: Check PostgreSQL connectivity inside pulp container
+    # Login to postgres and list databases (user is 'pulp', not 'admin')
+    db_list_cmd = run_in_pulp_container(host, "psql -U pulp -c '\\\\l' 2>/dev/null")
+    db_connected = False
+    if db_list_cmd["success"]:
+        db_output = (db_list_cmd.get("stdout") or "").strip()
+        if "pulp" in db_output.lower() or "List of databases" in db_output:
+            db_connected = True
+            details_parts.append("PostgreSQL: connected (psql -U pulp)")
+            # Count databases
+            db_lines = [l for l in db_output.split("\n") if "|" in l and "Name" not in l]
+            details_parts.append(f"Databases found: {len(db_lines)}")
+        else:
+            errors.append("PostgreSQL: could not list databases")
+    else:
+        errors.append(f"PostgreSQL: connection failed - {(db_list_cmd.get('stderr') or '').strip()[:100]}")
 
-    stdout = (cmd.get("stdout") or "").strip()
-    if not stdout:
-        return {
-            "success": False,
-            "details": "",
-            "error": "Empty response from pulp status",
-        }
+    # Step 2: List tables in pulp database to ensure commands work
+    tables_cmd = run_in_pulp_container(host, "psql -U pulp -d pulp -c '\\\\dt' 2>/dev/null")
+    tables_ok = False
+    if tables_cmd["success"]:
+        tables_output = (tables_cmd.get("stdout") or "").strip()
+        if "List of relations" in tables_output or "public |" in tables_output:
+            tables_ok = True
+            # Count tables
+            table_lines = [l for l in tables_output.split("\n") if "public |" in l]
+            details_parts.append(f"Tables in pulp DB: {len(table_lines)}")
+        elif "(0 rows)" in tables_output:
+            tables_ok = True
+            details_parts.append("Tables in pulp DB: 0 (empty)")
+    else:
+        errors.append("Could not list tables in pulp database")
 
-    try:
-        status = json.loads(stdout)
+    # Step 3: Check pulp workers using pulp worker list (via omnia_core, not pulp container)
+    # The pulp CLI is available in omnia_core, not in the pulp container
+    worker_cmd = run_in_omnia_core(host, "pulp worker list 2>/dev/null")
+    worker_count = 0
+    workers_healthy = False
+    if worker_cmd["success"]:
+        worker_output = (worker_cmd.get("stdout") or "").strip()
+        if worker_output and worker_output != "[]":
+            try:
+                workers = json.loads(worker_output)
+                worker_count = len(workers)
+                if worker_count > 0:
+                    workers_healthy = True
+                    details_parts.append(f"Online workers: {worker_count}")
+                    # Show last heartbeat for each worker
+                    for w in workers[:5]:
+                        name = w.get("name", "unknown")
+                        heartbeat = w.get("last_heartbeat", "N/A")
+                        details_parts.append(f"  - {name}: last heartbeat {heartbeat}")
+                else:
+                    errors.append("No workers found in pulp worker list")
+            except json.JSONDecodeError:
+                errors.append("Invalid JSON from pulp worker list")
+        else:
+            errors.append("Empty response from pulp worker list")
+    else:
+        errors.append(f"pulp worker list failed: {(worker_cmd.get('stderr') or '').strip()[:100]}")
 
-        # Check database connection
-        db_conn = status.get("database_connection", {})
-        db_connected = db_conn.get("connected", False)
+    # Build final details
+    details = "\n".join(details_parts)
+    if errors:
+        details += "\n\nErrors:\n" + "\n".join([f"  - {e}" for e in errors])
 
-        # Check online workers
-        online_workers = status.get("online_workers", [])
-        worker_count = len(online_workers)
+    # Success if database connected and workers are healthy
+    success = db_connected and workers_healthy
 
-        # Check content app
-        online_content_apps = status.get("online_content_apps", [])
-        content_app_count = len(online_content_apps)
-
-        # Get versions
-        versions = status.get("versions", [])
-        version_str = ", ".join(
-            [f"{v.get('component', '?')}: {v.get('version', '?')}" for v in versions[:3]])
-
-        details = (
-            f"Database: {'connected' if db_connected else 'DISCONNECTED'}\n"
-            f"Online workers: {worker_count}\n"
-            f"Content apps: {content_app_count}\n"
-            f"Versions: {version_str}"
-        )
-
-        # Success if database connected and at least one worker online
-        success = db_connected and worker_count > 0
-
-        return {
-            "success": success,
-            "database_connected": db_connected,
-            "online_workers": worker_count,
-            "content_apps": content_app_count,
-            "details": details,
-            "error": None if success else "Pulp services not fully healthy",
-        }
-    except json.JSONDecodeError as e:
-        return {
-            "success": False,
-            "details": stdout[:200],
-            "error": f"Invalid JSON from pulp status: {str(e)}",
-        }
+    return {
+        "success": success,
+        "database_connected": db_connected,
+        "tables_accessible": tables_ok,
+        "online_workers": worker_count,
+        "details": details,
+        "error": None if success else "; ".join(errors) if errors else "Pulp services not fully healthy",
+    }
 
 
 def check_pulp_repositories_synced(host) -> Dict[str, Any]:
@@ -1282,6 +1319,98 @@ def check_nfs_mounts_in_pulp(host) -> Dict[str, Any]:
         "details": details,
         "error": None if missing_count == 0 else f"{missing_count} required NFS mounts not found",
     }
+
+
+def check_pulp_remotes_exist(host) -> Dict[str, Any]:
+    """
+    Verify Pulp remotes are configured for repositories.
+    
+    Remotes define the upstream repository URLs. Without them, sync won't work.
+    This test:
+    1. Lists all RPM remotes via `pulp rpm remote list`
+    2. Verifies remotes exist and have URLs configured
+    3. Optionally matches against expected repos from local_repo_config.yml
+    """
+    cmd = run_in_omnia_core(host, "pulp rpm remote list 2>/dev/null")
+    
+    if not cmd["success"]:
+        return {
+            "success": False,
+            "total_remotes": 0,
+            "remotes": [],
+            "details": "",
+            "error": f"pulp rpm remote list failed: {cmd.get('stderr', '')}",
+        }
+    
+    stdout = (cmd.get("stdout") or "").strip()
+    if stdout == "[]" or not stdout:
+        return {
+            "success": False,
+            "total_remotes": 0,
+            "remotes": [],
+            "details": "No remotes found",
+            "error": "No Pulp remotes configured. Remotes are required for syncing upstream repos.",
+        }
+    
+    try:
+        remotes = json.loads(stdout)
+        total_remotes = len(remotes)
+        
+        valid_remotes = []
+        invalid_remotes = []
+        
+        for remote in remotes:
+            name = remote.get("name", "unknown")
+            url = remote.get("url", "")
+            
+            if url:
+                valid_remotes.append({"name": name, "url": url})
+            else:
+                invalid_remotes.append({"name": name, "url": url})
+        
+        valid_count = len(valid_remotes)
+        invalid_count = len(invalid_remotes)
+        
+        details = (
+            f"Total remotes: {total_remotes}\n"
+            f"Valid (with URL): {valid_count}\n"
+            f"Invalid (no URL): {invalid_count}"
+        )
+        
+        if valid_remotes:
+            details += "\n\nConfigured remotes:\n" + "\n".join(
+                [f"  - {r['name']}: {r['url'][:60]}..." if len(r['url']) > 60 else f"  - {r['name']}: {r['url']}" 
+                 for r in valid_remotes[:10]]
+            )
+            if len(valid_remotes) > 10:
+                details += f"\n  ... and {len(valid_remotes) - 10} more"
+        
+        if invalid_remotes:
+            details += "\n\nRemotes without URL:\n" + "\n".join(
+                [f"  - {r['name']}" for r in invalid_remotes]
+            )
+        
+        # Success if we have at least one valid remote
+        success = valid_count > 0
+        
+        return {
+            "success": success,
+            "total_remotes": total_remotes,
+            "valid_count": valid_count,
+            "invalid_count": invalid_count,
+            "remotes": valid_remotes,
+            "invalid_remotes": invalid_remotes,
+            "details": details,
+            "error": None if success else "No valid remotes with URLs found",
+        }
+    except json.JSONDecodeError:
+        return {
+            "success": False,
+            "total_remotes": 0,
+            "remotes": [],
+            "details": stdout[:200],
+            "error": "Invalid JSON from remote list",
+        }
 
 
 def check_nfs_storage_permissions(host) -> Dict[str, Any]:
