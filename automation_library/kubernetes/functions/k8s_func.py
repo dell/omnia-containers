@@ -29,6 +29,12 @@ import time
 import yaml
 
 from paramiko import AutoAddPolicy, SSHClient
+from paramiko.ssh_exception import (
+    AuthenticationException,
+    BadHostKeyException,
+    NoValidConnectionsError,
+    SSHException,
+)
 from automation_library.checks.vars.oim_prereq_vars import (
     USER_CONFIG_PATH as DEFAULT_USER_CONFIG_PATH,
 )
@@ -98,16 +104,34 @@ class OIMOperations:
 
     def connect_ssh(self):
         """Establish SSH connection to OIM server."""
-        if self.ssh_client is None:
+        if self.ssh_client is not None:
+            transport = self.ssh_client.get_transport()
+            if transport and transport.is_active():
+                return self.ssh_client
+            try:
+                self.ssh_client.close()
+            except (OSError, SSHException):
+                pass
+            self.ssh_client = None
+
+        try:
             self.ssh_client = SSHClient()
             self.ssh_client.set_missing_host_key_policy(AutoAddPolicy())
             self.ssh_client.connect(
                 self.config['oim_server_ip'],
                 username=self.config['oim_ssh_user'],
                 password=self.config['oim_ssh_password'],
-                port=self.config.get('oim_ssh_port', 22)
+                port=self.config.get('oim_ssh_port', 22),
+                timeout=int(self.config.get('oim_ssh_timeout', 10) or 10),
             )
-        return self.ssh_client
+            return self.ssh_client
+        except (AuthenticationException, BadHostKeyException, NoValidConnectionsError, SSHException, OSError) as e:
+            try:
+                if self.ssh_client is not None:
+                    self.ssh_client.close()
+            finally:
+                self.ssh_client = None
+            raise RuntimeError(f"Failed to establish SSH connection: {str(e)}") from e
 
     def _run_ssh_command(self, command):
         """Run a command on the remote server via SSH and return the output.
@@ -121,10 +145,20 @@ class OIMOperations:
         Raises:
             Exception: If the command fails.
         """
-        if not self.ssh_client:
-            self.connect_ssh()
+        self.connect_ssh()
 
-        _stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        try:
+            _stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        except (AttributeError, SSHException, OSError) as e:
+            # Transport can become None/inactive mid-run; reconnect once and retry.
+            try:
+                if self.ssh_client is not None:
+                    self.ssh_client.close()
+            except (OSError, SSHException):
+                pass
+            self.ssh_client = None
+            self.connect_ssh()
+            _stdin, stdout, stderr = self.ssh_client.exec_command(command)
         exit_code = stdout.channel.recv_exit_status()
         output = stdout.read().decode('utf-8').strip()
         error = stderr.read().decode('utf-8').strip()
@@ -1195,7 +1229,7 @@ class OIMOperations:
         print("="*50)
         print("\nNodes in cluster and their status:")
         for ip, status in node_statuses:
-            status_display = f"{status} {'✅' if status == 'Ready' else '❌'}"
+            status_display = f"{status}"
             print(f"- {ip}: {status_display}")
 
         print("\n" + "="*50)
