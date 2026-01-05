@@ -31,6 +31,7 @@ from .host import (
     get_node_admin_ip,
 )
 from .report import TestReport, get_current_report, set_current_report
+from .vars import PROVISION_CONFIG_PATH
 
 __all__ = [
     # Formatting
@@ -51,4 +52,6 @@ __all__ = [
     "TestReport",
     "get_current_report",
     "set_current_report",
+    # Vars
+    "PROVISION_CONFIG_PATH",
 ]

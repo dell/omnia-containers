@@ -25,6 +25,8 @@ from typing import Dict, Any
 import yaml
 import testinfra
 
+from .vars import PROVISION_CONFIG_PATH
+
 
 def _get_project_root() -> str:
     """Get the project root directory."""
@@ -170,8 +172,7 @@ def get_node_admin_ip(
         return admin_ip
 
     # Read provision_config.yml to get pxe_mapping_file_path
-    provision_config_path = "/opt/omnia/input/project_default/provision_config.yml"
-    result = run_in_container(host, f"cat {provision_config_path}")
+    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
     if result.rc != 0:
         return admin_ip
 
