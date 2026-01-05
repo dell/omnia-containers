@@ -163,7 +163,7 @@ def test_regctl_available(host):
     else:
         log.failed(LOG_MSGS["regctl_not_available"], result.get("error"))
 
-    assert result["success"], "regctl command not found. Install regctl or check PATH."
+    assert result["success"], "regctl command not found. Run prepare_oim playbook to set up the environment."
 
 
 def test_base_image_in_registry(host):
