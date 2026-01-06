@@ -49,7 +49,7 @@ skip_on_failure: false
 oim_server_ip: ""
 
 # SSH username for remote OIM server (default: root)
-oim_ssh_user: ""
+oim_ssh_user: "root"
 
 # SSH password for remote OIM server (REQUIRED)
 oim_ssh_password: ""
