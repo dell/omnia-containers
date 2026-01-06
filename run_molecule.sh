@@ -58,6 +58,11 @@ NC='\033[0m' # No Color
 # Change to script directory
 cd "$(dirname "$0")"
 
+# Activate virtual environment if it exists
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # Parse arguments
 SCENARIO="$1"
 COMMAND="$2"
