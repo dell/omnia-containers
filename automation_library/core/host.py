@@ -17,12 +17,15 @@ Testinfra utilities for molecule tests.
 """
 
 import os
+import re
 import subprocess
 import tempfile
 from typing import Dict, Any
 
 import yaml
 import testinfra
+
+from .vars import PROVISION_CONFIG_PATH
 
 
 def _get_project_root() -> str:
@@ -84,3 +87,122 @@ def get_testinfra_host() -> testinfra.host.Host:
         f.write(f"ansible_ssh_common_args='{ssh_args}'\n")
 
     return testinfra.get_host("ansible://oim_server", ansible_inventory=inventory_path)
+
+
+def run_on_oim(host: testinfra.host.Host, cmd: str) -> subprocess.CompletedProcess:
+    """
+    Run command on OIM server.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        cmd: Command to execute
+
+    Returns:
+        Result with stdout, stderr, rc attributes
+    """
+    result = host.run(cmd)
+    return result
+
+
+def run_in_container(
+    host: testinfra.host.Host,
+    cmd: str,
+    container: str = "omnia_core"
+) -> subprocess.CompletedProcess:
+    """
+    Run command inside a container on OIM server.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        cmd: Command to execute inside container
+        container: Container name (default: omnia_core)
+
+    Returns:
+        Result with stdout, stderr, rc attributes
+    """
+    container_cmd = f"podman exec {container} {cmd}"
+    return host.run(container_cmd)
+
+
+def run_on_remote_node(
+    host: testinfra.host.Host,
+    cmd: str,
+    admin_ip: str
+) -> subprocess.CompletedProcess:
+    """
+    Run command on remote node via SSH from omnia_core container.
+
+    SSH from omnia_core to remote node uses passwordless SSH.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        cmd: Command to execute on remote node
+        admin_ip: Admin IP of remote node (from PXE mapping file)
+
+    Returns:
+        Result with stdout, stderr, rc attributes
+    """
+    ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    ssh_cmd = f"ssh {ssh_opts} root@{admin_ip} '{cmd}'"
+    return run_in_container(host, ssh_cmd)
+
+
+def get_node_admin_ip(
+    host: testinfra.host.Host,
+    functional_group: str = None,
+    hostname: str = None
+) -> str:
+    """
+    Get the admin IP of a node from PXE mapping file.
+
+    Reads provision_config.yml to get pxe_mapping_file_path, then extracts
+    the admin IP based on functional_group_name or hostname.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        functional_group: Functional group name to match
+        hostname: Hostname to match (e.g., 'k8scp1')
+
+    Returns:
+        Admin IP of matching node, or empty string if not found
+    """
+    admin_ip = ""
+
+    if not functional_group and not hostname:
+        return admin_ip
+
+    # Read provision_config.yml to get pxe_mapping_file_path
+    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
+    if result.rc != 0:
+        return admin_ip
+
+    # Extract pxe_mapping_file_path
+    pattern = r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?'
+    match = re.search(pattern, result.stdout)
+    if not match:
+        return admin_ip
+    pxe_mapping_path = match.group(1).strip()
+
+    # Read PXE mapping file
+    result = run_in_container(host, f"cat {pxe_mapping_path}")
+    if result.rc != 0:
+        return admin_ip
+
+    # CSV: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,
+    #      HOSTNAME,ADMIN_MAC,ADMIN_IP,...
+    # Index: 0, 1, 2, 3, 4, 5, 6
+    for line in result.stdout.strip().split('\n'):
+        parts = line.split(',')
+        if len(parts) >= 7:
+            line_func_group = parts[0]
+            line_hostname = parts[4]
+
+            # Match by functional_group or hostname
+            if functional_group and functional_group in line_func_group:
+                admin_ip = parts[6]
+                break
+            if hostname and hostname == line_hostname:
+                admin_ip = parts[6]
+                break
+
+    return admin_ip
