@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,10 @@ from .prepare_oim_func import (
     check_openchami_target,
     check_service_dependencies,
     check_pulp_api_status,
+    check_pulp_certificate,
+    check_bss_service,
+    check_smd_service,
+    check_ldap_auth_certificate,
 )
 
 __all__ = [
@@ -32,4 +36,8 @@ __all__ = [
     "check_openchami_target",
     "check_service_dependencies",
     "check_pulp_api_status",
+    "check_pulp_certificate",
+    "check_bss_service",
+    "check_smd_service",
+    "check_ldap_auth_certificate",
 ]

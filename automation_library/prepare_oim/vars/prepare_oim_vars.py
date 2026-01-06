@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -144,6 +144,12 @@ PREPARE_OIM_VARS: Dict[str, Any] = {
     # =========================================================================
     "omnia_target": "omnia.target",
     "openchami_target": "openchami.target",
+
+    # =========================================================================
+    # CERTIFICATE PATHS
+    # =========================================================================
+    "pulp_cert_path": "/opt/omnia/pulp/settings/certs/pulp_webserver.crt",
+    "ldap_cert_path": "/opt/omnia/auth/tls_certs/ldapserver.crt",
 
     # =========================================================================
     # TIMEOUTS

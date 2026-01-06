@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,11 @@ from automation_library.prepare_oim.functions import (
     check_omnia_target,
     check_openchami_target,
     check_pulp_api_status,
+    check_pulp_certificate,
     check_service_dependencies,
+    check_bss_service,
+    check_smd_service,
+    check_ldap_auth_certificate,
 )
 
 
@@ -80,6 +84,23 @@ def test_pulp_api_password(host):
 
     assert result["success"], ASSERT_MSGS["pulp_api_failed"].format(
         status=result["status"], error=result["error"]
+    )
+
+
+def test_pulp_certificate(host):
+    """Verify Pulp webserver certificate exists inside omnia_core container."""
+    log = TestLogger(TEST_NAMES["pulp_certificate"])
+    log.check("Checking Pulp webserver certificate in omnia_core container")
+
+    result = check_pulp_certificate(host)
+
+    if result["success"]:
+        log.passed(LOG_MSGS["pulp_cert_exists"], result["details"])
+    else:
+        log.failed(LOG_MSGS["pulp_cert_not_found"], result["error"])
+
+    assert result["success"], ASSERT_MSGS["pulp_cert_not_found"].format(
+        status=result["status"]
     )
 
 
@@ -143,6 +164,31 @@ def test_auth_container(host):
         log.check("Checking if LDAP is configured")
         log.passed(LOG_MSGS["auth_skipped"], "LDAP not in software_config.json")
         pytest.skip("Auth container check skipped - LDAP not configured in software_config.json")
+
+
+def test_ldap_auth_certificate(host):
+    """Verify LDAP auth certificate exists (only if LDAP enabled)."""
+    ldap_enabled = is_ldap_enabled()
+
+    if ldap_enabled:
+        log = TestLogger(TEST_NAMES["ldap_auth_certificate"])
+        log.check("Checking LDAP auth certificate in omnia_core container")
+
+        result = check_ldap_auth_certificate(host)
+
+        if result["success"]:
+            log.passed(LOG_MSGS["ldap_cert_exists"], result["details"])
+        else:
+            log.failed(LOG_MSGS["ldap_cert_not_found"], result["error"])
+
+        assert result["success"], ASSERT_MSGS["ldap_cert_not_found"].format(
+            status=result["status"]
+        )
+    else:
+        log = TestLogger(TEST_NAMES["ldap_auth_certificate_skipped"])
+        log.check("Checking if LDAP is configured")
+        log.passed(LOG_MSGS["ldap_cert_skipped"], "LDAP not in software_config.json")
+        pytest.skip("LDAP auth certificate check skipped - LDAP not configured in software_config.json")
 
 
 # =============================================================================
@@ -213,4 +259,38 @@ def test_omnia_target_dependencies(host):
         f"║   3. Restart failed services: systemctl restart <service>\n"
         f"║   4. List all dependencies: systemctl list-dependencies {target}\n"
         f"╚══════════════════════════════════════════════════════════════════════════════╝"
+    )
+
+
+def test_bss_service_active(host):
+    """Verify ochami BSS service is running via ochami CLI."""
+    log = TestLogger(TEST_NAMES["bss_service_active"])
+    log.check("Checking ochami BSS service status")
+
+    result = check_bss_service(host)
+
+    if result["success"]:
+        log.passed(LOG_MSGS["bss_service_active"], result["details"])
+    else:
+        log.failed(LOG_MSGS["bss_service_inactive"].format(status=result["status"]), result["error"])
+
+    assert result["success"], ASSERT_MSGS["bss_service_failed"].format(
+        status=result["status"]
+    )
+
+
+def test_smd_service_active(host):
+    """Verify ochami SMD service is healthy via ochami CLI."""
+    log = TestLogger(TEST_NAMES["smd_service_active"])
+    log.check("Checking ochami SMD service status")
+
+    result = check_smd_service(host)
+
+    if result["success"]:
+        log.passed(LOG_MSGS["smd_service_active"], result["details"])
+    else:
+        log.failed(LOG_MSGS["smd_service_inactive"].format(status=result["status"]), result["error"])
+
+    assert result["success"], ASSERT_MSGS["smd_service_failed"].format(
+        status=result["status"]
     )

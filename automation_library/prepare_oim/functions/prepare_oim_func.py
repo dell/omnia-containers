@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -455,6 +455,40 @@ def check_pulp_api_status(host) -> Dict[str, Any]:
     }
 
 
+def check_pulp_certificate(host) -> Dict[str, Any]:
+    """
+    Check if Pulp webserver certificate exists inside omnia_core container.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    cert_path = PREPARE_OIM_VARS["pulp_cert_path"]
+    cmd = host.run(f"podman exec omnia_core test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+
+    if cmd.rc == 0 and "EXISTS" in cmd.stdout:
+        # Get certificate details
+        cert_info_cmd = host.run(
+            f"podman exec omnia_core openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
+        )
+        cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
+        return {
+            "success": True,
+            "status": "exists",
+            "details": f"Pulp certificate found at {cert_path}\n{cert_details}",
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "status": "not_found",
+        "details": None,
+        "error": f"Pulp certificate not found at {cert_path} inside omnia_core container"
+    }
+
+
 # =============================================================================
 # OCHAMI VERIFICATION FUNCTIONS
 # =============================================================================
@@ -512,6 +546,153 @@ def check_ochami_smd_status(host) -> Dict[str, Any]:
         "status": "failed",
         "details": None,
         "error": cmd.stderr.strip() or cmd.stdout.strip() or "SMD service check failed"
+    }
+
+
+# =============================================================================
+# OCHAMI SERVICE STATUS VERIFICATION (BSS and SMD via ochami CLI)
+# =============================================================================
+
+def _get_access_token_env_name(host) -> str:
+    """
+    Get the environment variable name for the access token.
+    Uses hostname -s converted to uppercase.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Environment variable name (e.g., 'OIM_ACCESS_TOKEN')
+    """
+    hostname_cmd = host.run("hostname -s")
+    hostname = hostname_cmd.stdout.strip().upper()
+    return f"{hostname}_ACCESS_TOKEN"
+
+
+def check_bss_service(host) -> Dict[str, Any]:
+    """
+    Check ochami BSS service status.
+    First generates access token, then runs ochami bss service status.
+    Expected response: {"bss-status":"running"}
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    env_var = _get_access_token_env_name(host)
+
+    # Generate access token and run ochami bss service status
+    cmd = host.run(
+        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && ochami bss service status"
+    )
+
+    output = cmd.stdout.strip()
+
+    # Check if response contains "bss-status":"running"
+    if cmd.rc == 0 and '"bss-status":"running"' in output.replace(" ", ""):
+        return {
+            "success": True,
+            "status": "running",
+            "details": output,
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "status": "not running",
+        "details": output if output else None,
+        "error": cmd.stderr.strip() or output or "BSS service is not running"
+    }
+
+
+def check_smd_service(host) -> Dict[str, Any]:
+    """
+    Check ochami SMD service status.
+    First generates access token, then runs ochami smd service status.
+    Expected response: {"code":0,"message":"HSM is healthy"}
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    env_var = _get_access_token_env_name(host)
+
+    # Generate access token and run ochami smd service status
+    cmd = host.run(
+        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && ochami smd service status"
+    )
+
+    output = cmd.stdout.strip()
+
+    # Check if response contains "code":0 and "HSM is healthy"
+    output_normalized = output.replace(" ", "")
+    if cmd.rc == 0 and '"code":0' in output_normalized and 'HSMishealthy' in output_normalized:
+        return {
+            "success": True,
+            "status": "healthy",
+            "details": output,
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "status": "not healthy",
+        "details": output if output else None,
+        "error": cmd.stderr.strip() or output or "SMD service is not healthy"
+    }
+
+
+# =============================================================================
+# LDAP AUTH CERTIFICATE VERIFICATION
+# =============================================================================
+
+def check_ldap_auth_certificate(host) -> Dict[str, Any]:
+    """
+    Check if LDAP auth certificate exists inside omnia_core container.
+    Only checks if LDAP is enabled in software_config.json.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'status', 'skipped', 'details', 'error'
+    """
+    if not is_ldap_enabled():
+        return {
+            "success": True,
+            "status": "skipped",
+            "skipped": True,
+            "details": "LDAP auth certificate check skipped (LDAP not in software_config.json)",
+            "error": None
+        }
+
+    cert_path = PREPARE_OIM_VARS["ldap_cert_path"]
+    cmd = host.run(f"podman exec omnia_core test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+
+    if cmd.rc == 0 and "EXISTS" in cmd.stdout:
+        # Get certificate details
+        cert_info_cmd = host.run(
+            f"podman exec omnia_core openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
+        )
+        cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
+        return {
+            "success": True,
+            "status": "exists",
+            "skipped": False,
+            "details": f"LDAP certificate found at {cert_path}\n{cert_details}",
+            "error": None
+        }
+
+    return {
+        "success": False,
+        "status": "not_found",
+        "skipped": False,
+        "details": None,
+        "error": f"LDAP certificate not found at {cert_path} inside omnia_core container"
     }
 
 
