@@ -609,8 +609,8 @@ CONTAINER_ARG="${1:-oim}"
 # Handle single container options with direct building
 case "$CONTAINER_ARG" in
     oim)
-        # Build OIM containers (core and auth) - required for Omnia deployment
-        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "omnia_branch")
+        # Build OIM containers (core, auth, and image-builder) - required for Omnia deployment
+        ALLOWED_TAG_PARAMS=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
@@ -621,6 +621,7 @@ case "$CONTAINER_ARG" in
         validate_container_params "oim" "${ALLOWED_TAG_PARAMS[@]}"
         build_omnia_core
         build_omnia_auth
+        build_image_builder
         ;;
     
     all)
@@ -708,7 +709,7 @@ case "$CONTAINER_ARG" in
                 BUILDING_CORE=true
                 ;;
             oim)
-                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "omnia_branch")
+                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
                 BUILDING_CORE=true
                 ;;
             core)
@@ -774,6 +775,7 @@ case "$CONTAINER_ARG" in
             oim)
                 build_omnia_core
                 build_omnia_auth
+                build_image_builder
                 ;;
             core)
                 build_omnia_core

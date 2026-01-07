@@ -102,12 +102,12 @@ The `build_images.sh` script builds the following containers:
 - `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `all`)
 
 **Image Builder Container-Specific Parameters:**
-- `image_builder_tag=<tag>` - Individual tag for image-builder (valid with: `image-builder`, `all`)
+- `image_builder_tag=<tag>` - Individual tag for image-builder (valid with: `image-builder`, `oim`, `all`)
 
 **Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
-- `oim` - Builds: core and auth containers (required for Omnia deployment) - **This is the default**
+- `oim` - Builds: core, auth, and image-builder containers (required for Omnia deployment) - **This is the default**
 - `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver, image-builder)
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
