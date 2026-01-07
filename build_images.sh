@@ -217,7 +217,7 @@ clone_image_builder_repo() {
         
         # Copy Dockerfile.el10 from ContainerFile/image-build/
         echo -e "${YELLOW}Copying Dockerfile.el10 to dockerfiles/dnf/...${NC}"
-        cp "../${IMAGE_BUILDER_DIR}/Dockerfile" "dockerfiles/dnf/Dockerfile.el10"
+        cp "../${IMAGE_BUILDER_DIR}/Dockerfile.el10" "dockerfiles/dnf/Dockerfile.el10"
         
         # Copy requirements.txt from ContainerFile/image-build/
         echo -e "${YELLOW}Copying requirements.txt from ContainerFile/image-build/...${NC}"
