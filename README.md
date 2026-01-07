@@ -424,11 +424,7 @@ Container for building custom OS images using buildah in a rootless environment.
 
 # Build with Docker
 ./build_images.sh image-builder build_tool=docker image_builder_tag=latest
-```
 
-### Include in Combined Builds
-
-```bash
 # Build all containers including image-builder
 ./build_images.sh all
 
