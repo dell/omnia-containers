@@ -1,0 +1,6 @@
+ansible-core==2.20.1
+boto3
+dnspython
+jinja2_ansible_filters
+PyYAML
+requests

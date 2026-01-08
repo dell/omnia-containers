@@ -45,6 +45,7 @@ The `build_images.sh` script builds the following containers:
 - **kafkapump**: Kafka data pump for iDRAC telemetry - `kafkapump`.
 - **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
 - **telemetry-receiver**: Complete telemetry collection service - `telemetry-receiver`.
+- **image-builder**: OpenCHAMI image builder for creating custom OS images - `image-builder`.
 
 ## Quick Reference - Common Commands
 
@@ -79,7 +80,7 @@ The `build_images.sh` script builds the following containers:
 
 ### Available Parameters
 
-**Container Options:** `oim`, `all`, `core`, `auth`, `ubuntu-ldms`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`
+**Container Options:** `oim`, `all`, `core`, `auth`, `ubuntu-ldms`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`, `image-builder`
 
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
@@ -100,11 +101,14 @@ The `build_images.sh` script builds the following containers:
 - `victoriapump_tag=<tag>` - Individual tag for victoriapump (valid with: `victoriapump`, `telemetry`, `all`)
 - `telemetry_receiver_tag=<tag>` - Individual tag for telemetry-receiver (valid with: `telemetry-receiver`, `telemetry`, `all`)
 
+**Image Builder Container-Specific Parameters:**
+- `image_builder_tag=<tag>` - Individual tag for image-builder (valid with: `image-builder`, `oim`, `all`)
+
 **Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
 
 **Special Options:**
-- `oim` - Builds: core and auth containers (required for Omnia deployment) - **This is the default**
-- `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver)
+- `oim` - Builds: core, auth, and image-builder containers (required for Omnia deployment) - **This is the default**
+- `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver, image-builder)
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
 **Parameter Validation:**
@@ -392,6 +396,43 @@ Dockerfiles are sourced from the iDRAC-Telemetry-Reference-Tools repository:
 4. Creates minimal scratch-based images
 
 **Note**: To use a different commit/branch/tag, modify the `IDRAC_TELEMETRY_COMMIT` variable in `build_images.sh`.
+
+---
+
+# **Building OpenCHAMI Image Builder Container**
+
+The build script supports building the OpenCHAMI image-builder container for creating custom OS images using a custom Dockerfile optimized for AlmaLinux 10.0.
+
+## Component
+
+### **Image Builder** (`image-builder`)
+Container for building custom OS images using buildah in a rootless environment. Features:
+- AlmaLinux 10.0 base with Python 3.12
+- Buildah for container-based image building
+- Rootless operation with proper user namespace configuration
+
+## Usage Examples
+
+### Build Image Builder Container
+
+```bash
+# Build image-builder with default settings
+./build_images.sh image-builder
+
+# Build with specific tag
+./build_images.sh image-builder image_builder_tag=v2.0
+
+# Build with Docker
+./build_images.sh image-builder build_tool=docker image_builder_tag=latest
+
+# Build all containers including image-builder
+./build_images.sh all
+
+# Build with specific tag for image-builder
+./build_images.sh all image_builder_tag=v2.0
+```
+
+**Note**: To use a different commit/branch/tag, modify the `IMAGE_BUILDER_COMMIT` variable in `build_images.sh`.
 
 ---
 
