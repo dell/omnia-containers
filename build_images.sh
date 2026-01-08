@@ -523,6 +523,7 @@ for arg in "$@"; do
         KAFKAPUMP_TAG="$IMAGE_TAG"
         VICTORIAPUMP_TAG="$IMAGE_TAG"
         TELEMETRY_RECEIVER_TAG="$IMAGE_TAG"
+        IMAGE_BUILDER_TAG="$IMAGE_TAG"
     elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
         CORE_TAG="${arg#core_tag=}"
     elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
@@ -537,6 +538,8 @@ for arg in "$@"; do
         VICTORIAPUMP_TAG="${arg#victoriapump_tag=}"
     elif [[ "$arg" =~ ^telemetry_receiver_tag=.*$ ]]; then
         TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}"
+    elif [[ "$arg" =~ ^image_builder_tag=.*$ ]]; then
+        IMAGE_BUILDER_TAG="${arg#image_builder_tag=}"
     fi
 done
 
