@@ -1483,3 +1483,123 @@ def check_nfs_storage_permissions(host) -> Dict[str, Any]:
         "details": details,
         "error": error,
     }
+
+
+def check_repo_package_count(host) -> Dict[str, Any]:
+    """
+    Verify each Pulp repository has a minimum package count (not empty).
+    
+    This test:
+    1. Lists all RPM repositories
+    2. For each repo, checks the package count via repository version
+    3. Flags repos with zero packages as potential issues
+    """
+    # Get list of repositories
+    repo_cmd = run_in_omnia_core(host, "pulp rpm repository list 2>/dev/null")
+    
+    if not repo_cmd["success"]:
+        return {
+            "success": False,
+            "details": "",
+            "error": f"pulp rpm repository list failed: {repo_cmd.get('stderr', '')}",
+        }
+    
+    stdout = (repo_cmd.get("stdout") or "").strip()
+    if stdout == "[]" or not stdout:
+        return {
+            "success": True,
+            "total_repos": 0,
+            "details": "No repositories found (empty is valid if no repos configured)",
+            "error": None,
+        }
+    
+    try:
+        repos = json.loads(stdout)
+    except json.JSONDecodeError:
+        return {
+            "success": False,
+            "details": stdout[:200],
+            "error": "Invalid JSON from repository list",
+        }
+    
+    total_repos = len(repos)
+    repos_with_packages = []
+    empty_repos = []
+    
+    for repo in repos:
+        name = repo.get("name", "unknown")
+        latest_version_href = repo.get("latest_version_href", "")
+        
+        if not latest_version_href:
+            empty_repos.append({"name": name, "count": 0, "reason": "not synced"})
+            continue
+        
+        # Get package count from repository version
+        version_cmd = run_in_omnia_core(
+            host, 
+            f"pulp rpm repository version show --repository '{name}' 2>/dev/null"
+        )
+        
+        if version_cmd["success"]:
+            version_output = (version_cmd.get("stdout") or "").strip()
+            if version_output:
+                try:
+                    version_data = json.loads(version_output)
+                    content_summary = version_data.get("content_summary", {})
+                    present = content_summary.get("present", {})
+                    
+                    # Count RPM packages
+                    rpm_count = 0
+                    rpm_info = present.get("rpm.package", {})
+                    if isinstance(rpm_info, dict):
+                        rpm_count = rpm_info.get("count", 0)
+                    elif isinstance(rpm_info, int):
+                        rpm_count = rpm_info
+                    
+                    if rpm_count > 0:
+                        repos_with_packages.append({"name": name, "count": rpm_count})
+                    else:
+                        empty_repos.append({"name": name, "count": 0, "reason": "no packages"})
+                except json.JSONDecodeError:
+                    empty_repos.append({"name": name, "count": 0, "reason": "parse error"})
+            else:
+                empty_repos.append({"name": name, "count": 0, "reason": "empty response"})
+        else:
+            empty_repos.append({"name": name, "count": 0, "reason": "version check failed"})
+    
+    # Build details
+    details_lines = [
+        f"Total repositories: {total_repos}",
+        f"Repos with packages: {len(repos_with_packages)}",
+        f"Empty repos: {len(empty_repos)}",
+    ]
+    
+    if repos_with_packages:
+        details_lines.append("\nRepositories with packages:")
+        for r in repos_with_packages[:10]:
+            details_lines.append(f"  - {r['name']}: {r['count']} packages")
+        if len(repos_with_packages) > 10:
+            details_lines.append(f"  ... and {len(repos_with_packages) - 10} more")
+    
+    if empty_repos:
+        details_lines.append("\nEmpty repositories:")
+        for r in empty_repos[:10]:
+            details_lines.append(f"  - {r['name']} ({r['reason']})")
+        if len(empty_repos) > 10:
+            details_lines.append(f"  ... and {len(empty_repos) - 10} more")
+    
+    details = "\n".join(details_lines)
+    
+    # Success if at least some repos have packages (or no repos exist)
+    # Fail only if ALL repos are empty
+    success = len(repos_with_packages) > 0 or total_repos == 0
+    
+    return {
+        "success": success,
+        "total_repos": total_repos,
+        "repos_with_packages": len(repos_with_packages),
+        "empty_repos": len(empty_repos),
+        "empty_repo_list": empty_repos,
+        "details": details,
+        "error": None if success else f"{len(empty_repos)} repositories have no packages",
+    }

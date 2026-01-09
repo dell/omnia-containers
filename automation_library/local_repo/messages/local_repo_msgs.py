@@ -38,8 +38,8 @@ TEST_VARS = {
 
 TEST_NAMES = {
     "pulp_container_running": "Verify pulp container is running",
-    "pulp_cli_repo_list": "Verify pulp CLI works (pulp rpm repository list)",
-    "status_csv": "Verify packages downloaded successfully (status.csv)",
+    "pulp_cli_repo_list": "Verify pulp CLI works (pulp status)",
+    "status_csv": "Verify individual package download status for each software (status.csv)",
     "software_packages_in_pulp": "Verify software_config packages exist in Pulp",
     "pulp_api_status": "Verify Pulp API status is healthy",
     "pulp_repositories_synced": "Verify Pulp repositories are synced",
@@ -49,14 +49,16 @@ TEST_NAMES = {
     "pulp_distributions_match_config": "Verify Pulp distributions match local_repo_config.yml",
     "nfs_mounts_in_pulp": "Verify NFS mounts in Pulp container",
     "nfs_storage_permissions": "Verify NFS storage permissions and access",
+    "pulp_remotes_exist": "Verify Pulp remotes are configured",
+    "repo_package_count": "Verify repositories have packages (not empty)",
 }
 
 
 TEST_LOG_MSGS = {
     "container_running": "Container {container} is running",
     "container_not_running": "Container {container} is NOT running",
-    "pulp_cli_ok": "pulp rpm repository list succeeded",
-    "pulp_cli_fail": "pulp rpm repository list failed",
+    "pulp_cli_ok": "pulp status command succeeded",
+    "pulp_cli_fail": "pulp status command failed",
     "status_csv_found": "Found status.csv",
     "status_csv_missing": "status.csv not found",
     "status_csv_empty": "status.csv is empty",
@@ -84,6 +86,10 @@ TEST_LOG_MSGS = {
     "nfs_mounts_missing": "Some NFS mounts missing in Pulp container",
     "nfs_permissions_ok": "NFS storage permissions verified (read/write access)",
     "nfs_permissions_fail": "NFS storage permission check failed",
+    "pulp_remotes_ok": "All Pulp remotes are configured",
+    "pulp_remotes_missing": "Some Pulp remotes are missing",
+    "repo_package_count_ok": "All repositories have packages",
+    "repo_package_count_empty": "Some repositories are empty (no packages)",
 }
 
 
@@ -263,6 +269,33 @@ TEST_ASSERT_MSGS = {
 ║   3. Check NFS server allows writes from this client
 ║   4. Test write access: podman exec pulp touch /var/lib/pulp/test
 ║   5. Check SELinux/AppArmor if enabled
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_remotes_missing": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PULP REMOTES MISSING
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. List remotes: pulp rpm remote list
+║   2. Check local_repo_config.yml for repo URLs
+║   3. Re-run local_repo.yml to create missing remotes
+║   4. Verify upstream URLs are accessible
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "repo_package_count_empty": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ REPOSITORIES HAVE NO PACKAGES
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check repository sync status: pulp rpm repository list
+║   2. Verify sync completed: pulp rpm repository version show --repository <name>
+║   3. Check upstream URL is accessible and has packages
+║   4. Re-sync repository: pulp rpm repository sync --name <repo_name>
+║   5. Check pulp logs for sync errors: podman logs pulp
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 }

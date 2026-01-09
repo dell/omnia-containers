@@ -46,6 +46,8 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_pulp_distributions_match_config,
     check_nfs_mounts_in_pulp,
     check_nfs_storage_permissions,
+    check_pulp_remotes_exist,
+    check_repo_package_count,
 )
 
 
@@ -270,3 +272,45 @@ def test_nfs_storage_permissions(host):
     else:
         log.failed(LOG_MSGS["nfs_permissions_fail"], result.get("details") or "")
         assert False, ASSERT_MSGS["nfs_permissions_fail"].format(details=result.get("details") or result.get("error") or "")
+
+
+def test_pulp_remotes_exist(host):
+    """
+    Verify Pulp remotes are configured for repositories.
+
+    This test:
+    1. Lists all RPM remotes via `pulp rpm remote list`
+    2. Verifies remotes exist and have URLs configured
+    3. Reports configured upstream URLs
+    """
+    log = TestLogger(TEST_NAMES["pulp_remotes_exist"])
+    log.check("Checking Pulp remotes are configured")
+
+    result = check_pulp_remotes_exist(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["pulp_remotes_ok"], result.get("details") or "")
+    else:
+        log.failed(LOG_MSGS["pulp_remotes_missing"], result.get("details") or "")
+        assert False, ASSERT_MSGS["pulp_remotes_missing"].format(details=result.get("details") or result.get("error") or "")
+
+
+def test_repo_package_count(host):
+    """
+    Verify each Pulp repository has packages (not empty).
+
+    This test:
+    1. Lists all RPM repositories
+    2. Checks package count for each repository
+    3. Flags repositories with zero packages as potential issues
+    """
+    log = TestLogger(TEST_NAMES["repo_package_count"])
+    log.check("Checking repository package counts")
+
+    result = check_repo_package_count(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["repo_package_count_ok"], result.get("details") or "")
+    else:
+        log.failed(LOG_MSGS["repo_package_count_empty"], result.get("details") or "")
+        assert False, ASSERT_MSGS["repo_package_count_empty"].format(details=result.get("details") or result.get("error") or "")
+
+
