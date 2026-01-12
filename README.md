@@ -55,19 +55,19 @@ The `build_images.sh` script builds the following containers:
 # ⚠️ Warning will be shown about using default branch: main
 
 # Build OIM with specific Omnia branch
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3
+./build_images.sh oim omnia_branch=v2.0.0.0
 
 # Build ALL containers (everything)
-./build_images.sh all omnia_branch=v2.0.0.0-rc3
+./build_images.sh all omnia_branch=v2.0.0.0
 
 # Build OIM with Docker and specific tag
 ./build_images.sh oim build_tool=docker image_tag=1.0 omnia_branch=staging
 
 # Build specific containers (core + auth)
-./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc3
+./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.
 
 # Build only core with specific branch
-./build_images.sh core omnia_branch=v2.0.0.0-rc3 core_tag=2.0
+./build_images.sh core omnia_branch=v2.0.0.0 core_tag=2.0
 
 # Build all telemetry containers
 ./build_images.sh telemetry
@@ -167,10 +167,10 @@ These commands build core and auth containers with default settings (podman, 1.0
 #### With Omnia Branch/Version
 ```bash
 # Build OIM with specific Omnia branch (default tool: podman) - no warning
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3
+./build_images.sh oim omnia_branch=v2.0.0.0
 
 # Build OIM with specific branch and Docker - no warning
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3 build_tool=docker
+./build_images.sh oim omnia_branch=v2.0.0.0 build_tool=docker
 
 # Build OIM with explicit main branch (same as default but no warning)
 ./build_images.sh oim omnia_branch=main
@@ -187,7 +187,7 @@ These commands build core and auth containers with default settings (podman, 1.0
 ./build_images.sh oim image_tag=1.0 build_tool=docker
 
 # Build OIM with tag "2.0" and specific branch
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3 image_tag=2.0
+./build_images.sh oim omnia_branch=v2.0.0.0 image_tag=2.0
 ```
 
 #### With Individual Tags per Container
@@ -210,7 +210,7 @@ Build all available containers including Omnia containers and telemetry componen
 ./build_images.sh all
 
 # Build all with specific branch
-./build_images.sh all omnia_branch=v2.0.0.0-rc3
+./build_images.sh all omnia_branch=v2.0.0.0
 
 # Build all with unified tag
 ./build_images.sh all image_tag=1.0
@@ -234,7 +234,7 @@ Build individual containers or specific combinations.
 ./build_images.sh core
 
 # Build only core with specific branch
-./build_images.sh core omnia_branch=v2.0.0.0-rc3
+./build_images.sh core omnia_branch=v2.0.0.0
 
 # Build only core with specific tag and branch
 ./build_images.sh core core_tag=1.0 omnia_branch=main
@@ -263,7 +263,7 @@ Build individual containers or specific combinations.
 ./build_images.sh core,auth
 
 # Build core and auth with specific branch
-./build_images.sh core,auth omnia_branch=v2.0.0.0-rc3
+./build_images.sh core,auth omnia_branch=v2.0.0.0
 
 # Build core and auth with same tag
 ./build_images.sh core,auth image_tag=1.0
@@ -292,7 +292,7 @@ By default, the script uses `build_action=load` which builds and loads images in
 #### What Happens with Load (Default)
 ```bash
 # These commands automatically load images locally
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3
+./build_images.sh oim omnia_branch=v2.0.0.0
 ./build_images.sh core,auth image_tag=1.0
 ./build_images.sh all
 ```
