@@ -55,19 +55,19 @@ The `build_images.sh` script builds the following containers:
 # ⚠️ Warning will be shown about using default branch: main
 
 # Build OIM with specific Omnia branch
-./build_images.sh oim omnia_branch=v2.0.0.0-rc3
+./build_images.sh oim omnia_branch=v2.0.0.0
 
 # Build ALL containers (everything)
-./build_images.sh all omnia_branch=v2.0.0.0-rc3
+./build_images.sh all omnia_branch=v2.0.0.0
 
 # Build OIM with Docker and specific tag
 ./build_images.sh oim build_tool=docker image_tag=1.0 omnia_branch=staging
 
 # Build specific containers (core + auth)
-./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.0-rc3
+./build_images.sh core,auth image_tag=1.0 omnia_branch=v2.0.0.
 
 # Build only core with specific branch
-./build_images.sh core omnia_branch=v2.0.0.0-rc3 core_tag=2.0
+./build_images.sh core omnia_branch=v2.0.0.0 core_tag=2.0
 
 # Build all telemetry containers
 ./build_images.sh telemetry
