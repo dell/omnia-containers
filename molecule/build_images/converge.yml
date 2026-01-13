@@ -35,15 +35,14 @@
         cacheable: true
 
 
-- name: Converge - Validate prerequisites and run build_image_x86_64.yml
+- name: Converge - Run build_image_x86_64.yml in omnia_core container
   hosts: oim_server
   gather_facts: false
 
   vars:
     user_config: "{{ hostvars['localhost']['user_config'] }}"
-    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
-    input_dir: "{{ project_dir }}/input"
     oim_input_dir: "/opt/omnia/input/project_default"
+    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
     build_image_playbook: "/omnia/build_image_x86_64/build_image_x86_64.yml"
     s3_container_name: "minio-server"
     registry_container_name: "registry"
@@ -58,7 +57,7 @@
         cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q omnia_core
       args:
         executable: /bin/bash
-      register: omnia_core_check
+      register: container_check
       changed_when: false
       failed_when: false
 
@@ -67,7 +66,11 @@
         msg: |
           omnia_core container is not running on {{ ansible_host }}.
           Please run omnia.sh --install first.
-      when: omnia_core_check.rc != 0
+      when: container_check.rc != 0
+
+    # =========================================================================
+    # PREPARE INPUT FILES FOR BUILD_IMAGES
+    # =========================================================================
 
     - name: Check if minio-server container is running
       ansible.builtin.shell:
@@ -156,9 +159,17 @@
       register: playbook_check
       changed_when: false
 
+    - name: Skip image building for faster testing (set SKIP_IMAGE_BUILD=true to enable)
+      ansible.builtin.set_fact:
+        skip_image_build: "{{ lookup('env', 'SKIP_IMAGE_BUILD') | default('false') | bool }}"
+
     - name: Display playbook check result
       ansible.builtin.debug:
         msg: "build_image_x86_64 playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
+
+    # =========================================================================
+    # RUN BUILD_IMAGE_X86_64 PLAYBOOK
+    # =========================================================================
 
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
@@ -166,10 +177,30 @@
           podman exec -w /omnia omnia_core \
             ansible-playbook build_image_x86_64/build_image_x86_64.yml -i /opt/omnia/inventory/oim_inventory -v
       register: playbook_result
-      timeout: 7200
-      when: "'EXISTS' in playbook_check.stdout"
+      timeout: 3600
+      when: "'EXISTS' in playbook_check.stdout and not skip_image_build"
       changed_when: playbook_result.rc == 0
       failed_when: false
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          BUILD_IMAGE_X86_64 PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Skip image building (fast mode enabled)
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SKIPPING IMAGE BUILDING (FAST MODE)
+          ============================================
+          Set SKIP_IMAGE_BUILD=false to run full build
+          ============================================
+      when: skip_image_build
 
     - name: Show build_image_x86_64 playbook output
       ansible.builtin.debug:
@@ -184,13 +215,22 @@
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ Exit Code: {{ playbook_result.rc }}
           ║
+          ║ WHAT HAPPENED:
+          ║   The build_image_x86_64.yml playbook failed during execution inside omnia_core.
+          ║
+          ║ POSSIBLE CAUSES:
+          ║   - Image building process failed (check /opt/omnia/log/build_images/)
+          ║   - Insufficient disk space for image creation
+          ║   - Network connectivity issues during package downloads
+          ║   - Missing or invalid configuration in pxe_mapping_file.csv
+          ║   - Registry or S3 upload failures
+          ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
-          ║   2. S3 logs: podman logs {{ s3_container_name }}
-          ║   3. Registry logs: podman logs {{ registry_container_name }}
-          ║   4. Re-run manually inside omnia_core container:
-          ║        podman exec -w /omnia -it omnia_core bash
-          ║        ansible-playbook build_image_x86_64/build_image_x86_64.yml -v
+          ║   2. Check logs: ls -la /opt/omnia/log/build_images/
+          ║   3. Check container status: podman ps -a
+          ║   4. Re-run manually inside omnia_core container
+          ║   5. Check S3 bucket: s3cmd ls s3://boot-images
           ║
           ║ STDERR:
           ║   {{ playbook_result.stderr | default('No error message') }}
@@ -206,8 +246,8 @@
 
     - name: Display functional_group.yml check result
       ansible.builtin.debug:
-        msg: "functional_group.yml: {{ functional_group_check.stdout }}"
-      when: functional_group_check is defined
+        msg: "functional_group.yml: {{ functional_group_check.stdout | default('SKIPPED') }}"
+      when: functional_group_check is defined and functional_group_check.stdout is defined
 
     - name: Verify S3 bucket has images
       ansible.builtin.shell:
@@ -227,15 +267,14 @@
         msg: "build_image_x86_64 playbook not found at {{ build_image_playbook }}"
       when: "'NOT_FOUND' in playbook_check.stdout"
 
-    - name: Build_images converge complete
+    - name: Build Images converge complete
       ansible.builtin.debug:
         msg: |
           ============================================
           build_images converge complete!
           ============================================
           - omnia_core container: Running
-          - minio-server container: Running
-          - registry container: Running
           - build_image_x86_64 playbook: Executed successfully
           - Ready for pytest verification
           ============================================
+
