@@ -35,6 +35,10 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
     cd /tmp/buildah && \
+    go get github.com/sigstore/fulcio@v1.8.5 && \
+    go get golang.org/x/crypto@v0.45.0 && \
+    go get github.com/containernetworking/plugins@v1.9.0 && \
+    go mod tidy && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
     rm -rf /tmp/buildah /usr/local/go
