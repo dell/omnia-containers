@@ -1,7 +1,7 @@
 FROM docker.io/library/almalinux:10.0
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.24.3
+ARG GO_VERSION=1.24.11
 
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
