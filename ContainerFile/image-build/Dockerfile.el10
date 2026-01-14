@@ -1,5 +1,8 @@
 FROM docker.io/library/almalinux:10.0
 
+ARG BUILDAH_VERSION=1.42.2
+ARG GO_VERSION=1.24.3
+
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
     dnf install -y dnf-plugins-core epel-release && \
@@ -8,16 +11,43 @@ RUN dnf clean all && \
 
 RUN dnf install -y \
         bash \
-        buildah \
         python3.12 \
         python3.12-pip \
         fuse-overlayfs \
         tar \
         squashfs-tools \
+        make \
+        gcc \
+        glib2-devel \
+        gpgme-devel \
+        libseccomp-devel \
+        libselinux-devel \
+        device-mapper-devel \
+        btrfs-progs-devel \
+        git \
+        wget
+
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
+    cd /tmp/buildah && \
+    make buildah && \
+    cp bin/buildah /usr/bin/buildah && \
+    rm -rf /tmp/buildah /usr/local/go
+
+RUN dnf install -y \
+        containers-common \
+        crun \
+        slirp4netns \
         fuse-overlayfs
 
 COPY requirements.txt /
-RUN pip install -r /requirements.txt
+RUN pip install --upgrade pip>=25.3 && \
+    pip install -r /requirements.txt
 
 COPY src/ /usr/local/bin/
 RUN chmod -R 0755 /usr/local/bin/
