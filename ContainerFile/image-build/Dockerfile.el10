@@ -1,7 +1,7 @@
 FROM docker.io/library/almalinux:10.0
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.24.11
+ARG GO_VERSION=1.25.5
 
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
@@ -51,7 +51,7 @@ RUN dnf install -y \
         fuse-overlayfs
 
 COPY requirements.txt /
-RUN pip install --upgrade pip>=25.3 && \
+RUN pip install --upgrade "pip>=25.3" && \
     pip install -r /requirements.txt
 
 COPY src/ /usr/local/bin/
