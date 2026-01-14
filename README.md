@@ -41,6 +41,7 @@ The `build_images.sh` script builds the following containers:
 ### Omnia Containers
 - **omnia_core**: image for core Omnia container - `core`.
 - **omnia_auth**: image for auth Omnia container - `auth`.
+- **omnia_build_stream**: FastAPI service for Omnia Build Stream automation - `build-stream`.
 - **ubuntu_ldms**: image for LDMS (OVIS) monitoring container - `ubuntu-ldms`.
 - **kafkapump**: Kafka data pump for iDRAC telemetry - `kafkapump`.
 - **victoriapump**: VictoriaMetrics data pump for iDRAC telemetry - `victoriapump`.
@@ -74,13 +75,16 @@ The `build_images.sh` script builds the following containers:
 
 # Build specific telemetry container
 ./build_images.sh kafkapump image_tag=1.0
+
+# Build omnia_build_stream container
+./build_images.sh build-stream
 ```
 
 ## Script Usage
 
 ### Available Parameters
 
-**Container Options:** `oim`, `all`, `core`, `auth`, `ubuntu-ldms`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`, `image-builder`
+**Container Options:** `oim`, `all`, `core`, `auth`, `build-stream`, `ubuntu-ldms`, `telemetry`, `kafkapump`, `victoriapump`, `telemetry-receiver`, `image-builder`
 
 **Common Parameters (valid for all containers):**
 - `build_tool=<podman|docker>` - Build tool to use (default: `podman`)
@@ -90,10 +94,11 @@ The `build_images.sh` script builds the following containers:
 **Note:** By default, `build_action=load` loads all built images into your local container engine (Podman or Docker) making them immediately available for use. This is the recommended action for users.
 
 **Omnia Container-Specific Parameters:**
-- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `main`, valid with: `core`, `oim`, `all`)
+- `omnia_branch=<branch>` - Omnia branch/tag to use for core and build-stream containers (default: `main`, valid with: `core`, `build-stream`, `oim`, `all`)
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
 - `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `oim`, `all`)
 - `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `oim`, `all`)
+- `build_stream_tag=<tag>` - Individual tag for omnia_build_stream (valid with: `build-stream`, `all`)
 - `ubuntu_ldms_tag=<tag>` - Individual tag for ubuntu-ldms (valid with: `ubuntu-ldms`, `all`)
 
 **iDRAC Telemetry Container-Specific Parameters:**
@@ -104,12 +109,16 @@ The `build_images.sh` script builds the following containers:
 **Image Builder Container-Specific Parameters:**
 - `image_builder_tag=<tag>` - Individual tag for image-builder (valid with: `image-builder`, `oim`, `all`)
 
-**Note**: Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
+**Note**: 
+- Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
+- The `omnia_build_stream` container uses the Omnia branch specified by `omnia_branch` parameter.
 
 **Special Options:**
 - `oim` - Builds: core, auth, and image-builder containers (required for Omnia deployment) - **This is the default**
 - `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver, image-builder)
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
+
+**Note**: The `build-stream` container is built separately and is not included in the `all` or `oim` options. Build it individually using `./build_images.sh build-stream`.
 
 **Parameter Validation:**
 The script validates parameters in two stages with context-specific error messages:
@@ -253,9 +262,18 @@ Build individual containers or specific combinations.
 
 # Build only ubuntu-ldms with specific tag
 ./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
+
+# Build only build-stream (omnia_branch is valid here)
+./build_images.sh build-stream
+
+# Build only build-stream with specific branch
+./build_images.sh build-stream omnia_branch=v2.0.0.0
+
+# Build only build-stream with specific tag and branch
+./build_images.sh build-stream build_stream_tag=1.0 omnia_branch=staging
 ```
 
-**Note:** `omnia_branch` is only valid when building containers that include `core` (i.e., `core`, `oim`, `all`, or any combination including `core`).
+**Note:** `omnia_branch` is valid when building containers that include `core` or `build-stream` (i.e., `core`, `build-stream`, `oim`, `all`, or any combination including these containers).
 
 #### Multiple Specific Containers
 ```bash
@@ -279,6 +297,15 @@ Build individual containers or specific combinations.
 
 # Build core, auth, and ubuntu-ldms (all three tag parameters are valid)
 ./build_images.sh core,auth,ubuntu-ldms image_tag=1.0
+
+# Build core and build-stream with same branch (both support omnia_branch)
+./build_images.sh core,build-stream omnia_branch=v2.0.0.0
+
+# Build core and build-stream with different tags
+./build_images.sh core,build-stream core_tag=1.0 build_stream_tag=1.5 omnia_branch=staging
+
+# Build build-stream with telemetry containers
+./build_images.sh build-stream,kafkapump,victoriapump image_tag=1.0 omnia_branch=main
 ```
 
 **Note:** When building multiple containers, only the tag parameters for those specific containers are valid. For example, using `ubuntu_ldms_tag` when building `core,auth` will result in an error.
@@ -319,6 +346,69 @@ While `load` is the default, you can explicitly specify it:
 # Load with Docker instead of Podman
 ./build_images.sh oim build_tool=docker build_action=load image_tag=1.0
 ```
+
+---
+
+# **Building Omnia Build Stream Container**
+
+The build script supports building the `omnia_build_stream` container, which provides a FastAPI service for Omnia Build Stream automation. This container is built using Fedora 42 as the base image and includes Python 3.12 with FastAPI and Uvicorn.
+
+## Component
+
+### **Omnia Build Stream** (`build-stream`)
+FastAPI service container for Omnia Build Stream automation. Features:
+- Fedora 42 base with Python 3.12
+- FastAPI and Uvicorn for API service
+- Uses Omnia branch specified by `omnia_branch` parameter
+- Includes security patches (pip 25.3 to fix CVE-2025-8869)
+- Health check endpoint at `/health`
+- Exposed on port 80
+
+## Usage Examples
+
+### Build Omnia Build Stream Container
+
+```bash
+# Build build-stream with default settings (main branch)
+./build_images.sh build-stream
+
+# Build with specific Omnia branch
+./build_images.sh build-stream omnia_branch=v2.0.0.0
+
+# Build with specific tag
+./build_images.sh build-stream build_stream_tag=v2.0
+
+# Build with Docker
+./build_images.sh build-stream build_tool=docker omnia_branch=staging
+
+# Build with specific branch and tag
+./build_images.sh build-stream omnia_branch=v2.0.0.0 build_stream_tag=2.0
+
+# Build with unified tag (applies to all containers if building multiple)
+./build_images.sh build-stream image_tag=2.0
+```
+
+## Container Details
+
+### Dockerfile Source
+
+The Dockerfile is located at `ContainerFile/omnia_build_stream/Dockerfile` and uses:
+- **Base Image**: Fedora 42
+- **Python Version**: 3.12
+- **Build Argument**: `OMNIA_VERSION` (set via `omnia_branch` parameter)
+- **Dependencies**: Managed via `pyproject.toml` and `uv.lock` using uv package manager
+
+### Build Process
+
+1. Uses the Omnia branch specified by `omnia_branch` parameter (default: `main`)
+2. Installs Python 3.12 and required system packages
+3. Upgrades pip to version 25.3 (fixes CVE-2025-8869)
+4. Installs Python packages using uv with locked dependencies
+5. Installs FastAPI, Uvicorn, and python-multipart
+6. Creates log and output directories
+7. Exposes port 80 with health check endpoint
+
+**Note**: The container uses the same `omnia_branch` parameter as `omnia_core` to ensure consistency across Omnia components.
 
 ---
 

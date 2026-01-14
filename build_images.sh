@@ -191,6 +191,56 @@ build_omnia_auth() {
     cd - || exit
 }
 
+# Function to build omnia_build_stream image
+build_omnia_build_stream() {
+    echo "Building omnia_build_stream image..."
+    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
+    echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
+    echo -e "Using Build Stream Tag: ${YELLOW}${BUILD_STREAM_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
+        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_build_stream:${BUILD_STREAM_TAG}${NC}"
+    fi
+    echo -e "${RED}---------------------------------${NC}"
+    cd "$BUILD_STREAM_DIR" || exit
+    if [ "$BUILD_TOOL" = "podman" ]; then
+        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
+        BUILD_RESULT=$?
+        IMAGE_DESTINATION="Local (Podman): omnia_build_stream:${BUILD_STREAM_TAG}"
+    elif [ "$BUILD_TOOL" = "docker" ]; then
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): omnia_build_stream:${BUILD_STREAM_TAG}"
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}"
+        else
+            echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Invalid BUILD_TOOL. Please enter 'podman' or 'docker'.${NC}"
+        exit 1
+    fi
+
+    if [ $BUILD_RESULT -eq 0 ]; then
+        echo -e "${GREEN}omnia_build_stream image built successfully.${NC}"
+        SUCCESSFUL_BUILDS+=("omnia_build_stream")
+        if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
+            PUSHED_IMAGES+=("$IMAGE_DESTINATION")
+        else
+            LOADED_IMAGES+=("$IMAGE_DESTINATION")
+        fi
+    else
+        echo -e "${RED}omnia_build_stream image build failed.${NC}"
+        FAILED_BUILDS+=("omnia_build_stream")
+    fi
+    cd - || exit
+}
+
 # Function to clone iDRAC Telemetry Reference Tools repo
 clone_idrac_telemetry_repo() {
     if [ ! -d "$IDRAC_TELEMETRY_CLONE_DIR" ]; then
@@ -475,12 +525,13 @@ KAFKAPUMP_TAG="1.0"
 VICTORIAPUMP_TAG="1.0"
 TELEMETRY_RECEIVER_TAG="1.0"
 IMAGE_BUILDER_TAG="1.0"
+BUILD_STREAM_TAG="1.0"
 # Global fallback tag (used when image_tag= is specified)
 IMAGE_TAG="1.0"
 
 # Valid parameter names
-VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag")
-VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder")
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag")
+VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder" "build-stream")
 
 # Common parameters valid for all container types
 COMMON_PARAMS=("build_tool" "build_action" "image_tag")
@@ -524,6 +575,7 @@ for arg in "$@"; do
         VICTORIAPUMP_TAG="$IMAGE_TAG"
         TELEMETRY_RECEIVER_TAG="$IMAGE_TAG"
         IMAGE_BUILDER_TAG="$IMAGE_TAG"
+        BUILD_STREAM_TAG="$IMAGE_TAG"
     elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
         CORE_TAG="${arg#core_tag=}"
     elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
@@ -540,6 +592,8 @@ for arg in "$@"; do
         TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}"
     elif [[ "$arg" =~ ^image_builder_tag=.*$ ]]; then
         IMAGE_BUILDER_TAG="${arg#image_builder_tag=}"
+    elif [[ "$arg" =~ ^build_stream_tag=.*$ ]]; then
+        BUILD_STREAM_TAG="${arg#build_stream_tag=}"
     fi
 done
 
@@ -572,6 +626,9 @@ PCS_CONTAINER_DIR="ContainerFile/pcs_container"
 
 # Auth container variables
 AUTH_DIR="ContainerFile/auth"
+
+# Build Stream container variables
+BUILD_STREAM_DIR="ContainerFile/omnia_build_stream"
 
 # Ubuntu LDMS container variables
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
@@ -697,6 +754,20 @@ case "$CONTAINER_ARG" in
         build_image_builder
         ;;
     
+    build-stream)
+        # Build build-stream container
+        ALLOWED_TAG_PARAMS=("build_stream_tag" "omnia_branch")
+        
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for 'build-stream': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+        
+        validate_container_params "build-stream" "${ALLOWED_TAG_PARAMS[@]}"
+        build_omnia_build_stream
+        ;;
+    
     *)
         # Handle individual containers or comma-separated lists
         IFS=',' read -r -a containers <<< "$CONTAINER_ARG"
@@ -747,8 +818,11 @@ case "$CONTAINER_ARG" in
             image-builder)
                 ALLOWED_TAG_PARAMS+=("image_builder_tag")
                 ;;
+            build-stream)
+                ALLOWED_TAG_PARAMS+=("build_stream_tag" "omnia_branch")
+                ;;
             *)
-                echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver, image-builder.${NC}"
+                echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver, image-builder, build-stream.${NC}"
                 exit 1
                 ;;
         esac
@@ -816,6 +890,9 @@ case "$CONTAINER_ARG" in
                 ;;
             image-builder)
                 build_image_builder
+                ;;
+            build-stream)
+                build_omnia_build_stream
                 ;;
         esac
     done
