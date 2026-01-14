@@ -39,6 +39,7 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     go get golang.org/x/crypto@v0.45.0 && \
     go get github.com/containernetworking/plugins@v1.9.0 && \
     go mod tidy && \
+    go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
     rm -rf /tmp/buildah /usr/local/go
