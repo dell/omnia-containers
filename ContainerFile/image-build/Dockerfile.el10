@@ -42,7 +42,10 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
-    rm -rf /tmp/buildah /usr/local/go
+    rm -rf /tmp/buildah /usr/local/go /root/go && \
+    dnf remove -y --noautoremove make gcc git wget glib2-devel gpgme-devel libseccomp-devel libselinux-devel device-mapper-devel btrfs-progs-devel && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
 
 RUN dnf install -y \
         containers-common \
