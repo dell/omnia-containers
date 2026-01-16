@@ -14,7 +14,7 @@ Prerequisites for Deploying the Omnia Core Container
   * One connected to the public network.  
   * One dedicated to internal cluster communication. 
 * Ensure that Podman container engine is installed on your OIM.
-* If PowerScale is configured as the NFS server, navigate to Protocols->NFS->Global Settings and ensure NFSv3 is enabled while NFSv4 is disabled.
+* If PowerScale is configured as the NFS server, navigate to **Protocols** > **NFS** > **Global Settings** and ensure NFSv3 is enabled while NFSv4 is disabled.
 * If you want to use a NFS share for the omnia shared path, ensure the following:
 
   * The NFS share has 755 permissions and ``no_root_squash`` is enabled on the mounted NFS share. 
