@@ -11,7 +11,8 @@ You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) t
 
 * Run ``prepare_oim.yml`` to start the Omnia Auth container.
 
-* Run ``local_repo.yml`` to create offline repositories of OpenLDAP. For more information, `click here <../../CreateLocalRepo/index.html>`_.
+* Run ``local_repo.yml`` to create offline repositories of OpenLDAP. For more information, see :doc:`Create Local Repository <../CreateLocalRepo/index>`.
+.
 
 * Run  ``build_image_x86_64.yml``/ ``build_image_aarch64.yml`` to build the images with OpenLDAP packages on the login node, slurm node, and slurm control node image.
 
