@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,12 @@ FROM fedora:42
 # Build arguments
 ARG OMNIA_VERSION=staging
 
+# Environment variables for Pulp configuration
+ENV PULP_BASE_URL="" \
+    PULP_USERNAME="admin" \
+    PULP_PASSWORD="" \
+    PULP_VERIFY_SSL="false"
+
 # Metadata
 LABEL maintainer="Omnia Team"
 LABEL description="FastAPI service for Omnia Build Stream automation"
@@ -39,34 +45,41 @@ RUN python3 --version
 # Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
 RUN python3 -m pip install --upgrade pip==25.3
 
-# Install/sync python packages using the uv.lock
+# Install uv package manager
 RUN pip3 install uv==0.9.13
-COPY pyproject.toml uv.lock ./
-ENV UV_PROJECT_ENVIRONMENT="/usr"
-RUN uv sync --locked
 
-# Install FastAPI, Uvicorn, and required dependencies
-RUN python3 -m pip install --no-cache-dir \
-    fastapi==0.115.6 \
-    uvicorn[standard]==0.34.0 \
-    python-multipart==0.0.20
+# Copy project configuration files
+COPY pyproject.toml uv.lock ./
+
+# Set UV environment to install packages system-wide
+ENV UV_PROJECT_ENVIRONMENT="/usr"
+
+# Install dependencies using uv from lock file
+RUN uv sync --locked
 
 # Create log directory
 RUN mkdir -p /var/log/omnia_build_stream
 
+# Create the pulp config directory
+RUN mkdir -p /root/.config/pulp
+
 # Create output directories for API operations
 RUN mkdir -p /omnia_build_stream/out/generator /omnia_build_stream/out/adapter/config
 
+# Copy Pulp configuration script
+COPY configure-pulp.sh /configure-pulp.sh
+RUN chmod +x /configure-pulp.sh
+
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port 80
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:80/health || exit 1
 
 # Document security patches
 LABEL security.pip.version="25.3" \
       security.pip.cve="CVE-2025-8869-fixed"
 
-# Start command
-CMD ["python3", "-m", "uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "80"]
+# Set entrypoint to configure Pulp and start the application
+ENTRYPOINT ["/entrypoint.sh"]

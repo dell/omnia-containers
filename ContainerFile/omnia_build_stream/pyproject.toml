@@ -10,5 +10,6 @@ dependencies = [
     "requests==2.32.5",
     "pyyaml==6.0.3",
     "jmespath==1.0.1",
-    "urllib3==2.5.0"
+    "urllib3==2.5.0",
+    "pulp-cli[pygments]==0.33.0"
 ]

@@ -210,11 +210,11 @@ build_omnia_build_stream() {
         IMAGE_DESTINATION="Local (Podman): omnia_build_stream:${BUILD_STREAM_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_build_stream:${BUILD_STREAM_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}"
         else
@@ -848,11 +848,13 @@ case "$CONTAINER_ARG" in
                 build_kafkapump
                 build_victoriapump
                 build_telemetry_receiver
+                build_omnia_build_stream
                 ;;
             oim)
                 build_omnia_core
                 build_omnia_auth
                 build_image_builder
+                build_omnia_build_stream
                 ;;
             core)
                 build_omnia_core
@@ -873,6 +875,7 @@ case "$CONTAINER_ARG" in
                 build_kafkapump
                 build_victoriapump
                 build_telemetry_receiver
+                build_omnia_build_stream
                 ;;
             telemetry)
                 build_kafkapump
