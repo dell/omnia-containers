@@ -68,8 +68,8 @@ RUN chmod +x /configure-pulp.sh
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Expose port 80
-EXPOSE 80
+# Expose port 443
+EXPOSE 443
 
 # Document security patches
 LABEL security.pip.version="25.3" \
