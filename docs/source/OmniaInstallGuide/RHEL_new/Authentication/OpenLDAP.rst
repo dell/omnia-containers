@@ -3,6 +3,8 @@ Step 6: Configure OpenLDAP Proxy for Centralized Authentication
 
 You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) to allow or deny user access from the OpenLDAP server deployed in your environment.
 
+.. note:: Omnia supports external LDAP replication only. User creation within the omnia_auth container is not supported.
+
 **Prerequisites**
 
 * To set up OpenLDAP, ensure that the following entry is present in the ``/opt/omnia/input/project_default/software_config.json``: ::
@@ -37,9 +39,11 @@ Omnia allows to configure OpenLDAP proxy on OIM, where it utilizes the external 
 
 Perform the following steps to configure OpenLDAP as a proxy server on the omnia_core container:
 
-1. Locate the config file present in ``/opt/omnia/auth/``.
+1. Use SSH to log in to the Omnia container.
 
-2. Add the following lines to the ``slapd.conf`` file based on the operating system running on the cluster:
+2. Locate the config file present in ``/opt/omnia/auth/``.
+
+3. Add the following lines to the ``slapd.conf`` file based on the operating system running on the cluster:
 
     For RHEL: ::
 
@@ -118,7 +122,7 @@ Change the **<parameter>** values in the config file, as described below:
              flags=override
              mode=none
 
-3. Once the new configurations are present in the ``slapd.conf`` file, from the OIM node, restart the ``omnia_auth`` service: ::
+4. Once the new configurations are applied in the ``slapd.conf`` file, log out of the ``omnia_core`` container and restart the ``omnia_auth`` service in the OIM::
 
     sudo systemctl restart omnia_auth.service
 
