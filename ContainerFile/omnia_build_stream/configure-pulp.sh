@@ -3,13 +3,11 @@
 
 PULP_CONFIG_DIR="/root/.config/pulp"
 PULP_CONFIG_FILE="${PULP_CONFIG_DIR}/cli.toml"
-LOG_DIR="/var/log/omnia_build_stream"
-LOG_FILE="${LOG_DIR}/pulp_config.log"
 OMNIA_METADATA_FILE="/opt/omnia/.data/oim_metadata.yml"
+LOG_DIR="/opt/omnia/log/build_stream"
+LOG_FILE="${LOG_DIR}/pulp_config.log"
 
-mkdir -p "$LOG_DIR"
-: > "$LOG_FILE"
-
+# Log to both stdout (systemd journal) and file
 echo "$(date): Starting Pulp CLI configuration..." | tee -a "$LOG_FILE"
 
 # Check if required environment variables are set
@@ -80,7 +78,7 @@ echo "  - Verify SSL: ${PULP_VERIFY_SSL}" | tee -a "$LOG_FILE"
 # Test connection if pulp command is available
 if command -v pulp &> /dev/null; then
     echo "$(date): Testing Pulp connection..." | tee -a "$LOG_FILE"
-    if pulp status &>> "$LOG_FILE"; then
+    if pulp status >> "$LOG_FILE" 2>&1; then
         echo "$(date): Successfully connected to Pulp server" | tee -a "$LOG_FILE"
     else
         echo "$(date): WARNING - Could not connect to Pulp server. Check configuration and network." | tee -a "$LOG_FILE"
