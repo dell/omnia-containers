@@ -12,7 +12,6 @@ You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) t
 * Run ``prepare_oim.yml`` to start the Omnia Auth container.
 
 * Run ``local_repo.yml`` to create offline repositories of OpenLDAP. For more information, see :doc:`Create Local Repository <../CreateLocalRepo/index>`.
-.
 
 * Run  ``build_image_x86_64.yml``/ ``build_image_aarch64.yml`` to build the images with OpenLDAP packages on the login node, slurm node, and slurm control node image.
 
@@ -32,11 +31,11 @@ Omnia uses TLS-only connection for authenticate users. The connection type is pr
 Configure OpenLDAP Proxy Server
 --------------------------------
 
-Omnia allows to configure OpenLDAP proxy in OIM, where it utilizes the external LDAP servers as a backend database to store user data and acts as an authentication entity to allow/deny them access to the cluster. OpenLDAP client will be configured through the proxy server which means that there won't be any direct communication between OpenLDAP client and the external LDAP server.
+Omnia allows to configure OpenLDAP proxy on OIM, where it utilizes the external LDAP servers as a backend database to store user data and acts as an authentication entity to allow/deny them access to the cluster. OpenLDAP client will be configured through the proxy server which means that there won't be any direct communication between OpenLDAP client and the external LDAP server.
 
 .. note:: If the OpenLDAP server is set up as a proxy, the user database is not replicated onto the server.
 
-Perform the following steps to configure OpenLDAP as a proxy server on the omnia_auth container:
+Perform the following steps to configure OpenLDAP as a proxy server on the omnia_core container:
 
 1. Locate the config file present in ``/opt/omnia/auth/``.
 
