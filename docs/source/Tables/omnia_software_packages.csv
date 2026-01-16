@@ -93,7 +93,6 @@ csm metadata retriever,Apache-2.0 license,Dell csi-metadata-retriever controller
 snapshot controller,Apache-2.0 license,"The snapshot-controller in Kubernetes manages the creation and management of volume snapshots, enabling point-in-time copies of your data for CSI drivers",8.3.0
 openmpi,BSD-3-Clause-Clear,Open MPI main development repository,5.0.8
 helm,Apache-2.0,Kubernetes Package Manager,3.19.0
-nfs-subdir-external-provisioner image,Apache License 2.0,A dynamic storage provisioner for Kubernetes that uses an existing NFS server to create subdirectories for Persistent Volumes automatically.,4.0.2
 minio,GNU Affero General Public License v3.0 (AGPLv3),MinIO is a high-performance object storage system compatible with the Amazon S3 API.,latest
 registry,Apache-2.0 license,Docker Registry is the official image registry service for storing and distributing Docker images.,latest
 LDMS,GPL-2.0,"OVIS/LDMS High Performance Computing monitoring, analysis, and visualization project.",4.5.1
