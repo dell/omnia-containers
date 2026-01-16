@@ -20,12 +20,6 @@ FROM fedora:42
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Environment variables for Pulp configuration
-ENV PULP_BASE_URL="" \
-    PULP_USERNAME="admin" \
-    PULP_PASSWORD="" \
-    PULP_VERIFY_SSL="false"
-
 # Metadata
 LABEL maintainer="Omnia Team"
 LABEL description="FastAPI service for Omnia Build Stream automation"

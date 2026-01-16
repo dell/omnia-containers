@@ -47,8 +47,8 @@ if [ -z "$PULP_PASSWORD" ]; then
     echo "$(date): WARNING - PULP_PASSWORD not available from any source" | tee -a "$LOG_FILE"
 fi
 
-# Set verify_ssl based on environment variable (default: false for internal deployments)
-PULP_VERIFY_SSL="${PULP_VERIFY_SSL:-false}"
+# Set verify_ssl based on environment variable (default: true for secure connections)
+PULP_VERIFY_SSL="${PULP_VERIFY_SSL:-true}"
 
 # Create pulp CLI configuration
 echo "$(date): Creating Pulp CLI configuration at ${PULP_CONFIG_FILE}" | tee -a "$LOG_FILE"
