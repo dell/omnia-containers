@@ -39,7 +39,9 @@ Omnia allows to configure OpenLDAP proxy on OIM, where it utilizes the external 
 
 Perform the following steps to configure OpenLDAP as a proxy server on the omnia_core container:
 
-1. Use SSH to log in to the Omnia container.
+1. Log in to the omnia_core container::
+
+    ssh omnia_core
 
 2. Locate the config file present in ``/opt/omnia/auth/``.
 
