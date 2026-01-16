@@ -48,6 +48,9 @@ fi
 # Set verify_ssl based on environment variable (default: true for secure connections)
 PULP_VERIFY_SSL="${PULP_VERIFY_SSL:-true}"
 
+# Set Pulp certificate path if SSL verification is enabled
+PULP_CERT_PATH="/etc/pulp/certs/pulp_webserver.crt"
+
 # Create pulp CLI configuration
 echo "$(date): Creating Pulp CLI configuration at ${PULP_CONFIG_FILE}" | tee -a "$LOG_FILE"
 
@@ -57,6 +60,12 @@ base_url = "${PULP_BASE_URL}"
 username = "${PULP_USERNAME}"
 verify_ssl = ${PULP_VERIFY_SSL}
 EOF
+
+# Add cert path if SSL verification is enabled and cert exists
+if [ "${PULP_VERIFY_SSL}" = "true" ] && [ -f "${PULP_CERT_PATH}" ]; then
+    echo "cert = \"${PULP_CERT_PATH}\"" >> "$PULP_CONFIG_FILE"
+    echo "$(date): SSL verification enabled with certificate: ${PULP_CERT_PATH}" | tee -a "$LOG_FILE"
+fi
 
 # Add password if provided
 if [ -n "$PULP_PASSWORD" ]; then
