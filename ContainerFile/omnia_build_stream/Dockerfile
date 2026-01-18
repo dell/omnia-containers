@@ -51,14 +51,12 @@ ENV UV_PROJECT_ENVIRONMENT="/usr"
 # Install dependencies using uv from lock file
 RUN uv sync --locked
 
-# Create log directory
-RUN mkdir -p /var/log/omnia_build_stream
-
-# Create the pulp config directory
-RUN mkdir -p /root/.config/pulp
-
 # Create output directories for API operations
 RUN mkdir -p /omnia_build_stream/out/generator /omnia_build_stream/out/adapter/config
+
+# TODO: Uncomment when api_server.py is available in /opt/omnia/build_stream
+# COPY api_server.py /app/api_server.py
+# WORKDIR /app
 
 # Copy Pulp configuration script
 COPY configure-pulp.sh /configure-pulp.sh
