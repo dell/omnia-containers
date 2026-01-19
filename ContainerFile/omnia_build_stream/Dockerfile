@@ -32,9 +32,9 @@ LABEL org.opencontainers.image.vendor="Dell Technologies"
 LABEL org.opencontainers.image.version="1.0"
 LABEL org.opencontainers.image.base.name="fedora:42"
 
-# Update the system and install Python 3.12 with security updates
+# Update the system and install Python 3.12 with security updates (without pip)
 RUN dnf -y upgrade --refresh && \
-    dnf -y install python3 python3-pip git openssh-clients \
+    dnf -y install python3 git openssh-clients \
     iproute systemd wget curl jq nano iputils && \
     dnf -y upgrade --security && \
     dnf clean all && \
@@ -43,9 +43,10 @@ RUN dnf -y upgrade --refresh && \
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
-RUN python3 -m pip install --upgrade pip==25.3 && \
-    pip3 --version
+# Install pip 25.3 directly to fix CVE-2025-8869
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - pip==25.3 && \
+    pip3 --version && \
+    pip3 list | grep pip
 
 # Install uv package manager
 RUN pip3 install uv==0.9.13
