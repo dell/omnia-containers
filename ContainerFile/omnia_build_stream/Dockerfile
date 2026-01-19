@@ -20,17 +20,16 @@ FROM fedora:42
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Metadata
-LABEL maintainer="Omnia Team"
-LABEL description="FastAPI service for Omnia Build Stream automation"
-LABEL version="1.0"
-LABEL omnia.component="build_stream"
-LABEL omnia.type="api_service"
+# Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation with Pulp CLI integration"
 LABEL org.opencontainers.image.vendor="Dell Technologies"
 LABEL org.opencontainers.image.version="1.0"
 LABEL org.opencontainers.image.base.name="fedora:42"
+
+# Omnia-specific labels for internal tooling
+LABEL omnia.component="build_stream"
+LABEL omnia.type="api_service"
 
 # Update the system and install Python 3.12 with security updates (without pip)
 RUN dnf -y upgrade --refresh && \

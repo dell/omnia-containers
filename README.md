@@ -118,7 +118,6 @@ The `build_images.sh` script builds the following containers:
 - `all` - Builds: all available containers (core, auth, ubuntu-ldms, kafkapump, victoriapump, telemetry-receiver, image-builder)
 - `telemetry` - Builds: kafkapump, victoriapump, and telemetry-receiver containers
 
-**Note**: The `build-stream` container is built separately and is not included in the `all` or `oim` options. Build it individually using `./build_images.sh build-stream`.
 
 **Parameter Validation:**
 The script validates parameters in two stages with context-specific error messages:
