@@ -26,12 +26,19 @@ LABEL description="FastAPI service for Omnia Build Stream automation"
 LABEL version="1.0"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
+LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
+LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation with Pulp CLI integration"
+LABEL org.opencontainers.image.vendor="Dell Technologies"
+LABEL org.opencontainers.image.version="1.0"
+LABEL org.opencontainers.image.base.name="fedora:42"
 
 # Update the system and install Python 3.12 with security updates
-RUN dnf -y update && \
+RUN dnf -y upgrade --refresh && \
     dnf -y install python3 python3-pip git openssh-clients \
     iproute systemd wget curl jq nano iputils && \
-    dnf clean all
+    dnf -y upgrade --security && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
 
 # Verify Python version
 RUN python3 --version
