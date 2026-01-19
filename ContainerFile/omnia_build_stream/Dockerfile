@@ -44,7 +44,8 @@ RUN dnf -y upgrade --refresh && \
 RUN python3 --version
 
 # Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
-RUN python3 -m pip install --upgrade pip==25.3
+RUN python3 -m pip install --upgrade pip==25.3 && \
+    pip3 --version
 
 # Install uv package manager
 RUN pip3 install uv==0.9.13
