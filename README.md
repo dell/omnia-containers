@@ -94,7 +94,7 @@ The `build_images.sh` script builds the following containers:
 **Note:** By default, `build_action=load` loads all built images into your local container engine (Podman or Docker) making them immediately available for use. This is the recommended action for users.
 
 **Omnia Container-Specific Parameters:**
-- `omnia_branch=<branch>` - Omnia branch/tag to use for core and build-stream containers (default: `main`, valid with: `core`, `build-stream`, `oim`, `all`)
+- `omnia_branch=<branch>` - Omnia branch/tag to use for core container (default: `main`, valid with: `core`, `oim`, `all`)
   - ⚠️ **Warning:** If not specified when building core, a warning will be shown with the default branch name
 - `core_tag=<tag>` - Individual tag for omnia_core (valid with: `core`, `oim`, `all`)
 - `auth_tag=<tag>` - Individual tag for omnia_auth (valid with: `auth`, `oim`, `all`)
@@ -111,7 +111,6 @@ The `build_images.sh` script builds the following containers:
 
 **Note**: 
 - Telemetry containers are built from iDRAC-Telemetry-Reference-Tools at commit `e86fecb`. To change the version, modify `IDRAC_TELEMETRY_COMMIT` in `build_images.sh`.
-- The `omnia_build_stream` container uses the Omnia branch specified by `omnia_branch` parameter.
 
 **Special Options:**
 - `oim` - Builds: core, auth, and image-builder containers (required for Omnia deployment) - **This is the default**
@@ -262,17 +261,14 @@ Build individual containers or specific combinations.
 # Build only ubuntu-ldms with specific tag
 ./build_images.sh ubuntu-ldms ubuntu_ldms_tag=1.0
 
-# Build only build-stream (omnia_branch is valid here)
+# Build only build-stream
 ./build_images.sh build-stream
 
-# Build only build-stream with specific branch
-./build_images.sh build-stream omnia_branch=v2.0.0.0
-
-# Build only build-stream with specific tag and branch
-./build_images.sh build-stream build_stream_tag=1.0 omnia_branch=staging
+# Build only build-stream with specific tag
+./build_images.sh build-stream build_stream_tag=1.0
 ```
 
-**Note:** `omnia_branch` is valid when building containers that include `core` or `build-stream` (i.e., `core`, `build-stream`, `oim`, `all`, or any combination including these containers).
+**Note:** `omnia_branch` is only valid when building containers that include `core` (i.e., `core`, `oim`, `all`, or any combination including core).
 
 #### Multiple Specific Containers
 ```bash
@@ -297,14 +293,14 @@ Build individual containers or specific combinations.
 # Build core, auth, and ubuntu-ldms (all three tag parameters are valid)
 ./build_images.sh core,auth,ubuntu-ldms image_tag=1.0
 
-# Build core and build-stream with same branch (both support omnia_branch)
+# Build core and build-stream (only core supports omnia_branch)
 ./build_images.sh core,build-stream omnia_branch=v2.0.0.0
 
 # Build core and build-stream with different tags
 ./build_images.sh core,build-stream core_tag=1.0 build_stream_tag=1.5 omnia_branch=staging
 
 # Build build-stream with telemetry containers
-./build_images.sh build-stream,kafkapump,victoriapump image_tag=1.0 omnia_branch=main
+./build_images.sh build-stream,kafkapump,victoriapump image_tag=1.0
 ```
 
 **Note:** When building multiple containers, only the tag parameters for those specific containers are valid. For example, using `ubuntu_ldms_tag` when building `core,auth` will result in an error.
@@ -357,31 +353,28 @@ The build script supports building the `omnia_build_stream` container, which pro
 ### **Omnia Build Stream** (`build-stream`)
 FastAPI service container for Omnia Build Stream automation. Features:
 - Fedora 42 base with Python 3.12
-- FastAPI and Uvicorn for API service
-- Uses Omnia branch specified by `omnia_branch` parameter
+- Pulp CLI integration with SSL verification
+- FastAPI ready (currently disabled, placeholder for future)
 - Includes security patches (pip 25.3 to fix CVE-2025-8869)
-- Health check endpoint at `/health`
-- Exposed on port 80
+- uv package manager for dependency management
+- Exposed on port 443 (HTTPS)
 
 ## Usage Examples
 
 ### Build Omnia Build Stream Container
 
 ```bash
-# Build build-stream with default settings (main branch)
+# Build build-stream with default settings
 ./build_images.sh build-stream
-
-# Build with specific Omnia branch
-./build_images.sh build-stream omnia_branch=v2.0.0.0
 
 # Build with specific tag
 ./build_images.sh build-stream build_stream_tag=v2.0
 
 # Build with Docker
-./build_images.sh build-stream build_tool=docker omnia_branch=staging
+./build_images.sh build-stream build_tool=docker
 
-# Build with specific branch and tag
-./build_images.sh build-stream omnia_branch=v2.0.0.0 build_stream_tag=2.0
+# Build with Docker and push to registry
+./build_images.sh build-stream build_tool=docker build_action=push
 
 # Build with unified tag (applies to all containers if building multiple)
 ./build_images.sh build-stream image_tag=2.0
@@ -389,25 +382,18 @@ FastAPI service container for Omnia Build Stream automation. Features:
 
 ## Container Details
 
-### Dockerfile Source
-
-The Dockerfile is located at `ContainerFile/omnia_build_stream/Dockerfile` and uses:
-- **Base Image**: Fedora 42
-- **Python Version**: 3.12
-- **Build Argument**: `OMNIA_VERSION` (set via `omnia_branch` parameter)
-- **Dependencies**: Managed via `pyproject.toml` and `uv.lock` using uv package manager
-
 ### Build Process
 
-1. Uses the Omnia branch specified by `omnia_branch` parameter (default: `main`)
+1. Uses Fedora 42 as base image
 2. Installs Python 3.12 and required system packages
-3. Upgrades pip to version 25.3 (fixes CVE-2025-8869)
-4. Installs Python packages using uv with locked dependencies
-5. Installs FastAPI, Uvicorn, and python-multipart
-6. Creates log and output directories
-7. Exposes port 80 with health check endpoint
+3. Installs pip 25.3 directly via get-pip.py (fixes CVE-2025-8869)
+4. Installs uv package manager (v0.9.13)
+5. Installs Python packages using uv with locked dependencies
+6. Installs Pulp CLI, FastAPI, Uvicorn, and other dependencies
+7. Creates output directories for API operations
+8. Exposes port 443 for HTTPS API server (currently disabled)
 
-**Note**: The container uses the same `omnia_branch` parameter as `omnia_core` to ensure consistency across Omnia components.
+**Note**: The container accesses Omnia code at runtime via shared volume mount from `omnia_core`.
 
 ---
 

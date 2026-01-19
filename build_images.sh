@@ -196,7 +196,6 @@ build_omnia_build_stream() {
     echo "Building omnia_build_stream image..."
     echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
-    echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
     echo -e "Using Build Stream Tag: ${YELLOW}${BUILD_STREAM_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
@@ -205,16 +204,16 @@ build_omnia_build_stream() {
     echo -e "${RED}---------------------------------${NC}"
     cd "$BUILD_STREAM_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
+        podman build -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_build_stream:${BUILD_STREAM_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_build_stream:${BUILD_STREAM_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --network=host --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}"
         else

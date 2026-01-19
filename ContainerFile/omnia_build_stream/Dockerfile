@@ -17,9 +17,6 @@
 # Use Fedora 42 as the base image
 FROM fedora:42
 
-# Build arguments
-ARG OMNIA_VERSION=staging
-
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
 LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation with Pulp CLI integration"
