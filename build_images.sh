@@ -755,7 +755,7 @@ case "$CONTAINER_ARG" in
     
     build-stream)
         # Build build-stream container
-        ALLOWED_TAG_PARAMS=("build_stream_tag" "omnia_branch")
+        ALLOWED_TAG_PARAMS=("build_stream_tag")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
@@ -818,7 +818,7 @@ case "$CONTAINER_ARG" in
                 ALLOWED_TAG_PARAMS+=("image_builder_tag")
                 ;;
             build-stream)
-                ALLOWED_TAG_PARAMS+=("build_stream_tag" "omnia_branch")
+                ALLOWED_TAG_PARAMS+=("build_stream_tag")
                 ;;
             *)
                 echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver, image-builder, build-stream.${NC}"
