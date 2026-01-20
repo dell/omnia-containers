@@ -34,7 +34,7 @@ Usage:
 Author: Dell Technologies
 """
 
-from typing import Dict, Any, List, Set
+from typing import Dict, Any
 
 from ..vars.build_image_vars import (
     BUILD_IMAGE_VARS,
@@ -60,7 +60,9 @@ def check_container_running(host, container_name: str) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'details', 'error'
     """
-    cmd = host.run(f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '")
+    cmd = host.run(
+        f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '"
+    )
 
     if cmd.rc == 0 and container_name in cmd.stdout:
         status = cmd.stdout.strip().replace(container_name, "").strip()
@@ -72,7 +74,9 @@ def check_container_running(host, container_name: str) -> Dict[str, Any]:
         }
 
     # Check if container exists but not running
-    exists_cmd = host.run(f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '")
+    exists_cmd = host.run(
+        f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '"
+    )
     if exists_cmd.rc == 0:
         status = exists_cmd.stdout.strip().replace(container_name, "").strip()
         return {
@@ -143,7 +147,9 @@ def check_functional_group_file_exists(host) -> Dict[str, Any]:
         Dict with 'success', 'status', 'details', 'error'
     """
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
-    cmd = host.run(f"podman exec omnia_core test -f {file_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+    cmd = host.run(
+        f"podman exec omnia_core test -f {file_path} && echo 'EXISTS' || echo 'NOT_FOUND'"
+    )
 
     if cmd.rc == 0 and "EXISTS" in cmd.stdout:
         return {
@@ -157,13 +163,15 @@ def check_functional_group_file_exists(host) -> Dict[str, Any]:
         "success": False,
         "status": "not_found",
         "details": None,
-        "error": f"functional_groups_config.yml not found at {file_path} inside omnia_core container"
+        "error": (
+            f"functional_groups_config.yml not found at {file_path} inside omnia_core container"
+        )
     }
 
 
 def check_functional_group_content(host) -> Dict[str, Any]:
     """
-    Validate that functional_groups_config.yml contains all roles and groups from pxe_mapping_file.csv.
+    Validate functional_groups_config.yml contains all roles and groups from pxe_mapping.
 
     Args:
         host: testinfra host object
@@ -228,7 +236,10 @@ def check_functional_group_content(host) -> Dict[str, Any]:
         return {
             "success": True,
             "status": "valid",
-            "details": f"functional_groups_config.yml contains all {len(expected_functional_groups)} functional groups and {len(expected_group_names)} group names",
+            "details": (
+                f"functional_groups_config.yml contains all {len(expected_functional_groups)} "
+                f"functional groups and {len(expected_group_names)} group names"
+            ),
             "error": None,
             "missing_functional_groups": [],
             "found_functional_groups": found_functional_groups,
@@ -245,7 +256,10 @@ def check_functional_group_content(host) -> Dict[str, Any]:
     return {
         "success": False,
         "status": "incomplete",
-        "details": f"Found {len(found_functional_groups)}/{len(expected_functional_groups)} functional groups, {len(found_group_names)}/{len(expected_group_names)} group names",
+        "details": (
+            f"Found {len(found_functional_groups)}/{len(expected_functional_groups)} "
+            f"functional groups, {len(found_group_names)}/{len(expected_group_names)} group names"
+        ),
         "error": "; ".join(error_parts),
         "missing_functional_groups": missing_functional_groups,
         "found_functional_groups": found_functional_groups,
@@ -284,44 +298,46 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
             "found_images": [],
             "missing_images": []
         }
-    
+
     hostname = hostname_cmd.stdout.strip()
     registry_url = f"{hostname}.omnia.test:5000"
-    
+
     # Get functional groups from pxe_mapping
     functional_groups = get_functional_groups_from_pxe_mapping()
-    
+
     # Build expected images list (without hostname prefix for display)
     expected_images = ["rhel-x86_64_base"]  # Base image always required
     for fg in functional_groups:
         expected_images.append(f"rhel-{fg}")
-    
+
     # Run regctl repo ls command
     regctl_cmd = host.run(f"regctl repo ls {registry_url} 2>/dev/null")
-    
+
     if regctl_cmd.rc != 0:
         return {
             "success": False,
             "status": "regctl_failed",
             "details": None,
-            "error": f"Failed to list registry images: {regctl_cmd.stderr or 'regctl command failed'}",
+            "error": (
+                f"Failed to list registry images: {regctl_cmd.stderr or 'regctl command failed'}"
+            ),
             "found_images": [],
             "missing_images": expected_images,
             "registry_url": registry_url
         }
-    
+
     registry_content = regctl_cmd.stdout
-    
+
     # Check for each expected image
     found_images = []
     missing_images = []
-    
+
     for img in expected_images:
         if img in registry_content:
             found_images.append(img)
         else:
             missing_images.append(img)
-    
+
     if not missing_images:
         return {
             "success": True,
@@ -332,7 +348,7 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
             "missing_images": [],
             "registry_url": registry_url
         }
-    
+
     return {
         "success": False,
         "status": "missing_images",
@@ -514,7 +530,7 @@ def run_all_prechecks(host) -> Dict[str, Any]:
     }
 
 
-def run_all_validations(host, skip_on_failure: bool = True) -> Dict[str, Any]:
+def run_all_validations(host, skip_on_failure: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
     """
     Run all post-playbook validations for build_image.
 
