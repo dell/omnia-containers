@@ -131,7 +131,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         
-        # Build ordered list: omnia_sh_install first, then prepare_oim, then build_image
+        # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
         SCENARIOS="omnia_sh_install prepare_oim local_repo build_image"
         
