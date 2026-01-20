@@ -16,7 +16,7 @@
 Build Image - Configuration Variables.
 
 This module loads all configuration for build_image automation.
-Reads from user_config.yml and project_default/pxe_mapping_file.csv.
+Reads pxe_mapping_file_path from provision_config.yml.
 
 Usage:
     from automation_library.build_image.vars.build_image_vars import BUILD_IMAGE_VARS
@@ -28,6 +28,8 @@ import csv
 import os
 from typing import Dict, Any, List, Set
 
+import yaml
+
 from automation_library.checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 
@@ -38,9 +40,31 @@ def _get_project_root() -> str:
     )
 
 
+def _get_pxe_mapping_path_from_provision_config() -> str:
+    """
+    Read pxe_mapping_file_path from provision_config.yml.
+
+    Returns:
+        Full path to pxe_mapping file as specified in provision_config.yml
+    """
+    provision_config_path = os.path.join(
+        _get_project_root(), "project_default", "provision_config.yml"
+    )
+    if os.path.exists(provision_config_path):
+        try:
+            with open(provision_config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                if config and "pxe_mapping_file_path" in config:
+                    return config["pxe_mapping_file_path"]
+        except (IOError, yaml.YAMLError):
+            pass
+    # Return empty string if provision_config.yml not found or pxe_mapping_file_path not set
+    return ""
+
+
 def _load_pxe_mapping() -> List[Dict[str, str]]:
-    """Load pxe_mapping_file.csv from project_default directory."""
-    config_path = os.path.join(_get_project_root(), "project_default", "pxe_mapping_file.csv")
+    """Load pxe_mapping file from path specified in provision_config.yml."""
+    config_path = _get_pxe_mapping_path_from_provision_config()
     if os.path.exists(config_path):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
@@ -52,7 +76,7 @@ def _load_pxe_mapping() -> List[Dict[str, str]]:
 
 
 def _get_functional_groups() -> Set[str]:
-    """Extract unique functional group names from pxe_mapping_file.csv."""
+    """Extract unique functional group names from pxe_mapping file."""
     rows = _load_pxe_mapping()
     groups = set()
     for row in rows:
@@ -63,7 +87,7 @@ def _get_functional_groups() -> Set[str]:
 
 
 def _get_group_names() -> Set[str]:
-    """Extract unique group names from pxe_mapping_file.csv."""
+    """Extract unique group names from pxe_mapping file."""
     rows = _load_pxe_mapping()
     groups = set()
     for row in rows:
@@ -109,7 +133,7 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
     "omnia_shared_path": OIM_PREREQ_VARS.get("omnia_shared_path", "/opt/omnia"),
     "build_image_playbook": "/omnia/build_image_x86_64/build_image_x86_64.yml",
     "functional_group_file_path": "/opt/omnia/.data/functional_groups_config.yml",
-    "pxe_mapping_file": "pxe_mapping_file.csv",
+    "pxe_mapping_file_path": _get_pxe_mapping_path_from_provision_config(),
 
     # =========================================================================
     # S3 COMMANDS
@@ -132,7 +156,7 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
     # TIMEOUTS
     # =========================================================================
     "command_timeout": 60,
-    "playbook_timeout": 3600,  # 60 minutes for build_image playbook
+    "playbook_timeout": 36000,  # 10 hours for build_image playbook
     "container_check_timeout": 10,
 
     # =========================================================================
@@ -144,7 +168,7 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
 
 def get_functional_groups_from_pxe_mapping() -> Set[str]:
     """
-    Get unique functional group names from pxe_mapping_file.csv.
+    Get unique functional group names from pxe_mapping file.
 
     Returns:
         Set of functional group names
@@ -154,7 +178,7 @@ def get_functional_groups_from_pxe_mapping() -> Set[str]:
 
 def get_group_names_from_pxe_mapping() -> Set[str]:
     """
-    Get unique group names from pxe_mapping_file.csv.
+    Get unique group names from pxe_mapping file.
 
     Returns:
         Set of group names
@@ -163,13 +187,21 @@ def get_group_names_from_pxe_mapping() -> Set[str]:
 
 
 def get_pxe_mapping_path() -> str:
-    """Get the path to pxe_mapping_file.csv."""
-    return os.path.join(_get_project_root(), "project_default", "pxe_mapping_file.csv")
+    """Get the path to pxe_mapping file from provision_config.yml."""
+    return _get_pxe_mapping_path_from_provision_config()
+
+
+def get_pxe_mapping_filename() -> str:
+    """Get the filename of pxe_mapping file from provision_config.yml."""
+    path = _get_pxe_mapping_path_from_provision_config()
+    if path:
+        return os.path.basename(path)
+    return "pxe_mapping file"
 
 
 def get_pxe_mapping_data() -> List[Dict[str, str]]:
     """
-    Get all rows from pxe_mapping_file.csv.
+    Get all rows from pxe_mapping file.
 
     Returns:
         List of dictionaries representing CSV rows

@@ -24,6 +24,8 @@ from .build_image_func import (
     check_s3_bucket_images_for_group,
     run_all_prechecks,
     run_all_validations,
+    get_functional_groups_from_container,
+    get_group_names_from_container,
 )
 
 __all__ = [
@@ -36,4 +38,6 @@ __all__ = [
     "check_s3_bucket_images_for_group",
     "run_all_prechecks",
     "run_all_validations",
+    "get_functional_groups_from_container",
+    "get_group_names_from_container",
 ]

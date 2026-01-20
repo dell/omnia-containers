@@ -39,10 +39,99 @@ from typing import Dict, Any
 from ..vars.build_image_vars import (
     BUILD_IMAGE_VARS,
     S3_CONTAINERS,
-    get_functional_groups_from_pxe_mapping,
-    get_group_names_from_pxe_mapping,
+    get_pxe_mapping_filename,
 )
 from ..messages.build_image_msgs import BUILD_IMAGE_MSGS
+
+
+# =============================================================================
+# PXE MAPPING FILE FUNCTIONS (READ FROM CONTAINER)
+# =============================================================================
+
+def get_functional_groups_from_container(host) -> set:
+    """
+    Read pxe_mapping file from inside omnia_core container and extract functional groups.
+    Uses pxe_mapping_file_path from provision_config.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Set of functional group names
+    """
+    pxe_path = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
+    if not pxe_path:
+        return set()
+
+    # Read pxe_mapping file from inside container
+    cmd = host.run(f"podman exec omnia_core cat {pxe_path} 2>/dev/null")
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return set()
+
+    # Parse CSV content
+    lines = cmd.stdout.strip().split('\n')
+    if len(lines) < 2:  # Need header + at least one data row
+        return set()
+
+    # Get header and find FUNCTIONAL_GROUP_NAME column
+    header = lines[0].split(',')
+    try:
+        fg_index = header.index('FUNCTIONAL_GROUP_NAME')
+    except ValueError:
+        return set()
+
+    # Extract functional groups
+    groups = set()
+    for line in lines[1:]:
+        if line.strip():
+            cols = line.split(',')
+            if len(cols) > fg_index and cols[fg_index].strip():
+                groups.add(cols[fg_index].strip())
+
+    return groups
+
+
+def get_group_names_from_container(host) -> set:
+    """
+    Read pxe_mapping file from inside omnia_core container and extract group names.
+    Uses pxe_mapping_file_path from provision_config.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Set of group names
+    """
+    pxe_path = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
+    if not pxe_path:
+        return set()
+
+    # Read pxe_mapping file from inside container
+    cmd = host.run(f"podman exec omnia_core cat {pxe_path} 2>/dev/null")
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return set()
+
+    # Parse CSV content
+    lines = cmd.stdout.strip().split('\n')
+    if len(lines) < 2:
+        return set()
+
+    # Get header and find GROUP_NAME column
+    header = lines[0].split(',')
+    try:
+        grp_index = header.index('GROUP_NAME')
+    except ValueError:
+        return set()
+
+    # Extract group names
+    groups = set()
+    for line in lines[1:]:
+        if line.strip():
+            cols = line.split(',')
+            if len(cols) > grp_index and cols[grp_index].strip():
+                groups.add(cols[grp_index].strip())
+
+    return groups
 
 
 # =============================================================================
@@ -181,16 +270,16 @@ def check_functional_group_content(host) -> Dict[str, Any]:
     """
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
 
-    # Get expected functional groups from pxe_mapping_file.csv
-    expected_functional_groups = get_functional_groups_from_pxe_mapping()
-    expected_group_names = get_group_names_from_pxe_mapping()
+    # Get expected functional groups from pxe_mapping file inside container
+    expected_functional_groups = get_functional_groups_from_container(host)
+    expected_group_names = get_group_names_from_container(host)
 
     if not expected_functional_groups:
         return {
             "success": False,
             "status": "no_expected_groups",
             "details": None,
-            "error": "No functional groups found in pxe_mapping_file.csv",
+            "error": f"No functional groups found in {get_pxe_mapping_filename()}",
             "missing_groups": [],
             "found_groups": []
         }
@@ -278,8 +367,8 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
     Uses: regctl repo ls <hostname>.omnia.test:5000
     
     Expected images:
-    - diyacp/rhel-x86_64_base (always required)
-    - diyacp/rhel-<functional_group> for each group from pxe_mapping
+    - rhel-x86_64_base (always required)
+    - rhel-<functional_group> for each group from pxe_mapping
     
     Args:
         host: testinfra host object
@@ -302,8 +391,8 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
     hostname = hostname_cmd.stdout.strip()
     registry_url = f"{hostname}.omnia.test:5000"
 
-    # Get functional groups from pxe_mapping
-    functional_groups = get_functional_groups_from_pxe_mapping()
+    # Get functional groups from pxe_mapping file inside container
+    functional_groups = get_functional_groups_from_container(host)
 
     # Build expected images list (without hostname prefix for display)
     expected_images = ["rhel-x86_64_base"]  # Base image always required
@@ -378,16 +467,21 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
     """
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
-    functional_groups = get_functional_groups_from_pxe_mapping()
+    functional_groups = get_functional_groups_from_container(host)
 
     if not functional_groups:
         return {
             "success": False,
             "status": "no_groups",
             "details": None,
-            "error": "No functional groups found in pxe_mapping_file.csv",
-            "results": []
+            "error": f"No functional groups found in {get_pxe_mapping_filename()}",
+            "results": [],
+            "s3_output": ""
         }
+
+    # Get complete S3 bucket listing first
+    s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null")
+    s3_output = s3_list_cmd.stdout if s3_list_cmd.rc == 0 else ""
 
     # Check for each functional group's images using grep
     results = []
@@ -423,7 +517,8 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
             "status": "all_found",
             "details": f"All 3 images found for all {total_groups} functional groups in S3 bucket",
             "error": None,
-            "results": results
+            "results": results,
+            "s3_output": s3_output
         }
 
     failed_groups = [r for r in results if not r["success"]]
@@ -438,7 +533,8 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
         "status": "missing_images",
         "details": f"{passed_groups}/{total_groups} functional groups have all images",
         "error": "; ".join(error_details),
-        "results": results
+        "results": results,
+        "s3_output": s3_output
     }
 
 
@@ -530,13 +626,12 @@ def run_all_prechecks(host) -> Dict[str, Any]:
     }
 
 
-def run_all_validations(host, skip_on_failure: bool = True) -> Dict[str, Any]:  # pylint: disable=unused-argument
+def run_all_validations(host) -> Dict[str, Any]:
     """
     Run all post-playbook validations for build_image.
 
     Args:
         host: testinfra host object
-        skip_on_failure: if True, continue all validations even if some fail
 
     Returns:
         Dict with 'success', 'results', 'passed', 'failed', 'skipped', 'summary'

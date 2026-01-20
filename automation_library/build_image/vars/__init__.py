@@ -19,6 +19,7 @@ from .build_image_vars import (
     S3_CONTAINERS,
     get_functional_groups_from_pxe_mapping,
     get_pxe_mapping_path,
+    get_pxe_mapping_filename,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "S3_CONTAINERS",
     "get_functional_groups_from_pxe_mapping",
     "get_pxe_mapping_path",
+    "get_pxe_mapping_filename",
 ]

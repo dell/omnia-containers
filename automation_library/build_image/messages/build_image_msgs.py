@@ -143,11 +143,11 @@ TEST_ASSERT_MSGS = {
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║ Missing functional groups: {missing}
 ║
-║ Expected from pxe_mapping_file.csv:
+║ Expected from pxe_mapping file:
 {expected_list}
 ║
 ║ HOW TO FIX:
-║   1. Verify pxe_mapping_file.csv is correct
+║   1. Verify pxe_mapping file is correct
 ║   2. Check functional_groups_config.yml content: podman exec omnia_core cat /opt/omnia/.data/functional_groups_config.yml
 ║   3. Re-run build_image_x86_64.yml playbook
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -267,7 +267,7 @@ ACTION REQUIRED: S3 container is not running.
     "functional_group_instruction": """
 ACTION REQUIRED: functional_groups_config.yml validation failed.
 - Check file content: podman exec omnia_core cat /opt/omnia/.data/functional_groups_config.yml
-- Verify pxe_mapping_file.csv is correct
+- Verify pxe_mapping file is correct
 - Re-run build_image_x86_64.yml playbook
 """,
 
