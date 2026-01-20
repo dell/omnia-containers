@@ -412,6 +412,12 @@ build_image_builder() {
     echo -e "Using Image Builder Commit: ${YELLOW}${IMAGE_BUILDER_COMMIT}${NC}"
     echo -e "Using Image Builder Tag: ${YELLOW}${IMAGE_BUILDER_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ]; then
+        # Dynamic platform detection for image-builder (only when using docker)
+        DETECTED_PLATFORM="$(docker info --format '{{.OSType}}/{{.Architecture}}')" || {
+            echo -e "${RED}Error: Failed to detect platform. Docker info command failed.${NC}"
+            echo -e "${YELLOW}Please ensure Docker is installed and running.${NC}"
+            exit 1
+        }
         echo -e "Using Detected Platform: ${YELLOW}${DETECTED_PLATFORM}${NC}"
     fi
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
@@ -468,8 +474,6 @@ OMNIA_VERSION="main"
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
-# Dynamic platform detection for image-builder (only used when build_tool=docker)
-DETECTED_PLATFORM="$(docker info --format '{{.OSType}}/{{.Architecture}}' 2>/dev/null || echo 'linux/amd64')"
 
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="1.0"
