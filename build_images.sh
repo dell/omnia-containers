@@ -411,6 +411,9 @@ build_image_builder() {
     echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
     echo -e "Using Image Builder Commit: ${YELLOW}${IMAGE_BUILDER_COMMIT}${NC}"
     echo -e "Using Image Builder Tag: ${YELLOW}${IMAGE_BUILDER_TAG}${NC}"
+    if [ "$BUILD_TOOL" = "docker" ]; then
+        echo -e "Using Detected Platform: ${YELLOW}${DETECTED_PLATFORM}${NC}"
+    fi
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}${NC}"
@@ -428,12 +431,12 @@ build_image_builder() {
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
             docker buildx build --no-cache -t image-build-el10:${IMAGE_BUILDER_TAG} \
-                --file dockerfiles/dnf/Dockerfile.el10 --platform linux/amd64 --load .
+                --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): image-build-el10:${IMAGE_BUILDER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
             docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}" \
-                --file dockerfiles/dnf/Dockerfile.el10 --platform linux/amd64 --provenance=true --sbom=true --push .
+                --file dockerfiles/dnf/Dockerfile.el10 --platform "$DETECTED_PLATFORM" --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}"
         else
@@ -465,6 +468,8 @@ OMNIA_VERSION="main"
 BUILD_TOOL="podman"
 BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
+# Dynamic platform detection for image-builder (only used when build_tool=docker)
+DETECTED_PLATFORM="$(docker info --format '{{.OSType}}/{{.Architecture}}' 2>/dev/null || echo 'linux/amd64')"
 
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="1.0"
