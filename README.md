@@ -362,7 +362,7 @@ FastAPI service container for Omnia Build Stream automation. Features:
 ./build_images.sh build-stream build_stream_tag=v1.0
 
 # Build with Docker and push to registry
-./build_images.sh build-stream build_tool=docker build_action=push
+./build_images.sh build-stream build_tool=docker
 
 ```
 ---
