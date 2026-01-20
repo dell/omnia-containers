@@ -19,7 +19,7 @@ FROM fedora:42
 
 # Metadata - OCI Standard Labels
 LABEL org.opencontainers.image.title="Omnia Build Stream API Server"
-LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation with Pulp CLI integration"
+LABEL org.opencontainers.image.description="API server for Omnia Build Stream automation"
 LABEL org.opencontainers.image.vendor="Dell Technologies"
 LABEL org.opencontainers.image.version="1.0"
 LABEL org.opencontainers.image.base.name="fedora:42"
