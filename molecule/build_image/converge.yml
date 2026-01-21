@@ -43,6 +43,7 @@
     user_config: "{{ hostvars['localhost']['user_config'] }}"
     omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
     build_image_playbook: "/omnia/build_image_x86_64/build_image_x86_64.yml"
+    build_image_log_path: "/opt/omnia/log/core/playbooks/build_image_x86_64.log"
     s3_containers:
       - minio-server
 
@@ -107,15 +108,22 @@
       ansible.builtin.debug:
         msg: "build_image playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
 
+    - name: Ensure log directory exists in container
+      ansible.builtin.command:
+        cmd: podman exec omnia_core mkdir -p /opt/omnia/log/core/playbooks
+      changed_when: false
+
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          podman exec -w /omnia omnia_core \
-            ansible-playbook build_image_x86_64/build_image_x86_64.yml -v \
-            > /tmp/build_image_playbook.log 2>&1
-          exit_code=$?
+          set -o pipefail
+          podman exec -w /omnia omnia_core bash -c \
+            "ansible-playbook build_image_x86_64/build_image_x86_64.yml -v 2>&1 | tee {{ build_image_log_path }}"
+          exit_code=${PIPESTATUS[0]}
           echo "PLAYBOOK_EXIT_CODE:${exit_code}"
           exit ${exit_code}
+      args:
+        executable: /bin/bash
       register: playbook_result
       timeout: 36000
       when: "'EXISTS' in playbook_check.stdout"
@@ -124,7 +132,7 @@
 
     - name: Get last 50 lines of playbook log
       ansible.builtin.shell:
-        cmd: tail -50 /tmp/build_image_playbook.log 2>/dev/null || echo "Log file not found"
+        cmd: podman exec omnia_core tail -50 {{ build_image_log_path }} 2>/dev/null || echo "Log file not found"
       register: playbook_log_tail
       changed_when: false
       when: playbook_result is defined
@@ -136,7 +144,7 @@
           BUILD_IMAGE PLAYBOOK EXECUTION COMPLETE
           ============================================
           Return Code: {{ playbook_result.rc | default('N/A') }}
-          Log File: /tmp/build_image_playbook.log
+          Log File: {{ build_image_log_path }} (inside omnia_core container)
           ============================================
           LAST 50 LINES OF OUTPUT:
           {{ playbook_log_tail.stdout | default('No output available') }}
@@ -163,7 +171,7 @@
           ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
-          ║   2. Check playbook log: cat /tmp/build_image_playbook.log
+          ║   2. Check playbook log: podman exec omnia_core cat {{ build_image_log_path }}
           ║   3. Check omnia logs: ls -la /opt/omnia/log/
           ║   4. Check container status: podman ps -a
           ║   5. Re-run manually inside omnia_core container

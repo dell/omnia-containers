@@ -44,94 +44,11 @@ from ..vars.build_image_vars import (
 from ..messages.build_image_msgs import BUILD_IMAGE_MSGS
 
 
-# =============================================================================
-# PXE MAPPING FILE FUNCTIONS (READ FROM CONTAINER)
-# =============================================================================
-
-def get_functional_groups_from_container(host) -> set:
-    """
-    Read pxe_mapping file from inside omnia_core container and extract functional groups.
-    Uses pxe_mapping_file_path from provision_config.yml.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Set of functional group names
-    """
-    pxe_path = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
-    if not pxe_path:
-        return set()
-
-    # Read pxe_mapping file from inside container
-    cmd = host.run(f"podman exec omnia_core cat {pxe_path} 2>/dev/null")
-    if cmd.rc != 0 or not cmd.stdout.strip():
-        return set()
-
-    # Parse CSV content
-    lines = cmd.stdout.strip().split('\n')
-    if len(lines) < 2:  # Need header + at least one data row
-        return set()
-
-    # Get header and find FUNCTIONAL_GROUP_NAME column
-    header = lines[0].split(',')
-    try:
-        fg_index = header.index('FUNCTIONAL_GROUP_NAME')
-    except ValueError:
-        return set()
-
-    # Extract functional groups
-    groups = set()
-    for line in lines[1:]:
-        if line.strip():
-            cols = line.split(',')
-            if len(cols) > fg_index and cols[fg_index].strip():
-                groups.add(cols[fg_index].strip())
-
-    return groups
-
-
-def get_group_names_from_container(host) -> set:
-    """
-    Read pxe_mapping file from inside omnia_core container and extract group names.
-    Uses pxe_mapping_file_path from provision_config.yml.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Set of group names
-    """
-    pxe_path = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
-    if not pxe_path:
-        return set()
-
-    # Read pxe_mapping file from inside container
-    cmd = host.run(f"podman exec omnia_core cat {pxe_path} 2>/dev/null")
-    if cmd.rc != 0 or not cmd.stdout.strip():
-        return set()
-
-    # Parse CSV content
-    lines = cmd.stdout.strip().split('\n')
-    if len(lines) < 2:
-        return set()
-
-    # Get header and find GROUP_NAME column
-    header = lines[0].split(',')
-    try:
-        grp_index = header.index('GROUP_NAME')
-    except ValueError:
-        return set()
-
-    # Extract group names
-    groups = set()
-    for line in lines[1:]:
-        if line.strip():
-            cols = line.split(',')
-            if len(cols) > grp_index and cols[grp_index].strip():
-                groups.add(cols[grp_index].strip())
-
-    return groups
+# Import pxe_mapping functions from core module for reuse
+from automation_library.core import (
+    get_functional_groups_from_pxe_mapping,
+    get_group_names_from_pxe_mapping,
+)
 
 
 # =============================================================================
@@ -271,8 +188,8 @@ def check_functional_group_content(host) -> Dict[str, Any]:
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
 
     # Get expected functional groups from pxe_mapping file inside container
-    expected_functional_groups = get_functional_groups_from_container(host)
-    expected_group_names = get_group_names_from_container(host)
+    expected_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    expected_group_names = get_group_names_from_pxe_mapping(host)
 
     if not expected_functional_groups:
         return {
@@ -392,7 +309,7 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
     registry_url = f"{hostname}.omnia.test:5000"
 
     # Get functional groups from pxe_mapping file inside container
-    functional_groups = get_functional_groups_from_container(host)
+    functional_groups = get_functional_groups_from_pxe_mapping(host)
 
     # Build expected images list (without hostname prefix for display)
     expected_images = ["rhel-x86_64_base"]  # Base image always required
@@ -467,7 +384,7 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
     """
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
-    functional_groups = get_functional_groups_from_container(host)
+    functional_groups = get_functional_groups_from_pxe_mapping(host)
 
     if not functional_groups:
         return {
@@ -479,8 +396,8 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
             "s3_output": ""
         }
 
-    # Get complete S3 bucket listing first
-    s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null")
+    # Get complete S3 bucket listing (removing s3://boot-images/ and efi-images/ prefix)
+    s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null | sed 's|s3://boot-images/||g' | sed 's|efi-images/||g'")
     s3_output = s3_list_cmd.stdout if s3_list_cmd.rc == 0 else ""
 
     # Check for each functional group's images using grep

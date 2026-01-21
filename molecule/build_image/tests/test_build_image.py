@@ -45,7 +45,7 @@ from automation_library.build_image.functions import (
     check_functional_group_content,
     check_regctl_registry_images,
     check_s3_bucket_images,
-    get_functional_groups_from_container,
+    get_functional_groups_from_pxe_mapping,
 )
 
 
@@ -87,7 +87,7 @@ def test_functional_group_content(host):
     if not file_exists["success"]:
         pytest.skip(f"Skipped - {file_path} does not exist (autogeneration failed)")
 
-    expected_groups = get_functional_groups_from_container(host)
+    expected_groups = get_functional_groups_from_pxe_mapping(host)
     log.check(f"Validating content against {len(expected_groups)} functional groups from pxe_mapping")
 
     result = check_functional_group_content(host)
@@ -117,7 +117,7 @@ def test_functional_group_content(host):
 def test_regctl_registry_images(host):
     """Validate that base and compute images are available in regctl registry."""
     log = TestLogger(TEST_NAMES["regctl_registry_images"])
-    functional_groups = get_functional_groups_from_container(host)
+    functional_groups = get_functional_groups_from_pxe_mapping(host)
     log.check(f"Checking regctl registry for base image + {len(functional_groups)} functional group images")
 
     result = check_regctl_registry_images(host)
@@ -148,28 +148,25 @@ def test_regctl_registry_images(host):
 def test_s3_bucket_images(host):
     """Verify all images are pushed to S3 bucket for all functional groups."""
     log = TestLogger(TEST_NAMES["s3_bucket_images"])
-    functional_groups = get_functional_groups_from_container(host)
+    functional_groups = get_functional_groups_from_pxe_mapping(host)
     image_types = BUILD_IMAGE_VARS["image_types"]
     log.check(f"Checking S3 bucket for {len(functional_groups)} functional groups x {len(image_types)} images each")
 
     result = check_s3_bucket_images(host)
 
-    # Print complete S3 bucket output
+    # Print S3 bucket output grouped by functional group
     s3_output = result.get("s3_output", "")
-    if s3_output:
-        print("\n  ┌─────────────────────────────────────────────────────────────────")
-        print("  │ S3 BUCKET CONTENTS (s3cmd ls -Hr s3://boot-images):")
-        print("  ├─────────────────────────────────────────────────────────────────")
-        for line in s3_output.strip().split("\n"):
-            print(f"  │ {line}")
-        print("  └─────────────────────────────────────────────────────────────────")
+    if s3_output and result.get("results"):
+        print("\n  S3 BUCKET CONTENTS:")
+        for fg_result in result["results"]:
+            fg = fg_result["functional_group"]
+            print(f"\n  {fg}:")
+            for line in s3_output.strip().split("\n"):
+                if f"{fg}/" in line:
+                    print(f"    {line}")
 
     if result["success"]:
-        # Show details for each group
-        group_details = []
-        for fg_result in result["results"]:
-            group_details.append(f"{fg_result['functional_group']}: {', '.join(fg_result['found_images'])}")
-        log.passed(LOG_MSGS["s3_bucket_images_ok"], "\n    ".join(group_details))
+        log.passed(LOG_MSGS["s3_bucket_images_ok"], "")
     else:
         # Build detailed failure message
         failed_groups = [r for r in result["results"] if not r["success"]]
