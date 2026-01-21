@@ -31,7 +31,6 @@ Usage:
         check_s3_bucket_images,
     )
 
-Author: Dell Technologies
 """
 
 from typing import Dict, Any

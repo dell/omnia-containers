@@ -18,7 +18,6 @@ Build Image - Messages and Test Variables.
 This module contains all messages, status strings, error instructions,
 and test variables for the build_image automation.
 
-Author: Dell Technologies
 """
 
 from typing import Dict

@@ -21,7 +21,6 @@ Reads pxe_mapping_file_path from provision_config.yml.
 Usage:
     from automation_library.build_image.vars.build_image_vars import BUILD_IMAGE_VARS
 
-Author: Dell Technologies
 """
 
 import csv

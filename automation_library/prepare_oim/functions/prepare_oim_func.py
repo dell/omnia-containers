@@ -29,7 +29,6 @@ Usage:
         check_auth_container,
     )
 
-Author: Dell Technologies
 """
 
 from typing import Dict, Any
