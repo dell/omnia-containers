@@ -19,6 +19,17 @@ Step 11: Set up Slurm on nodes
 
 .. note:: If you want to deploy only Slurm clusters (``slurm_custom``), the ``idrac_telemetry_support`` parameter must be set to ``false`` in the ``telemetry_config.yml`` file. Omnia is Validated for Slurm version 25.05. If you use any other version, some functionality like PAM may not work.
 
+5. To export openmpi, do the following: ::
+
+                export MPI_HOME=/share_omnia/benchmarks/openmpi
+
+                export PATH=$MPI_HOME/bin:$PATH
+
+                export LD_LIBRARY_PATH=$MPI_HOME/lib:$MPI_HOME/lib64:$LD_LIBRARY_PATH
+
+                <share_omnia> : nfs client share path for slurm in storage_config.yml
+
+
 **Slurm with GPU:**
 
 **Prerequisites**
