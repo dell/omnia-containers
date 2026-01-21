@@ -7,6 +7,7 @@ This section outlines the key requirements for the components used by Omnia to d
 NFS Server
 -----------
 
+* If PowerScale is configured as the NFS server, navigate to **Protocols** > **NFS** > **Global Settings** and ensure NFSv3 is enabled while NFSv4 is disabled.
 * Choose an NFS server located outside your cluster.
 * The NFS share has **755 permissions** and ``no_root_squash`` is enabled during mount.
 * To enable ``no_root_squash``, edit the ``/etc/exports`` file on the NFS server and include the option for the exported path, run the following command:
