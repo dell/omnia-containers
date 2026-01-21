@@ -78,7 +78,7 @@ TELEMETRY_VARS: Dict[str, Any] = {
     "telemetry_namespace": "telemetry",
 
     # Functional group for K8s control plane (used to get admin IP for SSH)
-    "k8s_control_plane_functional_group": "service_kube_control_plane",
+    "k8s_control_plane_functional_group": "service_kube_control_plane_x86_64",
 
     # iDRAC telemetry pod prefix
     "idrac_telemetry_pod_prefix": "idrac-telemetry",

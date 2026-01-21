@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,12 +30,9 @@ from .idrac_telemetry_vars import (
 from .kafka_vars import (
     TELEMETRY_CONFIG_PATH,
     SOFTWARE_CONFIG_PATH,
-    KAFKA_BOOTSTRAP_SERVER,
-    KAFKA_CLUSTER_CA_SECRET,
-    KAFKA_USER_SECRET,
-    KAFKA_STRIMZI_IMAGE,
-    KAFKA_MTLS_TEST_JOB_PREFIX,
     KAFKA_CMD_TEMPLATES,
     LDMS_AGGR_POD_PREFIX,
     LDMS_STORE_POD_PREFIX,
+    KAFKA_BRIDGE_SERVICE,
+    KAFKA_BRIDGE_PORT,
 )

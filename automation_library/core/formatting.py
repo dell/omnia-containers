@@ -198,6 +198,13 @@ class TestLogger:
             for line in details.split('\n'):
                 self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")
 
+    def skipped(self, message: str, details: str = None):
+        """Log skipped result."""
+        self._add_line(f"  {Colors.BRIGHT_YELLOW}{Symbols.CIRCLE} SKIP:{Colors.RESET} {message}")
+        if details:
+            for line in details.split('\n'):
+                self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")
+
     def get_output(self) -> str:
         """Get all captured output."""
         return "\n".join(self._output_lines)

@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,17 +30,18 @@ from ..vars.idrac_telemetry_vars import (
     TELEMETRY_NAMESPACE,
     CMD_TEMPLATES,
 )
+from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
+from ..messages.telemetry_msgs import SHARED_ASSERT_MSGS
 from ..vars.kafka_vars import (
     TELEMETRY_CONFIG_PATH,
     SOFTWARE_CONFIG_PATH,
-    KAFKA_BOOTSTRAP_SERVER,
-    KAFKA_CLUSTER_CA_SECRET,
-    KAFKA_USER_SECRET,
-    KAFKA_STRIMZI_IMAGE,
-    KAFKA_MTLS_TEST_JOB_PREFIX,
     KAFKA_CMD_TEMPLATES,
     LDMS_AGGR_POD_PREFIX,
     LDMS_STORE_POD_PREFIX,
+    KAFKA_BRIDGE_SERVICE,
+    KAFKA_BRIDGE_PORT,
+    LDMS_FUNCTIONAL_GROUPS,
+    OIM_METADATA_PATH,
 )
 
 
@@ -62,13 +63,13 @@ def get_telemetry_config(host) -> Dict[str, Any]:
     cmd = host.run(f"podman exec {container} cat {TELEMETRY_CONFIG_PATH}")
 
     if cmd.rc != 0:
-        return {"error": f"Failed to read telemetry_config.yml: {cmd.stderr}"}
+        return {"error": SHARED_ASSERT_MSGS["telemetry_config_read_failed"].format(error=cmd.stderr)}
 
     try:
         config = yaml.safe_load(cmd.stdout)
         return config if config else {}
     except yaml.YAMLError as e:
-        return {"error": f"Failed to parse telemetry_config.yml: {e}"}
+        return {"error": SHARED_ASSERT_MSGS["telemetry_config_parse_failed"].format(error=e)}
 
 
 def get_software_config(host) -> Dict[str, Any]:
@@ -85,13 +86,13 @@ def get_software_config(host) -> Dict[str, Any]:
     cmd = host.run(f"podman exec {container} cat {SOFTWARE_CONFIG_PATH}")
 
     if cmd.rc != 0:
-        return {"error": f"Failed to read software_config.json: {cmd.stderr}"}
+        return {"error": SHARED_ASSERT_MSGS["software_config_read_failed"].format(error=cmd.stderr)}
 
     try:
         config = json.loads(cmd.stdout)
         return config if config else {}
     except json.JSONDecodeError as e:
-        return {"error": f"Failed to parse software_config.json: {e}"}
+        return {"error": SHARED_ASSERT_MSGS["software_config_parse_failed"].format(error=e)}
 
 
 def is_kafka_enabled(host) -> bool:
@@ -242,43 +243,12 @@ def get_kafka_cluster_config(host, admin_ip: str) -> Dict[str, Any]:
 
     cmd = host.run(full_cmd)
     if cmd.rc != 0:
-        return {"error": "Failed to get Kafka cluster config"}
+        return {"error": KAFKA_ASSERT_MSGS["kafka_cluster_config_failed"]}
 
     try:
         return json.loads(cmd.stdout)
     except json.JSONDecodeError:
-        return {"error": "Failed to parse Kafka cluster config"}
-
-
-def get_kafka_topics(host, admin_ip: str) -> List[Dict[str, Any]]:
-    """
-    Get Kafka topics from K8s.
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Admin IP of K8s node
-
-    Returns:
-        List of Kafka topic configs
-    """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
-    kubectl_cmd = KAFKA_CMD_TEMPLATES["get_kafka_topics"].format(namespace=TELEMETRY_NAMESPACE)
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
-    if cmd.rc != 0:
-        return []
-
-    try:
-        data = json.loads(cmd.stdout)
-        return data.get("items", [])
-    except json.JSONDecodeError:
-        return []
+        return {"error": KAFKA_ASSERT_MSGS["kafka_cluster_parse_failed"]}
 
 
 def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
@@ -318,7 +288,7 @@ def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
     if "log_retention_hours" not in expected_config:
         return {
             "success": False,
-            "error": "log_retention_hours not found in telemetry_config.yml",
+            "error": KAFKA_ASSERT_MSGS["kafka_config_missing"].format(config="log_retention_hours"),
             "mismatches": [],
         }
     expected_retention = expected_config["log_retention_hours"]
@@ -334,7 +304,7 @@ def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
     if "log_retention_bytes" not in expected_config:
         return {
             "success": False,
-            "error": "log_retention_bytes not found in telemetry_config.yml",
+            "error": KAFKA_ASSERT_MSGS["kafka_config_missing"].format(config="log_retention_bytes"),
             "mismatches": [],
         }
     expected_bytes = expected_config["log_retention_bytes"]
@@ -350,7 +320,7 @@ def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
     if "log_segment_bytes" not in expected_config:
         return {
             "success": False,
-            "error": "log_segment_bytes not found in telemetry_config.yml",
+            "error": KAFKA_ASSERT_MSGS["kafka_config_missing"].format(config="log_segment_bytes"),
             "mismatches": [],
         }
     expected_segment = expected_config["log_segment_bytes"]
@@ -370,132 +340,192 @@ def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
     }
 
 
-def verify_kafka_topics(host, admin_ip: str) -> Dict[str, Any]:
+def get_kafka_bridge_ip(host, admin_ip: str) -> str:
     """
-    Verify Kafka topics match expected configuration.
-
-    - idrac topic: Required when kafka is enabled
-    - ldms topic: Required only if ldms is in software_config.json
+    Get the external IP of the Kafka bridge (REST proxy) LoadBalancer service.
 
     Args:
         host: Testinfra host object
         admin_ip: Admin IP of K8s node
 
     Returns:
-        Dict with success, topic_results, errors
+        Bridge LB IP address, or empty string if not found
     """
+    container = TELEMETRY_VARS["container_name"]
+    ssh_opts = CMD_TEMPLATES["ssh_opts"]
+
+    kubectl_cmd = KAFKA_CMD_TEMPLATES["get_bridge_lb_ip"].format(
+        service=KAFKA_BRIDGE_SERVICE,
+        namespace=TELEMETRY_NAMESPACE
+    )
+    full_cmd = (
+        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+        f"'{kubectl_cmd}' 2>/dev/null"
+    )
+
+    cmd = host.run(full_cmd)
+    if cmd.rc != 0:
+        return ""
+
+    return cmd.stdout.strip().strip("'")
+
+
+def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify Kafka topics exist via REST proxy.
+
+    Checks:
+    1. If kafka not in idrac_telemetry_collection_type -> skip (return skip=True)
+    2. If idrac_telemetry_support=true AND kafka in collection_type -> idrac topic MUST exist
+    3. If idrac_telemetry_support=false AND idrac topic exists -> FAIL (should not exist)
+    4. If ldms in software_config.json -> ldms topic MUST exist
+    5. If ldms NOT in software_config.json AND ldms topic exists -> FAIL (should not exist)
+
+    All checks run and all errors are collected before returning.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s node
+
+    Returns:
+        Dict with success, skip, topics list, bridge_ip, errors
+    """
+    # Get telemetry config
+    config = get_telemetry_config(host)
+    if config.get("error"):
+        return {
+            "success": False,
+            "skip": False,
+            "topics": [],
+            "bridge_ip": "",
+            "error": f"Failed to read telemetry_config.yml: {config.get('error')}"
+        }
+
+    # Check if kafka is in collection type
+    collection_type = config.get("idrac_telemetry_collection_type", "")
+    kafka_enabled = "kafka" in collection_type.lower()
+
+    if not kafka_enabled:
+        return {
+            "success": True,
+            "skip": True,
+            "skip_reason": "kafka not in idrac_telemetry_collection_type",
+            "topics": [],
+            "bridge_ip": "",
+            "error": ""
+        }
+
+    # Get idrac_telemetry_support
+    idrac_telemetry_support = config.get("idrac_telemetry_support", False)
+
+    # Get ldms enabled status
     ldms_enabled = is_ldms_enabled(host)
-    expected_partitions = get_topic_partitions_config(host)
-    actual_topics = get_kafka_topics(host, admin_ip)
 
-    # Build expected topics dict (no default partitions - must be in config)
-    expected_topics = {}
-    for tp in expected_partitions:
-        name = tp.get("name", "")
-        if "partitions" not in tp:
-            return {
-                "success": False,
-                "error": f"partitions not defined for topic '{name}' in telemetry_config.yml",
-            }
-        partitions = tp["partitions"]
-        expected_topics[name] = partitions
+    # Get bridge IP
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+    if not bridge_ip:
+        return {
+            "success": False,
+            "skip": False,
+            "topics": [],
+            "bridge_ip": "",
+            "error": KAFKA_ASSERT_MSGS["kafka_bridge_not_found"]
+        }
 
-    # Build actual topics dict
-    actual_topics_dict = {}
-    for topic in actual_topics:
-        name = topic.get("metadata", {}).get("name", "")
-        partitions = topic.get("spec", {}).get("partitions")
-        actual_topics_dict[name] = partitions
+    # Get topics via REST proxy
+    container = TELEMETRY_VARS["container_name"]
+    ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
-    topic_results = []
+    curl_cmd = KAFKA_CMD_TEMPLATES["rest_list_topics"].format(
+        bridge_ip=bridge_ip,
+        port=KAFKA_BRIDGE_PORT
+    )
+    full_cmd = (
+        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+        f"'{curl_cmd}' 2>/dev/null"
+    )
+
+    cmd = host.run(full_cmd)
+    if cmd.rc != 0:
+        return {
+            "success": False,
+            "skip": False,
+            "topics": [],
+            "bridge_ip": bridge_ip,
+            "error": KAFKA_ASSERT_MSGS["kafka_rest_connection_failed"].format(bridge_ip=bridge_ip)
+        }
+
+    try:
+        topics = json.loads(cmd.stdout)
+    except json.JSONDecodeError:
+        return {
+            "success": False,
+            "skip": False,
+            "topics": [],
+            "bridge_ip": bridge_ip,
+            "error": KAFKA_ASSERT_MSGS["kafka_rest_parse_failed"].format(response=cmd.stdout[:200])
+        }
+
+    # Run all checks and collect errors
     errors = []
+    topic_results = []
+    idrac_exists = "idrac" in topics
+    ldms_exists = "ldms" in topics
 
-    # Check idrac topic (required)
-    if "idrac" in expected_topics:
-        if "idrac" in actual_topics_dict:
-            expected_p = expected_topics["idrac"]
-            actual_p = actual_topics_dict["idrac"]
-            match = expected_p == actual_p
-            topic_results.append({
-                "topic": "idrac",
-                "expected_partitions": expected_p,
-                "actual_partitions": actual_p,
-                "exists": True,
-                "partitions_match": match,
-                "required": True,
-            })
-            if not match:
-                errors.append(f"idrac topic partitions mismatch: expected {expected_p}, actual {actual_p}")
-        else:
-            topic_results.append({
-                "topic": "idrac",
-                "expected_partitions": expected_topics.get("idrac"),
-                "actual_partitions": 0,
-                "exists": False,
-                "partitions_match": False,
-                "required": True,
-            })
-            errors.append("idrac topic not found but is required")
+    # Check 1: idrac topic
+    if idrac_telemetry_support:
+        # idrac_telemetry_support=true -> idrac topic MUST exist
+        topic_results.append({
+            "topic": "idrac",
+            "exists": idrac_exists,
+            "required": True,
+            "reason": "idrac_telemetry_support=true",
+        })
+        if not idrac_exists:
+            errors.append("idrac topic not found but idrac_telemetry_support=true")
+    else:
+        # idrac_telemetry_support=false -> idrac topic should NOT exist
+        topic_results.append({
+            "topic": "idrac",
+            "exists": idrac_exists,
+            "required": False,
+            "reason": "idrac_telemetry_support=false",
+        })
+        if idrac_exists:
+            errors.append("idrac topic exists but idrac_telemetry_support=false")
 
-    # Check ldms topic (required only if ldms enabled)
-    if "ldms" in expected_topics:
-        if ldms_enabled:
-            # ldms is enabled, topic should exist
-            if "ldms" in actual_topics_dict:
-                expected_p = expected_topics["ldms"]
-                actual_p = actual_topics_dict["ldms"]
-                match = expected_p == actual_p
-                topic_results.append({
-                    "topic": "ldms",
-                    "expected_partitions": expected_p,
-                    "actual_partitions": actual_p,
-                    "exists": True,
-                    "partitions_match": match,
-                    "required": True,
-                })
-                if not match:
-                    errors.append(f"ldms topic partitions mismatch: expected {expected_p}, actual {actual_p}")
-            else:
-                topic_results.append({
-                    "topic": "ldms",
-                    "expected_partitions": expected_topics.get("ldms"),
-                    "actual_partitions": 0,
-                    "exists": False,
-                    "partitions_match": False,
-                    "required": True,
-                })
-                errors.append("ldms topic not found but ldms is enabled in software_config.json")
-        else:
-            # ldms is not enabled, topic should NOT exist
-            if "ldms" in actual_topics_dict:
-                topic_results.append({
-                    "topic": "ldms",
-                    "expected_partitions": 0,
-                    "actual_partitions": actual_topics_dict["ldms"],
-                    "exists": True,
-                    "partitions_match": False,
-                    "required": False,
-                })
-                errors.append("ldms topic exists but ldms is not enabled in software_config.json")
-            else:
-                topic_results.append({
-                    "topic": "ldms",
-                    "expected_partitions": 0,
-                    "actual_partitions": 0,
-                    "exists": False,
-                    "partitions_match": True,
-                    "required": False,
-                })
-
-    # Get list of all topic names
-    all_topics = list(actual_topics_dict.keys())
+    # Check 2: ldms topic
+    if ldms_enabled:
+        # ldms in software_config -> ldms topic MUST exist
+        topic_results.append({
+            "topic": "ldms",
+            "exists": ldms_exists,
+            "required": True,
+            "reason": "ldms enabled in software_config.json",
+        })
+        if not ldms_exists:
+            errors.append("ldms topic not found but ldms is enabled in software_config.json")
+    else:
+        # ldms NOT in software_config -> ldms topic should NOT exist
+        topic_results.append({
+            "topic": "ldms",
+            "exists": ldms_exists,
+            "required": False,
+            "reason": "ldms not in software_config.json",
+        })
+        if ldms_exists:
+            errors.append("ldms topic exists but ldms is not enabled in software_config.json")
 
     return {
         "success": len(errors) == 0,
+        "skip": False,
+        "topics": topics,
+        "bridge_ip": bridge_ip,
+        "idrac_telemetry_support": idrac_telemetry_support,
         "ldms_enabled": ldms_enabled,
         "topic_results": topic_results,
-        "all_topics": all_topics,
         "errors": errors,
+        "error": "; ".join(errors) if errors else "",
     }
 
 
@@ -536,7 +566,7 @@ def verify_ldms_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     if cmd.rc != 0:
         return {
             "success": False,
-            "error": f"Failed to get pods: {cmd.stderr}",
+            "error": KAFKA_ASSERT_MSGS["pods_get_failed"].format(error=cmd.stderr),
         }
 
     try:
@@ -545,7 +575,7 @@ def verify_ldms_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         return {
             "success": False,
-            "error": "Failed to parse pods JSON",
+            "error": KAFKA_ASSERT_MSGS["pods_parse_failed"],
         }
 
     pod_results = []
@@ -646,7 +676,7 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
     if cmd.rc != 0:
         return {
             "success": False,
-            "error": f"Failed to get services: {cmd.stderr}",
+            "error": KAFKA_ASSERT_MSGS["services_get_failed"].format(error=cmd.stderr),
         }
 
     try:
@@ -655,7 +685,7 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
     except json.JSONDecodeError:
         return {
             "success": False,
-            "error": "Failed to parse services JSON",
+            "error": KAFKA_ASSERT_MSGS["services_parse_failed"],
         }
 
     service_results = []
@@ -707,275 +737,6 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
         },
         "service_results": service_results,
         "errors": errors,
-    }
-
-
-# =============================================================================
-# KAFKA mTLS CONNECTION VERIFICATION (Job-based approach)
-# =============================================================================
-
-def _cleanup_mtls_test_job(host, admin_ip: str, job_name: str) -> None:
-    """Delete the mTLS test job and its pods with force delete."""
-    from automation_library.core import run_on_remote_node
-
-    # First delete the job
-    delete_job_cmd = KAFKA_CMD_TEMPLATES["delete_job"].format(
-        job_name=job_name, namespace=TELEMETRY_NAMESPACE
-    )
-    run_on_remote_node(host, delete_job_cmd, admin_ip)
-
-    # Force delete any pods that might be stuck in Terminating state
-    force_delete_pods_cmd = KAFKA_CMD_TEMPLATES["force_delete_pods"].format(
-        namespace=TELEMETRY_NAMESPACE, job_name=job_name
-    )
-    run_on_remote_node(host, force_delete_pods_cmd, admin_ip)
-
-
-def _create_mtls_test_job(host, admin_ip: str, job_name: str) -> bool:
-    """
-    Create a Job for mTLS testing with sleep command to keep pod running.
-
-    The job runs 'sleep 300' to keep the pod alive for 5 minutes,
-    allowing us to exec into it and run test commands.
-    """
-    from automation_library.core import run_on_remote_node
-
-    job_yaml = f"""apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {job_name}
-  namespace: {TELEMETRY_NAMESPACE}
-spec:
-  ttlSecondsAfterFinished: 60
-  backoffLimit: 0
-  template:
-    spec:
-      restartPolicy: Never
-      volumes:
-        - name: kafka-cluster-ca-cert
-          secret:
-            secretName: {KAFKA_CLUSTER_CA_SECRET}
-        - name: kafkapump-user-certs
-          secret:
-            secretName: {KAFKA_USER_SECRET}
-      containers:
-        - name: kafka-mtls-test
-          image: {KAFKA_STRIMZI_IMAGE}
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - mountPath: /etc/kafka/cluster-ca
-              name: kafka-cluster-ca-cert
-              readOnly: true
-            - mountPath: /etc/kafka/kafkapump-certs
-              name: kafkapump-user-certs
-              readOnly: true
-          command: [\\"/bin/bash\\", \\"-c\\", \\"sleep 300\\"]
-"""
-
-    # Apply job via echo and pipe
-    apply_cmd = f'echo "{job_yaml}" | kubectl apply -f -'
-    result = run_on_remote_node(host, apply_cmd, admin_ip)
-    return result.rc == 0
-
-
-def _wait_for_pod_running(host, admin_ip: str, job_name: str, timeout: int = 60) -> str:
-    """Wait for the job's pod to be in Running state and return pod name."""
-    from automation_library.core import run_on_remote_node
-
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        # Get pod name from job
-        get_pod_cmd = KAFKA_CMD_TEMPLATES["get_pod_by_job"].format(
-            namespace=TELEMETRY_NAMESPACE, job_name=job_name
-        )
-        result = run_on_remote_node(host, get_pod_cmd, admin_ip)
-
-        if result.rc == 0 and result.stdout.strip():
-            pod_name = result.stdout.strip()
-
-            # Check if pod is running
-            status_cmd = KAFKA_CMD_TEMPLATES["get_pod_status"].format(
-                pod_name=pod_name, namespace=TELEMETRY_NAMESPACE
-            )
-            result = run_on_remote_node(host, status_cmd, admin_ip)
-
-            if result.stdout.strip() == "Running":
-                return pod_name
-
-        time.sleep(2)
-
-    return ""
-
-
-def _exec_in_pod(host, admin_ip: str, pod_name: str, command: str) -> Dict[str, Any]:
-    """Execute a command inside the pod.
-
-    Note: run_on_remote_node wraps cmd in single quotes, so we use double quotes
-    for the inner bash -c command and escape any double quotes in the command.
-    """
-    from automation_library.core import run_in_container
-
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
-    # Escape double quotes in command
-    escaped_cmd = command.replace('"', '\\"')
-    # Use template for kubectl exec
-    kubectl_cmd = KAFKA_CMD_TEMPLATES["exec_in_pod"].format(
-        namespace=TELEMETRY_NAMESPACE, pod_name=pod_name, command=escaped_cmd
-    )
-    ssh_cmd = f"ssh {ssh_opts} root@{admin_ip} '{kubectl_cmd}'"
-    result = run_in_container(host, ssh_cmd)
-    return {"rc": result.rc, "stdout": result.stdout, "stderr": result.stderr}
-
-
-def verify_kafka_mtls_connection(host, admin_ip: str) -> Dict[str, Any]:
-    """
-    Verify Kafka mTLS connection using a Job-based approach.
-
-    Steps:
-    1. Delete existing test job if present
-    2. Create a new job with mounted secrets (runs sleep to keep pod alive)
-    3. Wait for pod to be running
-    4. Exec into pod and run mTLS test commands:
-       - Create truststore from cluster CA
-       - Create keystore from kafkapump certs
-       - Create client properties
-       - List topics via mTLS
-    5. Cleanup: delete the job
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Admin IP of K8s node
-
-    Returns:
-        Dict with success, step results, topics_listed, error
-    """
-    from automation_library.core import run_on_remote_node
-
-    # Generate unique job name
-    job_name = f"{KAFKA_MTLS_TEST_JOB_PREFIX}-{int(time.time()) % 10000}"
-
-    results = {
-        "truststore_created": False,
-        "keystore_created": False,
-        "client_properties_created": False,
-        "mtls_connection_success": False,
-        "topics_listed": [],
-        "idrac_topic_data": False,
-        "ldms_topic_data": False,
-        "steps": [],
-        "job_name": job_name,
-    }
-
-    try:
-        # Step 0: Cleanup any existing test jobs/pods from previous runs
-        _cleanup_mtls_test_job(host, admin_ip, job_name)
-        results["steps"].append({"step": "Cleanup existing jobs", "success": True})
-
-        # Step 1: Check if required secrets exist
-        result = run_on_remote_node(host, f"kubectl get secret {KAFKA_USER_SECRET} -n {TELEMETRY_NAMESPACE} -o name", admin_ip)
-        if result.rc != 0 or KAFKA_USER_SECRET not in result.stdout:
-            return {"success": False, **results, "error": f"Secret {KAFKA_USER_SECRET} not found"}
-
-        result = run_on_remote_node(host, f"kubectl get secret {KAFKA_CLUSTER_CA_SECRET} -n {TELEMETRY_NAMESPACE} -o name", admin_ip)
-        if result.rc != 0 or KAFKA_CLUSTER_CA_SECRET not in result.stdout:
-            return {"success": False, **results, "error": f"Secret {KAFKA_CLUSTER_CA_SECRET} not found"}
-        
-        results["steps"].append({"step": "Verify secrets exist", "success": True})
-
-        # Step 2: Create the test job
-        if not _create_mtls_test_job(host, admin_ip, job_name):
-            return {"success": False, **results, "error": "Failed to create test job"}
-        results["steps"].append({"step": "Create test job", "success": True})
-
-        # Step 3: Wait for pod to be running
-        pod_name = _wait_for_pod_running(host, admin_ip, job_name, timeout=60)
-        if not pod_name:
-            _cleanup_mtls_test_job(host, admin_ip, job_name)
-            return {"success": False, **results, "error": "Test pod did not start in time"}
-        results["steps"].append({"step": f"Pod {pod_name} running", "success": True})
-
-        # Step 4: Create truststore from cluster CA
-        result = _exec_in_pod(host, admin_ip, pod_name, KAFKA_CMD_TEMPLATES["create_truststore"])
-        if result["rc"] == 0:
-            results["truststore_created"] = True
-            results["steps"].append({"step": "Create truststore", "success": True})
-        else:
-            results["steps"].append({"step": "Create truststore", "success": False, "error": result["stdout"]})
-
-        # Step 5: Create keystore from kafkapump certs
-        result = _exec_in_pod(host, admin_ip, pod_name, KAFKA_CMD_TEMPLATES["create_keystore"])
-        if result["rc"] == 0:
-            results["keystore_created"] = True
-            results["steps"].append({"step": "Create keystore", "success": True})
-        else:
-            results["steps"].append({"step": "Create keystore", "success": False, "error": result["stdout"]})
-
-        # Step 6: Create client properties
-        result = _exec_in_pod(host, admin_ip, pod_name, KAFKA_CMD_TEMPLATES["create_client_properties"])
-        if result["rc"] == 0:
-            results["client_properties_created"] = True
-            results["steps"].append({"step": "Create client properties", "success": True})
-        else:
-            results["steps"].append({"step": "Create client properties", "success": False, "error": result["stdout"]})
-
-        # Step 7: List topics via mTLS
-        list_topics_cmd = KAFKA_CMD_TEMPLATES["list_topics"].format(bootstrap_server=KAFKA_BOOTSTRAP_SERVER)
-        result = _exec_in_pod(host, admin_ip, pod_name, list_topics_cmd)
-        if result["rc"] == 0 and result["stdout"].strip():
-            results["mtls_connection_success"] = True
-            # Filter out empty lines and log messages
-            topics = [t.strip() for t in result["stdout"].strip().split('\n') 
-                     if t.strip() and not t.startswith('[') and not t.startswith('Warning')]
-            results["topics_listed"] = topics
-            results["steps"].append({"step": "List topics via mTLS", "success": True, "topics": topics})
-        else:
-            results["steps"].append({"step": "List topics via mTLS", "success": False, "error": result["stdout"]})
-
-        # Step 8: Test idrac topic consumer (optional - just check if we can consume)
-        if "idrac" in results["topics_listed"]:
-            idrac_consumer_cmd = (
-                f"timeout 10 /opt/kafka/bin/kafka-console-consumer.sh "
-                f"--bootstrap-server {KAFKA_BOOTSTRAP_SERVER} "
-                "--topic idrac "
-                "--consumer.config /tmp/client.properties "
-                "--from-beginning --max-messages 1 2>/dev/null || true"
-            )
-            result = _exec_in_pod(host, admin_ip, pod_name, idrac_consumer_cmd)
-            # Even timeout is OK - it means we connected successfully
-            results["idrac_topic_data"] = True
-            results["steps"].append({"step": "Test idrac topic consumer", "success": True})
-
-        # Step 9: Test ldms topic consumer (optional)
-        if "ldms" in results["topics_listed"]:
-            ldms_consumer_cmd = (
-                f"timeout 10 /opt/kafka/bin/kafka-console-consumer.sh "
-                f"--bootstrap-server {KAFKA_BOOTSTRAP_SERVER} "
-                "--topic ldms "
-                "--consumer.config /tmp/client.properties "
-                "--from-beginning --max-messages 1 2>/dev/null || true"
-            )
-            result = _exec_in_pod(host, admin_ip, pod_name, ldms_consumer_cmd)
-            results["ldms_topic_data"] = True
-            results["steps"].append({"step": "Test ldms topic consumer", "success": True})
-
-    finally:
-        # Step 10: Cleanup - delete the job
-        _cleanup_mtls_test_job(host, admin_ip, job_name)
-        results["steps"].append({"step": "Cleanup test job", "success": True})
-
-    success = (
-        results["truststore_created"] and
-        results["keystore_created"] and
-        results["client_properties_created"] and
-        results["mtls_connection_success"]
-    )
-
-    return {
-        "success": success,
-        **results,
-        "error": "" if success else "mTLS connection test failed",
     }
 
 
@@ -1083,4 +844,342 @@ def verify_ldms_topic_data(host, admin_ip: str) -> Dict[str, Any]:
         "topic_ready": topic_ready,
         "skipped": False,
         "error": "" if topic_ready else "ldms topic is not ready",
+    }
+
+
+# =============================================================================
+# LDMS DATA VERIFICATION VIA KAFKA REST PROXY
+# =============================================================================
+
+def get_ldms_sampler_plugins(host) -> List[str]:
+    """
+    Get list of LDMS sampler plugin names from telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        List of plugin names (e.g., ['meminfo', 'procstat2', 'vmstat', 'loadavg', 'procnetdev2'])
+    """
+    config = get_telemetry_config(host)
+    if "error" in config:
+        return []
+
+    sampler_configs = config.get("ldms_sampler_configurations", [])
+    plugins = []
+
+    for sampler in sampler_configs:
+        plugin_name = sampler.get("plugin_name", "")
+        if plugin_name:
+            plugins.append(plugin_name)
+
+    return plugins
+
+
+def get_domain_name(host) -> str:
+    """
+    Get domain name from oim_metadata.yml in container.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Domain name string (e.g., 'clash.test') or empty string if not found
+    """
+    container = TELEMETRY_VARS["container_name"]
+    cmd = host.run(f"podman exec {container} cat {OIM_METADATA_PATH}")
+
+    if cmd.rc != 0:
+        return ""
+
+    try:
+        metadata = yaml.safe_load(cmd.stdout)
+        return metadata.get("domain_name", "") if metadata else ""
+    except yaml.YAMLError:
+        return ""
+
+
+def get_ldms_node_hostnames(host) -> List[str]:
+    """
+    Get hostnames of all LDMS-enabled nodes from PXE mapping file.
+
+    LDMS nodes are: slurm_control_node, slurm_node, login_node, login_compiler_node
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        List of hostnames (e.g., ['snode1', 'snode2', 'login1'])
+    """
+    from automation_library.core import get_nodes_info
+
+    hostnames = []
+
+    for func_group in LDMS_FUNCTIONAL_GROUPS:
+        nodes = get_nodes_info(host, search_by="functional_group", search_value=func_group)
+        for node in nodes:
+            hostname = node.get("hostname", "")
+            if hostname and hostname not in hostnames:
+                hostnames.append(hostname)
+
+    return hostnames
+
+
+def get_ldms_nodes_by_functional_group(host) -> Dict[str, List[Dict[str, str]]]:
+    """
+    Get LDMS nodes grouped by functional_group.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict mapping functional_group to list of node info dicts:
+        {
+            "slurm_control_node_x86_64": [{"hostname": "scontrol", "admin_ip": "..."}],
+            "slurm_node_x86_64": [{"hostname": "snode1", ...}, {"hostname": "snode2", ...}],
+            ...
+        }
+    """
+    from automation_library.core import get_nodes_info
+
+    result = {}
+
+    for func_group in LDMS_FUNCTIONAL_GROUPS:
+        nodes = get_nodes_info(host, search_by="functional_group", search_value=func_group)
+        if nodes:
+            result[func_group] = nodes
+
+    return result
+
+
+def verify_ldms_data_in_kafka(
+    host,
+    admin_ip: str,
+    timeout_seconds: int = 10
+) -> Dict[str, Any]:
+    """
+    Verify LDMS data is flowing to Kafka by checking that data from all
+    LDMS-enabled nodes with all configured plugins is present in the ldms topic.
+
+    Uses Kafka REST proxy to create a consumer, subscribe to ldms topic,
+    and consume records to verify data presence.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s node
+        timeout_seconds: Timeout for consuming records (default 10s)
+
+    Returns:
+        Dict with success, found_instances, missing_instances, errors
+    """
+    if not is_ldms_enabled(host):
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": "LDMS not enabled in software_config.json",
+        }
+
+    # Get bridge IP
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+    if not bridge_ip:
+        return {
+            "success": False,
+            "error": KAFKA_ASSERT_MSGS["kafka_bridge_not_found"],
+        }
+
+    # Get expected data
+    plugins = get_ldms_sampler_plugins(host)
+    hostnames = get_ldms_node_hostnames(host)
+    nodes_by_group = get_ldms_nodes_by_functional_group(host)
+    domain_name = get_domain_name(host)
+    
+    # Build hostname to functional_group mapping
+    hostname_to_group = {}
+    for func_group, nodes in nodes_by_group.items():
+        for node in nodes:
+            hostname_to_group[node.get("hostname", "")] = func_group
+
+    if not plugins:
+        return {
+            "success": False,
+            "error": "No LDMS sampler plugins configured in telemetry_config.yml",
+        }
+
+    if not hostnames:
+        return {
+            "success": False,
+            "error": "No LDMS nodes found in PXE mapping file",
+        }
+
+    if not domain_name:
+        return {
+            "success": False,
+            "error": "Could not get domain_name from oim_metadata.yml",
+        }
+
+    # Build expected instances: hostname.domain/plugin
+    expected_instances = set()
+    for hostname in hostnames:
+        for plugin in plugins:
+            instance = f"{hostname}.{domain_name}/{plugin}"
+            expected_instances.add(instance)
+
+    container = TELEMETRY_VARS["container_name"]
+    ssh_opts = CMD_TEMPLATES["ssh_opts"]
+    consumer_group = f"ldms-test-{int(time.time()) % 10000}"
+    consumer_name = "ldms-test-consumer"
+
+    found_instances = set()
+    found_records = {}  # Store full records per instance
+
+    try:
+        # Step 1: Create consumer group
+        # Use 'latest' to get live/fresh data instead of historical
+        create_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d "{{\\"name\\": \\"{consumer_name}\\", \\"format\\": \\"json\\", '
+            f'\\"auto.offset.reset\\": \\"latest\\", \\"enable.auto.commit\\": true}}"'
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{create_cmd}' 2>/dev/null"
+        )
+        cmd = host.run(full_cmd)
+        # Check for error in response (curl returns 0 even on API errors)
+        if "error_code" in cmd.stdout:
+            return {
+                "success": False,
+                "skipped": False,
+                "bridge_ip": bridge_ip,
+                "domain_name": domain_name,
+                "expected_hostnames": hostnames,
+                "expected_plugins": plugins,
+                "error": f"Failed to create consumer: {cmd.stdout}",
+            }
+
+        # Step 2: Subscribe to ldms topic
+        subscribe_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/subscription '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d "{{\\"topics\\": [\\"ldms\\"]}}"'
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{subscribe_cmd}' 2>/dev/null"
+        )
+        cmd = host.run(full_cmd)
+
+        # Step 3: Consume records with timeout
+        consume_cmd = (
+            f'curl -s -X GET http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/records '
+            f'-H "accept: application/vnd.kafka.json.v2+json"'
+        )
+
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            full_cmd = (
+                f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+                f"'{consume_cmd}' 2>/dev/null"
+            )
+            cmd = host.run(full_cmd)
+
+            if cmd.stdout.strip() and cmd.stdout.strip().startswith("["):
+                try:
+                    records = json.loads(cmd.stdout)
+                    for record in records:
+                        value = record.get("value", {})
+                        instance = value.get("instance", "")
+                        if instance:
+                            found_instances.add(instance)
+                            # Store one sample record per instance
+                            if instance not in found_records:
+                                found_records[instance] = record
+                except json.JSONDecodeError:
+                    pass
+
+            # Check if we found at least one instance per hostname
+            found_hostnames = set()
+            for inst in found_instances:
+                # Extract hostname from instance (hostname.domain/plugin)
+                if "/" in inst:
+                    host_part = inst.split("/")[0]
+                    if "." in host_part:
+                        found_hostnames.add(host_part.split(".")[0])
+
+            if found_hostnames >= set(hostnames):
+                break
+
+            time.sleep(1)
+
+    finally:
+        # Step 4: Delete consumer (cleanup)
+        delete_cmd = KAFKA_CMD_TEMPLATES["rest_delete_consumer"].format(
+            bridge_ip=bridge_ip,
+            port=KAFKA_BRIDGE_PORT,
+            consumer_group=consumer_group,
+            consumer_name=consumer_name,
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{delete_cmd}' 2>/dev/null"
+        )
+        host.run(full_cmd)
+
+    # Analyze results - check if we got data from each hostname
+    found_hostnames = set()
+    for inst in found_instances:
+        if "/" in inst:
+            host_part = inst.split("/")[0]
+            if "." in host_part:
+                found_hostnames.add(host_part.split(".")[0])
+
+    missing_hostnames = set(hostnames) - found_hostnames
+
+    # Build detailed results per hostname with full record data
+    hostname_results = []
+    for hostname in hostnames:
+        host_instances = [i for i in found_instances if i.startswith(f"{hostname}.")]
+        host_plugins = []
+        for inst in host_instances:
+            if "/" in inst:
+                plugin = inst.split("/")[1]
+                record = found_records.get(inst, {})
+                host_plugins.append({
+                    "plugin": plugin,
+                    "record": record,
+                })
+        hostname_results.append({
+            "hostname": hostname,
+            "functional_group": hostname_to_group.get(hostname, "unknown"),
+            "found": len(host_instances) > 0,
+            "plugins_found": host_plugins,
+            "plugins_expected": plugins,
+        })
+
+    # Build results grouped by functional_group
+    results_by_group = {}
+    for hr in hostname_results:
+        fg = hr.get("functional_group", "unknown")
+        if fg not in results_by_group:
+            results_by_group[fg] = []
+        results_by_group[fg].append(hr)
+
+    success = len(missing_hostnames) == 0
+
+    return {
+        "success": success,
+        "skipped": False,
+        "bridge_ip": bridge_ip,
+        "domain_name": domain_name,
+        "expected_hostnames": hostnames,
+        "expected_plugins": plugins,
+        "found_instances": list(found_instances),
+        "found_hostnames": list(found_hostnames),
+        "missing_hostnames": list(missing_hostnames),
+        "hostname_results": hostname_results,
+        "results_by_group": results_by_group,
+        "error": "" if success else f"Missing data from hostnames: {list(missing_hostnames)}",
     }

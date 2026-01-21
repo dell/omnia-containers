@@ -28,7 +28,8 @@ from .host import (
     run_on_oim,
     run_in_container,
     run_on_remote_node,
-    get_node_admin_ip,
+    get_node_info,
+    get_nodes_info,
 )
 from .report import TestReport, get_current_report, set_current_report
 from .vars import PROVISION_CONFIG_PATH
@@ -47,7 +48,8 @@ __all__ = [
     "run_on_oim",
     "run_in_container",
     "run_on_remote_node",
-    "get_node_admin_ip",
+    "get_node_info",
+    "get_nodes_info",
     # Report
     "TestReport",
     "get_current_report",

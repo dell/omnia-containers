@@ -23,10 +23,11 @@ Usage:
 """
 
 import time
+import pytest
 
 from automation_library.core import (
     TestLogger,
-    get_node_admin_ip,
+    get_node_info,
 )
 from automation_library.telemetry.vars import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
@@ -41,6 +42,7 @@ from automation_library.telemetry.functions import (
     verify_all_telemetry_pods_running,
     verify_mysql_data_in_pods,
     verify_receiver_collecting_metrics,
+    has_activated_ips,
 )
 
 
@@ -55,13 +57,14 @@ def test_idrac_telemetry_pod_count(host):
     SSH to K8s control plane via omnia_core container and verify:
     - idrac-telemetry pods count = service_kube_node count + 1 (for mgmt layer)
 
-    Uses get_node_admin_ip() with functional_group or hostname to get admin IP.
+    Uses get_node_info() with search_by and search_value to get admin IP.
     """
     log = TestLogger(TEST_NAMES["idrac_telemetry_pod_count"])
 
     # Get admin IP by functional_group_name
     log.check("Getting admin IP from PXE mapping file")
-    admin_ip = get_node_admin_ip(host, functional_group=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    admin_ip = node.get("admin_ip", "")
     assert admin_ip, "Failed to get admin IP from PXE mapping file"
 
     # Verify pod count
@@ -70,6 +73,7 @@ def test_idrac_telemetry_pod_count(host):
 
     details = (
         f"service_kube_node count: {result['service_kube_node_count']}\n"
+        f"service_kube_nodes with children: {result['service_kube_nodes_with_children']}\n"
         f"Expected pods: {result['expected_count']}\n"
         f"Actual pods: {result['actual_count']}\n"
         f"Pods: {result['pods']}"
@@ -101,7 +105,8 @@ def test_all_telemetry_pods_running(host):
 
     # Get admin IP
     log.check("Getting admin IP from PXE mapping file")
-    admin_ip = get_node_admin_ip(host, functional_group=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    admin_ip = node.get("admin_ip", "")
     assert admin_ip, "Failed to get admin IP from PXE mapping file"
 
     max_retries = 3
@@ -168,13 +173,20 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
 
     # Get admin IP
     log.check("Getting admin IP from PXE mapping file")
-    admin_ip = get_node_admin_ip(host, functional_group=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    admin_ip = node.get("admin_ip", "")
     assert admin_ip, "Failed to get admin IP from PXE mapping file"
+
+    # Skip if no activated IPs
+    if not has_activated_ips(host):
+        log.skipped("No activated IPs found in telemetry report", "Test skipped - no telemetry activation to verify")
+        pytest.skip("No activated IPs found in telemetry report")
 
     # Verify MySQL data in all pods
     log.check("Decrypting MySQL credentials from ansible vault")
     result = verify_mysql_data_in_pods(host, admin_ip)
 
+    # Fail on actual errors (MySQL connection, etc.)
     if result.get("error") and not result.get("pod_results"):
         log.failed(LOG_MSGS["mysql_creds_failed"], result["error"])
         assert False, result["error"]
@@ -241,13 +253,20 @@ def test_receiver_collecting_metrics(host):
 
     # Get admin IP
     log.check("Getting admin IP from PXE mapping file")
-    admin_ip = get_node_admin_ip(host, functional_group=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
+    admin_ip = node.get("admin_ip", "")
     assert admin_ip, "Failed to get admin IP from PXE mapping file"
+
+    # Skip if no activated IPs
+    if not has_activated_ips(host):
+        log.skipped("No activated IPs found in telemetry report", "Test skipped - no telemetry activation to verify")
+        pytest.skip("No activated IPs found in telemetry report")
 
     # Verify receiver logs
     log.check("Checking idrac-telemetry-receiver logs for metrics collection")
     result = verify_receiver_collecting_metrics(host, admin_ip)
 
+    # Fail on actual errors (log access, etc.)
     if result.get("error") and not result.get("pod_results"):
         log.failed("Failed to verify receiver logs", result["error"])
         assert False, result["error"]

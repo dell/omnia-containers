@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,7 @@ from .functions.idrac_telemetry_func import (
 from .functions.kafka_func import (
     is_kafka_enabled,
     is_ldms_enabled,
-    verify_kafka_mtls_connection,
-    verify_kafka_topics,
+    verify_kafka_topics_via_rest,
     verify_kafka_config_match,
     verify_ldms_pods_running,
     verify_ldms_services_ports,
