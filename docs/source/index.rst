@@ -74,7 +74,7 @@ For a better understanding of what Omnia does, check out the following:
     Overview/SupportMatrix/index
     RHEL_prereq
     OmniaInstallGuide/index
-    ExternalDeploymentGuide/index
+    OmniaInstallGuide/ExternalDeploymentGuide/Index
     Utils/index
     Logging/index
     Troubleshooting/index
