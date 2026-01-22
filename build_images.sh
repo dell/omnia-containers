@@ -406,7 +406,7 @@ build_telemetry_receiver() {
     echo -e "Using Telemetry Receiver Tag: ${YELLOW}${TELEMETRY_RECEIVER_TAG}${NC}"
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
         echo -e "Registry: ${YELLOW}$OMNIA_DOCKER_REGISTERY${NC}"
-        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
+        echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
     
@@ -415,20 +415,20 @@ build_telemetry_receiver() {
     
     cd "${IDRAC_TELEMETRY_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} -f docker-compose-files/Dockerfile.telemetry_receiver .
+        podman build -t idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG} -f docker-compose-files/Dockerfile.telemetry_receiver .
         BUILD_RESULT=$?
-        IMAGE_DESTINATION="Local (Podman): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+        IMAGE_DESTINATION="Local (Podman): idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t telemetry-receiver:${TELEMETRY_RECEIVER_TAG} \
+            docker buildx build --no-cache -t idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG} \
                 --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --load .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Local (Docker): telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+            IMAGE_DESTINATION="Local (Docker): idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}" \
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}" \
                 --file docker-compose-files/Dockerfile.telemetry_receiver --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
-            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/telemetry-receiver:${TELEMETRY_RECEIVER_TAG}"
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}"
         else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
