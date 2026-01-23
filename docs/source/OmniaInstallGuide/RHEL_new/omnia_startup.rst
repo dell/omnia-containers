@@ -4,7 +4,7 @@ Step 1: Deploy Omnia Core Container
 The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (``omnia_core.service``). 
 The Omnia core container contains the following:
 
- * The open-source code to deploy and manage Omnia clusters. The source code is available at `https://github.com/dell/omnia`_.
+ * The open-source code to deploy and manage Omnia clusters. The source code is available at `https://github.com/dell/omnia <https://github.com/dell/omnia>`_.
  * Python and Ansible preinstalled. 
 
 Use the ``omnia.sh`` script to install, uninstall, and view help on the actions that you can perform on the Omnia core container. 
