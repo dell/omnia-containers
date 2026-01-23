@@ -108,11 +108,6 @@
       ansible.builtin.debug:
         msg: "build_image playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
 
-    - name: Ensure log directory exists in container
-      ansible.builtin.command:
-        cmd: podman exec omnia_core mkdir -p /opt/omnia/log/core/playbooks
-      changed_when: false
-
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
