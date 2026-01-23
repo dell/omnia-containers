@@ -52,20 +52,15 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix
+# Upgrade pip to fix CVE-2025-8869 (system pip vulnerability)
 RUN python3 -m pip install --upgrade pip==25.3 --target /usr/lib/python3.12/site-packages --force-reinstall && \
-    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2.dist-info && \
-    python3 -m pip install --no-cache-dir \
-    "urllib3==2.6.3" \
-    "pyasn1==0.6.2" \
-    "filelock==3.20.3"
+    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2.dist-info
 
-# Install/sync python packages using the uv.lock
+# Install/sync python packages using pyproject.toml (includes all security-patched packages)
 RUN pip3 install uv==0.9.13
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
-    pip3 install --no-cache-dir --upgrade "wheel==0.46.2" && \
     rm -rf /root/.cache/uv /root/.cache/pip
 
 # Allow root login by enabling it in the SSH configuration
@@ -117,10 +112,8 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: community.kubernetes" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.1" >> /tmp/omnia_core/galaxy_requirements.yml
 
-# Install a specific version of Ansible with security updates
-RUN pip install --no-cache-dir "ansible-core==2.16.14rc1"
-
 # Install ansible-galaxy collections from galaxy_requirements.yml
+# Note: ansible-core is installed via pyproject.toml
 RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
 
 # Additional security: Clean up any cached vulnerable packages
