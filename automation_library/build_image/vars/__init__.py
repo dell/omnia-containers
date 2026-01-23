@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Build Images Variables
+"""Build Image variables module."""
 
-Configuration variables and constants for Build Image x86_64 operations.
-"""
+from .build_image_vars import (
+    BUILD_IMAGE_VARS,
+    S3_CONTAINERS,
+    get_functional_groups_from_pxe_mapping,
+    get_pxe_mapping_path,
+    get_pxe_mapping_filename,
+)
 
-# Import all variables to maintain compatibility
-from .build_images_vars import *
+__all__ = [
+    "BUILD_IMAGE_VARS",
+    "S3_CONTAINERS",
+    "get_functional_groups_from_pxe_mapping",
+    "get_pxe_mapping_path",
+    "get_pxe_mapping_filename",
+]

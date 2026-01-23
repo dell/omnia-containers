@@ -21,7 +21,6 @@ Reads from user_config.yml and input/software_config.json.
 Usage:
     from automation_library.vars.prepare_oim_vars import PREPARE_OIM_VARS
 
-Author: Dell Technologies
 """
 
 import json

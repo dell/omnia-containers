@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Build Images Functions
-
-Functions for Build Image x86_64 deployment and management operations.
-"""
-
-# Import all functions to maintain compatibility
-from .build_images_func import *
+"""Build Image test module."""

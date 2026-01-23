@@ -147,6 +147,37 @@ def run_on_remote_node(
     return run_in_container(host, ssh_cmd)
 
 
+def _get_pxe_mapping_content(host) -> str:
+    """
+    Read pxe_mapping file content from inside omnia_core container.
+    Uses pxe_mapping_file_path from provision_config.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Content of pxe_mapping file as string, or empty string if not found
+    """
+    # Read provision_config.yml to get pxe_mapping_file_path
+    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
+    if result.rc != 0:
+        return ""
+
+    # Extract pxe_mapping_file_path
+    pattern = r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?'
+    match = re.search(pattern, result.stdout)
+    if not match:
+        return ""
+    pxe_path = match.group(1).strip()
+
+    # Read pxe_mapping file from inside container
+    result = run_in_container(host, f"cat {pxe_path}")
+    if result.rc != 0:
+        return ""
+
+    return result.stdout.strip()
+
+
 def get_node_admin_ip(
     host: testinfra.host.Host,
     functional_group: str = None,
@@ -171,27 +202,14 @@ def get_node_admin_ip(
     if not functional_group and not hostname:
         return admin_ip
 
-    # Read provision_config.yml to get pxe_mapping_file_path
-    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
-    if result.rc != 0:
-        return admin_ip
-
-    # Extract pxe_mapping_file_path
-    pattern = r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?'
-    match = re.search(pattern, result.stdout)
-    if not match:
-        return admin_ip
-    pxe_mapping_path = match.group(1).strip()
-
-    # Read PXE mapping file
-    result = run_in_container(host, f"cat {pxe_mapping_path}")
-    if result.rc != 0:
+    pxe_content = _get_pxe_mapping_content(host)
+    if not pxe_content:
         return admin_ip
 
     # CSV: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,
     #      HOSTNAME,ADMIN_MAC,ADMIN_IP,...
     # Index: 0, 1, 2, 3, 4, 5, 6
-    for line in result.stdout.strip().split('\n'):
+    for line in pxe_content.split('\n'):
         parts = line.split(',')
         if len(parts) >= 7:
             line_func_group = parts[0]
@@ -206,3 +224,79 @@ def get_node_admin_ip(
                 break
 
     return admin_ip
+
+
+def get_functional_groups_from_pxe_mapping(host) -> set:
+    """
+    Read pxe_mapping file from inside omnia_core container and extract functional groups.
+    Uses pxe_mapping_file_path from provision_config.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Set of functional group names (FUNCTIONAL_GROUP_NAME column)
+    """
+    pxe_content = _get_pxe_mapping_content(host)
+    if not pxe_content:
+        return set()
+
+    # Parse CSV content
+    lines = pxe_content.split('\n')
+    if len(lines) < 2:  # Need header + at least one data row
+        return set()
+
+    # Get header and find FUNCTIONAL_GROUP_NAME column
+    header = lines[0].split(',')
+    try:
+        fg_index = header.index('FUNCTIONAL_GROUP_NAME')
+    except ValueError:
+        return set()
+
+    # Extract functional groups
+    groups = set()
+    for line in lines[1:]:
+        if line.strip():
+            cols = line.split(',')
+            if len(cols) > fg_index and cols[fg_index].strip():
+                groups.add(cols[fg_index].strip())
+
+    return groups
+
+
+def get_group_names_from_pxe_mapping(host) -> set:
+    """
+    Read pxe_mapping file from inside omnia_core container and extract group names.
+    Uses pxe_mapping_file_path from provision_config.yml.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Set of group names (GROUP_NAME column)
+    """
+    pxe_content = _get_pxe_mapping_content(host)
+    if not pxe_content:
+        return set()
+
+    # Parse CSV content
+    lines = pxe_content.split('\n')
+    if len(lines) < 2:
+        return set()
+
+    # Get header and find GROUP_NAME column
+    header = lines[0].split(',')
+    try:
+        grp_index = header.index('GROUP_NAME')
+    except ValueError:
+        return set()
+
+    # Extract group names
+    groups = set()
+    for line in lines[1:]:
+        if line.strip():
+            cols = line.split(',')
+            if len(cols) > grp_index and cols[grp_index].strip():
+                groups.add(cols[grp_index].strip())
+
+    return groups
