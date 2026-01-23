@@ -110,19 +110,11 @@
 
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
-        cmd: |
-          set -o pipefail
-          podman exec -w /omnia omnia_core bash -c \
-            "ansible-playbook build_image_x86_64/build_image_x86_64.yml -v 2>&1 | tee {{ build_image_log_path }}"
-          exit_code=${PIPESTATUS[0]}
-          echo "PLAYBOOK_EXIT_CODE:${exit_code}"
-          exit ${exit_code}
-      args:
-        executable: /bin/bash
+        cmd: podman exec -w /omnia omnia_core ansible-playbook build_image_x86_64/build_image_x86_64.yml -v > /dev/null 2>&1
       register: playbook_result
       timeout: 36000
       when: "'EXISTS' in playbook_check.stdout"
-      changed_when: playbook_result.rc == 0
+      changed_when: false
       failed_when: false
 
     - name: Get last 50 lines of playbook log
