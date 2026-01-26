@@ -77,6 +77,10 @@ TELEMETRY_VARS: Dict[str, Any] = {
     # Telemetry namespace in K8s
     "telemetry_namespace": "telemetry",
 
+    # Telemetry config files (inside container)
+    "telemetry_config_path": "/opt/omnia/input/project_default/telemetry_config.yml",
+    "software_config_path": "/opt/omnia/input/project_default/software_config.json",
+
     # Functional group for K8s control plane (used to get admin IP for SSH)
     "k8s_control_plane_functional_group": "service_kube_control_plane_x86_64",
 

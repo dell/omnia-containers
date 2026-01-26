@@ -82,9 +82,15 @@
   ansible.builtin.debug:
     msg: "slurm_node entries with service_kube_node parent: {{ slurm_node_with_service_parent_count | default(0) }}"
 
+- name: Read service_cluster_metadata.yml for pod count
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ service_cluster_metadata_path }}
+  register: service_cluster_metadata_for_pods
+  changed_when: false
+
 - name: Count idrac-telemetry pod entries in service_cluster_metadata.yml
   ansible.builtin.set_fact:
-    idrac_telemetry_pod_count: "{{ service_cluster_metadata_content.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
+    idrac_telemetry_pod_count: "{{ service_cluster_metadata_for_pods.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
 
 - name: Calculate expected idrac-telemetry pod count (service_kube_nodes with children + 1 for mgmt)
   ansible.builtin.set_fact:

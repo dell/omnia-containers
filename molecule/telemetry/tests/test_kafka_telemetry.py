@@ -45,9 +45,11 @@ from automation_library.telemetry.messages import (
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,
 )
-from automation_library.telemetry.functions.kafka_func import (
+from automation_library.telemetry.functions.telemetry_func import (
     is_kafka_enabled,
     is_ldms_enabled,
+)
+from automation_library.telemetry.functions.kafka_func import (
     verify_ldms_pods_running,
     verify_ldms_services_ports,
     verify_kafka_topics_via_rest,

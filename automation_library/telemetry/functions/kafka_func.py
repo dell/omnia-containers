@@ -31,10 +31,7 @@ from ..vars.idrac_telemetry_vars import (
     CMD_TEMPLATES,
 )
 from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
-from ..messages.telemetry_msgs import SHARED_ASSERT_MSGS
 from ..vars.kafka_vars import (
-    TELEMETRY_CONFIG_PATH,
-    SOFTWARE_CONFIG_PATH,
     KAFKA_CMD_TEMPLATES,
     LDMS_AGGR_POD_PREFIX,
     LDMS_STORE_POD_PREFIX,
@@ -43,113 +40,10 @@ from ..vars.kafka_vars import (
     LDMS_FUNCTIONAL_GROUPS,
     OIM_METADATA_PATH,
 )
-
-
-# =============================================================================
-# CONFIGURATION READING FUNCTIONS
-# =============================================================================
-
-def get_telemetry_config(host) -> Dict[str, Any]:
-    """
-    Read telemetry_config.yml from container.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with telemetry configuration
-    """
-    container = TELEMETRY_VARS["container_name"]
-    cmd = host.run(f"podman exec {container} cat {TELEMETRY_CONFIG_PATH}")
-
-    if cmd.rc != 0:
-        return {"error": SHARED_ASSERT_MSGS["telemetry_config_read_failed"].format(error=cmd.stderr)}
-
-    try:
-        config = yaml.safe_load(cmd.stdout)
-        return config if config else {}
-    except yaml.YAMLError as e:
-        return {"error": SHARED_ASSERT_MSGS["telemetry_config_parse_failed"].format(error=e)}
-
-
-def get_software_config(host) -> Dict[str, Any]:
-    """
-    Read software_config.json from container.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with software configuration
-    """
-    container = TELEMETRY_VARS["container_name"]
-    cmd = host.run(f"podman exec {container} cat {SOFTWARE_CONFIG_PATH}")
-
-    if cmd.rc != 0:
-        return {"error": SHARED_ASSERT_MSGS["software_config_read_failed"].format(error=cmd.stderr)}
-
-    try:
-        config = json.loads(cmd.stdout)
-        return config if config else {}
-    except json.JSONDecodeError as e:
-        return {"error": SHARED_ASSERT_MSGS["software_config_parse_failed"].format(error=e)}
-
-
-def is_kafka_enabled(host) -> bool:
-    """
-    Check if Kafka is enabled in idrac_telemetry_collection_type.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if 'kafka' is in collection type
-    """
-    config = get_telemetry_config(host)
-    if config.get("error"):
-        return False
-
-    collection_type = config.get("idrac_telemetry_collection_type", "")
-    return "kafka" in collection_type.lower()
-
-
-def is_idrac_telemetry_enabled(host) -> bool:
-    """
-    Check if idrac-telemetry is enabled in idrac_telemetry_collection_type.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if 'idrac-telemetry' is in collection type
-    """
-    config = get_telemetry_config(host)
-    if config.get("error"):
-        return False
-
-    collection_type = config.get("idrac_telemetry_collection_type", "")
-    return "idrac-telemetry" in collection_type.lower()
-
-
-def is_ldms_enabled(host) -> bool:
-    """
-    Check if LDMS is enabled in software_config.json.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if 'ldms' is in softwares list
-    """
-    config = get_software_config(host)
-    if config.get("error"):
-        return False
-
-    softwares = config.get("softwares", [])
-    for software in softwares:
-        if software.get("name", "").lower() == "ldms":
-            return True
-    return False
+from .telemetry_func import (
+    get_telemetry_config,
+    is_ldms_enabled,
+)
 
 
 def get_ldms_config_from_telemetry(host) -> Dict[str, Any]:

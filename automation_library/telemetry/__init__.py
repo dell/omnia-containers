@@ -27,9 +27,11 @@ from .functions.idrac_telemetry_func import (
     verify_idrac_telemetry_pod_count,
     verify_all_telemetry_pods_running,
 )
-from .functions.kafka_func import (
+from .functions.telemetry_func import (
     is_kafka_enabled,
     is_ldms_enabled,
+)
+from .functions.kafka_func import (
     verify_kafka_topics_via_rest,
     verify_kafka_config_match,
     verify_ldms_pods_running,

@@ -341,8 +341,8 @@ def get_activated_ips(host) -> List[str]:
         if "Telemetry activated IPs List:" in line:
             capture_section = True
             continue
-        elif capture_section and line.startswith('  - '):
-            ip = line.strip()[4:]  # Remove '  - ' prefix
+        elif capture_section and line.strip().startswith('- '):
+            ip = line.strip()[2:]  # Remove '- ' prefix (after strip)
             activated_ips.append(ip)
         elif capture_section and line.strip() and not line.startswith('  -'):
             # End of the IP list section
@@ -614,7 +614,14 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
         missing_ips = [ip for ip in expected_ips if ip not in actual_ips]
         extra_ips = [ip for ip in actual_ips if ip not in expected_ips]
 
-        pod_success = len(missing_ips) == 0
+        # Pod success criteria:
+        # 1. No missing IPs (all expected IPs are in MySQL)
+        # 2. If expected is empty but actual has data, that's unexpected - fail
+        if not expected_ips and actual_ips:
+            # Expected nothing but found data - this indicates a mapping issue
+            pod_success = False
+        else:
+            pod_success = len(missing_ips) == 0
 
         pod_results.append({
             "pod_name": pod_name,
@@ -1011,11 +1018,15 @@ def verify_receiver_collecting_metrics(
         # Check for connection status (Got Status: 200)
         has_connection = 'Got Status:  200' in logs
 
-        # Pod success ONLY if ALL IPs have "Got new report" entries
-        # SSE connected without metrics is NOT enough - must have live reports
-        all_ips_have_metrics = all(r["collecting_metrics"] for r in ip_results) if ip_results else False
-
-        pod_success = all_ips_have_metrics
+        # Pod success if:
+        # 1. No MySQL IPs assigned (nothing to collect - this is OK)
+        # 2. All assigned IPs have "Got new report" entries
+        if not ip_results:
+            # No iDRACs assigned to this pod - considered success (nothing to verify)
+            pod_success = True
+        else:
+            # All IPs must have metrics
+            pod_success = all(r["collecting_metrics"] for r in ip_results)
 
         pod_results.append({
             "pod_name": pod_name,

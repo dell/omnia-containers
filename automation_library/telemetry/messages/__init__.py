@@ -28,6 +28,13 @@ from .idrac_telemetry_msgs import (
     IDRAC_ASSERT_MSGS,
 )
 
+# VictoriaMetrics-specific messages
+from .victoria_msgs import (
+    VICTORIA_TEST_NAMES,
+    VICTORIA_LOG_MSGS,
+    VICTORIA_ASSERT_MSGS,
+)
+
 # Combined messages (for backward compatibility)
 from .telemetry_msgs import (
     TELEMETRY_MSGS,
