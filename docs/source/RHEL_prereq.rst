@@ -96,6 +96,7 @@ Lightweight Directory Access Protocol (LDAP)
 --------------------------------------------
 
 * The LDAP server details are required to configure the ``omnia_auth`` container and OpenLDAP as a proxy server. See :doc:`Configure OpenLDAP as a proxy server <OmniaInstallGuide/RHEL_new/Authentication/OpenLDAP>`.
+* To deploy an external OpenLDAP server for authentication, ensure that the OpenLDAP server is deployed and configured with the required directory structure (users and groups). For the detailed steps, see :doc:`External LDAP Deployment <OmniaInstallGuide/ExternalDeploymentGuide/external_ldap_deployment>`.
 
 Lightweight Distributed Metric Service (LDMS)
 ---------------------------------------------
