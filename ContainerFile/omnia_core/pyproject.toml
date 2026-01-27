@@ -26,5 +26,10 @@ dependencies = [
     "gitPython==3.1.45",
     "ansible-lint==25.6.1",
     "jmespath==1.0.1",
-    "urllib3==2.5.0"
+    "urllib3==2.6.3",
+    "pyasn1==0.6.2",
+    "filelock==3.20.3",
+    "wheel==0.46.2",
+    "ansible-core==2.16.14rc1"
 ]
+
