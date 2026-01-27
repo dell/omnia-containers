@@ -1,9 +1,10 @@
 Step 6: Configure OpenLDAP Proxy for Centralized Authentication 
 ===============================================================
 
-You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) to allow or deny user access from the OpenLDAP server deployed in your environment. For more details about OpenLDAP, see the `OpenLDAP Administrator's Guide <https://www.openldap.org/doc/admin26/index.html>`_. To deploy an external OpenLDAP server and authenticate users from it, see :doc:`External LDAP Deployment <../../ExternalDeploymentGuide/external_ldap_deployment>`.
+You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) to allow or deny user access from the OpenLDAP server deployed in your environment. For more details about OpenLDAP, see the `OpenLDAP Administrator's Guide <https://www.openldap.org/doc/admin26/index.html>`_. 
+Omnia has validated authentication of user using external Bitnami OpenLDAP external server. To deploy an external OpenLDAP server and authenticate users from it, see :doc:`External LDAP Deployment <../../ExternalDeploymentGuide/external_ldap_deployment>`.
 
-.. note:: Omnia supports external LDAP replication only. User creation within the omnia_auth container is not supported.
+.. note:: OpenLDAP proxy server will be deployed as omnia_auth container and user creation on proxy server is not supported.
 
 **Prerequisites**
 
