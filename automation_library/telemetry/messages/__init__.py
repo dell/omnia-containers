@@ -35,8 +35,8 @@ from .victoria_msgs import (
     VICTORIA_ASSERT_MSGS,
 )
 
-# Combined messages (for backward compatibility)
-from .telemetry_msgs import (
+# Shared messages (used across all telemetry modules)
+from .shared_msgs import (
     TELEMETRY_MSGS,
     TEST_NAMES,
     TEST_LOG_MSGS,

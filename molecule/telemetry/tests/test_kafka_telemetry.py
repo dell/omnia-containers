@@ -13,49 +13,43 @@
 # limitations under the License.
 
 """
-Telemetry Kafka Test Cases.
+Kafka Telemetry Test Cases.
 
 This module contains pytest test cases for verifying Kafka configuration
-and connectivity in the telemetry namespace.
+and data flow in the telemetry namespace.
 
 Test cases:
 1. Verify LDMS pods running (if ldms enabled)
 2. Verify LDMS services ports match telemetry_config.yml (if ldms enabled)
-3. Verify Kafka mTLS connection
-4. Verify Kafka topics configuration
-5. Verify Kafka configurations match telemetry_config.yml (inside pod)
-6. Verify data flowing to idrac topic
-7. Verify data flowing to ldms topic (if ldms enabled)
+3. Verify Kafka topics via REST proxy
+4. Verify Kafka configurations match telemetry_config.yml
+5. Verify idrac Kafka topic ready (with service tag verification via Redfish)
+6. Verify LDMS data in Kafka topic (if ldms enabled)
 
 Note: Kafka tests skip if kafka is not in idrac_telemetry_collection_type.
       LDMS tests skip if ldms is not in software_config.json.
+      Actual iDRAC data verification is done in test_victoria_idrac_data.
 """
 
 import pytest
 
-from automation_library.core import (
-    TestLogger,
-    get_node_info,
-)
-from automation_library.telemetry.vars import (
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-)
+from automation_library.core import TestLogger
 from automation_library.telemetry.messages import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,
 )
-from automation_library.telemetry.functions.telemetry_func import (
-    is_kafka_enabled,
-    is_ldms_enabled,
+from automation_library.telemetry.functions.shared_func import (
+    get_admin_ip,
+    skip_if_kafka_not_enabled,
+    skip_if_ldms_not_enabled,
 )
 from automation_library.telemetry.functions.kafka_func import (
     verify_ldms_pods_running,
     verify_ldms_services_ports,
     verify_kafka_topics_via_rest,
     verify_kafka_config_match,
-    verify_idrac_topic_data,
-    verify_ldms_topic_data,
+    verify_idrac_data_in_kafka,
     verify_ldms_data_in_kafka,
 )
 
@@ -74,22 +68,8 @@ def test_ldms_pods_running(host):
     """
     log = TestLogger(TEST_NAMES.get("ldms_pods_running", "Verify LDMS pods running"))
 
-    # Skip if LDMS not enabled
-    if not is_ldms_enabled(host):
-        log.skipped(
-            "LDMS is not enabled in software_config.json",
-            "Test skipped - LDMS not enabled"
-        )
-        pytest.skip("LDMS is not enabled in software_config.json")
-
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    skip_if_ldms_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
 
     # Verify LDMS pods
     log.check("Verifying LDMS pods are running in telemetry namespace")
@@ -124,22 +104,8 @@ def test_ldms_services_ports(host):
     """
     log = TestLogger(TEST_NAMES.get("ldms_services_ports", "Verify LDMS services ports"))
 
-    # Skip if LDMS not enabled
-    if not is_ldms_enabled(host):
-        log.skipped(
-            "LDMS is not enabled in software_config.json",
-            "Test skipped - LDMS not enabled"
-        )
-        pytest.skip("LDMS is not enabled in software_config.json")
-
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    skip_if_ldms_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
 
     # Verify LDMS services ports
     log.check("Verifying LDMS services ports match telemetry_config.yml")
@@ -180,7 +146,7 @@ def test_ldms_services_ports(host):
 
 def test_kafka_topics(host):
     """
-    Test Case 2: Verify Kafka topics via REST proxy.
+    Test Case 3: Verify Kafka topics via REST proxy.
 
     Checks:
     1. If kafka not in idrac_telemetry_collection_type -> skip test
@@ -193,14 +159,7 @@ def test_kafka_topics(host):
     """
     log = TestLogger(TEST_NAMES["kafka_topics_verification"])
 
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    admin_ip = get_admin_ip(host, log)
 
     # Verify topics via REST proxy
     log.check("Getting Kafka topics via REST proxy")
@@ -263,7 +222,7 @@ def test_kafka_topics(host):
 
 def test_kafka_config_match(host):
     """
-    Test Case 3: Verify Kafka configurations match telemetry_config.yml.
+    Test Case 4: Verify Kafka configurations match telemetry_config.yml.
 
     Checks inside the Kafka broker pod to verify actual config matches expected.
     Verifies:
@@ -273,22 +232,8 @@ def test_kafka_config_match(host):
     """
     log = TestLogger(TEST_NAMES["kafka_config_match"])
 
-    # Skip if Kafka not enabled
-    if not is_kafka_enabled(host):
-        log.skipped(
-            "Kafka is not enabled in idrac_telemetry_collection_type",
-            "Test skipped - Kafka not enabled"
-        )
-        pytest.skip("Kafka is not enabled in idrac_telemetry_collection_type")
-
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    skip_if_kafka_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
 
     # Verify config match (checks inside Kafka pod)
     log.check("Checking Kafka config inside broker pod vs telemetry_config.yml")
@@ -321,99 +266,75 @@ def test_kafka_config_match(host):
         assert False, ASSERT_MSGS["kafka_config_mismatch"].format(mismatches=mismatch_str)
 
 
-def test_kafka_idrac_topic_data(host):
+def test_idrac_data_in_kafka_topic(host):
     """
-    Test Case 4: Verify data is flowing to idrac Kafka topic.
+    Test Case 5: Verify iDRAC telemetry data in Kafka topic.
 
-    Verifies:
-    - idrac topic is ready
-    - idrac-telemetry pods are running (kafkapump sends data)
+    Gets activated IPs from MySQL, uses Redfish to get service tags,
+    then consumes data from Kafka and verifies service tags are present.
+    Shows sample metrics for each service tag.
     """
-    log = TestLogger(TEST_NAMES["kafka_idrac_topic_data"])
+    log = TestLogger(TEST_NAMES.get("kafka_idrac_data", "Verify iDRAC data in Kafka topic"))
 
-    # Skip if Kafka not enabled
-    if not is_kafka_enabled(host):
-        log.skipped("Kafka is not enabled", "Test skipped - Kafka not enabled")
-        pytest.skip("Kafka is not enabled in idrac_telemetry_collection_type")
+    skip_if_kafka_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
 
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
-
-    # Verify idrac topic data
-    log.check("Verifying data flow to idrac Kafka topic")
-    result = verify_idrac_topic_data(host, admin_ip)
-
-    log.check(f"  Topic ready: {result.get('topic_ready', False)}")
-    log.check(f"  Pods running: {result.get('pods_running', False)}")
-
-    if result["success"]:
-        log.passed(LOG_MSGS["kafka_idrac_data_flowing"], "idrac topic is receiving data")
-    else:
-        log.failed("idrac topic data flow verification failed", result.get("error", ""))
-        assert False, ASSERT_MSGS["kafka_idrac_data_not_flowing"].format(
-            topic_ready=result.get("topic_ready", False),
-            pods_running=result.get("pods_running", False)
-        )
-
-
-def test_kafka_ldms_topic_data(host):
-    """
-    Test Case 6: Verify data is flowing to ldms Kafka topic.
-
-    Only runs if LDMS is enabled in software_config.json.
-    """
-    log = TestLogger(TEST_NAMES["kafka_ldms_topic_data"])
-
-    # Skip if Kafka not enabled
-    if not is_kafka_enabled(host):
-        log.skipped("Kafka is not enabled", "Test skipped - Kafka not enabled")
-        pytest.skip("Kafka is not enabled")
-
-    # Skip if LDMS not enabled
-    if not is_ldms_enabled(host):
-        log.skipped(
-            "LDMS is not enabled in software_config.json",
-            "Test skipped - LDMS not enabled"
-        )
-        pytest.skip("LDMS is not enabled in software_config.json")
-
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
-
-    # Verify ldms topic data
-    log.check("Verifying ldms Kafka topic")
-    result = verify_ldms_topic_data(host, admin_ip)
+    # Verify iDRAC data in Kafka
+    log.check("Verifying iDRAC telemetry data in Kafka topic")
+    result = verify_idrac_data_in_kafka(host, admin_ip, timeout_seconds=20)
 
     if result.get("skipped"):
-        log.check(f"  Skipped: {result.get('reason', '')}")
-        pytest.skip(result.get("reason", "LDMS not enabled"))
+        log.skipped(result.get("reason", ""), "Test skipped")
+        pytest.skip(result.get("reason", ""))
 
-    log.check(f"  Topic ready: {result.get('topic_ready', False)}")
+    if result.get("error") and not result.get("service_tag_results"):
+        log.failed("Failed to verify iDRAC data in Kafka", result["error"])
+        assert False, result["error"]
+
+    # Log details
+    log.check(f"  Kafka bridge IP: {result.get('bridge_ip', '')}")
+
+    # Show IP to service tag mapping (via Redfish)
+    ip_to_tag = result.get("ip_to_service_tag", {})
+    log.check("  Activated IPs → Service Tags (via Redfish):")
+    for ip, tag in ip_to_tag.items():
+        log.check(f"    {ip} → {tag}")
+
+    # Show results for each service tag
+    log.check("Service tag verification results:")
+    for tag_result in result.get("service_tag_results", []):
+        ip = tag_result["ip"]
+        service_tag = tag_result["service_tag"]
+        found = tag_result["found"]
+        sample_metrics = tag_result.get("sample_metrics", [])
+
+        if found:
+            log.check(f"  ✓ {service_tag} ({ip}): data found in Kafka")
+            if sample_metrics:
+                for metric in sample_metrics:
+                    log.check(f"      - {metric['metric_name']}: {metric['value']}")
+        else:
+            log.check(f"  ✗ {service_tag} ({ip}): NO DATA FOUND")
 
     if result["success"]:
-        log.passed(LOG_MSGS["kafka_ldms_data_flowing"], "ldms topic is ready")
+        found_count = len(result.get("found_tags", []))
+        msg = LOG_MSGS.get(
+            "idrac_kafka_data_success",
+            "iDRAC data found for all {count} service tags"
+        ).format(count=found_count)
+        log.passed(msg, f"Data found for all {found_count} service tags")
     else:
-        log.failed("ldms topic verification failed", result.get("error", ""))
-        assert False, ASSERT_MSGS["kafka_ldms_data_not_flowing"].format(
-            topic_ready=result.get("topic_ready", False)
+        missing = result.get("missing_tags", [])
+        log.failed(
+            f"iDRAC data missing for {len(missing)} service tags",
+            result.get("error", "")
         )
+        assert False, result.get("error", "iDRAC data missing")
 
 
 def test_ldms_data_in_kafka_topic(host):
     """
-    Test Case 8: Verify LDMS data is flowing to Kafka topic.
+    Test Case 6: Verify LDMS data is flowing to Kafka topic.
 
     Verifies that data from all LDMS-enabled nodes (slurm_node, slurm_control_node,
     login_node, login_compiler_node) with all configured plugins is present in
@@ -423,22 +344,8 @@ def test_ldms_data_in_kafka_topic(host):
     """
     log = TestLogger(TEST_NAMES.get("ldms_data_in_kafka", "Verify LDMS data in Kafka topic"))
 
-    # Skip if LDMS not enabled
-    if not is_ldms_enabled(host):
-        log.skipped(
-            "LDMS is not enabled in software_config.json",
-            "Test skipped - LDMS not enabled"
-        )
-        pytest.skip("LDMS is not enabled in software_config.json")
-
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host, search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    skip_if_ldms_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
 
     # Verify LDMS data in Kafka (live data - waits for fresh messages)
     log.check(LOG_MSGS.get("ldms_data_verifying", "Verifying live LDMS data in Kafka topic"))

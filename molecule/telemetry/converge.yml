@@ -126,7 +126,7 @@
       ansible.builtin.fail:
         msg: |
           ╔══════════════════════════════════════════════════════════════════════════════╗
-          ║                    TELEMETRY PLAYBOOK EXECUTION FAILED                        ║
+          ║                    TELEMETRY PLAYBOOK EXECUTION FAILED                       ║
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ Exit Code: {{ playbook_result.rc }}
           ║

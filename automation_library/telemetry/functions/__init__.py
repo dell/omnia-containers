@@ -23,15 +23,24 @@ from .idrac_telemetry_func import (
     has_activated_ips,
 )
 
-# Common functions used by both Kafka and VictoriaMetrics
-from .telemetry_func import (
+# Shared functions (used across all telemetry modules)
+from .shared_func import (
+    # Cache management
+    clear_cache,
+    # Config reading (with caching)
     get_telemetry_config,
     get_software_config,
+    # Enable checks
     is_kafka_enabled,
     is_victoria_enabled,
     is_idrac_telemetry_enabled,
     is_ldms_enabled,
     get_activated_service_tags,
+    # Test helper functions
+    get_admin_ip,
+    skip_if_kafka_not_enabled,
+    skip_if_victoria_not_enabled,
+    skip_if_ldms_not_enabled,
 )
 
 from .kafka_func import (
@@ -41,12 +50,11 @@ from .kafka_func import (
     get_kafka_bridge_ip,
     verify_ldms_pods_running,
     verify_ldms_services_ports,
-    verify_idrac_topic_data,
-    verify_ldms_topic_data,
+    verify_idrac_data_in_kafka,
+    verify_ldms_data_in_kafka,
     get_ldms_sampler_plugins,
     get_domain_name,
     get_ldms_node_hostnames,
-    verify_ldms_data_in_kafka,
 )
 
 from .victoria_func import (

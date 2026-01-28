@@ -107,11 +107,16 @@ TELEMETRY_VARS: Dict[str, Any] = {
 # Convenience Constants
 # =============================================================================
 
+# Import common constants from core (single source of truth)
+from ...core.vars import (
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+)
+
 PROVISION_CONFIG_PATH = TELEMETRY_VARS["provision_config_path"]
 BMC_GROUP_DATA_PATH = TELEMETRY_VARS["bmc_group_data_path"]
 SERVICE_CLUSTER_METADATA_PATH = TELEMETRY_VARS["service_cluster_metadata_path"]
 TELEMETRY_NAMESPACE = TELEMETRY_VARS["telemetry_namespace"]
-K8S_CONTROL_PLANE_FUNCTIONAL_GROUP = TELEMETRY_VARS["k8s_control_plane_functional_group"]
 IDRAC_TELEMETRY_POD_PREFIX = TELEMETRY_VARS["idrac_telemetry_pod_prefix"]
 STABILITY_WAIT_TIME = TELEMETRY_VARS["stability_wait_time"]
 IDRAC_TELEMETRY_REPORT_PATH = TELEMETRY_VARS["idrac_telemetry_report_path"]

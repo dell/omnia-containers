@@ -13,9 +13,16 @@
 # limitations under the License.
 
 """
-Testinfra tests for telemetry verification.
+iDRAC Telemetry Test Cases.
 
-This file contains test functions that verify telemetry deployment was successful.
+This module contains pytest test cases for verifying iDRAC telemetry deployment
+and data collection in the telemetry namespace.
+
+Test cases:
+1. Verify idrac-telemetry pod count matches expected
+2. Verify all telemetry pods are running
+3. Verify MySQL data in idrac-telemetry pods
+4. Verify idrac-telemetry-receiver is collecting metrics
 
 Usage:
     ./run_molecule.sh telemetry test      # Run playbook + verify
@@ -25,13 +32,8 @@ Usage:
 import time
 import pytest
 
-from automation_library.core import (
-    TestLogger,
-    get_node_info,
-)
-from automation_library.telemetry.vars import (
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-)
+from automation_library.core import TestLogger
+from automation_library.telemetry.functions.shared_func import get_admin_ip
 from automation_library.telemetry.messages import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
@@ -47,7 +49,7 @@ from automation_library.telemetry.functions import (
 
 
 # =============================================================================
-# TEST FUNCTIONS
+# IDRAC TELEMETRY TEST CASES
 # =============================================================================
 
 def test_idrac_telemetry_pod_count(host):
@@ -61,11 +63,7 @@ def test_idrac_telemetry_pod_count(host):
     """
     log = TestLogger(TEST_NAMES["idrac_telemetry_pod_count"])
 
-    # Get admin IP by functional_group_name
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    admin_ip = get_admin_ip(host, log)
 
     # Verify pod count
     log.check(f"Checking idrac-telemetry pods on {admin_ip}")
@@ -103,11 +101,7 @@ def test_all_telemetry_pods_running(host):
     """
     log = TestLogger(TEST_NAMES["all_telemetry_pods_running"])
 
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    admin_ip = get_admin_ip(host, log)
 
     max_retries = 3
     retry_interval = 60  # seconds
@@ -171,15 +165,14 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
     """
     log = TestLogger(TEST_NAMES["mysql_data_in_pods"])
 
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    admin_ip = get_admin_ip(host, log)
 
     # Skip if no activated IPs
     if not has_activated_ips(host):
-        log.skipped("No activated IPs found in telemetry report", "Test skipped - no telemetry activation to verify")
+        log.skipped(
+            "No activated IPs found in telemetry report",
+            "Test skipped - no telemetry activation to verify"
+        )
         pytest.skip("No activated IPs found in telemetry report")
 
     # Verify MySQL data in all pods
@@ -209,11 +202,13 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
         log.check(f"    Actual IPs in MySQL: {actual}")
 
         if pod_result["success"]:
-            log.check(f"    ✓ {LOG_MSGS['mysql_pod_verified'].format(pod_name=pod_name)}")
+            msg = LOG_MSGS['mysql_pod_verified'].format(pod_name=pod_name)
+            log.check(f"    ✓ {msg}")
         else:
-            log.check(
-                f"    ✗ {LOG_MSGS['mysql_pod_missing_ips'].format(pod_name=pod_name, missing=missing)}"
+            msg = LOG_MSGS['mysql_pod_missing_ips'].format(
+                pod_name=pod_name, missing=missing
             )
+            log.check(f"    ✗ {msg}")
             all_success = False
 
     if all_success:
@@ -251,15 +246,14 @@ def test_receiver_collecting_metrics(host):
     """
     log = TestLogger(TEST_NAMES["receiver_collecting_metrics"])
 
-    # Get admin IP
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(host, search_by="functional_group", search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP)
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
+    admin_ip = get_admin_ip(host, log)
 
     # Skip if no activated IPs
     if not has_activated_ips(host):
-        log.skipped("No activated IPs found in telemetry report", "Test skipped - no telemetry activation to verify")
+        log.skipped(
+            "No activated IPs found in telemetry report",
+            "Test skipped - no telemetry activation to verify"
+        )
         pytest.skip("No activated IPs found in telemetry report")
 
     # Verify receiver logs

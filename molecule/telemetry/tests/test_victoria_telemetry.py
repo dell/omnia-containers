@@ -36,13 +36,7 @@ Note: All tests skip if:
 
 import pytest
 
-from automation_library.core import (
-    TestLogger,
-    get_node_info,
-)
-from automation_library.telemetry.vars import (
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-)
+from automation_library.core import TestLogger
 from automation_library.telemetry.vars.victoria_vars import (
     DEPLOYMENT_MODE_SINGLE,
     DEPLOYMENT_MODE_CLUSTER,
@@ -54,10 +48,12 @@ from automation_library.telemetry.messages.victoria_msgs import (
     VICTORIA_LOG_MSGS,
     VICTORIA_ASSERT_MSGS,
 )
-from automation_library.telemetry.functions.telemetry_func import (
+from automation_library.telemetry.functions.shared_func import (
     is_victoria_enabled,
     is_idrac_telemetry_enabled,
     get_activated_service_tags,
+    get_admin_ip,
+    skip_if_victoria_not_enabled,
 )
 from automation_library.telemetry.functions.victoria_func import (
     get_deployment_mode,
@@ -71,46 +67,6 @@ from automation_library.telemetry.functions.victoria_func import (
     verify_victoria_tls_health,
     verify_victoria_idrac_data,
 )
-
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-def skip_if_victoria_not_enabled(host, log):
-    """
-    Skip test if VictoriaMetrics is not enabled.
-
-    Checks:
-    - idrac_telemetry_support must be true
-    - 'victoria' must be in idrac_telemetry_collection_type
-    """
-    if not is_idrac_telemetry_enabled(host):
-        log.skipped(
-            "iDRAC telemetry is not enabled (idrac_telemetry_support=false)",
-            "Test skipped - iDRAC telemetry not enabled"
-        )
-        pytest.skip("iDRAC telemetry is not enabled")
-
-    if not is_victoria_enabled(host):
-        log.skipped(
-            "VictoriaMetrics is not enabled in idrac_telemetry_collection_type",
-            "Test skipped - VictoriaMetrics not enabled"
-        )
-        pytest.skip("VictoriaMetrics is not enabled")
-
-
-def get_admin_ip(host, log):
-    """Get admin IP from PXE mapping file."""
-    log.check("Getting admin IP from PXE mapping file")
-    node = get_node_info(
-        host,
-        search_by="functional_group",
-        search_value=K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-    )
-    admin_ip = node.get("admin_ip", "")
-    assert admin_ip, "Failed to get admin IP from PXE mapping file"
-    return admin_ip
 
 
 # =============================================================================

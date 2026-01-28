@@ -25,11 +25,8 @@ from typing import Dict, Any, List
 
 import yaml
 
-from ..vars.idrac_telemetry_vars import (
-    TELEMETRY_VARS,
-    TELEMETRY_NAMESPACE,
-    CMD_TEMPLATES,
-)
+from ..vars.idrac_telemetry_vars import CMD_TEMPLATES
+from ..vars.shared_vars import TELEMETRY_NAMESPACE, CONTAINER_NAME
 from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
 from ..vars.kafka_vars import (
     KAFKA_CMD_TEMPLATES,
@@ -40,7 +37,7 @@ from ..vars.kafka_vars import (
     LDMS_FUNCTIONAL_GROUPS,
     OIM_METADATA_PATH,
 )
-from .telemetry_func import (
+from .shared_func import (
     get_telemetry_config,
     is_ldms_enabled,
 )
@@ -126,7 +123,7 @@ def get_kafka_cluster_config(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with Kafka cluster config
     """
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_kafka_cluster"].format(namespace=TELEMETRY_NAMESPACE)
@@ -245,7 +242,7 @@ def get_kafka_bridge_ip(host, admin_ip: str) -> str:
     Returns:
         Bridge LB IP address, or empty string if not found
     """
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_bridge_lb_ip"].format(
@@ -327,7 +324,7 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
         }
 
     # Get topics via REST proxy
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     curl_cmd = KAFKA_CMD_TEMPLATES["rest_list_topics"].format(
@@ -446,7 +443,7 @@ def verify_ldms_pods_running(host, admin_ip: str) -> Dict[str, Any]:
             "reason": "LDMS not enabled in software_config.json",
         }
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get pods in telemetry namespace
@@ -556,7 +553,7 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
     expected_agg_port = ldms_config["ldms_agg_port"]
     expected_store_port = ldms_config["ldms_store_port"]
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get services in telemetry namespace
@@ -600,12 +597,18 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
                 "match": port_match,
             })
             if not port_match:
-                errors.append(f"Service {svc_name} port mismatch: expected {expected_agg_port}, actual {actual_port}")
+                errors.append(
+                    f"Service {svc_name} port mismatch: "
+                    f"expected {expected_agg_port}, actual {actual_port}"
+                )
     else:
         errors.append("No LDMS aggregator service found")
 
     # Find nersc-ldms-store service
-    store_services = [s for s in services if "ldms-store" in s.get("metadata", {}).get("name", "").lower()]
+    store_services = [
+        s for s in services
+        if "ldms-store" in s.get("metadata", {}).get("name", "").lower()
+    ]
     if store_services:
         for svc in store_services:
             svc_name = svc.get("metadata", {}).get("name", "")
@@ -619,7 +622,10 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
                 "match": port_match,
             })
             if not port_match:
-                errors.append(f"Service {svc_name} port mismatch: expected {expected_store_port}, actual {actual_port}")
+                errors.append(
+                    f"Service {svc_name} port mismatch: "
+                    f"expected {expected_store_port}, actual {actual_port}"
+                )
     else:
         errors.append("No LDMS store service found")
 
@@ -638,69 +644,223 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
 # KAFKA DATA FLOW VERIFICATION
 # =============================================================================
 
-def verify_idrac_topic_data(host, admin_ip: str, timeout_seconds: int = 30) -> Dict[str, Any]:
+def verify_idrac_data_in_kafka(
+    host, admin_ip: str, timeout_seconds: int = 20
+) -> Dict[str, Any]:
     """
-    Verify data is flowing to idrac Kafka topic.
+    Verify iDRAC telemetry data is flowing to Kafka idrac topic.
+
+    Gets activated IPs from MySQL, uses Redfish to get service tags,
+    then consumes data from Kafka and verifies service tags are present.
 
     Args:
         host: Testinfra host object
         admin_ip: Admin IP of K8s node
-        timeout_seconds: Timeout for consumer
+        timeout_seconds: Timeout for consuming records
 
     Returns:
-        Dict with success, messages_received, error
+        Dict with success, service_tag_results, found_tags, missing_tags
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
+    from .idrac_telemetry_func import get_activated_ips
+    from .shared_func import is_kafka_enabled, get_ip_to_service_tag_mapping
 
-    # Check topic offset to see if messages exist
-    # Using kafkatopic status is simpler than running a consumer
-    topic_cmd = (
-        f"kubectl get kafkatopic idrac -n {TELEMETRY_NAMESPACE} -o json | "
-        f"python3 -c \\\"import sys,json; d=json.load(sys.stdin); "
-        f"conds=d.get('status',{{}}).get('conditions',[]); "
-        f"print('True' if any(c.get('type')=='Ready' and c.get('status')=='True' for c in conds) else 'False')\\\""
-    )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{topic_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
-    topic_ready = cmd.stdout.strip() == "True"
-
-    if not topic_ready:
+    # Check if Kafka is enabled
+    if not is_kafka_enabled(host):
         return {
-            "success": False,
-            "topic_ready": False,
-            "error": "idrac topic is not ready",
+            "success": True,
+            "skipped": True,
+            "reason": KAFKA_ASSERT_MSGS["idrac_kafka_not_enabled"],
         }
 
-    # Check if kafkapump (the producer) is running
-    # kafkapump is part of idrac-telemetry pods
-    pump_cmd = (
-        f"kubectl get pods -n {TELEMETRY_NAMESPACE} -l app=idrac-telemetry "
-        f"-o jsonpath='{{.items[*].status.phase}}'"
-    )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{pump_cmd}' 2>/dev/null"
-    )
+    # Get bridge IP
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+    if not bridge_ip:
+        return {
+            "success": False,
+            "error": KAFKA_ASSERT_MSGS["kafka_bridge_not_found"],
+        }
 
-    cmd = host.run(full_cmd)
-    pods_running = all(phase == "Running" for phase in cmd.stdout.strip().split()) if cmd.stdout.strip() else False
+    # Get activated IPs from telemetry report
+    activated_ips = get_activated_ips(host)
+    if not activated_ips:
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": KAFKA_ASSERT_MSGS["idrac_kafka_no_activated_ips"],
+        }
+
+    # Get IP to service tag mapping (uses cache)
+    ip_to_service_tag = get_ip_to_service_tag_mapping(host, admin_ip, activated_ips)
+
+    if not ip_to_service_tag:
+        return {
+            "success": False,
+            "error": KAFKA_ASSERT_MSGS["idrac_kafka_redfish_failed"],
+            "activated_ips": activated_ips,
+        }
+
+    expected_service_tags = set(ip_to_service_tag.values())
+
+    container = CONTAINER_NAME
+    ssh_opts = CMD_TEMPLATES["ssh_opts"]
+    consumer_group = f"idrac-test-{int(time.time()) % 10000}"
+    consumer_name = "idrac-test-consumer"
+
+    found_service_tags = set()
+    service_tag_records = {}  # Store sample records per service tag
+
+    try:
+        # Step 1: Create consumer group with 'latest' offset to get live data
+        create_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d "{{\\"name\\": \\"{consumer_name}\\", \\"format\\": \\"json\\", '
+            f'\\"auto.offset.reset\\": \\"latest\\", \\"enable.auto.commit\\": true}}"'
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{create_cmd}' 2>/dev/null"
+        )
+        cmd = host.run(full_cmd)
+        if "error_code" in cmd.stdout:
+            return {
+                "success": False,
+                "bridge_ip": bridge_ip,
+                "error": KAFKA_ASSERT_MSGS["idrac_kafka_consumer_failed"].format(
+                    error=cmd.stdout
+                ),
+            }
+
+        # Step 2: Subscribe to idrac topic
+        subscribe_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/subscription '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d "{{\\"topics\\": [\\"idrac\\"]}}"'
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{subscribe_cmd}' 2>/dev/null"
+        )
+        host.run(full_cmd)
+
+        # Step 3: Consume records with multiple attempts
+        # Each attempt fetches a batch of records
+        consume_cmd = (
+            f'curl -s -X GET http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/records '
+            f'-H "accept: application/vnd.kafka.json.v2+json"'
+        )
+
+        max_attempts = timeout_seconds // 2  # 2 seconds per attempt
+        for _ in range(max_attempts):
+            full_cmd = (
+                f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+                f"'{consume_cmd}' 2>/dev/null"
+            )
+            cmd = host.run(full_cmd)
+
+            if cmd.stdout.strip() and cmd.stdout.strip().startswith("["):
+                try:
+                    records = json.loads(cmd.stdout)
+                    for record in records:
+                        value = record.get("value", {})
+                        # iDRAC Kafka data structure:
+                        # value is a list of items with: host (ServiceTag), time, event, fields
+                        # fields contains: metric_name, _value
+                        if isinstance(value, list):
+                            for item in value:
+                                if isinstance(item, dict):
+                                    # 'host' field contains the ServiceTag
+                                    service_tag = item.get("host", "")
+                                    if service_tag and service_tag in expected_service_tags:
+                                        found_service_tags.add(service_tag)
+                                        if service_tag not in service_tag_records:
+                                            service_tag_records[service_tag] = {
+                                                "record": record,
+                                                "sample_metrics": [],
+                                            }
+                                        # Extract metric from fields
+                                        fields = item.get("fields", {})
+                                        metric_name = fields.get("metric_name", "")
+                                        metric_value = fields.get("_value", "")
+                                        if metric_name and len(service_tag_records[service_tag]["sample_metrics"]) < 3:
+                                            # Avoid duplicate metrics
+                                            existing = [m["metric_name"] for m in service_tag_records[service_tag]["sample_metrics"]]
+                                            if metric_name not in existing:
+                                                service_tag_records[service_tag]["sample_metrics"].append({
+                                                    "metric_name": metric_name,
+                                                    "value": metric_value,
+                                                })
+                except json.JSONDecodeError:
+                    pass
+
+            # Check if we found all service tags
+            if found_service_tags >= expected_service_tags:
+                break
+
+            time.sleep(2)
+
+    finally:
+        # Step 4: Delete consumer (cleanup)
+        delete_cmd = KAFKA_CMD_TEMPLATES["rest_delete_consumer"].format(
+            bridge_ip=bridge_ip,
+            port=KAFKA_BRIDGE_PORT,
+            consumer_group=consumer_group,
+            consumer_name=consumer_name,
+        )
+        full_cmd = (
+            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
+            f"'{delete_cmd}' 2>/dev/null"
+        )
+        host.run(full_cmd)
+
+    # Build results
+    missing_tags = expected_service_tags - found_service_tags
+    service_tag_results = []
+
+    for ip, service_tag in ip_to_service_tag.items():
+        found = service_tag in found_service_tags
+        record_data = service_tag_records.get(service_tag, {})
+        service_tag_results.append({
+            "ip": ip,
+            "service_tag": service_tag,
+            "found": found,
+            "sample_metrics": record_data.get("sample_metrics", []),
+        })
+
+    # Determine error message
+    if len(missing_tags) == 0:
+        error_msg = ""
+    elif len(found_service_tags) == 0:
+        error_msg = KAFKA_ASSERT_MSGS["idrac_kafka_no_data"].format(
+            expected=list(expected_service_tags)
+        )
+    else:
+        error_msg = KAFKA_ASSERT_MSGS["idrac_kafka_data_missing"].format(
+            missing=list(missing_tags),
+            found=list(found_service_tags)
+        )
 
     return {
-        "success": topic_ready and pods_running,
-        "topic_ready": topic_ready,
-        "pods_running": pods_running,
-        "error": "" if (topic_ready and pods_running) else "idrac topic or pods not ready",
+        "success": len(missing_tags) == 0,
+        "skipped": False,
+        "bridge_ip": bridge_ip,
+        "activated_ips": activated_ips,
+        "ip_to_service_tag": ip_to_service_tag,
+        "service_tag_results": service_tag_results,
+        "found_tags": list(found_service_tags),
+        "missing_tags": list(missing_tags),
+        "error": error_msg,
     }
 
 
-def verify_ldms_topic_data(host, admin_ip: str) -> Dict[str, Any]:
+def verify_ldms_topic_ready(host, admin_ip: str) -> Dict[str, Any]:
     """
     Verify ldms Kafka topic exists and is ready (if ldms is enabled).
+
+    Note: This is a quick check. For actual data verification,
+    use verify_ldms_data_in_kafka() instead.
 
     Args:
         host: Testinfra host object
@@ -716,7 +876,7 @@ def verify_ldms_topic_data(host, admin_ip: str) -> Dict[str, Any]:
             "reason": "LDMS not enabled in software_config.json",
         }
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     topic_cmd = (
@@ -780,7 +940,7 @@ def get_domain_name(host) -> str:
     Returns:
         Domain name string (e.g., 'clash.test') or empty string if not found
     """
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     cmd = host.run(f"podman exec {container} cat {OIM_METADATA_PATH}")
 
     if cmd.rc != 0:
@@ -886,7 +1046,7 @@ def verify_ldms_data_in_kafka(
     hostnames = get_ldms_node_hostnames(host)
     nodes_by_group = get_ldms_nodes_by_functional_group(host)
     domain_name = get_domain_name(host)
-    
+
     # Build hostname to functional_group mapping
     hostname_to_group = {}
     for func_group, nodes in nodes_by_group.items():
@@ -918,7 +1078,7 @@ def verify_ldms_data_in_kafka(
             instance = f"{hostname}.{domain_name}/{plugin}"
             expected_instances.add(instance)
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
     consumer_group = f"ldms-test-{int(time.time()) % 10000}"
     consumer_name = "ldms-test-consumer"

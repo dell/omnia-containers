@@ -22,7 +22,8 @@ import json
 import urllib.parse
 from typing import Dict, Any
 
-from ..vars.idrac_telemetry_vars import TELEMETRY_VARS, CMD_TEMPLATES
+from ..vars.idrac_telemetry_vars import CMD_TEMPLATES
+from ..vars.shared_vars import TELEMETRY_NAMESPACE, CONTAINER_NAME
 from ..vars.victoria_vars import (
     DEPLOYMENT_MODE_SINGLE,
     DEPLOYMENT_MODE_CLUSTER,
@@ -34,13 +35,10 @@ from ..vars.victoria_vars import (
     VICTORIA_API_ENDPOINTS,
     VICTORIA_CMD_TEMPLATES,
 )
-from .telemetry_func import (
+from .shared_func import (
     get_telemetry_config,
     get_activated_service_tags,
 )
-
-
-TELEMETRY_NAMESPACE = TELEMETRY_VARS["telemetry_namespace"]
 
 
 def get_deployment_mode(host) -> str:
@@ -81,7 +79,7 @@ def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:
     expected_size = victoria_config.get("persistence_size", "")
     deployment_mode = get_deployment_mode(host)
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get PVCs based on deployment mode
@@ -166,7 +164,7 @@ def verify_victoria_single_node_pods(host, admin_ip: str) -> Dict[str, Any]:
             "skip_reason": f"Deployment mode is '{deployment_mode}', not single-node",
         }
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
     app_label = VICTORIA_SINGLE_NODE["app_label"]
 
@@ -244,7 +242,7 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
             "skip_reason": f"Deployment mode is '{deployment_mode}', not cluster",
         }
 
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     component_results = []
@@ -323,7 +321,7 @@ def verify_vmagent_pod(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, pod_results, errors
     """
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
     app_label = VMAGENT["app_label"]
 
@@ -389,7 +387,7 @@ def verify_victoria_services(host, admin_ip: str) -> Dict[str, Any]:
         Dict with success, service_results, errors
     """
     deployment_mode = get_deployment_mode(host)
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Determine which services to check based on deployment mode
@@ -463,7 +461,7 @@ def verify_victoria_tls_secret(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, secret_exists, keys_found, missing_keys
     """
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_secret"].format(
@@ -518,7 +516,7 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
         Dict with success, tls_connected, health_response, errors
     """
     deployment_mode = get_deployment_mode(host)
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get service info based on deployment mode
@@ -616,7 +614,7 @@ def verify_victoria_idrac_data(
         Dict with success, service_tag_results, found_tags, missing_tags
     """
     deployment_mode = get_deployment_mode(host)
-    container = TELEMETRY_VARS["container_name"]
+    container = CONTAINER_NAME
     ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get activated service tags

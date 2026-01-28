@@ -35,7 +35,7 @@ KAFKA_TEST_NAMES: Dict[str, str] = {
     "kafka_enabled_check": "Check if Kafka is enabled in telemetry_config.yml",
     "kafka_topics_verification": "Verify Kafka topics configuration",
     "kafka_config_match": "Verify Kafka configurations match telemetry_config.yml",
-    "kafka_idrac_topic_data": "Verify data flowing to idrac Kafka topic",
+    "kafka_idrac_data": "Verify iDRAC data in Kafka topic",
     "kafka_ldms_topic_data": "Verify data flowing to ldms Kafka topic",
 }
 
@@ -71,6 +71,10 @@ KAFKA_LOG_MSGS: Dict[str, str] = {
     "ldms_data_found": "Found data from hostname '{hostname}': {plugins}",
     "ldms_data_missing": "Missing data from hostname '{hostname}'",
     "ldms_data_success": "LDMS data verified for all {count} hostnames",
+
+    # iDRAC Kafka data verification
+    "idrac_kafka_verifying": "Verifying iDRAC telemetry data in Kafka topic",
+    "idrac_kafka_data_success": "iDRAC data found for all {count} service tags",
 }
 
 
@@ -157,5 +161,32 @@ KAFKA_ASSERT_MSGS: Dict[str, str] = {
         "Missing: {missing}\n"
         "Found: {found}\n"
         "Please check LDMS sampler on missing nodes and verify data is being sent to Kafka."
+    ),
+    # iDRAC Kafka data verification errors
+    "idrac_kafka_not_enabled": (
+        "Kafka not in idrac_telemetry_collection_type"
+    ),
+    "idrac_kafka_no_activated_ips": (
+        "No activated IPs found in telemetry report"
+    ),
+    "idrac_kafka_mysql_creds_failed": (
+        "Failed to get MySQL credentials: {error}"
+    ),
+    "idrac_kafka_redfish_failed": (
+        "Could not get service tags via Redfish for any activated IP"
+    ),
+    "idrac_kafka_consumer_failed": (
+        "Failed to create Kafka consumer: {error}"
+    ),
+    "idrac_kafka_no_data": (
+        "No iDRAC data found in Kafka topic.\n"
+        "Expected service tags: {expected}\n"
+        "Check if kafkapump is running and sending data to Kafka."
+    ),
+    "idrac_kafka_data_missing": (
+        "iDRAC data missing from some service tags.\n"
+        "Missing: {missing}\n"
+        "Found: {found}\n"
+        "Please check kafkapump on idrac-telemetry pods."
     ),
 }

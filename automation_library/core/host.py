@@ -147,59 +147,73 @@ def run_on_remote_node(
     return run_in_container(host, ssh_cmd)
 
 
-def _read_pxe_mapping(host: testinfra.host.Host) -> List[List[str]]:
+# Column name mapping (CSV header -> internal field name)
+_PXE_COLUMN_MAP = {
+    "FUNCTIONAL_GROUP_NAME": "functional_group",
+    "GROUP_NAME": "group_name",
+    "SERVICE_TAG": "service_tag",
+    "PARENT_SERVICE_TAG": "parent_service_tag",
+    "HOSTNAME": "hostname",
+    "ADMIN_MAC": "admin_mac",
+    "ADMIN_IP": "admin_ip",
+    "BMC_MAC": "bmc_mac",
+    "BMC_IP": "bmc_ip",
+}
+
+
+def _read_pxe_mapping(host: testinfra.host.Host) -> tuple:
     """
     Read and parse the PXE mapping file from omnia_core container.
 
-    This is a common helper function used by get_node_admin_ip() and
-    get_node_admin_ips() to avoid code duplication.
+    Handles dynamic column order by parsing the header row.
 
     Args:
         host: Testinfra host connected to OIM server
 
     Returns:
-        List of rows, where each row is a list of column values.
-        Returns empty list if file cannot be read.
+        Tuple of (column_indices, rows):
+        - column_indices: Dict mapping field name to column index
+        - rows: List of rows, where each row is a list of column values
 
-        CSV columns (index):
-        - 0: FUNCTIONAL_GROUP_NAME (functional_group)
-        - 1: GROUP_NAME (group_name)
-        - 2: SERVICE_TAG (service_tag)
-        - 3: PARENT_SERVICE_TAG (parent_service_tag)
-        - 4: HOSTNAME (hostname)
-        - 5: ADMIN_MAC (admin_mac)
-        - 6: ADMIN_IP (admin_ip)
-        - 7: BMC_MAC (bmc_mac)
-        - 8: BMC_IP (bmc_ip)
+        Returns ({}, []) if file cannot be read.
     """
     # Read provision_config.yml to get pxe_mapping_file_path
     result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
     if result.rc != 0:
-        return []
+        return {}, []
 
     # Extract pxe_mapping_file_path
     pattern = r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?'
     match = re.search(pattern, result.stdout)
     if not match:
-        return []
+        return {}, []
     pxe_mapping_path = match.group(1).strip()
 
     # Read PXE mapping file
     result = run_in_container(host, f"cat {pxe_mapping_path}")
     if result.rc != 0:
-        return []
+        return {}, []
 
-    # Parse CSV into list of rows
+    lines = result.stdout.strip().split('\n')
+    if not lines:
+        return {}, []
+
+    # Parse header row to get column indices
+    header = [col.strip().upper() for col in lines[0].split(',')]
+    column_indices = {}
+    for i, col_name in enumerate(header):
+        if col_name in _PXE_COLUMN_MAP:
+            field_name = _PXE_COLUMN_MAP[col_name]
+            column_indices[field_name] = i
+
+    # Parse data rows (skip header)
     rows = []
-    for line in result.stdout.strip().split('\n'):
-        parts = line.split(',')
-        if len(parts) >= 7:
-            # Skip header row
-            if parts[6].strip() == "ADMIN_IP":
-                continue
+    for line in lines[1:]:
+        if line.strip():
+            parts = line.split(',')
             rows.append(parts)
 
-    return rows
+    return column_indices, rows
 
 
 def get_node_info(
@@ -258,24 +272,12 @@ def get_node_info(
     if not search_by or not search_value:
         return {}
 
-    # Field index mapping (all columns from PXE mapping file)
-    field_index = {
-        "functional_group": 0,
-        "group_name": 1,
-        "service_tag": 2,
-        "parent_service_tag": 3,
-        "hostname": 4,
-        "admin_mac": 5,
-        "admin_ip": 6,
-        "bmc_mac": 7,
-        "bmc_ip": 8,
-    }
+    column_indices, rows = _read_pxe_mapping(host)
 
-    if search_by not in field_index:
+    if search_by not in column_indices:
         return {}
 
-    search_idx = field_index[search_by]
-    rows = _read_pxe_mapping(host)
+    search_idx = column_indices[search_by]
 
     for parts in rows:
         if len(parts) <= search_idx:
@@ -285,17 +287,10 @@ def get_node_info(
 
         # Exact match for all fields
         if line_value == search_value:
-            return {
-                "functional_group": parts[0].strip() if len(parts) > 0 else "",
-                "group_name": parts[1].strip() if len(parts) > 1 else "",
-                "service_tag": parts[2].strip() if len(parts) > 2 else "",
-                "parent_service_tag": parts[3].strip() if len(parts) > 3 else "",
-                "hostname": parts[4].strip() if len(parts) > 4 else "",
-                "admin_mac": parts[5].strip() if len(parts) > 5 else "",
-                "admin_ip": parts[6].strip() if len(parts) > 6 else "",
-                "bmc_mac": parts[7].strip() if len(parts) > 7 else "",
-                "bmc_ip": parts[8].strip() if len(parts) > 8 else "",
-            }
+            result = {}
+            for field_name, idx in column_indices.items():
+                result[field_name] = parts[idx].strip() if len(parts) > idx else ""
+            return result
 
     return {}
 
@@ -357,24 +352,12 @@ def get_nodes_info(
     if not search_by or not search_value:
         return []
 
-    # Field index mapping (all columns from PXE mapping file)
-    field_index = {
-        "functional_group": 0,
-        "group_name": 1,
-        "service_tag": 2,
-        "parent_service_tag": 3,
-        "hostname": 4,
-        "admin_mac": 5,
-        "admin_ip": 6,
-        "bmc_mac": 7,
-        "bmc_ip": 8,
-    }
+    column_indices, rows = _read_pxe_mapping(host)
 
-    if search_by not in field_index:
+    if search_by not in column_indices:
         return []
 
-    search_idx = field_index[search_by]
-    rows = _read_pxe_mapping(host)
+    search_idx = column_indices[search_by]
     results = []
 
     for parts in rows:
@@ -385,16 +368,95 @@ def get_nodes_info(
 
         # Exact match for all fields
         if line_value == search_value:
-            results.append({
-                "functional_group": parts[0].strip() if len(parts) > 0 else "",
-                "group_name": parts[1].strip() if len(parts) > 1 else "",
-                "service_tag": parts[2].strip() if len(parts) > 2 else "",
-                "parent_service_tag": parts[3].strip() if len(parts) > 3 else "",
-                "hostname": parts[4].strip() if len(parts) > 4 else "",
-                "admin_mac": parts[5].strip() if len(parts) > 5 else "",
-                "admin_ip": parts[6].strip() if len(parts) > 6 else "",
-                "bmc_mac": parts[7].strip() if len(parts) > 7 else "",
-                "bmc_ip": parts[8].strip() if len(parts) > 8 else "",
-            })
+            result = {}
+            for field_name, idx in column_indices.items():
+                result[field_name] = parts[idx].strip() if len(parts) > idx else ""
+            results.append(result)
 
     return results
+
+
+# =============================================================================
+# BACKWARD COMPATIBILITY FUNCTIONS
+# These functions provide backward compatibility with the merged git version.
+# They use _read_pxe_mapping() internally to avoid code duplication.
+# =============================================================================
+
+def get_node_admin_ip(
+    host: testinfra.host.Host,
+    functional_group: str = None,
+    hostname: str = None
+) -> str:
+    """
+    Get the admin IP of a node from PXE mapping file.
+
+    This is a backward-compatible wrapper around get_node_info().
+
+    Args:
+        host: Testinfra host connected to OIM server
+        functional_group: Functional group name to match (contains match)
+        hostname: Hostname to match (exact match)
+
+    Returns:
+        Admin IP of matching node, or empty string if not found
+    """
+    if hostname:
+        node = get_node_info(host, search_by="hostname", search_value=hostname)
+        return node.get("admin_ip", "")
+
+    if functional_group:
+        # For functional_group, use contains match (backward compat)
+        column_indices, rows = _read_pxe_mapping(host)
+        fg_idx = column_indices.get("functional_group")
+        ip_idx = column_indices.get("admin_ip")
+        if fg_idx is not None and ip_idx is not None:
+            for parts in rows:
+                if len(parts) > max(fg_idx, ip_idx):
+                    if functional_group in parts[fg_idx]:
+                        return parts[ip_idx].strip()
+
+    return ""
+
+
+def get_functional_groups_from_pxe_mapping(host: testinfra.host.Host) -> set:
+    """
+    Extract all unique functional group names from PXE mapping file.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Set of functional group names
+    """
+    column_indices, rows = _read_pxe_mapping(host)
+    fg_idx = column_indices.get("functional_group")
+    if fg_idx is None:
+        return set()
+
+    groups = set()
+    for parts in rows:
+        if len(parts) > fg_idx and parts[fg_idx].strip():
+            groups.add(parts[fg_idx].strip())
+    return groups
+
+
+def get_group_names_from_pxe_mapping(host: testinfra.host.Host) -> set:
+    """
+    Extract all unique group names from PXE mapping file.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Set of group names
+    """
+    column_indices, rows = _read_pxe_mapping(host)
+    grp_idx = column_indices.get("group_name")
+    if grp_idx is None:
+        return set()
+
+    groups = set()
+    for parts in rows:
+        if len(parts) > grp_idx and parts[grp_idx].strip():
+            groups.add(parts[grp_idx].strip())
+    return groups

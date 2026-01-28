@@ -27,7 +27,7 @@ from .functions.idrac_telemetry_func import (
     verify_idrac_telemetry_pod_count,
     verify_all_telemetry_pods_running,
 )
-from .functions.telemetry_func import (
+from .functions.shared_func import (
     is_kafka_enabled,
     is_ldms_enabled,
 )
@@ -39,4 +39,4 @@ from .functions.kafka_func import (
 )
 from .vars.idrac_telemetry_vars import TELEMETRY_VARS, validate_telemetry_config
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
-from .messages.telemetry_msgs import TELEMETRY_MSGS, TEST_NAMES
+from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES
