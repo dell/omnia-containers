@@ -4,3 +4,4 @@ dnspython
 jinja2_ansible_filters
 PyYAML
 requests
+urllib3>=2.6.3
