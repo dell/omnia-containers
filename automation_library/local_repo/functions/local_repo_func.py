@@ -107,7 +107,7 @@ def get_expected_status_csv_paths(host) -> Dict[str, Any]:
     if not isinstance(softwares, list):
         return {"success": False, "paths": [], "error": "Invalid softwares list in software_config.json"}
 
-    base = (LOCAL_REPO_VARS.get("status_search_roots") or ["/opt/omnia/log/local_repo"])[0]
+    base = LOCAL_REPO_VARS["status_log_path"]
     paths: List[Dict[str, str]] = []
     for s in softwares:
         if not isinstance(s, dict):
@@ -269,7 +269,7 @@ def check_status_csv_all_packages_downloaded(host) -> Dict[str, Any]:
 
 def load_software_config(host) -> Dict[str, Any]:
     """Load software_config.json from omnia_core container."""
-    oim_input_dir = LOCAL_REPO_VARS.get("oim_input_dir", "/opt/omnia/input/project_default")
+    oim_input_dir = LOCAL_REPO_VARS["oim_input_dir"]
     config_path = f"{oim_input_dir}/software_config.json"
 
     result = read_file_in_omnia_core(host, config_path)
@@ -288,7 +288,7 @@ def load_software_config(host) -> Dict[str, Any]:
 
 def build_config_path(os_type: str, os_version: str, arch: str, software_name: str) -> str:
     """Build path to config JSON file."""
-    oim_input_dir = LOCAL_REPO_VARS.get("oim_input_dir", "/opt/omnia/input/project_default")
+    oim_input_dir = LOCAL_REPO_VARS["oim_input_dir"]
     return f"{oim_input_dir}/config/{arch}/{os_type}/{os_version}/{software_name}.json"
 
 
@@ -436,7 +436,8 @@ def _resolve_pulp_repo_name(repo_name: str, arch: str) -> str:
         return r
 
     # Common repos are created in Pulp with arch prefix.
-    if r in {"baseos", "appstream", "epel", "kubernetes", "cri-o", "docker-ce", "codeready-builder"}:
+    arch_prefixed = LOCAL_REPO_VARS["arch_prefixed_repos"]
+    if r in arch_prefixed:
         return f"{a}_{r}"
 
     return r
@@ -507,7 +508,7 @@ def check_package_in_pulp(host, package_name: str, repository_version: str = "")
 
 
 def _get_status_csv_path_for_software(arch: str, software: str) -> str:
-    base = (LOCAL_REPO_VARS.get("status_search_roots") or ["/opt/omnia/log/local_repo"])[0]
+    base = LOCAL_REPO_VARS["status_log_path"]
     a = (arch or "").strip()
     s = (software or "").strip()
     if not a or not s:
@@ -1022,12 +1023,16 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
 
         # Try to access repodata via localhost (inside omnia_core which can reach pulp)
         # Use pulp's content URL - typically https://localhost:port/pulp/content/<base_path>/
-        curl_https = (f"curl -sk https://localhost:2225/pulp/content/{base_path}"
-                      "/repodata/repomd.xml -o /dev/null -w '%{http_code}' "
-                      "--connect-timeout 10 2>/dev/null")
-        curl_http = (f"curl -s http://localhost:80/pulp/content/{base_path}"
-                     "/repodata/repomd.xml -o /dev/null -w '%{http_code}' "
-                     "--connect-timeout 10 2>/dev/null")
+        https_port = LOCAL_REPO_VARS["pulp_https_port"]
+        http_port = LOCAL_REPO_VARS["pulp_http_port"]
+        content_base = LOCAL_REPO_VARS["pulp_content_base_url"]
+        curl_timeout = LOCAL_REPO_VARS["curl_connect_timeout"]
+        curl_https = (f"curl -sk https://localhost:{https_port}{content_base}/{base_path}"
+                      f"/repodata/repomd.xml -o /dev/null -w '%{{http_code}}' "
+                      f"--connect-timeout {curl_timeout} 2>/dev/null")
+        curl_http = (f"curl -s http://localhost:{http_port}{content_base}/{base_path}"
+                     f"/repodata/repomd.xml -o /dev/null -w '%{{http_code}}' "
+                     f"--connect-timeout {curl_timeout} 2>/dev/null")
         content_cmd = run_in_omnia_core(host, f"{curl_https} || {curl_http}")
 
         http_code = (content_cmd.get("stdout") or "").strip()
@@ -1055,7 +1060,7 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
 
 def load_local_repo_config_from_container(host) -> Dict[str, Any]:
     """Load local_repo_config.yml from omnia_core container."""
-    oim_input_dir = LOCAL_REPO_VARS.get("oim_input_dir", "/opt/omnia/input/project_default")
+    oim_input_dir = LOCAL_REPO_VARS["oim_input_dir"]
     config_path = f"{oim_input_dir}/local_repo_config.yml"
 
     result = read_file_in_omnia_core(host, config_path)
@@ -1236,16 +1241,9 @@ def check_nfs_mounts_in_pulp(host) -> Dict[str, Any]:
     """
     Verify NFS mounts are present inside the Pulp container.
     
-    Checks for critical NFS mount points:
-    - /var/lib/pulp (Pulp storage)
-    - /var/lib/pgsql (PostgreSQL data)
-    - /var/log/pulp (Pulp logs)
+    Checks for critical NFS mount points configured in LOCAL_REPO_VARS["nfs_mounts"].
     """
-    required_mounts = [
-        {"path": "/var/lib/pulp", "description": "Pulp storage"},
-        {"path": "/var/lib/pgsql", "description": "PostgreSQL data"},
-        {"path": "/var/log/pulp", "description": "Pulp logs"},
-    ]
+    required_mounts = LOCAL_REPO_VARS["nfs_mounts"]
     
     # Get all NFS mounts inside pulp container
     cmd = run_in_pulp_container(host, "mount | grep 'type nfs'")
@@ -1418,10 +1416,10 @@ def check_nfs_storage_permissions(host) -> Dict[str, Any]:
     Verify NFS storage permissions and read/write access in Pulp container.
     
     Checks:
-    - /var/lib/pulp ownership and permissions
+    - Pulp storage path ownership and permissions
     - Read/write access test
     """
-    storage_path = "/var/lib/pulp"
+    storage_path = LOCAL_REPO_VARS["pulp_storage_path"]
     
     # Check if path exists
     exists_cmd = run_in_pulp_container(host, f"test -d {storage_path} && echo 'exists'")

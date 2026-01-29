@@ -102,12 +102,34 @@ LOCAL_REPO_VARS: Dict[str, Any] = {
     # Repo URLs (from input/local_repo_config.yml)
     "repo_urls": _extract_repo_urls(_LOCAL_REPO_CONFIG),
 
-    # Status file search roots
-    "status_search_roots": ["/opt/omnia/log/local_repo"],
+    # Status file search root (single path)
+    "status_log_path": "/opt/omnia/log/local_repo",
+
+    # Pulp content server
+    "pulp_https_port": 2225,
+    "pulp_http_port": 80,
+    "pulp_content_base_url": "/pulp/content",
+
+    # NFS mount paths inside Pulp container
+    "nfs_mounts": [
+        {"path": "/var/lib/pulp", "description": "Pulp storage"},
+        {"path": "/var/lib/pgsql", "description": "PostgreSQL data"},
+        {"path": "/var/log/pulp", "description": "Pulp logs"},
+    ],
+
+    # Pulp storage path for permission checks
+    "pulp_storage_path": "/var/lib/pulp",
+
+    # Common repo names that get arch prefix in Pulp
+    "arch_prefixed_repos": {
+        "baseos", "appstream", "epel", "kubernetes",
+        "cri-o", "docker-ce", "codeready-builder",
+    },
 
     # Timeouts
     "pulp_api_timeout_seconds": 300,
     "repo_url_timeout_seconds": 10,
+    "curl_connect_timeout": 10,
 
     # Execution control
     "skip_on_failure": OIM_PREREQ_VARS.get("skip_on_failure", False),

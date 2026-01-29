@@ -90,10 +90,10 @@ def test_status_csv_all_packages_downloaded(host):
         log.passed(LOG_MSGS["status_csv_no_failures"], (result.get("details") or "").strip())
         return
 
-    roots = ", ".join(TEST_VARS.get("status_search_roots", []))
+    log_path = TEST_VARS.get("status_log_path", "")
     if result.get("error") == "status.csv not found":
-        log.failed(LOG_MSGS["status_csv_missing"], roots)
-        assert False, ASSERT_MSGS["status_csv_missing"].format(roots=roots)
+        log.failed(LOG_MSGS["status_csv_missing"], log_path)
+        assert False, ASSERT_MSGS["status_csv_missing"].format(roots=log_path)
 
     details = result.get("details") or result.get("error") or ""
     log.failed(LOG_MSGS["status_csv_has_failures"], details)

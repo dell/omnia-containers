@@ -32,7 +32,7 @@ from ..vars.local_repo_vars import LOCAL_REPO_VARS
 TEST_VARS = {
     "pulp_container": LOCAL_REPO_VARS["pulp_container"],
     "omnia_core_container": LOCAL_REPO_VARS["omnia_core_container"],
-    "status_search_roots": LOCAL_REPO_VARS["status_search_roots"],
+    "status_log_path": LOCAL_REPO_VARS["status_log_path"],
 }
 
 
