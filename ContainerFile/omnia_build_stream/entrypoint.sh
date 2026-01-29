@@ -18,19 +18,34 @@
 # Configure Pulp CLI if environment variables are provided
 /configure-pulp.sh
 
-# TODO: Uncomment when api_server.py is available in /opt/omnia/build_stream
-# Start the FastAPI application with SSL if certificates exist
-# cd /opt/omnia/build_stream
-# if [ -f "/etc/ssl/omnia/cert.pem" ] && [ -f "/etc/ssl/omnia/key.pem" ]; then
-#     echo "Starting FastAPI with HTTPS on port 443..."
-#     exec python3 -m uvicorn api_server:app --host 0.0.0.0 --port 443 \
-#         --ssl-keyfile=/etc/ssl/omnia/key.pem \
-#         --ssl-certfile=/etc/ssl/omnia/cert.pem
-# else
-#     echo "WARNING: SSL certificates not found, starting with HTTP on port 443..."
-#     exec python3 -m uvicorn api_server:app --host 0.0.0.0 --port 443
-# fi
+# Read omnia_share_path from oim_metadata.yml
+# First try default location, then use the extracted path
+DEFAULT_PATH="/opt/omnia"
+OIM_METADATA_FILE="$DEFAULT_PATH/.data/oim_metadata.yml"
 
-echo "Container started successfully. API server is disabled (api_server.py not implemented yet)."
-echo "Keeping container alive..."
-exec tail -f /dev/null
+if [ -f "$OIM_METADATA_FILE" ]; then
+    OMNIA_SHARE_PATH=$(grep -E '^oim_shared_path:' "$OIM_METADATA_FILE" | awk '{print $2}' | tr -d '"')
+    echo "Using omnia_share_path from metadata: $OMNIA_SHARE_PATH"
+    
+    # If the extracted path is different from default, update the metadata file location
+    if [ "$OMNIA_SHARE_PATH" != "$DEFAULT_PATH" ]; then
+        OIM_METADATA_FILE="$OMNIA_SHARE_PATH/.data/oim_metadata.yml"
+        echo "Metadata file location: $OIM_METADATA_FILE"
+    fi
+else
+    OMNIA_SHARE_PATH="$DEFAULT_PATH"
+    echo "WARNING: oim_metadata.yml not found at default location, using: $OMNIA_SHARE_PATH"
+fi
+
+# Start the FastAPI application
+cd "$OMNIA_SHARE_PATH/build_stream"
+
+if [ -f "/etc/ssl/omnia/cert.pem" ] && [ -f "/etc/ssl/omnia/key.pem" ]; then
+    echo "Starting FastAPI with HTTPS on port ${PORT:-443}..."
+    exec python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443} \
+        --ssl-keyfile=/etc/ssl/omnia/key.pem \
+        --ssl-certfile=/etc/ssl/omnia/cert.pem
+else
+    echo "WARNING: SSL certificates not found, starting with HTTP on port ${PORT:-443}..."
+    exec python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443}
+fi
