@@ -1,10 +1,10 @@
 # build ldms
 
 #FROM ovishpc/ovis-ubuntu-build as ldms_builder
-FROM ubuntu:24.04 as ldms_builder
+FROM ubuntu:25.10 as ldms_builder
 
 #ARG and ENV declarations for OVIS_TAG and REPO
-ARG OVIS_TAG="v4.5.1"
+ARG OVIS_TAG="main"
 ENV TAG=${OVIS_TAG}
 ARG OVIS_REPO="https://github.com/ovis-hpc/ovis.git"
 ENV REPO=${OVIS_REPO}
@@ -31,7 +31,7 @@ RUN apt-get update \
     libibverbs-dev \
     libjansson-dev \
     libavro-dev \
-    libavro23 \
+    libavro24 \
     librdkafka-dev \
     python3-pyverbs \
     librdmacm-dev \
@@ -67,7 +67,7 @@ RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed 
     python3 -m pip --version
 
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security
-RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
+RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.10.2 wheel==0.46.2 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
 
 # libserdes needed by avro_kafka
 RUN echo "Build libserdes" \
@@ -104,7 +104,7 @@ RUN echo "Build ldms" \
 # TODO:  apt-get install --no-install-recommends -y \
 # TODO:  rm -rf /root/.cache/pip/*
 
-FROM ubuntu:24.04
+FROM ubuntu:25.10
 
 ARG VER="0.1"
 ENV VER=${VER}
@@ -128,7 +128,7 @@ RUN apt-get update \
     iproute2 \
     jq \
     less \
-    libavro23 \
+    libavro24 \
     libpapi-dev \
     libpfm4 \
     librdkafka1 \
@@ -155,16 +155,19 @@ RUN python3 -m pip install --break-system-packages --upgrade --ignore-installed 
     python3 -m pip --version
 
 # Broken cython ships with ubuntu:24.04 - also upgrade setuptools for security (runner stage)
-RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.9.0 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
+RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages --upgrade setuptools==80.10.2 ; pip3 install --break-system-packages Cython==3.0.12 ; ln -s /usr/local/bin/cython /usr/local/bin/cython3 ;'
 
 # ldms exporter needs these
 RUN /bin/bash -c 'set -e ; pip3 install --break-system-packages click prometheus_client ;'
 
 COPY --from=ldms_builder /opt/ovis-ldms /opt/ovis-ldms
-COPY --from=ldms_builder /usr/local/lib/ /usr/local/lib/libserdes.so
+COPY --from=ldms_builder /usr/local/lib/libserdes.so* /usr/local/lib/
 
 # Update shared library cache so libserdes.so.1 can be found
 RUN ldconfig
+
+# Fix CVE-2026-24049: Upgrade wheel to 0.46.2 to fix path traversal vulnerability
+RUN python3 -m pip install --break-system-packages --upgrade wheel==0.46.2
 
 #LABEL maintainer="YOUR NAME HERE <YOUR EMAIL HERE>" version=$VER
 CMD /bin/bash
