@@ -203,39 +203,11 @@
       register: repo_reachability
       changed_when: false
 
-    - name: Create temp directory on OIM server
-      ansible.builtin.file:
-        path: "/tmp/omnia_input"
-        state: directory
-        mode: '0755'
-
-    - name: Copy input files from automation repo to OIM server
-      ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../../input/"
-        dest: "/tmp/omnia_input/"
-        decrypt: false
-        mode: preserve
-      delegate_to: localhost
-
-    - name: Copy input files into omnia_core container
-      ansible.builtin.command:
-        cmd: podman cp /tmp/omnia_input/. omnia_core:{{ oim_input_dir }}/
-      changed_when: true
-
-    - name: Cleanup temp directory
-      ansible.builtin.file:
-        path: /tmp/omnia_input
-        state: absent
-
-    - name: Verify input files in container
-      ansible.builtin.command:
-        cmd: podman exec omnia_core ls -la {{ oim_input_dir }}/
-      register: container_files
-      changed_when: false
-
-    - name: Display container input files
-      ansible.builtin.debug:
-        var: container_files.stdout_lines
+    # =========================================================================
+    # RUN LOCAL_REPO PLAYBOOK
+    # =========================================================================
+    # Input files are already synced to /opt/omnia/input/project_default
+    # by omnia_sh_install converge (via rsync over SSH port 2222)
 
     - name: Check if local_repo playbook exists in container
       ansible.builtin.shell:
@@ -251,8 +223,7 @@
       ansible.builtin.shell:
         cmd: |
           podman exec -w /omnia omnia_core \
-            ansible-playbook local_repo/local_repo.yml -v \
-            --vault-password-file {{ oim_input_dir }}/.omnia_config_credentials_key
+            ansible-playbook local_repo/local_repo.yml -v
       register: playbook_result
       timeout: 3600
       when: "'EXISTS' in playbook_check.stdout"

@@ -42,6 +42,9 @@ from .functions.local_repo_func import (
     check_pulp_distributions_published,
     check_pulp_no_failed_tasks,
     check_pulp_content_accessible,
+    check_pulp_distributions_match_config,
+    check_nfs_mounts_in_pulp,
+    check_nfs_storage_permissions,
 )
 from .vars.local_repo_vars import (
     LOCAL_REPO_VARS, get_local_repo_config_path, get_repo_urls
