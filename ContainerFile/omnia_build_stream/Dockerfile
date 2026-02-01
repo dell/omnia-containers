@@ -28,8 +28,7 @@ LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
 # Update the system and install Python 3.12 with security updates (without pip)
-RUN dnf -y install python3 python3-pip git openssh-clients \
-    iproute systemd wget curl jq nano iputils \
+RUN dnf -y install python3 curl \
     gcc gcc-c++ make python3-devel && \
     dnf clean all && \
     rm -rf /var/cache/dnf
@@ -37,14 +36,18 @@ RUN dnf -y install python3 python3-pip git openssh-clients \
 # Verify Python version
 RUN python3 --version
 
+# Remove rpm pip to avoid "no RECORD file" issue
+RUN dnf -y remove python3-pip python3-setuptools python3-wheel || true && \
+    dnf clean all && rm -rf /var/cache/dnf
+
+
 # Install pip 25.3 directly to fix CVE-2025-8869
-RUN dnf -y remove python3-pip && \
-    curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - pip==25.3 && \
-    pip3 --version && \
-    pip3 list | grep pip
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - "pip==25.3" && \
+    python3 -m pip --version && \
+    python3 -m pip list | grep pip
 
 # Install uv package manager
-RUN pip3 install uv==0.9.13
+RUN python3 -m pip install --no-cache-dir uv==0.9.13
 
 # Copy project configuration files
 COPY pyproject.toml uv.lock ./
@@ -55,23 +58,25 @@ ENV UV_PROJECT_ENVIRONMENT="/usr"
 # Install dependencies using uv from lock file
 RUN uv sync --locked
 
-# Create output directories for API operations
-RUN mkdir -p /omnia_build_stream/out/generator /omnia_build_stream/out/adapter/config
 
-# Copy Pulp configuration script
-COPY configure-pulp.sh /configure-pulp.sh
-RUN chmod +x /configure-pulp.sh
+# -----------------------------
+# Runtime defaults
+# -----------------------------
+ENV HOST=0.0.0.0
+ENV PORT=443
+ENV APP_DIR=/opt/omnia/build_stream
 
-# Copy entrypoint script
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# The code (main.py) will be mounted here via Quadlet:
+WORKDIR ${APP_DIR}
 
-# Expose port 443
+# Expose HTTPS port
 EXPOSE 443
 
-# Document security patches
-LABEL security.pip.version="25.3" \
-      security.pip.cve="CVE-2025-8869-fixed"
+# Healthcheck: self-signed cert expected -> use -k
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -skf https://localhost:${PORT}/health || exit 1
 
-# Set entrypoint to configure Pulp and start the application
-ENTRYPOINT ["/entrypoint.sh"]
+# Start API server on container start
+# NOTE: relies on /opt/omnia/build_stream/main.py being present (mounted from host)
+CMD ["bash","-lc","exec python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443} --ssl-keyfile=/etc/ssl/omnia/key.pem --ssl-certfile=/etc/ssl/omnia/cert.pem"]
+
