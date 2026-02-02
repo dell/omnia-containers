@@ -1,5 +1,5 @@
 ===========================================================================
-Step 5: Provide Inputs to the Files in the ``project_default`` Directory
+Step 4: Provide Inputs to the Files in the ``project_default`` Directory
 ===========================================================================
 
 Omnia is now deployed using a project-based approach. Once the ``omnia_core`` container is deployed, all the input files needed for the cluster will be available in the ``/opt/omnia/input/project_default`` directory on the NFS share.
@@ -27,7 +27,7 @@ Default Values Assumed in these Templates (change if needed):
 
 * Virtual address for Kubernetes cluster: ``172.16.0.1``
 * OIM PXE NIC IP address: ``172.16.0.254``
-* Mapping file path (provided in the same folder): ``./pxe_mapping_file.csv``
+* Mapping file path (provided in the same folder): ``pxe_mapping_file.csv``
 * External NFS share for all Omnia workflows:  
   IP address: ``172.16.0.253``, Path: ``/mnt/share/omnia``
 * NFS share for HA on service Kubernetes cluster:  
@@ -45,13 +45,3 @@ Additional values you must provide:
 * **Telemetry configuration (if enabled):**  
    * ``csi_powerscale_driver_secret_file_path`` – Powerscale driver secret file  
    * ``csi_powerscale_driver_values_file_path`` – Powerscale driver values file
-
-
-Input Validator
-=================
-
-Once all the input files are filled, the input validator can be used to verify if the provided inputs are correct or not.
-This helps reduce execution delays at runtime caused by wrong inputs. Use the following command to execute the input validator: ::
-
-    cd input_validation
-    ansible-playbook validate_config.yml

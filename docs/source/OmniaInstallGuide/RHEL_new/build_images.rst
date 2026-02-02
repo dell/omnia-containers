@@ -8,6 +8,7 @@ Each image is created based on the functional groups defined in the mapping file
 
 **Prerequisites**: 
 
+   * Ensure the OIM has internet access.
    * Ensure that the mapping file contains nodes with the functional groups required for your environment. For more information on functional groups, see :doc:`composable_roles`.
    * Make sure the ``local_repo.yml`` is executed with software packages matching the target architecture. If the build is for ``x86_64``, include software defined with ``x86_64``. If the build is for ``aarch64``, include software with ``aarch64``.
      If the build needs to support both architectures, ensure ``local_repo.yml`` is executed with ``software_config.json`` that include both ``x86_64`` and ``aarch64``.

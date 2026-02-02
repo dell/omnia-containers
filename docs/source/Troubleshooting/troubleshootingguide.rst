@@ -2,6 +2,108 @@
 Troubleshooting guide
 ============================
 
+Troubleshooting Core Container Failures
+=========================================
+
+The deployment of the Omnia core container may fail for the following reasons:
+
+- The ``omnia.sh`` script aborts early.
+- ``podman pull`` fails.
+- The Omnia core container starts but cannot write to the shared path.
+
+**Resolution:**
+
+Peform the following steps:
+
+1.  Verify the Omnia core container status using the following command:
+
+.. code-block:: bash
+
+   podman ps --format 'table {{.Names}}\t{{.Status}}'
+
+2. Review Omnia core container logs using the following command:
+
+.. code-block:: bash
+
+   podman logs -n 200 omnia_core
+
+3. Verify time synchronization on the OIM. TLS communication between Omnia containers
+   depends on accurate time synchronization.
+
+   Use the following commands to check time synchronization status:
+
+   .. code-block:: bash
+
+      timedatectl status
+      chronyc tracking || chronyc sources -v
+
+   If time drift is detected, enable Chrony or NTP and re-synchronize time before
+   proceeding.
+
+4. Ensure that the OIM hostname meets the following requirements. If not, rename the host to comply with the hostname rules and re-run the ``omnia.sh`` script.
+
+ - No dot (``.``), underscore (``_``), or comma (``,``)
+ - No leading or trailing hyphen (``-``)
+ - No uppercase characters
+ - Must not start with a digit
+ - Fully qualified domain name (FQDN) length must be ≤ 64 characters
+
+5. Check whether Podman is installed and able to pull images. If not, install podman and verify podman login.
+
+6. Verify outbound network connectivity from the OIM.
+
+7. Validate the NFS shared path and SELinux context. To fix any issues related to NFS, export the NFS share with ``no_root_squash`` enabled, ensure the shared path has 755 permissions, and bind the shared path with SELinux relabeling.
+
+.. code-block:: bash
+
+   podman run --rm -v /shared:/mnt:z registry.access.redhat.com/ubi10/ubi sh -lc 'touch /mnt/.rw'
+
+If unsure, start with a **local** shared path and switch to NFS later.
+
+8. After applying the fixes, re-run the ``omnia.sh`` script to deploy the Omnia core
+container.
+
+Troubleshooting failures during prepare OIM 
+================================================
+
+The prepare OIM playbook may fail for the following reasons:
+
+- Certificate or TLS failures
+- Expected container not created
+- Service is running but unreachable
+
+**Resolution**
+
+Verify container inventory:
+
+.. code-block:: bash
+
+   podman ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+
+Common Container Logs and Debugging Shortcuts
+==============================================
+
+Use the following commands to troubleshoot container issues across Omnia services.
+
+* To view list of all Omnia containers, run the following command:
+
+.. code-block:: bash
+
+   podman ps -a
+
+* To view container logs, run the following command:
+
+.. code-block:: bash
+
+   podman logs -n 200 <container>
+
+* To test outbound connectivity from a container, run the following command:
+
+.. code-block:: bash
+
+   podman exec -it <container> sh -lc 'curl -I https://example.com'
+
+
 PXE Boot Hangs During Node Replacement
 =====================================
 
@@ -90,7 +192,6 @@ Example: ::
         /opt/omnia/log/local_repo/x86_64/nfs/logs/package_status_41422.log
 
 .. image:: ../images/troubleshoot_local_repo_4.png
-
 
 Troubleshooting logs
 =================================================================

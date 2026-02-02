@@ -36,11 +36,16 @@ NFS Server for Omnia Infrastructure Manager (OIM)
 * Omnia recommends using an NFS share with at least 200 GB storage for OIM and cluster configuration.
 * Ensure that there is a dedicated mount point for each NFS.
 
+Networking
+----------
+
+* Ensure admin and BMC switches are configured and reachable. 
+
 Omnia Infrastructure Manager (OIM)
 ----------------------------------
 
 * Choose a **server outside of your intended cluster** that meets the required :doc:`Storage Requirements <OmniaInstallGuide/RHEL_new/RHELSpace>` to function as the Omnia Infrastructure Manager (OIM).
-* Ensure the OIM has at least 64 GB RAM.
+* Ensure the OIM has at least 64 GB RAM. To check the free RAM size, use the ``free -h`` command. To check the disk space, use the ``df -h`` command.
 * Ensure that the OIM has the RHEL operating system installed with the **Server with GUI** Base Environment. For a complete list of supported RHEL versions, see the :doc:`supported operating systems <Overview/SupportMatrix/OperatingSystems/index>`.
 * Ensure that **Podman** container engine is installed on the OIM.
 * The OIM must have **two active Network Interface Cards (NICs)**:
@@ -56,11 +61,23 @@ Omnia Infrastructure Manager (OIM)
 * All target bare-metal servers (cluster nodes) must be **reachable from the OIM**.
 * Make sure that the required ports are open on the OIM node for cluster deployment. For detailed information on the required ports, refer to the :doc:`Omnia Ports <omnia_ports>`.
 * The ``omnia_core`` and ``omnia_auth`` container images are deployed on the OIM. For instructions to deploy containers, see :doc:`Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup>`.
-  
+
+Aarch64 Node Prerequisites
+---------------------------
+
+* Ensure that a disk is available to the aarch64 node for Full OS installation and you must install the OS manually.
+* Ensure that an IP address is assigned to the aarch64 node and the node has connectivity to the PXE network.
+* Ensure that the same NFS share used in OIM is mounted on the aarch64 node.
+
 Repository
 -----------
 
 * Enable the **AppStream** and **BaseOS** repositories via the RHEL subscription manager.
+* To pin specific RHEL version in the subscription manager, use the following commands:
+
+    subscription-manager release --show
+    subscription-manager release --set=10.0
+
 * Ensure that RHEL has an **active subscription** or is configured to access **local repositories**.
 * Verify that all **repository URLs** for the software packages are **accessible** — downloads will fail for inaccessible packages.
 * For RHEL systems without a subscription, the repository URLs for ``x86_64_codeready-builder``, ``x86_64_appstream``, and ``x86_64_baseos`` are mandatory.
@@ -97,6 +114,7 @@ Lightweight Directory Access Protocol (LDAP)
 --------------------------------------------
 
 * The LDAP server details are required to configure the ``omnia_auth`` container and OpenLDAP as a proxy server. See :doc:`Configure OpenLDAP as a proxy server <OmniaInstallGuide/RHEL_new/Authentication/OpenLDAP>`.
+* To deploy an external OpenLDAP server for authentication, ensure that the OpenLDAP server is deployed and configured with the required directory structure (users and groups). For the detailed steps, see :doc:`External LDAP Deployment <OmniaInstallGuide/ExternalDeploymentGuide/external_ldap_deployment>`.
 
 Lightweight Distributed Metric Service (LDMS)
 ---------------------------------------------
