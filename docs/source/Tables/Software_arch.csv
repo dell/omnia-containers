@@ -6,3 +6,5 @@ slurm_custom.json,Yes,Yes
 service_k8s.json,Yes,No
 ucx.json,Yes,No
 openmpi,Yes,No
+additional_packages.json,Yes,Yes
+admin_debug_packages.json,Yes,Yes

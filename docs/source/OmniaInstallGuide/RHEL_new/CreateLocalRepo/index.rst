@@ -7,7 +7,8 @@ Once the Pulp container is ready, you can provide inputs in the ``/opt/omnia/inp
 
 .. toctree::
     Prerequisite
-    InputParameters
+    InputParameters    
     localrepos
     RunningLocalRepo
+    AdminDebugPackages
 
