@@ -12,19 +12,19 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
-RUN curl -LO https://go.dev/dl/go1.25.4.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.25.4.linux-amd64.tar.gz && \
-    rm go1.25.4.linux-amd64.tar.gz
+RUN curl -LO https://go.dev/dl/go1.25.5.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.5.linux-amd64.tar.gz && \
+    rm go1.25.5.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
 
-# Fix CVE-2025-47913: Create persistent project with patched golang.org/x/crypto@v0.43.0
+# Fix CVE-2025-47913: Create persistent project with patched golang.org/x/crypto@v0.45.0
 # Scanners detect this from go.mod/go.sum files and module cache
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
-    go get golang.org/x/crypto@v0.43.0 && \
+    go get golang.org/x/crypto@v0.45.0 && \
     printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nfunc main() {}\n' > main.go && \
     go build -o crypto-patch . && \
     echo "Patched crypto version:" && \
@@ -33,30 +33,35 @@ RUN mkdir -p /opt/go-crypto-patch && \
     chmod -R 755 /opt/go-crypto-patch && \
     chmod -R 777 /go
 
-# Install Git LFS latest version (3.7.1) with security updates
-RUN curl -LO https://github.com/git-lfs/git-lfs/releases/download/v3.7.1/git-lfs-linux-amd64-v3.7.1.tar.gz && \
-    tar -xvzf git-lfs-linux-amd64-v3.7.1.tar.gz && \
-    cd git-lfs-3.7.1 && \
-    ./install.sh && \
+# Build Git LFS from source with patched Go 1.25.5 and golang.org/x/crypto 0.45.0
+RUN git clone https://github.com/git-lfs/git-lfs.git /tmp/git-lfs && \
+    cd /tmp/git-lfs && \
+    git checkout v3.7.1 && \
+    go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.45.0 && \
+    go mod tidy && \
+    go build -o /usr/local/bin/git-lfs . && \
     git lfs install && \
-    cd .. && rm -rf git-lfs-3.7.1 git-lfs-linux-amd64-v3.7.1.tar.gz
+    cd / && rm -rf /tmp/git-lfs
 
-# Verify Git LFS version to ensure security patch is applied
-RUN git lfs version
+# Verify Git LFS version and that it was built with patched Go
+RUN git lfs version && \
+    echo "Git LFS built with Go $(go version)"
 
 RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix CVE-2025-8869 (pip 24.0 vulnerability)
-RUN python3 -m pip install --upgrade pip==25.3
+# Upgrade pip to fix CVE-2025-8869 (system pip vulnerability)
+RUN python3 -m pip install --upgrade pip==25.3 --target /usr/lib/python3.12/site-packages --force-reinstall && \
+    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2.dist-info
 
-# Install/sync python packages using the uv.lock
+# Install/sync python packages using pyproject.toml (includes all security-patched packages)
 RUN pip3 install uv==0.9.13
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
-RUN uv sync --locked
+RUN uv lock && uv sync && \
+    rm -rf /root/.cache/uv /root/.cache/pip
 
 # Allow root login by enabling it in the SSH configuration
 RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
@@ -107,10 +112,8 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: community.kubernetes" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.1" >> /tmp/omnia_core/galaxy_requirements.yml
 
-# Install a specific version of Ansible with security updates
-RUN pip install --no-cache-dir "ansible-core==2.16.14rc1"
-
 # Install ansible-galaxy collections from galaxy_requirements.yml
+# Note: ansible-core is installed via pyproject.toml
 RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
 
 # Additional security: Clean up any cached vulnerable packages
@@ -131,11 +134,24 @@ WORKDIR /omnia
 COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
-# Document security patches
-LABEL security.golang.crypto.version="0.43.0" \
-      security.golang.crypto.cve="CVE-2025-47913-fixed" \
+# Document security patches applied
+LABEL security.go.version="1.25.5" \
+      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed" \
+      security.golang.crypto.version="0.45.0" \
+      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
+      security.git-lfs.version="3.7.1-patched" \
+      security.git-lfs.note="Built from source with Go 1.25.5 and golang.org/x/crypto 0.45.0" \
+      security.urllib3.version="2.6.3" \
+      security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed" \
+      security.pyasn1.version="0.6.2" \
+      security.pyasn1.cves="CVE-2026-23490-fixed" \
+      security.filelock.version="3.20.3" \
+      security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed" \
       security.pip.version="25.3" \
-      security.pip.cve="CVE-2025-8869-fixed"
+      security.pip.cves="CVE-2025-8869-fixed" \
+      security.wheel.version="0.46.2" \
+      security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
+
