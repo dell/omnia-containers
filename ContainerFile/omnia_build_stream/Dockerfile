@@ -42,7 +42,7 @@ RUN dnf -y remove python3-pip python3-setuptools python3-wheel || true && \
 
 
 # Install pip 25.3 directly to fix CVE-2025-8869
-RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - "pip==25.3" && \
+RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - "pip==26.0" && \
     python3 -m pip --version && \
     python3 -m pip list | grep pip
 
