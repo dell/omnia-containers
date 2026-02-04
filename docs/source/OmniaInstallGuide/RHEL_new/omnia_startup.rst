@@ -45,7 +45,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
       git clone https://github.com/dell/omnia-artifactory.git
       cd omnia-artifactory
-      ./build_images.sh omnia_branch=<branch_name_or_tag> core_tag=1.0
+      ./build_images.sh core omnia_branch=<branch_name_or_tag> core_tag=1.0
 
     **Examples:**
 
@@ -53,7 +53,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     .. code-block:: bash
 
-      ./build_images.sh oim omnia_branch=main core_tag=1.0
+      ./build_images.sh core omnia_branch=main core_tag=1.0
 
     To build from a tag:
 
