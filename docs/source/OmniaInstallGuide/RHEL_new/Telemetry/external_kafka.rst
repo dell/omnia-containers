@@ -105,7 +105,7 @@ Establish Secure Connection Between External Client Node and Service Kubernetes 
 
 .. note:: For OpenManage Enterprise Kafka client, the client certificate must be in .pfx format. To know more about OpenManage Enterprise, refer `OpenManage Enterprise <https://www.dell.com/en-in/lp/dt/open-manage-enterprise>`_.
 
-2. (Optional) Run the following commands to create Java truststore and keystore::
+3. (Optional) Run the following commands to create Java truststore and keystore::
 
        keytool -import -trustcacerts -alias kafka-ca -file ca.crt \
        -keystore kafka.truststore.jks -storepass changeit -noprompt
@@ -120,7 +120,7 @@ Establish Secure Connection Between External Client Node and Service Kubernetes 
 .. note::  The steps for converting certificates into JKS format are required **only for Java-based Kafka clients**. If your client does not use a Java keystore (JKS), these conversion steps are not necessary.
 
 
-3. Create the Kafka client SSL configuration file::
+4. Create the Kafka client SSL configuration file::
 
    Sample SSL configuration file::
 
@@ -134,7 +134,7 @@ Establish Secure Connection Between External Client Node and Service Kubernetes 
        ssl.endpoint.identification.algorithm=
        EOF
 
-4. Run a Kafka tools container with certificates mounted::
+5. Run a Kafka tools container with certificates mounted::
 
        podman run -it --rm \
        --name kafka-mtls-producer \
