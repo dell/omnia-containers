@@ -69,8 +69,8 @@ ENV APP_DIR=/opt/omnia/build_stream
 # The code (main.py) will be mounted here via Quadlet:
 WORKDIR ${APP_DIR}
 
-# Expose HTTPS port
-EXPOSE 443
+# Expose HTTPS port (configurable via PORT environment variable)
+EXPOSE ${PORT:-443}
 
 # Healthcheck: self-signed cert expected -> use -k
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

@@ -15,5 +15,6 @@ dependencies = [
     "pulp-cli[pygments]==0.33.0",
     "jsonschema>=4.0.0",
     "argon2-cffi>=21.0.0",
-    "PyJWT>=2.8.0"
+    "PyJWT>=2.8.0",
+    "dependency-injector>=4.41.0"
 ]
