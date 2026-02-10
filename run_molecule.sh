@@ -32,6 +32,8 @@
 # Scenarios:
 #   omnia_sh_install - Install omnia.sh and verify
 #   omnia_sh_cleanup - Cleanup omnia.sh and verify
+#   prepare_oim      - Prepare OIM and verify
+#   telemetry        - Run telemetry playbook and verify
 #   all              - Run omnia_sh_install + prepare_oim (not cleanup)
 #   (more scenarios can be added)
 #
@@ -56,6 +58,11 @@ NC='\033[0m' # No Color
 # Change to script directory
 cd "$(dirname "$0")"
 
+# Activate virtual environment if it exists
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+fi
+
 # Parse arguments
 SCENARIO="$1"
 COMMAND="$2"
@@ -67,9 +74,10 @@ case "$SCENARIO" in
         echo -e "${BLUE}  Available Molecule Scenarios${NC}"
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
-        for dir in molecule/*/; do
-            if [[ -f "${dir}molecule.yml" ]]; then
-                name=$(basename "$dir")
+        # Display in logical order
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo telemetry omnia_sh_cleanup"
+        for name in $ORDERED_SCENARIOS; do
+            if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
             fi
         done
@@ -99,6 +107,9 @@ case "$SCENARIO" in
         echo "  $0 omnia_sh_install test      # Install + verify"
         echo "  $0 omnia_sh_install verify    # Verify install only"
         echo "  $0 omnia_sh_cleanup test      # Cleanup + verify"
+        echo "  $0 prepare_oim test           # Prepare OIM + verify"
+        echo "  $0 telemetry test             # Telemetry + verify"
+        echo "  $0 telemetry verify           # Verify telemetry only"
         echo "  $0 all test                   # Run ALL scenarios"
         echo "  $0 list                       # List scenarios"
         exit 0
@@ -129,7 +140,12 @@ case "$SCENARIO" in
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
             
-            if molecule "${COMMAND}" -s "${name}"; then
+            # Create log file for this scenario
+            LOG_FILE="/tmp/molecule_${name}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+            export MOLECULE_LOG_FILE="$LOG_FILE"
+            export MOLECULE_COMMAND="${COMMAND}"
+            
+            if molecule "${COMMAND}" -s "${name}" 2>&1 | tee "$LOG_FILE"; then
                 echo -e "${GREEN}✔ ${name} completed${NC}"
             else
                 echo -e "${RED}✘ ${name} failed${NC}"
@@ -174,7 +190,10 @@ case "$COMMAND" in
     test)
         echo -e "${YELLOW}➜ Running full test...${NC}"
         echo ""
-        molecule test -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="test"
+        molecule test -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Test completed.${NC}"
         ;;
@@ -182,7 +201,10 @@ case "$COMMAND" in
     verify)
         echo -e "${YELLOW}➜ Running verification tests only...${NC}"
         echo ""
-        molecule verify -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="verify"
+        molecule verify -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Verify completed.${NC}"
         ;;
@@ -190,7 +212,10 @@ case "$COMMAND" in
     converge)
         echo -e "${YELLOW}➜ Running converge...${NC}"
         echo ""
-        molecule converge -s "$SCENARIO"
+        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="converge"
+        molecule converge -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
         echo ""
         echo -e "${GREEN}✔ Converge completed.${NC}"
         ;;

@@ -1,0 +1,84 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Check bmc_group_data.csv exists and verify parent mappings
+---
+- name: Check bmc_group_data.csv exists
+  ansible.builtin.shell:
+    cmd: podman exec {{ container_name }} test -f {{ bmc_group_data_path }} && echo "EXISTS" || echo "NOT_FOUND"
+  register: bmc_group_data_check
+  changed_when: false
+
+- name: Display bmc_group_data.csv check result
+  ansible.builtin.debug:
+    msg: "bmc_group_data.csv: {{ bmc_group_data_check.stdout }}"
+
+- name: Read bmc_group_data.csv content
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ bmc_group_data_path }}
+  register: bmc_group_data_content
+  changed_when: false
+  when: "'EXISTS' in bmc_group_data_check.stdout"
+
+- name: Extract parent mappings from bmc_group_data.csv (non-empty PARENT column, skip header)
+  ansible.builtin.set_fact:
+    bmc_parent_mappings: >-
+      {{ bmc_group_data_content.stdout_lines[1:] |
+         map('regex_search', '[^,]+,[^,]*,([A-Z0-9]+)$', '\1') |
+         select('ne', None) | map('first') | list }}
+  when: bmc_group_data_content.stdout is defined
+
+- name: Display bmc_group_data parent mappings
+  ansible.builtin.debug:
+    msg: "bmc_group_data.csv parent mappings: {{ bmc_parent_mappings | default([]) }}"
+
+- name: Get service_kube_nodes that have children (from PXE mapping)
+  ansible.builtin.set_fact:
+    service_kube_nodes_with_children: "{{ service_kube_node_tags | default([]) | select('in', slurm_node_with_service_parent_tags | default([])) | list }}"
+  when:
+    - service_kube_node_tags is defined
+    - slurm_node_with_service_parent_tags is defined
+
+- name: Verify bmc_group_data parents match service_kube_nodes that have children
+  ansible.builtin.set_fact:
+    bmc_parent_match: "{{ (bmc_parent_mappings | default([]) | sort) == (service_kube_nodes_with_children | default([]) | sort) }}"
+  when:
+    - bmc_parent_mappings is defined
+    - service_kube_nodes_with_children is defined
+
+- name: Display bmc_group_data parent verification
+  ansible.builtin.debug:
+    msg: |
+      bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
+      service_kube_node tags:     {{ service_kube_node_tags | default([]) | sort }}
+      service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
+      Match: {{ 'YES' if bmc_parent_match | default(false) else 'NO' }}
+
+- name: Fail if bmc_group_data parents do not match service_kube_node service_tags
+  ansible.builtin.fail:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                    PREREQUISITE CHECK FAILED                                 ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ bmc_group_data.csv parent mappings do not match service_kube_nodes with children
+      ║
+      ║ bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
+      ║ service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
+      ║
+      ║ Only service_kube_nodes that have child slurm_nodes should appear as parents
+      ║ in bmc_group_data.csv.
+      ╚══════════════════════════════════════════════════════════════════════════════╝
+  when:
+    - bmc_parent_match is defined
+    - not bmc_parent_match

@@ -1,0 +1,90 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Check service_cluster_metadata.yml exists, extract kube_vip, and ping it
+---
+- name: Check service_cluster_metadata.yml exists
+  ansible.builtin.shell:
+    cmd: podman exec {{ container_name }} test -f {{ service_cluster_metadata_path }} && echo "EXISTS" || echo "NOT_FOUND"
+  register: service_cluster_metadata_check
+  changed_when: false
+
+- name: Display service_cluster_metadata.yml check result
+  ansible.builtin.debug:
+    msg: "service_cluster_metadata.yml: {{ service_cluster_metadata_check.stdout }}"
+
+- name: Fail if service_cluster_metadata.yml not found
+  ansible.builtin.fail:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                    PREREQUISITE CHECK FAILED                                  ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ service_cluster_metadata.yml not found at {{ service_cluster_metadata_path }}
+      ║
+      ║ This file contains service cluster configuration required for telemetry.
+      ║ Please ensure service K8s cluster has been deployed.
+      ╚══════════════════════════════════════════════════════════════════════════════╝
+  when: "'NOT_FOUND' in service_cluster_metadata_check.stdout"
+
+- name: Read service_cluster_metadata.yml content
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ service_cluster_metadata_path }}
+  register: service_cluster_metadata_content
+  changed_when: false
+
+- name: Extract kube_vip from service_cluster_metadata.yml
+  ansible.builtin.set_fact:
+    kube_vip: "{{ service_cluster_metadata_content.stdout | regex_search('kube_vip:\\s*([0-9.]+)', '\\1') | first | default('') }}"
+
+- name: Display extracted kube_vip
+  ansible.builtin.debug:
+    msg: "kube_vip: {{ kube_vip | default('NOT FOUND') }}"
+
+- name: Fail if kube_vip not found in service_cluster_metadata.yml
+  ansible.builtin.fail:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                    PREREQUISITE CHECK FAILED                                 ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ kube_vip not found in service_cluster_metadata.yml
+      ║
+      ║ Please ensure service K8s cluster has been deployed properly.
+      ╚══════════════════════════════════════════════════════════════════════════════╝
+  when: kube_vip | default('') | length == 0
+
+- name: Ping kube_vip from omnia_core container
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} ping -c 3 -W 5 {{ kube_vip }}
+  register: kube_vip_ping
+  changed_when: false
+  failed_when: false
+
+- name: Display kube_vip ping result
+  ansible.builtin.debug:
+    msg: "kube_vip ping: {{ 'SUCCESS' if kube_vip_ping.rc == 0 else 'FAILED' }}"
+
+- name: Fail if kube_vip is not reachable
+  ansible.builtin.fail:
+    msg: |
+      ╔══════════════════════════════════════════════════════════════════════════════╗
+      ║                    PREREQUISITE CHECK FAILED                                  ║
+      ╠══════════════════════════════════════════════════════════════════════════════╣
+      ║ service_cluster VIP ({{ kube_vip }}) is not reachable
+      ║
+      ║ HOW TO FIX:
+      ║   1. Make sure K8s cluster is booted successfully
+      ║   2. Check if service k8s cluster is up and running
+      ║   3. If not, run provision again to deploy the K8s cluster
+      ╚══════════════════════════════════════════════════════════════════════════════╝
+  when: kube_vip_ping.rc != 0

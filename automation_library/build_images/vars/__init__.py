@@ -13,21 +13,10 @@
 # limitations under the License.
 
 """
-Omnia Automation Library
+Build Images Variables
 
-A Python library for automating Omnia deployment verification and testing.
-
-Modules:
-    - core: Formatting, logging, host utilities, reports
-    - checks: Prerequisite checks and validations
-    - omnia_sh: omnia.sh operations and verification
-    - local_repo: Local repository automation
-    - prepare_oim: OIM preparation automation
-    - telemetry: Telemetry (iDRAC, Kafka, LDMS) automation and verification
+Configuration variables and constants for Build Image x86_64 operations.
 """
 
-__version__ = "0.1.0"
-
-from .core import Colors, Symbols, log, set_debug_mode, TestLogger
-
-__all__ = ["Colors", "Symbols", "log", "set_debug_mode", "TestLogger", "__version__"]
+# Import all variables to maintain compatibility
+from .build_images_vars import *

@@ -41,7 +41,7 @@ def _get_server_info() -> Dict[str, str]:
     """Get current server IP and hostname from user_config.yml."""
     config_path = os.path.join(_get_project_root(), "user_config.yml")
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f) or {}
         ip = config.get("oim_server_ip", "localhost")
         hostname = config.get("oim_hostname", "")
@@ -60,7 +60,7 @@ def _load_report() -> Dict[str, Any]:
     report_file = os.path.join(_get_report_dir(), "test_report.json")
     if os.path.exists(report_file):
         try:
-            with open(report_file, "r") as f:
+            with open(report_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except (json.JSONDecodeError, IOError):
             pass
@@ -68,7 +68,7 @@ def _load_report() -> Dict[str, Any]:
 
 
 def _save_json(data: Dict[str, Any]):
-    with open(os.path.join(_get_report_dir(), "test_report.json"), "w") as f:
+    with open(os.path.join(_get_report_dir(), "test_report.json"), "w", encoding='utf-8') as f:
         json.dump(data, f, indent=2, default=str)
 
 
@@ -107,16 +107,19 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .server-stats { display: flex; gap: 10px; margin-top: 5px; font-size: 0.75em; }
         .server-stats .passed { color: #238636; }
         .server-stats .failed { color: #f85149; }
+        .server-stats .skipped { color: #d29922; }
         .server-content { display: none; }
         .server-content.active { display: block; }
         .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
         .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 12px; text-align: center; }
         .card.passed { border-left: 4px solid #238636; }
         .card.failed { border-left: 4px solid #f85149; }
+        .card.skipped { border-left: 4px solid #d29922; }
         .card.total { border-left: 4px solid #1f6feb; }
         .card .number { font-size: 1.8em; font-weight: bold; }
         .card.passed .number { color: #238636; }
         .card.failed .number { color: #f85149; }
+        .card.skipped .number { color: #d29922; }
         .card.total .number { color: #1f6feb; }
         .card .label { color: #8b949e; text-transform: uppercase; font-size: 0.7em; letter-spacing: 1px; }
         .run { background: #161b22; border: 1px solid #30363d; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
@@ -127,6 +130,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .badge { padding: 3px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         .badge.passed { background: #238636; color: white; }
         .badge.failed { background: #f85149; color: white; }
+        .badge.skipped { background: #d29922; color: #0d1117; }
         .run-meta { display: flex; gap: 12px; color: #8b949e; font-size: 0.75em; margin-top: 6px; flex-wrap: wrap; }
         .run-expand { color: #8b949e; font-size: 1em; transition: transform 0.3s; }
         .run.collapsed .run-expand { transform: rotate(-90deg); }
@@ -148,16 +152,28 @@ def _generate_html(data: Dict[str, Any]) -> str:
         .test-status { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 9px; flex-shrink: 0; }
         .test-status.passed { background: #238636; }
         .test-status.failed { background: #f85149; }
+        .test-status.skipped { background: #d29922; color: #0d1117; }
         .test-name { flex: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.82em; }
         .test-duration { color: #8b949e; font-size: 0.75em; min-width: 60px; text-align: right; display: flex; align-items: center; gap: 4px; }
         .test-time { color: #8b949e; font-size: 0.75em; min-width: 85px; text-align: right; margin-left: 8px; display: flex; align-items: center; gap: 4px; }
-        .test-expand { color: #8b949e; margin-left: 8px; font-size: 0.75em; transition: transform 0.2s; }
-        .test-item.expanded .test-expand { transform: rotate(180deg); }
+        .test-expand { color: #8b949e; margin-right: 8px; font-size: 0.75em; transition: transform 0.2s; }
+        .test-item.expanded .test-expand { transform: rotate(90deg); }
         .test-output { display: none; background: #0d1117; border-top: 1px solid #21262d; padding: 10px 15px; margin-left: 30px; }
-        .test-item.expanded .test-output { display: block; }
+        .test-item.expanded .test-output { display: block !important; }
         .output-box { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 10px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-word; max-height: 300px; overflow-y: auto; line-height: 1.4; }
+        .error-box { background: #2d1b1b; border: 1px solid #f85149; border-radius: 6px; padding: 10px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-word; max-height: 200px; overflow-y: auto; color: #f85149; line-height: 1.4; }
+        .playbook-logs { border-top: 1px solid #30363d; }
+        .logs-header { display: flex; align-items: center; padding: 10px 15px; cursor: pointer; background: #1c2128; transition: background 0.2s; gap: 8px; }
+        .playbook-title { flex: 1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 0.82em; }
+        .logs-header:hover { background: #21262d; }
+        .logs-expand { color: #8b949e; font-size: 0.8em; transition: transform 0.2s; }
+        .playbook-logs.collapsed .logs-expand { transform: rotate(0deg); }
+        .playbook-logs:not(.collapsed) .logs-expand { transform: rotate(90deg); }
+        .playbook-logs.collapsed .logs-body { display: none !important; }
+        .logs-content { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: 'SF Mono', Monaco, monospace; font-size: 0.65em; white-space: pre-wrap; word-break: break-word; max-height: 400px; overflow-y: auto; line-height: 1.3; color: #c9d1d9; }
         .output-box .pass { color: #238636; }
         .output-box .fail { color: #f85149; }
+        .output-box .skip { color: #d29922; }
         .output-box .check { color: #1f6feb; }
         .output-box .header { color: #8b949e; }
         .error-box { background: #f8514922; border: 1px solid #f85149; border-radius: 6px; padding: 10px; margin-top: 6px; font-family: monospace; font-size: 0.7em; white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto; color: #f85149; }
@@ -190,8 +206,9 @@ def _generate_html(data: Dict[str, Any]) -> str:
         first_server = True
         for server_ip, server_data in servers.items():
             runs = server_data.get("runs", [])
-            total_passed = sum(r["summary"]["passed"] for r in runs)
-            total_failed = sum(r["summary"]["failed"] for r in runs)
+            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
+            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
+            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
             active = "active" if first_server else ""
 
             html += f'''
@@ -200,6 +217,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                 <div class="server-stats">
                     <span class="passed">✓ {total_passed}</span>
                     <span class="failed">✗ {total_failed}</span>
+                    <span class="skipped">↷ {total_skipped}</span>
                     <span>{len(runs)} runs</span>
                 </div>
             </div>'''
@@ -212,10 +230,10 @@ def _generate_html(data: Dict[str, Any]) -> str:
         test_id = 0
         for server_ip, server_data in servers.items():
             runs = server_data.get("runs", [])
-            hostname = server_data.get("hostname", server_ip)
-            total_passed = sum(r["summary"]["passed"] for r in runs)
-            total_failed = sum(r["summary"]["failed"] for r in runs)
-            total_tests = total_passed + total_failed
+            total_passed = sum((r.get("summary") or {}).get("passed", 0) for r in runs)
+            total_failed = sum((r.get("summary") or {}).get("failed", 0) for r in runs)
+            total_skipped = sum((r.get("summary") or {}).get("skipped", 0) for r in runs)
+            total_tests = total_passed + total_failed + total_skipped
             active = "active" if first_server else ""
 
             html += f'''
@@ -228,6 +246,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     <div class="card total"><div class="number">{total_tests}</div><div class="label">Tests</div></div>
                     <div class="card passed"><div class="number">{total_passed}</div><div class="label">Passed</div></div>
                     <div class="card failed"><div class="number">{total_failed}</div><div class="label">Failed</div></div>
+                    <div class="card skipped"><div class="number">{total_skipped}</div><div class="label">Skipped</div></div>
                     <div class="card total"><div class="number">{len(runs)}</div><div class="label">Test Runs</div></div>
                 </div>
 '''
@@ -235,8 +254,15 @@ def _generate_html(data: Dict[str, Any]) -> str:
             run_id = 0
             for run in reversed(runs):
                 run_id += 1
-                status = "passed" if run["summary"]["failed"] == 0 else "failed"
-                badge_text = f'{run["summary"]["passed"]}/{run["summary"]["total"]}' if status == "passed" else f'{run["summary"]["failed"]} FAIL'
+                run_summary = run.get("summary") or {}
+                run_failed = run_summary.get("failed", 0)
+                run_passed = run_summary.get("passed", 0)
+                run_skipped = run_summary.get("skipped", 0)
+                run_total = run_summary.get("total", run_passed + run_failed + run_skipped)
+                status = "passed" if run_failed == 0 else "failed"
+                badge_text = f'{run_passed}/{run_total}' if status == "passed" else f'{run_failed} FAIL'
+                if run_skipped:
+                    badge_text += f' ({run_skipped} SKIP)'
                 collapsed = "collapsed" if run_id > 1 else ""
                 unique_run_id = f"{server_ip.replace('.', '-')}-{run_id}"
 
@@ -276,8 +302,15 @@ def _generate_html(data: Dict[str, Any]) -> str:
 
                 # Render each module
                 for mod_idx, module in enumerate(modules):
-                    mod_status = "passed" if module["summary"]["failed"] == 0 else "failed"
-                    mod_badge = f'{module["summary"]["passed"]}/{module["summary"]["total"]}'
+                    mod_summary = module.get("summary") or {}
+                    mod_failed = mod_summary.get("failed", 0)
+                    mod_passed = mod_summary.get("passed", 0)
+                    mod_skipped = mod_summary.get("skipped", 0)
+                    mod_total = mod_summary.get("total", mod_passed + mod_failed + mod_skipped)
+                    mod_status = "passed" if mod_failed == 0 else "failed"
+                    mod_badge = f'{mod_passed}/{mod_total}'
+                    if mod_skipped:
+                        mod_badge += f' ({mod_skipped} SKIP)'
                     mod_id = f"{unique_run_id}-mod-{mod_idx}"
 
                     html += f'''
@@ -287,39 +320,96 @@ def _generate_html(data: Dict[str, Any]) -> str:
                                 <span class="icon icon-module">◆</span>
                                 <span class="module-name">{module["module"]}</span>
                                 <span class="badge {mod_status}" style="margin-left: 8px;">{mod_badge}</span>
-                                <span style="color: #8b949e; font-size: 0.75em; margin-left: auto;">⏱ {module.get("duration_seconds", 0)}s</span>
+                                <span style="color: #8b949e; font-size: 0.75em; margin-left: auto;">
+                            ⏱ {module.get("duration_seconds", 0)}s
+                        </span>
                             </div>
                             <div class="module-body">
 '''
 
+                    # Add playbook execution logs section FIRST
+                    if module.get("playbook_logs"):
+                        logs_id = f"{mod_id}-logs"
+                        command_type = module.get("molecule_command", "execution").upper()
+                        
+                        # Detect if playbook execution failed
+                        playbook_failed = False
+                        if module.get("playbook_logs"):
+                            logs_content = module["playbook_logs"].lower()
+                            # More specific failure detection - look for actual Ansible failure indicators
+                            failure_indicators = [
+                                "failed=1",
+                                "unreachable=1", 
+                                "fatal:",
+                                "failed: [",
+                                "molecule ➜ converge: failed",
+                                "molecule ➜ verify: failed",
+                                "molecule ➜ test: failed"
+                            ]
+                            playbook_failed = any(indicator in logs_content for indicator in failure_indicators)
+                        
+                        status_class = "failed" if playbook_failed else "passed"
+                        status_icon = "✗" if playbook_failed else "✓"
+                        
+                        html += f'''
+                            <div class="playbook-logs collapsed">
+                                <div class="logs-header" onclick="toggleLogs('{logs_id}')">
+                                    <span class="logs-expand">▶</span>
+                                    <span class="icon">📋</span>
+                                    <span class="playbook-title">
+                                        Playbook Execution Logs ({command_type})
+                                    </span>
+                                    <div class="test-status {status_class}">{status_icon}</div>
+                                </div>
+                                <div class="logs-body" id="logs-{logs_id}" style="display: none;">
+                                    <pre class="logs-content">
+                                        {_escape_html(module["playbook_logs"])}
+                                    </pre>
+                                </div>
+                            </div>
+                        '''
+
+                    # Then add test cases
                     for test in module["results"]:
                         test_id += 1
-                        test_status = "passed" if test["status"] == "PASSED" else "failed"
-                        icon = "✓" if test_status == "passed" else "✗"
+                        if test.get("status") == "PASSED":
+                            test_status = "passed"
+                            icon = "✓"
+                        elif test.get("status") == "SKIPPED":
+                            test_status = "skipped"
+                            icon = "↷"
+                        else:
+                            test_status = "failed"
+                            icon = "✗"
                         has_output = test.get("details") or test.get("error")
 
                         html += f'''
                             <div class="test-item" id="test-{test_id}">
                                 <div class="test-row" onclick="toggleTest(event, {test_id})">
+                                    <div class="test-expand">▶</div>
                                     <div class="test-status {test_status}">{icon}</div>
                                     <div class="test-name">{test["test_name"]}</div>
                                     <div class="test-duration">{test["duration_seconds"]}s</div>
-                                    {"<div class='test-expand'>▼</div>" if has_output else ""}
                                 </div>
 '''
+                        # Always add test output section, but show details if available
+                        html += '<div class="test-output" style="display: none;">'
                         if has_output:
-                            html += '<div class="test-output">'
                             if test.get("details"):
                                 output = _escape_html(test["details"])
                                 output = output.replace("✔ PASS:", "<span class='pass'>✔ PASS:</span>")
                                 output = output.replace("✘ FAIL:", "<span class='fail'>✘ FAIL:</span>")
+                                output = output.replace("↷ SKIP:", "<span class='skip'>↷ SKIP:</span>")
+                                output = output.replace("SKIP:", "<span class='skip'>SKIP:</span>")
                                 output = output.replace("→", "<span class='check'>→</span>")
                                 output = output.replace("=" * 70, "<span class='header'>" + "=" * 70 + "</span>")
                                 html += f'<div class="output-box">{output}</div>'
                             if test.get("error"):
                                 error_text = _escape_html(test["error"][:800])
                                 html += f'<div class="error-box">Error:\n{error_text}</div>'
-                            html += '</div>'
+                        else:
+                            html += '<div class="output-box">No detailed output available</div>'
+                        html += '</div>'
                         html += '</div>'
 
                     html += '</div></div>'
@@ -351,6 +441,18 @@ def _generate_html(data: Dict[str, Any]) -> str:
             event.stopPropagation();
             document.getElementById('test-' + id).classList.toggle('expanded');
         }
+        function toggleLogs(id) {
+            const logsContainer = document.getElementById('logs-' + id).parentElement;
+            const logsBody = document.getElementById('logs-' + id);
+            
+            logsContainer.classList.toggle('collapsed');
+            
+            if (logsContainer.classList.contains('collapsed')) {
+                logsBody.style.display = 'none';
+            } else {
+                logsBody.style.display = 'block';
+            }
+        }
     </script>
 </body>
 </html>'''
@@ -367,6 +469,9 @@ class TestReport:
         self.start_time = datetime.now()
         self.results: List[Dict[str, Any]] = []
         self.server_info = _get_server_info()
+        self.playbook_logs = None
+        self.molecule_command = None
+        self.playbook_duration = None
 
         print(f"\n┌{'─'*68}┐")
         print(f"│  {'SERVER:':<12} {self.server_info['ip']:<52} │")
@@ -374,11 +479,68 @@ class TestReport:
         print(f"│  {'REPORT ID:':<12} {self.report_id:<52} │")
         print(f"└{'─'*68}┘\n")
 
-    def add_result(self, test_name: str, passed: bool, duration: float = 0.0,
-                   details: str = None, error: str = None):
+    def _get_playbook_logs(self) -> tuple[Optional[str], Optional[str]]:
+        """Get molecule playbook execution logs and command type."""
+        log_file = os.environ.get('MOLECULE_LOG_FILE')
+        command_type = os.environ.get('MOLECULE_COMMAND', 'execution')
+        if log_file and os.path.exists(log_file):
+            try:
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    # Filter out ANSI escape codes for cleaner logs
+                    import re
+                    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                    clean_content = ansi_escape.sub('', content)
+                    # Split logs: only molecule execution (exclude pytest output)
+                    test_start_markers = [
+                        "test session starts",
+                        "collecting ...",
+                        "┌────────────────────────────────────────────────────────────────────┐"
+                    ]
+                    
+                    molecule_logs = clean_content
+                    for marker in test_start_markers:
+                        if marker in clean_content:
+                            molecule_logs = clean_content.split(marker)[0].strip()
+                            break
+                    return molecule_logs, command_type
+            except Exception as e:
+                print(f"Warning: Could not read playbook logs from {log_file}: {e}")
+                return None, command_type
+        return None, command_type
+
+    def add_result(self, test_name: Any, passed: bool = False, duration: float = 0.0,
+                   details: str = None, error: str = None, status: str = None):
+        if isinstance(test_name, dict):
+            payload = test_name
+            normalized_status = str(payload.get("status") or "").strip().upper()
+            if normalized_status not in {"PASSED", "FAILED", "SKIPPED"}:
+                payload_passed = bool(payload.get("passed"))
+                normalized_status = "PASSED" if payload_passed else "FAILED"
+
+            duration_seconds = payload.get("duration_seconds")
+            if duration_seconds is None:
+                duration_seconds = payload.get("duration", 0.0)
+
+            result = {
+                "test_name": payload.get("test_name") or payload.get("name") or "<unknown>",
+                "status": normalized_status,
+                "timestamp": payload.get("timestamp") or datetime.now().isoformat(),
+                "duration_seconds": round(float(duration_seconds or 0.0), 3),
+            }
+            if payload.get("details"):
+                result["details"] = payload.get("details")
+            if payload.get("error"):
+                result["error"] = payload.get("error")
+            self.results.append(result)
+            return
+
+        normalized_status = (status or "").strip().upper()
+        if normalized_status not in {"PASSED", "FAILED", "SKIPPED"}:
+            normalized_status = "PASSED" if passed else "FAILED"
         result = {
             "test_name": test_name,
-            "status": "PASSED" if passed else "FAILED",
+            "status": normalized_status,
             "timestamp": datetime.now().isoformat(),
             "duration_seconds": round(duration, 3),
         }
@@ -393,6 +555,11 @@ class TestReport:
         duration = (end_time - self.start_time).total_seconds()
         passed = sum(1 for r in self.results if r["status"] == "PASSED")
         failed = sum(1 for r in self.results if r["status"] == "FAILED")
+        skipped = sum(1 for r in self.results if r["status"] == "SKIPPED")
+
+        # Capture playbook logs and command type before saving
+        if self.playbook_logs is None:
+            self.playbook_logs, self.molecule_command = self._get_playbook_logs()
 
         # Module data (tests grouped by module)
         module_data = {
@@ -400,8 +567,10 @@ class TestReport:
             "start_time": self.start_time.isoformat(),
             "end_time": end_time.isoformat(),
             "duration_seconds": round(duration, 3),
-            "summary": {"total": len(self.results), "passed": passed, "failed": failed},
+            "summary": {"total": len(self.results), "passed": passed, "failed": failed, "skipped": skipped},
             "results": self.results,
+            "playbook_logs": self.playbook_logs,
+            "molecule_command": self.molecule_command,
         }
 
         report = _load_report()
@@ -413,7 +582,6 @@ class TestReport:
 
         if server_ip not in report["servers"]:
             report["servers"][server_ip] = {
-                "hostname": self.server_info["hostname"],
                 "runs": []
             }
 
@@ -443,12 +611,14 @@ class TestReport:
             if existing_mod_idx is not None:
                 # Extend existing module results
                 run["modules"][existing_mod_idx]["results"].extend(self.results)
-                run["modules"][existing_mod_idx]["end_time"] = end_time.isoformat()
+                run["modules"][existing_mod_idx]["playbook_logs"] = self.playbook_logs
+                run["modules"][existing_mod_idx]["molecule_command"] = self.molecule_command
                 all_results = run["modules"][existing_mod_idx]["results"]
                 run["modules"][existing_mod_idx]["summary"] = {
                     "total": len(all_results),
                     "passed": sum(1 for r in all_results if r["status"] == "PASSED"),
                     "failed": sum(1 for r in all_results if r["status"] == "FAILED"),
+                    "skipped": sum(1 for r in all_results if r["status"] == "SKIPPED"),
                 }
             else:
                 # Add new module to run
@@ -458,10 +628,12 @@ class TestReport:
             run["end_time"] = end_time.isoformat()
             all_passed = sum(m["summary"]["passed"] for m in run["modules"])
             all_failed = sum(m["summary"]["failed"] for m in run["modules"])
+            all_skipped = sum((m.get("summary") or {}).get("skipped", 0) for m in run["modules"])
             run["summary"] = {
-                "total": all_passed + all_failed,
+                "total": all_passed + all_failed + all_skipped,
                 "passed": all_passed,
                 "failed": all_failed,
+                "skipped": all_skipped,
             }
         else:
             # New run
@@ -469,7 +641,7 @@ class TestReport:
                 "report_id": self.report_id,
                 "start_time": self.start_time.isoformat(),
                 "end_time": end_time.isoformat(),
-                "summary": {"total": len(self.results), "passed": passed, "failed": failed},
+                "summary": {"total": len(self.results), "passed": passed, "failed": failed, "skipped": skipped},
                 "modules": [module_data],
             }
             runs.append(run_data)
@@ -479,7 +651,7 @@ class TestReport:
 
         # Generate HTML
         html_file = os.path.join(_get_report_dir(), "test_report.html")
-        with open(html_file, "w") as f:
+        with open(html_file, 'w', encoding='utf-8') as f:
             f.write(_generate_html(report))
 
         # Print summary
@@ -492,7 +664,7 @@ class TestReport:
         print(f"│  {'Server:':<14} {server_ip:<50} │")
         print(f"│  {'Report ID:':<14} {self.report_id:<50} │")
         print(f"│  {'Duration:':<14} {duration:.2f}s{'':<46} │")
-        print(f"│  {'Results:':<14} {status_color}{passed} passed, {failed} failed{reset}{'':<36} │")
+        print(f"│  {'Results:':<14} {status_color}{passed} passed, {failed} failed{reset}, {skipped} skipped{'':<26} │")
         print(f"├{'─'*68}┤")
         print(f"│  📄 JSON: reports/test_report.json{'':<30} │")
         print(f"│  🌐 HTML: reports/test_report.html{'':<30} │")

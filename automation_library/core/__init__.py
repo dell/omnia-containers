@@ -22,8 +22,26 @@ Modules:
 """
 
 from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
-from .host import get_testinfra_host, load_user_config
+from .host import (
+    get_testinfra_host,
+    load_user_config,
+    run_on_oim,
+    run_in_container,
+    run_on_remote_node,
+    get_node_info,
+    get_nodes_info,
+    # Backward compatibility functions
+    get_node_admin_ip,
+    get_functional_groups_from_pxe_mapping,
+    get_group_names_from_pxe_mapping,
+)
 from .report import TestReport, get_current_report, set_current_report
+from .vars import (
+    PROVISION_CONFIG_PATH,
+    SERVICE_CLUSTER_METADATA_PATH,
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+)
 
 __all__ = [
     # Formatting
@@ -36,8 +54,21 @@ __all__ = [
     # Host
     "get_testinfra_host",
     "load_user_config",
+    "run_on_oim",
+    "run_in_container",
+    "run_on_remote_node",
+    "get_node_info",
+    "get_nodes_info",
+    "get_node_admin_ip",
+    "get_functional_groups_from_pxe_mapping",
+    "get_group_names_from_pxe_mapping",
     # Report
     "TestReport",
     "get_current_report",
     "set_current_report",
+    # Vars
+    "PROVISION_CONFIG_PATH",
+    "SERVICE_CLUSTER_METADATA_PATH",
+    "K8S_CONTROL_PLANE_FUNCTIONAL_GROUP",
+    "K8S_WORKER_NODE_FUNCTIONAL_GROUP",
 ]
