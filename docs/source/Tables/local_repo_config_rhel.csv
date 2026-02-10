@@ -1,4 +1,12 @@
 ﻿Parameter,Mandatory/Optional,Details
+**user_registry**,Optional,"* **Type**: JSON list
+* This variable accepts a list of user container registries from which additional container images can be downloaded and synchronized into the Omnia local repository.
+* Omnia connects to the specified registries, pulls the required images, and stores them in local repository. These images are then accessed by the cluster nodes from local repository.
+* **host**: Registry IP and port on which user registry is hosted.  User registry can use both HTTP and HTTPS. To be strictly specified in the format ``IP:port``.
+* **cert_path**: Path to the SSL certificate file. This field is required when the registry uses HTTPS and must point to a file with a .crt extension.
+* **key_path**: Path to the SSL private key file. This parameter is mandatory when the registry operates over HTTPS and must reference a file with a .key extension.
+
+.. note:: User registry certificates and private keys specified in ``cert_path`` and ``key_path`` must already exist at the given locations, and these paths must be accessible from within the ``omnia_core container``."
 **user_repo_url_x86_64**,Optional,"* **Type**: JSON list
 * This variable accepts the x86_64 repository urls  from which the software packages/images will be downloaded and accessed by the cluster.
 * Omnia downloads the software packages from the given list of URLs and stores them into a local Pulp container. These packages are then accessed by the cluster nodes from that Pulp container.
@@ -76,3 +84,27 @@
 .. note::
       * These inputs are not validated by Omnia. Incorrect values provided to this variable can lead to unexpected failures during Omnia's deployment.
       * Ensure that all the listed URLs are reachable from the OIM."
+**additional_repos_x86_64**,Optional,"* **Type**: JSON list
+* Each repository entry must include: 
+
+    * ``url``: Repository base URL.
+    * ``name``: Unique repository name.
+    * ``gpgkey``: URL to the repository GPG key, or empty string (`""""`) if you are not using GPG.
+
+Example:
+
+yaml
+additional_repos_x86_64:
+  - { url: ""https://nginx.org/packages/rhel/9/x86_64/"", gpgkey: """", name: ""test-nginx"" }"
+**additional_repos_aarch64**,Optional,"* **Type**: JSON list
+* Each repository entry must include: 
+
+    * ``url``: Repository base URL.
+    * ``name``: Unique repository name.
+    * ``gpgkey``: URL to the repository GPG key, or empty string (`""""`) if you are not using GPG.
+
+Example:
+
+yaml
+additional_repos_aarch64:
+  - { url: ""https://nginx.org/packages/rhel/9/aarch64/"", gpgkey: """", name: ""test-nginx-arm"" }"

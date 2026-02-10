@@ -1,23 +1,25 @@
 ﻿Parameter,Details,Supported Package Type
 **additional_packages**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on all cluster nodes.
-.. Note::
-   The container images listed under ``additional_packages`` are installed only on Service Kubernetes Cluster nodes.","* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available  on all cluster nodes.","* **rpm**: requires ``repo_name``
 * **image**: requires ``tag`` or ``digest``"
 **service_kube_control_plane**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on Kubernetes control nodes.","* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on all Kubernetes control plane nodes.","* **rpm**: requires ``repo_name``
 * **image**: requires ``tag`` or ``digest``"
 **service_kube_control_plane_first**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on all Kubernetes control first node.","* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on Kubernetes first control plane node.","* **rpm**: requires ``repo_name``
 * **image**: requires ``tag`` or ``digest``"
 **service_kube_node**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on all Kubernetes worker nodes.","* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on all kube nodes.","* **rpm**: requires ``repo_name``
 * **image**: requires ``tag`` or ``digest``"
 **slurm_control_node**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on all Slurm head nodes.",* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on all Slurm control nodes.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"
 **slurm_node**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on all Slurm worker nodes.",* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be be available on all Slurm nodes.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"
 **login_node**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on login nodes.",* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on all login nodes.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"
 **login_compiler_node**,"* **Type**: string
-* Provide the name of the additional software packages to be installed on login compiler node.",* **rpm**: requires ``repo_name``
+* Provide the name of the additional software packages to be available on login compiler node.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"

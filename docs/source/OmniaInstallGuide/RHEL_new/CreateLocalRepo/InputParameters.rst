@@ -47,8 +47,8 @@ The following is the sample ``software_config.json`` file:
         {"name": "login_compiler_node"}
     ],
     "service_k8s": [
+        {"name": "service_kube_control_plane_first"},
         {"name": "service_kube_control_plane"},
-        {"name": "service_etcd"},
         {"name": "service_kube_node"}
     ]
     "additional_packages": [

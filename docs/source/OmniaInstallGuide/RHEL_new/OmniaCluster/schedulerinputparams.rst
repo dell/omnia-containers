@@ -54,6 +54,15 @@ See the following sample:
             CgroupPlugin: autodetect
             AllowedRAMSpace: 100
 
+      slurm_cluster:
+      - cluster_name: slurm_cluster
+        nfs_storage_name: nfs_slurm
+        config_sources:
+         slurm: /path/to/custom_slurm.conf
+         cgroup: /path/to/custom_cgroup.conf
+         slurmdbd: /path/to/custom_slurmdbd.conf
+         gres: /path/to/custom_gres.conf
+         
 ``/opt/omnia/input/project_default/security_config.yml``
 ----------------------------------------------------------
 

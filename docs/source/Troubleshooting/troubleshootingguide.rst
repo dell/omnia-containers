@@ -213,3 +213,29 @@ For example: ::
 After updating the permissions, reload the Slurm configuration: ::
 
         scontrol reconfigure
+
+InfiniBand ports remain in initializing state on hosts
+========================================================
+
+In Omnia deployments using InfiniBand (IB) networking, compute or management hosts show InfiniBand ports stuck in the 
+Initializing state after boot. Even though the physical link is up, InfiniBand communication between nodes does not work.
+Running the following command on the host shows the port state as Initializing::
+ 
+ ibstat
+
+.. image:: ../images/troubleshooting_ib.png
+
+**Cause:**
+
+The Open Subnet Manager (OpenSM) service is not running on the InfiniBand (IB) switch.
+Subnet Manager is a fabric‑level service that should be running on the IB switch. If OpenSM is not enabled on the IB switch, the 
+InfiniBand fabric cannot complete initialization, causing host ports to remain in the Initializing state.
+
+**Resolution:**
+
+1. Ensure that the Open Subnet Manager service is enabled and running on the InfiniBand switch.
+2. After enabling OpenSM on the IB switch, do the following:
+
+    * PXE boot all the IB NIC based nodes.
+    * Run the following command on the host: ibstat
+    * Verify that the InfiniBand ports state transition to: ``State: Active``

@@ -20,7 +20,7 @@ Ensure the following prerequisites are met before proceeding:
 
 
 (Optional) Create a Kafka Topic
--------------------------
+--------------------------------
 
 On the Service Kubernetes cluster, do the following:
 
@@ -50,62 +50,31 @@ Replace ``topic_name`` with the desired Kafka topic name.
        kubectl get kafkatopics -n telemetry
 
 
-Extract Server and Client Certificates from Service Kubernetes Cluster
-----------------------------------------------------------------------
+Extract Kafka connection details and TLS certificates from the Service Kubernetes cluster
+-----------------------------------------------------------------------------------------
 
-To extract the server and client certificates, on the Service Kubernetes cluster, do the following:
+1. Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster::
 
-1. Retrieve the Kafka LoadBalancer external IP using the following command::
+      cd /omnia/utils
+      ansible-playbook external_kafka_connect_details.yml
 
-       kubectl get svc -n telemetry kafka-kafka-external-bootstrap -o wide
-
-   Sample output:
-
-   .. image:: ../../../images/external_ip_loadbalances.png
-
-.. note:: Note the Kafka LoadBalancer external IP. This external IP will be used by the external client node to connect to Kafka.
-
-2. Extract the required server certificate for mTLS authentication using the following command::
-
-       kubectl get secret kafka-cluster-ca-cert -n telemetry -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
-
-.. note:: For OpenManage Enterprise kafka client, the ca.crt certificate can be directly used. To know more about OpenManage Enterprise, refer `OpenManage Enterprise <https://www.dell.com/en-in/lp/dt/open-manage-enterprise>`_.
+   The ``external_kafka_connect_details.yml`` playbook does the following:
+       - Retrieves the Kafka LoadBalancer external IP.
+       - Extracts the server CA certificate and client certificates/keys from the telemetry namespace.
+       - Writes the Kafka endpoint and TLS file locations to ``/opt/omnia/telemetry/external_kafka_connect_details.yml``.
+       - Saves the TLS files in ``/opt/omnia/telemetry/external_kafka/``:
+       - ``ca.crt`` (server certificate)
+       - ``user.crt`` (client certificate)
+       - ``user.key`` (client key)
      
-3. Extract the required client certificate for mTLS authentication using the following commands::
+2. Create a client certificate in ``.pfx`` format for mTLS by running the following command. Provide a passphrase when prompted::
 
-       kubectl get secret kafkapump -n telemetry -o jsonpath='{.data.user\.crt}' | base64 -d > user.crt
-       kubectl get secret kafkapump -n telemetry -o jsonpath='{.data.user\.key}' | base64 -d > user.key
-
-4. On the external client node (Kafka Pump host), create a working directory using the following command and set appropriate permissions::
-
-       mkdir -p ~/kafka-mtls-test
-       cd ~/kafka-mtls-test
-
-5. From the Service Kubernetes cluster, copy the extracted certificates to the directory created on the external client node using the following command::
-
-       scp ca.crt user.crt user.key <username>@<external_node_ip>:~/kafka-mtls-test
-
-
-Establish Secure Connection Between External Client Node and Service Kubernetes Cluster
----------------------------------------------------------------------------------------
-
-1. On the external client node, navigate to the target directory::
-
-       cd ~/kafka-mtls-test
-
-   Make sure the following files are present in the directory::
-
-       ca.crt 
-       user.crt
-       user.key 
-
-2. Run the following command to create certificate in .pfx format and provide the password when prompted::
-
-       openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
+      cd /opt/omnia/telemetry/external_kafka/
+      openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
 
 .. note:: For OpenManage Enterprise Kafka client, the client certificate must be in .pfx format. To know more about OpenManage Enterprise, refer `OpenManage Enterprise <https://www.dell.com/en-in/lp/dt/open-manage-enterprise>`_.
 
-2. (Optional) Run the following commands to create Java truststore and keystore::
+3. (Optional) Run the following commands to create Java truststore and keystore::
 
        keytool -import -trustcacerts -alias kafka-ca -file ca.crt \
        -keystore kafka.truststore.jks -storepass changeit -noprompt
@@ -120,7 +89,7 @@ Establish Secure Connection Between External Client Node and Service Kubernetes 
 .. note::  The steps for converting certificates into JKS format are required **only for Java-based Kafka clients**. If your client does not use a Java keystore (JKS), these conversion steps are not necessary.
 
 
-3. Create the Kafka client SSL configuration file::
+4. Create the Kafka client SSL configuration file::
 
    Sample SSL configuration file::
 
@@ -134,7 +103,7 @@ Establish Secure Connection Between External Client Node and Service Kubernetes 
        ssl.endpoint.identification.algorithm=
        EOF
 
-4. Run a Kafka tools container with certificates mounted::
+5. Run a Kafka tools container with certificates mounted::
 
        podman run -it --rm \
        --name kafka-mtls-producer \

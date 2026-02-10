@@ -16,14 +16,14 @@
 * This is defined in storage_config.yml as nfs_name."
 "**config_sources**
 
-    ``dict``
+    ``filepath`` or ``mapping``
 
 
     Optional","* Indicates how the slurm configuration values are provided to the cluster.
-* <conf name> :  <dict>
+* <conf name> :  <filepath> or <mapping>
 
-    * The conf files supported by slurm are slurm, cgroup, gres, mpi, helpers, job_container, acct_gather, oci, plugstack, and topology.
+    * The conf files supported by slurm are slurm, cgroup, gres, mpi, helpers, job_container, acct_gather, oci, and topology.
 
-    * <dict>: Supply the configuration values directly as a key–value map.
-.. note::  For slurm, Nodeset and Partition configurations are not supported.
+    * <filepath>: Supply the absolute path to a custom configuration file.
+    * <mapping>: Supply the configuration values directly as a key–value map
 "

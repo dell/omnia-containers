@@ -36,6 +36,13 @@ NFS Server for Omnia Infrastructure Manager (OIM)
 * Omnia recommends using an NFS share with at least 200 GB storage for OIM and cluster configuration.
 * Ensure that there is a dedicated mount point for each NFS.
 
+InfiniBand
+--------------
+
+Before deploying Omnia on clusters using InfiniBand (IB) networking, ensure that the Open Subnet Manager (OpenSM) service is enabled and running on the InfiniBand switch.
+
+.. note:: Failure to meet this prerequisite may result in InfiniBand ports on hosts remaining in the Initializing state and prevent IB communication between nodes.
+
 Omnia Infrastructure Manager (OIM)
 ----------------------------------
 
