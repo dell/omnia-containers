@@ -280,7 +280,7 @@ def check_functional_group_content(host) -> Dict[str, Any]:
 def check_regctl_registry_images(host) -> Dict[str, Any]:
     """
     Validate that base and compute images are available in the regctl registry.
-    Uses: regctl repo ls <hostname>.omnia.test:5000
+    Uses: regctl repo ls <hostname>:5000
     
     Expected images:
     - rhel-x86_64_base (always required)
@@ -305,7 +305,7 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
         }
 
     hostname = hostname_cmd.stdout.strip()
-    registry_url = f"{hostname}.omnia.test:5000"
+    registry_url = f"{hostname}:5000"
 
     # Get functional groups from pxe_mapping file inside container
     functional_groups = get_functional_groups_from_pxe_mapping(host)
