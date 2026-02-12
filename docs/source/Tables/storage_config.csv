@@ -1,4 +1,4 @@
-﻿Variables,Details,s
+﻿Variables,Details
 "**nfs_client_params**
 
      ``List (dict)``
@@ -24,4 +24,29 @@
           server_share_path: ""/mnt/share/omnia_k8s"" # Provide server share path of the NFS Server
           client_share_path: /share_omnia_k8s
           client_mount_options: ""nosuid,rw,sync,hard,intr""
-          nfs_name: nfs_k8s",
+          nfs_name: nfs_k8s"
+"**powervault_config**
+
+     ``dict``
+
+     Optional  ","* The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
+
+    * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
+    * Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
+
+* ip—A list of PowerVault iscsi target IP addresses used for iSCSI target discovery.
+* port—Defines the TCP port for the iSCSI target service. This is an optional parameter and if not provided, the default value is 3260.
+* iscsi_initiator—Specifies the ``InitiatorName`` used by the host when connecting to the iSCSI target.
+* volume_id—This is the unique WWN/serial-identifier for the specific volume that should be used for persistent storage.
+
+.. note:: 
+    * Powervault storage is not replacement for the NFS storage used by slurm cluster.
+    * Validation of the ip, iscsi_initiator, or volume_id is not handled, ensure accurate values are provided.
+
+**Sample**::
+
+    powervault_config:
+        ip: - 172.1.2.3
+        port: 3260
+        iscsi_initiator: iqn.2025-01.com.dell:scontrol-node
+        volume_id: 00c0ff4343f1f1f1001c8c4e6901000000"

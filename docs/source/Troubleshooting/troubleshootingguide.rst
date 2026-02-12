@@ -239,3 +239,52 @@ InfiniBand fabric cannot complete initialization, causing host ports to remain i
     * PXE boot all the IB NIC based nodes.
     * Run the following command on the host: ibstat
     * Verify that the InfiniBand ports state transition to: ``State: Active``
+
+Slurm controller functional group is missing
+=============================================
+
+**Cause:**
+
+PXE mapping file is missing ``slurm_control_node_*`` groups.
+
+**Resolution:**
+
+Update ``pxe_mapping.csv`` with proper controller groups.
+
+``slurm.conf`` missing from backup
+===================================
+
+**Cause:**
+
+Incomplete backup or corrupted backup directory.
+
+**Resolution:**
+
+Select a different backup or create new backup.
+
+``slurmctld not active`` during rollback
+=========================================
+
+**Cause:**
+
+Slurm controller service is not running.
+
+
+**Resolution:**
+
+Start slurmctld service manually, then retry rollback.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

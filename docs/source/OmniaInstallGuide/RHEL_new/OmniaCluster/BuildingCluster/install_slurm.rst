@@ -48,6 +48,126 @@ Omnia automatically handles node removal when nodes are deleted from the PXE map
 1. Update the PXE mapping file. Remove or reassign nodes that should no longer be part of the Slurm cluster.
 2. Run the discovery playbook.
 
+Slurm configuration validation and defaults
+----------------------------------------------
+
+Omnia includes a built-in validation system that checks Slurm configuration files for correctness before deployment. The input validator module validates all configuration files (slurm.conf, slurmdbd.conf, cgroup.conf, gres.conf, etc.) against Slurm 25.X specifications, ensuring parameter names are valid and values match expected types (integers, strings, booleans, arrays, etc.). You can provide custom configurations in ``omnia_config.yml`` > ``slurm_cluster`` > ``config_sources`` either as a file path or a mapping directly. For supported conf parameters, see `Slurm.conf <https://slurm.schedmd.com/slurm.conf.html>`_
+
+.. note:: By default, there is a partition with name "normal" that is created with all the slurm compute nodes listed in the ``pxe_mapping`` file. 
+    ::
+
+        PartitionName=normal Nodes=<Comma-separated list of all compute nodes> MaxTime=INFINITE State=UP
+
+Default Slurm configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia provides a comprehensive default configuration optimized for HPC clusters. These defaults are automatically applied and can be overridden via custom configuration files.
+
+
+Default slurm.conf parameters:
+
+.. note:: The parameters ClusterName, SlurmctldHost, AccountingStorageHost cannot be modified.
+
+::
+
+    # Authentication and Security
+        AuthType=auth/munge
+        CredType=cred/munge
+        SlurmUser=slurm
+ 
+    # Controller Configuration
+        ClusterName=cluster
+        SlurmctldHost=<auto-detected>
+        SlurmctldPort=6817
+        SlurmctldTimeout=120
+        SlurmctldLogFile=/var/log/slurm/slurmctld.log
+        SlurmctldPidFile=/var/run/slurmctld.pid
+        SlurmctldParameters=enable_configless
+        StateSaveLocation=/var/spool/slurmctld
+    
+    # Compute Node Configuration
+        SlurmdPort=6818
+        SlurmdTimeout=300
+        SlurmdLogFile=/var/log/slurm/slurmd.log
+        SlurmdPidFile=/var/run/slurmd.pid
+        SlurmdSpoolDir=/var/spool/slurmd
+ 
+    # Accounting
+        AccountingStorageHost=<auto-detected>
+        AccountingStoragePort=6819
+        AccountingStorageType=accounting_storage/slurmdbd
+ 
+    # Job Execution
+        SrunPortRange=60001-63000
+        ReturnToService=2
+        Epilog=/etc/slurm/epilog.d/logout_user.sh
+        PrologFlags=contain
+ 
+    # Scheduling
+        SchedulerType=sched/backfill
+        SelectType=select/linear
+ 
+    # Resource Tracking
+        TaskPlugin=task/cgroup
+        ProctrackType=proctrack/cgroup
+        JobAcctGatherType=jobacct_gather/linux
+        JobAcctGatherFrequency=30
+ 
+    # MPI Configuration
+        MpiDefault=none
+ 
+    # Plugin Directory
+        PluginDir=/usr/lib64/slurm
+ 
+    # Default Node Configuration
+        NodeName=DEFAULT State=UNKNOWN
+ 
+    # Default Partition Configuration
+        PartitionName=DEFAULT Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+        PartitionName=normal Nodes=<compute_nodes> Default=YES MaxTime=INFINITE State=UP
+
+Default slurmdbd.conf parameters:
+
+.. note:: The parameters DbdHost, StorageHost cannot be modified.
+
+::
+
+    # Authentication
+        AuthType=auth/munge
+        SlurmUser=slurm
+ 
+    # Database Daemon Configuration
+        DbdHost=<auto-detected>
+        DbdPort=6819
+        LogFile=/var/log/slurm/slurmdbd.log
+        PidFile=/var/run/slurmdbd.pid
+        PluginDir=/usr/lib64/slurm
+ 
+    # Database Connection
+        StorageType=accounting_storage/mysql
+        StorageHost=<auto-detected>
+        StoragePort=3306
+        StorageLoc=slurm_acct_db
+        StorageUser=slurm
+        StoragePass=<storage_password>
+
+Default cgroup.conf parameters ::
+
+    # Cgroup Plugin
+        CgroupPlugin=autodetect
+ 
+    # Resource Constraints
+        ConstrainCores=yes
+        ConstrainDevices=yes
+        ConstrainRAMSpace=yes
+        ConstrainSwapSpace=yes
+
+Default gres.conf parameters ::
+
+    # GPU Auto-Detection
+        AutoDetect=nvml
+
+
 Post Installation
 ----------------------
 
@@ -104,105 +224,99 @@ It is recommended to run this script on a login or compiler node.
 
 
 
-Slurm configuration validation and defaults
-----------------------------------------------
 
-Omnia includes a built-in validation system that checks Slurm configuration files for correctness before deployment. The ``slurm_conf`` module validates all configuration files (slurm.conf, slurmdbd.conf, cgroup.conf, gres.conf, etc.) against Slurm 25.X specifications, ensuring parameter names are valid and values match expected types (integers, strings, booleans, arrays, etc.). You can provide custom configurations in ``omnia_config.yml`` > ``slurm_cluster`` > ``config_sourcesalidation and Defaults``.
 
-Default Slurm configuration
+Slurm configuration utilities
+-----------------------------------
+
+Create a backup, rollback, or cleanup of Slurm configuration files.
+
+**Prerequisites**
+
+* Access to the Omnia infrastructure is available.
+* Proper configuration files are available.
+* SSH access to Slurm controller node is available.
+
+Backup Slurm configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Create timestamped backups of Slurm configuration files.
+
+1. Create a complete backup of Slurm configuration files with optional custom naming. Run the following command: ::
+
+        bash
+        ansible-playbook utils/slurm_config_util.yml --tags config_backup
+
+2. Provide a backup base name or use a timestamp-only name. The backup is created at ``<client_share_path>/slurm_backups/<backup_name>/<controller_node>/``
+
+Example: ::
+
+    Enter backup base name (leave empty for timestamp-only): pre_upgrade
+    Creating backup: pre_upgrade
+    Backup completed successfully
+
+Cleanup Slurm configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Omnia provides a comprehensive default configuration optimized for HPC clusters. These defaults are automatically applied and can be overridden via custom configuration files.
+Remove existing Slurm configuration files from the live cluster directory.
 
-Default slurm.conf parameters ::
+Run the following command: ::
 
-    # Authentication and Security
-        AuthType=auth/munge
-        CredType=cred/munge
-        SlurmUser=slurm
- 
-    # Controller Configuration
-        ClusterName=cluster
-        SlurmctldHost=<auto-detected>
-        SlurmctldPort=6817
-        SlurmctldTimeout=120
-        SlurmctldLogFile=/var/log/slurm/slurmctld.log
-        SlurmctldPidFile=/var/run/slurmctld.pid
-        SlurmctldParameters=enable_configless
-        StateSaveLocation=/var/spool/slurmctld
- 
-    # Compute Node Configuration
-        SlurmdPort=6818
-        SlurmdTimeout=300
-        SlurmdLogFile=/var/log/slurm/slurmd.log
-        SlurmdPidFile=/var/run/slurmd.pid
-        SlurmdSpoolDir=/var/spool/slurmd
- 
-    # Job Execution
-        SrunPortRange=60001-63000
-        ReturnToService=2
-        Epilog=/etc/slurm/epilog.d/logout_user.sh
-        PrologFlags=contain
- 
-    # Scheduling
-        SchedulerType=sched/backfill
-        SelectType=select/linear
- 
-    # Resource Tracking
-        TaskPlugin=task/cgroup
-        ProctrackType=proctrack/cgroup
-        JobAcctGatherType=jobacct_gather/linux
-        JobAcctGatherFrequency=30
- 
-    # MPI Configuration
-        MpiDefault=none
- 
-    # Plugin Directory
-        PluginDir=/usr/lib64/slurm
- 
-    # Default Node Configuration
-        NodeName=DEFAULT State=UNKNOWN
- 
-    # Default Partition Configuration
-        PartitionName=DEFAULT Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+        bash
+        ansible-playbook utils/slurm_config_util.yml --tags slurm_cleanup
 
-Default slurmdbd.conf parameters ::
+* Before cleanup, take a config backup. It is recommended before deleting live configurations.
+* The path where files are deleted: ``<client_share_path>/slurm/``
 
-    # Authentication
-        AuthType=auth/munge
-        SlurmUser=slurm
- 
-    # Database Daemon Configuration
-        DbdHost=<auto-detected>
-        DbdPort=6819
-        LogFile=/var/log/slurm/slurmdbd.log
-        PidFile=/var/run/slurmdbd.pid
-        PluginDir=/usr/lib64/slurm
- 
-    # Database Connection
-        StorageType=accounting_storage/mysql
-        StorageHost=<auto-detected>
-        StoragePort=3306
-        StorageLoc=slurm_acct_db
-        StorageUser=slurm
-        StoragePass=<encrypted>
+Example: ::
 
-Default cgroup.conf parameters ::
+    Before cleanup, take a config backup? (y/n): y
+    Enter backup base name (leave empty for timestamp-only): safety_backup
 
-    # Cgroup Plugin
-        CgroupPlugin=autodetect
- 
-    # Resource Constraints
-        ConstrainCores=yes
-        ConstrainDevices=yes
-        ConstrainRAMSpace=yes
-        ConstrainSwapSpace=yes
+    This will delete /share/slurm. Type YES to continue: YES
+    Deleted SLURM configuration directory successfully
 
-Default gres.conf parameters ::
+Rollback Slurm configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    # GPU Auto-Detection
-        AutoDetect=nvml
+Restore Slurm configuration from a previous backup with comprehensive validation.
+
+Example: ::
+
+    Available backups (newest first):
+    1. backup_2024-02-01_120000 (controller: slurm-ctrl-01)
+    2. pre_maintenance (controller: slurm-ctrl-01)
+    3. backup_2024-01-15_143022 (controller: slurm-ctrl-01)
+    ... (showing 10 of 15 total)
+
+    Enter backup name to restore (or press Enter to abort): pre_maintenance
+
+    Validating backup 'pre_maintenance'...
+    ✓ slurm.conf exists
+    ⚠ munge.key missing (optional but recommended)
+
+    Take safety backup of current config before rollback? (y/n): y
+    Enter backup base name (leave empty for timestamp-only): safety_before_rollback
+
+    Restoring configuration files...
+    Fixing file permissions...
+    Restarting slurmdbd (config changed)...
+    Reconfiguring SLURM controller...
+
+    Rollback completed successfully!
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+ 
