@@ -87,7 +87,13 @@ podman images | grep omnia_core
 Then download and run `omnia.sh` to deploy:
 
 ```bash
+# For tagged releases
 wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.1.0.0/omnia.sh
+chmod +x omnia.sh
+./omnia.sh --install
+
+# For branches (e.g., main, pub/q1_dev)
+wget https://raw.githubusercontent.com/dell/omnia/refs/heads/main/omnia.sh
 chmod +x omnia.sh
 ./omnia.sh --install
 ```
