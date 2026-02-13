@@ -33,7 +33,7 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 ./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0
 
 # Build with release candidate (same core tag)
-./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0-rc1
+./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0-rc2
 
 # Build with specific Omnia branch
 ./build_images.sh core core_tag=2.1 omnia_branch=main
