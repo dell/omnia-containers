@@ -42,7 +42,7 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 # Build with specific Omnia branch and default tag
 ./build_images.sh core omnia_branch=main
 
-# Build with default settings (uses main branch if not specified)
+# Build with default settings (uses main branch and core tag 2.1)
 ./build_images.sh core
 ```
 
