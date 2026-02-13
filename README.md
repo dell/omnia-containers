@@ -30,20 +30,20 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 ```bash
 # Build with specific Omnia tag (recommended)
-./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0
+./build_images.sh core omnia_branch=v2.1.0.0
 
 # Build with release candidate (same core tag)
-./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0-rc2
+./build_images.sh core omnia_branch=v2.1.0.0-rc2
 
 # Previous RC1 command (for reference)
 # ./build_images.sh core core_tag=1.1 omnia_branch=v2.1.0.0-rc1
 # Note: RC2 now also uses core_tag=2.1
 
-# Build with specific Omnia branch
-./build_images.sh core core_tag=2.1 omnia_branch=main
+# Build with specific Omnia branch and default tag
+./build_images.sh core omnia_branch=main
 
 # Build with default settings (uses main branch if not specified)
-./build_images.sh core core_tag=2.1
+./build_images.sh core
 ```
 
 ---
@@ -52,6 +52,7 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 **Required for core:**
 - `core_tag=<version>` - Container image tag (default: `2.1`)
+  - **Rule:** Use first 2 digits of Omnia version (e.g., v2.1.0.0 → core_tag=2.1)
 - `omnia_branch=<tag|branch>` - Omnia repo tag or branch name
   - **Tag example:** `v2.1.0.0` (recommended for production)
   - **Branch example:** `main`, `pub/q1_dev`, `staging`
