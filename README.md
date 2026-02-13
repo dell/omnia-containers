@@ -68,34 +68,6 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 ---
 
-## Building LDMS Producer RPM Package
-
-The `build_rpm.sh` script creates LDMS producer RPM packages for monitoring.
-
-### Syntax
-```bash
-./build_rpm.sh -v [LDMS_TAGGED_VERSION] -u [SLURM_REPO_URL] -n [SLURM_REPO_NAME]
-```
-
-### Examples
-
-**Build RPM with default settings:**
-```bash
-./build_rpm.sh
-```
-
-**Build RPM with custom version and repository:**
-```bash
-./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
-```
-
-### Notes
-- If `SLURM_REPO_URL` is provided, the script uses it to fetch dependencies
-- If `SLURM_REPO_NAME` is provided, it names the RPM package accordingly
-- All parameters are optional
-
----
-
 ## Next Steps
 
 After building, verify the image:
@@ -139,6 +111,60 @@ For advanced usage (auth, telemetry, build-stream), see:
 
 **Issue:** Build fails
 **Solution:** Ensure Podman/Docker is running and you have internet access to pull base images.
+
+---
+
+## Building LDMS Producer RPM Package
+
+The `build_rpm.sh` script creates LDMS producer RPM packages for HPC monitoring. It clones the OVIS repository and builds RPM packages in a Rocky Linux 10 container.
+
+### Syntax
+```bash
+./build_rpm.sh -v <LDMS_VERSION> -u <SLURM_REPO_URL> -n <SLURM_REPO_NAME>
+# Or positional arguments:
+./build_rpm.sh <SLURM_REPO_URL> <SLURM_REPO_NAME>
+```
+
+### Parameters
+- `-v, --version <version>` - LDMS version to build (default: `4.5.1`)
+- `-u, --url <url>` - SLURM repository URL for dependencies
+- `-n, --name <name>` - SLURM repository name for RPM packaging
+- `-h, --help` - Show help message
+
+### Examples
+
+**Build with default LDMS version (4.5.1):**
+```bash
+./build_rpm.sh
+```
+
+**Build with specific LDMS version:**
+```bash
+./build_rpm.sh -v 4.5.1
+```
+
+**Build with SLURM repository support:**
+```bash
+./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
+```
+
+**Build with positional arguments:**
+```bash
+./build_rpm.sh https://example.com/slurm-repo x86_64_slurm_custom
+```
+
+### Build Process
+1. Clones OVIS repository from GitHub (https://github.com/ovis-hpc/ovis.git)
+2. Uses specified LDMS version tag (default: v4.5.1)
+3. Sets `LDMS_REPO` environment variable
+4. Builds RPM in `RpmFile/ldms/build/` directory
+5. Runs `start_build_container.rockylinux10.bash` in container
+
+### Notes
+- SLURM repository parameters are optional but recommended for SLURM metrics
+- Without SLURM repo, warning is shown but build continues
+- Built RPMs are available in `RpmFile/ldms/build/` directory
+- Requires Docker/Podman for container-based build
 
 ---
 
