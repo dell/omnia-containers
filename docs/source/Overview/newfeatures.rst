@@ -1,7 +1,23 @@
 New Features
 =============
 
-The following sections describe the new features and enhancements introduced in the Omnia 2.0.0.0 release.
+The following sections describe the new features and enhancements introduced in Omnia 2.x releases.
+
+Version 2.1.0.0-rc1
+-------------------
+
+PowerVault Storage Integration
+------------------------------
+
+The PowerVault integration, with a preconfigured volume, provides persistent storage for critical Slurm controller components using iSCSI block storage with multipath support. This ensures data persistence for Slurm’s StateSaveLocation and the MariaDB/MySQL database.
+
+InfiniBand Networking Support
+------------------------------
+
+Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, static IP assignment for IB interfaces, and prerequisite validation for Open Subnet Manager (OpenSM) service configuration. This ensures high-performance, low-latency interconnects for parallel computing workloads.
+
+Version 2.0.0.0
+---------------
 
 Support for Podman Containers
 -----------------------------

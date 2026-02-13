@@ -74,6 +74,7 @@ See the following sample:
 ``/opt/omnia/input/project_default/storage_config.yml``
 ----------------------------------------------------------
 
+
 .. csv-table:: Parameters for Storage
    :file: ../../../Tables/storage_config.csv
    :header-rows: 1

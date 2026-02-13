@@ -9,5 +9,4 @@ Limitations
 - Containerized benchmark jobs are not supported on Slurm clusters.
 - All iDRACs must use the same username and password.
 - Omnia playbooks will fail if the OIM is unable to access online resources or the Internet.
-- In cluster nodes, node to node passwordless SSH is not available.
 - LDMS Slurm sampler metrics are not supported in the current telemetry deployment.

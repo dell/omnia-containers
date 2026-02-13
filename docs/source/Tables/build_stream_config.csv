@@ -1,0 +1,8 @@
+﻿Parameter,Mandatory/Optional,Description
+enable_build_stream,Optional,"* Enable or disable BuildSteaM pipeline.
+* **Accepted values:**  boolean values  (true or false) or (yes or no)
+* **Default value**: false"
+build_stream_port: 443,Optional,"* BuildStreaM API server port.
+*  **Accepted values:**  valid port number (1-65535) which is free
+*  **Default value**: 443"
+postgres_db_name,Optional,Specify the PostgreSQL database name for BuildStreaM.

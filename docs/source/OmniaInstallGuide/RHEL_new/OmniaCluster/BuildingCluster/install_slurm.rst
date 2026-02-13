@@ -4,6 +4,15 @@ Step 11: Set up Slurm on nodes
 **Prerequisites**
 
 * Provide the repository with slurm v25.X rpms.
+.. note:: If any Slurm nodes (Slurm controller, compute nodes, login nodes, or login/compile nodes) have an InfiniBand interface and ``ib_network`` details are defined in network_spec.yml (`Update the Input Parameters for Discovering the Nodes <../../Provision/provisionparams.html>`_), the Slurm user repository must be built (See `Repository prerequisites <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc1/RHEL_prereq.html#repository>`_) without UCX and openmpi support.
+        Specifically: 
+
+        * The Slurm user repository **must NOT include** the following packages: ucx, ucx-devel, openmpi, openmpi-devel.
+
+        * Slurm itself must be compiled without UCX and openmpi support.
+
+        After running ``discovery.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
+
 * Fill the mandatory parameters in ``omnia_config.yml``: `Input parameters for the cluster <../schedulerinputparams.html#id13>`_
 * Fill the parameters in ``storage_config.yml``: `Input parameters for the cluster <../schedulerinputparams.html#id13>`_
 * Add ``slurm_custom`` to ``software_config.json`` and add ``slurm_custom`` subgroups.
@@ -18,6 +27,17 @@ Step 11: Set up Slurm on nodes
 4. After successfully executing the ``discovery.yml`` playbook, you can PXE boot the slurm node, login node, and login compiler node simultaneously.
 
 .. note:: If you want to deploy only Slurm clusters (``slurm_custom``), the ``idrac_telemetry_support`` parameter must be set to ``false`` in the ``telemetry_config.yml`` file. Omnia is Validated for Slurm version 25.05. If you use any other version, some functionality like PAM may not work.
+
+5. To export openmpi, do the following: ::
+
+                export MPI_HOME=/share_omnia/benchmarks/openmpi
+
+                export PATH=$MPI_HOME/bin:$PATH
+
+                export LD_LIBRARY_PATH=$MPI_HOME/lib:$MPI_HOME/lib64:$LD_LIBRARY_PATH
+
+                <share_omnia> : nfs client share path for slurm in storage_config.yml
+    
 
 **Slurm with GPU:**
 

@@ -1,7 +1,10 @@
-Step 4: Setup OpenLDAP for Centralized Authentication 
-======================================================
+Step 6: Configure OpenLDAP Proxy for Centralized Authentication 
+===============================================================
 
-Set up OpenLDAP to allow or deny access to the user(s).
+You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) to allow or deny user access from the OpenLDAP server deployed in your environment. For more details about OpenLDAP, see the `OpenLDAP Administrator's Guide <https://www.openldap.org/doc/admin26/index.html>`_. 
+Omnia has validated authentication of user using external Bitnami OpenLDAP external server. To deploy an external OpenLDAP server and authenticate users from it, see :doc:`External LDAP Deployment <../../ExternalDeploymentGuide/external_ldap_deployment>`.
+
+.. note:: OpenLDAP proxy server will be deployed as omnia_auth container and user creation on proxy server is not supported.
 
 **Prerequisites**
 
@@ -11,56 +14,15 @@ Set up OpenLDAP to allow or deny access to the user(s).
 
 * Run ``prepare_oim.yml`` to start the Omnia Auth container.
 
-* Run ``local_repo.yml`` to create offline repositories of OpenLDAP. For more information, `click here <../../CreateLocalRepo/index.html>`_.
+* Run ``local_repo.yml`` to create offline repositories of OpenLDAP. For more information, see :doc:`Create Local Repository <../CreateLocalRepo/index>`.
 
 * Run  ``build_image_x86_64.yml``/ ``build_image_aarch64.yml`` to build the images with OpenLDAP packages on the login node, slurm node, and slurm control node image.
-
-
-Create a New User on OpenLDAP
------------------------------
-
-1. Create an LDIF file (eg: ``create_user.ldif``) on the auth server containing the following information:
-
-    * DN: The distinguished name that indicates where the user will be created.
-    * objectClass: The object class specifies the mandatory and optional attributes that can be associated with an entry of that class. Here, the values are ``inetOrgPerson``, ``posixAccount``, and ``shadowAccount``.
-    * UID: The username of the replication user.
-    * sn: The surname of the intended user.
-    * cn: The given name of the intended user.
-
-Below is a sample file: ::
-
-    # User Creation
-    dn: uid=ldapuser,ou=People,dc=omnia,dc=test
-    objectClass: inetOrgPerson
-    objectClass: posixAccount
-    objectClass: shadowAccount
-    cn: ldapuser
-    sn: ldapuser
-    loginShell:/bin/bash
-    uidNumber: 2000
-    gidNumber: 2000
-    homeDirectory: /home/ldapuser
-    shadowLastChange: 0
-    shadowMax: 0
-    shadowWarning: 0
-
-    # Group Creation
-    dn: cn=ldapuser,ou=Group,dc=omnia,dc=test
-    objectClass: posixGroup
-    cn: ldapuser
-    gidNumber: 2000
-    memberUid: ldapuser
-
-.. note:: Avoid whitespaces when using an LDIF file for user creation. Extra spaces in the input data may be encrypted by OpenLDAP and cause access failures.
-
-2. Run the command ``ldapadd -D <enter admin binddn > -w < bind_password > -f create_user.ldif`` to execute the LDIF file and create the account.
-3. To set up a password for this account, use the command ``ldappasswd -D <enter admin binddn > -w < bind_password > -S <user_dn>``. The value of ``user_dn`` is the distinguished name that indicates where the user was created. (In this example, ``uid=ldapuser,ou=People,dc=omnia,dc=test``)
 
 
 Configure OpenLDAP Connection Type
 --------------------------------------
 
-Omnia authenticates users against OpenLDAP using TLS-only connection. The connection type is predefined to TLS in the ``security_config.yml`` available at ``/opt/omnia/input/project_default/`` directory.
+Omnia uses TLS-only connection for authenticate users. The connection type is predefined to TLS in the ``security_config.yml`` available at ``/opt/omnia/input/project_default/`` directory.
 
 
 .. csv-table:: Parameters for Authentication
@@ -69,18 +31,22 @@ Omnia authenticates users against OpenLDAP using TLS-only connection. The connec
    :keepspace:
 
 
-Configure OpenLDAP as a Proxy Server
---------------------------------------
+Configure OpenLDAP Proxy Server
+--------------------------------
 
-Omnia allows the internal OpenLDAP server to be configured as a proxy, where it utilizes the external LDAP servers as a backend database to store user data and acts as an authentication entity to allow/deny them access to the cluster. OpenLDAP client will be configured through the proxy server which means that there won't be any direct communication between OpenLDAP client and the external LDAP server.
+Omnia allows to configure OpenLDAP proxy on OIM, where it utilizes the external LDAP servers as a backend database to store user data and acts as an authentication entity to allow/deny them access to the cluster. OpenLDAP client will be configured through the proxy server which means that there won't be any direct communication between OpenLDAP client and the external LDAP server.
 
 .. note:: If the OpenLDAP server is set up as a proxy, the user database is not replicated onto the server.
 
-Perform the following steps to configure OpenLDAP as a proxy server:
+Perform the following steps to configure OpenLDAP as a proxy server on the omnia_core container:
 
-1. Locate the config file present in ``/opt/omnia/auth/``.
+1. Log in to the omnia_core container::
 
-2. Add the following lines to the ``slapd.conf`` file based on the operating system running on the cluster:
+    ssh omnia_core
+
+2. Locate the config file present in ``/opt/omnia/auth/``.
+
+3. Add the following lines to the ``slapd.conf`` file based on the operating system running on the cluster:
 
     For RHEL: ::
 
@@ -159,8 +125,8 @@ Change the **<parameter>** values in the config file, as described below:
              flags=override
              mode=none
 
-3. Once the new configurations are present in the ``slapd.conf`` file, restart the ``omnia_auth`` service: ::
+4. Once the new configurations are applied in the ``slapd.conf`` file, log out of the ``omnia_core`` container and restart the ``omnia_auth`` service in the OIM::
 
     sudo systemctl restart omnia_auth.service
 
-Once these configurations are applied on the internal OpenLDAP server, it sets up the external LDAP server as an authentication server. The internal OpenLDAP server doesn't store any kind of user data and no users can be created/modified from here.
+Once these configurations are applied, it configures the OpenLDAP proxy on the authentication server. The OpenLDAP proxy does not store any kind of user data and no users can be created/modified from here.

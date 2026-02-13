@@ -37,3 +37,17 @@ Mandatory",The dynamic range of IPs to be provisioned on target nodes. **Default
 
 Optional","External DNS server IP addresses for the admin network.
  "
+"ib_network
+
+.. note:: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable.","**Subnet**
+
+``IP address``
+
+Mandatory","The subnet address for the InfiniBand network. 
+Default value: 192.168.0.0"
+,"**netmask_bits**
+
+``integer``
+
+Mandatory","* The 32-bit “mask” used to divide an IP address into subnets and specify the network’s available hosts. Default value: 24
+* Netmask bits of ib_network should match the netmask bits of the admin network."

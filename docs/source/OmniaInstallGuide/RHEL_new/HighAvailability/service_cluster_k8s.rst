@@ -105,6 +105,8 @@ After deploying Kubernetes, the following additional packages are installed on t
 
     Click `here <https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner>`_ for more information.
 
+2. **Doca-ofed installation**
+    After running ``discovery.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
 
 Next Step
 ===========

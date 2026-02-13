@@ -1,28 +1,33 @@
-Add Node to the Cluster
-==========================
+Add or Remove Slurm Nodes to the Cluster
+========================================
 
-Omnia supports adding new nodes to the cluster. 
+Omnia supports addition and removal of Slurm compute nodes from an existing cluster. 
 
-Add node to the cluster without any new functional groups in mapping file
---------------------------------------------------------------------------
+Add Slurm Node to the Cluster
+-----------------------------
 
-1. Update the mapping file with the new entries. 
+To add a new Slurm node to the cluster, follow these steps:
+
+1. Update the PXE mapping file with new Slurm node entries. Add entries for new nodes with appropriate functional group assignments ``slurm_node_x86_64``.
 
 .. Note:: While updating the mapping file, ensure that the existing nodes are not removed from the mapping file.
 
-2. Run the ``discovery.yml`` plabook to discover the new nodes.
+.. note:: Addition of new ``slurm_control_node`` is not supported.
 
+2. Run the ``discovery.yml`` playbook to discover the new nodes. For more information, see :doc:`../RHEL_new/Provision/installprovisiontool`.
 3. PXE boot the newly added nodes.
+4. To enable telemetry collection using iDRAC telemetry service, run the ``telemetry.yml`` playbook. For steps to initiate telemetry collection, see :doc:`../RHEL_new/Telemetry/initialize_and_verify_telemetry`
+
+.. note:: You do not need to run the ``telemetry.yml`` playbook if the service kubernetes cluster nodes are configured to collect telemetry data only using LDMS. By default, LDMS begins collection of data
+    after ``discovery.yml`` playbook is executed.
+
+Remove Slurm nodes
+-----------------------
+
+To remove a Slurm node from the cluster, follow these steps:
+
+1. Update the PXE mapping file. Remove or reassign nodes that should no longer be part of the Slurm cluster.
+2. Run the ``discovery.yml`` playbook.
 
 
-Add Node to the Cluster with new Functional Groups in Mapping File
--------------------------------------------------------------------
 
-1. Update the mapping file with the new entries. 
-2. Update the ``software_config.json`` as required.
-3. Run the ``local_repo.yml`` playbook if there are any update made to the ``software_config.json``. For more information, see :doc:`../RHEL_new/CreateLocalRepo/RunningLocalRepo`.
-4. Run the ``build_image_x86_64.yml`` or ``build_image_aarch64.yml`` to build new images. For more information, see :doc:`../RHEL_new/build_images`.
-5. After the images are created, run the discovery.yml playbook. For more information, see :doc:`../RHEL_new/Provision/installprovisiontool`.
-6. PXE boot the newly added nodes.
-
-.. Note:: If you need to reprovision the Slurm Control Node and the Kube Control Plane, you must reprovision the entire cluster.

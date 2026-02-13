@@ -6,7 +6,7 @@
 Omnia: Everything at once!
 ----------------------------------
 
-|Downloads| |Last Commit| |Contributors| |Forks| |License|
+|Omnia version| |Downloads| |Last Commit| |Contributors| |Forks| |License|
 
 Omnia is a containerized, open-source deployment toolkit designed to automate the setup
 and management of high-performance computing (HPC) environments on Linux-based servers.
@@ -74,6 +74,7 @@ For a better understanding of what Omnia does, check out the following:
     Overview/SupportMatrix/index
     RHEL_prereq
     OmniaInstallGuide/index
+    OmniaInstallGuide/ExternalDeploymentGuide/Index
     Utils/index
     Logging/index
     Troubleshooting/index

@@ -1,9 +1,10 @@
-Step 6:  Prepare the OIM
+Step 5:  Prepare the OIM
 ========================================================
 
 The ``prepare_oim.yml`` playbook is used to prepare the Omnia Infrastructure Manager (OIM). The playbook performs the following on the OIM:
 
 * Sets up the OpenCHAMI containers.
+* Sets up the BuildStreamM container if BuildStreaM is enabled in ``/opt/omnia/input/project_default/build_stream_config.yml``.
 * Sets up the Omnia Auth container if ``"name": "openldap", "arch": ["x86_64"]`` entry is present in ``/opt/omnia/input/project_default/software_config.json``.
 * Sets up the Pulp container: ``pulp``
 
@@ -20,6 +21,7 @@ The ``prepare_oim.yml`` playbook is dependent on the inputs provided to the foll
 
 * ``network_spec.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the necessary configurations for the cluster network.
 * ``provision_config.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the details about provisioning of clusters.
+* ``build_stream_config.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the details about the BuildStreamM pipeline.
 
 1. ``network_spec.yml``
 ------------------------
@@ -54,6 +56,16 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
 
 .. csv-table:: provision_config.yml
    :file: ../../Tables/Provision_config.csv
+   :header-rows: 1
+   :keepspace:
+
+3. ``build_stream_config.yml``
+-------------------------------
+
+Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Use the below table as reference while doing so:
+
+.. csv-table:: build_stream_config.yml
+   :file: ../../Tables/build_stream_config.csv
    :header-rows: 1
    :keepspace:
 
