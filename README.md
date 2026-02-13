@@ -63,22 +63,31 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
 
 ---
 
-## Build LDMS Producer RPM
+## Building LDMS Producer RPM Package
 
-Create LDMS producer RPM packages for monitoring.
+The `build_rpm.sh` script creates LDMS producer RPM packages for monitoring.
 
+### Syntax
 ```bash
-# Build RPM with default settings
-./build_rpm.sh
+./build_rpm.sh -v [LDMS_TAGGED_VERSION] -u [SLURM_REPO_URL] -n [SLURM_REPO_NAME]
+```
 
-# Build RPM with custom version and repository
+### Examples
+
+**Build RPM with default settings:**
+```bash
+./build_rpm.sh
+```
+
+**Build RPM with custom version and repository:**
+```bash
 ./build_rpm.sh -v 4.5.1 -u https://example.com/slurm-repo -n x86_64_slurm_custom
 ```
 
-**Parameters:**
-- `-v <version>` - LDMS tagged version (optional)
-- `-u <url>` - SLURM repository URL (optional)
-- `-n <name>` - SLURM repository name (optional)
+### Notes
+- If `SLURM_REPO_URL` is provided, the script uses it to fetch dependencies
+- If `SLURM_REPO_NAME` is provided, it names the RPM package accordingly
+- All parameters are optional
 
 ---
 
