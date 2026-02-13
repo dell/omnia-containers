@@ -116,7 +116,7 @@ For advanced usage (auth, telemetry, build-stream), see:
 
 ## Building LDMS Producer RPM Package
 
-The `build_rpm.sh` script creates LDMS producer RPM packages for HPC monitoring. It clones the OVIS repository and builds RPM packages in a Rocky Linux 10 container.
+The `build_rpm.sh` script creates LDMS producer RPM packages for HPC monitoring. It clones the OVIS repository and builds RPM packages in a Rocky Linux 10 container. Supports both x86_64 and aarch64 architectures - run on the respective platform to build for that architecture.
 
 ### Syntax
 ```bash
@@ -165,6 +165,8 @@ The `build_rpm.sh` script creates LDMS producer RPM packages for HPC monitoring.
 - Without SLURM repo, warning is shown but build continues
 - Built RPMs are available in `RpmFile/ldms/build/` directory
 - Requires Docker/Podman for container-based build
+- Supports both x86_64 and aarch64 architectures
+- Run this script on the respective platform to build for that architecture
 
 ---
 
