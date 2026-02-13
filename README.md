@@ -56,6 +56,10 @@ Install Podman: [podman.io/getting-started/installation](https://podman.io/getti
   - **Tag example:** `v2.1.0.0` (recommended for production)
   - **Branch example:** `main`, `pub/q1_dev`, `staging`
   - **Default:** `main` (if not specified)
+  
+**Find available versions:**
+- Omnia tags: https://github.com/dell/omnia/tags
+- Omnia branches: https://github.com/dell/omnia/branches
 
 **Optional:**
 - `build_action=<load|push>` - Load locally (default: `load`)
