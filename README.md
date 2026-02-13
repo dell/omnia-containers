@@ -180,5 +180,5 @@ For this project, uv is used for container Python package management. To update 
 
 ## Support
 
-For issues or questions, refer to the [Omnia documentation](https://github.com/dell/omnia).
+For issues or questions, refer to the [Omnia documentation](https://omnia.readthedocs.io/en/latest/).
 
