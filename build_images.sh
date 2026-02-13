@@ -525,7 +525,7 @@ BUILD_ACTION="load"
 OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
-CORE_TAG="1.0"
+CORE_TAG="2.1"
 AUTH_TAG="1.0"
 PCS_TAG="1.0"
 UBUNTU_LDMS_TAG="1.0"
@@ -534,15 +534,13 @@ VICTORIAPUMP_TAG="1.0"
 TELEMETRY_RECEIVER_TAG="1.0"
 IMAGE_BUILDER_TAG="1.0"
 BUILD_STREAM_TAG="1.0"
-# Global fallback tag (used when image_tag= is specified)
-IMAGE_TAG="1.0"
 
 # Valid parameter names
-VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag")
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag")
 VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder" "build-stream")
 
 # Common parameters valid for all container types
-COMMON_PARAMS=("build_tool" "build_action" "image_tag")
+COMMON_PARAMS=("build_tool" "build_action")
 
 # Store container-specific parameters for later validation
 CONTAINER_PARAMS=()
@@ -572,18 +570,6 @@ for arg in "$@"; do
         BUILD_TOOL="${arg#build_tool=}"
     elif [[ "$arg" =~ ^build_action=.*$ ]]; then
         BUILD_ACTION="${arg#build_action=}"
-    elif [[ "$arg" =~ ^image_tag=.*$ ]]; then
-        IMAGE_TAG="${arg#image_tag=}"
-        # Set all container tags to the same value when image_tag is used
-        CORE_TAG="$IMAGE_TAG"
-        AUTH_TAG="$IMAGE_TAG"
-        PCS_TAG="$IMAGE_TAG"
-        UBUNTU_LDMS_TAG="$IMAGE_TAG"
-        KAFKAPUMP_TAG="$IMAGE_TAG"
-        VICTORIAPUMP_TAG="$IMAGE_TAG"
-        TELEMETRY_RECEIVER_TAG="$IMAGE_TAG"
-        IMAGE_BUILDER_TAG="$IMAGE_TAG"
-        BUILD_STREAM_TAG="$IMAGE_TAG"
     elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
         CORE_TAG="${arg#core_tag=}"
     elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
