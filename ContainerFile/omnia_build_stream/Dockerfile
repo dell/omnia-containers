@@ -28,8 +28,8 @@ LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
 # Update the system and install Python 3.12 with security updates (without pip)
-RUN dnf -y install python3 curl \
-    gcc gcc-c++ make python3-devel && \
+RUN dnf -y install python3 curl ca-certificates \
+    gcc gcc-c++ make python3-devel openssh-clients && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
@@ -58,6 +58,15 @@ ENV UV_PROJECT_ENVIRONMENT="/usr"
 # Install dependencies using uv from lock file
 RUN uv sync --locked
 
+# Install development dependencies only when BUILD_ENV=development
+ARG BUILD_ENV=production
+RUN if [ "$BUILD_ENV" = "development" ]; then uv sync --dev; fi
+
+# Create app directory
+WORKDIR /opt/omnia/build_stream
+
+# Create SSL directory for volume mount
+RUN mkdir -p /etc/ssl/omnia
 
 # -----------------------------
 # Runtime defaults
@@ -65,18 +74,21 @@ RUN uv sync --locked
 ENV HOST=0.0.0.0
 ENV PORT=443
 ENV APP_DIR=/opt/omnia/build_stream
+# Path where Pulp's cert is mounted by Quadlet
+ENV PULP_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
+ENV REQUESTS_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
+ENV CURL_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
+ENV SYSTEM_ANCHOR=/etc/pki/ca-trust/source/anchors/pulp_webserver.crt
+
+# SSL certificate paths for uvicorn
+ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
+ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
 
 # The code (main.py) will be mounted here via Quadlet:
 WORKDIR ${APP_DIR}
 
-# Expose HTTPS port (configurable via PORT environment variable)
+# Expose HTTPS port
 EXPOSE ${PORT:-443}
 
-# Healthcheck: self-signed cert expected -> use -k
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -skf https://localhost:${PORT}/health || exit 1
-
-# Start API server on container start
-# NOTE: relies on /opt/omnia/build_stream/main.py being present (mounted from host)
-CMD ["bash","-lc","exec python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443} --ssl-keyfile=/etc/ssl/omnia/key.pem --ssl-certfile=/etc/ssl/omnia/cert.pem"]
-
+# Start API server directly
+CMD ["sh", "-c", "python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443} --ssl-keyfile=${SSL_KEYFILE} --ssl-certfile=${SSL_CERTFILE}"]

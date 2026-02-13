@@ -204,16 +204,16 @@ build_omnia_build_stream() {
     echo -e "${RED}---------------------------------${NC}"
     cd "$BUILD_STREAM_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
+        podman build --build-arg BUILD_ENV="${BUILD_ENV:-production}" -t omnia_build_stream:${BUILD_STREAM_TAG} -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_build_stream:${BUILD_STREAM_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --network=host --no-cache -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
+            docker buildx build --network=host --no-cache --build-arg BUILD_ENV="${BUILD_ENV:-production}" -t omnia_build_stream:${BUILD_STREAM_TAG} --file Dockerfile --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_build_stream:${BUILD_STREAM_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --network=host --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --network=host --no-cache --build-arg BUILD_ENV="${BUILD_ENV:-production}" -t "$OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_build_stream:${BUILD_STREAM_TAG}"
         else
@@ -538,7 +538,7 @@ BUILD_STREAM_TAG="1.0"
 IMAGE_TAG="1.0"
 
 # Valid parameter names
-VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag")
+VALID_PARAMS=("omnia_branch" "build_tool" "build_action" "image_tag" "core_tag" "auth_tag" "pcs_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "image_builder_tag" "build_stream_tag" "build_env" "docker_registry")
 VALID_CONTAINERS=("all" "core" "pcs" "auth" "ubuntu-ldms" "pipeline" "telemetry" "kafkapump" "victoriapump" "telemetry-receiver" "image-builder" "build-stream")
 
 # Common parameters valid for all container types
@@ -602,6 +602,10 @@ for arg in "$@"; do
         IMAGE_BUILDER_TAG="${arg#image_builder_tag=}"
     elif [[ "$arg" =~ ^build_stream_tag=.*$ ]]; then
         BUILD_STREAM_TAG="${arg#build_stream_tag=}"
+    elif [[ "$arg" =~ ^build_env=.*$ ]]; then
+        BUILD_ENV="${arg#build_env=}"
+    elif [[ "$arg" =~ ^docker_registry=.*$ ]]; then
+        OMNIA_DOCKER_REGISTERY="${arg#docker_registry=}"
     fi
 done
 
@@ -623,6 +627,13 @@ fi
 if [[ "$BUILD_ACTION" == "push" && "$BUILD_TOOL" != "docker" ]]; then
     echo -e "${RED}Error: build_action=push requires build_tool=docker${NC}"
     echo -e "${YELLOW}Please set build_tool=docker when using build_action=push${NC}"
+    exit 1
+fi
+
+# Validate that development build requires Docker registry
+if [[ "$BUILD_ENV" == "development" && -z "$OMNIA_DOCKER_REGISTERY" ]]; then
+    echo -e "${RED}Error: build_env=development requires OMNIA_DOCKER_REGISTERY to be set${NC}"
+    echo -e "${YELLOW}Please set OMNIA_DOCKER_REGISTERY environment variable or use build_tool=docker with build_action=push${NC}"
     exit 1
 fi
 
@@ -764,7 +775,7 @@ case "$CONTAINER_ARG" in
     
     build-stream)
         # Build build-stream container
-        ALLOWED_TAG_PARAMS=("build_stream_tag")
+        ALLOWED_TAG_PARAMS=("build_stream_tag" "build_env" "docker_registry")
         
         if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
             echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
