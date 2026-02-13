@@ -115,6 +115,16 @@ For advanced usage (auth, telemetry, build-stream), see:
 
 ---
 
+## Updating Python Packages
+
+For this project, uv is used for container Python package management. To update Python packages and the uv.lock file:
+
+1. **Install uv**: `pip install uv`
+2. **Update pyproject.toml**: Navigate to the container folder and update the pyproject.toml
+3. **Update the lock file**: From the same directory run `uv lock`
+
+---
+
 ## Support
 
 For issues or questions, refer to the [Omnia documentation](https://github.com/dell/omnia).
