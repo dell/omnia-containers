@@ -68,6 +68,9 @@ WORKDIR /opt/omnia/build_stream
 # Create SSL directory for volume mount
 RUN mkdir -p /etc/ssl/omnia
 
+# Create the pulp config directory for CLI usage
+RUN mkdir -p /root/.config/pulp
+
 # -----------------------------
 # Runtime defaults
 # -----------------------------
