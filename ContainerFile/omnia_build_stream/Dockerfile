@@ -80,7 +80,6 @@ ENV APP_DIR=/opt/omnia/build_stream
 # Path where Pulp's cert is mounted by Quadlet
 ENV PULP_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
 ENV REQUESTS_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
-ENV CURL_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
 ENV SYSTEM_ANCHOR=/etc/pki/ca-trust/source/anchors/pulp_webserver.crt
 
 # SSL certificate paths for uvicorn
