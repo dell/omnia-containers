@@ -29,7 +29,7 @@ LABEL omnia.type="api_service"
 
 # Update the system and install Python 3.12 with security updates (without pip)
 RUN dnf -y install python3 curl ca-certificates \
-    gcc gcc-c++ make python3-devel openssh-clients && \
+    gcc gcc-c++ make python3-devel openssh-clients openssh-server passwd && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
@@ -72,10 +72,29 @@ RUN mkdir -p /etc/ssl/omnia
 RUN mkdir -p /root/.config/pulp
 
 # -----------------------------
+# SSH Configuration
+# -----------------------------
+# Create omnia_build_stream user
+RUN useradd -m -s /bin/bash omnia_build_stream && \
+    echo "omnia_build_stream:omnia_build_stream" | chpasswd && \
+    usermod -aG sudo omnia_build_stream
+
+# Create SSH directory for omnia_build_stream user
+RUN mkdir -p /home/omnia_build_stream/.ssh && \
+    chmod 700 /home/omnia_build_stream/.ssh && \
+    chown omnia_build_stream:omnia_build_stream /home/omnia_build_stream/.ssh
+
+# Create SSH directory for root (for known_hosts mount)
+RUN mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh
+
+# Configure SSH daemon
+RUN mkdir -p /var/run/sshd && \
+    ssh-keygen -A
+
+# -----------------------------
 # Runtime defaults
 # -----------------------------
-ENV HOST=0.0.0.0
-ENV PORT=443
 ENV APP_DIR=/opt/omnia/build_stream
 # Path where Pulp's cert is mounted by Quadlet
 ENV PULP_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
@@ -89,8 +108,11 @@ ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
 # The code (main.py) will be mounted here via Quadlet:
 WORKDIR ${APP_DIR}
 
-# Expose HTTPS port
-EXPOSE ${PORT:-443}
+# Expose port only if PORT is set
+EXPOSE ${PORT}
 
-# Start API server directly
-CMD ["sh", "-c", "python3 -m uvicorn main:app --host ${HOST:-0.0.0.0} --port ${PORT:-443} --ssl-keyfile=${SSL_KEYFILE} --ssl-certfile=${SSL_CERTFILE}"]
+# Expose SSH port
+EXPOSE 2224
+
+# Start both SSH daemon and API server
+CMD ["sh", "-c", "/usr/sbin/sshd -D & python3 -m uvicorn main:app --host ${HOST} --port ${PORT} --ssl-keyfile=${SSL_KEYFILE} --ssl-certfile=${SSL_CERTFILE}"]
