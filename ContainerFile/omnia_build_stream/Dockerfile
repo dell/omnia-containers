@@ -72,32 +72,6 @@ RUN mkdir -p /etc/ssl/omnia
 RUN mkdir -p /root/.config/pulp
 
 # -----------------------------
-# SSH Configuration
-# -----------------------------
-# Create omnia_build_stream user
-RUN useradd -m -s /bin/bash omnia_build_stream && \
-    echo "omnia_build_stream:omnia_build_stream" | chpasswd && \
-    usermod -aG sudo omnia_build_stream
-
-# Create SSH directory for omnia_build_stream user
-RUN mkdir -p /home/omnia_build_stream/.ssh && \
-    chmod 700 /home/omnia_build_stream/.ssh && \
-    chown omnia_build_stream:omnia_build_stream /home/omnia_build_stream/.ssh
-
-# Create SSH directory for root (for known_hosts mount)
-RUN mkdir -p /root/.ssh && \
-    chmod 700 /root/.ssh
-
-# Configure SSH daemon
-RUN mkdir -p /var/run/sshd && \
-    ssh-keygen -A
-
-# Allow root login and password authentication, move SSH to 2224
-RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/^#Port 22/Port 2224/' /etc/ssh/sshd_config
-
-# -----------------------------
 # Runtime defaults
 # -----------------------------
 ENV APP_DIR=/opt/omnia/build_stream
@@ -116,10 +90,5 @@ WORKDIR ${APP_DIR}
 # Expose port only if PORT is set
 EXPOSE ${PORT}
 
-# Expose SSH port
-EXPOSE 2224
-
-# Entrypoint configures SSH password from metadata and starts services
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+# Entrypoint starts FastAPI service directly
+ENTRYPOINT ["/bin/bash", "-c", "python3 -m uvicorn main:app --host \"${HOST:-0.0.0.0}\" --port \"${PORT:-8010}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
