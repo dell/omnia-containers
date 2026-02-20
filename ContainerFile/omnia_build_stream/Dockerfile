@@ -92,6 +92,11 @@ RUN mkdir -p /root/.ssh && \
 RUN mkdir -p /var/run/sshd && \
     ssh-keygen -A
 
+# Allow root login and password authentication, move SSH to 2224
+RUN sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#Port 22/Port 2224/' /etc/ssh/sshd_config
+
 # -----------------------------
 # Runtime defaults
 # -----------------------------
@@ -114,5 +119,7 @@ EXPOSE ${PORT}
 # Expose SSH port
 EXPOSE 2224
 
-# Start both SSH daemon and API server
-CMD ["sh", "-c", "/usr/sbin/sshd -D & python3 -m uvicorn main:app --host ${HOST} --port ${PORT} --ssl-keyfile=${SSL_KEYFILE} --ssl-certfile=${SSL_CERTFILE}"]
+# Entrypoint configures SSH password from metadata and starts services
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
