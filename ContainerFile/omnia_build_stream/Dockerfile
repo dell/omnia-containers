@@ -29,7 +29,7 @@ LABEL omnia.type="api_service"
 
 # Update the system and install Python 3.12 with security updates (without pip)
 RUN dnf -y install python3 curl ca-certificates \
-    gcc gcc-c++ make python3-devel openssh-clients openssh-server passwd && \
+    gcc gcc-c++ make python3-devel openssh openssh-server passwd && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 

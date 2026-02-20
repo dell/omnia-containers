@@ -6,7 +6,7 @@ ARG OMNIA_VERSION=staging
 
 # Update the system and install Python 3.12 with security updates
 RUN dnf -y update && \
-    dnf -y install python3 python3-pip git openssh-server \
+    dnf -y install python3 python3-pip git openssh-server sshpass \
     iproute systemd passwd openssl jq createrepo yum-utils \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
     dnf clean all
