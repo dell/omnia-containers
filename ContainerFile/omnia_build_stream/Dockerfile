@@ -88,7 +88,10 @@ ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
 WORKDIR ${APP_DIR}
 
 # Expose port only if PORT is set
-EXPOSE ${PORT}
+EXPOSE 8010
+
+ENV DEBUGPY_PORT=5678
+EXPOSE ${DEBUGPY_PORT}
 
 # Entrypoint starts FastAPI service directly
-ENTRYPOINT ["/bin/bash", "-c", "python3 -m uvicorn main:app --host \"${HOST:-0.0.0.0}\" --port \"${PORT:-8010}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
+ENTRYPOINT ["/bin/bash", "-c", "python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:-0.0.0.0}\" --port \"${PORT:-8010}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
