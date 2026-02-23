@@ -1,0 +1,43 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+---
+# Molecule Converge - Run slurm playbook inside omnia_core container
+
+- name: Converge - Setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Load user_config for reference
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+- name: Converge - Validate omnia_core is running (no playbooks executed)
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Check omnia_core container is running
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q "^{{ container_name }}$"
+      args:
+        executable: /bin/bash
+      register: core_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core is not running
+      ansible.builtin.fail:
+        msg: "{{ container_name }} container is not running on {{ ansible_host }}"
+      when: core_check.rc != 0

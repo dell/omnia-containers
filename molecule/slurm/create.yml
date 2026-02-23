@@ -1,0 +1,24 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+---
+# Molecule Create - Setup inventory and verify connectivity (slurm)
+- name: Create - Setup OIM server inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Test SSH connection to OIM server
+      ansible.builtin.wait_for:
+        host: "{{ user_config.oim_server_ip }}"
+        port: "{{ user_config.oim_ssh_port | default(22) }}"
+        timeout: 30
+
+    - name: OIM server ready
+      ansible.builtin.debug:
+        msg: "OIM server {{ user_config.oim_server_ip }} is reachable via SSH"

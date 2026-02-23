@@ -1,0 +1,40 @@
+# Molecule Configuration for slurm Testing
+# Mirrors local_repo layout; 
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  playbooks:
+    create: create.yml
+    converge: converge.yml
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  additional_files_or_dirs:
+    - tests
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: slurm
+  test_sequence:
+    - dependency
+    - syntax
+    - create
+    - converge
+    - verify
