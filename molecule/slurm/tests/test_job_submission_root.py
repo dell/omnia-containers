@@ -26,64 +26,41 @@ Configuration (env-driven + PXE mapping discovery):
 """
 
 import os
-from pathlib import Path
-from typing import List
 
 import pytest
 
-from automation_library.core.host import (
-    _get_pxe_mapping_content,
-    get_testinfra_host,
-    run_in_container,
+from automation_library.core.host import get_testinfra_host
+from automation_library.slurm.vars import (
+    MULTI_JOB_COUNT,
+    parse_login_ips_from_env,
+    parse_login_ips_from_pxe_mapping,
+)
+from automation_library.slurm.messages import (
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+)
+from automation_library.slurm.functions import (
+    is_node_reachable,
+    find_reachable_login_node,
+    read_job_script,
+    copy_job_script_to_login,
+    submit_job_via_login,
+    check_squeue,
 )
 
 
-def _parse_login_ips_from_env() -> List[str]:
-    """Read login node IPs from LOGIN_NODE_IPS environment variable."""
-    value = os.environ.get("LOGIN_NODE_IPS", "").strip()
-    if not value:
-        return []
-    return [ip.strip() for ip in value.split(",") if ip.strip()]
-
-
-def _parse_login_ips_from_pxe_mapping() -> List[str]:
-    """Extract login node admin IPs from PXE mapping file inside omnia_core."""
-    host = get_testinfra_host()
-    pxe_content = _get_pxe_mapping_content(host)
-    if not pxe_content:
-        return []
-
-    # CSV header expected: FUNCTIONAL_GROUP_NAME,GROUP_NAME,...,HOSTNAME,ADMIN_MAC,ADMIN_IP,
-    login_ips: List[str] = []
-    lines = [line for line in pxe_content.split("\n") if line.strip()]
-    if not lines:
-        return login_ips
-
-    for line in lines[1:]:  # skip header
-        cols = line.split(",")
-        if len(cols) < 7:
-            continue
-        functional_group = cols[0].lower()
-        hostname = cols[4].lower()
-        admin_ip = cols[6].strip()
-
-        if "login" in functional_group or "login" in hostname:
-            if admin_ip:
-                login_ips.append(admin_ip)
-
-    return login_ips
-
+# =============================================================================
+# FIXTURES
+# =============================================================================
 
 @pytest.fixture(scope="session")
 def login_ips():
     """Collect login IPs from PXE mapping or env; skip tests if none available."""
-    ips = _parse_login_ips_from_pxe_mapping()
+    ips = parse_login_ips_from_pxe_mapping()
     if not ips:
-        ips = _parse_login_ips_from_env()
+        ips = parse_login_ips_from_env()
     if not ips:
-        pytest.skip(
-            "No login IPs found in pxe_mapping_file and LOGIN_NODE_IPS not set; skipping tests"
-        )
+        pytest.skip(TEST_ASSERT_MSGS["no_login_ips"])
     return ips
 
 
@@ -93,178 +70,131 @@ def ssh_key_path():
     return os.environ.get("SSH_KEY_PATH") or None
 
 
-def _is_node_reachable(oim_host, login_ip: str, key_path: str | None = None) -> bool:
-    """Check if a login node is reachable via SSH from omnia_core."""
-    res = _run_ssh_from_omnia_core(oim_host, login_ip, "echo ok", key_path)
-    return res.rc == 0 and "ok" in res.stdout
-
-
-def _run_ssh_from_omnia_core(oim_host, login_ip: str, remote_cmd: str, key_path: str | None = None):
-    """Run command on login node via SSH from inside omnia_core container."""
-    ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    key_flag = f"-i {key_path}" if key_path else ""
-    return run_in_container(
-        oim_host,
-        f"ssh {ssh_opts} {key_flag} root@{login_ip} '{remote_cmd}'",
-    )
-
+# =============================================================================
+# TESTS
+# =============================================================================
 
 def test_submit_single_job_via_login_from_omnia_core(login_ips, ssh_key_path):
     """E2E: OIM -> omnia_core -> login node, submit job.sh and verify output.
     Job is submitted both from external IP or  Internal IP"""
 
-    # Step 1: Login to one of the login nodes
+    # Step 1: Find a reachable login node
     oim_host = get_testinfra_host()
-    login_ip = None
-    for ip in login_ips:
-        if _is_node_reachable(oim_host, ip, ssh_key_path):
-            login_ip = ip
-            break
-        print(f"  Skipping unreachable login node: {ip}")
-    assert login_ip, f"No reachable login nodes found among: {login_ips}"
-    print(f"Step 1: Login to login node: {login_ip}")
+    result = find_reachable_login_node(oim_host, login_ips, ssh_key_path)
+    for ip in result["skipped"]:
+        print(f"  {TEST_LOG_MSGS['login_node_unreachable'].format(login_ip=ip)}")
+    assert result["success"], TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+    login_ip = result["login_ip"]
+    print(f"Step 1: {TEST_LOG_MSGS['login_node_found'].format(login_ip=login_ip)}")
 
     # Step 2: Read job.sh from the project folder and copy to /home
-    repo_root = Path(__file__).resolve().parents[3]
-    job_script_path = repo_root / "automation_library" / "job.sh"
-    assert job_script_path.exists(), f"job.sh not found at {job_script_path}"
-    job_script = job_script_path.read_text(encoding="utf-8")
-    print(f"Step 2: Read job.sh from {job_script_path}")
-
-    create_res = _run_ssh_from_omnia_core(
-        oim_host,
-        login_ip,
-        "cd /home && cat > job.sh <<'EOF'\n" + job_script + "\nEOF\nchmod +x job.sh",
-        ssh_key_path,
+    script_result = read_job_script()
+    assert script_result["success"], TEST_ASSERT_MSGS["job_script_not_found"].format(
+        path=script_result["path"]
     )
-    assert create_res.rc == 0, f"Failed to create job.sh: {create_res.stderr or create_res.stdout}"
-    print(f"  ✔ PASS: Copied job.sh to /home on {login_ip}")
+    print(f"Step 2: {TEST_LOG_MSGS['job_script_read'].format(path=script_result['path'])}")
+
+    copy_result = copy_job_script_to_login(oim_host, login_ip, script_result["content"], ssh_key_path)
+    assert copy_result["success"], TEST_ASSERT_MSGS["job_script_copy_failed"].format(
+        login_ip=login_ip, error=copy_result["error"]
+    )
+    print(f"  {TEST_LOG_MSGS['job_script_copied'].format(login_ip=login_ip)}")
 
     # Step 3: Run sbatch job.sh
-    submit_res = _run_ssh_from_omnia_core(
-        oim_host,
-        login_ip,
-        "cd /home && sbatch --parsable job.sh",
-        ssh_key_path,
+    submit_result = submit_job_via_login(oim_host, login_ip, ssh_key_path)
+    assert submit_result["success"], TEST_ASSERT_MSGS["sbatch_failed"].format(
+        login_ip=login_ip, error=submit_result["error"]
     )
-    assert submit_res.rc == 0, f"sbatch failed: {submit_res.stderr or submit_res.stdout}"
-    print(f"Step 3: Ran sbatch job.sh → output: {submit_res.stdout.strip()}")
+    job_id = submit_result["job_id"]
+    print(f"Step 3: {TEST_LOG_MSGS['sbatch_success']} -> output: {submit_result['output']}")
 
     # Step 4: Verify job is submitted with job_id generated
-    job_id = submit_res.stdout.strip().split()[0]
-    assert job_id, "sbatch did not return a job id"
-    assert job_id.isdigit(), f"Expected numeric job id, got: {job_id}"
-    print(f"Step 4: ✔ PASS: Job submitted successfully with job_id={job_id}")
+    print(f"Step 4: {TEST_LOG_MSGS['job_submitted'].format(job_id=job_id)}")
 
     # Step 5: Run squeue -j <job_id>
-    queue_res = _run_ssh_from_omnia_core(
-        oim_host,
-        login_ip,
-        f"squeue -j {job_id}",
-        ssh_key_path,
+    queue_result = check_squeue(oim_host, login_ip, job_id, ssh_key_path)
+    assert queue_result["success"], TEST_ASSERT_MSGS["squeue_failed"].format(
+        job_id=job_id, error=queue_result["error"]
     )
-    assert queue_res.rc == 0, f"squeue failed: {queue_res.stderr or queue_res.stdout}"
-    print(f"Step 5: squeue -j {job_id} output:\n{queue_res.stdout.strip()}")
+    print(f"Step 5: {TEST_LOG_MSGS['squeue_success'].format(job_id=job_id)}\n{queue_result['output']}")
 
 
 def test_submit_multiple_jobs_via_login_from_omnia_core(login_ips, ssh_key_path):
     """Submit multiple jobs sequentially from login node read from pxe_mapping file."""
 
-    # Step 1: Login to login node read from pxe mapping file
+    # Step 1: Find a reachable login node
     oim_host = get_testinfra_host()
-    login_ip = None
-    for ip in login_ips:
-        if _is_node_reachable(oim_host, ip, ssh_key_path):
-            login_ip = ip
-            break
-        print(f"  Skipping unreachable login node: {ip}")
-    assert login_ip, f"No reachable login nodes found among: {login_ips}"
-    print(f"Step 1: Login to login node: {login_ip}")
+    result = find_reachable_login_node(oim_host, login_ips, ssh_key_path)
+    for ip in result["skipped"]:
+        print(f"  {TEST_LOG_MSGS['login_node_unreachable'].format(login_ip=ip)}")
+    assert result["success"], TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+    login_ip = result["login_ip"]
+    print(f"Step 1: {TEST_LOG_MSGS['login_node_found'].format(login_ip=login_ip)}")
 
-    # Read job.sh from the project folder
-    repo_root = Path(__file__).resolve().parents[3]
-    job_script_path = repo_root / "automation_library" / "job.sh"
-    assert job_script_path.exists(), f"job.sh not found at {job_script_path}"
-    job_script = job_script_path.read_text(encoding="utf-8")
-
-    # Step 2: Copy job.sh content to login /home directory
-    create_res = _run_ssh_from_omnia_core(
-        oim_host,
-        login_ip,
-        "cd /home && cat > job.sh <<'EOF'\n" + job_script + "\nEOF\nchmod +x job.sh",
-        ssh_key_path,
+    # Step 2: Read and copy job.sh
+    script_result = read_job_script()
+    assert script_result["success"], TEST_ASSERT_MSGS["job_script_not_found"].format(
+        path=script_result["path"]
     )
-    assert create_res.rc == 0, f"Failed to copy job.sh to /home: {create_res.stderr or create_res.stdout}"
-    print(f"Step 2: ✔ PASS: Copied job.sh to /home on {login_ip}")
+
+    copy_result = copy_job_script_to_login(oim_host, login_ip, script_result["content"], ssh_key_path)
+    assert copy_result["success"], TEST_ASSERT_MSGS["job_script_copy_failed"].format(
+        login_ip=login_ip, error=copy_result["error"]
+    )
+    print(f"Step 2: {TEST_LOG_MSGS['job_script_copied'].format(login_ip=login_ip)}")
 
     # Step 3 & 4: Submit multiple jobs sequentially and verify each is submitted with job id
-    print("Step 3 & 4: Submitting 10 jobs sequentially...")
-    for i in range(10):
-        submit_res = _run_ssh_from_omnia_core(
-            oim_host,
-            login_ip,
-            "cd /home && sbatch --parsable job.sh",
-            ssh_key_path,
+    print(f"Step 3 & 4: Submitting {MULTI_JOB_COUNT} jobs sequentially...")
+    for i in range(MULTI_JOB_COUNT):
+        submit_result = submit_job_via_login(oim_host, login_ip, ssh_key_path)
+        assert submit_result["success"], TEST_ASSERT_MSGS["sbatch_failed"].format(
+            login_ip=login_ip, error=submit_result["error"]
         )
-        assert submit_res.rc == 0, f"sbatch failed for job {i+1}: {submit_res.stderr or submit_res.stdout}"
-        job_id = submit_res.stdout.strip().split()[0]
-        assert job_id, f"sbatch did not return a job id for job {i+1}"
-        assert job_id.isdigit(), f"Expected numeric job id for job {i+1}, got: {job_id}"
-        print(f"  Job {i+1}/10: ✔ PASS: Submitted with job_id={job_id}")
+        print(f"  Job {i+1}/{MULTI_JOB_COUNT}: {TEST_LOG_MSGS['job_submitted'].format(job_id=submit_result['job_id'])}")
+
 
 def test_job_submission_from_multiple_login_nodes(login_ips, ssh_key_path):
     """E2E: Submit job.sh from all login nodes listed in pxe_mapping file and verify submission."""
 
     # Step 1: Read login node IPs from pxe_mapping file (provided by login_ips fixture)
-    assert login_ips, "No login node IPs found in pxe_mapping file"
+    assert login_ips, TEST_ASSERT_MSGS["no_login_ips"]
     print(f"Step 1: Login node IPs from pxe_mapping: {login_ips}")
 
     oim_host = get_testinfra_host()
 
     # Read job.sh from the project folder
-    repo_root = Path(__file__).resolve().parents[3]
-    job_script_path = repo_root / "automation_library" / "job.sh"
-    assert job_script_path.exists(), f"job.sh not found at {job_script_path}"
-    job_script = job_script_path.read_text(encoding="utf-8")
-    print(f"  Read job.sh from {job_script_path}")
+    script_result = read_job_script()
+    assert script_result["success"], TEST_ASSERT_MSGS["job_script_not_found"].format(
+        path=script_result["path"]
+    )
+    print(f"  {TEST_LOG_MSGS['job_script_read'].format(path=script_result['path'])}")
 
     reachable_count = 0
     for login_ip in login_ips:
         print(f"\n--- Login node: {login_ip} ---")
 
         # Check reachability before attempting job submission
-        if not _is_node_reachable(oim_host, login_ip, ssh_key_path):
-            print(f"  ⚠ SKIP: {login_ip} is unreachable, skipping")
+        if not is_node_reachable(oim_host, login_ip, ssh_key_path):
+            print(f"  {TEST_LOG_MSGS['login_node_unreachable'].format(login_ip=login_ip)}")
             continue
 
         reachable_count += 1
 
-        # Step 2: Login to each login node and copy job.sh to /home directory
-        create_res = _run_ssh_from_omnia_core(
-            oim_host,
-            login_ip,
-            "cd /home && cat > job.sh <<'EOF'\n" + job_script + "\nEOF\nchmod +x job.sh",
-            ssh_key_path,
+        # Step 2: Copy job.sh to /home directory
+        copy_result = copy_job_script_to_login(oim_host, login_ip, script_result["content"], ssh_key_path)
+        assert copy_result["success"], TEST_ASSERT_MSGS["job_script_copy_failed"].format(
+            login_ip=login_ip, error=copy_result["error"]
         )
-        assert create_res.rc == 0, f"[{login_ip}] Failed to copy job.sh to /home: {create_res.stderr or create_res.stdout}"
-        print(f"  Step 2: ✔ PASS: Copied job.sh to /home on {login_ip}")
+        print(f"  Step 2: {TEST_LOG_MSGS['job_script_copied'].format(login_ip=login_ip)}")
 
         # Step 3: Run sbatch job.sh from each login node home directory
-        submit_res = _run_ssh_from_omnia_core(
-            oim_host,
-            login_ip,
-            "cd /home && sbatch --parsable job.sh",
-            ssh_key_path,
+        submit_result = submit_job_via_login(oim_host, login_ip, ssh_key_path)
+        assert submit_result["success"], TEST_ASSERT_MSGS["sbatch_failed"].format(
+            login_ip=login_ip, error=submit_result["error"]
         )
-        assert submit_res.rc == 0, f"[{login_ip}] sbatch failed: {submit_res.stderr or submit_res.stdout}"
-        print(f"  Step 3: Ran sbatch job.sh → output: {submit_res.stdout.strip()}")
+        print(f"  Step 3: {TEST_LOG_MSGS['sbatch_success']} -> output: {submit_result['output']}")
 
         # Step 4: Verify job is submitted successfully from each login node
-        job_id = submit_res.stdout.strip().split()[0]
-        assert job_id, f"[{login_ip}] sbatch did not return a job id"
-        assert job_id.isdigit(), f"[{login_ip}] Expected numeric job id, got: {job_id}"
-        print(f"  Step 4: ✔ PASS: Job submitted from {login_ip} with job_id={job_id}")
+        print(f"  Step 4: {TEST_LOG_MSGS['job_submitted'].format(job_id=submit_result['job_id'])}")
 
-    assert reachable_count > 0, f"No reachable login nodes found among: {login_ips}"
-
-
+    assert reachable_count > 0, TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
