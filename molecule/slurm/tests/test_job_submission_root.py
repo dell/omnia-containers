@@ -26,8 +26,6 @@ Configuration (env-driven + PXE mapping discovery):
 """
 
 import os
-import subprocess
-import time
 from pathlib import Path
 from typing import List
 
@@ -38,16 +36,6 @@ from automation_library.core.host import (
     get_testinfra_host,
     run_in_container,
 )
-
-
-SSH_COMMON_OPTS = [
-    "-o",
-    "StrictHostKeyChecking=no",
-    "-o",
-    "UserKnownHostsFile=/dev/null",
-    "-o",
-    "BatchMode=yes",
-]
 
 
 def _parse_login_ips_from_env() -> List[str]:
@@ -86,31 +74,6 @@ def _parse_login_ips_from_pxe_mapping() -> List[str]:
     return login_ips
 
 
-def _ssh_cmd(host: str, user: str, remote_cmd: str, key_path: str | None = None, timeout: int = 60):
-    """Execute an SSH command to host as user with optional key and timeout."""
-    cmd = ["ssh", *SSH_COMMON_OPTS]
-    if key_path:
-        cmd.extend(["-i", key_path])
-    cmd.append(f"{user}@{host}")
-    cmd.append(remote_cmd)
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-
-
-def _submit_sleep_job(host: str, user: str, key_path: str | None = None, sleep_seconds: int = 5):
-    """Create and submit a simple sleep job via sbatch on the target host."""
-    script = "/tmp/test_slurm_job.sh"
-    create_script = (
-        f"echo -e '#!/bin/bash\nsleep {sleep_seconds}' > {script} && chmod +x {script}"
-    )
-    create_res = _ssh_cmd(host, user, create_script, key_path)
-    if create_res.returncode != 0:
-        return None, create_res
-
-    submit_cmd = f"sbatch --parsable {script}"
-    submit_res = _ssh_cmd(host, user, submit_cmd, key_path)
-    return submit_res.stdout.strip(), submit_res
-
-
 @pytest.fixture(scope="session")
 def login_ips():
     """Collect login IPs from PXE mapping or env; skip tests if none available."""
@@ -130,19 +93,6 @@ def ssh_key_path():
     return os.environ.get("SSH_KEY_PATH") or None
 
 
-def _assume_submission_success(submit_res: subprocess.CompletedProcess, job_id: str | None):
-    """Assert sbatch submission succeeded and returned a job id."""
-    assert submit_res.returncode == 0, (
-        f"sbatch failed (rc={submit_res.returncode}): {submit_res.stderr or submit_res.stdout}"
-    )
-    assert job_id, f"sbatch did not return a job id: {submit_res.stdout}"
-
-
-def _cleanup_job(host: str, user: str, job_id: str, key_path: str | None):
-    """Cancel job by id via SSH; best-effort cleanup."""
-    _ssh_cmd(host, user, f"scancel {job_id}", key_path, timeout=15)
-
-
 def _is_node_reachable(oim_host, login_ip: str, key_path: str | None = None) -> bool:
     """Check if a login node is reachable via SSH from omnia_core."""
     res = _run_ssh_from_omnia_core(oim_host, login_ip, "echo ok", key_path)
@@ -158,19 +108,6 @@ def _run_ssh_from_omnia_core(oim_host, login_ip: str, remote_cmd: str, key_path:
         f"ssh {ssh_opts} {key_flag} root@{login_ip} '{remote_cmd}'",
     )
 
-
-def _wait_for_job_completion(oim_host, login_ip: str, job_id: str, key_path: str | None, timeout: int = 180):
-    """Poll squeue until job disappears or timeout elapses."""
-    end = time.time() + timeout
-    last_res = None
-    while time.time() < end:
-        last_res = _run_ssh_from_omnia_core(oim_host, login_ip, f"squeue -j {job_id} -h", key_path)
-        if last_res.rc != 0:
-            return last_res
-        if not last_res.stdout.strip():
-            return last_res
-        time.sleep(5)
-    return last_res
 
 def test_submit_single_job_via_login_from_omnia_core(login_ips, ssh_key_path):
     """E2E: OIM -> omnia_core -> login node, submit job.sh and verify output.
