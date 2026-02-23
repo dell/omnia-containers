@@ -43,6 +43,7 @@
     user_config: "{{ hostvars['localhost']['user_config'] }}"
     container_name: "omnia_core"
     discovery_playbook: "/omnia/discovery/discovery.yml"
+    provision_config_path: "/opt/omnia/input/project_default/provision_config.yml"
 
   tasks:
     - name: Display target OIM server
@@ -73,15 +74,33 @@
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: "'NOT_RUNNING' in container_check.stdout"
 
+    - name: Read provision_config.yml to get pxe_mapping_file_path
+      ansible.builtin.command:
+        cmd: podman exec {{ container_name }} cat {{ provision_config_path }}
+      register: provision_config_content
+      changed_when: false
+
+    - name: Extract pxe_mapping_file_path from provision_config.yml
+      ansible.builtin.set_fact:
+        pxe_mapping_file_path: >-
+          {{ provision_config_content.stdout |
+             regex_search('pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?', '\1') |
+             first | default('') | trim }}
+
+    - name: Display extracted pxe_mapping_file_path
+      ansible.builtin.debug:
+        msg: "PXE mapping file path from provision_config.yml: {{ pxe_mapping_file_path | default('NOT FOUND') }}"
+
     - name: Check if PXE mapping file exists
       ansible.builtin.shell:
-        cmd: podman exec {{ container_name }} test -f /opt/omnia/input/project_default/pxe_mapping_file.csv && echo "EXISTS" || echo "NOT_FOUND"
+        cmd: podman exec {{ container_name }} test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
       register: pxe_mapping_check
       changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
 
     - name: Display PXE mapping check result
       ansible.builtin.debug:
-        msg: "PXE mapping file: {{ pxe_mapping_check.stdout }}"
+        msg: "PXE mapping file: {{ pxe_mapping_check.stdout | default('SKIPPED - path not found') }}"
 
     # =========================================================================
     # PREREQUISITE SUMMARY
@@ -93,7 +112,7 @@
           DISCOVERY PREREQUISITE CHECK SUMMARY
           ============================================
           omnia_core container:    {{ container_check.stdout }}
-          pxe_mapping_file.csv:    {{ pxe_mapping_check.stdout }}
+          pxe_mapping_file.csv:    {{ pxe_mapping_check.stdout | default('NOT FOUND') }}
           ============================================
 
     # =========================================================================

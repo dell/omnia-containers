@@ -55,7 +55,6 @@ FUNCTIONAL_GROUP_LOGIN = "login_node"
 FUNCTIONAL_GROUP_LOGIN_COMPILER = "login_compiler"
 FUNCTIONAL_GROUP_SLURM_CONTROL = "slurm_control_node"
 FUNCTIONAL_GROUP_KUBE_CONTROL = "kube_control_plane"
-FUNCTIONAL_GROUP_COMPUTE = "compute"
 
 # =============================================================================
 # Command Templates
