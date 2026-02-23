@@ -16,11 +16,13 @@
 Testinfra utilities for molecule tests.
 """
 
+import csv
+import io
 import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 import yaml
 import testinfra
@@ -224,6 +226,74 @@ def get_node_admin_ip(
                 break
 
     return admin_ip
+
+
+def get_nodes_info(
+    host: testinfra.host.Host,
+    search_by: Optional[str] = None,
+    search_value: Optional[str] = None,
+) -> List[Dict[str, str]]:
+    """
+    Get nodes information from PXE mapping CSV.
+
+    Reads provision_config.yml to get pxe_mapping_file_path, then parses the
+    PXE mapping CSV inside omnia_core container.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        search_by: Column/key to filter on. Supported: functional_group, hostname,
+            group_name, service_tag, parent_service_tag, admin_ip
+        search_value: Value to match. For functional_group, match is substring
+            (to support patterns like 'login_node' matching 'login_node_x86_64').
+
+    Returns:
+        List of node dicts. Keys are normalized to: functional_group, group_name,
+        service_tag, parent_service_tag, hostname, admin_mac, admin_ip.
+    """
+    pxe_content = _get_pxe_mapping_content(host)
+    if not pxe_content:
+        return []
+
+    try:
+        reader = csv.DictReader(io.StringIO(pxe_content))
+    except (csv.Error, TypeError):
+        return []
+
+    nodes: List[Dict[str, str]] = []
+    for row in reader:
+        node = {
+            "functional_group": (row.get("FUNCTIONAL_GROUP_NAME") or "").strip(),
+            "group_name": (row.get("GROUP_NAME") or "").strip(),
+            "service_tag": (row.get("SERVICE_TAG") or "").strip(),
+            "parent_service_tag": (row.get("PARENT_SERVICE_TAG") or "").strip(),
+            "hostname": (row.get("HOSTNAME") or "").strip(),
+            "admin_mac": (row.get("ADMIN_MAC") or "").strip(),
+            "admin_ip": (row.get("ADMIN_IP") or "").strip(),
+        }
+        if any(node.values()):
+            nodes.append(node)
+
+    if not search_by or not search_value:
+        return nodes
+
+    search_by_norm = search_by.strip().lower()
+    search_value_norm = str(search_value).strip()
+
+    supported_keys = {
+        "functional_group": "functional_group",
+        "hostname": "hostname",
+        "group_name": "group_name",
+        "service_tag": "service_tag",
+        "parent_service_tag": "parent_service_tag",
+        "admin_ip": "admin_ip",
+    }
+    key = supported_keys.get(search_by_norm)
+    if not key:
+        return []
+
+    if key == "functional_group":
+        return [n for n in nodes if search_value_norm in (n.get(key) or "")]
+    return [n for n in nodes if (n.get(key) or "") == search_value_norm]
 
 
 def get_functional_groups_from_pxe_mapping(host) -> set:

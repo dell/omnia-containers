@@ -86,7 +86,9 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "node_hostnames_success": "All {count} node hostnames match PXE mapping",
     "node_hostnames_failed": "{mismatch_count}/{total_count} nodes have hostname mismatches",
     "node_hostname_match": "Hostname matches for {hostname}: {actual_hostname}",
-    "node_hostname_mismatch": "Hostname mismatch for {hostname}: expected={expected}, actual={actual}",
+    "node_hostname_mismatch": (
+        "Hostname mismatch for {hostname}: expected={expected}, actual={actual}"
+    ),
 
     # Discovery Completion
     "discovery_completion_checking": "Checking discovery completion status",

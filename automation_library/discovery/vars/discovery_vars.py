@@ -61,18 +61,30 @@ FUNCTIONAL_GROUP_KUBE_CONTROL = "kube_control_plane"
 # =============================================================================
 CMD_TEMPLATES: Dict[str, str] = {
     # SSH options for non-interactive connections
-    "ssh_opts": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout={timeout}",
+    "ssh_opts": (
+        "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+        "-o ConnectTimeout={timeout}"
+    ),
 
     # SSH with batch mode (no password prompt)
-    "ssh_opts_batch": "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -o ConnectTimeout={timeout}",
+    "ssh_opts_batch": (
+        "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+        "-o BatchMode=yes -o ConnectTimeout={timeout}"
+    ),
 
     # OpenCHAMI commands - Run OUTSIDE container (ochami is installed on OIM)
     "ochami_smd_get_all": "ochami smd component get",
-    "ochami_smd_get_nodes": "ochami smd component get | jq '.Components[] | select(.Type == \"Node\")'",
-    "ochami_discover_static": "ochami discover static -f yaml -d @{nodes_file} --overwrite",
+    "ochami_smd_get_nodes": (
+        "ochami smd component get | jq '.Components[] | select(.Type == \"Node\")'"
+    ),
+    "ochami_discover_static": (
+        "ochami discover static -f yaml -d @{nodes_file} --overwrite"
+    ),
 
     # SSH to node from omnia_core container (SSH keys are inside container)
-    "ssh_to_node": "podman exec {container} ssh {ssh_opts} root@{admin_ip} '{command}'",
+    "ssh_to_node": (
+        "podman exec {container} ssh {ssh_opts} root@{admin_ip} '{command}'"
+    ),
 
     # Read file from omnia_core container
     "read_file_container": "podman exec {container} cat {file_path}",
