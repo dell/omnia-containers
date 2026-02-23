@@ -364,24 +364,59 @@ def test_node_boot(host):
 
 
 def test_bmc_group_csv(host):
-    """Test Case 9: Verify BMC group CSV with detailed content."""
+    """Test Case 9: Verify BMC group CSV against PXE mapping and OIM BMC IP."""
     log = TestLogger("BMC Group CSV Validation")
 
-    log.check("Checking BMC group CSV file")
+    log.check("Checking BMC group CSV against PXE mapping")
     result = validate_bmc_group_csv(host)
 
     log.check(f"Path: {result['path']}")
-    log.check(f"BMC entries: {result['bmc_count']}")
+    log.check(f"BMC entries in CSV: {result['bmc_count']}")
+    log.check(f"PXE mapping nodes: {result.get('pxe_node_count', 0)}")
     log.check("")
 
     if result["bmc_entries"]:
         log.check("═══ BMC Entries (first 10) ═══")
         for entry in result["bmc_entries"][:10]:
-            log.check(f"  - BMC={entry['bmc_ip']}, Group={entry['group']}")
+            log.check(
+                f"  - BMC={entry['bmc_ip']}, "
+                f"Group={entry['group']}, "
+                f"Parent={entry['parent']}"
+            )
+        if result["bmc_count"] > 10:
+            log.check(f"  ... and {result['bmc_count'] - 10} more")
+        log.check("")
+
+    if result.get("missing_groups"):
+        log.check("═══ Missing Groups ═══")
+        for item in result["missing_groups"]:
+            log.check(
+                f"  ✗ {item['hostname']}: "
+                f"group={item['group_name']} not in CSV"
+            )
+        log.check("")
+
+    if result.get("missing_parents"):
+        log.check("═══ Missing Parents ═══")
+        for item in result["missing_parents"]:
+            log.check(
+                f"  ✗ {item['hostname']}: "
+                f"parent={item['parent_service_tag']} not in CSV"
+            )
+        log.check("")
+
+    oim_ip = result.get("oim_bmc_ip", "")
+    if oim_ip:
+        status = "✗" if result.get("oim_bmc_missing") else "✓"
+        log.check(f"OIM BMC IP: {status} {oim_ip}")
         log.check("")
 
     if result["success"]:
-        log.passed(f"BMC CSV valid with {result['bmc_count']} entries", "File is valid")
+        log.passed(
+            f"BMC CSV valid: {result['bmc_count']} entries, "
+            f"{result.get('pxe_node_count', 0)} PXE nodes checked",
+            "All groups, parents, and OIM BMC IP verified"
+        )
     else:
         log.failed("BMC CSV validation failed", result["error"])
 

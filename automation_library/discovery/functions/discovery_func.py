@@ -22,8 +22,6 @@ Author: Dell Technologies
 """
 
 import json
-import csv
-import io
 from typing import Dict, Any, List
 
 import yaml
@@ -37,7 +35,6 @@ from ..vars.discovery_vars import (
     SSH_TIMEOUT,
     CMD_TEMPLATES,
     OPENCHAMI_NODES_PATH,
-    BMC_GROUP_DATA_PATH,
     LOGIN_SERVICES,
     SLURM_CONTROL_SERVICES,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
@@ -619,62 +616,6 @@ def validate_packages_by_group(
         "error": (
             "" if not all_missing
             else f"Missing packages on {len(all_missing)} nodes"
-        ),
-    }
-
-
-# =============================================================================
-# BMC GROUP CSV VALIDATION
-# =============================================================================
-
-def validate_bmc_group_csv(host) -> Dict[str, Any]:
-    """Validate BMC group CSV file with detailed content."""
-    check_cmd = CMD_TEMPLATES["file_exists_container"].format(
-        container=CONTAINER_NAME, file_path=BMC_GROUP_DATA_PATH
-    )
-    cmd = host.run(check_cmd)
-
-    if cmd.rc != 0:
-        return {
-            "success": False, "path": BMC_GROUP_DATA_PATH, "bmc_count": 0,
-            "bmc_entries": [], "error": f"File not found: {BMC_GROUP_DATA_PATH}"
-        }
-
-    read_cmd = CMD_TEMPLATES["read_file_container"].format(
-        container=CONTAINER_NAME, file_path=BMC_GROUP_DATA_PATH
-    )
-    cmd = host.run(read_cmd)
-
-    if cmd.rc != 0:
-        return {
-            "success": False, "path": BMC_GROUP_DATA_PATH, "bmc_count": 0,
-            "bmc_entries": [], "error": f"Failed to read: {cmd.stderr}"
-        }
-
-    try:
-        reader = csv.DictReader(io.StringIO(cmd.stdout))
-        rows = list(reader)
-    except csv.Error as e:
-        return {
-            "success": False, "path": BMC_GROUP_DATA_PATH, "bmc_count": 0,
-            "bmc_entries": [], "error": f"CSV parse error: {str(e)}"
-        }
-
-    bmc_entries = []
-    for row in rows:
-        bmc_entries.append({
-            "bmc_ip": row.get("BMC_IP", row.get("bmc_ip", "")),
-            "group": row.get("GROUP_NAME", row.get("group_name", "")),
-            "parent": row.get("PARENT", row.get("parent", "")),
-        })
-
-    return {
-        "success": len(rows) > 0,
-        "path": BMC_GROUP_DATA_PATH,
-        "bmc_count": len(rows),
-        "bmc_entries": bmc_entries,
-        "error": (
-            "" if rows else "BMC group CSV is empty"
         ),
     }
 

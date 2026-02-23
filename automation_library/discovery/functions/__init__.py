@@ -30,13 +30,13 @@ from .discovery_func import (
     # New validation functions
     validate_node_boot,
     validate_packages_by_group,
-    validate_bmc_group_csv,
     # Consolidated validation (all nodes, grouped by functional group)
     validate_all_services,
     validate_all_sinfo,
     validate_all_ldap,
     validate_kubernetes_nodes,
 )
+from .bmc_func import validate_bmc_group_csv
 
 __all__ = [
     # Helper functions

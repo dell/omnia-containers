@@ -31,6 +31,7 @@ OPENCHAMI_NODES_PATH = "/opt/omnia/openchami/workdir/nodes/nodes.yaml"
 OPENCHAMI_HOSTNAME_PATH = "/opt/omnia/openchami/workdir/nodes/hostname.yaml"
 BMC_GROUP_DATA_PATH = "/opt/omnia/telemetry/bmc_group_data.csv"
 OIM_METADATA_PATH = "/opt/omnia/.data/oim_metadata.yml"
+OPEN_NETWORK_SPEC_PATH = "/opt/omnia/input/project_default/open_network_spec"
 
 # =============================================================================
 # Constants
