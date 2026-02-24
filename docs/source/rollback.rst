@@ -1,6 +1,8 @@
 Rollback Omnia
 ===============
 
+This section describes how to rollback to a previous version of Omnia.
+
 Rollback to the previous version
 --------------------------------
 
