@@ -93,11 +93,11 @@ Repository
 * In a mixed architecture environment where the Slurm control node and compute nodes use different architectures (for example, control node with x86_64 and compute nodes with aarch64), ensure that Slurm binaries for both architectures are compiled and available in the user repository.  
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
-   For x86_64::
+  For x86_64::
 
     - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
 
-   For aarch64::
+  For aarch64::
 
     - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_slurm_custom" }
 
