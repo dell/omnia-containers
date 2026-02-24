@@ -90,10 +90,16 @@ Repository
 * For RHEL systems without a subscription, the repository URLs for ``x86_64_codeready-builder``, ``x86_64_appstream``, and ``x86_64_baseos`` are mandatory.
 * Docker credentials are a mandatory requirement to pull in the essential packages during local repository deployment. 
 * If the Slurm RPMS is already available, update the value in the URL of the ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` parameter in ``/opt/omnia/input/project_default/local_repo_config.yml``.
-  
+* In a mixed architecture environment where the Slurm control node and compute nodes use different architectures (for example, control node with x86_64 and compute nodes with aarch64), ensure that Slurm binaries for both architectures are compiled and available in the user repository.  
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
-   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+  For x86_64::
+
+    - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+
+  For aarch64::
+
+    - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_slurm_custom" }
 
    Run ``ansible-playbook local_repo/local_repo.yml``.
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.
@@ -126,15 +132,23 @@ Lightweight Directory Access Protocol (LDAP)
 Lightweight Distributed Metric Service (LDMS)
 ---------------------------------------------
 
+* Ensure that EPEL and AppStream repositories are configured and the python3-devel and python3-Cython packages are installed. To install the packages, run the following command::
+
+   sudo dnf install -y python3-devel python3-Cython 
+
 * The LDMS RPM must be available in the user repository, and the ``ldms.json`` file should be updated accordingly. 
   If the LDMS RPM is not available, refer to  `Building LDMS PRODUCER RPM Package <https://github.com/dell/omnia-artifactory?tab=readme-ov-file#building-ldms-producer-rpm-package>`_ for instructions on building LDMS RPMs.
 * If the LDMS RPMS are already available, update the value (<hosted LDMS repository url>) in the URL of the ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` parameter in ``/opt/omnia/input/project_default/local_repo_config.yml``.
   
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
-  ::
-    
-     - { url: "<hosted LDMS RPM repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_ldms_custom" }
+  user_repo_url_x86_64::
+
+   { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_ldms" }
+
+  user_repo_url_aarch64::
+
+   { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_ldms" }
 
   Run ``ansible-playbook local_repo/local_repo.yml``.
 
@@ -142,14 +156,19 @@ Lightweight Distributed Metric Service (LDMS)
 Slurm
 ------
 * Ensure that each slurm compute node has at least 64 GB RAM.
+* In a mixed architecture environment where the Slurm control node and compute nodes use different architectures (for example, control node with x86_64 and compute nodes with aarch64), ensure that Slurm binaries for both architectures are compiled and available in the user repository.
 * The Slurm RPM must be available in the user repository. If the Slurm RPM is not available, refer to `Slurm Quick Start Administrator Guide <https://slurm.schedmd.com/quickstart_admin.html>`_ for instructions on building Slurm RPMs.
 * If the Slurm RPMS are already available, update the value (<hosted slurm repository url>) in the URL of the ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` parameter in ``/opt/omnia/input/project_default/local_repo_config.yml``.
   
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
-  ::
+  user_repo_url_x86_64::
     
-     - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+
+  user_repo_url_aarch64::
+    
+   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_slurm_custom" }
 
   Run ``ansible-playbook local_repo/local_repo.yml``.
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.

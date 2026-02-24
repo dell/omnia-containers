@@ -1,5 +1,5 @@
-Collect Telemetry Data from OpenManage Enterprise to Omnia Service Kubernetes Clusters
-=======================================================================================
+Integrate OpenManage Enterprise with Omnia Kafka Pipeline for Secure Telemetry Data Streaming
+===========================================================================================
 
 This section describes how to configure OpenManage Enterprise to securely stream metrics into the Service Kubernetes clusters using mutual TLS (mTLS).
 
@@ -32,7 +32,11 @@ Steps
       cd /opt/omnia/telemetry/external_kafka/
       openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
 
+   .. image:: ../../../images/ome_certificate_pfx_format.png  
+
 3. In OpenManage Enterprise, navigate to **Configuration > Remote Connectivity**, and select **Enable**.
+
+   .. image:: ../../../images/ome_remote_connectivity.png
 
 4. In the Kafka Connectivity wizard, select the **Enable Kafka Connectivity** check box to turn on Kafka integration.
 
@@ -51,11 +55,19 @@ Steps
 9. Under **Client Certificate Configuration**, select the **Enable Client Certificate for mTLS** check box, and upload the client certificate (``user.pfx``) generated in Step 2.  
    Enter the password or passphrase used to generate the certificate, and click **Next**.
 
+   .. image:: ../../../images/ome_kafka_connectivity.png
+
 10. On the **Data Configuration** page, select the metrics to stream to the Omnia Kubernetes Service cluster, and click **Next**.
 
+   .. image:: ../../../images/ome_data_configuration.png
+
 11. On the **Group Configuration** page, select the devices and device groups from which metrics should be collected, and click **Next**.
+
+   .. image:: ../../../images/ome_group_configuration.png
 
 12. Navigate to **Configuration > Remote Connectivity** and verify the following:
 
     - Under **Connectivity**, a green check mark next to **Connected since** indicates successful connectivity between OpenManage Enterprise and the Omnia Service Kubernetes cluster.
     - Under **Transfer status**, green check marks next to each metric indicate that the selected metrics are being successfully transmitted without errors.
+
+   .. image:: ../../../images/ome_connectivity_verification.png

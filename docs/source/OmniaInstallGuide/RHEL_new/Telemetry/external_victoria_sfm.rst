@@ -1,5 +1,5 @@
-Collect telemetry data from Smart Fabric Manager to Victoria DB (cluster mode)
-=============================================================================
+Integrate Smart Fabric Manager with VictoriaMetrics for Secure Telemetry Data Streaming
+============================================================================================
 
 This section describes how to configure Smart Fabric Manager to securely stream
 telemetry metrics to the Service Kubernetes cluster.
@@ -38,7 +38,9 @@ Steps
 
 2. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
-3. Under **Prometheus Remote Pump**, select the option button next to ``vminsert-target``, and then select **Edit**.
+   .. image:: ../../../images/sfm_observability_settings.png
+
+3. Under **Prometheus Remote Write**, select the option button next to ``vminsert-target``, and then select **Edit**.
 
 4. Configure the following settings:
       - **Enable**: ON
@@ -49,9 +51,17 @@ Steps
    .. note::
       If SFM is installed on a different system than the OIM host, copy ``ca.crt`` to that system before uploading it in the UI.
 
+   .. image:: ../../../images/sfm_observability_settings_prometheus_remote_write.png
+
+   .. image:: ../../../images/sfm_observability_remote_write_settings.png
+
+   .. image:: ../../../images/sfm_observability_TLS_config.png    
+
 5. SSH to the SFM IP with admin credentials and log in to secure shell.
 
-6. Update the ``/etc/hosts`` file only inside the SFM Prometheus pod. This is required only inside the pod, not on the SFM server host)::
+6. From the control_plane host, do ssh admin@pwd.
+
+7. Update the ``/etc/hosts`` file only inside the SFM Prometheus pod. This is required only inside the pod, not on the SFM server host)::
 
       kubectl exec -it <sfm-prometheus-pod-name> -n sfm-ui -- /bin/sh
       echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts

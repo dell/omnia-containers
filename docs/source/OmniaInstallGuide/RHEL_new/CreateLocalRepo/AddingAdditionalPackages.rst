@@ -6,15 +6,14 @@ To download and deploy additional software packages and container images using O
 Configure Additional Container Images from User Registry to Local Repository
 ---------------------------------------------------------------------------------
 
-Omnia supports configuring additional container images from specified user registries to Omnia Local Repository, so that these images are available and can be pulled by cluster nodes as per requirement. User registries may be hosted either on OIM or on an external server, and both HTTP and HTTPS registries are supported.
+Omnia supports configuring additional container images from specified user registries to Omnia Local Repository, so that these images are available and can be pulled by Service Kubernetes Cluster nodes as per requirement. User registries may be hosted either on OIM or on an external server, and both HTTP and HTTPS registries are supported.
 
-To view the steps to set up an HTTP user registry, see `Set Up an HTTP User Registry <SetUpHTTPUserRegistry.html>`_.
+* To view the steps to set up an HTTP user registry, see `Set Up an HTTP User Registry <SetUpHTTPUserRegistry.html>`_.
 
-To view the steps to prepare an HTTPS user registry, see `Set Up an HTTPS User Registry <SetUpHTTPS_UserRegistry.html>`_.
+* To view the steps to prepare an HTTPS user registry, see `Set Up an HTTPS User Registry <SetUpHTTPS_UserRegistry.html>`_.
 
 After the registry is ready, mention the inputs in ``local_repo_config.yml``, see `Input Parameters for Local Repositories <InputParameters.html>`_.
 
-Proceed to provide the remaining inputs.
 
 Update ``software_config.json``
 ------------------------------
@@ -62,9 +61,9 @@ Update ``additional_packages.json``
    :keepspace:
    :widths: auto
 
-.. note:: All container images specified in ``additional_packages.json`` under any given subgroup are configured in Omnia local repository and can be pulled on all cluster nodes (Slurm, K8s etc).
+.. note:: All container images specified in ``additional_packages.json`` under any given subgroup are configured in Omnia local repository and can be pulled on all Service Kubernetes Cluster nodes.
 
-1. Update the ``additional_packages.json`` file available at ``/opt/omnia/input/project_default/`` with the required packages/images.
+1. Update the ``additional_packages.json`` file available at ``/opt/omnia/input/project_default/config/<architecture>/rhel/10.0/`` with the required packages/images.
 2. Ensure you provide the correct package type (``rpm`` or ``image``) and the repository name/tag/digest, based on your requirement.
 
 The following is a sample ``additional_packages.json`` file: ::

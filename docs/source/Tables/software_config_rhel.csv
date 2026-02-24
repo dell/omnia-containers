@@ -24,7 +24,7 @@
 * A JSON list of required software with the software version (optional) and architecture type ``aarch64``, ``x86_64`` or both. This field is mandatory.
 * The following software should be listed with a version in the list:  OpenLDAP, NFS, Slurm, service_k8s, utils, ucx, openmpi.
 * A minimum of one software should be provided in the list for ``local_repo.yml`` to execute correctly.
-* The ``software_config.json`` will have the basic softwares present in it. To install additional software stacks, update the ``additional_packages.json`` available at ``/opt/omnia/input/project_default/`` and add the following entry to the JSON list: ``{""name"": ""additional_packages"", ""arch"": [""x86_64, ""aarch64""]}``.
+* The ``software_config.json`` will have the basic softwares present in it. To install additional software stacks, update the ``additional_packages.json`` available at ``/opt/omnia/input/project_default/config/<architecture>/rhel/10.0/`` and add the following entry to the JSON list: ``{""name"": ""additional_packages"", ""arch"": [""x86_64, ""aarch64""]}``.
 * To install debug pakages on the cluster nodes, add the following entry to the JSON list: ``{""name"": ""admin_debug_packages"", ""arch"": [""x86_64, ""aarch64""]}``.
 * For the list of all applicable softwares based on your ``<cluster_os_type>``, see the templates at ``examples/template_<os>_software_config.json``. For example, ``/omnia/examples/rhel_software_config.json``
 

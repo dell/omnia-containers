@@ -15,7 +15,7 @@ Text Editors & Shell,zsh,Z shell - advanced shell with improved features over ba
 Text Editors & Shell,bash-completion,Programmable completion for bash shell commands
 Remote Access & File Transfer,openssh,OpenSSH core package for secure shell protocol
 Remote Access & File Transfer,openssh-server,OpenSSH server daemon (sshd) for accepting SSH connections
-Remote Access & File Transfer,openssh-clients,"OpenSSH client utilities (ssh, scp, sfp)"
+Remote Access & File Transfer,openssh-clients,"OpenSSH client utilities (ssh, scp, sftp)"
 Remote Access & File Transfer,rsync,Fast versatile file copying and synchronization tool
 File Utilities,which,Shows the full path of shell commands
 File Utilities,file,Determines file type by examining file contents
@@ -46,7 +46,7 @@ Build Tools & Compilers,cmake,Cross-platform build system generator
 Build Tools & Compilers,autoconf,Automatic configure script builder
 Build Tools & Compilers,automake,Automatic Makefile generator
 Build Tools & Compilers,libtool,Generic library support script
-Build Tools & Compilers,binutils,"Binary utilities (ld, as, ovjdumpt, nm, etc.)"
+Build Tools & Compilers,binutils,"Binary utilities (ld, as, objdump, nm, etc.)"
 Build Tools & Compilers,binutils-devel,Development files for binutils
 Security & Development Libraries,openssl-devel,Development files for OpenSSL cryptographic library
 Cluster Management,clustershell,Distributed shell for running commands across cluster nodes in parallel
