@@ -46,7 +46,7 @@ Build Tools & Compilers,cmake,Cross-platform build system generator
 Build Tools & Compilers,autoconf,Automatic configure script builder
 Build Tools & Compilers,automake,Automatic Makefile generator
 Build Tools & Compilers,libtool,Generic library support script
-Build Tools & Compilers,binutils,"Binary utilities (ld, as, ovidump, nm, etc.)"
+Build Tools & Compilers,binutils,"Binary utilities (ld, as, objdump, nm, etc.)"
 Build Tools & Compilers,binutils-devel,Development files for binutils
 Security & Development Libraries,openssl-devel,Development files for OpenSSL cryptographic library
 Cluster Management,clustershell,Distributed shell for running commands across cluster nodes in parallel
