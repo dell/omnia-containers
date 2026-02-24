@@ -64,6 +64,7 @@ Run ``upgrade_omnia.yml`` to complete the process.
 .. Note::
     Run the command after the container is healthy and stable.
 
+A success message is displayed after the upgrade is completed and the updated Omnia environment is launched.
 .. image:: images/upgrade_running.png
 
 Running playbooks other than the ``upgrade_omnia.yml`` before ``./omnia.sh --upgrade`` generates an error with instructions.
