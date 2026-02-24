@@ -29,7 +29,7 @@
 "
 "**skip_merge**
 
-    ``Boolean`` 
+    ``boolean`` 
 
 
     Optional","* Indicates whether a specific configuration file path under ``config_sources`` should be used  without merging.
