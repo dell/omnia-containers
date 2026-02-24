@@ -32,5 +32,5 @@
     ``Boolean`` 
 
 
-    Optional","* Indicates whether a specific configuration file path under`` config_sources`` should be used  without merging.
+    Optional","* Indicates whether a specific configuration file path under ``config_sources`` should be used  without merging.
 * If ``skip_merge`` is set to true for a configuration source path, that configuration file is applied directly without merging with defaults or existing configurations."
