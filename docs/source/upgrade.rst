@@ -24,41 +24,50 @@ Omnia Configurations
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback.
 
-For more information, see :ref:`View_Usage_Instructions_for_Omnia_Core_Container <view_omnia_core_container>`.
-
 .. image:: images/omnia_configurations_list.png
 
-View Omnia Version
-^^^^^^^^^^^^^^^^^^
+For more information on usage instructions, see :ref:`View Usage Instructions for Omnia Core Container <view_omnia_core_container>`.
 
-To view the Omnia version, run the following command: ::
+View Omnia Version and Upgrade Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. To view the Omnia version, run the following command: ::
     
     ./omnia.sh --version
 
 .. image:: images/omnia_output_version.png
 
-Upgrade
-^^^^^^^^
-
-1. To view the versions to upgrade, run the following command: ::
+2. To perform an upgrade, run the following command: ::
     
     ./omnia.sh --upgrade
 
+   The available upgrade versions are displayed.
+
 .. image:: images/omnia_upgrade_options.png
 
-2. Select the relevant version and enter yes to backup the current version files.
+3. Select the relevant version and press **Enter**. An approval gate is generated and the destination location of the backup files is displayed. 
+The upgrade process runs inside the ``Omnia_core`` container.
 
-3. The location of the backup files is displayed. A backup is created in the directory in the NFS share path. After the upgrade is successful, a message is displayed. The backup files are available in the directory ``/opt/omnia/backups/upgrade/input``.
+.. Note::
+    By default, the backup files are created and stored in the directory ``/opt/omnia/backups/upgrade/<version>``, in the NFS share path.
+
+4. Enter **yes** to backup the current input files.
+
+The backup is created and a container swap is initiated. The health of the container is checked.
+
+After successful completion, the container is swapped and the upgrade is completed. A success message with the latest updated version is displayed.
 
 .. image:: images/upgrade_successful.png
 
+Post-Upgrade step
+------------------
+
 .. image:: images/upgrade_running.png
 
-The upgrade process runs inside the ``Omnia_core`` container.
+Run ``upgrade_omnia.yml`` to complete the process.
 
-After successful upgrade, run ``upgrade_omnia.yml`` to complete the process.
-
-The backup files are available in the directory ``/opt/omnia/backups/upgrade/input``.
+.. Note::
+    Run the command after the container is healthy and stable.
 
 Running playbooks other than the ``upgrade_omnia.yml`` before ``./omnia.sh --upgrade`` generates an error with instructions.
 

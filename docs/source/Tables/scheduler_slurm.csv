@@ -27,3 +27,10 @@
     * <filepath>: Supply the absolute path to a custom configuration file.
     * <mapping>: Supply the configuration values directly as a key–value map
 "
+"**skip_merge**
+
+    ``boolean`` 
+
+
+    Optional","* Indicates whether a specific configuration file path under ``config_sources`` should be used  without merging.
+* If ``skip_merge`` is set to true for a configuration source path, that configuration file is applied directly without merging with defaults or existing configurations."
