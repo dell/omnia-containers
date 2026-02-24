@@ -55,7 +55,7 @@ The upgrade process runs inside the ``Omnia_core`` container.
 
 The backup is created and a container swap is initiated. The health of the container is checked.
 
-After successful completion, the container is swapped and the upgrade is completed. A success message is displayed.
+After successful completion, the container is swapped and the upgrade is completed.
 
 .. image:: images/upgrade_successful.png
 
