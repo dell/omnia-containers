@@ -55,7 +55,7 @@ Omnia supports dynamic addition of Slurm compute nodes to an existing cluster. T
 
 1. Update the PXE mapping file with new node entries. Add entries for new nodes with appropriate functional group assignments ``slurm_node_x86_64``.
 
-.. note:: Addition of new ``slurm_control_node``, ``login_node``, ``login_compiler_node`` are not supported. Write addition of only ``slurm_node`` is supported.
+.. note:: Addition of new ``slurm_control_node``, ``login_node``, ``login_compiler_node`` are not supported.
 
 2. Run the discovery playbook.
 3. PXE reboot the newly added node.
