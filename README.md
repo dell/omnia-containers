@@ -118,6 +118,14 @@ For advanced usage (auth, telemetry, build-stream), see:
 
 The `build_rpm.sh` script creates LDMS producer RPM packages for HPC monitoring. It clones the OVIS repository and builds RPM packages in a Rocky Linux 10 container. Supports both x86_64 and aarch64 architectures - run on the respective platform to build for that architecture.
 
+### Prerequisites
+
+Ensure EPEL and AppStream repositories are configured and the following packages are installed:
+
+```bash
+sudo dnf install -y python3-devel python3-Cython
+```
+
 ### Syntax
 ```bash
 ./build_rpm.sh -v <LDMS_VERSION> -u <SLURM_REPO_URL> -n <SLURM_REPO_NAME>
