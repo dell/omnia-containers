@@ -142,9 +142,13 @@ Lightweight Distributed Metric Service (LDMS)
   
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
-  ::
-    
-     - { url: "<hosted LDMS RPM repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_ldms_custom" }
+  user_repo_url_x86_64::
+
+   { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_ldms" }
+
+  user_repo_url_aarch64::
+
+   { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_ldms" }
 
   Run ``ansible-playbook local_repo/local_repo.yml``.
 
