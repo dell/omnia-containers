@@ -92,7 +92,7 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
 ║ Expected: {path}
 ║
 ║ HOW TO FIX:
-║   1. Ensure automation_library/job.sh exists in the project root
+║   1. Ensure automation_library/slurm/job.sh exists in the project
 ║   2. Verify the file has correct permissions
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
@@ -160,4 +160,57 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
 ║   3. Check Slurm logs: journalctl -u slurmctld -n 50
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
+}
+
+
+# =============================================================================
+# LDAP TEST NAMES
+# =============================================================================
+
+LDAP_TEST_NAMES: Dict[str, str] = {
+    "ldap_login_to_login_node": "LDAP: SSH login to login node",
+    "ldap_login_to_compiler_node": "LDAP: SSH login to login compiler node",
+    "ldap_submit_via_login": "LDAP: E2E job submission via login node",
+    "ldap_submit_multiple": "LDAP: Multiple job submissions from login/compiler nodes",
+    "ldap_submit_via_compiler": "LDAP: E2E job submission via login compiler node",
+}
+
+
+# =============================================================================
+# LDAP LOG MESSAGES
+# =============================================================================
+
+LDAP_LOG_MSGS: Dict[str, str] = {
+    "ssh_login_attempt": "Attempting SSH login to {login_ip} as {user}",
+    "ssh_login_ok": "SSH login to {login_ip} as {user} succeeded",
+    "ssh_whoami_ok": "whoami confirmed: {whoami}",
+    "login_ip_found": "Using login node {login_ip}",
+    "compiler_ip_found": "Using login compiler node {login_ip}",
+    "job_script_created": "Created job.sh on {login_ip} as {user}",
+    "job_submitted": "Job {job_id} submitted on {login_ip} as {user}",
+    "job_waiting": "Job {job_id} completed",
+    "job_completed": "Job {job_id} output verified",
+    "cleanup": "Cleaned up job artifacts on {login_ip}",
+    "multi_login_done": "Submitted {count} jobs on login node {login_ip}",
+    "multi_compiler_done": "Submitted job on compiler node {login_ip}",
+}
+
+
+# =============================================================================
+# LDAP ASSERT MESSAGES
+# =============================================================================
+
+LDAP_ASSERT_MSGS: Dict[str, str] = {
+    "no_login_ips": "No login IPs found; skipping LDAP tests",
+    "no_compiler_ips": "No login compiler IPs found; skipping LDAP compiler tests",
+    "job_script_not_found": "job.sh not found at {path}",
+    "ssh_login_failed": "SSH login to {login_ip} as {user} failed: {error}",
+    "ssh_whoami_mismatch": "whoami on {login_ip} returned '{whoami}', expected '{user}'",
+    "script_create_failed": "Failed to create job.sh on {login_ip} as {user}: {error}",
+    "sbatch_failed": "sbatch failed on {login_ip} as {user}: {error}",
+    "job_id_missing": "sbatch did not return a job id; output: {output}",
+    "squeue_failed": "Job {job_id} did not complete: {error}",
+    "output_read_failed": "Failed to read output.txt on {login_ip} as {user}: {error}",
+    "output_missing_text": "output.txt on {login_ip} as {user} missing 'Job completed'",
+    "e2e_failed": "E2E job submission failed on {login_ip} as {user}: {error}",
 }

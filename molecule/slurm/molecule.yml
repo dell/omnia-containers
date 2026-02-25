@@ -12,19 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#---------------------------------
-
-
-
 # =============================================================================
-# Molecule Configuration for slurm Testing
+# Molecule Configuration for Slurm Testing
 # =============================================================================
-#USAGE:
+#
+# This module verifies Slurm job submission from login nodes
+# via the omnia_core container.
+#
+# PREREQUISITES:
+# --------------
+#   - omnia_core container running (omnia.sh --install completed)
+#   - prepare_oim.yml completed
+#   - Slurm cluster deployed with login nodes configured
+#   - provision_config.yml with pxe_mapping_file_path configured
+#
+# USAGE:
 # ------
-#   ./run_molecule.sh slurm  test       # Run slurm tests
+#   ./run_molecule.sh slurm test       # Run slurm tests
+#   ./run_molecule.sh slurm converge   # Run converge only
+#   ./run_molecule.sh slurm verify     # Verify only
+#
+# Configuration:
+#   - user_config.yml: OIM server connection settings
 #
 # =============================================================================
- 
 
 dependency:
   name: galaxy
@@ -49,7 +60,7 @@ provisioner:
 verifier:
   name: testinfra
   additional_files_or_dirs:
-    - _test_job_submission_root.py
+    -_test_job_submission_root.py
   options:
     v: true
     s: true

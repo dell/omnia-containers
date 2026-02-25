@@ -20,10 +20,16 @@ from .slurm_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
+    LDAP_TEST_NAMES,
+    LDAP_LOG_MSGS,
+    LDAP_ASSERT_MSGS,
 )
 
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
     "TEST_ASSERT_MSGS",
+    "LDAP_TEST_NAMES",
+    "LDAP_LOG_MSGS",
+    "LDAP_ASSERT_MSGS",
 ]

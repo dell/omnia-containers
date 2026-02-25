@@ -17,6 +17,13 @@ Slurm functions module.
 """
 
 from .slurm_func import (
+    get_job_script_path,
+    parse_login_ips_from_env,
+    parse_login_ips_from_pxe_mapping,
+    parse_login_compiler_ips_from_env,
+    parse_login_compiler_ips_from_pxe_mapping,
+    parse_ldap_user_from_env,
+    parse_ldap_key_path_from_env,
     is_node_reachable,
     run_ssh_from_omnia_core,
     copy_job_script_to_login,
@@ -24,9 +31,24 @@ from .slurm_func import (
     check_squeue,
     find_reachable_login_node,
     read_job_script,
+    run_ssh_as_user,
+    discover_ldap_user_from_node,
+    create_ldap_job_script,
+    submit_ldap_job,
+    wait_ldap_job_complete,
+    read_ldap_job_output,
+    cleanup_ldap_job,
+    submit_and_verify_ldap_job,
 )
 
 __all__ = [
+    "get_job_script_path",
+    "parse_login_ips_from_env",
+    "parse_login_ips_from_pxe_mapping",
+    "parse_login_compiler_ips_from_env",
+    "parse_login_compiler_ips_from_pxe_mapping",
+    "parse_ldap_user_from_env",
+    "parse_ldap_key_path_from_env",
     "is_node_reachable",
     "run_ssh_from_omnia_core",
     "copy_job_script_to_login",
@@ -34,4 +56,12 @@ __all__ = [
     "check_squeue",
     "find_reachable_login_node",
     "read_job_script",
+    "run_ssh_as_user",
+    "discover_ldap_user_from_node",
+    "create_ldap_job_script",
+    "submit_ldap_job",
+    "wait_ldap_job_complete",
+    "read_ldap_job_output",
+    "cleanup_ldap_job",
+    "submit_and_verify_ldap_job",
 ]

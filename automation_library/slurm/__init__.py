@@ -14,9 +14,49 @@
 
 """
 Slurm module - Functions, messages, and variables for slurm job submission automation.
-
-Usage:
-    from automation_library.slurm.functions import submit_job_via_login, is_node_reachable
-    from automation_library.slurm.messages import TEST_NAMES
-    from automation_library.slurm.vars import JOB_SCRIPT_PATH
 """
+
+from .functions import (
+    get_job_script_path,
+    parse_login_ips_from_env,
+    parse_login_ips_from_pxe_mapping,
+    parse_login_compiler_ips_from_env,
+    parse_login_compiler_ips_from_pxe_mapping,
+    parse_ldap_user_from_env,
+    parse_ldap_key_path_from_env,
+    is_node_reachable,
+    run_ssh_from_omnia_core,
+    copy_job_script_to_login,
+    submit_job_via_login,
+    check_squeue,
+    find_reachable_login_node,
+    read_job_script,
+    run_ssh_as_user,
+    discover_ldap_user_from_node,
+    create_ldap_job_script,
+    submit_ldap_job,
+    wait_ldap_job_complete,
+    read_ldap_job_output,
+    cleanup_ldap_job,
+    submit_and_verify_ldap_job,
+)
+from .vars import (
+    JOB_SCRIPT_PATH,
+    MULTI_JOB_COUNT,
+    LDAP_USERNAME,
+    LDAP_PASSWORD,
+)
+from .messages import (
+    TEST_NAMES,
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+    LDAP_TEST_NAMES,
+    LDAP_LOG_MSGS,
+    LDAP_ASSERT_MSGS,
+)
+
+from . import functions as _functions
+from . import vars as _vars
+from . import messages as _messages
+
+__all__ = list(_functions.__all__) + list(_vars.__all__) + list(_messages.__all__)

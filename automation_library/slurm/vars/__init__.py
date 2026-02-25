@@ -19,13 +19,13 @@ Slurm vars module.
 from .slurm_vars import (
     JOB_SCRIPT_PATH,
     MULTI_JOB_COUNT,
-    parse_login_ips_from_env,
-    parse_login_ips_from_pxe_mapping,
+    LDAP_USERNAME,
+    LDAP_PASSWORD,
 )
 
 __all__ = [
     "JOB_SCRIPT_PATH",
     "MULTI_JOB_COUNT",
-    "parse_login_ips_from_env",
-    "parse_login_ips_from_pxe_mapping",
+    "LDAP_USERNAME",
+    "LDAP_PASSWORD",
 ]
