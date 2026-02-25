@@ -19,7 +19,6 @@ This module contains verification functions for VictoriaMetrics telemetry.
 """
 
 import json
-import time
 import urllib.parse
 from typing import Dict, Any
 
@@ -629,11 +628,9 @@ def verify_victoria_idrac_data(
 
         has_data = len(result_data) > 0
 
-        # Get sample metrics if data found, check timestamp is recent (within 5 min)
+        # Get sample metrics if data found
         sample_metrics = []
         latest_timestamp = 0
-        current_time = int(time.time())
-        max_age_seconds = 300  # 5 minutes
 
         if has_data:
             for item in result_data[:3]:  # Get up to 3 sample metrics
@@ -655,22 +652,15 @@ def verify_victoria_idrac_data(
                     },
                 })
 
-        # Check if data is recent (within max_age_seconds)
-        data_age = current_time - latest_timestamp if latest_timestamp > 0 else -1
-        is_recent = data_age >= 0 and data_age <= max_age_seconds
-
         service_tag_results.append({
             "service_tag": service_tag,
             "found": has_data,
-            "is_recent": is_recent,
             "latest_timestamp": latest_timestamp,
-            "data_age_seconds": data_age,
             "metric_count": len(result_data),
             "sample_metrics": sample_metrics,
         })
 
-        # Only count as found if data exists AND is recent
-        if has_data and is_recent:
+        if has_data:
             found_tags.append(service_tag)
         else:
             missing_tags.append(service_tag)

@@ -34,6 +34,8 @@ Note: All tests skip if:
   - 'victoria' is not in idrac_telemetry_collection_type
 """
 
+from datetime import datetime
+
 import pytest
 
 from automation_library.core import TestLogger
@@ -562,15 +564,24 @@ def test_victoria_idrac_data(host):
     for tag_result in result.get("service_tag_results", []):
         service_tag = tag_result["service_tag"]
         found = tag_result["found"]
+        latest_ts = tag_result.get("latest_timestamp", 0)
         metric_count = tag_result["metric_count"]
         status = "✓" if found else "✗"
 
         if found:
-            log.check(f"  {status} {service_tag}: {metric_count} metrics found")
+            log.check(f"  {status} {service_tag}")
+            log.check(f"      Service Tag : {service_tag}")
+            log.check(f"      Metrics     : {metric_count} found")
+            if latest_ts:
+                try:
+                    human_ts = datetime.fromtimestamp(int(latest_ts)).strftime("%Y-%m-%d %H:%M:%S")
+                    log.check(f"      VM Time     : {latest_ts} ({human_ts})")
+                except (ValueError, OSError):
+                    log.check(f"      VM Time     : {latest_ts}")
             for sample in tag_result.get("sample_metrics", []):
                 metric_name = sample["metric_name"]
                 value = sample["value"]
-                log.check(f"      - {metric_name}: {value}")
+                log.check(f"        - {metric_name}: {value}")
         else:
             log.check(f"  {status} {service_tag}: NO DATA FOUND")
 
