@@ -45,7 +45,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
       git clone https://github.com/dell/omnia-artifactory.git
       cd omnia-artifactory
-      ./build_images.sh core omnia_branch=<branch_name_or_tag> core_tag=1.0
+      ./build_images.sh core omnia_branch=<v2.1.0.0> core_tag=2.1
 
     **Examples:**
 
@@ -53,13 +53,13 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     .. code-block:: bash
 
-      ./build_images.sh core omnia_branch=main core_tag=1.0
+      ./build_images.sh core omnia_branch=main core_tag=2.1
 
     To build from a tag:
 
     .. code-block:: bash
 
-      ./build_images.sh core omnia_branch=v2.1.0.0-rc1 core_tag=1.0
+      ./build_images.sh core omnia_branch=v2.1.0.0-rc2 core_tag=2.1
 
   * For detailed build instructions, refer to the `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
 
@@ -76,7 +76,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
     **Example:**
     
     * Specifc verion: ``wget https://raw.githubusercontent.com/dell/omnia/refs/heads/main/omnia.sh``
-    * Tagged version: ``wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.1.0.0-rc1/omnia.sh``
+    * Tagged version: ``wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.1.0.0-rc2/omnia.sh``
 
 
 3. Run the following command to make the script executable::
