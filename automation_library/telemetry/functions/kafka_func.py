@@ -798,12 +798,18 @@ def verify_idrac_data_in_kafka(
         })
 
     # Determine error message
-    if len(missing_tags) == 0:
+    # A service tag is only considered successful if it has actual metric values
+    tags_without_values = found_service_tags - service_tag_has_values
+    all_have_values = len(tags_without_values) == 0 and len(missing_tags) == 0
+
+    if all_have_values:
         error_msg = ""
     elif len(found_service_tags) == 0:
         error_msg = KAFKA_ASSERT_MSGS["idrac_kafka_no_data"].format(
             expected=list(expected_service_tags)
         )
+    elif len(tags_without_values) > 0:
+        error_msg = f"Service tags found but no metric values: {list(tags_without_values)}"
     else:
         error_msg = KAFKA_ASSERT_MSGS["idrac_kafka_data_missing"].format(
             missing=list(missing_tags),
@@ -811,7 +817,7 @@ def verify_idrac_data_in_kafka(
         )
 
     return {
-        "success": len(missing_tags) == 0,
+        "success": all_have_values,
         "skipped": False,
         "bridge_ip": bridge_ip,
         "activated_ips": activated_ips,
