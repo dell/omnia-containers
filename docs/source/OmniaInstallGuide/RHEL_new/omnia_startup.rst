@@ -64,6 +64,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
   * For detailed build instructions, refer to the `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
   * For ``core_tag=<version>``, use first two digits of the Omnia version. For example, for ``v2.1.0.0``, use ``core_tag=2.1``.
   * For ``omnia_branch=<tag|branch>``, use the branch name or tag name.
+
       * For ``<tag>``, example: v2.1.0.0
       * For ``<branch>``, example: main, pub/q1_dev, staging
       * For ``<default>``, example: main
