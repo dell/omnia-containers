@@ -20,8 +20,9 @@ This module provides functions for verifying telemetry pods in K8s cluster.
 
 import json
 import re
-import yaml
 from typing import Dict, Any, List
+
+import yaml
 
 from ...core import run_in_container, INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 from ...core.host import run_on_remote_node
