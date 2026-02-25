@@ -19,6 +19,7 @@ This module contains verification functions for VictoriaMetrics telemetry.
 """
 
 import json
+import time
 import urllib.parse
 from typing import Dict, Any
 
@@ -628,31 +629,48 @@ def verify_victoria_idrac_data(
 
         has_data = len(result_data) > 0
 
-        # Get sample metrics if data found
+        # Get sample metrics if data found, check timestamp is recent (within 5 min)
         sample_metrics = []
+        latest_timestamp = 0
+        current_time = int(time.time())
+        max_age_seconds = 300  # 5 minutes
+
         if has_data:
             for item in result_data[:3]:  # Get up to 3 sample metrics
                 metric = item.get("metric", {})
                 value = item.get("value", [])
                 metric_name = metric.get("__name__", "")
+                # value[0] is timestamp (unix epoch), value[1] is the metric value
+                metric_timestamp = int(float(value[0])) if len(value) > 0 else 0
                 metric_value = value[1] if len(value) > 1 else ""
+                if metric_timestamp > latest_timestamp:
+                    latest_timestamp = metric_timestamp
                 sample_metrics.append({
                     "metric_name": metric_name,
                     "value": metric_value,
+                    "timestamp": metric_timestamp,
                     "labels": {
                         k: v for k, v in metric.items()
                         if k not in ["__name__", "ServiceTag"]
                     },
                 })
 
+        # Check if data is recent (within max_age_seconds)
+        data_age = current_time - latest_timestamp if latest_timestamp > 0 else -1
+        is_recent = data_age >= 0 and data_age <= max_age_seconds
+
         service_tag_results.append({
             "service_tag": service_tag,
             "found": has_data,
+            "is_recent": is_recent,
+            "latest_timestamp": latest_timestamp,
+            "data_age_seconds": data_age,
             "metric_count": len(result_data),
             "sample_metrics": sample_metrics,
         })
 
-        if has_data:
+        # Only count as found if data exists AND is recent
+        if has_data and is_recent:
             found_tags.append(service_tag)
         else:
             missing_tags.append(service_tag)
