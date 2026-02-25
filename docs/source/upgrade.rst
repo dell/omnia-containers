@@ -80,6 +80,6 @@ If any configuration files are missing from the backup, a warning is generated b
 
     After the lock is removed, manually reconfigure default input files of the upgraded version. Other playbooks are allowed to run normally.
 
-7. To view the Omnia version, run the following command: ::
+6. To view the Omnia version, run the following command: ::
     
     ./omnia.sh --version
