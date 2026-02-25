@@ -260,9 +260,12 @@ def _generate_html(data: Dict[str, Any]) -> str:
                 run_skipped = run_summary.get("skipped", 0)
                 run_total = run_summary.get("total", run_passed + run_failed + run_skipped)
                 status = "passed" if run_failed == 0 else "failed"
-                badge_text = f'{run_passed}/{run_total}' if status == "passed" else f'{run_failed} FAIL'
-                if run_skipped:
-                    badge_text += f' ({run_skipped} SKIP)'
+                # Build individual colored badges for pass/fail/skip
+                run_badges = f'<span class="badge passed" style="margin-right: 4px;">✓ {run_passed} PASS</span>'
+                if run_failed > 0:
+                    run_badges += f'<span class="badge failed" style="margin-right: 4px;">✗ {run_failed} FAIL</span>'
+                if run_skipped > 0:
+                    run_badges += f'<span class="badge skipped" style="margin-right: 4px;">↷ {run_skipped} SKIP</span>'
                 collapsed = "collapsed" if run_id > 1 else ""
                 unique_run_id = f"{server_ip.replace('.', '-')}-{run_id}"
 
@@ -289,7 +292,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                             <span class="run-expand">▼</span>
                             <span class="icon icon-run">▶</span>
                             <span>Test Run #{run["report_id"]}</span>
-                            <span class="badge {status}">{badge_text}</span>
+                            {run_badges}
                             <span style="color: #8b949e; font-size: 0.8em; margin-left: 10px;">{num_modules} scenario(s)</span>
                         </h4>
                         <div class="run-meta">
@@ -308,9 +311,12 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     mod_skipped = mod_summary.get("skipped", 0)
                     mod_total = mod_summary.get("total", mod_passed + mod_failed + mod_skipped)
                     mod_status = "passed" if mod_failed == 0 else "failed"
-                    mod_badge = f'{mod_passed}/{mod_total}'
-                    if mod_skipped:
-                        mod_badge += f' ({mod_skipped} SKIP)'
+                    # Build individual colored badges for module pass/fail/skip
+                    mod_badges = f'<span class="badge passed" style="margin-right: 4px;">✓ {mod_passed} PASS</span>'
+                    if mod_failed > 0:
+                        mod_badges += f'<span class="badge failed" style="margin-right: 4px;">✗ {mod_failed} FAIL</span>'
+                    if mod_skipped > 0:
+                        mod_badges += f'<span class="badge skipped" style="margin-right: 4px;">↷ {mod_skipped} SKIP</span>'
                     mod_id = f"{unique_run_id}-mod-{mod_idx}"
 
                     html += f'''
@@ -319,7 +325,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                                 <span class="module-expand">▼</span>
                                 <span class="icon icon-module">◆</span>
                                 <span class="module-name">{module["module"]}</span>
-                                <span class="badge {mod_status}" style="margin-left: 8px;">{mod_badge}</span>
+                                <span style="margin-left: 8px;">{mod_badges}</span>
                                 <span style="color: #8b949e; font-size: 0.75em; margin-left: auto;">
                             ⏱ {module.get("duration_seconds", 0)}s
                         </span>

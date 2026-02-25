@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,18 +43,26 @@
   ansible.builtin.debug:
     msg: "bmc_group_data.csv parent mappings: {{ bmc_parent_mappings | default([]) }}"
 
-- name: Verify bmc_group_data parents match service_kube_node service_tags
+- name: Get service_kube_nodes that have children (from PXE mapping)
   ansible.builtin.set_fact:
-    bmc_parent_match: "{{ (bmc_parent_mappings | default([]) | sort) == (service_kube_node_tags | default([]) | sort) }}"
+    service_kube_nodes_with_children: "{{ service_kube_node_tags | default([]) | select('in', slurm_node_with_service_parent_tags | default([])) | list }}"
+  when:
+    - service_kube_node_tags is defined
+    - slurm_node_with_service_parent_tags is defined
+
+- name: Verify bmc_group_data parents match service_kube_nodes that have children
+  ansible.builtin.set_fact:
+    bmc_parent_match: "{{ (bmc_parent_mappings | default([]) | sort) == (service_kube_nodes_with_children | default([]) | sort) }}"
   when:
     - bmc_parent_mappings is defined
-    - service_kube_node_tags is defined
+    - service_kube_nodes_with_children is defined
 
 - name: Display bmc_group_data parent verification
   ansible.builtin.debug:
     msg: |
       bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
       service_kube_node tags:     {{ service_kube_node_tags | default([]) | sort }}
+      service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
       Match: {{ 'YES' if bmc_parent_match | default(false) else 'NO' }}
 
 - name: Fail if bmc_group_data parents do not match service_kube_node service_tags
@@ -63,12 +71,13 @@
       ╔══════════════════════════════════════════════════════════════════════════════╗
       ║                    PREREQUISITE CHECK FAILED                                 ║
       ╠══════════════════════════════════════════════════════════════════════════════╣
-      ║ bmc_group_data.csv parent mappings do not match service_kube_node service_tags
+      ║ bmc_group_data.csv parent mappings do not match service_kube_nodes with children
       ║
       ║ bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
-      ║ service_kube_node tags:     {{ service_kube_node_tags | default([]) | sort }}
+      ║ service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
       ║
-      ║ Each slurm_node's parent in bmc_group_data.csv should be a service_kube_node.
+      ║ Only service_kube_nodes that have child slurm_nodes should appear as parents
+      ║ in bmc_group_data.csv.
       ╚══════════════════════════════════════════════════════════════════════════════╝
   when:
     - bmc_parent_match is defined
