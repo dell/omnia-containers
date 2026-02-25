@@ -14,8 +14,6 @@ Prerequisites
 
 For more information about deploying the Omnia core container, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
-Omnia Configurations
---------------------
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback. ::
 
@@ -31,10 +29,16 @@ The following operations can be performed on the Omnia Core Containers: Install,
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
-1. Run the following command to retrieve the omnia.sh file for 2.1 version. ::
+1. Download the omnia.sh script using the following commands:
+    
+    * To use the tagged version of Omnia, run the following command:
 
-    wget https://raw.githubusercontent.com/dell/omnia/refs/heads/pub/q1_dev/omnia.sh
+        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
 
+    * To use the specific branch of Omnia, run the following command:
+
+        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
+        
 2. To perform an upgrade on the Omnia core container, run the following command: ::
     
     ./omnia.sh --upgrade
@@ -51,15 +55,14 @@ The backup is created and a container swap is initiated. The health of the conta
 
 After successful completion, the container is swapped and the upgrade is completed. A success message with the latest updated version is displayed.
 
-5. Run ``upgrade_omnia.yml`` to complete the process.
+5. Run the ``upgrade_omnia.yml`` playbook. ::
+
+    ansible-playbook /omnia/upgrade/upgrade_omnia.yml
 
 .. Note::
     * Run the command after the container is healthy and stable.
     * Running playbooks other than the ``upgrade_omnia.yml`` before ``./omnia.sh --upgrade`` generates an error with instructions.
 
-6. Run the ``upgrade_omnia.yml`` playbook. ::
-
-    ansible-playbook /omnia/upgrade/upgrade_omnia.yml
 
 The input files are migrated from 2.0 to 2.1 format.
 
