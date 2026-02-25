@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,4 +14,34 @@
 
 """Telemetry messages module."""
 
-from .telemetry_msgs import TELEMETRY_MSGS, TEST_NAMES, TEST_LOG_MSGS, TEST_ASSERT_MSGS
+# Kafka-specific messages
+from .kafka_msgs import (
+    KAFKA_TEST_NAMES,
+    KAFKA_LOG_MSGS,
+    KAFKA_ASSERT_MSGS,
+)
+
+# iDRAC telemetry-specific messages
+from .idrac_telemetry_msgs import (
+    IDRAC_TEST_NAMES,
+    IDRAC_LOG_MSGS,
+    IDRAC_ASSERT_MSGS,
+)
+
+# VictoriaMetrics-specific messages
+from .victoria_msgs import (
+    VICTORIA_TEST_NAMES,
+    VICTORIA_LOG_MSGS,
+    VICTORIA_ASSERT_MSGS,
+)
+
+# Shared messages (used across all telemetry modules)
+from .shared_msgs import (
+    TELEMETRY_MSGS,
+    TEST_NAMES,
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+    SHARED_TEST_NAMES,
+    SHARED_LOG_MSGS,
+    SHARED_ASSERT_MSGS,
+)

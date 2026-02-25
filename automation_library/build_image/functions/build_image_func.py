@@ -293,7 +293,7 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
         Dict with 'success', 'status', 'details', 'error', 'found_images', 'missing_images'
     """
     # Get hostname dynamically
-    hostname_cmd = host.run("hostname -s")
+    hostname_cmd = host.run("hostname")
     if hostname_cmd.rc != 0:
         return {
             "success": False,

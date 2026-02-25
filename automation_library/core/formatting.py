@@ -91,6 +91,7 @@ class Symbols:
     CHECK = "✔"
     CROSS = "✘"
     ARROW = "→"
+    SKIP = "↷"
     ARROW_RIGHT = "➜"
     BULLET = "●"
     CIRCLE = "○"
@@ -187,6 +188,13 @@ class TestLogger:
     def passed(self, message: str, details: str = None):
         """Log passed result."""
         self._add_line(f"  {Colors.BRIGHT_GREEN}{Symbols.CHECK} PASS:{Colors.RESET} {message}")
+        if details:
+            for line in details.split('\n'):
+                self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")
+
+    def skipped(self, message: str, details: str = None):
+        """Log skipped result (for conditional tests)."""
+        self._add_line(f"  {Colors.BRIGHT_YELLOW}{Symbols.SKIP} SKIP:{Colors.RESET} {message}")
         if details:
             for line in details.split('\n'):
                 self._add_line(f"    {Colors.GRAY}{Symbols.PIPE}{Colors.RESET} {line}")

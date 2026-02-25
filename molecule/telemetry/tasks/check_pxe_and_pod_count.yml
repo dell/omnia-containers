@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,17 +67,34 @@
     - pxe_mapping_content.stdout is defined
     - service_kube_node_tags | default([]) | length > 0
 
+- name: Extract service_kube_node tags that are parents of slurm_nodes
+  ansible.builtin.set_fact:
+    slurm_node_with_service_parent_tags: >-
+      {{ pxe_mapping_content.stdout |
+         regex_findall('slurm_node[^,]*,[^,]*,[^,]*,(' +
+         (service_kube_node_tags | default([]) | join('|')) + '),') |
+         list | default([]) }}
+  when:
+    - pxe_mapping_content.stdout is defined
+    - service_kube_node_tags | default([]) | length > 0
+
 - name: Display slurm_node with service_kube_node parent count
   ansible.builtin.debug:
     msg: "slurm_node entries with service_kube_node parent: {{ slurm_node_with_service_parent_count | default(0) }}"
 
+- name: Read service_cluster_metadata.yml for pod count
+  ansible.builtin.command:
+    cmd: podman exec {{ container_name }} cat {{ service_cluster_metadata_path }}
+  register: service_cluster_metadata_for_pods
+  changed_when: false
+
 - name: Count idrac-telemetry pod entries in service_cluster_metadata.yml
   ansible.builtin.set_fact:
-    idrac_telemetry_pod_count: "{{ service_cluster_metadata_content.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
+    idrac_telemetry_pod_count: "{{ service_cluster_metadata_for_pods.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
 
-- name: Calculate expected idrac-telemetry pod count (service_kube_node count + 1 for mgmt)
+- name: Calculate expected idrac-telemetry pod count (service_kube_nodes with children + 1 for mgmt)
   ansible.builtin.set_fact:
-    expected_idrac_pod_count: "{{ (service_kube_node_tags | default([]) | length | int) + 1 }}"
+    expected_idrac_pod_count: "{{ (slurm_node_with_service_parent_count | default(0) | int) + 1 }}"
 
 - name: Display idrac-telemetry pod count verification
   ansible.builtin.debug:
@@ -85,7 +102,7 @@
       service_kube_node count: {{ service_kube_node_tags | default([]) | length }}
       slurm_node with service_kube_node parent: {{ slurm_node_with_service_parent_count | default(0) }}
       idrac-telemetry pod entries in service_cluster_metadata.yml: {{ idrac_telemetry_pod_count }}
-      Expected pod count (service_kube_node + 1 for mgmt): {{ expected_idrac_pod_count }}
+      Expected pod count (service_kube_nodes with children + 1 for mgmt): {{ expected_idrac_pod_count }}
       Match: {{ 'YES' if idrac_telemetry_pod_count | int == expected_idrac_pod_count | int else 'NO' }}
 
 - name: Fail if idrac-telemetry pod count does not match expected
@@ -97,9 +114,9 @@
       ║ idrac-telemetry pod count mismatch in service_cluster_metadata.yml
       ║
       ║ Found: {{ idrac_telemetry_pod_count }} idrac-telemetry pod entries
-      ║ Expected: {{ expected_idrac_pod_count }} (service_kube_node count {{ service_kube_node_tags | default([]) | length }} + 1 for mgmt)
+      ║ Expected: {{ expected_idrac_pod_count }} (service_kube_nodes with children: {{ slurm_node_with_service_parent_count | default(0) }} + 1 for mgmt)
       ║
-      ║ Each service_kube_node should have an idrac-telemetry pod entry,
+      ║ Only service_kube_nodes that have child slurm_nodes need idrac-telemetry pods,
       ║ plus idrac-telemetry-0 for the management layer.
       ╚══════════════════════════════════════════════════════════════════════════════╝
   when: idrac_telemetry_pod_count | int != expected_idrac_pod_count | int
