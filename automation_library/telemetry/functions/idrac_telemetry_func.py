@@ -18,12 +18,14 @@ Telemetry Automation - Core Functions.
 This module provides functions for verifying telemetry pods in K8s cluster.
 """
 
+import json
 import re
 import yaml
 from typing import Dict, Any, List
 
+from ...core import run_in_container
+from ...core.host import run_on_remote_node
 from ..vars.idrac_telemetry_vars import (
-    TELEMETRY_VARS,
     PROVISION_CONFIG_PATH,
     TELEMETRY_NAMESPACE,
     IDRAC_TELEMETRY_POD_PREFIX,
@@ -53,11 +55,10 @@ def get_service_kube_node_count(host) -> int:
     Returns:
         Count of service_kube_node entries
     """
-    container = TELEMETRY_VARS["container_name"]
     provision_config_path = PROVISION_CONFIG_PATH
 
     # Read provision_config.yml to get pxe_mapping_file_path
-    cmd = host.run(f"podman exec {container} cat {provision_config_path}")
+    cmd = run_in_container(host, f"cat {provision_config_path}")
     if cmd.rc != 0:
         return 0
 
@@ -71,7 +72,7 @@ def get_service_kube_node_count(host) -> int:
     pxe_mapping_path = match.group(1).strip()
 
     # Read PXE mapping file and count service_kube_node entries
-    cmd = host.run(f"podman exec {container} cat {pxe_mapping_path}")
+    cmd = run_in_container(host, f"cat {pxe_mapping_path}")
     if cmd.rc != 0:
         return 0
 
@@ -93,11 +94,10 @@ def get_service_kube_nodes_with_children(host) -> List[str]:
     Returns:
         List of service_kube_node tags that have children
     """
-    container = TELEMETRY_VARS["container_name"]
     provision_config_path = PROVISION_CONFIG_PATH
 
     # Read provision_config.yml to get pxe_mapping_file_path
-    cmd = host.run(f"podman exec {container} cat {provision_config_path}")
+    cmd = run_in_container(host, f"cat {provision_config_path}")
     if cmd.rc != 0:
         return []
 
@@ -111,7 +111,7 @@ def get_service_kube_nodes_with_children(host) -> List[str]:
     pxe_mapping_path = match.group(1).strip()
 
     # Read PXE mapping file
-    cmd = host.run(f"podman exec {container} cat {pxe_mapping_path}")
+    cmd = run_in_container(host, f"cat {pxe_mapping_path}")
     if cmd.rc != 0:
         return []
 
@@ -160,7 +160,7 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     pod_prefix = IDRAC_TELEMETRY_POD_PREFIX
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | grep {pod_prefix}",
+        f"kubectl get pods -n {namespace} -o name | grep {pod_prefix}",
         admin_ip
     )
 
@@ -202,7 +202,7 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     # Get all pods with status
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} --no-headers 2>/dev/null",
+        f"kubectl get pods -n {namespace} --no-headers",
         admin_ip
     )
 
@@ -248,7 +248,7 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     # Get full output with headers for display
     cmd_full = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o wide 2>/dev/null",
+        f"kubectl get pods -n {namespace} -o wide",
         admin_ip
     )
 
@@ -282,13 +282,12 @@ def get_mysql_credentials(host) -> Dict[str, str]:
     Returns:
         Dict with mysqldb_user and mysqldb_password
     """
-    container = TELEMETRY_VARS["container_name"]
     vault_file = OMNIA_CONFIG_CREDENTIALS_PATH
     key_file = OMNIA_CONFIG_CREDENTIALS_KEY_PATH
 
     # First, try to decrypt vault file
-    cmd = host.run(
-        f"podman exec {container} ansible-vault view {vault_file} "
+    cmd = run_in_container(
+        host, f"ansible-vault view {vault_file} "
         f"--vault-password-file {key_file} 2>/dev/null"
     )
 
@@ -297,7 +296,7 @@ def get_mysql_credentials(host) -> Dict[str, str]:
         content = cmd.stdout
     else:
         # Vault decrypt failed - file might be plain YAML, try reading directly
-        cmd = host.run(f"podman exec {container} cat {vault_file}")
+        cmd = run_in_container(host, f"cat {vault_file}")
         if cmd.rc != 0:
             return {"mysqldb_user": "", "mysqldb_password": "", "error": cmd.stderr}
         content = cmd.stdout
@@ -324,11 +323,10 @@ def get_activated_ips(host) -> List[str]:
     Returns:
         List of activated IP addresses
     """
-    container = TELEMETRY_VARS["container_name"]
     report_path = IDRAC_TELEMETRY_REPORT_PATH
 
     # Read telemetry report
-    cmd = host.run(f"podman exec {container} cat {report_path}")
+    cmd = run_in_container(host, f"cat {report_path}")
     if cmd.rc != 0:
         return []
 
@@ -374,10 +372,9 @@ def get_bmc_group_data(host) -> List[Dict[str, str]]:
     Returns:
         List of dicts with bmc_ip, group_name, parent keys
     """
-    container = TELEMETRY_VARS["container_name"]
     bmc_path = BMC_GROUP_DATA_PATH
 
-    cmd = host.run(f"podman exec {container} cat {bmc_path}")
+    cmd = run_in_container(host, f"cat {bmc_path}")
     if cmd.rc != 0:
         return []
 
@@ -409,10 +406,9 @@ def get_service_cluster_metadata(host) -> Dict[str, Any]:
     Returns:
         Dict with kube_vip and service_cluster_metadata
     """
-    container = TELEMETRY_VARS["container_name"]
     metadata_path = SERVICE_CLUSTER_METADATA_PATH
 
-    cmd = host.run(f"podman exec {container} cat {metadata_path}")
+    cmd = run_in_container(host, f"cat {metadata_path}")
     if cmd.rc != 0:
         return {}
 
@@ -488,9 +484,6 @@ def get_mysql_ips_from_pod(
     Returns:
         List of IPs from services table
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     mysql_cmd = CMD_TEMPLATES["mysql_select_ips"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -500,12 +493,7 @@ def get_mysql_ips_from_pod(
         table=MYSQL_SERVICES_TABLE
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{mysql_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, mysql_cmd, admin_ip)
 
     if cmd.rc != 0:
         return []
@@ -581,7 +569,7 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | "
+        f"kubectl get pods -n {namespace} -o name | "
         f"grep {IDRAC_TELEMETRY_POD_PREFIX}",
         kube_vip
     )
@@ -660,9 +648,6 @@ def get_receiver_logs(host, admin_ip: str, pod_name: str, tail_lines: int = 500)
     Returns:
         Log output as string
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     kubectl_cmd = CMD_TEMPLATES["kubectl_logs"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -670,12 +655,7 @@ def get_receiver_logs(host, admin_ip: str, pod_name: str, tail_lines: int = 500)
         tail_lines=tail_lines
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     return cmd.stdout if cmd.rc == 0 else ""
 
 
@@ -699,21 +679,13 @@ def get_service_tag_via_redfish(
     Returns:
         Service tag string or empty string on failure
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     redfish_cmd = CMD_TEMPLATES["redfish_get_service_tag"].format(
         idrac_user=idrac_user,
         idrac_password=idrac_password,
         idrac_ip=idrac_ip
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{redfish_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, redfish_cmd, admin_ip)
     if cmd.rc != 0:
         return ""
 
@@ -742,9 +714,6 @@ def get_idrac_credentials_from_mysql(
     Returns:
         Dict with username and password
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     mysql_cmd = CMD_TEMPLATES["mysql_select_auth"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -755,18 +724,12 @@ def get_idrac_credentials_from_mysql(
         ip=idrac_ip
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{mysql_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, mysql_cmd, admin_ip)
     if cmd.rc != 0 or not cmd.stdout.strip():
         return {"username": "", "password": ""}
 
     # Parse JSON auth column
     try:
-        import json
         auth_data = json.loads(cmd.stdout.strip())
         return {
             "username": auth_data.get("username", ""),
@@ -949,7 +912,7 @@ def verify_receiver_collecting_metrics(
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | "
+        f"kubectl get pods -n {namespace} -o name | "
         f"grep {IDRAC_TELEMETRY_POD_PREFIX}",
         kube_vip
     )

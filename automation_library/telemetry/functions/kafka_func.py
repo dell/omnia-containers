@@ -25,8 +25,9 @@ from typing import Dict, Any, List
 
 import yaml
 
-from ..vars.idrac_telemetry_vars import CMD_TEMPLATES
-from ..vars.shared_vars import TELEMETRY_NAMESPACE, CONTAINER_NAME
+from ...core import run_in_container
+from ...core.host import run_on_remote_node
+from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
 from ..vars.kafka_vars import (
     KAFKA_CMD_TEMPLATES,
@@ -123,16 +124,8 @@ def get_kafka_cluster_config(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with Kafka cluster config
     """
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_kafka_cluster"].format(namespace=TELEMETRY_NAMESPACE)
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {"error": KAFKA_ASSERT_MSGS["kafka_cluster_config_failed"]}
 
@@ -242,19 +235,11 @@ def get_kafka_bridge_ip(host, admin_ip: str) -> str:
     Returns:
         Bridge LB IP address, or empty string if not found
     """
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_bridge_lb_ip"].format(
         service=KAFKA_BRIDGE_SERVICE,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return ""
 
@@ -324,19 +309,11 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
         }
 
     # Get topics via REST proxy
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     curl_cmd = KAFKA_CMD_TEMPLATES["rest_list_topics"].format(
         bridge_ip=bridge_ip,
         port=KAFKA_BRIDGE_PORT
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{curl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, curl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -443,17 +420,9 @@ def verify_ldms_pods_running(host, admin_ip: str) -> Dict[str, Any]:
             "reason": "LDMS not enabled in software_config.json",
         }
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     # Get pods in telemetry namespace
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_pods"].format(namespace=TELEMETRY_NAMESPACE)
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -553,17 +522,9 @@ def verify_ldms_services_ports(host, admin_ip: str) -> Dict[str, Any]:
     expected_agg_port = ldms_config["ldms_agg_port"]
     expected_store_port = ldms_config["ldms_store_port"]
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     # Get services in telemetry namespace
     kubectl_cmd = KAFKA_CMD_TEMPLATES["get_services"].format(namespace=TELEMETRY_NAMESPACE)
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -702,8 +663,6 @@ def verify_idrac_data_in_kafka(
 
     expected_service_tags = set(ip_to_service_tag.values())
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
     consumer_group = f"idrac-test-{int(time.time()) % 10000}"
     consumer_name = "idrac-test-consumer"
 
@@ -716,14 +675,10 @@ def verify_idrac_data_in_kafka(
         create_cmd = (
             f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
             f'-H "content-type: application/vnd.kafka.v2+json" '
-            f'-d "{{\\"name\\": \\"{consumer_name}\\", \\"format\\": \\"json\\", '
-            f'\\"auto.offset.reset\\": \\"latest\\", \\"enable.auto.commit\\": true}}"'
+            f'-d \'{{"name": "{consumer_name}", "format": "json", '
+            f'"auto.offset.reset": "latest", "enable.auto.commit": true}}\''
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{create_cmd}' 2>/dev/null"
-        )
-        cmd = host.run(full_cmd)
+        cmd = run_on_remote_node(host, create_cmd, admin_ip)
         if "error_code" in cmd.stdout:
             return {
                 "success": False,
@@ -738,13 +693,9 @@ def verify_idrac_data_in_kafka(
             f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
             f'/instances/{consumer_name}/subscription '
             f'-H "content-type: application/vnd.kafka.v2+json" '
-            f'-d "{{\\"topics\\": [\\"idrac\\"]}}"'
+            f'-d \'{{"topics": ["idrac"]}}\''
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{subscribe_cmd}' 2>/dev/null"
-        )
-        host.run(full_cmd)
+        run_on_remote_node(host, subscribe_cmd, admin_ip)
 
         # Step 3: Consume records with multiple attempts
         # Each attempt fetches a batch of records
@@ -756,11 +707,7 @@ def verify_idrac_data_in_kafka(
 
         max_attempts = timeout_seconds // 2  # 2 seconds per attempt
         for _ in range(max_attempts):
-            full_cmd = (
-                f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-                f"'{consume_cmd}' 2>/dev/null"
-            )
-            cmd = host.run(full_cmd)
+            cmd = run_on_remote_node(host, consume_cmd, admin_ip)
 
             if cmd.stdout.strip() and cmd.stdout.strip().startswith("["):
                 try:
@@ -832,11 +779,7 @@ def verify_idrac_data_in_kafka(
             consumer_group=consumer_group,
             consumer_name=consumer_name,
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{delete_cmd}' 2>/dev/null"
-        )
-        host.run(full_cmd)
+        run_on_remote_node(host, delete_cmd, admin_ip)
 
     # Build results
     missing_tags = expected_service_tags - found_service_tags
@@ -901,21 +844,13 @@ def verify_ldms_topic_ready(host, admin_ip: str) -> Dict[str, Any]:
             "reason": "LDMS not enabled in software_config.json",
         }
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     topic_cmd = (
         f"kubectl get kafkatopic ldms -n {TELEMETRY_NAMESPACE} -o json | "
-        f"python3 -c \\\"import sys,json; d=json.load(sys.stdin); "
-        f"conds=d.get('status',{{}}).get('conditions',[]); "
-        f"print('True' if any(c.get('type')=='Ready' and c.get('status')=='True' for c in conds) else 'False')\\\""
+        f'python3 -c \'import sys,json; d=json.load(sys.stdin); '
+        f'conds=d.get("status",{{}}).get("conditions",[]);'
+        f' print("True" if any(c.get("type")=="Ready" and c.get("status")=="True" for c in conds) else "False")\''
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{topic_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, topic_cmd, admin_ip)
     topic_ready = cmd.stdout.strip() == "True"
 
     return {
@@ -965,8 +900,7 @@ def get_domain_name(host) -> str:
     Returns:
         Domain name string (e.g., 'clash.test') or empty string if not found
     """
-    container = CONTAINER_NAME
-    cmd = host.run(f"podman exec {container} cat {OIM_METADATA_PATH}")
+    cmd = run_in_container(host, f"cat {OIM_METADATA_PATH}")
 
     if cmd.rc != 0:
         return ""
@@ -1107,8 +1041,6 @@ def verify_ldms_data_in_kafka(
             instance = f"{hostname}.{domain_name}/{plugin}"
             expected_instances.add(instance)
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
     consumer_group = f"ldms-test-{int(time.time()) % 10000}"
     consumer_name = "ldms-test-consumer"
 
@@ -1121,14 +1053,10 @@ def verify_ldms_data_in_kafka(
         create_cmd = (
             f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
             f'-H "content-type: application/vnd.kafka.v2+json" '
-            f'-d "{{\\"name\\": \\"{consumer_name}\\", \\"format\\": \\"json\\", '
-            f'\\"auto.offset.reset\\": \\"latest\\", \\"enable.auto.commit\\": true}}"'
+            f'-d \'{{"name": "{consumer_name}", "format": "json", '
+            f'"auto.offset.reset": "latest", "enable.auto.commit": true}}\''
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{create_cmd}' 2>/dev/null"
-        )
-        cmd = host.run(full_cmd)
+        cmd = run_on_remote_node(host, create_cmd, admin_ip)
         # Check for error in response (curl returns 0 even on API errors)
         if "error_code" in cmd.stdout:
             return {
@@ -1146,13 +1074,9 @@ def verify_ldms_data_in_kafka(
             f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
             f'/instances/{consumer_name}/subscription '
             f'-H "content-type: application/vnd.kafka.v2+json" '
-            f'-d "{{\\"topics\\": [\\"ldms\\"]}}"'
+            f'-d \'{{"topics": ["ldms"]}}\''
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{subscribe_cmd}' 2>/dev/null"
-        )
-        cmd = host.run(full_cmd)
+        run_on_remote_node(host, subscribe_cmd, admin_ip)
 
         # Step 3: Consume records with timeout
         # Wait until ALL expected instances (hostname×plugin) are found
@@ -1164,11 +1088,7 @@ def verify_ldms_data_in_kafka(
 
         start_time = time.time()
         while time.time() - start_time < timeout_seconds:
-            full_cmd = (
-                f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-                f"'{consume_cmd}' 2>/dev/null"
-            )
-            cmd = host.run(full_cmd)
+            cmd = run_on_remote_node(host, consume_cmd, admin_ip)
 
             if cmd.stdout.strip() and cmd.stdout.strip().startswith("["):
                 try:
@@ -1198,11 +1118,7 @@ def verify_ldms_data_in_kafka(
             consumer_group=consumer_group,
             consumer_name=consumer_name,
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{delete_cmd}' 2>/dev/null"
-        )
-        host.run(full_cmd)
+        run_on_remote_node(host, delete_cmd, admin_ip)
 
     # Analyze results - check ALL instances (hostname×plugin)
     missing_instances = expected_instances - found_instances

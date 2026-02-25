@@ -110,7 +110,6 @@ TELEMETRY_VARS: Dict[str, Any] = {
 # Import common constants from core (single source of truth)
 from ...core.vars import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
 )
 
 PROVISION_CONFIG_PATH = TELEMETRY_VARS["provision_config_path"]
@@ -138,22 +137,24 @@ CMD_TEMPLATES: Dict[str, str] = {
     "kubectl_logs": "kubectl logs -n {namespace} {pod_name} -c {container} --tail={tail_lines}",
 
     # MySQL commands
+    # NOTE: run_on_remote_node auto-escapes double quotes for SSH.
+    # Callers pass normal commands with plain double quotes.
     "mysql_select_ips": (
-        "kubectl exec -n {namespace} {pod_name} -c mysqldb -- "
-        "mysql -u {mysql_user} -p{mysql_password} -N -e "
-        "\\\"SELECT ip FROM {database}.{table};\\\""
+        'kubectl exec -n {namespace} {pod_name} -c mysqldb -- '
+        'mysql -u {mysql_user} -p{mysql_password} -N -e '
+        '"SELECT ip FROM {database}.{table};"'
     ),
     "mysql_select_auth": (
-        "kubectl exec -n {namespace} {pod_name} -c mysqldb -- "
-        "mysql -u {mysql_user} -p{mysql_password} -N -e "
-        "\\\"SELECT auth FROM {database}.{table} WHERE ip='{ip}';\\\""
+        'kubectl exec -n {namespace} {pod_name} -c mysqldb -- '
+        'mysql -u {mysql_user} -p{mysql_password} -N -B -e '
+        '"SELECT auth FROM {database}.{table} WHERE ip=\'{ip}\';"'
     ),
 
     # Redfish command to get service tag
     "redfish_get_service_tag": (
         "curl -sk -u {idrac_user}:{idrac_password} "
-        "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 2>/dev/null | "
-        "python3 -c \\\"import sys,json; print(json.load(sys.stdin).get('SKU',''))\\\""
+        "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 | "
+        'python3 -c \'import sys,json; print(json.load(sys.stdin).get("SKU",""))\''
     ),
 
     # Ansible vault commands

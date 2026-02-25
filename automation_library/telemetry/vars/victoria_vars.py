@@ -127,13 +127,13 @@ VICTORIA_CMD_TEMPLATES: Dict[str, str] = {
     # Get service external IP
     "get_service_external_ip": (
         "kubectl get svc {service_name} -n {namespace} "
-        "-o jsonpath='{{.status.loadBalancer.ingress[0].ip}}'"
+        "-o jsonpath={{.status.loadBalancer.ingress[0].ip}}"
     ),
 
     # Get service port
     "get_service_port": (
         "kubectl get svc {service_name} -n {namespace} "
-        "-o jsonpath='{{.spec.ports[0].port}}'"
+        "-o jsonpath={{.spec.ports[0].port}}"
     ),
 
     # Get secret
@@ -144,7 +144,7 @@ VICTORIA_CMD_TEMPLATES: Dict[str, str] = {
     # Get PVC storage size
     "get_pvc_storage": (
         "kubectl get pvc {pvc_name} -n {namespace} "
-        "-o jsonpath='{{.spec.resources.requests.storage}}'"
+        "-o jsonpath={{.spec.resources.requests.storage}}"
     ),
 
     # Get all PVCs for a statefulset

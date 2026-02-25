@@ -133,6 +133,10 @@ def run_on_remote_node(
     Run command on remote node via SSH from omnia_core container.
 
     SSH from omnia_core to remote node uses passwordless SSH.
+    The command is wrapped in double quotes for SSH. Any double quotes
+    in the command are automatically escaped, so callers can pass
+    commands with normal quoting (e.g. ``-e "SELECT ..."``) without
+    worrying about SSH quote layers.
 
     Args:
         host: Testinfra host connected to OIM server
@@ -143,7 +147,8 @@ def run_on_remote_node(
         Result with stdout, stderr, rc attributes
     """
     ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    ssh_cmd = f"ssh {ssh_opts} root@{admin_ip} '{cmd}'"
+    escaped_cmd = cmd.replace('"', '\\"')
+    ssh_cmd = f'ssh {ssh_opts} root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
     return run_in_container(host, ssh_cmd)
 
 

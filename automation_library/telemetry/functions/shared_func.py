@@ -25,17 +25,16 @@ For module-specific functions, see:
 """
 
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 import pytest
 import yaml
 
-from ...core import get_node_info, K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
+from ...core import get_node_info, run_in_container, K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
 
 from ..vars.shared_vars import (
     TELEMETRY_CONFIG_PATH,
     SOFTWARE_CONFIG_PATH,
-    CONTAINER_NAME,
 )
 from ..messages.shared_msgs import SHARED_ASSERT_MSGS
 
@@ -76,7 +75,7 @@ def get_telemetry_config(host, use_cache: bool = True) -> Dict[str, Any]:
     if use_cache and cache_key in _config_cache:
         return _config_cache[cache_key]
 
-    cmd = host.run(f"podman exec {CONTAINER_NAME} cat {TELEMETRY_CONFIG_PATH}")
+    cmd = run_in_container(host, f"cat {TELEMETRY_CONFIG_PATH}")
 
     if cmd.rc != 0:
         return {
@@ -114,7 +113,7 @@ def get_software_config(host, use_cache: bool = True) -> Dict[str, Any]:
     if use_cache and cache_key in _config_cache:
         return _config_cache[cache_key]
 
-    cmd = host.run(f"podman exec {CONTAINER_NAME} cat {SOFTWARE_CONFIG_PATH}")
+    cmd = run_in_container(host, f"cat {SOFTWARE_CONFIG_PATH}")
 
     if cmd.rc != 0:
         return {

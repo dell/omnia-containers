@@ -18,7 +18,6 @@
 from .shared_vars import (
     # K8s constants (from core)
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
     # Telemetry namespace
     TELEMETRY_NAMESPACE,
     # Config paths (used by shared_func.py)

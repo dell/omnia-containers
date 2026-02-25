@@ -27,7 +27,6 @@ For module-specific constants, see:
 # Import from core (single source of truth for K8s constants)
 from ...core.vars import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
 )
 
 

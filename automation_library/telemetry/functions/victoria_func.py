@@ -22,8 +22,8 @@ import json
 import urllib.parse
 from typing import Dict, Any
 
-from ..vars.idrac_telemetry_vars import CMD_TEMPLATES
-from ..vars.shared_vars import TELEMETRY_NAMESPACE, CONTAINER_NAME
+from ...core.host import run_on_remote_node
+from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..vars.victoria_vars import (
     DEPLOYMENT_MODE_SINGLE,
     DEPLOYMENT_MODE_CLUSTER,
@@ -79,9 +79,6 @@ def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:
     expected_size = victoria_config.get("persistence_size", "")
     deployment_mode = get_deployment_mode(host)
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     # Get PVCs based on deployment mode
     if deployment_mode == DEPLOYMENT_MODE_SINGLE:
         pvc_prefix = "victoria-metrics-pvc"
@@ -90,12 +87,7 @@ def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:
 
     # Get all PVCs
     kubectl_cmd = f"kubectl get pvc -n {TELEMETRY_NAMESPACE} -o json"
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -164,20 +156,13 @@ def verify_victoria_single_node_pods(host, admin_ip: str) -> Dict[str, Any]:
             "skip_reason": f"Deployment mode is '{deployment_mode}', not single-node",
         }
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
     app_label = VICTORIA_SINGLE_NODE["app_label"]
 
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_pods_by_label"].format(
         namespace=TELEMETRY_NAMESPACE,
         app_label=app_label
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -242,9 +227,6 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
             "skip_reason": f"Deployment mode is '{deployment_mode}', not cluster",
         }
 
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     component_results = []
     errors = []
 
@@ -256,12 +238,7 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
             namespace=TELEMETRY_NAMESPACE,
             app_label=app_label
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{kubectl_cmd}' 2>/dev/null"
-        )
-
-        cmd = host.run(full_cmd)
+        cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
         if cmd.rc != 0:
             errors.append(f"Failed to get {component_name} pods")
             continue
@@ -321,20 +298,13 @@ def verify_vmagent_pod(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, pod_results, errors
     """
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
     app_label = VMAGENT["app_label"]
 
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_pods_by_label"].format(
         namespace=TELEMETRY_NAMESPACE,
         app_label=app_label
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -387,8 +357,6 @@ def verify_victoria_services(host, admin_ip: str) -> Dict[str, Any]:
         Dict with success, service_results, errors
     """
     deployment_mode = get_deployment_mode(host)
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Determine which services to check based on deployment mode
     if deployment_mode == DEPLOYMENT_MODE_SINGLE:
@@ -422,12 +390,7 @@ def verify_victoria_services(host, admin_ip: str) -> Dict[str, Any]:
             service_name=svc_name,
             namespace=TELEMETRY_NAMESPACE
         )
-        full_cmd = (
-            f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-            f"'{kubectl_cmd}' 2>/dev/null"
-        )
-
-        cmd = host.run(full_cmd)
+        cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
         external_ip = cmd.stdout.strip() if cmd.rc == 0 else ""
 
         has_ip = bool(external_ip) and external_ip != "null"
@@ -461,19 +424,11 @@ def verify_victoria_tls_secret(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, secret_exists, keys_found, missing_keys
     """
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_secret"].format(
         secret_name=VICTORIA_TLS_SECRET,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
         return {
             "success": False,
@@ -516,8 +471,6 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
         Dict with success, tls_connected, health_response, errors
     """
     deployment_mode = get_deployment_mode(host)
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get service info based on deployment mode
     if deployment_mode == DEPLOYMENT_MODE_SINGLE:
@@ -532,12 +485,7 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
         service_name=service_name,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     external_ip = cmd.stdout.strip() if cmd.rc == 0 else ""
 
     if not external_ip or external_ip == "null":
@@ -551,12 +499,7 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
         secret_name=VICTORIA_TLS_SECRET,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_extract_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"\"{extract_cmd}\" 2>/dev/null"
-    )
-
-    cmd = host.run(full_extract_cmd)
+    cmd = run_on_remote_node(host, extract_cmd, admin_ip)
     if cmd.rc != 0 or not cmd.stdout.strip():
         return {
             "success": False,
@@ -569,18 +512,13 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
     # Write cert directly via kubectl to preserve newlines, add trailing echo
     service_dns = f"{service_name}.{TELEMETRY_NAMESPACE}"
     curl_cmd = (
-        f'kubectl get secret {VICTORIA_TLS_SECRET} -n {TELEMETRY_NAMESPACE} '
-        f'-o \'jsonpath={{.data.ca\\.crt}}\' | base64 -d > /tmp/ca.crt && '
-        f'curl -s --max-time 30 --cacert /tmp/ca.crt '
-        f'--resolve {service_dns}:{port}:{external_ip} '
-        f'https://{service_dns}:{port}/health; echo'
+        f"kubectl get secret {VICTORIA_TLS_SECRET} -n {TELEMETRY_NAMESPACE} "
+        f"-o jsonpath='{{.data.ca\\.crt}}' | base64 -d > /tmp/ca.crt && "
+        f"curl -s --max-time 30 --cacert /tmp/ca.crt "
+        f"--resolve {service_dns}:{port}:{external_ip} "
+        f"https://{service_dns}:{port}/health; echo"
     )
-    full_curl_cmd = (
-        f'podman exec {container} ssh {ssh_opts} root@{admin_ip} '
-        f'"{curl_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_curl_cmd)
+    cmd = run_on_remote_node(host, curl_cmd, admin_ip)
     health_response = cmd.stdout.strip() if cmd.rc == 0 else ""
 
     # Check if health response is valid
@@ -614,8 +552,6 @@ def verify_victoria_idrac_data(
         Dict with success, service_tag_results, found_tags, missing_tags
     """
     deployment_mode = get_deployment_mode(host)
-    container = CONTAINER_NAME
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
 
     # Get activated service tags
     activated_tags = get_activated_service_tags(host)
@@ -640,12 +576,7 @@ def verify_victoria_idrac_data(
         service_name=service_name,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     external_ip = cmd.stdout.strip() if cmd.rc == 0 else ""
 
     if not external_ip or external_ip == "null":
@@ -659,12 +590,7 @@ def verify_victoria_idrac_data(
         secret_name=VICTORIA_TLS_SECRET,
         namespace=TELEMETRY_NAMESPACE
     )
-    full_extract_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"\"{extract_cmd}\" 2>/dev/null"
-    )
-
-    cmd = host.run(full_extract_cmd)
+    cmd = run_on_remote_node(host, extract_cmd, admin_ip)
     if cmd.rc != 0 or not cmd.stdout.strip():
         return {
             "success": False,
@@ -686,18 +612,13 @@ def verify_victoria_idrac_data(
         # Write cert directly via kubectl to preserve newlines, add trailing echo
         service_dns = f"{service_name}.{TELEMETRY_NAMESPACE}"
         curl_cmd = (
-            f'kubectl get secret {VICTORIA_TLS_SECRET} -n {TELEMETRY_NAMESPACE} '
-            f'-o \'jsonpath={{.data.ca\\.crt}}\' | base64 -d > /tmp/ca.crt && '
-            f'curl -s --max-time {timeout_seconds} --cacert /tmp/ca.crt '
-            f'--resolve {service_dns}:{port}:{external_ip} '
-            f'\'https://{service_dns}:{port}{query_endpoint}?query={query}\'; echo'
+            f"kubectl get secret {VICTORIA_TLS_SECRET} -n {TELEMETRY_NAMESPACE} "
+            f"-o jsonpath='{{.data.ca\\.crt}}' | base64 -d > /tmp/ca.crt && "
+            f"curl -s --max-time {timeout_seconds} --cacert /tmp/ca.crt "
+            f"--resolve {service_dns}:{port}:{external_ip} "
+            f"'https://{service_dns}:{port}{query_endpoint}?query={query}'; echo"
         )
-        full_curl_cmd = (
-            f'podman exec {container} ssh {ssh_opts} root@{admin_ip} '
-            f'"{curl_cmd}" 2>/dev/null'
-        )
-
-        cmd = host.run(full_curl_cmd)
+        cmd = run_on_remote_node(host, curl_cmd, admin_ip)
 
         try:
             response = json.loads(cmd.stdout) if cmd.rc == 0 else {}
