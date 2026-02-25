@@ -46,7 +46,6 @@ The following is a sample ``software_config.json`` snippet with ``additional_pac
         {"name": "slurm_node"},
         {"name": "login_node"},
         {"name": "login_compiler_node"},
-        {"name": "service_kube_control_plane_first"},
         {"name": "service_kube_control_plane"},
         {"name": "service_kube_node"}
     ]
