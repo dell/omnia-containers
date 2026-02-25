@@ -62,6 +62,11 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
       ./build_images.sh core omnia_branch=v2.1.0.0-rc2 core_tag=2.1
 
   * For detailed build instructions, refer to the `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
+  * For ``core_tag=<version>``, use first two digits of the Omnia version. For example, for ``v2.1.0.0``, use ``core_tag=2.1``.
+  * For ``omnia_branch=<tag|branch>``, use the branch name or tag name.
+      * For ``<tag>``, example: v2.1.0.0
+      * For ``<branch>``, example: main, pub/q1_dev, staging
+      * For ``<default>``, example: main
 
 2. Download the ``omnia.sh`` script using the following commands:
 
@@ -84,6 +89,16 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
     chmod +x omnia.sh
 
 4. On the OIM, run the following command to deploy the ``omnia_core`` container and configure passwordless SSH::
+
+    ./omnia.sh --help
+
+    Usage: ./omnia.sh [--install | --uninstall | --upgrade | --rollback | --version | --help]
+        -i, --install     Install and start the Omnia core container
+        -u, --uninstall   Uninstall the Omnia core container and clean up configuration
+        --upgrade     Upgrade the Omnia core container to newer version
+        --rollback    Rollback the Omnia core container to previous version
+        -v, --version     Display Omnia version information
+        -h, --help        More information about usage
 
     ./omnia.sh --install
 
