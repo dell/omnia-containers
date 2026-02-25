@@ -6,7 +6,7 @@ This section describes how to rollback to a previous version of Omnia core conta
 Rollback to the previous version
 --------------------------------
 
-To rollback to a previous version, run the following command: ::
+To rollback to a previous version of Omnia core container, run the following command: ::
 
     ./omnia.sh --rollback
 
