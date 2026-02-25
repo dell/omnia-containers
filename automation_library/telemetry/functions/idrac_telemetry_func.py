@@ -83,12 +83,63 @@ def get_service_kube_node_count(host) -> int:
     return count
 
 
+def get_service_kube_nodes_with_children(host) -> List[str]:
+    """
+    Get list of service_kube_node tags that have child slurm_nodes.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        List of service_kube_node tags that have children
+    """
+    container = TELEMETRY_VARS["container_name"]
+    provision_config_path = PROVISION_CONFIG_PATH
+
+    # Read provision_config.yml to get pxe_mapping_file_path
+    cmd = host.run(f"podman exec {container} cat {provision_config_path}")
+    if cmd.rc != 0:
+        return []
+
+    # Extract pxe_mapping_file_path
+    match = re.search(
+        r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?',
+        cmd.stdout
+    )
+    if not match:
+        return []
+    pxe_mapping_path = match.group(1).strip()
+
+    # Read PXE mapping file
+    cmd = host.run(f"podman exec {container} cat {pxe_mapping_path}")
+    if cmd.rc != 0:
+        return []
+
+    # Parse PXE mapping file
+    lines = cmd.stdout.strip().split('\n')
+    service_kube_nodes = []
+    slurm_parents = set()
+    
+    for line in lines[1:]:  # Skip header
+        if 'service_kube_node' in line.lower():
+            parts = line.split(',')
+            if len(parts) >= 3:
+                service_kube_nodes.append(parts[2].strip())  # SERVICE_TAG column
+        elif 'slurm_node' in line.lower():
+            parts = line.split(',')
+            if len(parts) >= 4 and parts[3].strip():  # PARENT_SERVICE_TAG column
+                slurm_parents.add(parts[3].strip())
+    
+    # Return service_kube_nodes that have children
+    return [node for node in service_kube_nodes if node in slurm_parents]
+
+
 def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     """
     Verify idrac-telemetry pods count matches expected count.
 
     SSH to remote node and check kubectl get pods for idrac-telemetry.
-    Expected count = service_kube_node count + 1 (for management layer pod).
+    Expected count = service_kube_nodes with children + 1 (for management layer pod).
 
     Args:
         host: Testinfra host object
@@ -99,9 +150,10 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     """
     from ...core.host import run_on_remote_node
 
-    # Get expected count (service_kube_node count + 1 for mgmt)
+    # Get expected count (service_kube_nodes with children + 1 for mgmt)
+    service_kube_nodes_with_children = get_service_kube_nodes_with_children(host)
     service_kube_node_count = get_service_kube_node_count(host)
-    expected_count = service_kube_node_count + 1
+    expected_count = len(service_kube_nodes_with_children) + 1
 
     # Get idrac-telemetry pods from remote node
     namespace = TELEMETRY_NAMESPACE
@@ -124,6 +176,7 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
         "expected_count": expected_count,
         "actual_count": actual_count,
         "service_kube_node_count": service_kube_node_count,
+        "service_kube_nodes_with_children": service_kube_nodes_with_children,
         "pods": pods,
         "error": "" if success else (
             f"Expected {expected_count} idrac-telemetry pods, found {actual_count}"
@@ -274,27 +327,41 @@ def get_activated_ips(host) -> List[str]:
     container = TELEMETRY_VARS["container_name"]
     report_path = IDRAC_TELEMETRY_REPORT_PATH
 
+    # Read telemetry report
     cmd = host.run(f"podman exec {container} cat {report_path}")
     if cmd.rc != 0:
         return []
 
-    # Parse the report - extract IPs after "Telemetry activated IPs List:"
+    # Parse activated IPs from report
     activated_ips = []
-    in_activated_section = False
-
-    for line in cmd.stdout.strip().split('\n'):
-        if 'Telemetry activated IPs List:' in line:
-            in_activated_section = True
+    lines = cmd.stdout.strip().split('\n')
+    capture_section = False
+    
+    for line in lines:
+        if "Telemetry activated IPs List:" in line:
+            capture_section = True
             continue
-        if in_activated_section:
-            if line.strip().startswith('- '):
-                ip = line.strip()[2:].strip()
-                activated_ips.append(ip)
-            elif line.strip() and not line.strip().startswith('-'):
-                # End of activated section
-                break
-
+        elif capture_section and line.strip().startswith('- '):
+            ip = line.strip()[2:]  # Remove '- ' prefix (after strip)
+            activated_ips.append(ip)
+        elif capture_section and line.strip() and not line.startswith('  -'):
+            # End of the IP list section
+            break
+    
     return activated_ips
+
+
+def has_activated_ips(host) -> bool:
+    """
+    Check if there are any activated IPs in telemetry report.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        True if there are activated IPs, False otherwise
+    """
+    return len(get_activated_ips(host)) > 0
 
 
 def get_bmc_group_data(host) -> List[Dict[str, str]]:
@@ -547,7 +614,14 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
         missing_ips = [ip for ip in expected_ips if ip not in actual_ips]
         extra_ips = [ip for ip in actual_ips if ip not in expected_ips]
 
-        pod_success = len(missing_ips) == 0
+        # Pod success criteria:
+        # 1. No missing IPs (all expected IPs are in MySQL)
+        # 2. If expected is empty but actual has data, that's unexpected - fail
+        if not expected_ips and actual_ips:
+            # Expected nothing but found data - this indicates a mapping issue
+            pod_success = False
+        else:
+            pod_success = len(missing_ips) == 0
 
         pod_results.append({
             "pod_name": pod_name,
@@ -944,11 +1018,15 @@ def verify_receiver_collecting_metrics(
         # Check for connection status (Got Status: 200)
         has_connection = 'Got Status:  200' in logs
 
-        # Pod success ONLY if ALL IPs have "Got new report" entries
-        # SSE connected without metrics is NOT enough - must have live reports
-        all_ips_have_metrics = all(r["collecting_metrics"] for r in ip_results) if ip_results else False
-
-        pod_success = all_ips_have_metrics
+        # Pod success if:
+        # 1. No MySQL IPs assigned (nothing to collect - this is OK)
+        # 2. All assigned IPs have "Got new report" entries
+        if not ip_results:
+            # No iDRACs assigned to this pod - considered success (nothing to verify)
+            pod_success = True
+        else:
+            # All IPs must have metrics
+            pod_success = all(r["collecting_metrics"] for r in ip_results)
 
         pod_results.append({
             "pod_name": pod_name,

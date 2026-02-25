@@ -16,3 +16,8 @@
 
 # Omnia configuration paths
 PROVISION_CONFIG_PATH = "/opt/omnia/input/project_default/provision_config.yml"
+SERVICE_CLUSTER_METADATA_PATH = "/opt/omnia/.data/service_cluster_metadata.yml"
+
+# Kubernetes functional groups (from PXE mapping file)
+K8S_CONTROL_PLANE_FUNCTIONAL_GROUP = "service_kube_control_plane_x86_64"
+K8S_WORKER_NODE_FUNCTIONAL_GROUP = "service_kube_node_x86_64"
