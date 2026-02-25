@@ -26,7 +26,6 @@ from .idrac_telemetry_vars import TELEMETRY_VARS
 # Config File Paths (from TELEMETRY_VARS - no duplication)
 # =============================================================================
 
-TELEMETRY_CONFIG_PATH = TELEMETRY_VARS["telemetry_config_path"]
 IDRAC_TELEMETRY_REPORT_PATH = TELEMETRY_VARS["idrac_telemetry_report_path"]
 BMC_GROUP_DATA_PATH = TELEMETRY_VARS["bmc_group_data_path"]
 

@@ -20,12 +20,12 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List
 
 import yaml
 import testinfra
 
-from .vars import PROVISION_CONFIG_PATH
+from .vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 
 
 def _get_project_root() -> str:
@@ -183,7 +183,7 @@ def _read_pxe_mapping(host: testinfra.host.Host) -> tuple:
         Returns ({}, []) if file cannot be read.
     """
     # Read provision_config.yml to get pxe_mapping_file_path
-    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
+    result = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
     if result.rc != 0:
         return {}, []
 

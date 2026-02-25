@@ -24,25 +24,11 @@ For module-specific constants, see:
 - victoria_vars.py - VictoriaMetrics specific
 """
 
-# Import from core (single source of truth for K8s constants)
-from ...core.vars import (
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-)
-
-
 # =============================================================================
 # Telemetry Namespace
 # =============================================================================
 
 TELEMETRY_NAMESPACE = "telemetry"
-
-
-# =============================================================================
-# Config File Paths (inside container) - used by shared_func.py
-# =============================================================================
-
-TELEMETRY_CONFIG_PATH = "/opt/omnia/input/project_default/telemetry_config.yml"
-SOFTWARE_CONFIG_PATH = "/opt/omnia/input/project_default/software_config.json"
 
 
 # =============================================================================

@@ -23,10 +23,9 @@ import re
 import yaml
 from typing import Dict, Any, List
 
-from ...core import run_in_container
+from ...core import run_in_container, INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 from ...core.host import run_on_remote_node
 from ..vars.idrac_telemetry_vars import (
-    PROVISION_CONFIG_PATH,
     TELEMETRY_NAMESPACE,
     IDRAC_TELEMETRY_POD_PREFIX,
     BMC_GROUP_DATA_PATH,
@@ -55,10 +54,8 @@ def get_service_kube_node_count(host) -> int:
     Returns:
         Count of service_kube_node entries
     """
-    provision_config_path = PROVISION_CONFIG_PATH
-
     # Read provision_config.yml to get pxe_mapping_file_path
-    cmd = run_in_container(host, f"cat {provision_config_path}")
+    cmd = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
     if cmd.rc != 0:
         return 0
 
@@ -94,10 +91,8 @@ def get_service_kube_nodes_with_children(host) -> List[str]:
     Returns:
         List of service_kube_node tags that have children
     """
-    provision_config_path = PROVISION_CONFIG_PATH
-
     # Read provision_config.yml to get pxe_mapping_file_path
-    cmd = run_in_container(host, f"cat {provision_config_path}")
+    cmd = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
     if cmd.rc != 0:
         return []
 

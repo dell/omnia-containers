@@ -24,154 +24,80 @@ For module-specific functions, see:
 - victoria_func.py - VictoriaMetrics specific
 """
 
-import json
 from typing import Dict, Any
 
 import pytest
-import yaml
 
-from ...core import get_node_info, run_in_container, K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
-
-from ..vars.shared_vars import (
-    TELEMETRY_CONFIG_PATH,
-    SOFTWARE_CONFIG_PATH,
+from ...core import (
+    get_node_info,
+    load_input_file,
+    get_input_value,
+    get_input_bool,
+    clear_input_cache,
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+    TELEMETRY_CONFIG_FILE,
+    SOFTWARE_CONFIG_FILE,
 )
-from ..messages.shared_msgs import SHARED_ASSERT_MSGS
-
 
 # =============================================================================
-# CACHING - Reduces redundant SSH/file reads during test runs
+# CACHING - Uses core/load_inputs.py cache
 # =============================================================================
 
-_config_cache: Dict[str, Any] = {}
 _admin_ip_cache: Dict[int, str] = {}
 _service_tag_cache: Dict[str, str] = {}  # IP -> ServiceTag mapping
 
 
 def clear_cache():
     """Clear all caches. Useful for testing or when config changes."""
-    global _config_cache, _admin_ip_cache, _service_tag_cache
-    _config_cache.clear()
+    clear_input_cache()  # Clear core config cache
     _admin_ip_cache.clear()
     _service_tag_cache.clear()
 
 
 # =============================================================================
-# CONFIGURATION READING FUNCTIONS
+# CONFIGURATION READING FUNCTIONS (using core/load_inputs.py)
 # =============================================================================
 
-def get_telemetry_config(host, use_cache: bool = True) -> Dict[str, Any]:
+def get_telemetry_config(host) -> Dict[str, Any]:
     """
-    Read telemetry_config.yml from container with caching.
+    Read telemetry_config.yml from container (cached by core).
 
     Args:
         host: Testinfra host object
-        use_cache: If True, return cached config if available (default: True)
 
     Returns:
         Dict with telemetry configuration
     """
-    cache_key = "telemetry_config"
-    if use_cache and cache_key in _config_cache:
-        return _config_cache[cache_key]
-
-    cmd = run_in_container(host, f"cat {TELEMETRY_CONFIG_PATH}")
-
-    if cmd.rc != 0:
-        return {
-            "error": SHARED_ASSERT_MSGS["telemetry_config_read_failed"].format(
-                error=cmd.stderr
-            )
-        }
-
-    try:
-        config = yaml.safe_load(cmd.stdout)
-        result = config if config else {}
-        if use_cache and "error" not in result:
-            _config_cache[cache_key] = result
-        return result
-    except yaml.YAMLError as e:
-        return {
-            "error": SHARED_ASSERT_MSGS["telemetry_config_parse_failed"].format(
-                error=e
-            )
-        }
+    return load_input_file(host, TELEMETRY_CONFIG_FILE)
 
 
-def get_software_config(host, use_cache: bool = True) -> Dict[str, Any]:
+def get_software_config(host) -> Dict[str, Any]:
     """
-    Read software_config.json from container with caching.
+    Read software_config.json from container (cached by core).
 
     Args:
         host: Testinfra host object
-        use_cache: If True, return cached config if available (default: True)
 
     Returns:
         Dict with software configuration
     """
-    cache_key = "software_config"
-    if use_cache and cache_key in _config_cache:
-        return _config_cache[cache_key]
-
-    cmd = run_in_container(host, f"cat {SOFTWARE_CONFIG_PATH}")
-
-    if cmd.rc != 0:
-        return {
-            "error": SHARED_ASSERT_MSGS["software_config_read_failed"].format(
-                error=cmd.stderr
-            )
-        }
-
-    try:
-        config = json.loads(cmd.stdout)
-        result = config if config else {}
-        if use_cache and "error" not in result:
-            _config_cache[cache_key] = result
-        return result
-    except json.JSONDecodeError as e:
-        return {
-            "error": SHARED_ASSERT_MSGS["software_config_parse_failed"].format(
-                error=e
-            )
-        }
+    return load_input_file(host, SOFTWARE_CONFIG_FILE)
 
 
 # =============================================================================
-# ENABLE CHECK FUNCTIONS
+# ENABLE CHECK FUNCTIONS (using core get_input_value/get_input_bool)
 # =============================================================================
 
 def is_idrac_telemetry_enabled(host) -> bool:
-    """
-    Check if iDRAC telemetry is enabled in telemetry_config.yml.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if idrac_telemetry_support is true
-    """
-    config = get_telemetry_config(host)
-    if config.get("error"):
-        return False
-
-    return config.get("idrac_telemetry_support", False)
+    """Check if iDRAC telemetry is enabled in telemetry_config.yml."""
+    return get_input_bool(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_support")
 
 
 def is_kafka_enabled(host) -> bool:
-    """
-    Check if Kafka is enabled in idrac_telemetry_collection_type.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if 'kafka' is in collection type
-    """
-    config = get_telemetry_config(host)
-    if config.get("error"):
+    """Check if Kafka is enabled in idrac_telemetry_collection_type."""
+    collection_type = get_input_value(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_collection_type")
+    if not collection_type:
         return False
-
-    collection_type = config.get("idrac_telemetry_collection_type", "")
     return "kafka" in collection_type.lower()
 
 
@@ -183,35 +109,21 @@ def is_victoria_enabled(host) -> bool:
     - idrac_telemetry_support is true AND
     - 'victoria' is in idrac_telemetry_collection_type
     """
-    config = get_telemetry_config(host)
-    if config.get("error"):
+    if not get_input_bool(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_support"):
         return False
-
-    idrac_telemetry_support = config.get("idrac_telemetry_support", False)
-    if not idrac_telemetry_support:
+    collection_type = get_input_value(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_collection_type")
+    if not collection_type:
         return False
-
-    collection_type = config.get("idrac_telemetry_collection_type", "")
     return "victoria" in collection_type.lower()
 
 
 def is_ldms_enabled(host) -> bool:
-    """
-    Check if LDMS is enabled in software_config.json.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        True if 'ldms' is in softwares list
-    """
-    config = get_software_config(host)
-    if config.get("error"):
+    """Check if LDMS is enabled in software_config.json."""
+    softwares = get_input_value(host, SOFTWARE_CONFIG_FILE, "softwares")
+    if not softwares:
         return False
-
-    softwares = config.get("softwares", [])
     for software in softwares:
-        if software.get("name", "").lower() == "ldms":
+        if isinstance(software, dict) and software.get("name", "").lower() == "ldms":
             return True
     return False
 

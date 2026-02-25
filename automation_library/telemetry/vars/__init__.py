@@ -16,21 +16,13 @@
 
 # Shared telemetry constants (used across all telemetry modules)
 from .shared_vars import (
-    # K8s constants (from core)
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-    # Telemetry namespace
     TELEMETRY_NAMESPACE,
-    # Config paths (used by shared_func.py)
-    TELEMETRY_CONFIG_PATH,
-    SOFTWARE_CONFIG_PATH,
-    # Container
     CONTAINER_NAME,
 )
 
 # iDRAC telemetry specific
 from .idrac_telemetry_vars import (
     TELEMETRY_VARS,
-    validate_telemetry_config,
     IDRAC_TELEMETRY_POD_PREFIX,
     STABILITY_WAIT_TIME,
     CMD_TEMPLATES,
