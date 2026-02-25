@@ -44,7 +44,7 @@ def load_user_config() -> Dict[str, Any]:
 
 def _is_local_ip(ip: str) -> bool:
     """Check if IP belongs to this machine."""
-    if ip in ["localhost", "127.0.0.1", ""]:
+    if ip in ["localhost", "127.0.0.1"]:
         return True
     try:
         result = subprocess.run(
@@ -60,9 +60,16 @@ def get_testinfra_host() -> testinfra.host.Host:
     Get testinfra host connected to OIM server.
 
     Always reads IP directly from user_config.yml to avoid hostname resolution issues.
+    Raises ValueError if oim_server_ip is not configured.
     """
     config = load_user_config()
-    oim_ip = config.get("oim_server_ip", "localhost")
+    oim_ip = config.get("oim_server_ip", "")
+
+    if not oim_ip or oim_ip.strip() == "":
+        raise ValueError(
+            "oim_server_ip is required in user_config.yml. "
+            "Please set the IP address of your OIM server."
+        )
 
     # Local execution
     if _is_local_ip(oim_ip):
