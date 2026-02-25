@@ -29,13 +29,10 @@ Usage:
         read_job_script,
     )
 """
-
+import os
 from typing import Dict, Any, List, Optional
 
-from automation_library.core.host import (
-    get_testinfra_host,
-    run_in_container,
-)
+from automation_library.core.host import run_in_container
 from ..vars.slurm_vars import get_job_script_path
 
 
@@ -131,7 +128,7 @@ def read_job_script() -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'content', 'path', 'error'
     """
-    import os
+    
 
     path = get_job_script_path()
     if not os.path.exists(path):
