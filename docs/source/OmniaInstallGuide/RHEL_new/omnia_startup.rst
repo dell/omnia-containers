@@ -88,7 +88,7 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     chmod +x omnia.sh
 
-4. On the OIM, run the following command to deploy the ``omnia_core`` container and configure passwordless SSH::
+4. On the OIM, the following are the available commands: ::
 
     ./omnia.sh --help
 
@@ -99,11 +99,16 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
         --rollback    Rollback the Omnia core container to previous version
         -v, --version     Display Omnia version information
         -h, --help        More information about usage
-
+  
+  To deploy the ``omnia_core`` container and configure passwordless SSH, run the following command: ::
+    
     ./omnia.sh --install
 
 5. When prompted for the shared path, enter the path for the Omnia shared directory. This can be a local file path or an NFS share path.
 6. When prompted for the password, enter a secure alphanumeric password for accessing the Omnia core container.
+7. To view the Omnia version, run the following command: ::
+    
+    ./omnia.sh --version
    
 .. caution:: The password must not contain special characters such as \ , | , & , ; , ` , < > , * , ? , ! , $ , ( ) , { } , [ ] . 
 
