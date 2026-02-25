@@ -55,7 +55,7 @@ Omnia supports dynamic addition of Slurm compute nodes to an existing cluster. T
 
 1. Update the PXE mapping file with new node entries. Add entries for new nodes with appropriate functional group assignments ``slurm_node_x86_64``.
 
-.. note:: Addition of new ``slurm_control_node``, ``login_node``, ``login_compiler_node`` are not supported.
+.. note:: Addition of only ``slurm_node`` is supported.
 
 2. Run the discovery playbook.
 3. PXE reboot the newly added node.
@@ -74,6 +74,9 @@ Slurm configuration validation and defaults
 ----------------------------------------------
 
 Omnia includes a built-in validation system that checks Slurm configuration files for correctness before deployment. The input validator module validates all configuration files (slurm.conf, slurmdbd.conf, cgroup.conf, gres.conf, etc.) against Slurm 25.X specifications, ensuring parameter names are valid and values match expected types (integers, strings, booleans, arrays, etc.). You can provide custom configurations in ``omnia_config.yml`` > ``slurm_cluster`` > ``config_sources`` either as a file path or a mapping directly. For supported conf parameters, see `Slurm.conf <https://slurm.schedmd.com/slurm.conf.html>`_
+
+The ``skip_merge`` parameter provides granular control over how Slurm configuration files are processed and applied to the cluster. By default, OMNIA merges custom configuration sources with system defaults and existing configurations to ensure a complete and valid setup. However, when ``skip_merge`` is set to ``true`` any specific configuration source path under ``config_sources`` will be applied directly to the cluster without any merging operations. This is not applicable to mapping type config_sources. The parameter accepts boolean values (``true`` or ``false``) and defaults to ``false``, ensuring that standard merge behavior is maintained unless explicitly overridden. When using ``skip_merge: true``, administrators must ensure that the provided configuration file is complete and valid, as OMNIA will not supplement it with default values or perform validation checks during the merge process.
+
 
 .. note:: 
     * By default, there is a partition with name "normal" that is created with all the slurm compute nodes listed in the ``pxe_mapping`` file. 
