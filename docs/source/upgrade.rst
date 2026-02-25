@@ -70,9 +70,9 @@ If any configuration files are missing from the backup, a warning is generated b
 .. Note::
     If you have not run any playbooks in Omnia 2.0, remove the upgrade lock using the following command: ::
 
-    rm /opt/omnia/.data/upgrade_in_progress.lock
+        rm /opt/omnia/.data/upgrade_in_progress.lock
 
- After the lock is removed, manually reconfigure default input files of the upgraded version. Other playbooks are allowed to run normally.
+    After the lock is removed, manually reconfigure default input files of the upgraded version. Other playbooks are allowed to run normally.
 
 7. To view the Omnia version, run the following command: ::
     
