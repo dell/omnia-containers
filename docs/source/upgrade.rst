@@ -14,6 +14,8 @@ Prerequisites
 
 For more information about deploying the Omnia core container, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
+Upgrade Steps
+--------------
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback. ::
 
@@ -28,6 +30,7 @@ The following operations can be performed on the Omnia Core Containers: Install,
         -h, --help        More information about usage
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
+
 
 1. Download the omnia.sh script using the following commands:
     
