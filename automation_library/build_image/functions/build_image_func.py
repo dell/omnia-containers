@@ -52,6 +52,56 @@ from ..messages.build_image_msgs import BUILD_IMAGE_MSGS, TEST_LOG_MSGS
 
 
 # =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
+    """
+    Adjust functional groups list based on control plane node count.
+
+    Logic:
+    - Single control plane node: only service_kube_control_plane_first_<arch> exists
+    - Multiple control plane nodes: both first and non-first exist
+
+    Args:
+        host: testinfra host object
+        functional_groups: list of functional groups from pxe_mapping
+
+    Returns:
+        Adjusted list of functional groups to verify
+    """
+    if not functional_groups:
+        return functional_groups
+
+    arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
+    control_plane_fg = f"service_kube_control_plane_{arch}"
+    control_plane_first_fg = f"service_kube_control_plane_first_{arch}"
+
+    # Count control plane nodes in pxe_mapping
+    pxe_file = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
+    cat_cmd = run_in_container(host, f"cat {pxe_file} 2>/dev/null")
+    control_plane_count = 0
+    if cat_cmd.rc == 0:
+        for line in cat_cmd.stdout.strip().split("\n"):
+            if control_plane_fg in line:
+                control_plane_count += 1
+
+    # Adjust groups based on control plane count
+    adjusted_groups = list(functional_groups)
+    if control_plane_count == 1:
+        # Single control plane: replace service_kube_control_plane with _first version
+        if control_plane_fg in adjusted_groups:
+            adjusted_groups.remove(control_plane_fg)
+            adjusted_groups.append(control_plane_first_fg)
+    elif control_plane_count > 1:
+        # Multiple control planes: need both first and non-first
+        if control_plane_first_fg not in adjusted_groups:
+            adjusted_groups.append(control_plane_first_fg)
+
+    return adjusted_groups
+
+
+# =============================================================================
 # CONTAINER VERIFICATION FUNCTIONS (PRECHECK)
 # =============================================================================
 
@@ -188,7 +238,8 @@ def check_functional_group_content(host) -> Dict[str, Any]:
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
 
     # Get expected functional groups from pxe_mapping file inside container
-    expected_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    expected_functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
     expected_group_names = get_group_names_from_pxe_mapping(host)
 
     if not expected_functional_groups:
@@ -282,15 +333,15 @@ def check_regctl_registry_images(host, arch: str = "x86_64") -> Dict[str, Any]:
     """
     Validate that base and compute images are available in the regctl registry.
     Uses: regctl repo ls <hostname>:5000
-    
+
     Expected images:
     - rhel-<arch>_base (always required)
     - rhel-<functional_group> for each group from pxe_mapping
-    
+
     Args:
         host: testinfra host object
         arch: Architecture string (x86_64 or aarch64)
-    
+
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'found_images', 'missing_images'
     """
@@ -310,7 +361,8 @@ def check_regctl_registry_images(host, arch: str = "x86_64") -> Dict[str, Any]:
     registry_url = f"{hostname}:5000"
 
     # Get functional groups from pxe_mapping file inside container
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
 
     # Build expected images list (without hostname prefix for display)
     expected_images = [f"rhel-{arch}_base"]  # Base image always required
@@ -406,7 +458,8 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
     """
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
 
     if not functional_groups:
         return {
@@ -830,25 +883,9 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
             "failed_groups": 0
         }
 
-    # Check if multiple service_kube_control_plane nodes exist
-    # If so, also need to verify service_kube_control_plane_first image
+    # Adjust functional groups based on control plane count
+    groups_to_verify = _get_adjusted_functional_groups(host, functional_groups)
     arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
-    control_plane_fg = f"service_kube_control_plane_{arch}"
-    control_plane_first_fg = f"service_kube_control_plane_first_{arch}"
-
-    # Count control plane nodes in pxe_mapping
-    pxe_file = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
-    cat_cmd = run_in_container(host, f"cat {pxe_file} 2>/dev/null")
-    control_plane_count = 0
-    if cat_cmd.rc == 0:
-        for line in cat_cmd.stdout.strip().split("\n"):
-            if control_plane_fg in line:
-                control_plane_count += 1
-
-    # If multiple control plane nodes, add the "first" image to verification list
-    groups_to_verify = list(functional_groups)
-    if control_plane_count > 1 and control_plane_first_fg not in groups_to_verify:
-        groups_to_verify.append(control_plane_first_fg)
 
     images_dir = BUILD_IMAGE_VARS["image_config_yaml_dir"]
     temp_image = BUILD_IMAGE_VARS["temp_image_path"]
