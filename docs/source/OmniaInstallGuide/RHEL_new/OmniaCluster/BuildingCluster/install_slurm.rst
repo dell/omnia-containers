@@ -260,6 +260,8 @@ It is recommended to run this script on a login or compiler node.
 
 
 
+.. _slurm-configuration-utilities:
+
 Slurm configuration utilities
 -----------------------------------
 
