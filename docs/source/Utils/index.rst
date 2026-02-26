@@ -7,4 +7,4 @@ Omnia provides utilities as separate playbooks. Using these playbooks, you can p
     :maxdepth: 2
 
     set_pxe_boot_order  
-    slurm-configuration-utilities
+    slurm_configuration_utilities
