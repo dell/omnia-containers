@@ -22,10 +22,7 @@ Validates:
 Configuration (env-driven + PXE mapping discovery):
 - Preferred: derive login node admin IPs from pxe_mapping_file via public core API
 - Fallback: LOGIN_NODE_IPS env (comma-separated login node IPs)
-- SSH_KEY_PATH: optional private key path for SSH auth; passwordless assumed if unset
 """
-
-import os
 
 import pytest
 
@@ -54,7 +51,7 @@ from automation_library.slurm.functions import (
 # =============================================================================
 
 @pytest.fixture(scope="session")
-def _login_ips():
+def login_ips():
     """Collect login IPs from PXE mapping or env; skip tests if none available."""
     ips = parse_login_ips_from_pxe_mapping()
     if not ips:
@@ -64,29 +61,25 @@ def _login_ips():
     return ips
 
 
-@pytest.fixture(scope="session")
-def _ssh_key_path():
-    """Return SSH key path from env if provided."""
-    return os.environ.get("SSH_KEY_PATH") or None
-
-
 # =============================================================================
 # TESTS
 # =============================================================================
 
-def test_submit_single_job_via_login_from_omnia_core(_login_ips, _ssh_key_path):
+def test_submit_single_job_via_login_from_omnia_core(login_ips):
     """E2E: OIM -> omnia_core -> login node, submit job.sh and verify output.
     Job is submitted both from external IP or Internal IP"""
     log = TestLogger(TEST_NAMES["single_job_submission"])
     oim_host = get_testinfra_host()
 
-    result = find_reachable_login_node(oim_host, _login_ips, _ssh_key_path)
+    result = find_reachable_login_node(oim_host, login_ips)
     for ip in result["skipped"]:
         log.check(
             TEST_LOG_MSGS["login_node_unreachable"].format(login_ip=ip)
         )
-    assert result["success"], \
-        TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=_login_ips)
+    if not result["success"]:
+        pytest.fail(
+            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+        )
     login_ip = result["login_ip"]
     log.passed(
         TEST_LOG_MSGS["login_node_found"].format(login_ip=login_ip)
@@ -100,7 +93,7 @@ def test_submit_single_job_via_login_from_omnia_core(_login_ips, _ssh_key_path):
     )
 
     copy_result = copy_job_script_to_login(
-        oim_host, login_ip, script_result["content"], _ssh_key_path
+        oim_host, login_ip, script_result["content"]
     )
     assert copy_result["success"], \
         TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -110,7 +103,7 @@ def test_submit_single_job_via_login_from_omnia_core(_login_ips, _ssh_key_path):
         TEST_LOG_MSGS["job_script_copied"].format(login_ip=login_ip)
     )
 
-    submit_result = submit_job_via_login(oim_host, login_ip, _ssh_key_path)
+    submit_result = submit_job_via_login(oim_host, login_ip)
     assert submit_result["success"], \
         TEST_ASSERT_MSGS["sbatch_failed"].format(
             login_ip=login_ip, error=submit_result["error"]
@@ -119,7 +112,7 @@ def test_submit_single_job_via_login_from_omnia_core(_login_ips, _ssh_key_path):
     log.passed(f"{TEST_LOG_MSGS['sbatch_success']} -> {submit_result['output']}")
     log.passed(TEST_LOG_MSGS["job_submitted"].format(job_id=job_id))
 
-    queue_result = check_squeue(oim_host, login_ip, job_id, _ssh_key_path)
+    queue_result = check_squeue(oim_host, login_ip, job_id)
     assert queue_result["success"], \
         TEST_ASSERT_MSGS["squeue_failed"].format(
             job_id=job_id, error=queue_result["error"]
@@ -129,18 +122,20 @@ def test_submit_single_job_via_login_from_omnia_core(_login_ips, _ssh_key_path):
     )
 
 
-def test_submit_multiple_jobs_via_login_from_omnia_core(_login_ips, _ssh_key_path):
+def test_submit_multiple_jobs_via_login_from_omnia_core(login_ips):
     """Submit multiple jobs sequentially from login node read from pxe_mapping file."""
     log = TestLogger(TEST_NAMES["multiple_job_submission"])
     oim_host = get_testinfra_host()
 
-    result = find_reachable_login_node(oim_host, _login_ips, _ssh_key_path)
+    result = find_reachable_login_node(oim_host, login_ips)
     for ip in result["skipped"]:
         log.check(
             TEST_LOG_MSGS["login_node_unreachable"].format(login_ip=ip)
         )
-    assert result["success"], \
-        TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=_login_ips)
+    if not result["success"]:
+        pytest.fail(
+            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+        )
     login_ip = result["login_ip"]
     log.passed(
         TEST_LOG_MSGS["login_node_found"].format(login_ip=login_ip)
@@ -151,7 +146,7 @@ def test_submit_multiple_jobs_via_login_from_omnia_core(_login_ips, _ssh_key_pat
         TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result["path"])
 
     copy_result = copy_job_script_to_login(
-        oim_host, login_ip, script_result["content"], _ssh_key_path
+        oim_host, login_ip, script_result["content"]
     )
     assert copy_result["success"], \
         TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -164,7 +159,7 @@ def test_submit_multiple_jobs_via_login_from_omnia_core(_login_ips, _ssh_key_pat
     log.check(f"Submitting {MULTI_JOB_COUNT} jobs sequentially...")
     for i in range(MULTI_JOB_COUNT):
         submit_result = submit_job_via_login(
-            oim_host, login_ip, _ssh_key_path
+            oim_host, login_ip
         )
         assert submit_result["success"], \
             TEST_ASSERT_MSGS["sbatch_failed"].format(
@@ -176,11 +171,11 @@ def test_submit_multiple_jobs_via_login_from_omnia_core(_login_ips, _ssh_key_pat
         log.passed(f"Job {i+1}/{MULTI_JOB_COUNT}: {msg}")
 
 
-def test_job_submission_from_multiple_login_nodes(_login_ips, _ssh_key_path):
+def test_job_submission_from_multiple_login_nodes(login_ips):
     """E2E: Submit job.sh from all login nodes in pxe_mapping file."""
     log = TestLogger(TEST_NAMES["multi_node_submission"])
-    assert _login_ips, TEST_ASSERT_MSGS["no_login_ips"]
-    log.check(f"Login node IPs from pxe_mapping: {_login_ips}")
+    assert login_ips, TEST_ASSERT_MSGS["no_login_ips"]
+    log.check(f"Login node IPs from pxe_mapping: {login_ips}")
 
     oim_host = get_testinfra_host()
 
@@ -192,10 +187,10 @@ def test_job_submission_from_multiple_login_nodes(_login_ips, _ssh_key_path):
     )
 
     reachable_count = 0
-    for login_ip in _login_ips:
+    for login_ip in login_ips:
         log.check(f"Testing login node: {login_ip}")
 
-        if not is_node_reachable(oim_host, login_ip, _ssh_key_path):
+        if not is_node_reachable(oim_host, login_ip):
             log.check(
                 TEST_LOG_MSGS["login_node_unreachable"].format(
                     login_ip=login_ip
@@ -206,7 +201,7 @@ def test_job_submission_from_multiple_login_nodes(_login_ips, _ssh_key_path):
         reachable_count += 1
 
         copy_result = copy_job_script_to_login(
-            oim_host, login_ip, script_result["content"], _ssh_key_path
+            oim_host, login_ip, script_result["content"]
         )
         assert copy_result["success"], \
             TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -217,7 +212,7 @@ def test_job_submission_from_multiple_login_nodes(_login_ips, _ssh_key_path):
         )
 
         submit_result = submit_job_via_login(
-            oim_host, login_ip, _ssh_key_path
+            oim_host, login_ip
         )
         assert submit_result["success"], \
             TEST_ASSERT_MSGS["sbatch_failed"].format(
@@ -232,5 +227,7 @@ def test_job_submission_from_multiple_login_nodes(_login_ips, _ssh_key_path):
             )
         )
 
-    assert reachable_count > 0, \
-        TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=_login_ips)
+    if reachable_count == 0:
+        pytest.fail(
+            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+        )
