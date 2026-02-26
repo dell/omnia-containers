@@ -48,7 +48,7 @@ from ..vars.build_image_vars import (
     S3_CONTAINERS,
     get_pxe_mapping_filename,
 )
-from ..messages.build_image_msgs import BUILD_IMAGE_MSGS
+from ..messages.build_image_msgs import BUILD_IMAGE_MSGS, TEST_LOG_MSGS
 
 
 # =============================================================================
@@ -564,7 +564,7 @@ def _check_squashfs_tools_installed(host) -> Dict[str, Any]:
     if check_cmd.rc != 0:
         return {
             "installed": False,
-            "error": BUILD_IMAGE_MSGS["squashfs_tools_not_installed"]
+            "error": TEST_LOG_MSGS["squashfs_tools_not_installed"]
         }
     return {"installed": True, "error": None}
 
@@ -830,13 +830,31 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
             "failed_groups": 0
         }
 
+    # Check if multiple service_kube_control_plane nodes exist
+    # If so, also need to verify service_kube_control_plane_first image
+    arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
+    control_plane_fg = f"service_kube_control_plane_{arch}"
+    control_plane_first_fg = f"service_kube_control_plane_first_{arch}"
+
+    # Count control plane nodes in pxe_mapping
+    pxe_file = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
+    cat_cmd = run_in_container(host, f"cat {pxe_file} 2>/dev/null")
+    control_plane_count = 0
+    if cat_cmd.rc == 0:
+        for line in cat_cmd.stdout.strip().split("\n"):
+            if control_plane_fg in line:
+                control_plane_count += 1
+
+    # If multiple control plane nodes, add the "first" image to verification list
+    groups_to_verify = list(functional_groups)
+    if control_plane_count > 1 and control_plane_first_fg not in groups_to_verify:
+        groups_to_verify.append(control_plane_first_fg)
+
     images_dir = BUILD_IMAGE_VARS["image_config_yaml_dir"]
     temp_image = BUILD_IMAGE_VARS["temp_image_path"]
     temp_mount = BUILD_IMAGE_VARS["temp_mount_path"]
 
     # Get base image packages (these should be in all compute images)
-    # Detect architecture from functional groups
-    arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
     base_packages = _get_base_image_packages(host, images_dir, arch)
 
     # Ensure mount point exists and is clean
@@ -847,7 +865,7 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
     results = []
     all_passed = True
 
-    for fg in functional_groups:
+    for fg in groups_to_verify:
         result = _verify_single_image_packages(
             host, fg, images_dir, temp_image, temp_mount, base_packages
         )
@@ -866,10 +884,10 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
     return {
         "success": all_passed,
         "results": results,
-        "total_groups": len(functional_groups),
+        "total_groups": len(groups_to_verify),
         "passed_groups": passed_count,
         "failed_groups": failed_count,
-        "details": f"Verified packages in {passed_count}/{len(functional_groups)} images",
+        "details": f"Verified packages in {passed_count}/{len(groups_to_verify)} images",
         "error": None if all_passed else f"{failed_count} image(s) have missing packages"
     }
 
