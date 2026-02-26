@@ -37,6 +37,6 @@ from .functions.kafka_func import (
     verify_ldms_pods_running,
     verify_ldms_services_ports,
 )
-from .vars.idrac_telemetry_vars import TELEMETRY_VARS, validate_telemetry_config
+from .vars.idrac_telemetry_vars import TELEMETRY_VARS
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
 from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES
