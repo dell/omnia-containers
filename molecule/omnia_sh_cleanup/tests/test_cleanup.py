@@ -13,12 +13,15 @@
 # limitations under the License.
 
 """
-Testinfra tests for omnia.sh cleanup verification.
+Omnia.sh Cleanup Test Cases.
 
-These tests verify that cleanup (omnia.sh --uninstall) was successful.
+This module contains pytest test cases for verifying omnia.sh cleanup (uninstall).
 
-Usage:
-    ./run_molecule.sh cleanup    # Run uninstall + verify
+Test cases:
+1. Verify omnia_core container is NOT running after cleanup
+2. Verify omnia_core.container service file is removed
+3. Verify fstab entry for omnia_shared_path is removed
+4. Verify omnia_shared_path is NOT mounted
 """
 
 from automation_library.core import TestLogger

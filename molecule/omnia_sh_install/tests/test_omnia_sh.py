@@ -13,10 +13,17 @@
 # limitations under the License.
 
 """
-Testinfra tests for omnia.sh installation verification.
+Omnia.sh Install Test Cases.
 
-This file contains minimal test functions that call the centralized
-verification functions in omnia_sh_func.py.
+This module contains pytest test cases for verifying omnia.sh installation.
+
+Test cases:
+1. Verify omnia_core container is running
+2. Verify omnia_core.container file exists
+3. Verify omnia_core service is running
+4. Verify oim_metadata.yml file exists inside container
+5. Verify passwordless SSH to container works
+6. Verify passwordless SSH from container works
 """
 
 from automation_library.core import TestLogger

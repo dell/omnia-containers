@@ -15,18 +15,13 @@
 """
 iDRAC Telemetry Test Cases.
 
-This module contains pytest test cases for verifying iDRAC telemetry deployment
-and data collection in the telemetry namespace.
+This module contains pytest test cases for verifying iDRAC telemetry deployment.
 
 Test cases:
 1. Verify idrac-telemetry pod count matches expected
 2. Verify all telemetry pods are running
 3. Verify MySQL data in idrac-telemetry pods
 4. Verify idrac-telemetry-receiver is collecting metrics
-
-Usage:
-    ./run_molecule.sh telemetry test      # Run playbook + verify
-    ./run_molecule.sh telemetry verify    # Verify only
 """
 
 import time

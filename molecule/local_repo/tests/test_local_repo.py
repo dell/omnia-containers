@@ -13,21 +13,23 @@
 # limitations under the License.
 
 """
-Testinfra tests for local_repo verification.
+Local Repo Test Cases.
 
-Validations:
- 1. Pulp container is running
- 2. Pulp CLI commands work
- 3. Pulp API status is healthy (DB, workers, content apps, storage)
- 4. No failed tasks in Pulp
- 5. Software download status (software.csv)
- 6. Per-software package status (status.csv)
- 7. RPM repositories are synced
- 8. RPM distributions are published
- 9. Container repositories are synced
-10. File repositories are synced
-11. Pulp RPM content is accessible via HTTP (ALL distributions)
-12. Software packages from software_config.json exist in Pulp
+This module contains pytest test cases for verifying local_repo (Pulp) deployment.
+
+Test cases:
+1. Verify Pulp container is running
+2. Verify Pulp CLI commands work
+3. Verify Pulp API status is healthy (DB, workers, content apps, storage)
+4. Verify no failed tasks in Pulp
+5. Verify software download status (software.csv)
+6. Verify per-software package status (status.csv)
+7. Verify RPM repositories are synced
+8. Verify RPM distributions are published
+9. Verify container repositories are synced
+10. Verify file repositories are synced
+11. Verify Pulp RPM content is accessible via HTTP (ALL distributions)
+12. Verify software packages from software_config.json exist in Pulp
 """
 
 from automation_library.core import TestLogger

@@ -59,8 +59,8 @@ def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
     """
     Adjust functional groups list based on control plane node count.
 
-    Logic:
-    - Single control plane node: only service_kube_control_plane_first_<arch> exists
+    Logic (x86_64 only - k8s cluster not supported on aarch64):
+    - Single control plane node: only service_kube_control_plane_first_x86_64 exists
     - Multiple control plane nodes: both first and non-first exist
 
     Args:
@@ -73,9 +73,13 @@ def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
     if not functional_groups:
         return functional_groups
 
-    arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
-    control_plane_fg = f"service_kube_control_plane_{arch}"
-    control_plane_first_fg = f"service_kube_control_plane_first_{arch}"
+    # K8s cluster only supported on x86_64, skip adjustment for aarch64
+    control_plane_fg = "service_kube_control_plane_x86_64"
+    control_plane_first_fg = "service_kube_control_plane_first_x86_64"
+
+    # If no x86_64 control plane in functional groups, return as-is
+    if control_plane_fg not in functional_groups:
+        return functional_groups
 
     # Count control plane nodes in pxe_mapping
     pxe_file = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
@@ -90,9 +94,8 @@ def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
     adjusted_groups = list(functional_groups)
     if control_plane_count == 1:
         # Single control plane: replace service_kube_control_plane with _first version
-        if control_plane_fg in adjusted_groups:
-            adjusted_groups.remove(control_plane_fg)
-            adjusted_groups.append(control_plane_first_fg)
+        adjusted_groups.remove(control_plane_fg)
+        adjusted_groups.append(control_plane_first_fg)
     elif control_plane_count > 1:
         # Multiple control planes: need both first and non-first
         if control_plane_first_fg not in adjusted_groups:

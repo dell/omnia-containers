@@ -15,8 +15,7 @@
 """
 Kafka Telemetry Test Cases.
 
-This module contains pytest test cases for verifying Kafka configuration
-and data flow in the telemetry namespace.
+This module contains pytest test cases for verifying Kafka telemetry deployment.
 
 Test cases:
 1. Verify LDMS pods running (if ldms enabled)
@@ -27,8 +26,6 @@ Test cases:
 6. Verify LDMS data in Kafka topic (if ldms enabled)
 
 Note: Kafka tests skip if kafka is not in idrac_telemetry_collection_type.
-      LDMS tests skip if ldms is not in software_config.json.
-      Actual iDRAC data verification is done in test_victoria_idrac_data.
 """
 
 from datetime import datetime

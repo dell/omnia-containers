@@ -15,8 +15,7 @@
 """
 VictoriaMetrics Telemetry Test Cases.
 
-This module contains pytest test cases for verifying VictoriaMetrics configuration
-and data collection in the telemetry namespace.
+This module contains pytest test cases for verifying VictoriaMetrics deployment.
 
 Test cases:
 1. Verify VictoriaMetrics is enabled
@@ -29,9 +28,7 @@ Test cases:
 8. Verify TLS connection and health endpoint
 9. Verify iDRAC telemetry data in VictoriaMetrics
 
-Note: All tests skip if:
-  - idrac_telemetry_support is false
-  - 'victoria' is not in idrac_telemetry_collection_type
+Note: All tests skip if victoria is not in idrac_telemetry_collection_type.
 """
 
 from datetime import datetime
