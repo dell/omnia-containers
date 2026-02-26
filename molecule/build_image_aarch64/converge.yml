@@ -1,0 +1,182 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run build_image_aarch64.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+
+
+- name: Converge - Run build_image_aarch64.yml in omnia_core container
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
+    build_image_playbook: "/omnia/build_image_aarch64/build_image_aarch64.yml"
+    build_image_log_path: "/opt/omnia/log/core/playbooks/build_image_aarch64.log"
+    s3_containers:
+      - minio-server
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running build_image_aarch64 on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # PRECHECK: VALIDATE S3 CONTAINERS ARE RUNNING
+    # =========================================================================
+
+    - name: "PRECHECK: Check S3 containers are running"
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps --format '{{ '{{' }}.Names{{ '}}' }}' | grep -q {{ item }}
+      args:
+        executable: /bin/bash
+      register: s3_container_check
+      changed_when: false
+      failed_when: false
+      loop: "{{ s3_containers }}"
+
+    - name: Build list of failed S3 containers
+      ansible.builtin.set_fact:
+        failed_s3_containers: "{{ s3_container_check.results | selectattr('rc', 'ne', 0) | map(attribute='item') | list }}"
+
+    - name: "PRECHECK FAILED: S3 containers not running"
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    S3 CONTAINERS PRECHECK FAILED                              ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ The following S3 containers are not running:
+          ║   {{ failed_s3_containers | join(', ') }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   S3 containers must be running before build_image can execute.
+          ║
+          ║ HOW TO FIX:
+          ║   1. Check container status: podman ps -a | grep -E 'minio'
+          ║   2. Check container logs: podman logs minio-server
+          ║   3. Restart containers: podman restart minio-server
+          ║   4. Re-run prepare_oim.yml if containers don't exist
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: failed_s3_containers | length > 0
+
+    - name: "PRECHECK PASSED: All S3 containers running"
+      ansible.builtin.debug:
+        msg: "✔ All S3 containers are running: {{ s3_containers | join(', ') }}"
+
+    # =========================================================================
+    # RUN BUILD_IMAGE PLAYBOOK
+    # =========================================================================
+
+    - name: Check if build_image playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core test -f {{ build_image_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "build_image playbook ({{ build_image_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute build_image_aarch64 playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: podman exec -w /omnia omnia_core ansible-playbook build_image_aarch64/build_image_aarch64.yml -v > /dev/null 2>&1
+      register: playbook_result
+      timeout: 36000
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: false
+      failed_when: false
+
+    - name: Get last 50 lines of playbook log
+      ansible.builtin.shell:
+        cmd: podman exec omnia_core tail -50 {{ build_image_log_path }} 2>/dev/null || echo "Log file not found"
+      register: playbook_log_tail
+      changed_when: false
+      when: playbook_result is defined
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          BUILD_IMAGE_AARCH64 PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          Log File: {{ build_image_log_path }} (inside omnia_core container)
+          ============================================
+          LAST 50 LINES OF OUTPUT:
+          {{ playbook_log_tail.stdout | default('No output available') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    BUILD_IMAGE PLAYBOOK EXECUTION FAILED                      ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   The build_image_aarch64.yml playbook failed during execution inside omnia_core.
+          ║
+          ║ POSSIBLE CAUSES:
+          ║   - Image build failed (check build logs)
+          ║   - S3 upload failed (check minio-server container)
+          ║   - Registry push failed (check registry container)
+          ║   - Missing or invalid pxe_mapping_file.csv
+          ║   - Insufficient system resources (disk, memory)
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Check playbook log: podman exec omnia_core cat {{ build_image_log_path }}
+          ║   3. Check omnia logs: ls -la /opt/omnia/log/
+          ║   4. Check container status: podman ps -a
+          ║   5. Re-run manually inside omnia_core container
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "build_image playbook not found at {{ build_image_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    - name: Build Image aarch64 converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          build_image_aarch64 converge complete!
+          ============================================
+          - omnia_core container: Running
+          - build_image playbook: Executed successfully
+          - Ready for pytest verification
+          ============================================

@@ -13,29 +13,25 @@
 # limitations under the License.
 
 """
-Testinfra tests for build_image verification.
+Testinfra tests for build_image_x86_64 verification.
 
-This file contains test functions that verify build_image deployment was successful.
-Tests continue even if some fail (skip_on_failure behavior).
+This file contains test functions that verify build_image_x86_64 deployment
+was successful. Uses the automation_library/build_image library with arch='x86_64'.
 
 Validations:
 1. functional_groups_config.yml exists and contains all roles/groups from pxe_mapping
-2. Base and compute images are available in regctl registry
+2. Base and compute images are available in regctl registry (rhel-x86_64_base)
 3. All 3 images (initrd, rootfs, vmlinuz) are pushed to S3 bucket for each functional group
 
 Usage:
-    ./run_molecule.sh build_image test      # Run playbook + verify
-    ./run_molecule.sh build_image verify    # Verify only
+    ./run_molecule.sh build_image_x86_64 test      # Run playbook + verify
+    ./run_molecule.sh build_image_x86_64 verify    # Verify only
 """
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.build_image.vars import (
-    BUILD_IMAGE_VARS,
-    S3_CONTAINERS,
-)
+from automation_library.build_image.vars import BUILD_IMAGE_VARS
 from automation_library.build_image.messages import (
-    TEST_VARS,
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,
@@ -45,6 +41,7 @@ from automation_library.build_image.functions import (
     check_functional_group_content,
     check_regctl_registry_images,
     check_s3_bucket_images,
+    verify_all_image_packages,
     get_functional_groups_from_pxe_mapping,
 )
 
@@ -120,18 +117,22 @@ def test_regctl_registry_images(host):
     functional_groups = get_functional_groups_from_pxe_mapping(host)
     log.check(f"Checking regctl registry for base image + {len(functional_groups)} functional group images")
 
-    result = check_regctl_registry_images(host)
+    result = check_regctl_registry_images(host, arch="x86_64")
+
+    # Build details
+    details_lines = [f"Registry: {result.get('registry_url', 'unknown')}"]
+    for img in result.get("found_images", []):
+        details_lines.append(f"✓ {img}")
+    for img in result.get("missing_images", []):
+        details_lines.append(f"✗ {img}: MISSING")
+    details = "\n".join(details_lines)
 
     if result["success"]:
-        # Show details for each image
-        log.passed(
-            LOG_MSGS["regctl_registry_images_ok"],
-            "\n    ".join(result["found_images"])
-        )
+        log.passed(LOG_MSGS["regctl_registry_images_ok"], details)
     else:
         log.failed(
             LOG_MSGS["regctl_registry_images_missing"].format(count=len(result["missing_images"])),
-            f"Missing: {', '.join(result['missing_images'])}"
+            details
         )
 
     assert result["success"], ASSERT_MSGS["regctl_registry_images_missing"].format(
@@ -154,35 +155,28 @@ def test_s3_bucket_images(host):
 
     result = check_s3_bucket_images(host)
 
-    # Print S3 bucket output grouped by functional group
-    s3_output = result.get("s3_output", "")
-    if s3_output and result.get("results"):
-        print("\n  S3 BUCKET CONTENTS:")
-        for fg_result in result["results"]:
-            fg = fg_result["functional_group"]
-            print(f"\n  {fg}:")
-            for line in s3_output.strip().split("\n"):
-                if f"{fg}/" in line:
-                    print(f"    {line}")
+    # Build details for all functional groups with actual image names and sizes
+    details_lines = []
+    for fg_result in result.get("results", []):
+        fg = fg_result["functional_group"]
+        if fg_result["success"]:
+            details_lines.append(f"✓ {fg}:")
+            for img in fg_result.get("image_details", []):
+                details_lines.append(f"    {img['type']}: {img['filename']} ({img['size_human']})")
+        else:
+            missing = fg_result.get("missing_images", [])
+            details_lines.append(f"✗ {fg}: missing {', '.join(missing)}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed(LOG_MSGS["s3_bucket_images_ok"], "")
+        log.passed(LOG_MSGS["s3_bucket_images_ok"], details)
     else:
-        # Build detailed failure message
         failed_groups = [r for r in result["results"] if not r["success"]]
-        failure_details = []
-        for fg_result in failed_groups:
-            failure_details.append(
-                f"{fg_result['functional_group']}: missing {', '.join(fg_result['missing_images'])}"
-            )
         log.failed(
             LOG_MSGS["s3_bucket_images_missing"].format(count=len(failed_groups)),
-            "; ".join(failure_details)
+            details
         )
-
-    # Build assert message with details for each failed group
-    if not result["success"]:
-        failed_groups = [r for r in result["results"] if not r["success"]]
         assert_details = []
         for fg_result in failed_groups:
             assert_details.append(
@@ -192,3 +186,61 @@ def test_s3_bucket_images(host):
             group="multiple groups",
             missing_list="\n".join(assert_details)
         )
+
+
+# =============================================================================
+# IMAGE PACKAGE VERIFICATION TESTS
+# =============================================================================
+
+def test_all_image_packages(host):
+    """Verify all packages are installed in ALL S3 images by mounting and checking RPM db."""
+    log = TestLogger(TEST_NAMES["image_packages"])
+
+    result = verify_all_image_packages(host)
+
+    # Check for prerequisite failure (squashfs-tools not installed)
+    if result.get("prerequisite_failed"):
+        log.failed("Prerequisite check failed", result.get("error", "Unknown error"))
+        assert False, result.get("error", "Prerequisite check failed")
+
+    # Build details showing ALL packages (installed/not installed) for each image
+    details_lines = []
+    for fg_result in result.get("results", []):
+        fg = fg_result["functional_group"]
+        expected = fg_result.get("expected_count", 0)
+        found = fg_result.get("found_count", 0)
+        missing = fg_result.get("missing_count", 0)
+        base_count = fg_result.get("base_package_count", 0)
+        compute_count = fg_result.get("compute_package_count", 0)
+
+        status = "✓" if fg_result["success"] else "✗"
+        details_lines.append(f"{status} {fg}: {found}/{expected} packages")
+        details_lines.append(f"    (base: {base_count}, compute: {compute_count})")
+
+        # Show ALL packages with their status
+        pkg_details = fg_result.get("package_details", [])
+        installed = [p for p in pkg_details if p["status"] == "installed"]
+        not_installed = [p for p in pkg_details if p["status"] == "missing"]
+
+        if installed:
+            details_lines.append(f"    INSTALLED ({len(installed)}):")
+            for pkg in installed:
+                details_lines.append(f"      ✓ {pkg['expected']} → {pkg['found']}")
+
+        if not_installed:
+            details_lines.append(f"    NOT INSTALLED ({len(not_installed)}):")
+            for pkg in not_installed:
+                details_lines.append(f"      ✗ {pkg['expected']}")
+
+        if fg_result.get("error") and not fg_result["success"]:
+            details_lines.append(f"    Error: {fg_result['error']}")
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(LOG_MSGS["image_packages_ok"], details)
+    else:
+        failed_count = result.get("failed_groups", 0)
+        log.failed(LOG_MSGS["image_packages_failed"].format(count=failed_count), details)
+
+    assert result["success"], result.get("error", "Image package verification failed")

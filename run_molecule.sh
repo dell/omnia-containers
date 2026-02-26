@@ -33,7 +33,8 @@
 #   omnia_sh_install - Install omnia.sh and verify
 #   omnia_sh_cleanup - Cleanup omnia.sh and verify
 #   prepare_oim      - Prepare OIM and verify
-#   build_image      - Build image playbook and verify
+#   build_image_x86_64 - Build x86_64 images and verify
+#   build_image_aarch64- Build aarch64 images and verify
 #   telemetry        - Run telemetry playbook and verify
 #   all              - Run omnia_sh_install + prepare_oim + build_image (not cleanup)
 #   (more scenarios can be added)
@@ -76,7 +77,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image telemetry omnia_sh_cleanup"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 telemetry omnia_sh_cleanup"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -98,7 +99,7 @@ case "$SCENARIO" in
         echo ""
         echo "Scenarios:"
         echo "  <name>    - Run specific scenario"
-        echo "  all       - Run omnia_sh_install + prepare_oim (not cleanup)"
+        echo "  all       - Run omnia_sh_install + prepare_oim + build_image_x86_64 + build_image_aarch64"
         echo ""
         echo "Special Commands:"
         echo "  list      - List available scenarios"
@@ -109,7 +110,8 @@ case "$SCENARIO" in
         echo "  $0 omnia_sh_install verify    # Verify install only"
         echo "  $0 omnia_sh_cleanup test      # Cleanup + verify"
         echo "  $0 prepare_oim test           # Prepare OIM + verify"
-        echo "  $0 build_image test           # Build image + verify"
+        echo "  $0 build_image_x86_64 test    # Build x86_64 images + verify"
+        echo "  $0 build_image_aarch64 test   # Build aarch64 images + verify"
         echo "  $0 telemetry test             # Telemetry + verify"
         echo "  $0 telemetry verify           # Verify telemetry only"
         echo "  $0 all test                   # Run ALL scenarios"
@@ -133,7 +135,7 @@ case "$SCENARIO" in
         
         # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
-        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image"
+        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64"
         
         FAILED=0
         for name in $SCENARIOS; do

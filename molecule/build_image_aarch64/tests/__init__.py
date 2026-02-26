@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Build Image test module."""
+"""Build Image aarch64 test module."""

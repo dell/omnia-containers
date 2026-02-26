@@ -13,10 +13,10 @@
 # limitations under the License.
 
 # =============================================================================
-# Molecule Configuration for build_image Testing
+# Molecule Configuration for build_image_aarch64 Testing
 # =============================================================================
 #
-# This module runs build_image_x86_64.yml playbook inside omnia_core container
+# This module runs build_image_aarch64.yml playbook inside omnia_core container
 # and verifies the image build was successful.
 #
 # PRECHECKS:
@@ -29,9 +29,9 @@
 #
 # USAGE:
 # ------
-#   ./run_molecule.sh build_image test       # Run playbook + verify
-#   ./run_molecule.sh build_image converge   # Run playbook only
-#   ./run_molecule.sh build_image verify     # Verify only
+#   ./run_molecule.sh build_image_aarch64 test       # Run playbook + verify
+#   ./run_molecule.sh build_image_aarch64 converge   # Run playbook only
+#   ./run_molecule.sh build_image_aarch64 verify     # Verify only
 #
 # Configuration:
 #   - user_config.yml: OIM server connection settings
@@ -67,7 +67,7 @@ verifier:
     tb: short
 
 scenario:
-  name: build_image
+  name: build_image_aarch64
   test_sequence:
     - dependency
     - syntax

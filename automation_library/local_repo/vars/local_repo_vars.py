@@ -13,112 +13,44 @@
 # limitations under the License.
 
 """
-Local Repo - Configuration Variables.
+Local Repo - Configuration Constants.
 
-This module loads all configuration for local_repo automation.
-Reads from user_config.yml (via OIM_PREREQ_VARS) and input/local_repo_config.yml.
-
-Usage:
-    from automation_library.local_repo.vars.local_repo_vars import LOCAL_REPO_VARS
+Pure constants used by local_repo verification functions.
+All dynamic configuration is read at runtime via core/load_inputs.py.
 
 Author: Dell Technologies
 """
 
-import os
-from typing import Dict, Any, List
-
-import yaml
-
-from ...vars.oim_prereq_vars import OIM_PREREQ_VARS
-
-
-def _get_project_root() -> str:
-    """Get the project root directory."""
-    return os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
-
-
-def _load_local_repo_config() -> Dict[str, Any]:
-    """Load local_repo_config.yml from input directory."""
-    config_path = os.path.join(_get_project_root(), "input", "local_repo_config.yml")
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except (IOError, yaml.YAMLError):
-            return {}
-    return {}
-
-
-def _extract_repo_urls(cfg: Dict[str, Any]) -> List[str]:
-    """Extract repo URLs from local_repo_config.yml structure."""
-    keys = [
-        "user_repo_url_x86_64",
-        "user_repo_url_aarch64",
-        "rhel_os_url_x86_64",
-        "rhel_os_url_aarch64",
-        "omnia_repo_url_rhel_x86_64",
-        "omnia_repo_url_rhel_aarch64",
-    ]
-
-    urls: List[str] = []
-    for k in keys:
-        items = cfg.get(k, []) or []
-        if not isinstance(items, list):
-            continue
-        for item in items:
-            if isinstance(item, dict):
-                u = item.get("url")
-                if isinstance(u, str) and u.strip():
-                    urls.append(u.strip())
-            elif isinstance(item, str) and item.strip():
-                urls.append(item.strip())
-    return urls
-
-
 # =============================================================================
-# LOCAL_REPO VARIABLES
+# CONTAINER NAMES
 # =============================================================================
 
-_LOCAL_REPO_CONFIG = _load_local_repo_config()
+OMNIA_CORE_CONTAINER = "omnia_core"
+PULP_CONTAINER = "pulp"
 
-LOCAL_REPO_VARS: Dict[str, Any] = {
-    # Connection (from user_config.yml)
-    "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
-    "oim_ssh_user": OIM_PREREQ_VARS.get("oim_ssh_user", "root"),
-    "oim_ssh_password": OIM_PREREQ_VARS.get("oim_ssh_password", ""),
-    "oim_ssh_port": OIM_PREREQ_VARS.get("oim_ssh_port", 22),
+# =============================================================================
+# PATHS (inside omnia_core container)
+# =============================================================================
 
-    # Containers
-    "omnia_core_container": "omnia_core",
-    "pulp_container": "pulp",
+LOG_BASE_PATH = "/opt/omnia/log/local_repo"
+SOFTWARE_CSV_FILENAME = "software.csv"
+STATUS_CSV_FILENAME = "status.csv"
 
-    # Paths
-    "input_dir": os.path.join(_get_project_root(), "input"),
-    "oim_input_dir": "/opt/omnia/input/project_default",
-    "local_repo_playbook": "/omnia/local_repo/local_repo.yml",
+# Supported architectures
+ARCH_LIST = ["x86_64", "aarch64"]
 
-    # Repo URLs (from input/local_repo_config.yml)
-    "repo_urls": _extract_repo_urls(_LOCAL_REPO_CONFIG),
+# =============================================================================
+# PULP SETTINGS
+# =============================================================================
 
-    # Status file search roots
-    "status_search_roots": ["/opt/omnia", "/local/omnia", "/omnia"],
+PULP_CONTENT_PORT = 2225
+PULP_CONTENT_SCHEME = "https"
+PULP_API_STATUS_URI = "/pulp/api/v3/status/"
+PULP_CONTENT_PATH_PREFIX = "/pulp/content/"
 
-    # Timeouts
-    "pulp_api_timeout_seconds": 300,
-    "repo_url_timeout_seconds": 10,
+# =============================================================================
+# TIMEOUTS
+# =============================================================================
 
-    # Execution control
-    "skip_on_failure": OIM_PREREQ_VARS.get("skip_on_failure", False),
-}
-
-
-def get_local_repo_config_path() -> str:
-    """Get the path to local_repo_config.yml."""
-    return os.path.join(_get_project_root(), "input", "local_repo_config.yml")
-
-
-def get_repo_urls() -> List[str]:
-    """Get repository URLs from local_repo_config.yml."""
-    return LOCAL_REPO_VARS.get("repo_urls", []) or []
+PULP_API_TIMEOUT_SECONDS = 300
+CURL_CONNECT_TIMEOUT = 10

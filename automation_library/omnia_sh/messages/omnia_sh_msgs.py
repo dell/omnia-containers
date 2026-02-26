@@ -30,7 +30,7 @@ from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 TEST_VARS = {
     "container_file": "/etc/containers/systemd/omnia_core.container",
     "service_name": f"{OMNIA_SH_VARS['container_name']}.service",
-    "metadata_file": f"{OMNIA_SH_VARS['omnia_shared_path']}/omnia/.data/oim_metadata.yml",
+    "metadata_file": f"{OMNIA_SH_VARS['omnia_shared_path']}/.data/oim_metadata.yml",
     "ssh_alias": OMNIA_SH_VARS["container_name"],
     "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
     "ssh_timeout": 5,

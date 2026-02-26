@@ -31,5 +31,6 @@ from .functions.omnia_sh_func import (
     check_prerequisites,
     cleanup_omnia,
 )
-from .vars.omnia_sh_vars import OMNIA_SH_VARS, get_omnia_sh_path, validate_config
+from .vars.omnia_sh_vars import OMNIA_SH_VARS
+from .functions.omnia_sh_func import get_omnia_sh_path, validate_config
 from .messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS, TEST_NAMES
