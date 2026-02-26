@@ -41,6 +41,7 @@ from automation_library.core import (
     run_in_container,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
+    get_nodes_info,
 )
 
 from ..vars.build_image_vars import (
@@ -81,14 +82,9 @@ def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
     if control_plane_fg not in functional_groups:
         return functional_groups
 
-    # Count control plane nodes in pxe_mapping
-    pxe_file = BUILD_IMAGE_VARS["pxe_mapping_file_path"]
-    cat_cmd = run_in_container(host, f"cat {pxe_file} 2>/dev/null")
-    control_plane_count = 0
-    if cat_cmd.rc == 0:
-        for line in cat_cmd.stdout.strip().split("\n"):
-            if control_plane_fg in line:
-                control_plane_count += 1
+    # Count control plane nodes using core module's get_nodes_info
+    nodes = get_nodes_info(host, search_by="functional_group", search_value=control_plane_fg)
+    control_plane_count = len(nodes)
 
     # Adjust groups based on control plane count
     adjusted_groups = list(functional_groups)
