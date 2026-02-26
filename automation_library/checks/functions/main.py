@@ -36,8 +36,7 @@ class PrereqReport:
     """Generate detailed prerequisite check report with Linux theme."""
 
     WIDTH = 80  # Terminal width
-    TOTAL_CHECKS = 15  # Total number of checks in the full suite
-                      # (added SSH connectivity + hostname)
+    TOTAL_CHECKS = 14  # Total number of checks in the full suite
 
     def __init__(self):
         self.start_time = datetime.now()
@@ -85,20 +84,28 @@ class PrereqReport:
         print(f"{Colors.DIM}{char * self.WIDTH}{Colors.RESET}"
               f"")
 
-    def add_check(self, name: str, passed: bool, message: str, details: str = ""):
+    def add_check(self, name: str, passed: bool, message: str, details: str = "", skipped: bool = False):
         """Add a check result to the report."""
         self.check_number += 1
-        status = "PASS" if passed else "FAIL"
+        if skipped:
+            status = "SKIP"
+        elif passed:
+            status = "PASS"
+        else:
+            status = "FAIL"
         self.checks.append({
             "name": name,
             "status": status,
             "passed": passed,
+            "skipped": skipped,
             "message": message,
             "details": details,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "number": self.check_number
         })
-        if passed:
+        if skipped:
+            self.passed += 1  # Count skipped as passed for overall success
+        elif passed:
             self.passed += 1
         else:
             self.failed += 1
@@ -108,7 +115,11 @@ class PrereqReport:
 
     def _print_check(self, check: dict):
         """Print a single check result with professional formatting."""
-        if check["passed"]:
+        if check.get("skipped"):
+            status_color = Colors.BRIGHT_YELLOW
+            status_icon = "○"
+            status_text = "SKIP"
+        elif check["passed"]:
             status_color = Colors.BRIGHT_GREEN
             status_icon = Symbols.CHECK
             status_text = "PASS"
@@ -228,7 +239,9 @@ class PrereqReport:
 
         for check in self.checks:
             num = f"{check['number']:02d}"
-            if check["passed"]:
+            if check.get("skipped"):
+                status = f"{Colors.BRIGHT_YELLOW}○ SKIP{Colors.RESET}"
+            elif check["passed"]:
                 status = f"{Colors.BRIGHT_GREEN}{Symbols.CHECK} PASS{Colors.RESET}"
             else:
                 status = f"{Colors.BRIGHT_RED}{Symbols.CROSS} FAIL{Colors.RESET}"
@@ -396,7 +409,9 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if reconfig:
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_GREEN}Reconfigure Imgs{Colors.RESET}: {Colors.BRIGHT_GREEN}true{Colors.RESET}"
               f" (will clone & build)")
-        print(f"  {Colors.DIM}│{Colors.RESET}  Container Images: {Colors.CYAN}{OIM_PREREQ_VARS.get('container_images') or '(default: core)'}{Colors.RESET}"
+        core_tag = OIM_PREREQ_VARS.get('core_tag')
+        if core_tag:
+            print(f"  {Colors.DIM}│{Colors.RESET}  Core Tag        : {Colors.CYAN}{core_tag}{Colors.RESET}"
               f"")
         omnia_br = OIM_PREREQ_VARS.get('omnia_branch')
         if omnia_br:
@@ -549,12 +564,16 @@ def _run_all_checks(stop_on_failure: bool):
         # Check 12: Build Container Images
         result = build_container_images()
         passed = result.get("passed", False)
-        _report.add_check("Container Images", passed, result.get("message", ""), result.get("details", ""))
+        _report.add_check("Container Build", passed, result.get("message", ""), result.get("details", ""))
         if not passed and stop_on_failure:
             return
     else:
         _log("Skipping Git, Omnia Artifactory, and Container Build (reconfigure_images: false)", "INFO")
-        _report.add_check("Container Build", True, "Skipped (reconfigure_images: false)", "Set 'reconfigure_images: true' in user_config.yml to enable")
+        skip_msg = "Skipped (reconfigure_images: false)"
+        skip_details = "Set 'reconfigure_images: true' in user_config.yml to enable"
+        _report.add_check("Git", True, skip_msg, skip_details, skipped=True)
+        _report.add_check("Omnia Artifactory", True, skip_msg, skip_details, skipped=True)
+        _report.add_check("Container Build", True, skip_msg, skip_details, skipped=True)
 
     # Check 13: Download omnia.sh (always runs - creates directory if needed)
     result = download_omnia_sh()
