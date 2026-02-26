@@ -210,8 +210,9 @@ def test_all_image_packages(host):
 
     # Check for prerequisite failure (squashfs-tools not installed)
     if result.get("prerequisite_failed"):
-        log.failed("Prerequisite check failed", result.get("error", "Unknown error"))
-        assert False, result.get("error", "Prerequisite check failed")
+        error_msg = result.get("error", "Unknown error")
+        log.failed("Prerequisite check failed", error_msg)
+        pytest.fail(f"Prerequisite check failed:\n{error_msg}")
 
     # Build details showing ALL packages (installed/not installed) for each image
     details_lines = [f"Architecture: {ARCH}"]
