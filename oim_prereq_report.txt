@@ -1,0 +1,69 @@
+======================================================================
+           OIM PREREQUISITE CHECK REPORT
+======================================================================
+
+Generated : 2026-02-27 00:42:21
+Duration  : 24.94 seconds
+Host      : clashcp.omnia.test
+
+----------------------------------------------------------------------
+SUMMARY
+----------------------------------------------------------------------
+
+  Total Checks : 14
+  Passed       : 14
+  Failed       : 0
+  Success Rate : 100.0%
+
+----------------------------------------------------------------------
+DETAILED RESULTS
+----------------------------------------------------------------------
+
+01. [PASS] SSH Connectivity
+    Message: SSH connection to root@100.10.0.48 successful
+
+02. [PASS] Hostname Configuration
+    Message: Hostname already configured: clashcp.omnia.test
+
+03. [PASS] IPMI Tool
+    Message: IPMI tool installed: ipmitool version 1.8.19
+
+04. [PASS] Hardware Validation
+    Message: Hardware meets minimum requirements
+
+05. [PASS] OS Validation
+    Message: OS validation passed: rhel 10.0
+
+06. [PASS] Network Interfaces
+    Message: PXE and Public interfaces validated
+
+07. [PASS] PXE NIC Configuration
+    Message: Dedicated network configured on eno1
+
+08. [PASS] NFS Server
+    Message: NFS server 100.98.69.235 is reachable
+
+09. [PASS] Internet Connectivity
+    Message: Internet connectivity available via 8.8.8.8
+
+10. [PASS] Podman
+    Message: Podman version 5.4.0 >= 5.0.0
+
+11. [PASS] Git
+    Message: Skipped (reconfigure_images: false)
+
+12. [PASS] Omnia Artifactory
+    Message: Skipped (reconfigure_images: false)
+
+13. [PASS] Container Build
+    Message: Skipped (reconfigure_images: false)
+
+14. [PASS] Download omnia.sh
+    Message: omnia.sh downloaded from branch: pub/q1_dev
+    Details:
+      URL: https://raw.githubusercontent.com/dell/omnia/pub/q1_dev/omnia.sh
+      Location: /opt/omnia-artifactory/omnia.sh
+
+----------------------------------------------------------------------
+RESULT: PASSED (System ready for deployment)
+----------------------------------------------------------------------

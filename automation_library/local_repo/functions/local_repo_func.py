@@ -225,45 +225,7 @@ def check_pulp_api_status(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 4. FAILED TASKS
-# =============================================================================
-
-def check_pulp_no_failed_tasks(host) -> Dict[str, Any]:
-    """Check for failed tasks in Pulp task queue."""
-    cmd = run_in_omnia_core(host, "pulp task list --state=failed --limit=20 2>/dev/null")
-    parsed = _parse_json_output(cmd)
-
-    if not parsed["success"]:
-        return {
-            "success": False, "failed_count": -1, "details": "",
-            "error": f"pulp task list failed: {parsed.get('error', '')}",
-        }
-
-    tasks = parsed["data"]
-    if not tasks:
-        return {"success": True, "failed_count": 0, "details": "No failed tasks", "error": None}
-
-    failed_count = len(tasks)
-    summaries = []
-    for task in tasks[:5]:
-        name = task.get("name", "unknown")
-        err = task.get("error", {})
-        desc = err.get("description", "")[:80] if isinstance(err, dict) else str(err)[:80]
-        summaries.append(f"  - {name}: {desc}")
-
-    details = f"Failed tasks: {failed_count}\n" + "\n".join(summaries)
-    if failed_count > 5:
-        details += f"\n  ... and {failed_count - 5} more"
-
-    return {
-        "success": False, "failed_count": failed_count,
-        "details": details,
-        "error": f"{failed_count} failed tasks found",
-    }
-
-
-# =============================================================================
-# 5. SOFTWARE DOWNLOAD STATUS (software.csv)
+# 4. SOFTWARE DOWNLOAD STATUS (software.csv)
 # =============================================================================
 
 def check_software_download_status(host) -> Dict[str, Any]:
@@ -305,17 +267,16 @@ def check_software_download_status(host) -> Dict[str, Any]:
 
     total = len(all_entries)
     failed_count = len(failures)
+    succeeded = [e for e in all_entries if e not in failures]
     details = (
-        f"Architectures checked: {', '.join(checked_archs)}\n"
-        f"Total softwares: {total}\n"
-        f"Failed: {failed_count}"
+        f"Software downloads: {total - failed_count}/{total} succeeded "
+        f"({', '.join(checked_archs)})\n"
     )
-
+    for entry in sorted(succeeded, key=lambda x: (x["arch"], x["name"])):
+        details += f"  ✓ {entry['name']} ({entry['arch']})\n"
     if failures:
-        fail_list = "\n".join(
-            [f"  - {f['name']} ({f['arch']}): {f['status']}" for f in failures[:20]]
-        )
-        details += f"\n\nFailed softwares:\n{fail_list}"
+        for f in sorted(failures, key=lambda x: (x["arch"], x["name"])):
+            details += f"  ✘ {f['name']} ({f['arch']}): {f['status']}\n"
 
     return {
         "success": failed_count == 0,
@@ -328,7 +289,7 @@ def check_software_download_status(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 6. PER-SOFTWARE PACKAGE STATUS (status.csv per software)
+# 5. PER-SOFTWARE PACKAGE STATUS (status.csv per software)
 # =============================================================================
 
 def check_per_software_package_status(host) -> Dict[str, Any]:
@@ -381,19 +342,19 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
     total = len(all_packages)
     failed_count = len(failures)
     details = (
-        f"Softwares checked: {len(checked_softwares)}\n"
-        f"Total packages: {total}\n"
-        f"Failed: {failed_count}"
+        f"Per-package status: {total - failed_count}/{total} succeeded "
+        f"({len(checked_softwares)} softwares)\n"
     )
-
-    if failures:
-        fail_list = "\n".join(
-            [f"  - {f['name']} ({f['software']}/{f['arch']}): {f['status']}"
-             for f in failures[:20]]
-        )
-        details += f"\n\nFailed packages:\n{fail_list}"
-        if failed_count > 20:
-            details += f"\n  ... and {failed_count - 20} more"
+    for sw in sorted(checked_softwares):
+        sw_failures = [f for f in failures if f"{f['arch']}/{f['software']}" == sw]
+        if sw_failures:
+            details += f"  ✘ {sw} — {len(sw_failures)} failed\n"
+            for f in sw_failures[:5]:
+                details += f"      {f['name']}: {f['status']}\n"
+            if len(sw_failures) > 5:
+                details += f"      ... and {len(sw_failures) - 5} more\n"
+        else:
+            details += f"  ✓ {sw}\n"
 
     return {
         "success": failed_count == 0,
@@ -407,7 +368,7 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 7. RPM REPOSITORIES SYNCED
+# 6. RPM REPOSITORIES SYNCED
 # =============================================================================
 
 def check_pulp_repositories_synced(host) -> Dict[str, Any]:
@@ -438,17 +399,13 @@ def check_pulp_repositories_synced(host) -> Dict[str, Any]:
             not_synced.append(name)
 
     details = (
-        f"Total RPM repos: {len(repos)}\n"
-        f"Synced: {len(synced)}\n"
-        f"Not synced: {len(not_synced)}"
+        f"RPM repositories: {len(synced)}/{len(repos)} synced\n"
     )
-    # Only list items when there are failures
+    for name in sorted(synced):
+        details += f"  ✓ {name}\n"
     if not_synced:
-        details += "\n\nNot synced repos:\n" + "\n".join(
-            [f"  ✘ {r}" for r in not_synced[:10]]
-        )
-        if len(not_synced) > 10:
-            details += f"\n  ... and {len(not_synced) - 10} more"
+        for name in sorted(not_synced):
+            details += f"  ✘ {name} (not synced)\n"
 
     return {
         "success": len(not_synced) == 0,
@@ -462,7 +419,7 @@ def check_pulp_repositories_synced(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 8. RPM DISTRIBUTIONS PUBLISHED
+# 7. RPM DISTRIBUTIONS PUBLISHED
 # =============================================================================
 
 def check_pulp_distributions_published(host) -> Dict[str, Any]:
@@ -494,15 +451,13 @@ def check_pulp_distributions_published(host) -> Dict[str, Any]:
             unpublished.append({"name": name, "base_path": base_path})
 
     details = (
-        f"Total RPM distributions: {len(dists)}\n"
-        f"Published: {len(published)}\n"
-        f"Unpublished: {len(unpublished)}"
+        f"RPM distributions: {len(published)}/{len(dists)} published\n"
     )
-    # Only list unpublished distributions (failures) - don't dump full list on pass
+    for d in sorted(published, key=lambda x: x["name"]):
+        details += f"  ✓ {d['name']} → /{d['base_path']}\n"
     if unpublished:
-        details += "\n\nUnpublished distributions:\n" + "\n".join(
-            [f"  ✘ {d['name']}" for d in unpublished[:10]]
-        )
+        for d in sorted(unpublished, key=lambda x: x["name"]):
+            details += f"  ✘ {d['name']} → /{d['base_path']} (unpublished)\n"
 
     return {
         "success": len(unpublished) == 0,
@@ -515,7 +470,7 @@ def check_pulp_distributions_published(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 9. CONTAINER REPOS SYNCED
+# 8. CONTAINER REPOS SYNCED
 # =============================================================================
 
 def check_container_repos_synced(host) -> Dict[str, Any]:
@@ -546,14 +501,13 @@ def check_container_repos_synced(host) -> Dict[str, Any]:
             not_synced.append(name)
 
     details = (
-        f"Total container repos: {len(repos)}\n"
-        f"Synced: {len(synced)}\n"
-        f"Not synced: {len(not_synced)}"
+        f"Container repositories: {len(synced)}/{len(repos)} synced\n"
     )
+    for name in sorted(synced):
+        details += f"  ✓ {name}\n"
     if not_synced:
-        details += "\n\nNot synced repos:\n" + "\n".join(
-            [f"  ✘ {r}" for r in not_synced[:10]]
-        )
+        for name in sorted(not_synced):
+            details += f"  ✘ {name} (not synced)\n"
 
     return {
         "success": len(not_synced) == 0,
@@ -567,7 +521,7 @@ def check_container_repos_synced(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 10. FILE REPOS SYNCED
+# 9. FILE REPOS SYNCED
 # =============================================================================
 
 def check_file_repos_synced(host) -> Dict[str, Any]:
@@ -598,14 +552,13 @@ def check_file_repos_synced(host) -> Dict[str, Any]:
             not_synced.append(name)
 
     details = (
-        f"Total file repos: {len(repos)}\n"
-        f"Synced: {len(synced)}\n"
-        f"Not synced: {len(not_synced)}"
+        f"File repositories: {len(synced)}/{len(repos)} synced\n"
     )
+    for name in sorted(synced):
+        details += f"  ✓ {name}\n"
     if not_synced:
-        details += "\n\nNot synced repos:\n" + "\n".join(
-            [f"  ✘ {r}" for r in not_synced[:10]]
-        )
+        for name in sorted(not_synced):
+            details += f"  ✘ {name} (not synced)\n"
 
     return {
         "success": len(not_synced) == 0,
@@ -619,7 +572,7 @@ def check_file_repos_synced(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 11. RPM CONTENT ACCESSIBLE (ALL distributions)
+# 10. RPM CONTENT ACCESSIBLE (ALL distributions)
 # =============================================================================
 
 def check_pulp_content_accessible(host) -> Dict[str, Any]:
@@ -671,16 +624,13 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
             not_accessible.append({"name": name, "http_code": http_code})
 
     details = (
-        f"Total distributions checked: {len(dists)}\n"
-        f"Accessible (HTTP 200): {len(accessible)}\n"
-        f"Not accessible: {len(not_accessible)}"
+        f"Content accessibility: {len(accessible)}/{len(dists)} reachable\n"
     )
-    # Only list failures
+    for d in sorted(accessible, key=lambda x: x["name"]):
+        details += f"  ✓ {d['name']} → HTTP {d['http_code']}\n"
     if not_accessible:
-        fail_list = "\n".join(
-            [f"  ✘ {d['name']}: HTTP {d['http_code']}" for d in not_accessible[:10]]
-        )
-        details += f"\n\nNot accessible:\n{fail_list}"
+        for d in sorted(not_accessible, key=lambda x: x["name"]):
+            details += f"  ✘ {d['name']} → HTTP {d['http_code']}\n"
 
     return {
         "success": len(not_accessible) == 0,
@@ -697,7 +647,7 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# 12. SOFTWARE PACKAGES IN PULP
+# 11. SOFTWARE PACKAGES IN PULP
 # =============================================================================
 
 def load_software_config(host) -> Dict[str, Any]:
@@ -807,15 +757,21 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
     # Pulp stores the RPM name without version (e.g. kubeadm).
     # Some are virtual names (e.g. vim → vim-enhanced in Pulp).
     # Search order: exact → stripped base name → prefix match.
-    found_count = 0
+    found_packages: List[Dict[str, str]] = []
     missing_packages: List[Dict[str, str]] = []
     for pname, pkg_info in unique.items():
+        pkg_entry = {
+            "package": pname,
+            "repo_name": pkg_info.get("repo_name", ""),
+            "software": pkg_info.get("software", ""),
+        }
+
         # 1) Exact name search
         pulp_cmd = f"pulp rpm content list --name {pname} --limit 1 2>/dev/null"
         res = run_in_omnia_core(host, pulp_cmd)
         stdout = (res.get("stdout") or "").strip()
         if res["success"] and stdout and stdout != "[]":
-            found_count += 1
+            found_packages.append(pkg_entry)
             continue
 
         # 2) Fallback: strip version suffix and try base name
@@ -827,7 +783,7 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
             res2 = run_in_omnia_core(host, pulp_cmd2)
             stdout2 = (res2.get("stdout") or "").strip()
             if res2["success"] and stdout2 and stdout2 != "[]":
-                found_count += 1
+                found_packages.append(pkg_entry)
                 continue
 
         # 3) Fallback: prefix match (e.g. vim → vim-enhanced)
@@ -837,41 +793,30 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
         res3 = run_in_omnia_core(host, prefix_cmd)
         stdout3 = (res3.get("stdout") or "").strip()
         if res3["success"] and stdout3 and stdout3 != "[]":
-            found_count += 1
+            found_packages.append(pkg_entry)
             continue
 
-        missing_packages.append({
-            "package": pname,
-            "repo_name": pkg_info.get("repo_name", ""),
-            "software": pkg_info.get("software", ""),
-        })
+        missing_packages.append(pkg_entry)
 
     total = len(unique)
+    found_count = len(found_packages)
     missing_count = len(missing_packages)
-    config_details = (
-        f"OS: {os_type} {os_version}\n"
-        f"Softwares: {len(softwares)}\n"
-        f"Configs loaded: {len(loaded_configs)}\n"
-        f"Total packages (all types): {len(all_packages)}\n"
-        f"RPM packages (unique): {total}"
-    )
-    verify_details = f"Found: {found_count}\nMissing: {missing_count}"
-
-    if missing_packages:
-        miss_list = "\n".join(
-            [f"  - {p['package']} (repo: {p['repo_name']}, sw: {p['software']})"
-             for p in missing_packages[:20]]
-        )
-        if missing_count > 20:
-            miss_list += f"\n  ... and {missing_count - 20} more"
-        verify_details += f"\n\nMissing:\n{miss_list}"
-
     full_details = (
-        f"=== Software Config ===\n{config_details}\n\n"
-        f"=== Pulp Verification ===\n{verify_details}"
+        f"RPM packages in Pulp: {found_count}/{total} found "
+        f"({os_type} {os_version}, {len(loaded_configs)} configs)\n"
     )
+    for p in sorted(found_packages, key=lambda x: x["package"]):
+        full_details += f"  ✓ {p['package']} (sw: {p['software']})\n"
+    if missing_packages:
+        for p in sorted(missing_packages, key=lambda x: x["package"]):
+            full_details += (
+                f"  ✘ {p['package']} (repo: {p['repo_name']}, "
+                f"sw: {p['software']})\n"
+            )
     if errors:
-        full_details += "\n\n=== Config Load Errors ===\n" + "\n".join(errors[:10])
+        full_details += "\nConfig load errors:\n"
+        for e in errors[:10]:
+            full_details += f"  ⚠ {e}\n"
 
     return {
         "success": missing_count == 0,

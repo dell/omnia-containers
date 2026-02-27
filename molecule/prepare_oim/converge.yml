@@ -72,7 +72,7 @@
 
     - name: Check if prepare_oim playbook exists in container
       ansible.builtin.shell:
-        cmd: podman exec omnia_core test -f /omnia/prepare_oim/prepare_oim.yml && echo "EXISTS" || echo "NOT_FOUND"
+        cmd: podman exec -it omnia_core test -f /omnia/prepare_oim/prepare_oim.yml && echo "EXISTS" || echo "NOT_FOUND"
       register: playbook_check
       changed_when: false
 
@@ -83,8 +83,8 @@
     - name: Execute prepare_oim playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          podman exec -w /omnia omnia_core \
-            ansible-playbook prepare_oim/prepare_oim.yml -v
+          podman exec -it -w /omnia/prepare_oim omnia_core \
+            ansible-playbook prepare_oim.yml -v
       register: playbook_result
       timeout: 1800
       when: "'EXISTS' in playbook_check.stdout"

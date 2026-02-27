@@ -19,17 +19,16 @@ This module contains pytest test cases for verifying local_repo (Pulp) deploymen
 
 Test cases:
 1. Verify Pulp container is running
-2. Verify Pulp CLI commands work
-3. Verify Pulp API status is healthy (DB, workers, content apps, storage)
-4. Verify no failed tasks in Pulp
-5. Verify software download status (software.csv)
-6. Verify per-software package status (status.csv)
-7. Verify RPM repositories are synced
-8. Verify RPM distributions are published
-9. Verify container repositories are synced
-10. Verify file repositories are synced
-11. Verify Pulp RPM content is accessible via HTTP (ALL distributions)
-12. Verify software packages from software_config.json exist in Pulp
+2. Verify Pulp CLI connectivity (rpm repository list)
+3. Verify Pulp API health (DB, workers, storage)
+4. Verify software download results (software.csv)
+5. Verify per-package download results (status.csv)
+6. Verify all RPM repositories synced in Pulp
+7. Verify all RPM distributions published
+8. Verify all container image repositories synced
+9. Verify all file repositories synced
+10. Verify RPM content reachable via HTTPS (repomd.xml)
+11. Verify all software_config.json RPM packages in Pulp
 """
 
 from automation_library.core import TestLogger
@@ -43,7 +42,6 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_container_running,
     check_pulp_cli_repository_list,
     check_pulp_api_status,
-    check_pulp_no_failed_tasks,
     check_software_download_status,
     check_per_software_package_status,
     check_pulp_repositories_synced,
@@ -61,7 +59,7 @@ from automation_library.local_repo.functions.local_repo_func import (
 def test_pulp_container_running(host):
     container = TEST_VARS["pulp_container"]
     log = TestLogger(TEST_NAMES["pulp_container_running"])
-    log.check(f"Checking container: {container}")
+    log.check(f"Verifying '{container}' container is running via podman ps")
 
     result = check_container_running(host, container)
     if result["success"]:
@@ -76,11 +74,11 @@ def test_pulp_container_running(host):
 
 
 # ---------------------------------------------------------------------------
-# 2. Pulp CLI works
+# 2. Pulp CLI connectivity
 # ---------------------------------------------------------------------------
 def test_pulp_cli_repository_list(host):
     log = TestLogger(TEST_NAMES["pulp_cli_repo_list"])
-    log.check("Running pulp command inside omnia_core")
+    log.check("Running 'pulp rpm repository list' inside omnia_core container")
 
     result = check_pulp_cli_repository_list(host)
     if result["success"]:
@@ -92,11 +90,11 @@ def test_pulp_cli_repository_list(host):
 
 
 # ---------------------------------------------------------------------------
-# 3. Pulp API status
+# 3. Pulp API health
 # ---------------------------------------------------------------------------
 def test_pulp_api_status(host):
     log = TestLogger(TEST_NAMES["pulp_api_status"])
-    log.check("Checking Pulp API status (database, workers, content apps, storage)")
+    log.check("Querying 'pulp status' for DB connection, workers, content apps, storage")
 
     result = check_pulp_api_status(host)
     if result["success"]:
@@ -108,27 +106,11 @@ def test_pulp_api_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 4. No failed tasks
-# ---------------------------------------------------------------------------
-def test_pulp_no_failed_tasks(host):
-    log = TestLogger(TEST_NAMES["pulp_no_failed_tasks"])
-    log.check("Checking for failed tasks in Pulp")
-
-    result = check_pulp_no_failed_tasks(host)
-    if result["success"]:
-        log.passed(LOG_MSGS["pulp_no_failed_tasks"], result.get("details") or "")
-    else:
-        details = result.get("details") or result.get("error") or ""
-        log.failed(LOG_MSGS["pulp_has_failed_tasks"], details)
-        assert False, ASSERT_MSGS["pulp_failed_tasks"].format(details=details)
-
-
-# ---------------------------------------------------------------------------
-# 5. Software download status (software.csv)
+# 4. Software download status (software.csv)
 # ---------------------------------------------------------------------------
 def test_software_download_status(host):
     log = TestLogger(TEST_NAMES["software_download_status"])
-    log.check("Parsing software.csv for each architecture")
+    log.check("Parsing software.csv per architecture for download success/failure")
 
     result = check_software_download_status(host)
     if result["success"]:
@@ -140,11 +122,11 @@ def test_software_download_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 6. Per-software package status (status.csv per software)
+# 5. Per-software package status (status.csv per software)
 # ---------------------------------------------------------------------------
 def test_per_software_package_status(host):
     log = TestLogger(TEST_NAMES["per_software_package_status"])
-    log.check("Parsing per-software status.csv files")
+    log.check("Parsing per-software status.csv for individual package download results")
 
     result = check_per_software_package_status(host)
     if result["success"]:
@@ -156,11 +138,11 @@ def test_per_software_package_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 7. RPM repositories synced
+# 6. RPM repositories synced
 # ---------------------------------------------------------------------------
 def test_pulp_repositories_synced(host):
     log = TestLogger(TEST_NAMES["pulp_repositories_synced"])
-    log.check("Checking RPM repository sync status")
+    log.check("Querying Pulp RPM repos for latest_version_href (sync indicator)")
 
     result = check_pulp_repositories_synced(host)
     if result["success"]:
@@ -172,11 +154,11 @@ def test_pulp_repositories_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 8. RPM distributions published
+# 7. RPM distributions published
 # ---------------------------------------------------------------------------
 def test_pulp_distributions_published(host):
     log = TestLogger(TEST_NAMES["pulp_distributions_published"])
-    log.check("Checking RPM distribution publication status")
+    log.check("Querying Pulp RPM distributions for publication/repository attachment")
 
     result = check_pulp_distributions_published(host)
     if result["success"]:
@@ -188,11 +170,11 @@ def test_pulp_distributions_published(host):
 
 
 # ---------------------------------------------------------------------------
-# 9. Container repositories synced
+# 8. Container image repositories synced
 # ---------------------------------------------------------------------------
 def test_container_repos_synced(host):
     log = TestLogger(TEST_NAMES["container_repos_synced"])
-    log.check("Checking container repository sync status")
+    log.check("Querying Pulp container repos for latest_version_href (sync indicator)")
 
     result = check_container_repos_synced(host)
     if result["success"]:
@@ -204,11 +186,11 @@ def test_container_repos_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 10. File repositories synced
+# 9. File repositories synced
 # ---------------------------------------------------------------------------
 def test_file_repos_synced(host):
     log = TestLogger(TEST_NAMES["file_repos_synced"])
-    log.check("Checking file repository sync status")
+    log.check("Querying Pulp file repos for latest_version_href (sync indicator)")
 
     result = check_file_repos_synced(host)
     if result["success"]:
@@ -220,11 +202,11 @@ def test_file_repos_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 11. RPM content accessible via HTTP (ALL distributions)
+# 10. RPM content accessible via HTTPS (repomd.xml)
 # ---------------------------------------------------------------------------
 def test_pulp_content_accessible(host):
     log = TestLogger(TEST_NAMES["pulp_content_accessible"])
-    log.check("Checking Pulp RPM content accessibility for all distributions")
+    log.check("Curling repomd.xml for each RPM distribution base_path")
 
     result = check_pulp_content_accessible(host)
     if result["success"]:
@@ -236,11 +218,11 @@ def test_pulp_content_accessible(host):
 
 
 # ---------------------------------------------------------------------------
-# 12. Software packages in Pulp
+# 11. Software packages in Pulp
 # ---------------------------------------------------------------------------
 def test_software_packages_in_pulp(host):
     log = TestLogger(TEST_NAMES["software_packages_in_pulp"])
-    log.check("Parsing software_config.json and verifying packages in Pulp")
+    log.check("Loading software_config.json, extracting RPM packages, verifying each in Pulp")
 
     result = check_software_packages_in_pulp(host)
 

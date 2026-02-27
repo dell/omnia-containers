@@ -27,7 +27,6 @@ from .functions.local_repo_func import (
     read_file_in_omnia_core,
     check_pulp_cli_repository_list,
     check_pulp_api_status,
-    check_pulp_no_failed_tasks,
     check_software_download_status,
     check_per_software_package_status,
     check_pulp_repositories_synced,

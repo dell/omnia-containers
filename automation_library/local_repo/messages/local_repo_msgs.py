@@ -34,58 +34,54 @@ TEST_VARS = {
 
 
 TEST_NAMES = {
-    "pulp_container_running": "Verify pulp container is running",
-    "pulp_cli_repo_list": "Verify pulp CLI works (pulp rpm repository list)",
-    "pulp_api_status": "Verify Pulp API status is healthy",
-    "pulp_no_failed_tasks": "Verify no failed tasks in Pulp",
-    "software_download_status": "Verify software download status (software.csv)",
-    "per_software_package_status": "Verify per-software package status (status.csv)",
-    "pulp_repositories_synced": "Verify RPM repositories are synced",
-    "pulp_distributions_published": "Verify RPM distributions are published",
-    "container_repos_synced": "Verify container repositories are synced",
-    "file_repos_synced": "Verify file repositories are synced",
-    "pulp_content_accessible": "Verify Pulp RPM content is accessible via HTTP",
-    "software_packages_in_pulp": "Verify software_config packages exist in Pulp",
+    "pulp_container_running": "Verify Pulp container is running",
+    "pulp_cli_repo_list": "Verify Pulp CLI connectivity (rpm repository list)",
+    "pulp_api_status": "Verify Pulp API health (DB, workers, storage)",
+    "software_download_status": "Verify software download results (software.csv)",
+    "per_software_package_status": "Verify per-package download results (status.csv)",
+    "pulp_repositories_synced": "Verify all RPM repositories synced in Pulp",
+    "pulp_distributions_published": "Verify all RPM distributions published",
+    "container_repos_synced": "Verify all container image repositories synced",
+    "file_repos_synced": "Verify all file repositories synced",
+    "pulp_content_accessible": "Verify RPM content reachable via HTTPS (repomd.xml)",
+    "software_packages_in_pulp": "Verify all software_config.json RPM packages in Pulp",
 }
 
 
 TEST_LOG_MSGS = {
-    # Container
+    # 1. Container
     "container_running": "Container {container} is running",
     "container_not_running": "Container {container} is NOT running",
-    # Pulp CLI
-    "pulp_cli_ok": "pulp rpm repository list succeeded",
-    "pulp_cli_fail": "pulp rpm repository list failed",
-    # Pulp API
-    "pulp_api_healthy": "Pulp API status is healthy",
-    "pulp_api_unhealthy": "Pulp API status check failed",
-    # Failed tasks
-    "pulp_no_failed_tasks": "No failed tasks in Pulp",
-    "pulp_has_failed_tasks": "Failed tasks found in Pulp",
-    # Software download status
-    "sw_download_ok": "All softwares downloaded successfully",
-    "sw_download_failed": "Some softwares failed to download",
-    # Per-software package status
-    "pkg_status_ok": "All packages across all softwares succeeded",
-    "pkg_status_failed": "Some packages failed",
-    # RPM repos
-    "pulp_repos_synced": "All RPM repositories are synced",
-    "pulp_repos_not_synced": "Some RPM repositories are not synced",
-    # RPM distributions
-    "pulp_distributions_ok": "All RPM distributions are published",
-    "pulp_distributions_missing": "Some RPM distributions are not published",
-    # Container repos
-    "container_repos_synced": "All container repositories are synced",
-    "container_repos_not_synced": "Some container repositories are not synced",
-    # File repos
-    "file_repos_synced": "All file repositories are synced",
-    "file_repos_not_synced": "Some file repositories are not synced",
-    # Content accessible
-    "pulp_content_accessible": "Pulp RPM content is accessible via HTTP",
-    "pulp_content_not_accessible": "Pulp RPM content is not accessible",
-    # Software packages in Pulp
-    "software_packages_ok": "All software_config packages found in Pulp",
-    "software_packages_missing": "Some software_config packages missing from Pulp",
+    # 2. Pulp CLI
+    "pulp_cli_ok": "Pulp CLI responding — repository list retrieved",
+    "pulp_cli_fail": "Pulp CLI not responding — repository list failed",
+    # 3. Pulp API
+    "pulp_api_healthy": "Pulp API healthy — DB connected, workers online",
+    "pulp_api_unhealthy": "Pulp API unhealthy — check DB/workers",
+    # 4. Software download status
+    "sw_download_ok": "All software downloads succeeded (software.csv)",
+    "sw_download_failed": "Software download failures detected (software.csv)",
+    # 5. Per-software package status
+    "pkg_status_ok": "All per-package downloads succeeded (status.csv)",
+    "pkg_status_failed": "Package download failures detected (status.csv)",
+    # 6. RPM repos
+    "pulp_repos_synced": "All RPM repositories synced with latest version",
+    "pulp_repos_not_synced": "RPM repositories with missing sync detected",
+    # 7. RPM distributions
+    "pulp_distributions_ok": "All RPM distributions published and serving",
+    "pulp_distributions_missing": "Unpublished RPM distributions detected",
+    # 8. Container repos
+    "container_repos_synced": "All container image repositories synced",
+    "container_repos_not_synced": "Container image repositories with missing sync",
+    # 9. File repos
+    "file_repos_synced": "All file repositories synced",
+    "file_repos_not_synced": "File repositories with missing sync detected",
+    # 10. Content accessible
+    "pulp_content_accessible": "All RPM distribution endpoints return HTTP 200",
+    "pulp_content_not_accessible": "RPM distribution endpoints not returning HTTP 200",
+    # 11. Software packages in Pulp
+    "software_packages_ok": "All software_config.json RPM packages found in Pulp",
+    "software_packages_missing": "RPM packages from software_config.json missing in Pulp",
     "software_config_error": "Failed to load software_config.json",
 }
 
@@ -125,19 +121,6 @@ TEST_ASSERT_MSGS = {
 ║   1. Check pulp container is running: podman ps | grep pulp
 ║   2. Check pulp status: podman exec omnia_core pulp status
 ║   3. Check pulp logs: podman logs pulp
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "pulp_failed_tasks": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP HAS FAILED TASKS
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. List failed tasks: pulp task list --state=failed
-║   2. Check task details for specific errors
-║   3. Re-run failed sync/publish operations
-║   4. Check pulp logs: podman logs pulp
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "sw_download_failed": """

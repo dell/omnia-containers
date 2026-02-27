@@ -15,32 +15,62 @@
 """
 Prepare OIM - Core Functions.
 
-This module contains all functions for running and verifying prepare_oim.
+This module contains all verification functions for prepare_oim tests.
 Test functions should call these functions - all logic resides here.
-
-Usage:
-    from automation_library.functions.prepare_oim_func import (
-        check_container_running,
-        check_all_containers,
-        check_omnia_target,
-        check_openchami_target,
-        check_ochami_bss_status,
-        check_ochami_smd_status,
-        check_auth_container,
-    )
-
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 
+from automation_library.core import (
+    run_in_container,
+    load_input_file,
+    get_input_value,
+    SOFTWARE_CONFIG_FILE,
+    NETWORK_SPEC_FILE,
+)
 from ..vars.prepare_oim_vars import (
-    PREPARE_OIM_VARS,
     OPENCHAMI_CONTAINERS,
     CORE_CONTAINERS,
     AUTH_CONTAINER,
-    is_ldap_enabled,
+    OMNIA_TARGET_SERVICES,
+    OPENCHAMI_TARGET_SERVICES,
+    PULP_CERT_PATH,
+    LDAP_CERT_PATH,
 )
-from ..messages.prepare_oim_msgs import PREPARE_OIM_MSGS
+
+
+# =============================================================================
+# CONFIG HELPERS (module-specific logic using core get_input_value)
+# =============================================================================
+
+def is_ldap_enabled(host) -> bool:
+    """Check if openldap/LDAP is present in software_config.json softwares list."""
+    softwares = get_input_value(host, SOFTWARE_CONFIG_FILE, "softwares")
+    if not softwares:
+        return False
+    for software in softwares:
+        if isinstance(software, dict):
+            name = software.get("name", "").lower()
+            if "openldap" in name or "ldap" in name:
+                return True
+        elif isinstance(software, str):
+            if "openldap" in software.lower() or "ldap" in software.lower():
+                return True
+    return False
+
+
+def get_primary_oim_admin_ip(host) -> str:
+    """Get primary_oim_admin_ip from network_spec.yml admin_network."""
+    config = load_input_file(host, NETWORK_SPEC_FILE)
+    networks = config.get("Networks", config.get("networks", []))
+    for network in networks:
+        if isinstance(network, dict):
+            admin = network.get("admin_network", {})
+            if admin:
+                ip = admin.get("primary_oim_admin_ip", "")
+                if ip:
+                    return ip
+    return ""
 
 
 # =============================================================================
@@ -88,338 +118,6 @@ def check_container_running(host, container_name: str) -> Dict[str, Any]:
     }
 
 
-def check_container_healthy(host, container_name: str) -> Dict[str, Any]:
-    """
-    Check if a container is healthy (for containers with health checks).
-
-    Args:
-        host: testinfra host object
-        container_name: name of the container to check
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    cmd = host.run(f"podman inspect --format '{{{{.State.Health.Status}}}}' {container_name} 2>/dev/null")
-
-    if cmd.rc == 0:
-        health_status = cmd.stdout.strip()
-        if health_status == "healthy":
-            return {
-                "success": True,
-                "status": health_status,
-                "details": f"Container {container_name} is healthy",
-                "error": None
-            }
-        if health_status == "":
-            # No health check configured - just check if running
-            return check_container_running(host, container_name)
-        return {
-            "success": False,
-            "status": health_status,
-            "details": None,
-            "error": f"Container {container_name} health status: {health_status}"
-        }
-
-    return check_container_running(host, container_name)
-
-
-def check_all_containers(host, skip_on_failure: bool = True) -> Dict[str, Any]:
-    """
-    Check all required containers are running.
-    Continues checking all containers even if some fail.
-
-    Args:
-        host: testinfra host object
-        skip_on_failure: if True, continue checking all containers even if some fail
-
-    Returns:
-        Dict with 'success', 'results', 'passed', 'failed', 'skipped', 'details'
-    """
-    results = []
-    passed = 0
-    failed = 0
-    skipped = 0
-
-    # Check core containers
-    for container in CORE_CONTAINERS:
-        result = check_container_running(host, container)
-        results.append({
-            "container": container,
-            "category": "core",
-            "success": result["success"],
-            "status": result["status"],
-            "error": result["error"]
-        })
-        if result["success"]:
-            passed += 1
-        else:
-            failed += 1
-
-    # Check OpenChami containers
-    for container in OPENCHAMI_CONTAINERS:
-        result = check_container_running(host, container)
-        results.append({
-            "container": container,
-            "category": "openchami",
-            "success": result["success"],
-            "status": result["status"],
-            "error": result["error"]
-        })
-        if result["success"]:
-            passed += 1
-        else:
-            failed += 1
-
-    # Check auth container (only if LDAP enabled)
-    if is_ldap_enabled():
-        result = check_container_running(host, AUTH_CONTAINER)
-        results.append({
-            "container": AUTH_CONTAINER,
-            "category": "auth",
-            "success": result["success"],
-            "status": result["status"],
-            "error": result["error"]
-        })
-        if result["success"]:
-            passed += 1
-        else:
-            failed += 1
-    else:
-        results.append({
-            "container": AUTH_CONTAINER,
-            "category": "auth",
-            "success": True,
-            "status": "skipped",
-            "error": None,
-            "skipped": True
-        })
-        skipped += 1
-
-    total = passed + failed
-    return {
-        "success": failed == 0,
-        "results": results,
-        "passed": passed,
-        "failed": failed,
-        "skipped": skipped,
-        "total": total,
-        "details": f"{passed}/{total} containers running" + (f", {skipped} skipped" if skipped > 0 else "")
-    }
-
-
-def check_openchami_containers(host) -> Dict[str, Any]:
-    """
-    Check all OpenChami containers are running.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'results', 'passed', 'failed', 'details'
-    """
-    results = []
-    passed = 0
-    failed = 0
-
-    for container in OPENCHAMI_CONTAINERS:
-        result = check_container_running(host, container)
-        results.append({
-            "container": container,
-            "success": result["success"],
-            "status": result["status"],
-            "error": result["error"]
-        })
-        if result["success"]:
-            passed += 1
-        else:
-            failed += 1
-
-    total = len(OPENCHAMI_CONTAINERS)
-    return {
-        "success": failed == 0,
-        "results": results,
-        "passed": passed,
-        "failed": failed,
-        "total": total,
-        "details": f"{passed}/{total} OpenChami containers running"
-    }
-
-
-def check_core_containers(host) -> Dict[str, Any]:
-    """
-    Check all core infrastructure containers are running.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'results', 'passed', 'failed', 'details'
-    """
-    results = []
-    passed = 0
-    failed = 0
-
-    for container in CORE_CONTAINERS:
-        result = check_container_running(host, container)
-        results.append({
-            "container": container,
-            "success": result["success"],
-            "status": result["status"],
-            "error": result["error"]
-        })
-        if result["success"]:
-            passed += 1
-        else:
-            failed += 1
-
-    total = len(CORE_CONTAINERS)
-    return {
-        "success": failed == 0,
-        "results": results,
-        "passed": passed,
-        "failed": failed,
-        "total": total,
-        "details": f"{passed}/{total} core containers running"
-    }
-
-
-def check_auth_container(host) -> Dict[str, Any]:
-    """
-    Check auth container status.
-    Returns skipped if LDAP is not enabled in software_config.json.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'status', 'skipped', 'details', 'error'
-    """
-    if not is_ldap_enabled():
-        return {
-            "success": True,
-            "status": "skipped",
-            "skipped": True,
-            "details": "Auth container check skipped (LDAP not in software_config.json)",
-            "error": None
-        }
-
-    result = check_container_running(host, AUTH_CONTAINER)
-    return {
-        "success": result["success"],
-        "status": result["status"],
-        "skipped": False,
-        "details": result["details"],
-        "error": result["error"]
-    }
-
-
-# =============================================================================
-# SERVICE VERIFICATION FUNCTIONS
-# =============================================================================
-
-def check_omnia_target(host) -> Dict[str, Any]:
-    """
-    Check if omnia.target is active.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    target = PREPARE_OIM_VARS["omnia_target"]
-    status_cmd = host.run(f"systemctl is-active {target}")
-    status = status_cmd.stdout.strip()
-
-    if status == "active":
-        info = host.run(f"systemctl status {target} --no-pager -l 2>/dev/null | head -5").stdout.strip()
-        return {
-            "success": True,
-            "status": status,
-            "details": info,
-            "error": None
-        }
-
-    return {
-        "success": False,
-        "status": status,
-        "details": None,
-        "error": f"{target} is {status}"
-    }
-
-
-def check_openchami_target(host) -> Dict[str, Any]:
-    """
-    Check if openchami.target is active.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    target = PREPARE_OIM_VARS["openchami_target"]
-    status_cmd = host.run(f"systemctl is-active {target}")
-    status = status_cmd.stdout.strip()
-
-    if status == "active":
-        info = host.run(f"systemctl status {target} --no-pager -l 2>/dev/null | head -5").stdout.strip()
-        return {
-            "success": True,
-            "status": status,
-            "details": info,
-            "error": None
-        }
-
-    return {
-        "success": False,
-        "status": status,
-        "details": None,
-        "error": f"{target} is {status}"
-    }
-
-
-def check_service_dependencies(host, target: str = None) -> Dict[str, Any]:
-    """
-    Check all dependencies of a systemd target.
-
-    Args:
-        host: testinfra host object
-        target: target name (default: openchami.target)
-
-    Returns:
-        Dict with 'success', 'dependencies', 'failed', 'details'
-    """
-    target = target or PREPARE_OIM_VARS["openchami_target"]
-    cmd = host.run(f"systemctl list-dependencies {target} --plain 2>/dev/null")
-
-    if cmd.rc != 0:
-        return {
-            "success": False,
-            "dependencies": [],
-            "failed": [],
-            "details": None,
-            "error": f"Failed to list dependencies for {target}"
-        }
-
-    dependencies = [line.strip() for line in cmd.stdout.strip().split('\n') if line.strip()]
-    failed = []
-
-    for dep in dependencies:
-        if dep and not dep.startswith("●"):
-            status_cmd = host.run(f"systemctl is-active {dep} 2>/dev/null")
-            if status_cmd.stdout.strip() != "active":
-                failed.append({"service": dep, "status": status_cmd.stdout.strip()})
-
-    return {
-        "success": len(failed) == 0,
-        "dependencies": dependencies,
-        "failed": failed,
-        "details": f"{len(dependencies) - len(failed)}/{len(dependencies)} dependencies active",
-        "error": f"{len(failed)} dependencies not active" if failed else None
-    }
-
-
 # =============================================================================
 # PULP VERIFICATION FUNCTIONS
 # =============================================================================
@@ -464,13 +162,12 @@ def check_pulp_certificate(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'details', 'error'
     """
-    cert_path = PREPARE_OIM_VARS["pulp_cert_path"]
-    cmd = host.run(f"podman exec omnia_core test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+    cert_path = PULP_CERT_PATH
+    cmd = run_in_container(host, f"test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
 
     if cmd.rc == 0 and "EXISTS" in cmd.stdout:
-        # Get certificate details
-        cert_info_cmd = host.run(
-            f"podman exec omnia_core openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
+        cert_info_cmd = run_in_container(
+            host, f"openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
         )
         cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
         return {
@@ -489,89 +186,29 @@ def check_pulp_certificate(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# OCHAMI VERIFICATION FUNCTIONS
-# =============================================================================
-
-def check_ochami_bss_status(host) -> Dict[str, Any]:
-    """
-    Check OpenChami BSS service status using ochami CLI inside omnia_core container.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    cmd = host.run("podman exec omnia_core ochami bss service status 2>&1")
-
-    if cmd.rc == 0:
-        return {
-            "success": True,
-            "status": "running",
-            "details": cmd.stdout.strip(),
-            "error": None
-        }
-
-    return {
-        "success": False,
-        "status": "failed",
-        "details": None,
-        "error": cmd.stderr.strip() or cmd.stdout.strip() or "BSS service check failed"
-    }
-
-
-def check_ochami_smd_status(host) -> Dict[str, Any]:
-    """
-    Check OpenChami SMD service status using ochami CLI inside omnia_core container.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    cmd = host.run("podman exec omnia_core ochami smd service status 2>&1")
-
-    if cmd.rc == 0:
-        return {
-            "success": True,
-            "status": "running",
-            "details": cmd.stdout.strip(),
-            "error": None
-        }
-
-    return {
-        "success": False,
-        "status": "failed",
-        "details": None,
-        "error": cmd.stderr.strip() or cmd.stdout.strip() or "SMD service check failed"
-    }
-
-
-# =============================================================================
 # OCHAMI SERVICE STATUS VERIFICATION (BSS and SMD via ochami CLI)
 # =============================================================================
 
-def _get_access_token_env_name(host) -> str:
+def _run_ochami_cmd(host, ochami_cmd: str) -> Dict[str, Any]:
     """
-    Get the environment variable name for the access token.
-    Uses hostname -s converted to uppercase.
-
-    Args:
-        host: testinfra host object
+    Generate a fresh access token and run an ochami CLI command.
 
     Returns:
-        Environment variable name (e.g., 'OIM_ACCESS_TOKEN')
+        Dict with 'rc', 'stdout', 'stderr'
     """
-    hostname_cmd = host.run("hostname -s")
-    hostname = hostname_cmd.stdout.strip().upper()
-    return f"{hostname}_ACCESS_TOKEN"
+    hostname = host.run("hostname -s").stdout.strip().upper()
+    env_var = f"{hostname}_ACCESS_TOKEN"
+    cmd = host.run(
+        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && "
+        f"ochami {ochami_cmd}"
+    )
+    return {"rc": cmd.rc, "stdout": cmd.stdout.strip(), "stderr": cmd.stderr.strip()}
 
 
 def check_bss_service(host) -> Dict[str, Any]:
     """
     Check ochami BSS service status.
-    First generates access token, then runs ochami bss service status.
+    Generates a fresh token, then runs ochami bss service status.
     Expected response: {"bss-status":"running"}
 
     Args:
@@ -580,17 +217,10 @@ def check_bss_service(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'details', 'error'
     """
-    env_var = _get_access_token_env_name(host)
+    result = _run_ochami_cmd(host, "bss service status")
+    output = result["stdout"]
 
-    # Generate access token and run ochami bss service status
-    cmd = host.run(
-        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && ochami bss service status"
-    )
-
-    output = cmd.stdout.strip()
-
-    # Check if response contains "bss-status":"running"
-    if cmd.rc == 0 and '"bss-status":"running"' in output.replace(" ", ""):
+    if result["rc"] == 0 and '"bss-status":"running"' in output.replace(" ", ""):
         return {
             "success": True,
             "status": "running",
@@ -602,14 +232,14 @@ def check_bss_service(host) -> Dict[str, Any]:
         "success": False,
         "status": "not running",
         "details": output if output else None,
-        "error": cmd.stderr.strip() or output or "BSS service is not running"
+        "error": result["stderr"] or output or "BSS service is not running"
     }
 
 
 def check_smd_service(host) -> Dict[str, Any]:
     """
     Check ochami SMD service status.
-    First generates access token, then runs ochami smd service status.
+    Generates a fresh token, then runs ochami smd service status.
     Expected response: {"code":0,"message":"HSM is healthy"}
 
     Args:
@@ -618,18 +248,11 @@ def check_smd_service(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'details', 'error'
     """
-    env_var = _get_access_token_env_name(host)
+    result = _run_ochami_cmd(host, "smd service status")
+    output = result["stdout"]
 
-    # Generate access token and run ochami smd service status
-    cmd = host.run(
-        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && ochami smd service status"
-    )
-
-    output = cmd.stdout.strip()
-
-    # Check if response contains "code":0 and "HSM is healthy"
     output_normalized = output.replace(" ", "")
-    if cmd.rc == 0 and '"code":0' in output_normalized and 'HSMishealthy' in output_normalized:
+    if result["rc"] == 0 and '"code":0' in output_normalized and 'HSMishealthy' in output_normalized:
         return {
             "success": True,
             "status": "healthy",
@@ -641,7 +264,7 @@ def check_smd_service(host) -> Dict[str, Any]:
         "success": False,
         "status": "not healthy",
         "details": output if output else None,
-        "error": cmd.stderr.strip() or output or "SMD service is not healthy"
+        "error": result["stderr"] or output or "SMD service is not healthy"
     }
 
 
@@ -660,7 +283,7 @@ def check_ldap_auth_certificate(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'skipped', 'details', 'error'
     """
-    if not is_ldap_enabled():
+    if not is_ldap_enabled(host):
         return {
             "success": True,
             "status": "skipped",
@@ -669,13 +292,12 @@ def check_ldap_auth_certificate(host) -> Dict[str, Any]:
             "error": None
         }
 
-    cert_path = PREPARE_OIM_VARS["ldap_cert_path"]
-    cmd = host.run(f"podman exec omnia_core test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
+    cert_path = LDAP_CERT_PATH
+    cmd = run_in_container(host, f"test -f {cert_path} && echo 'EXISTS' || echo 'NOT_FOUND'")
 
     if cmd.rc == 0 and "EXISTS" in cmd.stdout:
-        # Get certificate details
-        cert_info_cmd = host.run(
-            f"podman exec omnia_core openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
+        cert_info_cmd = run_in_container(
+            host, f"openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
         )
         cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
         return {
@@ -696,87 +318,64 @@ def check_ldap_auth_certificate(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# FULL VALIDATION
+# CONSOLIDATED STATUS FUNCTIONS
 # =============================================================================
 
-def run_all_validations(host, skip_on_failure: bool = True) -> Dict[str, Any]:
+def check_all_services_status(host) -> Dict[str, Any]:
     """
-    Run all prepare_oim validations.
-    Continues checking all items even if some fail (skip_on_failure behavior).
+    Check all expected systemd services/targets.
 
-    Args:
-        host: testinfra host object
-        skip_on_failure: if True, continue all validations even if some fail
+    For each service:
+      - If expected_active=True  and active   -> PASS
+      - If expected_active=True  and inactive -> FAIL
+      - If expected_active=False and inactive -> PASS (expected not running)
+      - If expected_active=False and active   -> FAIL (should not be running)
 
     Returns:
-        Dict with 'success', 'results', 'passed', 'failed', 'skipped', 'summary'
+        Dict with 'success', 'results', 'passed', 'failed', 'details'
     """
+    expected = get_expected_services(host)
     results = []
     passed = 0
     failed = 0
-    skipped = 0
 
-    # 1. Check all containers
-    containers_result = check_all_containers(host, skip_on_failure)
-    results.append({
-        "name": "All Containers Running",
-        "success": containers_result["success"],
-        "details": containers_result["details"],
-        "sub_results": containers_result["results"]
-    })
-    if containers_result["success"]:
-        passed += 1
-    else:
-        failed += 1
-    skipped += containers_result.get("skipped", 0)
+    for svc in expected:
+        name = svc["name"]
+        expected_active = svc["expected_active"]
+        category = svc["category"]
+        reason = svc["reason"]
 
-    # 2. Check omnia.target
-    omnia_result = check_omnia_target(host)
-    results.append({
-        "name": "omnia.target Active",
-        "success": omnia_result["success"],
-        "details": omnia_result.get("details") or omnia_result.get("error")
-    })
-    if omnia_result["success"]:
-        passed += 1
-    else:
-        failed += 1
+        status_cmd = host.run(f"systemctl is-active {name} 2>/dev/null")
+        actual_status = status_cmd.stdout.strip()
+        is_active = actual_status == "active"
 
-    # 3. Check openchami.target
-    openchami_result = check_openchami_target(host)
-    results.append({
-        "name": "openchami.target Active",
-        "success": openchami_result["success"],
-        "details": openchami_result.get("details") or openchami_result.get("error")
-    })
-    if openchami_result["success"]:
-        passed += 1
-    else:
-        failed += 1
+        if expected_active and is_active:
+            verdict = "pass"
+            message = f"{name}: active"
+            passed += 1
+        elif expected_active and not is_active:
+            verdict = "fail"
+            message = f"{name}: {actual_status} (expected active)"
+            failed += 1
+        elif not expected_active and not is_active:
+            verdict = "pass"
+            message = f"{name}: not running (expected, {reason})"
+            passed += 1
+        else:
+            verdict = "fail"
+            message = f"{name}: active (should NOT be running, {reason})"
+            failed += 1
 
-    # 4. Check ochami BSS
-    bss_result = check_ochami_bss_status(host)
-    results.append({
-        "name": "OpenChami BSS Service",
-        "success": bss_result["success"],
-        "details": bss_result.get("details") or bss_result.get("error")
-    })
-    if bss_result["success"]:
-        passed += 1
-    else:
-        failed += 1
-
-    # 5. Check ochami SMD
-    smd_result = check_ochami_smd_status(host)
-    results.append({
-        "name": "OpenChami SMD Service",
-        "success": smd_result["success"],
-        "details": smd_result.get("details") or smd_result.get("error")
-    })
-    if smd_result["success"]:
-        passed += 1
-    else:
-        failed += 1
+        results.append({
+            "name": name,
+            "category": category,
+            "expected_active": expected_active,
+            "actual_status": actual_status,
+            "is_active": is_active,
+            "verdict": verdict,
+            "reason": reason,
+            "message": message,
+        })
 
     total = passed + failed
     return {
@@ -784,9 +383,283 @@ def run_all_validations(host, skip_on_failure: bool = True) -> Dict[str, Any]:
         "results": results,
         "passed": passed,
         "failed": failed,
-        "skipped": skipped,
         "total": total,
-        "summary": PREPARE_OIM_MSGS["validation_summary"].format(
-            total=total, passed=passed, failed=failed, skipped=skipped
-        )
+        "details": f"{passed}/{total} services in expected state"
     }
+
+
+def check_all_containers_status(host) -> Dict[str, Any]:
+    """
+    Check all expected containers.
+
+    For each container:
+      - If expected_running=True  and running     -> PASS
+      - If expected_running=True  and not running  -> FAIL
+      - If expected_running=False and not running  -> PASS (expected)
+      - If expected_running=False and running      -> FAIL (should not be running)
+
+    Returns:
+        Dict with 'success', 'results', 'passed', 'failed', 'details'
+    """
+    expected = get_expected_containers(host)
+    results = []
+    passed = 0
+    failed = 0
+
+    for ctr in expected:
+        name = ctr["name"]
+        expected_running = ctr["expected_running"]
+        category = ctr["category"]
+        reason = ctr["reason"]
+
+        result = check_container_running(host, name)
+        is_running = result["success"]
+        actual_status = result["status"]
+
+        if expected_running and is_running:
+            verdict = "pass"
+            message = f"{name}: running"
+            passed += 1
+        elif expected_running and not is_running:
+            verdict = "fail"
+            message = f"{name}: {actual_status} (expected running)"
+            failed += 1
+        elif not expected_running and not is_running:
+            verdict = "pass"
+            message = f"{name}: not running (expected, {reason})"
+            passed += 1
+        else:
+            verdict = "fail"
+            message = f"{name}: running (should NOT be running, {reason})"
+            failed += 1
+
+        results.append({
+            "name": name,
+            "category": category,
+            "expected_running": expected_running,
+            "actual_status": actual_status,
+            "is_running": is_running,
+            "verdict": verdict,
+            "reason": reason,
+            "message": message,
+        })
+
+    total = passed + failed
+    return {
+        "success": failed == 0,
+        "results": results,
+        "passed": passed,
+        "failed": failed,
+        "total": total,
+        "details": f"{passed}/{total} containers in expected state"
+    }
+
+
+# =============================================================================
+# TARGET DEPENDENCY VERIFICATION FUNCTIONS
+# =============================================================================
+
+def _parse_direct_deps(host, target: str):
+    """
+    Parse only direct (first-level) dependencies of a systemd target.
+
+    systemctl list-dependencies output uses indentation for nesting:
+      omnia.target
+      ● ├─minio.service           <- first level (starts at col ~2-4)
+      ● └─openchami.target        <- first level
+      ●   ├─bss.service           <- second level (deeper indent)
+
+    We only capture first-level items by checking the indent depth.
+    """
+    cmd = host.run(f"systemctl list-dependencies {target} --no-pager 2>/dev/null")
+    if cmd.rc != 0:
+        return cmd.rc, []
+
+    deps = []
+    lines = cmd.stdout.strip().split("\n")
+    first_level_indent = None
+
+    for line in lines:
+        if not line.strip() or target in line:
+            continue
+
+        # Measure indent: count leading chars before the unit name
+        # Unit names start with a letter or digit
+        indent = 0
+        for ch in line:
+            if ch.isalnum():
+                break
+            indent += 1
+
+        if first_level_indent is None:
+            first_level_indent = indent
+
+        # Only capture lines at the first indent level
+        if indent == first_level_indent:
+            # Extract unit name: strip tree chars
+            cleaned = line
+            for ch in ("●", "├", "└", "─", "│"):
+                cleaned = cleaned.replace(ch, "")
+            cleaned = cleaned.strip()
+            if cleaned:
+                deps.append(cleaned)
+
+    return cmd.rc, deps
+
+
+def check_openchami_target_deps(host) -> Dict[str, Any]:
+    """
+    Compare actual openchami.target dependencies against expected list.
+
+    Returns:
+        Dict with 'success', 'matched', 'missing', 'extra', 'actual'
+        - matched: services present in both expected and actual
+        - missing: expected but NOT attached
+        - extra: attached but NOT expected
+    """
+    target = "openchami.target"
+    rc, actual_deps = _parse_direct_deps(host, target)
+    if rc != 0:
+        return {
+            "success": False,
+            "matched": [], "missing": [], "extra": [], "actual": [],
+            "error": f"Failed to list dependencies for {target}",
+        }
+
+    expected = set(OPENCHAMI_TARGET_SERVICES)
+    actual = set(actual_deps)
+
+    matched = sorted(expected & actual)
+    missing = sorted(expected - actual)
+    extra = sorted(actual - expected)
+
+    return {
+        "success": len(missing) == 0 and len(extra) == 0,
+        "matched": matched,
+        "missing": missing,
+        "extra": extra,
+        "actual": sorted(actual),
+    }
+
+
+def check_omnia_target_deps(host) -> Dict[str, Any]:
+    """
+    Compare actual omnia.target dependencies against expected list.
+
+    Expected = always-on services + openchami.target
+             + omnia_auth.service (if LDAP)
+
+    Returns:
+        Dict with 'success', 'matched', 'missing', 'extra', 'actual'
+    """
+    target = "omnia.target"
+    rc, actual_deps = _parse_direct_deps(host, target)
+    if rc != 0:
+        return {
+            "success": False,
+            "matched": [], "missing": [], "extra": [], "actual": [],
+            "error": f"Failed to list dependencies for {target}",
+        }
+
+    # Build expected set
+    expected = set(OMNIA_TARGET_SERVICES)
+    expected.add("openchami.target")
+
+    if is_ldap_enabled(host):
+        expected.add("omnia_auth.service")
+    actual = set(actual_deps)
+
+    matched = sorted(expected & actual)
+    missing = sorted(expected - actual)
+    extra = sorted(actual - expected)
+
+    return {
+        "success": len(missing) == 0 and len(extra) == 0,
+        "matched": matched,
+        "missing": missing,
+        "extra": extra,
+        "actual": sorted(actual),
+    }
+
+
+# =============================================================================
+# EXPECTED STATE BUILDERS (domain logic using vars + core config)
+# =============================================================================
+
+def get_expected_containers(host) -> List[Dict[str, Any]]:
+    """
+    Get list of all containers with their expected running state.
+
+    Each entry: {name, expected_running (bool), category, reason}
+    - Core + OpenCHAMI: always expected running
+    - Auth: expected running only if LDAP enabled
+
+    Returns:
+        List of dicts with 'name', 'expected_running', 'category', 'reason'
+    """
+    containers = []
+
+    for name in CORE_CONTAINERS:
+        containers.append({
+            "name": name, "expected_running": True,
+            "category": "core", "reason": "always required"
+        })
+
+    for name in OPENCHAMI_CONTAINERS:
+        containers.append({
+            "name": name, "expected_running": True,
+            "category": "openchami", "reason": "always required"
+        })
+
+    ldap = is_ldap_enabled(host)
+    containers.append({
+        "name": AUTH_CONTAINER,
+        "expected_running": ldap,
+        "category": "auth",
+        "reason": "LDAP enabled" if ldap else "LDAP not enabled"
+    })
+
+    return containers
+
+
+def get_expected_services(host) -> List[Dict[str, Any]]:
+    """
+    Get list of ALL systemd services/targets with their expected active state.
+
+    Includes:
+      - omnia.target, openchami.target (always)
+      - omnia.target always-on services: omnia_core, pulp, registry, minio
+      - openchami.target services (always)
+      - omnia_auth.service (conditional: LDAP)
+
+    Returns:
+        List of dicts with 'name', 'expected_active', 'category', 'reason'
+    """
+    services = [
+        {"name": "omnia.target", "expected_active": True,
+         "category": "omnia_target", "reason": "always required"},
+        {"name": "openchami.target", "expected_active": True,
+         "category": "omnia_target", "reason": "always required"},
+    ]
+
+    for svc in OMNIA_TARGET_SERVICES:
+        services.append({
+            "name": svc, "expected_active": True,
+            "category": "omnia_target", "reason": "omnia.target dependency"
+        })
+
+    for svc in OPENCHAMI_TARGET_SERVICES:
+        services.append({
+            "name": svc, "expected_active": True,
+            "category": "openchami_target", "reason": "openchami.target dependency"
+        })
+
+    ldap = is_ldap_enabled(host)
+    services.append({
+        "name": "omnia_auth.service",
+        "expected_active": ldap,
+        "category": "auth",
+        "reason": "LDAP enabled" if ldap else "LDAP not enabled"
+    })
+
+    return services

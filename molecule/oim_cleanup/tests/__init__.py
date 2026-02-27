@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Prepare OIM module - Functions, messages, and variables for prepare_oim automation.
-
-Usage:
-    from automation_library.prepare_oim.functions import check_pulp_api_status
-    from automation_library.prepare_oim.messages import TEST_NAMES
-    from automation_library.prepare_oim.vars import PREPARE_OIM_VARS
-"""
+"""OIM Cleanup test package."""

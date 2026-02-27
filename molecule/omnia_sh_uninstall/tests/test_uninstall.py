@@ -13,12 +13,12 @@
 # limitations under the License.
 
 """
-Omnia.sh Cleanup Test Cases.
+Omnia.sh Uninstall Test Cases.
 
-This module contains pytest test cases for verifying omnia.sh cleanup (uninstall).
+This module contains pytest test cases for verifying omnia.sh --uninstall.
 
 Test cases:
-1. Verify omnia_core container is NOT running after cleanup
+1. Verify omnia_core container is NOT running after uninstall
 2. Verify omnia_core.container service file is removed
 3. Verify fstab entry for omnia_shared_path is removed
 4. Verify omnia_shared_path is NOT mounted
@@ -36,8 +36,8 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 )
 
 
-def test_cleanup_container_removed(host):
-    """Verify omnia_core container is NOT running after cleanup."""
+def test_uninstall_container_removed(host):
+    """Verify omnia_core container is NOT running after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_container_removed"])
 
     result = check_container_not_running(host)
@@ -50,8 +50,8 @@ def test_cleanup_container_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
-def test_cleanup_service_file_removed(host):
-    """Verify omnia_core.container service file is removed after cleanup."""
+def test_uninstall_service_file_removed(host):
+    """Verify omnia_core.container service file is removed after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_service_removed"])
     path = TEST_VARS["container_file"]
 
@@ -65,8 +65,8 @@ def test_cleanup_service_file_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
-def test_cleanup_fstab_entry_removed(host):
-    """Verify fstab entry for omnia_shared_path is removed after cleanup."""
+def test_uninstall_fstab_entry_removed(host):
+    """Verify fstab entry for omnia_shared_path is removed after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
 
     result = check_fstab_entry_removed(host)
@@ -79,8 +79,8 @@ def test_cleanup_fstab_entry_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
-def test_cleanup_mount_removed(host):
-    """Verify omnia_shared_path is NOT mounted after cleanup."""
+def test_uninstall_mount_removed(host):
+    """Verify omnia_shared_path is NOT mounted after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_mount_removed"])
 
     result = check_mount_removed(host)

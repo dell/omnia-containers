@@ -94,7 +94,7 @@
     # =========================================================================
     - name: Check if telemetry playbook exists in container
       ansible.builtin.shell:
-        cmd: podman exec {{ container_name }} test -f {{ telemetry_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+        cmd: podman exec -it {{ container_name }} test -f {{ telemetry_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
       register: playbook_check
       changed_when: false
 
@@ -105,8 +105,8 @@
     - name: Execute telemetry playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          podman exec -w /omnia {{ container_name }} \
-            ansible-playbook telemetry/telemetry.yml -v
+          podman exec -it -w /omnia/telemetry {{ container_name }} \
+            ansible-playbook telemetry.yml -v
       register: playbook_result
       when: "'EXISTS' in playbook_check.stdout"
       changed_when: playbook_result.rc == 0
