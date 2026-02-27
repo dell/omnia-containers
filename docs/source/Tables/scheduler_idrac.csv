@@ -1,5 +1,11 @@
 ﻿Variables,Details
-node_discovery_mode,"* Heterogeneous: Omnia sends requests or operations to each node individually.
+"**node_discovery_mode**
+
+    ``string``
+
+
+    Mandatory","*  Indicates an efficient way to manage server requests by querying only one server per group of identical servers.
+* Heterogeneous: Omnia sends requests or operations to each node individually.
 * Homogeneous: Omnia applies the specifications to all the nodes sharing the same hardware within a group.
 
 Example: ::
@@ -7,19 +13,20 @@ Example: ::
     slurm_cluster:
      - cluster_name: slurm_cluster
        nfs_storage_name: nfs_slurm
-       node_discovery_mode: ""homogeneous""
-       node_hardware_defaults:
-         grp1:                        # applies to compute-node1, compute-node2, compute-node3
-           sockets: 2
-           cores_per_socket: 64
-           threads_per_core: 2
-           real_memory: 512000
-         grp2:                        # applies to gpu-node1, gpu-node2
-           sockets: 2
-           cores_per_socket: 32
-           threads_per_core: 2
-           real_memory: 256000
-           gres: ""gpu:4"""
+      node_discovery_mode: ""homogeneous""
+      node_hardware_defaults:
+          grp11:
+            sockets: 5
+            cores_per_socket: 6
+            threads_per_core: 3
+            real_memory: 117968
+            gres: ""gpu:4""  # optional
+ 
+          grp12:
+            sockets: 13
+            cores_per_socket: 13
+            threads_per_core: 13
+            real_memory: 117913"
 ,
 ,
 ,
