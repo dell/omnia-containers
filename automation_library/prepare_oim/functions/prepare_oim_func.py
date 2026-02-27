@@ -378,13 +378,18 @@ def check_all_services_status(host) -> Dict[str, Any]:
         })
 
     total = passed + failed
+    details = f"Services: {passed}/{total} in expected state\n"
+    for svc in results:
+        mark = "✓" if svc["verdict"] == "pass" else "✘"
+        details += f"  {mark} {svc['message']}\n"
+
     return {
         "success": failed == 0,
         "results": results,
         "passed": passed,
         "failed": failed,
         "total": total,
-        "details": f"{passed}/{total} services in expected state"
+        "details": details,
     }
 
 
@@ -445,13 +450,18 @@ def check_all_containers_status(host) -> Dict[str, Any]:
         })
 
     total = passed + failed
+    details = f"Containers: {passed}/{total} in expected state\n"
+    for ctr in results:
+        mark = "✓" if ctr["verdict"] == "pass" else "✘"
+        details += f"  {mark} {ctr['message']}\n"
+
     return {
         "success": failed == 0,
         "results": results,
         "passed": passed,
         "failed": failed,
         "total": total,
-        "details": f"{passed}/{total} containers in expected state"
+        "details": details,
     }
 
 
@@ -533,12 +543,24 @@ def check_openchami_target_deps(host) -> Dict[str, Any]:
     missing = sorted(expected - actual)
     extra = sorted(actual - expected)
 
+    details = (
+        f"openchami.target: {len(matched)} matched, "
+        f"{len(missing)} missing, {len(extra)} extra\n"
+    )
+    for dep in matched:
+        details += f"  ✓ {dep}\n"
+    for dep in missing:
+        details += f"  ✘ {dep} (expected but NOT attached)\n"
+    for dep in extra:
+        details += f"  ✘ {dep} (attached but NOT expected)\n"
+
     return {
         "success": len(missing) == 0 and len(extra) == 0,
         "matched": matched,
         "missing": missing,
         "extra": extra,
         "actual": sorted(actual),
+        "details": details,
     }
 
 
@@ -573,12 +595,24 @@ def check_omnia_target_deps(host) -> Dict[str, Any]:
     missing = sorted(expected - actual)
     extra = sorted(actual - expected)
 
+    details = (
+        f"omnia.target: {len(matched)} matched, "
+        f"{len(missing)} missing, {len(extra)} extra\n"
+    )
+    for dep in matched:
+        details += f"  ✓ {dep}\n"
+    for dep in missing:
+        details += f"  ✘ {dep} (expected but NOT attached)\n"
+    for dep in extra:
+        details += f"  ✘ {dep} (attached but NOT expected)\n"
+
     return {
         "success": len(missing) == 0 and len(extra) == 0,
         "matched": matched,
         "missing": missing,
         "extra": extra,
         "actual": sorted(actual),
+        "details": details,
     }
 
 

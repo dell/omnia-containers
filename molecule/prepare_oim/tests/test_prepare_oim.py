@@ -53,31 +53,21 @@ from automation_library.prepare_oim.functions import (
 
 def test_service_status(host):
     """Check ALL systemd services and targets in one pass."""
-    log = TestLogger("Verify all service/target status")
+    log = TestLogger(TEST_NAMES["service_status"])
     log.check("Checking all systemd services and targets")
 
     result = check_all_services_status(host)
 
-    for svc in result["results"]:
-        if svc["verdict"] == "pass":
-            log.passed(svc["message"])
-        else:
-            log.failed(svc["message"])
+    if result["success"]:
+        log.passed(LOG_MSGS["services_ok"], result["details"])
+    else:
+        log.failed(LOG_MSGS["services_failed"], result["details"])
 
-    summary = (
-        f"{result['passed']}/{result['total']} services in expected state"
-        + (f" ({result['failed']} failed)" if result["failed"] > 0 else "")
+    assert result["success"], (
+        f"SERVICE STATUS CHECK FAILED: "
+        f"{result['passed']}/{result['total']} in expected state\n"
+        + result["details"]
     )
-    log.check(summary)
-
-    if not result["success"]:
-        failed_lines = "\n".join(
-            [f"  - {s['message']}" for s in result["results"] if s["verdict"] == "fail"]
-        )
-        assert False, (
-            f"SERVICE STATUS CHECK FAILED: {summary}\n"
-            f"Failed:\n{failed_lines}"
-        )
 
 
 # =============================================================================
@@ -86,31 +76,21 @@ def test_service_status(host):
 
 def test_container_status(host):
     """Check ALL containers in one pass."""
-    log = TestLogger("Verify all container status")
+    log = TestLogger(TEST_NAMES["container_status"])
     log.check("Checking all expected containers")
 
     result = check_all_containers_status(host)
 
-    for ctr in result["results"]:
-        if ctr["verdict"] == "pass":
-            log.passed(ctr["message"])
-        else:
-            log.failed(ctr["message"])
+    if result["success"]:
+        log.passed(LOG_MSGS["containers_ok"], result["details"])
+    else:
+        log.failed(LOG_MSGS["containers_failed"], result["details"])
 
-    summary = (
-        f"{result['passed']}/{result['total']} containers in expected state"
-        + (f" ({result['failed']} failed)" if result["failed"] > 0 else "")
+    assert result["success"], (
+        f"CONTAINER STATUS CHECK FAILED: "
+        f"{result['passed']}/{result['total']} in expected state\n"
+        + result["details"]
     )
-    log.check(summary)
-
-    if not result["success"]:
-        failed_lines = "\n".join(
-            [f"  - {c['message']}" for c in result["results"] if c["verdict"] == "fail"]
-        )
-        assert False, (
-            f"CONTAINER STATUS CHECK FAILED: {summary}\n"
-            f"Failed:\n{failed_lines}"
-        )
 
 
 # =============================================================================
@@ -119,37 +99,23 @@ def test_container_status(host):
 
 def test_openchami_target(host):
     """Compare openchami.target dependencies against expected list."""
-    log = TestLogger("openchami.target dependency check")
+    log = TestLogger(TEST_NAMES["openchami_target"])
+    log.check("Comparing openchami.target dependencies against expected list")
+
     result = check_openchami_target_deps(host)
 
     if "error" in result and result.get("error"):
         log.failed(result["error"])
         assert False, result["error"]
 
-    for dep in result["matched"]:
-        log.passed(f"{dep}: attached")
-    for dep in result["missing"]:
-        log.failed(f"{dep}: expected but NOT attached")
-    for dep in result["extra"]:
-        log.failed(f"{dep}: attached but NOT expected")
+    if result["success"]:
+        log.passed(LOG_MSGS["openchami_target_ok"], result["details"])
+    else:
+        log.failed(LOG_MSGS["openchami_target_failed"], result["details"])
 
-    summary = (
-        f"{len(result['matched'])} matched, "
-        f"{len(result['missing'])} missing, "
-        f"{len(result['extra'])} extra"
+    assert result["success"], (
+        "openchami.target dependency mismatch\n" + result["details"]
     )
-    log.check(summary)
-
-    if not result["success"]:
-        lines = []
-        for dep in result["missing"]:
-            lines.append(f"  - MISSING: {dep}")
-        for dep in result["extra"]:
-            lines.append(f"  - EXTRA: {dep}")
-        assert False, (
-            f"openchami.target dependency mismatch: {summary}\n"
-            + "\n".join(lines)
-        )
 
 
 # =============================================================================
@@ -158,37 +124,23 @@ def test_openchami_target(host):
 
 def test_omnia_target(host):
     """Compare omnia.target dependencies against expected list."""
-    log = TestLogger("omnia.target dependency check")
+    log = TestLogger(TEST_NAMES["omnia_target"])
+    log.check("Comparing omnia.target dependencies against expected list")
+
     result = check_omnia_target_deps(host)
 
     if "error" in result and result.get("error"):
         log.failed(result["error"])
         assert False, result["error"]
 
-    for dep in result["matched"]:
-        log.passed(f"{dep}: attached")
-    for dep in result["missing"]:
-        log.failed(f"{dep}: expected but NOT attached")
-    for dep in result["extra"]:
-        log.failed(f"{dep}: attached but NOT expected")
+    if result["success"]:
+        log.passed(LOG_MSGS["omnia_target_ok"], result["details"])
+    else:
+        log.failed(LOG_MSGS["omnia_target_failed"], result["details"])
 
-    summary = (
-        f"{len(result['matched'])} matched, "
-        f"{len(result['missing'])} missing, "
-        f"{len(result['extra'])} extra"
+    assert result["success"], (
+        "omnia.target dependency mismatch\n" + result["details"]
     )
-    log.check(summary)
-
-    if not result["success"]:
-        lines = []
-        for dep in result["missing"]:
-            lines.append(f"  - MISSING: {dep}")
-        for dep in result["extra"]:
-            lines.append(f"  - EXTRA: {dep}")
-        assert False, (
-            f"omnia.target dependency mismatch: {summary}\n"
-            + "\n".join(lines)
-        )
 
 
 # =============================================================================

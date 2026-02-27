@@ -22,6 +22,11 @@ and test variables for the prepare_oim automation.
 
 # Test names (displayed in test output header)
 TEST_NAMES = {
+    # Consolidated status
+    "service_status": "Verify all service/target status",
+    "container_status": "Verify all container status",
+    "openchami_target": "Verify openchami.target dependencies",
+    "omnia_target": "Verify omnia.target dependencies",
     # Service verification
     "bss_service_active": "Verify ochami BSS service is running",
     "smd_service_active": "Verify ochami SMD service is healthy",
@@ -35,6 +40,15 @@ TEST_NAMES = {
 
 # Test log messages
 TEST_LOG_MSGS = {
+    # Consolidated status
+    "services_ok": "All services/targets in expected state",
+    "services_failed": "Service/target status check failed",
+    "containers_ok": "All containers in expected state",
+    "containers_failed": "Container status check failed",
+    "openchami_target_ok": "All openchami.target dependencies matched",
+    "openchami_target_failed": "openchami.target dependency mismatch detected",
+    "omnia_target_ok": "All omnia.target dependencies matched",
+    "omnia_target_failed": "omnia.target dependency mismatch detected",
     # Service messages
     "bss_service_active": "ochami BSS service is running",
     "bss_service_inactive": "ochami BSS service is {status}",
