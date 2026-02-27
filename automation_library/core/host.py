@@ -16,13 +16,11 @@
 Testinfra utilities for molecule tests.
 """
 
-import csv
-import io
 import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List
 
 import yaml
 import testinfra

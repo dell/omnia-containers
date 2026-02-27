@@ -51,7 +51,8 @@ from automation_library.discovery.functions import (
     validate_bmc_group_csv,
     validate_all_services,
     validate_all_sinfo,
-    validate_all_ldap,
+    validate_ldap_login_non_slurm,
+    validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
 )
 
@@ -497,39 +498,93 @@ def test_all_sinfo(host):
     assert result["success"], f"sinfo failed: {result['error']}"
 
 
-def test_all_ldap(host):
-    """Test Case 12: Verify LDAP users accessible on ALL nodes."""
-    log = TestLogger("LDAP Validation (All Nodes)")
-    log.check("Checking LDAP users (UID >= 1000) on all nodes")
-    result = validate_all_ldap(host)
+def test_ldap_login_non_slurm(host):
+    """Test Case 12a: Verify LDAP user can SSH login on non-slurm nodes.
+
+    Non-slurm nodes (login, kube_control_plane, etc.) should always
+    allow LDAP user SSH login.
+    Reads ldap_user and ldap_password from user_config.yml.
+    """
+    log = TestLogger("LDAP Login - Non-Slurm Nodes")
+    log.check("Testing LDAP user SSH login on non-slurm nodes")
+    result = validate_ldap_login_non_slurm(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No nodes found")
-        pytest.skip("No nodes found in PXE mapping")
+        log.skipped(result["error"], "Skipped")
+        pytest.skip(result["error"])
+
+    ldap_user = result.get("ldap_user", "")
+    log.check(f"LDAP user: {ldap_user}")
+    log.check("")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
-        log.check(f"\n═══ {func_group} ({len(nodes)} nodes) ═══")
+        log.check(f"═══ {func_group} ({len(nodes)} nodes) ═══")
         for node in nodes:
-            hostname = node["hostname"]
-            status = "✓" if node["success"] else "✗"
-            users = node.get("users", [])
-            if users:
-                user_list = ", ".join(users[:5])
-                extra = f" (+{len(users)-5} more)" if len(users) > 5 else ""
-                log.check(f"  {status} {hostname}: {len(users)} users [{user_list}{extra}]")
-            else:
-                log.check(f"  {status} {hostname}: {node.get('error', 'No users')}")
-            if not node["success"]:
+            hostname = node.get("hostname", "")
+            login_ok = node.get("login_success", False)
+            status = "✓" if login_ok else "✗"
+            detail = node.get("output", "") if login_ok else node.get("error", "Login failed")
+            log.check(f"  {status} {hostname} ({node.get('admin_ip', '')}): {detail}")
+            if not login_ok:
                 failed_nodes.append(hostname)
+        log.check("")
 
-    log.check("")
     if result["success"]:
-        log.passed("LDAP working on all nodes", "Directory users accessible everywhere")
+        log.passed("LDAP login works on all non-slurm nodes", f"User: {ldap_user}")
     else:
-        log.failed(f"LDAP failed on: {', '.join(failed_nodes)}", result["error"])
+        log.failed(f"LDAP login failed on: {', '.join(failed_nodes)}", result["error"])
 
-    assert result["success"], f"LDAP failed: {result['error']}"
+    assert result["success"], f"LDAP login failed: {result['error']}"
+
+
+def test_ldap_login_slurm_nodes(host):
+    """Test Case 12b: Verify LDAP user login behavior on slurm nodes.
+
+    On slurm compute nodes (pam_slurm_adopt):
+    - If LDAP user has NO running jobs -> SSH login should be BLOCKED
+    - If LDAP user has running jobs -> SSH login should be ALLOWED
+    Reads ldap_user and ldap_password from user_config.yml.
+    """
+    log = TestLogger("LDAP Login - Slurm Nodes")
+    log.check("Testing LDAP user SSH login behavior on slurm compute nodes")
+    result = validate_ldap_login_slurm_nodes(host)
+
+    if result.get("skipped"):
+        log.skipped(result["error"], "Skipped")
+        pytest.skip(result["error"])
+
+    ldap_user = result.get("ldap_user", "")
+    log.check(f"LDAP user: {ldap_user}")
+    log.check("")
+
+    failed_nodes = []
+    for func_group, nodes in result.get("group_results", {}).items():
+        log.check(f"═══ {func_group} ({len(nodes)} nodes) ═══")
+        for node in nodes:
+            hostname = node.get("hostname", "")
+            correct = node.get("correct", False)
+            job_info = "has jobs" if node.get("has_jobs") else "no jobs"
+            login_info = "login OK" if node.get("login_success") else "login blocked"
+            expected_info = "should allow" if node.get("expected_login") else "should block"
+            log.check(
+                f"  {'✓' if correct else '✗'} {hostname}: "
+                f"{job_info} | {login_info} | {expected_info}"
+            )
+            if not correct:
+                log.check(f"      Error: {node.get('error', '')}")
+                failed_nodes.append(hostname)
+        log.check("")
+
+    if result["success"]:
+        log.passed(
+            "LDAP login behavior correct on all slurm nodes",
+            f"User: {ldap_user} - pam_slurm_adopt working as expected",
+        )
+    else:
+        log.failed(f"Incorrect behavior on: {', '.join(failed_nodes)}", result["error"])
+
+    assert result["success"], f"LDAP slurm login: {result['error']}"
 
 
 # =============================================================================

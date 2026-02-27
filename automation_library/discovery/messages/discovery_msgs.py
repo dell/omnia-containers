@@ -17,8 +17,6 @@ Discovery Module - Messages and Test Variables.
 
 This module contains all test names, log messages, and assertion messages
 for the discovery automation module.
-
-Author: Dell Technologies
 """
 
 from typing import Dict
@@ -34,7 +32,6 @@ TEST_NAMES: Dict[str, str] = {
     "functional_groups": "Verify functional groups are correctly assigned",
     "bmc_group_data": "Verify BMC group data file is created",
     "node_hostnames": "Verify node hostnames match PXE mapping",
-    "discovery_completion": "Verify discovery process completed successfully",
 }
 
 # =============================================================================
@@ -42,58 +39,28 @@ TEST_NAMES: Dict[str, str] = {
 # =============================================================================
 TEST_LOG_MSGS: Dict[str, str] = {
     # SSH Reachability
-    "nodes_ssh_checking": "Checking SSH connectivity to {count} nodes from PXE mapping",
     "nodes_ssh_success": "All {count} nodes are reachable via SSH",
     "nodes_ssh_failed": "{failed_count}/{total_count} nodes are not reachable via SSH",
-    "node_ssh_ok": "Node {hostname} ({admin_ip}) is reachable",
-    "node_ssh_fail": "Node {hostname} ({admin_ip}) is NOT reachable",
 
     # OpenCHAMI Discovery
-    "ochami_checking": "Checking OpenCHAMI SMD for discovered nodes",
     "ochami_success": "All {count} nodes discovered in OpenCHAMI SMD",
     "ochami_failed": "{missing_count}/{total_count} nodes missing from OpenCHAMI SMD",
-    "ochami_node_found": "Node {hostname} found in OpenCHAMI SMD",
-    "ochami_node_missing": "Node {hostname} NOT found in OpenCHAMI SMD",
 
     # nodes.yaml File
-    "nodes_yaml_checking": "Checking nodes.yaml file at {path}",
     "nodes_yaml_exists": "nodes.yaml file exists and is valid",
     "nodes_yaml_missing": "nodes.yaml file not found at {path}",
     "nodes_yaml_invalid": "nodes.yaml file is invalid: {error}",
-    "nodes_yaml_node_ok": "Node {hostname} found in nodes.yaml",
-    "nodes_yaml_node_missing": "Node {hostname} NOT found in nodes.yaml",
 
     # Passwordless SSH
-    "passwordless_ssh_checking": "Checking passwordless SSH to {count} nodes",
     "passwordless_ssh_success": "Passwordless SSH configured for all {count} nodes",
-    "passwordless_ssh_failed": "{failed_count}/{total_count} nodes require password",
-    "passwordless_ssh_ok": "Passwordless SSH OK for {hostname} ({admin_ip})",
     "passwordless_ssh_fail": "Passwordless SSH FAILED for {hostname} ({admin_ip})",
 
-    # Functional Groups
-    "functional_groups_checking": "Checking functional group assignments",
-    "functional_groups_success": "All nodes have correct functional group assignments",
-    "functional_groups_failed": "{mismatch_count} nodes have incorrect functional groups",
-
-    # BMC Group Data
-    "bmc_group_data_checking": "Checking BMC group data file at {path}",
-    "bmc_group_data_exists": "BMC group data file exists and is valid",
-    "bmc_group_data_missing": "BMC group data file not found",
-    "bmc_group_data_invalid": "BMC group data file is invalid: {error}",
-
     # Node Hostnames
-    "node_hostnames_checking": "Verifying hostnames on {count} nodes",
     "node_hostnames_success": "All {count} node hostnames match PXE mapping",
     "node_hostnames_failed": "{mismatch_count}/{total_count} nodes have hostname mismatches",
-    "node_hostname_match": "Hostname matches for {hostname}: {actual_hostname}",
-    "node_hostname_mismatch": (
+    "node_hostnames_mismatch": (
         "Hostname mismatch for {hostname}: expected={expected}, actual={actual}"
     ),
-
-    # Discovery Completion
-    "discovery_completion_checking": "Checking discovery completion status",
-    "discovery_completion_success": "Discovery process completed successfully",
-    "discovery_completion_failed": "Discovery process incomplete: {reason}",
 }
 
 # =============================================================================
@@ -199,40 +166,6 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 
-    "functional_groups_mismatch": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ FUNCTIONAL GROUP ASSIGNMENT MISMATCH
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Mismatched nodes: {mismatch_count}
-║ Details: {mismatch_details}
-║
-║ HOW TO FIX:
-║   1. Verify functional_groups.yml is correct:
-║      podman exec omnia_core cat /opt/omnia/input/project_default/functional_groups.yml
-║   2. Verify PXE mapping has correct functional groups:
-║      podman exec omnia_core cat /opt/omnia/input/project_default/pxe_mapping_file.csv
-║   3. Re-generate functional groups:
-║      cd /path/to/omnia && ansible-playbook utils/generate_functional_groups.yml
-║   4. Re-run discovery playbook
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-
-    "bmc_group_data_missing": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ BMC GROUP DATA FILE NOT FOUND
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Expected path: {path}
-║
-║ HOW TO FIX:
-║   1. Verify discovery playbook ran successfully
-║   2. Check if file exists:
-║      podman exec omnia_core ls -la /opt/omnia/telemetry/
-║   3. Verify telemetry directory was created
-║   4. Re-run discovery playbook
-║   5. Check if PXE mapping has BMC IP information
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-
     "node_hostnames_mismatch": """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║ NODE HOSTNAME MISMATCH
@@ -251,21 +184,4 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 
-    "discovery_incomplete": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ DISCOVERY PROCESS INCOMPLETE
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Reason: {reason}
-║ Missing files: {missing_files}
-║
-║ HOW TO FIX:
-║   1. Check discovery playbook execution logs
-║   2. Verify all required files were created:
-║      - /opt/omnia/openchami/nodes.yaml
-║      - /opt/omnia/openchami/hostname.yaml
-║      - /opt/omnia/telemetry/bmc_group_data.csv
-║   3. Re-run discovery playbook from start
-║   4. Check for errors in discovery_validations role
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
 }

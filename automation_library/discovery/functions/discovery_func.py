@@ -17,11 +17,10 @@ Discovery Module - Verification Functions.
 
 This module contains all verification functions for discovery automation.
 Functions follow the return dictionary pattern with success, error keys.
-
-Author: Dell Technologies
 """
 
 import json
+import time
 from typing import Dict, Any, List
 
 import yaml
@@ -29,6 +28,8 @@ import yaml
 from automation_library.core import (
     get_functional_groups_from_pxe_mapping,
     get_nodes_info,
+    run_on_remote_node,
+    run_in_container,
 )
 from ..vars.discovery_vars import (
     CONTAINER_NAME,
@@ -39,6 +40,8 @@ from ..vars.discovery_vars import (
     SLURM_CONTROL_SERVICES,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
     FUNCTIONAL_GROUP_KUBE_CONTROL,
+    HAPROXY_CERT_VOLUME_PATH,
+    ACME_CERT_RENEW_WAIT,
 )
 
 
@@ -64,6 +67,17 @@ def _get_all_nodes(host) -> List[Dict[str, str]]:
     for nodes in nodes_by_group.values():
         all_nodes.extend(nodes)
     return all_nodes
+
+
+def iter_grouped_nodes(grouped_nodes):
+    """Yield (func_group, hostname, admin_ip) for each node across groups.
+
+    Yields:
+        Tuple of (func_group, hostname, admin_ip) for each node.
+    """
+    for func_group, nodes in grouped_nodes.items():
+        for node in nodes:
+            yield func_group, node.get("hostname", ""), node.get("admin_ip", "")
 
 
 # =============================================================================
@@ -126,8 +140,78 @@ def verify_nodes_ssh_reachable(host) -> Dict[str, Any]:
     }
 
 
+def _is_cert_expired(host) -> bool:
+    """Check if the haproxy TLS certificate has expired."""
+    cmd = host.run(f"ls {HAPROXY_CERT_VOLUME_PATH}/*.pem 2>/dev/null")
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return True
+    cert_file = cmd.stdout.strip().split('\n')[0]
+    check = host.run(f"openssl x509 -in {cert_file} -noout -checkend 0 2>/dev/null")
+    return check.rc != 0
+
+
+def renew_openchami_cert(host) -> Dict[str, Any]:
+    """
+    Renew the OpenCHAMI TLS certificate via ACME (step-ca).
+
+    Restarts acme-register and acme-deploy systemd services,
+    then sends HUP to haproxy to reload the new certificate.
+
+    Returns:
+        Dict with success, renewed (bool), details, and error.
+    """
+    if not _is_cert_expired(host):
+        return {
+            "success": True, "renewed": False,
+            "details": "Certificate is still valid", "error": "",
+        }
+
+    # Step 1: Re-issue certificate via ACME
+    cmd = host.run(CMD_TEMPLATES["acme_restart_register"])
+    if cmd.rc != 0:
+        return {
+            "success": False, "renewed": False,
+            "details": "", "error": f"acme-register failed: {cmd.stderr.strip()}",
+        }
+
+    # Step 2: Deploy certificate to haproxy volume
+    cmd = host.run(CMD_TEMPLATES["acme_restart_deploy"])
+    if cmd.rc != 0:
+        return {
+            "success": False, "renewed": False,
+            "details": "", "error": f"acme-deploy failed: {cmd.stderr.strip()}",
+        }
+
+    # Step 3: Reload haproxy to pick up the new cert
+    cmd = host.run(CMD_TEMPLATES["haproxy_reload"])
+    if cmd.rc != 0:
+        return {
+            "success": False, "renewed": False,
+            "details": "", "error": f"haproxy reload failed: {cmd.stderr.strip()}",
+        }
+
+    # Wait briefly for haproxy to reload
+    time.sleep(ACME_CERT_RENEW_WAIT)
+
+    # Verify the new cert is valid
+    if _is_cert_expired(host):
+        return {
+            "success": False, "renewed": False,
+            "details": "", "error": "Certificate still expired after renewal attempt",
+        }
+
+    return {
+        "success": True, "renewed": True,
+        "details": "Certificate renewed and haproxy reloaded", "error": "",
+    }
+
+
 def verify_ochami_nodes_discovered(host) -> Dict[str, Any]:
-    """Verify nodes are discovered in OpenCHAMI SMD. Returns detailed SMD info."""
+    """Verify nodes are discovered in OpenCHAMI SMD. Returns detailed SMD info.
+
+    Automatically attempts to renew the TLS certificate if the SMD
+    query fails due to an expired certificate (x509 error).
+    """
     nodes_by_group = get_nodes_by_functional_group(host)
     all_nodes = _get_all_nodes(host)
 
@@ -140,6 +224,12 @@ def verify_ochami_nodes_discovered(host) -> Dict[str, Any]:
 
     ochami_cmd = CMD_TEMPLATES["ochami_smd_get_all"]
     cmd = host.run(ochami_cmd)
+
+    # Auto-renew certificate on TLS/x509 failure and retry
+    if cmd.rc != 0 and "x509" in cmd.stderr:
+        renewal = renew_openchami_cert(host)
+        if renewal["success"]:
+            cmd = host.run(ochami_cmd)
 
     if cmd.rc != 0:
         return {
@@ -194,20 +284,14 @@ def verify_nodes_yaml_file(host) -> Dict[str, Any]:
     """Verify nodes.yaml file exists. Returns detailed content."""
     nodes_by_group = get_nodes_by_functional_group(host)
 
-    check_cmd = CMD_TEMPLATES["file_exists_container"].format(
-        container=CONTAINER_NAME, file_path=OPENCHAMI_NODES_PATH,
-    )
-    cmd = host.run(check_cmd)
+    cmd = run_in_container(host, f"test -f {OPENCHAMI_NODES_PATH}")
     if cmd.rc != 0:
         return _make_yaml_fail(
             nodes_by_group,
             f"File not found: {OPENCHAMI_NODES_PATH}",
         )
 
-    read_cmd = CMD_TEMPLATES["read_file_container"].format(
-        container=CONTAINER_NAME, file_path=OPENCHAMI_NODES_PATH,
-    )
-    cmd = host.run(read_cmd)
+    cmd = run_in_container(host, f"cat {OPENCHAMI_NODES_PATH}")
     if cmd.rc != 0:
         return _make_yaml_fail(
             nodes_by_group, f"Failed to read: {cmd.stderr}",
@@ -455,12 +539,8 @@ def _validate_service_on_node(host, admin_ip: str, service: str) -> Dict[str, An
 
 
 def _run_command_on_node(host, admin_ip: str, command: str) -> Dict[str, Any]:
-    """Run a command on a node via SSH and return result."""
-    ssh_opts = CMD_TEMPLATES["ssh_opts"].format(timeout=SSH_TIMEOUT)
-    ssh_cmd = CMD_TEMPLATES["ssh_to_node"].format(
-        container=CONTAINER_NAME, ssh_opts=ssh_opts, admin_ip=admin_ip, command=command
-    )
-    cmd = host.run(ssh_cmd)
+    """Run a command on a node via SSH using core's run_on_remote_node."""
+    cmd = run_on_remote_node(host, command, admin_ip)
     return {"success": cmd.rc == 0, "output": cmd.stdout.strip(), "error": cmd.stderr.strip()}
 
 
@@ -719,93 +799,28 @@ def validate_all_sinfo(host) -> Dict[str, Any]:
     group_results = {}
     all_success = True
 
-    for func_group, nodes in all_grouped.items():
-        group_results[func_group] = []
-        for node in nodes:
-            hostname = node.get("hostname", "")
-            admin_ip = node.get("admin_ip", "")
-
-            if not admin_ip:
-                group_results[func_group].append({
-                    "hostname": hostname, "success": False, "output": "", "error": "No IP",
-                })
-                all_success = False
-                continue
-
-            result = _run_command_on_node(host, admin_ip, "sinfo")
+    for func_group, hostname, admin_ip in iter_grouped_nodes(all_grouped):
+        group_results.setdefault(func_group, [])
+        if not admin_ip:
             group_results[func_group].append({
-                "hostname": hostname, "admin_ip": admin_ip,
-                "success": result["success"], "output": result["output"][:500],
-                "error": "" if result["success"] else result["error"],
+                "hostname": hostname, "success": False, "output": "", "error": "No IP",
             })
-            if not result["success"]:
-                all_success = False
+            all_success = False
+            continue
+
+        result = _run_command_on_node(host, admin_ip, "sinfo")
+        group_results[func_group].append({
+            "hostname": hostname, "admin_ip": admin_ip,
+            "success": result["success"], "output": result["output"][:500],
+            "error": "" if result["success"] else result["error"],
+        })
+        if not result["success"]:
+            all_success = False
 
     return {
         "success": all_success, "skipped": False,
         "group_results": group_results,
         "error": "" if all_success else "sinfo failed on some nodes",
-    }
-
-
-def validate_all_ldap(host) -> Dict[str, Any]:
-    """
-    Validate LDAP on ALL nodes, grouped by functional group.
-
-    Runs 'getent passwd' (UID >= 1000) on every node to check LDAP users.
-
-    Returns:
-        Dict with success, group_results (per functional group), and error.
-    """
-    all_grouped = get_nodes_by_functional_group(host)
-    if not all_grouped:
-        return {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
-
-    group_results = {}
-    all_success = True
-
-    for func_group, nodes in all_grouped.items():
-        group_results[func_group] = []
-        for node in nodes:
-            hostname = node.get("hostname", "")
-            admin_ip = node.get("admin_ip", "")
-
-            if not admin_ip:
-                group_results[func_group].append({
-                    "hostname": hostname, "success": False,
-                    "users": [], "user_count": 0,
-                    "error": "No IP",
-                })
-                all_success = False
-                continue
-
-            result = _run_command_on_node(
-                host, admin_ip, CMD_TEMPLATES["ldap_check"],
-            )
-            users = []
-            if result["success"] and result["output"].strip():
-                for line in result["output"].strip().split("\n"):
-                    parts = line.split(":")
-                    if parts and parts[0]:
-                        users.append(parts[0])
-            ldap_ok = len(users) > 0
-            group_results[func_group].append({
-                "hostname": hostname, "admin_ip": admin_ip,
-                "success": ldap_ok,
-                "users": users,
-                "user_count": len(users),
-                "error": (
-                    "" if ldap_ok
-                    else "No LDAP users found"
-                ),
-            })
-            if not ldap_ok:
-                all_success = False
-
-    return {
-        "success": all_success, "skipped": False,
-        "group_results": group_results,
-        "error": "" if all_success else "LDAP not working on some nodes",
     }
 
 

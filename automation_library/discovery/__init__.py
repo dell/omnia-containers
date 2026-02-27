@@ -36,25 +36,24 @@ from .functions import (
     validate_node_boot,
     validate_packages_by_group,
     validate_bmc_group_csv,
+    # Certificate renewal
+    renew_openchami_cert,
     # Consolidated validation (all nodes, grouped by functional group)
     validate_all_services,
     validate_all_sinfo,
-    validate_all_ldap,
+    validate_ldap_login_non_slurm,
+    validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
 )
 from .vars import (
     OPENCHAMI_NODES_PATH,
-    OPENCHAMI_HOSTNAME_PATH,
     BMC_GROUP_DATA_PATH,
-    OIM_METADATA_PATH,
     OPEN_NETWORK_SPEC_PATH,
     CONTAINER_NAME,
     SSH_TIMEOUT,
     CMD_TEMPLATES,
     LOGIN_SERVICES,
     SLURM_CONTROL_SERVICES,
-    FUNCTIONAL_GROUP_LOGIN,
-    FUNCTIONAL_GROUP_LOGIN_COMPILER,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
     FUNCTIONAL_GROUP_KUBE_CONTROL,
 )

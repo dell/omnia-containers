@@ -18,8 +18,6 @@ Discovery Module - BMC Group CSV Validation Functions.
 Validates bmc_group_data.csv against PXE mapping and open_network_spec.
 Ensures all PXE mapping nodes with groups/parents are present in the CSV,
 and that the primary OIM BMC IP (if configured) is also included.
-
-Author: Dell Technologies
 """
 
 import csv
@@ -28,10 +26,8 @@ from typing import Dict, Any, List
 
 import yaml
 
-from automation_library.core import get_nodes_info
+from automation_library.core import get_nodes_info, run_in_container
 from ..vars.discovery_vars import (
-    CONTAINER_NAME,
-    CMD_TEMPLATES,
     BMC_GROUP_DATA_PATH,
     OPEN_NETWORK_SPEC_PATH,
 )
@@ -44,10 +40,7 @@ def _read_bmc_group_csv(host) -> Dict[str, Any]:
         Dict with bmc_entries list, bmc_ips set, groups set, parents set,
         and error string.
     """
-    check_cmd = CMD_TEMPLATES["file_exists_container"].format(
-        container=CONTAINER_NAME, file_path=BMC_GROUP_DATA_PATH
-    )
-    cmd = host.run(check_cmd)
+    cmd = run_in_container(host, f"test -f {BMC_GROUP_DATA_PATH}")
     if cmd.rc != 0:
         return {
             "bmc_entries": [], "bmc_ips": set(),
@@ -55,10 +48,7 @@ def _read_bmc_group_csv(host) -> Dict[str, Any]:
             "error": f"File not found: {BMC_GROUP_DATA_PATH}",
         }
 
-    read_cmd = CMD_TEMPLATES["read_file_container"].format(
-        container=CONTAINER_NAME, file_path=BMC_GROUP_DATA_PATH
-    )
-    cmd = host.run(read_cmd)
+    cmd = run_in_container(host, f"cat {BMC_GROUP_DATA_PATH}")
     if cmd.rc != 0:
         return {
             "bmc_entries": [], "bmc_ips": set(),
@@ -112,10 +102,7 @@ def _read_oim_bmc_ip(host) -> str:
     Returns:
         The primary OIM BMC IP string, or empty string if not found.
     """
-    read_cmd = CMD_TEMPLATES["read_file_container"].format(
-        container=CONTAINER_NAME, file_path=OPEN_NETWORK_SPEC_PATH
-    )
-    cmd = host.run(read_cmd)
+    cmd = run_in_container(host, f"cat {OPEN_NETWORK_SPEC_PATH}")
     if cmd.rc != 0:
         return ""
 
