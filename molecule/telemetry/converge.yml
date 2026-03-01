@@ -33,6 +33,7 @@
       ansible.builtin.set_fact:
         user_config: "{{ user_config }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Run telemetry prerequisite checks and playbook
@@ -130,9 +131,6 @@
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ Exit Code: {{ playbook_result.rc }}
           ║
-          ║ WHAT HAPPENED:
-          ║   The telemetry.yml playbook failed during execution inside omnia_core.
-          ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
           ║   2. Enter container: podman exec -it omnia_core bash
@@ -145,15 +143,3 @@
       ansible.builtin.fail:
         msg: "telemetry playbook not found at {{ telemetry_playbook }}"
       when: "'NOT_FOUND' in playbook_check.stdout"
-
-    - name: Telemetry converge complete
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          TELEMETRY CONVERGE COMPLETE!
-          ============================================
-          - omnia_core container: Running
-          - Prerequisites: Checked
-          - telemetry.yml playbook: Executed successfully
-          - Ready for pytest verification
-          ============================================

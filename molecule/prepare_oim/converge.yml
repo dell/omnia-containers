@@ -33,6 +33,7 @@
       ansible.builtin.set_fact:
         user_config: "{{ user_config }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Run prepare_oim.yml in omnia_core container
@@ -109,24 +110,11 @@
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ Exit Code: {{ playbook_result.rc }}
           ║
-          ║ WHAT HAPPENED:
-          ║   The prepare_oim.yml playbook failed during execution inside omnia_core.
-          ║
-          ║ POSSIBLE CAUSES:
-          ║   - OpenCHAMI installation failed (check /opt/omnia/log/openchami/configs.log)
-          ║   - Pulp container deployment failed (check /opt/omnia/log/pulp/)
-          ║   - Network connectivity issues
-          ║   - Missing or invalid configuration in input files
-          ║   - Insufficient system resources (disk, memory)
-          ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
-          ║   2. Check logs: ls -la /opt/omnia/log/
-          ║   3. Check container status: podman ps -a
-          ║   4. Re-run manually inside omnia_core container
-          ║
-          ║ STDERR:
-          ║   {{ playbook_result.stderr | default('No error message') }}
+          ║   2. Enter container: podman exec -it omnia_core bash
+          ║   3. Check logs: ls -la /opt/omnia/log/
+          ║   4. Check container status: podman ps -a
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
 
@@ -134,14 +122,3 @@
       ansible.builtin.fail:
         msg: "prepare_oim playbook not found at /omnia/prepare_oim/prepare_oim.yml"
       when: "'NOT_FOUND' in playbook_check.stdout"
-
-    - name: Prepare OIM converge complete
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          prepare_oim converge complete!
-          ============================================
-          - omnia_core container: Running
-          - prepare_oim playbook: Executed successfully
-          - Ready for pytest verification
-          ============================================

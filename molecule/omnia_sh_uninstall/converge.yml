@@ -31,6 +31,7 @@
       ansible.builtin.set_fact:
         user_config: "{{ user_config }}"
         cacheable: true
+      no_log: true
 
 - name: Cleanup - Run omnia.sh --uninstall on OIM server
   hosts: oim_server

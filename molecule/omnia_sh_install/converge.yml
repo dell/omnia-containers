@@ -33,6 +33,7 @@
       ansible.builtin.set_fact:
         user_config: "{{ user_config }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Run omnia.sh --install on OIM server

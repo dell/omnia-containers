@@ -57,6 +57,7 @@
         user_config: "{{ user_config }}"
         local_repo_urls: "{{ local_repo_urls | default([]) }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Validate pulp, repo access, and run local_repo.yml
@@ -286,6 +287,11 @@
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
 
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "local_repo playbook not found at {{ local_repo_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
     - name: Validate Pulp API after local_repo playbook
       ansible.builtin.uri:
         url: "https://127.0.0.1:2225/pulp/api/v3/status/"
@@ -430,19 +436,7 @@
         - per_package_csv_checks.results is defined
         - per_package_csv_checks.results | selectattr('stdout', 'search', '__MISSING__|fail') | list | length > 0
 
-    - name: Fail if playbook not found
-      ansible.builtin.fail:
-        msg: "local_repo playbook not found at {{ local_repo_playbook }}"
-      when: "'NOT_FOUND' in playbook_check.stdout"
-
     - name: Local_repo converge complete
       ansible.builtin.debug:
-        msg: |
-          ============================================
-          local_repo converge complete!
-          ============================================
-          - omnia_core container: Running
-          - pulp container: Running
-          - local_repo playbook: Executed successfully
-          - Ready for pytest verification
-          ============================================
+        msg: "local_repo converge complete - Ready for pytest verification"
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc == 0

@@ -33,6 +33,7 @@
       ansible.builtin.set_fact:
         user_config: "{{ user_config }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Run build_image_aarch64.yml in omnia_core container
@@ -137,9 +138,6 @@
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ Exit Code: {{ playbook_result.rc }}
           ║
-          ║ WHAT HAPPENED:
-          ║   The build_image_aarch64.yml playbook failed during execution inside omnia_core.
-          ║
           ║ HOW TO DEBUG:
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
           ║   2. Enter container: podman exec -it {{ container_name }} bash
@@ -152,14 +150,3 @@
       ansible.builtin.fail:
         msg: "build_image playbook not found at {{ build_image_playbook }}"
       when: "'NOT_FOUND' in playbook_check.stdout"
-
-    - name: Build Image aarch64 converge complete
-      ansible.builtin.debug:
-        msg: |
-          ============================================
-          build_image_aarch64 converge complete!
-          ============================================
-          - omnia_core container: Running
-          - build_image playbook: Executed successfully
-          - Ready for pytest verification
-          ============================================
