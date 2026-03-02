@@ -1,6 +1,8 @@
 Deploy Additional Repositories
 ===============================
 
+Packages from these repositories are intended for ad-hoc installation on compute nodes using ``dnf install`` and are not used during image builds through ``additional_packages.json``.
+
 1. In the ``local_repo_config.yml`` file, add your repository URLs under the key that matches the node architecture:
 
 - `additional_repos_x86_64`

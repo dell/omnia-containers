@@ -62,7 +62,12 @@ See the following sample:
          cgroup: /path/to/custom_cgroup.conf
          slurmdbd: /path/to/custom_slurmdbd.conf
          gres: /path/to/custom_gres.conf
-         
+
+.. csv-table:: Parameters for iDRAC setup
+   :file: ../../../Tables/scheduler_idrac.csv
+   :header-rows: 1
+   :keepspace:
+
 ``/opt/omnia/input/project_default/security_config.yml``
 ----------------------------------------------------------
 

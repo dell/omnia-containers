@@ -31,14 +31,16 @@ The following operations can be performed on the Omnia Core Containers: Install,
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
+.. Note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0.
+
 
 1. Download the omnia.sh script using the following commands:
     
-    * To use the tagged version of Omnia, run the following command:
+    * To use the tagged version of Omnia, run the following command: ::
 
         wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
 
-    * To use the specific branch of Omnia, run the following command:
+    * To use the specific branch of Omnia, run the following command: ::
 
         wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
         
