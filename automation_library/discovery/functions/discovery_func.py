@@ -222,18 +222,20 @@ def verify_ochami_nodes_discovered(host) -> Dict[str, Any]:
             "smd_components": [], "nodes_by_group": {},
         }
 
-    ochami_cmd = CMD_TEMPLATES["ochami_smd_get_all"]
-    cmd = host.run(ochami_cmd)
+    cmd = host.run(CMD_TEMPLATES["ochami_smd_get_all"])
 
-    # Auto-renew certificate on TLS/x509 failure and retry
-    if cmd.rc != 0 and "x509" in cmd.stderr:
+    # Auto-renew certificate on TLS/x509 failure and retry.
+    # ochami CLI may output x509 errors on stdout or stderr, and may or may
+    # not set a non-zero return code, so check both streams unconditionally.
+    if "x509" in cmd.stdout + cmd.stderr or "certificate has expired" in cmd.stdout + cmd.stderr:
         renewal = renew_openchami_cert(host)
         if renewal["success"]:
-            cmd = host.run(ochami_cmd)
+            cmd = host.run(CMD_TEMPLATES["ochami_smd_get_all"])
 
-    if cmd.rc != 0:
+    if cmd.rc != 0 or "x509" in (cmd.stdout + cmd.stderr):
+        error_detail = cmd.stderr.strip() or cmd.stdout.strip()
         return {
-            "success": False, "error": f"Failed to query SMD: {cmd.stderr}",
+            "success": False, "error": f"Failed to query SMD: {error_detail}",
             "total_count": len(all_nodes), "discovered_count": 0, "bmc_count": 0,
             "smd_components": [], "nodes_by_group": nodes_by_group,
         }
@@ -258,15 +260,15 @@ def verify_ochami_nodes_discovered(host) -> Dict[str, Any]:
             "role": comp.get("Role", ""), "nid": comp.get("NID", ""),
         })
 
-    expected = len(all_nodes)
-    discovered = len(smd_nodes)
-    success = discovered >= expected
-
     return {
-        "success": success, "total_count": expected, "discovered_count": discovered,
+        "success": len(smd_nodes) >= len(all_nodes),
+        "total_count": len(all_nodes), "discovered_count": len(smd_nodes),
         "bmc_count": len(smd_bmcs), "smd_components": smd_details,
         "nodes_by_group": nodes_by_group,
-        "error": "" if success else f"Expected {expected}, found {discovered}"
+        "error": (
+            "" if len(smd_nodes) >= len(all_nodes)
+            else f"Expected {len(all_nodes)}, found {len(smd_nodes)}"
+        ),
     }
 
 
