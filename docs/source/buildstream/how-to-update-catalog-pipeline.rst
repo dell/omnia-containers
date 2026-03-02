@@ -37,6 +37,8 @@ Procedure
       - **update-image-repositories** - Updates image repository in the local pulp repository.
       - **build-image** - Builds the images
       - **deploy-image** - Deploys the images to the local pulp repository.
+
+.. image:: ../../../images/buildstream_pipeline_status.png
       
 
 Expected pipeline status indicators:
@@ -55,3 +57,6 @@ After the pipeline is completed, you can check the overall pipeline status and j
    - Execution logs
    - Resource usage
    - Error messages (if any)
+
+.. image:: ../../../images/buildstream_job_status.png
+
