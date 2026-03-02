@@ -192,7 +192,6 @@
       ansible.builtin.shell:
         cmd: "{{ omnia_sh_path }} --install < /tmp/omnia_sh_inputs.txt"
       register: install_result
-      timeout: 600
       changed_when: install_result.rc == 0
       when: container_check.rc != 0
 

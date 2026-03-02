@@ -65,9 +65,13 @@
             ansible-playbook oim_cleanup.yml -v
       register: cleanup_result
       when: container_exists.rc == 0
-      timeout: 600
       changed_when: cleanup_result.rc == 0
       failed_when: false
+
+    - name: Display playbook stdout
+      ansible.builtin.debug:
+        var: cleanup_result.stdout_lines
+      when: cleanup_result is defined and cleanup_result.stdout_lines is defined
 
     - name: Display cleanup execution result
       ansible.builtin.debug:

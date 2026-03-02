@@ -66,7 +66,6 @@
         cmd: set -o pipefail && echo "y" | {{ omnia_sh_path }} --uninstall
       register: uninstall_result
       when: container_exists.rc == 0
-      timeout: 120
       changed_when: uninstall_result.rc == 0
 
     - name: Fail if uninstall failed

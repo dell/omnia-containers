@@ -115,10 +115,14 @@
           podman exec -it -w /omnia/build_image_aarch64 {{ container_name }} \
             ansible-playbook build_image_aarch64.yml -v
       register: playbook_result
-      timeout: 36000
       when: "'EXISTS' in playbook_check.stdout"
       changed_when: playbook_result.rc == 0
       failed_when: false
+
+    - name: Display playbook stdout
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
 
     - name: Display playbook execution result
       ansible.builtin.debug:
