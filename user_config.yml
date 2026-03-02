@@ -207,6 +207,13 @@ omnia_core_password: "dell"
 # LDAP user credentials for testing LDAP SSH login on cluster nodes
 # These are used by discovery test cases to verify LDAP authentication
 
+# Connection type: "internal" or "external"
+# - internal: The test framework will auto-create the LDAP user on the OIM
+#   omnia_auth container (via ldapadd through the proxy) if it doesn't exist.
+# - external: The ldap_user and ldap_password must already be valid on the
+#   external LDAP server. No user creation is attempted.
+ldap_connection_type: "internal"
+
 # LDAP username (REQUIRED for LDAP tests)
 ldap_user: "ldapuser"
 

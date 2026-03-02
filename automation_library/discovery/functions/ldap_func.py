@@ -24,6 +24,7 @@ Two scenarios:
 Reads ldap_user and ldap_password from user_config.yml.
 """
 
+import re
 from typing import Dict, Any
 
 from automation_library.core import (
@@ -33,6 +34,10 @@ from automation_library.core import (
 from ..vars.discovery_vars import (
     SSH_TIMEOUT,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
+    AUTH_CONTAINER_NAME,
+    SLAPD_CONF_PATH,
+    LDAP_DEFAULT_LOGIN_SHELL,
+    LDAP_DEFAULT_UID_START,
 )
 from .discovery_func import get_nodes_by_functional_group, iter_grouped_nodes
 
@@ -42,14 +47,162 @@ def _get_ldap_credentials() -> Dict[str, str]:
     Read LDAP credentials from user_config.yml.
 
     Returns:
-        Dict with ldap_user and ldap_password, or error.
+        Dict with ldap_user, ldap_password, ldap_connection_type, or error.
     """
     config = load_user_config()
     ldap_user = config.get("ldap_user", "")
     ldap_password = config.get("ldap_password", "")
     if not ldap_user or not ldap_password:
         return {"error": "ldap_user and ldap_password required in user_config.yml"}
-    return {"ldap_user": ldap_user, "ldap_password": ldap_password, "error": ""}
+    return {
+        "ldap_user": ldap_user,
+        "ldap_password": ldap_password,
+        "ldap_connection_type": config.get("ldap_connection_type", "internal"),
+        "error": "",
+    }
+
+
+def _parse_slapd_conf(host) -> Dict[str, str]:
+    """
+    Parse slapd.conf from omnia_auth container to extract suffix, rootdn, rootpw.
+
+    Returns:
+        Dict with suffix, rootdn, rootpw, or error.
+    """
+    cmd = host.run(
+        f"podman exec {AUTH_CONTAINER_NAME} cat {SLAPD_CONF_PATH}"
+    )
+    if cmd.rc != 0:
+        return {"error": f"Cannot read slapd.conf: {cmd.stderr.strip()}"}
+
+    conf = cmd.stdout
+    suffix_match = re.search(r'^suffix\s+"([^"]+)"', conf, re.MULTILINE)
+    rootdn_match = re.search(r'^rootdn\s+"?([^"\n]+)"?', conf, re.MULTILINE)
+    rootpw_match = re.search(r'^rootpw\s+(\S+)', conf, re.MULTILINE)
+
+    if not all([suffix_match, rootdn_match, rootpw_match]):
+        return {"error": "Cannot parse suffix/rootdn/rootpw from slapd.conf"}
+
+    return {
+        "suffix": suffix_match.group(1),
+        "rootdn": rootdn_match.group(1).strip('"'),
+        "rootpw": rootpw_match.group(1),
+        "error": "",
+    }
+
+
+def _ldap_user_exists(host, ldap_user: str, slapd: Dict[str, str]) -> bool:
+    """Check if an LDAP user already exists via ldapsearch."""
+    search_cmd = (
+        f"podman exec {AUTH_CONTAINER_NAME} "
+        f"ldapsearch -x -H ldap://localhost "
+        f"-b 'ou=users,{slapd['suffix']}' "
+        f"-D '{slapd['rootdn']}' -w '{slapd['rootpw']}' "
+        f"'(uid={ldap_user})' uid"
+    )
+    cmd = host.run(search_cmd)
+    return cmd.rc == 0 and f"uid: {ldap_user}" in cmd.stdout
+
+
+def _create_ldap_user(host, ldap_user: str, ldap_password: str,
+                      slapd: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Create an LDAP user on the omnia_auth container via ldapadd.
+
+    Generates a password hash using slappasswd and adds the user entry
+    with posixAccount, inetOrgPerson, and shadowAccount objectClasses.
+
+    Args:
+        host: Testinfra host object.
+        ldap_user: Username to create.
+        ldap_password: Password for the new user.
+        slapd: Dict with suffix, rootdn, rootpw from _parse_slapd_conf.
+
+    Returns:
+        Dict with success and error.
+    """
+    # Generate SSHA password hash
+    hash_cmd = host.run(
+        f"podman exec {AUTH_CONTAINER_NAME} slappasswd -s '{ldap_password}'"
+    )
+    if hash_cmd.rc != 0:
+        return {"success": False, "error": f"slappasswd failed: {hash_cmd.stderr.strip()}"}
+    pw_hash = hash_cmd.stdout.strip()
+
+    # Build LDIF for user creation
+    user_dn = f"cn={ldap_user},ou=users,{slapd['suffix']}"
+    ldif = (
+        f"dn: {user_dn}\n"
+        f"objectClass: inetOrgPerson\n"
+        f"objectClass: posixAccount\n"
+        f"objectClass: shadowAccount\n"
+        f"cn: {ldap_user}\n"
+        f"sn: {ldap_user}\n"
+        f"uid: {ldap_user}\n"
+        f"uidNumber: {LDAP_DEFAULT_UID_START}\n"
+        f"gidNumber: {LDAP_DEFAULT_UID_START}\n"
+        f"homeDirectory: /home/{ldap_user}\n"
+        f"loginShell: {LDAP_DEFAULT_LOGIN_SHELL}\n"
+        f"userPassword: {pw_hash}\n"
+    )
+
+    add_cmd = host.run(
+        f"printf '{ldif}' | podman exec -i {AUTH_CONTAINER_NAME} "
+        f"ldapadd -x -H ldap://localhost -D '{slapd['rootdn']}' -w '{slapd['rootpw']}'"
+    )
+    if add_cmd.rc != 0:
+        return {"success": False, "error": f"ldapadd failed: {add_cmd.stderr.strip()}"}
+
+    return {"success": True, "error": ""}
+
+
+def ensure_ldap_test_user(host) -> Dict[str, Any]:
+    """
+    Ensure the LDAP test user exists for login tests.
+
+    Behavior based on ldap_connection_type in user_config.yml:
+    - "internal": Parse slapd.conf from omnia_auth container, check if the
+      user exists, create it via ldapadd if missing.
+    - "external": Skip user creation; assume credentials are valid on
+      the external LDAP server.
+
+    Returns:
+        Dict with success, created (bool), connection_type, and error.
+    """
+    creds = _get_ldap_credentials()
+    if creds.get("error"):
+        return {"success": False, "created": False, "error": creds["error"]}
+
+    conn_type = creds["ldap_connection_type"]
+    ldap_user = creds["ldap_user"]
+    ldap_password = creds["ldap_password"]
+
+    if conn_type == "external":
+        return {
+            "success": True, "created": False,
+            "connection_type": "external",
+            "error": "",
+        }
+
+    # Internal: parse slapd.conf and ensure user exists
+    slapd = _parse_slapd_conf(host)
+    if slapd.get("error"):
+        return {"success": False, "created": False, "error": slapd["error"]}
+
+    if _ldap_user_exists(host, ldap_user, slapd):
+        return {
+            "success": True, "created": False,
+            "connection_type": "internal",
+            "error": "",
+        }
+
+    result = _create_ldap_user(host, ldap_user, ldap_password, slapd)
+    return {
+        "success": result["success"],
+        "created": result["success"],
+        "connection_type": "internal",
+        "error": result["error"],
+    }
 
 
 def _test_ldap_ssh_login(
@@ -143,12 +296,24 @@ def validate_ldap_login_non_slurm(host) -> Dict[str, Any]:
     These nodes (kube_control_plane, login_node, etc.) should always
     allow LDAP user login.
 
+    Automatically creates the LDAP user on the OIM if ldap_connection_type
+    is "internal" and the user does not yet exist.
+
     Returns:
         Dict with success, group_results, and error.
     """
     creds = _get_ldap_credentials()
     if creds.get("error"):
         return {"success": False, "skipped": True, "error": creds["error"], "group_results": {}}
+
+    # Ensure LDAP test user exists before running login tests
+    setup = ensure_ldap_test_user(host)
+    if not setup["success"]:
+        return {
+            "success": False, "skipped": True,
+            "error": f"LDAP user setup failed: {setup['error']}",
+            "group_results": {},
+        }
 
     ldap_user = creds["ldap_user"]
     ldap_password = creds["ldap_password"]
@@ -207,12 +372,24 @@ def validate_ldap_login_slurm_nodes(host) -> Dict[str, Any]:
     should BLOCK SSH login (pam_slurm_adopt). If the user has running
     jobs, the node should allow login.
 
+    Automatically creates the LDAP user on the OIM if ldap_connection_type
+    is "internal" and the user does not yet exist.
+
     Returns:
         Dict with success, group_results, and error.
     """
     creds = _get_ldap_credentials()
     if creds.get("error"):
         return {"success": False, "skipped": True, "error": creds["error"], "group_results": {}}
+
+    # Ensure LDAP test user exists before running login tests
+    setup = ensure_ldap_test_user(host)
+    if not setup["success"]:
+        return {
+            "success": False, "skipped": True,
+            "error": f"LDAP user setup failed: {setup['error']}",
+            "group_results": {},
+        }
 
     ldap_user = creds["ldap_user"]
     ldap_password = creds["ldap_password"]

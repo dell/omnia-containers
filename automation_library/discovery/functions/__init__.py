@@ -39,6 +39,7 @@ from .discovery_func import (
 )
 from .bmc_func import validate_bmc_group_csv
 from .ldap_func import (
+    ensure_ldap_test_user,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
 )
@@ -61,6 +62,7 @@ __all__ = [
     # Consolidated validation (all nodes, grouped by functional group)
     "validate_all_services",
     "validate_all_sinfo",
+    "ensure_ldap_test_user",
     "validate_ldap_login_non_slurm",
     "validate_ldap_login_slurm_nodes",
     "validate_kubernetes_nodes",

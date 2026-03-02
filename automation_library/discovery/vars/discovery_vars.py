@@ -88,6 +88,14 @@ CMD_TEMPLATES: Dict[str, str] = {
 }
 
 # =============================================================================
+# LDAP / omnia_auth Constants
+# =============================================================================
+AUTH_CONTAINER_NAME = "omnia_auth"
+SLAPD_CONF_PATH = "/etc/openldap/slapd.conf"
+LDAP_DEFAULT_LOGIN_SHELL = "/bin/bash"
+LDAP_DEFAULT_UID_START = 2000
+
+# =============================================================================
 # ACME / TLS Constants
 # =============================================================================
 HAPROXY_CERT_VOLUME_PATH = "/var/lib/containers/storage/volumes/haproxy-certs/_data"
