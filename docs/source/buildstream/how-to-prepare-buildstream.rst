@@ -1,26 +1,19 @@
 .. _how-to-buildstream-prepare:
 
-Configure BuildStreaM Settings
-===============================
+Deploy and Configure BuildStreaM Container on OIM Node
+=======================================================
 
-Set up and configure BuildStreaM for automated build and deploymentworkflows. This comprehensive procedure covers prerequisites, enabling BuildStreaM services, configuring BuildStreaM credentials, and ensuring proper PXE mapping setup.
-
-.. contents:: On This Page
-   :local:
-   :depth: 2
+Set up and configure BuildStreaM container on OIM node for automated build and deploymentworkflows. This comprehensive procedure covers prerequisites, enabling BuildStreaM services, configuring BuildStreaM credentials, and ensuring proper PXE mapping setup.
 
 Prerequisites
 -------------
 
 Before beginning the BuildStreaM setup:
 
-* Omnia 2.1.0.0 or later with core container 1.1 running
+* Ensure that Omnia core container is upgraded to Omnia 2.1.0.0 or later.
 * Administrator access on the Omnia Infrastructure Manager (OIM) node
-* PostgreSQL 12 or later for BuildStreaM database
-* Network connectivity for external integrations
 * Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
 * 10 GB free disk space for BuildStreaM data and logs
-* SSH access to omnia_core node for configuration
 
 .. important::
    BuildStreaM requires a separate PostgreSQL database for storing transaction details and job metadata.
@@ -34,20 +27,20 @@ Procedure
 
    ssh omnia_core
 
-2. Ensure that ``enable_build_stream`` parameter is set to true in build_stream_config.yml and other BuildstreaM parameters are connfigured as per your requirements.
+2. Ensure that ``enable_build_stream`` parameter is set to true in build_stream_config.yml and other BuildstreaM parameters are configured as per your requirements. For more information about preparing OIM, see :doc:`../OmniaInstallGuide/RHEL_new/prepare_oim`.
 
-3. Ensure that build_stream_oauth_credential.yml is updated with the required buildstream oauth credentials.
+3. Ensure that ``build_stream_oauth_credential.yml`` is updated with the required BuildStreaM OAuth credentials. For more details on configuration of BuildStreaM OAuth credentials, see :doc:`../OmniaInstallGuide/RHEL_new/credentials_utility`.
 
-4. Ensure that the PXE mapping file is updated with the required node information.
+4. Ensure that the PXE mapping file is updated with the required node information. For more details on adding node information to the PXE mapping file, see :doc:`../OmniaInstallGuide/RHEL_new/composable_roles`.
 
-5. Execute the ``prepare_oim.yaml`` playbook to create BuildStreaM containers:
+5. Execute the ``prepare_oim.yaml`` playbook to create and deploy BuildStreaM container on the OIM node:
 
    .. code-block:: bash
 
       cd /opt/omnia/playbooks
       ansible-playbook prepare_oim.yml
 
-   This creates:
+   This playbook deploys the following containers on the OIM node:
    - BuildStreaM API container
    - PostgreSQL database container
 
@@ -57,26 +50,30 @@ Procedure
 Verification
 -------------
 
-Check that all BuildStreaM services are running:
+1 Run the following command to the complete list of dependendent services for the Omnia target.
 
 .. code-block:: bash
 
-   podman ps | grep buildstream
+  systemctl list-dependencies omnia.target
 
-Expected output shows running containers:
+2. Check the status of the BuildStreaM API container.
 
-.. code-block:: text
+.. code-block:: bash
 
-   buildstream-api      Up   2 minutes ago
-   buildstream-db       Up   2 minutes ago
-   buildstream-runner   Up   2 minutes ago
+  systemctl status omnia_build_stream.service
+
+3. Check the status of the PostgreSQL database container.
+
+.. code-block:: bash
+
+  systemctl status omnia_postgresql.service
+
+* A green circle indicates that the service is running.
+* A grey circle indicates that the service is not running.
+* A circle with a cross indicates that the service failed to start
 
 Next Steps
 ----------
 
-After completing the BuildStreaM configuration:
-
-* **Deploy GitLab** - Install and configure GitLab for pipeline execution
-* **Create initial catalog** - Define your first build catalog
-* **Test pipeline execution** - Verify end-to-end workflow
+After completing the BuildStreaM configuration, deploy GitLab for BuildStreaM pipeline integration.
 

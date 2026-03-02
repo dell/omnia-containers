@@ -1,7 +1,7 @@
 .. _how-to-buildstream-gitlab-deployment:
 
-GitLab Deployment for BuildStreaM
-==================================
+Deploy GitLab for BuildStreaM Integration: Automated Pipeline Execution and Build Monitoring
+============================================================================================
 
 Deploy GitLab as part of BuildStreaM integration to enable automated pipeline execution, catalog management, and build monitoring. This procedure covers GitLab installation, project setup, runner verification, and service validation.
 
@@ -10,8 +10,7 @@ Prerequisites
 
 Before deploying GitLab for BuildStreaM:
 
-* BuildStreaM configuration completed (see :doc:`how-to-prepare-buildstream`)
-* prepare.yaml playbook completed successfully
+* Ensure that Omnia BuildStreaM and PostgreSQL containers are deployed on the OIM node (see :doc:`how-to-prepare-buildstream`)
 * Sufficient system resources for GitLab (minimum 4 GB RAM, 2 CPU cores)
 * Network connectivity for GitLab services
 * Administrator access on the target server
