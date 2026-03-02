@@ -27,7 +27,12 @@ Configuration (env-driven + PXE mapping discovery):
 import pytest
 
 from automation_library.core import TestLogger
-from automation_library.core.host import get_testinfra_host
+from automation_library.core.host import (
+    get_testinfra_host,
+    get_node_admin_ip,
+    get_all_node_admin_ips,
+    file_operation,
+)
 from automation_library.slurm.vars import MULTI_JOB_COUNT
 from automation_library.slurm.messages import (
     TEST_NAMES,
@@ -35,65 +40,57 @@ from automation_library.slurm.messages import (
     TEST_ASSERT_MSGS,
 )
 from automation_library.slurm.functions import (
-    parse_login_ips_from_env,
-    parse_login_ips_from_pxe_mapping,
     is_node_reachable,
     find_reachable_login_node,
-    read_job_script,
-    copy_job_script_to_login,
+    get_job_script_path,
     submit_job_via_login,
     check_squeue,
+    check_job_scontrol,
 )
-
-
-# =============================================================================
-# FIXTURES
-# =============================================================================
-
-@pytest.fixture(scope="session")
-def login_ips():
-    """Collect login IPs from PXE mapping or env; skip tests if none available."""
-    ips = parse_login_ips_from_pxe_mapping()
-    if not ips:
-        ips = parse_login_ips_from_env()
-    if not ips:
-        pytest.skip(TEST_ASSERT_MSGS["no_login_ips"])
-    return ips
-
-
 # =============================================================================
 # TESTS
 # =============================================================================
 
-def test_submit_single_job_via_login_from_omnia_core(login_ips):
-    """E2E: OIM -> omnia_core -> login node, submit job.sh and verify output.
-    Job is submitted both from external IP or Internal IP"""
+def test_submit_single_job_via_login_from_omnia_core():
+    """E2E: OIM -> omnia_core -> login node, submit job.sh and verify job completes.
+
+    - If only one login node exists and it is unreachable, fail the test.
+    - If multiple login nodes exist and some are unreachable, skip them and
+      use the first reachable node to submit the job.
+    - After submission, verify that the job state reaches COMPLETED.
+    """
     log = TestLogger(TEST_NAMES["single_job_submission"])
     oim_host = get_testinfra_host()
 
-    result = find_reachable_login_node(oim_host, login_ips)
-    for ip in result["skipped"]:
-        log.check(
-            TEST_LOG_MSGS["login_node_unreachable"].format(login_ip=ip)
-        )
-    if not result["success"]:
-        pytest.fail(
-            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
-        )
-    login_ip = result["login_ip"]
-    log.passed(
-        TEST_LOG_MSGS["login_node_found"].format(login_ip=login_ip)
-    )
+    # Discover all login node IPs from PXE mapping
+    login_ips = get_all_node_admin_ips(oim_host, functional_group="login_node_x86_64")
+    assert login_ips, TEST_ASSERT_MSGS["no_login_ips"]
+    log.check(f"Discovered login node IPs: {login_ips}")
 
-    script_result = read_job_script()
+    # Find a reachable login node
+    login_ip = None
+    for ip in login_ips:
+        if is_node_reachable(oim_host, ip):
+            login_ip = ip
+            break
+        else:
+            if len(login_ips) == 1:
+                pytest.fail(
+                    TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+                )
+            log.check(TEST_LOG_MSGS["login_node_unreachable"].format(login_ip=ip))
+
+    assert login_ip, TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
+    log.passed(TEST_LOG_MSGS["login_node_found"].format(login_ip=login_ip))
+
+    script_result = file_operation(oim_host, login_ip, task="read", source=get_job_script_path())
     assert script_result["success"], \
-        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result["path"])
-    log.passed(
-        TEST_LOG_MSGS["job_script_read"].format(path=script_result["path"])
-    )
+        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result.get("details", ""))
+    log.passed(f"Read job.sh: {script_result['details']}")
 
-    copy_result = copy_job_script_to_login(
-        oim_host, login_ip, script_result["content"]
+    copy_result = file_operation(
+        oim_host, login_ip, task="copy",
+        source=script_result["content"], destination="/home"
     )
     assert copy_result["success"], \
         TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -112,20 +109,30 @@ def test_submit_single_job_via_login_from_omnia_core(login_ips):
     log.passed(f"{TEST_LOG_MSGS['sbatch_success']} -> {submit_result['output']}")
     log.passed(TEST_LOG_MSGS["job_submitted"].format(job_id=job_id))
 
-    queue_result = check_squeue(oim_host, login_ip, job_id)
-    assert queue_result["success"], \
-        TEST_ASSERT_MSGS["squeue_failed"].format(
-            job_id=job_id, error=queue_result["error"]
+    # Verify job reaches COMPLETED state
+    scontrol_result = check_job_scontrol(oim_host, login_ip, job_id)
+    assert scontrol_result["success"], \
+        TEST_ASSERT_MSGS["job_not_completed"].format(
+            job_id=job_id, state=scontrol_result["state"],
+            reason=scontrol_result.get("error", "timeout")
         )
-    log.passed(
-        TEST_LOG_MSGS["squeue_success"].format(job_id=job_id)
-    )
+    assert scontrol_result["state"] == "COMPLETED", \
+        TEST_ASSERT_MSGS["job_not_completed"].format(
+            job_id=job_id, state=scontrol_result["state"],
+            reason="unexpected terminal state"
+        )
+    log.passed(f"Job {job_id} completed successfully (state: {scontrol_result['state']})")
 
 
-def test_submit_multiple_jobs_via_login_from_omnia_core(login_ips):
+def test_submit_multiple_jobs_via_login_from_omnia_core():
     """Submit multiple jobs sequentially from login node read from pxe_mapping file."""
     log = TestLogger(TEST_NAMES["multiple_job_submission"])
     oim_host = get_testinfra_host()
+
+   # Discover all login node IPs from PXE mapping
+    login_ips = get_all_node_admin_ips(oim_host, functional_group="login_node_x86_64")
+    assert login_ips, TEST_ASSERT_MSGS["no_login_ips"]
+    log.check(f"Discovered login node IPs: {login_ips}")
 
     result = find_reachable_login_node(oim_host, login_ips)
     for ip in result["skipped"]:
@@ -141,12 +148,13 @@ def test_submit_multiple_jobs_via_login_from_omnia_core(login_ips):
         TEST_LOG_MSGS["login_node_found"].format(login_ip=login_ip)
     )
 
-    script_result = read_job_script()
+    script_result = file_operation(oim_host, login_ip, task="read", source=get_job_script_path())
     assert script_result["success"], \
-        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result["path"])
+        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result.get("details", ""))
 
-    copy_result = copy_job_script_to_login(
-        oim_host, login_ip, script_result["content"]
+    copy_result = file_operation(
+        oim_host, login_ip, task="copy",
+        source=script_result["content"], destination="/home"
     )
     assert copy_result["success"], \
         TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -165,43 +173,53 @@ def test_submit_multiple_jobs_via_login_from_omnia_core(login_ips):
             TEST_ASSERT_MSGS["sbatch_failed"].format(
                 login_ip=login_ip, error=submit_result["error"]
             )
-        msg = TEST_LOG_MSGS["job_submitted"].format(
-            job_id=submit_result["job_id"]
-        )
+        job_id = submit_result["job_id"]
+        msg = TEST_LOG_MSGS["job_submitted"].format(job_id=job_id)
         log.passed(f"Job {i+1}/{MULTI_JOB_COUNT}: {msg}")
 
+        # Verify job reaches COMPLETED state
+        scontrol_result = check_job_scontrol(oim_host, login_ip, job_id)
+        assert scontrol_result["success"], \
+            TEST_ASSERT_MSGS["job_not_completed"].format(
+                job_id=job_id, state=scontrol_result["state"],
+                reason=scontrol_result.get("error", "timeout")
+            )
+        assert scontrol_result["state"] == "COMPLETED", \
+            TEST_ASSERT_MSGS["job_not_completed"].format(
+                job_id=job_id, state=scontrol_result["state"],
+                reason="unexpected terminal state"
+            )
+        log.passed(f"Job {i+1}/{MULTI_JOB_COUNT}: Job {job_id} completed successfully (state: {scontrol_result['state']})")
 
-def test_job_submission_from_multiple_login_nodes(login_ips):
-    """E2E: Submit job.sh from all login nodes in pxe_mapping file."""
+
+def test_job_submission_from_multiple_login_nodes():
+    """E2E: Submit job.sh from all login nodes in pxe_mapping file.
+
+    Fails if any login node is unreachable.
+    """
     log = TestLogger(TEST_NAMES["multi_node_submission"])
+    oim_host = get_testinfra_host()
+
+    login_ips = get_all_node_admin_ips(oim_host, functional_group="login_node_x86_64")
     assert login_ips, TEST_ASSERT_MSGS["no_login_ips"]
     log.check(f"Login node IPs from pxe_mapping: {login_ips}")
 
-    oim_host = get_testinfra_host()
+    # Fail if any login node is unreachable
+    for ip in login_ips:
+        assert is_node_reachable(oim_host, ip), \
+            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=[ip])
 
-    script_result = read_job_script()
+    script_result = file_operation(oim_host, login_ips[0], task="read", source=get_job_script_path())
     assert script_result["success"], \
-        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result["path"])
-    log.passed(
-        TEST_LOG_MSGS["job_script_read"].format(path=script_result["path"])
-    )
+        TEST_ASSERT_MSGS["job_script_not_found"].format(path=script_result.get("details", ""))
+    log.passed(f"Read job.sh: {script_result['details']}")
 
-    reachable_count = 0
     for login_ip in login_ips:
         log.check(f"Testing login node: {login_ip}")
 
-        if not is_node_reachable(oim_host, login_ip):
-            log.check(
-                TEST_LOG_MSGS["login_node_unreachable"].format(
-                    login_ip=login_ip
-                )
-            )
-            continue
-
-        reachable_count += 1
-
-        copy_result = copy_job_script_to_login(
-            oim_host, login_ip, script_result["content"]
+        copy_result = file_operation(
+            oim_host, login_ip, task="copy",
+            source=script_result["content"], destination="/home"
         )
         assert copy_result["success"], \
             TEST_ASSERT_MSGS["job_script_copy_failed"].format(
@@ -218,16 +236,24 @@ def test_job_submission_from_multiple_login_nodes(login_ips):
             TEST_ASSERT_MSGS["sbatch_failed"].format(
                 login_ip=login_ip, error=submit_result["error"]
             )
+        job_id = submit_result["job_id"]
         log.passed(
             f"{TEST_LOG_MSGS['sbatch_success']} -> {submit_result['output']}"
         )
         log.passed(
-            TEST_LOG_MSGS["job_submitted"].format(
-                job_id=submit_result["job_id"]
-            )
+            TEST_LOG_MSGS["job_submitted"].format(job_id=job_id)
         )
 
-    if reachable_count == 0:
-        pytest.fail(
-            TEST_ASSERT_MSGS["no_reachable_nodes"].format(login_ips=login_ips)
-        )
+        # Verify job reaches COMPLETED state
+        scontrol_result = check_job_scontrol(oim_host, login_ip, job_id)
+        assert scontrol_result["success"], \
+            TEST_ASSERT_MSGS["job_not_completed"].format(
+                job_id=job_id, state=scontrol_result["state"],
+                reason=scontrol_result.get("error", "timeout")
+            )
+        assert scontrol_result["state"] == "COMPLETED", \
+            TEST_ASSERT_MSGS["job_not_completed"].format(
+                job_id=job_id, state=scontrol_result["state"],
+                reason="unexpected terminal state"
+            )
+        log.passed(f"Job {job_id} completed successfully on {login_ip} (state: {scontrol_result['state']})")

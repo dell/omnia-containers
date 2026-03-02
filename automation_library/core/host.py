@@ -20,7 +20,7 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import yaml
 import testinfra
@@ -226,6 +226,46 @@ def get_node_admin_ip(
     return admin_ip
 
 
+def get_all_node_admin_ips(
+    host: testinfra.host.Host,
+    functional_group: str = None,
+) -> list:
+    """
+    Get all admin IPs matching a functional group from PXE mapping file.
+
+    Unlike get_node_admin_ip which returns only the first match, this
+    returns every matching row's admin IP.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        functional_group: Functional group name to match
+
+    Returns:
+        List of admin IPs for all matching nodes, or empty list if none found
+    """
+    if not functional_group:
+        return []
+
+    pxe_content = _get_pxe_mapping_content(host)
+    if not pxe_content:
+        return []
+
+    # CSV: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,
+    #      HOSTNAME,ADMIN_MAC,ADMIN_IP,...
+    # Index: 0, 1, 2, 3, 4, 5, 6
+    admin_ips = []
+    for line in pxe_content.split('\n'):
+        parts = line.split(',')
+        if len(parts) >= 7:
+            line_func_group = parts[0]
+            if functional_group and functional_group in line_func_group:
+                ip = parts[6].strip()
+                if ip:
+                    admin_ips.append(ip)
+
+    return admin_ips
+
+
 def get_functional_groups_from_pxe_mapping(host) -> set:
     """
     Read pxe_mapping file from inside omnia_core container and extract functional groups.
@@ -300,3 +340,84 @@ def get_group_names_from_pxe_mapping(host) -> set:
                 groups.add(cols[grp_index].strip())
 
     return groups
+
+
+def file_operation(
+    host: testinfra.host.Host,
+    login_ip: str,
+    task: str,
+    source: Optional[str] = None,
+    destination: str = "/home",
+    user: Optional[str] = None,
+    password: Optional[str] = None,
+    key_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Perform a file operation (read, copy, or delete) on a local or remote node.
+
+    Supports both root (via run_on_remote_node) and non-root user
+    (via SSH with password/key) operations for remote tasks.
+
+    Args:
+        host: testinfra host object connected to OIM server
+        login_ip: admin IP of the login node (not required for 'read')
+        task: operation to perform — 'read', 'copy', or 'delete'
+        source: for 'read', local file path; for 'copy', the file content to write;
+                for 'delete', glob pattern to remove
+        destination: remote directory path (e.g. '/home' or '/home/ldapuser')
+        user: if provided, run command as this user (e.g. LDAP user)
+        password: optional SSH password for non-root user
+        key_path: optional SSH private key path
+
+    Returns:
+        Dict with 'success', 'details', 'error' (and 'content' for read task)
+    """
+    if task == "read":
+        if source is None:
+            return {"success": False, "content": None, "details": None, "error": "source path is required for read"}
+        if not os.path.exists(source):
+            return {"success": False, "content": None, "details": None, "error": f"File not found: {source}"}
+        with open(source, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"success": True, "content": content, "details": f"Read {source}", "error": ""}
+
+    if task == "copy":
+        if source is None:
+            return {"success": False, "details": None, "error": "source content is required for copy"}
+        cmd = f"cd {destination} && cat > job.sh <<'JOBEOF'\n{source}\nJOBEOF\nchmod +x job.sh"
+    elif task == "delete":
+        pattern = source if source else "job.sh output.txt error.txt slurm-*.out"
+        cmd = f"cd {destination} && rm -f {pattern}"
+    else:
+        return {"success": False, "details": None, "error": f"Unknown task: {task}. Use 'read', 'copy', or 'delete'"}
+
+    if user:
+        base_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        if key_path:
+            ssh_opts = f"{base_opts} -o BatchMode=yes -i {key_path}"
+            ssh_cmd = f"ssh {ssh_opts} {user}@{login_ip} '{cmd}'"
+        elif password:
+            ssh_opts = f"{base_opts} -o PubkeyAuthentication=no"
+            askpass_script = "/tmp/_askpass.sh"
+            ssh_cmd = (
+                f"printf '#!/bin/sh\\necho {password}\\n' > {askpass_script} && "
+                f"chmod +x {askpass_script} && "
+                f"SSH_ASKPASS={askpass_script} SSH_ASKPASS_REQUIRE=force "
+                f"ssh {ssh_opts} {user}@{login_ip} '{cmd}'"
+            )
+        else:
+            ssh_cmd = f"ssh {base_opts} {user}@{login_ip} '{cmd}'"
+        res = run_in_container(host, ssh_cmd)
+    else:
+        res = run_on_remote_node(host, cmd, login_ip)
+
+    if res.rc == 0:
+        return {
+            "success": True,
+            "details": f"{task} succeeded on {login_ip}:{destination}",
+            "error": "",
+        }
+    return {
+        "success": False,
+        "details": None,
+        "error": res.stderr or res.stdout,
+    }

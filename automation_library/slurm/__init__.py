@@ -26,11 +26,9 @@ from .functions import (
     parse_ldap_key_path_from_env,
     is_node_reachable,
     run_ssh_from_omnia_core,
-    copy_job_script_to_login,
     submit_job_via_login,
     check_squeue,
     find_reachable_login_node,
-    read_job_script,
     run_ssh_as_user,
     discover_ldap_user_from_node,
     create_ldap_job_script,
@@ -43,8 +41,6 @@ from .functions import (
 from .vars import (
     JOB_SCRIPT_PATH,
     MULTI_JOB_COUNT,
-    LDAP_USERNAME,
-    LDAP_PASSWORD,
 )
 from .messages import (
     TEST_NAMES,

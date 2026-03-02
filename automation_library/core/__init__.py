@@ -29,8 +29,10 @@ from .host import (
     run_in_container,
     run_on_remote_node,
     get_node_admin_ip,
+    get_all_node_admin_ips,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
+    file_operation,
 )
 from .report import TestReport, get_current_report, set_current_report
 from .vars import PROVISION_CONFIG_PATH
@@ -50,8 +52,10 @@ __all__ = [
     "run_in_container",
     "run_on_remote_node",
     "get_node_admin_ip",
+    "get_all_node_admin_ips",
     "get_functional_groups_from_pxe_mapping",
     "get_group_names_from_pxe_mapping",
+    "file_operation",
     # Report
     "TestReport",
     "get_current_report",
