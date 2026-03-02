@@ -29,11 +29,10 @@
     - name: Setup dynamic inventory
       ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
 
-    - name: Test SSH connection to OIM server
+    - name: Wait for SSH to be available on OIM server
       ansible.builtin.wait_for:
         host: "{{ user_config.oim_server_ip }}"
         port: "{{ user_config.oim_ssh_port | default(22) }}"
-        timeout: 30
 
     - name: OIM server ready
       ansible.builtin.debug:
