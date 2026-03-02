@@ -75,7 +75,7 @@ For a better understanding of what Omnia does, check out the following:
     RHEL_prereq
     OmniaInstallGuide/index
     upgrade
-    buildstream/index
+    buildstream
     rollback
     OmniaInstallGuide/ExternalDeploymentGuide/Index
     Utils/index
