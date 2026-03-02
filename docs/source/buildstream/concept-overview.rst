@@ -7,9 +7,9 @@ Omnia BuildStream provides a comprehensive automation solution for managing infr
 
 BuildStreaM addresses key challenges in HPC cluster image management:
 
-   - **Automation**: Eliminates manual build and deployment processes
-   - **Integration**: Works seamlessly with existing Omnia deployments
-   - **Traceability**: Provides complete audit trails for all build operations
+ - **Automation**: Eliminates manual build and deployment processes
+ - **Integration**: Works seamlessly with existing Omnia deployments
+ - **Traceability**: Provides complete audit trails for all build operations
 
 Related Topics
 --------------

@@ -15,3 +15,11 @@ Perform the following steps to configure BuildStreaM for automated pipeline exec
 1. Deploy and Configure BuildStreaM Container on OIM Node (see :doc:`how-to-prepare-buildstream`)
 2. Deploy GitLab for BuildStreaM Integration: Automated Pipeline Execution and Build Monitoring (see :doc:`how-to-gitlab-deployment`)
 3. Update the catalog file and execute the pipeline (see :doc:`how-to-update-catalog-pipeline`)
+
+.. toctree::
+   :maxdepth: 2
+   :caption: BuildStreaM Documentation
+   
+   how-to-prepare-buildstream
+   how-to-gitlab-deployment
+   how-to-update-catalog-pipeline
