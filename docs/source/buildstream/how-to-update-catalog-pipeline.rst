@@ -1,7 +1,7 @@
 .. _how-to-buildstream-update-catalog-pipeline:
 
-Update Catalog and Check Pipeline
-=================================
+Update Catalog and Execute Omn BuildStreaM Pipeline
+====================================================
 
 Update the ``catalog_rhel.json`` file and monitor pipeline execution through GitLab. This procedure covers catalog modifications, automatic pipeline triggering, and verification of pipeline status and job execution.
 
@@ -25,26 +25,25 @@ Procedure
 3. Locate the catalog file ``catalog_rhel.json``.
 4. Modify the ``catalog_rhel.json`` file to define your build requirements.
 5. To trigger the pipeline, commit and push catalog changes.
-6. Track the pipeline progress through the GitLab web interface:
-   1. Navigate to **Build** → **Pipeline**
+6. Perform the following steps to track the pipeline progress through the GitLab web interface:
 
-    <Pipeline Image>
-   2. Click on the running pipeline to view details.
-   3. Monitor each stage as it progresses:
-      - **parse-catalog** - Parses the catalog file for build requirements.
-      - **generate-input-files** - Creates build inputs
-      - **create-image-repositories** - Creates image repository in the local pulp repository.
-      - **update-image-repositories** - Updates image repository in the local pulp repository.
-      - **build-image** - Builds the images
-      - **deploy-image** - Deploys the images to the local pulp repository.
+      1. Navigate to **Build** → **Pipeline**
 
-.. image:: ../../../images/buildstream_pipeline_status.png
-      
+      .. image:: ../images/buildstream_pipeline_status.png
 
-Expected pipeline status indicators:
-- **Green checkmark**: Stage completed successfully
-- **Red X**: Stage failed (click for error details)
-- **Blue circle**: Stage currently running
+      2. Click on the running pipeline to view details.
+      3. Monitor each stage as it progresses:
+         - **parse-catalog** - Parses the catalog file for build requirements.
+         - **generate-input-files** - Creates build inputs
+         - **create-image-repositories** - Creates image repository in the local pulp repository.
+         - **update-image-repositories** - Updates image repository in the local pulp repository.
+         - **build-image** - Builds the images
+         - **deploy-image** - Deploys the images to the local pulp repository.     
+
+   Expected pipeline status indicators:
+      - **Green checkmark**: Stage completed successfully
+      - **Red X**: Stage failed (click for error details)
+      - **Blue circle**: Stage currently running
 
 Verification
 ------------
@@ -58,5 +57,5 @@ After the pipeline is completed, you can check the overall pipeline status and j
    - Resource usage
    - Error messages (if any)
 
-.. image:: ../../../images/buildstream_job_status.png
+.. image:: ../images/buildstream_job_status.png
 

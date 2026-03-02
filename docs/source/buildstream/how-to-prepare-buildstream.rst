@@ -75,5 +75,5 @@ Verification
 Next Steps
 ----------
 
-After completing the BuildStreaM configuration, deploy GitLab for BuildStreaM pipeline integration.
+After completing the BuildStreaM configuration, deploy GitLab for BuildStreaM pipeline integration. See :doc:`how-to-gitlab-deployment`.
 

@@ -69,7 +69,12 @@ This ``gitlab.yml`` playbook installs the following:
 .. note::
    The installation may take 10-15 minutes to complete.
 
-5. Check that GitLab is running and accessible:
+Verification
+------------
+After the installation of GitLab complete, verify the following:
+
+1. Run the following command to check that GitLab is running and accessible.
+
 
 .. code-block:: bash
 
@@ -83,9 +88,7 @@ Expected response shows GitLab is accessible:
    Server: nginx
    Date: Wed, 01 Mar 2026 12:00:00 GMT
 
-6. Verify you can access the GitLab project URL.
-
-Navigate to the GitLab project URL to verify project creation:
+2. Verify you can access the GitLab project URL.
 
 .. code-block:: text
 
@@ -96,9 +99,7 @@ The project should contain:
 - **catalog_rhel.json** - Default catalog file
 - **.gitlab-ci.yml** - Pipeline configuration file
 
-7. Verify GitLab runner status.
-
-Check that the GitLab runner is running as a Podman container:
+3. Verify that the GitLab runner is running as a Podman container:
 
 .. code-block:: bash
 
@@ -120,7 +121,4 @@ Alternatively, verify runner status through GitLab web interface:
 Next Steps
 ----------
 
-After completing GitLab deployment:
-
-* **Update catalog files** - Modify catalog_rhel.json to define your build requirements
-* **Trigger first pipeline** - Make catalog changes to test automated pipeline execution
+After completing GitLab deployment, update the catalog file and execute the pipeline. See :doc:`how-to-update-catalog-pipeline`.
