@@ -84,12 +84,12 @@ Command Format
 Local Repository Resync
 ======================
 
-**Purpose**
+The Local Repository Resync feature updates the local RPM repositories by synchronizing them with their respective remote sources. During resynchronization, new and updated RPM packages are downloaded, repository metadata is refreshed, and only incremental changes are fetched while preserving the existing local cache. This operation can be performed whenever remote repositories are updated, repository configurations are modified, or to ensure the local repositories remain current. Ensure that the initial local repository setup is complete, network connectivity to the remote repositories is available, and sufficient disk space is present before running the resync.
 
-Synchronizes local RPM repositories with remote sources to get the latest packages and updates.
+Command
+-------
 
-**Commands**
-
+::
 Resync all RPM repositories::
 
     ansible-playbook local_repo.yml -e "resync_repos=all"
@@ -98,31 +98,10 @@ Resync specific RPM repository::
 
     ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
 
-**When to Use**
-
-* Remote RPM repositories have been updated
-* RPM package installations fail due to missing packages
-* After modifying RPM repository configurations
-* Regular maintenance to keep RPM packages current
-
-**What It Does**
-
-* Downloads new/updated RPM packages from remote repositories
-* Updates RPM repository metadata and indexes
-* Maintains local RPM cache while adding new content
-* Only downloads RPM changes (incremental sync)
-
-**Prerequisites**
-
-* Initial local RPM repository setup completed
-* Network connectivity to remote RPM repositories
-* Sufficient disk space for RPM updates
-
-**Notes**
-
-* Use ``all`` to resync all configured RPM repositories
-* Specify exact RPM repository name for targeted resync
-* Existing RPM packages remain available during sync
-* Logs created in ``/opt/omnia/log/local_repo/`` 
+.. note::
+   * Use ``all`` to resync all configured RPM repositories
+   * Specify exact RPM repository name for targeted resync
+   * Existing RPM packages remain available during sync
+   * Logs created in ``/opt/omnia/log/local_repo/`` 
 
 
