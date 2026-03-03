@@ -90,13 +90,14 @@ Command
 -------
 
 ::
-Resync all RPM repositories::
 
-    ansible-playbook local_repo.yml -e "resync_repos=all"
+    Resync all RPM repositories::
 
-Resync specific RPM repository::
+        ansible-playbook local_repo.yml -e "resync_repos=all"
 
-    ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
+    Resync specific RPM repository::
+
+        ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
 
 .. note::
    * Use ``all`` to resync all configured RPM repositories
