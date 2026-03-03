@@ -94,10 +94,10 @@ Expected response shows GitLab is accessible:
 
    https://gitlab.example.com/omnia-catalog
 
-The project should contain:
-- **README.MD** - Project documentation
-- **catalog_rhel.json** - Default catalog file
-- **.gitlab-ci.yml** - Pipeline configuration file
+   The project should contain:
+   - **README.MD** - Project documentation
+   - **catalog_rhel.json** - Default catalog file
+   - **.gitlab-ci.yml** - Pipeline configuration file
 
 3. Verify that the GitLab runner is running as a Podman container:
 
