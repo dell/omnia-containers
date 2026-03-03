@@ -89,7 +89,6 @@ The Local Repository Resync feature updates the local RPM repositories by synchr
 Command
 -------
 
-::
 Resync all RPM repositories::
 
     ansible-playbook local_repo.yml -e "resync_repos=all"
