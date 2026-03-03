@@ -81,4 +81,27 @@ Command Format
 
    ansible-playbook local_repo.yml 
 
+Local Repository Resync
+======================
+
+The Local Repository Resync feature updates the local RPM repositories by synchronizing them with their respective remote sources. During resynchronization, new and updated RPM packages are downloaded, repository metadata is refreshed, and only incremental changes are fetched while preserving the existing local cache. This operation can be performed whenever remote repositories are updated, repository configurations are modified, or to ensure the local repositories remain current. Ensure that the initial local repository setup is complete, network connectivity to the remote repositories is available, and sufficient disk space is present before running the resync.
+
+Command
+-------
+
+::
+Resync all RPM repositories::
+
+    ansible-playbook local_repo.yml -e "resync_repos=all"
+
+Resync specific RPM repository::
+
+    ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
+
+.. note::
+   * Use ``all`` to resync all configured RPM repositories
+   * Specify exact RPM repository name for targeted resync
+   * Existing RPM packages remain available during sync
+   * Logs created in ``/opt/omnia/log/local_repo/`` 
+
 
