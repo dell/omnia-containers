@@ -1,12 +1,20 @@
-Step 5:  Prepare the OIM
+Step 2:  Prepare the OIM
 ========================================================
 
-The ``prepare_oim.yml`` playbook is used to prepare the Omnia Infrastructure Manager (OIM). The playbook performs the following on the OIM:
+Set
 
-* Sets up the OpenCHAMI containers.
-* Sets up the BuildStreamM container if BuildStreaM is enabled in ``/opt/omnia/input/project_default/build_stream_config.yml``.
-* Sets up the Omnia Auth container if ``"name": "openldap", "arch": ["x86_64"]`` entry is present in ``/opt/omnia/input/project_default/software_config.json``.
-* Sets up the Pulp container: ``pulp``
+Prerequisites
+-------------
+
+Before beginning the BuildStreaM setup:
+
+* Ensure that Omnia core container is upgraded to Omnia 2.1.0.0 or later.
+* Administrator access on the Omnia Infrastructure Manager (OIM) node
+* Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
+* 10 GB free disk space for BuildStreaM data and logs
+
+.. important::
+   BuildStreaM requires a separate PostgreSQL database for storing transaction details and job metadata.
 
 
 Prerequisite
@@ -79,4 +87,111 @@ After you have filled in the input files as mentioned above, execute the followi
     cd /omnia/prepare_oim
     ansible-playbook prepare_oim.yml
 
+The ``prepare_oim.yml`` deploys the following containers on the OIM node:
+
+* OpenCHAMI containers
+* BuildStreamM container 
+* Omnia Auth container
+* Pulp container: ``pulp``
 .. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
+
+Verification
+=============
+
+After successfully running the ``prepare.oim.yml``, you can verify if the ``omnia.target`` and
+its dependent services are running correctly.
+
+1. Run the following command to check the status of the OMNIA Core service:
+
+   .. code-block:: bash
+
+      systemctl status omnia_core.service
+
+   This command displays whether the ``omnia_core.service`` is active, inactive,
+   or has failed. 
+
+2. Check the status of the BuildStreaM API container.
+
+.. code-block:: bash
+
+  systemctl status omnia_build_stream.service
+
+3. Check the status of the PostgreSQL database container.
+
+.. code-block:: bash
+
+  systemctl status omnia_postgresql.service
+
+4. To view the complete list of dependent services for the OMNIA target, run:
+
+   .. code-block:: bash
+
+      systemctl list-dependencies omnia.target
+
+5. Review the status of the dependent services in the following tree output. 
+
+   .. code-block:: text
+
+      omnia.target
+      ● ├─minio.service
+      ● ├─omnia_auth.service
+      ● ├─omnia_build_stream.service
+      ● ├─omnia_core.service
+      ● ├─omnia_postgres.service
+      ● ├─pulp.service 
+      ● ├─registry.service   
+      ● ├─network-online.target
+      ● │ └─NetworkManager-wait-online.service
+      ● └─openchami.target
+      ●   ├─acme-deploy.service
+      ●   ├─acme-register.service
+      ●   ├─bss-init.service
+      ●   ├─bss.service
+      ●   ├─cloud-init-server.service
+      ●   ├─coresmd.service
+      ●   ├─haproxy.service
+      ●   ├─hydra-gen-jwks.service
+      ●   ├─hydra-migrate.service
+      ●   ├─hydra.service
+      ●   ├─opaal-idp.service
+      ●   ├─opaal.service
+      ●   ├─openchami-cert-trust.service
+      ●   ├─postgres.service
+      ●   ├─smd.service
+      ●   └─step-ca.service
+
+   * A **green circle** indicates that the service is running.
+   * A **grey circle** indicates that the service is not running.
+   * A **circle with a cross** indicates that the service failed to start.
+
+   .. note::  The ``omnia_auth.service`` runs only when OpenLDAP is specified in the ``/opt/omnia/input/project_default/software_config.json``.
+   .. note::  The ``omnia_build_stream.service`` and ``omnia_postgres.service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
+    
+
+View Usage Instructions for OpenCHAMI Containers
+--------------------------------------------------
+
+The ``ochami --help`` command provides usage instructions for interacting with **OpenCHAMI services**.  
+The help menu lists the supported commands you can use for node discovery, provisioning, and service management.
+
+1. Access the OpenCHAMI container via Podman.
+
+2. On the Omnia Infrastructure Manager (OIM), run the following command::
+
+       ochami --help
+
+The help menu includes:
+
+* ``bss``: Communicate with the Boot Script Service (BSS).
+* ``cloud-init``: Interact with the cloud-init service.
+* ``completion``: Generate the autocompletion script for the specified shell.
+* ``config``: View or modify configuration options.
+* ``discover``: Perform static or dynamic discovery of nodes.
+* ``pcs``: Interact with the Power Control Service (PCS).
+* ``smd``: Communicate with the State Management Database (SMD).
+* ``version``: Display detailed version information and exit.
+* ``help``: Display help for a specific command.
+
+For more details about a specific command, run::
+
+   ochami [command] --help
