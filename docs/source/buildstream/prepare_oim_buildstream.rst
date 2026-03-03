@@ -1,10 +1,10 @@
 Step 2:  Prepare the OIM
 ========================================================
 
-Set
+This section describes the process for preparing the Omnia Infrastructure Manager (OIM) by deploying the OpenCHAMI containers, BuildStreamM container, Omnia Auth container, and Pulp container to support BuildStreaM deployment. 
 
 Prerequisites
--------------
+---------------
 
 Before beginning the BuildStreaM setup:
 
@@ -12,28 +12,23 @@ Before beginning the BuildStreaM setup:
 * Administrator access on the Omnia Infrastructure Manager (OIM) node
 * Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
 * 10 GB free disk space for BuildStreaM data and logs
+* Ensure that the system time is synchronized across all compute nodes and the OIM. Time mismatch can lead to certificate-related issues during or after the ``prepare_oim.yml`` playbook execution.
 
 .. important::
    BuildStreaM requires a separate PostgreSQL database for storing transaction details and job metadata.
 
+Procedure
+------------
 
-Prerequisite
-----------------
+1. Update the the following input files.
 
-Ensure that the system time is synchronized across all compute nodes and the OIM. Time mismatch can lead to certificate-related issues during or after the ``prepare_oim.yml`` playbook execution.
+.. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
+   * ``network_spec.yml``: contains the necessary configurations for the cluster network.
+   * ``provision_config.yml``: contains the details about provisioning of clusters.
+   * ``build_stream_config.yml``: contains the details about the BuildStreamM pipeline.
 
-Input files for the playbook
-------------------------------
-
-The ``prepare_oim.yml`` playbook is dependent on the inputs provided to the following input files:
-
-* ``network_spec.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the necessary configurations for the cluster network.
-* ``provision_config.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the details about provisioning of clusters.
-* ``build_stream_config.yml``: This input file is located in the ``/opt/omnia/input/project_default`` folder and contains the details about the BuildStreamM pipeline.
-
-1. ``network_spec.yml``
-------------------------
-
+``network_spec.yml``
+---------------------
 Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the below table as reference while doing so:
 
 .. csv-table:: network_spec.yml
@@ -57,8 +52,8 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
        dns: []
           
      
-2. ``provision_config.yml``
--------------------------------
+``provision_config.yml``
+------------------------
 
 Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the below table as reference while doing so:
 
@@ -67,8 +62,8 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
    :header-rows: 1
    :keepspace:
 
-3. ``build_stream_config.yml``
--------------------------------
+``build_stream_config.yml``
+---------------------------
 
 Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Use the below table as reference while doing so:
 
@@ -77,11 +72,7 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStream
    :header-rows: 1
    :keepspace:
 
-
-Playbook Execution
--------------------
-
-After you have filled in the input files as mentioned above, execute the following commands to trigger the playbook: ::
+2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 
     ssh omnia_core
     cd /omnia/prepare_oim

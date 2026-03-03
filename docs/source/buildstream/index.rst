@@ -12,18 +12,12 @@ BuildStreaM addresses the key challenges in HPC cluster image management:
    
 To build your own custom workflows, you can use the BuildStreaM REST API. The BuildStreaM API documentation is available at `Omnia BuildStreaM API Documentation <https://developer.dell.com/apis/ea677050-f49b-49e1-a4b9-1cdd563415d9/versions/2.1.0/docs/Introduction.md>`_.
 
-Perform the following steps to configure BuildStreaM for automated pipeline execution to create and deploy images:
-
-1. Deploy and Configure BuildStreaM Container on OIM Node (see :doc:`how-to-prepare-buildstream`)
-2. Deploy GitLab for BuildStreaM Integration: Automated Pipeline Execution and Build Monitoring (see :doc:`how-to-gitlab-deployment`)
-3. Update the catalog file and execute the pipeline (see :doc:`how-to-update-catalog-pipeline`)
-
 .. toctree::
    :maxdepth: 2
-   :caption: BuildStreaM Documentation
-   
+   :caption: BuildStreaM Deployment Workflow
+
    omnia_startup_buildstream
    prepare_oim_buildstream
-   how-to-prepare-buildstream
    how-to-gitlab-deployment
    how-to-update-catalog-pipeline
+   set_pxe_boot_order_buildstream
