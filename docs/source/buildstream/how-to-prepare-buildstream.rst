@@ -27,7 +27,7 @@ Procedure
 
    ssh omnia_core
 
-2. Ensure that ``enable_build_stream`` parameter is set to true in build_stream_config.yml and other BuildstreaM parameters are configured as per your requirements. For more information about preparing OIM, see :doc:`../OmniaInstallGuide/RHEL_new/prepare_oim`.
+2. Ensure that ``enable_build_stream`` parameter is set to ``true`` in ``build_stream_config.yml`` and other BuildstreaM parameters are configured as per your requirements. For more information about preparing OIM, see :doc:`../OmniaInstallGuide/RHEL_new/prepare_oim`.
 
 3. Ensure that ``build_stream_oauth_credential.yml`` is updated with the required BuildStreaM OAuth credentials. For more details on configuration of BuildStreaM OAuth credentials, see :doc:`../OmniaInstallGuide/RHEL_new/credentials_utility`.
 
