@@ -22,6 +22,8 @@ Perform the following steps to configure BuildStreaM for automated pipeline exec
    :maxdepth: 2
    :caption: BuildStreaM Documentation
    
+   omnia_startup_buildstream
+   prepare_oim_buildstream
    how-to-prepare-buildstream
    how-to-gitlab-deployment
    how-to-update-catalog-pipeline
