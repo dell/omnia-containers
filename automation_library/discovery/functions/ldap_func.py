@@ -156,6 +156,62 @@ def _create_ldap_user(host, ldap_user: str, ldap_password: str,
     return {"success": True, "error": ""}
 
 
+def _verify_external_ldap_user(host, ldap_user: str) -> Dict[str, Any]:
+    """
+    Verify an external LDAP user exists on the cluster nodes.
+
+    Nodes are expected to have SSSD already configured to connect to the
+    external LDAP server.  We pick the first reachable node and run
+    ``getent passwd <user>`` to confirm SSSD can resolve the user.
+
+    Args:
+        host: Testinfra host object.
+        ldap_user: LDAP username to verify.
+
+    Returns:
+        Dict with success, verified_on (hostname), and error.
+    """
+    all_grouped = get_nodes_by_functional_group(host)
+    if not all_grouped:
+        return {
+            "success": False,
+            "verified_on": "",
+            "error": "No nodes found in PXE mapping to verify external LDAP user",
+        }
+
+    # Try each node until we find one that can resolve the user
+    for _fg, hostname, admin_ip in iter_grouped_nodes(all_grouped):
+        if not admin_ip:
+            continue
+        cmd = run_on_remote_node(
+            host, f"getent passwd {ldap_user}", admin_ip,
+        )
+        if cmd.rc == 0 and ldap_user in cmd.stdout:
+            return {
+                "success": True,
+                "verified_on": hostname,
+                "error": "",
+            }
+        # Node reachable but user not found — external LDAP not configured
+        if cmd.rc == 2 or (cmd.rc == 0 and ldap_user not in cmd.stdout):
+            return {
+                "success": False,
+                "verified_on": hostname,
+                "error": (
+                    f"External LDAP user '{ldap_user}' not found via "
+                    f"getent on {hostname} ({admin_ip}). "
+                    "Ensure SSSD is configured to connect to the external "
+                    "LDAP server and the user exists."
+                ),
+            }
+
+    return {
+        "success": False,
+        "verified_on": "",
+        "error": "No reachable nodes to verify external LDAP user",
+    }
+
+
 def ensure_ldap_test_user(host) -> Dict[str, Any]:
     """
     Ensure the LDAP test user exists for login tests.
@@ -163,8 +219,9 @@ def ensure_ldap_test_user(host) -> Dict[str, Any]:
     Behavior based on ldap_connection_type in user_config.yml:
     - "internal": Parse slapd.conf from omnia_auth container, check if the
       user exists, create it via ldapadd if missing.
-    - "external": Skip user creation; assume credentials are valid on
-      the external LDAP server.
+    - "external": Verify the user exists on the cluster nodes via
+      ``getent passwd`` (SSSD must already be configured to connect to
+      the external LDAP server).
 
     Returns:
         Dict with success, created (bool), connection_type, and error.
@@ -178,10 +235,13 @@ def ensure_ldap_test_user(host) -> Dict[str, Any]:
     ldap_password = creds["ldap_password"]
 
     if conn_type == "external":
+        verify = _verify_external_ldap_user(host, ldap_user)
         return {
-            "success": True, "created": False,
+            "success": verify["success"],
+            "created": False,
             "connection_type": "external",
-            "error": "",
+            "verified_on": verify.get("verified_on", ""),
+            "error": verify["error"],
         }
 
     # Internal: parse slapd.conf and ensure user exists
