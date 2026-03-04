@@ -5,11 +5,11 @@ This section describes how to configure OpenManage Enterprise to securely stream
 
 Prerequisites
 --------------
-* Ensure that the Service Kubernetes cluster is configured with a pod external IP address range that is reachable from the OpenManage Enterprise appliance, and that ``pod_external_ip_range`` is set in the ``omnia_config.yml`` file.
+* Ensure that the ``pod_external_ip_range`` parameter is set in the ``omnia_config.yml`` file for the Service Kubernetes cluster and it is reachable from the OpenManage Enterprise appliance network.
 * Ensure Kafka is installed and running in the Service Kubernetes cluster.
 * External access to Kafka is available through the following LoadBalancer ports:
 
-  * ``9094`` for ingesting and querying data
+  * ``9094`` for ingesting and querying data.
 
 Steps
 -----
