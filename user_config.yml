@@ -200,3 +200,24 @@ omnia_shared_path: "/opt/omnia"
 
 # Root password for accessing omnia_core container via SSH (REQUIRED)
 omnia_core_password: ""
+
+# =============================================================================
+# LDAP CONFIGURATION (for LDAP login tests)
+# =============================================================================
+# LDAP user credentials for testing LDAP SSH login on cluster nodes
+# These are used by discovery test cases to verify LDAP authentication
+
+# Connection type: "internal" or "external"
+# - internal: The test framework will auto-create the LDAP user on the OIM
+#   omnia_auth container (via ldapadd through the proxy) if it doesn't exist.
+# - external: The ldap_user and ldap_password must already be valid on the
+#   external LDAP server. The test framework will verify the user exists on
+#   cluster nodes via 'getent passwd' (SSSD must be configured to connect
+#   to the external LDAP server). No user creation is attempted.
+ldap_connection_type: ""
+
+# LDAP username (REQUIRED for LDAP tests)
+ldap_user: ""
+
+# LDAP password (REQUIRED for LDAP tests)
+ldap_password: ""
