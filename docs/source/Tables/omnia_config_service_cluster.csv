@@ -12,6 +12,7 @@
 ``pod_external_ip_range``,Mandatory,"* **Type**: String
 * These addresses will be used by the loadbalancer for assigning external IPs to Kubernetes services.
 * Ensure that the IP range provided is not assigned to any node in the cluster.
+* Ensure that the ``pod_external_ip_range`` defined in the ``omnia_config.yml``  file is reachable from the OpenManage Enterprise appliance and the SFM network.
 * **Sample values**: ``172.16.107.170-172.16.107.200``                             "
 ``k8s_service_addresses``,Optional,"* **Type**: String
 * Kubernetes internal network for services.

@@ -15,6 +15,7 @@
 * ``name`` defines the name of the software ``.rpm`` package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set policies (``always``, ``partial``) for each user repository individually. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: ``- { url: ""https://download.docker.com/linux/centos/9/x86_64/stable"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce-repo"", sslcacert: """", sslclientkey: """", sslclientcert: """", policy: """" }``
 
@@ -27,6 +28,7 @@
 * ``name`` defines the name of the software ``.rpm`` package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set policies (``always``, ``partial``) for each user repository individually. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: ``- { url: ""https://download.docker.com/linux/centos/9/aarch64/stable"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce-repo"", sslcacert: """", sslclientkey: """", sslclientcert: """", policy: """" }``
 
@@ -40,6 +42,8 @@
 * ``name`` defines the name of the OS package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_os_url``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
+
 * **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/x86_64/os/"", gpgkey: ""http://crb.com/CRB/x86_64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_codeready-builder""}``
 
 
@@ -53,7 +57,43 @@
 * ``name`` defines the name of the OS package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_os_url``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
+
 * **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/aarch64/os/"", gpgkey: ""http://crb.com/CRB/aarch64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_codeready-builder"" }``
+
+
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
+**rhel_subscription_repo_config_x86_64**,Optional,"* **Type**: JSON list
+* Optional configuration for overriding policy and caching settings for RHEL subscription-based repositories on x86_64 architecture. When subscription is enabled, this config takes precedence over dynamically generated URLs for matching repositories and adds any additional repositories.
+* Matching is done by repository name (e.g., x86_64_appstream) and Non-matching repositories are added as additional repos.
+* Additional packages required for the cluster are downloaded from the provided ``rhel_subscription_repo_config_x86_64`` and stored in the Pulp container.
+* ``url`` defines the baseurl for the repository where the OS package is hosted.
+* ``gpgkey`` defines the aarch64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
+* ``name`` defines the name of the OS package.
+* If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
+* Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_subscription_repo_config_x86_64``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
+
+* **Example**: 
+  ``- { url: ""https://example.com/appstream"", gpgkey: """", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_appstream"", policy: ""always"", caching: true }``
+  ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", gpgkey: ""file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_supplementary"", policy: ""always"", caching: false }``
+
+
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
+**rhel_subscription_repo_config_aarch64**,Optional,"* **Type**: JSON list
+* Optional configuration for overriding policy and caching settings for RHEL subscription-based repositories on x86_64 architecture. When subscription is enabled, this config takes precedence over dynamically generated URLs for matching repositories and adds any additional repositories.
+* Matching is done by repository name (e.g., x86_64_appstream) and Non-matching repositories are added as additional repos.
+* Additional packages required for the cluster are downloaded from the provided ``rhel_subscription_repo_config_aarch64`` and stored in the Pulp container.
+* ``url`` defines the baseurl for the repository where the OS package is hosted.
+* ``gpgkey`` defines the aarch64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
+* ``name`` defines the name of the OS package.
+* If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
+* Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_subscription_repo_config_aarch64``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
+
+* **Example**: 
+  ``- { url: ""https://example.com/appstream"", gpgkey: """", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_appstream"", policy: ""always"", caching: true }``
+  ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/"", gpgkey: ""file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_supplementary"", policy: ""always"", caching: false }``
 
 
 .. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
@@ -63,6 +103,8 @@
 * ``gpgkey`` defines the gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
 * ``name`` defines the name of the software ``.rpm`` package.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set individual policies (``always``, ``partial``) for the repository URLs. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
+
 * **Default value**: 
     - { url: ""https://download.docker.com/linux/centos/10/x86_64/stable/"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce-repo""}
     - { url: ""https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/"", gpgkey: ""https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9"", name: ""epel""}
@@ -76,6 +118,7 @@
 * ``gpgkey`` defines the gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
 * ``name`` defines the name of the software ``.rpm`` package.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set individual policies (``always``, ``partial``) for the repository URLs. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
+* Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 * **Default value**: 
     - { url: ""https://download.docker.com/linux/centos/10/aarch64/stable/"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce""}
     - { url: ""https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/"", gpgkey: ""https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-9"", name: ""epel""}

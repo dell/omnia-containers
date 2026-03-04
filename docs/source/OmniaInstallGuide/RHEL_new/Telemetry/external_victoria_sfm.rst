@@ -14,8 +14,8 @@ Prerequisites
 
 Make sure the following prerequisites are met:
 
-* A Service Kubernetes cluster is running with VictoriaMetrics deployed in the
-  ``telemetry`` namespace.
+* Ensure that the ``pod_external_ip_range`` parameter is set in the ``omnia_config.yml`` file for the Service Kubernetes cluster and it is reachable from the SFM network.
+* Ensure VictoriaMetrics is installed and running in the Service Kubernetes cluster.
 * External access to VictoriaMetrics is available through the following
   LoadBalancer ports:
 
