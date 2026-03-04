@@ -1,6 +1,7 @@
 Step 1: Deploy Omnia Core Container
 =====================================
 
+Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) to establish the foundation for BuildStreaM deployment and cluster management.
 The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (``omnia_core.service``). 
 The Omnia core container contains the following:
 

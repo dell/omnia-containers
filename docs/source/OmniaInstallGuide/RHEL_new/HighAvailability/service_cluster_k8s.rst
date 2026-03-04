@@ -70,14 +70,16 @@ Steps
        
 .. note:: In case of CSI support, ensure that the ``server_share_path`` must be the same as the isiPath value in ``values.yml`` file and the ``server_ip`` should be the Powerscale NFS server IP.
 .. note:: Ensure that the ``server_share_path`` and ``client_share_path`` do not have any content before you deploy Kubernetes. To delete the content, go to ``server_share_path`` on NFS server and remove the content available in the path.
+.. note:: Ensure that the ``pod_external_ip_range`` defined in the ``omnia_config.yml``
+   file is reachable from the OpenManage Enterprise appliance and the SFM network.
 
 .. csv-table:: omnia_config.yml
-   :file: ../../../../Tables/scheduler_k8s_rhel.csv
+   :file: ../../../Tables/omnia_config_service_cluster.csv
    :header-rows: 1
    :keepspace:
 
 .. csv-table:: high_availability_config.yml
-   :file: ../../../../Tables/service_k8s_high_availability.csv
+   :file: ../../../Tables/service_k8s_high_availability.csv
    :header-rows: 1
    :keepspace:
 
