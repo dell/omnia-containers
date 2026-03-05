@@ -86,14 +86,18 @@ Local Repository Resync
 
 The Local Repository Resync feature updates the local RPM repositories by synchronizing them with their respective remote sources. During resynchronization, new and updated RPM packages are downloaded, repository metadata is refreshed, and only incremental changes are fetched while preserving the existing local cache. This operation can be performed whenever remote repositories are updated, repository configurations are modified, or to ensure the local repositories remain current. Ensure that the initial local repository setup is complete, network connectivity to the remote repositories is available, and sufficient disk space is present before running the resync.
 
-Command
--------
+Command Format
+--------------
 
-Resync all RPM repositories::
+Resync all RPM repositories:
+
+.. code-block:: bash
 
     ansible-playbook local_repo.yml -e "resync_repos=all"
 
-Resync specific RPM repository::
+Resync specific RPM repository:
+
+.. code-block:: bash
 
     ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
 
