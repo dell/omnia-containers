@@ -89,4 +89,4 @@ If any configuration files are missing from the backup, a warning is generated b
 LocalRepo Upgrade
 -----------------
 
-Omnia's LocalRepo functionality now supports RHEL minimum version upgrades, enabling seamless repository management across multiple RHEL versions. It allows clean upgrades without repository conflicts while maintaining separate logs, metadata, and cleanup for each version. Existing RHEL 10.0 setups remain fully supported.
+Omnia's LocalRepo functionality now supports RHEL minimum version upgrades, enabling seamless repository management across multiple RHEL versions. It allows clean upgrades without repository conflicts while maintaining separate logs, metadata, and cleanup for each version. Existing RHEL 10.0 setups remain fully supported. Managing multiple versions at the same time is currently not supported.
