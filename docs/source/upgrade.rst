@@ -6,7 +6,7 @@ Omnia supports only upgrading Omnia core container and migrating the respctive i
 Prerequisites
 --------------
 
-* Ensure that Omnia 2.0 core container is running.
+* Ensure Omnia version 2.0.0.0 core container is running (core tag - 1.0).
 
 * Omnia 2.1 image must be available in the OIM. If the image is not available, run the following command to download the image. ::
 
@@ -16,6 +16,18 @@ For more information about deploying the Omnia core container, see `Deploy Omnia
 
 Upgrade Steps
 --------------
+
+1. Download the omnia.sh script using the following commands:
+    
+    * To use the tagged version of Omnia, run the following command: ::
+
+        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
+
+    * To use the specific branch of Omnia, run the following command: ::
+
+        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
+
+.. Note:: User has to replace {OMNIA_VERSION} with the next version to upgrade to (for example v2.1.0.0).
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback. ::
 
@@ -31,18 +43,7 @@ The following operations can be performed on the Omnia Core Containers: Install,
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
-.. Note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0.
-
-
-1. Download the omnia.sh script using the following commands:
-    
-    * To use the tagged version of Omnia, run the following command: ::
-
-        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
-
-    * To use the specific branch of Omnia, run the following command: ::
-
-        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
+.. Note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0
         
 2. To perform an upgrade on the Omnia core container, run the following command: ::
     
