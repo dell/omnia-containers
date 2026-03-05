@@ -15,7 +15,7 @@ Prerequisites
 Make sure the following prerequisites are met:
 
 * Ensure that the ``pod_external_ip_range`` parameter is set in the ``omnia_config.yml`` file for the Service Kubernetes cluster and it is reachable from the SFM network.
-* Ensure VictoriaMetrics is installed and running in the Service Kubernetes cluster.
+* Ensure VictoriaMetrics (Cluster Mode) is installed and running in the Service Kubernetes cluster.
 * External access to VictoriaMetrics is available through the following
   LoadBalancer ports:
 
@@ -70,3 +70,33 @@ Steps
    For vminsert and vmselect IP, use the values retrieved by the ``external_victoria_connect_details.yml`` playbook in Step 1.
    .. note::
       The ``/etc/hosts`` update must be repeated if the SFM Prometheus pod restarts.
+      
+
+View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
+----------------------------------------------------------------------------------------------
+To view the SFM telemetry data that is streamed to VictoriaMetrics, do the following:
+
+1. Run the following command to verify that the VictoriaMetrics pod is running::
+
+    kubectl get pods -n telemetry -o wide | grep vm
+
+.. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
+
+2. Run the following command to verify that the VictoriaMetrics service is running::
+
+    kubectl get service -n telemetry -o wide | grep vm
+
+.. image:: ../../../images/victoria_metrics_service_cluster.png
+
+3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+
+4. Access the VMUI in a web browser using::
+
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
+
+5. Filter and view telemetry metrics using queries in VMUI.
+For example, the following query displays detailed PowerEdge metrics for each hardware component::
+
+    {__name__=~"<SFM Metric Key>"}
+
+.. image:: ../../../images/victoria_metrics_vmui_cluster.png

@@ -74,6 +74,8 @@ Extract Kafka connection details and TLS certificates from the Service Kubernete
 
 .. note:: For OpenManage Enterprise Kafka client, the client certificate must be in .pfx format. To know more about OpenManage Enterprise, refer `OpenManage Enterprise <https://www.dell.com/en-in/lp/dt/open-manage-enterprise>`_.
 
+.. note:: To configure OpenManage Enterprise to stream telemetry data to Kafka, see :doc:`Collect Telemetry Data from OpenManage Enterprise <external_kafka_ome>`.
+
 3. (Optional) Run the following commands to create Java truststore and keystore::
 
        keytool -import -trustcacerts -alias kafka-ca -file ca.crt \

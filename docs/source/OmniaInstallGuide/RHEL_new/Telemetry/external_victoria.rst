@@ -57,6 +57,8 @@ Push Sample metrics from Omnia Core Container in the OIM
 
 .. note:: Use ``https://vminsert.telemetry.svc.cluster.local:8480//insert/0/prometheus/api/v1/write`` to push the metrics from an external client, such as SmartFabric Manager (SFM). To know more about SFM, refer to `SFM <https://www.dell.com/en-in/shop/ipovw/smartfabric-manager-for-sonic>`_.
 
+.. note:: For collecting telemetry data from Smart Fabric Manager (SFM) to Victoria DB, see :doc:`Collect telemetry data from Smart Fabric Manager to Victoria DB (cluster mode) <external_victoria_sfm>`.
+
 3. Push the sample test metrics to Victoria DB using the following command::
 
     curl --cacert ca.crt -X POST   "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus"   -H "Content-Type: text/plain"   -d 'cpu_usage{host="server1",job="new"} 75.5
