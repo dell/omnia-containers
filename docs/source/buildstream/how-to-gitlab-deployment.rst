@@ -33,9 +33,9 @@ Procedure
       cat /opt/omnia/input/project_default/gitlab_config.yml
 
    .. csv-table:: gitlab_config.yml
-   :file: ../../Tables/build_stream_gitlab_config.csv 
-   :header-rows: 1
-   :keepspace:
+     :file: ../../Tables/build_stream_gitlab_config.csv 
+     :header-rows: 1
+     :keepspace:
 
 3. Navigate to the GitLab directory.
 

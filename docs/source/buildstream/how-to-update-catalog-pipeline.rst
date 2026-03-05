@@ -1,6 +1,6 @@
 .. _how-to-buildstream-update-catalog-pipeline:
 
-Step 5: Update Catalog and Execute Omn BuildStreaM Pipeline
+Step 5: Update Catalog and Execute Omnia BuildStreaM Pipeline
 ====================================================
 
 Update the ``catalog_rhel.json`` file and monitor pipeline execution through GitLab. This procedure covers catalog modifications, automatic pipeline triggering, and verification of pipeline status and job execution.
