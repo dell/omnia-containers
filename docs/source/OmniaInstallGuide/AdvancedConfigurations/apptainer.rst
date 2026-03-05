@@ -41,7 +41,7 @@ Registry mirror behavior is controlled by configuration files under: ::
 
         /etc/containers/registries.conf.d/
 
-When a Pulp registry mirror is configured and the image is present, the pull is transparently served from Pulp. If the image is not available in Pulp, the pull falls back to the public registry.
+When a Pulp registry mirror is configured and the image is present, the pull is transparently served from Pulp.
 
 In environments where Pulp usage is required and the image is known to exist, the Pulp registry may be specified explicitly: ::
 
