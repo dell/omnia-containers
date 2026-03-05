@@ -3,8 +3,8 @@ Cleanup Local Pulp Repositories
 
 Removes unused content from the Pulp container to free up disk space. This includes RPM repositories, files (tarball, git, pip, manifest...), and container images. Active repositories and their associated content are preserved during the cleanup process.
 
-Commands
---------
+Command Format
+--------------
 
 Cleanup a specific RPM repository:
 
@@ -51,5 +51,5 @@ Cleanup logs are generated in a version-aware directory structure under ``/opt/o
 
 .. note::
 
-    The force=true option forces the cleanup operation to proceed even if the repository or content is currently referenced by older metadata or publications. Use this option with caution, as the cleanup process permanently removes the specified content and cannot be reversed.
+    The ``force=true`` option forces the cleanup operation to proceed even if the repository or content is currently referenced by older metadata or publications. Use this option with caution, as the cleanup process permanently removes the specified content and cannot be reversed.
 
