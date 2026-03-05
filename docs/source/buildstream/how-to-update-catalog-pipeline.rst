@@ -1,6 +1,6 @@
 .. _how-to-buildstream-update-catalog-pipeline:
 
-Step 4: Update Catalog and Execute Omn BuildStreaM Pipeline
+Step 5: Update Catalog and Execute Omn BuildStreaM Pipeline
 ====================================================
 
 Update the ``catalog_rhel.json`` file and monitor pipeline execution through GitLab. This procedure covers catalog modifications, automatic pipeline triggering, and verification of pipeline status and job execution.
@@ -19,7 +19,7 @@ Procedure
 
 1. Go to the GitLab project URL::
 
-    https://<gitlab_url>/<project name>
+    https://<gitlab host ip>/<gitlap project name>
 
 2. Go to **Code** → **Repository**.
 3. Locate the catalog file ``catalog_rhel.json``.
@@ -33,12 +33,11 @@ Procedure
 
       2. Click on the running pipeline to view details.
       3. Monitor each stage as it progresses:
-         - **parse-catalog** - Parses the catalog file for build requirements.
-         - **generate-input-files** - Creates build inputs
-         - **create-image-repositories** - Creates image repository in the local pulp repository.
-         - **update-image-repositories** - Updates image repository in the local pulp repository.
-         - **build-image** - Builds the images
-         - **deploy-image** - Deploys the images to the local pulp repository.     
+            - **parse-catalog** - Parses the catalog file for build requirements.
+            - **generate-input-files** - Creates build inputs
+            - **create-local-repositories** - Creates image repository in the local pulp repository.
+            - **build-image** - Builds the images
+            - **deploy-image** - Deploys the images to the local pulp repository.     
 
    Expected pipeline status indicators:
       - **Green checkmark**: Stage completed successfully
@@ -50,7 +49,7 @@ Verification
 
 After the pipeline is completed, you can check the overall pipeline status and job execution.
 
-1. Navigate to **Build** → **Jobs**
+1. Navigate to **Build** → **Pipelines**
 2. Review the job list and status
 3. Click on individual jobs to view:
    - Execution logs

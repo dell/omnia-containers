@@ -1,4 +1,4 @@
-Step 2:  Prepare the OIM
+Step 3:  Prepare the OIM
 ========================================================
 
 This section describes the process for preparing the Omnia Infrastructure Manager (OIM) by deploying the OpenCHAMI containers, BuildStreamM container, Omnia Auth container, and Pulp container to support BuildStreaM deployment. 
@@ -8,7 +8,7 @@ Prerequisites
 
 Before beginning the BuildStreaM setup:
 
-* Ensure that Omnia core container is upgraded to Omnia 2.1.0.0 or later.
+* Ensure that Omnia core container is upgraded to Omnia 2.1.0.0.
 * Administrator access on the Omnia Infrastructure Manager (OIM) node
 * Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
 * 10 GB free disk space for BuildStreaM data and logs
@@ -20,7 +20,7 @@ Before beginning the BuildStreaM setup:
 Procedure
 ------------
 
-1. Update the the following input files.
+1. Update the following input files.
 
 .. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
    * ``network_spec.yml``: contains the necessary configurations for the cluster network.
@@ -78,12 +78,15 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStream
     cd /omnia/prepare_oim
     ansible-playbook prepare_oim.yml
 
-The ``prepare_oim.yml`` deploys the following containers on the OIM node:
+The ``prepare_oim.yml`` deploys the following on the OIM node:
 
 * OpenCHAMI containers
-* BuildStreamM container 
+* PostgreSQL database container
 * Omnia Auth container
-* Pulp container: ``pulp``
+* Pulp container
+* BuildStreamM API container 
+* Playbook watcher service
+
 .. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
 
 Verification
@@ -106,6 +109,12 @@ its dependent services are running correctly.
 .. code-block:: bash
 
   systemctl status omnia_build_stream.service
+
+3. Check the status of the playbook watcher service.
+
+.. code-block:: bash
+
+  systemctl status playbook_watcher.service
 
 3. Check the status of the PostgreSQL database container.
 

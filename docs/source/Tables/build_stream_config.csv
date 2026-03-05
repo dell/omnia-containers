@@ -2,8 +2,8 @@
 enable_build_stream,Mandatory,"* Enable or disable BuildStreaM pipeline.
 * **Accepted values:**  boolean values  (true or false) or (yes or no)
 * **Default value**: false"
-build_stream_host_ip,Optional,"* **Optional**: Build Stream API server host IP
-* **Accepted values:** public IP address of OIM or admin IP of OIM.
+build_stream_host_ip,Mandatory,"* **Optional**: Build Stream API server host IP
+* **Accepted values:** The public IP address of OIM or admin IP of OIM. The public IP address should be reachable from the GitLab server.
 * **Default value**:  The admin IP of OIM."
 build_stream_port,Mandatory,"* BuildStreaM API server port.
 *  **Accepted values:**  valid port number (1-65535) which is free
@@ -11,4 +11,3 @@ build_stream_port,Mandatory,"* BuildStreaM API server port.
 aarch64_inventory_host_ip,Conditional Mandatory,"* Specify the aarch64 inventory host IP address for aarch64 builds.
 * **Accepted values:** The admin IP of aarch64 host where OS is installed.
 * **Default value**:    None. If the inventory host IP address is not specified, the build images for aarch64 are not generated."
-postgres_db_name,Optional,Specify the PostgreSQL database name for BuildStreaM.

@@ -1,7 +1,7 @@
 .. _concept-buildstream-overview:
 
-What is BuildStreaM?
-====================
+What is Omnia BuildStreaM?
+==========================
 
 Omnia BuildStream provides a comprehensive automation solution for managing infrastructure build workflows. It uses a catalog-driven approach where you define your build requirements in a structured catalog file, and BuildStreaM executes automated pipelines to create and deploy images according to your specifications.
 

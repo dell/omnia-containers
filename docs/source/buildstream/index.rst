@@ -17,6 +17,7 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    :caption: BuildStreaM Deployment Workflow
 
    omnia_startup_buildstream
+   composable_roles_buildstream
    prepare_oim_buildstream
    how-to-gitlab-deployment
    how-to-update-catalog-pipeline
