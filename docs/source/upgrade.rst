@@ -17,6 +17,8 @@ For more information about deploying the Omnia core container, see `Deploy Omnia
 Upgrade Steps
 --------------
 
+If the ``omnia.sh`` script from version v2.0.0.0 already exists, either replace it with the newer version or place the new script in a different directory and run it from there.
+
 1. Download the omnia.sh script using the following commands:
     
     * To use the tagged version of Omnia, run the following command: ::
@@ -27,7 +29,7 @@ Upgrade Steps
 
         wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
 
-.. Note:: User has to replace {OMNIA_VERSION} with the next version to upgrade to (for example v2.1.0.0).
+.. note:: Replace ``${OMNIA_VERSION}`` with the target version (for example, ``v2.1.0.0``).
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback. ::
 
@@ -43,7 +45,7 @@ The following operations can be performed on the Omnia Core Containers: Install,
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
-.. Note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0
+.. note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0
         
 2. To perform an upgrade on the Omnia core container, run the following command: ::
     
@@ -52,7 +54,7 @@ For more information on usage instructions, see `Deploy Omnia Core Container <Om
 3. Select the relevant version and press **Enter**. An approval gate is generated and the destination location of the backup files is displayed. 
 The upgrade process runs inside the ``Omnia_core`` container.
 
-.. Note::
+.. note::
     By default, the backup files are created and stored in the directory ``/opt/omnia/backups/upgrade/<version>``, in the OIM share path.
 
 4. To proceed with the upgrade, enter **yes**.
@@ -65,7 +67,7 @@ After successful completion, the container is swapped and the upgrade is complet
 
     ansible-playbook /omnia/upgrade/upgrade_omnia.yml
 
-.. Note::
+.. note::
     * Run the command after the container is healthy and stable.
     * Running playbooks other than the ``upgrade_omnia.yml`` before ``./omnia.sh --upgrade`` generates an error with instructions.
 
@@ -76,7 +78,7 @@ The system displays guidance after successful migration completes.
 
 If any configuration files are missing from the backup, a warning is generated before reprovisioning is started.
 
-.. Note::
+.. note::
     If you have not run any playbooks in Omnia 2.0, remove the upgrade lock using the following command: ::
 
         rm /opt/omnia/.data/upgrade_in_progress.lock
