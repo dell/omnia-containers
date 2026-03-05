@@ -8,29 +8,34 @@ Commands
 
 Cleanup a specific RPM repository:
 
-::
+.. code-block:: bash
+
     ansible-playbook pulp_cleanup.yml -e cleanup_repos=x86_64_appstream
 
 Cleanup a specific file:
 
-::
+.. code-block:: bash
+
     ansible-playbook pulp_cleanup.yml -e cleanup_files=calico-v3.30.3
 
 Cleanup a specific container image (force cleanup):
 
-::
+.. code-block:: bash
+
     ansible-playbook pulp_cleanup.yml -e cleanup_containers=docker.io/library/busybox -e force=true
 
 Cleanup all content:
 
-::
+.. code-block:: bash
+
     ansible-playbook pulp_cleanup.yml -e cleanup_repos=all -e cleanup_files=all -e cleanup_containers=all
 
-**Logs**
+Logs
+-----
 
 Cleanup logs are generated in a version-aware directory structure under ``/opt/omnia/log/local_repo/``.
 
-::
+.. code-block:: text
 
     /opt/omnia/log/local_repo/
     └── rhel/
