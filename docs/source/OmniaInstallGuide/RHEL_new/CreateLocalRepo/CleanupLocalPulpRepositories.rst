@@ -28,7 +28,7 @@ Cleanup all content:
 
 **Logs**
 
-Cleanup logs are generated in a version-aware directory structure under ``/opt/omnia/log/local_repo/``
+Cleanup logs are generated in a version-aware directory structure under ``/opt/omnia/log/local_repo/``.
 
 ::
     /opt/omnia/log/local_repo/
