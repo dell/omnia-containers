@@ -68,6 +68,17 @@
       when: container_check.rc != 0
 
     # =========================================================================
+    # SYNC PROJECT_DEFAULT INTO CONTAINER
+    # =========================================================================
+
+    - name: Ensure project_dir for sync
+      ansible.builtin.set_fact:
+        project_dir: "{{ project_dir | default(playbook_dir + '/../..') }}"
+
+    - name: Sync project_default and generate vault key
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+    # =========================================================================
     # RUN PREPARE_OIM PLAYBOOK
     # =========================================================================
 
