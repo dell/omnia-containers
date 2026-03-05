@@ -31,19 +31,20 @@ Cleanup all content:
 Cleanup logs are generated in a version-aware directory structure under ``/opt/omnia/log/local_repo/``.
 
 ::
+
     /opt/omnia/log/local_repo/
-└── rhel/
-    ├── 10.0/cleanup/
-    │   ├── standard.log
-    │   └── cleanup_status.csv
-    └── 10.1/cleanup/
-        ├── standard.log
-        └── cleanup_status.csv
+    └── rhel/
+        ├── 10.0/cleanup/
+        │   ├── standard.log
+        │   └── cleanup_status.csv
+        └── 10.1/cleanup/
+            ├── standard.log
+            └── cleanup_status.csv
 
 * ``standard.log`` – Contains detailed execution logs of the cleanup operation.
 * ``cleanup_status.csv`` – Provides a summary of cleanup actions and their status.
 
 .. note::
 
-The force=true option forces the cleanup operation to proceed even if the repository or content is currently referenced by older metadata or publications. Use this option with caution, as the cleanup process permanently removes the specified content and cannot be reversed.
+    The force=true option forces the cleanup operation to proceed even if the repository or content is currently referenced by older metadata or publications. Use this option with caution, as the cleanup process permanently removes the specified content and cannot be reversed.
 
