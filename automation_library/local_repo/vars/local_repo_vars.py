@@ -32,6 +32,7 @@ PULP_CONTAINER = "pulp"
 # PATHS (inside omnia_core container)
 # =============================================================================
 
+# Local repo logs are under /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/
 LOG_BASE_PATH = "/opt/omnia/log/local_repo"
 SOFTWARE_CSV_FILENAME = "software.csv"
 STATUS_CSV_FILENAME = "status.csv"

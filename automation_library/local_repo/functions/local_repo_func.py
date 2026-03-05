@@ -228,62 +228,152 @@ def check_pulp_api_status(host) -> Dict[str, Any]:
 # 4. SOFTWARE DOWNLOAD STATUS (software.csv)
 # =============================================================================
 
+def _find_software_csv_paths(host) -> Dict[str, str]:
+    """
+    Find all software.csv files under LOG_BASE_PATH.
+    
+    Path structure: /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/software.csv
+    
+    Returns dict mapping arch -> full path to software.csv
+    """
+    arch_paths = {}
+    
+    # Find all software.csv files recursively
+    find_cmd = run_in_omnia_core(
+        host,
+        f"find {LOG_BASE_PATH} -name '{SOFTWARE_CSV_FILENAME}' -type f 2>/dev/null"
+    )
+    
+    if not find_cmd["success"] or not find_cmd["stdout"].strip():
+        return arch_paths
+    
+    for path in find_cmd["stdout"].strip().splitlines():
+        path = path.strip()
+        if not path:
+            continue
+        # Extract arch from path (e.g., .../x86_64/software.csv)
+        for arch in ARCH_LIST:
+            if f"/{arch}/" in path:
+                arch_paths[arch] = path
+                break
+    
+    return arch_paths
+
+
 def check_software_download_status(host) -> Dict[str, Any]:
     """
     Parse ``software.csv`` from each architecture under LOG_BASE_PATH.
-
+    
+    Path structure: /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/software.csv
+    
+    For each architecture:
+    - x86_64: Show all software with pass/fail status
+    - aarch64: If no software.csv found, show "skipped - no software found"
+    
     Returns success/failure counts and lists of failed softwares.
     """
-    all_entries = []
-    failures = []
-    checked_archs = []
-
+    arch_csv_paths = _find_software_csv_paths(host)
+    
+    arch_results = {}  # arch -> {entries: [], failures: [], skipped: bool}
+    
     for arch in ARCH_LIST:
-        csv_path = f"{LOG_BASE_PATH}/{arch}/{SOFTWARE_CSV_FILENAME}"
-        result = read_file_in_omnia_core(host, csv_path)
-        if not result["success"]:
+        if arch not in arch_csv_paths:
+            arch_results[arch] = {
+                "entries": [],
+                "failures": [],
+                "skipped": True,
+                "reason": f"No software.csv found for {arch}",
+            }
             continue
-
-        checked_archs.append(arch)
+        
+        csv_path = arch_csv_paths[arch]
+        result = read_file_in_omnia_core(host, csv_path)
+        
+        if not result["success"]:
+            arch_results[arch] = {
+                "entries": [],
+                "failures": [],
+                "skipped": True,
+                "reason": f"Could not read {csv_path}: {result.get('error', '')}",
+            }
+            continue
+        
         content = result["content"].strip()
         if not content:
+            arch_results[arch] = {
+                "entries": [],
+                "failures": [],
+                "skipped": True,
+                "reason": f"software.csv is empty for {arch}",
+            }
             continue
-
+        
+        entries = []
+        failures = []
         reader = csv.DictReader(io.StringIO(content))
         for row in reader:
             name = row.get("name", "unknown")
             status_val = (row.get("status") or "").strip().lower()
-            all_entries.append({"name": name, "status": status_val, "arch": arch})
+            entry = {"name": name, "status": status_val, "arch": arch}
+            entries.append(entry)
             if status_val != "success":
-                failures.append({"name": name, "status": status_val, "arch": arch})
-
-    if not checked_archs:
-        return {
-            "success": False, "total": 0, "failed": 0,
-            "details": "No software.csv found for any architecture",
-            "failures": [],
-            "error": f"software.csv not found under {LOG_BASE_PATH}/<arch>/",
+                failures.append(entry)
+        
+        arch_results[arch] = {
+            "entries": entries,
+            "failures": failures,
+            "skipped": False,
+            "reason": None,
         }
-
-    total = len(all_entries)
-    failed_count = len(failures)
-    succeeded = [e for e in all_entries if e not in failures]
-    details = (
-        f"Software downloads: {total - failed_count}/{total} succeeded "
-        f"({', '.join(checked_archs)})\n"
-    )
-    for entry in sorted(succeeded, key=lambda x: (x["arch"], x["name"])):
-        details += f"  ✓ {entry['name']} ({entry['arch']})\n"
-    if failures:
-        for f in sorted(failures, key=lambda x: (x["arch"], x["name"])):
-            details += f"  ✘ {f['name']} ({f['arch']}): {f['status']}\n"
-
+    
+    # Build output details per architecture
+    details = ""
+    all_failures = []
+    total_entries = 0
+    has_any_data = False
+    
+    for arch in ARCH_LIST:
+        ar = arch_results[arch]
+        
+        if ar["skipped"]:
+            details += f"\n{arch}:\n"
+            details += f"  ⊘ SKIPPED - {ar['reason']}\n"
+            continue
+        
+        has_any_data = True
+        entries = ar["entries"]
+        failures = ar["failures"]
+        total_entries += len(entries)
+        all_failures.extend(failures)
+        
+        passed = [e for e in entries if e not in failures]
+        
+        details += f"\n{arch}: {len(passed)}/{len(entries)} passed\n"
+        
+        for entry in sorted(passed, key=lambda x: x["name"]):
+            details += f"  ✓ {entry['name']}: PASS\n"
+        
+        for entry in sorted(failures, key=lambda x: x["name"]):
+            details += f"  ✘ {entry['name']}: FAIL ({entry['status']})\n"
+    
+    if not has_any_data:
+        return {
+            "success": False,
+            "total": 0,
+            "failed": 0,
+            "failures": [],
+            "details": f"No software.csv found for any architecture under {LOG_BASE_PATH}/",
+            "error": f"software.csv not found under {LOG_BASE_PATH}/<os>/<version>/<arch>/",
+        }
+    
+    failed_count = len(all_failures)
+    
     return {
         "success": failed_count == 0,
-        "total": total,
+        "total": total_entries,
         "failed": failed_count,
-        "failures": failures,
-        "details": details,
+        "failures": all_failures,
+        "details": details.strip(),
         "error": None if failed_count == 0 else f"{failed_count} software(s) failed",
     }
 
@@ -292,77 +382,161 @@ def check_software_download_status(host) -> Dict[str, Any]:
 # 5. PER-SOFTWARE PACKAGE STATUS (status.csv per software)
 # =============================================================================
 
+def _find_status_csv_files(host) -> List[Dict[str, str]]:
+    """
+    Find all status.csv files under LOG_BASE_PATH.
+    
+    Path structure: /opt/omnia/log/local_repo/<os>/<version>/<arch>/<software>/status.csv
+    
+    Returns list of dicts with arch, software, path
+    """
+    results = []
+    
+    # Find all status.csv files recursively
+    find_cmd = run_in_omnia_core(
+        host,
+        f"find {LOG_BASE_PATH} -name '{STATUS_CSV_FILENAME}' -type f 2>/dev/null"
+    )
+    
+    if not find_cmd["success"] or not find_cmd["stdout"].strip():
+        return results
+    
+    for path in find_cmd["stdout"].strip().splitlines():
+        path = path.strip()
+        if not path:
+            continue
+        
+        # Extract arch and software from path
+        # e.g., /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
+        for arch in ARCH_LIST:
+            if f"/{arch}/" in path:
+                # Get software name (directory containing status.csv)
+                parts = path.split(f"/{arch}/")
+                if len(parts) > 1:
+                    sw_part = parts[1].replace(f"/{STATUS_CSV_FILENAME}", "")
+                    sw_name = sw_part.split("/")[0] if "/" in sw_part else sw_part
+                    results.append({
+                        "arch": arch,
+                        "software": sw_name,
+                        "path": path,
+                    })
+                break
+    
+    return results
+
+
 def check_per_software_package_status(host) -> Dict[str, Any]:
     """
-    Parse each ``<software>/status.csv`` under LOG_BASE_PATH/<arch>/.
+    Parse each ``<software>/status.csv`` under LOG_BASE_PATH.
+    
+    Path structure: /opt/omnia/log/local_repo/<os>/<version>/<arch>/<software>/status.csv
 
-    Reports per-package failures across all softwares.
+    Shows individual package pass/fail for each architecture and software.
     """
-    all_packages = []
-    failures = []
-    checked_softwares = []
-
+    status_files = _find_status_csv_files(host)
+    
+    arch_results = {}  # arch -> {softwares: {sw_name: {packages: [], failures: []}}}
+    
     for arch in ARCH_LIST:
-        # List software dirs
-        ls_cmd = run_in_omnia_core(
-            host,
-            f"find {LOG_BASE_PATH}/{arch} -maxdepth 1 -mindepth 1 -type d "
-            f"-exec basename {{}} \\; 2>/dev/null",
-        )
-        if not ls_cmd["success"]:
+        arch_results[arch] = {"softwares": {}, "skipped": True}
+    
+    for sf in status_files:
+        arch = sf["arch"]
+        sw_name = sf["software"]
+        csv_path = sf["path"]
+        
+        result = read_file_in_omnia_core(host, csv_path)
+        if not result["success"]:
             continue
-
-        sw_dirs = [d.strip() for d in (ls_cmd["stdout"] or "").splitlines() if d.strip()]
-        for sw_name in sw_dirs:
-            csv_path = f"{LOG_BASE_PATH}/{arch}/{sw_name}/{STATUS_CSV_FILENAME}"
-            result = read_file_in_omnia_core(host, csv_path)
-            if not result["success"]:
-                continue
-
-            checked_softwares.append(f"{arch}/{sw_name}")
-            content = result["content"].strip()
-            if not content:
-                continue
-
-            reader = csv.DictReader(io.StringIO(content))
-            for row in reader:
-                pkg_name = row.get("name", "unknown")
-                pkg_status = (row.get("status") or "").strip().lower()
-                pkg_type = row.get("type", "")
-                repo_name = row.get("repo_name", "")
-                entry = {
-                    "name": pkg_name, "type": pkg_type,
-                    "repo_name": repo_name, "status": pkg_status,
-                    "software": sw_name, "arch": arch,
-                }
-                all_packages.append(entry)
-                if pkg_status not in ("success", ""):
-                    failures.append(entry)
-
-    total = len(all_packages)
-    failed_count = len(failures)
-    details = (
-        f"Per-package status: {total - failed_count}/{total} succeeded "
-        f"({len(checked_softwares)} softwares)\n"
-    )
-    for sw in sorted(checked_softwares):
-        sw_failures = [f for f in failures if f"{f['arch']}/{f['software']}" == sw]
-        if sw_failures:
-            details += f"  ✘ {sw} — {len(sw_failures)} failed\n"
-            for f in sw_failures[:5]:
-                details += f"      {f['name']}: {f['status']}\n"
-            if len(sw_failures) > 5:
-                details += f"      ... and {len(sw_failures) - 5} more\n"
-        else:
-            details += f"  ✓ {sw}\n"
-
+        
+        content = result["content"].strip()
+        if not content:
+            continue
+        
+        arch_results[arch]["skipped"] = False
+        
+        if sw_name not in arch_results[arch]["softwares"]:
+            arch_results[arch]["softwares"][sw_name] = {"packages": [], "failures": []}
+        
+        reader = csv.DictReader(io.StringIO(content))
+        for row in reader:
+            pkg_name = row.get("name", "unknown")
+            pkg_status = (row.get("status") or "").strip().lower()
+            pkg_type = row.get("type", "")
+            repo_name = row.get("repo_name", "")
+            
+            entry = {
+                "name": pkg_name,
+                "type": pkg_type,
+                "repo_name": repo_name,
+                "status": pkg_status,
+                "software": sw_name,
+                "arch": arch,
+            }
+            
+            arch_results[arch]["softwares"][sw_name]["packages"].append(entry)
+            if pkg_status not in ("success", ""):
+                arch_results[arch]["softwares"][sw_name]["failures"].append(entry)
+    
+    # Build output details per architecture
+    details = ""
+    all_failures = []
+    total_packages = 0
+    has_any_data = False
+    
+    for arch in ARCH_LIST:
+        ar = arch_results[arch]
+        
+        if ar["skipped"] or not ar["softwares"]:
+            details += f"\n{arch}:\n"
+            details += f"  ⊘ SKIPPED - No status.csv found for {arch}\n"
+            continue
+        
+        has_any_data = True
+        arch_total = 0
+        arch_failed = 0
+        
+        for sw_name, sw_data in sorted(ar["softwares"].items()):
+            packages = sw_data["packages"]
+            failures = sw_data["failures"]
+            arch_total += len(packages)
+            arch_failed += len(failures)
+            total_packages += len(packages)
+            all_failures.extend(failures)
+        
+        details += f"\n{arch}: {arch_total - arch_failed}/{arch_total} packages passed\n"
+        
+        for sw_name, sw_data in sorted(ar["softwares"].items()):
+            packages = sw_data["packages"]
+            failures = sw_data["failures"]
+            passed = [p for p in packages if p not in failures]
+            
+            details += f"  [{sw_name}] {len(passed)}/{len(packages)} passed:\n"
+            
+            for pkg in sorted(passed, key=lambda x: x["name"]):
+                details += f"    ✓ {pkg['name']}: PASS\n"
+            
+            for pkg in sorted(failures, key=lambda x: x["name"]):
+                details += f"    ✘ {pkg['name']}: FAIL ({pkg['status']})\n"
+    
+    if not has_any_data:
+        return {
+            "success": True,  # No data means nothing to fail
+            "total": 0,
+            "failed": 0,
+            "failures": [],
+            "details": f"No status.csv found for any software under {LOG_BASE_PATH}/",
+            "error": None,
+        }
+    
+    failed_count = len(all_failures)
+    
     return {
         "success": failed_count == 0,
-        "total": total,
+        "total": total_packages,
         "failed": failed_count,
-        "failures": failures,
-        "checked_softwares": checked_softwares,
-        "details": details,
+        "failures": all_failures,
+        "details": details.strip(),
         "error": None if failed_count == 0 else f"{failed_count} package(s) failed",
     }
 

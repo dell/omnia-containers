@@ -227,11 +227,9 @@ def test_software_packages_in_pulp(host):
     result = check_software_packages_in_pulp(host)
 
     if result["success"]:
-        summary = (
-            f"Found: {result.get('found_packages', 0)}"
-            f"/{result.get('total_packages', 0)} packages"
-        )
-        log.passed(LOG_MSGS["software_packages_ok"], summary)
+        # Show full details with all individual package names
+        details = result.get("details") or ""
+        log.passed(LOG_MSGS["software_packages_ok"], details)
         return
 
     if "config" in (result.get("error") or "").lower():
