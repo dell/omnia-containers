@@ -1,7 +1,7 @@
 FROM docker.io/library/almalinux:10.0
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.25.5
+ARG GO_VERSION=1.25.7
 
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
@@ -45,6 +45,7 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     cd /tmp/buildah && \
     go get github.com/sigstore/fulcio@v1.8.5 && \
     go get golang.org/x/crypto@v0.45.0 && \
+    go get golang.org/x/net@latest && \
     go get github.com/containernetworking/plugins@v1.9.0 && \
     go mod tidy && \
     go get github.com/sigstore/fulcio@v1.8.5 && \
@@ -64,7 +65,7 @@ RUN dnf install -y \
 
 COPY requirements.txt /
 RUN python3.12 -m ensurepip && \
-    python3.12 -m pip install --upgrade pip && \
+    python3.12 -m pip install --upgrade pip==26.0 && \
     python3.12 -m pip install -r /requirements.txt
 
 COPY src/ /usr/local/bin/

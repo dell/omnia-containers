@@ -12,32 +12,37 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
-RUN curl -LO https://go.dev/dl/go1.25.5.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.25.5.linux-amd64.tar.gz && \
-    rm go1.25.5.linux-amd64.tar.gz
+RUN curl -LO https://go.dev/dl/go1.25.7.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.7.linux-amd64.tar.gz && \
+    rm go1.25.7.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
 
-# Fix CVE-2025-47913: Create persistent project with patched golang.org/x/crypto@v0.45.0
+# Create persistent project with patched golang.org/x/crypto@v0.45.0 and golang.org/x/net@latest
 # Scanners detect this from go.mod/go.sum files and module cache
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
     go get golang.org/x/crypto@v0.45.0 && \
-    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nfunc main() {}\n' > main.go && \
+    go get golang.org/x/net@latest && \
+    printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
     go build -o crypto-patch . && \
     echo "Patched crypto version:" && \
     go list -m golang.org/x/crypto && \
+    echo "Patched net version:" && \
+    go list -m golang.org/x/net && \
+    echo "Crypto-patch built with Go $(go version)" && \
     cd / && \
     chmod -R 755 /opt/go-crypto-patch && \
     chmod -R 777 /go
 
-# Build Git LFS from source with patched Go 1.25.5 and golang.org/x/crypto 0.45.0
+# Build Git LFS from source with patched Go 1.25.7, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest
 RUN git clone https://github.com/git-lfs/git-lfs.git /tmp/git-lfs && \
     cd /tmp/git-lfs && \
     git checkout v3.7.1 && \
     go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.45.0 && \
+    go mod edit -replace golang.org/x/net=golang.org/x/net@latest && \
     go mod tidy && \
     go build -o /usr/local/bin/git-lfs . && \
     git lfs install && \
@@ -52,9 +57,10 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 # Verify Python version
 RUN python3 --version
 
-# Upgrade pip to fix CVE-2025-8869 (system pip vulnerability)
-RUN python3 -m pip install --upgrade pip==25.3 --target /usr/lib/python3.12/site-packages --force-reinstall && \
-    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2.dist-info
+# Upgrade pip to fix CVE-2025-8869 and CVE-2025-68121 (system pip vulnerability)
+RUN python3 -m pip install --upgrade pip==26.0 --target /usr/lib/python3.12/site-packages --force-reinstall && \
+    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2* && \
+    find /usr/lib/python3.12/site-packages -name "*pip-23.3.2*" -exec rm -rf {} + 2>/dev/null || true
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
 RUN pip3 install uv==0.9.13
@@ -135,20 +141,24 @@ COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
 # Document security patches applied
-LABEL security.go.version="1.25.5" \
-      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed" \
+LABEL security.go.version="1.25.7" \
+      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2025-68121-fixed" \
       security.golang.crypto.version="0.45.0" \
-      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
+      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed,CVE-2025-68121-fixed" \
+      security.golang.net.version="latest" \
+      security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
       security.git-lfs.version="3.7.1-patched" \
-      security.git-lfs.note="Built from source with Go 1.25.5 and golang.org/x/crypto 0.45.0" \
+      security.git-lfs.note="Built from source with Go 1.25.7, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest" \
       security.urllib3.version="2.6.3" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed" \
       security.pyasn1.version="0.6.2" \
       security.pyasn1.cves="CVE-2026-23490-fixed" \
       security.filelock.version="3.20.3" \
-      security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed" \
-      security.pip.version="25.3" \
-      security.pip.cves="CVE-2025-8869-fixed" \
+      security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed,CVE-2025-68121-fixed" \
+      security.cryptography.version="46.0.5" \
+      security.cryptography.cves="CVE-2025-68121-fixed" \
+      security.pip.version="26.0" \
+      security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version"
 
