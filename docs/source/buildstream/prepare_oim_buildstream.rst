@@ -1,7 +1,7 @@
 Step 3:  Prepare the OIM
 ========================================================
 
-This section describes the process for preparing the Omnia Infrastructure Manager (OIM) by deploying the OpenCHAMI containers, BuildStreaM container, Omnia Auth container, and Pulp container to support BuildStreaM deployment. 
+To enable BuildStreaM functionality, you must prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. This procedure installs the OpenCHAMI containers, BuildStreaM container, Omnia Auth container, Pulp container, and Playbook watcher service that are essential for automated build workflows and cluster management. 
 
 Prerequisites
 ---------------
@@ -29,12 +29,7 @@ Procedure
 
 ``network_spec.yml``
 ---------------------
-Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the below table as reference while doing so:
-
-.. csv-table:: network_spec.yml
-  :file: ../Tables/network_spec.csv
-  :header-rows: 1
-  :keepspace:
+Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the :ref:`network configuration table <buildstream-tables-network-configuration>` for guidance when configuring these parameters.
 
 .. caution::
     * All provided network ranges and NIC IP addresses should be distinct with no overlap.
@@ -55,22 +50,12 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
 ``provision_config.yml``
 ------------------------
 
-Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the below table as reference while doing so:
-
-.. csv-table:: provision_config.yml
-  :file: ../Tables/Provision_config.csv
-  :header-rows: 1
-  :keepspace:
+Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the :ref:`provisioning configuration table <buildstream-tables-provisioning-configuration>` for guidance when configuring these parameters.
 
 ``build_stream_config.yml``
 ---------------------------
 
-Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the below table as reference while doing so:
-
-.. csv-table:: build_stream_config.yml
-  :file: ../Tables/build_stream_config.csv
-  :header-rows: 1
-  :keepspace:
+Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the :ref:`BuildStreaM configuration table <buildstream-tables-buildstream-configuration>` for guidance when configuring these parameters.
 
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 

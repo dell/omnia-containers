@@ -32,12 +32,12 @@ Procedure
 
 6. Perform the following steps to track the pipeline progress through the GitLab web interface:
 
-      1. Navigate to **Build** → **Pipeline**
+      a. Navigate to **Build** → **Pipeline**
 
       .. image:: ../images/buildstream_pipeline_status.png
 
-      2. Click on the running pipeline to view details.
-      3. Monitor each stage as it progresses:
+      b. Click on the running pipeline to view details.
+      c. Monitor each stage as it progresses:
             - **parse-catalog** - Parses the catalog file for build requirements.
             - **generate-input-files** - Creates build inputs
             - **create-local-repositories** - Creates image repository in the local pulp repository.

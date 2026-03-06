@@ -17,6 +17,7 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
   - **Slurm Control Node** 
   - **Slurm Node**
 
+.. _pxe_mapping_file:
 
 Create Mapping File
 -----------------------
@@ -25,8 +26,8 @@ Each node listed in the mapping file must be assigned with the following values:
 ``FUNCTIONAL_GROUP_NAME``, ``GROUP_NAME``, ``SERVICE_TAG``, ``PARENT_SERVICE_TAG``, ``HOSTNAME``, ``ADMIN_MAC``, 
 ``ADMIN_IP``, ``BMC_MAC``, and ``BMC_IP``.
 
-Refer to the :ref:`Group Attributes <group-attributes-section>` table to assign the appropriate
-``GROUP_NAME`` and the :ref:`Types of Functional Groups <functional-groups-section>` table to
+Refer to the :ref:`Group Attributes table <group-attributes-section>` to assign the appropriate
+``GROUP_NAME`` and the :ref:`Types of Functional Groups table <functional-groups-section>` to
 assign the correct ``FUNCTIONAL_GROUP_NAME`` for each node in the mapping file.
 
 The following is the sample format of a mapping file for x86_64 cluster::

@@ -3,7 +3,7 @@
 Step 4:  Deploy GitLab for BuildStreaM Integration: Automated Pipeline Execution and Build Monitoring
 ============================================================================================
 
-Deploy GitLab as part of BuildStreaM integration to enable automated pipeline execution, catalog management, build images, and discover cluster nodes. This procedure covers GitLab installation, project setup, runner verification, and service validation.
+GitLab serves as the automation engine for BuildStreaM, providing the pipeline execution framework that processes catalog definitions and orchestrates the build workflows. Deploy GitLab to enable automated pipeline execution, catalog management, image building, and cluster node discovery. This procedure covers GitLab installation, project setup, runner verification, and service validation.
 
 Prerequisites
 -------------
@@ -33,10 +33,7 @@ Procedure
 
       cat /opt/omnia/input/project_default/gitlab_config.yml
 
-   .. csv-table:: gitlab_config.yml
-     :file: ../Tables/build_stream_gitlab_config.csv 
-     :header-rows: 1
-     :keepspace:
+   Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for reference.
 
 3. Navigate to the GitLab directory.
 
@@ -70,12 +67,12 @@ After the installation of GitLab complete, verify the following:
 
    .. code-block:: text
 
-      https://<gitlab host ip>/<gitlap project name>
+      https://<gitlab host ip>/<gitlab project name>
 
  The project should contain:
-  * **README.MD** - Project documentation
-  * **catalog_rhel.json** - Default catalog file
-  * **.gitlab-ci.yml** - Pipeline configuration file
+  * ``README.MD`` — Project documentation with setup instructions and usage guidelines
+  * ``catalog_rhel.json`` — Default catalog file containing build definitions for RHEL images
+  * ``.gitlab-ci.yml`` — Pipeline configuration file defining automated build stages and execution steps
 
 2. Verify runner status through GitLab web interface:
 
