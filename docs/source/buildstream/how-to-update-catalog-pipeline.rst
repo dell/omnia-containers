@@ -25,6 +25,11 @@ Procedure
 3. Locate the catalog file ``catalog_rhel.json``.
 4. Modify the ``catalog_rhel.json`` file to define your build requirements.
 5. To trigger the pipeline, commit and push catalog changes.
+
+.. note:: 
+   * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
+   * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.
+
 6. Perform the following steps to track the pipeline progress through the GitLab web interface:
 
       1. Navigate to **Build** → **Pipeline**

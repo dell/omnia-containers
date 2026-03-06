@@ -1,7 +1,7 @@
 Step 3:  Prepare the OIM
 ========================================================
 
-This section describes the process for preparing the Omnia Infrastructure Manager (OIM) by deploying the OpenCHAMI containers, BuildStreamM container, Omnia Auth container, and Pulp container to support BuildStreaM deployment. 
+This section describes the process for preparing the Omnia Infrastructure Manager (OIM) by deploying the OpenCHAMI containers, BuildStreaM container, Omnia Auth container, and Pulp container to support BuildStreaM deployment. 
 
 Prerequisites
 ---------------
@@ -65,7 +65,7 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
 ``build_stream_config.yml``
 ---------------------------
 
-Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Use the below table as reference while doing so:
+Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the below table as reference while doing so:
 
 .. csv-table:: build_stream_config.yml
   :file: ../Tables/build_stream_config.csv
@@ -84,7 +84,7 @@ The ``prepare_oim.yml`` deploys the following on the OIM node:
 * PostgreSQL database container
 * Omnia Auth container
 * Pulp container
-* BuildStreamM API container 
+* BuildStreaM API container 
 * Playbook watcher service
 
 .. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
