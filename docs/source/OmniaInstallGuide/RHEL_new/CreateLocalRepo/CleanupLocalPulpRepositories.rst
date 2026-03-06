@@ -30,6 +30,9 @@ Cleanup all content:
 
     ansible-playbook pulp_cleanup.yml -e cleanup_repos=all -e cleanup_files=all -e cleanup_containers=all
 
+.. note::
+    If any Omnia repositories (``docker-ce``, ``epel``, ``kubernetes``, ``cri-o``, or ``doca``) are cleaned up, user must rerun ``local_repo.yml`` to sync the rpm repositories again. If the repositories are not synced in local repo, subsequent **playbooks may fail because required packages might be sourced from these repositories**.
+
 Logs
 -----
 
