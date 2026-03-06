@@ -10,8 +10,9 @@ The Omnia core container contains the following:
 
 Use the ``omnia.sh`` script to install, uninstall, and view help on the actions that you can perform on the Omnia core container. 
 
-Prerequisites for Deploying the Omnia Core Container
------------------------------------------------------
+Prerequisites 
+--------------
+Before you begin, ensure the following:
 
 * The OIM has internet access to download necessary packages for cluster deployment and configuration.
 * The OIM must have two active Network Interface Cards (NICs):  

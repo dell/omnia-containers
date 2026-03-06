@@ -1,4 +1,4 @@
-Step 3:  Prepare the OIM
+Step 3:  Prepare the Omnia Infrastructure Manager 
 ========================================================
 
 To enable BuildStreaM functionality, you must prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. This procedure installs the OpenCHAMI containers, BuildStreaM container, Omnia Auth container, Pulp container, and Playbook watcher service that are essential for automated build workflows and cluster management. 
@@ -75,7 +75,7 @@ The ``prepare_oim.yml`` deploys the following on the OIM node:
 .. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
 
 Verification
-=============
+--------------
 
 After successfully running the ``prepare.oim.yml``, you can verify if the ``omnia.target`` and
 its dependent services are running correctly.
