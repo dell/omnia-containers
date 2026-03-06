@@ -32,7 +32,7 @@ Procedure
 Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the below table as reference while doing so:
 
 .. csv-table:: network_spec.yml
-  :file: ../../Tables/network_spec.csv
+  :file: ../Tables/network_spec.csv
   :header-rows: 1
   :keepspace:
 
@@ -58,7 +58,7 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
 Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the below table as reference while doing so:
 
 .. csv-table:: provision_config.yml
-  :file: ../../Tables/Provision_config.csv
+  :file: ../Tables/Provision_config.csv
   :header-rows: 1
   :keepspace:
 
@@ -68,7 +68,7 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
 Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Use the below table as reference while doing so:
 
 .. csv-table:: build_stream_config.yml
-  :file: ../../Tables/build_stream_config.csv
+  :file: ../Tables/build_stream_config.csv
   :header-rows: 1
   :keepspace:
 

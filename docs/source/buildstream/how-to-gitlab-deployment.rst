@@ -33,7 +33,7 @@ Procedure
       cat /opt/omnia/input/project_default/gitlab_config.yml
 
    .. csv-table:: gitlab_config.yml
-     :file: ../../Tables/build_stream_gitlab_config.csv 
+     :file: ../Tables/build_stream_gitlab_config.csv 
      :header-rows: 1
      :keepspace:
 
