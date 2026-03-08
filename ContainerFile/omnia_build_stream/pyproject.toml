@@ -25,13 +25,10 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
     "psycopg2-binary>=2.9.0",
-    "python-dotenv>=1.0.0"
-]
-
-[dev-dependencies]
-dependencies = [
+    "python-dotenv>=1.0.0",
+    "debugpy==1.8.20",
     "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0", 
+    "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pylint>=3.0.0",
     "black>=23.0.0",
