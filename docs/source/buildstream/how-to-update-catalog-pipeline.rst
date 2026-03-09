@@ -47,7 +47,7 @@ The following image shows the BuildStream pipeline is currently running and the 
             - **deploy-image** - Deploys the images to the local pulp repository.  
 
 The following image shows each stage of the BuildStream pipeline and its status:
-   .. image:: ../images/buildstream_pipeline_status.png  
+   .. image:: ../images/buildstream_pipeline_stages.png  
 
    Expected pipeline status indicators:
       - **Green checkmark**: Stage completed successfully
@@ -56,8 +56,7 @@ The following image shows each stage of the BuildStream pipeline and its status:
 
 The following image shows overall pipeline status:
    .. image:: ../images/buildstream_pipeline_passed.png
-      :alt: BuildStream pipeline passed
-
+      
 Verification
 ------------
 
