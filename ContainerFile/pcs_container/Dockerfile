@@ -1,4 +1,4 @@
-FROM fedora:40
+FROM fedora:38
 
 # Configure DNF for security and performance
 RUN echo -e 'install_weak_deps=False\n\
