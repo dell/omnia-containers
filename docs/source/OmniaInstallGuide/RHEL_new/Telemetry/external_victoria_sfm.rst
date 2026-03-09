@@ -96,8 +96,8 @@ Steps
        echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
 
    For vminsert and vmselect IP, use the values retrieved by the ``external_victoria_connect_details.yml`` playbook in Step 1.
-   .. note::
-      The ``/etc/hosts`` update must be repeated if the SFM Prometheus pod restarts.
+
+   .. note:: The ``/etc/hosts`` update must be repeated if the SFM Prometheus pod restarts.
       
 
 View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
@@ -127,8 +127,9 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
    **SFM Metrics Reference:**
 
    For a comprehensive list of available SFM telemetry metrics and OpenConfig models, see:
-   * `SONiC gNMI Documentation <https://github.com/sonic-net/sonic-gnmi/blob/master/doc/gNMI_usage_examples.md>`_ - Contains supported OpenConfig models and sensor paths
-   * `SmartFabric Manager for SONiC User Guide <https://www.dell.com/support/manuals/en-us/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/about-this-guide?guid=guid-cade55b2-3c66-4829-aca0-efbc3fff5792&lang=en-us>`_ - SFM-specific telemetry information
+
+      * `SONiC gNMI Documentation <https://github.com/sonic-net/sonic-gnmi/blob/master/doc/gNMI_usage_examples.md>`_ - Contains supported OpenConfig models and sensor paths
+      * `SmartFabric Manager for SONiC User Guide <https://www.dell.com/support/manuals/en-us/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/about-this-guide?guid=guid-cade55b2-3c66-4829-aca0-efbc3fff5792&lang=en-us>`_ - SFM-specific telemetry information
 
    **Example Queries:**
 
