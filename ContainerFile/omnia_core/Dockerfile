@@ -124,7 +124,10 @@ RUN ansible-galaxy collection install -r /tmp/omnia_core/galaxy_requirements.yml
 
 # Additional security: Clean up any cached vulnerable packages
 RUN dnf -y autoremove && \
-    rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
+    rm -rf /var/cache/dnf/* /tmp/* /var/tmp/* && \
+    # Secure permissions on sensitive directories
+    chmod 600 /root/.ssh/* 2>/dev/null || true && \
+    chmod 700 /root/.ssh 2>/dev/null || true
 
 # Git clone omnia repository
 RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
@@ -160,7 +163,9 @@ LABEL security.go.version="1.25.7" \
       security.pip.version="26.0" \
       security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
-      security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version"
+      security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
+      security.ansible.version="2.16.14" \
+      security.ansible.note="Pinned to stable Ansible 2.16.14 for compatibility and security"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
