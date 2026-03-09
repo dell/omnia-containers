@@ -33,8 +33,7 @@ Procedure
 The following image shows the BuildStream pipeline is currently running and the stages are being executed:
 
    .. image:: ../images/buildstream_pipeline_running.png
-   :alt: BuildStream pipeline running
-
+   
 6. Perform the following steps to track the pipeline progress through the GitLab web interface:
 
       a. Navigate to **Build** → **Pipeline**.
