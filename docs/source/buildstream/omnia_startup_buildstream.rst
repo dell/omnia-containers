@@ -195,7 +195,14 @@ The help menu includes:
   * ``--version``: Display Omnia version information
   * ``--help``: Display usage information.
 
+Verification
+------------
+Ensure that the ``omnia_core`` container is running and the Systemd service is active.
+
+
 Next Steps
 ----------
 After installing the Omnia core container, create the PXE mapping file with the information of the nodes to be provisioned. For more information, see :ref:`pxe_mapping_file`.
 
+Troubleshooting
+----------------

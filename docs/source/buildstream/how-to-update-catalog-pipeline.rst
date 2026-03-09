@@ -78,3 +78,7 @@ Next Steps
 After successful execution of the pipeline, set the PXE boot order for the nodes and then run the ``set_pxe_boot.yml`` playbook to configure the boot settings. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.
 
 
+Troubleshooting
+----------------
+
+

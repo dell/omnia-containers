@@ -137,6 +137,19 @@ The following table lists the functional groups along with the recommended softw
 +-----------------------------------------+--------------------------------------------------------------------------------------+
 
 
+Verification
+--------------
+
+Ensure that the PXE mapping file is correctly formatted and that all required fields are populated.
+
+Next Steps
+-----------
+
+After creating the PXE mapping file, prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. See :doc:`prepare_oim_buildstream`.
+
+
+Troubleshooting
+----------------
 
 
    

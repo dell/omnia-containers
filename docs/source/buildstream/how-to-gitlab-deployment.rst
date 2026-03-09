@@ -88,3 +88,7 @@ Next Steps
 ----------
 
 After completing GitLab deployment, update the catalog file and execute the pipeline. See :doc:`how-to-update-catalog-pipeline`.
+
+
+Troubleshooting
+-----------------
