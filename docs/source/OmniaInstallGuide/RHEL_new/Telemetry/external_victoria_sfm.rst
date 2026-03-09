@@ -1,7 +1,7 @@
 Integrate Smart Fabric Manager with VictoriaMetrics for Secure Telemetry Data Streaming
 ============================================================================================
 
-This section describes how to configure Smart Fabric Manager to securely stream
+This section describes how to configure Smart Fabric Manager (SFM) to securely stream
 telemetry metrics to the Service Kubernetes cluster.
 
 This procedure assumes that VictoriaMetrics is deployed in **cluster mode** in the
@@ -57,15 +57,43 @@ Steps
 
    .. image:: ../../../images/sfm_observability_TLS_config.png    
 
-5. SSH to the SFM IP with admin credentials and log in to secure shell.
+5. SSH to the SFM IP with admin credentials and log in to secure shell. 
 
-6. From the control_plane host, do ssh admin@pwd.
+   For detailed instructions on SSH login to SFM, see the `SmartFabric Manager for SONiC User Guide <https://www.dell.com/support/manuals/en-us/smartfabric-manager-for-sonic/sfm-100-user-guide-pub/change-the-admin-user-password?guid=guid-32777160-040a-4266-83a3-e7d0fa5e5ced&lang=en-us>`_.
 
-7. Update the ``/etc/hosts`` file only inside the SFM Prometheus pod. This is required only inside the pod, not on the SFM server host)::
+   **SSH Login Steps:**
 
-      kubectl exec -it <sfm-prometheus-pod-name> -n sfm-ui -- /bin/sh
-      echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
-      echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
+   a. Use SSH to connect to the SFM VM IP address::
+
+       ssh admin@<SFM-IP-ADDRESS>
+
+   b. Enter the admin user password when prompted,
+
+   c. The SFM Main Menu appears after successful login.
+
+   For additional SSH configuration information, see the `Dell Networking SONiC SSH documentation <https://www.dell.com/support/kbdoc/en-us/000218783/dell-networking-sonic-ssh-based-login>`_.
+
+6. From the control_plane host, SSH to the SFM VM to access the SFM command line interface::
+
+      ssh admin@<SFM-IP-ADDRESS>
+
+   This step provides access to the SFM VM where you can execute kubectl commands to manage the SFM Prometheus pod in the next step.
+
+7. Update the ``/etc/hosts`` file only inside the SFM Prometheus pod. To update the ``/etc/hosts`` file, perform the following steps:
+
+   a. List all namespaces to locate the SFM namespace::
+
+       kubectl get namespaces | grep sfm
+
+   b. Find the SFM Prometheus pod in the identified namespace (replace <sfm-namespace> with the actual namespace found)::
+
+       kubectl get pods -n <sfm-namespace> | grep prometheus
+
+   c. Once you have the pod name and namespace, update the ``/etc/hosts`` file inside the SFM Prometheus pod::
+
+       kubectl exec -it <sfm-prometheus-pod-name> -n <sfm-namespace> -- /bin/sh
+       echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+       echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
 
    For vminsert and vmselect IP, use the values retrieved by the ``external_victoria_connect_details.yml`` playbook in Step 1.
    .. note::
@@ -82,21 +110,52 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
 
 .. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
 
-2. Run the following command to verify that the VictoriaMetrics service is running::
+2. Run the following command to verify that the VictoriaMetrics vmselect service is running::
 
-    kubectl get service -n telemetry -o wide | grep vm
+    kubectl get service -n telemetry -o wide | grep vmselect
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
-3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+3. Note the **External IP** and **port number** of the VictoriaMetrics vmselect service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
 4. Access the VMUI in a web browser using::
 
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
 
 5. Filter and view telemetry metrics using queries in VMUI.
-For example, the following query displays detailed PowerEdge metrics for each hardware component::
 
-    {__name__=~"<SFM Metric Key>"}
+   **SFM Metrics Reference:**
+
+   For a comprehensive list of available SFM telemetry metrics and OpenConfig models, see:
+   * `SONiC gNMI Documentation <https://github.com/sonic-net/sonic-gnmi/blob/master/doc/gNMI_usage_examples.md>`_ - Contains supported OpenConfig models and sensor paths
+   * `SmartFabric Manager for SONiC User Guide <https://www.dell.com/support/manuals/en-us/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/about-this-guide?guid=guid-cade55b2-3c66-4829-aca0-efbc3fff5792&lang=en-us>`_ - SFM-specific telemetry information
+
+   **Example Queries:**
+
+   *View all SFM interface metrics:*
+
+   .. code-block:: text
+
+       {__name__=~"sonic.*interface.*"}
+
+   *View interface operational status:*
+
+   .. code-block:: text
+
+       {__name__="openconfig_interfaces_oper_status"}
+
+   *View system temperature metrics:*
+
+   .. code-block:: text
+
+       {__name__=~"openconfig_platform.*temperature.*"}
+
+   *View PowerEdge hardware metrics:*
+
+   .. code-block:: text
+
+       {__name__=~"<SFM Metric Key>"}
+
+   Replace ``<SFM Metric Key>`` with specific metric names from the SFM telemetry data. Use the VMUI metric explorer to discover available metric names.
 
 .. image:: ../../../images/victoria_metrics_vmui_cluster.png
