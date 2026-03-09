@@ -30,24 +30,33 @@ Procedure
    * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
    * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.
 
+The following image shows the BuildStream pipeline is currently running and the stages are being executed:
+
+   .. image:: ../images/buildstream_pipeline_running.png
+   :alt: BuildStream pipeline running
+
 6. Perform the following steps to track the pipeline progress through the GitLab web interface:
 
-      a. Navigate to **Build** → **Pipeline**
-
-      .. image:: ../images/buildstream_pipeline_status.png
-
+      a. Navigate to **Build** → **Pipeline**.
       b. Click on the running pipeline to view details.
       c. Monitor each stage as it progresses:
             - **parse-catalog** - Parses the catalog file for build requirements.
             - **generate-input-files** - Creates build inputs
             - **create-local-repositories** - Creates image repository in the local pulp repository.
             - **build-image** - Builds the images
-            - **deploy-image** - Deploys the images to the local pulp repository.     
+            - **deploy-image** - Deploys the images to the local pulp repository.  
+
+The following image shows each stage of the BuildStream pipeline and its status:
+   .. image:: ../images/buildstream_pipeline_status.png  
 
    Expected pipeline status indicators:
       - **Green checkmark**: Stage completed successfully
       - **Red X**: Stage failed (click for error details)
       - **Blue circle**: Stage currently running
+
+The following image shows overall pipeline status:
+   .. image:: ../images/buildstream_pipeline_passed.png
+      :alt: BuildStream pipeline passed
 
 Verification
 ------------
@@ -60,8 +69,6 @@ After the pipeline is completed, you can check the overall pipeline status and j
    - Execution logs
    - Resource usage
    - Error messages (if any)
-
-.. image:: ../images/buildstream_job_status.png
 
 Next Steps
 -----------

@@ -55,6 +55,9 @@ This ``gitlab.yml`` playbook installs the following:
    - **README.MD** - Project documentation
    - **catalog_rhel.json** - Default catalog file
    - **.gitlab-ci.yml** - Pipeline configuration file
+
+.. image:: ../images/buildstream_project.png
+   :alt: BuildStream project structure
    
 .. note::
    The installation may take 10-15 minutes to complete.
