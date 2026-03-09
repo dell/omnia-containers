@@ -39,11 +39,15 @@ The following image shows the BuildStream pipeline is currently running and the 
       a. Navigate to **Build** → **Pipeline**.
       b. Click on the running pipeline to view details.
       c. Monitor each stage as it progresses:
-            - **parse-catalog** - Parses the catalog file for build requirements.
-            - **generate-input-files** - Creates build inputs
-            - **create-local-repositories** - Creates image repository in the local pulp repository.
-            - **build-image** - Builds the images
-            - **deploy-image** - Deploys the images to the local pulp repository.  
+            - **health-check**: Validates system health and prerequisites
+            - **auth**: Authenticates with required services
+            - **create-job**: Creates build job configuration
+            - **parse-catalog**: Parses catalog file for build requirements
+            - **generate-input-files**: Generates input files for build
+            - **create-local-repo**: Creates local repository for artifacts
+            - **poll-local-repo**: Polls local repository for updates
+            - **get-roles**: Retrieves required roles for build
+            - **build-images**: Builds the specified images
 
 The following image shows each stage of the BuildStream pipeline and its status:
    .. image:: ../images/buildstream_pipeline_stages.png  
