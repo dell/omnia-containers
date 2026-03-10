@@ -6,7 +6,7 @@ Omnia provides utilities as separate playbooks. Using these playbooks, you can p
 .. toctree::
     :maxdepth: 2
 
-    configure_pxe_boot  
+    Configure_PXE_Boot  
 
  
 For Slurm configuration utilities, see: `Slurm Configuration Utilities <../OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#slurm-configuration-utilities>`_
