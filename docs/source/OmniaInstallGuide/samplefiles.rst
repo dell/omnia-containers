@@ -73,6 +73,7 @@ slurm.conf
 ^^^^^^^^^^
 
 ::
+    
     # Sample Slurm Configuration File
     # Replace values marked with <PLACEHOLDER> with your actual values
     # This is a sample configuration - customize according to your environment
@@ -142,6 +143,7 @@ slurmdbd.conf
 ^^^^^^^^^^^^^
 
 ::
+
     # Sample SlurmDBD Configuration File
     # Replace values marked with <PLACEHOLDER> with your actual values
     # This is a sample configuration - customize according to your environment
