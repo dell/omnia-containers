@@ -4,7 +4,7 @@ Utilities Provided by Omnia
 Omnia provides utilities as separate playbooks. Using these playbooks, you can perform the following:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     configure_pxe_boot  
 
