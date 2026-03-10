@@ -61,15 +61,15 @@ Steps
 5. Update the ``etc/hosts`` file of the Kubernetes Prometheus pod by performing the following steps:
 
    a. Log in to the SFM VM. 
-   b. Using the following command, connect to the SFM VM using SSH with your admin credentials::
+   b. Run the following command to connect to the SFM VM using SSH with your admin credentials::
 
        ssh <admin_user>@<sfm_vm_ip>
 
-   c. From the **SFM - Main Menu**, select **6. Debug Menu**.
+   c. From the **SFM - Main Menu**, enter **6** to select **6. Debug Menu**.
 
       .. image:: ../../../images/telemetry_sfm_main_menu.png    
 
-   d. From the **Debug Menu**, select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
+   d. From the **Debug Menu**, enter **12** to select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
 
       .. image:: ../../../images/telemetry_sfm_debug_menu.png  
 
@@ -83,6 +83,10 @@ Steps
        
          kubectl exec -it -n <Prometheus name space> <prometheus pod name> -- /bin/sh
          echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+
+      .. image:: ../../../images/telemetry_sfm_propmetheus_pod.png
+      .. image:: ../../../images/telemetry_sfm_vminsert.png
+
 
 View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 ----------------------------------------------------------------------------------------------
