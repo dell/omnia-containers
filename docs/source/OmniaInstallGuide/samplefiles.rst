@@ -64,8 +64,8 @@ pxe_mapping_file.csv
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57
 
-Slurm configuration files
--------------------------
+Slurm configuration files (optional)
+------------------------------------
 
 You can provide custom configurations in ``omnia_config.yml`` > ``slurm_cluster`` > ``config_sources`` as a file path. Omnia merges these custom configuration files with system defaults and existing configurations.
 
@@ -73,7 +73,7 @@ slurm.conf
 ^^^^^^^^^^
 
 ::
-    
+
     # Sample Slurm Configuration File
     # Replace values marked with <PLACEHOLDER> with your actual values
     # This is a sample configuration - customize according to your environment
