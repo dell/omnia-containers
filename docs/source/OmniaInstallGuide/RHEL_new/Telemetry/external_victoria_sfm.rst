@@ -63,21 +63,21 @@ Steps
    a. Log in to the SFM VM. 
    b. Using the following command, connect to the SFM VM using SSH with your admin credentials::
 
-      ssh <admin_user>@<sfm_vm_ip>
+       ssh <admin_user>@<sfm_vm_ip>
 
    c. From the **SFM - Main Menu**, select **6. Debug Menu**.
 
-      .. Images:: ../../../images/telemetry_sfm_main_menu.png    
+      .. image:: ../../../images/telemetry_sfm_main_menu.png    
 
    d. From the **Debug Menu**, select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
 
-      .. Images:: ../../../images/telemetry_sfm_debug_menu.png  
+      .. image:: ../../../images/telemetry_sfm_debug_menu.png  
 
    e. Identify the Prometheus pod using the following command::
       
          kubectl get pods -A | grep prometheus
 
-     .. Images:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
+     .. image:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
 
    f. Add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` inside the Prometheus pod::  
        
