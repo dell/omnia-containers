@@ -68,3 +68,100 @@ Slurm configuration files
 -------------------------
 
 You can provide custom configurations in ``omnia_config.yml`` > ``slurm_cluster`` > ``config_sources`` as a file path. Omnia merges these custom configuration files with system defaults and existing configurations.
+
+slurm.conf
+^^^^^^^^^^
+
+::
+    # Sample Slurm Configuration File
+    # Replace values marked with <PLACEHOLDER> with your actual values
+    # This is a sample configuration - customize according to your environment
+
+    # By default, Omnia merges custom configuration sources with defaults
+    # and existing configurations to ensure a complete and valid setup.
+
+    # For supported conf parameters, see https://slurm.schedmd.com/slurm.conf.html
+
+    # CLUSTER IDENTITY
+    ClusterName=slurm_cluster
+    SlurmctldHost=<CONTROLLER_HOSTNAME>
+
+    # AUTHENTICATION
+    AuthType=auth/munge
+    CredType=cred/munge
+
+    # SLURM USER
+    SlurmUser=slurm
+
+    # DIRECTORIES AND FILES
+    StateSaveLocation=/var/spool/slurmctld
+    SlurmdSpoolDir=/var/spool/slurmd
+    SlurmctldPidFile=/var/run/slurmctld.pid
+    SlurmdPidFile=/var/run/slurmd.pid
+    Epilog=/etc/slurm/epilog.sh
+
+    # PORTS
+    SlurmctldPort=6817
+    SlurmdPort=6818
+
+    # PLUGINS
+    PluginDir=/usr/lib64/slurm
+    ProctrackType=proctrack/cgroup
+    PrologFlags=contain
+    TaskPlugin=task/cgroup
+    MpiDefault=none
+    JobAcctGatherType=jobacct_gather/linux
+    JobAcctGatherFrequency=30
+
+    # SCHEDULING
+    SchedulerType=sched/backfill
+    SelectType=select/cons_tres
+
+    # TIMEOUTS
+    SlurmctldTimeout=120
+    SlurmdTimeout=300
+
+    # PARAMETERS
+    ReturnToService=2
+    SlurmctldParameters=enable_configless
+
+    # ACCOUNTING (Optional)
+    AccountingStorageHost=<SLURMDBD_HOSTNAME>
+    AccountingStoragePort=6819
+    AccountingStorageType=accounting_storage/slurmdbd
+
+    # COMPUTE NODES
+    NodeName=<NODE_HOSTNAME> Sockets=2 CoresPerSocket=8 ThreadsPerCore=2 RealMemory=32000 State=UNKNOWN
+
+    # PARTITIONS
+    # Define at least one partition
+    PartitionName=DEFAULT Nodes=ALL MaxTime=INFINITE State=UP
+    PartitionName=normal Nodes=<NODE_LIST> Default=YES MaxTime=INFINITE State=UP
+
+slurmdbd.conf
+^^^^^^^^^^^^^
+
+::
+    # Sample SlurmDBD Configuration File
+    # Replace values marked with <PLACEHOLDER> with your actual values
+    # This is a sample configuration - customize according to your environment
+    # For more information, see https://slurm.schedmd.com/slurmdbd.conf.html
+
+    # Authentication
+    AuthType=auth/munge
+    SlurmUser=slurm
+
+    # Database Daemon Configuration
+    DbdHost=<DBD_HOST>
+    DbdPort=6819
+    LogFile=/var/log/slurm/slurmdbd.log
+    PidFile=/var/run/slurmdbd.pid
+    PluginDir=/usr/lib64/slurm
+
+    # Database Connection
+    StorageType=accounting_storage/mysql
+    StorageHost=<DB_HOST>
+    StoragePort=3306
+    StorageLoc=slurm_acct_db
+    StorageUser=slurm
+    StoragePass=<db_password>
