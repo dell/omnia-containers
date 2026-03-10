@@ -1,4 +1,4 @@
-Integrate Smart Fabric Manager with VictoriaMetrics for Secure Telemetry Data Streaming
+Integrate Smart Fabric Manager (SFM) with VictoriaMetrics for Secure Telemetry Data Streaming
 ============================================================================================
 
 This section describes how to configure Smart Fabric Manager to securely stream
@@ -14,6 +14,7 @@ Prerequisites
 
 Make sure the following prerequisites are met:
 
+* Ensure that the Secure Shell (SSH) is enabled on the Smart Fabric Manager (SFM) virtual machine. For detailed steps on how to enable SSH, see the `Smart Fabric Manager documentation <https://www.dell.com/support/manuals/en-in/smartfabric-manager-for-sonic/sfm-141-user-guide-pub/enable-secure-shell-access-for-admin-user?guid=guid-a381d8a7-2f41-42c5-b597-aa651321e588&lang=en-us>`_.
 * Ensure that the ``pod_external_ip_range`` parameter is set in the ``omnia_config.yml`` file for the Service Kubernetes cluster and it is reachable from the SFM network.
 * Ensure VictoriaMetrics (Cluster Mode) is installed and running in the Service Kubernetes cluster.
 * External access to VictoriaMetrics is available through the following
@@ -57,20 +58,29 @@ Steps
 
    .. image:: ../../../images/sfm_observability_TLS_config.png    
 
-5. SSH to the SFM IP with admin credentials and log in to secure shell.
+5. Update the ``etc/hosts`` file of the Kubernetes Prometheus pod by performing the following steps:
 
-6. From the control_plane host, do ssh admin@pwd.
+   a. Log in to the SFM VM. 
+   b. Using the following command, connect to the SFM VM using SSH with your admin credentials::
 
-7. Update the ``/etc/hosts`` file only inside the SFM Prometheus pod. This is required only inside the pod, not on the SFM server host)::
+      ssh <admin_user>@<sfm_vm_ip>
+   c. From the **SFM - Main Menu**, select **6. Debug Menu**.
 
-      kubectl exec -it <sfm-prometheus-pod-name> -n sfm-ui -- /bin/sh
-      echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
-      echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
+      .. Images:: ../../../images/telemetry_sfm_main_menu.png    
 
-   For vminsert and vmselect IP, use the values retrieved by the ``external_victoria_connect_details.yml`` playbook in Step 1.
-   .. note::
-      The ``/etc/hosts`` update must be repeated if the SFM Prometheus pod restarts.
+   d. From the **Debug Menu**, select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
+
+      .. Images:: ../../../images/telemetry_sfm_debug_menu.png  
+   e. Identify the Prometheus pod using the following command::
       
+      kubectl get pods -A | grep prometheus
+
+     .. Images:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
+
+   f. Add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` inside the Prometheus pod::  
+       
+      kubectl exec -it -n <Prometheus name space> <prometheus pod name> -- /bin/sh
+      echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
 
 View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 ----------------------------------------------------------------------------------------------
@@ -82,21 +92,34 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
 
 .. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
 
-2. Run the following command to verify that the VictoriaMetrics service is running::
+2. Run the following command to verify that that all the services of VictoriaMetrics cluster are running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
-3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+3. Note the **External IP** and **port number** of the VMSelect service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
 4. Access the VMUI in a web browser using::
 
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
 
 5. Filter and view telemetry metrics using queries in VMUI.
-For example, the following query displays detailed PowerEdge metrics for each hardware component::
+For example, the following query displays transceiver DOM temperature values::
 
-    {__name__=~"<SFM Metric Key>"}
+    transceiver_dom_temperature_value
 
 .. image:: ../../../images/victoria_metrics_vmui_cluster.png
+
+The following are some of the key metrics that can be queried:
+
+  "transceiver_dom_temperature_value" - Monitors optical transceiver temperature for hardware health
+  "queue_tx_pkts" - Tracks transmitted packets per queue for performance monitoring
+  "queue_drop_pkts" - Counts dropped packets per queue to identify congestion issues
+  "queue_tx_bits_per_second" - Measures queue throughput in bits per second
+  "ifcounters_in_octets" - Monitors incoming data volume in bytes per interface
+  "ifcounters_out_octets" - Monitors outgoing data volume in bytes per interface
+  "ifcounters_in_pkts" - Counts incoming packets per interface
+  "ifcounters_out_pkts" - Counts outgoing packets per interface
+  "ifcounters_in_errors" - Tracks input errors per interface for fault detection
+  "ifcounters_out_errors" - Tracks output errors per interface for fault detection
