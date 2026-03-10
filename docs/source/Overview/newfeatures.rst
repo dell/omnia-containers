@@ -19,7 +19,7 @@ Provides the ability to add and remove nodes from the cluster, allowing for dyna
 Apptainer Container Support with Pulp Integration
 ---------------------------------------------------
 
-Enables pulling and managing container images from configured container registries on all cluster nodes. The system provides multiple image retrieval methods with Pulp integration as the preferred approach, ensuring efficient container management for HPC workloads. This feature supports both standard image pulls through Pulp registry mirrors and direct internet pulls when necessary, with all operations optimized for NFS-backed filesystems to ensure reliable performance across the cluster.
+Enables pulling and managing container images from configured container registries on all cluster nodes. This feature supports both standard image pulls through Pulp registry mirrors and direct internet pulls when necessary, with all operations optimized for NFS-backed filesystems to ensure reliable performance across the cluster.
 
 Telemetry Collection from OpenManage Enterprise and Smart Fabric Manager
 ------------------------------------------------------------------------
