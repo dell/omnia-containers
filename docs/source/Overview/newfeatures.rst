@@ -6,12 +6,12 @@ The following sections describe the new features and enhancements introduced in 
 **Version 2.1.0.0-rc2**
 -----------------------
 
-Support for Additional Packages
-------------------------------
+Support for Installation of Additional Packages
+-----------------------------------------------
 
 Enables the installation of additional packages on the cluster nodes, allowing to extend cluster functionality with custom software and tools.
 
-Add and Remove Slurm compute nodes
+Add and Remove Slurm Compute Nodes
 ----------------------------------
 
 Provides the ability to add and remove Slurm compute nodes from the cluster, allowing for dynamic scaling of the cluster.
@@ -19,17 +19,18 @@ Provides the ability to add and remove Slurm compute nodes from the cluster, all
 Support for Apptainer
 ---------------------
 
-Enables pulling and managing container images from configured container registries on all cluster nodes. This feature supports both standard image pulls through Pulp registry mirrors and direct internet pulls when necessary, with all operations optimized for NFS-backed filesystems to ensure reliable performance across the cluster.
+Run apptainer pull to store the SIF container image on the cluster's NFS-mounted shared storage. This ensures uniform access across all compute nodes, enabling them to run jobs from the same SIF file.
 
-Telemetry Collection from OpenManage Enterprise and Smart Fabric Manager
-------------------------------------------------------------------------
+
+Telemetry Collection from OME and SFM
+--------------------------------------
 
 Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
-Upgrade from Omnia 2.0.0.0 to 2.1.0.0-rc2
-------------------------------------------
+Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
+--------------------------------------------------------------------------
 
-Provides a seamless upgrade path from Omnia 2.0.0.0 to 2.1.0.0-rc2, ensuring compatibility and preserving existing configurations while introducing new features and enhancements.
+Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
 
 **Version 2.1.0.0-rc1**
 -----------------------
@@ -52,7 +53,7 @@ Support for Podman Containers
 
 Enables deployment of the following Omnia core services as Podman containers, ensuring secure, lightweight, and OCI-compliant environments for HPC clusters. This simplifies lifecycle management, accelerates updates, and improves isolation for critical services:
 
-- **Omnia Core** — Orchestrates HPC cluster operations.
+- **Omnia Core** — Orchestrates infrastructure management operations.
 - **Omnia Auth** — Provides LDAP-based authentication.
 - **OpenCHAMI** — Powers diskless provisioning workflows.
 - **Pulp Repository Service** — Hosts local repositories for air-gapped deployments.
