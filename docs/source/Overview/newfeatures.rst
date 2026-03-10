@@ -9,22 +9,22 @@ The following sections describe the new features and enhancements introduced in 
 Support for Additional Packages
 ------------------------------
 
-Enables the installation of additional packages on the cluster nodes, allowing extend cluster functionality with custom software and tools.
+Enables the installation of additional packages on the cluster nodes, allowing to extend cluster functionality with custom software and tools.
 
-Add and Remove Nodes
+Add and Remove Slurm compute nodes
+----------------------------------
+
+Provides the ability to add and remove Slurm compute nodes from the cluster, allowing for dynamic scaling of the cluster.
+
+Support for Apptainer
 ---------------------
-
-Provides the ability to add and remove nodes from the cluster, allowing for dynamic scaling of the cluster.
-
-Apptainer Container Support with Pulp Integration
----------------------------------------------------
 
 Enables pulling and managing container images from configured container registries on all cluster nodes. This feature supports both standard image pulls through Pulp registry mirrors and direct internet pulls when necessary, with all operations optimized for NFS-backed filesystems to ensure reliable performance across the cluster.
 
 Telemetry Collection from OpenManage Enterprise and Smart Fabric Manager
 ------------------------------------------------------------------------
 
-Enables collection of telemetry data from OpenManage Enterprise and Smart Fabric Manager, providing insights into cluster health, performance, and resource utilization.
+Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
 Upgrade from Omnia 2.0.0.0 to 2.1.0.0-rc2
 ------------------------------------------
@@ -42,7 +42,7 @@ The PowerVault integration, with a preconfigured volume, provides persistent sto
 InfiniBand Networking Support
 ------------------------------
 
-Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, static IP assignment for IB interfaces, and prerequisite validation for Open Subnet Manager (OpenSM) service configuration. This ensures high-performance, low-latency interconnects for parallel computing workloads.
+Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, static IP assignment for IB interfaces, and prerequisites for Open Subnet Manager (SM) service configuration.
 
 Version 2.0.0.0
 ---------------
