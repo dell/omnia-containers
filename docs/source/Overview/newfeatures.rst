@@ -43,7 +43,7 @@ The PowerVault integration, with a preconfigured volume, provides persistent sto
 InfiniBand Networking Support
 ------------------------------
 
-Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, static IP assignment for IB interfaces, and prerequisites for Open Subnet Manager (SM) service configuration.
+Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, and static IP assignment for IB interfaces. InfiniBand Networking requires an InfiniBand subnet manager (SM) configured and running to manage the IB fabric.
 
 Version 2.0.0.0
 ---------------

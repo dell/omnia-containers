@@ -58,18 +58,18 @@ Steps
 
    .. image:: ../../../images/sfm_observability_TLS_config.png    
 
-5. Update the ``etc/hosts`` file of the Kubernetes Prometheus pod by performing the following steps:
+5. Update the ``etc/hosts`` file of the Kubernetes Prometheus pod in the SFM VM by performing the following steps:
 
    a. Log in to the SFM VM. 
    b. Run the following command to connect to the SFM VM using SSH with your admin credentials::
 
        ssh <admin_user>@<sfm_vm_ip>
 
-   c. From the **SFM - Main Menu**, enter **6** to select **6. Debug Menu**.
+   c. From the **SFM - Main Menu**, enter **6** to select **Debug Menu**.
 
       .. image:: ../../../images/telemetry_sfm_main_menu.png    
 
-   d. From the **Debug Menu**, enter **12** to select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
+   d. From the **Debug Menu**, enter **12** to select **Enter Secure Shell**. This will open a shell session on the SFM host VM.
 
       .. image:: ../../../images/telemetry_sfm_debug_menu.png  
 
@@ -81,7 +81,7 @@ Steps
 
    f. Add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` inside the Prometheus pod::  
        
-         kubectl exec -it -n <Prometheus name space> <prometheus pod name> -- /bin/sh
+         kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
          echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
 
       .. image:: ../../../images/telemetry_sfm_propmetheus_pod.png
