@@ -64,6 +64,7 @@ Steps
    b. Using the following command, connect to the SFM VM using SSH with your admin credentials::
 
       ssh <admin_user>@<sfm_vm_ip>
+
    c. From the **SFM - Main Menu**, select **6. Debug Menu**.
 
       .. Images:: ../../../images/telemetry_sfm_main_menu.png    
@@ -71,16 +72,17 @@ Steps
    d. From the **Debug Menu**, select **12. Enter Secure Shell**. This will open a shell session on the SFM host VM.
 
       .. Images:: ../../../images/telemetry_sfm_debug_menu.png  
+
    e. Identify the Prometheus pod using the following command::
       
-      kubectl get pods -A | grep prometheus
+         kubectl get pods -A | grep prometheus
 
      .. Images:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
 
    f. Add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` inside the Prometheus pod::  
        
-      kubectl exec -it -n <Prometheus name space> <prometheus pod name> -- /bin/sh
-      echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+         kubectl exec -it -n <Prometheus name space> <prometheus pod name> -- /bin/sh
+         echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
 
 View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 ----------------------------------------------------------------------------------------------
@@ -98,7 +100,7 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
-3. Note the **External IP** and **port number** of the VMSelect service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+3. Note the **External IP** and **port number** of the ``vmselect`` service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
 4. Access the VMUI in a web browser using::
 
@@ -113,13 +115,13 @@ For example, the following query displays transceiver DOM temperature values::
 
 The following are some of the key metrics that can be queried:
 
-  "transceiver_dom_temperature_value" - Monitors optical transceiver temperature for hardware health
-  "queue_tx_pkts" - Tracks transmitted packets per queue for performance monitoring
-  "queue_drop_pkts" - Counts dropped packets per queue to identify congestion issues
-  "queue_tx_bits_per_second" - Measures queue throughput in bits per second
-  "ifcounters_in_octets" - Monitors incoming data volume in bytes per interface
-  "ifcounters_out_octets" - Monitors outgoing data volume in bytes per interface
-  "ifcounters_in_pkts" - Counts incoming packets per interface
-  "ifcounters_out_pkts" - Counts outgoing packets per interface
-  "ifcounters_in_errors" - Tracks input errors per interface for fault detection
-  "ifcounters_out_errors" - Tracks output errors per interface for fault detection
+  * ``transceiver_dom_temperature_value`` - Monitors optical transceiver temperature for hardware health
+  * ``queue_tx_pkts`` - Tracks transmitted packets per queue for performance monitoring
+  * ``queue_drop_pkts`` - Counts dropped packets per queue to identify congestion issues
+  * ``queue_tx_bits_per_second`` - Measures queue throughput in bits per second
+  * ``ifcounters_in_octets`` - Monitors incoming data volume in bytes per interface
+  * ``ifcounters_out_octets`` - Monitors outgoing data volume in bytes per interface
+  * ``ifcounters_in_pkts`` - Counts incoming packets per interface
+  * ``ifcounters_out_pkts`` - Counts outgoing packets per interface
+  * ``ifcounters_in_errors`` - Tracks input errors per interface for fault detection
+  * ``ifcounters_out_errors`` - Tracks output errors per interface for fault detection
