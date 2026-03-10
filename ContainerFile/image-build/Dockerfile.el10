@@ -1,10 +1,10 @@
-FROM docker.io/library/almalinux:10.0
+FROM docker.io/library/almalinux:10.1
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.25.7
+ARG GO_VERSION=1.25.8
 
 RUN dnf clean all && \
-    dnf update -y --releasever=10.0 --nogpgcheck && \
+    dnf update -y --releasever=10.1 --nogpgcheck && \
     dnf install -y dnf-plugins-core epel-release && \
     dnf config-manager -y --set-enabled crb && \
     dnf clean all
@@ -43,12 +43,12 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
     cd /tmp/buildah && \
-    go get github.com/sigstore/fulcio@v1.8.5 && \
+    go get github.com/sigstore/fulcio@v1.10.4 && \
     go get golang.org/x/crypto@v0.45.0 && \
     go get golang.org/x/net@latest && \
     go get github.com/containernetworking/plugins@v1.9.0 && \
     go mod tidy && \
-    go get github.com/sigstore/fulcio@v1.8.5 && \
+    go get github.com/sigstore/fulcio@v1.10.4 && \
     go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
