@@ -77,7 +77,6 @@ For a better understanding of what Omnia does, check out the following:
     upgrade
     rollback
     OmniaInstallGuide/ExternalDeploymentGuide/Index
-    buildstream/index
     Utils/index
     Logging/index
     Troubleshooting/index

@@ -1,4 +1,4 @@
-Step 6: Configure OpenLDAP Proxy for Centralized Authentication 
+Step 7: Configure OpenLDAP Proxy for Centralized Authentication 
 ===============================================================
 
 You can configure the OpenLDAP Proxy on the Omnia Infrastructure Manager (OIM) to allow or deny user access from the OpenLDAP server deployed in your environment. For more details about OpenLDAP, see the `OpenLDAP Administrator's Guide <https://www.openldap.org/doc/admin26/index.html>`_. 

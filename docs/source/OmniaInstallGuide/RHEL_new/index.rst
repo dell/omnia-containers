@@ -14,8 +14,8 @@ Follow the below steps to deploy the Omnia container on RHEL-based platforms:
     input_validator
     credentials_utility
     prepare_oim
-    Authentication/OpenLDAP
     verify_omnia_service
+    Authentication/OpenLDAP
     Telemetry/index
     CreateLocalRepo/index
     HighAvailability/index
