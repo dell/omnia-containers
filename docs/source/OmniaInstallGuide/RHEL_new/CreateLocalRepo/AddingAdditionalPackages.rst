@@ -81,6 +81,35 @@ The following is a sample ``additional_packages.json`` file: ::
     }
     }
 
+Architecture Support Guidelines
+-------------------------------
+
+.. note:: The ``additional_packages`` feature has architecture-specific functional group support. Users must configure both ``software_config.json`` and the architecture-specific ``additional_packages.json`` files according to the supported groups for their target architecture.
+
+**Supported Functional Groups by Architecture:**
+
+- **x86_64**: ``slurm_control_node``, ``slurm_node``, ``login_node``, ``login_compiler_node``, ``service_kube_control_plane``, ``service_kube_control_plane_first``, ``service_kube_node``
+- **aarch64**: ``slurm_node``, ``login_node``, ``login_compiler_node``
+
+**Configuration Steps:**
+
+1. **Edit ``software_config.json``**: Define the ``additional_packages`` entry with the desired functional groups and specify the appropriate architecture(s) in the ``arch`` field.
+
+2. **Edit architecture-specific JSON files**: Update the corresponding architecture-specific JSON files located at:
+
+   - ``/opt/omnia/input/<project_name>/config/x86_64/rhel/<version>/additional_packages.json``
+   - ``/opt/omnia/input/<project_name>/config/aarch64/rhel/<version>/additional_packages.json``
+
+   Ensure these files contain only the functional groups that are supported for that architecture.
+
+.. important::
+
+- Kubernetes-related functional groups (``service_kube_*``) and ``slurm_control_node`` are **only supported on x86_64** architecture.
+- The architecture-specific ``additional_packages.json`` files must include an ``additional_packages`` parent key and contain only supported functional groups for that architecture.
+- Declare only supported functional groups for each architecture in both ``software_config.json`` and the architecture-specific JSON files.
+- Validation logs warnings (not errors) for unsupported groups and continues execution.
+- Review validation logs at ``/opt/omnia/log/core/playbooks/validation_omnia_<project_name>.log`` for configuration warnings.
+
 Download packages/images to the Pulp container
 ----------------------------------------------
 
