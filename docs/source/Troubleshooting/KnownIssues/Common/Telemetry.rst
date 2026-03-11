@@ -66,7 +66,7 @@ Successful output indicates that the sampler is running and exporting metrics lo
 
     To Confirm that metrics are being published to Apache Kafka, run the following command.
 
-    .. note:: Ensure that the Kafka consumer is created and it is subscribed to the LDMS topic. For more details, see :ref:`verify_ldms_messages_in_kafka`. 
+    .. note:: Ensure that the Kafka consumer is created and it is subscribed to the LDMS topic. If not, run the steps 2 and 3 from :ref:`verify_ldms_messages_in_kafka`. 
 
     ::
 
