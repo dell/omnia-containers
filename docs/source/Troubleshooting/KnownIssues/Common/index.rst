@@ -12,4 +12,4 @@ This topic highlights the common known issues related to:
     Kubernetes
     Storage
     Telemetry
-    LDMS telemetry
+    LDMS_telemetry
