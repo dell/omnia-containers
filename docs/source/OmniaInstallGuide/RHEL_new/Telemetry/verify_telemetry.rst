@@ -80,6 +80,8 @@ To verify that iDRAC telemetry data is being successfully published to the ``idr
 
 If telemetry metrics are collected correctly, the output contains JSON-formatted iDRAC telemetry records.
 
+.. _verify_ldms_messages_in_kafka:
+
 Verify LDMS Messages in Kafka
 -----------------------------
 

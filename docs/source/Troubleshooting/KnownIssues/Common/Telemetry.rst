@@ -20,10 +20,10 @@ When new nodes are added to the Slurm cluster and telemetry is enabled using LDM
         # Check cloud-init output logs
         tail -100 /var/log/cloud-init-output.log
 
-Verify the following:
+   Verify the following:
 
-    - The log ends with a message similar to: ``Cloud-init v.X.X.X finished``
-    - No errors are present related to LDMS sampler setup or configuration.
+      - The log ends with a message similar to: ``Cloud-init v.X.X.X finished``
+      - No errors are present related to LDMS sampler setup or configuration.
 
 3. Confirm that the LDMS sampler service is active and collecting metrics on the new node.
 
@@ -44,11 +44,11 @@ Verify the following:
 
 Successful output indicates that the sampler is running and exporting metrics locally.
 
-4. SSH into the Kubernetes control plane node where kube vip is configured and restart the LDMS store daemon so it can detect and ingest metrics from the newly added nodes.
+4. SSH into kube vip and restart the LDMS store daemon so it can detect and ingest metrics from the newly added nodes.
 
     ::
 
-        ssh <service-kube-control-plane-first-node>
+        ssh <kube-vip>
         # Restart the store daemon StatefulSet
         kubectl rollout restart statefulset nersc-ldms-store-slurm-cluster -n telemetry
 
@@ -64,7 +64,9 @@ Successful output indicates that the sampler is running and exporting metrics lo
 
         kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0-0 --tail=200 | grep <new-node-hostname>
 
-    To Confirm that metrics are being published to Apache Kafka, run the following command:
+    To Confirm that metrics are being published to Apache Kafka, run the following command.
+
+    .. note:: Ensure that the Kafka consumer is created and it is subscribed to the LDMS topic. For more details, see :ref:`verify_ldms_messages_in_kafka`. 
 
     ::
 
