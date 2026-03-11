@@ -5,8 +5,6 @@ Telemetry
 
 **Resolution**: Wait for some time for the telemetry services to recover and fail over automatically.
 
-LDMS Telemetry
-==============
 
 ⦾ **LDMS telemetry data is not collected from newly added cluster nodes**
 
