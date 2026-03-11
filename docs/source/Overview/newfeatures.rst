@@ -3,8 +3,8 @@ New Features
 
 The following sections describe the new features and enhancements introduced in Omnia 2.x releases.
 
-Version 2.1.0.0-rc2
--------------------
+``Version 2.1.0.0-rc2``
+----------------------
 
 Support for Installation of Additional Packages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -32,8 +32,8 @@ Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
 
 Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
 
-Version 2.1.0.0-rc1
--------------------
+``Version 2.1.0.0-rc1``
+---------------------
 
 PowerVault Storage Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -45,8 +45,8 @@ InfiniBand Networking Support
 
 Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, and static IP assignment for IB interfaces. InfiniBand Networking requires an InfiniBand subnet manager (SM) configured and running to manage the IB fabric.
 
-Version 2.0.0.0
----------------
+``Version 2.0.0.0``
+-------------------
 
 Support for Podman Containers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
