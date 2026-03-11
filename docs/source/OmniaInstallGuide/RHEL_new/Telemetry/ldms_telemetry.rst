@@ -16,6 +16,19 @@ For more details on LDMS, see `Lightweight Distributed Metric Service <https://g
 
 During deployment, Omnia attaches LDMS aggregator and store pods to the admin network. This configuration improves throughput between Slurm nodes and the Kubernetes cluster.
 
+Supported LDMS Plugins
+-----------------------
+
+The following LDMS plugins are supported in Omnia:
+
+* **meminfo:** Memory usage statistics
+* **procstat2:** Process statistics
+* **vmstat:** Virtual memory statistics
+* **loadavg:** System load average
+* **procnetdev2:** Network interface statistics
+
+.. note:: The LDMS Slurm sampler metrics are not supported in the current telemetry deployment.
+
 Prerequisites
 ---------------
 

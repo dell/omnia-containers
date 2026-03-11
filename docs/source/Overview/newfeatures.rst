@@ -3,8 +3,37 @@ New Features
 
 The following sections describe the new features and enhancements introduced in Omnia 2.x releases.
 
-Version 2.1.0.0-rc1
--------------------
+**Version 2.1.0.0-rc2**
+-----------------------
+
+Support for Installation of Additional Packages
+-----------------------------------------------
+
+Enables the installation of additional packages on the cluster nodes, allowing to extend cluster functionality with custom software and tools.
+
+Add and Remove Slurm Compute Nodes
+----------------------------------
+
+Provides the ability to add and remove Slurm compute nodes from the cluster, allowing for dynamic scaling of the cluster.
+
+Support for Apptainer
+---------------------
+
+Run apptainer pull to store the SIF container image on the cluster's NFS-mounted shared storage. This ensures uniform access across all compute nodes, enabling them to run jobs from the same SIF file.
+
+
+Telemetry Collection from OME and SFM
+--------------------------------------
+
+Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
+
+Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
+--------------------------------------------------------------------------
+
+Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
+
+**Version 2.1.0.0-rc1**
+-----------------------
 
 PowerVault Storage Integration
 ------------------------------
@@ -14,7 +43,7 @@ The PowerVault integration, with a preconfigured volume, provides persistent sto
 InfiniBand Networking Support
 ------------------------------
 
-Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, static IP assignment for IB interfaces, and prerequisite validation for Open Subnet Manager (OpenSM) service configuration. This ensures high-performance, low-latency interconnects for parallel computing workloads.
+Provides comprehensive support for InfiniBand (IB) networking in HPC clusters, including automatic DOCA-OFED driver installation for Mellanox InfiniBand cards, and static IP assignment for IB interfaces. InfiniBand Networking requires an InfiniBand subnet manager (SM) configured and running to manage the IB fabric.
 
 Version 2.0.0.0
 ---------------
@@ -24,7 +53,7 @@ Support for Podman Containers
 
 Enables deployment of the following Omnia core services as Podman containers, ensuring secure, lightweight, and OCI-compliant environments for HPC clusters. This simplifies lifecycle management, accelerates updates, and improves isolation for critical services:
 
-- **Omnia Core** — Orchestrates HPC cluster operations.
+- **Omnia Core** — Orchestrates infrastructure management operations.
 - **Omnia Auth** — Provides LDAP-based authentication.
 - **OpenCHAMI** — Powers diskless provisioning workflows.
 - **Pulp Repository Service** — Hosts local repositories for air-gapped deployments.

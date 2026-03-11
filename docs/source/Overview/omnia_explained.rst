@@ -13,7 +13,6 @@ Components of a Kubernetes cluster are:
 
 * **Head node**: In a Kubernetes cluster deployed by Omnia, the head node is the ``kube_control_plane`` used to manage Kubernetes jobs on the cluster.
 * **Compute nodes**: In a Kubernetes cluster, the ``kube_node`` function as the compute nodes.
-* **etcd node**: Etcd is an open-source distributed key-value store that is used to store and manage the information that distributed systems need for their operations. It stores the configuration data, state data, and metadata in Kubernetes.
 
 Slurm Cluster
 ----------------
@@ -23,5 +22,4 @@ Components of a Slurm cluster are:
 * **Head node**: In an HPC cluster, the head node is a  ``slurm_control_node`` used to manage slurm jobs on the cluster.
 * **Compute nodes**: In an HPC cluster, a compute node is a ``slurm_node``.
 * **[Optional] Login node**: In Omnia, a login node serves as an extra layer of authentication. Users are required to authenticate themselves through this additional login node, which is configured by Omnia. This setup allows the cluster administrator to restrict direct access to the head node (also referred to as ``slurm_control_node``) by users. The login node acts as a gateway for users to securely access the cluster.
-
-.. note:: If a login node is not present in a Slurm cluster, only users with access to the head node can submit Slurm jobs.
+* **[Optional] Login/Compiler node**: In Omnia, a login/compiler node is an optional node that provides users with access to the cluster and a development environment to compile and build applications. It is configured with compilers, libraries, and development tools, allowing users to prepare their applications before submitting jobs to the compute nodes.
