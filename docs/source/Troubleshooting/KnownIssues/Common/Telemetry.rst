@@ -10,9 +10,6 @@ Telemetry
 
 When new nodes are added to the Slurm cluster and telemetry is enabled using LDMS, perform the following steps to ensure that metrics from the newly added nodes are successfully collected and stored.
 
-Steps
-------
-
 1. After executing the ``discovery.yaml`` playbook, allow sufficient time for the newly added nodes to complete their boot sequence. The newly added nodes may take 5 to 10 minutes to boot and initialize.
 
 2. SSH into each newly added node and confirm that the cloud initialization (Cloud-Init) process has completed successfully. Use the following command:
@@ -49,17 +46,17 @@ Successful output indicates that the sampler is running and exporting metrics lo
 
 4. SSH into the Kubernetes control plane node where kube vip is configured and restart the LDMS store daemon so it can detect and ingest metrics from the newly added nodes.
 
-::
+    ::
 
-    ssh <service-kube-control-plane-first-node>
-    # Restart the store daemon StatefulSet
-    kubectl rollout restart statefulset nersc-ldms-store-slurm-cluster -n telemetry
+        ssh <service-kube-control-plane-first-node>
+        # Restart the store daemon StatefulSet
+        kubectl rollout restart statefulset nersc-ldms-store-slurm-cluster -n telemetry
 
-   To monitor the pod restart process, run the following command:
+    To monitor the pod restart process, run the following command:
 
-::
+    ::
 
-    kubectl get pods -n telemetry -w | grep store
+        kubectl get pods -n telemetry -w | grep store
 
 5. Allow 2–5 minutes for the store daemon to reconnect to the aggregator and begin processing metrics from the new nodes. To check the store daemon logs, run the following command:
 
