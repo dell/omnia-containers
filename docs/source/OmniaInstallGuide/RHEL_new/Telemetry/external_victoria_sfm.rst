@@ -79,7 +79,7 @@ Steps
 
      .. image:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
 
-   f. Add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` inside the Prometheus pod::  
+   f. Inside the Prometheus pod, add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` ::  
        
          kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
          echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
