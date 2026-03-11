@@ -27,11 +27,6 @@ Telemetry Collection from OME and SFM
 
 Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
-Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
-
 ``Version 2.1.0.0-rc1``
 ---------------------
 
