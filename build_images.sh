@@ -526,13 +526,13 @@ OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="2.1"
-AUTH_TAG="1.1"
+AUTH_TAG="1.0"
 PCS_TAG="1.0"
 UBUNTU_LDMS_TAG="1.0"
 KAFKAPUMP_TAG="1.2"
 VICTORIAPUMP_TAG="1.2"
 TELEMETRY_RECEIVER_TAG="1.2"
-IMAGE_BUILDER_TAG="1.1"
+IMAGE_BUILDER_TAG="1.0"
 BUILD_STREAM_TAG="1.0"
 
 # Valid parameter names
