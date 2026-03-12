@@ -7,5 +7,4 @@ Known Issues
     Login
     LocalRepo
     Provision
-    Kubernetes
     Telemetry
