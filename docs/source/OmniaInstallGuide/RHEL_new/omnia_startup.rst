@@ -178,6 +178,9 @@ To view the usage instructions, on the OIM, run the following command::
     Usage: ./omnia.sh [--install | --uninstall | --help]
         -i, --install     Install and start the Omnia core container
         -u, --uninstall   Uninstall the Omnia core container and clean up configuration
+        --upgrade     Upgrade the Omnia core container to newer version
+        --rollback    Rollback the Omnia core container to previous version
+        -v, --version     Display Omnia version information
         -h, --help        More information about usage
   
 
@@ -185,4 +188,7 @@ The help menu includes:
 
   * ``--install``: Deploys the ``omnia_core`` container and configures it as a Systemd service.
   * ``--uninstall``: Stops and removes the ``omnia_core`` container and its associated service.
+  * ``--upgrade``: Upgrade the Omnia core container to newer version
+  * ``--rollback``: Rollback the Omnia core container to previous version
+  * ``--version``: Display Omnia version information
   * ``--help``: Display usage information.

@@ -66,7 +66,7 @@ The ``local_repo.yml`` playbook generates and provides two types of log files as
 
 Here's an example of how the log files are organized in the ``/opt/omnia/log/local_repo`` directory:
 
-.. image:: ../../../images/local_repo_log.png
+.. image:: ../../../images/local_repo_log_updated.png
 
 Updating Local Repositories after Modifying JSON Files
 ==========================================================
