@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -112,10 +112,7 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
         try:
             result = subprocess.run(remote_cmd, shell=True, capture_output=True,
                                    text=True, timeout=timeout)
-            if result.returncode != 0:
-                return result.returncode, result.stdout.strip(), result.stderr.strip()
-            else:
-                return result.returncode, result.stdout.strip(), result.stderr.strip()
+            return result.returncode, result.stdout.strip(), result.stderr.strip()
         except subprocess.TimeoutExpired:
             _log(f"Remote shell command timed out after {timeout}s", "ERROR")
             return -1, "", "Command timed out"
@@ -171,14 +168,25 @@ def validate_ssh_connection() -> Dict:
             user=ssh_user, server=oim_server), "OK")
         return {"valid": True, "message": OIM_PREREQ_MSGS["ssh_connection_success"].format(
             user=ssh_user, server=oim_server)}
-    else:
-        return {
-            "valid": False,
-            "message": OIM_PREREQ_MSGS["ssh_connection_failed"].format(
-                user=ssh_user, server=oim_server),
-            "details": OIM_PREREQ_MSGS["ssh_connection_error"].format(
-                error=stderr or 'Authentication or network failure')
-        }
+
+    error_msg = stderr or 'Authentication or network failure'
+    details = OIM_PREREQ_MSGS["ssh_connection_error"].format(error=error_msg)
+
+    # Detect sshpass not installed and give actionable guidance
+    if 'sshpass' in error_msg.lower() and ('not found' in error_msg.lower() or 'command not found' in error_msg.lower()):
+        details += (
+            "\n\nACTION REQUIRED: sshpass is not installed on this machine."
+            "\nInstall it with:  dnf install -y sshpass"
+            "\nOr re-run:  bash setup_env.sh"
+            "\nMake sure your OS package repositories are configured correctly."
+        )
+
+    return {
+        "valid": False,
+        "message": OIM_PREREQ_MSGS["ssh_connection_failed"].format(
+            user=ssh_user, server=oim_server),
+        "details": details
+    }
 
 
 def configure_hostname() -> Dict:
