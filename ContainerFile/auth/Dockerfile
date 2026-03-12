@@ -2,6 +2,7 @@ FROM fedora:40
 
 RUN dnf -y install openldap-servers openldap-clients && dnf clean all
 
+
 RUN mkdir -p /var/lib/openldap/openldap-data && \
     chown -R ldap:ldap /var/lib/openldap
 EXPOSE 389 636

@@ -630,7 +630,7 @@ BUILD_STREAM_DIR="ContainerFile/omnia_build_stream"
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
 
 # iDRAC Telemetry container variables
-IDRAC_TELEMETRY_COMMIT="b9cd6e0"
+IDRAC_TELEMETRY_COMMIT="b9cd6e08ecb58a01f26c12041d428d6d21b438f0"
 IDRAC_TELEMETRY_CLONE_DIR=".idrac-telemetry-tools"
 
 # Image Builder container variables
