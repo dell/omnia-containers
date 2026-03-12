@@ -62,7 +62,7 @@ Successful output indicates that the sampler is running and exporting metrics lo
 
     ::
 
-        kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0-0 --tail=200 | grep <new-node-hostname>
+        kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0 --tail=200 | grep <new-node-hostname>
 
     To Confirm that metrics are being published to Apache Kafka, run the following command.
 
