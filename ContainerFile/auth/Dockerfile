@@ -1,11 +1,6 @@
 FROM fedora:40
 
-# Update system and install OpenLDAP with security patches
-RUN dnf -y update && \
-    dnf -y install openldap-servers openldap-clients && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
-
+RUN dnf -y install openldap-servers openldap-clients && dnf clean all
 
 RUN mkdir -p /var/lib/openldap/openldap-data && \
     chown -R ldap:ldap /var/lib/openldap
