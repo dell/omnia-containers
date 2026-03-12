@@ -12,9 +12,9 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
-RUN curl -LO https://go.dev/dl/go1.25.7.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.25.7.linux-amd64.tar.gz && \
-    rm go1.25.7.linux-amd64.tar.gz
+RUN curl -LO https://go.dev/dl/go1.25.8.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.8.linux-amd64.tar.gz && \
+    rm go1.25.8.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
@@ -144,14 +144,14 @@ COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
 # Document security patches applied
-LABEL security.go.version="1.25.7" \
+LABEL security.go.version="1.25.8" \
       security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2025-68121-fixed" \
       security.golang.crypto.version="0.45.0" \
       security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed,CVE-2025-68121-fixed" \
       security.golang.net.version="latest" \
       security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
       security.git-lfs.version="3.7.1-patched" \
-      security.git-lfs.note="Built from source with Go 1.25.7, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest" \
+      security.git-lfs.note="Built from source with Go 1.25.8, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest" \
       security.urllib3.version="2.6.3" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed" \
       security.pyasn1.version="0.6.2" \
