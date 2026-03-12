@@ -51,6 +51,7 @@ This ``gitlab.yml`` playbook installs the following:
 
 - GitLab on the specified host with the specified project name, visibility, and default branch in the ``gitlab_config.yml`` file.
 - GitLab runner as a Podman container.
+- Generates a self-signed CA certificate for GitLab at ``/root/gitlab-certs/ca.crt``
 - Adds the project with the following files:
    - **README.MD** - Project documentation
    - **catalog_rhel.json** - Default catalog file
@@ -61,6 +62,8 @@ This ``gitlab.yml`` playbook installs the following:
    
 .. note::
    The installation may take 10-15 minutes to complete.
+
+5. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.
 
 Verification
 ------------

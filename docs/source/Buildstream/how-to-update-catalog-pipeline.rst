@@ -29,6 +29,7 @@ Procedure
 .. note:: 
    * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
    * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.
+   * Ensure that the catalog file is properly updated with valid functional group names. The pipeline will fail if the functional group names are invalid. For the list of supported functional groups, see :ref:`functional-groups-section`.
 
 The following image shows the BuildStream pipeline is currently running and the stages are being executed:
 
