@@ -20,7 +20,7 @@ On slurm controller node
 
           .. image:: ../../images/sinfo.jpg
    
-          * Ensure that the worker nodes are listed and the node state should be idle.
+          * Ensure that the compute nodes are listed and the node state should be idle.
 
 It is recommended to store job output and error files in NFS-mounted directories (``/var/log/slurm/``) so that job logs are persisted.
 
