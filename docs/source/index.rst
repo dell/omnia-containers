@@ -82,8 +82,8 @@ For a better understanding of what Omnia does, check out the following:
     Logging/index
     Troubleshooting/index
     KnownIssues/index
-    SecurityConfigGuide/index
     limitations
+    SecurityConfigGuide/index
     Contributing/index
     appendix
 

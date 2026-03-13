@@ -3,6 +3,20 @@ New Features
 
 The following sections describe the new features and enhancements introduced in Omnia 2.x releases.
 
+``Version 2.1.0.0-rc3``
+----------------------
+
+BuildStream Integration
+^^^^^^^^^^^^^^^^^^^^^^
+
+Introduces BuildStream integration for automated container image building and pipeline management. BuildStream provides a comprehensive solution for building, testing, and deploying container images with GitLab CI/CD integration, including:
+
+- Automated pipeline triggering through catalog file updates
+- Support for multiple functional groups and node types
+- Integrated GitLab runner with Podman container support
+- Self-signed certificate management for secure GitLab access
+- Pipeline monitoring and status tracking through GitLab web interface
+
 ``Version 2.1.0.0-rc2``
 ----------------------
 
