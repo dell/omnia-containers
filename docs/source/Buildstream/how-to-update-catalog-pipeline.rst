@@ -41,14 +41,14 @@ The following image shows the BuildStream pipeline is currently running and the 
       b. Click on the running pipeline to view details.
       c. Monitor each stage as it progresses:
             - **health-check**: Validates system health and prerequisites
-            - **auth**: Authenticates with required services
-            - **create-job**: Creates build job configuration
+            - **API-registration**: Registers API endpoints
+            - **token-generation**: Generates authentication tokens
             - **parse-catalog**: Parses catalog file for build requirements
             - **generate-input-files**: Generates input files for build
             - **create-local-repo**: Creates local repository for artifacts
-            - **poll-local-repo**: Polls local repository for updates
             - **get-roles**: Retrieves required roles for build
             - **build-images**: Builds the specified images
+            - **deploy-and-validate**: Deploys and validates the built images
 
 The following image shows each stage of the BuildStream pipeline and its status:
    .. image:: ../images/buildstream_pipeline_stages.png  
@@ -77,9 +77,3 @@ Next Steps
 -----------
 
 After successful execution of the pipeline, set the PXE boot order for the nodes and then run the ``set_pxe_boot.yml`` playbook to configure the boot settings. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.
-
-
-Troubleshooting
-----------------
-
-

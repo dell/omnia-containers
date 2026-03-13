@@ -106,7 +106,8 @@ Nodes with similar functional roles or functionalities can be grouped together. 
    :header-rows: 1
    :keepspace:
 
-  
+
+
 Recommended Software by Functional Groups
 ------------------------------------------
 
@@ -148,8 +149,7 @@ Next Steps
 After creating the PXE mapping file, prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. See :doc:`prepare_oim_buildstream`.
 
 
-Troubleshooting
-----------------
+
 
 
    

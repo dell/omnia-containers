@@ -204,5 +204,3 @@ Next Steps
 ----------
 After installing the Omnia core container, create the PXE mapping file with the information of the nodes to be provisioned. For more information, see :ref:`pxe_mapping_file`.
 
-Troubleshooting
-----------------

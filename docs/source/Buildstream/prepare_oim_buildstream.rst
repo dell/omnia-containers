@@ -181,10 +181,4 @@ For more details about a specific command, run::
 
    ochami [command] --help
 
-Next Steps
-------------
 
-
-
-Troubleshooting
----------------
