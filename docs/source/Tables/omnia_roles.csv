@@ -2,13 +2,13 @@
 Slurm control plane - ``slurm_control_node_x86_64``,Management,"* Nodes with ``slurm_control_node``  functional group can be added to the Slurm head node groups.
 * This  functional group is used to configure the nodes for Slurm head. The nodes included in this  functional group will have the necessary tools and configurations to run Slurm head.
 * The nodes in this  functional group can be used to run the Slurm head.    "
-Slurm worker node - ``slurm_node_x86_64``,Compute,"* This functional group is used to configure nodes as Slurm workers on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads.  
+Slurm compute node - ``slurm_node_x86_64``,Compute,"* This functional group is used to configure nodes as Slurm workers on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads.  
 * Nodes in this functional group can be used as Slurm worker nodes for x86_64 clusters."
-Slurm worker node - ``slurm_node_aarch64``,Compute,"* This functional group is used to configure nodes as Slurm workers on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads.  
+Slurm compute node - ``slurm_node_aarch64``,Compute,"* This functional group is used to configure nodes as Slurm workers on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads.  
 * Nodes in this functional group can be used as Slurm worker nodes for aarch64 clusters.
 
 "
-Service cluster kubernetes control plane- ``service_kube_control_plane_x86_64``,Management,"* This functional_group is used to configure the kubernetes control plane nodes on service cluster.
+Service Cluster Kubernetes control plane- ``service_kube_control_plane_x86_64``,Management,"* This functional_group is used to configure the kubernetes control plane nodes on service cluster.
 
 * The nodes included in this functional_group will have the necessary tools and configurations to configure Kubernetes control plane  to provide HA on service cluster."
 Service Cluster Kubernetes worker node - ``service_kube_node_x86_64``,Management,"* This  functional group is used to configure the Kubernetes worker nodes on service cluster.
