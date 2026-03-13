@@ -25,7 +25,7 @@ Procedure
 3. Locate the catalog file ``catalog_rhel.json``.
 4. Modify the ``catalog_rhel.json`` file to define your build requirements.
 
-.. note:: Ensure that the catalog file is properly updated with valid functional group names, architecture type, OS types and versions and package types. The pipeline will fail if invalid details are provided.
+.. note:: Ensure that the catalog file is updated with valid functional group names, architecture types, operating system types and versions, and package types. The pipeline fails if invalid details are provided.
 
    For the list of supported values:
       - **Functional group names**: See :ref:`functional-groups-section`.
