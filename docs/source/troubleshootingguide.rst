@@ -864,3 +864,25 @@ For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CS
 **Cause**: This issue occurs when the configured ``persistence_size`` for Kafka reaches its capacity limit.
 
 **Resolution**: The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit. These settings should be based on your expected data volume and cluster size.
+
+Reprovisioning Issues after Cleanup
+=====================================
+
+**Why does PostgreSQL container deployment fail after cleanup when re-provisioning Omnia?**
+
+This issue occurs when you re-provision Omnia after cleanup and have decided to retain the PostgreSQL database during the cleanup process.
+
+**Cause:** This failure is typically caused by database initialization issues when existing data is present.
+
+**Resolution:** Perform one of the following:
+
+   * To reuse the existing PostgreSQL database data available at ``postgres_data_dir``, re-run ``prepare_oim.yml`` using the same PostgreSQL database credentials that you used in the previous deployment.
+      
+   * To delete the existing PostgreSQL database data and create a new one, run the following commands:
+           
+      .. code-block:: bash
+      
+         ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
+      
+      - The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associated data and log files.
+      - After cleanup completes, re-run ``prepare_oim.yml`` to deploy a new ``postgres_container_name`` container.
