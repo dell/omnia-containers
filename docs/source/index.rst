@@ -81,6 +81,7 @@ For a better understanding of what Omnia does, check out the following:
     Utils/index
     Logging/index
     Troubleshooting/index
+    troubleshootingguide
     KnownIssues/index
     limitations
     FAQ/index
