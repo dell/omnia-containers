@@ -24,12 +24,21 @@ Procedure
 2. Go to **Code** → **Repository**.
 3. Locate the catalog file ``catalog_rhel.json``.
 4. Modify the ``catalog_rhel.json`` file to define your build requirements.
+
+.. note:: Ensure that the catalog file is properly updated with valid functional group names, architecture type, OS types and versions and package types. The pipeline will fail if invalid details are provided.
+
+   For the list of supported values:
+   - **Functional group names**: See :ref:`functional-groups-section`.
+   - **Architecture type**: Supported types include x86_64 and aarch64 (see functional groups in :doc:`composable_roles_buildstream`)
+   - **OS type and version**: RHEL 10.0 (see `Supported OS Versions <../OmniaInstallGuide/RHEL_new/RedHat.html#supported-os-versions>`_)
+   - **Package types**: rpm, rpm_repo, image, iso, tarball, pip_module
+       
+
 5. To trigger the pipeline, commit and push catalog changes.
 
 .. note:: 
    * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
-   * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.
-   * Ensure that the catalog file is properly updated with valid functional group names. The pipeline will fail if the functional group names are invalid. For the list of supported functional groups, see :ref:`functional-groups-section`.
+   * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.   
 
 The following image shows the BuildStream pipeline is currently running and the stages are being executed:
 
