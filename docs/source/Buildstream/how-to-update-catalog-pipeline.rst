@@ -28,10 +28,10 @@ Procedure
 .. note:: Ensure that the catalog file is properly updated with valid functional group names, architecture type, OS types and versions and package types. The pipeline will fail if invalid details are provided.
 
    For the list of supported values:
-   - **Functional group names**: See :ref:`functional-groups-section`.
-   - **Architecture type**: Supported types include x86_64 and aarch64 (see functional groups in :doc:`composable_roles_buildstream`)
-   - **OS type and version**: RHEL 10.0 (see `Supported OS Versions <../OmniaInstallGuide/RHEL_new/RedHat.html#supported-os-versions>`_)
-   - **Package types**: rpm, rpm_repo, image, iso, tarball, pip_module
+      - **Functional group names**: See :ref:`functional-groups-section`.
+      - **Architecture type**: Supported types include x86_64 and aarch64 (see functional groups in :doc:`composable_roles_buildstream`)
+      - **OS type and version**: RHEL 10.0 (see `Supported OS Versions <../OmniaInstallGuide/RHEL_new/RedHat.html#supported-os-versions>`_)
+      - **Package types**: rpm, rpm_repo, image, iso, tarball, pip_module
        
 
 5. To trigger the pipeline, commit and push catalog changes.
