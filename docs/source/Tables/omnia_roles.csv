@@ -13,12 +13,12 @@ Service Cluster Kubernetes control plane- ``service_kube_control_plane_x86_64``,
 * The nodes included in this functional_group will have the necessary tools and configurations to configure Kubernetes control plane  to provide HA on service cluster."
 Service Cluster Kubernetes worker node - ``service_kube_node_x86_64``,Management,"* This  functional group is used to configure the Kubernetes worker nodes on service cluster.
 * The nodes included in this  functional group will have the necessary tools and configurations to configure and run Kubernetes worker on service cluster."
-Login node - ``login_node_x86_64``,Management,"* This functional group is used to configure nodes for user logins on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities.  
+Slurm Login node - ``login_node_x86_64``,Management,"* This functional group is used to configure nodes for user logins on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities.  
 * Nodes in this functional group can be used to handle user login sessions on x86_64 systems."
-Login node - ``login_node_aarch64``,Management,"* This functional group is used to configure nodes for user logins on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities.  
+Slurm Login node - ``login_node_aarch64``,Management,"* This functional group is used to configure nodes for user logins on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities.  
 * Nodes in this functional group can be used to handle user login sessions on aarch64 systems."
-Login and Compiler node - ``login_compiler_node_x86_64``,Management,"* This functional group is used to configure nodes for compilation on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation.  
+Slurm Login and Compiler node - ``login_compiler_node_x86_64``,Management,"* This functional group is used to configure nodes for compilation on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation.  
 * Nodes in this functional group can be used to compile code on x86_64 systems.  "
-Login and Compiler node- ``login_compiler_node_aarch64``,Management,"* This functional group is used to configure nodes for compilation on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation.  
+Slurm Login and Compiler node- ``login_compiler_node_aarch64``,Management,"* This functional group is used to configure nodes for compilation on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation.  
 * Nodes in this functional group can be used to compile code on aarch64 systems.
 "
