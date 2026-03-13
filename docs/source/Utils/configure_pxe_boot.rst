@@ -16,7 +16,7 @@ Prerequisites
 3. PXE support must be enabled in the NIC firmware.
 4. The ``dellemc.openmanage`` Ansible collection must be installed.
 5. iDRAC firmware must support the Boot Source Override API (iDRAC9 and later).
-6. The TFTP/NFS/HTTP server providing the PXE boot image must be reachable by the target nodes.
+6. The OIM server providing the PXE boot image must be reachable by the target nodes.
 
 Inventory Setup
 ---------------
