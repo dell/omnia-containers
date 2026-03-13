@@ -138,7 +138,7 @@ Checking and updating encrypted parameters
 Checking podman container status from the OIM
 ===============================================
    
-   * Use this command to get a list of all running podman conatiners: ``podman ps``
+   * Use this command to get a list of all running podman containers: ``podman ps``
    * Check the status of any specific podman containers: ``podman ps -f name=<container_name>``
 
 
