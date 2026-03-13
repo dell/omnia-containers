@@ -2,7 +2,7 @@ Slurm
 ==========
 ⦾ **After executing discovery.yml playbook for Slurm cluster deployment, why do I get the following messages on the slurm node?**
 
-.. image:: ../../../images/faq_provision.jpg
+.. image:: ../images/faq_provision.jpg
 
 **Potential Cause**: This issue occurs when cluster nodes are booted before the Slurm controller is fully up. Because ``slurmctld`` is not yet running when the Slurm nodes start, a connection cannot be established with the controller, resulting in “unable to contact” or “not responding” messages.
 

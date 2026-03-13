@@ -3,7 +3,7 @@ Telemetry
 
 ⦾ **Why is the telemetry playbook is failing at Kafka pod deployment?** 
 
-.. image:: ../../../images/telemetry.png
+.. image:: ../images/telemetry.png
 
 **Potential Cause**: No kube nodes are available in the service cluster for pod deployments.
 
@@ -18,14 +18,14 @@ Telemetry
    
    {"name": "csi_driver_powerscale", "version": "v2.15.0", "arch": ["x86_64"]}
 
-For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../../../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
+For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
 
 
 ⦾ **Why do kafka telemetry pods enter a ``CrashLoopBackOff`` state and fail to retrieve telemetry with the error ``No space left on device``?**
 
-.. image:: ../../../images/faq_telemetry_error_crash_loop.png
+.. image:: ../images/faq_telemetry_error_crash_loop.png
 
-.. image:: ../../../images/faq_telemetry_error_nospace.jpg
+.. image:: ../images/faq_telemetry_error_nospace.jpg
 
 
 **Potential Cause**: This issue occurs when the configured ``persistence_size`` for Kafka reaches its capacity limit.

@@ -9,7 +9,7 @@ Centralized Authentication
 
 ⦾ **What to do if OpenLDAP user login fails when accessing a cluster node?**
 
-.. image:: ../../../images/UserLoginError.png
+.. image:: ../images/UserLoginError.png
 
 **Potential Cause**: 
     * SSH key on the OIM may be outdated.
