@@ -16,12 +16,13 @@ Stage: Health Check
 
 1. Ensure the GitLab target IP and BuildStream API server are in the same subnet.
 
-2. Verify that the ``omnia_build_stream`` container and its associated containers (like ``omnia_postgres``) are up and running on the OIM node. To check the status of the containers, run the following command:
+2. Verify that the ``omnia_build_stream`` container and the ``omnia_postgres`` and ``playbook_watcher`` services are running on the OIM node. To check the status of the containers, run the following command:
  
    .. code-block:: bash
    
       systemctl status omnia_build_stream.service
       systemctl status omnia_postgres.server
+      systemctl status playbook_watcher.service
 
 3. If there are failures in any of the containers, capture and verify the logs from journalctl using the following command:
    
@@ -78,9 +79,6 @@ Stage: Parse Catalog
 
 * If the issue persists, check the job-specific logs at ``/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log``
 
-Stage: Generate Input Files
----------------------------
-<None>
 
 Stage: Create Local Repo
 ------------------------
@@ -94,20 +92,20 @@ Stage: Create Local Repo
 **Resolution**:
 
 1.  If there are issues with playbook execution, the log path is available from the API response. Check the logs at the path specified in the ``log_file_path`` field.
-   -
-   - Example API response format:
-
-   .. code-block:: json
    
-      {
-        "stage_name": "create-local-repository",
-        "stage_state": "FAILED",
-        "started_at": "2026-03-11T10:07:58.906785+00:00Z",
-        "ended_at": "2026-03-11T10:49:20.639894+00:00Z",
-        "error_code": "PLAYBOOK_EXECUTION_FAILED",
-        "error_summary": "Playbook exited with code 2",
-        "log_file_path": "/nfs/omnia/log/build_stream/5a4f69f4-44df-42eb-b88b-1583ea2610a8/local_repo.yml_20260311_171630.log"
-      }
+    **Example API response format**:
+
+        .. code-block:: json
+        
+            {
+                "stage_name": "create-local-repository",
+                "stage_state": "FAILED",
+                "started_at": "2026-03-11T10:07:58.906785+00:00Z",
+                "ended_at": "2026-03-11T10:49:20.639894+00:00Z",
+                "error_code": "PLAYBOOK_EXECUTION_FAILED",
+                "error_summary": "Playbook exited with code 2",
+                "log_file_path": "/nfs/omnia/log/build_stream/5a4f69f4-44df-42eb-b88b-1583ea2610a8/local_repo.yml_20260311_171630.log"
+            }
 
 2. Verify the configuration settings in ``local_repo_config.yml``.
 
