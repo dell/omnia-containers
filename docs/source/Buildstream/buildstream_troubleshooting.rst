@@ -1,4 +1,4 @@
-Troubleshooting BuildStream
+Troubleshooting BuildStreaM
 =============================
 
 This section provides troubleshooting guidance for common BuildStream pipeline issues.
@@ -9,8 +9,8 @@ Stage: Health Check
 **Issue**: Health Check stage is failing
 
 **Possible Cause**: This issue indicates one of the following problems:
-- GitLab target IP and BuildStream API server are not in the same subnet
-- BuildStream containers are not running properly
+- GitLab target IP and host IP of the BuildStream API server should be reachable from each other.
+- BuildStream containers are not running properly.
 
 **Resolution**:
 
