@@ -1,5 +1,5 @@
-Troubleshooting BuildStreaM
-=============================
+Troubleshooting BuildStreaM Pipeline Issues
+===============================================
 
 This section provides troubleshooting guidance for common BuildStream pipeline issues.
 
