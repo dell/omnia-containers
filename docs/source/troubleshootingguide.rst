@@ -715,3 +715,152 @@ Manually renew the access token by running the below command on OIM:
 .. code-block:: bash
 
    export <OIM_hostname>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+
+
+General Query Issues
+===================
+
+**What to do if any playbook execution fails because of hardware, network, and storage failures?**
+
+**Cause**: Hardware, network, or storage failures can cause playbook execution to fail.
+
+**Resolution**: Re-run the failed playbook once the issue is resolved.
+
+**What are the licenses required when deploying a cluster through Omnia?**
+
+**Cause**: Users need to understand licensing requirements for Omnia deployment.
+
+**Resolution**: While Omnia playbooks are licensed by Apache 2.0, Omnia deploys multiple software that are licensed separately by their respective developer communities. For a comprehensive list of software and their licenses, `click here <Overview/SupportMatrix/omniainstalledsoftware.html>`_.
+
+
+Local Repository Issues
+=======================
+
+**Why does the** ``local_repo.yml`` **playbook execution fail at** ``TASK [parse_and_download : Display Failed Packages]`` **?**
+
+.. image:: images/package_failure_local_repo.png
+
+**Cause**: This issue is encountered if Omnia fails to download any software package while executing ``local_repo.yml`` playbook. Download failures can occur if:
+
+    * The URL to download the software packages mentioned in the ``<cluster_os_type>/<cluster_os_version>/<software>.json`` is incorrect or the repository is unreachable.
+    * The provided Docker credentials are incorrect or if you encounter a Docker pull limit issue. For more information, `click here <https://www.docker.com/increase-rate-limits/#:~:text=You%20have%20reached%20your%20pull%20rate%20limit.%20You,account%20to%20a%20Docker%20Pro%20or%20Team%20subscription.>`_.
+    * If disk space is insufficient while downloading the package.
+
+**Resolution**: Re-run the ``local_repo.yml`` playbook while ensuring the following:
+
+    * URL to download the software packages mentioned in ``<arch>/<cluster_os_type>/<cluster_os_version>/<software>.json`` is correct, and the repository is reachable.
+    * Docker credentials provided in ``input/omnia_config_credentials.yml`` are correct.
+    * Sufficient disk space is available while downloading the package. For disk space considerations, see the `Omnia installation guide <../OmniaInstallGuide/RHEL_new/RHELSpace.html>`_.
+
+If the ``local_repo.yml`` is executed successfully without any package download failures, a ``Successful`` message is displayed as shown below:
+
+.. image:: images/local_repo_success.png
+
+
+Provision Issues
+================
+
+**What to do if root user login fails when accessing a cluster node?**
+
+.. image:: images/UserLoginError.png
+
+**Cause**: 
+    * SSH key on the OIM may be outdated.
+    * cloud-init might not be rendered.
+
+**Resolution**:
+
+   * Refresh the key using ``ssh-keygen -R <hostname/server IP>``.
+   * Retry login.
+   * If cloud-init is not rendered, retry the cluster node reprovision.
+
+**How is the gracefull shutdown of an Omnia cluster achieved?**
+
+**Cause**: Manage OIM reboot/shutdown scenario.
+
+**Resolution**: In the case of a planned shutdown, ensure that the OIM is shut down after the compute nodes. When powering back up, the OIM should be powered on and OpenCHAMI is resumed before bringing up the compute nodes. In short, have the OIM as the first node up and the last node down.
+
+For more information, `click here <https://github.com/xcat2/xcat-core/issues/7374>`_
+
+**What to do if the Lifecycle Controller (LC) is not ready?**
+
+**Resolution**:
+
+* Verify that the LC is in a ready state for all servers using: ``racadm getremoteservicesstatus``
+* PXE boot the target server.
+
+
+Centralized Authentication Issues
+=================================
+
+**Why am I unable to login using LDAP credentials after successfully creating a user account?**
+
+**Cause**: Whitespaces in the LDIF file may have caused an encryption error. Verify whether there are any whitespaces in the file by running ``cat -vet <filename>``.
+
+**Resolution**: Remove the whitespaces and re-run the LDIF file.
+
+**What to do if OpenLDAP user login fails when accessing a cluster node?**
+
+.. image:: images/UserLoginError.png
+
+**Cause**: 
+    * SSH key on the OIM may be outdated.
+
+**Resolution**:
+
+   * Refresh the key using ``ssh-keygen -R <hostname/server IP>``.
+   * Retry login.
+
+
+Slurm Issues
+============
+
+**After executing discovery.yml playbook for Slurm cluster deployment, why do I get the following messages on the slurm node?**
+
+.. image:: images/faq_provision.jpg
+
+**Cause**: This issue occurs when cluster nodes are booted before the Slurm controller is fully up. Because ``slurmctld`` is not yet running when the Slurm nodes start, a connection cannot be established with the controller, resulting in "unable to contact" or "not responding" messages.
+
+**Resolution**: 
+
+1. SSH to the Slurm controller node, run the following command::
+    
+    scontrol reconfigure
+ 
+2. SSH to the Slurm node and restart the slurmd service using following command::
+    
+    systemctl restart slurmd
+ 
+Finally, verify the output of sinfo command to check if node has successfully joined the slurm cluster.
+
+
+Telemetry Issues
+===============
+
+**Why is the telemetry playbook is failing at Kafka pod deployment?** 
+
+.. image:: images/telemetry.png
+
+**Cause**: No kube nodes are available in the service cluster for pod deployments.
+
+**Resolution**: If this issue occurs during telemetry execution, check if the service kube nodes are booted and added to the service ``kube_control_plane``.
+
+**Why do telemetry pods enter a CrashLoopBackOff state when PowerScale is configured as an NFS server?**
+
+**Cause**:  The CSI-PowerScale driver is not installed on the Kubernetes cluster nodes because the CSI driver entry is not present in the ``software_config.json``file. When PowerScale is used without CSI-based integration, Kubernetes treats the storage as a manual NFS mount, which is not supported by Omnia for telemetry workloads.
+
+**Resolution**: Ensure that the following CSI-PowerScale driver entry is present in the ``software_config.json`` file:: 
+   
+   {"name": "csi_driver_powerscale", "version": "v2.15.0", "arch": ["x86_64"]}
+
+For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
+
+**Why do kafka telemetry pods enter a ``CrashLoopBackOff`` state and fail to retrieve telemetry with the error ``No space left on device``?**
+
+.. image:: images/faq_telemetry_error_crash_loop.png
+
+.. image:: images/faq_telemetry_error_nospace.jpg
+
+**Cause**: This issue occurs when the configured ``persistence_size`` for Kafka reaches its capacity limit.
+
+**Resolution**: The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit. These settings should be based on your expected data volume and cluster size.
