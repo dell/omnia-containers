@@ -6,7 +6,7 @@ This section provides troubleshooting guidance for common BuildStream pipeline i
 Stage: Health Check
 -------------------
 
-**Issue**: Health Check stage is failing
+**Issue**: Health Check stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
 - GitLab target IP and host IP of the BuildStream API server should be reachable from each other.
@@ -34,30 +34,30 @@ Stage: Health Check
 Stage: API Registration
 -----------------------
 
-**Issue**: API-Registration stage is failing
+**Issue**: API-Registration stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Maximum client limit reached for BuildStream API server registration
-- Other API registration errors
+- Maximum client limit reached for BuildStream API server registration.
+- Other API registration errors.
 
 .. note:: Currently, only one client can be registered with the BuildStream API server.
 
 **Resolution**:
 
 1. If you encounter the ``max_clients_limit_reached`` error, do the following:
-   - Either run the pipeline from the already registered client
-   - Or perform the ``gitlab_cleanup`` and reconfigure GitLab using the playbook
+   - Either run the pipeline from the already registered client.
+   - Or perform the ``gitlab_cleanup`` and reconfigure GitLab using the playbook.
 
 2. For other non-successful API responses, check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` for detailed error information.
 
 Stage: Token Generation
 -----------------------
 
-**Issue**: Token-Generation stage is failing
+**Issue**: Token-Generation stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Token generation failed due to authentication issues
-- Token generation failed due to network issues
+- Token generation failed due to authentication issues.
+- Token generation failed due to network issues.
 
 **Resolution**:
 
@@ -66,11 +66,11 @@ Check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` 
 Stage: Parse Catalog
 --------------------
 
-**Issue**: Parse-Catalog stage is failing
+**Issue**: Parse-Catalog stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Invalid JSON schema format
-- The ``catalog_rhel.json`` structure does not match the expected catalog schema
+- Invalid JSON schema format.
+- The ``catalog_rhel.json`` structure does not match the expected catalog schema.
 
 **Resolution**:
 
@@ -83,11 +83,11 @@ Stage: Parse Catalog
 Stage: Create Local Repo
 ------------------------
 
-**Issue**: Create-Local-Repo stage is failing
+**Issue**: Create-Local-Repo stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Playbook execution failed
-- Configuration issues in ``local_repo_config.yml``
+- Playbook execution failed.
+- Configuration issues in ``local_repo_config.yml``.
 
 **Resolution**:
 
@@ -114,11 +114,11 @@ Stage: Create Local Repo
 Stage: Build Images
 -------------------
 
-**Issue**: Build Images stage is failing
+**Issue**: Build Images stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Playbook execution failed
-- Catalog does not have predefined functional groups
+- Playbook execution failed.
+- Catalog does not have predefined functional groups.
 
 **Resolution**:
 
@@ -131,16 +131,16 @@ Stage: Build Images
 Stage: Deploy Images
 --------------------
 
-**Issue**: Deploy Images stage is failing
+**Issue**: Deploy Images stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Playbook execution failed
-- pxe_mapping.csv does not adhere to functional groups in the JSON
+- Playbook execution failed.
+- The functional groups listed in the PXE mapping file do not adhere to functional groups in the ``catalog_rhel.json``.
 
 **Resolution**:
 
-1. Check the log path from the API response for detailed error information
+1. Check the log path from the API response for detailed error information.
 
 2. Ensure the funtional groups listed in the PXE mapping file matches the functional groups defined in the ``catalog_rhel.json``.
 
-3. After making necessary modifications to the PXE mapping, re-run the pipeline manually
+3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
