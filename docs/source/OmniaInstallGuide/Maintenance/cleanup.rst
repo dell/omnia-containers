@@ -67,4 +67,3 @@ Steps
 
         ssh-keygen -R <node IP>
 
-For troubleshooting PostgreSQL container deployment failures after cleanup, see `Troubleshooting Guide - PostgreSQL Container Deployment Failure <../../troubleshootingguide.html#postgresql-container-deployment-failure-after-cleanup>`_.
