@@ -5,6 +5,5 @@ Known Issues
     
     General_query
     Login
-    LocalRepo
     Provision
     Telemetry

@@ -193,6 +193,17 @@ Example: ::
 
 .. image:: ../images/troubleshoot_local_repo_4.png
 
+
+local_repo.yml playbook fails when run multiple times
+======================================================
+
+The ``local_repo.yml`` playbook fails at ``TASK: [parse_and_download : Process URL mirrors from local_repo_config]`` if it is run multiple times.
+
+**Cause**: This occurs due to resource saturation on the Pulp container.
+
+**Resolution**: If you are running ``local_repo.yml`` playbook multiple times and encounter a failure at the task ``Process URL mirrors from local_repo_config``, it is recommended to let the system remain idle for approximately one hour before re-running the ``local_repo.yml`` playbook.
+
+
 Troubleshooting logs
 =================================================================
 
