@@ -74,10 +74,14 @@ For a better understanding of what Omnia does, check out the following:
     Overview/SupportMatrix/index
     RHEL_prereq
     OmniaInstallGuide/index
+    upgrade
+    rollback
     OmniaInstallGuide/ExternalDeploymentGuide/Index
+    Buildstream/index
     Utils/index
     Logging/index
     Troubleshooting/index
+    KnownIssues/index
     SecurityConfigGuide/index
     limitations
     Contributing/index

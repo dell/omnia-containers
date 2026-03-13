@@ -1,6 +1,7 @@
 Step 1: Deploy Omnia Core Container
 =====================================
 
+Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service are installed. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
 The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (``omnia_core.service``). 
 The Omnia core container contains the following:
 
@@ -9,8 +10,9 @@ The Omnia core container contains the following:
 
 Use the ``omnia.sh`` script to install, uninstall, and view help on the actions that you can perform on the Omnia core container. 
 
-Prerequisites for Deploying the Omnia Core Container
------------------------------------------------------
+Prerequisites 
+--------------
+Before you begin, ensure the following:
 
 * The OIM has internet access to download necessary packages for cluster deployment and configuration.
 * The OIM must have two active Network Interface Cards (NICs):  
@@ -175,7 +177,7 @@ To view the usage instructions, on the OIM, run the following command::
 
    ./omnia.sh --help
 
-    Usage: ./omnia.sh [--install | --uninstall | --help]
+    Usage: ./omnia.sh [--install | --uninstall | --upgrade | --rollback | --version | --help]
         -i, --install     Install and start the Omnia core container
         -u, --uninstall   Uninstall the Omnia core container and clean up configuration
         --upgrade     Upgrade the Omnia core container to newer version
@@ -188,7 +190,19 @@ The help menu includes:
 
   * ``--install``: Deploys the ``omnia_core`` container and configures it as a Systemd service.
   * ``--uninstall``: Stops and removes the ``omnia_core`` container and its associated service.
-  * ``--upgrade``: Upgrade the Omnia core container to newer version
+  * ``--upgrade``: Upgrades the Omnia core container to newer version
   * ``--rollback``: Rollback the Omnia core container to previous version
   * ``--version``: Display Omnia version information
   * ``--help``: Display usage information.
+
+Verification
+------------
+Ensure that the ``omnia_core`` container is running and the Systemd service is active.
+
+
+Next Steps
+----------
+After installing the Omnia core container, create the PXE mapping file with the information of the nodes to be provisioned. For more information, see :ref:`pxe_mapping_file`.
+
+Troubleshooting
+----------------

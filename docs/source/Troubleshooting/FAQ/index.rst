@@ -3,5 +3,9 @@ Frequently Asked Questions (FAQs)
 
 .. toctree::
 
-    RHEL/index
-    Common/index
+    General_Query
+    LocalRepo
+    Provision
+    Security
+    Telemetry
+    Slurm
