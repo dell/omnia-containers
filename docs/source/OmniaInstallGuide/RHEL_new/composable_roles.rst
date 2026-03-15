@@ -12,10 +12,10 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
 
   - **Service Kube Control Plane** 
   - **Service Kube Node** 
-  - **Login Node** 
-  - **Login Compiler Node** 
+  - **Slurm Login Node** 
+  - **Slurm Login/Compiler Node** 
   - **Slurm Control Node** 
-  - **Slurm Node**
+  - **Slurm Compute Node**
 
 
 Create Mapping File
