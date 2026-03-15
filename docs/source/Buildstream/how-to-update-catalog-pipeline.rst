@@ -26,10 +26,10 @@ Procedure
 
 .. note:: Ensure that the catalog file is updated with valid functional group names, architecture types, operating system types and versions, and package types. The pipeline fails if invalid details are provided.
 
-   For the list of supported values:
+   The following are the supported values:
       - **Functional group names**: For supported functional group names, see :ref:`functional-groups-section`.
       - **Architecture type**: ``x86_64`` and ``aarch64``.
-      - **OS type**: ``RHEL`` see :ref:`supported OS types and versions <redhat-support-matrix>`.
+      - **OS type**: ``RHEL``, see :ref:`supported OS types and versions <redhat-support-matrix>`.
       - **OS version**: ``10.0``, see :ref:`supported OS types and versions <redhat-support-matrix>`.
       - **Package types**: ``rpm``, ``rpm_repo``, ``image``, ``iso``, ``tarball``, ``pip_module``, ``git``, ``manifest``.
        
