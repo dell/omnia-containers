@@ -31,7 +31,7 @@ Procedure
       - **Architecture type**: ``x86_64`` and ``aarch64``.
       - **OS type**: ``RHEL`` see :ref:`supported OS types and versions <redhat-support-matrix>`.
       - **OS version**: ``10.0``, see :ref:`supported OS types and versions <redhat-support-matrix>`.
-      - **Package types**: ``rpm``, ``rpm_repo``, ``image``, ``iso``, ``tarball``, ``pip_module``.
+      - **Package types**: ``rpm``, ``rpm_repo``, ``image``, ``iso``, ``tarball``, ``pip_module``, ``git``, ``manifest``.
        
 
 5. To trigger the pipeline, commit and push catalog changes.
