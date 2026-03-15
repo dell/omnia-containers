@@ -45,9 +45,9 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     .. code-block:: bash
 
-      git clone https://github.com/dell/omnia-artifactory.git
+      git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.1.0.0-rc3
       cd omnia-artifactory
-      ./build_images.sh core omnia_branch=<tag|branch> core_tag=2.1
+      ./build_images.sh core omnia_branch=v2.1.0.0-rc3 core_tag=2.1 
 
     **Examples:**
 
