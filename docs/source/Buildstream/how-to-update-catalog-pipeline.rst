@@ -74,11 +74,11 @@ Verification
 After the pipeline is completed, you can check the overall pipeline status and job execution.
 
 1. Navigate to **Build** → **Pipelines**
-2. Review the job list and status
+2. Review the job list and status.
 3. Click on individual jobs to view:
-   - Execution logs
-   - Resource usage
-   - Error messages (if any)
+      - Execution logs
+      - Resource usage
+      - Error messages (if any)
 
 Next Steps
 -----------
