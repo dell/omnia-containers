@@ -48,7 +48,7 @@ Stage: API Registration
    - Either run the pipeline from the already registered client.
    - Or perform the ``gitlab_cleanup`` and reconfigure GitLab using the playbook.
 
-2. For other non-successful API responses, check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` for detailed error information.
+2. For other non-successful API responses, on the Omnia Infrastructure Manager (OIM), check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` for detailed error information.
 
 Stage: Token Generation
 -----------------------
@@ -61,7 +61,7 @@ Stage: Token Generation
 
 **Resolution**:
 
-Check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` for detailed error information.
+On the OIM, check the authentication logs at ``/<nfs-dir>/omnia/log/build_stream/auth.log`` for detailed error information.
 
 Stage: Parse Catalog
 --------------------
@@ -77,7 +77,7 @@ Stage: Parse Catalog
 * Ensure the JSON is aligned with the schema as shown in the reference examples available at:
    - https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog
 
-* If the issue persists, check the job-specific logs at ``/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log``
+* If the issue persists, on the OIM, check the job-specific logs at ``/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log``
 
 
 Stage: Create Local Repo
