@@ -41,14 +41,15 @@ Procedure
 
 4. Run the ``gitlab.yml`` playbook:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-   ansible-playbook gitlab.yml
+      ansible-playbook gitlab.yml
 
-This ``gitlab.yml`` playbook installs the following:
+This ``gitlab.yml`` playbook performs the following tasks:
 
-- GitLab on the specified host with the specified project name, visibility, and default branch in the ``gitlab_config.yml`` file.
-- GitLab runner as a Podman container.
+- Installs the GitLab instance on the host specified in the ``gitlab_config.yml`` file.
+- In the GitLab instance, creates a project with the specified name, visibility, and default branch as configured in the ``gitlab_config.yml`` file.
+- Installs GitLab runner as a Podman container.
 - Generates a self-signed CA certificate for GitLab at ``/root/gitlab-certs/ca.crt``
 - Adds the project with the following files:
    - **README.MD** - Project documentation
