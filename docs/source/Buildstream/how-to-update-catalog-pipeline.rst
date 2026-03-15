@@ -50,15 +50,13 @@ The following image shows the BuildStream pipeline is currently running and the 
       a. Navigate to **Build** → **Pipeline**.
       b. Click on the running pipeline to view details.
       c. Monitor each stage as it progresses:
-            - **health-check**: Validates system health and prerequisites
-            - **API-registration**: Registers API endpoints
-            - **token-generation**: Generates authentication tokens
+            - **initialization**: Sets up the build environment
             - **parse-catalog**: Parses catalog file for build requirements
             - **generate-input-files**: Generates input files for build
-            - **create-local-repo**: Creates local repository for artifacts
-            - **get-roles**: Retrieves required roles for build
+            - **configure-local-repository**: Configures local repository for artifacts
             - **build-images**: Builds the specified images
             - **deploy-and-validate**: Deploys and validates the built images
+            - **summary**: Generates summary of the build process
 
 The following image shows each stage of the BuildStream pipeline and its status:
    .. image:: ../images/buildstream_pipeline_stages.png  
