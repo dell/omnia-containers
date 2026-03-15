@@ -1,3 +1,5 @@
+.. _prepare-oim-buildstream:
+
 Step 3:  Prepare the Omnia Infrastructure Manager 
 ========================================================
 
