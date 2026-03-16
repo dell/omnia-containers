@@ -21,7 +21,7 @@ It leverages Ansible playbooks to streamline:
 Omnia simplifies infrastructure deployment in complex environments, enabling faster setup
 and consistent configuration across systems.
 
-The project is hosted on `GitHub <https://github.com/dell/omnia>`_., where you can:
+The project is hosted on `GitHub <https://github.com/dell/omnia>`_, where you can:
 
 - Access the source code
 - Report issues

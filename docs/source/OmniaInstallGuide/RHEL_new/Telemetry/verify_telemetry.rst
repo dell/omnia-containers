@@ -114,6 +114,7 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
 
 If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records.
 
+.. note:: When new nodes are added, ensure the nodes are up and cloud-init has completed successfully (check /var/log/cloud-init-output.log on each node). Then, create a new Kafka consumer group with a unique name (e.g., ldms-new-nodes-group) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
 
 Verify Kafka TLS Connectivity
 -----------------------------
@@ -218,7 +219,7 @@ For example, the following query displays detailed PowerEdge metrics for each ha
 Accessing the MySQL Database
 ------------------------------------
 
-After ``telemetry.yml`` has been executed for the service cluster, you can check the MySQL Database database inside the ``mysqldb`` container. To view these logs, do the following:
+After ``telemetry.yml`` has been executed for the service cluster, you can check the MySQL database inside the ``mysqldb`` container. To view these logs, do the following:
 
     1. Use the following command to get the names of all the telemetry pods: ::
         
