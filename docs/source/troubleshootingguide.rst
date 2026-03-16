@@ -13,7 +13,7 @@ The deployment of the Omnia core container may fail for the following reasons:
 
 **Resolution:**
 
-Peform the following steps:
+Perform the following steps:
 
 1.  Verify the Omnia core container status using the following command:
 
@@ -138,7 +138,7 @@ Checking and updating encrypted parameters
 Checking podman container status from the OIM
 ===============================================
    
-   * Use this command to get a list of all running podman conatiners: ``podman ps``
+   * Use this command to get a list of all running podman containers: ``podman ps``
    * Check the status of any specific podman containers: ``podman ps -f name=<container_name>``
 
 
@@ -285,13 +285,13 @@ Pulp Repository Sync and Publication Failures
 
 1. No Space Left on NFS Share (where Pulp is mounted).
 
-**Cause**:  Pulp storage runs out of disk space during sync or publish. In this case , Pulp logs show the error "No space left on device." Check the available storage space on the NFS share.
+**Cause**:  Pulp storage runs out of disk space during sync or publish. In this case, Pulp logs show the error "No space left on device." Check the available storage space on the NFS share.
 
 **Resolution**:  Increase the size of the NFS share where Pulp is mounted to free up space.
 
 2. Incorrect URL in ``local_repo_config.yml``.
 
-**Cause**: The repository URLs in the ``local_repo_config.yml`` file may be incorrect . The URL must point to the repository root (where the repodata directory exists) and be reachable.
+**Cause**: The repository URLs in the ``local_repo_config.yml`` file may be incorrect. The URL must point to the repository root (where the repodata directory exists) and be reachable.
 
 **Resolution**: Verify and update the URLs in the local_repo_config.yml file to ensure they are correct and accessible.
 
@@ -505,7 +505,7 @@ The host network is faulty causing DNS to be unresponsive.
 **Resolution**
 
 1. In your Kubernetes cluster, run ``kubectl rollout restart deployments coredns -n kube-system`` on any of the ``kube_control_plane``.
-2. Wait till the coredns pods are in the running state.
+2. Wait until the coredns pods are in the running state.
 
 
 NFS-client provisioner in ContainerCreating or CrashLoopBackOff state
@@ -634,7 +634,7 @@ During kubeadm init, encrypted control-plane certificates are uploaded to the cl
 ``k8s_client_mount_path`` is the local directory on every Kubernetes node where the NFS share is mounted, allowing all nodes to access and use shared resources automatically.
 This script uploads fresh control-plane certificates to the cluster and automatically generates a refreshed control-plane join command. It saves it to ``{{ k8s_client_mount_path }}/control-plane-join-command.sh``
 
-2. On the control-plane node where the join previously failed reboot the node.
+2. On the control-plane node where the join previously failed, reboot the node.
 3. After reboot, the node automatically reads the refreshed join command from the shared NFS path and successfully adds itself to the cluster. No manual join command execution is required.
 
 
@@ -689,11 +689,11 @@ OpenCHAMI smd commands fail with certificate error
 
 **Cause**
 
-This issue is because of OpenCHAMI certificate expiration. After sometime, the certificate expires and loses the validity because of which OpenCHAMI commands do not run.
+This issue is because of OpenCHAMI certificate expiration. After some time, the certificate expires and loses the validity because of which OpenCHAMI commands do not run.
 
 **Resolution**
 
-As part of ``discovery.yml`` execution, certificate updation is being taken care. However, if user still faces this issue, they can update the OpenCHAMI certificate manually by running the following command on OIM:
+As part of ``discovery.yml`` execution, certificate update is being taken care. However, if user still faces this issue, they can update the OpenCHAMI certificate manually by running the following command on OIM:
 
 .. code-block:: bash
 
@@ -706,7 +706,7 @@ ochami commands fail with token error
 
 **Cause**
 
-This issue is because of Access Token getting expired after sometime.
+This issue is because of Access Token getting expired after some time.
 
 **Resolution**
 
@@ -774,7 +774,7 @@ Provision Issues
    * Retry login.
    * If cloud-init is not rendered, retry the cluster node reprovision.
 
-**How is the gracefull shutdown of an Omnia cluster achieved?**
+**How is the graceful shutdown of an Omnia cluster achieved?**
 
 **Cause**: Manage OIM reboot/shutdown scenario.
 
@@ -837,7 +837,7 @@ Finally, verify the output of sinfo command to check if node has successfully jo
 Telemetry Issues
 ===============
 
-**Why is the telemetry playbook is failing at Kafka pod deployment?** 
+**Why is the telemetry playbook failing at Kafka pod deployment?** 
 
 .. image:: images/telemetry.png
 
@@ -847,7 +847,7 @@ Telemetry Issues
 
 **Why do telemetry pods enter a CrashLoopBackOff state when PowerScale is configured as an NFS server?**
 
-**Cause**:  The CSI-PowerScale driver is not installed on the Kubernetes cluster nodes because the CSI driver entry is not present in the ``software_config.json``file. When PowerScale is used without CSI-based integration, Kubernetes treats the storage as a manual NFS mount, which is not supported by Omnia for telemetry workloads.
+**Cause**:  The CSI-PowerScale driver is not installed on the Kubernetes cluster nodes because the CSI driver entry is not present in the ``software_config.json`` file. When PowerScale is used without CSI-based integration, Kubernetes treats the storage as a manual NFS mount, which is not supported by Omnia for telemetry workloads.
 
 **Resolution**: Ensure that the following CSI-PowerScale driver entry is present in the ``software_config.json`` file:: 
    
