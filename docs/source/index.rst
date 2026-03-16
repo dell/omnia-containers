@@ -80,10 +80,10 @@ For a better understanding of what Omnia does, check out the following:
     Buildstream/index
     Utils/index
     Logging/index
-    Troubleshooting/index
+    troubleshootingguide
     KnownIssues/index
-    SecurityConfigGuide/index
     limitations
+    SecurityConfigGuide/index
     Contributing/index
     appendix
 

@@ -1,7 +1,7 @@
 Step 1: Deploy Omnia Core Container
 =====================================
 
-Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service are installed. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
+Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service will be installed during the BuildStreaM setup. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
 The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (``omnia_core.service``). 
 The Omnia core container contains the following:
 
@@ -45,23 +45,9 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     .. code-block:: bash
 
-      git clone https://github.com/dell/omnia-artifactory.git
+      git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.1.0.0-rc3
       cd omnia-artifactory
-      ./build_images.sh core omnia_branch=<tag|branch> core_tag=2.1
-
-    **Examples:**
-
-    To build from a branch:
-
-    .. code-block:: bash
-
-      ./build_images.sh core omnia_branch=main core_tag=2.1
-
-    To build from a tag:
-
-    .. code-block:: bash
-
-      ./build_images.sh core omnia_branch=v2.1.0.0-rc2 core_tag=2.1
+      ./build_images.sh core omnia_branch=v2.1.0.0-rc3 core_tag=2.1 
 
   * For detailed build instructions, refer to the `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
   * For ``core_tag=<version>``, use first two digits of the Omnia version. For example, for ``v2.1.0.0``, use ``core_tag=2.1``.
@@ -204,5 +190,3 @@ Next Steps
 ----------
 After installing the Omnia core container, create the PXE mapping file with the information of the nodes to be provisioned. For more information, see :ref:`pxe_mapping_file`.
 
-Troubleshooting
-----------------

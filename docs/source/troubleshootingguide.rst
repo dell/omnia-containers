@@ -13,7 +13,7 @@ The deployment of the Omnia core container may fail for the following reasons:
 
 **Resolution:**
 
-Peform the following steps:
+Perform the following steps:
 
 1.  Verify the Omnia core container status using the following command:
 
@@ -138,7 +138,7 @@ Checking and updating encrypted parameters
 Checking podman container status from the OIM
 ===============================================
    
-   * Use this command to get a list of all running podman conatiners: ``podman ps``
+   * Use this command to get a list of all running podman containers: ``podman ps``
    * Check the status of any specific podman containers: ``podman ps -f name=<container_name>``
 
 
@@ -147,7 +147,7 @@ Packages download issues during ``local_repo.yml`` playbook execution
 
 1. The ``local_repo.yml`` playbook generates and provides log files as part of its execution. For example, if the local repository is partially unsuccessful for nfs, analyze the issue using the following steps: 
 
-.. image:: ../images/troubleshoot_local_repo.png
+.. image:: images/troubleshoot_local_repo.png
 
 2. To view the overall download status of all software in the .csv format, run the following command:
 
@@ -159,7 +159,7 @@ Example: ::
 
         /opt/omnia/log/local_repo/x86_64/software.csv
 
-.. image:: ../images/troubleshoot_local_repo_1.png
+.. image:: images/troubleshoot_local_repo_1.png
 
 3. To view the overall download status of all packages and the log filenames for a specific software, run the following command:
 
@@ -171,7 +171,7 @@ Example: For nfs: ::
 
          /opt/omnia/log/local_repo/x86_64/nfs_task_results.log
 
-.. image:: ../images/troubleshoot_local_repo_2.png
+.. image:: images/troubleshoot_local_repo_2.png
 
 4. To view the package level status, run the following command: 
 
@@ -183,7 +183,7 @@ Example: ::
 
         /opt/omnia/log/local_repo/x86_64/nfs/status.csv
 
-.. image:: ../images/troubleshoot_local_repo_3.png
+.. image:: images/troubleshoot_local_repo_3.png
 
 5. To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
 
@@ -191,7 +191,7 @@ Example: ::
         
         /opt/omnia/log/local_repo/x86_64/nfs/logs/package_status_41422.log
 
-.. image:: ../images/troubleshoot_local_repo_4.png
+.. image:: images/troubleshoot_local_repo_4.png
 
 
 local_repo.yml playbook fails when run multiple times
@@ -207,7 +207,7 @@ The ``local_repo.yml`` playbook fails at ``TASK: [parse_and_download : Process U
 Troubleshooting logs
 =================================================================
 
-For more information, see `Logs <../Logging/OIM_logs.html>`_.
+For more information, see `Logs <Logging/OIM_logs.html>`_.
 
 
 
@@ -216,9 +216,9 @@ Troubleshooting PowerScale isilon pods after node reboot
 
 Why is the PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after a node reboot, and how can it be resolved?
 
-.. image:: ../images/troubleshoot_powerscale_1.png
+.. image:: images/troubleshoot_powerscale_1.png
 
-.. image:: ../images/troubleshoot_powerscale.jpg
+.. image:: images/troubleshoot_powerscale.jpg
 
 
 **Resolution**: Do the following:
@@ -238,31 +238,31 @@ Why is the PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after a no
 These actions ensure that any components affected by the reboot are recreated properly and resume normal operation.
 
 
-Troubleshooting LDMS on the slurm nodes
+Troubleshooting LDMS on the Slurm nodes
 =============================================
 
 
-.. image:: ../images/troubleshoot_ldms_1.png
+.. image:: images/troubleshoot_ldms_1.png
 
 1. Check the ldms aggregator and ldms store logs. ::
 
         kubectl logs -n telemetry nersc-ldms-aggr-0
-        kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+        kubectl logs -n telemetry nersc-ldms-store-Slurm-cluster-0
 
-2. SSH to the slurm node from where the LDMS metrics are not retrieved.
-3. Run ``sudo systemctl status ldmsd.sampler.service`` and check ldmsd service is running on the slurm nodes.
+2. SSH to the Slurm node from where the LDMS metrics are not retrieved.
+3. Run ``sudo systemctl status ldmsd.sampler.service`` and check ldmsd service is running on the Slurm nodes.
 
-.. image:: ../images/troubleshoot_ldms_2.png
+.. image:: images/troubleshoot_ldms_2.png
 
 4. If the ldmsd daemon is running, check whether supported plugins are loaded using the following command: ::
 
                 /opt/ovis-ldms/sbin/ldms_ls -a ovis -A conf=/opt/ovis-ldms/etc/ldms/ldmsauth.conf -p 10001 -h localhost
 
-.. image:: ../images/troubleshoot_ldms_3.png
+.. image:: images/troubleshoot_ldms_3.png
 
 5. If ldms plugins are loaded, check the metrics of each plugin using the following command: 
 
-.. image:: ../images/troubleshoot_ldms_4.png
+.. image:: images/troubleshoot_ldms_4.png
 
 Get the ldsm_port from the file /opt/ovis-ldms/etc/ldms/ldmsd.sampler.env and run the following command: ::
 
@@ -276,7 +276,7 @@ Example: ::
 
 
 
-.. image:: ../images/troubleshoot_ldms_5.png
+.. image:: images/troubleshoot_ldms_5.png
         
 
 Pulp Repository Sync and Publication Failures
@@ -285,13 +285,13 @@ Pulp Repository Sync and Publication Failures
 
 1. No Space Left on NFS Share (where Pulp is mounted).
 
-**Cause**:  Pulp storage runs out of disk space during sync or publish. In this case , Pulp logs show the error "No space left on device." Check the available storage space on the NFS share.
+**Cause**:  Pulp storage runs out of disk space during sync or publish. In this case, Pulp logs show the error "No space left on device." Check the available storage space on the NFS share.
 
 **Resolution**:  Increase the size of the NFS share where Pulp is mounted to free up space.
 
 2. Incorrect URL in ``local_repo_config.yml``.
 
-**Cause**: The repository URLs in the ``local_repo_config.yml`` file may be incorrect . The URL must point to the repository root (where the repodata directory exists) and be reachable.
+**Cause**: The repository URLs in the ``local_repo_config.yml`` file may be incorrect. The URL must point to the repository root (where the repodata directory exists) and be reachable.
 
 **Resolution**: Verify and update the URLs in the local_repo_config.yml file to ensure they are correct and accessible.
 
@@ -335,7 +335,7 @@ Running the following command on the host shows the port state as Initializing::
  
  ibstat
 
-.. image:: ../images/troubleshooting_ib.png
+.. image:: images/troubleshooting_ib.png
 
 **Cause:**
 
@@ -466,7 +466,7 @@ Kubernetes cluster nodes reboot
 
 Wait for 15 minutes after the Kubernetes cluster reboots. To verify the status of the cluster nodes, run the following commands from the ``kube_control_plane``:
 
-1. To get real-time kubernetes cluster status, run:
+1. To get real-time Kubernetes cluster status, run:
 
 .. code-block:: bash
 
@@ -478,7 +478,7 @@ Wait for 15 minutes after the Kubernetes cluster reboots. To verify the status o
 
    kubectl get pods --all-namespaces
 
-3. To verify that both the kubernetes master and kubeDNS are in the **Running** state, run:
+3. To verify that both the Kubernetes master and kubeDNS are in the **Running** state, run:
 
 .. code-block:: bash
 
@@ -505,7 +505,7 @@ The host network is faulty causing DNS to be unresponsive.
 **Resolution**
 
 1. In your Kubernetes cluster, run ``kubectl rollout restart deployments coredns -n kube-system`` on any of the ``kube_control_plane``.
-2. Wait till the coredns pods are in the running state.
+2. Wait until the coredns pods are in the running state.
 
 
 NFS-client provisioner in ContainerCreating or CrashLoopBackOff state
@@ -634,7 +634,7 @@ During kubeadm init, encrypted control-plane certificates are uploaded to the cl
 ``k8s_client_mount_path`` is the local directory on every Kubernetes node where the NFS share is mounted, allowing all nodes to access and use shared resources automatically.
 This script uploads fresh control-plane certificates to the cluster and automatically generates a refreshed control-plane join command. It saves it to ``{{ k8s_client_mount_path }}/control-plane-join-command.sh``
 
-2. On the control-plane node where the join previously failed reboot the node.
+2. On the control-plane node where the join previously failed, reboot the node.
 3. After reboot, the node automatically reads the refreshed join command from the shared NFS path and successfully adds itself to the cluster. No manual join command execution is required.
 
 
@@ -681,7 +681,7 @@ The OpenCHAMI container is not up and running.
 
 **Resolution**
 
-Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` playbook to bring up the OpenCHAMI containers. After ``prepare_oim.yml`` playbook has been executed successfully, re-deploy the cluster using the steps mentioned in the `Omnia deployment guide <../../../OmniaInstallGuide/RHEL_new/index.html>`_.
+Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` playbook to bring up the OpenCHAMI containers. After ``prepare_oim.yml`` playbook has been executed successfully, re-deploy the cluster using the steps mentioned in the `Omnia deployment guide <../OmniaInstallGuide/RHEL_new/index.html>`_.
 
 
 OpenCHAMI smd commands fail with certificate error
@@ -689,11 +689,11 @@ OpenCHAMI smd commands fail with certificate error
 
 **Cause**
 
-This issue is because of OpenCHAMI certificate expiration. After sometime, the certificate expires and loses the validity because of which OpenCHAMI commands do not run.
+This issue is because of OpenCHAMI certificate expiration. After some time, the certificate expires and loses the validity because of which OpenCHAMI commands do not run.
 
 **Resolution**
 
-As part of ``discovery.yml`` execution, certificate updation is being taken care. However, if user still faces this issue, they can update the OpenCHAMI certificate manually by running the following command on OIM:
+As part of ``discovery.yml`` execution, certificate update is being taken care. However, if user still faces this issue, they can update the OpenCHAMI certificate manually by running the following command on OIM:
 
 .. code-block:: bash
 
@@ -706,7 +706,7 @@ ochami commands fail with token error
 
 **Cause**
 
-This issue is because of Access Token getting expired after sometime.
+This issue is because of Access Token getting expired after some time.
 
 **Resolution**
 
@@ -715,3 +715,174 @@ Manually renew the access token by running the below command on OIM:
 .. code-block:: bash
 
    export <OIM_hostname>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+
+
+General Query Issues
+===================
+
+**What to do if any playbook execution fails because of hardware, network, and storage failures?**
+
+**Cause**: Hardware, network, or storage failures can cause playbook execution to fail.
+
+**Resolution**: Re-run the failed playbook once the issue is resolved.
+
+**What are the licenses required when deploying a cluster through Omnia?**
+
+**Cause**: Users need to understand licensing requirements for Omnia deployment.
+
+**Resolution**: While Omnia playbooks are licensed by Apache 2.0, Omnia deploys multiple software that are licensed separately by their respective developer communities. For a comprehensive list of software and their licenses, `click here <Overview/SupportMatrix/omniainstalledsoftware.html>`_.
+
+
+Local Repository Issues
+=======================
+
+**Why does the** ``local_repo.yml`` **playbook execution fail at** ``TASK [parse_and_download : Display Failed Packages]`` **?**
+
+.. image:: images/package_failure_local_repo.png
+
+**Cause**: This issue is encountered if Omnia fails to download any software package while executing ``local_repo.yml`` playbook. Download failures can occur if:
+
+    * The URL to download the software packages mentioned in the ``<cluster_os_type>/<cluster_os_version>/<software>.json`` is incorrect or the repository is unreachable.
+    * The provided Docker credentials are incorrect or if you encounter a Docker pull limit issue. For more information, `click here <https://www.docker.com/increase-rate-limits/#:~:text=You%20have%20reached%20your%20pull%20rate%20limit.%20You,account%20to%20a%20Docker%20Pro%20or%20Team%20subscription.>`_.
+    * If disk space is insufficient while downloading the package.
+
+**Resolution**: Re-run the ``local_repo.yml`` playbook while ensuring the following:
+
+    * URL to download the software packages mentioned in ``<arch>/<cluster_os_type>/<cluster_os_version>/<software>.json`` is correct, and the repository is reachable.
+    * Docker credentials provided in ``input/omnia_config_credentials.yml`` are correct.
+    * Sufficient disk space is available while downloading the package. For disk space considerations, see the `Omnia installation guide <../OmniaInstallGuide/RHEL_new/RHELSpace.html>`_.
+
+If the ``local_repo.yml`` is executed successfully without any package download failures, a ``Successful`` message is displayed as shown below:
+
+.. image:: images/local_repo_success.png
+
+
+Provision Issues
+================
+
+**What to do if root user login fails when accessing a cluster node?**
+
+.. image:: images/UserLoginError.png
+
+**Cause**: 
+    * SSH key on the OIM may be outdated.
+    * cloud-init might not be rendered.
+
+**Resolution**:
+
+   * Refresh the key using ``ssh-keygen -R <hostname/server IP>``.
+   * Retry login.
+   * If cloud-init is not rendered, retry the cluster node reprovision.
+
+**How is the graceful shutdown of an Omnia cluster achieved?**
+
+**Cause**: Manage OIM reboot/shutdown scenario.
+
+**Resolution**: In the case of a planned shutdown, ensure that the OIM is shut down after the compute nodes. When powering back up, the OIM should be powered on and OpenCHAMI is resumed before bringing up the compute nodes. In short, have the OIM as the first node up and the last node down.
+
+For more information, `click here <https://github.com/xcat2/xcat-core/issues/7374>`_
+
+**What to do if the Lifecycle Controller (LC) is not ready?**
+
+**Resolution**:
+
+* Verify that the LC is in a ready state for all servers using: ``racadm getremoteservicesstatus``
+* PXE boot the target server.
+
+
+Centralized Authentication Issues
+=================================
+
+**Why am I unable to login using LDAP credentials after successfully creating a user account?**
+
+**Cause**: Whitespaces in the LDIF file may have caused an encryption error. Verify whether there are any whitespaces in the file by running ``cat -vet <filename>``.
+
+**Resolution**: Remove the whitespaces and re-run the LDIF file.
+
+**What to do if OpenLDAP user login fails when accessing a cluster node?**
+
+.. image:: images/UserLoginError.png
+
+**Cause**: 
+    * SSH key on the OIM may be outdated.
+
+**Resolution**:
+
+   * Refresh the key using ``ssh-keygen -R <hostname/server IP>``.
+   * Retry login.
+
+
+Slurm Issues
+============
+
+**After executing discovery.yml playbook for Slurm cluster deployment, why do I get the following messages on the Slurm node?**
+
+.. image:: images/faq_provision.jpg
+
+**Cause**: This issue occurs when cluster nodes are booted before the Slurm controller is fully up. Because ``slurmctld`` is not yet running when the Slurm nodes start, a connection cannot be established with the controller, resulting in "unable to contact" or "not responding" messages.
+
+**Resolution**: 
+
+1. SSH to the Slurm controller node, run the following command::
+    
+    scontrol reconfigure
+ 
+2. SSH to the Slurm node and restart the slurmd service using following command::
+    
+    systemctl restart slurmd
+ 
+Finally, verify the output of sinfo command to check if node has successfully joined the Slurm cluster.
+
+
+Telemetry Issues
+===============
+
+**Why is the telemetry playbook failing at Kafka pod deployment?** 
+
+.. image:: images/telemetry.png
+
+**Cause**: No kube nodes are available in the service cluster for pod deployments.
+
+**Resolution**: If this issue occurs during telemetry execution, check if the service kube nodes are booted and added to the service ``kube_control_plane``.
+
+**Why do telemetry pods enter a CrashLoopBackOff state when PowerScale is configured as an NFS server?**
+
+**Cause**:  The CSI-PowerScale driver is not installed on the Kubernetes cluster nodes because the CSI driver entry is not present in the ``software_config.json`` file. When PowerScale is used without CSI-based integration, Kubernetes treats the storage as a manual NFS mount, which is not supported by Omnia for telemetry workloads.
+
+**Resolution**: Ensure that the following CSI-PowerScale driver entry is present in the ``software_config.json`` file:: 
+   
+   {"name": "csi_driver_powerscale", "version": "v2.15.0", "arch": ["x86_64"]}
+
+For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
+
+**Why do kafka telemetry pods enter a ``CrashLoopBackOff`` state and fail to retrieve telemetry with the error ``No space left on device``?**
+
+.. image:: images/faq_telemetry_error_crash_loop.png
+
+.. image:: images/faq_telemetry_error_nospace.jpg
+
+**Cause**: This issue occurs when the configured ``persistence_size`` for Kafka reaches its capacity limit.
+
+**Resolution**: The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit. These settings should be based on your expected data volume and cluster size.
+
+Reprovisioning Issues after Cleanup
+=====================================
+
+**Why does PostgreSQL container deployment fail after cleanup when re-provisioning Omnia?**
+
+This issue occurs when you re-provision Omnia after cleanup and have decided to retain the PostgreSQL database during the cleanup process.
+
+**Cause:** This failure is typically caused by database initialization issues when existing data is present.
+
+**Resolution:** Perform one of the following:
+
+   * To reuse the existing PostgreSQL database data available at ``postgres_data_dir``, re-run ``prepare_oim.yml`` using the same PostgreSQL database credentials that you used in the previous deployment.
+      
+   * To delete the existing PostgreSQL database data and create a new one, run the following commands:
+           
+      .. code-block:: bash
+      
+         ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
+      
+      - The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associated data and log files.
+      - After cleanup completes, re-run ``prepare_oim.yml`` to deploy a new ``postgres_container_name`` container.

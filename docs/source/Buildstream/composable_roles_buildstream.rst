@@ -12,8 +12,8 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
 
   - **Service Kube Control Plane** 
   - **Service Kube Node** 
-  - **Login Node** 
-  - **Login Compiler Node** 
+  - **Slurm Login Node** 
+  - **Slurm Login/Compiler Node** 
   - **Slurm Control Node** 
   - **Slurm Node**
 
@@ -26,8 +26,8 @@ Each node listed in the mapping file must be assigned with the following values:
 ``FUNCTIONAL_GROUP_NAME``, ``GROUP_NAME``, ``SERVICE_TAG``, ``PARENT_SERVICE_TAG``, ``HOSTNAME``, ``ADMIN_MAC``, 
 ``ADMIN_IP``, ``BMC_MAC``, and ``BMC_IP``.
 
-Refer to the :ref:`Group Attributes table <group-attributes-section>` to assign the appropriate
-``GROUP_NAME`` and the :ref:`Types of Functional Groups table <functional-groups-section>` to
+Refer to the :ref:`Group Attributes <group-attributes-section>` table in :doc:`../OmniaInstallGuide/RHEL_new/composable_roles` to assign the appropriate
+``GROUP_NAME`` and the :ref:`Types of Functional Groups <functional-groups-section>` table to
 assign the correct ``FUNCTIONAL_GROUP_NAME`` for each node in the mapping file.
 
 The following is the sample format of a mapping file for x86_64 cluster::
@@ -106,7 +106,8 @@ Nodes with similar functional roles or functionalities can be grouped together. 
    :header-rows: 1
    :keepspace:
 
-  
+
+
 Recommended Software by Functional Groups
 ------------------------------------------
 
@@ -148,8 +149,7 @@ Next Steps
 After creating the PXE mapping file, prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. See :doc:`prepare_oim_buildstream`.
 
 
-Troubleshooting
-----------------
+
 
 
    

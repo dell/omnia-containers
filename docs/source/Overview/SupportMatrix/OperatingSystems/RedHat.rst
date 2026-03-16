@@ -1,3 +1,5 @@
+.. _redhat-support-matrix:
+
 Red Hat Enterprise Linux (RHEL)
 ===============================
 
