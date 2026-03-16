@@ -112,7 +112,7 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
     while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
 
-If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records.
+If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records. LDMS
 
 .. note:: When new nodes are added, ensure the nodes are up and cloud-init has completed successfully (check /var/log/cloud-init-output.log on each node). Then, create a new Kafka consumer group with a unique name (e.g., ldms-new-nodes-group) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
 
