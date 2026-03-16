@@ -29,7 +29,7 @@ Steps
 
         ssh omnia_core
         cd /omnia/utils
-        ansible-playbook utils/oim_cleanup.yml -e postgres_backup=true
+        ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
     
     .. note:: 
 
@@ -41,7 +41,7 @@ Steps
 
         ssh omnia_core
         cd /omnia/utils
-        ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
+        ansible-playbook utils/oim_cleanup.yml -e postgres_backup=true
 
     .. important:: When prompted to back up the PostgreSQL database that you want to retain, record the database credentials. These credentials are required to restore the database when running the ``prepare_oim.yml`` playbook.
 
