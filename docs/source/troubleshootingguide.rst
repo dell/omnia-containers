@@ -238,7 +238,7 @@ Why is the PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after a no
 These actions ensure that any components affected by the reboot are recreated properly and resume normal operation.
 
 
-Troubleshooting LDMS on the slurm nodes
+Troubleshooting LDMS on the Slurm nodes
 =============================================
 
 
@@ -247,10 +247,10 @@ Troubleshooting LDMS on the slurm nodes
 1. Check the ldms aggregator and ldms store logs. ::
 
         kubectl logs -n telemetry nersc-ldms-aggr-0
-        kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+        kubectl logs -n telemetry nersc-ldms-store-Slurm-cluster-0
 
-2. SSH to the slurm node from where the LDMS metrics are not retrieved.
-3. Run ``sudo systemctl status ldmsd.sampler.service`` and check ldmsd service is running on the slurm nodes.
+2. SSH to the Slurm node from where the LDMS metrics are not retrieved.
+3. Run ``sudo systemctl status ldmsd.sampler.service`` and check ldmsd service is running on the Slurm nodes.
 
 .. image:: images/troubleshoot_ldms_2.png
 
@@ -466,7 +466,7 @@ Kubernetes cluster nodes reboot
 
 Wait for 15 minutes after the Kubernetes cluster reboots. To verify the status of the cluster nodes, run the following commands from the ``kube_control_plane``:
 
-1. To get real-time kubernetes cluster status, run:
+1. To get real-time Kubernetes cluster status, run:
 
 .. code-block:: bash
 
@@ -478,7 +478,7 @@ Wait for 15 minutes after the Kubernetes cluster reboots. To verify the status o
 
    kubectl get pods --all-namespaces
 
-3. To verify that both the kubernetes master and kubeDNS are in the **Running** state, run:
+3. To verify that both the Kubernetes master and kubeDNS are in the **Running** state, run:
 
 .. code-block:: bash
 
@@ -815,7 +815,7 @@ Centralized Authentication Issues
 Slurm Issues
 ============
 
-**After executing discovery.yml playbook for Slurm cluster deployment, why do I get the following messages on the slurm node?**
+**After executing discovery.yml playbook for Slurm cluster deployment, why do I get the following messages on the Slurm node?**
 
 .. image:: images/faq_provision.jpg
 
@@ -831,7 +831,7 @@ Slurm Issues
     
     systemctl restart slurmd
  
-Finally, verify the output of sinfo command to check if node has successfully joined the slurm cluster.
+Finally, verify the output of sinfo command to check if node has successfully joined the Slurm cluster.
 
 
 Telemetry Issues
