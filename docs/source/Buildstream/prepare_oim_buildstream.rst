@@ -1,3 +1,5 @@
+.. _prepare-oim-buildstream:
+
 Step 3:  Prepare the Omnia Infrastructure Manager 
 ========================================================
 
@@ -181,10 +183,4 @@ For more details about a specific command, run::
 
    ochami [command] --help
 
-Next Steps
-------------
 
-
-
-Troubleshooting
----------------

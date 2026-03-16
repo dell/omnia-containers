@@ -10,13 +10,13 @@ Prerequisites
 
 Before deploying GitLab for BuildStreaM:
 
-* Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node (see :doc:`how-to-prepare-buildstream`)
+* Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node (see :ref:`Prepare the Omnia Infrastructure Manager <prepare-oim-buildstream>`)
 * Sufficient system resources for GitLab (minimum 4 GB RAM, 2 CPU cores, 20GB free disk space)
 * GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
 * Network connectivity for GitLab services
 
 .. important::
-   Omnia does not support existing customer GitLab. This procedure deploys a new GitLab instance specifically for BuildStreaM.
+   Omnia uses a dedicated GitLab instance for BuildStreaM. This procedure provisions a new GitLab instance specifically configured for BuildStreaM. Currently, existing GitLab setups configured for other purposes are not supported.
 
 Procedure
 ---------
@@ -27,13 +27,11 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the following parameters.
+2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for reference.
     
    .. code-block:: bash
 
       cat /opt/omnia/input/project_default/gitlab_config.yml
-
-   Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for reference.
 
 3. Navigate to the GitLab directory.
 
@@ -43,14 +41,15 @@ Procedure
 
 4. Run the ``gitlab.yml`` playbook:
 
-.. code-block:: bash
+   .. code-block:: bash
 
-   ansible-playbook gitlab.yml
+      ansible-playbook gitlab.yml
 
-This ``gitlab.yml`` playbook installs the following:
+This ``gitlab.yml`` playbook performs the following tasks:
 
-- GitLab on the specified host with the specified project name, visibility, and default branch in the ``gitlab_config.yml`` file.
-- GitLab runner as a Podman container.
+- Installs the GitLab instance on the host specified in the ``gitlab_config.yml`` file.
+- In the GitLab instance, creates a project with the specified name, visibility, and default branch as configured in the ``gitlab_config.yml`` file.
+- Installs GitLab runner as a Podman container.
 - Generates a self-signed CA certificate for GitLab at ``/root/gitlab-certs/ca.crt``
 - Adds the project with the following files:
    - **README.MD** - Project documentation
@@ -93,5 +92,3 @@ Next Steps
 After completing GitLab deployment, update the catalog file and execute the pipeline. See :doc:`how-to-update-catalog-pipeline`.
 
 
-Troubleshooting
------------------

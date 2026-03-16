@@ -47,9 +47,3 @@ Run the following command to configure PXE boot and restart the nodes::
     cd /omnia/utils
     ansible-playbook set_pxe_boot.yml -i inventory
 
-
-Verification
-------------
-
-Troubleshooting
----------------
