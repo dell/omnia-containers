@@ -114,7 +114,7 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
 
 If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records.
 
-.. note:: When new nodes are added, create a new Kafka consumer group with a unique name (e.g., ldms-new-nodes-group) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
+.. note:: When new nodes are added, ensure the nodes are up and cloud-init has completed successfully (check /var/log/cloud-init-output.log on each node). Then, create a new Kafka consumer group with a unique name (e.g., ldms-new-nodes-group) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
 
 Verify Kafka TLS Connectivity
 -----------------------------
