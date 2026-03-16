@@ -219,7 +219,7 @@ For example, the following query displays detailed PowerEdge metrics for each ha
 Accessing the MySQL Database
 ------------------------------------
 
-After ``telemetry.yml`` has been executed for the service cluster, you can check the MySQL Database database inside the ``mysqldb`` container. To view these logs, do the following:
+After ``telemetry.yml`` has been executed for the service cluster, you can check the MySQL database inside the ``mysqldb`` container. To view these logs, do the following:
 
     1. Use the following command to get the names of all the telemetry pods: ::
         
