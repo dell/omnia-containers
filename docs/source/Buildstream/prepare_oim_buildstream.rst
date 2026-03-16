@@ -27,7 +27,7 @@ Procedure
 .. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
    * ``network_spec.yml``: contains the necessary configurations for the cluster network.
    * ``provision_config.yml``: contains the details about provisioning of clusters.
-   * ``build_stream_config.yml``: contains the details about the BuildStreamM pipeline.
+   * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
 
 ``network_spec.yml``
 ---------------------
@@ -74,7 +74,7 @@ The ``prepare_oim.yml`` deploys the following on the OIM node:
 * BuildStreaM API container 
 * Playbook watcher service
 
-.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
+.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../KnownIssues/Login.html>`_.
 
 Verification
 --------------

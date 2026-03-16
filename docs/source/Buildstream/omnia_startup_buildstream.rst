@@ -1,7 +1,7 @@
 Step 1: Deploy Omnia Core Container
 =====================================
 
-Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service are installed. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
+Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service will be installed during the BuildStreaM setup. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
 The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (``omnia_core.service``). 
 The Omnia core container contains the following:
 

@@ -9,7 +9,7 @@ Prerequisites
 
 Before updating catalogs and checking pipelines:
 
-* Deploy and Configure BuildStreaM Container on OIM Node (see :doc:`how-to-prepare-buildstream`)
+* Deploy and Configure BuildStreaM Container on OIM Node (see :doc:`prepare_oim_buildstream`)
 * GitLab deployment for BuildStreaM is completed (see :doc:`how-to-gitlab-deployment`)
 * Confirm that you can access GitLab project repository
 
@@ -40,7 +40,7 @@ Procedure
    * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
    * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.   
 
-The following image shows the BuildStream pipeline is currently running and the stages are being executed:
+The following image shows the BuildStreaM pipeline is currently running and the stages are being executed:
 
    .. image:: ../images/buildstream_pipeline_running.png
    
@@ -57,7 +57,7 @@ The following image shows the BuildStream pipeline is currently running and the 
             - **deploy-and-validate**: Deploys and validates the built images
             - **summary**: Generates summary of the build process
 
-The following image shows each stage of the BuildStream pipeline and its status:
+The following image shows each stage of the BuildStreaM pipeline and its status:
    .. image:: ../images/buildstream_pipeline_stages.png  
 
    Expected pipeline status indicators:

@@ -1,7 +1,7 @@
 Troubleshooting BuildStreaM Pipeline Issues
 ===============================================
 
-This section provides troubleshooting guidance for common BuildStream pipeline issues.
+This section provides troubleshooting guidance for common BuildStreaM pipeline issues.
 
 Stage: Health Check
 -------------------
@@ -37,10 +37,10 @@ Stage: API Registration
 **Issue**: API-Registration stage is failing.
 
 **Possible Cause**: This issue indicates one of the following problems:
-- Maximum client limit reached for BuildStream API server registration.
+- Maximum client limit reached for BuildStreaM API server registration.
 - Other API registration errors.
 
-.. note:: Currently, only one client can be registered with the BuildStream API server.
+.. note:: Currently, only one client can be registered with the BuildStreaM API server.
 
 **Resolution**:
 
@@ -141,6 +141,6 @@ Stage: Deploy Images
 
 1. Check the log path from the API response for detailed error information.
 
-2. Ensure the funtional groups listed in the PXE mapping file matches the functional groups defined in the ``catalog_rhel.json``.
+2. Ensure the functional groups listed in the PXE mapping file matches the functional groups defined in the ``catalog_rhel.json``.
 
 3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
