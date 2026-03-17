@@ -83,4 +83,4 @@ After the pipeline is completed, you can check the overall pipeline status and j
 Next Steps
 -----------
 
-After successful execution of the pipeline, manually boot the nodes via PXE to deploy the updated images. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.
+After successful execution of the pipeline, manually PXE boot the nodes to deploy the images. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.
