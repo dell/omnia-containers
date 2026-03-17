@@ -558,8 +558,6 @@ Fix underlying issue → re-run playbook.
 - Shutdown OIM last
 - On startup, power on OIM first → then compute nodes
 
-For more information, `click here <https://github.com/xcat2/xcat-core/issues/7374>`_
-
 10.3 Licensing Requirements
 ----------------------------
 
