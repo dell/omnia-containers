@@ -607,11 +607,11 @@ Example: For nfs: ::
 
 ::
 
-         /opt/omnia/log/local_repo/x86_64/<sw>/status.csv
+         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
 
 Example: ::
 
-        /opt/omnia/log/local_repo/x86_64/nfs/status.csv
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
 
 .. image:: images/troubleshoot_local_repo_update_4.png
 
