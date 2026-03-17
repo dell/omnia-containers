@@ -52,7 +52,7 @@
 
 - name: Verify bmc_group_data parents match service_kube_nodes that have children
   ansible.builtin.set_fact:
-    bmc_parent_match: "{{ (bmc_parent_mappings | default([]) | sort) == (service_kube_nodes_with_children | default([]) | sort) }}"
+    bmc_parent_match: "{{ (bmc_parent_mappings | default([]) | unique | sort) == (service_kube_nodes_with_children | default([]) | sort) }}"
   when:
     - bmc_parent_mappings is defined
     - service_kube_nodes_with_children is defined
@@ -60,7 +60,7 @@
 - name: Display bmc_group_data parent verification
   ansible.builtin.debug:
     msg: |
-      bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
+      bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | unique | sort }}
       service_kube_node tags:     {{ service_kube_node_tags | default([]) | sort }}
       service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
       Match: {{ 'YES' if bmc_parent_match | default(false) else 'NO' }}
@@ -73,7 +73,7 @@
       ╠══════════════════════════════════════════════════════════════════════════════╣
       ║ bmc_group_data.csv parent mappings do not match service_kube_nodes with children
       ║
-      ║ bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | sort }}
+      ║ bmc_group_data.csv parents: {{ bmc_parent_mappings | default([]) | unique | sort }}
       ║ service_kube_nodes with children: {{ service_kube_nodes_with_children | default([]) | sort }}
       ║
       ║ Only service_kube_nodes that have child slurm_nodes should appear as parents

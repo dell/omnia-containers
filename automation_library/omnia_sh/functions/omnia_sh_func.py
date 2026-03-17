@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,8 +41,8 @@ import subprocess
 import time
 from typing import Dict, Any, Tuple, Optional
 
-from ..vars.omnia_sh_vars import OMNIA_SH_VARS
-from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS
+from ..vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
+from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
 from ...core.formatting import log as _log
 from ...core import run_in_container
 from ...checks.vars.oim_prereq_vars import USER_CONFIG_PATH

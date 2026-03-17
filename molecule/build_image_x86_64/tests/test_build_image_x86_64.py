@@ -38,8 +38,11 @@ from automation_library.build_image.functions import (
     check_regctl_registry_images,
     check_s3_bucket_images,
     verify_all_image_packages,
-    get_functional_groups_from_pxe_mapping,
 )
+
+
+# Architecture constant for this test module
+ARCH = "x86_64"
 
 
 # =============================================================================
@@ -62,10 +65,14 @@ def test_functional_group_content(host):
             path=file_path, status=file_exists["status"]
         )
 
-    expected_groups = get_functional_groups_from_pxe_mapping(host)
-    log.check(f"Validating content against {len(expected_groups)} functional groups from pxe_mapping")
-
-    result = check_functional_group_content(host)
+    result = check_functional_group_content(host, arch=ARCH)
+    found_groups = result.get("found_functional_groups", [])
+    missing_groups = result.get("missing_functional_groups", [])
+    expected_groups = found_groups + missing_groups
+    log.check(
+        f"Validating content against {len(expected_groups)} {ARCH} "
+        "functional groups from pxe_mapping"
+    )
 
     if result["success"]:
         log.passed(
@@ -73,14 +80,14 @@ def test_functional_group_content(host):
             result["details"]
         )
     else:
-        missing = result.get("missing_functional_groups", []) + result.get("missing_group_names", [])
+        missing_all = missing_groups + result.get("missing_group_names", [])
         log.failed(
-            LOG_MSGS["functional_group_content_missing"].format(count=len(missing)),
+            LOG_MSGS["functional_group_content_missing"].format(count=len(missing_all)),
             result["error"]
         )
 
     assert result["success"], ASSERT_MSGS["functional_group_content_missing"].format(
-        missing=", ".join(result.get("missing_functional_groups", []) + result.get("missing_group_names", [])),
+        missing=", ".join(missing_groups + result.get("missing_group_names", [])),
         expected_list="\n".join([f"║   - {g}" for g in expected_groups])
     )
 
@@ -92,10 +99,12 @@ def test_functional_group_content(host):
 def test_regctl_registry_images(host):
     """Validate that base and compute images are available in regctl registry."""
     log = TestLogger(TEST_NAMES["regctl_registry_images"])
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
-    log.check(f"Checking regctl registry for base image + {len(functional_groups)} functional group images")
-
-    result = check_regctl_registry_images(host, arch="x86_64")
+    result = check_regctl_registry_images(host, arch=ARCH)
+    found_count = len(result.get("found_images", []))
+    log.check(
+        f"Checking regctl registry for {ARCH} base image + "
+        f"{found_count} functional group images"
+    )
 
     # Build details
     details_lines = [f"Registry: {result.get('registry_url', 'unknown')}"]
@@ -127,11 +136,13 @@ def test_regctl_registry_images(host):
 def test_s3_bucket_images(host):
     """Verify all images are pushed to S3 bucket for all functional groups."""
     log = TestLogger(TEST_NAMES["s3_bucket_images"])
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
     image_types = BUILD_IMAGE_VARS["image_types"]
-    log.check(f"Checking S3 bucket for {len(functional_groups)} functional groups x {len(image_types)} images each")
-
-    result = check_s3_bucket_images(host)
+    result = check_s3_bucket_images(host, arch=ARCH)
+    group_count = len(result.get("results", []))
+    log.check(
+        f"Checking S3 bucket for {group_count} {ARCH} functional groups x "
+        f"{len(image_types)} images each"
+    )
 
     # Build details for all functional groups with actual image names and sizes
     details_lines = []
@@ -142,8 +153,8 @@ def test_s3_bucket_images(host):
             for img in fg_result.get("image_details", []):
                 details_lines.append(f"    {img['type']}: {img['filename']} ({img['size_human']})")
         else:
-            missing = fg_result.get("missing_images", [])
-            details_lines.append(f"✗ {fg}: missing {', '.join(missing)}")
+            missing_imgs = fg_result.get("missing_images", [])
+            details_lines.append(f"✗ {fg}: missing {', '.join(missing_imgs)}")
 
     details = "\n".join(details_lines)
 
@@ -156,10 +167,10 @@ def test_s3_bucket_images(host):
             details
         )
         assert_details = []
-        for fg_result in failed_groups:
-            assert_details.append(
-                f"║   - {fg_result['functional_group']}: missing {', '.join(fg_result['missing_images'])}"
-            )
+        for fg_res in failed_groups:
+            fg_name = fg_res['functional_group']
+            fg_missing = ', '.join(fg_res['missing_images'])
+            assert_details.append(f"║   - {fg_name}: missing {fg_missing}")
         assert False, ASSERT_MSGS["s3_bucket_images_missing"].format(
             group="multiple groups",
             missing_list="\n".join(assert_details)
@@ -173,8 +184,7 @@ def test_s3_bucket_images(host):
 def test_all_image_packages(host):
     """Verify all packages are installed in ALL S3 images by mounting and checking RPM db."""
     log = TestLogger(TEST_NAMES["image_packages"])
-
-    result = verify_all_image_packages(host)
+    result = verify_all_image_packages(host, arch=ARCH)
 
     # Check for prerequisite failure (squashfs-tools not installed)
     if result.get("prerequisite_failed"):
@@ -188,7 +198,6 @@ def test_all_image_packages(host):
         fg = fg_result["functional_group"]
         expected = fg_result.get("expected_count", 0)
         found = fg_result.get("found_count", 0)
-        missing = fg_result.get("missing_count", 0)
         base_count = fg_result.get("base_package_count", 0)
         compute_count = fg_result.get("compute_package_count", 0)
 

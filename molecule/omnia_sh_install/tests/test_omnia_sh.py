@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,8 +27,9 @@ Test cases:
 """
 
 from automation_library.core import TestLogger
+from automation_library.omnia_sh.vars.omnia_sh_vars import TEST_VARS
 from automation_library.omnia_sh.messages.omnia_sh_msgs import (
-    TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
+    TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
 from automation_library.omnia_sh.functions.omnia_sh_func import (
     check_container_running,

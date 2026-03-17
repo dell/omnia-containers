@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,12 @@
 """
 Omnia.sh Test - Configuration Variables.
 
-This module loads all configuration from user_config.yml.
-All omnia.sh related settings are now in user_config.yml (section 13).
+This module contains hardcoded variables for omnia.sh verification tests.
+These values match the defaults in omnia.sh and should NOT be changed.
 
 Usage:
-    from automation_library.omnia_sh.vars.omnia_sh_vars import OMNIA_SH_VARS
+    from automation_library.omnia_sh.vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
 
-Author: Dell Technologies
 """
 
 from typing import Dict, Any
@@ -30,44 +29,27 @@ from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 
 # =============================================================================
-# OMNIA.SH VARIABLES
-# =============================================================================
-# All configuration now comes from user_config.yml
+# OMNIA.SH VARIABLES - Hardcoded defaults (same as omnia.sh)
 # =============================================================================
 
 OMNIA_SH_VARS: Dict[str, Any] = {
+    "container_name": "omnia_core",
+    "ssh_port": 2222,
+    "container_image_tag": "1.0",
+    "omnia_shared_path": "/opt/omnia",
+}
 
-    # =========================================================================
-    # USER INPUTS - all from user_config.yml
-    # =========================================================================
 
-    # NFS settings (section 6)
-    "nfs_server_ip": OIM_PREREQ_VARS["nfs_server"],
-    "nfs_share_path": OIM_PREREQ_VARS["nfs_share_path"],
+# =============================================================================
+# TEST VARIABLES (for molecule/pytest tests)
+# =============================================================================
 
-    # Clone path (section 11)
-    "omnia_clone_path": OIM_PREREQ_VARS["omnia_clone_path"],
-
-    # Omnia.sh install settings (section 13)
-    "share_option": OIM_PREREQ_VARS["share_option"],
-    "nfs_type": OIM_PREREQ_VARS["nfs_type"],
-    "omnia_shared_path": OIM_PREREQ_VARS["omnia_shared_path"],
-    "omnia_core_password": OIM_PREREQ_VARS["omnia_core_password"],
-
-    # =========================================================================
-    # SCRIPT DEFAULTS - same as omnia.sh (DO NOT OVERRIDE)
-    # =========================================================================
-
-    "container_name": "omnia_core",      # Hardcoded in omnia.sh
-    "ssh_port": 2222,                     # Hardcoded in omnia.sh
-    "container_image_tag": "1.0",         # Hardcoded in omnia.sh
-
-    # =========================================================================
-    # TEST SETTINGS
-    # =========================================================================
-
-    "command_timeout": 30,
-    "install_timeout": 600,
-    "container_start_timeout": 60,
-    "cleanup_after_test": True,
+TEST_VARS: Dict[str, Any] = {
+    "container_name": "omnia_core",
+    "container_file": "/etc/containers/systemd/omnia_core.container",
+    "service_name": "omnia_core.service",
+    "metadata_file": "/opt/omnia/.data/oim_metadata.yml",
+    "ssh_alias": "omnia_core",
+    "ssh_timeout": 5,
+    "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
 }

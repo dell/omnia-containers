@@ -56,6 +56,23 @@ from ..messages.build_image_msgs import BUILD_IMAGE_MSGS, TEST_LOG_MSGS
 # HELPER FUNCTIONS
 # =============================================================================
 
+def _filter_functional_groups_by_arch(functional_groups: list, arch: str) -> list:
+    """
+    Filter functional groups by architecture.
+
+    Args:
+        functional_groups: list of all functional groups from pxe_mapping
+        arch: Architecture to filter by (x86_64 or aarch64)
+
+    Returns:
+        List of functional groups matching the specified architecture
+    """
+    if not functional_groups or not arch:
+        return list(functional_groups) if functional_groups else []
+
+    return [fg for fg in functional_groups if arch in fg]
+
+
 def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
     """
     Adjust functional groups list based on control plane node count.
@@ -224,12 +241,13 @@ def check_functional_group_file_exists(host) -> Dict[str, Any]:
     }
 
 
-def check_functional_group_content(host) -> Dict[str, Any]:
+def check_functional_group_content(host, arch: str = None) -> Dict[str, Any]:
     """
     Validate functional_groups_config.yml contains all roles and groups from pxe_mapping.
 
     Args:
         host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
 
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'missing_groups', 'found_groups'
@@ -238,6 +256,9 @@ def check_functional_group_content(host) -> Dict[str, Any]:
 
     # Get expected functional groups from pxe_mapping file inside container
     raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        raw_functional_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
     expected_functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
     expected_group_names = get_group_names_from_pxe_mapping(host)
 
@@ -359,9 +380,10 @@ def check_regctl_registry_images(host, arch: str = "x86_64") -> Dict[str, Any]:
     hostname = hostname_cmd.stdout.strip()
     registry_url = f"{hostname}:5000"
 
-    # Get functional groups from pxe_mapping file inside container
+    # Get functional groups from pxe_mapping file inside container, filtered by arch
     raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
-    functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
+    filtered_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
+    functional_groups = _get_adjusted_functional_groups(host, filtered_groups)
 
     # Build expected images list (without hostname prefix for display)
     expected_images = [f"rhel-{arch}_base"]  # Base image always required
@@ -442,7 +464,7 @@ def _parse_human_size(size_str: str) -> int:
     return int(size_str)
 
 
-def check_s3_bucket_images(host) -> Dict[str, Any]:
+def check_s3_bucket_images(host, arch: str = None) -> Dict[str, Any]:
     """
     Validate that images are pushed to the S3 bucket.
     Checks for all 3 images (initramfs, rootfs, vmlinuz) for each functional group.
@@ -450,6 +472,7 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
 
     Args:
         host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
 
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'results'
@@ -458,6 +481,9 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
     raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        raw_functional_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
     functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
 
     if not functional_groups:
@@ -847,13 +873,14 @@ def _verify_single_image_packages(host, functional_group: str, images_dir: str,
     }
 
 
-def verify_all_image_packages(host) -> Dict[str, Any]:
+def verify_all_image_packages(host, arch: str = None) -> Dict[str, Any]:
     """
     Download ALL S3 images, mount each, and verify all expected packages are installed.
     Uses RPM database inside each squashfs image for accurate verification.
 
     Args:
         host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
 
     Returns:
         Dict with 'success', 'results' containing package verification for each functional group
@@ -872,10 +899,13 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
         }
 
     functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        functional_groups = _filter_functional_groups_by_arch(functional_groups, arch)
     if not functional_groups:
         return {
             "success": False,
-            "error": "No functional groups found in pxe_mapping",
+            "error": f"No functional groups found in pxe_mapping for arch={arch}",
             "results": [],
             "total_groups": 0,
             "passed_groups": 0,
@@ -884,7 +914,9 @@ def verify_all_image_packages(host) -> Dict[str, Any]:
 
     # Adjust functional groups based on control plane count
     groups_to_verify = _get_adjusted_functional_groups(host, functional_groups)
-    arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
+    # Determine arch from groups if not specified
+    if not arch:
+        arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
 
     images_dir = BUILD_IMAGE_VARS["image_config_yaml_dir"]
     temp_image = BUILD_IMAGE_VARS["temp_image_path"]

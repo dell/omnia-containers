@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,52 +234,12 @@
         msg: "{{ result_msg }} on OIM server {{ ansible_host }}"
 
     # =========================================================================
-    # COPY PROJECT_DEFAULT INTO CONTAINER (via SSH port 2222)
+    # SYNC PROJECT_DEFAULT AND ENCRYPT CREDENTIALS (using shared task)
     # =========================================================================
 
-    - name: Sync project_default to container via rsync  # noqa: command-instead-of-module
-      ansible.builtin.shell:
-        cmd: >
-          rsync -avz --delete
-          -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
-          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          {{ project_default_src }}/
-          root@{{ ansible_host }}:{{ project_default_dest }}/
-      delegate_to: localhost
-      changed_when: true
-
-    # =========================================================================
-    # GENERATE VAULT KEY FOR CREDENTIALS (same as Omnia mechanism)
-    # =========================================================================
-
-    - name: Generate ansible vault key
-      ansible.builtin.set_fact:
-        omnia_credentials_vault_key: "{{ lookup('password', '/dev/null chars=ascii_letters length=20') }}"
-
-    - name: Create vault key file in container
-      ansible.builtin.shell:
-        cmd: >
-          sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
-          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
-          root@{{ ansible_host }}
-          "echo '{{ omnia_credentials_vault_key }}' >
-          {{ project_default_dest }}/.omnia_config_credentials_key &&
-          chmod 600 {{ project_default_dest }}/.omnia_config_credentials_key"
-      delegate_to: localhost
-      changed_when: true
-      no_log: true
-
-    - name: Encrypt omnia_config_credentials.yml in container
-      ansible.builtin.shell:
-        cmd: >
-          sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
-          -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
-          root@{{ ansible_host }}
-          "cd {{ project_default_dest }} && ansible-vault encrypt omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key"
-      delegate_to: localhost
-      changed_when: true
-      failed_when: false
+    - name: Sync project_default and encrypt credentials
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
 
     - name: Display final result
       ansible.builtin.debug:
-        msg: "omnia.sh --install, project_default sync, and vault key generation completed on OIM server {{ ansible_host }}"
+        msg: "omnia.sh --install completed on OIM server {{ ansible_host }}"

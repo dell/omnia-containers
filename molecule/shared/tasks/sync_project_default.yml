@@ -1,0 +1,92 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Shared task to sync project_default into omnia_core container and encrypt
+# credential files using the same mechanism as Omnia playbooks
+# =============================================================================
+
+- name: Set project_default paths
+  ansible.builtin.set_fact:
+    project_default_src: "{{ project_dir }}/project_default"
+    project_default_dest: "/opt/omnia/input/project_default"
+    omnia_config_credentials_file: "omnia_config_credentials.yml"
+    omnia_config_credentials_key: ".omnia_config_credentials_key"
+
+- name: Sync project_default to container via rsync  # noqa: command-instead-of-module
+  ansible.builtin.shell:
+    cmd: >
+      rsync -avz --delete
+      -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+      {{ project_default_src }}/
+      root@{{ ansible_host }}:{{ project_default_dest }}/
+  delegate_to: localhost
+  changed_when: true
+
+# =============================================================================
+# CREATE VAULT KEY AND ENCRYPT CREDENTIALS (same as Omnia mechanism)
+# =============================================================================
+
+- name: Check if vault key exists in container
+  ansible.builtin.shell:
+    cmd: >
+      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      root@{{ ansible_host }}
+      "test -f {{ project_default_dest }}/{{ omnia_config_credentials_key }} && echo EXISTS || echo NOT_FOUND"
+  delegate_to: localhost
+  register: vault_key_check
+  changed_when: false
+
+- name: Create vault key file in container (32 char random password)
+  ansible.builtin.shell:
+    cmd: >
+      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      root@{{ ansible_host }}
+      "head -c 32 /dev/urandom | base64 | head -c 32 > {{ project_default_dest }}/{{ omnia_config_credentials_key }} &&
+      chmod 600 {{ project_default_dest }}/{{ omnia_config_credentials_key }}"
+  delegate_to: localhost
+  changed_when: true
+  when: vault_key_check.stdout == "NOT_FOUND"
+
+- name: Check if credentials file is already encrypted
+  ansible.builtin.shell:
+    cmd: >
+      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      root@{{ ansible_host }}
+      "head -n1 {{ project_default_dest }}/{{ omnia_config_credentials_file }} 2>/dev/null | grep -q 'ANSIBLE_VAULT' && echo ENCRYPTED || echo PLAIN"
+  delegate_to: localhost
+  register: cred_file_check
+  changed_when: false
+  failed_when: false
+
+- name: Encrypt omnia_config_credentials.yml in container
+  ansible.builtin.shell:
+    cmd: >
+      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+      root@{{ ansible_host }}
+      "cd {{ project_default_dest }} &&
+      ansible-vault encrypt {{ omnia_config_credentials_file }}
+      --vault-password-file {{ omnia_config_credentials_key }}"
+  delegate_to: localhost
+  changed_when: true
+  when: cred_file_check.stdout == "PLAIN"
+
+- name: Display sync and encryption result
+  ansible.builtin.debug:
+    msg: "project_default synced and credentials encrypted on {{ ansible_host }}"

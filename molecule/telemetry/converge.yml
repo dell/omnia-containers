@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,23 +83,33 @@
     # =========================================================================
     - name: Display prerequisite check summary
       ansible.builtin.debug:
-        msg: |
-          ============================================
-          TELEMETRY PREREQUISITE CHECK SUMMARY
-          ============================================
-          idrac_telemetry_support:      {{ idrac_telemetry_support }}
-          pxe_mapping_file:             {{ pxe_mapping_check.stdout | default('SKIPPED') }}
-          service_kube_node count:      {{ service_kube_node_tags | default([]) | length }}
-          service_kube_node tags:       {{ service_kube_node_tags | default([]) }}
-          slurm_node with svc parent:   {{ slurm_node_with_service_parent_count | default(0) }}
-          idrac-telemetry pod count:    {{ idrac_telemetry_pod_count }} (expected: {{ expected_idrac_pod_count }})
-          bmc_group_data.csv:           {{ bmc_group_data_check.stdout }}
-          bmc_group_data parents:       {{ bmc_parent_mappings | default([]) }}
-          bmc parent mapping match:     {{ 'YES' if bmc_parent_match | default(false) else 'NO' }}
-          service_cluster_metadata.yml: {{ service_cluster_metadata_check.stdout }}
-          kube_vip:                     {{ kube_vip | default('N/A') }}
-          kube_vip reachable:           {{ 'YES' if kube_vip_ping.rc == 0 else 'NO' }}
-          ============================================
+        msg:
+          - "============================================"
+          - "  TELEMETRY PREREQUISITE CHECK SUMMARY"
+          - "============================================"
+          - ""
+          - "CONFIGURATION FILES:"
+          - "  pxe_mapping_file:             {{ pxe_mapping_check.stdout | default('SKIPPED') }}"
+          - "  bmc_group_data.csv:           {{ bmc_group_data_check.stdout }}"
+          - "  service_cluster_metadata.yml: {{ service_cluster_metadata_check.stdout }}"
+          - ""
+          - "TELEMETRY SETTINGS:"
+          - "  idrac_telemetry_support:      {{ idrac_telemetry_support }}"
+          - ""
+          - "SERVICE KUBE NODES:"
+          - "  service_kube_node count:      {{ service_kube_node_tags | default([]) | length }}"
+          - "  service_kube_node tags:       {{ service_kube_node_tags | default([]) }}"
+          - "  slurm_node with svc parent:   {{ slurm_node_with_service_parent_count | default(0) }}"
+          - ""
+          - "IDRAC TELEMETRY PODS:"
+          - "  idrac-telemetry pod count:    {{ idrac_telemetry_pod_count }} (expected: {{ expected_idrac_pod_count }})"
+          - "  bmc_group_data parents:       {{ bmc_parent_mappings | default([]) | unique }}"
+          - "  bmc parent mapping match:     {{ 'YES' if bmc_parent_match | default(false) else 'NO' }}"
+          - ""
+          - "KUBERNETES CLUSTER:"
+          - "  kube_vip:                     {{ kube_vip | default('N/A') }}"
+          - "  kube_vip reachable:           {{ 'YES' if kube_vip_ping.rc == 0 else 'NO' }}"
+          - "============================================"
 
     # =========================================================================
     # RUN TELEMETRY PLAYBOOK
