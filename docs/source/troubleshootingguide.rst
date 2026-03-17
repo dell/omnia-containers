@@ -573,33 +573,35 @@ For more information, see `Logs <Logging/OIM_logs.html>`_.
 10.5 Local Repository Package Download Issues
 ---------------------------------------------
 
-1. The ``local_repo.yml`` playbook generates and provides log files as part of its execution. For example, if the local repository is partially unsuccessful for nfs, analyze the issue using the following steps: 
+1. The ``local_repo.yml`` playbook generates and provides log files as part of its execution. For example, if the local repository is partially unsuccessful for OpenLDAP, analyze the issue using the following steps: 
 
-.. image:: images/troubleshoot_local_repo.png
+.. image:: images/troubleshooting_local_repo_update.png
+
+.. image:: images/troubleshooting_local_repo_update_1.png
 
 2. To view the overall download status of all software in the .csv format, run the following command:
 
 ::
 
-        opt/omnia/log/local_repo/<arch>/software.csv
+        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
 
 Example: :: 
 
-        /opt/omnia/log/local_repo/x86_64/software.csv
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
 
-.. image:: images/troubleshoot_local_repo_1.png
+.. image:: images/troubleshoot_local_repo_update_2.png
 
 3. To view the overall download status of all packages and the log filenames for a specific software, run the following command:
 
 ::
 
-        /opt/omnia/log/local_repo/<sw>_task_results.log
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
 
 Example: For nfs: ::
 
-         /opt/omnia/log/local_repo/x86_64/nfs_task_results.log
+         /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
 
-.. image:: images/troubleshoot_local_repo_2.png
+.. image:: images/troubleshoot_local_repo_update_3.png
 
 4. To view the package level status, run the following command: 
 
@@ -611,15 +613,15 @@ Example: ::
 
         /opt/omnia/log/local_repo/x86_64/nfs/status.csv
 
-.. image:: images/troubleshoot_local_repo_3.png
+.. image:: images/troubleshoot_local_repo_update_4.png
 
 5. To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
 
 Example: ::
         
-        /opt/omnia/log/local_repo/x86_64/nfs/logs/package_status_41422.log
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
 
-.. image:: images/troubleshoot_local_repo_4.png
+.. image:: images/troubleshoot_local_repo_update_5.png
 
 **Why does the** ``local_repo.yml`` **playbook execution fail at** ``TASK [parse_and_download : Display Failed Packages]`` **?**
 
