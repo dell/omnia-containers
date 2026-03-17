@@ -17,6 +17,18 @@ Introduces BuildStream integration for automated container image building and pi
 - Self-signed certificate management for secure GitLab access
 - Pipeline monitoring and status tracking through GitLab web interface
 
+
+Upgrade Path from 2.0.0.0 to 2.1.0.0-rc3
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc3.
+
+Rollback Support
+^^^^^^^^^^^^^^^^
+
+Provides rollback support to revert to a previous version if needed.
+
+
 ``Version 2.1.0.0-rc2``
 ----------------------
 
