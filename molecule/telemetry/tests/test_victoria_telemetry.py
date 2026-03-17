@@ -576,7 +576,7 @@ def test_victoria_idrac_data(host):
         metric_count = tag_result["metric_count"]
 
         if found:
-            log.check(f"  {status} {service_tag}")
+            log.check(f"  ✓ {service_tag}")
             log.check(f"      Service Tag : {service_tag}")
             log.check(f"      Metrics     : {metric_count} found")
             if latest_ts:
