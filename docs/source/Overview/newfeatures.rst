@@ -18,15 +18,15 @@ Introduces BuildStream integration for automated container image building and pi
 - Pipeline monitoring and status tracking through GitLab web interface
 
 
-Upgrade Path from 2.0.0.0 to 2.1.0.0-rc3
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc3.
+Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
 
 Rollback Support
 ^^^^^^^^^^^^^^^^
 
-Provides rollback support to revert to a previous version if needed.
+Provides rollback support to revert to a previous version of the Omnia Core Container if needed.
 
 
 ``Version 2.1.0.0-rc2``
@@ -53,10 +53,6 @@ Telemetry Collection from OME and SFM
 
 Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
-Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
 
 ``Version 2.1.0.0-rc1``
 ---------------------
