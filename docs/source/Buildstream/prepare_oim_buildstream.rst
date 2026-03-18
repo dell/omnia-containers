@@ -25,9 +25,10 @@ Procedure
 1. Update the following input files.
 
 .. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
-      * ``network_spec.yml``: contains the necessary configurations for the cluster network.
-      * ``provision_config.yml``: contains the details about provisioning of clusters.
-      * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
+
+   * ``network_spec.yml``: contains the necessary configurations for the cluster network.
+   * ``provision_config.yml``: contains the details about provisioning of clusters.
+   * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
 
 ``network_spec.yml``
 ---------------------
