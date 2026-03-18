@@ -23,11 +23,11 @@ If the ``omnia.sh`` script from version v2.0.0.0 already exists, either replace 
     
     * To use the tagged version of Omnia, run the following command: ::
 
-        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
+        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
 
     * To use the specific branch of Omnia, run the following command: ::
 
-        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
+        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
 
 .. note:: Replace ``${OMNIA_VERSION}`` with the target version (for example, ``v2.1.0.0``).
 
