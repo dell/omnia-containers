@@ -18,7 +18,7 @@ Procedure
 
 1. Go to the GitLab project URL::
 
-    https://<gitlab host ip>/<gitlab project name>
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
 
 2. Go to **Code** → **Repository**.
 3. Locate the catalog file ``catalog_rhel.json``.
