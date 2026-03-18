@@ -12,7 +12,7 @@ Before deploying GitLab for BuildStreaM:
 
 * Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node (see :ref:`Prepare the Omnia Infrastructure Manager <prepare-oim-buildstream>`)
 * A dedicated node is required for BuildStreaM GitLab deployment.
-* The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20GB free disk space)
+* The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20 GB free disk space)
 * GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
 * Network connectivity for GitLab services
 
@@ -90,6 +90,6 @@ After the installation of GitLab complete, verify the following:
 Next Steps
 ----------
 
-After completing GitLab deployment, update the catalog file and execute the pipeline. See :doc:`how-to-update-catalog-pipeline`.
+After completing GitLab deployment, update the catalog file to automatically trigger the pipeline. See :doc:`how-to-update-catalog-pipeline`.
 
 
