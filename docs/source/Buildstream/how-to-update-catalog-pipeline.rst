@@ -37,7 +37,7 @@ Procedure
 5. To trigger the pipeline, commit and push catalog changes.
 
 .. note:: 
-   * Pipelines cannot run parallel jobs. If multiple catalog changes are committed and pushed simultaneously, the pipelines will be queued and executed in sequence.
+   * Currently, BuildStream supports only one catalog file and one pipeline trigger. BuildStream pipeline behaviour is controlled by the GitLab CI/CD configuration in your environment.
    * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.   
 
 The following image shows the BuildStreaM pipeline is currently running and the stages are being executed:
@@ -83,4 +83,7 @@ After the pipeline is completed, you can check the overall pipeline status and j
 Next Steps
 -----------
 
-After successful execution of the pipeline, set the PXE boot order for the nodes and then run the ``set_pxe_boot.yml`` playbook to configure the boot settings. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.
+After successful execution of the pipeline, do one of the following:
+
+* Manually PXE boot the nodes to deploy the images. 
+* Use the PXE boot utility to deploy the images. See :doc:`set_pxe_boot_order_buildstream` for detailed instructions.

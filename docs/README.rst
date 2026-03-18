@@ -30,4 +30,4 @@ or::
    make html
 
 
-* View the documentation by pointing a browser to: `omnia/docs/build/html/index.html`
+* View the documentation by pointing a browser to: ``omnia/docs/build/html/index.html``

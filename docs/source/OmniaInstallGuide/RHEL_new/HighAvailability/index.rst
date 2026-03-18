@@ -1,3 +1,5 @@
+.. _high-availability-section:
+
 Step 10: High Availability
 ============================
 

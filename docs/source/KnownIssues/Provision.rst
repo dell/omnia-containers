@@ -3,7 +3,7 @@ Provision
 
 ⦾ **Why am I unable to do ssh to the booted nodes via omnia_core container?**
 
-.. image:: ../../images/provision_issue.jpg
+.. image:: ../images/provision_issue.jpg
 
 **Potential Causes**: This issue is due to SSH host key mismatch.
 

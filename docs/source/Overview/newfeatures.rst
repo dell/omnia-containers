@@ -17,6 +17,13 @@ Introduces BuildStream integration for automated container image building and pi
 - Self-signed certificate management for secure GitLab access
 - Pipeline monitoring and status tracking through GitLab web interface
 
+
+Support for upgrading Omnia Core Container from 2.1.0.0-rc1 to 2.1.0.0
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Provides an upgrade path for Omnia Core Container from 2.1.0.0-rc1 to 2.1.0.0. 
+
+
 ``Version 2.1.0.0-rc2``
 ----------------------
 
@@ -41,10 +48,6 @@ Telemetry Collection from OME and SFM
 
 Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
-Support for upgrading Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Provides an upgrade path for Omnia Core Container from 2.0.0.0 to 2.1.0.0-rc2. 
 
 ``Version 2.1.0.0-rc1``
 ---------------------
