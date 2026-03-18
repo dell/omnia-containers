@@ -252,21 +252,19 @@ It is recommended to run this script on a login or compiler node.
 
 6. Run a container (example).
 
-**Step 6: Run a Container (Example)**
+    Run the following command to execute the container::
 
-Run the following command to execute the container::
+        apptainer exec /hpc_tools/container_images/hpc-benchmarks_25.09.sif --help
 
-    apptainer exec /hpc_tools/container_images/hpc-benchmarks_25.09.sif --help
+    Verify GPU Visibility Inside the Container
 
-**Verify GPU Visibility Inside the Container**
+    To ensure GPUs are accessible within the container, run::
 
-To ensure GPUs are accessible within the container, run::
+        apptainer exec --nv /hpc_tools/container_images/hpc-benchmarks_25.09.sif nvidia-smi
 
-    apptainer exec --nv /hpc_tools/container_images/hpc-benchmarks_25.09.sif nvidia-smi
+    HPL-MxP Quick Compute Test (2 GPUs)
 
-**HPL-MxP Quick Compute Test (2 GPUs)**
-
-Execute a quick HPL-MxP benchmark test using two GPUs::
+    Execute a quick HPL-MxP benchmark test using two GPUs::
 
     srun -N 1 --ntasks-per-node=2 --gres=gpu:2 --mpi=pmix \
         apptainer exec --nv /hpc_tools/container_images/hpc-benchmarks_25.09.sif \
@@ -276,8 +274,8 @@ Execute a quick HPL-MxP benchmark test using two GPUs::
         --gpu-affinity 0:1
 
 .. note:: For detailed guidance on using Apptainer and NVIDIA HPC Benchmarks, refer to:
-    Apptainer User Documentation: https://apptainer.org/docs/user/main/
-    NVIDIA HPC Benchmarks (NGC Catalog): https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks?version=25.09
+    * Apptainer User Documentation: https://apptainer.org/docs/user/main/
+    * NVIDIA HPC Benchmarks (NGC Catalog): https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks?version=25.09
 
 
 
