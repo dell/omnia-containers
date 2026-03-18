@@ -29,6 +29,7 @@ Procedure
    * ``network_spec.yml``: contains the necessary configurations for the cluster network.
    * ``provision_config.yml``: contains the details about provisioning of clusters.
    * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
+   * ``gitlab_config.yml``: contains the details about the BuildStreaM GitLab configuration.
 
 ``network_spec.yml``
 ---------------------
