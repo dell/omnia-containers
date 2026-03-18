@@ -84,6 +84,9 @@ Run the command. ::
 
 After pulling directly from the internet, restore the registry mirror configuration so that future pulls again route through Pulp.
 
+.. note:: For detailed guidance on using Apptainer and NVIDIA HPC Benchmarks, refer to:
+    Apptainer User Documentation: https://apptainer.org/docs/user/main/
+
 
 
 
