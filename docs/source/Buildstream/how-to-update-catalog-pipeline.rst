@@ -65,9 +65,9 @@ The following image shows each stage of the BuildStreaM pipeline and its status:
       - |failed| **Red X**: Stage failed (click for error details)
       - |running| **Blue circle**: Stage currently running
 
-.. |success| image:: ../Images/Icons/green_check.png
-.. |failed| image:: ../Images/Icons/red_x.png
-.. |running| image:: ../Images/Icons/blue_circle.png
+.. |success| image:: ../images/Icons/green_check.png
+.. |failed| image:: ../images/Icons/red_x.png
+.. |running| image:: ../images/Icons/blue_circle.png
 
 The following image shows overall pipeline status:
    .. image:: ../images/buildstream_pipeline_passed.png
