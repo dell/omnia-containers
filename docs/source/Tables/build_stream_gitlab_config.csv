@@ -1,7 +1,7 @@
 ﻿Parameter,Mandatory/Optional,Description
 gitlab_host,Mandatory,"* IP address of the target host where GitLab will be deployed.
 * Must be accessible from the OIM server.
-* Must be configured in ``build_stream/gitlab/inventory/hosts.ini``"
+"
 gitlab_project_name,Mandatory,"* Name of the GitLab project that Omnia creates or manage.
 * **Default value**: ``omnia-catalog``
 * This project is created automatically if it does not exist."
@@ -25,12 +25,6 @@ gitlab_min_storage_gb,Mandatory,"* Free disk space validated before install
 gitlab_min_cpu_cores,Mandatory,"* Minimum CPU core count validated before install
 * **Default value:** 2
 * More cores may be needed for production workloads"
-gitlab_disable_prometheus,Mandatory,"* Disable Prometheus bundled monitoring to save resources
-* **Default value:** true
-* Set to false to enable Prometheus monitoring"
-gitlab_disable_grafana,Mandatory,"*  Disable Grafana if not needed
-* **Default value:** true
-*  Set to false to enable Grafana dashboards"
 gitlab_puma_workers,Mandatory,"* Number of worker processes
 * **Default value:** 2
 *  Scale with CPU cores (recommended: 1-2 workers per CPU core)"

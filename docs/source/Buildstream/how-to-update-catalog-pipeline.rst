@@ -49,21 +49,25 @@ The following image shows the BuildStreaM pipeline is currently running and the 
       a. Navigate to **Build** → **Pipeline**.
       b. Click on the running pipeline to view details.
       c. Monitor each stage as it progresses:
-            - **initialization**: Sets up the build environment
-            - **parse-catalog**: Parses catalog file for build requirements
-            - **generate-input-files**: Generates input files for build
-            - **configure-local-repository**: Configures local repository for artifacts
-            - **build-images**: Builds the specified images
-            - **deploy-and-validate**: Deploys and validates the built images
-            - **summary**: Generates summary of the build process
+            - **initialization**: Sets up the build environment.
+            - **parse-catalog**: Parses catalog file for build requirements.
+            - **generate-input-files**: Generates input files for build.
+            - **configure-local-repository**: Configures local repository for artifacts.
+            - **build-images**: Builds the specified images.
+            - **deploy-and-validate**: Discovers the nodes on which the images need to be deployed.
+            - **summary**: Generates summary of pipeline execution.
 
 The following image shows each stage of the BuildStreaM pipeline and its status:
    .. image:: ../images/buildstream_pipeline_stages.png  
 
    Expected pipeline status indicators:
-      - **Green checkmark**: Stage completed successfully
-      - **Red X**: Stage failed (click for error details)
-      - **Blue circle**: Stage currently running
+      - |success| **Green checkmark**: Stage completed successfully
+      - |failed| **Red X**: Stage failed (click for error details)
+      - |running| **Blue circle**: Stage currently running
+
+.. |success| image:: ../Images/Icons/green_check.png
+.. |failed| image:: ../Images/Icons/red_x.png
+.. |running| image:: ../Images/Icons/blue_circle.png
 
 The following image shows overall pipeline status:
    .. image:: ../images/buildstream_pipeline_passed.png

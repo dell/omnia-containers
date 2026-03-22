@@ -163,7 +163,7 @@ To view the usage instructions, on the OIM, run the following command::
 
    ./omnia.sh --help
 
-    Usage: ./omnia.sh [--install | --uninstall | --upgrade | --rollback | --version | --help]
+    Usage: ./omnia.sh [--install | --uninstall | --version | --help]
         -i, --install     Install and start the Omnia core container
         -u, --uninstall   Uninstall the Omnia core container and clean up configuration
         -v, --version     Display Omnia version information
