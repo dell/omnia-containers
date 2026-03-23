@@ -93,3 +93,131 @@ LocalRepo Upgrade
 -----------------
 
 Omnia's LocalRepo functionality now supports RHEL minimum version upgrades, enabling seamless repository management across multiple RHEL versions. It allows clean upgrades without repository conflicts while maintaining separate logs, metadata, and cleanup for each version. Existing RHEL 10.0 setups remain fully supported. Managing multiple versions at the same time is currently not supported.
+
+SLURM Cluster Upgrade
+---------------------
+
+When upgrading, the SLURM cluster requires configuration migration and reprovisioning to ensure compatibility with the latest version.
+
+Prerequisites
+~~~~~~~~~~~~~
+
+Before upgrading your SLURM cluster, ensure the following:
+
+* Omnia core container has been successfully upgraded to version v2.1.0.0
+* The ``upgrade_omnia.yml`` playbook has been executed
+* All input configuration files have been migrated to the v2.1.0.0 format
+* Ensure the NFS storage is accessible and the NFS share paths are correctly configured
+* If SLURM cluster is already deployed and running, ensure it is in a stable state with no active jobs or maintenance operations in progress
+
+Configuration Migration
+~~~~~~~~~~~~~~~~~~~~~~
+
+Review Updated Input Files
+*************************
+
+After upgrading Omnia core, review and update the following configuration files in ``/opt/omnia/input/project_default/``:
+
+network_spec.yml
+================
+
+If any new InfiniBand fabric settings need to be defined in the ``ib_network`` section:
+
+.. code-block:: yaml
+
+    - ib_network:
+        subnet: <subnet_manager_ip>
+        netmask_bits: <netmask_bits>
+
+Ensure host InfiniBand interfaces map to the IB network entries.
+
+omnia_config.yml
+================
+
+With upgrade_omnia.yml, all the essential inputs will be migrated to the new structure. If required, update the ``slurm_cluster`` section with the new input parameters. The new additional fields are optional:
+
+.. code-block:: yaml
+
+    slurm_cluster:
+      - cluster_name: <cluster_name>
+        nfs_storage_name: <nfs_storage_name>
+        config_sources:
+          <config_name>: <path> or <mapping>
+        skip_merge: <true|false>
+        node_discovery_mode: <homogeneous|heterogeneous>
+        node_hardware_defaults:
+          <group_name>:
+            sockets: <value>
+            cores_per_socket: <value>
+            threads_per_core: <value>
+            real_memory: <value>
+
+storage_config.yml - PowerVault Configuration
+==============================================
+
+If your SLURM cluster uses PowerVault storage, review and update the PowerVault configuration in ``storage_config.yml``:
+
+.. code-block:: yaml
+
+    powervault_config:
+      ip:
+        - <powervault_controller_ip>
+      port: <iscsi_port>
+      iscsi_initiator: <iqn_identifier>
+      volume_id: <volume_wwn_identifier>
+
+After configuration migration, reprovision the cluster to apply new settings and enable new features. Run the following playbooks in order:
+
+Step 1: Build Local Repository
+******************************
+
+.. code-block:: bash
+
+    ansible-playbook local_repo/local_repo.yml
+
+This prepares the local repository with required packages for cluster provisioning.
+
+Step 2: Build x86_64 Compute Node Image
+****************************************
+
+.. code-block:: bash
+
+    ansible-playbook build_image_x86_64/build_image_x86_64.yml
+
+This creates the base compute node image for x86_64 architecture.
+
+Step 3: Build aarch64 Compute Node Image (if applicable)
+*******************************************************
+
+Only run this step if your cluster includes aarch64 nodes:
+
+.. code-block:: bash
+
+    ansible-playbook build_image_aarch64/build_image_aarch64.yml
+
+Run this after the x86_64 image build completes.
+
+Step 4: Discover and Configure Cluster
+**************************************
+
+.. code-block:: bash
+
+    ansible-playbook discovery/discovery.yml
+
+Step 5: PXE boot the nodes preferably in the following order
+*************************************************************
+
+* slurm_control_node 
+* slurm_node 
+* login_node
+
+Adding or Removing SLURM Nodes
+*******************************
+
+With v2.1.0.0, SLURM supports adding new nodes or removing existing nodes by modifying the PXE mapping file. The discovery playbook automatically detects changes and updates the SLURM configuration accordingly. Refer to the `Add New SLURM Nodes <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc2/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#add-new-slurm-nodes>`_ section for more details.
+
+Backup and restore slurm configuration
+**************************************
+
+With v2.1.0.0, SLURM supports backup, rollback, and cleanup of configuration files using the ``utils/slurm_config_util.yml`` playbook. This utility helps manage SLURM configuration states and recover from configuration issues. Refer to the `Backup and Restore SLURM Configuration <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc2/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#slurm-configuration-utilities>`_ section for more details.
+
