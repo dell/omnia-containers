@@ -14,7 +14,8 @@ Before deploying GitLab for BuildStreaM:
 * A dedicated node is required for BuildStreaM GitLab deployment.
 * The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20 GB free disk space)
 * GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
-* Network connectivity for GitLab services
+* OIM node must be accessible from the GitLab node.
+* Ensure that BuildStream API server (BuildStream container) is reachable from the GitLab node.
 
 .. important::
    Omnia uses a dedicated GitLab instance for BuildStreaM. This procedure provisions a new GitLab instance specifically configured for BuildStreaM. Currently, existing GitLab setups configured for other purposes are not supported.
@@ -51,7 +52,7 @@ This ``gitlab.yml`` playbook performs the following tasks:
 - Installs the GitLab instance on the host specified in the ``gitlab_config.yml`` file.
 - In the GitLab instance, creates a project with the specified name, visibility, and default branch as configured in the ``gitlab_config.yml`` file.
 - Installs GitLab runner as a Podman container.
-- Generates a self-signed CA certificate for GitLab at ``/root/gitlab-certs/ca.crt``
+- Generates a self-signed CA certificate for GitLab on the GitLab node at ``/root/gitlab-certs/ca.crt``
 - Adds the project with the following files:
    - **README.MD** - Project documentation
    - **catalog_rhel.json** - Default catalog file
@@ -73,7 +74,7 @@ After the installation of GitLab complete, verify the following:
 
    .. code-block:: text
 
-      https://<gitlab host ip>/<gitlab project name>
+      https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
 
  The project should contain:
   * ``README.MD`` — Project documentation with setup instructions and usage guidelines

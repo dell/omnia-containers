@@ -21,7 +21,7 @@ Stage: Health Check
    .. code-block:: bash
    
       systemctl status omnia_build_stream.service
-      systemctl status omnia_postgres.server
+      systemctl status omnia_postgres.service
       systemctl status playbook_watcher.service
 
 3. If there are failures in any of the containers, capture and verify the logs from journalctl using the following command:

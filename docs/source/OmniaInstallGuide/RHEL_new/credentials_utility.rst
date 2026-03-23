@@ -43,11 +43,15 @@ Post Execution
 After the playbook has been executed, verify if the ``omnia_config_credentials.yml`` and ``build_stream_oauth_credentials.yml`` input files are present in the ``/opt/omnia/input/project_default`` folder.
 Provide all required mandatory credentials for the cluster. See the table below to know more:
 
-.. note:: By default, the ``omnia_config_credentials.yml`` input file is encrypted. Use the below command to decrypt the file: 
+.. note:: By default, the ``omnia_config_credentials.yml`` input file is encrypted. Use the below command to view the file: 
     ::
         ansible-vault view omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
 
-.. note:: By default, the ``build_stream_oauth_credentials.yml`` input file is encrypted. Use the below command to decrypt the file: 
+.. note:: If user is decrypting the file, then it must be encrypted again: 
+    ::
+        ansible-vault encrypt omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
+
+.. note:: By default, the ``build_stream_oauth_credentials.yml`` input file is encrypted. Use the below command to view the file: 
     ::
         ansible-vault view build_stream_oauth_credentials.yml --vault-password-file .build_stream_oauth_credentials_key
    
