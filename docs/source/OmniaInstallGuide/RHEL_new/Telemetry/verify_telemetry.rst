@@ -97,7 +97,7 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
     -d '{
             "name": "ldms-consumer-1",
             "format": "json",
-            "auto.offset.reset": "earliest",
+            "auto.offset.reset": "latest",
             "enable.auto.commit": true
         }'
 
