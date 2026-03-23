@@ -119,6 +119,12 @@ its dependent services are running correctly.
 
 5. Review the status of the dependent services in the following tree output. 
 
+   .. note:: The ``prepare_oim.yml`` deploys the following on the OIM node only when BuildStream is enabled on the ``build_stream_config.yml``.
+
+      * PostgreSQL database container
+      * BuildStreaM API container 
+      * Playbook watcher service
+
    .. code-block:: text
 
       omnia.target
@@ -127,6 +133,7 @@ its dependent services are running correctly.
       ● ├─omnia_build_stream.service
       ● ├─omnia_core.service
       ● ├─omnia_postgres.service
+      ● ├─playbook_watcher.service
       ● ├─pulp.service 
       ● ├─registry.service   
       ● ├─network-online.target
