@@ -25,3 +25,7 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    set_pxe_boot_order_buildstream
    buildstream_tables
    buildstream_troubleshooting
+   buildstream_telemetry
+   builstream_verify_telemetry
+
+

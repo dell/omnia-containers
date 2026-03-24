@@ -76,10 +76,10 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
        dynamic_range: "172.16.107.201-172.16.107.250"
        dns: []
           
-``oma_config.yml``
+``omnia_config.yml``
 ------------------
 
-Add necessary inputs to the ``oma_config.yml`` file for the OMA configuration. Use the :ref:`OMA configuration table <buildstream-tables-oma-configuration>` for guidance when configuring these parameters.
+Add necessary inputs to the ``omnia_config.yml`` file for the OMA configuration. Use the :ref:`OMNIA configuration table <buildstream-tables-oma-configuration>` for guidance when configuring these parameters.
 
 
 ``provision_config.yml``
