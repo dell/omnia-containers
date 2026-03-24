@@ -26,10 +26,36 @@ Procedure
 
 .. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
 
-   * ``network_spec.yml``: contains the necessary configurations for the cluster network.
-   * ``provision_config.yml``: contains the details about provisioning of clusters.
    * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
-   * ``gitlab_config.yml``: contains the details about the BuildStreaM GitLab configuration.
+   * ``high_availability_config.yml``: contains the details about the high availability configuration.
+   * ``local_repo_config.yml``: contains the details about the local repository configuration.
+   * ``network_spec.yml``: contains the details about the network configuration.
+   * ``omnia_config.yml``: contains the details about the Omnia configuration.
+   * ``provision_config.yml``: contains the details about the provision configuration.
+   * ``security_config.yml``: contains the details about the security configuration.
+   * ``storage_config.yml``: contains the details about the storage configuration.
+   * ``telemetry_config.yml``: contains the details about the telemetry configuration.
+   * ``user_registry_credential.yml``: contains the details about the user registry credentials.
+  
+``build_stream_config.yml``
+---------------------------
+
+Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the :ref:`BuildStreaM configuration table <buildstream-tables-buildstream-configuration>` for guidance when configuring these parameters.
+
+.. note:: Ensure that the ``build_stream_port`` (BuildStreaM port) is correctly configured in the ``build_stream_config.yml`` file.
+   The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using ``cleanup_oim.yml``),
+   and then prepare the OIM again with the required port number (using ``prepare_oim.yml``).
+
+``high_availability_config.yml``
+--------------------------------
+
+Add necessary inputs to the ``high_availability_config.yml`` file for the high availability configuration. Use the :ref:`high availability configuration table <buildstream-tables-high-availability-configuration>` for guidance when configuring these parameters.
+
+``local_repo_config.yml``
+-------------------------
+
+Add necessary inputs to the ``local_repo_config.yml`` file for the local repository configuration. Use the :ref:`local repository configuration table <buildstream-tables-local-repository-configuration>` for guidance when configuring these parameters.
+
 
 ``network_spec.yml``
 ---------------------
@@ -50,20 +76,39 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
        dynamic_range: "172.16.107.201-172.16.107.250"
        dns: []
           
-     
+``oma_config.yml``
+------------------
+
+Add necessary inputs to the ``oma_config.yml`` file for the OMA configuration. Use the :ref:`OMA configuration table <buildstream-tables-oma-configuration>` for guidance when configuring these parameters.
+
+
 ``provision_config.yml``
 ------------------------
 
 Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the :ref:`provisioning configuration table <buildstream-tables-provisioning-configuration>` for guidance when configuring these parameters.
 
-``build_stream_config.yml``
----------------------------
 
-Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the :ref:`BuildStreaM configuration table <buildstream-tables-buildstream-configuration>` for guidance when configuring these parameters.
+``security_config.yml``
+-----------------------
 
-.. note:: Ensure that the ``build_stream_port`` (BuildStreaM port) is correctly configured in the ``build_stream_config.yml`` file.
-   The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using ``cleanup_oim.yml``),
-   and then prepare the OIM again with the required port number (using ``prepare_oim.yml``).
+Add necessary inputs to the ``security_config.yml`` file for the security configuration. Use the :ref:`security configuration table <buildstream-tables-security-configuration>` for guidance when configuring these parameters. 
+
+``storage_config.yml``
+----------------------
+
+Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Use the :ref:`storage configuration table <buildstream-tables-storage-configuration>` for guidance when configuring these parameters. 
+
+
+``telemetry_config.yml``
+------------------------
+
+Add necessary inputs to the ``telemetry_config.yml`` file for the telemetry configuration. Use the :ref:`telemetry configuration table <buildstream-tables-telemetry-configuration>` for guidance when configuring these parameters. 
+
+``user_registry_credentials.yml``
+---------------------------------
+
+Add necessary inputs to the ``user_registry_credentials.yml`` file for the user registry credentials. Use the :ref:`user registry credentials table <buildstream-tables-user-registry-credentials>` for guidance when configuring these parameters. 
+
 
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 

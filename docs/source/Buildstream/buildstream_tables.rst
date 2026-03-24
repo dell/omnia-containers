@@ -3,6 +3,38 @@ BuildStreaM Configuration Tables
 
 This section contains the configuration tables referenced throughout the BuildStreaM documentation.
 
+.. _buildstream-tables-buildstream-configuration:
+
+BuildStreaM Configuration
+--------------------------
+
+.. csv-table:: build_stream_config.yml
+   :file: ../Tables/build_stream_config.csv
+   :header-rows: 1
+   :keepspace:
+
+
+.. _buildstream-tables-high-availability-configuration:
+
+High Availability Configuration
+-------------------------------
+
+.. csv-table:: high_availability_config.yml
+   :file: ../Tables/high_availability_config.csv
+   :header-rows: 1
+   :keepspace:
+
+.. _buildstream-tables-local-repository-configuration:
+
+Local Repository Configuration
+------------------------------
+
+.. csv-table:: local_repo_config.yml
+   :file: ../Tables/local_repo_config.csv
+   :header-rows: 1
+   :keepspace:
+
+
 .. _buildstream-tables-network-configuration:
 
 Network Configuration
@@ -12,6 +44,17 @@ Network Configuration
    :file: ../Tables/network_spec.csv
    :header-rows: 1
    :keepspace:
+
+.. _buildstream-tables-oma-configuration:
+
+Omnia Configuration
+-------------------
+
+.. csv-table:: omnia_config.yml
+   :file: ../../../Tables/scheduler_slurm.csv
+   :header-rows: 1
+   :keepspace:
+
 
 .. _buildstream-tables-provisioning-configuration:
 
@@ -23,13 +66,36 @@ Provisioning Configuration
    :header-rows: 1
    :keepspace:
 
-.. _buildstream-tables-buildstream-configuration:
 
-BuildStreaM Configuration
---------------------------
+.. _buildstream-tables-security-configuration:
 
-.. csv-table:: build_stream_config.yml
-   :file: ../Tables/build_stream_config.csv
+Security Configuration
+----------------------
+
+.. csv-table:: security_config.yml
+   :file: ../Tables/security_config.csv
+   :header-rows: 1
+   :keepspace:
+
+
+.. _buildstream-tables-storage-configuration:
+
+Storage Configuration
+---------------------
+
+.. csv-table:: storage_config.yml
+   :file: ../Tables/storage_config.csv
+   :header-rows: 1
+   :keepspace:
+
+
+.. _buildstream-tables-telemetry-configuration:
+
+Telemetry Configuration
+-----------------------
+
+.. csv-table:: telemetry_config.yml
+   :file: ../Tables/telemetry_config.csv
    :header-rows: 1
    :keepspace:
 
