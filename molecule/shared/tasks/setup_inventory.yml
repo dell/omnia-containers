@@ -21,6 +21,7 @@
   ansible.builtin.include_vars:
     file: "{{ project_dir }}/user_config.yml"
     name: user_config
+  no_log: true
 
 - name: Add OIM server to inventory dynamically
   ansible.builtin.add_host:
@@ -32,6 +33,7 @@
     ansible_port: "{{ user_config.oim_ssh_port | default(22) }}"
     ansible_connection: ssh
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+  no_log: true
 
 - name: Display target server
   ansible.builtin.debug:

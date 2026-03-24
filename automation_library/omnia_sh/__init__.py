@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,5 +31,6 @@ from .functions.omnia_sh_func import (
     check_prerequisites,
     cleanup_omnia,
 )
-from .vars.omnia_sh_vars import OMNIA_SH_VARS, get_omnia_sh_path, validate_config
-from .messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS, TEST_NAMES
+from .vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
+from .functions.omnia_sh_func import get_omnia_sh_path, validate_config
+from .messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_NAMES

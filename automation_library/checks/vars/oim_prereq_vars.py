@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -231,11 +231,13 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     #                     If False, skip git clone and container build
     "reconfigure_images": _user_config.get("reconfigure_images", False),
 
-    # container_images: Comma-separated list of images to build (e.g., "core,auth")
-    "container_images": _user_config.get("container_images", "") or "core",
+    # core_tag: Core image version tag
+    # Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
+    "core_tag": _user_config.get("core_tag", ""),
 
-    # omnia_branch: Omnia branch for container build and omnia.sh download
-    #               Can be a branch name (e.g., "main") or tag (e.g., "v1.6.0")
+    # omnia_branch: Omnia branch/tag for core image build
+    # Will build the core container with the below omnia branch/tag code
+    # Can be a branch (e.g., "main", "pub/q1_dev") or a tag (e.g., "v1.6.0")
     "omnia_branch": _user_config.get("omnia_branch", ""),
 
     # =========================================================================

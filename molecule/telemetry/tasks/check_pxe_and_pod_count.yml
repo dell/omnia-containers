@@ -92,9 +92,9 @@
   ansible.builtin.set_fact:
     idrac_telemetry_pod_count: "{{ service_cluster_metadata_for_pods.stdout | regex_findall('idrac_podname:\\s*idrac-telemetry-\\d+') | length }}"
 
-- name: Calculate expected idrac-telemetry pod count (service_kube_nodes with children + 1 for mgmt)
+- name: Calculate expected idrac-telemetry pod count (unique service_kube_nodes with children + 1 for mgmt)
   ansible.builtin.set_fact:
-    expected_idrac_pod_count: "{{ (slurm_node_with_service_parent_count | default(0) | int) + 1 }}"
+    expected_idrac_pod_count: "{{ (service_kube_node_tags | default([]) | length) + 1 }}"
 
 - name: Display idrac-telemetry pod count verification
   ansible.builtin.debug:

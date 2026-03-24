@@ -67,7 +67,7 @@ verifier:
     tb: short
 
 scenario:
-  name: build_image
+  name: build_image_x86_64
   test_sequence:
     - dependency
     - syntax

@@ -15,8 +15,7 @@
 """
 Kafka Telemetry Test Cases.
 
-This module contains pytest test cases for verifying Kafka configuration
-and data flow in the telemetry namespace.
+This module contains pytest test cases for verifying Kafka telemetry deployment.
 
 Test cases:
 1. Verify LDMS pods running (if ldms enabled)
@@ -27,8 +26,6 @@ Test cases:
 6. Verify LDMS data in Kafka topic (if ldms enabled)
 
 Note: Kafka tests skip if kafka is not in idrac_telemetry_collection_type.
-      LDMS tests skip if ldms is not in software_config.json.
-      Actual iDRAC data verification is done in test_victoria_idrac_data.
 """
 
 from datetime import datetime
@@ -80,19 +77,22 @@ def test_ldms_pods_running(host):
     if result.get("skipped"):
         pytest.skip(result.get("reason", "LDMS not enabled"))
 
-    # Show pod results
+    # Build details
+    details_lines = []
     for pod_result in result.get("pod_results", []):
         pod = pod_result["pod"]
         phase = pod_result["phase"]
         running = pod_result["running"]
         status = "✓" if running else "✗"
-        log.check(f"  {status} Pod '{pod}': {phase}")
+        details_lines.append(f"{status} Pod '{pod}': {phase}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed("All LDMS pods are running", "nersc-ldms-aggr and nersc-ldms-store")
+        log.passed("All LDMS pods are running", details)
     else:
         errors = result.get("errors", [])
-        log.failed("LDMS pods verification failed", "; ".join(errors))
+        log.failed("LDMS pods verification failed", details + "\n" + "; ".join(errors))
         assert False, f"LDMS pods not running: {'; '.join(errors)}"
 
 
@@ -120,25 +120,28 @@ def test_ldms_services_ports(host):
         log.failed("Failed to get LDMS services", result["error"])
         assert False, result["error"]
 
-    # Show expected config
+    # Build details
     expected = result.get("expected_config", {})
-    log.check(f"  Expected ldms_agg_port: {expected.get('ldms_agg_port')}")
-    log.check(f"  Expected ldms_store_port: {expected.get('ldms_store_port')}")
+    details_lines = [
+        f"Expected ldms_agg_port: {expected.get('ldms_agg_port')}",
+        f"Expected ldms_store_port: {expected.get('ldms_store_port')}",
+    ]
 
-    # Show service results
     for svc_result in result.get("service_results", []):
         svc = svc_result["service"]
         expected_port = svc_result["expected_port"]
         actual_port = svc_result["actual_port"]
         match = svc_result["match"]
         status = "✓" if match else "✗"
-        log.check(f"  {status} Service '{svc}': expected={expected_port}, actual={actual_port}")
+        details_lines.append(f"{status} Service '{svc}': expected={expected_port}, actual={actual_port}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed("All LDMS services ports match", "Ports configured correctly")
+        log.passed("All LDMS services ports match", details)
     else:
         errors = result.get("errors", [])
-        log.failed("LDMS services port mismatch", "; ".join(errors))
+        log.failed("LDMS services port mismatch", details + "\n" + "; ".join(errors))
         assert False, f"LDMS services port mismatch: {'; '.join(errors)}"
 
 
@@ -178,19 +181,21 @@ def test_kafka_topics(host):
         log.failed("Failed to get topics via REST proxy", result["error"])
         assert False, result["error"]
 
-    # Show configuration
+    # Build details
     bridge_ip = result.get("bridge_ip", "")
     topics = result.get("topics", [])
     idrac_telemetry_support = result.get("idrac_telemetry_support", False)
     ldms_enabled = result.get("ldms_enabled", False)
 
-    log.check(f"  Kafka bridge IP: {bridge_ip}")
-    log.check(f"  Topics found: {topics}")
-    log.check(f"  idrac_telemetry_support: {idrac_telemetry_support}")
-    log.check(f"  ldms_enabled: {ldms_enabled}")
+    details_lines = [
+        f"Kafka bridge IP: {bridge_ip}",
+        f"Topics found: {topics}",
+        f"idrac_telemetry_support: {idrac_telemetry_support}",
+        f"ldms_enabled: {ldms_enabled}",
+        "",
+        "Topic verification:",
+    ]
 
-    # Show all topic verification results
-    log.check("Topic verification results:")
     for topic_result in result.get("topic_results", []):
         topic = topic_result["topic"]
         exists = topic_result["exists"]
@@ -198,27 +203,24 @@ def test_kafka_topics(host):
         reason = topic_result.get("reason", "")
 
         if required:
-            # Topic should exist
             if exists:
-                log.check(f"  ✓ Topic '{topic}': exists (required - {reason})")
+                details_lines.append(f"  ✓ '{topic}': exists ({reason})")
             else:
-                log.check(f"  ✗ Topic '{topic}': MISSING (required - {reason})")
+                details_lines.append(f"  ✗ '{topic}': MISSING ({reason})")
         else:
-            # Topic should NOT exist
             if not exists:
-                log.check(f"  ✓ Topic '{topic}': correctly not present ({reason})")
+                details_lines.append(f"  ✓ '{topic}': correctly absent ({reason})")
             else:
-                log.check(f"  ✗ Topic '{topic}': EXISTS but should not ({reason})")
+                details_lines.append(f"  ✗ '{topic}': EXISTS but should not ({reason})")
 
-    # Final result - show all errors
+    details = "\n".join(details_lines)
+
     if result["success"]:
-        log.passed("All Kafka topic checks passed", f"Topics: {topics}")
+        log.passed("All Kafka topic checks passed", details)
     else:
         errors = result.get("errors", [])
-        log.check("Errors found:")
-        for error in errors:
-            log.check(f"  - {error}")
-        log.failed("Kafka topic verification failed", f"{len(errors)} error(s) found")
+        err_details = details + "\n\nErrors:\n" + "\n".join([f"  - {e}" for e in errors])
+        log.failed("Kafka topic verification failed", err_details)
         assert False, "; ".join(errors)
 
 
@@ -245,26 +247,30 @@ def test_kafka_config_match(host):
         log.failed("Failed to get Kafka config", result["error"])
         assert False, result["error"]
 
-    # Show config comparison (values read from telemetry_config.yml and Kafka CRD)
+    # Build details
     expected = result.get("expected_config", {})
     actual = result.get("actual_config", {})
 
-    log.check(f"  log_retention_hours: expected={expected.get('log_retention_hours')}, "
-              f"actual={actual.get('log.retention.hours')}")
-    log.check(f"  log_retention_bytes: expected={expected.get('log_retention_bytes')}, "
-              f"actual={actual.get('log.retention.bytes')}")
-    log.check(f"  log_segment_bytes: expected={expected.get('log_segment_bytes')}, "
-              f"actual={actual.get('log.segment.bytes')}")
+    details_lines = [
+        f"log_retention_hours: expected={expected.get('log_retention_hours')}, "
+        f"actual={actual.get('log.retention.hours')}",
+        f"log_retention_bytes: expected={expected.get('log_retention_bytes')}, "
+        f"actual={actual.get('log.retention.bytes')}",
+        f"log_segment_bytes: expected={expected.get('log_segment_bytes')}, "
+        f"actual={actual.get('log.segment.bytes')}",
+    ]
 
     mismatches = result.get("mismatches", [])
+    details = "\n".join(details_lines)
+
     if result["success"]:
-        log.passed(LOG_MSGS["kafka_config_match"], "All configurations match")
+        log.passed(LOG_MSGS["kafka_config_match"], details)
     else:
         mismatch_str = "\n".join([
-            f"  - {m['config']}: expected {m['expected']}, actual {m['actual']}"
+            f"  ✗ {m['config']}: expected {m['expected']}, actual {m['actual']}"
             for m in mismatches
         ])
-        log.failed("Kafka configuration mismatch", mismatch_str)
+        log.failed("Kafka configuration mismatch", details + "\n\nMismatches:\n" + mismatch_str)
         assert False, ASSERT_MSGS["kafka_config_mismatch"].format(mismatches=mismatch_str)
 
 
@@ -293,17 +299,17 @@ def test_idrac_data_in_kafka_topic(host):
         log.failed("Failed to verify iDRAC data in Kafka", result["error"])
         assert False, result["error"]
 
-    # Log details
-    log.check(f"  Kafka bridge IP: {result.get('bridge_ip', '')}")
+    # Build details
+    details_lines = [f"Kafka bridge IP: {result.get('bridge_ip', '')}"]
 
-    # Show IP to service tag mapping (via Redfish)
     ip_to_tag = result.get("ip_to_service_tag", {})
-    log.check("  Activated IPs → Service Tags (via Redfish):")
+    details_lines.append("")
+    details_lines.append("Activated IPs → Service Tags (via Redfish):")
     for ip, tag in ip_to_tag.items():
-        log.check(f"    {ip} → {tag}")
+        details_lines.append(f"  {ip} → {tag}")
 
-    # Show results for each service tag
-    log.check("Service tag verification results:")
+    details_lines.append("")
+    details_lines.append("Service tag verification:")
     for tag_result in result.get("service_tag_results", []):
         ip = tag_result["ip"]
         service_tag = tag_result["service_tag"]
@@ -312,28 +318,28 @@ def test_idrac_data_in_kafka_topic(host):
         kafka_ts = tag_result.get("kafka_timestamp", "")
 
         if found:
-            log.check(f"  ✓ {service_tag}")
-            log.check(f"      Service Tag : {service_tag}")
-            log.check(f"      IP          : {ip}")
+            details_lines.append(f"  ✓ {service_tag}")
+            details_lines.append(f"      IP          : {ip}")
             if kafka_ts:
                 try:
                     human_ts = datetime.fromtimestamp(int(kafka_ts)).strftime("%Y-%m-%d %H:%M:%S")
-                    log.check(f"      Kafka Time  : {kafka_ts} ({human_ts})")
+                    details_lines.append(f"      Kafka Time  : {kafka_ts} ({human_ts})")
                 except (ValueError, OSError):
-                    log.check(f"      Kafka Time  : {kafka_ts}")
-            log.check(f"      Metrics     :")
+                    details_lines.append(f"      Kafka Time  : {kafka_ts}")
             if sample_metrics:
+                details_lines.append(f"      Metrics     :")
                 for metric in sample_metrics:
                     val = metric.get('value')
                     val_str = str(val) if val is not None and str(val).strip() != "" else "(no value yet)"
-                    log.check(f"        - {metric['metric_name']}: {val_str}")
+                    details_lines.append(f"        - {metric['metric_name']}: {val_str}")
             else:
-                log.check(f"        (no metric values captured yet)")
+                details_lines.append(f"      Metrics     : (no values captured yet)")
         else:
-            log.check(f"  ✗ {service_tag}")
-            log.check(f"      Service Tag : {service_tag}")
-            log.check(f"      IP          : {ip}")
-            log.check(f"      Status      : NO DATA FOUND")
+            details_lines.append(f"  ✗ {service_tag}")
+            details_lines.append(f"      IP          : {ip}")
+            details_lines.append(f"      Status      : NO DATA FOUND")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         found_count = len(result.get("found_tags", []))
@@ -341,12 +347,12 @@ def test_idrac_data_in_kafka_topic(host):
             "idrac_kafka_data_success",
             "iDRAC data found for all {count} service tags"
         ).format(count=found_count)
-        log.passed(msg, f"Data found for all {found_count} service tags")
+        log.passed(msg, details)
     else:
         missing = result.get("missing_tags", [])
         log.failed(
             f"iDRAC data missing for {len(missing)} service tags",
-            result.get("error", "")
+            details
         )
         assert False, result.get("error", "iDRAC data missing")
 
@@ -374,23 +380,24 @@ def test_ldms_data_in_kafka_topic(host):
         log.skipped(result.get("reason", "LDMS not enabled"), "Test skipped")
         pytest.skip(result.get("reason", "LDMS not enabled"))
 
-    # Log details
-    log.check(f"  Kafka bridge IP: {result.get('bridge_ip', '')}")
-    log.check(f"  Domain: {result.get('domain_name', '')}")
-    log.check(f"  Expected plugins: {result.get('expected_plugins', [])}")
-    log.check(f"  Expected hostnames: {result.get('expected_hostnames', [])}")
+    # Build details
     expected_count = result.get("expected_instance_count", 0)
     found_count = result.get("found_instance_count", 0)
-    log.check(f"  Expected instances (hostname×plugin): {expected_count}")
-    log.check(f"  Found instances: {found_count}/{expected_count}")
+    details_lines = [
+        f"Kafka bridge IP: {result.get('bridge_ip', '')}",
+        f"Domain: {result.get('domain_name', '')}",
+        f"Expected plugins: {result.get('expected_plugins', [])}",
+        f"Expected hostnames: {result.get('expected_hostnames', [])}",
+        f"Expected instances (hostname×plugin): {expected_count}",
+        f"Found instances: {found_count}/{expected_count}",
+        "",
+        "Hostname verification (by functional group):",
+    ]
 
-    # Log results grouped by functional_group
-    log.check("Hostname verification results (by functional group):")
     results_by_group = result.get("results_by_group", {})
     for func_group, hosts in results_by_group.items():
-        # Show full functional group name (include architecture suffix)
         display_group = func_group
-        log.check(f"  [{display_group}]")
+        details_lines.append(f"  [{display_group}]")
         for hr in hosts:
             hostname = hr.get("hostname", "")
             found = hr.get("found", False)
@@ -405,48 +412,41 @@ def test_ldms_data_in_kafka_topic(host):
                 else f"{len(plugins_found)}/{len(plugins_expected)} plugins" if found
                 else "NO DATA"
             )
-            log.check(f"    {status_icon} {hostname} ({status_text})")
-            log.check(f"        Hostname  : {hostname}")
-            log.check(f"        Group     : {display_group}")
+            details_lines.append(f"    {status_icon} {hostname} ({status_text})")
 
-            # Show found plugins with timestamp and metrics
             for plugin_data in plugins_found:
                 plugin = plugin_data.get("plugin", "")
                 record = plugin_data.get("record", {})
                 value = record.get("value", {})
-                # Get timestamp from LDMS record
                 ldms_ts = value.get("timestamp", "")
                 if ldms_ts:
                     try:
                         ts_float = float(ldms_ts)
                         human_ts = datetime.fromtimestamp(ts_float).strftime("%Y-%m-%d %H:%M:%S")
-                        log.check(f"        ✓ {plugin}:")
-                        log.check(f"            Time    : {ldms_ts} ({human_ts})")
+                        details_lines.append(f"        ✓ {plugin}: {ldms_ts} ({human_ts})")
                     except (ValueError, OSError):
-                        log.check(f"        ✓ {plugin}:")
-                        log.check(f"            Time    : {ldms_ts}")
+                        details_lines.append(f"        ✓ {plugin}: {ldms_ts}")
                 else:
-                    log.check(f"        ✓ {plugin}:")
+                    details_lines.append(f"        ✓ {plugin}")
 
-                # Show key metric data
                 exclude = ["timestamp", "hostname", "instance",
                           "component_id", "job_id", "app_id"]
                 sample_keys = [k for k in value.keys() if k not in exclude][:5]
                 if sample_keys:
-                    log.check(f"            Metrics :")
                     for k in sample_keys:
-                        log.check(f"              - {k}: {value[k]}")
+                        details_lines.append(f"            - {k}: {value[k]}")
 
-            # Show missing plugins
             for mp in plugins_missing:
-                log.check(f"        ✗ {mp}: MISSING")
+                details_lines.append(f"        ✗ {mp}: MISSING")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         host_count = len(result.get("found_hostnames", []))
         plugin_count = len(result.get("expected_plugins", []))
         log.passed(
             LOG_MSGS.get("ldms_data_success", "LDMS data verified for all {count} hostnames").format(count=host_count),
-            f"All {expected_count} instances found ({host_count} hosts × {plugin_count} plugins)"
+            details
         )
     else:
         missing_hosts = result.get("missing_hostnames", [])
@@ -454,12 +454,12 @@ def test_ldms_data_in_kafka_topic(host):
         if missing_hosts:
             log.failed(
                 f"LDMS data missing from {len(missing_hosts)} hostnames",
-                result.get("error", "")
+                details
             )
         else:
             log.failed(
                 f"LDMS data missing {len(missing_instances)} plugin instances",
-                result.get("error", "")
+                details
             )
         assert False, ASSERT_MSGS.get("ldms_data_missing_hostnames", "LDMS data missing").format(
             missing=missing_hosts or missing_instances,
