@@ -63,7 +63,7 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM
 
 .. note:: Ensure that the ``build_stream_port`` (BuildStreaM port) is correctly configured in the ``build_stream_config.yml`` file.
    The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using ``cleanup_oim.yml``),
-   and then prepare the OIM again (using ``prepare_oim.yml``).
+   and then prepare the OIM again with the required port number (using ``prepare_oim.yml``).
 
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 
