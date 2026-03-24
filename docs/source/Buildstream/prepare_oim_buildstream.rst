@@ -24,8 +24,6 @@ Procedure
 
 1. Update the following input files.
 
-.. note:: The following input files contain the configuration parameters required for network setup, cluster provisioning, and BuildStreaM pipeline deployment. 
-
    * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
    * ``high_availability_config.yml``: contains the details about the high availability configuration.
    * ``local_repo_config.yml``: contains the details about the local repository configuration.
