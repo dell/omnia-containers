@@ -34,7 +34,7 @@ Steps
         :keepspace:
 
 .. note::
-    If user has dedicated setup and BMC IPs are not reachable then user can enable masquerading to make BMC IP reachable.
+    If there is a dedicated setup and BMC IPs are not reachable, enable masquerading to make BMC IP reachable.
 
     .. code-block:: bash
 
