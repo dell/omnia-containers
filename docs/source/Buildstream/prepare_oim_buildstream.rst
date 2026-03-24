@@ -77,7 +77,7 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
 ``omnia_config.yml``
 ------------------
 
-Add necessary inputs to the ``omnia_config.yml`` file for the OMA configuration. Use the :ref:`OMNIA configuration table <buildstream-tables-oma-configuration>` for guidance when configuring these parameters.
+Add necessary inputs to the ``omnia_config.yml`` file for the OMNIA configuration. Use the :ref:`OMNIA configuration table <buildstream-tables-oma-configuration>` for guidance when configuring these parameters.
 
 
 ``provision_config.yml``
