@@ -1,3 +1,5 @@
+.. _buildstream-telemetry:
+
 Step 6: Initialize and Verify Telemetry
 ==========================================
 

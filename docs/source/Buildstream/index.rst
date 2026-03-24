@@ -24,7 +24,7 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    how-to-update-catalog-pipeline
    set_pxe_boot_order_buildstream
    buildstream_telemetry
-   builstream_verify_telemetry
+   buildstream_verify_telemetry
    buildstream_tables
    buildstream_troubleshooting
    
