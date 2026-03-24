@@ -113,7 +113,7 @@ its dependent services are running correctly.
 
 .. code-block:: bash
 
-  systemctl status omnia_postgresql.service
+  systemctl status omnia_postgres.service
 
 4. To view the complete list of dependent services for the OMNIA target, run:
 
@@ -165,7 +165,7 @@ its dependent services are running correctly.
    * A **circle with a cross** indicates that the service failed to start.
 
    .. note::  The ``omnia_auth.service`` runs only when OpenLDAP is specified in the ``/opt/omnia/input/project_default/software_config.json``.
-   .. note::  The ``omnia_build_stream.service`` and ``omnia_postgres.service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
+   .. note::  The ``omnia_build_stream.service``, ``omnia_postgres.service``, and ``playbook_watcher_service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
     
 
 View Usage Instructions for OpenCHAMI Containers
