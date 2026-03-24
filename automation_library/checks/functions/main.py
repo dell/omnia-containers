@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,11 @@ from ...core.formatting import Colors, Symbols, log as _log
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
 
 # Import all check functions
-from .system import configure_hostname
+from .system import configure_hostname, validate_ssh_connection
 from .validation import validate_os, check_podman
 from .hardware import check_ipmi_tool, validate_hardware
-from .network import validate_network_interfaces, configure_pxe_nic, check_internet
+from .network import (validate_network_interfaces, configure_pxe_nic,
+                      check_internet, check_pxe_is_public_interface)
 from .services import check_nfs_reachable
 from .repository import (ensure_git_installed, clone_omnia_repo,
                         build_container_images, download_omnia_sh)
@@ -36,14 +37,14 @@ class PrereqReport:
     """Generate detailed prerequisite check report with Linux theme."""
 
     WIDTH = 80  # Terminal width
-    TOTAL_CHECKS = 15  # Total number of checks in the full suite
-                      # (added SSH connectivity + hostname)
+    TOTAL_CHECKS = 14  # Total number of checks in the full suite
 
     def __init__(self):
         self.start_time = datetime.now()
         self.checks = []
         self.passed = 0
         self.failed = 0
+        self.skipped = 0
         self.check_number = 0
 
     def _box_top(self, title: str = ""):
@@ -85,20 +86,28 @@ class PrereqReport:
         print(f"{Colors.DIM}{char * self.WIDTH}{Colors.RESET}"
               f"")
 
-    def add_check(self, name: str, passed: bool, message: str, details: str = ""):
+    def add_check(self, name: str, passed: bool, message: str, details: str = "", *, skipped: bool = False):
         """Add a check result to the report."""
         self.check_number += 1
-        status = "PASS" if passed else "FAIL"
+        if skipped:
+            status = "SKIP"
+        elif passed:
+            status = "PASS"
+        else:
+            status = "FAIL"
         self.checks.append({
             "name": name,
             "status": status,
             "passed": passed,
+            "skipped": skipped,
             "message": message,
             "details": details,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "number": self.check_number
         })
-        if passed:
+        if skipped:
+            self.skipped += 1
+        elif passed:
             self.passed += 1
         else:
             self.failed += 1
@@ -108,7 +117,11 @@ class PrereqReport:
 
     def _print_check(self, check: dict):
         """Print a single check result with professional formatting."""
-        if check["passed"]:
+        if check.get("skipped"):
+            status_color = Colors.BRIGHT_YELLOW
+            status_icon = "○"
+            status_text = "SKIP"
+        elif check["passed"]:
             status_color = Colors.BRIGHT_GREEN
             status_icon = Symbols.CHECK
             status_text = "PASS"
@@ -158,7 +171,7 @@ class PrereqReport:
         """Print final summary report with professional formatting."""
         end_time = datetime.now()
         duration = (end_time - self.start_time).total_seconds()
-        total = self.passed + self.failed
+        total = self.passed + self.failed + self.skipped
 
         print()
         self._separator("═")
@@ -195,6 +208,8 @@ class PrereqReport:
               f"")
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_GREEN}{Symbols.CHECK} Passed{Colors.RESET}      : {Colors.BRIGHT_GREEN}{self.passed}{Colors.RESET}"
               f"")
+        print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_YELLOW}○ Skipped{Colors.RESET}     : {Colors.BRIGHT_YELLOW}{self.skipped}{Colors.RESET}"
+              f"")
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_RED}{Symbols.CROSS} Failed{Colors.RESET}      : {Colors.BRIGHT_RED}{self.failed}{Colors.RESET}"
               f"")
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.DIM}○ Not Executed{Colors.RESET}: {Colors.DIM}{not_executed}{Colors.RESET}"
@@ -202,20 +217,19 @@ class PrereqReport:
         print(f"  {Colors.DIM}│{Colors.RESET}"
               f"")
 
-        # Progress bar - segments for each check (passed=green, failed=red, remaining=gray)
+        # Progress bar - continuous: green (passed+skipped) | red (failed) | gray (not executed)
+        passed_count = self.passed + self.skipped
         bar_segments = []
-        for check in self.checks:
-            if check["passed"]:
-                bar_segments.append(f"{Colors.BRIGHT_GREEN}███{Colors.RESET}")
-            else:
-                bar_segments.append(f"{Colors.BRIGHT_RED}███{Colors.RESET}")
-        # Add remaining uncompleted checks as gray
+        for _ in range(passed_count):
+            bar_segments.append(f"{Colors.BRIGHT_GREEN}███{Colors.RESET}")
+        for _ in range(self.failed):
+            bar_segments.append(f"{Colors.BRIGHT_RED}███{Colors.RESET}")
         remaining = self.TOTAL_CHECKS - total
         for _ in range(remaining):
             bar_segments.append(f"{Colors.DIM}░░░{Colors.RESET}")
         progress_bar = "".join(bar_segments)
         print(f"  {Colors.DIM}│{Colors.RESET}"
-              f"  Progress    : [{progress_bar}] {self.passed}/{self.TOTAL_CHECKS} passed")
+              f"  Progress    : [{progress_bar}] {passed_count}/{self.TOTAL_CHECKS} passed")
         print(f"  {Colors.DIM}└{'─' * 40}{Colors.RESET}"
               f"")
         print()
@@ -228,7 +242,9 @@ class PrereqReport:
 
         for check in self.checks:
             num = f"{check['number']:02d}"
-            if check["passed"]:
+            if check.get("skipped"):
+                status = f"{Colors.BRIGHT_YELLOW}○ SKIP{Colors.RESET}"
+            elif check["passed"]:
                 status = f"{Colors.BRIGHT_GREEN}{Symbols.CHECK} PASS{Colors.RESET}"
             else:
                 status = f"{Colors.BRIGHT_RED}{Symbols.CROSS} FAIL{Colors.RESET}"
@@ -276,7 +292,7 @@ class PrereqReport:
         """Save report to file (plain text without colors)."""
         end_time = datetime.now()
         duration = (end_time - self.start_time).total_seconds()
-        total = self.passed + self.failed
+        total = self.passed + self.failed + self.skipped
 
         with open(filepath, "w", encoding="utf-8") as f:
             f.write("=" * 70 + "\n")
@@ -292,6 +308,7 @@ class PrereqReport:
 
             f.write(f"  Total Checks : {total}\n")
             f.write(f"  Passed       : {self.passed}\n")
+            f.write(f"  Skipped      : {self.skipped}\n")
             f.write(f"  Failed       : {self.failed}\n")
             f.write(f"  Success Rate : {(self.passed/total*100) if total > 0 else 0:.1f}%\n")
 
@@ -300,7 +317,12 @@ class PrereqReport:
             f.write("-" * 70 + "\n\n")
 
             for check in self.checks:
-                status = "[PASS]" if check["passed"] else "[FAIL]"
+                if check.get("skipped"):
+                    status = "[SKIP]"
+                elif check["passed"]:
+                    status = "[PASS]"
+                else:
+                    status = "[FAIL]"
                 f.write(f"{check['number']:02d}. {status} {check['name']}\n")
                 f.write(f"    Message: {check['message']}\n")
                 # Show details for failed checks or important info (omnia.sh, branch info)
@@ -396,7 +418,9 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     if reconfig:
         print(f"  {Colors.DIM}│{Colors.RESET}  {Colors.BRIGHT_GREEN}Reconfigure Imgs{Colors.RESET}: {Colors.BRIGHT_GREEN}true{Colors.RESET}"
               f" (will clone & build)")
-        print(f"  {Colors.DIM}│{Colors.RESET}  Container Images: {Colors.CYAN}{OIM_PREREQ_VARS.get('container_images') or '(default: core)'}{Colors.RESET}"
+        core_tag = OIM_PREREQ_VARS.get('core_tag')
+        if core_tag:
+            print(f"  {Colors.DIM}│{Colors.RESET}  Core Tag        : {Colors.CYAN}{core_tag}{Colors.RESET}"
               f"")
         omnia_br = OIM_PREREQ_VARS.get('omnia_branch')
         if omnia_br:
@@ -413,13 +437,12 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
     print()
 
     # First check SSH connectivity to OIM server before running any checks
-    from .system import validate_ssh_connection
     ssh_validation = validate_ssh_connection()
     if not ssh_validation["valid"]:
         _report.add_check("SSH Connectivity", False, ssh_validation["message"], ssh_validation.get("details", ""))
         return _finish_report(_report, False, save_report)
-    else:
-        _report.add_check("SSH Connectivity", True, ssh_validation["message"], "")
+
+    _report.add_check("SSH Connectivity", True, ssh_validation["message"], "")
 
     # Run all checks
     _run_all_checks(stop_on_failure)
@@ -496,7 +519,7 @@ def _run_all_checks(stop_on_failure: bool):
     if not passed and stop_on_failure:
         return
 
-    # Check 6: PXE NIC Configuration (flush ALL IPs and reset)
+    # Check 6: PXE NIC Configuration
     result = configure_pxe_nic()
     passed = result.get("passed", False)
     details = result.get("details", "")
@@ -507,6 +530,16 @@ def _run_all_checks(stop_on_failure: bool):
     _report.add_check("PXE NIC Configuration", passed, result.get("message", ""), details)
     if not passed and stop_on_failure:
         return
+
+    # Check 6b: Warn if PXE interface appears to be an internet-facing NIC
+    pxe_public_result = check_pxe_is_public_interface()
+    if pxe_public_result.get("warning"):
+        _log(pxe_public_result["message"], "WARN")
+        _report.add_check(
+            "PXE / Public Interface Overlap", True,
+            pxe_public_result["message"],
+            pxe_public_result.get("details", "")
+        )
 
     # Check 7: NFS Server
     result = check_nfs_reachable()
@@ -549,12 +582,16 @@ def _run_all_checks(stop_on_failure: bool):
         # Check 12: Build Container Images
         result = build_container_images()
         passed = result.get("passed", False)
-        _report.add_check("Container Images", passed, result.get("message", ""), result.get("details", ""))
+        _report.add_check("Container Build", passed, result.get("message", ""), result.get("details", ""))
         if not passed and stop_on_failure:
             return
     else:
         _log("Skipping Git, Omnia Artifactory, and Container Build (reconfigure_images: false)", "INFO")
-        _report.add_check("Container Build", True, "Skipped (reconfigure_images: false)", "Set 'reconfigure_images: true' in user_config.yml to enable")
+        skip_msg = "Skipped (reconfigure_images: false)"
+        skip_details = "Set 'reconfigure_images: true' in user_config.yml to enable"
+        _report.add_check("Git", True, skip_msg, skip_details, skipped=True)
+        _report.add_check("Omnia Artifactory", True, skip_msg, skip_details, skipped=True)
+        _report.add_check("Container Build", True, skip_msg, skip_details, skipped=True)
 
     # Check 13: Download omnia.sh (always runs - creates directory if needed)
     result = download_omnia_sh()

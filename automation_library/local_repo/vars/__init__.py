@@ -12,11 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Local Repo Variables
+"""Local Repo - Variable Exports."""
 
-Configuration variables and constants for Local Repo operations.
-"""
-
-# Import all variables to maintain compatibility
-from .local_repo_vars import *
+from .local_repo_vars import (
+    OMNIA_CORE_CONTAINER,
+    PULP_CONTAINER,
+    LOG_BASE_PATH,
+    SOFTWARE_CSV_FILENAME,
+    STATUS_CSV_FILENAME,
+    ARCH_LIST,
+    PULP_CONTENT_PORT,
+    PULP_CONTENT_SCHEME,
+    PULP_API_STATUS_URI,
+    PULP_CONTENT_PATH_PREFIX,
+    PULP_API_TIMEOUT_SECONDS,
+    CURL_CONNECT_TIMEOUT,
+)

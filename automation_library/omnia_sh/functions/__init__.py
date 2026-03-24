@@ -16,7 +16,23 @@
 Omnia Shell Functions
 
 Functions for Omnia shell deployment and management operations.
+Organized into install verification and cleanup verification.
 """
 
-# Import all functions to maintain compatibility
-from .omnia_sh_func import *
+# Install verification functions (used by test_omnia_sh.py)
+from .omnia_sh_func import (
+    check_container_running,
+    check_file_exists,
+    check_service_running,
+    check_ssh_to_container,
+    check_ssh_from_container,
+    check_metadata_file,
+)
+
+# Cleanup verification functions (used by test_cleanup.py)
+from .omnia_sh_func import (
+    check_container_not_running,
+    check_service_not_exists,
+    check_fstab_entry_removed,
+    check_mount_removed,
+)

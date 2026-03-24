@@ -17,27 +17,39 @@ Prepare OIM functions module.
 """
 
 from .prepare_oim_func import (
+    # Config helpers
+    is_ldap_enabled,
+    get_primary_oim_admin_ip,
+    # Check functions
     check_container_running,
-    check_auth_container,
-    check_omnia_target,
-    check_openchami_target,
-    check_service_dependencies,
     check_pulp_api_status,
     check_pulp_certificate,
     check_bss_service,
     check_smd_service,
     check_ldap_auth_certificate,
+    check_all_services_status,
+    check_all_containers_status,
+    check_openchami_target_deps,
+    check_omnia_target_deps,
+    get_expected_containers,
+    get_expected_services,
 )
 
 __all__ = [
+    # Config helpers
+    "is_ldap_enabled",
+    "get_primary_oim_admin_ip",
+    # Check functions
     "check_container_running",
-    "check_auth_container",
-    "check_omnia_target",
-    "check_openchami_target",
-    "check_service_dependencies",
     "check_pulp_api_status",
     "check_pulp_certificate",
     "check_bss_service",
     "check_smd_service",
     "check_ldap_auth_certificate",
+    "check_all_services_status",
+    "check_all_containers_status",
+    "check_openchami_target_deps",
+    "check_omnia_target_deps",
+    "get_expected_containers",
+    "get_expected_services",
 ]
