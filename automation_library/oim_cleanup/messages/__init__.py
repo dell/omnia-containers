@@ -12,4 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Build Image test module."""
+"""OIM Cleanup messages exports."""
+
+from .oim_cleanup_msgs import (
+    TEST_NAMES,
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+)

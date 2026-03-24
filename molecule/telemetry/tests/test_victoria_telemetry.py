@@ -15,8 +15,7 @@
 """
 VictoriaMetrics Telemetry Test Cases.
 
-This module contains pytest test cases for verifying VictoriaMetrics configuration
-and data collection in the telemetry namespace.
+This module contains pytest test cases for verifying VictoriaMetrics deployment.
 
 Test cases:
 1. Verify VictoriaMetrics is enabled
@@ -29,10 +28,10 @@ Test cases:
 8. Verify TLS connection and health endpoint
 9. Verify iDRAC telemetry data in VictoriaMetrics
 
-Note: All tests skip if:
-  - idrac_telemetry_support is false
-  - 'victoria' is not in idrac_telemetry_collection_type
+Note: All tests skip if victoria is not in idrac_telemetry_collection_type.
 """
+
+from datetime import datetime
 
 import pytest
 
@@ -104,19 +103,18 @@ def test_victoria_enabled(host):
     deployment_mode = get_deployment_mode(host)
     victoria_config = get_victoria_config(host)
 
-    log.check(VICTORIA_LOG_MSGS["victoria_enabled"])
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        log.check(VICTORIA_LOG_MSGS["deployment_mode_single"])
-    else:
-        log.check(VICTORIA_LOG_MSGS["deployment_mode_cluster"])
-
-    log.check(f"  persistence_size: {victoria_config.get('persistence_size', 'N/A')}")
-    log.check(f"  retention_period: {victoria_config.get('retention_period', 'N/A')}")
-
-    log.passed(
-        VICTORIA_LOG_MSGS["victoria_enabled"],
-        f"Deployment mode: {deployment_mode}"
+    mode_msg = (
+        VICTORIA_LOG_MSGS["deployment_mode_single"]
+        if deployment_mode == DEPLOYMENT_MODE_SINGLE
+        else VICTORIA_LOG_MSGS["deployment_mode_cluster"]
     )
+    details = (
+        f"{mode_msg}\n"
+        f"persistence_size: {victoria_config.get('persistence_size', 'N/A')}\n"
+        f"retention_period: {victoria_config.get('retention_period', 'N/A')}"
+    )
+
+    log.passed(VICTORIA_LOG_MSGS["victoria_enabled"], details)
 
 
 def test_victoria_persistence_size(host):
@@ -139,23 +137,26 @@ def test_victoria_persistence_size(host):
         log.failed("Failed to verify persistence size", result["error"])
         assert False, result["error"]
 
-    # Show results
+    # Build details
     deployment_mode = result.get("deployment_mode", "")
     expected_size = result.get("expected_size", "")
-    log.check(f"  Deployment mode: {deployment_mode}")
-    log.check(f"  Expected size: {expected_size}")
-
+    details_lines = [
+        f"Deployment mode: {deployment_mode}",
+        f"Expected size: {expected_size}",
+    ]
     for pvc_result in result.get("pvc_results", []):
         pvc_name = pvc_result["pvc_name"]
         actual_size = pvc_result["actual_size"]
         match = pvc_result["match"]
         status = "✓" if match else "✗"
-        log.check(f"  {status} PVC '{pvc_name}': {actual_size}")
+        details_lines.append(f"{status} PVC '{pvc_name}': {actual_size}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(
             VICTORIA_LOG_MSGS["persistence_size_match"].format(size=expected_size),
-            f"{len(result.get('pvc_results', []))} PVCs verified"
+            details
         )
     else:
         mismatches = result.get("mismatches", [])
@@ -163,7 +164,7 @@ def test_victoria_persistence_size(host):
             f"{m['pvc_name']}: expected {m['expected']}, actual {m['actual']}"
             for m in mismatches
         )
-        log.failed(VICTORIA_LOG_MSGS["persistence_size_mismatch"], mismatch_str)
+        log.failed(VICTORIA_LOG_MSGS["persistence_size_mismatch"], details)
         assert False, VICTORIA_ASSERT_MSGS["persistence_size_mismatch"].format(
             expected=expected_size,
             actual=mismatch_str
@@ -204,13 +205,16 @@ def test_victoria_single_node_pods(host):
         log.failed("Failed to verify pods", result["error"])
         assert False, result["error"]
 
-    # Show pod results
+    # Build details
+    details_lines = []
     for pod_result in result.get("pod_results", []):
         pod = pod_result["pod"]
         phase = pod_result["phase"]
         running = pod_result["running"]
         status = "✓" if running else "✗"
-        log.check(f"  {status} Pod '{pod}': {phase}")
+        details_lines.append(f"{status} Pod '{pod}': {phase}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(
@@ -218,13 +222,13 @@ def test_victoria_single_node_pods(host):
                 component="victoria-metric",
                 count=result.get("actual_count", 0)
             ),
-            "Single-node VictoriaMetrics is running"
+            details
         )
     else:
         errors = result.get("errors", [])
         log.failed(
             VICTORIA_LOG_MSGS["pods_not_running"].format(component="victoria-metric"),
-            "; ".join(errors)
+            details + "\n" + "; ".join(errors)
         )
         assert False, VICTORIA_ASSERT_MSGS["pods_not_running"].format(
             component="victoria-metric",
@@ -269,7 +273,8 @@ def test_victoria_cluster_pods(host):
         log.failed("Failed to verify pods", result["error"])
         assert False, result["error"]
 
-    # Show component results
+    # Build details
+    details_lines = []
     all_success = True
     for comp_result in result.get("component_results", []):
         component = comp_result["component"]
@@ -278,17 +283,19 @@ def test_victoria_cluster_pods(host):
         success = comp_result["success"]
         status = "✓" if success else "✗"
 
-        log.check(f"  {status} {component}: {running}/{expected} running")
+        details_lines.append(f"{status} {component}: {running}/{expected} running")
 
         for pod_result in comp_result.get("pod_results", []):
             pod = pod_result["pod"]
             phase = pod_result["phase"]
             pod_running = pod_result["running"]
             pod_status = "✓" if pod_running else "✗"
-            log.check(f"      {pod_status} {pod}: {phase}")
+            details_lines.append(f"    {pod_status} {pod}: {phase}")
 
         if not success:
             all_success = False
+
+    details = "\n".join(details_lines)
 
     if all_success:
         log.passed(
@@ -299,13 +306,13 @@ def test_victoria_cluster_pods(host):
                     for c in result.get("component_results", [])
                 )
             ),
-            "All VictoriaMetrics cluster pods are running"
+            details
         )
     else:
         errors = result.get("errors", [])
         log.failed(
             VICTORIA_LOG_MSGS["pods_not_running"].format(component="cluster"),
-            "; ".join(errors)
+            details + "\n" + "; ".join(errors)
         )
         assert False, "; ".join(errors)
 
@@ -329,13 +336,16 @@ def test_vmagent_pod_running(host):
         log.failed("Failed to verify vmagent pod", result["error"])
         assert False, result["error"]
 
-    # Show pod results
+    # Build details
+    details_lines = []
     for pod_result in result.get("pod_results", []):
         pod = pod_result["pod"]
         phase = pod_result["phase"]
         running = pod_result["running"]
         status = "✓" if running else "✗"
-        log.check(f"  {status} Pod '{pod}': {phase}")
+        details_lines.append(f"{status} Pod '{pod}': {phase}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(
@@ -343,13 +353,13 @@ def test_vmagent_pod_running(host):
                 component="vmagent",
                 count=len(result.get("pod_results", []))
             ),
-            "vmagent is running"
+            details
         )
     else:
         errors = result.get("errors", [])
         log.failed(
             VICTORIA_LOG_MSGS["pods_not_running"].format(component="vmagent"),
-            "; ".join(errors)
+            details + "\n" + "; ".join(errors)
         )
         assert False, VICTORIA_ASSERT_MSGS["vmagent_not_running"]
 
@@ -375,7 +385,8 @@ def test_victoria_services(host):
         log.failed("Failed to verify services", result["error"])
         assert False, result["error"]
 
-    # Show service results
+    # Build details
+    details_lines = []
     for svc_result in result.get("service_results", []):
         service = svc_result["service"]
         external_ip = svc_result.get("external_ip", "")
@@ -384,15 +395,14 @@ def test_victoria_services(host):
         status = "✓" if has_ip else "✗"
 
         if has_ip:
-            log.check(f"  {status} Service '{service}': {external_ip}:{port}")
+            details_lines.append(f"{status} Service '{service}': {external_ip}:{port}")
         else:
-            log.check(f"  {status} Service '{service}': NO EXTERNAL IP")
+            details_lines.append(f"{status} Service '{service}': NO EXTERNAL IP")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed(
-            VICTORIA_LOG_MSGS["all_services_ready"],
-            f"{len(result.get('service_results', []))} services verified"
-        )
+        log.passed(VICTORIA_LOG_MSGS["all_services_ready"], details)
     else:
         errors = result.get("errors", [])
         failed_svc = next(
@@ -404,7 +414,7 @@ def test_victoria_services(host):
                 VICTORIA_LOG_MSGS["service_no_external_ip"].format(
                     service=failed_svc["service"]
                 ),
-                "; ".join(errors)
+                details + "\n" + "; ".join(errors)
             )
             assert False, VICTORIA_ASSERT_MSGS["service_no_external_ip"].format(
                 service=failed_svc["service"]
@@ -438,23 +448,24 @@ def test_victoria_tls_secret(host):
             secret=VICTORIA_TLS_SECRET
         )
 
-    # Show keys found
+    # Build details
     keys_found = result.get("keys_found", [])
     missing_keys = result.get("missing_keys", [])
-
-    log.check(f"  Keys found: {keys_found}")
+    details_lines = [f"Keys found: {keys_found}"]
     if missing_keys:
-        log.check(f"  Missing keys: {missing_keys}")
+        details_lines.append(f"Missing keys: {missing_keys}")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(
             VICTORIA_LOG_MSGS["tls_secret_exists"].format(secret=VICTORIA_TLS_SECRET),
-            f"Keys: {keys_found}"
+            details
         )
     else:
         log.failed(
             VICTORIA_LOG_MSGS["tls_secret_missing_keys"].format(keys=missing_keys),
-            f"Missing: {missing_keys}"
+            details
         )
         assert False, VICTORIA_ASSERT_MSGS["tls_secret_missing_keys"].format(
             secret=VICTORIA_TLS_SECRET,
@@ -491,26 +502,22 @@ def test_victoria_tls_health(host):
             error=result.get("error", "")
         )
 
-    # Show results
+    # Build details
     external_ip = result.get("external_ip", "")
     port = result.get("port", "")
     health_response = result.get("health_response", "")
 
-    log.check(f"  Service: {result.get('service_name', '')}")
-    log.check(f"  URL: https://{external_ip}:{port}/health")
-    log.check(f"  TLS connected: {result.get('tls_connected', False)}")
-    log.check(f"  Health response: {health_response}")
+    details = (
+        f"Service: {result.get('service_name', '')}\n"
+        f"URL: https://{external_ip}:{port}/health\n"
+        f"TLS connected: {result.get('tls_connected', False)}\n"
+        f"Health response: {health_response}"
+    )
 
     if result["success"]:
-        log.passed(
-            VICTORIA_LOG_MSGS["tls_connection_success"],
-            f"Health: {health_response}"
-        )
+        log.passed(VICTORIA_LOG_MSGS["tls_connection_success"], details)
     else:
-        log.failed(
-            VICTORIA_LOG_MSGS["health_endpoint_failed"],
-            f"Response: {health_response}"
-        )
+        log.failed(VICTORIA_LOG_MSGS["health_endpoint_failed"], details)
         assert False, VICTORIA_ASSERT_MSGS["health_check_failed"].format(
             host=external_ip,
             port=port,
@@ -544,7 +551,6 @@ def test_victoria_idrac_data(host):
 
     # Verify iDRAC data
     log.check(VICTORIA_LOG_MSGS["idrac_data_verifying"])
-    log.check(f"  Activated service tags: {activated_tags}")
     result = verify_victoria_idrac_data(host, admin_ip)
 
     if result.get("skip"):
@@ -555,37 +561,51 @@ def test_victoria_idrac_data(host):
         log.failed("Failed to verify iDRAC data", result["error"])
         assert False, result["error"]
 
-    # Show results for each service tag
-    log.check(f"  VictoriaMetrics URL: https://{result.get('external_ip')}:{result.get('port')}")
-    log.check("Service tag verification results:")
+    # Build details
+    details_lines = [
+        f"Activated service tags: {activated_tags}",
+        f"VictoriaMetrics URL: https://{result.get('external_ip')}:{result.get('port')}",
+        "",
+        "Service tag verification:",
+    ]
 
     for tag_result in result.get("service_tag_results", []):
         service_tag = tag_result["service_tag"]
         found = tag_result["found"]
+        latest_ts = tag_result.get("latest_timestamp", 0)
         metric_count = tag_result["metric_count"]
-        status = "✓" if found else "✗"
 
         if found:
-            log.check(f"  {status} {service_tag}: {metric_count} metrics found")
+            log.check(f"  ✓ {service_tag}")
+            log.check(f"      Service Tag : {service_tag}")
+            log.check(f"      Metrics     : {metric_count} found")
+            if latest_ts:
+                try:
+                    human_ts = datetime.fromtimestamp(int(latest_ts)).strftime("%Y-%m-%d %H:%M:%S")
+                    log.check(f"      VM Time     : {latest_ts} ({human_ts})")
+                except (ValueError, OSError):
+                    log.check(f"      VM Time     : {latest_ts}")
             for sample in tag_result.get("sample_metrics", []):
                 metric_name = sample["metric_name"]
                 value = sample["value"]
-                log.check(f"      - {metric_name}: {value}")
+                log.check(f"        - {metric_name}: {value}")
         else:
-            log.check(f"  {status} {service_tag}: NO DATA FOUND")
+            details_lines.append(f"  ✗ {service_tag}: NO DATA FOUND")
+
+    details = "\n".join(details_lines)
 
     if result["success"]:
         found_count = len(result.get("found_tags", []))
         log.passed(
             VICTORIA_LOG_MSGS["idrac_data_all_found"].format(count=found_count),
-            f"Data found for all {found_count} service tags"
+            details
         )
     else:
         missing = result.get("missing_tags", [])
         found = result.get("found_tags", [])
         log.failed(
             f"iDRAC data missing for {len(missing)} service tags",
-            f"Missing: {missing}"
+            details
         )
         assert False, VICTORIA_ASSERT_MSGS["idrac_data_missing"].format(
             missing=missing,

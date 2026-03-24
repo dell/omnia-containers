@@ -35,9 +35,20 @@ from .host import (
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
 )
+from .load_inputs import (
+    load_input_file,
+    get_input_value,
+    get_input_bool,
+    clear_input_cache,
+)
 from .report import TestReport, get_current_report, set_current_report
 from .vars import (
-    PROVISION_CONFIG_PATH,
+    INPUT_BASE_PATH,
+    SOFTWARE_CONFIG_FILE,
+    BUILD_STREAM_CONFIG_FILE,
+    NETWORK_SPEC_FILE,
+    PROVISION_CONFIG_FILE,
+    TELEMETRY_CONFIG_FILE,
     SERVICE_CLUSTER_METADATA_PATH,
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     K8S_WORKER_NODE_FUNCTIONAL_GROUP,
@@ -66,9 +77,21 @@ __all__ = [
     "TestReport",
     "get_current_report",
     "set_current_report",
-    # Vars
-    "PROVISION_CONFIG_PATH",
+    # Input Loader
+    "load_input_file",
+    "get_input_value",
+    "get_input_bool",
+    "clear_input_cache",
+    # Vars - Input base path and file names
+    "INPUT_BASE_PATH",
+    "SOFTWARE_CONFIG_FILE",
+    "BUILD_STREAM_CONFIG_FILE",
+    "NETWORK_SPEC_FILE",
+    "PROVISION_CONFIG_FILE",
+    "TELEMETRY_CONFIG_FILE",
+    # Vars - Other paths
     "SERVICE_CLUSTER_METADATA_PATH",
+    # Vars - K8s groups
     "K8S_CONTROL_PLANE_FUNCTIONAL_GROUP",
     "K8S_WORKER_NODE_FUNCTIONAL_GROUP",
 ]

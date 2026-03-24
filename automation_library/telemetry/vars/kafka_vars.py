@@ -72,13 +72,14 @@ KAFKA_CMD_TEMPLATES: Dict[str, str] = {
     # Get Kafka bridge (REST proxy) external IP
     "get_bridge_lb_ip": (
         "kubectl get svc {service} -n {namespace} "
-        "-o jsonpath='{{.status.loadBalancer.ingress[0].ip}}'"
+        "-o jsonpath={{.status.loadBalancer.ingress[0].ip}}"
     ),
 
     # REST proxy - list topics
     "rest_list_topics": "curl -s http://{bridge_ip}:{port}/topics",
 
     # REST proxy - create consumer group
+    # NOTE: run_on_remote_node auto-escapes double quotes for SSH.
     "rest_create_consumer": (
         'curl -s -X POST http://{bridge_ip}:{port}/consumers/{consumer_group} '
         '-H "content-type: application/vnd.kafka.v2+json" '

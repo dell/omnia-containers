@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ organized by functionality: system, hardware, network, services, repository, and
 from .main import run_all_prereq_checks
 from .system import configure_hostname
 from .hardware import check_ipmi_tool, install_ipmi_tool, get_hardware_inventory, validate_hardware
-from .network import validate_network_interfaces, configure_pxe_nic, check_internet
+from .network import validate_network_interfaces, configure_pxe_nic, check_internet, check_pxe_is_public_interface
 from .services import check_nfs_reachable
 from .repository import ensure_git_installed, clone_omnia_repo, build_container_images, download_omnia_sh
 from .validation import validate_os, check_podman
@@ -38,6 +38,7 @@ __all__ = [
     "validate_network_interfaces",
     "configure_pxe_nic", 
     "check_internet",
+    "check_pxe_is_public_interface",
     "check_nfs_reachable",
     "ensure_git_installed",
     "clone_omnia_repo",

@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,28 +13,17 @@
 # limitations under the License.
 
 """
-Omnia.sh - Messages and Test Variables.
+Omnia.sh - Messages.
 
-This module contains all messages, status strings, error instructions,
-and test variables for the omnia.sh automation.
+This module contains all messages, status strings, and error instructions
+for the omnia.sh automation.
 """
 
 from typing import Dict
-from ..vars.omnia_sh_vars import OMNIA_SH_VARS
-from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 
 # =============================================================================
-# TEST VARIABLES (for molecule/pytest tests)
+# TEST NAMES (displayed in test output header)
 # =============================================================================
-
-TEST_VARS = {
-    "container_file": "/etc/containers/systemd/omnia_core.container",
-    "service_name": f"{OMNIA_SH_VARS['container_name']}.service",
-    "metadata_file": f"{OMNIA_SH_VARS['omnia_shared_path']}/omnia/.data/oim_metadata.yml",
-    "ssh_alias": OMNIA_SH_VARS["container_name"],
-    "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
-    "ssh_timeout": 5,
-}
 
 # Test names (displayed in test output header)
 TEST_NAMES = {
@@ -49,7 +38,7 @@ TEST_NAMES = {
     "cleanup_container_removed": "Verify omnia_core container is removed",
     "cleanup_service_removed": "Verify omnia_core.container file is removed",
     "cleanup_fstab_removed": "Verify fstab entry is removed",
-    "cleanup_mount_removed": "Verify omnia_shared_path is unmounted",
+    "cleanup_mount_removed": "Verify /opt/omnia is unmounted",
 }
 
 # Test log messages

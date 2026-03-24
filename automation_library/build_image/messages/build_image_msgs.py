@@ -59,6 +59,8 @@ TEST_NAMES = {
     # S3 bucket validation
     "s3_bucket_images": "Verify images are pushed to S3 bucket",
     "s3_bucket_functional_group_images": "Verify all 3 images for functional group {group}",
+    # Image package verification (mounts and checks ALL images)
+    "image_packages": "Verify packages installed in ALL S3 images (downloads, mounts, checks RPM db)",
 }
 
 # Test log messages
@@ -89,6 +91,15 @@ TEST_LOG_MSGS = {
     "s3_bucket_images_missing": "{count} image(s) missing from S3 bucket",
     "s3_bucket_group_ok": "All 3 images for {group} found in S3 bucket",
     "s3_bucket_group_missing": "{count} image(s) missing for {group} in S3 bucket",
+    # Image package verification messages
+    "image_packages_ok": "All packages verified in all images",
+    "image_packages_failed": "{count} image(s) have missing packages",
+    # Prerequisite messages
+    "squashfs_tools_not_installed": (
+        "squashfs-tools package is NOT installed. "
+        "This package is required to mount and verify S3 images.\n"
+        "Install it using: dnf install -y squashfs-tools"
+    ),
 }
 
 # Test assert messages (user-friendly with instructions)
