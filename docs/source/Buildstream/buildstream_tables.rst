@@ -51,7 +51,7 @@ Omnia Configuration
 -------------------
 
 .. csv-table:: omnia_config.yml
-   :file: ../Tables/scheduler_slurm.csv
+   :file: ../Tables/omnia_config_service_cluster.csv
    :header-rows: 1
    :keepspace:
 
