@@ -1,6 +1,6 @@
 .. _buildstream-telemetry:
 
-Step 6: Initialize and Verify Telemetry
+Step 7: Initialize and Verify Telemetry
 ==========================================
 
 Prerequisites

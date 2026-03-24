@@ -1,4 +1,4 @@
-Step 7: Verify Telemetry Services Deployed on the Cluster
+Step 8: Verify Telemetry Services Deployed on the Cluster
 ===========================================================
 
 This section outlines the steps to validate telemetry services and their components, including checking pod status, 
