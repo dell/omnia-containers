@@ -30,8 +30,11 @@ Specify the required parameters in the following input files:
       * To edit the encrypted parameters: ::
 
           ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
+      
+      * If user is decrypting the file, then it must be encrypted again: ::
 
-
+          ansible-vault encrypt omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
+      
 .. csv-table:: software_config.json
    :file: ../../../Tables/software_config_rhel.csv
    :header-rows: 1
