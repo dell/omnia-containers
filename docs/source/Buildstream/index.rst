@@ -23,8 +23,8 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    how-to-gitlab-deployment
    how-to-update-catalog-pipeline
    set_pxe_boot_order_buildstream
-   buildstream_telemetry
-   buildstream_verify_telemetry
+   buildstream_telemetry_1
+   buildstream_verify_telmetry_1
    buildstream_tables
    buildstream_troubleshooting
    
