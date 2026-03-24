@@ -104,11 +104,6 @@ Add necessary inputs to the ``storage_config.yml`` file for the storage configur
 
 Add necessary inputs to the ``telemetry_config.yml`` file for the telemetry configuration. Use the :ref:`telemetry configuration table <buildstream-tables-telemetry-configuration>` for guidance when configuring these parameters. 
 
-``user_registry_credentials.yml``
----------------------------------
-
-Add necessary inputs to the ``user_registry_credentials.yml`` file for the user registry credentials. Use the :ref:`user registry credentials table <buildstream-tables-user-registry-credentials>` for guidance when configuring these parameters. 
-
 
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 

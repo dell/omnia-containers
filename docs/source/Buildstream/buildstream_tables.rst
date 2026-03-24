@@ -20,7 +20,7 @@ High Availability Configuration
 -------------------------------
 
 .. csv-table:: high_availability_config.yml
-   :file: ../Tables/high_availability_config.csv
+   :file: ../Tables/service_k8s_high_availability.csv
    :header-rows: 1
    :keepspace:
 
@@ -30,7 +30,7 @@ Local Repository Configuration
 ------------------------------
 
 .. csv-table:: local_repo_config.yml
-   :file: ../Tables/local_repo_config.csv
+   :file: ../Tables/local_repo_config_rhel.csv
    :header-rows: 1
    :keepspace:
 
@@ -51,7 +51,7 @@ Omnia Configuration
 -------------------
 
 .. csv-table:: omnia_config.yml
-   :file: ../../../Tables/scheduler_slurm.csv
+   :file: ../Tables/scheduler_slurm.csv
    :header-rows: 1
    :keepspace:
 
@@ -98,6 +98,7 @@ Telemetry Configuration
    :file: ../Tables/telemetry_config.csv
    :header-rows: 1
    :keepspace:
+
 
 .. _buildstream-tables-gitlab-configuration:
 
