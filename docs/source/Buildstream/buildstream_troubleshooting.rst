@@ -111,8 +111,8 @@ Stage: Create Local Repo
 
 3. After fixing the configuration issues, re-run the pipeline.
 
-Stage: Create Local Repo
-------------------------
+Stage: Sync Local Repo
+----------------------
 
 **Issue**: Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM.
 
