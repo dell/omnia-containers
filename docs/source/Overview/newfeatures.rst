@@ -18,12 +18,6 @@ Introduces BuildStream integration for automated container image building and pi
 - Pipeline monitoring and status tracking through GitLab web interface
 
 
-Support for upgrading Omnia Core Container from 2.1.0.0-rc1 to 2.1.0.0
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Provides an upgrade path for Omnia Core Container from 2.1.0.0-rc1 to 2.1.0.0. 
-
-
 ``Version 2.1.0.0-rc2``
 ----------------------
 

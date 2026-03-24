@@ -61,6 +61,10 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
 
 Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM pipeline. Use the :ref:`BuildStreaM configuration table <buildstream-tables-buildstream-configuration>` for guidance when configuring these parameters.
 
+.. note:: Ensure that the ``build_stream_port`` (BuildStreaM port) is correctly configured in the ``build_stream_config.yml`` file.
+   The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using ``cleanup_oim.yml``),
+   and then prepare the OIM again with the required port number (using ``prepare_oim.yml``).
+
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 
     ssh omnia_core
