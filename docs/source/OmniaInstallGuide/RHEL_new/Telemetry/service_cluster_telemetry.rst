@@ -33,4 +33,16 @@ Steps
         :header-rows: 1
         :keepspace:
 
+.. note::
+    If user has dedicated setup and BMC IPs are not reachable then user can enable masquerading to make BMC IP reachable.
+
+    .. code-block:: bash
+
+        iptables -t nat -A POSTROUTING -o "<external interface which has internet>" -j MASQUERADE
+
+        iptables -A FORWARD -i "<local interface which has internet>" -o "<external interface which has internet>" -j ACCEPT
+        iptables -A FORWARD -i "<external interface which has internet>" -o "<Local interface which has internet>" -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+    These commands set up Network Address Translation (NAT) and packet forwarding to allow devices on one network interface to access the internet through another interface.
+
 
