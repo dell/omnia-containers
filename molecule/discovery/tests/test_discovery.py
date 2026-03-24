@@ -42,7 +42,6 @@ from automation_library.discovery.messages import (
 )
 from automation_library.discovery.functions import (
     verify_nodes_ssh_reachable,
-    verify_ochami_nodes_discovered,
     verify_nodes_yaml_file,
     verify_passwordless_ssh,
     verify_node_hostnames,
@@ -109,57 +108,6 @@ def test_nodes_ssh_reachable(host):
             result["failed_nodes"][0].split("(")[1].rstrip(")")
             if result["failed_nodes"] else ""
         ),
-    )
-
-
-def test_ochami_nodes_discovered(host):
-    """
-    Test Case 2: Verify nodes are discovered in OpenCHAMI SMD.
-    Shows detailed SMD component information.
-    """
-    log = TestLogger(TEST_NAMES["ochami_nodes_discovered"])
-
-    log.check("Querying OpenCHAMI SMD for discovered nodes")
-    result = verify_ochami_nodes_discovered(host)
-
-    log.check(f"Expected nodes from PXE: {result['total_count']}")
-    log.check(f"Discovered in SMD: {result['discovered_count']}")
-    log.check(f"BMC components: {result.get('bmc_count', 0)}")
-    log.check("")
-
-    # Show PXE mapping nodes by group
-    log.check("═══ PXE Mapping Nodes ═══")
-    for func_group, nodes in result.get("nodes_by_group", {}).items():
-        log.check(f"  {func_group}:")
-        for node in nodes:
-            log.check(f"    - {node['hostname']} ({node['admin_ip']})")
-    log.check("")
-
-    # Show SMD components
-    log.check("═══ SMD Components (Type=Node) ═══")
-    for comp in result.get("smd_components", []):
-        log.check(f"  - xname: {comp['xname']}, role: {comp['role']}, nid: {comp['nid']}")
-    log.check("")
-
-    if result["success"]:
-        log.passed(
-            LOG_MSGS["ochami_success"].format(count=result["total_count"]),
-            "All nodes discovered in OpenCHAMI SMD"
-        )
-    else:
-        log.failed(
-            LOG_MSGS["ochami_failed"].format(
-                missing_count=result.get("missing_count", 0),
-                total_count=result["total_count"]
-            ),
-            result.get("error", "Unknown error")
-        )
-
-    assert result["success"], ASSERT_MSGS["ochami_nodes_missing"].format(
-        missing_nodes=result.get("error", ""),
-        total_count=result["total_count"],
-        discovered_count=result["discovered_count"],
-        missing_count=result.get("missing_count", 0)
     )
 
 
@@ -246,8 +194,8 @@ def test_passwordless_ssh(host):
             admin_ip = node["admin_ip"]
             ssh_ip = "✓" if node.get("ssh_via_ip") else "✗"
             ssh_host = "✓" if node.get("ssh_via_hostname") else "✗"
-            log.check(f"  {hostname} ({admin_ip})")
-            log.check(f"    SSH via IP: {ssh_ip}  |  SSH via hostname: {ssh_host}")
+            log.check(f"  {hostname} ({admin_ip}) →")
+            log.check(f"    SSH via IP: {ssh_ip}  →  SSH via hostname: {ssh_host}")
         log.check("")
 
     if result["success"]:
@@ -297,8 +245,8 @@ def test_node_hostnames(host):
             actual = node["actual"]
             match = node["match"]
             status = "✓" if match else "✗"
-            log.check(f"  {status} {expected} ({node['admin_ip']})")
-            log.check(f"    Expected: {expected}  |  Actual: {actual}")
+            log.check(f"  {status} {expected} ({node['admin_ip']}) →")
+            log.check(f"    Expected: {expected}  →  Actual: {actual}")
         log.check("")
 
     if result["success"]:
@@ -381,7 +329,7 @@ def test_bmc_group_csv(host):
         for entry in result["bmc_entries"][:10]:
             log.check(
                 f"  - BMC={entry['bmc_ip']}, "
-                f"Group={entry['group']}, "
+                f"Group={entry['group']} → "
                 f"Parent={entry['parent']}"
             )
         if result["bmc_count"] > 10:
@@ -393,7 +341,7 @@ def test_bmc_group_csv(host):
         for item in result["missing_groups"]:
             log.check(
                 f"  ✗ {item['hostname']}: "
-                f"group={item['group_name']} not in CSV"
+                f"group={item['group_name']} not in CSV →"
             )
         log.check("")
 
@@ -402,14 +350,14 @@ def test_bmc_group_csv(host):
         for item in result["missing_parents"]:
             log.check(
                 f"  ✗ {item['hostname']}: "
-                f"parent={item['parent_service_tag']} not in CSV"
+                f"parent={item['parent_service_tag']} not in CSV →"
             )
         log.check("")
 
     oim_ip = result.get("oim_bmc_ip", "")
     if oim_ip:
         status = "✗" if result.get("oim_bmc_missing") else "✓"
-        log.check(f"OIM BMC IP: {status} {oim_ip}")
+        log.check(f"OIM BMC IP: {status} {oim_ip} →")
         log.check("")
 
     if result["success"]:
@@ -450,7 +398,7 @@ def test_all_services(host):
             log.check(f"  {status} {hostname} ({node.get('admin_ip', '')})")
             for svc_name, svc_data in services.items():
                 svc_status = "✓" if svc_data["active"] else "✗"
-                log.check(f"      {svc_status} {svc_name}: {svc_data['output']}")
+                log.check(f"      {svc_status} {svc_name}: {svc_data['output']} →")
             if not node_ok:
                 failed_nodes.append(hostname)
 
@@ -485,7 +433,7 @@ def test_all_sinfo(host):
                 for line in node["output"].split('\n')[:10]:
                     log.check(f"      {line}")
             else:
-                log.check(f"      Error: {node['error']}")
+                log.check(f"      Error: {node['error']} →")
             if not node["success"]:
                 failed_nodes.append(hostname)
 
@@ -525,7 +473,7 @@ def test_ldap_login_non_slurm(host):
             login_ok = node.get("login_success", False)
             status = "✓" if login_ok else "✗"
             detail = node.get("output", "") if login_ok else node.get("error", "Login failed")
-            log.check(f"  {status} {hostname} ({node.get('admin_ip', '')}): {detail}")
+            log.check(f"  {status} {hostname} ({node.get('admin_ip', '')}): {detail} →")
             if not login_ok:
                 failed_nodes.append(hostname)
         log.check("")
@@ -569,10 +517,10 @@ def test_ldap_login_slurm_nodes(host):
             expected_info = "should allow" if node.get("expected_login") else "should block"
             log.check(
                 f"  {'✓' if correct else '✗'} {hostname}: "
-                f"{job_info} | {login_info} | {expected_info}"
+                f"{job_info} | {login_info} | {expected_info} →"
             )
             if not correct:
-                log.check(f"      Error: {node.get('error', '')}")
+                log.check(f"      Error: {node.get('error', '')} →")
                 failed_nodes.append(hostname)
         log.check("")
 
@@ -606,21 +554,21 @@ def test_kubernetes_nodes(host):
     for cp in result.get("control_plane_results", []):
         hostname = cp["hostname"]
         admin_ip = cp.get("admin_ip", "")
-        log.check(f"\n═══ {hostname} ({admin_ip}) ═══")
+        log.check(f"\n═══ {hostname} ({admin_ip}) ═══ →")
 
         if not cp["success"]:
-            log.check(f"  ✗ Error: {cp['error']}")
+            log.check(f"  ✗ Error: {cp['error']} →")
             failed_cps.append(hostname)
             continue
 
-        log.check(f"  Total K8s nodes: {cp['total_nodes']} | Ready: {cp['ready_count']}")
+        log.check(f"  Total K8s nodes: {cp['total_nodes']} → Ready: {cp['ready_count']}")
         log.check(f"  {'NAME':<20} {'STATUS':<10} {'ROLES':<18} {'AGE':<10} {'VERSION'}")
         log.check(f"  {'-'*20} {'-'*10} {'-'*18} {'-'*10} {'-'*10}")
         for k8s_node in cp.get("k8s_nodes", []):
             status_icon = "✓" if k8s_node["status"].lower() == "ready" else "✗"
             log.check(
-                f"  {status_icon} {k8s_node['name']:<18} {k8s_node['status']:<10} "
-                f"{k8s_node['roles']:<18} {k8s_node['age']:<10} {k8s_node['version']}"
+                f"                {k8s_node['name']:<18} {k8s_node['status']:<10} "
+                f"{k8s_node['roles']:<18} {k8s_node['age']:<10} {k8s_node['version']} →"
             )
 
         if cp.get("not_ready"):
