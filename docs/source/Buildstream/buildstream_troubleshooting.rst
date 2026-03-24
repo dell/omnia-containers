@@ -111,6 +111,22 @@ Stage: Create Local Repo
 
 3. After fixing the configuration issues, re-run the pipeline.
 
+
+**Issue**: Intermittent Local Repository Sync Failure due to non-persistent iptables rules on OIM
+
+**Possible Cause**: The issue is caused by iptables rules on the OIM node not being persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+
+**Resolution**:
+
+As a workaround to unblock repository synchronization, run the following commands to relax iptables default policies on the OIM node:
+
+.. code-block:: json
+
+   iptables -P INPUT ACCEPT
+   iptables -P FORWARD ACCEPT
+   iptables -P OUTPUT ACCEPT
+
+
 Stage: Build Images
 -------------------
 
