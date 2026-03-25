@@ -211,7 +211,7 @@ omnia_core_password: ""
 # Examples:
 #   ldap_credentials: "ldapuser:ldappassword"
 #   ldap_credentials: "ldapuser:ldappassword,ldapuser1:ldappassword1,ldapuser2:ldappassword2"
-ldap_credentials: "ldapuser:ninja"
+ldap_credentials: ""
 
 # =============================================================================
 # LDAP SLAPD.CONF CONFIGURATION (for external LDAP slapd.conf test)
