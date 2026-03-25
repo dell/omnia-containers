@@ -15,57 +15,56 @@
 """
 Discovery Module
 
-This module provides functions for discovery automation and verification.
-Verifies node discovery, OpenCHAMI registration, passwordless SSH, and configuration files.
+This module provides functions for discovery playbook verification.
+Uses core module utilities for SSH, PXE mapping, and config reading.
 
-Organized by functionality: functions, variables, and messages.
+Test Categories:
+- Common: Node boot, passwordless SSH, hostname sync
+- Slurm: Services, cross-node SSH, sinfo, OpenMPI/UCX
+- K8s: Node ready status
 """
 
-# Import specific items to avoid circular imports
-# Note: Import functions first, then vars and messages to avoid circular dependency
 from .functions import (
-    # Helper
-    get_nodes_by_functional_group,
-    # Original verification functions
-    verify_nodes_ssh_reachable,
-    verify_ochami_nodes_discovered,
-    verify_nodes_yaml_file,
-    verify_passwordless_ssh,
-    verify_node_hostnames,
-    # New validation functions
-    validate_node_boot,
-    validate_packages_by_group,
-    validate_bmc_group_csv,
-    # Certificate renewal
-    renew_openchami_cert,
-    # Consolidated validation (all nodes, grouped by functional group)
-    validate_all_services,
-    validate_all_sinfo,
-    ensure_ldap_test_user,
-    validate_ldap_login_non_slurm,
-    validate_ldap_login_slurm_nodes,
-    validate_kubernetes_nodes,
+    # Common functions
+    cleanup_ssh_known_hosts,
+    get_slurm_control_nodes,
+    get_slurm_compute_nodes,
+    get_login_nodes,
+    get_login_compiler_nodes,
+    get_all_slurm_nodes,
+    get_k8s_nodes,
+    skip_if_no_slurm_nodes,
+    skip_if_no_k8s_nodes,
+    verify_ssh_from_core,
+    verify_ssh_from_oim,
+    # Slurm functions
+    is_openmpi_enabled,
+    is_ucx_enabled,
+    is_openldap_enabled,
+    skip_if_openmpi_not_enabled,
+    skip_if_ucx_not_enabled,
+    verify_services_on_nodes,
+    verify_cross_node_ssh,
+    verify_sinfo_nodes,
+    verify_openmpi_installed,
+    verify_ucx_installed,
+    # LDAP functions
+    skip_if_openldap_not_enabled,
+    apply_slapd_conf_and_verify,
 )
 from .vars import (
-    OPENCHAMI_NODES_PATH,
-    BMC_GROUP_DATA_PATH,
-    OPEN_NETWORK_SPEC_PATH,
+    SSH_OPTS,
     CONTAINER_NAME,
-    SSH_TIMEOUT,
-    CMD_TEMPLATES,
-    LOGIN_SERVICES,
     SLURM_CONTROL_SERVICES,
-    FUNCTIONAL_GROUP_SLURM_CONTROL,
-    FUNCTIONAL_GROUP_KUBE_CONTROL,
+    SLURM_NODE_SERVICES,
+    LOGIN_NODE_SERVICES,
+    OPENMPI_BIN_PATH,
+    UCX_BIN_PATH,
+    LDAP_CONTAINER_NAME,
+    SLAPD_CONF_TEMPLATE,
 )
 from .messages import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
 )
-
-from . import functions as _functions
-from . import vars as _vars
-from . import messages as _messages
-
-__all__ = list(_functions.__all__) + list(_vars.__all__) + list(_messages.__all__)

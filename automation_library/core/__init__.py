@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,28 +30,86 @@ from .host import (
     run_on_remote_node,
     get_node_info,
     get_nodes_info,
+    check_container_running,
     # Backward compatibility functions
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
 )
 from .load_inputs import (
+    load_container_file,
     load_input_file,
     get_input_value,
     get_input_bool,
     clear_input_cache,
+    is_software_enabled,
+    get_config_list_item,
+    get_nfs_client_mount_path,
 )
 from .report import TestReport, get_current_report, set_current_report
+from .secrets import (
+    view_credentials_file,
+    get_credential_value,
+    get_multiple_credentials,
+)
 from .vars import (
+    # Base paths
+    OIM_SHARED_PATH,
+    OMNIA_DATA_PATH,
+    OMNIA_AUTH_PATH,
+    OMNIA_TELEMETRY_PATH,
+    OMNIA_LOG_PATH,
+    OMNIA_PULP_PATH,
     INPUT_BASE_PATH,
+    # Input file names
     SOFTWARE_CONFIG_FILE,
     BUILD_STREAM_CONFIG_FILE,
     NETWORK_SPEC_FILE,
     PROVISION_CONFIG_FILE,
     TELEMETRY_CONFIG_FILE,
+    STORAGE_CONFIG_FILE,
+    OMNIA_CONFIG_FILE,
+    OMNIA_CREDENTIALS_FILE,
+    HA_CONFIG_FILE,
+    PXE_MAPPING_FILE,
+    # Full input file paths
+    SOFTWARE_CONFIG_PATH,
+    TELEMETRY_CONFIG_PATH,
+    OMNIA_CONFIG_PATH,
+    NETWORK_SPEC_PATH,
+    PROVISION_CONFIG_PATH,
+    STORAGE_CONFIG_PATH,
+    HA_CONFIG_PATH,
+    PXE_MAPPING_FILE_PATH,
+    OMNIA_CREDENTIALS_PATH,
+    OMNIA_CREDENTIALS_KEY_PATH,
+    # Data paths
     SERVICE_CLUSTER_METADATA_PATH,
+    OIM_METADATA_PATH,
+    FUNCTIONAL_GROUPS_CONFIG_PATH,
+    # Auth paths
+    SLAPD_CONF_PATH,
+    LDAP_CERT_PATH,
+    # Telemetry paths
+    BMC_GROUP_DATA_PATH,
+    IDRAC_TELEMETRY_REPORT_PATH,
+    # Pulp paths
+    PULP_CERT_PATH,
+    # Log paths
+    LOCAL_REPO_LOG_PATH,
+    # Container names
+    OMNIA_CORE_CONTAINER,
+    # K8s functional groups
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+    # Slurm functional groups
+    SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
+    SLURM_NODE_FUNCTIONAL_GROUP,
+    SLURM_NODE_AARCH64_FUNCTIONAL_GROUP,
+    LOGIN_NODE_FUNCTIONAL_GROUP,
+    LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP,
+    LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
+    LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP,
 )
 
 __all__ = [
@@ -70,6 +128,7 @@ __all__ = [
     "run_on_remote_node",
     "get_node_info",
     "get_nodes_info",
+    "check_container_running",
     "get_node_admin_ip",
     "get_functional_groups_from_pxe_mapping",
     "get_group_names_from_pxe_mapping",
@@ -78,20 +137,73 @@ __all__ = [
     "get_current_report",
     "set_current_report",
     # Input Loader
+    "load_container_file",
     "load_input_file",
     "get_input_value",
     "get_input_bool",
     "clear_input_cache",
-    # Vars - Input base path and file names
+    "is_software_enabled",
+    "get_config_list_item",
+    "get_nfs_client_mount_path",
+    # Secrets
+    "view_credentials_file",
+    "get_credential_value",
+    "get_multiple_credentials",
+    # Vars - Base paths
+    "OIM_SHARED_PATH",
+    "OMNIA_DATA_PATH",
+    "OMNIA_AUTH_PATH",
+    "OMNIA_TELEMETRY_PATH",
+    "OMNIA_LOG_PATH",
+    "OMNIA_PULP_PATH",
     "INPUT_BASE_PATH",
+    # Vars - Input file names
     "SOFTWARE_CONFIG_FILE",
     "BUILD_STREAM_CONFIG_FILE",
     "NETWORK_SPEC_FILE",
     "PROVISION_CONFIG_FILE",
     "TELEMETRY_CONFIG_FILE",
-    # Vars - Other paths
+    "STORAGE_CONFIG_FILE",
+    "OMNIA_CONFIG_FILE",
+    "OMNIA_CREDENTIALS_FILE",
+    "HA_CONFIG_FILE",
+    "PXE_MAPPING_FILE",
+    # Vars - Full input file paths
+    "SOFTWARE_CONFIG_PATH",
+    "TELEMETRY_CONFIG_PATH",
+    "OMNIA_CONFIG_PATH",
+    "NETWORK_SPEC_PATH",
+    "PROVISION_CONFIG_PATH",
+    "STORAGE_CONFIG_PATH",
+    "HA_CONFIG_PATH",
+    "PXE_MAPPING_FILE_PATH",
+    "OMNIA_CREDENTIALS_PATH",
+    "OMNIA_CREDENTIALS_KEY_PATH",
+    # Vars - Data paths
     "SERVICE_CLUSTER_METADATA_PATH",
+    "OIM_METADATA_PATH",
+    "FUNCTIONAL_GROUPS_CONFIG_PATH",
+    # Vars - Auth paths
+    "SLAPD_CONF_PATH",
+    "LDAP_CERT_PATH",
+    # Vars - Telemetry paths
+    "BMC_GROUP_DATA_PATH",
+    "IDRAC_TELEMETRY_REPORT_PATH",
+    # Vars - Pulp paths
+    "PULP_CERT_PATH",
+    # Vars - Log paths
+    "LOCAL_REPO_LOG_PATH",
+    # Vars - Container names
+    "OMNIA_CORE_CONTAINER",
     # Vars - K8s groups
     "K8S_CONTROL_PLANE_FUNCTIONAL_GROUP",
     "K8S_WORKER_NODE_FUNCTIONAL_GROUP",
+    # Vars - Slurm groups
+    "SLURM_CONTROL_NODE_FUNCTIONAL_GROUP",
+    "SLURM_NODE_FUNCTIONAL_GROUP",
+    "SLURM_NODE_AARCH64_FUNCTIONAL_GROUP",
+    "LOGIN_NODE_FUNCTIONAL_GROUP",
+    "LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP",
+    "LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP",
+    "LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP",
 ]

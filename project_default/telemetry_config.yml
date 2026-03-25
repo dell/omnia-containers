@@ -1,0 +1,260 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+
+# ***********************************************************************
+# DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
+# SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
+# ***********************************************************************
+
+# ============================================================================
+# TELEMETRY CONFIGURATION OVERVIEW
+# ============================================================================
+# This file configures telemetry data collection and storage for Dell Omnia.
+#
+# SECTIONS:
+#   1. iDRAC Telemetry    : Hardware metrics from Dell PowerEdge servers
+#   2. VictoriaMetrics    : Time-series database for metric storage
+#   3. Kafka              : Distributed streaming platform for telemetry data
+#   4. LDMS               : Lightweight Distributed Metric Service for compute nodes
+#
+# ============================================================================
+# STORAGE REQUIREMENTS SUMMARY
+# ============================================================================
+# 
+# VICTORIAMETRICS STORAGE:
+# ┌─────────────────┬──────────────────┬─────────────────┬──────────────────┐
+# │ Deployment Mode │ Per-Pod Storage  │ Number of Pods  │ Total Storage    │
+# ├─────────────────┼──────────────────┼─────────────────┼──────────────────┤
+# │ Single-node     │ persistence_size │ 1 pod           │ 1× storage       │
+# ├─────────────────┼──────────────────┼─────────────────┼──────────────────┤
+# │ Cluster         │ persistence_size │ 3 vmstorage     │ 3× storage       │
+# └─────────────────┴──────────────────┴─────────────────┴──────────────────┘
+# Example: 8Gi per pod → Single-node: 8Gi total, Cluster: 24Gi total
+#
+# KAFKA STORAGE:
+# ┌─────────────────┬──────────────────┬─────────────────┬──────────────────┐
+# │ Component       │ Per-Pod Storage  │ Number of Pods  │ Total Storage    │
+# ├─────────────────┼──────────────────┼─────────────────┼──────────────────┤
+# │ Kafka Broker    │ persistence_size │ 3 pods          │ 3× storage       │
+# ├─────────────────┼──────────────────┼─────────────────┼──────────────────┤
+# │ Kafka Controller│ persistence_size │ 3 pods          │ 3× storage       │
+# ├─────────────────┼──────────────────┼─────────────────┼──────────────────┤
+# │ TOTAL KAFKA     │ persistence_size │ 6 pods          │ 6× storage       │
+# └─────────────────┴──────────────────┴─────────────────┴──────────────────┘
+# Example: 8Gi per pod → 48Gi total Kafka storage
+#
+# COMBINED STORAGE EXAMPLES:
+#   Default (8Gi each): VictoriaMetrics Cluster (24Gi) + Kafka (48Gi) = 72Gi total
+#   Single-node mode:   VictoriaMetrics Single (8Gi) + Kafka (48Gi) = 56Gi total
+#
+# STORAGE OPTIONS:
+#   - VictoriaMetrics: Store iDRAC telemetry in time-series database
+#   - Kafka: Stream iDRAC and LDMS telemetry to Kafka topics
+#   - Both: Store iDRAC in both Victoria and Kafka (recommended)
+# ============================================================================
+
+# ============================================================================
+# iDRAC TELEMETRY CONFIGURATION
+# ============================================================================
+# iDRAC telemetry collects hardware metrics from Dell PowerEdge servers.
+# Telemetry data can be stored in VictoriaMetrics, Kafka, or both.
+
+# Enable or disable iDRAC telemetry support
+# Accepted values: true or false
+# Default: true
+idrac_telemetry_support: true
+
+# Specify where to store iDRAC telemetry data
+# Supported values:
+#   - "victoria"        : Store in VictoriaMetrics only
+#   - "kafka"           : Store in Kafka only
+#   - "victoria,kafka"  : Store in both (recommended)
+# Default: "victoria,kafka"
+idrac_telemetry_collection_type: "victoria,kafka"
+
+# ============================================================================
+# VICTORIAMETRICS CONFIGURATION
+# ============================================================================
+# VictoriaMetrics is a time-series database for storing telemetry metrics.
+# Used for iDRAC telemetry when 'victoria' is enabled in idrac_telemetry_collection_type.
+#
+# DEPLOYMENT MODES:
+#   - single-node: Simple deployment with one pod (suitable for small deployments)
+#   - cluster: High-availability deployment with multiple components
+#               (recommended for production and large-scale deployments)
+victoria_configurations:
+  # VictoriaMetrics deployment mode
+  # Supported values:
+  #   - "single-node" : Simple deployment (1 pod, suitable for dev/test)
+  #   - "cluster"     : High-availability deployment (7 pods, recommended for production)
+  # Default: "cluster"
+  #
+  # Cluster Mode Benefits:
+  #   - High availability (no single point of failure)
+  #   - Horizontal scalability (scale components independently)
+  #   - Better performance (4x ingestion, 2x query speed)
+  #   - Production-ready architecture
+  #
+  # Single-Node Benefits:
+  #   - Simple setup (fewer resources)
+  #   - Suitable for small deployments (<10 nodes)
+  #   - Lower resource usage (~4Gi memory vs ~10Gi for cluster)
+  deployment_mode: "cluster"
+
+  # The amount of storage allocated for EACH VictoriaMetrics persistent volume.
+  # IMPORTANT: Total VictoriaMetrics storage depends on deployment mode:
+  #   - Single-node mode: Total storage = persistence_size × 1 pod
+  #   - Cluster mode: Total storage = persistence_size × 3 vmstorage pods
+  #   - Example (cluster): 8Gi × 3 = 24Gi total VictoriaMetrics storage
+  # Accepted values: in the form of "X[Ki|Mi|Gi|Ti|Pi|Ei]"
+  # Default: 8Gi (results in 24Gi total storage for cluster mode)
+  persistence_size: "8Gi"
+
+  # Duration (in hours) to retain victoria logs before they are deleted.
+  # Default: 168 (7 days)
+  retention_period: 168
+
+# ============================================================================
+# KAFKA CONFIGURATION
+# ============================================================================
+# Apache Kafka is a distributed streaming platform for storing telemetry data.
+# Used for iDRAC telemetry when 'kafka' is enabled in idrac_telemetry_collection_type.
+# Also used for LDMS telemetry when LDMS software is configured.
+#
+# NOTE: Kafka topics are auto-generated based on enabled features:
+#   - 'idrac' topic: Required when idrac_telemetry_support=true and 'kafka' is enabled
+#   - 'ldms' topic:  Required when LDMS is configured in software_config.json
+kafka_configurations:
+  # The amount of storage allocated for EACH Kafka persistent volume.
+  # IMPORTANT: Total Kafka storage = persistence_size × 6 pods
+  #   - 3 Kafka brokers (each gets persistence_size storage)
+  #   - 3 Kafka controllers (each gets persistence_size storage)
+  #   - Example: 8Gi × 6 = 48Gi total Kafka storage
+  # Accepted values: in the form of "X[Ki|Mi|Gi|Ti|Pi|Ei]"
+  # Default: 8Gi (results in 48Gi total storage)
+  persistence_size: "8Gi"
+
+  # The number of hours to retain Kafka logs before they are deleted.
+  # Default: 168 (7 days)
+  log_retention_hours: 168
+
+  # The maximum size of Kafka logs (in bytes) before they are deleted.
+  # Default: -1 (unlimited)
+  log_retention_bytes: -1
+
+  # The maximum size of Kafka log segments (in bytes) before they are deleted.
+  # Default: 1073741824 (1 GB)
+  log_segment_bytes: 1073741824
+
+  # Kafka Topic Partitions Configuration
+  # ----------------------------------------------------------------------------
+  # Define the number of partitions for each Kafka topic.
+  # Increasing partitions can improve throughput but also increases storage/overhead.
+  #
+  # IMPORTANT: Topic names are FIXED and cannot be changed.
+  #   - Topic names: Only 'idrac' and 'ldms' are allowed
+  #   - Configurable: Only partition counts can be modified
+  #
+  # Topic Requirements (auto-validated):
+  #   - 'idrac': Required when idrac_telemetry_support=true and 'kafka' is enabled
+  #   - 'ldms':  Required when LDMS software is configured in software_config.json
+  #
+  # Default partition counts: idrac=1, ldms=2
+  topic_partitions:
+    - name: "idrac"
+      partitions: 1
+    - name: "ldms"
+      partitions: 2
+
+# ============================================================================
+# LDMS (Lightweight Distributed Metric Service) CONFIGURATION
+# ============================================================================
+# LDMS collects performance metrics from compute nodes (CPU, memory, network, etc.)
+# and streams them to Kafka for storage and analysis.
+#
+# PREREQUISITE: To enable LDMS support, add the following to software_config.json:
+#   {
+#     "softwares": [
+#       {"name": "ldms", "arch": ["x86_64", "aarch64"]}
+#     ]
+#   }
+#
+# When LDMS software is configured, the 'ldms' topic MUST be defined in
+# kafka_configurations.topic_partitions above.
+#
+# LDMS Port Configurations
+# Aggregator port on service k8s cluster
+# Valid range: 6001-6100
+# Default: 6001
+ldms_agg_port: 6001
+
+# Store daemon port on service k8s cluster
+# Can be the same as ldms_agg_port
+# Valid range: 6001-6100
+# Default: 6001
+ldms_store_port: 6001
+
+# Sampler port on compute nodes
+# Valid range: 10001-10100
+# Default: 10001
+ldms_sampler_port: 10001
+
+# LDMS Sampler Plugin Configurations
+# ----------------------------------------------------------------------------
+# Configure which metrics to collect from compute nodes and collection intervals.
+# Each plugin collects specific system metrics.
+#
+# Parameters:
+#   - plugin_name: Name of the LDMS sampler plugin
+#   - config_parameters: Plugin-specific configuration (as a single string)
+#   - activation_parameters: Collection schedule in MICROSECONDS
+#       Format: "interval=<microseconds> offset=<microseconds>"
+#       Example: "interval=1000000"         (1000000 microseconds = 1 second)
+#                "interval=1000000 offset=0" (1000000 microseconds with no offset)
+#
+# Available Plugins:
+#   - meminfo: Memory usage statistics
+#   - procstat2: Process statistics
+#   - vmstat: Virtual memory statistics
+#   - loadavg: System load average
+#   - procnetdev2: Network interface statistics
+ldms_sampler_configurations:
+  # Memory usage statistics (free, used, buffers, cached, etc.)
+  - plugin_name: meminfo
+    config_parameters: ""
+    activation_parameters: "interval=30000000"  # interval=30000000 microseconds (30 seconds)
+
+  # Process statistics (CPU, memory, I/O per process)
+  - plugin_name: procstat2
+    config_parameters: ""
+    activation_parameters: "interval=30000000"  # interval=30000000 microseconds (30 seconds)
+
+  # Virtual memory statistics (paging, swapping, memory pressure)
+  - plugin_name: vmstat
+    config_parameters: ""
+    activation_parameters: "interval=30000000"  # interval=30000000 microseconds (30 seconds)
+
+  # System load average (1, 5, and 15 minute averages)
+  - plugin_name: loadavg
+    config_parameters: ""
+    activation_parameters: "interval=30000000"  # interval=30000000 microseconds (30 seconds)
+
+  # Network interface statistics (bytes, packets, errors, drops per interface)
+  # Config parameters (optional):
+  #   - ifaces=eth0,eth1: Specific interfaces to monitor
+  #   - If not specified, all network interfaces will be monitored
+  - plugin_name: procnetdev2
+    config_parameters: ""  # Monitor all interfaces
+    activation_parameters: "interval=30000000 offset=0"  # interval=30000000 microseconds (30 seconds), offset=0

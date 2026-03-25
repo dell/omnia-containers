@@ -244,6 +244,66 @@ if [ -f "${MOLECULE_SCRIPT}" ]; then
 fi
 
 # ═════════════════════════════════════════════════════════════════════════════
+# REGISTER ALIASES AND TAB-COMPLETION IN VENV ACTIVATE
+# ═════════════════════════════════════════════════════════════════════════════
+# Inject into .venv/bin/activate so that `source .venv/bin/activate` gives:
+#   - run_molecule  command (no ./ needed)
+#   - run_prereq    command (no ./ needed)
+#   - Tab completion for run_molecule (scenarios + commands)
+
+ACTIVATE_SCRIPT="${VENV_DIR}/bin/activate"
+MARKER="# >>> omnia-automation >>>"
+MARKER_END="# <<< omnia-automation <<<"
+
+# Remove any previous omnia block (idempotent)
+if grep -q "${MARKER}" "${ACTIVATE_SCRIPT}" 2>/dev/null; then
+    sed -i "/${MARKER}/,/${MARKER_END}/d" "${ACTIVATE_SCRIPT}"
+    dbg "Removed previous omnia block from activate script"
+fi
+
+cat >> "${ACTIVATE_SCRIPT}" << 'OMNIA_ACTIVATE_EOF'
+
+# >>> omnia-automation >>>
+# Added by setup_env.sh — shell functions and tab-completion for Omnia Automation
+
+# Shell function so run_molecule works without ./
+run_molecule() {
+    "${VIRTUAL_ENV%/.venv}/run_molecule.sh" "$@"
+}
+
+# Tab-completion for run_molecule
+_run_molecule_completions() {
+    local cur prev
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    local mol_dir="${VIRTUAL_ENV%/.venv}/molecule"
+    local scenarios=""
+    if [ -d "${mol_dir}" ]; then
+        for d in "${mol_dir}"/*/molecule.yml; do
+            [ -f "$d" ] || continue
+            scenarios="${scenarios} $(basename "$(dirname "$d")")"
+        done
+    fi
+    local commands="test verify converge create prepare"
+    local special="all list help"
+    case "$COMP_CWORD" in
+        1) COMPREPLY=( $(compgen -W "${scenarios} ${special}" -- "$cur") ) ;;
+        2)
+            case "$prev" in
+                list|help|--help|-h) COMPREPLY=() ;;
+                *) COMPREPLY=( $(compgen -W "${commands}" -- "$cur") ) ;;
+            esac ;;
+    esac
+}
+complete -F _run_molecule_completions run_molecule
+
+# <<< omnia-automation <<<
+OMNIA_ACTIVATE_EOF
+
+ok "Registered run_molecule alias and tab-completion in venv activate"
+dbg "Injected into: ${ACTIVATE_SCRIPT}"
+
+# ═════════════════════════════════════════════════════════════════════════════
 # NEXT STEPS
 # ═════════════════════════════════════════════════════════════════════════════
 
@@ -257,18 +317,26 @@ echo ""
 printf "  ${C_CYAN}1.${C_RESET} Edit the user configuration file:\n"
 printf "     ${C_DIM}vi ${USER_CONFIG}${C_RESET}\n"
 echo ""
-printf "  ${C_CYAN}2.${C_RESET} Activate the virtual environment (if not already):\n"
+printf "  ${C_CYAN}2.${C_RESET} Fill the inputs in the project_default/ folder:\n"
+printf "     ${C_DIM}ls project_default/${C_RESET}\n"
+printf "     ${C_DIM}# Contains: software_config.json, telemetry_config.yml, provision_config.yml,${C_RESET}\n"
+printf "     ${C_DIM}#           pxe_mapping_file.csv, omnia_config.yml, local_repo_config.yml, etc.${C_RESET}\n"
+printf "     ${C_DIM}# For verify-only runs, filling inputs is not required.${C_RESET}\n"
+echo ""
+printf "  ${C_CYAN}3.${C_RESET} Activate the virtual environment (if not already):\n"
 printf "     ${C_DIM}source .venv/bin/activate${C_RESET}\n"
 echo ""
-printf "  ${C_CYAN}3.${C_RESET} Run OIM prerequisite checks:\n"
-printf "     ${C_DIM}./run_prereq_check.py${C_RESET}\n"
-printf "     ${C_DIM}./run_prereq_check.py --debug            ${C_RESET}${C_DIM}# verbose output${C_RESET}\n"
-printf "     ${C_DIM}./run_prereq_check.py --continue-on-failure  ${C_RESET}${C_DIM}# don't stop on first failure${C_RESET}\n"
+printf "  ${C_CYAN}4.${C_RESET} Run OIM prerequisite checks:\n"
+printf "     ${C_DIM}oim-prereq-check                       ${C_RESET}${C_DIM}# run all checks${C_RESET}\n"
+printf "     ${C_DIM}oim-prereq-check --debug                ${C_RESET}${C_DIM}# verbose output${C_RESET}\n"
+printf "     ${C_DIM}oim-prereq-check --continue-on-failure  ${C_RESET}${C_DIM}# don't stop on first failure${C_RESET}\n"
 echo ""
-printf "  ${C_CYAN}4.${C_RESET} Run molecule tests:\n"
-printf "     ${C_DIM}./run_molecule.sh all test      ${C_RESET}${C_DIM}# run all test cases (playbook + verify)${C_RESET}\n"
-printf "     ${C_DIM}./run_molecule.sh all verify     ${C_RESET}${C_DIM}# run verify-only (skip playbook)${C_RESET}\n"
-printf "     ${C_DIM}./run_molecule.sh <module> test  ${C_RESET}${C_DIM}# run a specific module${C_RESET}\n"
+printf "  ${C_CYAN}5.${C_RESET} Run molecule tests:\n"
+printf "     ${C_DIM}run_molecule all test                   ${C_RESET}${C_DIM}# run all modules (playbook + verify)${C_RESET}\n"
+printf "     ${C_DIM}run_molecule all verify                 ${C_RESET}${C_DIM}# verify-only for all modules${C_RESET}\n"
+printf "     ${C_DIM}run_molecule discovery verify           ${C_RESET}${C_DIM}# verify a specific module${C_RESET}\n"
+printf "     ${C_DIM}run_molecule telemetry test             ${C_RESET}${C_DIM}# playbook + verify for a module${C_RESET}\n"
+printf "     ${C_DIM}run_molecule list                       ${C_RESET}${C_DIM}# list available modules${C_RESET}\n"
 echo ""
 
 separator

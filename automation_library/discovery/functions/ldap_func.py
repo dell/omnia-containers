@@ -13,485 +13,612 @@
 # limitations under the License.
 
 """
-Discovery Module - LDAP Login Validation Functions.
+Discovery Module - LDAP Functions.
 
-Validates LDAP user SSH login on cluster nodes.
-Two scenarios:
-  - Non-slurm nodes: LDAP user login should always succeed.
-  - Slurm compute nodes: LDAP user login should be blocked when no jobs
-    are running (pam_slurm_adopt), and allowed when jobs are running.
-
-Reads ldap_user and ldap_password from user_config.yml.
+Functions for LDAP slapd.conf configuration and verification.
 """
 
-import re
-from typing import Dict, Any
+import time
+from typing import Dict, Any, List
+
+import pytest
 
 from automation_library.core import (
+    run_on_oim,
+    run_in_container,
+    is_software_enabled,
+    get_multiple_credentials,
     load_user_config,
-    run_on_remote_node,
-)
-from ..vars.discovery_vars import (
-    SSH_TIMEOUT,
-    FUNCTIONAL_GROUP_SLURM_CONTROL,
-    AUTH_CONTAINER_NAME,
     SLAPD_CONF_PATH,
-    LDAP_DEFAULT_LOGIN_SHELL,
-    LDAP_DEFAULT_UID_START,
+    OMNIA_CREDENTIALS_PATH,
+    OMNIA_CREDENTIALS_KEY_PATH,
 )
-from .discovery_func import get_nodes_by_functional_group, iter_grouped_nodes
+from .common_func import parse_ssh_error
+
+from ..messages import SKIP_MSGS
+from ..vars import (
+    LDAP_CONTAINER_NAME,
+    SLAPD_CONF_TEMPLATE,
+    CONTAINER_STABLE_WAIT_SECONDS,
+    CONTAINER_CHECK_INTERVAL,
+)
 
 
-def _get_ldap_credentials() -> Dict[str, str]:
+# =============================================================================
+# ENABLE CHECK AND SKIP FUNCTIONS
+# =============================================================================
+
+def is_openldap_enabled(host) -> bool:
+    """Check if OpenLDAP is enabled in software_config.json."""
+    return is_software_enabled(host, "openldap")
+
+
+def skip_if_openldap_not_enabled(host, log):
+    """Skip test if OpenLDAP is not enabled in software_config.json."""
+    if not is_openldap_enabled(host):
+        msg = SKIP_MSGS["openldap_not_enabled"]
+        log.skipped(msg, SKIP_MSGS["skip_detail_not_enabled"].format(software="OpenLDAP"))
+        pytest.skip(msg)
+
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def domain_to_dc(domain: str) -> str:
     """
-    Read LDAP credentials from user_config.yml.
+    Convert domain name to LDAP DC format.
+
+    Examples:
+        omnia.test -> dc=omnia,dc=test
+        omnia.test.cluster -> dc=omnia,dc=test,dc=cluster
+        chola.test -> dc=chola,dc=test
+
+    Args:
+        domain: Domain name (e.g., omnia.test, chola.test)
 
     Returns:
-        Dict with ldap_user, ldap_password, ldap_connection_type, or error.
+        DC string (e.g., dc=omnia,dc=test)
     """
-    config = load_user_config()
-    ldap_user = config.get("ldap_user", "")
-    ldap_password = config.get("ldap_password", "")
-    if not ldap_user or not ldap_password:
-        return {"error": "ldap_user and ldap_password required in user_config.yml"}
-    return {
-        "ldap_user": ldap_user,
-        "ldap_password": ldap_password,
-        "ldap_connection_type": config.get("ldap_connection_type", "internal"),
-        "error": "",
-    }
+    parts = domain.split(".")
+    return ",".join(f"dc={part}" for part in parts)
 
 
-def _parse_slapd_conf(host) -> Dict[str, str]:
+def get_oim_domain(host) -> str:
     """
-    Parse slapd.conf from omnia_auth container to extract suffix, rootdn, rootpw.
+    Get OIM domain name from the OIM server hostname.
 
-    Returns:
-        Dict with suffix, rootdn, rootpw, or error.
+    Example: cholacp.chola.test -> chola.test
     """
-    cmd = host.run(
-        f"podman exec {AUTH_CONTAINER_NAME} cat {SLAPD_CONF_PATH}"
-    )
+    cmd = run_on_oim(host, "hostname -f")
     if cmd.rc != 0:
-        return {"error": f"Cannot read slapd.conf: {cmd.stderr.strip()}"}
+        return ""
 
-    conf = cmd.stdout
-    suffix_match = re.search(r'^suffix\s+"([^"]+)"', conf, re.MULTILINE)
-    rootdn_match = re.search(r'^rootdn\s+"?([^"\n]+)"?', conf, re.MULTILINE)
-    rootpw_match = re.search(r'^rootpw\s+(\S+)', conf, re.MULTILINE)
+    hostname = cmd.stdout.strip()
+    parts = hostname.split(".")
 
-    if not all([suffix_match, rootdn_match, rootpw_match]):
-        return {"error": "Cannot parse suffix/rootdn/rootpw from slapd.conf"}
-
-    return {
-        "suffix": suffix_match.group(1),
-        "rootdn": rootdn_match.group(1).strip('"'),
-        "rootpw": rootpw_match.group(1),
-        "error": "",
-    }
+    # Remove machine name (first part) to get domain
+    # e.g., cholacp.chola.test -> chola.test
+    if len(parts) > 2:
+        return ".".join(parts[1:])
+    return hostname
 
 
-def _ldap_user_exists(host, ldap_user: str, slapd: Dict[str, str]) -> bool:
-    """Check if an LDAP user already exists via ldapsearch."""
-    search_cmd = (
-        f"podman exec {AUTH_CONTAINER_NAME} "
-        f"ldapsearch -x -H ldap://localhost "
-        f"-b 'ou=users,{slapd['suffix']}' "
-        f"-D '{slapd['rootdn']}' -w '{slapd['rootpw']}' "
-        f"'(uid={ldap_user})' uid"
-    )
-    cmd = host.run(search_cmd)
-    return cmd.rc == 0 and f"uid: {ldap_user}" in cmd.stdout
-
-
-def _create_ldap_user(host, ldap_user: str, ldap_password: str,
-                      slapd: Dict[str, str]) -> Dict[str, Any]:
+def get_ldap_credentials(host) -> Dict[str, Any]:
     """
-    Create an LDAP user on the omnia_auth container via ldapadd.
+    Get LDAP credentials from omnia_config_credentials.yml.
 
-    Generates a password hash using slappasswd and adds the user entry
-    with posixAccount, inetOrgPerson, and shadowAccount objectClasses.
-
-    Args:
-        host: Testinfra host object.
-        ldap_user: Username to create.
-        ldap_password: Password for the new user.
-        slapd: Dict with suffix, rootdn, rootpw from _parse_slapd_conf.
+    Uses core secrets module to handle encrypted/decrypted files.
 
     Returns:
-        Dict with success and error.
+        Dict with success, openldap_db_username, openldap_db_password, error
     """
-    # Generate SSHA password hash
-    hash_cmd = host.run(
-        f"podman exec {AUTH_CONTAINER_NAME} slappasswd -s '{ldap_password}'"
-    )
-    if hash_cmd.rc != 0:
-        return {"success": False, "error": f"slappasswd failed: {hash_cmd.stderr.strip()}"}
-    pw_hash = hash_cmd.stdout.strip()
-
-    # Build LDIF for user creation
-    user_dn = f"cn={ldap_user},ou=users,{slapd['suffix']}"
-    ldif = (
-        f"dn: {user_dn}\n"
-        f"objectClass: inetOrgPerson\n"
-        f"objectClass: posixAccount\n"
-        f"objectClass: shadowAccount\n"
-        f"cn: {ldap_user}\n"
-        f"sn: {ldap_user}\n"
-        f"uid: {ldap_user}\n"
-        f"uidNumber: {LDAP_DEFAULT_UID_START}\n"
-        f"gidNumber: {LDAP_DEFAULT_UID_START}\n"
-        f"homeDirectory: /home/{ldap_user}\n"
-        f"loginShell: {LDAP_DEFAULT_LOGIN_SHELL}\n"
-        f"userPassword: {pw_hash}\n"
+    result = get_multiple_credentials(
+        host,
+        OMNIA_CREDENTIALS_PATH,
+        OMNIA_CREDENTIALS_KEY_PATH,
+        ["openldap_db_username", "openldap_db_password"]
     )
 
-    add_cmd = host.run(
-        f"printf '{ldif}' | podman exec -i {AUTH_CONTAINER_NAME} "
-        f"ldapadd -x -H ldap://localhost -D '{slapd['rootdn']}' -w '{slapd['rootpw']}'"
-    )
-    if add_cmd.rc != 0:
-        return {"success": False, "error": f"ldapadd failed: {add_cmd.stderr.strip()}"}
-
-    return {"success": True, "error": ""}
-
-
-def _verify_external_ldap_user(host, ldap_user: str) -> Dict[str, Any]:
-    """
-    Verify an external LDAP user exists on the cluster nodes.
-
-    Nodes are expected to have SSSD already configured to connect to the
-    external LDAP server.  We pick the first reachable node and run
-    ``getent passwd <user>`` to confirm SSSD can resolve the user.
-
-    Args:
-        host: Testinfra host object.
-        ldap_user: LDAP username to verify.
-
-    Returns:
-        Dict with success, verified_on (hostname), and error.
-    """
-    all_grouped = get_nodes_by_functional_group(host)
-    if not all_grouped:
+    if not result["success"]:
         return {
             "success": False,
-            "verified_on": "",
-            "error": "No nodes found in PXE mapping to verify external LDAP user",
+            "openldap_db_username": "",
+            "openldap_db_password": "",
+            "error": result["error"],
         }
 
-    # Try each node until we find one that can resolve the user
-    for _fg, hostname, admin_ip in iter_grouped_nodes(all_grouped):
-        if not admin_ip:
-            continue
-        cmd = run_on_remote_node(
-            host, f"getent passwd {ldap_user}", admin_ip,
-        )
-        if cmd.rc == 0 and ldap_user in cmd.stdout:
-            return {
-                "success": True,
-                "verified_on": hostname,
-                "error": "",
-            }
-        # Node reachable but user not found — external LDAP not configured
-        if cmd.rc == 2 or (cmd.rc == 0 and ldap_user not in cmd.stdout):
-            return {
-                "success": False,
-                "verified_on": hostname,
-                "error": (
-                    f"External LDAP user '{ldap_user}' not found via "
-                    f"getent on {hostname} ({admin_ip}). "
-                    "Ensure SSSD is configured to connect to the external "
-                    "LDAP server and the user exists."
-                ),
-            }
-
     return {
-        "success": False,
-        "verified_on": "",
-        "error": "No reachable nodes to verify external LDAP user",
+        "success": True,
+        "openldap_db_username": result["values"]["openldap_db_username"],
+        "openldap_db_password": result["values"]["openldap_db_password"],
+        "error": "",
     }
 
 
-def ensure_ldap_test_user(host) -> Dict[str, Any]:
+def get_external_ldap_config() -> Dict[str, str]:
     """
-    Ensure the LDAP test user exists for login tests.
-
-    Behavior based on ldap_connection_type in user_config.yml:
-    - "internal": Parse slapd.conf from omnia_auth container, check if the
-      user exists, create it via ldapadd if missing.
-    - "external": Verify the user exists on the cluster nodes via
-      ``getent passwd`` (SSSD must already be configured to connect to
-      the external LDAP server).
+    Get external LDAP configuration from local user_config.yml.
 
     Returns:
-        Dict with success, created (bool), connection_type, and error.
+        Dict with external LDAP config values
     """
-    creds = _get_ldap_credentials()
-    if creds.get("error"):
-        return {"success": False, "created": False, "error": creds["error"]}
-
-    conn_type = creds["ldap_connection_type"]
-    ldap_user = creds["ldap_user"]
-    ldap_password = creds["ldap_password"]
-
-    if conn_type == "external":
-        verify = _verify_external_ldap_user(host, ldap_user)
-        return {
-            "success": verify["success"],
-            "created": False,
-            "connection_type": "external",
-            "verified_on": verify.get("verified_on", ""),
-            "error": verify["error"],
-        }
-
-    # Internal: parse slapd.conf and ensure user exists
-    slapd = _parse_slapd_conf(host)
-    if slapd.get("error"):
-        return {"success": False, "created": False, "error": slapd["error"]}
-
-    if _ldap_user_exists(host, ldap_user, slapd):
-        return {
-            "success": True, "created": False,
-            "connection_type": "internal",
-            "error": "",
-        }
-
-    result = _create_ldap_user(host, ldap_user, ldap_password, slapd)
+    config = load_user_config()
     return {
-        "success": result["success"],
-        "created": result["success"],
-        "connection_type": "internal",
-        "error": result["error"],
+        "server_ip": config.get("external_ldap_server_ip", ""),
+        "server_port": config.get("external_ldap_server_port", ""),
+        "domain": config.get("external_ldap_domain", ""),
+        "bind_username": config.get("external_ldap_bind_username", ""),
+        "bind_password": config.get("external_ldap_bind_password", ""),
     }
 
 
-def _test_ldap_ssh_login(
-    host, target: str, ldap_user: str, ldap_password: str,
-) -> Dict[str, Any]:
+def build_slapd_config(host) -> Dict[str, Any]:
     """
-    Test SSH login to a node as an LDAP user using sshpass.
+    Build complete slapd.conf configuration from OIM domain and user config.
+
+    Returns:
+        Dict with all slapd.conf values and any error
+    """
+    result = {
+        "success": False,
+        "config": {},
+        "error": "",
+    }
+
+    # Get OIM domain
+    oim_domain = get_oim_domain(host)
+    if not oim_domain:
+        result["error"] = "Failed to get OIM domain from hostname"
+        return result
+
+    # Get LDAP credentials from vault using core secrets module
+    creds = get_ldap_credentials(host)
+    if not creds["success"]:
+        result["error"] = f"Failed to get LDAP credentials: {creds['error']}"
+        return result
+
+    # Get external LDAP config from local user_config.yml
+    ext_config = get_external_ldap_config()
+
+    # Validate required external fields
+    required = ["server_ip", "server_port", "domain", "bind_username", "bind_password"]
+    for field in required:
+        if not ext_config.get(field):
+            result["error"] = f"external_ldap_{field} not configured in user_config.yml"
+            return result
+
+    # Build DC from domain names
+    local_dc = domain_to_dc(oim_domain)
+    external_dc = domain_to_dc(ext_config["domain"])
+
+    # Build complete config
+    result["config"] = {
+        "ldap_suffix": local_dc,
+        "ldap_rootdn": f"cn={creds['openldap_db_username']},{local_dc}",
+        "ldap_rootpw": creds["openldap_db_password"],
+        "ldap_uri": (
+            f"ldap://{ext_config['server_ip']}:{ext_config['server_port']}/{local_dc}"
+        ),
+        "ldap_suffixmassage_local": local_dc,
+        "ldap_suffixmassage_remote": external_dc,
+        "ldap_bind_dn": f"cn={ext_config['bind_username']},{external_dc}",
+        "ldap_bind_credentials": ext_config["bind_password"],
+        "ldap_server_ip": ext_config["server_ip"],
+        "oim_domain": oim_domain,
+        "external_domain": ext_config["domain"],
+    }
+
+    result["success"] = True
+    return result
+
+
+def generate_slapd_conf(config: Dict[str, str]) -> str:
+    """
+    Generate slapd.conf content from template using config values.
 
     Args:
-        host: Testinfra host object.
-        target: Hostname or IP to SSH into (hostname preferred for LDAP/DNS).
-        ldap_user: LDAP username.
-        ldap_password: LDAP password.
+        config: Dict with LDAP config values
 
     Returns:
-        Dict with login_success bool, output, and error.
+        Generated slapd.conf content
     """
-    ssh_login_cmd = (
-        f"sshpass -p '{ldap_password}' ssh "
-        f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-        f"-o ConnectTimeout={SSH_TIMEOUT} "
-        f"{ldap_user}@{target} 'whoami' 2>/dev/null"
+    return SLAPD_CONF_TEMPLATE.format(
+        ldap_suffix=config["ldap_suffix"],
+        ldap_rootdn=config["ldap_rootdn"],
+        ldap_rootpw=config["ldap_rootpw"],
+        ldap_uri=config["ldap_uri"],
+        ldap_suffixmassage_local=config["ldap_suffixmassage_local"],
+        ldap_suffixmassage_remote=config["ldap_suffixmassage_remote"],
+        ldap_bind_dn=config["ldap_bind_dn"],
+        ldap_bind_credentials=config["ldap_bind_credentials"],
     )
-    cmd = host.run(ssh_login_cmd)
-    login_ok = cmd.rc == 0 and ldap_user in cmd.stdout.strip()
-    return {
-        "login_success": login_ok,
-        "output": cmd.stdout.strip(),
-        "error": cmd.stderr.strip() if not login_ok else "",
+
+
+# =============================================================================
+# LDAP SLAPD.CONF CONFIGURATION TEST
+# =============================================================================
+
+def apply_slapd_conf_and_verify(host) -> Dict[str, Any]:
+    """
+    Generate slapd.conf from template, apply it, and verify LDAP service.
+
+    This test:
+    1. Gets OIM hostname and builds local DC
+    2. Gets LDAP password from omnia_config_credentials.yml (decrypted)
+    3. Gets external LDAP config from user_config.yml
+    4. Builds external DC from external hostname
+    5. Generates slapd.conf from template
+    6. Backs up existing slapd.conf
+    7. Writes new slapd.conf to /opt/omnia/auth/slapd.conf
+    8. Restarts omnia_auth container
+    9. Waits for container to be stable (10 seconds)
+    10. Verifies external LDAP server is accessible - FAILS if not accessible
+
+    Returns:
+        Dict with success, details, error
+    """
+    results = {
+        "success": False,
+        "details": "",
+        "error": "",
     }
 
+    details_lines = []
 
-def _check_slurm_running_jobs(
-    host, admin_ip: str, ldap_user: str,
-) -> bool:
-    """
-    Check if the LDAP user has running jobs on a slurm node.
+    # Step 1: Build complete slapd config
+    config_result = build_slapd_config(host)
+    if not config_result["success"]:
+        results["error"] = config_result["error"]
+        return results
 
-    Returns:
-        True if the user has running/pending jobs on this node.
-    """
-    cmd = run_on_remote_node(
+    config = config_result["config"]
+
+    details_lines.append(f"OIM domain: {config['oim_domain']}")
+    details_lines.append(f"Local DC: {config['ldap_suffix']}")
+    details_lines.append(f"External domain: {config['external_domain']}")
+    details_lines.append(f"External DC: {config['ldap_suffixmassage_remote']}")
+    details_lines.append(f"LDAP URI: {config['ldap_uri']}")
+
+    # Step 2: Generate slapd.conf from template
+    slapd_content = generate_slapd_conf(config)
+    details_lines.append("✓ Generated slapd.conf from template")
+
+    # Step 3: Backup existing slapd.conf inside omnia_core container
+    backup_path = f"{SLAPD_CONF_PATH}.backup"
+    cmd = run_in_container(host, f"cp {SLAPD_CONF_PATH} {backup_path}")
+    if cmd.rc != 0:
+        results["error"] = f"Failed to backup slapd.conf: {cmd.stderr}"
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"✓ Backed up existing slapd.conf to {backup_path}")
+
+    # Step 4: Write new slapd.conf inside omnia_core container (ONLY slapd.conf, no other changes)
+    escaped_content = slapd_content.replace("'", "'\\''")
+    cmd = run_in_container(host, f"bash -c \"echo '{escaped_content}' > {SLAPD_CONF_PATH}\"")
+    if cmd.rc != 0:
+        results["error"] = f"Failed to write new slapd.conf: {cmd.stderr}"
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"✓ Applied new slapd.conf to {SLAPD_CONF_PATH}")
+
+    # Step 5: Restart omnia_auth container
+    cmd = run_on_oim(host, f"podman restart {LDAP_CONTAINER_NAME}")
+    if cmd.rc != 0:
+        results["error"] = f"Failed to restart container: {cmd.stderr}"
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"✓ Restarted {LDAP_CONTAINER_NAME} container")
+
+    # Step 6: Wait for container to be stable
+    details_lines.append(f"→ Waiting {CONTAINER_STABLE_WAIT_SECONDS}s for container...")
+
+    elapsed = 0
+    container_running = False
+    while elapsed < CONTAINER_STABLE_WAIT_SECONDS:
+        time.sleep(CONTAINER_CHECK_INTERVAL)
+        elapsed += CONTAINER_CHECK_INTERVAL
+
+        cmd = run_on_oim(
+            host,
+            f"podman ps --filter name={LDAP_CONTAINER_NAME} "
+            f"--filter status=running --format '{{{{.Names}}}}'"
+        )
+
+        if cmd.rc == 0 and LDAP_CONTAINER_NAME in cmd.stdout:
+            container_running = True
+            break
+
+    if not container_running:
+        results["error"] = (
+            f"Container {LDAP_CONTAINER_NAME} not running after "
+            f"{CONTAINER_STABLE_WAIT_SECONDS} seconds"
+        )
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"✓ Container {LDAP_CONTAINER_NAME} is running")
+
+    # Step 7: Verify external LDAP server is accessible from omnia_auth container
+    ldap_server_ip = config["ldap_server_ip"]
+    ldap_port = config.get("ldap_port", "1389")
+    ldapsearch_cmd = f"ldapsearch -x -H ldap://{ldap_server_ip}:{ldap_port} -b '' -s base 2>&1"
+    cmd = run_on_oim(
         host,
-        f"squeue -u {ldap_user} -h -t R,PD 2>/dev/null | wc -l",
-        admin_ip,
+        f"podman exec {LDAP_CONTAINER_NAME} {ldapsearch_cmd}"
     )
-    if cmd.rc == 0:
-        try:
-            return int(cmd.stdout.strip()) > 0
-        except ValueError:
-            pass
-    return False
 
-
-def _check_slurm_node_result(
-    host, hostname, admin_ip, ldap_user, ldap_password,
-) -> Dict[str, Any]:
-    """Check a single slurm node's LDAP login behavior."""
-    has_jobs = _check_slurm_running_jobs(host, admin_ip, ldap_user)
-    login_result = _test_ldap_ssh_login(
-        host, hostname, ldap_user, ldap_password,
-    )
-    login_ok = login_result["login_success"]
-    expected_login = has_jobs
-    correct = login_ok == expected_login
-
-    if not correct:
-        error_msg = (
-            "Login blocked but user has running jobs" if has_jobs
-            else "Login allowed but user has no running jobs"
+    if cmd.rc != 0:
+        results["error"] = (
+            f"LDAP server at {ldap_server_ip} is NOT accessible after restart. "
+            f"Error: {cmd.stderr or cmd.stdout}"
         )
-    else:
-        error_msg = ""
+        results["details"] = "\n".join(details_lines)
+        return results
 
-    return {
-        "hostname": hostname, "admin_ip": admin_ip,
-        "has_jobs": has_jobs, "login_success": login_ok,
-        "expected_login": expected_login, "correct": correct,
-        "error": error_msg,
-    }
+    details_lines.append(f"✓ LDAP server at {ldap_server_ip} is accessible")
 
-
-_SKIP_NO_NODES = {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
+    results["success"] = True
+    results["details"] = "\n".join(details_lines)
+    return results
 
 
-def validate_ldap_login_non_slurm(host) -> Dict[str, Any]:
+# =============================================================================
+# LDAP USER LOGIN VERIFICATION
+# =============================================================================
+
+def parse_ldap_credentials(user_config: Dict[str, Any]) -> List[Dict[str, str]]:
     """
-    Validate LDAP user can SSH login on non-slurm nodes.
+    Parse LDAP credentials from user_config.yml.
 
-    Tests SSH login as LDAP user on all nodes EXCEPT slurm_node groups.
-    These nodes (kube_control_plane, login_node, etc.) should always
-    allow LDAP user login.
-
-    Automatically creates the LDAP user on the OIM if ldap_connection_type
-    is "internal" and the user does not yet exist.
+    Supports two formats:
+    1. New format: ldap_credentials: "user1:pwd1,user2:pwd2"
+    2. Legacy format: ldap_user: "user", ldap_password: "pwd"
 
     Returns:
-        Dict with success, group_results, and error.
+        List of dicts with 'user' and 'password' keys
     """
-    creds = _get_ldap_credentials()
-    if creds.get("error"):
-        return {"success": False, "skipped": True, "error": creds["error"], "group_results": {}}
+    credentials = []
 
-    # Ensure LDAP test user exists before running login tests
-    setup = ensure_ldap_test_user(host)
-    if not setup["success"]:
-        return {
-            "success": False, "skipped": True,
-            "error": f"LDAP user setup failed: {setup['error']}",
-            "group_results": {},
-        }
+    # Try new format first: ldap_credentials: "user1:pwd1,user2:pwd2"
+    ldap_credentials = user_config.get("ldap_credentials", "")
+    if ldap_credentials:
+        for cred in ldap_credentials.split(","):
+            cred = cred.strip()
+            if ":" in cred:
+                parts = cred.split(":", 1)
+                credentials.append({
+                    "user": parts[0].strip(),
+                    "password": parts[1].strip(),
+                })
 
-    ldap_user = creds["ldap_user"]
-    ldap_password = creds["ldap_password"]
-
-    all_grouped = get_nodes_by_functional_group(host)
-    if not all_grouped:
-        return _SKIP_NO_NODES
-
-    non_slurm_groups = {
-        fg: nodes for fg, nodes in all_grouped.items()
-        if "slurm_node" not in fg
-    }
-    if not non_slurm_groups:
-        return {
-            "success": True, "skipped": True,
-            "error": "No non-slurm nodes found", "group_results": {},
-        }
-
-    group_results = {}
-    all_success = True
-
-    for func_group, hostname, admin_ip in iter_grouped_nodes(non_slurm_groups):
-        group_results.setdefault(func_group, [])
-        if not admin_ip:
-            group_results[func_group].append({
-                "hostname": hostname, "login_success": False, "error": "No IP",
+    # Fall back to legacy format if no new format found
+    if not credentials:
+        ldap_user = user_config.get("ldap_user", "")
+        ldap_password = user_config.get("ldap_password", "")
+        if ldap_user and ldap_password:
+            credentials.append({
+                "user": ldap_user,
+                "password": ldap_password,
             })
-            all_success = False
-            continue
 
-        login_result = _test_ldap_ssh_login(
-            host, hostname, ldap_user, ldap_password,
-        )
-        group_results[func_group].append({
-            "hostname": hostname, "admin_ip": admin_ip,
-            "login_success": login_result["login_success"],
-            "output": login_result["output"],
-            "error": login_result["error"],
-        })
-        if not login_result["login_success"]:
-            all_success = False
-
-    return {
-        "success": all_success, "skipped": False,
-        "ldap_user": ldap_user,
-        "group_results": group_results,
-        "error": "" if all_success else "LDAP login failed on some non-slurm nodes",
-    }
+    return credentials
 
 
-def validate_ldap_login_slurm_nodes(host) -> Dict[str, Any]:
+def _verify_ldap_user_login(host, run_func) -> Dict[str, Any]:
     """
-    Validate LDAP user login behavior on slurm_node groups.
+    Verify LDAP users can SSH login to Slurm nodes.
 
-    On slurm nodes, if the LDAP user has NO running jobs, the node
-    should BLOCK SSH login (pam_slurm_adopt). If the user has running
-    jobs, the node should allow login.
+    Generic function — run_func determines where SSH originates:
+      - run_on_oim: SSH from OIM host
+      - run_in_container: SSH from omnia_core container
 
-    Automatically creates the LDAP user on the OIM if ldap_connection_type
-    is "internal" and the user does not yet exist.
+    Tests slurm_control_node, login_node, login_compiler_node.
+    Note: slurm_node blocked by PAM (tested separately).
+
+    Args:
+        host: Testinfra host object
+        run_func: Function to execute commands (run_on_oim or run_in_container)
 
     Returns:
-        Dict with success, group_results, and error.
+        Dict with success, results_by_group, ldap_users, error
     """
-    creds = _get_ldap_credentials()
-    if creds.get("error"):
-        return {"success": False, "skipped": True, "error": creds["error"], "group_results": {}}
+    from .common_func import (
+        get_slurm_control_nodes,
+        get_login_nodes,
+        get_login_compiler_nodes,
+    )
 
-    # Ensure LDAP test user exists before running login tests
-    setup = ensure_ldap_test_user(host)
-    if not setup["success"]:
-        return {
-            "success": False, "skipped": True,
-            "error": f"LDAP user setup failed: {setup['error']}",
-            "group_results": {},
-        }
-
-    ldap_user = creds["ldap_user"]
-    ldap_password = creds["ldap_password"]
-
-    all_grouped = get_nodes_by_functional_group(host)
-    if not all_grouped:
-        return _SKIP_NO_NODES
-
-    slurm_groups = {
-        fg: nodes for fg, nodes in all_grouped.items()
-        if "slurm_node" in fg and FUNCTIONAL_GROUP_SLURM_CONTROL not in fg
+    results = {
+        "success": False,
+        "results_by_group": {},
+        "ldap_users": [],
+        "error": "",
     }
-    if not slurm_groups:
-        return {
-            "success": True, "skipped": True,
-            "error": "No slurm_node groups found", "group_results": {},
-        }
 
-    group_results = {}
+    user_config = load_user_config()
+    if not user_config:
+        results["error"] = "Failed to load user_config.yml"
+        return results
+
+    credentials = parse_ldap_credentials(user_config)
+    if not credentials:
+        results["error"] = "ldap_credentials not set in user_config.yml"
+        return results
+
+    results["ldap_users"] = [c["user"] for c in credentials]
+
+    all_nodes = (
+        get_slurm_control_nodes(host)
+        + get_login_nodes(host)
+        + get_login_compiler_nodes(host)
+    )
+    if not all_nodes:
+        results["error"] = "No slurm_control_node, login_node or login_compiler_node in PXE mapping"
+        return results
+
     all_success = True
+    for node in all_nodes:
+        hostname = node.get("hostname", "")
+        admin_ip = node.get("admin_ip", "")
+        func_group = node.get("functional_group", "unknown")
 
-    for func_group, hostname, admin_ip in iter_grouped_nodes(slurm_groups):
-        group_results.setdefault(func_group, [])
-        if not admin_ip:
-            group_results[func_group].append({
-                "hostname": hostname, "has_jobs": False,
-                "login_success": False, "expected_login": False,
-                "correct": False, "error": "No IP",
-            })
-            all_success = False
-            continue
+        if func_group not in results["results_by_group"]:
+            results["results_by_group"][func_group] = []
 
-        entry = _check_slurm_node_result(
-            host, hostname, admin_ip, ldap_user, ldap_password,
-        )
-        group_results[func_group].append(entry)
-        if not entry["correct"]:
-            all_success = False
+        node_result = {
+            "hostname": hostname,
+            "admin_ip": admin_ip,
+            "success": True,
+            "user_results": [],
+        }
 
-    return {
-        "success": all_success, "skipped": False,
-        "ldap_user": ldap_user,
-        "group_results": group_results,
-        "error": "" if all_success else "LDAP login behavior incorrect on some slurm nodes",
+        for cred in credentials:
+            ldap_user = cred["user"]
+            ldap_password = cred["password"]
+
+            user_result = {"user": ldap_user, "success": False, "message": ""}
+
+            ssh_cmd = (
+                f"sshpass -p '{ldap_password}' ssh -o StrictHostKeyChecking=no "
+                f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
+                f"{ldap_user}@{admin_ip} 'echo LOGIN_SUCCESS' 2>&1"
+            )
+            cmd = run_func(host, ssh_cmd)
+
+            if cmd.rc == 0 and "LOGIN_SUCCESS" in cmd.stdout:
+                user_result["success"] = True
+                user_result["message"] = "Login successful"
+            else:
+                node_result["success"] = False
+                all_success = False
+                output = (cmd.stdout or "") + (cmd.stderr or "")
+                user_result["message"] = parse_ssh_error(output)
+
+            node_result["user_results"].append(user_result)
+
+        results["results_by_group"][func_group].append(node_result)
+
+    results["success"] = all_success
+    if not all_success:
+        failed = [
+            f"{ur['user']}@{n['hostname']}"
+            for nodes_list in results["results_by_group"].values()
+            for n in nodes_list if not n["success"]
+            for ur in n["user_results"] if not ur["success"]
+        ]
+        results["error"] = f"LDAP login failed: {', '.join(failed)}"
+
+    return results
+
+
+def verify_ldap_user_login_from_oim(host) -> Dict[str, Any]:
+    """Verify LDAP users can SSH login to Slurm nodes from OIM."""
+    return _verify_ldap_user_login(host, run_on_oim)
+
+
+def verify_ldap_user_login_from_core(host) -> Dict[str, Any]:
+    """Verify LDAP users can SSH login to Slurm nodes from omnia_core container."""
+    return _verify_ldap_user_login(host, run_in_container)
+
+
+def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
+    """
+    Verify PAM slurm_adopt behavior on slurm_node.
+
+    PAM slurm_adopt is default behavior on slurm_node - LDAP users cannot login
+    unless they have an active job running.
+
+    Expected behavior: SSH login should fail with "Access denied by pam_slurm_adopt"
+
+    Returns:
+        Dict with success, results_by_group, ldap_users, error
+    """
+    from .common_func import get_slurm_compute_nodes
+
+    results = {
+        "success": False,
+        "results_by_group": {},
+        "ldap_users": [],
+        "error": "",
     }
+
+    # Get LDAP credentials from user_config.yml
+    user_config = load_user_config()
+    if not user_config:
+        results["error"] = "Failed to load user_config.yml"
+        return results
+
+    credentials = parse_ldap_credentials(user_config)
+    if not credentials:
+        results["error"] = "ldap_credentials not set in user_config.yml"
+        return results
+
+    # For PAM test, use only the first user (PAM behavior is the same for all users)
+    ldap_user = credentials[0]["user"]
+    ldap_password = credentials[0]["password"]
+    results["ldap_users"] = [ldap_user]
+
+    # Get slurm compute nodes
+    slurm_nodes = get_slurm_compute_nodes(host)
+    if not slurm_nodes:
+        results["error"] = "No slurm_node in PXE mapping"
+        return results
+
+    # Test SSH login - should FAIL with PAM message
+    all_correct = True
+    for node in slurm_nodes:
+        hostname = node.get("hostname", "")
+        admin_ip = node.get("admin_ip", "")
+        func_group = node.get("functional_group", "unknown")
+
+        if func_group not in results["results_by_group"]:
+            results["results_by_group"][func_group] = []
+
+        node_result = {
+            "hostname": hostname,
+            "admin_ip": admin_ip,
+            "success": False,
+            "login_blocked": False,
+            "message": "",
+        }
+
+        # SSH login using sshpass - should be blocked by PAM
+        ssh_cmd = (
+            f"sshpass -p '{ldap_password}' ssh -o StrictHostKeyChecking=no "
+            f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
+            f"{ldap_user}@{admin_ip} 'echo LOGIN_SUCCESS' 2>&1"
+        )
+        cmd = run_on_oim(host, ssh_cmd)
+
+        output = (cmd.stdout or "") + (cmd.stderr or "")
+
+        # PAM blocks login - check for "Access denied by pam_slurm_adopt" or "no active jobs"
+        if "pam_slurm_adopt" in output or "no active jobs" in output.lower():
+            node_result["success"] = True
+            node_result["login_blocked"] = True
+            node_result["message"] = "Access denied by pam_slurm_adopt: you have no active jobs on this node"
+        elif "Connection closed" in output and cmd.rc != 0:
+            # Connection closed after PAM denial
+            node_result["success"] = True
+            node_result["login_blocked"] = True
+            node_result["message"] = "Login blocked by PAM (connection closed)"
+        elif cmd.rc == 0 and "LOGIN_SUCCESS" in output:
+            # Login succeeded - PAM not working
+            node_result["message"] = "Login succeeded but should have been blocked by PAM"
+            all_correct = False
+        else:
+            # Some other error
+            node_result["message"] = f"Unexpected response: {output.strip()[:100]}"
+            all_correct = False
+
+        results["results_by_group"][func_group].append(node_result)
+
+    results["success"] = all_correct
+    if not all_correct:
+        results["error"] = "PAM slurm_adopt not working correctly on some nodes"
+
+    return results

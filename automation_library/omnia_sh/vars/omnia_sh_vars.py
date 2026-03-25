@@ -26,6 +26,11 @@ Usage:
 from typing import Dict, Any
 
 from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
+from ...core.vars import (
+    OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
+    OIM_METADATA_PATH as _CORE_OIM_METADATA_PATH,
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+)
 
 
 # =============================================================================
@@ -33,10 +38,10 @@ from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
 # =============================================================================
 
 OMNIA_SH_VARS: Dict[str, Any] = {
-    "container_name": "omnia_core",
+    "container_name": _CORE_CONTAINER,
     "ssh_port": 2222,
     "container_image_tag": "1.0",
-    "omnia_shared_path": "/opt/omnia",
+    "omnia_shared_path": _CORE_OIM_SHARED_PATH,
 }
 
 
@@ -45,11 +50,11 @@ OMNIA_SH_VARS: Dict[str, Any] = {
 # =============================================================================
 
 TEST_VARS: Dict[str, Any] = {
-    "container_name": "omnia_core",
-    "container_file": "/etc/containers/systemd/omnia_core.container",
-    "service_name": "omnia_core.service",
-    "metadata_file": "/opt/omnia/.data/oim_metadata.yml",
-    "ssh_alias": "omnia_core",
+    "container_name": _CORE_CONTAINER,
+    "container_file": f"/etc/containers/systemd/{_CORE_CONTAINER}.container",
+    "service_name": f"{_CORE_CONTAINER}.service",
+    "metadata_file": _CORE_OIM_METADATA_PATH,
+    "ssh_alias": _CORE_CONTAINER,
     "ssh_timeout": 5,
     "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
 }

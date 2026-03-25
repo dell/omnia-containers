@@ -50,6 +50,7 @@ from automation_library.telemetry.functions.kafka_func import (
     verify_kafka_config_match,
     verify_idrac_data_in_kafka,
     verify_ldms_data_in_kafka,
+    verify_ldms_earliest_data_in_kafka,
 )
 
 
@@ -327,17 +328,17 @@ def test_idrac_data_in_kafka_topic(host):
                 except (ValueError, OSError):
                     details_lines.append(f"      Kafka Time  : {kafka_ts}")
             if sample_metrics:
-                details_lines.append(f"      Metrics     :")
+                details_lines.append("      Metrics     :")
                 for metric in sample_metrics:
                     val = metric.get('value')
                     val_str = str(val) if val is not None and str(val).strip() != "" else "(no value yet)"
                     details_lines.append(f"        - {metric['metric_name']}: {val_str}")
             else:
-                details_lines.append(f"      Metrics     : (no values captured yet)")
+                details_lines.append("      Metrics     : (no values captured yet)")
         else:
             details_lines.append(f"  ✗ {service_tag}")
             details_lines.append(f"      IP          : {ip}")
-            details_lines.append(f"      Status      : NO DATA FOUND")
+            details_lines.append("      Status      : NO DATA FOUND")
 
     details = "\n".join(details_lines)
 
@@ -357,23 +358,117 @@ def test_idrac_data_in_kafka_topic(host):
         assert False, result.get("error", "iDRAC data missing")
 
 
-def test_ldms_data_in_kafka_topic(host):
+def test_ldms_earliest_data_in_kafka(host):
     """
-    Test Case 6: Verify LDMS data is flowing to Kafka topic.
+    Test Case 6: Verify LDMS earliest/starting data in Kafka topic.
 
-    Verifies that data from all LDMS-enabled nodes (slurm_node, slurm_control_node,
-    login_node, login_compiler_node) with all configured plugins is present in
-    the ldms Kafka topic.
-
-    Uses Kafka REST proxy to consume records and verify data presence.
+    Uses 'earliest' offset (--from-beginning) to get the oldest data from
+    the beginning of the topic. Shows when each hostname first started
+    sending data to Kafka.
     """
-    log = TestLogger(TEST_NAMES.get("ldms_data_in_kafka", "Verify LDMS data in Kafka topic"))
+    log = TestLogger(TEST_NAMES.get("ldms_earliest_data", "Verify LDMS Earliest Data in Kafka"))
 
     skip_if_ldms_not_enabled(host, log)
     admin_ip = get_admin_ip(host, log)
 
-    # Verify LDMS data in Kafka (waits up to 30s for ALL hostname×plugin data)
-    log.check(LOG_MSGS.get("ldms_data_verifying", "Verifying live LDMS data in Kafka topic"))
+    log.check(LOG_MSGS.get("ldms_earliest_verifying", "Verifying earliest LDMS data in Kafka topic"))
+    result = verify_ldms_earliest_data_in_kafka(host, admin_ip, timeout_seconds=60)
+
+    if result.get("skipped"):
+        log.skipped(result.get("reason", "LDMS not enabled"), "Test skipped")
+        pytest.skip(result.get("reason", "LDMS not enabled"))
+
+    # Build details
+    found_count = result.get("found_instance_count", 0)
+    total_records = result.get("total_records_read", 0)
+    found_hostnames = result.get("found_hostnames", [])
+    missing_hostnames = result.get("missing_hostnames", [])
+    details_lines = [
+        f"Kafka bridge IP: {result.get('bridge_ip', '')}",
+        f"Domain: {result.get('domain_name', '')}",
+        f"Expected plugins: {result.get('expected_plugins', [])}",
+        f"Expected hostnames: {result.get('expected_hostnames', [])}",
+        f"Total records read: {total_records}",
+        f"Found instances: {found_count}",
+        f"Found hostnames: {found_hostnames}",
+        f"Missing hostnames: {missing_hostnames}",
+        "",
+        "Earliest data per hostname (by functional group):",
+    ]
+
+    results_by_group = result.get("results_by_group", {})
+    for func_group, hosts in results_by_group.items():
+        display_group = func_group
+        details_lines.append(f"  [{display_group}]")
+        for hr in hosts:
+            hostname = hr.get("hostname", "")
+            found = hr.get("found", False)
+            all_plugins = hr.get("all_plugins_found", False)
+            plugins_found = hr.get("plugins_found", [])
+            plugins_expected = hr.get("plugins_expected", [])
+
+            status_icon = "✓" if all_plugins else ("⚠" if found else "✗")
+            if all_plugins:
+                status_text = f"all {len(plugins_expected)} plugins found"
+            elif found:
+                status_text = f"{len(plugins_found)}/{len(plugins_expected)} plugins"
+            else:
+                status_text = "NO DATA in Kafka"
+            details_lines.append(f"    {status_icon} {hostname} ({status_text})")
+
+            for plugin_data in plugins_found:
+                plugin = plugin_data.get("plugin", "")
+                record = plugin_data.get("record", {})
+                value = record.get("value", {})
+                ldms_ts = value.get("timestamp", "")
+                if ldms_ts:
+                    try:
+                        ts_float = float(ldms_ts)
+                        human_ts = datetime.fromtimestamp(ts_float).strftime("%Y-%m-%d %H:%M:%S")
+                        details_lines.append(f"        ✓ {plugin}: {human_ts}")
+                    except (ValueError, OSError):
+                        details_lines.append(f"        ✓ {plugin}: {ldms_ts}")
+                else:
+                    details_lines.append(f"        ✓ {plugin}")
+
+                exclude = ["timestamp", "hostname", "instance",
+                          "component_id", "job_id", "app_id"]
+                sample_keys = [k for k in value.keys() if k not in exclude][:3]
+                if sample_keys:
+                    for k in sample_keys:
+                        details_lines.append(f"            - {k}: {value[k]}")
+
+    details = "\n".join(details_lines)
+
+    # Pass if we found any data (purpose is to show earliest timestamps)
+    if found_count > 0:
+        host_count = len(found_hostnames)
+        log.passed(
+            LOG_MSGS.get(
+                "ldms_earliest_success",
+                "LDMS earliest data found for {count} hostnames"
+            ).format(count=host_count),
+            details
+        )
+    else:
+        log.failed("No LDMS earliest data found in Kafka topic", details)
+        assert False, "No LDMS earliest data found in Kafka topic"
+
+
+def test_ldms_latest_data_in_kafka(host):
+    """
+    Test Case 7: Verify LDMS latest/live data in Kafka topic.
+
+    Uses 'latest' offset to get the most recent data from the topic.
+    Verifies that data from all LDMS-enabled nodes with all configured
+    plugins is present in the ldms Kafka topic.
+    """
+    log = TestLogger(TEST_NAMES.get("ldms_latest_data", "Verify LDMS Latest Data in Kafka"))
+
+    skip_if_ldms_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
+
+    log.check(LOG_MSGS.get("ldms_data_verifying", "Verifying latest LDMS data in Kafka topic"))
     result = verify_ldms_data_in_kafka(host, admin_ip, timeout_seconds=30)
 
     if result.get("skipped"):
@@ -391,7 +486,7 @@ def test_ldms_data_in_kafka_topic(host):
         f"Expected instances (hostname×plugin): {expected_count}",
         f"Found instances: {found_count}/{expected_count}",
         "",
-        "Hostname verification (by functional group):",
+        "Latest data per hostname (by functional group):",
     ]
 
     results_by_group = result.get("results_by_group", {})
@@ -423,7 +518,7 @@ def test_ldms_data_in_kafka_topic(host):
                     try:
                         ts_float = float(ldms_ts)
                         human_ts = datetime.fromtimestamp(ts_float).strftime("%Y-%m-%d %H:%M:%S")
-                        details_lines.append(f"        ✓ {plugin}: {ldms_ts} ({human_ts})")
+                        details_lines.append(f"        ✓ {plugin}: {human_ts}")
                     except (ValueError, OSError):
                         details_lines.append(f"        ✓ {plugin}: {ldms_ts}")
                 else:
@@ -431,7 +526,7 @@ def test_ldms_data_in_kafka_topic(host):
 
                 exclude = ["timestamp", "hostname", "instance",
                           "component_id", "job_id", "app_id"]
-                sample_keys = [k for k in value.keys() if k not in exclude][:5]
+                sample_keys = [k for k in value.keys() if k not in exclude][:3]
                 if sample_keys:
                     for k in sample_keys:
                         details_lines.append(f"            - {k}: {value[k]}")
@@ -443,9 +538,11 @@ def test_ldms_data_in_kafka_topic(host):
 
     if result["success"]:
         host_count = len(result.get("found_hostnames", []))
-        plugin_count = len(result.get("expected_plugins", []))
         log.passed(
-            LOG_MSGS.get("ldms_data_success", "LDMS data verified for all {count} hostnames").format(count=host_count),
+            LOG_MSGS.get(
+                "ldms_data_success",
+                "LDMS latest data verified for all {count} hostnames"
+            ).format(count=host_count),
             details
         )
     else:

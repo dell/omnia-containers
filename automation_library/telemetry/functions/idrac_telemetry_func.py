@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,12 @@ from typing import Dict, Any, List
 
 import yaml
 
-from ...core import run_in_container, INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ...core import (
+    run_in_container,
+    INPUT_BASE_PATH,
+    PROVISION_CONFIG_FILE,
+    get_multiple_credentials,
+)
 from ...core.host import run_on_remote_node
 from ..vars.idrac_telemetry_vars import (
     TELEMETRY_NAMESPACE,
@@ -115,7 +120,7 @@ def get_service_kube_nodes_with_children(host) -> List[str]:
     lines = cmd.stdout.strip().split('\n')
     service_kube_nodes = []
     slurm_parents = set()
-    
+
     for line in lines[1:]:  # Skip header
         if 'service_kube_node' in line.lower():
             parts = line.split(',')
@@ -125,7 +130,7 @@ def get_service_kube_nodes_with_children(host) -> List[str]:
             parts = line.split(',')
             if len(parts) >= 4 and parts[3].strip():  # PARENT_SERVICE_TAG column
                 slurm_parents.add(parts[3].strip())
-    
+
     # Return service_kube_nodes that have children
     return [node for node in service_kube_nodes if node in slurm_parents]
 
@@ -271,6 +276,7 @@ def get_mysql_credentials(host) -> Dict[str, str]:
     Get MySQL credentials from ansible vault file.
 
     Handles both encrypted and already-decrypted (plain YAML) files.
+    Uses core secrets module for consistent credential handling.
 
     Args:
         host: Testinfra host object
@@ -278,35 +284,25 @@ def get_mysql_credentials(host) -> Dict[str, str]:
     Returns:
         Dict with mysqldb_user and mysqldb_password
     """
-    vault_file = OMNIA_CONFIG_CREDENTIALS_PATH
-    key_file = OMNIA_CONFIG_CREDENTIALS_KEY_PATH
-
-    # First, try to decrypt vault file
-    cmd = run_in_container(
-        host, f"ansible-vault view {vault_file} "
-        f"--vault-password-file {key_file} 2>/dev/null"
+    result = get_multiple_credentials(
+        host,
+        OMNIA_CONFIG_CREDENTIALS_PATH,
+        OMNIA_CONFIG_CREDENTIALS_KEY_PATH,
+        ["mysqldb_user", "mysqldb_password"]
     )
 
-    if cmd.rc == 0:
-        # Successfully decrypted
-        content = cmd.stdout
-    else:
-        # Vault decrypt failed - file might be plain YAML, try reading directly
-        cmd = run_in_container(host, f"cat {vault_file}")
-        if cmd.rc != 0:
-            return {"mysqldb_user": "", "mysqldb_password": "", "error": cmd.stderr}
-        content = cmd.stdout
-
-    # Parse YAML content
-    try:
-        creds = yaml.safe_load(content)
+    if not result["success"]:
         return {
-            "mysqldb_user": creds.get("mysqldb_user", ""),
-            "mysqldb_password": creds.get("mysqldb_password", ""),
-            "error": "",
+            "mysqldb_user": "",
+            "mysqldb_password": "",
+            "error": result["error"],
         }
-    except yaml.YAMLError as e:
-        return {"mysqldb_user": "", "mysqldb_password": "", "error": str(e)}
+
+    return {
+        "mysqldb_user": result["values"]["mysqldb_user"],
+        "mysqldb_password": result["values"]["mysqldb_password"],
+        "error": "",
+    }
 
 
 def get_activated_ips(host) -> List[str]:
@@ -330,18 +326,18 @@ def get_activated_ips(host) -> List[str]:
     activated_ips = []
     lines = cmd.stdout.strip().split('\n')
     capture_section = False
-    
+
     for line in lines:
         if "Telemetry activated IPs List:" in line:
             capture_section = True
             continue
-        elif capture_section and line.strip().startswith('- '):
+        if capture_section and line.strip().startswith('- '):
             ip = line.strip()[2:]  # Remove '- ' prefix (after strip)
             activated_ips.append(ip)
         elif capture_section and line.strip() and not line.startswith('  -'):
             # End of the IP list section
             break
-    
+
     return activated_ips
 
 
@@ -439,23 +435,49 @@ def get_expected_ips_for_pod(
     expected_ips = []
     metadata = cluster_metadata.get("service_cluster_metadata", {})
 
-    # Find which service_tag this pod belongs to
-    pod_service_tag = None
-    for service_tag, info in metadata.items():
-        if info.get("idrac_podname") == pod_name:
-            pod_service_tag = service_tag
-            break
-
-    if pod_service_tag == "MGMT_node":
-        # idrac-telemetry-0: IPs with no PARENT
+    # Determine pod type:
+    # - idrac-telemetry-0 is always MGMT node (handles IPs with no parent)
+    # - idrac-telemetry-N (N>0) handles IPs with parent = service_tag of that node
+    if pod_name == "idrac-telemetry-0":
+        # MGMT node: IPs with no PARENT (empty string or None)
         for entry in bmc_data:
-            if not entry["parent"] and entry["bmc_ip"] in activated_ips:
+            parent = entry.get("parent", "")
+            if not parent and entry["bmc_ip"] in activated_ips:
                 expected_ips.append(entry["bmc_ip"])
     else:
-        # idrac-telemetry-N: IPs with PARENT=service_tag
-        for entry in bmc_data:
-            if entry["parent"] == pod_service_tag and entry["bmc_ip"] in activated_ips:
-                expected_ips.append(entry["bmc_ip"])
+        # Service node: Find which service_tag this pod belongs to
+        # Look for node info that has this pod assigned
+        pod_service_tag = None
+        for service_tag, info in metadata.items():
+            if service_tag == "MGMT_node":
+                continue
+            # Check if this service node's pod matches
+            if info.get("idrac_podname") == pod_name:
+                pod_service_tag = service_tag
+                break
+            # Also check by node name pattern (idrac-telemetry-1 -> first service node)
+            node_name = info.get("node", "")
+            if node_name and "idrac-telemetry-" in pod_name:
+                # Map pod index to service node
+                try:
+                    pod_idx = int(pod_name.replace("idrac-telemetry-", ""))
+                    if pod_idx > 0:
+                        # Get all service nodes sorted
+                        service_nodes = [
+                            (st, inf) for st, inf in metadata.items()
+                            if st != "MGMT_node"
+                        ]
+                        if pod_idx <= len(service_nodes):
+                            pod_service_tag = service_nodes[pod_idx - 1][0]
+                            break
+                except (ValueError, IndexError):
+                    pass
+
+        # Get IPs with PARENT = pod_service_tag
+        if pod_service_tag:
+            for entry in bmc_data:
+                if entry.get("parent") == pod_service_tag and entry["bmc_ip"] in activated_ips:
+                    expected_ips.append(entry["bmc_ip"])
 
     return expected_ips
 

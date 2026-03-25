@@ -23,9 +23,7 @@ import json
 import time
 from typing import Dict, Any, List
 
-import yaml
-
-from ...core import run_in_container
+from ...core import load_container_file
 from ...core.host import run_on_remote_node
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
@@ -743,7 +741,10 @@ def verify_idrac_data_in_kafka(
                                         has_value = metric_value is not None and str(metric_value).strip() != ""
                                         if metric_name and len(service_tag_records[service_tag]["sample_metrics"]) < 5:
                                             # Avoid duplicate metrics, prefer ones with values
-                                            existing = [m["metric_name"] for m in service_tag_records[service_tag]["sample_metrics"]]
+                                            existing = [
+                                                m["metric_name"]
+                                                for m in service_tag_records[service_tag]["sample_metrics"]
+                                            ]
                                             if metric_name not in existing:
                                                 if has_value:
                                                     service_tag_records[service_tag]["sample_metrics"].append({
@@ -754,7 +755,9 @@ def verify_idrac_data_in_kafka(
                                             elif has_value:
                                                 # Update existing entry if it had no value
                                                 for m in service_tag_records[service_tag]["sample_metrics"]:
-                                                    if m["metric_name"] == metric_name and (m["value"] is None or str(m["value"]).strip() == ""):
+                                                    if (m["metric_name"] == metric_name
+                                                            and (m["value"] is None
+                                                                 or str(m["value"]).strip() == "")):
                                                         m["value"] = metric_value
                                                         service_tag_has_values.add(service_tag)
                                                         break
@@ -906,16 +909,8 @@ def get_domain_name(host) -> str:
     Returns:
         Domain name string (e.g., 'clash.test') or empty string if not found
     """
-    cmd = run_in_container(host, f"cat {OIM_METADATA_PATH}")
-
-    if cmd.rc != 0:
-        return ""
-
-    try:
-        metadata = yaml.safe_load(cmd.stdout)
-        return metadata.get("domain_name", "") if metadata else ""
-    except yaml.YAMLError:
-        return ""
+    metadata = load_container_file(host, OIM_METADATA_PATH)
+    return metadata.get("domain_name", "")
 
 
 def get_ldms_node_hostnames(host) -> List[str]:
@@ -974,7 +969,8 @@ def get_ldms_nodes_by_functional_group(host) -> Dict[str, List[Dict[str, str]]]:
 def verify_ldms_data_in_kafka(
     host,
     admin_ip: str,
-    timeout_seconds: int = 30
+    timeout_seconds: int = 30,
+    offset: str = "latest"
 ) -> Dict[str, Any]:
     """
     Verify LDMS data is flowing to Kafka by checking that data from all
@@ -991,6 +987,7 @@ def verify_ldms_data_in_kafka(
         host: Testinfra host object
         admin_ip: Admin IP of K8s node
         timeout_seconds: Timeout for consuming records (default 30s)
+        offset: Kafka offset - 'latest' for live data, 'earliest' for starting data
 
     Returns:
         Dict with success, found_instances, missing_instances, errors
@@ -1047,20 +1044,19 @@ def verify_ldms_data_in_kafka(
             instance = f"{hostname}.{domain_name}/{plugin}"
             expected_instances.add(instance)
 
-    consumer_group = f"ldms-test-{int(time.time()) % 10000}"
-    consumer_name = "ldms-test-consumer"
+    consumer_group = f"ldms-{offset}-{int(time.time()) % 10000}"
+    consumer_name = f"ldms-{offset}-consumer"
 
     found_instances = set()
     found_records = {}  # Store full records per instance
 
     try:
-        # Step 1: Create consumer group
-        # Use 'latest' to get live/fresh data instead of historical
+        # Step 1: Create consumer group with specified offset
         create_cmd = (
             f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
             f'-H "content-type: application/vnd.kafka.v2+json" '
             f'-d \'{{"name": "{consumer_name}", "format": "json", '
-            f'"auto.offset.reset": "latest", "enable.auto.commit": true}}\''
+            f'"auto.offset.reset": "{offset}", "enable.auto.commit": true}}\''
         )
         cmd = run_on_remote_node(host, create_cmd, admin_ip)
         # Check for error in response (curl returns 0 even on API errors)
@@ -1142,7 +1138,6 @@ def verify_ldms_data_in_kafka(
     # Build detailed results per hostname with full record data
     hostname_results = []
     for hostname in hostnames:
-        host_instances = [i for i in found_instances if i.startswith(f"{hostname}.")]
         host_plugins_found = []
         host_plugins_missing = []
         for plugin in plugins:
@@ -1208,4 +1203,211 @@ def verify_ldms_data_in_kafka(
         "hostname_results": hostname_results,
         "results_by_group": results_by_group,
         "error": error_msg,
+    }
+
+
+def verify_ldms_earliest_data_in_kafka(
+    host,
+    admin_ip: str,
+    timeout_seconds: int = 60
+) -> Dict[str, Any]:
+    """
+    Get earliest LDMS data from Kafka topic for EACH hostname.
+
+    Uses positions/beginning API (equivalent to --from-beginning) to seek
+    to the start of the topic, then polls until first data for each
+    hostname is found.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s node
+        timeout_seconds: Max time to search for all hostnames (default 60s)
+
+    Returns:
+        Dict with earliest_records per hostname/plugin found
+    """
+    if not is_ldms_enabled(host):
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": "LDMS not enabled in software_config.json",
+        }
+
+    # Get bridge IP
+    bridge_ip = get_kafka_bridge_ip(host, admin_ip)
+    if not bridge_ip:
+        return {
+            "success": False,
+            "error": KAFKA_ASSERT_MSGS["kafka_bridge_not_found"],
+        }
+
+    # Get expected data
+    plugins = get_ldms_sampler_plugins(host)
+    hostnames = get_ldms_node_hostnames(host)
+    nodes_by_group = get_ldms_nodes_by_functional_group(host)
+    domain_name = get_domain_name(host)
+
+    # Build hostname to functional_group mapping
+    hostname_to_group = {}
+    for func_group, nodes in nodes_by_group.items():
+        for node in nodes:
+            hostname_to_group[node.get("hostname", "")] = func_group
+
+    if not plugins:
+        return {
+            "success": False,
+            "error": "No LDMS sampler plugins configured in telemetry_config.yml",
+        }
+
+    if not hostnames:
+        return {
+            "success": False,
+            "error": "No LDMS nodes found in PXE mapping file",
+        }
+
+    if not domain_name:
+        return {
+            "success": False,
+            "error": "Could not get domain_name from oim_metadata.yml",
+        }
+
+    expected_hostnames = set(hostnames)
+    consumer_group = f"ldms-earliest-{int(time.time()) % 10000}"
+    consumer_name = "ldms-earliest-consumer"
+
+    found_hostnames = set()
+    found_records = {}  # Store first record per instance
+    total_records = 0
+
+    try:
+        # Step 1: Create consumer
+        create_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group} '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d \'{{"name": "{consumer_name}", "format": "json"}}\''
+        )
+        cmd = run_on_remote_node(host, create_cmd, admin_ip)
+        if "error_code" in cmd.stdout:
+            return {
+                "success": False,
+                "bridge_ip": bridge_ip,
+                "error": f"Failed to create consumer: {cmd.stdout}",
+            }
+
+        # Step 2: Assign partitions (both partitions)
+        assign_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/assignments '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d \'{{"partitions": [{{"topic": "ldms", "partition": 0}}, '
+            f'{{"topic": "ldms", "partition": 1}}]}}\''
+        )
+        run_on_remote_node(host, assign_cmd, admin_ip)
+
+        # Step 3: Seek to beginning (equivalent to --from-beginning)
+        seek_beginning_cmd = (
+            f'curl -s -X POST http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/positions/beginning '
+            f'-H "content-type: application/vnd.kafka.v2+json" '
+            f'-d \'{{"partitions": [{{"topic": "ldms", "partition": 0}}, '
+            f'{{"topic": "ldms", "partition": 1}}]}}\''
+        )
+        run_on_remote_node(host, seek_beginning_cmd, admin_ip)
+
+        # Step 4: Consume records until we find first data for all hostnames
+        consume_cmd = (
+            f'curl -s -X GET http://{bridge_ip}:{KAFKA_BRIDGE_PORT}/consumers/{consumer_group}'
+            f'/instances/{consumer_name}/records '
+            f'-H "accept: application/vnd.kafka.json.v2+json"'
+        )
+
+        start_time = time.time()
+        while time.time() - start_time < timeout_seconds:
+            cmd = run_on_remote_node(host, consume_cmd, admin_ip)
+
+            if cmd.stdout.strip() and cmd.stdout.strip().startswith("["):
+                try:
+                    records = json.loads(cmd.stdout)
+                    for record in records:
+                        total_records += 1
+                        value = record.get("value", {})
+                        instance = value.get("instance", "")
+                        if instance:
+                            # Extract hostname
+                            if "/" in instance:
+                                host_part = instance.split("/")[0]
+                                if "." in host_part:
+                                    hostname = host_part.split(".")[0]
+                                    # Store first record per instance
+                                    if instance not in found_records:
+                                        found_records[instance] = record
+                                        if hostname in expected_hostnames:
+                                            found_hostnames.add(hostname)
+                except json.JSONDecodeError:
+                    pass
+
+            # Stop when we found data for all expected hostnames
+            if found_hostnames >= expected_hostnames:
+                break
+
+            time.sleep(0.3)
+
+    finally:
+        # Cleanup consumer
+        delete_cmd = KAFKA_CMD_TEMPLATES["rest_delete_consumer"].format(
+            bridge_ip=bridge_ip,
+            port=KAFKA_BRIDGE_PORT,
+            consumer_group=consumer_group,
+            consumer_name=consumer_name,
+        )
+        run_on_remote_node(host, delete_cmd, admin_ip)
+
+    # Build results per hostname
+    hostname_results = []
+    for hostname in hostnames:
+        host_plugins_found = []
+        for plugin in plugins:
+            expected_inst = f"{hostname}.{domain_name}/{plugin}"
+            record = found_records.get(expected_inst, {})
+            if expected_inst in found_records:
+                host_plugins_found.append({
+                    "plugin": plugin,
+                    "record": record,
+                })
+
+        hostname_results.append({
+            "hostname": hostname,
+            "functional_group": hostname_to_group.get(hostname, "unknown"),
+            "found": len(host_plugins_found) > 0,
+            "all_plugins_found": len(host_plugins_found) == len(plugins),
+            "plugins_found": host_plugins_found,
+            "plugins_expected": plugins,
+        })
+
+    # Build results grouped by functional_group
+    results_by_group = {}
+    for hr in hostname_results:
+        fg = hr.get("functional_group", "unknown")
+        if fg not in results_by_group:
+            results_by_group[fg] = []
+        results_by_group[fg].append(hr)
+
+    # Success if we found data for all hostnames
+    success = found_hostnames >= expected_hostnames
+
+    return {
+        "success": success,
+        "skipped": False,
+        "bridge_ip": bridge_ip,
+        "domain_name": domain_name,
+        "expected_hostnames": hostnames,
+        "expected_plugins": plugins,
+        "total_records_read": total_records,
+        "found_instances": list(found_records.keys()),
+        "found_instance_count": len(found_records),
+        "found_hostnames": list(found_hostnames),
+        "missing_hostnames": list(expected_hostnames - found_hostnames),
+        "hostname_results": hostname_results,
+        "results_by_group": results_by_group,
+        "error": "" if success else f"Missing hostnames: {list(expected_hostnames - found_hostnames)}",
     }

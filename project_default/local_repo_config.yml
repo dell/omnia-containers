@@ -1,0 +1,199 @@
+# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ***********************************************************************
+# DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
+# SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
+# ***********************************************************************
+
+# ================================
+# VARIABLE DETAILS
+# ================================
+# 1. user_registry
+#--------------------------
+# Configuration for user registry to configure additional images in Pulp
+# Fields:
+#   host       : Registry IP and port in format "IP:port"
+#   cert_path  : Path to SSL certificate file (.crt) - Required only if host is using HTTPS
+#   key_path   : Path to SSL private key file (.key) - Required only if host is using HTTPS
+# Notes:
+#   - If host is HTTPS, cert_path and key_path are required
+#   - If host is HTTP, cert_path and key_path can be left empty
+#   - cert_path should point to .crt files only
+#   - key_path should point to .key files only
+#   - cert and key paths are accessed from within the omnia_core container
+# 2. user_repo_url_x86_64
+#--------------------------
+#    Optional list of user-defined repository URLs for x86_64 architecture.
+#    Each entry can include: url, gpgkey, sslcacert, sslclientkey, sslclientcert, name, policy.
+#    Used for custom cluster packages like <arch>_slurm_custom.
+# Fields:
+#   url         : Base URL of the repository
+#   gpgkey      : GPG key URL (leave empty to disable gpgcheck; Omnia will trust this repo and user is responsible for its security)
+#   name        : Name of the repository (must start with 'x86_64_', e.g., 'x86_64_my_repo')
+#   sslcacert   : Path to SSL CA certificate (if using SSL)
+#   sslclientkey: Path to SSL client key (if using SSL)
+#   sslclientcert: Path to SSL client certificate (if using SSL)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# Notes:
+#   - Do not use Jinja variables in this configuration.
+#   - Omit SSL fields entirely if SSL is not in use.
+#   - Its a madatory field in case of slurm_custom with name as '<arch>_slurm_custom'
+#
+# 3. user_repo_url_aarch64
+#---------------------------
+#    Same as above but for aarch64 architecture.
+#    Note: name must start with 'aarch64_' (e.g., 'aarch64_my_repo').
+#
+# 4. rhel_os_url_x86_64
+#-----------------------------
+#    Mandatory when RHEL subscription is not registered.
+#    Contains repository URLs for codeready-builder, baseos, and appstream for x86_64.
+# Fields:
+#   url         : Base URL of the repository
+#   gpgkey      : GPG key URL (leave empty to disable gpgcheck; Omnia will trust this repo and user is responsible for its security)
+#   sslcacert   : Path to SSL CA certificate (if using SSL)
+#   sslclientkey: Path to SSL client key (if using SSL)
+#   sslclientcert: Path to SSL client certificate (if using SSL)
+#   policy      : Repository policy if mentioned allowed values (always, partial). 
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+#   name        : Name of the repository [ Allowed repo names <arch>_codeready-builder, <arch>_appstream, <arch>_baseos
+# Notes:
+#   - Do not use Jinja variables in this configuration.
+#   - Omit SSL fields entirely if SSL is not in use.
+#   - RHEL subscription is not registered, All 3 repositories [ <arch>_codeready-builder, <arch>_appstream, <arch>_baseos ]entries
+#      are mandatory.
+#
+# 5. rhel_os_url_aarch64
+#----------------------------
+#    Same as above but for aarch64 architecture.
+#
+# 6. rhel_subscription_repo_config_x86_64
+#-------------------------------------------
+#    Optional configuration for overriding policy and caching settings for RHEL 
+#    subscription-based repositories on x86_64 architecture.
+#    When subscription is enabled, this config takes precedence over dynamically 
+#    generated URLs for matching repositories and adds any additional repositories.
+# Fields:
+#   url         : Base URL of the repository (REQUIRED)
+#   gpgkey      : GPG key URL (REQUIRED, can be empty to disable gpgcheck)
+#   name        : Repository name for matching (REQUIRED)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+#   sslcacert   : Path to SSL CA certificate (optional)
+#   sslclientkey: Path to SSL client key (optional)
+#   sslclientcert: Path to SSL client certificate (optional)
+# Notes:
+#   - Do not use Jinja variables in this configuration.
+#   - Omit SSL fields entirely if SSL is not in use.
+#   - Matching is done by repository name (e.g., x86_64_appstream)
+#   - Non-matching repositories are added as additional repos
+#
+# 7. rhel_subscription_repo_config_aarch64
+#--------------------------------------------
+#    Same as above but for aarch64 architecture.
+#
+#### ADVANCE CONFIGURATIONS FOR LOCAL REPO ###
+# 8. omnia_repo_url_rhel_x86_64
+#-------------------------------
+#    Mandatory repository URLs for downloading RPMS for Omnia features on RHEL x86_64.
+#    Each entry includes url, gpgkey, and name.
+#
+# This variable defines all the repo urls from where rpms will be downloaded for omnia features when cluster_os_type is rhel and arch x86_64
+# Making incorrect changes to this variable can cause omnia failure. Please edit cautiously.
+# Fields:
+#  url        : Base URL of the repository.
+#  gpgkey     : URL of the GPG key for the repository.
+#                   If left empty, gpgcheck=0 for that repository.
+#  name       : A unique identifier for the repository or registry.
+#  policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#  caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# 9. omnia_repo_url_rhel_aarch64
+#--------------------------------
+#    Same as above but for RHEL aarch64.
+#
+# 10. additional_repos_x86_64
+#----------------------------
+#    Optional list of additional repository URLs for x86_64 architecture.
+#    These repos are aggregated into a single Pulp repository, allowing dynamic
+#    addition/removal without changing compute node configurations.
+# Fields:
+#   url           : Base URL of the repository (required)
+#   gpgkey        : GPG key URL (required, can be empty - disables gpgcheck)
+#   name          : Unique name for the repository (required)
+#   sslcacert     : Path to SSL CA certificate (optional)
+#   sslclientkey  : Path to SSL client key (optional)
+#   sslclientcert : Path to SSL client certificate (optional)
+#   policy      : Repository sync policy. Allowed values: always, partial (OPTIONAL)
+#                   If not provided, uses repo_config from software_config.json
+#   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
+#                   If not provided, defaults to true
+# Notes:
+#   - All repos are synced into a single aggregated Pulp repository
+#   - Compute nodes are configured once with a fixed URL that never changes
+#   - Policy is controlled globally via repo_config in software_config.json (per-entry policy not supported)
+#   - Name must be unique within this list and must not conflict with names in other repo keys
+#   - Packages from these repos can only be used via additional_packages.json
+#
+# 11. additional_repos_aarch64
+#-----------------------------
+#    Same as above but for aarch64 architecture.
+
+# ================================
+# VARIABLES
+# ================================
+# user_registry:
+#    - { host: "172.16.107.254:4000", cert_path: "/opt/omnia/domain.crt", key_path: "/opt/omnia/domain.key" }
+user_registry:
+# user_repo_url_x86_64:
+#  - { url: "", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+user_repo_url_x86_64:
+user_repo_url_aarch64:
+#Example:
+# rhel_os_url_x86_64:
+#  - { url: "http://crb.com/CRB/x86_64/os/", gpgkey: "http://crb.com/CRB/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_codeready-builder"}
+#  - { url: "http://BaseOS.com/BaseOS/x86_64/os/", gpgkey: "http://BaseOS.com/BaseOS/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_baseos"}
+#  - { url: "http://AppStream.com/AppStream/x86_64/os/", gpgkey: "http://AppStream.com/AppStream/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_appstream" }
+rhel_os_url_x86_64:
+rhel_os_url_aarch64:
+# Example:
+# rhel_subscription_repo_config_x86_64:
+#  - { url: "https://example.com/appstream", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_appstream", policy: "always", caching: true }
+#  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/", gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_supplementary", policy: "always", caching: false }
+rhel_subscription_repo_config_x86_64:
+rhel_subscription_repo_config_aarch64:
+# Making incorrect changes to this variable can cause omnia failure. Please edit cautiously.
+omnia_repo_url_rhel_x86_64:
+  - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
+  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+  - { url: "https://pkgs.k8s.io/core:/stable:/v1.34/rpm/", gpgkey: "https://pkgs.k8s.io/core:/stable:/v1.34/rpm/repodata/repomd.xml.key", name: "kubernetes"}
+  - { url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/", gpgkey: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/repodata/repomd.xml.key", name: "cri-o"}
+  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/repodata/repomd.xml.key", name: "doca"}
+omnia_repo_url_rhel_aarch64:
+  - { url: "https://download.docker.com/linux/centos/10/aarch64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
+  - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
+  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/repodata/repomd.xml.key", name: "doca"}
+# Example:
+# additional_repos_x86_64:
+#  - { url: "https://rpm.grafana.com/", gpgkey: "", name: "grafana" }
+#  - { url: "https://repo.example.com/x86_64/", gpgkey: "", name: "custom-repo", sslcacert: "/path/ca.crt", sslclientkey: "/path/client.key", sslclientcert: "/path/client.crt" }
+additional_repos_x86_64:
+additional_repos_aarch64:

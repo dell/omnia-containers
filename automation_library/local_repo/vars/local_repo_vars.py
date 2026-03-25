@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,19 +21,23 @@ All dynamic configuration is read at runtime via core/load_inputs.py.
 Author: Dell Technologies
 """
 
+from automation_library.core.vars import (
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+    LOCAL_REPO_LOG_PATH as _CORE_LOG_PATH,
+)
+
 # =============================================================================
 # CONTAINER NAMES
 # =============================================================================
 
-OMNIA_CORE_CONTAINER = "omnia_core"
+OMNIA_CORE_CONTAINER = _CORE_CONTAINER
 PULP_CONTAINER = "pulp"
 
 # =============================================================================
-# PATHS (inside omnia_core container)
+# PATHS (inside omnia_core container) - from core vars
 # =============================================================================
 
-# Local repo logs are under /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/
-LOG_BASE_PATH = "/opt/omnia/log/local_repo"
+LOG_BASE_PATH = _CORE_LOG_PATH
 SOFTWARE_CSV_FILENAME = "software.csv"
 STATUS_CSV_FILENAME = "status.csv"
 

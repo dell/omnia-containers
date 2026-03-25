@@ -25,6 +25,12 @@ Usage:
 
 from typing import List
 
+from automation_library.core.vars import (
+    PULP_CERT_PATH as _CORE_PULP_CERT,
+    LDAP_CERT_PATH as _CORE_LDAP_CERT,
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+)
+
 
 # =============================================================================
 # CONTAINER DEFINITIONS
@@ -49,7 +55,7 @@ OPENCHAMI_CONTAINERS: List[str] = [
 
 # Core container (prerequisite - deployed by omnia.sh --install)
 CORE_CONTAINERS: List[str] = [
-    "omnia_core",
+    _CORE_CONTAINER,
 ]
 
 # Auth container (only required when LDAP is in software_config.json)
@@ -89,8 +95,29 @@ OPENCHAMI_TARGET_SERVICES: List[str] = [
 ]
 
 # =============================================================================
+# BUILD STREAM DEFINITIONS (deployed only when enable_build_stream is true)
+# =============================================================================
+
+# Config file path (inside omnia_core container)
+BUILD_STREAM_CONFIG_FILE: str = "build_stream_config.yml"
+
+# Containers deployed by build_stream role
+BUILD_STREAM_CONTAINERS: List[str] = [
+    "omnia_postgres",
+    "omnia_build_stream",
+]
+
+# Systemd service deployed by build_stream role
+BUILD_STREAM_SERVICE: str = "playbook_watcher.service"
+
+# Quadlet file for build_stream container
+BUILD_STREAM_QUADLET_FILE: str = (
+    "/etc/containers/systemd/omnia_build_stream.container"
+)
+
+# =============================================================================
 # CERTIFICATE PATHS (inside omnia_core container)
 # =============================================================================
 
-PULP_CERT_PATH: str = "/opt/omnia/pulp/settings/certs/pulp_webserver.crt"
-LDAP_CERT_PATH: str = "/opt/omnia/auth/tls_certs/ldapserver.crt"
+PULP_CERT_PATH: str = _CORE_PULP_CERT
+LDAP_CERT_PATH: str = _CORE_LDAP_CERT

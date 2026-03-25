@@ -23,6 +23,7 @@ from typing import Dict, Any, List
 
 from automation_library.core import (
     run_in_container,
+    check_container_running as _core_check_container,
     load_input_file,
     get_input_value,
     SOFTWARE_CONFIG_FILE,
@@ -36,6 +37,9 @@ from ..vars.prepare_oim_vars import (
     OPENCHAMI_TARGET_SERVICES,
     PULP_CERT_PATH,
     LDAP_CERT_PATH,
+    BUILD_STREAM_CONFIG_FILE,
+    BUILD_STREAM_CONTAINERS,
+    BUILD_STREAM_SERVICE,
 )
 
 
@@ -59,6 +63,12 @@ def is_ldap_enabled(host) -> bool:
     return False
 
 
+def is_build_stream_enabled(host) -> bool:
+    """Check if enable_build_stream is true in build_stream_config.yml."""
+    config = load_input_file(host, BUILD_STREAM_CONFIG_FILE)
+    return bool(config.get("enable_build_stream", False))
+
+
 def get_primary_oim_admin_ip(host) -> str:
     """Get primary_oim_admin_ip from network_spec.yml admin_network."""
     config = load_input_file(host, NETWORK_SPEC_FILE)
@@ -78,44 +88,8 @@ def get_primary_oim_admin_ip(host) -> str:
 # =============================================================================
 
 def check_container_running(host, container_name: str) -> Dict[str, Any]:
-    """
-    Check if a specific container is running.
-
-    Args:
-        host: testinfra host object
-        container_name: name of the container to check
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    cmd = host.run(f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '")
-
-    if cmd.rc == 0 and container_name in cmd.stdout:
-        status = cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": True,
-            "status": status,
-            "details": f"Container {container_name} is running: {status}",
-            "error": None
-        }
-
-    # Check if container exists but not running
-    exists_cmd = host.run(f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '")
-    if exists_cmd.rc == 0:
-        status = exists_cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": False,
-            "status": status,
-            "details": None,
-            "error": f"Container {container_name} exists but not running: {status}"
-        }
-
-    return {
-        "success": False,
-        "status": "not_found",
-        "details": None,
-        "error": f"Container {container_name} does not exist"
-    }
+    """Check if a specific container is running. Delegates to core."""
+    return _core_check_container(host, container_name)
 
 
 # =============================================================================
@@ -589,6 +563,12 @@ def check_omnia_target_deps(host) -> Dict[str, Any]:
 
     if is_ldap_enabled(host):
         expected.add("omnia_auth.service")
+
+    if is_build_stream_enabled(host):
+        expected.add("omnia_build_stream.service")
+        expected.add("omnia_postgres.service")
+        expected.add(BUILD_STREAM_SERVICE)
+
     actual = set(actual_deps)
 
     matched = sorted(expected & actual)
@@ -653,6 +633,15 @@ def get_expected_containers(host) -> List[Dict[str, Any]]:
         "reason": "LDAP enabled" if ldap else "LDAP not enabled"
     })
 
+    bsm = is_build_stream_enabled(host)
+    for name in BUILD_STREAM_CONTAINERS:
+        containers.append({
+            "name": name,
+            "expected_running": bsm,
+            "category": "build_stream",
+            "reason": "build_stream enabled" if bsm else "build_stream not enabled"
+        })
+
     return containers
 
 
@@ -694,6 +683,14 @@ def get_expected_services(host) -> List[Dict[str, Any]]:
         "expected_active": ldap,
         "category": "auth",
         "reason": "LDAP enabled" if ldap else "LDAP not enabled"
+    })
+
+    bsm = is_build_stream_enabled(host)
+    services.append({
+        "name": BUILD_STREAM_SERVICE,
+        "expected_active": bsm,
+        "category": "build_stream",
+        "reason": "build_stream enabled" if bsm else "build_stream not enabled"
     })
 
     return services

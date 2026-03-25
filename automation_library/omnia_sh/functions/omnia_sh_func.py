@@ -45,6 +45,7 @@ from ..vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
 from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
 from ...core.formatting import log as _log
 from ...core import run_in_container
+from ...core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
 from ...checks.vars.oim_prereq_vars import USER_CONFIG_PATH
 
 
@@ -289,33 +290,33 @@ def check_omnia_core_image() -> Dict[str, Any]:
     # Check for image with specific tag
     rc, stdout, _ = run_shell(
         f"podman images --format '{{{{.Repository}}}}:{{{{.Tag}}}}' | "
-        f"grep -E 'omnia_core:{tag}'"
+        f"grep -E '{_CORE_CONTAINER}:{tag}'"
     )
 
     if rc == 0 and stdout:
-        _log(OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag=tag), "OK")
+        _log(OMNIA_SH_MSGS["image_found"].format(image=_CORE_CONTAINER, tag=tag), "OK")
         return {
             "found": True,
-            "image": "omnia_core",
+            "image": _CORE_CONTAINER,
             "tag": tag,
             "message": OMNIA_SH_MSGS["image_found"].format(
-                image="omnia_core", tag=tag
+                image=_CORE_CONTAINER, tag=tag
             )
         }
 
     # Check for latest tag as fallback
     rc, stdout, _ = run_shell(
         "podman images --format '{{.Repository}}:{{.Tag}}' | "
-        "grep -E 'omnia_core:latest'"
+        f"grep -E '{_CORE_CONTAINER}:latest'"
     )
 
     if rc == 0 and stdout:
-        _log(OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag="latest"), "OK")
+        _log(OMNIA_SH_MSGS["image_found"].format(image=_CORE_CONTAINER, tag="latest"), "OK")
         return {
             "found": True,
-            "image": "omnia_core",
+            "image": _CORE_CONTAINER,
             "tag": "latest",
-            "message": OMNIA_SH_MSGS["image_found"].format(image="omnia_core", tag="latest")
+            "message": OMNIA_SH_MSGS["image_found"].format(image=_CORE_CONTAINER, tag="latest")
         }
 
     _log(OMNIA_SH_MSGS["image_not_found"], "WARN")

@@ -1,0 +1,36 @@
+{
+    "cluster_os_type": "rhel",
+    "cluster_os_version": "10.0",
+    "repo_config": "partial",
+    "softwares": [
+        {"name": "default_packages", "arch": ["x86_64","aarch64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64","aarch64"]},
+        {"name": "openldap", "arch": ["x86_64","aarch64"]},
+        {"name": "service_k8s","version": "1.34.1", "arch": ["x86_64"]},
+        {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
+        {"name": "csi_driver_powerscale", "version":"v2.15.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64","aarch64"]},
+        {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
+    ],
+    "slurm_custom": [
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"}
+    ],
+    "service_k8s": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"}
+    ],
+    "additional_packages":[
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"}
+    ]
+
+}

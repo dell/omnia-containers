@@ -55,6 +55,45 @@ def clear_input_cache():
 # CORE LOADER FUNCTIONS
 # =============================================================================
 
+def load_container_file(host, filepath: str) -> Dict[str, Any]:
+    """
+    Load any YAML/JSON file by full path from omnia_core container with caching.
+
+    Unlike load_input_file which only reads from INPUT_BASE_PATH,
+    this function accepts an absolute path inside the container.
+
+    Args:
+        host: Testinfra host object
+        filepath: Absolute path inside container (e.g., "/opt/omnia/.data/oim_metadata.yml")
+
+    Returns:
+        Parsed config as dict, or empty dict if file not found or parse error
+    """
+    if filepath in _input_cache:
+        return _input_cache[filepath]
+
+    cmd = run_in_container(host, f"cat '{filepath}' 2>/dev/null")
+
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        _input_cache[filepath] = {}
+        return {}
+
+    content = cmd.stdout.strip()
+
+    try:
+        if filepath.endswith((".yml", ".yaml")):
+            config = yaml.safe_load(content) or {}
+        elif filepath.endswith(".json"):
+            config = json.loads(content)
+        else:
+            config = yaml.safe_load(content) or {}
+    except (yaml.YAMLError, json.JSONDecodeError):
+        config = {}
+
+    _input_cache[filepath] = config
+    return config
+
+
 def load_input_file(host, filename: str) -> Dict[str, Any]:
     """
     Load a config file from omnia_core container with caching.
@@ -199,3 +238,157 @@ def _parse_key_parts(key: str) -> list:
         else:
             parts.append(segment)
     return parts
+
+
+# =============================================================================
+# SOFTWARE CONFIG HELPERS
+# =============================================================================
+
+def is_software_enabled(host, software_name: str) -> bool:
+    """
+    Check if a software is enabled in software_config.json.
+
+    Checks if the software_name exists in the softwares list.
+
+    Args:
+        host: Testinfra host object
+        software_name: Software name to check (e.g., "openldap", "slurm", "ldms")
+
+    Returns:
+        True if software is in softwares list, False otherwise
+
+    Example:
+        if is_software_enabled(host, "openldap"):
+            # Run OpenLDAP-specific tests
+    """
+    from .vars import SOFTWARE_CONFIG_FILE
+    softwares = get_input_value(host, SOFTWARE_CONFIG_FILE, "softwares")
+    if not softwares:
+        return False
+    for software in softwares:
+        if isinstance(software, dict) and software.get("name", "").lower() == software_name.lower():
+            return True
+    return False
+
+
+def get_config_list_item(
+    host,
+    filename: str,
+    list_key: str,
+    filter_key: str = None,
+    filter_value: str = None,
+    return_key: str = None,
+    fallback_keys: list = None
+) -> Any:
+    """
+    Generic function to get an item from a config list/dict.
+
+    This is a reusable utility for extracting values from config files that
+    contain lists of items (e.g., nfs_client_params, softwares, etc.).
+
+    Args:
+        host: Testinfra host object
+        filename: Config filename (e.g., "storage_config.yml")
+        list_key: Key containing the list (e.g., "nfs_client_params")
+        filter_key: Optional key to filter items by (e.g., "nfs_name")
+        filter_value: Value to match for filter_key
+        return_key: Key to return from matched item (e.g., "client_share_path")
+        fallback_keys: List of fallback keys if return_key not found
+
+    Returns:
+        Matched value, full item dict if no return_key, or None if not found
+
+    Examples:
+        # Get NFS client path by name
+        get_config_list_item(host, "storage_config.yml", "nfs_client_params",
+                             filter_key="nfs_name", filter_value="nfs_slurm",
+                             return_key="client_share_path")
+
+        # Get first NFS client path
+        get_config_list_item(host, "storage_config.yml", "nfs_client_params",
+                             return_key="client_share_path")
+
+        # Get LDMS sampler port from telemetry config
+        get_config_list_item(host, "telemetry_config.yml", "ldms_sampler_port")
+    """
+    config = load_input_file(host, filename)
+    if not config:
+        return None
+
+    items = config.get(list_key)
+    if items is None:
+        return None
+
+    # If items is not a list, return the value directly or extract return_key
+    if not isinstance(items, list):
+        if return_key:
+            if isinstance(items, dict):
+                result = items.get(return_key)
+                if result is None and fallback_keys:
+                    for fb_key in fallback_keys:
+                        result = items.get(fb_key)
+                        if result is not None:
+                            break
+                return result
+            return items
+        return items
+
+    # Handle list of items
+    if not items:
+        return None
+
+    # If filter specified, find matching item
+    if filter_key and filter_value:
+        for item in items:
+            if isinstance(item, dict) and item.get(filter_key) == filter_value:
+                if return_key:
+                    result = item.get(return_key)
+                    if result is None and fallback_keys:
+                        for fb_key in fallback_keys:
+                            result = item.get(fb_key)
+                            if result is not None:
+                                break
+                    return result
+                return item
+        return None
+
+    # No filter - return first item's value or first item
+    first = items[0]
+    if return_key and isinstance(first, dict):
+        result = first.get(return_key)
+        if result is None and fallback_keys:
+            for fb_key in fallback_keys:
+                result = first.get(fb_key)
+                if result is not None:
+                    break
+        return result
+    return first
+
+
+def get_nfs_client_mount_path(host, nfs_name: str = None) -> str:
+    """
+    Get NFS client mount path from storage_config.yml.
+
+    Args:
+        host: Testinfra host object
+        nfs_name: Optional NFS name to filter (e.g., "nfs_slurm", "nfs_k8s")
+                  If not provided, returns first NFS client path
+
+    Returns:
+        NFS client mount path string, or empty string if not found
+    """
+    from .vars import STORAGE_CONFIG_FILE
+
+    # Try nfs_client_params first (current format), then nfs_client (legacy)
+    for list_key in ["nfs_client_params", "nfs_client"]:
+        result = get_config_list_item(
+            host, STORAGE_CONFIG_FILE, list_key,
+            filter_key="nfs_name" if nfs_name else None,
+            filter_value=nfs_name,
+            return_key="client_share_path",
+            fallback_keys=["client_mount_path"]
+        )
+        if result:
+            return result
+
+    return ""

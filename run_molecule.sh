@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
 # Molecule Test Runner for Omnia Automation Framework
 # =============================================================================
 #
+# Tab completion is enabled automatically after: source .venv/bin/activate
+#   run_molecule <TAB>              # Shows scenarios
+#   run_molecule discovery <TAB>    # Shows commands
+#
 # Usage:
 #   ./run_molecule.sh <scenario> <command>
 #   ./run_molecule.sh all <command>              # Run install + prepare_oim
@@ -29,16 +33,17 @@
 #   prepare   - Run prepare only
 #   list      - List available scenarios
 #
-# Scenarios:
-#   omnia_sh_install  - Install omnia.sh and verify
-#   omnia_sh_uninstall  - Uninstall omnia.sh and verify
-#   prepare_oim       - Prepare OIM and verify
+# Scenarios (in execution order):
+#   omnia_sh_install    - Install omnia.sh and verify
+#   prepare_oim         - Prepare OIM and verify
+#   local_repo          - Verify local repo
 #   build_image_x86_64  - Build x86_64 images and verify
 #   build_image_aarch64 - Build aarch64 images and verify
-#   local_repo        - Verify local repo
-#   telemetry         - Run telemetry playbook and verify
-#   oim_cleanup       - Run OIM cleanup and verify
-#   all               - Run install + prepare + build + local_repo (not cleanup)
+#   discovery           - Run discovery playbook and verify
+#   telemetry           - Run telemetry playbook and verify
+#   oim_cleanup         - Run OIM cleanup and verify
+#   omnia_sh_uninstall  - Uninstall omnia.sh and verify
+#   all                 - Run all scenarios in order (not cleanup)
 #
 # Examples:
 #   ./run_molecule.sh omnia_sh_install test      # Install + verify
@@ -78,7 +83,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 telemetry oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -100,7 +105,7 @@ case "$SCENARIO" in
         echo ""
         echo "Scenarios:"
         echo "  <name>    - Run specific scenario"
-        echo "  all       - Run install + prepare + build + local_repo (not cleanup)"
+        echo "  all       - Run all scenarios in order (not cleanup)"
         echo ""
         echo "Special Commands:"
         echo "  list      - List available scenarios"
@@ -113,6 +118,8 @@ case "$SCENARIO" in
         echo "  $0 prepare_oim test           # Prepare OIM + verify"
         echo "  $0 build_image_x86_64 test    # Build x86_64 images + verify"
         echo "  $0 build_image_aarch64 test   # Build aarch64 images + verify"
+        echo "  $0 discovery test             # Discovery + verify"
+        echo "  $0 discovery verify           # Verify discovery only"
         echo "  $0 telemetry test             # Telemetry + verify"
         echo "  $0 telemetry verify           # Verify telemetry only"
         echo "  $0 oim_cleanup test           # OIM cleanup + verify"
@@ -138,7 +145,7 @@ case "$SCENARIO" in
         
         # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
-        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64"
+        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry"
         
         FAILED=0
         for name in $SCENARIOS; do

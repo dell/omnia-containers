@@ -12,34 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Discovery Variables Module.
+"""Discovery Variables Module."""
 
-Exports all discovery-related constants and configuration variables.
-"""
-
-from .discovery_vars import (
-    OPENCHAMI_NODES_PATH,
-    BMC_GROUP_DATA_PATH,
-    OPEN_NETWORK_SPEC_PATH,
+from .common_vars import (
+    SSH_OPTS,
     CONTAINER_NAME,
-    SSH_TIMEOUT,
-    CMD_TEMPLATES,
-    LOGIN_SERVICES,
-    SLURM_CONTROL_SERVICES,
-    FUNCTIONAL_GROUP_SLURM_CONTROL,
-    FUNCTIONAL_GROUP_KUBE_CONTROL,
 )
 
-__all__ = [
-    "OPENCHAMI_NODES_PATH",
-    "BMC_GROUP_DATA_PATH",
-    "OPEN_NETWORK_SPEC_PATH",
-    "CONTAINER_NAME",
-    "SSH_TIMEOUT",
-    "CMD_TEMPLATES",
-    "LOGIN_SERVICES",
-    "SLURM_CONTROL_SERVICES",
-    "FUNCTIONAL_GROUP_SLURM_CONTROL",
-    "FUNCTIONAL_GROUP_KUBE_CONTROL",
-]
+from .slurm_vars import (
+    SLURM_CONTROL_SERVICES,
+    SLURM_NODE_SERVICES,
+    LOGIN_NODE_SERVICES,
+    OPENMPI_BIN_PATH,
+    UCX_BIN_PATH,
+    LDMS_SAMPLER_SERVICE,
+    LDMS_SAMPLER_CONF_PATH,
+    LDMS_SAMPLER_ENV_PATH,
+)
+
+from .ldap_vars import (
+    LDAP_CONTAINER_NAME,
+    SLAPD_CONF_TEMPLATE,
+    CONTAINER_STABLE_WAIT_SECONDS,
+    CONTAINER_CHECK_INTERVAL,
+)

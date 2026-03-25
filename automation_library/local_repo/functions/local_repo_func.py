@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,8 +29,9 @@ import json
 import re
 from typing import Any, Dict, List
 
-from ...core.host import run_in_container
-from ...core.vars import INPUT_BASE_PATH
+from ...core.host import run_in_container, check_container_running as _core_check_container
+from ...core.load_inputs import load_input_file, load_container_file
+from ...core.vars import INPUT_BASE_PATH, SOFTWARE_CONFIG_FILE
 from ..vars.local_repo_vars import (
     ARCH_LIST,
     CURL_CONNECT_TIMEOUT,
@@ -76,7 +77,6 @@ def _strip_version_suffix(package_name: str) -> str:
         python3.12      -> python3.12  (no dash-version, unchanged)
         vim             -> vim         (no change)
     """
-    # Match trailing -<digit>... pattern (e.g., -1.34.1, -2.0)
     stripped = re.sub(r'-\d[\d.]*$', '', package_name)
     return stripped if stripped else package_name
 
@@ -102,38 +102,8 @@ def _parse_json_output(cmd_result: Dict[str, Any]) -> Dict[str, Any]:
 # =============================================================================
 
 def check_container_running(host, container_name: str) -> Dict[str, Any]:
-    """Check if a container is running."""
-    ps_fmt = (
-        f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' "
-        f"| grep -E '^{container_name} '"
-    )
-    cmd = host.run(ps_fmt)
-    if cmd.rc == 0 and container_name in cmd.stdout:
-        status = cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": True, "status": status,
-            "details": f"Container {container_name} is running",
-            "error": None,
-        }
-
-    ps_all = (
-        f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' "
-        f"| grep -E '^{container_name} '"
-    )
-    exists_cmd = host.run(ps_all)
-    if exists_cmd.rc == 0:
-        status = exists_cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": False, "status": status,
-            "details": None,
-            "error": f"Container {container_name} is NOT running: {status}",
-        }
-
-    return {
-        "success": False, "status": "not_found",
-        "details": None,
-        "error": f"Container {container_name} does not exist",
-    }
+    """Check if a container is running. Delegates to core."""
+    return _core_check_container(host, container_name)
 
 
 # =============================================================================
@@ -231,22 +201,22 @@ def check_pulp_api_status(host) -> Dict[str, Any]:
 def _find_software_csv_paths(host) -> Dict[str, str]:
     """
     Find all software.csv files under LOG_BASE_PATH.
-    
+
     Path structure: /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/software.csv
-    
+
     Returns dict mapping arch -> full path to software.csv
     """
     arch_paths = {}
-    
+
     # Find all software.csv files recursively
     find_cmd = run_in_omnia_core(
         host,
         f"find {LOG_BASE_PATH} -name '{SOFTWARE_CSV_FILENAME}' -type f 2>/dev/null"
     )
-    
+
     if not find_cmd["success"] or not find_cmd["stdout"].strip():
         return arch_paths
-    
+
     for path in find_cmd["stdout"].strip().splitlines():
         path = path.strip()
         if not path:
@@ -256,26 +226,26 @@ def _find_software_csv_paths(host) -> Dict[str, str]:
             if f"/{arch}/" in path:
                 arch_paths[arch] = path
                 break
-    
+
     return arch_paths
 
 
 def check_software_download_status(host) -> Dict[str, Any]:
     """
     Parse ``software.csv`` from each architecture under LOG_BASE_PATH.
-    
+
     Path structure: /opt/omnia/log/local_repo/<os_type>/<os_version>/<arch>/software.csv
-    
+
     For each architecture:
     - x86_64: Show all software with pass/fail status
     - aarch64: If no software.csv found, show "skipped - no software found"
-    
+
     Returns success/failure counts and lists of failed softwares.
     """
     arch_csv_paths = _find_software_csv_paths(host)
-    
+
     arch_results = {}  # arch -> {entries: [], failures: [], skipped: bool}
-    
+
     for arch in ARCH_LIST:
         if arch not in arch_csv_paths:
             arch_results[arch] = {
@@ -285,10 +255,10 @@ def check_software_download_status(host) -> Dict[str, Any]:
                 "reason": f"No software.csv found for {arch}",
             }
             continue
-        
+
         csv_path = arch_csv_paths[arch]
         result = read_file_in_omnia_core(host, csv_path)
-        
+
         if not result["success"]:
             arch_results[arch] = {
                 "entries": [],
@@ -297,7 +267,7 @@ def check_software_download_status(host) -> Dict[str, Any]:
                 "reason": f"Could not read {csv_path}: {result.get('error', '')}",
             }
             continue
-        
+
         content = result["content"].strip()
         if not content:
             arch_results[arch] = {
@@ -307,7 +277,7 @@ def check_software_download_status(host) -> Dict[str, Any]:
                 "reason": f"software.csv is empty for {arch}",
             }
             continue
-        
+
         entries = []
         failures = []
         reader = csv.DictReader(io.StringIO(content))
@@ -318,44 +288,44 @@ def check_software_download_status(host) -> Dict[str, Any]:
             entries.append(entry)
             if status_val != "success":
                 failures.append(entry)
-        
+
         arch_results[arch] = {
             "entries": entries,
             "failures": failures,
             "skipped": False,
             "reason": None,
         }
-    
+
     # Build output details per architecture
     details = ""
     all_failures = []
     total_entries = 0
     has_any_data = False
-    
+
     for arch in ARCH_LIST:
         ar = arch_results[arch]
-        
+
         if ar["skipped"]:
             details += f"\n{arch}:\n"
             details += f"  ⊘ SKIPPED - {ar['reason']}\n"
             continue
-        
+
         has_any_data = True
         entries = ar["entries"]
         failures = ar["failures"]
         total_entries += len(entries)
         all_failures.extend(failures)
-        
+
         passed = [e for e in entries if e not in failures]
-        
+
         details += f"\n{arch}: {len(passed)}/{len(entries)} passed\n"
-        
+
         for entry in sorted(passed, key=lambda x: x["name"]):
             details += f"  ✓ {entry['name']}: PASS\n"
-        
+
         for entry in sorted(failures, key=lambda x: x["name"]):
             details += f"  ✘ {entry['name']}: FAIL ({entry['status']})\n"
-    
+
     if not has_any_data:
         return {
             "success": False,
@@ -365,9 +335,9 @@ def check_software_download_status(host) -> Dict[str, Any]:
             "details": f"No software.csv found for any architecture under {LOG_BASE_PATH}/",
             "error": f"software.csv not found under {LOG_BASE_PATH}/<os>/<version>/<arch>/",
         }
-    
+
     failed_count = len(all_failures)
-    
+
     return {
         "success": failed_count == 0,
         "total": total_entries,
@@ -385,27 +355,27 @@ def check_software_download_status(host) -> Dict[str, Any]:
 def _find_status_csv_files(host) -> List[Dict[str, str]]:
     """
     Find all status.csv files under LOG_BASE_PATH.
-    
+
     Path structure: /opt/omnia/log/local_repo/<os>/<version>/<arch>/<software>/status.csv
-    
+
     Returns list of dicts with arch, software, path
     """
     results = []
-    
+
     # Find all status.csv files recursively
     find_cmd = run_in_omnia_core(
         host,
         f"find {LOG_BASE_PATH} -name '{STATUS_CSV_FILENAME}' -type f 2>/dev/null"
     )
-    
+
     if not find_cmd["success"] or not find_cmd["stdout"].strip():
         return results
-    
+
     for path in find_cmd["stdout"].strip().splitlines():
         path = path.strip()
         if not path:
             continue
-        
+
         # Extract arch and software from path
         # e.g., /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
         for arch in ARCH_LIST:
@@ -421,50 +391,50 @@ def _find_status_csv_files(host) -> List[Dict[str, str]]:
                         "path": path,
                     })
                 break
-    
+
     return results
 
 
 def check_per_software_package_status(host) -> Dict[str, Any]:
     """
     Parse each ``<software>/status.csv`` under LOG_BASE_PATH.
-    
+
     Path structure: /opt/omnia/log/local_repo/<os>/<version>/<arch>/<software>/status.csv
 
     Shows individual package pass/fail for each architecture and software.
     """
     status_files = _find_status_csv_files(host)
-    
+
     arch_results = {}  # arch -> {softwares: {sw_name: {packages: [], failures: []}}}
-    
+
     for arch in ARCH_LIST:
         arch_results[arch] = {"softwares": {}, "skipped": True}
-    
+
     for sf in status_files:
         arch = sf["arch"]
         sw_name = sf["software"]
         csv_path = sf["path"]
-        
+
         result = read_file_in_omnia_core(host, csv_path)
         if not result["success"]:
             continue
-        
+
         content = result["content"].strip()
         if not content:
             continue
-        
+
         arch_results[arch]["skipped"] = False
-        
+
         if sw_name not in arch_results[arch]["softwares"]:
             arch_results[arch]["softwares"][sw_name] = {"packages": [], "failures": []}
-        
+
         reader = csv.DictReader(io.StringIO(content))
         for row in reader:
             pkg_name = row.get("name", "unknown")
             pkg_status = (row.get("status") or "").strip().lower()
             pkg_type = row.get("type", "")
             repo_name = row.get("repo_name", "")
-            
+
             entry = {
                 "name": pkg_name,
                 "type": pkg_type,
@@ -473,29 +443,29 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
                 "software": sw_name,
                 "arch": arch,
             }
-            
+
             arch_results[arch]["softwares"][sw_name]["packages"].append(entry)
             if pkg_status not in ("success", ""):
                 arch_results[arch]["softwares"][sw_name]["failures"].append(entry)
-    
+
     # Build output details per architecture
     details = ""
     all_failures = []
     total_packages = 0
     has_any_data = False
-    
+
     for arch in ARCH_LIST:
         ar = arch_results[arch]
-        
+
         if ar["skipped"] or not ar["softwares"]:
             details += f"\n{arch}:\n"
             details += f"  ⊘ SKIPPED - No status.csv found for {arch}\n"
             continue
-        
+
         has_any_data = True
         arch_total = 0
         arch_failed = 0
-        
+
         for sw_name, sw_data in sorted(ar["softwares"].items()):
             packages = sw_data["packages"]
             failures = sw_data["failures"]
@@ -503,22 +473,22 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
             arch_failed += len(failures)
             total_packages += len(packages)
             all_failures.extend(failures)
-        
+
         details += f"\n{arch}: {arch_total - arch_failed}/{arch_total} packages passed\n"
-        
+
         for sw_name, sw_data in sorted(ar["softwares"].items()):
             packages = sw_data["packages"]
             failures = sw_data["failures"]
             passed = [p for p in packages if p not in failures]
-            
+
             details += f"  [{sw_name}] {len(passed)}/{len(packages)} passed:\n"
-            
+
             for pkg in sorted(passed, key=lambda x: x["name"]):
                 details += f"    ✓ {pkg['name']}: PASS\n"
-            
+
             for pkg in sorted(failures, key=lambda x: x["name"]):
                 details += f"    ✘ {pkg['name']}: FAIL ({pkg['status']})\n"
-    
+
     if not has_any_data:
         return {
             "success": True,  # No data means nothing to fail
@@ -528,9 +498,9 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
             "details": f"No status.csv found for any software under {LOG_BASE_PATH}/",
             "error": None,
         }
-    
+
     failed_count = len(all_failures)
-    
+
     return {
         "success": failed_count == 0,
         "total": total_packages,
@@ -826,18 +796,13 @@ def check_pulp_content_accessible(host) -> Dict[str, Any]:
 
 def load_software_config(host) -> Dict[str, Any]:
     """Load software_config.json from the omnia_core container."""
-    config_path = f"{INPUT_BASE_PATH}/software_config.json"
-    result = read_file_in_omnia_core(host, config_path)
-    if not result["success"]:
+    config = load_input_file(host, SOFTWARE_CONFIG_FILE)
+    if not config:
         return {
             "success": False, "config": {},
-            "error": f"Failed to read {config_path}: {result['error']}",
+            "error": f"Failed to read {SOFTWARE_CONFIG_FILE} from container",
         }
-    try:
-        config = json.loads(result["content"])
-        return {"success": True, "config": config, "error": None}
-    except json.JSONDecodeError as exc:
-        return {"success": False, "config": {}, "error": f"Invalid JSON: {exc}"}
+    return {"success": True, "config": config, "error": None}
 
 
 def _build_config_path(os_type: str, os_version: str, arch: str, sw_name: str) -> str:
@@ -849,14 +814,10 @@ def _load_package_config(host, os_type: str, os_version: str,
                          arch: str, sw_name: str) -> Dict[str, Any]:
     """Load a specific package config JSON from the container."""
     path = _build_config_path(os_type, os_version, arch, sw_name)
-    result = read_file_in_omnia_core(host, path)
-    if not result["success"]:
+    config = load_container_file(host, path)
+    if not config:
         return {"success": False, "config": {}, "path": path, "error": f"Failed to read {path}"}
-    try:
-        config = json.loads(result["content"])
-        return {"success": True, "config": config, "path": path, "error": None}
-    except json.JSONDecodeError as exc:
-        return {"success": False, "config": {}, "path": path, "error": f"Invalid JSON: {exc}"}
+    return {"success": True, "config": config, "path": path, "error": None}
 
 
 def _extract_packages(config: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -929,7 +890,6 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
     # Verify each unique RPM in Pulp
     # Some config entries embed version in the name (e.g. kubeadm-1.34.1).
     # Pulp stores the RPM name without version (e.g. kubeadm).
-    # Some are virtual names (e.g. vim → vim-enhanced in Pulp).
     # Search order: exact → stripped base name → prefix match.
     found_packages: List[Dict[str, str]] = []
     missing_packages: List[Dict[str, str]] = []
