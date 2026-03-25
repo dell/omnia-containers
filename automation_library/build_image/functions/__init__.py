@@ -22,12 +22,13 @@ from .build_image_func import (
     check_regctl_registry_images,
     check_s3_bucket_images,
     check_s3_bucket_images_for_group,
+    verify_all_image_packages,
     run_all_prechecks,
     run_all_validations,
 )
 
 # Re-export from core module for backward compatibility
-from automation_library.core import (
+from automation_library.core import (  # noqa: E402
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
 )
@@ -40,6 +41,7 @@ __all__ = [
     "check_regctl_registry_images",
     "check_s3_bucket_images",
     "check_s3_bucket_images_for_group",
+    "verify_all_image_packages",
     "run_all_prechecks",
     "run_all_validations",
     # Re-exported from core module

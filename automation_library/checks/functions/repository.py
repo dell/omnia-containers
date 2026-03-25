@@ -173,11 +173,11 @@ def clone_omnia_repo() -> Dict:
 
 
 def build_container_images() -> Dict:
-    """Build container images using build_images.sh script."""
-    _log("Building container images...", "INFO")
+    """Build core container image using build_images.sh script."""
+    _log("Building core container image...", "INFO")
 
     omnia_branch = OIM_PREREQ_VARS.get("omnia_branch", "")
-    container_images = OIM_PREREQ_VARS.get("container_images", "core")
+    core_tag = OIM_PREREQ_VARS.get("core_tag", "")
     clone_path = OIM_PREREQ_VARS["omnia_clone_path"]
 
     if not omnia_branch:
@@ -185,14 +185,6 @@ def build_container_images() -> Dict:
             "passed": False,
             "message": "omnia_branch not configured",
             "details": OIM_PREREQ_MSGS["omnia_branch_not_configured"].format(config_path=USER_CONFIG_PATH)
-        }
-
-    # Check required: container_images
-    if not container_images:
-        return {
-            "passed": False,
-            "message": "container_images not configured",
-            "details": OIM_PREREQ_MSGS["container_images_not_configured"].format(config_path=USER_CONFIG_PATH)
         }
 
     # Check if clone path exists
@@ -217,22 +209,28 @@ def build_container_images() -> Dict:
     # Make script executable
     run_command(["chmod", "+x", build_script])
 
-    # Build container images
-    _log(f"Building {container_images} images with omnia_branch={omnia_branch}...", "INFO")
-    rc, _, stderr = run_shell(f"cd {clone_path} && ./build_images.sh {container_images} {omnia_branch}", timeout=1800)
+    # Build core container image
+    # Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
+    build_args = "core"
+    if core_tag:
+        build_args += f" core_tag={core_tag}"
+    build_args += f" omnia_branch={omnia_branch}"
+
+    _log(f"Running: ./build_images.sh {build_args}", "INFO")
+    rc, _, stderr = run_shell(f"cd {clone_path} && ./build_images.sh {build_args}", timeout=1800)
 
     if rc == 0:
         return {
             "passed": True,
-            "message": f"Container images built successfully: {container_images}",
-            "details": f"Omnia Branch: {omnia_branch}\nImages: {container_images}"
+            "message": "Core container image built successfully",
+            "details": f"Omnia Branch: {omnia_branch}\nCore Tag: {core_tag or 'default'}"
         }
 
     return {
         "passed": False,
-        "message": f"Failed to build container images: {container_images}",
+        "message": "Failed to build core container image",
         "details": OIM_PREREQ_MSGS["container_build_instruction"].format(
-            images=container_images, omnia_branch=omnia_branch, exit_code=rc
+            core_tag=core_tag or "default", omnia_branch=omnia_branch, exit_code=rc
         )
     }
 

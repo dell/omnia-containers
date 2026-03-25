@@ -35,19 +35,86 @@ Usage:
 
 from typing import Dict, Any
 
+import yaml as pyyaml
+
+from automation_library.core import (
+    run_in_container,
+    get_functional_groups_from_pxe_mapping,
+    get_group_names_from_pxe_mapping,
+    get_nodes_info,
+)
+
 from ..vars.build_image_vars import (
     BUILD_IMAGE_VARS,
     S3_CONTAINERS,
     get_pxe_mapping_filename,
 )
-from ..messages.build_image_msgs import BUILD_IMAGE_MSGS
+from ..messages.build_image_msgs import BUILD_IMAGE_MSGS, TEST_LOG_MSGS
 
 
-# Import pxe_mapping functions from core module for reuse
-from automation_library.core import (
-    get_functional_groups_from_pxe_mapping,
-    get_group_names_from_pxe_mapping,
-)
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def _filter_functional_groups_by_arch(functional_groups: list, arch: str) -> list:
+    """
+    Filter functional groups by architecture.
+
+    Args:
+        functional_groups: list of all functional groups from pxe_mapping
+        arch: Architecture to filter by (x86_64 or aarch64)
+
+    Returns:
+        List of functional groups matching the specified architecture
+    """
+    if not functional_groups or not arch:
+        return list(functional_groups) if functional_groups else []
+
+    return [fg for fg in functional_groups if arch in fg]
+
+
+def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
+    """
+    Adjust functional groups list based on control plane node count.
+
+    Logic (x86_64 only - k8s cluster not supported on aarch64):
+    - Single control plane node: only service_kube_control_plane_first_x86_64 exists
+    - Multiple control plane nodes: both first and non-first exist
+
+    Args:
+        host: testinfra host object
+        functional_groups: list of functional groups from pxe_mapping
+
+    Returns:
+        Adjusted list of functional groups to verify
+    """
+    if not functional_groups:
+        return functional_groups
+
+    # K8s cluster only supported on x86_64, skip adjustment for aarch64
+    control_plane_fg = "service_kube_control_plane_x86_64"
+    control_plane_first_fg = "service_kube_control_plane_first_x86_64"
+
+    # If no x86_64 control plane in functional groups, return as-is
+    if control_plane_fg not in functional_groups:
+        return functional_groups
+
+    # Count control plane nodes using core module's get_nodes_info
+    nodes = get_nodes_info(host, search_by="functional_group", search_value=control_plane_fg)
+    control_plane_count = len(nodes)
+
+    # Adjust groups based on control plane count
+    adjusted_groups = list(functional_groups)
+    if control_plane_count == 1:
+        # Single control plane: replace service_kube_control_plane with _first version
+        adjusted_groups.remove(control_plane_fg)
+        adjusted_groups.append(control_plane_first_fg)
+    elif control_plane_count > 1:
+        # Multiple control planes: need both first and non-first
+        if control_plane_first_fg not in adjusted_groups:
+            adjusted_groups.append(control_plane_first_fg)
+
+    return adjusted_groups
 
 
 # =============================================================================
@@ -152,8 +219,8 @@ def check_functional_group_file_exists(host) -> Dict[str, Any]:
         Dict with 'success', 'status', 'details', 'error'
     """
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
-    cmd = host.run(
-        f"podman exec omnia_core test -f {file_path} && echo 'EXISTS' || echo 'NOT_FOUND'"
+    cmd = run_in_container(
+        host, f"test -f {file_path} && echo 'EXISTS' || echo 'NOT_FOUND'"
     )
 
     if cmd.rc == 0 and "EXISTS" in cmd.stdout:
@@ -174,12 +241,13 @@ def check_functional_group_file_exists(host) -> Dict[str, Any]:
     }
 
 
-def check_functional_group_content(host) -> Dict[str, Any]:
+def check_functional_group_content(host, arch: str = None) -> Dict[str, Any]:
     """
     Validate functional_groups_config.yml contains all roles and groups from pxe_mapping.
 
     Args:
         host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
 
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'missing_groups', 'found_groups'
@@ -187,7 +255,11 @@ def check_functional_group_content(host) -> Dict[str, Any]:
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
 
     # Get expected functional groups from pxe_mapping file inside container
-    expected_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        raw_functional_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
+    expected_functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
     expected_group_names = get_group_names_from_pxe_mapping(host)
 
     if not expected_functional_groups:
@@ -201,7 +273,7 @@ def check_functional_group_content(host) -> Dict[str, Any]:
         }
 
     # Read functional_groups_config.yml content from container
-    cmd = host.run(f"podman exec omnia_core cat {file_path}")
+    cmd = run_in_container(host, f"cat {file_path}")
 
     if cmd.rc != 0:
         return {
@@ -277,18 +349,19 @@ def check_functional_group_content(host) -> Dict[str, Any]:
 # REGCTL REGISTRY VALIDATION FUNCTIONS
 # =============================================================================
 
-def check_regctl_registry_images(host) -> Dict[str, Any]:
+def check_regctl_registry_images(host, arch: str = "x86_64") -> Dict[str, Any]:
     """
     Validate that base and compute images are available in the regctl registry.
     Uses: regctl repo ls <hostname>:5000
-    
+
     Expected images:
-    - rhel-x86_64_base (always required)
+    - rhel-<arch>_base (always required)
     - rhel-<functional_group> for each group from pxe_mapping
-    
+
     Args:
         host: testinfra host object
-    
+        arch: Architecture string (x86_64 or aarch64)
+
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'found_images', 'missing_images'
     """
@@ -307,11 +380,13 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
     hostname = hostname_cmd.stdout.strip()
     registry_url = f"{hostname}:5000"
 
-    # Get functional groups from pxe_mapping file inside container
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Get functional groups from pxe_mapping file inside container, filtered by arch
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    filtered_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
+    functional_groups = _get_adjusted_functional_groups(host, filtered_groups)
 
     # Build expected images list (without hostname prefix for display)
-    expected_images = ["rhel-x86_64_base"]  # Base image always required
+    expected_images = [f"rhel-{arch}_base"]  # Base image always required
     for fg in functional_groups:
         expected_images.append(f"rhel-{fg}")
 
@@ -369,21 +444,47 @@ def check_regctl_registry_images(host) -> Dict[str, Any]:
 # S3 BUCKET VALIDATION FUNCTIONS
 # =============================================================================
 
-def check_s3_bucket_images(host) -> Dict[str, Any]:
+def _format_size(size_bytes: int) -> str:
+    """Format bytes to human-readable size."""
+    if size_bytes >= 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+    if size_bytes >= 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    if size_bytes >= 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes} B"
+
+
+def _parse_human_size(size_str: str) -> int:
+    """Parse human-readable size (e.g., 72M, 1326M, 15K, 1.3G) to bytes."""
+    size_str = size_str.strip().upper()
+    multipliers = {'K': 1024, 'M': 1024 * 1024, 'G': 1024 * 1024 * 1024, 'T': 1024 ** 4}
+    if size_str[-1] in multipliers:
+        return int(float(size_str[:-1]) * multipliers[size_str[-1]])
+    return int(size_str)
+
+
+def check_s3_bucket_images(host, arch: str = None) -> Dict[str, Any]:
     """
     Validate that images are pushed to the S3 bucket.
-    Checks for all 3 images (initrd, rootfs, vmlinuz) for each functional group.
-    Uses: s3cmd ls -Hr s3://boot-images | grep <image_pattern>
+    Checks for all 3 images (initramfs, rootfs, vmlinuz) for each functional group.
+    Returns actual image filenames and sizes for detailed output.
 
     Args:
         host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
 
     Returns:
         Dict with 'success', 'status', 'details', 'error', 'results'
+        Each result contains 'image_details' with actual filenames and sizes.
     """
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
+    raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        raw_functional_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
+    functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
 
     if not functional_groups:
         return {
@@ -395,11 +496,28 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
             "s3_output": ""
         }
 
-    # Get complete S3 bucket listing (removing s3://boot-images/ and efi-images/ prefix)
-    s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null | sed 's|s3://boot-images/||g' | sed 's|efi-images/||g'")
+    # Get complete S3 bucket listing
+    s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null")
     s3_output = s3_list_cmd.stdout if s3_list_cmd.rc == 0 else ""
 
-    # Check for each functional group's images using grep
+    # Parse S3 output into structured data: {path: {size, filename}}
+    # Format: "2026-02-19 08:58    72M  s3://boot-images/..."
+    s3_files = {}
+    for line in s3_output.strip().split('\n'):
+        if line.strip():
+            parts = line.split()
+            if len(parts) >= 4:
+                try:
+                    # Size is human-readable (e.g., 72M, 1326M, 15M)
+                    size_str = parts[2]
+                    size = _parse_human_size(size_str)
+                    path = parts[3]
+                    filename = path.split('/')[-1]
+                    s3_files[path] = {"size": size, "filename": filename}
+                except (ValueError, IndexError):
+                    pass
+
+    # Check for each functional group's images
     results = []
     all_passed = True
 
@@ -408,16 +526,26 @@ def check_s3_bucket_images(host) -> Dict[str, Any]:
             "functional_group": fg,
             "found_images": [],
             "missing_images": [],
+            "image_details": [],
             "success": True
         }
 
         for img_type in image_types:
-            # Use s3cmd ls | grep to check for each image
-            grep_cmd = host.run(f"{s3_cmd} 2>/dev/null | grep -q '{fg}.*{img_type}'")
+            # Find matching files for this functional group and image type
+            found = False
+            for path, info in s3_files.items():
+                if fg in path and img_type in path:
+                    found = True
+                    group_result["found_images"].append(img_type)
+                    group_result["image_details"].append({
+                        "type": img_type,
+                        "filename": info["filename"],
+                        "size": info["size"],
+                        "size_human": _format_size(info["size"])
+                    })
+                    break
 
-            if grep_cmd.rc == 0:
-                group_result["found_images"].append(img_type)
-            else:
+            if not found:
                 group_result["missing_images"].append(img_type)
                 group_result["success"] = False
                 all_passed = False
@@ -498,6 +626,337 @@ def check_s3_bucket_images_for_group(host, functional_group: str) -> Dict[str, A
         "error": f"Missing: {', '.join(missing_images)}",
         "found_images": found_images,
         "missing_images": missing_images
+    }
+
+
+# =============================================================================
+# IMAGE CONTENT VERIFICATION FUNCTIONS
+# =============================================================================
+
+def _check_squashfs_tools_installed(host) -> Dict[str, Any]:
+    """
+    Check if squashfs-tools package is installed (required for mounting images).
+    Returns dict with 'installed' boolean and 'error' message if not installed.
+    """
+    check_cmd = host.run("which unsquashfs 2>/dev/null || rpm -q squashfs-tools 2>/dev/null")
+    if check_cmd.rc != 0:
+        return {
+            "installed": False,
+            "error": TEST_LOG_MSGS["squashfs_tools_not_installed"]
+        }
+    return {"installed": True, "error": None}
+
+
+def _get_base_image_packages(host, images_dir: str, arch: str = "x86_64") -> list:
+    """
+    Get packages from base image YAML.
+    Base image packages should be present in all compute images.
+    """
+    version = BUILD_IMAGE_VARS["base_image_version"]
+    base_yaml = f"{images_dir}/rhel-{arch}_base-{version}.yaml"
+    cat_cmd = run_in_container(host, f"cat {base_yaml} 2>/dev/null")
+    if cat_cmd.rc != 0:
+        return []
+    try:
+        config = pyyaml.safe_load(cat_cmd.stdout)
+        return config.get("packages", [])
+    except Exception:
+        return []
+
+
+def _verify_single_image_packages(host, functional_group: str, images_dir: str,
+                                   temp_image: str, temp_mount: str,
+                                   base_packages: list = None) -> Dict[str, Any]:
+    """
+    Helper function to verify packages in a single image.
+    Downloads, mounts, checks RPM database, and cleans up.
+    Includes base image packages in verification.
+    """
+    # Get expected packages from image config YAML (use bash -c for glob expansion)
+    yaml_cmd = run_in_container(host, f"bash -c 'ls -1 {images_dir}/*.yaml 2>/dev/null | grep {functional_group}'")
+    if yaml_cmd.rc != 0 or not yaml_cmd.stdout.strip():
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "No image config YAML found",
+            "expected_count": 0,
+            "found_count": 0,
+            "missing_count": 0,
+            "package_details": []
+        }
+
+    yaml_file = yaml_cmd.stdout.strip().split('\n')[0]
+    cat_cmd = run_in_container(host, f"cat {yaml_file}")
+    if cat_cmd.rc != 0:
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "Failed to read YAML config",
+            "expected_count": 0,
+            "found_count": 0,
+            "missing_count": 0,
+            "package_details": []
+        }
+
+    try:
+        config = pyyaml.safe_load(cat_cmd.stdout)
+        compute_packages = config.get("packages", [])
+    except Exception as e:
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": f"Failed to parse YAML: {e}",
+            "expected_count": 0,
+            "found_count": 0,
+            "missing_count": 0,
+            "package_details": []
+        }
+
+    # Combine base image packages + compute image packages (deduplicated)
+    if base_packages:
+        all_expected = list(dict.fromkeys(base_packages + compute_packages))
+    else:
+        all_expected = compute_packages
+
+    if not all_expected:
+        return {
+            "functional_group": functional_group,
+            "success": True,
+            "error": None,
+            "expected_count": 0,
+            "found_count": 0,
+            "missing_count": 0,
+            "package_details": [],
+            "base_package_count": len(base_packages) if base_packages else 0,
+            "compute_package_count": len(compute_packages),
+            "note": "No packages defined in config"
+        }
+
+    expected_packages = all_expected
+
+    # Find the S3 image path
+    s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
+    s3_list = host.run(
+        f"{s3_cmd} 2>/dev/null | grep '{functional_group}' | "
+        "grep -v efi-images | grep -v initramfs | grep -v vmlinuz"
+    )
+    if s3_list.rc != 0 or not s3_list.stdout.strip():
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "No rootfs image found in S3",
+            "expected_count": len(expected_packages),
+            "found_count": 0,
+            "missing_count": len(expected_packages),
+            "package_details": []
+        }
+
+    # Parse S3 path
+    s3_line = s3_list.stdout.strip().split('\n')[0]
+    s3_path = s3_line.split()[-1] if s3_line else None
+    if not s3_path:
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "Failed to parse S3 image path",
+            "expected_count": len(expected_packages),
+            "found_count": 0,
+            "missing_count": len(expected_packages),
+            "package_details": []
+        }
+
+    # Download image
+    download_cmd = host.run(f"s3cmd get {s3_path} {temp_image} --force 2>/dev/null")
+    if download_cmd.rc != 0:
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "Failed to download image",
+            "expected_count": len(expected_packages),
+            "found_count": 0,
+            "missing_count": len(expected_packages),
+            "package_details": []
+        }
+
+    # Mount the squashfs image
+    host.run(f"mkdir -p {temp_mount}")
+    mount_cmd = host.run(f"mount -t squashfs -o ro {temp_image} {temp_mount} 2>/dev/null")
+    if mount_cmd.rc != 0:
+        host.run(f"rm -f {temp_image}")
+        return {
+            "functional_group": functional_group,
+            "success": False,
+            "error": "Failed to mount image",
+            "expected_count": len(expected_packages),
+            "found_count": 0,
+            "missing_count": len(expected_packages),
+            "package_details": []
+        }
+
+    # Query RPM database inside the image
+    rpm_cmd = host.run(f"rpm --root={temp_mount} -qa 2>/dev/null")
+    installed_packages = rpm_cmd.stdout.strip().split('\n') if rpm_cmd.rc == 0 else []
+
+    # Verify each expected package
+    found_packages = []
+    missing_packages = []
+    package_details = []
+
+    for pkg in expected_packages:
+        # Strip version suffix for matching (e.g., kubeadm-1.34.1 -> kubeadm)
+        base_pkg = pkg.split('-')[0] if '-' in pkg and pkg.split('-')[-1][0].isdigit() else pkg
+
+        # Search for package in installed list using multiple strategies:
+        # 1. Exact prefix match (e.g., firewalld -> firewalld-2.3.0)
+        # 2. Package name contains base_pkg (e.g., python3.12 -> python3.12-libs)
+        # 3. Special case: python3.12 -> python3-3.12.x (RHEL naming convention)
+        found = False
+        found_version = None
+        for installed in installed_packages:
+            inst_lower = installed.lower()
+            base_lower = base_pkg.lower()
+            # Strategy 1: Starts with base package name
+            if inst_lower.startswith(base_lower):
+                found = True
+                found_version = installed
+                break
+            # Strategy 2: Contains base package (for cases like python3.12)
+            if base_lower in inst_lower and inst_lower.split('-')[0] == base_lower:
+                found = True
+                found_version = installed
+                break
+            # Strategy 3: python3.12 -> python3-3.12 (RHEL naming)
+            if base_lower.startswith('python') and '.' in base_lower:
+                # python3.12 -> look for python3-3.12
+                py_version = base_lower.replace('python', '')
+                if inst_lower.startswith(f'python3-{py_version}'):
+                    found = True
+                    found_version = installed
+                    break
+
+        if found:
+            found_packages.append(pkg)
+            package_details.append({
+                "expected": pkg,
+                "found": found_version,
+                "status": "installed"
+            })
+        else:
+            missing_packages.append(pkg)
+            package_details.append({
+                "expected": pkg,
+                "found": None,
+                "status": "missing"
+            })
+
+    # Cleanup - ensure proper unmount and remove temp files
+    host.run(f"umount -l {temp_mount} 2>/dev/null")  # lazy unmount to handle busy mounts
+    host.run(f"rm -rf {temp_mount} 2>/dev/null")     # remove mount point directory
+    host.run(f"rm -f {temp_image} 2>/dev/null")      # remove downloaded image
+
+    # Determine base vs compute package counts
+    base_pkg_count = len(base_packages) if base_packages else 0
+
+    return {
+        "functional_group": functional_group,
+        "success": len(missing_packages) == 0,
+        "image_path": s3_path,
+        "expected_count": len(expected_packages),
+        "found_count": len(found_packages),
+        "missing_count": len(missing_packages),
+        "base_package_count": base_pkg_count,
+        "compute_package_count": len(compute_packages),
+        "found_packages": found_packages,
+        "missing_packages": missing_packages,
+        "package_details": package_details,
+        "error": f"Missing: {', '.join(missing_packages)}" if missing_packages else None
+    }
+
+
+def verify_all_image_packages(host, arch: str = None) -> Dict[str, Any]:
+    """
+    Download ALL S3 images, mount each, and verify all expected packages are installed.
+    Uses RPM database inside each squashfs image for accurate verification.
+
+    Args:
+        host: testinfra host object
+        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
+
+    Returns:
+        Dict with 'success', 'results' containing package verification for each functional group
+    """
+    # Check if squashfs-tools is installed (required for mounting images)
+    squashfs_check = _check_squashfs_tools_installed(host)
+    if not squashfs_check["installed"]:
+        return {
+            "success": False,
+            "error": squashfs_check["error"],
+            "results": [],
+            "total_groups": 0,
+            "passed_groups": 0,
+            "failed_groups": 0,
+            "prerequisite_failed": True
+        }
+
+    functional_groups = get_functional_groups_from_pxe_mapping(host)
+    # Filter by architecture if specified
+    if arch:
+        functional_groups = _filter_functional_groups_by_arch(functional_groups, arch)
+    if not functional_groups:
+        return {
+            "success": False,
+            "error": f"No functional groups found in pxe_mapping for arch={arch}",
+            "results": [],
+            "total_groups": 0,
+            "passed_groups": 0,
+            "failed_groups": 0
+        }
+
+    # Adjust functional groups based on control plane count
+    groups_to_verify = _get_adjusted_functional_groups(host, functional_groups)
+    # Determine arch from groups if not specified
+    if not arch:
+        arch = "x86_64" if any("x86_64" in fg for fg in functional_groups) else "aarch64"
+
+    images_dir = BUILD_IMAGE_VARS["image_config_yaml_dir"]
+    temp_image = BUILD_IMAGE_VARS["temp_image_path"]
+    temp_mount = BUILD_IMAGE_VARS["temp_mount_path"]
+
+    # Get base image packages (these should be in all compute images)
+    base_packages = _get_base_image_packages(host, images_dir, arch)
+
+    # Ensure mount point exists and is clean
+    host.run(f"umount {temp_mount} 2>/dev/null")
+    host.run(f"rm -f {temp_image}")
+    host.run(f"mkdir -p {temp_mount}")
+
+    results = []
+    all_passed = True
+
+    for fg in groups_to_verify:
+        result = _verify_single_image_packages(
+            host, fg, images_dir, temp_image, temp_mount, base_packages
+        )
+        results.append(result)
+        if not result["success"]:
+            all_passed = False
+
+    # Final cleanup - ensure everything is cleaned up
+    host.run(f"umount -l {temp_mount} 2>/dev/null")
+    host.run(f"rm -rf {temp_mount} 2>/dev/null")
+    host.run(f"rm -f {temp_image} 2>/dev/null")
+
+    passed_count = sum(1 for r in results if r["success"])
+    failed_count = len(results) - passed_count
+
+    return {
+        "success": all_passed,
+        "results": results,
+        "total_groups": len(groups_to_verify),
+        "passed_groups": passed_count,
+        "failed_groups": failed_count,
+        "details": f"Verified packages in {passed_count}/{len(groups_to_verify)} images",
+        "error": None if all_passed else f"{failed_count} image(s) have missing packages"
     }
 
 

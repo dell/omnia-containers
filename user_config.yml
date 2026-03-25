@@ -49,7 +49,7 @@ skip_on_failure: false
 oim_server_ip: ""
 
 # SSH username for remote OIM server (default: root)
-oim_ssh_user: "root"
+oim_ssh_user: ""
 
 # SSH password for remote OIM server (REQUIRED)
 oim_ssh_password: ""
@@ -63,7 +63,7 @@ oim_ssh_port: 22
 # Hostname to set for the OIM server (FQDN format required)
 # Example: "oim.omnia.test" or "oim-server.lab.local"
 # The hostname MUST include a domain (e.g., hostname.domain.tld)
-oim_hostname: ""
+oim_hostname: "clashcp.omnia.test"
 
 # =============================================================================
 # HARDWARE REQUIREMENTS
@@ -106,10 +106,10 @@ required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
 network_type: "dedicated"
 
 # PXE interface name (for provisioning)
-pxe_interface: "eno1"
+pxe_interface: ""
 
 # Public interface name (for internet access)
-public_interface: "eno2"
+public_interface: ""
 
 # PXE interface IP address with subnet (CIDR notation)
 # If not set or empty, default is 172.16.107.254/24
@@ -164,14 +164,14 @@ artifactory_branch: "omnia-container"
 # Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
 omnia_clone_path: "/opt/omnia-artifactory"
 
-# Container images to build (comma-separated, default: core)
-# Example: "core" or "core,auth"
-container_images: "core"
+# Core image version tag
+# Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
+core_tag: ""
 
-# Omnia branch for container build (REQUIRED)
-# This is passed to build_images.sh as omnia_branch parameter
-# Can be a branch (e.g., "main", "pub/k8s_telemetry") or a tag (e.g., "v1.6.0")
-omnia_branch: "main"
+# Omnia branch/tag for core image build
+# Will build the core container with the below omnia branch/tag code
+# Can be a branch (e.g., "main", "pub/q1_dev") or a tag (e.g., "v1.6.0")
+omnia_branch: ""
 
 # #############################################################################
 #                                                                             #
@@ -196,7 +196,7 @@ nfs_type: "external"
 # This is the local directory where omnia data will be stored
 # - For external NFS: This path will be used as mount point for NFS share
 # - For Local: This directory will store omnia data directly
-omnia_shared_path: "/opt/omnia"
+omnia_shared_path: ""
 
 # Root password for accessing omnia_core container via SSH (REQUIRED)
 omnia_core_password: ""

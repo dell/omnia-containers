@@ -161,4 +161,55 @@ def pytest_runtest_makereport(item, call):
 @pytest.fixture(scope="module")
 def host():
     """Testinfra host fixture - connects to OIM server."""
-    return get_testinfra_host()
+    import shutil
+    import subprocess as _sp
+
+    from automation_library.core import load_user_config
+    config = load_user_config()
+    oim_ip = config.get("oim_server_ip", "")
+
+    # Pre-check 1: Verify OIM IP is configured
+    if not oim_ip:
+        pytest.fail(
+            "oim_server_ip is not set in user_config.yml. "
+            "Please configure the OIM server IP before running tests."
+        )
+
+    # Pre-check 2: Verify sshpass is installed (needed for password-based SSH)
+    if not shutil.which("sshpass"):
+        pytest.fail(
+            "sshpass is not installed. It is required for SSH password authentication.\n"
+            "Install it: dnf install -y sshpass (RHEL) or apt install -y sshpass (Ubuntu)"
+        )
+
+    # Pre-check 3: Verify OIM server is reachable (basic TCP check on SSH port)
+    ssh_port = config.get("oim_ssh_port", 22)
+    try:
+        _sp.run(
+            ["bash", "-c", f"echo > /dev/tcp/{oim_ip}/{ssh_port}"],
+            capture_output=True, timeout=5, check=True
+        )
+    except (_sp.CalledProcessError, _sp.TimeoutExpired, OSError):
+        pytest.fail(
+            f"OIM server {oim_ip}:{ssh_port} is not reachable.\n"
+            f"Check oim_server_ip and oim_ssh_port in user_config.yml"
+        )
+
+    # Pre-check 4: Verify SSH authentication works
+    h = get_testinfra_host()
+    try:
+        result = h.run("echo ok")
+        if result.rc != 0 or "ok" not in result.stdout:
+            stderr = result.stderr.strip() if result.stderr else ""
+            pytest.fail(
+                f"SSH to OIM server {oim_ip} failed (rc={result.rc}).\n"
+                f"Error: {stderr}\n"
+                f"Check oim_ssh_user and oim_ssh_password in user_config.yml"
+            )
+    except Exception as e:
+        pytest.fail(
+            f"SSH connection to OIM server {oim_ip} failed: {e}\n"
+            f"Check oim_server_ip, oim_ssh_user, oim_ssh_password in user_config.yml"
+        )
+
+    return h
