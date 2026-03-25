@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ oim_ssh_port: 22
 # Hostname to set for the OIM server (FQDN format required)
 # Example: "oim.omnia.test" or "oim-server.lab.local"
 # The hostname MUST include a domain (e.g., hostname.domain.tld)
-oim_hostname: "clashcp.omnia.test"
+oim_hostname: ""
 
 # =============================================================================
 # HARDWARE REQUIREMENTS
@@ -205,19 +205,31 @@ omnia_core_password: ""
 # LDAP CONFIGURATION (for LDAP login tests)
 # =============================================================================
 # LDAP user credentials for testing LDAP SSH login on cluster nodes
-# These are used by discovery test cases to verify LDAP authentication
 
-# Connection type: "internal" or "external"
-# - internal: The test framework will auto-create the LDAP user on the OIM
-#   omnia_auth container (via ldapadd through the proxy) if it doesn't exist.
-# - external: The ldap_user and ldap_password must already be valid on the
-#   external LDAP server. The test framework will verify the user exists on
-#   cluster nodes via 'getent passwd' (SSSD must be configured to connect
-#   to the external LDAP server). No user creation is attempted.
-ldap_connection_type: ""
+# LDAP credentials for testing SSH login (REQUIRED for LDAP tests)
+# Format: Single user or comma-separated list of user:password pairs
+# Examples:
+#   ldap_credentials: "ldapuser:ldappassword"
+#   ldap_credentials: "ldapuser:ldappassword,ldapuser1:ldappassword1,ldapuser2:ldappassword2"
+ldap_credentials: "ldapuser:ninja"
 
-# LDAP username (REQUIRED for LDAP tests)
-ldap_user: ""
+# =============================================================================
+# LDAP SLAPD.CONF CONFIGURATION (for external LDAP slapd.conf test)
+# =============================================================================
 
-# LDAP password (REQUIRED for LDAP tests)
-ldap_password: ""
+# External LDAP server IP (REQUIRED)
+external_ldap_server_ip: ""
+
+# External LDAP server port (REQUIRED)
+external_ldap_server_port: ""
+
+# External LDAP server domain (REQUIRED)
+# Used to build DC (e.g., omnia.test -> dc=omnia,dc=test)
+# For omnia.test.cluster -> dc=omnia,dc=test,dc=cluster
+external_ldap_domain: ""
+
+# External LDAP bind username (REQUIRED)
+external_ldap_bind_username: ""
+
+# External LDAP bind password (REQUIRED)
+external_ldap_bind_password: ""
