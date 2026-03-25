@@ -24,7 +24,7 @@
 # cluster_name is required field
 
 # nfs_storage_name
-# Storage name corresponding to the NFS share to be used by slurm cluster 
+# Storage name corresponding to the NFS share to be used by slurm cluster
 # This should match with exactly with a entry in storage_config.yml
 
 # skip_merge
@@ -74,12 +74,12 @@
 
 # config_sources
 # defines how the Slurm configuration files are provided to the cluster.
-# <conf name>: 
+# <conf name>:
 #    <mapping> or <filepath>
 # <mapping> Supply the configuration values directly as a key–value map
 # <filepath> Supply the absolute path to a custom configuration file
 #            This path can be any path inside the omnia_core container.
-#            The default input path "/opt/omnia/input/project_default" 
+#            The default input path "/opt/omnia/input/project_default"
 #            can also be used to place the custom conf files
 # The conf files supported by slurm are
 # slurm
@@ -99,10 +99,10 @@ slurm_cluster:
   - cluster_name: slurm_cluster
     nfs_storage_name: nfs_slurm
     # skip_merge: true
-    
+
     # Uncomment to enable homogeneous discovery mode
     # node_discovery_mode: "homogeneous"
-    
+
     # Uncomment to provide hardware specs for homogeneous groups
     # node_hardware_defaults:
     #   grp1:
@@ -116,7 +116,7 @@ slurm_cluster:
     #     cores_per_socket: 32
     #     threads_per_core: 2
     #     real_memory: 256000
-    
+
     # config_sources:
     #   slurm:
     #     SlurmctldTimeout: 60
@@ -136,18 +136,18 @@ slurm_cluster:
     #     ConstrainSwapSpace: True
 
     #   OR
-  
+
     # config_sources:
     #   slurm: /opt/omnia/input/project_default/slurm.conf
     #   cgroup: /opt/omnia/input/project_default/cgroup.conf
     #   slurmdbd: /opt/omnia/input/project_default/slurmdbd.conf
-  
+
 # ----------------------------SERVICE K8S------------------------------------------------------
 # For service k8s cluster below parameters are required,(List)
 # - cluster_name is required field
 
 # - deployment: Exactly one entry in both the service_k8s_cluster lists must have deployment set to true to indicate where Kubernetes should be deployed.
-# Please ensure corresponding cluster entry is added to high_availability_config.yml if deployment is set to true. 
+# Please ensure corresponding cluster entry is added to high_availability_config.yml if deployment is set to true.
 
 # - Kubernetes SDN network.K8s_cni (Mandatory) - It can either be "calico" or "flannel".Default value assigned is "calico".
 # While setting up Kubernetes plugin for RoCE NIC, ensure that this value is set to "flannel"

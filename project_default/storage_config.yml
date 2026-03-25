@@ -71,4 +71,4 @@ nfs_client_params:
     client_share_path: /share_omnia_k8s
     client_mount_options: "nosuid,rw,sync,hard,intr"
     nfs_name: nfs_k8s
-    
+

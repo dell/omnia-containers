@@ -67,7 +67,7 @@
 #   sslcacert   : Path to SSL CA certificate (if using SSL)
 #   sslclientkey: Path to SSL client key (if using SSL)
 #   sslclientcert: Path to SSL client certificate (if using SSL)
-#   policy      : Repository policy if mentioned allowed values (always, partial). 
+#   policy      : Repository policy if mentioned allowed values (always, partial).
 #                   If not provided, uses repo_config from software_config.json
 #   caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
 #                   If not provided, defaults to true
@@ -84,9 +84,9 @@
 #
 # 6. rhel_subscription_repo_config_x86_64
 #-------------------------------------------
-#    Optional configuration for overriding policy and caching settings for RHEL 
+#    Optional configuration for overriding policy and caching settings for RHEL
 #    subscription-based repositories on x86_64 architecture.
-#    When subscription is enabled, this config takes precedence over dynamically 
+#    When subscription is enabled, this config takes precedence over dynamically
 #    generated URLs for matching repositories and adds any additional repositories.
 # Fields:
 #   url         : Base URL of the repository (REQUIRED)
@@ -167,17 +167,23 @@ user_registry:
 #  - { url: "", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
 user_repo_url_x86_64:
 user_repo_url_aarch64:
-#Example:
+# Example:
 # rhel_os_url_x86_64:
-#  - { url: "http://crb.com/CRB/x86_64/os/", gpgkey: "http://crb.com/CRB/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_codeready-builder"}
-#  - { url: "http://BaseOS.com/BaseOS/x86_64/os/", gpgkey: "http://BaseOS.com/BaseOS/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_baseos"}
-#  - { url: "http://AppStream.com/AppStream/x86_64/os/", gpgkey: "http://AppStream.com/AppStream/x86_64/os/RPM-GPG-KEY", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_appstream" }
+#   - { url: "http://crb.com/CRB/x86_64/os/", gpgkey: "http://crb.com/CRB/x86_64/os/RPM-GPG-KEY",
+#       sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_codeready-builder" }
+#   - { url: "http://BaseOS.com/BaseOS/x86_64/os/", gpgkey: "http://BaseOS.com/BaseOS/x86_64/os/RPM-GPG-KEY",
+#       sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_baseos" }
+#   - { url: "http://AppStream.com/AppStream/x86_64/os/", gpgkey: "http://AppStream.com/AppStream/x86_64/os/RPM-GPG-KEY",
+#       sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_appstream" }
 rhel_os_url_x86_64:
 rhel_os_url_aarch64:
 # Example:
 # rhel_subscription_repo_config_x86_64:
-#  - { url: "https://example.com/appstream", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_appstream", policy: "always", caching: true }
-#  - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/", gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_supplementary", policy: "always", caching: false }
+#   - { url: "https://example.com/appstream", gpgkey: "", sslcacert: "", sslclientkey: "",
+#       sslclientcert: "", name: "x86_64_appstream", policy: "always", caching: true }
+#   - { url: "https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/",
+#       gpgkey: "file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release", sslcacert: "", sslclientkey: "",
+#       sslclientcert: "", name: "x86_64_supplementary", policy: "always", caching: false }
 rhel_subscription_repo_config_x86_64:
 rhel_subscription_repo_config_aarch64:
 # Making incorrect changes to this variable can cause omnia failure. Please edit cautiously.
@@ -185,15 +191,22 @@ omnia_repo_url_rhel_x86_64:
   - { url: "https://download.docker.com/linux/centos/10/x86_64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
   - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
   - { url: "https://pkgs.k8s.io/core:/stable:/v1.34/rpm/", gpgkey: "https://pkgs.k8s.io/core:/stable:/v1.34/rpm/repodata/repomd.xml.key", name: "kubernetes"}
-  - { url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/", gpgkey: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/repodata/repomd.xml.key", name: "cri-o"}
-  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/repodata/repomd.xml.key", name: "doca"}
+  - url: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/"
+    gpgkey: "https://download.opensuse.org/repositories/isv:/cri-o:/stable:/v1.34/rpm/repodata/repomd.xml.key"
+    name: "cri-o"
+  - url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/"
+    gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/x86_64/repodata/repomd.xml.key"
+    name: "doca"
 omnia_repo_url_rhel_aarch64:
   - { url: "https://download.docker.com/linux/centos/10/aarch64/stable/", gpgkey: "https://download.docker.com/linux/centos/gpg", name: "docker-ce"}
   - { url: "https://dl.fedoraproject.org/pub/epel/10/Everything/aarch64/", gpgkey: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-10", name: "epel"}
-  - { url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/", gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/repodata/repomd.xml.key", name: "doca"}
+  - url: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/"
+    gpgkey: "https://linux.mellanox.com/public/repo/doca/3.2.1/rhel10/arm64-sbsa/repodata/repomd.xml.key"
+    name: "doca"
 # Example:
 # additional_repos_x86_64:
 #  - { url: "https://rpm.grafana.com/", gpgkey: "", name: "grafana" }
-#  - { url: "https://repo.example.com/x86_64/", gpgkey: "", name: "custom-repo", sslcacert: "/path/ca.crt", sslclientkey: "/path/client.key", sslclientcert: "/path/client.crt" }
+#   - { url: "https://repo.example.com/x86_64/", gpgkey: "", name: "custom-repo",
+#       sslcacert: "/path/ca.crt", sslclientkey: "/path/client.key", sslclientcert: "/path/client.crt" }
 additional_repos_x86_64:
 additional_repos_aarch64:
