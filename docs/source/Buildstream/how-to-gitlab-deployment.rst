@@ -11,11 +11,14 @@ Prerequisites
 Before deploying GitLab for BuildStreaM:
 
 * Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node (see :ref:`Prepare the Omnia Infrastructure Manager <prepare-oim-buildstream>`)
+* The node where GitLab will be deployed must have Internet connectivity.
 * A dedicated node is required for BuildStreaM GitLab deployment.
 * The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20 GB free disk space)
 * GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
 * OIM node must be accessible from the GitLab node.
 * Ensure that BuildStream API server (BuildStream container) is reachable from the GitLab node.
+* Ensure that appStream and Base OS repositories are configured and accessible from the GitLab node.
+* Ensure that on the GitLab node, SELinux is disabled.
 
 .. important::
    Omnia uses a dedicated GitLab instance for BuildStreaM. This procedure provisions a new GitLab instance specifically configured for BuildStreaM. Currently, existing GitLab setups configured for other purposes are not supported.

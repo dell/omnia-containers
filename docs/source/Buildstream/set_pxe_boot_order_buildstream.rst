@@ -44,3 +44,9 @@ The playbook will:
 - Power them on if they are off
 - Configure PXE boot order
 - Load the diskless image provided by the Omnia Infrastructure Manager (OIM)
+
+Next Steps
+----------
+(Optional) Initialize telemetry collection for the nodes. See :doc:`buildstream_telemetry` for detailed instructions.
+
+
