@@ -45,6 +45,15 @@ from .functions import (
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
+    # Additional packages & container images
+    verify_additional_packages,
+    verify_additional_container_images,
+    is_additional_packages_enabled,
+    get_allowed_additional_subgroups,
+    get_additional_packages_json_path,
+    extract_rpm_packages_for_role,
+    extract_images_for_role,
+    clear_additional_pkgs_cache,
 )
 from .vars import (
     OPENCHAMI_NODES_PATH,
@@ -57,11 +66,20 @@ from .vars import (
     SLURM_CONTROL_SERVICES,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
     FUNCTIONAL_GROUP_KUBE_CONTROL,
+    # Additional packages vars
+    SOFTWARE_CONFIG_PATH,
+    ADDITIONAL_PACKAGES_JSON_TEMPLATE,
+    ROLE_SPECIFIC_KEYS,
+    IMAGE_ROLE_KEYS,
 )
 from .messages import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
+    # Additional packages messages
+    ADDITIONAL_PKGS_TEST_NAMES,
+    ADDITIONAL_PKGS_LOG_MSGS,
+    ADDITIONAL_PKGS_ASSERT_MSGS,
 )
 
 from . import functions as _functions

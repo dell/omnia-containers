@@ -23,9 +23,18 @@ from .discovery_msgs import (
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
 )
+from .additional_pkgs_msgs import (
+    ADDITIONAL_PKGS_TEST_NAMES,
+    ADDITIONAL_PKGS_LOG_MSGS,
+    ADDITIONAL_PKGS_ASSERT_MSGS,
+)
 
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
     "TEST_ASSERT_MSGS",
+    # Additional packages messages
+    "ADDITIONAL_PKGS_TEST_NAMES",
+    "ADDITIONAL_PKGS_LOG_MSGS",
+    "ADDITIONAL_PKGS_ASSERT_MSGS",
 ]

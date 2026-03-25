@@ -43,6 +43,16 @@ from .ldap_func import (
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
 )
+from .additional_pkgs_func import (
+    verify_additional_packages,
+    verify_additional_container_images,
+    is_additional_packages_enabled,
+    get_allowed_additional_subgroups,
+    get_additional_packages_json_path,
+    extract_rpm_packages_for_role,
+    extract_images_for_role,
+    clear_additional_pkgs_cache,
+)
 
 __all__ = [
     # Helper functions
@@ -66,4 +76,13 @@ __all__ = [
     "validate_ldap_login_non_slurm",
     "validate_ldap_login_slurm_nodes",
     "validate_kubernetes_nodes",
+    # Additional packages & container images
+    "verify_additional_packages",
+    "verify_additional_container_images",
+    "is_additional_packages_enabled",
+    "get_allowed_additional_subgroups",
+    "get_additional_packages_json_path",
+    "extract_rpm_packages_for_role",
+    "extract_images_for_role",
+    "clear_additional_pkgs_cache",
 ]
