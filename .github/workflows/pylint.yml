@@ -4,13 +4,7 @@ on:
   pull_request:
     branches:
       - automation
-      - release_1.7.1
-      - pub/service_cluster_telemetry
-      - pub/multiple_login_node
-      - pub/local_repo_arch
-      - pub/k8s_plugins
-      - pub/service_cluster_kafka
-      - pub/provision_arch
+      - automation-v2.1.0.0
 
 jobs:
   build:
