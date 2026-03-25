@@ -1,0 +1,127 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Verify admin_debug_packages configuration
+# =============================================================================
+#
+# This playbook checks that admin_debug_packages is configured in software_config.json
+# and prepares for package verification on cluster nodes.
+#
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - Verify admin_debug_packages configuration
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    container_name: "omnia_core"
+    software_config_path: "/opt/omnia/input/project_default/software_config.json"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Verifying admin_debug_packages on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # PREREQUISITE CHECKS
+    # =========================================================================
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman ps --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "^{{ container_name }}$" && echo "RUNNING" || echo "NOT_RUNNING"
+        executable: /bin/bash
+      register: container_check
+      changed_when: false
+
+    - name: Fail if omnia_core container not running
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    OMNIA_CORE CONTAINER NOT RUNNING                          ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ HOW TO FIX:                                                                  ║
+          ║   1. Run: omnia.sh --install                                                 ║
+          ║   2. Or check: podman ps -a | grep omnia_core                                ║
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: "'NOT_RUNNING' in container_check.stdout"
+
+    # =========================================================================
+    # CHECK SOFTWARE_CONFIG.JSON FOR ADMIN_DEBUG_PACKAGES
+    # =========================================================================
+    - name: Check if software_config.json exists
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} test -f {{ software_config_path }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: software_config_check
+      changed_when: false
+
+    - name: Read software_config.json
+      ansible.builtin.command:
+        cmd: podman exec {{ container_name }} cat {{ software_config_path }}
+      register: software_config_content
+      changed_when: false
+      when: "'EXISTS' in software_config_check.stdout"
+
+    - name: Parse software_config.json
+      ansible.builtin.set_fact:
+        software_config: "{{ software_config_content.stdout | from_json }}"
+      when: software_config_content.stdout is defined and software_config_content.stdout | length > 0
+
+    - name: Check if admin_debug_packages is configured
+      ansible.builtin.set_fact:
+        admin_debug_packages_enabled: "{{ 'admin_debug_packages' in (software_config | default({})) }}"
+
+    - name: Display admin_debug_packages status
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          ADMIN DEBUG PACKAGES CONFIGURATION CHECK
+          ============================================
+          software_config.json exists: {{ software_config_check.stdout }}
+          admin_debug_packages enabled: {{ admin_debug_packages_enabled }}
+          ============================================
+
+    - name: Converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          ADMIN DEBUG PACKAGES CONVERGE COMPLETE!
+          ============================================
+          - omnia_core container: Running
+          - software_config.json: {{ software_config_check.stdout }}
+          - admin_debug_packages: {{ 'Configured' if admin_debug_packages_enabled else 'Not configured' }}
+          - Ready for pytest verification
+          ============================================
