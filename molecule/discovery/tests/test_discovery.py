@@ -62,7 +62,7 @@ from automation_library.discovery.functions import (
 
 def test_nodes_ssh_reachable(host):
     """
-    Test Case 1: Verify all nodes from PXE mapping are reachable via SSH.
+    Verify all nodes from PXE mapping are reachable via SSH.
     Results grouped by functional_group (role).
     """
     log = TestLogger(TEST_NAMES["nodes_ssh_reachable"])
@@ -113,7 +113,7 @@ def test_nodes_ssh_reachable(host):
 
 def test_nodes_yaml_file(host):
     """
-    Test Case 3: Verify nodes.yaml file exists and is valid.
+    Verify nodes.yaml file exists and is valid.
     Shows detailed nodes.yaml content.
     """
     log = TestLogger(TEST_NAMES["nodes_yaml_exists"])
@@ -174,7 +174,7 @@ def test_nodes_yaml_file(host):
 
 def test_passwordless_ssh(host):
     """
-    Test Case 4: Verify passwordless SSH is configured to all nodes.
+    Verify passwordless SSH is configured to all nodes.
     Tests SSH via BOTH hostname AND IP address.
     Results grouped by functional_group (role).
     """
@@ -226,7 +226,7 @@ def test_passwordless_ssh(host):
 
 def test_node_hostnames(host):
     """
-    Test Case 6: Verify node hostnames match PXE mapping.
+    Verify node hostnames match PXE mapping.
     Results grouped by functional_group (role).
     """
     log = TestLogger(TEST_NAMES["node_hostnames"])
@@ -287,7 +287,7 @@ def test_node_hostnames(host):
 # =============================================================================
 
 def test_node_boot(host):
-    """Test Case 8: Verify all nodes have booted successfully."""
+    """Verify all nodes have booted successfully."""
     log = TestLogger("Node Boot Validation")
 
     log.check("Checking if all nodes are booted and reachable →")
@@ -313,7 +313,7 @@ def test_node_boot(host):
 
 
 def test_bmc_group_csv(host):
-    """Test Case 9: Verify BMC group CSV against PXE mapping and OIM BMC IP."""
+    """Verify BMC group CSV against PXE mapping and OIM BMC IP."""
     log = TestLogger("BMC Group CSV Validation")
 
     log.check("Checking BMC group CSV against PXE mapping →")
@@ -377,7 +377,7 @@ def test_bmc_group_csv(host):
 # =============================================================================
 
 def test_all_services(host):
-    """Test Case 10: Verify Slurm services on Slurm nodes only."""
+    """Verify Slurm services on Slurm nodes only."""
     log = TestLogger("Service Validation (Slurm Nodes Only)")
 
     log.check("Checking Slurm services on Slurm nodes only →")
@@ -415,7 +415,7 @@ def test_all_services(host):
 
 
 def test_all_sinfo(host):
-    """Test Case 11: Verify sinfo command works on Slurm nodes only."""
+    """Verify sinfo command works on Slurm nodes only."""
     log = TestLogger("Slurm sinfo Validation (Slurm Nodes Only)")
 
     log.check("Running sinfo on Slurm nodes only →")
@@ -450,7 +450,7 @@ def test_all_sinfo(host):
 
 
 def test_ldap_login_non_slurm(host):
-    """Test Case 12a: Verify LDAP user can SSH login on non-slurm nodes.
+    """Verify LDAP user can SSH login on non-slurm nodes.
 
     Non-slurm nodes (login, kube_control_plane, etc.) should always
     allow LDAP user SSH login.
@@ -490,7 +490,7 @@ def test_ldap_login_non_slurm(host):
 
 
 def test_ldap_login_slurm_nodes(host):
-    """Test Case 12b: Verify LDAP user login behavior on slurm nodes.
+    """Verify LDAP user login behavior on slurm nodes.
 
     On slurm compute nodes (pam_slurm_adopt):
     - If LDAP user has NO running jobs -> SSH login should be BLOCKED
@@ -543,7 +543,7 @@ def test_ldap_login_slurm_nodes(host):
 # =============================================================================
 
 def test_kubernetes_nodes(host):
-    """Test Case 13: Verify K8s nodes via kubectl get nodes -A."""
+    """Verify K8s nodes via kubectl get nodes -A."""
     log = TestLogger("Kubernetes Nodes Validation (All Control Planes)")
 
     log.check("Running 'kubectl get nodes -A' on all kube control plane nodes")
