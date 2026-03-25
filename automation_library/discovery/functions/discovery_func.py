@@ -826,6 +826,131 @@ def validate_all_sinfo(host) -> Dict[str, Any]:
     }
 
 
+def validate_slurm_sinfo(host) -> Dict[str, Any]:
+    """
+    Validate sinfo command on Slurm nodes only.
+    
+    Runs 'sinfo' only on nodes with functional groups containing 'slurm'
+    (slurm_control_node, slurm_node) to verify Slurm cluster visibility.
+    
+    Returns:
+        Dict with success, group_results (per functional group), and error.
+    """
+    all_grouped = get_nodes_by_functional_group(host)
+    if not all_grouped:
+        return {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
+
+    group_results = {}
+    all_success = True
+    slurm_groups_found = False
+
+    for func_group, hostname, admin_ip in iter_grouped_nodes(all_grouped):
+        # Only process Slurm-related functional groups
+        if "slurm" not in func_group.lower():
+            continue
+            
+        slurm_groups_found = True
+        group_results.setdefault(func_group, [])
+        if not admin_ip:
+            group_results[func_group].append({
+                "hostname": hostname, "success": False, "output": "", "error": "No IP",
+            })
+            all_success = False
+            continue
+
+        result = _run_command_on_node(host, admin_ip, "sinfo")
+        group_results[func_group].append({
+            "hostname": hostname, "admin_ip": admin_ip,
+            "success": result["success"], "output": result["output"][:500],
+            "error": "" if result["success"] else result["error"],
+        })
+        if not result["success"]:
+            all_success = False
+
+    if not slurm_groups_found:
+        return {"success": False, "skipped": True, "error": "No Slurm nodes found", "group_results": {}}
+
+    return {
+        "success": all_success, "skipped": False,
+        "group_results": group_results,
+        "error": "" if all_success else "sinfo failed on some Slurm nodes",
+    }
+
+
+def validate_slurm_services(host) -> Dict[str, Any]:
+    """
+    Validate Slurm services on Slurm nodes only.
+    
+    Runs service validation only on nodes with functional groups containing 'slurm'
+    (slurm_control_node, slurm_node) to verify Slurm services are active.
+    
+    Returns:
+        Dict with success, group_results (per functional group), and error.
+    """
+    all_grouped = get_nodes_by_functional_group(host)
+    if not all_grouped:
+        return {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
+
+    group_results = {}
+    all_success = True
+    slurm_groups_found = False
+
+    for func_group, nodes in all_grouped.items():
+        # Only process Slurm-related functional groups
+        if "slurm" not in func_group.lower():
+            continue
+            
+        slurm_groups_found = True
+        services = _get_services_for_group(func_group)
+        group_results[func_group] = []
+
+        for node in nodes:
+            hostname = node["hostname"]
+            admin_ip = node.get("admin_ip", "")
+            
+            if not admin_ip:
+                group_results[func_group].append({
+                    "hostname": hostname, "admin_ip": admin_ip,
+                    "services": {}, "node_ok": False, "error": "No IP",
+                })
+                all_success = False
+                continue
+
+            # Check each service on this node
+            services_status = {}
+            node_ok = True
+            
+            for service_name in services:
+                result = _run_command_on_node(host, admin_ip, f"systemctl is-active {service_name}")
+                is_active = result["success"] and "active" in result["output"]
+                services_status[service_name] = {
+                    "active": is_active,
+                    "output": result["output"].strip() if result["output"] else "No output"
+                }
+                if not is_active:
+                    node_ok = False
+                    all_success = False
+
+            group_results[func_group].append({
+                "hostname": hostname, "admin_ip": admin_ip,
+                "services": services_status, "node_ok": node_ok, "error": "",
+            })
+
+    if not slurm_groups_found:
+        return {
+            "success": False, 
+            "skipped": True, 
+            "error": "No Slurm nodes found", 
+            "group_results": {}
+        }
+
+    return {
+        "success": all_success, "skipped": False,
+        "group_results": group_results,
+        "error": "" if all_success else "Some Slurm services not active",
+    }
+
+
 # =============================================================================
 # KUBERNETES VALIDATION
 # =============================================================================

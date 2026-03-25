@@ -48,8 +48,8 @@ from automation_library.discovery.functions import (
     # New validation functions
     validate_node_boot,
     validate_bmc_group_csv,
-    validate_all_services,
-    validate_all_sinfo,
+    validate_slurm_sinfo,
+    validate_slurm_services,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
@@ -67,10 +67,10 @@ def test_nodes_ssh_reachable(host):
     """
     log = TestLogger(TEST_NAMES["nodes_ssh_reachable"])
 
-    log.check("Testing SSH connectivity to all nodes from PXE mapping")
+    log.check("Testing SSH connectivity to all nodes from PXE mapping →")
     result = verify_nodes_ssh_reachable(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -118,7 +118,7 @@ def test_nodes_yaml_file(host):
     """
     log = TestLogger(TEST_NAMES["nodes_yaml_exists"])
 
-    log.check("Checking nodes.yaml file")
+    log.check("Checking nodes.yaml file →")
     result = verify_nodes_yaml_file(host)
 
     log.check(f"File path: {result['path']}")
@@ -180,10 +180,10 @@ def test_passwordless_ssh(host):
     """
     log = TestLogger(TEST_NAMES["passwordless_ssh"])
 
-    log.check("Testing passwordless SSH to all nodes (via IP and hostname)")
+    log.check("Testing passwordless SSH to all nodes (via IP and hostname) →")
     result = verify_passwordless_ssh(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -231,10 +231,10 @@ def test_node_hostnames(host):
     """
     log = TestLogger(TEST_NAMES["node_hostnames"])
 
-    log.check("Verifying hostnames on all nodes")
+    log.check("Verifying hostnames on all nodes →")
     result = verify_node_hostnames(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -290,10 +290,10 @@ def test_node_boot(host):
     """Test Case 8: Verify all nodes have booted successfully."""
     log = TestLogger("Node Boot Validation")
 
-    log.check("Checking if all nodes are booted and reachable")
+    log.check("Checking if all nodes are booted and reachable →")
     result = validate_node_boot(host)
 
-    log.check(f"Total: {result['total_count']} | Booted: {result['booted_count']}")
+    log.check(f"Total: {result['total_count']} | Booted: {result['booted_count']} →")
     log.check("")
 
     for func_group, nodes in result.get("results_by_group", {}).items():
@@ -316,7 +316,7 @@ def test_bmc_group_csv(host):
     """Test Case 9: Verify BMC group CSV against PXE mapping and OIM BMC IP."""
     log = TestLogger("BMC Group CSV Validation")
 
-    log.check("Checking BMC group CSV against PXE mapping")
+    log.check("Checking BMC group CSV against PXE mapping →")
     result = validate_bmc_group_csv(host)
 
     log.check(f"Path: {result['path']}")
@@ -377,15 +377,15 @@ def test_bmc_group_csv(host):
 # =============================================================================
 
 def test_all_services(host):
-    """Test Case 10: Verify sssd, munge, slurmd services on ALL nodes."""
-    log = TestLogger("Service Validation (All Nodes)")
+    """Test Case 10: Verify Slurm services on Slurm nodes only."""
+    log = TestLogger("Service Validation (Slurm Nodes Only)")
 
-    log.check("Checking sssd, munge, slurmd on all nodes")
-    result = validate_all_services(host)
+    log.check("Checking Slurm services on Slurm nodes only →")
+    result = validate_slurm_services(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No nodes found")
-        pytest.skip("No nodes found in PXE mapping")
+        log.skipped(result["error"], "No Slurm nodes found")
+        pytest.skip("No Slurm nodes found in PXE mapping")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
@@ -393,7 +393,7 @@ def test_all_services(host):
         for node in nodes:
             hostname = node["hostname"]
             services = node.get("services", {})
-            node_ok = all(s["active"] for s in services.values())
+            node_ok = node.get("node_ok", False)
             status = "✓" if node_ok else "✗"
             log.check(f"  {status} {hostname} ({node.get('admin_ip', '')})")
             for svc_name, svc_data in services.items():
@@ -404,7 +404,10 @@ def test_all_services(host):
 
     log.check("")
     if result["success"]:
-        log.passed("All services active on all nodes", "sssd, munge, slurmd running everywhere")
+        log.passed(
+            "All Slurm services active on Slurm nodes", 
+            "sssd, munge, slurmd/slurmctld running on Slurm nodes"
+        )
     else:
         log.failed(f"Services failed on: {', '.join(failed_nodes)}", result["error"])
 
@@ -412,15 +415,15 @@ def test_all_services(host):
 
 
 def test_all_sinfo(host):
-    """Test Case 11: Verify sinfo command works on ALL nodes."""
-    log = TestLogger("Slurm sinfo Validation (All Nodes)")
+    """Test Case 11: Verify sinfo command works on Slurm nodes only."""
+    log = TestLogger("Slurm sinfo Validation (Slurm Nodes Only)")
 
-    log.check("Running sinfo on all nodes")
-    result = validate_all_sinfo(host)
+    log.check("Running sinfo on Slurm nodes only →")
+    result = validate_slurm_sinfo(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No nodes found")
-        pytest.skip("No nodes found in PXE mapping")
+        log.skipped(result["error"], "No Slurm nodes found")
+        pytest.skip("No Slurm nodes found in PXE mapping")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
@@ -439,7 +442,7 @@ def test_all_sinfo(host):
 
     log.check("")
     if result["success"]:
-        log.passed("sinfo working on all nodes", "Slurm cluster visible from all nodes")
+        log.passed("sinfo working on all Slurm nodes", "Slurm cluster visible from Slurm nodes")
     else:
         log.failed(f"sinfo failed on: {', '.join(failed_nodes)}", result["error"])
 
@@ -454,7 +457,7 @@ def test_ldap_login_non_slurm(host):
     Reads ldap_user and ldap_password from user_config.yml.
     """
     log = TestLogger("LDAP Login - Non-Slurm Nodes")
-    log.check("Testing LDAP user SSH login on non-slurm nodes")
+    log.check("Testing LDAP user SSH login on non-slurm nodes →")
     result = validate_ldap_login_non_slurm(host)
 
     if result.get("skipped"):
@@ -462,7 +465,7 @@ def test_ldap_login_non_slurm(host):
         pytest.skip(result["error"])
 
     ldap_user = result.get("ldap_user", "")
-    log.check(f"LDAP user: {ldap_user}")
+    log.check(f"LDAP user: {ldap_user} →")
     log.check("")
 
     failed_nodes = []
@@ -495,7 +498,7 @@ def test_ldap_login_slurm_nodes(host):
     Reads ldap_user and ldap_password from user_config.yml.
     """
     log = TestLogger("LDAP Login - Slurm Nodes")
-    log.check("Testing LDAP user SSH login behavior on slurm compute nodes")
+    log.check("Testing LDAP user SSH login behavior on slurm compute nodes →")
     result = validate_ldap_login_slurm_nodes(host)
 
     if result.get("skipped"):
@@ -503,7 +506,7 @@ def test_ldap_login_slurm_nodes(host):
         pytest.skip(result["error"])
 
     ldap_user = result.get("ldap_user", "")
-    log.check(f"LDAP user: {ldap_user}")
+    log.check(f"LDAP user: {ldap_user} →")
     log.check("")
 
     failed_nodes = []
@@ -565,7 +568,6 @@ def test_kubernetes_nodes(host):
         log.check(f"  {'NAME':<20} {'STATUS':<10} {'ROLES':<18} {'AGE':<10} {'VERSION'}")
         log.check(f"  {'-'*20} {'-'*10} {'-'*18} {'-'*10} {'-'*10}")
         for k8s_node in cp.get("k8s_nodes", []):
-            status_icon = "✓" if k8s_node["status"].lower() == "ready" else "✗"
             log.check(
                 f"                {k8s_node['name']:<18} {k8s_node['status']:<10} "
                 f"{k8s_node['roles']:<18} {k8s_node['age']:<10} {k8s_node['version']} →"
