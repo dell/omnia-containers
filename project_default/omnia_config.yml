@@ -169,7 +169,8 @@ slurm_cluster:
 # csi_powerscale_driver_secret_file_path: Absolute file path for the secret.yaml file.
 # User need to download secret.yaml file and fill required data in secret file. Provided the path of the secret file here.
 # File path for the values.yml file which will contain the Powerscale driver configuration parameters.
-# csi_powerscale_driver_values_file_path: User need to download values.yaml file and fill required data in values.yaml file. Provided the path of the values.yaml file here.
+# csi_powerscale_driver_values_file_path: User need to download values.yaml file and fill required data
+#   in values.yaml file. Provided the path of the values.yaml file here.
 # mention configurable values
 
 # - k8s_crio_storage_size: Specifies the disk size allocated for CRI-O container storage.

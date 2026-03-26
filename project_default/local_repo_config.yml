@@ -19,7 +19,7 @@
 # VARIABLE DETAILS
 # ================================
 # 1. user_registry
-#--------------------------
+# --------------------------
 # Configuration for user registry to configure additional images in Pulp
 # Fields:
 #   host       : Registry IP and port in format "IP:port"
@@ -32,7 +32,7 @@
 #   - key_path should point to .key files only
 #   - cert and key paths are accessed from within the omnia_core container
 # 2. user_repo_url_x86_64
-#--------------------------
+# --------------------------
 #    Optional list of user-defined repository URLs for x86_64 architecture.
 #    Each entry can include: url, gpgkey, sslcacert, sslclientkey, sslclientcert, name, policy.
 #    Used for custom cluster packages like <arch>_slurm_custom.
@@ -53,12 +53,12 @@
 #   - Its a madatory field in case of slurm_custom with name as '<arch>_slurm_custom'
 #
 # 3. user_repo_url_aarch64
-#---------------------------
+# ---------------------------
 #    Same as above but for aarch64 architecture.
 #    Note: name must start with 'aarch64_' (e.g., 'aarch64_my_repo').
 #
 # 4. rhel_os_url_x86_64
-#-----------------------------
+# -----------------------------
 #    Mandatory when RHEL subscription is not registered.
 #    Contains repository URLs for codeready-builder, baseos, and appstream for x86_64.
 # Fields:
@@ -79,11 +79,11 @@
 #      are mandatory.
 #
 # 5. rhel_os_url_aarch64
-#----------------------------
+# ----------------------------
 #    Same as above but for aarch64 architecture.
 #
 # 6. rhel_subscription_repo_config_x86_64
-#-------------------------------------------
+# -------------------------------------------
 #    Optional configuration for overriding policy and caching settings for RHEL
 #    subscription-based repositories on x86_64 architecture.
 #    When subscription is enabled, this config takes precedence over dynamically
@@ -106,12 +106,12 @@
 #   - Non-matching repositories are added as additional repos
 #
 # 7. rhel_subscription_repo_config_aarch64
-#--------------------------------------------
+# --------------------------------------------
 #    Same as above but for aarch64 architecture.
 #
 #### ADVANCE CONFIGURATIONS FOR LOCAL REPO ###
 # 8. omnia_repo_url_rhel_x86_64
-#-------------------------------
+# -------------------------------
 #    Mandatory repository URLs for downloading RPMS for Omnia features on RHEL x86_64.
 #    Each entry includes url, gpgkey, and name.
 #
@@ -127,11 +127,11 @@
 #  caching     : Enable or disable local caching. Allowed values: true, false (OPTIONAL)
 #                   If not provided, defaults to true
 # 9. omnia_repo_url_rhel_aarch64
-#--------------------------------
+# --------------------------------
 #    Same as above but for RHEL aarch64.
 #
 # 10. additional_repos_x86_64
-#----------------------------
+# ----------------------------
 #    Optional list of additional repository URLs for x86_64 architecture.
 #    These repos are aggregated into a single Pulp repository, allowing dynamic
 #    addition/removal without changing compute node configurations.
@@ -154,7 +154,7 @@
 #   - Packages from these repos can only be used via additional_packages.json
 #
 # 11. additional_repos_aarch64
-#-----------------------------
+# -----------------------------
 #    Same as above but for aarch64 architecture.
 
 # ================================

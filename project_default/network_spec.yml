@@ -40,7 +40,7 @@
 
 
 Networks:
-- admin_network:
+  - admin_network:
     oim_nic_name: "eno1"
     netmask_bits: "24"
     primary_oim_admin_ip: "172.16.107.254"
@@ -49,6 +49,6 @@ Networks:
     dns: []
     ntp_servers: []
 
-- ib_network:
+  - ib_network:
     subnet: "192.168.0.0"
     netmask_bits: "24"
