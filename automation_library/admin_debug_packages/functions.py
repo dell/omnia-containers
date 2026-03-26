@@ -31,7 +31,6 @@ from automation_library.core import (
 from .vars import (
     SOFTWARE_CONFIG_PATH,
     ADMIN_DEBUG_PACKAGES_JSON,
-    DEBUG_PACKAGES_LIST,
 )
 
 
@@ -119,19 +118,18 @@ def get_packages_from_json(host) -> List[str]:
     Path: /opt/omnia/input/project_default/config/x86_64/rhel/10.0/admin_debug_packages.json
 
     Returns:
-        List of package name strings. Falls back to DEBUG_PACKAGES_LIST if file not found.
+        List of package name strings. Returns empty list if file not found.
     """
     cmd = run_in_container(host, f"cat {ADMIN_DEBUG_PACKAGES_JSON}")
     if cmd.rc != 0:
-        return DEBUG_PACKAGES_LIST.copy()
+        return []
 
     try:
         data = json.loads(cmd.stdout)
         cluster_pkgs = data.get("admin_debug_packages", {}).get("cluster", [])
-        packages = [p["package"] for p in cluster_pkgs if p.get("package")]
-        return packages if packages else DEBUG_PACKAGES_LIST.copy()
+        return [p["package"] for p in cluster_pkgs if p.get("package")]
     except (json.JSONDecodeError, KeyError, TypeError):
-        return DEBUG_PACKAGES_LIST.copy()
+        return []
 
 
 # =============================================================================
@@ -174,7 +172,6 @@ def verify_debug_packages_installed(host) -> Dict[str, Any]:
     Verify all debug packages are installed on all cluster nodes.
 
     Reads package list from admin_debug_packages.json inside omnia_core container.
-    Falls back to DEBUG_PACKAGES_LIST if JSON file not found.
 
     For each node, runs 'rpm -q <pkg>' per package via SSH.
     Results are grouped by functional_group (role).

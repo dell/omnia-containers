@@ -31,7 +31,6 @@ from .vars import (
     ADMIN_DEBUG_PACKAGES_JSON,
     SOFTWARE_CONFIG_PATH,
     CONTAINER_NAME,
-    DEBUG_PACKAGES_LIST,
 )
 from .messages import (
     TEST_NAMES,
@@ -48,7 +47,6 @@ __all__ = [
     "ADMIN_DEBUG_PACKAGES_JSON",
     "SOFTWARE_CONFIG_PATH",
     "CONTAINER_NAME",
-    "DEBUG_PACKAGES_LIST",
     # Messages
     "TEST_NAMES",
     "TEST_LOG_MSGS",
