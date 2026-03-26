@@ -378,10 +378,10 @@ def test_bmc_group_csv(host):
 # =============================================================================
 
 def test_all_services(host):
-    """Verify Slurm services on Slurm nodes only."""
-    log = TestLogger("Service Validation (Slurm Nodes Only)")
+    """Verify Slurm services on Slurm nodes."""
+    log = TestLogger("Service Validation")
 
-    log.check("Checking Slurm services on Slurm nodes only →")
+    log.check("Checking Slurm services on Slurm nodes →")
     result = validate_slurm_services(host)
 
     if result.get("skipped"):
@@ -416,10 +416,10 @@ def test_all_services(host):
 
 
 def test_all_sinfo(host):
-    """Verify sinfo command works on Slurm, login, and compiler nodes."""
-    log = TestLogger("Extended sinfo Validation (Slurm, Login, Compiler Nodes)")
+    """Verify sinfo command works on Slurm, login, and compiler nodes if present."""
+    log = TestLogger("Extended sinfo Validation")
 
-    log.check("Running sinfo on Slurm, login, and compiler nodes →")
+    log.check("Running sinfo on relevant nodes (Slurm, login, compiler if available) →")
     result = validate_sinfo(host)
 
     if result.get("skipped"):
@@ -443,7 +443,7 @@ def test_all_sinfo(host):
 
     log.check("")
     if result["success"]:
-        log.passed("sinfo working on all relevant nodes", "Slurm cluster visible from Slurm, login, and compiler nodes")
+        log.passed("sinfo working on all relevant nodes", "Slurm cluster visible from available nodes")
     else:
         log.failed(f"sinfo failed on: {', '.join(failed_nodes)}", result["error"])
 
