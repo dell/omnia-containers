@@ -911,6 +911,18 @@ def validate_sinfo_extended(host) -> Dict[str, Any]:
             continue
 
         result = _run_command_on_node(host, admin_ip, "sinfo")
+        
+        # Skip login and compiler nodes if sinfo command not found
+        func_group_lower = func_group.lower()
+        if not result["success"] and any(keyword in func_group_lower for keyword in ["login", "compiler"]):
+            # Check if command not found (common on non-Slurm nodes)
+            if "command not found" in result["error"].lower() or "not found" in result["error"].lower():
+                group_results[func_group].append({
+                    "hostname": hostname, "admin_ip": admin_ip,
+                    "success": True, "output": "sinfo not available (expected on non-Slurm node)", "error": "",
+                })
+                continue
+        
         group_results[func_group].append({
             "hostname": hostname, "admin_ip": admin_ip,
             "success": result["success"], "output": result["output"][:500],
