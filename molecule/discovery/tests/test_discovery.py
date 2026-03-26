@@ -49,7 +49,7 @@ from automation_library.discovery.functions import (
     validate_node_boot,
     validate_bmc_group_csv,
     validate_slurm_sinfo,
-    validate_sinfo_extended,
+    validate_sinfo,
     validate_slurm_services,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
@@ -420,7 +420,7 @@ def test_all_sinfo(host):
     log = TestLogger("Extended sinfo Validation (Slurm, Login, Compiler Nodes)")
 
     log.check("Running sinfo on Slurm, login, and compiler nodes →")
-    result = validate_sinfo_extended(host)
+    result = validate_sinfo(host)
 
     if result.get("skipped"):
         log.skipped(result["error"], "No Slurm, login, or compiler nodes found")

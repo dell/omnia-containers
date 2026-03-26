@@ -785,47 +785,6 @@ def validate_all_services(host) -> Dict[str, Any]:
     }
 
 
-def validate_all_sinfo(host) -> Dict[str, Any]:
-    """
-    Validate sinfo command on ALL nodes, grouped by functional group.
-
-    Runs 'sinfo' on every node to verify Slurm cluster visibility.
-
-    Returns:
-        Dict with success, group_results (per functional group), and error.
-    """
-    all_grouped = get_nodes_by_functional_group(host)
-    if not all_grouped:
-        return {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
-
-    group_results = {}
-    all_success = True
-
-    for func_group, hostname, admin_ip in iter_grouped_nodes(all_grouped):
-        group_results.setdefault(func_group, [])
-        if not admin_ip:
-            group_results[func_group].append({
-                "hostname": hostname, "success": False, "output": "", "error": "No IP",
-            })
-            all_success = False
-            continue
-
-        result = _run_command_on_node(host, admin_ip, "sinfo")
-        group_results[func_group].append({
-            "hostname": hostname, "admin_ip": admin_ip,
-            "success": result["success"], "output": result["output"][:500],
-            "error": "" if result["success"] else result["error"],
-        })
-        if not result["success"]:
-            all_success = False
-
-    return {
-        "success": all_success, "skipped": False,
-        "group_results": group_results,
-        "error": "" if all_success else "sinfo failed on some nodes",
-    }
-
-
 def validate_slurm_sinfo(host) -> Dict[str, Any]:
     """
     Validate sinfo command on Slurm nodes only.
@@ -877,7 +836,7 @@ def validate_slurm_sinfo(host) -> Dict[str, Any]:
     }
 
 
-def validate_sinfo_extended(host) -> Dict[str, Any]:
+def validate_sinfo(host) -> Dict[str, Any]:
     """
     Validate sinfo command on Slurm, login, and compiler nodes.
     
