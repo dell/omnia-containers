@@ -877,6 +877,58 @@ def validate_slurm_sinfo(host) -> Dict[str, Any]:
     }
 
 
+def validate_sinfo_extended(host) -> Dict[str, Any]:
+    """
+    Validate sinfo command on Slurm, login, and compiler nodes.
+    
+    Runs 'sinfo' on nodes with functional groups containing 'slurm', 'login', or 'compiler'
+    (slurm_control_node, slurm_node, login, compiler) to verify Slurm cluster visibility.
+    
+    Returns:
+        Dict with success, group_results (per functional group), and error.
+    """
+    all_grouped = get_nodes_by_functional_group(host)
+    if not all_grouped:
+        return {"success": False, "skipped": True, "error": "No nodes found", "group_results": {}}
+
+    group_results = {}
+    all_success = True
+    relevant_groups_found = False
+
+    for func_group, hostname, admin_ip in iter_grouped_nodes(all_grouped):
+        # Process Slurm, login, and compiler functional groups
+        func_group_lower = func_group.lower()
+        if not any(keyword in func_group_lower for keyword in ["slurm", "login", "compiler"]):
+            continue
+            
+        relevant_groups_found = True
+        group_results.setdefault(func_group, [])
+        if not admin_ip:
+            group_results[func_group].append({
+                "hostname": hostname, "success": False, "output": "", "error": "No IP",
+            })
+            all_success = False
+            continue
+
+        result = _run_command_on_node(host, admin_ip, "sinfo")
+        group_results[func_group].append({
+            "hostname": hostname, "admin_ip": admin_ip,
+            "success": result["success"], "output": result["output"][:500],
+            "error": "" if result["success"] else result["error"],
+        })
+        if not result["success"]:
+            all_success = False
+
+    if not relevant_groups_found:
+        return {"success": False, "skipped": True, "error": "No Slurm, login, or compiler nodes found", "group_results": {}}
+
+    return {
+        "success": all_success, "skipped": False,
+        "group_results": group_results,
+        "error": "" if all_success else "sinfo failed on some nodes",
+    }
+
+
 def validate_slurm_services(host) -> Dict[str, Any]:
     """
     Validate Slurm services on Slurm nodes only.

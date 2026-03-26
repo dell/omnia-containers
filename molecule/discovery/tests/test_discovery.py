@@ -49,6 +49,7 @@ from automation_library.discovery.functions import (
     validate_node_boot,
     validate_bmc_group_csv,
     validate_slurm_sinfo,
+    validate_sinfo_extended,
     validate_slurm_services,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
@@ -415,15 +416,15 @@ def test_all_services(host):
 
 
 def test_all_sinfo(host):
-    """Verify sinfo command works on Slurm nodes only."""
-    log = TestLogger("Slurm sinfo Validation (Slurm Nodes Only)")
+    """Verify sinfo command works on Slurm, login, and compiler nodes."""
+    log = TestLogger("Extended sinfo Validation (Slurm, Login, Compiler Nodes)")
 
-    log.check("Running sinfo on Slurm nodes only →")
-    result = validate_slurm_sinfo(host)
+    log.check("Running sinfo on Slurm, login, and compiler nodes →")
+    result = validate_sinfo_extended(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No Slurm nodes found")
-        pytest.skip("No Slurm nodes found in PXE mapping")
+        log.skipped(result["error"], "No Slurm, login, or compiler nodes found")
+        pytest.skip("No Slurm, login, or compiler nodes found in PXE mapping")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
@@ -442,7 +443,7 @@ def test_all_sinfo(host):
 
     log.check("")
     if result["success"]:
-        log.passed("sinfo working on all Slurm nodes", "Slurm cluster visible from Slurm nodes")
+        log.passed("sinfo working on all relevant nodes", "Slurm cluster visible from Slurm, login, and compiler nodes")
     else:
         log.failed(f"sinfo failed on: {', '.join(failed_nodes)}", result["error"])
 

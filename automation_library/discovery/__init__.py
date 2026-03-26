@@ -43,6 +43,7 @@ from .functions import (
     validate_all_sinfo,
     validate_slurm_sinfo,
     validate_slurm_services,
+    validate_sinfo_extended,
     ensure_ldap_test_user,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,

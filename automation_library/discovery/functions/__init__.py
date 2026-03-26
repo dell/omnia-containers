@@ -38,6 +38,7 @@ from .discovery_func import (
     validate_kubernetes_nodes,
     validate_slurm_sinfo,
     validate_slurm_services,
+    validate_sinfo_extended,
 )
 from .bmc_func import validate_bmc_group_csv
 from .ldap_func import (
@@ -67,6 +68,7 @@ __all__ = [
     "validate_kubernetes_nodes",
     "validate_slurm_sinfo",
     "validate_slurm_services",
+    "validate_sinfo_extended",
     "ensure_ldap_test_user",
     "validate_ldap_login_non_slurm",
     "validate_ldap_login_slurm_nodes",
