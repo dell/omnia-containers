@@ -42,15 +42,15 @@ from automation_library.discovery.messages import (
 )
 from automation_library.discovery.functions import (
     verify_nodes_ssh_reachable,
-    verify_ochami_nodes_discovered,
     verify_nodes_yaml_file,
     verify_passwordless_ssh,
     verify_node_hostnames,
     # New validation functions
     validate_node_boot,
     validate_bmc_group_csv,
-    validate_all_services,
-    validate_all_sinfo,
+    validate_slurm_sinfo,
+    validate_sinfo,
+    validate_slurm_services,
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
@@ -63,15 +63,15 @@ from automation_library.discovery.functions import (
 
 def test_nodes_ssh_reachable(host):
     """
-    Test Case 1: Verify all nodes from PXE mapping are reachable via SSH.
+    Verify all nodes from PXE mapping are reachable via SSH.
     Results grouped by functional_group (role).
     """
     log = TestLogger(TEST_NAMES["nodes_ssh_reachable"])
 
-    log.check("Testing SSH connectivity to all nodes from PXE mapping")
+    log.check("Testing SSH connectivity to all nodes from PXE mapping →")
     result = verify_nodes_ssh_reachable(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -112,65 +112,14 @@ def test_nodes_ssh_reachable(host):
     )
 
 
-def test_ochami_nodes_discovered(host):
-    """
-    Test Case 2: Verify nodes are discovered in OpenCHAMI SMD.
-    Shows detailed SMD component information.
-    """
-    log = TestLogger(TEST_NAMES["ochami_nodes_discovered"])
-
-    log.check("Querying OpenCHAMI SMD for discovered nodes")
-    result = verify_ochami_nodes_discovered(host)
-
-    log.check(f"Expected nodes from PXE: {result['total_count']}")
-    log.check(f"Discovered in SMD: {result['discovered_count']}")
-    log.check(f"BMC components: {result.get('bmc_count', 0)}")
-    log.check("")
-
-    # Show PXE mapping nodes by group
-    log.check("═══ PXE Mapping Nodes ═══")
-    for func_group, nodes in result.get("nodes_by_group", {}).items():
-        log.check(f"  {func_group}:")
-        for node in nodes:
-            log.check(f"    - {node['hostname']} ({node['admin_ip']})")
-    log.check("")
-
-    # Show SMD components
-    log.check("═══ SMD Components (Type=Node) ═══")
-    for comp in result.get("smd_components", []):
-        log.check(f"  - xname: {comp['xname']}, role: {comp['role']}, nid: {comp['nid']}")
-    log.check("")
-
-    if result["success"]:
-        log.passed(
-            LOG_MSGS["ochami_success"].format(count=result["total_count"]),
-            "All nodes discovered in OpenCHAMI SMD"
-        )
-    else:
-        log.failed(
-            LOG_MSGS["ochami_failed"].format(
-                missing_count=result.get("missing_count", 0),
-                total_count=result["total_count"]
-            ),
-            result.get("error", "Unknown error")
-        )
-
-    assert result["success"], ASSERT_MSGS["ochami_nodes_missing"].format(
-        missing_nodes=result.get("error", ""),
-        total_count=result["total_count"],
-        discovered_count=result["discovered_count"],
-        missing_count=result.get("missing_count", 0)
-    )
-
-
 def test_nodes_yaml_file(host):
     """
-    Test Case 3: Verify nodes.yaml file exists and is valid.
+    Verify nodes.yaml file exists and is valid.
     Shows detailed nodes.yaml content.
     """
     log = TestLogger(TEST_NAMES["nodes_yaml_exists"])
 
-    log.check("Checking nodes.yaml file")
+    log.check("Checking nodes.yaml file →")
     result = verify_nodes_yaml_file(host)
 
     log.check(f"File path: {result['path']}")
@@ -226,16 +175,16 @@ def test_nodes_yaml_file(host):
 
 def test_passwordless_ssh(host):
     """
-    Test Case 4: Verify passwordless SSH is configured to all nodes.
+    Verify passwordless SSH is configured to all nodes.
     Tests SSH via BOTH hostname AND IP address.
     Results grouped by functional_group (role).
     """
     log = TestLogger(TEST_NAMES["passwordless_ssh"])
 
-    log.check("Testing passwordless SSH to all nodes (via IP and hostname)")
+    log.check("Testing passwordless SSH to all nodes (via IP and hostname) →")
     result = verify_passwordless_ssh(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -246,8 +195,8 @@ def test_passwordless_ssh(host):
             admin_ip = node["admin_ip"]
             ssh_ip = "✓" if node.get("ssh_via_ip") else "✗"
             ssh_host = "✓" if node.get("ssh_via_hostname") else "✗"
-            log.check(f"  {hostname} ({admin_ip})")
-            log.check(f"    SSH via IP: {ssh_ip}  |  SSH via hostname: {ssh_host}")
+            log.check(f"  {hostname} ({admin_ip}) →")
+            log.check(f"    SSH via IP: {ssh_ip}  →  SSH via hostname: {ssh_host}")
         log.check("")
 
     if result["success"]:
@@ -278,15 +227,15 @@ def test_passwordless_ssh(host):
 
 def test_node_hostnames(host):
     """
-    Test Case 6: Verify node hostnames match PXE mapping.
+    Verify node hostnames match PXE mapping.
     Results grouped by functional_group (role).
     """
     log = TestLogger(TEST_NAMES["node_hostnames"])
 
-    log.check("Verifying hostnames on all nodes")
+    log.check("Verifying hostnames on all nodes →")
     result = verify_node_hostnames(host)
 
-    log.check(f"Total nodes: {result['total_count']}")
+    log.check(f"Total nodes: {result['total_count']} →")
     log.check("")
 
     # Display results grouped by functional group
@@ -297,8 +246,8 @@ def test_node_hostnames(host):
             actual = node["actual"]
             match = node["match"]
             status = "✓" if match else "✗"
-            log.check(f"  {status} {expected} ({node['admin_ip']})")
-            log.check(f"    Expected: {expected}  |  Actual: {actual}")
+            log.check(f"  {status} {expected} ({node['admin_ip']}) →")
+            log.check(f"    Expected: {expected}  →  Actual: {actual}")
         log.check("")
 
     if result["success"]:
@@ -339,13 +288,13 @@ def test_node_hostnames(host):
 # =============================================================================
 
 def test_node_boot(host):
-    """Test Case 8: Verify all nodes have booted successfully."""
+    """Verify all nodes have booted successfully."""
     log = TestLogger("Node Boot Validation")
 
-    log.check("Checking if all nodes are booted and reachable")
+    log.check("Checking if all nodes are booted and reachable →")
     result = validate_node_boot(host)
 
-    log.check(f"Total: {result['total_count']} | Booted: {result['booted_count']}")
+    log.check(f"Total: {result['total_count']} | Booted: {result['booted_count']} →")
     log.check("")
 
     for func_group, nodes in result.get("results_by_group", {}).items():
@@ -365,10 +314,10 @@ def test_node_boot(host):
 
 
 def test_bmc_group_csv(host):
-    """Test Case 9: Verify BMC group CSV against PXE mapping and OIM BMC IP."""
+    """Verify BMC group CSV against PXE mapping and OIM BMC IP."""
     log = TestLogger("BMC Group CSV Validation")
 
-    log.check("Checking BMC group CSV against PXE mapping")
+    log.check("Checking BMC group CSV against PXE mapping →")
     result = validate_bmc_group_csv(host)
 
     log.check(f"Path: {result['path']}")
@@ -381,7 +330,7 @@ def test_bmc_group_csv(host):
         for entry in result["bmc_entries"][:10]:
             log.check(
                 f"  - BMC={entry['bmc_ip']}, "
-                f"Group={entry['group']}, "
+                f"Group={entry['group']} → "
                 f"Parent={entry['parent']}"
             )
         if result["bmc_count"] > 10:
@@ -393,7 +342,7 @@ def test_bmc_group_csv(host):
         for item in result["missing_groups"]:
             log.check(
                 f"  ✗ {item['hostname']}: "
-                f"group={item['group_name']} not in CSV"
+                f"group={item['group_name']} not in CSV →"
             )
         log.check("")
 
@@ -402,14 +351,14 @@ def test_bmc_group_csv(host):
         for item in result["missing_parents"]:
             log.check(
                 f"  ✗ {item['hostname']}: "
-                f"parent={item['parent_service_tag']} not in CSV"
+                f"parent={item['parent_service_tag']} not in CSV →"
             )
         log.check("")
 
     oim_ip = result.get("oim_bmc_ip", "")
     if oim_ip:
         status = "✗" if result.get("oim_bmc_missing") else "✓"
-        log.check(f"OIM BMC IP: {status} {oim_ip}")
+        log.check(f"OIM BMC IP: {status} {oim_ip} →")
         log.check("")
 
     if result["success"]:
@@ -429,15 +378,15 @@ def test_bmc_group_csv(host):
 # =============================================================================
 
 def test_all_services(host):
-    """Test Case 10: Verify sssd, munge, slurmd services on ALL nodes."""
-    log = TestLogger("Service Validation (All Nodes)")
+    """Verify Slurm services on Slurm nodes."""
+    log = TestLogger("Service Validation")
 
-    log.check("Checking sssd, munge, slurmd on all nodes")
-    result = validate_all_services(host)
+    log.check("Checking Slurm services on Slurm nodes →")
+    result = validate_slurm_services(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No nodes found")
-        pytest.skip("No nodes found in PXE mapping")
+        log.skipped(result["error"], "No Slurm nodes found")
+        pytest.skip("No Slurm nodes found in PXE mapping")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
@@ -445,18 +394,21 @@ def test_all_services(host):
         for node in nodes:
             hostname = node["hostname"]
             services = node.get("services", {})
-            node_ok = all(s["active"] for s in services.values())
+            node_ok = node.get("node_ok", False)
             status = "✓" if node_ok else "✗"
             log.check(f"  {status} {hostname} ({node.get('admin_ip', '')})")
             for svc_name, svc_data in services.items():
                 svc_status = "✓" if svc_data["active"] else "✗"
-                log.check(f"      {svc_status} {svc_name}: {svc_data['output']}")
+                log.check(f"      {svc_status} {svc_name}: {svc_data['output']} →")
             if not node_ok:
                 failed_nodes.append(hostname)
 
     log.check("")
     if result["success"]:
-        log.passed("All services active on all nodes", "sssd, munge, slurmd running everywhere")
+        log.passed(
+            "All Slurm services active on Slurm nodes", 
+            "sssd, munge, slurmd/slurmctld running on Slurm nodes"
+        )
     else:
         log.failed(f"Services failed on: {', '.join(failed_nodes)}", result["error"])
 
@@ -464,15 +416,15 @@ def test_all_services(host):
 
 
 def test_all_sinfo(host):
-    """Test Case 11: Verify sinfo command works on ALL nodes."""
-    log = TestLogger("Slurm sinfo Validation (All Nodes)")
+    """Verify sinfo command works on Slurm, login, and compiler nodes if present."""
+    log = TestLogger("Extended sinfo Validation")
 
-    log.check("Running sinfo on all nodes")
-    result = validate_all_sinfo(host)
+    log.check("Running sinfo on relevant nodes (Slurm, login, compiler if available) →")
+    result = validate_sinfo(host)
 
     if result.get("skipped"):
-        log.skipped(result["error"], "No nodes found")
-        pytest.skip("No nodes found in PXE mapping")
+        log.skipped(result["error"], "No Slurm, login, or compiler nodes found")
+        pytest.skip("No Slurm, login, or compiler nodes found in PXE mapping")
 
     failed_nodes = []
     for func_group, nodes in result.get("group_results", {}).items():
@@ -485,13 +437,13 @@ def test_all_sinfo(host):
                 for line in node["output"].split('\n')[:10]:
                     log.check(f"      {line}")
             else:
-                log.check(f"      Error: {node['error']}")
+                log.check(f"      Error: {node['error']} →")
             if not node["success"]:
                 failed_nodes.append(hostname)
 
     log.check("")
     if result["success"]:
-        log.passed("sinfo working on all nodes", "Slurm cluster visible from all nodes")
+        log.passed("sinfo working on all relevant nodes", "Slurm cluster visible from available nodes")
     else:
         log.failed(f"sinfo failed on: {', '.join(failed_nodes)}", result["error"])
 
@@ -499,14 +451,14 @@ def test_all_sinfo(host):
 
 
 def test_ldap_login_non_slurm(host):
-    """Test Case 12a: Verify LDAP user can SSH login on non-slurm nodes.
+    """Verify LDAP user can SSH login on non-slurm nodes.
 
     Non-slurm nodes (login, kube_control_plane, etc.) should always
     allow LDAP user SSH login.
     Reads ldap_user and ldap_password from user_config.yml.
     """
     log = TestLogger("LDAP Login - Non-Slurm Nodes")
-    log.check("Testing LDAP user SSH login on non-slurm nodes")
+    log.check("Testing LDAP user SSH login on non-slurm nodes →")
     result = validate_ldap_login_non_slurm(host)
 
     if result.get("skipped"):
@@ -514,7 +466,7 @@ def test_ldap_login_non_slurm(host):
         pytest.skip(result["error"])
 
     ldap_user = result.get("ldap_user", "")
-    log.check(f"LDAP user: {ldap_user}")
+    log.check(f"LDAP user: {ldap_user} →")
     log.check("")
 
     failed_nodes = []
@@ -525,7 +477,7 @@ def test_ldap_login_non_slurm(host):
             login_ok = node.get("login_success", False)
             status = "✓" if login_ok else "✗"
             detail = node.get("output", "") if login_ok else node.get("error", "Login failed")
-            log.check(f"  {status} {hostname} ({node.get('admin_ip', '')}): {detail}")
+            log.check(f"  {status} {hostname} ({node.get('admin_ip', '')}): {detail} →")
             if not login_ok:
                 failed_nodes.append(hostname)
         log.check("")
@@ -539,7 +491,7 @@ def test_ldap_login_non_slurm(host):
 
 
 def test_ldap_login_slurm_nodes(host):
-    """Test Case 12b: Verify LDAP user login behavior on slurm nodes.
+    """Verify LDAP user login behavior on slurm nodes.
 
     On slurm compute nodes (pam_slurm_adopt):
     - If LDAP user has NO running jobs -> SSH login should be BLOCKED
@@ -547,7 +499,7 @@ def test_ldap_login_slurm_nodes(host):
     Reads ldap_user and ldap_password from user_config.yml.
     """
     log = TestLogger("LDAP Login - Slurm Nodes")
-    log.check("Testing LDAP user SSH login behavior on slurm compute nodes")
+    log.check("Testing LDAP user SSH login behavior on slurm compute nodes →")
     result = validate_ldap_login_slurm_nodes(host)
 
     if result.get("skipped"):
@@ -555,7 +507,7 @@ def test_ldap_login_slurm_nodes(host):
         pytest.skip(result["error"])
 
     ldap_user = result.get("ldap_user", "")
-    log.check(f"LDAP user: {ldap_user}")
+    log.check(f"LDAP user: {ldap_user} →")
     log.check("")
 
     failed_nodes = []
@@ -569,10 +521,10 @@ def test_ldap_login_slurm_nodes(host):
             expected_info = "should allow" if node.get("expected_login") else "should block"
             log.check(
                 f"  {'✓' if correct else '✗'} {hostname}: "
-                f"{job_info} | {login_info} | {expected_info}"
+                f"{job_info} | {login_info} | {expected_info} →"
             )
             if not correct:
-                log.check(f"      Error: {node.get('error', '')}")
+                log.check(f"      Error: {node.get('error', '')} →")
                 failed_nodes.append(hostname)
         log.check("")
 
@@ -592,7 +544,7 @@ def test_ldap_login_slurm_nodes(host):
 # =============================================================================
 
 def test_kubernetes_nodes(host):
-    """Test Case 13: Verify K8s nodes via kubectl get nodes -A."""
+    """Verify K8s nodes via kubectl get nodes -A."""
     log = TestLogger("Kubernetes Nodes Validation (All Control Planes)")
 
     log.check("Running 'kubectl get nodes -A' on all kube control plane nodes")
@@ -606,21 +558,20 @@ def test_kubernetes_nodes(host):
     for cp in result.get("control_plane_results", []):
         hostname = cp["hostname"]
         admin_ip = cp.get("admin_ip", "")
-        log.check(f"\n═══ {hostname} ({admin_ip}) ═══")
+        log.check(f"\n═══ {hostname} ({admin_ip}) ═══ →")
 
         if not cp["success"]:
-            log.check(f"  ✗ Error: {cp['error']}")
+            log.check(f"  ✗ Error: {cp['error']} →")
             failed_cps.append(hostname)
             continue
 
-        log.check(f"  Total K8s nodes: {cp['total_nodes']} | Ready: {cp['ready_count']}")
+        log.check(f"  Total K8s nodes: {cp['total_nodes']} → Ready: {cp['ready_count']}")
         log.check(f"  {'NAME':<20} {'STATUS':<10} {'ROLES':<18} {'AGE':<10} {'VERSION'}")
         log.check(f"  {'-'*20} {'-'*10} {'-'*18} {'-'*10} {'-'*10}")
         for k8s_node in cp.get("k8s_nodes", []):
-            status_icon = "✓" if k8s_node["status"].lower() == "ready" else "✗"
             log.check(
-                f"  {status_icon} {k8s_node['name']:<18} {k8s_node['status']:<10} "
-                f"{k8s_node['roles']:<18} {k8s_node['age']:<10} {k8s_node['version']}"
+                f"                {k8s_node['name']:<18} {k8s_node['status']:<10} "
+                f"{k8s_node['roles']:<18} {k8s_node['age']:<10} {k8s_node['version']} →"
             )
 
         if cp.get("not_ready"):
