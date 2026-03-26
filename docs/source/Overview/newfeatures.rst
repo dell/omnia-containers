@@ -3,23 +3,18 @@ New Features
 
 The following sections describe the new features and enhancements introduced in Omnia 2.x releases.
 
-``Version 2.1.0.0``
-----------------------
 
 BuildStream: Catalog-Driven Build Automation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Introduces BuildStream integration for automated container image building and pipeline management. BuildStream provides a comprehensive solution for building, testing, and deploying container images with GitLab CI/CD integration, including:
+Omnia BuildStreaM provides a comprehensive automation solution for managing infrastructure build workflows. It uses a catalog-driven approach where you define your build requirements in a structured catalog file, and BuildStreaM executes automated pipelines to create and deploy images according to your specifications.
 
-- Automated pipeline triggering through catalog file updates
-- Support for multiple functional groups and node types
-- Integrated GitLab runner with Podman container support
-- Self-signed certificate management for secure GitLab access
-- Pipeline monitoring and status tracking through GitLab web interface
+BuildStreaM addresses the key challenges in HPC cluster image management:
 
+* Automation: Eliminates manual build and deployment processes
+* Integration: Works seamlessly with existing Omnia deployments
+* Traceability: Provides complete audit trails for all build operations
 
-``Version 2.1.0.0-rc2``
-----------------------
 
 Support for Installation of Additional Packages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -42,9 +37,6 @@ Telemetry Collection from OME and SFM
 
 Enables collection of telemetry data from OpenManage Enterprise (OME) and Smart Fabric Manager (SFM), providing insights into cluster health, performance, and resource utilization.
 
-
-``Version 2.1.0.0-rc1``
----------------------
 
 PowerVault Storage Integration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
