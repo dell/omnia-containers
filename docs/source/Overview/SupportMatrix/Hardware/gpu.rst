@@ -1,5 +1,5 @@
-GPUs a.k.a. Accelerators
-==========================
+GPUs / Accelerators
+====================
 
     +----------------+--------------------------------------+------------------------------------------------+
     | GPU Make       | Models supported by Omnia            | Models validated with current version of Omnia |
