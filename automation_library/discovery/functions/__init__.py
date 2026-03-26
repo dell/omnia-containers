@@ -38,6 +38,11 @@ from .discovery_func import (
     validate_kubernetes_nodes,
 )
 from .bmc_func import validate_bmc_group_csv
+from .admin_debug_packages_func import (
+    get_packages_from_json,
+    verify_admin_debug_packages_config,
+    verify_debug_packages_installed,
+)
 from .ldap_func import (
     ensure_ldap_test_user,
     validate_ldap_login_non_slurm,
@@ -66,4 +71,8 @@ __all__ = [
     "validate_ldap_login_non_slurm",
     "validate_ldap_login_slurm_nodes",
     "validate_kubernetes_nodes",
+    # Admin debug packages
+    "get_packages_from_json",
+    "verify_admin_debug_packages_config",
+    "verify_debug_packages_installed",
 ]

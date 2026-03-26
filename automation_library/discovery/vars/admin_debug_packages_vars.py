@@ -13,28 +13,23 @@
 # limitations under the License.
 
 """
-Discovery Messages Module.
+Admin Debug Packages Variables.
 
-Exports all discovery-related test names, log messages, and assertion messages.
+Constants and paths for admin debug packages verification.
 """
 
-from .discovery_msgs import (
-    TEST_NAMES,
-    TEST_LOG_MSGS,
-    TEST_ASSERT_MSGS,
+# Path to software_config.json inside container
+SOFTWARE_CONFIG_PATH = (
+    "/opt/omnia/input/project_default/software_config.json"
 )
-from .admin_debug_packages_msgs import (
-    ADMIN_DEBUG_TEST_NAMES,
-    ADMIN_DEBUG_LOG_MSGS,
-    ADMIN_DEBUG_ASSERT_MSGS,
+
+# Path to admin_debug_packages.json inside omnia_core container
+ADMIN_DEBUG_PACKAGES_JSON = (
+    "/opt/omnia/input/project_default/config"
+    "/x86_64/rhel/10.0/admin_debug_packages.json"
 )
 
 __all__ = [
-    "TEST_NAMES",
-    "TEST_LOG_MSGS",
-    "TEST_ASSERT_MSGS",
-    # Admin debug packages
-    "ADMIN_DEBUG_TEST_NAMES",
-    "ADMIN_DEBUG_LOG_MSGS",
-    "ADMIN_DEBUG_ASSERT_MSGS",
+    "SOFTWARE_CONFIG_PATH",
+    "ADMIN_DEBUG_PACKAGES_JSON",
 ]

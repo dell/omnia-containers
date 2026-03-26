@@ -30,6 +30,10 @@ from .discovery_vars import (
     FUNCTIONAL_GROUP_SLURM_CONTROL,
     FUNCTIONAL_GROUP_KUBE_CONTROL,
 )
+from .admin_debug_packages_vars import (
+    SOFTWARE_CONFIG_PATH,
+    ADMIN_DEBUG_PACKAGES_JSON,
+)
 
 __all__ = [
     "OPENCHAMI_NODES_PATH",
@@ -42,4 +46,7 @@ __all__ = [
     "SLURM_CONTROL_SERVICES",
     "FUNCTIONAL_GROUP_SLURM_CONTROL",
     "FUNCTIONAL_GROUP_KUBE_CONTROL",
+    # Admin debug packages
+    "SOFTWARE_CONFIG_PATH",
+    "ADMIN_DEBUG_PACKAGES_JSON",
 ]
