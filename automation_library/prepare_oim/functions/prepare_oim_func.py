@@ -28,6 +28,7 @@ from automation_library.core import (
     get_input_value,
     SOFTWARE_CONFIG_FILE,
     NETWORK_SPEC_FILE,
+    BUILD_STREAM_CONFIG_FILE,
 )
 from ..vars.prepare_oim_vars import (
     OPENCHAMI_CONTAINERS,
@@ -37,7 +38,6 @@ from ..vars.prepare_oim_vars import (
     OPENCHAMI_TARGET_SERVICES,
     PULP_CERT_PATH,
     LDAP_CERT_PATH,
-    BUILD_STREAM_CONFIG_FILE,
     BUILD_STREAM_CONTAINERS,
     BUILD_STREAM_SERVICE,
 )

@@ -98,9 +98,6 @@ OPENCHAMI_TARGET_SERVICES: List[str] = [
 # BUILD STREAM DEFINITIONS (deployed only when enable_build_stream is true)
 # =============================================================================
 
-# Config file path (inside omnia_core container)
-BUILD_STREAM_CONFIG_FILE: str = "build_stream_config.yml"
-
 # Containers deployed by build_stream role
 BUILD_STREAM_CONTAINERS: List[str] = [
     "omnia_postgres",
@@ -110,10 +107,11 @@ BUILD_STREAM_CONTAINERS: List[str] = [
 # Systemd service deployed by build_stream role
 BUILD_STREAM_SERVICE: str = "playbook_watcher.service"
 
-# Quadlet file for build_stream container
-BUILD_STREAM_QUADLET_FILE: str = (
-    "/etc/containers/systemd/omnia_build_stream.container"
-)
+# Quadlet files for build_stream containers
+BUILD_STREAM_QUADLET_FILES: List[str] = [
+    "/etc/containers/systemd/omnia_build_stream.container",
+    "/etc/containers/systemd/omnia_postgres.container",
+]
 
 # =============================================================================
 # CERTIFICATE PATHS (inside omnia_core container)

@@ -247,7 +247,6 @@ OIM_CLEANUP_VARS = {
     # =========================================================================
     # Build Stream (deployed only when enable_build_stream is true)
     # =========================================================================
-    "build_stream_config_file": "build_stream_config.yml",
     "build_stream_containers": [
         "omnia_postgres",
         "omnia_build_stream",
