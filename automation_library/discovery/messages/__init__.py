@@ -23,9 +23,18 @@ from .discovery_msgs import (
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
 )
+from .admin_debug_packages_msgs import (
+    ADMIN_DEBUG_TEST_NAMES,
+    ADMIN_DEBUG_LOG_MSGS,
+    ADMIN_DEBUG_ASSERT_MSGS,
+)
 
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
     "TEST_ASSERT_MSGS",
+    # Admin debug packages
+    "ADMIN_DEBUG_TEST_NAMES",
+    "ADMIN_DEBUG_LOG_MSGS",
+    "ADMIN_DEBUG_ASSERT_MSGS",
 ]

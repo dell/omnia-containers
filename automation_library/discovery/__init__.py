@@ -45,6 +45,10 @@ from .functions import (
     validate_ldap_login_non_slurm,
     validate_ldap_login_slurm_nodes,
     validate_kubernetes_nodes,
+    # Admin debug packages
+    get_packages_from_json,
+    verify_admin_debug_packages_config,
+    verify_debug_packages_installed,
 )
 from .vars import (
     OPENCHAMI_NODES_PATH,
@@ -57,11 +61,18 @@ from .vars import (
     SLURM_CONTROL_SERVICES,
     FUNCTIONAL_GROUP_SLURM_CONTROL,
     FUNCTIONAL_GROUP_KUBE_CONTROL,
+    # Admin debug packages
+    SOFTWARE_CONFIG_PATH,
+    ADMIN_DEBUG_PACKAGES_JSON,
 )
 from .messages import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
+    # Admin debug packages
+    ADMIN_DEBUG_TEST_NAMES,
+    ADMIN_DEBUG_LOG_MSGS,
+    ADMIN_DEBUG_ASSERT_MSGS,
 )
 
 from . import functions as _functions

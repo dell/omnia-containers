@@ -12,4 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Admin Debug Packages Test Module."""
+"""
+Admin Debug Packages Variables.
+
+Constants and paths for admin debug packages verification.
+"""
+
+# Path to software_config.json inside container
+SOFTWARE_CONFIG_PATH = (
+    "/opt/omnia/input/project_default/software_config.json"
+)
+
+# Path to admin_debug_packages.json inside omnia_core container
+ADMIN_DEBUG_PACKAGES_JSON = (
+    "/opt/omnia/input/project_default/config"
+    "/x86_64/rhel/10.0/admin_debug_packages.json"
+)
+
+__all__ = [
+    "SOFTWARE_CONFIG_PATH",
+    "ADMIN_DEBUG_PACKAGES_JSON",
+]

@@ -15,31 +15,40 @@
 """
 Admin Debug Packages Messages.
 
-Contains test names, log messages, and assertion messages for admin debug packages tests.
+Test names, log messages, and assertion messages for admin debug packages.
 """
 
+from typing import Dict
+
 # Test names for display
-TEST_NAMES = {
+ADMIN_DEBUG_TEST_NAMES: Dict[str, str] = {
     "config_check": "Admin Debug Packages Configuration Check",
     "json_check": "Admin Debug Packages JSON File Check",
     "packages_installed": "Debug Packages Installation Verification",
 }
 
 # Log messages
-TEST_LOG_MSGS = {
-    "config_found": "admin_debug_packages configured with {count} packages",
-    "config_missing": "admin_debug_packages not found in software_config.json",
-    "packages_success": "All {package_count} debug packages installed on {node_count} nodes",
-    "packages_failed": "{failed_count}/{total_count} nodes have missing packages",
-    "node_check_start": "Checking packages on {hostname} ({admin_ip})",
-    "node_check_complete": "{hostname}: {installed}/{total} packages installed",
+ADMIN_DEBUG_LOG_MSGS: Dict[str, str] = {
+    "config_found": (
+        "admin_debug_packages configured with {count} packages"
+    ),
+    "config_missing": (
+        "admin_debug_packages not found in software_config.json"
+    ),
+    "packages_success": (
+        "All {package_count} debug packages installed on "
+        "{node_count} nodes"
+    ),
+    "packages_failed": (
+        "{failed_count}/{total_count} nodes have missing packages"
+    ),
 }
 
 # Assertion messages
-TEST_ASSERT_MSGS = {
+ADMIN_DEBUG_ASSERT_MSGS: Dict[str, str] = {
     "config_missing": (
-        "admin_debug_packages not configured in software_config.json. "
-        "Error: {error}"
+        "admin_debug_packages not configured in "
+        "software_config.json. Error: {error}"
     ),
     "packages_missing": (
         "Debug packages missing on some nodes. "
@@ -50,7 +59,7 @@ TEST_ASSERT_MSGS = {
 }
 
 __all__ = [
-    "TEST_NAMES",
-    "TEST_LOG_MSGS",
-    "TEST_ASSERT_MSGS",
+    "ADMIN_DEBUG_TEST_NAMES",
+    "ADMIN_DEBUG_LOG_MSGS",
+    "ADMIN_DEBUG_ASSERT_MSGS",
 ]

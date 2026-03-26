@@ -15,20 +15,20 @@
 """
 Admin Debug Packages Functions.
 
-This module contains verification functions for admin debug packages.
-Functions follow the return dictionary pattern with success, error keys.
+Verification functions for admin debug packages.
+Reads package list from admin_debug_packages.json and verifies
+installation on cluster nodes via rpm -q per package.
 """
 
 import json
 from typing import Dict, Any, List
 
 from automation_library.core import (
-    get_functional_groups_from_pxe_mapping,
-    get_nodes_info,
     run_on_remote_node,
     run_in_container,
 )
-from .vars import (
+from .discovery_func import get_nodes_by_functional_group
+from ..vars.admin_debug_packages_vars import (
     SOFTWARE_CONFIG_PATH,
     ADMIN_DEBUG_PACKAGES_JSON,
 )
@@ -38,21 +38,14 @@ from .vars import (
 # HELPER FUNCTIONS
 # =============================================================================
 
-def get_nodes_by_functional_group(host) -> Dict[str, List[Dict[str, str]]]:
-    """Get all nodes grouped by functional_group (role)."""
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
-    result = {}
-    for fg in sorted(functional_groups):
-        nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
-        if nodes:
-            result[fg] = nodes
-    return result
-
-
 def _run_command_on_node(host, admin_ip: str, command: str) -> Dict[str, Any]:
     """Run a command on a node via SSH using core's run_on_remote_node."""
     cmd = run_on_remote_node(host, command, admin_ip)
-    return {"success": cmd.rc == 0, "output": cmd.stdout.strip(), "error": cmd.stderr.strip()}
+    return {
+        "success": cmd.rc == 0,
+        "output": cmd.stdout.strip(),
+        "error": cmd.stderr.strip(),
+    }
 
 
 # =============================================================================
@@ -74,7 +67,10 @@ def verify_admin_debug_packages_config(host) -> Dict[str, Any]:
         return {
             "present": False,
             "config_exists": False,
-            "error": f"software_config.json not found at {SOFTWARE_CONFIG_PATH}",
+            "error": (
+                "software_config.json not found at "
+                f"{SOFTWARE_CONFIG_PATH}"
+            ),
         }
 
     cmd = run_in_container(host, f"cat {SOFTWARE_CONFIG_PATH}")
@@ -82,7 +78,10 @@ def verify_admin_debug_packages_config(host) -> Dict[str, Any]:
         return {
             "present": False,
             "config_exists": True,
-            "error": f"Failed to read software_config.json: {cmd.stderr}",
+            "error": (
+                "Failed to read software_config.json: "
+                f"{cmd.stderr}"
+            ),
         }
 
     try:
@@ -103,7 +102,10 @@ def verify_admin_debug_packages_config(host) -> Dict[str, Any]:
     return {
         "present": present,
         "config_exists": True,
-        "error": "" if present else "admin_debug_packages not found in softwares list",
+        "error": (
+            "" if present
+            else "admin_debug_packages not found in softwares list"
+        ),
     }
 
 
@@ -113,12 +115,13 @@ def verify_admin_debug_packages_config(host) -> Dict[str, Any]:
 
 def get_packages_from_json(host) -> List[str]:
     """
-    Read package names from admin_debug_packages.json inside omnia_core container.
+    Read package names from admin_debug_packages.json inside omnia_core.
 
-    Path: /opt/omnia/input/project_default/config/x86_64/rhel/10.0/admin_debug_packages.json
+    Path: /opt/omnia/input/project_default/config/x86_64/rhel/10.0/
+          admin_debug_packages.json
 
     Returns:
-        List of package name strings. Returns empty list if file not found.
+        List of package name strings. Empty list if file not found.
     """
     cmd = run_in_container(host, f"cat {ADMIN_DEBUG_PACKAGES_JSON}")
     if cmd.rc != 0:
@@ -126,8 +129,12 @@ def get_packages_from_json(host) -> List[str]:
 
     try:
         data = json.loads(cmd.stdout)
-        cluster_pkgs = data.get("admin_debug_packages", {}).get("cluster", [])
-        return [p["package"] for p in cluster_pkgs if p.get("package")]
+        cluster_pkgs = (
+            data.get("admin_debug_packages", {}).get("cluster", [])
+        )
+        return [
+            p["package"] for p in cluster_pkgs if p.get("package")
+        ]
     except (json.JSONDecodeError, KeyError, TypeError):
         return []
 
@@ -143,7 +150,7 @@ def _check_packages_on_node(
     Check which packages are installed on a single node.
 
     Runs 'rpm -q $pkg' for each package individually via SSH,
-    exactly matching the shell script logic:
+    matching the shell script logic:
         if rpm -q $pkg &>/dev/null; then INSTALLED else NOT INSTALLED
 
     Returns:
@@ -153,8 +160,13 @@ def _check_packages_on_node(
     missing = []
 
     for pkg in packages:
-        result = _run_command_on_node(host, admin_ip, f"rpm -q {pkg}")
-        if result["success"] and "is not installed" not in result["output"]:
+        result = _run_command_on_node(
+            host, admin_ip, f"rpm -q {pkg}"
+        )
+        if (
+            result["success"]
+            and "is not installed" not in result["output"]
+        ):
             installed.append(pkg)
         else:
             missing.append(pkg)
@@ -171,13 +183,15 @@ def verify_debug_packages_installed(host) -> Dict[str, Any]:
     """
     Verify all debug packages are installed on all cluster nodes.
 
-    Reads package list from admin_debug_packages.json inside omnia_core container.
+    Reads package list from admin_debug_packages.json inside
+    omnia_core container.
 
     For each node, runs 'rpm -q <pkg>' per package via SSH.
     Results are grouped by functional_group (role).
 
     Returns:
-        Dict with success, total_nodes, package_count, results_by_group, etc.
+        Dict with success, total_nodes, package_count,
+        results_by_group, etc.
     """
     packages = get_packages_from_json(host)
 
@@ -221,7 +235,9 @@ def verify_debug_packages_installed(host) -> Dict[str, Any]:
                 failed_nodes.append(hostname)
                 continue
 
-            check = _check_packages_on_node(host, admin_ip, packages)
+            check = _check_packages_on_node(
+                host, admin_ip, packages,
+            )
 
             node_ok = check["missing_count"] == 0
             if not node_ok:
@@ -235,7 +251,10 @@ def verify_debug_packages_installed(host) -> Dict[str, Any]:
                 "missing_packages": check["missing"],
                 "installed_count": check["installed_count"],
                 "missing_count": check["missing_count"],
-                "error": "" if node_ok else f"Missing {check['missing_count']} packages",
+                "error": (
+                    "" if node_ok
+                    else f"Missing {check['missing_count']} packages"
+                ),
             })
 
         results_by_group[func_group] = group_results
@@ -248,12 +267,14 @@ def verify_debug_packages_installed(host) -> Dict[str, Any]:
         "packages": packages,
         "results_by_group": results_by_group,
         "failed_nodes": failed_nodes,
-        "error": "" if all_success else f"{len(failed_nodes)} nodes have missing packages",
+        "error": (
+            "" if all_success
+            else f"{len(failed_nodes)} nodes have missing packages"
+        ),
     }
 
 
 __all__ = [
-    "get_nodes_by_functional_group",
     "get_packages_from_json",
     "verify_admin_debug_packages_config",
     "verify_debug_packages_installed",

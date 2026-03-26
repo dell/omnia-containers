@@ -26,21 +26,20 @@ Package list read from:
 Each package checked via: rpm -q <pkg> on each node via SSH.
 
 Usage:
-    ./run_molecule.sh admin_debug_packages test      # Run full test
-    ./run_molecule.sh admin_debug_packages verify    # Verify only
+    ./run_molecule.sh discovery verify    # Verify only
 """
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.admin_debug_packages.functions import (
+from automation_library.discovery.functions import (
     verify_admin_debug_packages_config,
     get_packages_from_json,
     verify_debug_packages_installed,
 )
-from automation_library.admin_debug_packages.messages import (
-    TEST_NAMES,
-    TEST_LOG_MSGS as LOG_MSGS,
-    TEST_ASSERT_MSGS as ASSERT_MSGS,
+from automation_library.discovery.messages import (
+    ADMIN_DEBUG_TEST_NAMES as TEST_NAMES,
+    ADMIN_DEBUG_LOG_MSGS as LOG_MSGS,
+    ADMIN_DEBUG_ASSERT_MSGS as ASSERT_MSGS,
 )
 
 
@@ -50,12 +49,14 @@ from automation_library.admin_debug_packages.messages import (
 
 def test_admin_debug_packages_config(host):
     """
-    Test Case 1: Check if admin_debug_packages is present in software_config.json.
-    PASS if present, SKIP if not present.
+    Test Case 1: Check if admin_debug_packages is present in
+    software_config.json. PASS if present, SKIP if not present.
     """
     log = TestLogger(TEST_NAMES["config_check"])
 
-    log.check("Checking software_config.json for admin_debug_packages entry")
+    log.check(
+        "Checking software_config.json for admin_debug_packages entry"
+    )
     result = verify_admin_debug_packages_config(host)
 
     log.check(f"software_config.json exists: {result['config_exists']}")
@@ -69,7 +70,8 @@ def test_admin_debug_packages_config(host):
     else:
         log.skipped(
             result["error"],
-            "Skipping - admin_debug_packages not in software_config.json"
+            "Skipping - admin_debug_packages not in "
+            "software_config.json"
         )
         pytest.skip(result["error"])
 
@@ -97,7 +99,8 @@ def test_admin_debug_packages_json(host):
         if len(packages) > 10:
             log.check(f"  ... and {len(packages) - 10} more")
         log.passed(
-            f"{len(packages)} packages found in admin_debug_packages.json",
+            f"{len(packages)} packages found in "
+            "admin_debug_packages.json",
             "JSON package list check passed"
         )
     else:
@@ -105,7 +108,9 @@ def test_admin_debug_packages_json(host):
             "admin_debug_packages.json is empty or not found",
             "Skipping - no packages to verify"
         )
-        pytest.skip("admin_debug_packages.json is empty or not found")
+        pytest.skip(
+            "admin_debug_packages.json is empty or not found"
+        )
 
 
 # =============================================================================
@@ -114,17 +119,21 @@ def test_admin_debug_packages_json(host):
 
 def test_debug_packages_installed(host):
     """
-    Test Case 3: Verify all packages from admin_debug_packages.json are installed.
+    Test Case 3: Verify all packages from admin_debug_packages.json
+    are installed.
 
     Reads package list from:
-        /opt/omnia/input/project_default/config/x86_64/rhel/10.0/admin_debug_packages.json
+        /opt/omnia/input/project_default/config/x86_64/rhel/10.0/
+        admin_debug_packages.json
 
     For each node, runs: rpm -q <pkg> per package via SSH.
     Results grouped by functional_group.
     """
     log = TestLogger(TEST_NAMES["packages_installed"])
 
-    log.check("Verifying debug packages installation on all cluster nodes")
+    log.check(
+        "Verifying debug packages installation on all cluster nodes"
+    )
     result = verify_debug_packages_installed(host)
 
     if result.get("skipped"):
@@ -138,8 +147,12 @@ def test_debug_packages_installed(host):
 
     failed_nodes = []
 
-    for func_group, nodes in result.get("results_by_group", {}).items():
-        log.check(f"═══ {func_group} ({len(nodes)} nodes) ═══")
+    for func_group, nodes in result.get(
+        "results_by_group", {}
+    ).items():
+        log.check(
+            f"═══ {func_group} ({len(nodes)} nodes) ═══"
+        )
         for node in nodes:
             hostname = node["hostname"]
             admin_ip = node.get("admin_ip", "")
@@ -150,16 +163,20 @@ def test_debug_packages_installed(host):
             if missing_count == 0:
                 log.check(
                     f"  ✔ {hostname} ({admin_ip}): "
-                    f"{installed_count}/{total_pkgs} packages INSTALLED"
+                    f"{installed_count}/{total_pkgs} "
+                    "packages INSTALLED"
                 )
             else:
                 failed_nodes.append(hostname)
                 log.check(
                     f"  ✘ {hostname} ({admin_ip}): "
-                    f"{installed_count}/{total_pkgs} packages installed"
+                    f"{installed_count}/{total_pkgs} "
+                    "packages installed"
                 )
                 for pkg in node.get("missing_packages", []):
-                    log.check(f"      ✘ {pkg} : NOT INSTALLED")
+                    log.check(
+                        f"      ✘ {pkg} : NOT INSTALLED"
+                    )
         log.check("")
 
     if result["success"]:
