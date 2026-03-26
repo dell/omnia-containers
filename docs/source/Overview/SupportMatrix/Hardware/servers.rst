@@ -1,8 +1,8 @@
 Servers
 ========
 
-PowerEdge AMD servers
--------------------------
+PowerEdge NVIDIA Grace CPUs servers
+-----------------------------------
 
    .. csv-table::
       :file: ../../../Tables/supported-poweredge-grace_cpu_servers.csv
