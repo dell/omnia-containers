@@ -10,7 +10,7 @@ Prerequisites
 
 Before beginning the BuildStreaM setup:
 
-* Ensure that Omnia core container is upgraded to Omnia 2.1.0.0.
+* Ensure that the Omnia core container is installed with Omnia 2.1.0.0
 * Administrator access on the Omnia Infrastructure Manager (OIM) node
 * Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
 * 10 GB free disk space for BuildStreaM data and logs
@@ -25,6 +25,7 @@ Procedure
 1. Update the following input files.
 
    * ``build_stream_config.yml``: contains the details about the BuildStreaM pipeline.
+   * ``gitlab_config.yml``: contains the details about the BuildStreaM GitLab configuration.
    * ``high_availability_config.yml``: contains the details about the high availability configuration.
    * ``local_repo_config.yml``: contains the details about the local repository configuration.
    * ``network_spec.yml``: contains the details about the network configuration.
@@ -43,6 +44,12 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreaM
 .. note:: Ensure that the ``build_stream_port`` (BuildStreaM port) is correctly configured in the ``build_stream_config.yml`` file.
    The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using ``cleanup_oim.yml``),
    and then prepare the OIM again with the required port number (using ``prepare_oim.yml``).
+
+``gitlab_config.yml``
+-----------------------
+
+Add necessary inputs to the ``gitlab_config.yml`` file for the BuildStreaM GitLab configuration. Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for guidance when configuring these parameters.
+
 
 ``high_availability_config.yml``
 --------------------------------
