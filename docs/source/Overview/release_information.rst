@@ -1,5 +1,5 @@
-Release Features
-================
+Release Information
+==================
 
 ``Version 2.0.0.0``
 -------------------
