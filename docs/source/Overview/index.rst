@@ -11,6 +11,7 @@ Omnia: Overview
     architecture
     omnia_stack
     newfeatures
+    release_information
     omnia_explained
     NetworkTopologies/index
     more_info
