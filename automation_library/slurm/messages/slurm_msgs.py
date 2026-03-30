@@ -415,3 +415,106 @@ PAM_ASSERT_MSGS: Dict[str, str] = {
         "User {user} still has processes on {node_ip} after job completion: {procs}"
     ),
 }
+
+
+# =============================================================================
+# NODE DRAIN JOB BEHAVIOR TEST NAMES
+# =============================================================================
+
+DRAIN_TEST_NAMES: Dict[str, str] = {
+    "submit_multiple_all_drained": "Submit multiple jobs when all nodes drained",
+    "submit_targeting_drained_node": "Submit jobs targeting a specific drained node",
+    "submit_large_batch": "Submit large batch of jobs (10+)",
+    "single_pending_all_drained": "Single job enters PENDING when all nodes drained",
+    "multiple_pending": "Multiple jobs all show PENDING",
+    "targeted_pending": "Job targeting specific drained node is PENDING",
+    "reason_reqnodenotavail": "Reason is ReqNodeNotAvail when all nodes drained",
+    "reason_nodedown": "Reason shows NodeDown for specifically downed node",
+    "reason_updates_on_state_change": "Reason updates when node state changes",
+    "jobs_survive_extended_downtime": "Jobs survive extended node downtime",
+    "jobs_not_rejected_during_transition": "Jobs not rejected when submitting during node state transition",
+    "resubmit_no_duplicates": "Resubmitting after node drain doesn't cause duplicates/failures",
+    "single_pending_to_running": "Single PENDING job transitions to RUNNING after resume",
+    "multiple_pending_to_running": "Multiple PENDING jobs all transition after resume",
+    "partial_resume_transition": "Job transitions when only one node resumed",
+    "no_manual_intervention": "No manual intervention required for transition",
+    "long_pending_still_transitions": "Job that was PENDING for 10+ minutes still transitions",
+    "fifo_ordering": "FIFO: earlier-submitted job starts first",
+}
+
+
+# =============================================================================
+# NODE DRAIN JOB BEHAVIOR LOG MESSAGES
+# =============================================================================
+
+DRAIN_LOG_MSGS: Dict[str, str] = {
+    "nodes_discovered": "Discovered compute nodes: {nodes}",
+    "node_drained": "Node {node} drained successfully",
+    "node_resumed": "Node {node} resumed successfully",
+    "job_submitted": "Job {job_id} submitted successfully",
+    "job_pending": "Job {job_id} is PENDING (reason: {reason})",
+    "job_running": "Job {job_id} transitioned to RUNNING",
+    "job_completed": "Job {job_id} completed successfully",
+    "batch_submitted": "Submitted {count} jobs in batch",
+    "fifo_verified": "FIFO order verified: job {job_a} started before job {job_b}",
+}
+
+
+# =============================================================================
+# NODE DRAIN JOB BEHAVIOR ASSERT MESSAGES
+# =============================================================================
+
+DRAIN_ASSERT_MSGS: Dict[str, str] = {
+    "no_compute_nodes": "No compute nodes found in cluster",
+    "drain_failed": "Failed to drain node {node}: {error}",
+    "resume_failed": "Failed to resume node {node}: {error}",
+    "job_not_pending": "Job {job_id} expected PENDING but got {state}",
+    "wrong_pending_reason": "Job {job_id} has unexpected pending reason: {reason}",
+    "job_not_running": "Job {job_id} did not transition to RUNNING after resume; state={state}",
+    "fifo_violation": "FIFO violation: job {job_a} (start={time_a}) started after job {job_b} (start={time_b})",
+    "job_rejected": "Job was unexpectedly rejected during submission: {error}",
+}
+
+
+# =============================================================================
+# RESOURCE LIMIT TEST NAMES
+# =============================================================================
+
+RESOURCE_LIMIT_TEST_NAMES: Dict[str, str] = {
+    "exceed_cpu_pending": "Job requesting more CPUs than available goes to PENDING with PartitionConfig",
+    "exceed_memory_rejected": "Job requesting more memory than available is rejected",
+    "exceed_cpu_and_memory_pending": "Job requesting more CPU and memory goes to PENDING with PartitionConfig",
+}
+
+
+# =============================================================================
+# RESOURCE LIMIT LOG MESSAGES
+# =============================================================================
+
+RESOURCE_LIMIT_LOG_MSGS: Dict[str, str] = {
+    "cluster_resources": "Cluster resources - Node: {node}, CPUs: {cpus}, Memory: {memory_mb}MB",
+    "job_script_created": "Created job script requesting {cpus} CPUs and {memory}MB memory",
+    "job_submitted": "Job {job_id} submitted successfully",
+    "job_pending": "Job {job_id} is PENDING (reason: {reason})",
+    "job_rejected": "Job submission rejected as expected: {error}",
+    "sinfo_output": "sinfo output: {output}",
+}
+
+
+# =============================================================================
+# RESOURCE LIMIT ASSERT MESSAGES
+# =============================================================================
+
+RESOURCE_LIMIT_ASSERT_MSGS: Dict[str, str] = {
+    "no_login_ips": "No login node IPs found in PXE mapping",
+    "no_reachable_nodes": "No reachable login nodes found from: {login_ips}",
+    "sinfo_failed": "Failed to get cluster resource info: {error}",
+    "job_script_failed": "Failed to create job script: {error}",
+    "submit_failed": "Job submission failed unexpectedly: {error}",
+    "job_not_pending": "Job {job_id} expected PENDING but got {state}",
+    "wrong_pending_reason": (
+        "Job {job_id} expected reason containing 'PartitionConfig' but got: {reason}"
+    ),
+    "job_should_be_rejected": "Job requesting excessive memory should be rejected, but was accepted with job_id={job_id}",
+    "cleanup_failed": "Failed to cleanup job {job_id}: {error}",
+}

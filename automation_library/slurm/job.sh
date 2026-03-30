@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Specify the number of CPUs to use
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=1
 
 # Specify the maximum runtime
 #SBATCH --time=0-00:30:00

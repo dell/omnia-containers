@@ -16,16 +16,25 @@
 Testinfra utilities for molecule tests.
 """
 
+from __future__ import annotations
+
 import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, TYPE_CHECKING
 
 import yaml
-import testinfra
 
-from .vars import PROVISION_CONFIG_PATH
+try:
+    import testinfra
+except ImportError:
+    testinfra = None
+
+if TYPE_CHECKING:
+    import testinfra
+
+from .vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 
 
 def _get_project_root() -> str:
@@ -44,7 +53,7 @@ def load_user_config() -> Dict[str, Any]:
 
 def _is_local_ip(ip: str) -> bool:
     """Check if IP belongs to this machine."""
-    if ip in ["localhost", "127.0.0.1", ""]:
+    if ip in ["localhost", "127.0.0.1"]:
         return True
     try:
         result = subprocess.run(
@@ -60,9 +69,16 @@ def get_testinfra_host() -> testinfra.host.Host:
     Get testinfra host connected to OIM server.
 
     Always reads IP directly from user_config.yml to avoid hostname resolution issues.
+    Raises ValueError if oim_server_ip is not configured.
     """
     config = load_user_config()
-    oim_ip = config.get("oim_server_ip", "localhost")
+    oim_ip = config.get("oim_server_ip", "")
+
+    if not oim_ip or oim_ip.strip() == "":
+        raise ValueError(
+            "oim_server_ip is required in user_config.yml. "
+            "Please set the IP address of your OIM server."
+        )
 
     # Local execution
     if _is_local_ip(oim_ip):
@@ -133,6 +149,10 @@ def run_on_remote_node(
     Run command on remote node via SSH from omnia_core container.
 
     SSH from omnia_core to remote node uses passwordless SSH.
+    The command is wrapped in double quotes for SSH. Any double quotes
+    in the command are automatically escaped, so callers can pass
+    commands with normal quoting (e.g. ``-e "SELECT ..."``) without
+    worrying about SSH quote layers.
 
     Args:
         host: Testinfra host connected to OIM server
@@ -143,40 +163,245 @@ def run_on_remote_node(
         Result with stdout, stderr, rc attributes
     """
     ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    ssh_cmd = f"ssh {ssh_opts} root@{admin_ip} '{cmd}'"
+    escaped_cmd = cmd.replace('"', '\\"')
+    ssh_cmd = f'ssh {ssh_opts} root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
     return run_in_container(host, ssh_cmd)
 
 
-def _get_pxe_mapping_content(host) -> str:
+# Column name mapping (CSV header -> internal field name)
+_PXE_COLUMN_MAP = {
+    "FUNCTIONAL_GROUP_NAME": "functional_group",
+    "GROUP_NAME": "group_name",
+    "SERVICE_TAG": "service_tag",
+    "PARENT_SERVICE_TAG": "parent_service_tag",
+    "HOSTNAME": "hostname",
+    "ADMIN_MAC": "admin_mac",
+    "ADMIN_IP": "admin_ip",
+    "BMC_MAC": "bmc_mac",
+    "BMC_IP": "bmc_ip",
+}
+
+
+def _read_pxe_mapping(host: testinfra.host.Host) -> tuple:
     """
-    Read pxe_mapping file content from inside omnia_core container.
-    Uses pxe_mapping_file_path from provision_config.yml.
+    Read and parse the PXE mapping file from omnia_core container.
+
+    Handles dynamic column order by parsing the header row.
 
     Args:
-        host: testinfra host object
+        host: Testinfra host connected to OIM server
 
     Returns:
-        Content of pxe_mapping file as string, or empty string if not found
+        Tuple of (column_indices, rows):
+        - column_indices: Dict mapping field name to column index
+        - rows: List of rows, where each row is a list of column values
+
+        Returns ({}, []) if file cannot be read.
     """
     # Read provision_config.yml to get pxe_mapping_file_path
-    result = run_in_container(host, f"cat {PROVISION_CONFIG_PATH}")
+    result = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
     if result.rc != 0:
-        return ""
+        return {}, []
 
     # Extract pxe_mapping_file_path
     pattern = r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?'
     match = re.search(pattern, result.stdout)
     if not match:
-        return ""
-    pxe_path = match.group(1).strip()
+        return {}, []
+    pxe_mapping_path = match.group(1).strip()
 
-    # Read pxe_mapping file from inside container
-    result = run_in_container(host, f"cat {pxe_path}")
+    # Read PXE mapping file
+    result = run_in_container(host, f"cat {pxe_mapping_path}")
     if result.rc != 0:
-        return ""
+        return {}, []
 
-    return result.stdout.strip()
+    lines = result.stdout.strip().split('\n')
+    if not lines:
+        return {}, []
 
+    # Parse header row to get column indices
+    header = [col.strip().upper() for col in lines[0].split(',')]
+    column_indices = {}
+    for i, col_name in enumerate(header):
+        if col_name in _PXE_COLUMN_MAP:
+            field_name = _PXE_COLUMN_MAP[col_name]
+            column_indices[field_name] = i
+
+    # Parse data rows (skip header)
+    rows = []
+    for line in lines[1:]:
+        if line.strip():
+            parts = line.split(',')
+            rows.append(parts)
+
+    return column_indices, rows
+
+
+def get_node_info(
+    host: testinfra.host.Host,
+    search_by: str = None,
+    search_value: str = None
+) -> Dict[str, str]:
+    """
+    Get FIRST matching node's info from PXE mapping file.
+
+    Search by any field and return all fields for the matching node.
+    For getting all matching nodes, use get_nodes_info() instead.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        search_by: Field name to search by (all use exact match). Options:
+            - "functional_group"
+            - "hostname"
+            - "admin_ip"
+            - "service_tag"
+            - "bmc_ip"
+            - "group_name"
+            - "admin_mac"
+            - "bmc_mac"
+            - "parent_service_tag"
+        search_value: Value to search for (exact match)
+
+    Returns:
+        Dict with all node fields, or empty dict if not found:
+        {
+            "functional_group": "...",
+            "group_name": "...",
+            "service_tag": "...",
+            "parent_service_tag": "...",
+            "hostname": "...",
+            "admin_mac": "...",
+            "admin_ip": "...",
+            "bmc_mac": "...",
+            "bmc_ip": "..."
+        }
+
+    Example:
+        # Search by functional_group (exact match)
+        node = get_node_info(host, search_by="functional_group",
+                              search_value="service_kube_control_plane_x86_64")
+        print(f"IP: {node['admin_ip']}, Hostname: {node['hostname']}")
+
+        # Search by admin_ip
+        node = get_node_admin_ip(host, search_by="admin_ip", search_value="172.16.107.21")
+        print(f"Hostname: {node['hostname']}, BMC IP: {node['bmc_ip']}")
+
+        # Search by hostname
+        node = get_node_admin_ip(host, search_by="hostname", search_value="k8scp1")
+        print(f"IP: {node['admin_ip']}, Service Tag: {node['service_tag']}")
+    """
+    if not search_by or not search_value:
+        return {}
+
+    column_indices, rows = _read_pxe_mapping(host)
+
+    if search_by not in column_indices:
+        return {}
+
+    search_idx = column_indices[search_by]
+
+    for parts in rows:
+        if len(parts) <= search_idx:
+            continue
+
+        line_value = parts[search_idx].strip()
+
+        # Exact match for all fields
+        if line_value == search_value:
+            result = {}
+            for field_name, idx in column_indices.items():
+                result[field_name] = parts[idx].strip() if len(parts) > idx else ""
+            return result
+
+    return {}
+
+
+def get_nodes_info(
+    host: testinfra.host.Host,
+    search_by: str = None,
+    search_value: str = None
+) -> List[Dict[str, str]]:
+    """
+    Get ALL matching nodes' info from PXE mapping file.
+
+    Search by any field and return all fields for all matching nodes.
+    For getting just the first match, use get_node_info() instead.
+
+    Args:
+        host: Testinfra host connected to OIM server
+        search_by: Field name to search by (all use exact match). Options:
+            - "functional_group"
+            - "hostname"
+            - "admin_ip"
+            - "service_tag"
+            - "bmc_ip"
+            - "group_name"
+            - "admin_mac"
+            - "bmc_mac"
+            - "parent_service_tag"
+        search_value: Value to search for (exact match)
+
+    Returns:
+        List of dicts, each with all node fields:
+        [
+            {
+                "functional_group": "...",
+                "group_name": "...",
+                "service_tag": "...",
+                "parent_service_tag": "...",
+                "hostname": "...",
+                "admin_mac": "...",
+                "admin_ip": "...",
+                "bmc_mac": "...",
+                "bmc_ip": "..."
+            },
+            ...
+        ]
+
+    Example:
+        # Get all nodes in functional_group (exact match)
+        nodes = get_nodes_info(host, search_by="functional_group",
+                                search_value="service_kube_control_plane_x86_64")
+        for node in nodes:
+            print(f"IP: {node['admin_ip']}, Hostname: {node['hostname']}")
+
+        # Get all nodes by group_name
+        nodes = get_node_admin_ips(host, search_by="group_name", search_value="grp0")
+        for node in nodes:
+            print(f"{node['hostname']} - {node['admin_ip']} - {node['bmc_ip']}")
+    """
+    if not search_by or not search_value:
+        return []
+
+    column_indices, rows = _read_pxe_mapping(host)
+
+    if search_by not in column_indices:
+        return []
+
+    search_idx = column_indices[search_by]
+    results = []
+
+    for parts in rows:
+        if len(parts) <= search_idx:
+            continue
+
+        line_value = parts[search_idx].strip()
+
+        # Exact match for all fields
+        if line_value == search_value:
+            result = {}
+            for field_name, idx in column_indices.items():
+                result[field_name] = parts[idx].strip() if len(parts) > idx else ""
+            results.append(result)
+
+    return results
+
+
+# =============================================================================
+# BACKWARD COMPATIBILITY FUNCTIONS
+# These functions provide backward compatibility with the merged git version.
+# They use _read_pxe_mapping() internally to avoid code duplication.
+# =============================================================================
 
 def get_node_admin_ip(
     host: testinfra.host.Host,
@@ -186,238 +411,73 @@ def get_node_admin_ip(
     """
     Get the admin IP of a node from PXE mapping file.
 
-    Reads provision_config.yml to get pxe_mapping_file_path, then extracts
-    the admin IP based on functional_group_name or hostname.
+    This is a backward-compatible wrapper around get_node_info().
 
     Args:
         host: Testinfra host connected to OIM server
-        functional_group: Functional group name to match
-        hostname: Hostname to match (e.g., 'k8scp1')
+        functional_group: Functional group name to match (contains match)
+        hostname: Hostname to match (exact match)
 
     Returns:
         Admin IP of matching node, or empty string if not found
     """
-    admin_ip = ""
+    if hostname:
+        node = get_node_info(host, search_by="hostname", search_value=hostname)
+        return node.get("admin_ip", "")
 
-    if not functional_group and not hostname:
-        return admin_ip
+    if functional_group:
+        # For functional_group, use contains match (backward compat)
+        column_indices, rows = _read_pxe_mapping(host)
+        fg_idx = column_indices.get("functional_group")
+        ip_idx = column_indices.get("admin_ip")
+        if fg_idx is not None and ip_idx is not None:
+            for parts in rows:
+                if len(parts) > max(fg_idx, ip_idx):
+                    if functional_group in parts[fg_idx]:
+                        return parts[ip_idx].strip()
 
-    pxe_content = _get_pxe_mapping_content(host)
-    if not pxe_content:
-        return admin_ip
-
-    # CSV: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,
-    #      HOSTNAME,ADMIN_MAC,ADMIN_IP,...
-    # Index: 0, 1, 2, 3, 4, 5, 6
-    for line in pxe_content.split('\n'):
-        parts = line.split(',')
-        if len(parts) >= 7:
-            line_func_group = parts[0]
-            line_hostname = parts[4]
-
-            # Match by functional_group or hostname
-            if functional_group and functional_group in line_func_group:
-                admin_ip = parts[6]
-                break
-            if hostname and hostname == line_hostname:
-                admin_ip = parts[6]
-                break
-
-    return admin_ip
+    return ""
 
 
-def get_all_node_admin_ips(
-    host: testinfra.host.Host,
-    functional_group: str = None,
-) -> list:
+def get_functional_groups_from_pxe_mapping(host: testinfra.host.Host) -> set:
     """
-    Get all admin IPs matching a functional group from PXE mapping file.
-
-    Unlike get_node_admin_ip which returns only the first match, this
-    returns every matching row's admin IP.
+    Extract all unique functional group names from PXE mapping file.
 
     Args:
-        host: Testinfra host connected to OIM server
-        functional_group: Functional group name to match
+        host: Testinfra host object
 
     Returns:
-        List of admin IPs for all matching nodes, or empty list if none found
+        Set of functional group names
     """
-    if not functional_group:
-        return []
-
-    pxe_content = _get_pxe_mapping_content(host)
-    if not pxe_content:
-        return []
-
-    # CSV: FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,
-    #      HOSTNAME,ADMIN_MAC,ADMIN_IP,...
-    # Index: 0, 1, 2, 3, 4, 5, 6
-    admin_ips = []
-    for line in pxe_content.split('\n'):
-        parts = line.split(',')
-        if len(parts) >= 7:
-            line_func_group = parts[0]
-            if functional_group and functional_group in line_func_group:
-                ip = parts[6].strip()
-                if ip:
-                    admin_ips.append(ip)
-
-    return admin_ips
-
-
-def get_functional_groups_from_pxe_mapping(host) -> set:
-    """
-    Read pxe_mapping file from inside omnia_core container and extract functional groups.
-    Uses pxe_mapping_file_path from provision_config.yml.
-
-    Args:
-        host: testinfra host object
-
-    Returns:
-        Set of functional group names (FUNCTIONAL_GROUP_NAME column)
-    """
-    pxe_content = _get_pxe_mapping_content(host)
-    if not pxe_content:
+    column_indices, rows = _read_pxe_mapping(host)
+    fg_idx = column_indices.get("functional_group")
+    if fg_idx is None:
         return set()
 
-    # Parse CSV content
-    lines = pxe_content.split('\n')
-    if len(lines) < 2:  # Need header + at least one data row
-        return set()
-
-    # Get header and find FUNCTIONAL_GROUP_NAME column
-    header = lines[0].split(',')
-    try:
-        fg_index = header.index('FUNCTIONAL_GROUP_NAME')
-    except ValueError:
-        return set()
-
-    # Extract functional groups
     groups = set()
-    for line in lines[1:]:
-        if line.strip():
-            cols = line.split(',')
-            if len(cols) > fg_index and cols[fg_index].strip():
-                groups.add(cols[fg_index].strip())
-
+    for parts in rows:
+        if len(parts) > fg_idx and parts[fg_idx].strip():
+            groups.add(parts[fg_idx].strip())
     return groups
 
 
-def get_group_names_from_pxe_mapping(host) -> set:
+def get_group_names_from_pxe_mapping(host: testinfra.host.Host) -> set:
     """
-    Read pxe_mapping file from inside omnia_core container and extract group names.
-    Uses pxe_mapping_file_path from provision_config.yml.
+    Extract all unique group names from PXE mapping file.
 
     Args:
-        host: testinfra host object
+        host: Testinfra host object
 
     Returns:
-        Set of group names (GROUP_NAME column)
+        Set of group names
     """
-    pxe_content = _get_pxe_mapping_content(host)
-    if not pxe_content:
+    column_indices, rows = _read_pxe_mapping(host)
+    grp_idx = column_indices.get("group_name")
+    if grp_idx is None:
         return set()
 
-    # Parse CSV content
-    lines = pxe_content.split('\n')
-    if len(lines) < 2:
-        return set()
-
-    # Get header and find GROUP_NAME column
-    header = lines[0].split(',')
-    try:
-        grp_index = header.index('GROUP_NAME')
-    except ValueError:
-        return set()
-
-    # Extract group names
     groups = set()
-    for line in lines[1:]:
-        if line.strip():
-            cols = line.split(',')
-            if len(cols) > grp_index and cols[grp_index].strip():
-                groups.add(cols[grp_index].strip())
-
+    for parts in rows:
+        if len(parts) > grp_idx and parts[grp_idx].strip():
+            groups.add(parts[grp_idx].strip())
     return groups
-
-
-def file_operation(
-    host: testinfra.host.Host,
-    login_ip: str,
-    task: str,
-    source: Optional[str] = None,
-    destination: str = "/home",
-    user: Optional[str] = None,
-    password: Optional[str] = None,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Perform a file operation (read, copy, or delete) on a local or remote node.
-
-    Supports both root (via run_on_remote_node) and non-root user
-    (via SSH with password/key) operations for remote tasks.
-
-    Args:
-        host: testinfra host object connected to OIM server
-        login_ip: admin IP of the login node (not required for 'read')
-        task: operation to perform — 'read', 'copy', or 'delete'
-        source: for 'read', local file path; for 'copy', the file content to write;
-                for 'delete', glob pattern to remove
-        destination: remote directory path (e.g. '/home' or '/home/ldapuser')
-        user: if provided, run command as this user (e.g. LDAP user)
-        password: optional SSH password for non-root user
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'details', 'error' (and 'content' for read task)
-    """
-    if task == "read":
-        if source is None:
-            return {"success": False, "content": None, "details": None, "error": "source path is required for read"}
-        if not os.path.exists(source):
-            return {"success": False, "content": None, "details": None, "error": f"File not found: {source}"}
-        with open(source, "r", encoding="utf-8") as f:
-            content = f.read()
-        return {"success": True, "content": content, "details": f"Read {source}", "error": ""}
-
-    if task == "copy":
-        if source is None:
-            return {"success": False, "details": None, "error": "source content is required for copy"}
-        cmd = f"cd {destination} && cat > job.sh <<'JOBEOF'\n{source}\nJOBEOF\nchmod +x job.sh"
-    elif task == "delete":
-        pattern = source if source else "job.sh output.txt error.txt slurm-*.out"
-        cmd = f"cd {destination} && rm -f {pattern}"
-    else:
-        return {"success": False, "details": None, "error": f"Unknown task: {task}. Use 'read', 'copy', or 'delete'"}
-
-    if user:
-        base_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-        if key_path:
-            ssh_opts = f"{base_opts} -o BatchMode=yes -i {key_path}"
-            ssh_cmd = f"ssh {ssh_opts} {user}@{login_ip} '{cmd}'"
-        elif password:
-            ssh_opts = f"{base_opts} -o PubkeyAuthentication=no"
-            askpass_script = "/tmp/_askpass.sh"
-            ssh_cmd = (
-                f"printf '#!/bin/sh\\necho {password}\\n' > {askpass_script} && "
-                f"chmod +x {askpass_script} && "
-                f"SSH_ASKPASS={askpass_script} SSH_ASKPASS_REQUIRE=force "
-                f"ssh {ssh_opts} {user}@{login_ip} '{cmd}'"
-            )
-        else:
-            ssh_cmd = f"ssh {base_opts} {user}@{login_ip} '{cmd}'"
-        res = run_in_container(host, ssh_cmd)
-    else:
-        res = run_on_remote_node(host, cmd, login_ip)
-
-    if res.rc == 0:
-        return {
-            "success": True,
-            "details": f"{task} succeeded on {login_ip}:{destination}",
-            "error": "",
-        }
-    return {
-        "success": False,
-        "details": None,
-        "error": res.stderr or res.stdout,
-    }

@@ -38,11 +38,7 @@ import testinfra.host
 
 from automation_library.core.host import (
     run_in_container,
-    run_on_remote_node,
     get_testinfra_host,
-    get_node_admin_ip,
-    get_all_node_admin_ips,
-    get_functional_groups_from_pxe_mapping,
 )
 from ..vars.slurm_vars import JOB_SCRIPT_PATH
 
@@ -61,77 +57,6 @@ def _get_project_root() -> str:
 def get_job_script_path() -> str:
     """Return absolute path to the default job script."""
     return os.path.join(_get_project_root(), JOB_SCRIPT_PATH)
-
-
-def parse_login_ips_from_env() -> List[str]:
-    """Read login node IPs from LOGIN_NODE_IPS environment variable."""
-    value = os.environ.get("LOGIN_NODE_IPS", "").strip()
-    if not value:
-        return []
-    return [ip.strip() for ip in value.split(",") if ip.strip()]
-
-
-def parse_login_ips_from_pxe_mapping() -> List[str]:
-    """Extract login node admin IPs from PXE mapping via public core API."""
-    host = get_testinfra_host()
-    groups = get_functional_groups_from_pxe_mapping(host)
-    login_ips: List[str] = []
-    for group in groups:
-        if "login" in group.lower():
-            ips = get_all_node_admin_ips(host, functional_group=group)
-            login_ips.extend(ips)
-    return login_ips
-
-
-def parse_login_compiler_ips_from_env() -> List[str]:
-    """Read login compiler node IPs from LOGIN_COMPILER_NODE_IPS env var."""
-    value = os.environ.get("LOGIN_COMPILER_NODE_IPS", "").strip()
-    if not value:
-        return []
-    return [ip.strip() for ip in value.split(",") if ip.strip()]
-
-
-def parse_login_compiler_ips_from_pxe_mapping() -> List[str]:
-    """Extract login compiler node admin IPs via public core API."""
-    host = get_testinfra_host()
-    groups = get_functional_groups_from_pxe_mapping(host)
-    compiler_ips: List[str] = []
-    for group in groups:
-        if "login_compiler" in group.lower():
-            ips = get_all_node_admin_ips(host, functional_group=group)
-            compiler_ips.extend(ips)
-    return compiler_ips
-
-
-def parse_compute_node_ips_from_env() -> List[str]:
-    """Read compute node IPs from COMPUTE_NODE_IPS environment variable."""
-    value = os.environ.get("COMPUTE_NODE_IPS", "").strip()
-    if not value:
-        return []
-    return [ip.strip() for ip in value.split(",") if ip.strip()]
-
-
-def parse_compute_node_ips_from_pxe_mapping() -> List[str]:
-    """Extract compute node admin IPs from PXE mapping via public core API."""
-    host = get_testinfra_host()
-    groups = get_functional_groups_from_pxe_mapping(host)
-    compute_ips: List[str] = []
-    for group in groups:
-        lower = group.lower()
-        if "slurm_node" in lower and "login" not in lower:
-            ips = get_all_node_admin_ips(host, functional_group=group)
-            compute_ips.extend(ips)
-    return compute_ips
-
-
-def parse_ldap_user_from_env() -> str:
-    """Read LDAP username from LDAP_USER environment variable."""
-    return os.environ.get("LDAP_USER", "").strip()
-
-
-def parse_ldap_key_path_from_env() -> str:
-    """Read LDAP SSH key path from LDAP_SSH_KEY_PATH environment variable."""
-    return os.environ.get("LDAP_SSH_KEY_PATH", "").strip()
 
 
 # =============================================================================
@@ -213,6 +138,60 @@ def find_reachable_login_node(
         "login_ip": None,
         "skipped": skipped,
         "error": f"No reachable login nodes found among: {login_ips}",
+    }
+
+
+# =============================================================================
+# TEST ENVIRONMENT SETUP FUNCTIONS
+# =============================================================================
+
+def test_env_setup() -> Dict[str, Any]:
+    """Set up test environment for drain/resume tests.
+    
+    Returns:
+        Dict with 'success', 'login_ip', 'compute_nodes', 'error'
+    """
+    from automation_library.core.host import get_testinfra_host
+    env_result = setup_drain_test_env(get_testinfra_host())
+    if not env_result["success"]:
+        return {
+            "success": False,
+            "login_ip": "",
+            "compute_nodes": [],
+            "error": env_result["error"]
+        }
+    return env_result
+
+
+def drained_nodes_setup(test_env: Dict[str, Any]) -> Dict[str, Any]:
+    """Set up all nodes in drained state for testing.
+    
+    Args:
+        test_env: Test environment dictionary containing login_ip and compute_nodes
+        
+    Returns:
+        Dict with 'success', 'login_ip', 'compute_nodes', 'drained_nodes', 'error'
+    """
+    login_ip = test_env["login_ip"]
+    compute_nodes = test_env["compute_nodes"]
+    
+    # Drain all nodes
+    drain_result = setup_all_drained_nodes(login_ip, "root", compute_nodes)
+    if not drain_result["success"]:
+        return {
+            "success": False,
+            "login_ip": login_ip,
+            "compute_nodes": compute_nodes,
+            "drained_nodes": [],
+            "error": drain_result["error"]
+        }
+    
+    return {
+        "success": True,
+        "login_ip": login_ip,
+        "compute_nodes": compute_nodes,
+        "drained_nodes": drain_result["nodes"],
+        "error": ""
     }
 
 
@@ -596,280 +575,6 @@ def submit_and_verify_ldap_job(
 
 
 # =============================================================================
-# PAM HELPERS
-# =============================================================================
-
-def check_pam_module_installed(
-    oim_host: testinfra.host.Host,
-    node_ip: str,
-) -> Dict[str, Any]:
-    """Check if pam_slurm_adopt.so exists on a compute node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        node_ip: admin IP of the compute node
-
-    Returns:
-        Dict with 'success', 'installed', 'path', 'error'
-    """
-    cmd = "find /usr/lib64/security /lib64/security /lib/security -name 'pam_slurm_adopt.so' 2>/dev/null | head -1"
-    res = run_ssh_from_omnia_core(oim_host, node_ip, cmd)
-    if res.rc != 0:
-        return {
-            "success": False, "installed": False,
-            "path": None, "error": res.stderr or res.stdout,
-        }
-    path = res.stdout.strip()
-    return {
-        "success": True,
-        "installed": bool(path),
-        "path": path or None,
-        "error": "",
-    }
-
-
-def check_pam_config(
-    oim_host: testinfra.host.Host,
-    node_ip: str,
-) -> Dict[str, Any]:
-    """Check if /etc/pam.d/sshd references pam_slurm_adopt on a compute node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        node_ip: admin IP of the compute node
-
-    Returns:
-        Dict with 'success', 'configured', 'pam_lines', 'error'
-    """
-    cmd = "cat /etc/pam.d/sshd"
-    res = run_ssh_from_omnia_core(oim_host, node_ip, cmd)
-    if res.rc != 0:
-        return {
-            "success": False, "configured": False,
-            "pam_lines": "", "error": res.stderr or res.stdout,
-        }
-    content = res.stdout
-    configured = "pam_slurm_adopt" in content
-    return {
-        "success": True,
-        "configured": configured,
-        "pam_lines": content,
-        "error": "",
-    }
-
-
-def ssh_to_compute_as_user(
-    oim_host: testinfra.host.Host,
-    login_ip: str,
-    node_ip: str,
-    user: str,
-    key_path: Optional[str] = None,
-    password: Optional[str] = None,
-) -> Dict[str, Any]:
-    """SSH from login node to compute node as specified user (two-hop via omnia_core).
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        login_ip: admin IP of the login node
-        node_ip: admin IP of the compute node
-        user: SSH username
-        key_path: optional SSH private key path
-        password: optional SSH password (uses SSH_ASKPASS)
-
-    Returns:
-        Dict with 'success', 'stdout', 'stderr', 'rc'
-    """
-    inner_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-    if password and not key_path:
-        # For password auth, set up SSH_ASKPASS on the login node for the second hop.
-        # Use printf with escaped double quotes to avoid single-quote collision
-        # with run_ssh_as_user outer wrapping.
-        inner_opts += " -o PubkeyAuthentication=no"
-        askpass = "/tmp/_askpass_inner.sh"
-        inner_cmd = (
-            f"printf \"#!/bin/sh\\necho {password}\\n\" > {askpass} && "
-            f"chmod +x {askpass} && "
-            f"SSH_ASKPASS={askpass} SSH_ASKPASS_REQUIRE=force "
-            f"ssh {inner_opts} {user}@{node_ip} whoami"
-        )
-    else:
-        if key_path:
-            inner_opts += f" -i {key_path}"
-        inner_cmd = f"ssh {inner_opts} {user}@{node_ip} whoami"
-    res = run_ssh_as_user(oim_host, login_ip, user, inner_cmd, key_path, password)
-    return {
-        "success": res.rc == 0,
-        "stdout": res.stdout.strip(),
-        "stderr": res.stderr.strip() if res.stderr else "",
-        "rc": res.rc,
-        "error": res.stderr or "" if res.rc != 0 else "",
-    }
-
-
-def submit_sleep_job_as_user(
-    oim_host: testinfra.host.Host,
-    login_ip: str,
-    user: str,
-    key_path: Optional[str] = None,
-    sleep_seconds: int = 120,
-    password: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Submit a sleep job as specified user for PAM testing.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        login_ip: admin IP of the login node
-        user: SSH username
-        key_path: optional SSH private key path
-        sleep_seconds: how long the job should sleep
-        password: optional SSH password (uses SSH_ASKPASS)
-
-    Returns:
-        Dict with 'success', 'job_id', 'error'
-    """
-    cmd = f'sbatch --parsable --wrap="sleep {sleep_seconds}"'
-    res = run_ssh_as_user(oim_host, login_ip, user, cmd, key_path, password)
-    if res.rc != 0:
-        return {
-            "success": False, "job_id": None,
-            "error": res.stderr or res.stdout,
-        }
-    raw_id = res.stdout.strip().split()[0] if res.stdout.strip() else ""
-    if not raw_id or not raw_id.isdigit():
-        return {
-            "success": False, "job_id": None,
-            "error": f"Expected numeric job id, got: {raw_id!r}",
-        }
-    return {"success": True, "job_id": raw_id, "error": ""}
-
-
-def get_job_node(
-    oim_host: testinfra.host.Host,
-    login_ip: str,
-    user: str,
-    job_id: str,
-    key_path: Optional[str] = None,
-    timeout: int = 60,
-    interval: int = 5,
-    password: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Wait until a job is RUNNING and return the node it runs on.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        login_ip: admin IP of the login node
-        user: SSH username
-        job_id: Slurm job ID
-        key_path: optional SSH private key path
-        timeout: max seconds to wait for RUNNING state
-        interval: seconds between polls
-        password: optional SSH password (uses SSH_ASKPASS)
-
-    Returns:
-        Dict with 'success', 'node', 'error'
-    """
-    cmd = f'squeue -j {job_id} -h -o "%T %N"'
-    start = time.time()
-    while time.time() - start < timeout:
-        res = run_ssh_as_user(oim_host, login_ip, user, cmd, key_path, password)
-        output = res.stdout.strip()
-        if output:
-            parts = output.split()
-            if len(parts) >= 2 and parts[0] == "RUNNING":
-                return {"success": True, "node": parts[1], "error": ""}
-        time.sleep(interval)
-    return {
-        "success": False, "node": None,
-        "error": f"Job {job_id} not RUNNING after {timeout}s",
-    }
-
-
-def resolve_node_ip(
-    oim_host: testinfra.host.Host,
-    node_name: str,
-) -> Dict[str, Any]:
-    """Resolve a Slurm node name to its IP address via getent hosts.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        node_name: Slurm node hostname
-
-    Returns:
-        Dict with 'success', 'ip', 'error'
-    """
-    res = run_in_container(oim_host, f"getent hosts {node_name}")
-    if res.rc == 0 and res.stdout.strip():
-        ip = res.stdout.strip().split()[0]
-        return {"success": True, "ip": ip, "error": ""}
-    return {
-        "success": False, "ip": None,
-        "error": f"Could not resolve {node_name}: {res.stderr or res.stdout}",
-    }
-
-
-def cancel_job_as_user(
-    oim_host: testinfra.host.Host,
-    login_ip: str,
-    user: str,
-    job_id: str,
-    key_path: Optional[str] = None,
-    password: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Cancel a Slurm job as the specified user.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        login_ip: admin IP of the login node
-        user: SSH username
-        job_id: Slurm job ID to cancel
-        key_path: optional SSH private key path
-        password: optional SSH password (uses SSH_ASKPASS)
-
-    Returns:
-        Dict with 'success', 'error'
-    """
-    res = run_ssh_as_user(
-        oim_host, login_ip, user, f"scancel {job_id}", key_path, password
-    )
-    if res.rc == 0:
-        return {"success": True, "error": ""}
-    return {"success": False, "error": res.stderr or res.stdout}
-
-
-def check_user_processes_on_node(
-    oim_host: testinfra.host.Host,
-    node_ip: str,
-    user: str,
-) -> Dict[str, Any]:
-    """Check if a user still has processes running on a compute node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        node_ip: admin IP of the compute node
-        user: username to check for
-
-    Returns:
-        Dict with 'success', 'has_processes', 'process_list', 'error'
-    """
-    cmd = f"pgrep -u {user} -a"
-    res = run_ssh_from_omnia_core(oim_host, node_ip, cmd)
-    if res.rc == 0 and res.stdout.strip():
-        return {
-            "success": True,
-            "has_processes": True,
-            "process_list": res.stdout.strip(),
-            "error": "",
-        }
-    # rc != 0 means no matching processes (pgrep returns 1)
-    return {
-        "success": res.rc in (0, 1),
-        "has_processes": False,
-        "process_list": "",
-        "error": "" if res.rc in (0, 1) else (res.stderr or res.stdout),
-    }
-
-
-# =============================================================================
 # QUEUEING / NODE-DOWN HELPERS
 # =============================================================================
 
@@ -914,7 +619,7 @@ def get_compute_nodes(
     user: str,
     key_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Discover Slurm compute node hostnames via sinfo.
+    """Discover Slurm compute node hostnames and admin IPs via sinfo.
 
     Args:
         login_ip: admin IP of the login node
@@ -922,13 +627,30 @@ def get_compute_nodes(
         key_path: optional SSH private key path
 
     Returns:
-        Dict with 'success', 'nodes' (list of hostnames), 'error'
+        Dict with:
+        - 'success': bool
+        - 'nodes': list of hostnames (for backward compatibility)
+        - 'admin_ips': list of admin IPs (NodeAddr from sinfo)
+        - 'error': str
     """
-    res = ssh_cmd_direct(login_ip, user, 'sinfo -h -N -o "%N" | sort -u', key_path)
+    # %N = NodeHostName, %o = NodeAddr (admin IP)
+    res = ssh_cmd_direct(login_ip, user, 'sinfo -h -N -o "%N|%o" | sort -u', key_path)
     if res.returncode != 0:
-        return {"success": False, "nodes": [], "error": res.stderr or res.stdout}
-    nodes = [n.strip() for n in res.stdout.strip().splitlines() if n.strip()]
-    return {"success": True, "nodes": nodes, "error": ""}
+        return {"success": False, "nodes": [], "admin_ips": [], "error": res.stderr or res.stdout}
+
+    nodes = []
+    admin_ips = []
+    for line in res.stdout.strip().splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("|")
+        hostname = parts[0].strip() if len(parts) > 0 else ""
+        node_addr = parts[1].strip() if len(parts) > 1 else ""
+        if hostname and hostname not in nodes:
+            nodes.append(hostname)
+            admin_ips.append(node_addr)
+
+    return {"success": True, "nodes": nodes, "admin_ips": admin_ips, "error": ""}
 
 
 def get_node_info(
@@ -1225,278 +947,6 @@ def get_job_start_time(
 # INSUFFICIENT-RESOURCE TEST HELPERS
 # =============================================================================
 
-def parse_slurm_control_ip_from_pxe_mapping() -> Optional[str]:
-    """Extract the Slurm control node admin IP from PXE mapping.
-
-    Looks for functional groups containing 'slurm_control' (case-insensitive).
-
-    Returns:
-        First matching admin IP, or None if not found
-    """
-    host = get_testinfra_host()
-    groups = get_functional_groups_from_pxe_mapping(host)
-    for group in groups:
-        if "slurm_control" in group.lower():
-            ips = get_all_node_admin_ips(host, functional_group=group)
-            if ips:
-                return ips[0]
-    return None
-
-
-def check_slurm_version(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Check Slurm version on the control node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the Slurm control node
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'version', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, "sinfo --version", key_path)
-    if res.rc != 0:
-        return {"success": False, "version": "", "error": res.stderr or res.stdout or "sinfo --version failed"}
-    version = res.stdout.strip()
-    return {"success": True, "version": version, "error": ""}
-
-
-def check_sinfo(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    fmt: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Run sinfo with a given format on the control node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the Slurm control node
-        fmt: sinfo --Format string (e.g. 'NodeList,CPUs,CPUsState,StateCompact')
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'output', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, f"sinfo --Format={fmt}", key_path)
-    if res.rc != 0:
-        return {"success": False, "output": "", "error": res.stderr or res.stdout or "sinfo failed"}
-    return {"success": True, "output": res.stdout.strip(), "error": ""}
-
-
-def read_job_script_by_name(script_path: str) -> Dict[str, Any]:
-    """Read a job script by its relative path (from project root).
-
-    Args:
-        script_path: relative path to the script (e.g. 'automation_library/slurm/_job2.sh')
-
-    Returns:
-        Dict with 'success', 'content', 'path', 'error'
-    """
-    abs_path = os.path.join(_get_project_root(), script_path)
-    if not os.path.exists(abs_path):
-        return {
-            "success": False,
-            "content": None,
-            "path": abs_path,
-            "error": f"Script not found at {abs_path}",
-        }
-    with open(abs_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    return {"success": True, "content": content, "path": abs_path, "error": ""}
-
-
-def copy_script_to_remote(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    script_content: str,
-    remote_path: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Copy a script to a remote node via SSH.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        script_content: script file content
-        remote_path: destination path on the remote node
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'error'
-    """
-    cmd = f"cat > {remote_path} <<'EOFSCRIPT'\n{script_content}\nEOFSCRIPT\nchmod +x {remote_path}"
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, cmd, key_path)
-    if res.rc != 0:
-        return {"success": False, "error": res.stderr or res.stdout or "copy failed"}
-    return {"success": True, "error": ""}
-
-
-def submit_remote_script(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    remote_path: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Submit a job script on the remote node via sbatch.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        remote_path: path to the script on the remote node
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'job_id', 'output', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, f"sbatch --parsable {remote_path}", key_path)
-    if res.rc != 0:
-        return {
-            "success": False,
-            "job_id": None,
-            "output": res.stdout.strip() if res.stdout else "",
-            "error": res.stderr or res.stdout or "sbatch failed",
-        }
-    raw_id = res.stdout.strip().split()[0] if res.stdout and res.stdout.strip() else ""
-    if not raw_id or not raw_id.isdigit():
-        return {
-            "success": False,
-            "job_id": raw_id or None,
-            "output": res.stdout.strip() if res.stdout else "",
-            "error": f"Expected numeric job id, got: {raw_id!r}",
-        }
-    return {"success": True, "job_id": raw_id, "output": res.stdout.strip(), "error": ""}
-
-
-def poll_job_state(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_id: str,
-    key_path: Optional[str] = None,
-    timeout: int = 60,
-    interval: int = 5,
-) -> Dict[str, Any]:
-    """Poll squeue for a job's state and reason.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        job_id: Slurm job ID
-        key_path: optional SSH private key path
-        timeout: max seconds to poll
-        interval: seconds between polls
-
-    Returns:
-        Dict with 'state', 'reason'
-    """
-    start = time.time()
-    state = ""
-    reason = ""
-    while time.time() - start < timeout:
-        res = run_ssh_from_omnia_core(
-            oim_host, ctrl_ip, f'squeue -j {job_id} -h -o "%T %r"', key_path
-        )
-        output = res.stdout.strip() if res.stdout else ""
-        if output:
-            parts = output.split(None, 1)
-            state = parts[0] if parts else ""
-            reason = parts[1] if len(parts) > 1 else ""
-            return {"state": state, "reason": reason}
-        time.sleep(interval)
-    return {"state": state, "reason": reason}
-
-
-def check_job_scontrol(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_id: str,
-    key_path: Optional[str] = None,
-    timeout: int = 180,
-    interval: int = 10,
-) -> Dict[str, Any]:
-    """Poll scontrol show job until the job reaches a terminal state.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        job_id: Slurm job ID
-        key_path: optional SSH private key path
-        timeout: max seconds to wait
-        interval: seconds between polls
-
-    Returns:
-        Dict with 'success', 'state', 'output', 'error'
-    """
-    start = time.time()
-    last_state = ""
-    while time.time() - start < timeout:
-        res = run_ssh_from_omnia_core(
-            oim_host, ctrl_ip, f"scontrol show job {job_id}", key_path
-        )
-        output = res.stdout.strip() if res.stdout else ""
-        # Parse JobState= from output
-        for token in output.split():
-            if token.startswith("JobState="):
-                last_state = token.split("=", 1)[1]
-                break
-        if last_state in {"COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL"}:
-            return {"success": True, "state": last_state, "output": output, "error": ""}
-        time.sleep(interval)
-    return {"success": False, "state": last_state, "output": "", "error": f"Job {job_id} did not reach terminal state within {timeout}s"}
-
-
-def read_job_output(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    output_path: str = "output.txt",
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Read job output file from the remote node.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        output_path: path to the output file on the remote node
-        key_path: optional SSH private key path
-
-    Returns:
-        Dict with 'success', 'content', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, f"cat {output_path}", key_path)
-    if res.rc != 0:
-        return {"success": False, "content": "", "error": res.stderr or res.stdout or "Failed to read output"}
-    return {"success": True, "content": res.stdout.strip() if res.stdout else "", "error": ""}
-
-
-def cleanup_job(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_id: str,
-    remote_script_path: str,
-    key_path: Optional[str] = None,
-) -> None:
-    """Cancel a job and remove the remote script and output files.
-
-    Args:
-        oim_host: testinfra host object connected to OIM server
-        ctrl_ip: admin IP of the target node
-        job_id: Slurm job ID to cancel
-        remote_script_path: path to the script on the remote node
-        key_path: optional SSH private key path
-    """
-    if job_id:
-        run_ssh_from_omnia_core(oim_host, ctrl_ip, f"scancel {job_id} 2>/dev/null", key_path)
-    run_ssh_from_omnia_core(
-        oim_host, ctrl_ip,
-        f"rm -f {remote_script_path} output.txt error.txt",
-        key_path,
-    )
-
-
 def cleanup_jobs_direct(
     login_ip: str,
     user: str,
@@ -1518,273 +968,699 @@ def cleanup_jobs_direct(
 
 
 # =============================================================================
-# SCHEDULER STABILITY HELPERS
+# TEST ENVIRONMENT SETUP HELPERS
 # =============================================================================
 
-def check_slurmctld_active(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
+def setup_slurm_test_env(
+    oim_host,
+    login_functional_group: str = "login_node_x86_64",
+    slurm_functional_group: str = "slurm_node_x86_64",
+    user: str = "root",
+    sleep_seconds: int = 30,
     key_path: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Check if slurmctld is responsive by running sinfo.
+    """Set up test environment with login node and compute nodes.
+
+    Discovers login nodes and compute nodes from PXE mapping, finds a
+    reachable login node, and creates a job script.
+
+    Args:
+        oim_host: testinfra host object connected to OIM server
+        login_functional_group: functional group for login nodes
+        slurm_functional_group: functional group for slurm compute nodes
+        user: SSH username
+        sleep_seconds: sleep duration for job script
+        key_path: optional SSH private key path
 
     Returns:
-        Dict with 'success', 'responsive', 'error'
+        Dict with:
+        - 'success': bool
+        - 'login_ip': str (admin IP of reachable login node)
+        - 'compute_nodes': list of compute node hostnames
+        - 'compute_ips': list of compute node admin IPs
+        - 'error': str
     """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, "sinfo --version", key_path)
-    if res.rc == 0:
-        return {"success": True, "responsive": True, "error": ""}
-    return {"success": True, "responsive": False, "error": res.stderr or res.stdout or "sinfo failed"}
+    from automation_library.core.host import get_nodes_info
 
+    # Discover login nodes
+    login_nodes = get_nodes_info(oim_host, search_by="functional_group", search_value="login_node_x86_64")
+    login_ips = [node["admin_ip"] for node in login_nodes if node.get("admin_ip")]
+    if not login_ips:
+        return {"success": False, "login_ip": "", "compute_nodes": [], "compute_ips": [], "error": "No login nodes found"}
 
-def get_slurmctld_pid(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Get the PID of slurmctld on the control node.
+    # Find reachable login node
+    result = find_reachable_login_node(oim_host, login_ips)
+    if not result["success"]:
+        return {"success": False, "login_ip": "", "compute_nodes": [], "compute_ips": [], "error": "No reachable login nodes"}
+    login_ip = result["login_ip"]
 
-    Returns:
-        Dict with 'success', 'pid', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, "pgrep -o slurmctld", key_path)
-    pid = res.stdout.strip() if res.stdout else ""
-    if res.rc == 0 and pid:
-        return {"success": True, "pid": pid, "error": ""}
-    return {"success": False, "pid": None, "error": res.stderr or "slurmctld not found"}
+    # Discover compute nodes from PXE mapping
+    compute_nodes_info = get_nodes_info(oim_host, search_by="functional_group", search_value="slurm_node_x86_64")
+    compute_nodes = [node["hostname"] for node in compute_nodes_info if node.get("hostname")]
+    compute_ips = [node["admin_ip"] for node in compute_nodes_info if node.get("admin_ip")]
 
+    if not compute_nodes:
+        return {"success": False, "login_ip": login_ip, "compute_nodes": [], "compute_ips": [], "error": "No compute nodes found"}
 
-def submit_batch_jobs(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    script_content: str,
-    count: int,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Submit multiple jobs from inline script content.
+    # Create job script on login node
+    script_result = create_job_script(login_ip, user, key_path, sleep_seconds)
+    if not script_result["success"]:
+        return {"success": False, "login_ip": login_ip, "compute_nodes": compute_nodes, "compute_ips": compute_ips, "error": f"Failed to create job script: {script_result['error']}"}
 
-    Writes the script to /tmp/_stability_job.sh on the control node,
-    then runs sbatch --parsable <count> times.
-
-    Returns:
-        Dict with 'success', 'job_ids', 'error'
-    """
-    remote_path = "/tmp/_stability_job.sh"
-    write_cmd = f"cat > {remote_path} <<'EOFSCRIPT'\n{script_content}\nEOFSCRIPT\nchmod +x {remote_path}"
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, write_cmd, key_path)
-    if res.rc != 0:
-        return {"success": False, "job_ids": [], "error": res.stderr or res.stdout or "script write failed"}
-
-    job_ids: List[str] = []
-    errors: List[str] = []
-    for _ in range(count):
-        res = run_ssh_from_omnia_core(oim_host, ctrl_ip, f"sbatch --parsable {remote_path}", key_path)
-        if res.rc == 0 and res.stdout and res.stdout.strip():
-            raw = res.stdout.strip().split()[0]
-            if raw.isdigit():
-                job_ids.append(raw)
-            else:
-                errors.append(f"Non-numeric id: {raw}")
-        else:
-            errors.append(res.stderr or res.stdout or "sbatch failed")
-
-    run_ssh_from_omnia_core(oim_host, ctrl_ip, f"rm -f {remote_path}", key_path)
-
-    if not job_ids:
-        return {"success": False, "job_ids": [], "error": "; ".join(errors[:5])}
-    return {"success": True, "job_ids": job_ids, "error": ""}
-
-
-def count_queue_jobs(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_name: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Count jobs in the queue matching a job name.
-
-    Returns:
-        Dict with 'success', 'total', 'running', 'pending', 'error'
-    """
-    res = run_ssh_from_omnia_core(
-        oim_host, ctrl_ip, f'squeue -h -n {job_name} -o "%T"', key_path
-    )
-    if res.rc != 0:
-        return {"success": False, "total": 0, "running": 0, "pending": 0,
-                "error": res.stderr or res.stdout or "squeue failed"}
-    lines = [l.strip() for l in (res.stdout or "").strip().splitlines() if l.strip()]
-    running = sum(1 for l in lines if l == "RUNNING")
-    pending = sum(1 for l in lines if l == "PENDING")
-    return {"success": True, "total": len(lines), "running": running, "pending": pending, "error": ""}
-
-
-def cancel_jobs_by_name(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_name: str,
-    key_path: Optional[str] = None,
-) -> None:
-    """Cancel all jobs matching a given job name."""
-    run_ssh_from_omnia_core(oim_host, ctrl_ip, f"scancel -n {job_name} 2>/dev/null", key_path)
-
-
-def cancel_jobs_by_ids(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_ids: List[str],
-    key_path: Optional[str] = None,
-) -> None:
-    """Cancel a list of jobs by their IDs."""
-    if job_ids:
-        ids_str = " ".join(job_ids)
-        run_ssh_from_omnia_core(oim_host, ctrl_ip, f"scancel {ids_str} 2>/dev/null", key_path)
-
-
-def submit_and_cancel_rapid(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    script_content: str,
-    cycles: int,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Run rapid submit-then-cancel cycles.
-
-    Returns:
-        Dict with 'success', 'completed_cycles', 'errors', 'error'
-    """
-    remote_path = "/tmp/_rapid_job.sh"
-    write_cmd = f"cat > {remote_path} <<'EOFSCRIPT'\n{script_content}\nEOFSCRIPT\nchmod +x {remote_path}"
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, write_cmd, key_path)
-    if res.rc != 0:
-        return {"success": False, "completed_cycles": 0, "errors": [],
-                "error": res.stderr or "script write failed"}
-
-    completed = 0
-    errors: List[str] = []
-    for _ in range(cycles):
-        res = run_ssh_from_omnia_core(oim_host, ctrl_ip, f"sbatch --parsable {remote_path}", key_path)
-        if res.rc == 0 and res.stdout and res.stdout.strip():
-            jid = res.stdout.strip().split()[0]
-            if jid.isdigit():
-                run_ssh_from_omnia_core(oim_host, ctrl_ip, f"scancel {jid} 2>/dev/null", key_path)
-                completed += 1
-            else:
-                errors.append(f"Non-numeric id: {jid}")
-        else:
-            errors.append(res.stderr or "sbatch failed")
-
-    run_ssh_from_omnia_core(oim_host, ctrl_ip, f"rm -f {remote_path}", key_path)
-
-    return {
-        "success": completed > 0,
-        "completed_cycles": completed,
-        "errors": errors[:10],
-        "error": "; ".join(errors[:5]) if errors else "",
-    }
-
-
-def get_node_total_cpus(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Get total CPUs and node name from the first compute node via sinfo.
-
-    Returns:
-        Dict with 'success', 'cpus', 'node', 'error'
-    """
-    res = run_ssh_from_omnia_core(
-        oim_host, ctrl_ip, 'sinfo -h -N -o "%N %c" | head -1', key_path
-    )
-    if res.rc != 0 or not res.stdout or not res.stdout.strip():
-        return {"success": False, "cpus": 0, "node": "",
-                "error": res.stderr or "sinfo failed"}
-    parts = res.stdout.strip().split()
-    node = parts[0] if parts else ""
-    cpus = 1
-    if len(parts) > 1 and parts[1].isdigit():
-        cpus = int(parts[1])
-    return {"success": True, "cpus": cpus, "node": node, "error": ""}
-
-
-def check_queue_empty(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    job_name: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Check if the queue has no jobs matching a given name.
-
-    Returns:
-        Dict with 'success', 'empty', 'remaining', 'error'
-    """
-    res = run_ssh_from_omnia_core(
-        oim_host, ctrl_ip, f'squeue -h -n {job_name} -o "%i"', key_path
-    )
-    if res.rc != 0:
-        return {"success": False, "empty": False, "remaining": "",
-                "error": res.stderr or "squeue failed"}
-    lines = [l.strip() for l in (res.stdout or "").strip().splitlines() if l.strip()]
-    return {"success": True, "empty": len(lines) == 0, "remaining": str(len(lines)), "error": ""}
-
-
-def restart_slurmctld(
-    oim_host: testinfra.host.Host,
-    ctrl_ip: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Restart slurmctld on the control node.
-
-    Returns:
-        Dict with 'success', 'error'
-    """
-    res = run_ssh_from_omnia_core(oim_host, ctrl_ip, "systemctl restart slurmctld", key_path)
-    if res.rc != 0:
-        return {"success": False, "error": res.stderr or res.stdout or "restart failed"}
-    time.sleep(3)
-    check = run_ssh_from_omnia_core(oim_host, ctrl_ip, "sinfo --version", key_path)
-    if check.rc != 0:
-        return {"success": False, "error": "slurmctld did not recover after restart"}
-    return {"success": True, "error": ""}
-
-
-def check_no_zombie_slurmd(
-    oim_host: testinfra.host.Host,
-    node_ip: str,
-    key_path: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Check for zombie slurmd processes on a compute node.
-
-    Returns:
-        Dict with 'success', 'has_zombies', 'zombie_list', 'error'
-    """
-    res = run_ssh_from_omnia_core(
-        oim_host, node_ip, "ps aux | grep slurmd | grep -i defunct", key_path
-    )
-    output = res.stdout.strip() if res.stdout else ""
-    zombies = [l for l in output.splitlines() if "defunct" in l.lower()]
     return {
         "success": True,
-        "has_zombies": len(zombies) > 0,
-        "zombie_list": "\n".join(zombies),
-        "error": "",
+        "login_ip": login_ip,
+        "compute_nodes": compute_nodes,
+        "compute_ips": compute_ips,
+        "error": ""
     }
 
 
-def get_node_state(
+def drain_all_nodes(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    reason: str = "testing",
+    key_path: Optional[str] = None,
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    """Drain all compute nodes.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to drain
+        reason: drain reason string
+        key_path: optional SSH private key path
+        timeout: seconds to wait for each node to reach drain state
+
+    Returns:
+        Dict with:
+        - 'success': bool
+        - 'drained_nodes': list of successfully drained nodes
+        - 'failed_nodes': list of nodes that failed to drain
+        - 'error': str
+    """
+    drained_nodes = []
+    failed_nodes = []
+    errors = []
+
+    for node in compute_nodes:
+        result = drain_node(login_ip, user, node, reason, key_path)
+        if not result["success"]:
+            failed_nodes.append(node)
+            errors.append(f"{node}: {result['error']}")
+            continue
+
+        state = wait_node_state(login_ip, user, node, "drain", key_path, timeout)
+        if "drain" in state.lower():
+            drained_nodes.append(node)
+        else:
+            failed_nodes.append(node)
+            errors.append(f"{node}: did not reach drain state (state={state})")
+
+    return {
+        "success": len(failed_nodes) == 0,
+        "drained_nodes": drained_nodes,
+        "failed_nodes": failed_nodes,
+        "error": "; ".join(errors) if errors else ""
+    }
+
+
+def drain_single_node(
     login_ip: str,
     user: str,
     node: str,
+    reason: str = "testing_single",
     key_path: Optional[str] = None,
-) -> str:
-    """Get the current state of a Slurm node.
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    """Drain a single compute node.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        node: compute node hostname to drain
+        reason: drain reason string
+        key_path: optional SSH private key path
+        timeout: seconds to wait for node to reach drain state
 
     Returns:
-        Node state string (e.g. 'idle', 'drained', 'mixed'), or empty on failure.
+        Dict with:
+        - 'success': bool
+        - 'node': str (the drained node hostname)
+        - 'error': str
     """
-    res = ssh_cmd_direct(login_ip, user, f"scontrol show node {node}", key_path)
-    output = res.stdout or ""
-    for token in output.split():
-        if token.startswith("State="):
-            return token.split("=", 1)[1].lower()
-    return ""
+    result = drain_node(login_ip, user, node, reason, key_path)
+    if not result["success"]:
+        return {"success": False, "node": node, "error": result["error"]}
+
+    state = wait_node_state(login_ip, user, node, "drain", key_path, timeout)
+    if "drain" not in state.lower():
+        return {"success": False, "node": node, "error": f"Node did not reach drain state (state={state})"}
+
+    return {"success": True, "node": node, "error": ""}
+
+
+def resume_all_nodes(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    key_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Resume all compute nodes.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to resume
+        key_path: optional SSH private key path
+
+    Returns:
+        Dict with:
+        - 'success': bool
+        - 'resumed_nodes': list of successfully resumed nodes
+        - 'failed_nodes': list of nodes that failed to resume
+        - 'error': str
+    """
+    resumed_nodes = []
+    failed_nodes = []
+    errors = []
+
+    for node in compute_nodes:
+        result = resume_node(login_ip, user, node, key_path)
+        if result["success"]:
+            resumed_nodes.append(node)
+        else:
+            failed_nodes.append(node)
+            errors.append(f"{node}: {result['error']}")
+
+    return {
+        "success": len(failed_nodes) == 0,
+        "resumed_nodes": resumed_nodes,
+        "failed_nodes": failed_nodes,
+        "error": "; ".join(errors) if errors else ""
+    }
+
+
+def cleanup_test_env(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    job_ids: List[str] = None,
+    key_path: Optional[str] = None,
+) -> None:
+    """Cleanup test environment by resuming nodes and cancelling jobs.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to resume
+        job_ids: optional list of job IDs to cancel
+        key_path: optional SSH private key path
+    """
+    # Resume all nodes
+    resume_all_nodes(login_ip, user, compute_nodes, key_path)
+
+    # Cancel any remaining jobs
+    if job_ids:
+        cleanup_jobs_direct(login_ip, user, job_ids, key_path)
+
+
+# =============================================================================
+# DRAIN/RESUME TEST FIXTURE HELPERS
+# =============================================================================
+
+def setup_drain_test_env(oim_host, sleep_seconds: int = 30) -> Dict[str, Any]:
+    """Set up test environment for drain/resume tests.
+    
+    This is a helper function that wraps setup_slurm_test_env for convenience
+    in drain/resume test scenarios.
+    
+    Args:
+        oim_host: testinfra host object connected to OIM server
+        sleep_seconds: sleep duration for job script
+        
+    Returns:
+        Dict with test environment data
+    """
+    env_result = setup_slurm_test_env(oim_host, sleep_seconds=sleep_seconds)
+    if not env_result["success"]:
+        return env_result
+    
+    return {
+        "success": True,
+        "oim_host": oim_host,
+        "login_ip": env_result["login_ip"],
+        "compute_nodes": env_result["compute_nodes"],
+        "compute_ips": env_result["compute_ips"],
+        "error": ""
+    }
+
+
+def setup_all_drained_nodes(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    key_path: Optional[str] = None,
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    """Set up test with all compute nodes drained.
+    
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to drain
+        key_path: optional SSH private key path
+        timeout: seconds to wait for each node to reach drain state
+        
+    Returns:
+        Dict with 'success', 'nodes', 'job_ids', 'error'
+    """
+    # Drain all nodes
+    drain_result = drain_all_nodes(login_ip, user, compute_nodes, timeout=timeout, key_path=key_path)
+    if not drain_result["success"]:
+        return {
+            "success": False,
+            "nodes": compute_nodes,
+            "job_ids": [],
+            "error": drain_result["error"]
+        }
+    
+    return {
+        "success": True,
+        "nodes": compute_nodes,
+        "job_ids": [],
+        "error": ""
+    }
+
+
+def setup_single_drained_node(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    node_index: int = 0,
+    key_path: Optional[str] = None,
+    timeout: int = 30,
+) -> Dict[str, Any]:
+    """Set up test with a single compute node drained.
+    
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames
+        node_index: index of node to drain (default: 0 for first node)
+        key_path: optional SSH private key path
+        timeout: seconds to wait for node to reach drain state
+        
+    Returns:
+        Dict with 'success', 'node', 'job_ids', 'error'
+    """
+    if node_index >= len(compute_nodes):
+        return {
+            "success": False,
+            "node": "",
+            "job_ids": [],
+            "error": f"Node index {node_index} out of range (0-{len(compute_nodes)-1})"
+        }
+    
+    node = compute_nodes[node_index]
+    
+    # Drain the specified node
+    drain_result = drain_single_node(login_ip, user, node, timeout=timeout, key_path=key_path)
+    if not drain_result["success"]:
+        return {
+            "success": False,
+            "node": node,
+            "job_ids": [],
+            "error": drain_result["error"]
+        }
+    
+    return {
+        "success": True,
+        "node": node,
+        "job_ids": [],
+        "error": ""
+    }
+
+
+def cleanup_drain_test(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    job_ids: List[str] = None,
+    key_path: Optional[str] = None,
+) -> None:
+    """Clean up after drain/resume tests.
+    
+    This is a wrapper around cleanup_test_env for convenience.
+    
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to resume
+        job_ids: optional list of job IDs to cancel
+        key_path: optional SSH private key path
+    """
+    cleanup_test_env(login_ip, user, compute_nodes, job_ids, key_path)
+
+
+def setup_test_env_with_all_drained(oim_host, sleep_seconds: int = 30) -> Dict[str, Any]:
+    """Set up test environment with all compute nodes drained.
+    
+    This is a convenience function that combines setup_drain_test_env and setup_all_drained_nodes.
+    
+    Args:
+        oim_host: testinfra host object connected to OIM server
+        sleep_seconds: sleep duration for job script
+        
+    Returns:
+        Dict with 'success', 'login_ip', 'compute_nodes', 'job_ids', 'error'
+    """
+    # Set up test environment
+    env_result = setup_drain_test_env(oim_host, sleep_seconds)
+    if not env_result["success"]:
+        return env_result
+    
+    # Drain all nodes
+    drain_result = setup_all_drained_nodes(
+        env_result["login_ip"], "root", env_result["compute_nodes"]
+    )
+    if not drain_result["success"]:
+        return {
+            "success": False,
+            "login_ip": env_result["login_ip"],
+            "compute_nodes": env_result["compute_nodes"],
+            "job_ids": [],
+            "error": drain_result["error"]
+        }
+    
+    return {
+        "success": True,
+        "login_ip": env_result["login_ip"],
+        "compute_nodes": env_result["compute_nodes"],
+        "job_ids": drain_result["job_ids"],
+        "error": ""
+    }
+
+
+# =============================================================================
+# PAM TEST FIXTURE HELPERS
+# =============================================================================
+
+def setup_pam_test_env(oim_host, sleep_seconds: int = 60) -> Dict[str, Any]:
+    """Set up test environment for PAM SSH access tests.
+    
+    Args:
+        oim_host: testinfra host object connected to OIM server
+        sleep_seconds: sleep duration for job script
+        
+    Returns:
+        Dict with 'success', 'oim_host', 'login_ip', 'compute_nodes', 
+             'compute_node', 'compute_ip', 'error'
+    """
+    env_result = setup_slurm_test_env(oim_host, sleep_seconds=sleep_seconds)
+    if not env_result["success"]:
+        return env_result
+    
+    compute_node = env_result["compute_nodes"][0]
+    compute_ip = env_result["compute_ips"][0] if env_result["compute_ips"] else None
+    
+    if not compute_ip:
+        return {
+            "success": False,
+            "oim_host": oim_host,
+            "login_ip": env_result["login_ip"],
+            "compute_nodes": env_result["compute_nodes"],
+            "compute_node": "",
+            "compute_ip": None,
+            "error": f"Could not resolve IP for compute node {compute_node}"
+        }
+    
+    return {
+        "success": True,
+        "oim_host": oim_host,
+        "login_ip": env_result["login_ip"],
+        "compute_nodes": env_result["compute_nodes"],
+        "compute_node": compute_node,
+        "compute_ip": compute_ip,
+        "error": ""
+    }
+
+
+def setup_running_job_for_pam(
+    login_ip: str,
+    compute_node: str,
+    user: str = "root",
+    sleep_seconds: int = 60,
+    key_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Set up a running job for PAM SSH access tests.
+    
+    Args:
+        login_ip: admin IP of the login node
+        compute_node: compute node hostname to target
+        user: SSH username
+        sleep_seconds: sleep duration for the job
+        key_path: optional SSH private key path
+        
+    Returns:
+        Dict with 'success', 'job_id', 'job_ids', 'error'
+    """
+    job_ids = []
+    
+    # Create a longer sleep job
+    script_result = create_job_script(login_ip, user, sleep_seconds=sleep_seconds, key_path=key_path)
+    if not script_result["success"]:
+        return {"success": False, "job_id": None, "job_ids": [], "error": script_result["error"]}
+    
+    # Submit job targeting specific compute node
+    submit_result = submit_job_direct(login_ip, user, nodelist=compute_node, key_path=key_path)
+    if not submit_result["success"]:
+        return {"success": False, "job_id": None, "job_ids": [], "error": submit_result["error"]}
+    
+    job_id = submit_result["job_id"]
+    job_ids.append(job_id)
+    
+    # Wait for job to reach RUNNING state
+    wait_result = wait_job_running(login_ip, user, job_id, timeout=120, key_path=key_path)
+    if wait_result["state"] != "RUNNING":
+        return {
+            "success": False, 
+            "job_id": job_id, 
+            "job_ids": job_ids,
+            "error": f"Job did not reach RUNNING state: {wait_result['state']}"
+        }
+    
+    return {
+        "success": True,
+        "job_id": job_id,
+        "job_ids": job_ids,
+        "error": ""
+    }
+
+
+def cleanup_pam_test(
+    login_ip: str,
+    user: str,
+    compute_nodes: List[str],
+    job_ids: List[str] = None,
+    key_path: Optional[str] = None,
+) -> None:
+    """Clean up after PAM SSH access tests.
+    
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        compute_nodes: list of compute node hostnames to resume
+        job_ids: optional list of job IDs to cancel
+        key_path: optional SSH private key path
+    """
+    cleanup_test_env(login_ip, user, compute_nodes, job_ids, key_path)
+
+
+# =============================================================================
+# RESOURCE LIMIT TEST FIXTURE HELPERS
+# =============================================================================
+
+def setup_resource_limit_test_env() -> Dict[str, Any]:
+    """Set up test environment for resource limit tests.
+    
+    Returns:
+        Dict with 'success', 'login_ip', 'error'
+    """
+    from automation_library.core.host import get_nodes_info
+    
+    oim_host = get_testinfra_host()
+    
+    # Discover login nodes
+    login_nodes_info = get_nodes_info(oim_host, search_by="functional_group", search_value="login_node_x86_64")
+    login_ips = [node["admin_ip"] for node in login_nodes_info if node.get("admin_ip")]
+    
+    if not login_ips:
+        return {
+            "success": False,
+            "login_ip": "",
+            "error": "No login node IPs found in PXE mapping"
+        }
+    
+    # Find reachable login node
+    result = find_reachable_login_node(oim_host, login_ips)
+    if not result["success"]:
+        return {
+            "success": False,
+            "login_ip": "",
+            "error": f"No reachable login nodes found from: {login_ips}"
+        }
+    
+    return {
+        "success": True,
+        "login_ip": result["login_ip"],
+        "error": ""
+    }
+
+
+def get_cluster_resources(login_ip: str, user: str = "root", key_path: Optional[str] = None) -> Dict[str, Any]:
+    """Get cluster resource information (CPUs and memory per node).
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        key_path: optional SSH private key path
+
+    Returns:
+        Dict with 'success', 'node', 'cpus', 'memory_mb', 'error'
+    """
+    # Get node name and CPUs: sinfo -h -N -o "%N %c" | head -1
+    res = ssh_cmd_direct(login_ip, user, 'sinfo -h -N -o "%N %c" | head -1', key_path)
+    if res.returncode != 0 or not res.stdout.strip():
+        return {"success": False, "node": "", "cpus": 0, "memory_mb": 0,
+                "error": res.stderr or "sinfo failed"}
+
+    parts = res.stdout.strip().split()
+    node = parts[0] if parts else ""
+    cpus = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
+
+    # Get memory: sinfo -h -N -o "%N %m" | head -1
+    res_mem = ssh_cmd_direct(login_ip, user, 'sinfo -h -N -o "%N %m" | head -1', key_path)
+    memory_mb = 0
+    if res_mem.returncode == 0 and res_mem.stdout.strip():
+        mem_parts = res_mem.stdout.strip().split()
+        if len(mem_parts) > 1 and mem_parts[1].isdigit():
+            memory_mb = int(mem_parts[1])
+
+    return {
+        "success": True,
+        "node": node,
+        "cpus": cpus,
+        "memory_mb": memory_mb,
+        "error": ""
+    }
+
+
+def create_resource_job_script(
+    login_ip: str,
+    user: str = "root",
+    cpus: int = None,
+    memory_mb: int = None,
+    job_name: str = "resource_test",
+    sleep_seconds: int = 30,
+    key_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Create a job script with specified resource requirements.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        cpus: number of CPUs to request (optional)
+        memory_mb: memory in MB to request (optional)
+        job_name: name for the job
+        sleep_seconds: sleep duration for the job
+        key_path: optional SSH private key path
+
+    Returns:
+        Dict with 'success', 'path', 'error'
+    """
+    script_path = "/tmp/resource_test_job.sh"
+
+    # Build SBATCH directives
+    sbatch_lines = [
+        "#!/bin/bash",
+        f"#SBATCH --job-name={job_name}",
+        "#SBATCH --output=/tmp/resource_test_output.txt",
+        "#SBATCH --error=/tmp/resource_test_error.txt",
+        "#SBATCH --time=0-00:30:00",
+    ]
+
+    if cpus is not None:
+        sbatch_lines.append(f"#SBATCH --cpus-per-task={cpus}")
+
+    if memory_mb is not None:
+        # Convert MB to format Slurm expects (M suffix)
+        sbatch_lines.append(f"#SBATCH --mem={memory_mb}M")
+
+    sbatch_lines.extend([
+        "",
+        'echo "Starting resource test job..."',
+        f"sleep {sleep_seconds}",
+        'echo "Job completed."',
+    ])
+
+    script_content = "\n".join(sbatch_lines)
+
+    # Write script to login node
+    cmd = f"cat > {script_path} << 'EOFSCRIPT'\n{script_content}\nEOFSCRIPT\nchmod +x {script_path}"
+    res = ssh_cmd_direct(login_ip, user, cmd, key_path)
+
+    if res.returncode != 0:
+        return {"success": False, "path": script_path, "error": res.stderr or res.stdout}
+
+    return {"success": True, "path": script_path, "error": ""}
+
+
+def submit_resource_job_script(
+    login_ip: str,
+    user: str = "root",
+    script_path: str = "/tmp/resource_test_job.sh",
+    key_path: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Submit a job script via sbatch.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        script_path: path to the job script
+        key_path: optional SSH private key path
+
+    Returns:
+        Dict with 'success', 'job_id', 'error'
+    """
+    res = ssh_cmd_direct(login_ip, user, f"sbatch --parsable {script_path}", key_path)
+
+    if res.returncode != 0:
+        return {"success": False, "job_id": None, "error": res.stderr or res.stdout}
+
+    raw_id = res.stdout.strip().split()[0] if res.stdout.strip() else ""
+    if not raw_id or not raw_id.isdigit():
+        return {"success": False, "job_id": None, "error": f"Expected numeric job id, got: {raw_id!r}"}
+
+    return {"success": True, "job_id": raw_id, "error": ""}
+
+
+def cleanup_resource_test(
+    login_ip: str,
+    user: str = "root",
+    job_ids: List[str] = None,
+    key_path: Optional[str] = None,
+) -> None:
+    """Cleanup job script and cancel any jobs.
+
+    Args:
+        login_ip: admin IP of the login node
+        user: SSH username
+        job_ids: optional list of job IDs to cancel
+        key_path: optional SSH private key path
+    """
+    if job_ids:
+        cleanup_jobs_direct(login_ip, user, job_ids, key_path)
+    ssh_cmd_direct(login_ip, user, "rm -f /tmp/resource_test_job.sh /tmp/resource_test_output.txt /tmp/resource_test_error.txt", key_path)
