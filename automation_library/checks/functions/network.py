@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -297,13 +297,13 @@ def configure_pxe_nic() -> Dict:
             run_shell(f"sed -i '/^address[0-9]*=/d' '{config_file}' 2>/dev/null")
 
             # Reload NetworkManager to pick up config changes
-            run_shell(f"nmcli con reload 2>/dev/null")
+            run_shell("nmcli con reload 2>/dev/null")
 
             # Bring connection down and up to apply changes
             run_shell(f"nmcli con down '{nm_conn}' 2>/dev/null")
-            run_shell(f"sleep 3")
+            run_shell("sleep 3")
             run_shell(f"nmcli con up '{nm_conn}' 2>/dev/null")
-            run_shell(f"sleep 2")
+            run_shell("sleep 2")
 
         # Multiple attempts to remove all IPs
         for attempt in range(3):
@@ -330,7 +330,7 @@ def configure_pxe_nic() -> Dict:
             run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
 
             # Brief pause to let changes take effect
-            run_shell(f"sleep 1")
+            run_shell("sleep 1")
 
         # Final verification
         rc, remaining_output, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep 'inet ' | wc -l")
@@ -371,7 +371,7 @@ def configure_pxe_nic() -> Dict:
         run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '' 2>/dev/null")
         run_shell(f"nmcli con mod '{nm_conn}' ipv4.method disabled 2>/dev/null")
         run_shell(f"nmcli con down '{nm_conn}' 2>/dev/null")
-        run_shell(f"sleep 2")
+        run_shell("sleep 2")
 
         # Set all IPs via NetworkManager (space-separated for multiple IPs)
         ip_list = " ".join(validated_ips)
@@ -379,7 +379,7 @@ def configure_pxe_nic() -> Dict:
         run_shell(f"nmcli con mod '{nm_conn}' ipv4.method manual")
         # Apply changes
         run_shell(f"nmcli con up '{nm_conn}' 2>/dev/null")
-        run_shell(f"sleep 2")
+        run_shell("sleep 2")
 
     # Also add IPs directly (immediate effect)
     for ip in validated_ips:
@@ -443,6 +443,61 @@ def configure_pxe_nic() -> Dict:
         "message": f"IP configuration failed - could not verify IP on {pxe_iface}",
         "details": f"Network type: {network_type}\nAttempted to configure: {', '.join(validated_ips)}"
     }
+
+
+def check_pxe_is_public_interface() -> Dict:
+    """
+    Warn the user if the PXE interface is the same as the public interface,
+    or if the PXE interface can reach the internet (8.8.8.8).
+
+    If 8.8.8.8 is reachable from the PXE interface, it is likely an
+    internet-facing NIC and probably should NOT be used for PXE provisioning.
+
+    Returns:
+        Dict with 'warning' (bool), 'message', 'details'.
+        'warning' is True only when a potential misconfiguration is detected.
+    """
+    pxe_iface = OIM_PREREQ_VARS.get("pxe_interface", "")
+    public_iface = OIM_PREREQ_VARS.get("public_interface", "")
+
+    if not pxe_iface:
+        return {"warning": False, "message": "PXE interface not set, skipping overlap check"}
+
+    # Case 1: PXE and public interface names are identical
+    if pxe_iface and public_iface and pxe_iface == public_iface:
+        return {
+            "warning": True,
+            "message": (f"WARNING: pxe_interface and public_interface are both set to "
+                        f"'{pxe_iface}'. This is likely a misconfiguration."),
+            "details": (
+                f"The PXE interface is used for node provisioning and should be an "
+                f"isolated network.\nHaving the same NIC for PXE and public internet "
+                f"can cause provisioning issues.\n"
+                f"Please verify your settings in {USER_CONFIG_PATH}:\n"
+                f"  pxe_interface: {pxe_iface}\n"
+                f"  public_interface: {public_iface}"
+            ),
+        }
+
+    # Case 2: PXE interface can reach 8.8.8.8 (internet reachable = likely public NIC)
+    _log(f"Testing if PXE interface '{pxe_iface}' can reach 8.8.8.8...", "INFO")
+    rc, _, _ = run_command(["ping", "-c", "1", "-W", "3", "-I", pxe_iface, "8.8.8.8"])
+
+    if rc == 0:
+        return {
+            "warning": True,
+            "message": (f"WARNING: PXE interface '{pxe_iface}' can reach the internet "
+                        f"(8.8.8.8). It may be an internet-facing NIC, not a PXE NIC."),
+            "details": (
+                f"The PXE interface should be on an isolated provisioning network.\n"
+                f"If '{pxe_iface}' is intentionally used for both PXE and internet, "
+                f"you can ignore this warning.\n"
+                f"Otherwise, update 'pxe_interface' in {USER_CONFIG_PATH}."
+            ),
+        }
+
+    # No overlap detected
+    return {"warning": False, "message": "PXE interface does not overlap with public network"}
 
 
 def check_internet() -> Dict:

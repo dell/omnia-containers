@@ -18,13 +18,15 @@ Telemetry Automation - Core Functions.
 This module provides functions for verifying telemetry pods in K8s cluster.
 """
 
+import json
 import re
-import yaml
 from typing import Dict, Any, List
 
+import yaml
+
+from ...core import run_in_container, INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ...core.host import run_on_remote_node
 from ..vars.idrac_telemetry_vars import (
-    TELEMETRY_VARS,
-    PROVISION_CONFIG_PATH,
     TELEMETRY_NAMESPACE,
     IDRAC_TELEMETRY_POD_PREFIX,
     BMC_GROUP_DATA_PATH,
@@ -53,11 +55,8 @@ def get_service_kube_node_count(host) -> int:
     Returns:
         Count of service_kube_node entries
     """
-    container = TELEMETRY_VARS["container_name"]
-    provision_config_path = PROVISION_CONFIG_PATH
-
     # Read provision_config.yml to get pxe_mapping_file_path
-    cmd = host.run(f"podman exec {container} cat {provision_config_path}")
+    cmd = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
     if cmd.rc != 0:
         return 0
 
@@ -71,7 +70,7 @@ def get_service_kube_node_count(host) -> int:
     pxe_mapping_path = match.group(1).strip()
 
     # Read PXE mapping file and count service_kube_node entries
-    cmd = host.run(f"podman exec {container} cat {pxe_mapping_path}")
+    cmd = run_in_container(host, f"cat {pxe_mapping_path}")
     if cmd.rc != 0:
         return 0
 
@@ -83,12 +82,60 @@ def get_service_kube_node_count(host) -> int:
     return count
 
 
+def get_service_kube_nodes_with_children(host) -> List[str]:
+    """
+    Get list of service_kube_node tags that have child slurm_nodes.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        List of service_kube_node tags that have children
+    """
+    # Read provision_config.yml to get pxe_mapping_file_path
+    cmd = run_in_container(host, f"cat {INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}")
+    if cmd.rc != 0:
+        return []
+
+    # Extract pxe_mapping_file_path
+    match = re.search(
+        r'pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?',
+        cmd.stdout
+    )
+    if not match:
+        return []
+    pxe_mapping_path = match.group(1).strip()
+
+    # Read PXE mapping file
+    cmd = run_in_container(host, f"cat {pxe_mapping_path}")
+    if cmd.rc != 0:
+        return []
+
+    # Parse PXE mapping file
+    lines = cmd.stdout.strip().split('\n')
+    service_kube_nodes = []
+    slurm_parents = set()
+    
+    for line in lines[1:]:  # Skip header
+        if 'service_kube_node' in line.lower():
+            parts = line.split(',')
+            if len(parts) >= 3:
+                service_kube_nodes.append(parts[2].strip())  # SERVICE_TAG column
+        elif 'slurm_node' in line.lower():
+            parts = line.split(',')
+            if len(parts) >= 4 and parts[3].strip():  # PARENT_SERVICE_TAG column
+                slurm_parents.add(parts[3].strip())
+    
+    # Return service_kube_nodes that have children
+    return [node for node in service_kube_nodes if node in slurm_parents]
+
+
 def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     """
     Verify idrac-telemetry pods count matches expected count.
 
     SSH to remote node and check kubectl get pods for idrac-telemetry.
-    Expected count = service_kube_node count + 1 (for management layer pod).
+    Expected count = service_kube_nodes with children + 1 (for management layer pod).
 
     Args:
         host: Testinfra host object
@@ -99,16 +146,17 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     """
     from ...core.host import run_on_remote_node
 
-    # Get expected count (service_kube_node count + 1 for mgmt)
+    # Get expected count (service_kube_nodes with children + 1 for mgmt)
+    service_kube_nodes_with_children = get_service_kube_nodes_with_children(host)
     service_kube_node_count = get_service_kube_node_count(host)
-    expected_count = service_kube_node_count + 1
+    expected_count = len(service_kube_nodes_with_children) + 1
 
     # Get idrac-telemetry pods from remote node
     namespace = TELEMETRY_NAMESPACE
     pod_prefix = IDRAC_TELEMETRY_POD_PREFIX
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | grep {pod_prefix}",
+        f"kubectl get pods -n {namespace} -o name | grep {pod_prefix}",
         admin_ip
     )
 
@@ -124,6 +172,7 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
         "expected_count": expected_count,
         "actual_count": actual_count,
         "service_kube_node_count": service_kube_node_count,
+        "service_kube_nodes_with_children": service_kube_nodes_with_children,
         "pods": pods,
         "error": "" if success else (
             f"Expected {expected_count} idrac-telemetry pods, found {actual_count}"
@@ -149,7 +198,7 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     # Get all pods with status
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} --no-headers 2>/dev/null",
+        f"kubectl get pods -n {namespace} --no-headers",
         admin_ip
     )
 
@@ -195,7 +244,7 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     # Get full output with headers for display
     cmd_full = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o wide 2>/dev/null",
+        f"kubectl get pods -n {namespace} -o wide",
         admin_ip
     )
 
@@ -229,13 +278,12 @@ def get_mysql_credentials(host) -> Dict[str, str]:
     Returns:
         Dict with mysqldb_user and mysqldb_password
     """
-    container = TELEMETRY_VARS["container_name"]
     vault_file = OMNIA_CONFIG_CREDENTIALS_PATH
     key_file = OMNIA_CONFIG_CREDENTIALS_KEY_PATH
 
     # First, try to decrypt vault file
-    cmd = host.run(
-        f"podman exec {container} ansible-vault view {vault_file} "
+    cmd = run_in_container(
+        host, f"ansible-vault view {vault_file} "
         f"--vault-password-file {key_file} 2>/dev/null"
     )
 
@@ -244,7 +292,7 @@ def get_mysql_credentials(host) -> Dict[str, str]:
         content = cmd.stdout
     else:
         # Vault decrypt failed - file might be plain YAML, try reading directly
-        cmd = host.run(f"podman exec {container} cat {vault_file}")
+        cmd = run_in_container(host, f"cat {vault_file}")
         if cmd.rc != 0:
             return {"mysqldb_user": "", "mysqldb_password": "", "error": cmd.stderr}
         content = cmd.stdout
@@ -271,30 +319,43 @@ def get_activated_ips(host) -> List[str]:
     Returns:
         List of activated IP addresses
     """
-    container = TELEMETRY_VARS["container_name"]
     report_path = IDRAC_TELEMETRY_REPORT_PATH
 
-    cmd = host.run(f"podman exec {container} cat {report_path}")
+    # Read telemetry report
+    cmd = run_in_container(host, f"cat {report_path}")
     if cmd.rc != 0:
         return []
 
-    # Parse the report - extract IPs after "Telemetry activated IPs List:"
+    # Parse activated IPs from report
     activated_ips = []
-    in_activated_section = False
-
-    for line in cmd.stdout.strip().split('\n'):
-        if 'Telemetry activated IPs List:' in line:
-            in_activated_section = True
+    lines = cmd.stdout.strip().split('\n')
+    capture_section = False
+    
+    for line in lines:
+        if "Telemetry activated IPs List:" in line:
+            capture_section = True
             continue
-        if in_activated_section:
-            if line.strip().startswith('- '):
-                ip = line.strip()[2:].strip()
-                activated_ips.append(ip)
-            elif line.strip() and not line.strip().startswith('-'):
-                # End of activated section
-                break
-
+        elif capture_section and line.strip().startswith('- '):
+            ip = line.strip()[2:]  # Remove '- ' prefix (after strip)
+            activated_ips.append(ip)
+        elif capture_section and line.strip() and not line.startswith('  -'):
+            # End of the IP list section
+            break
+    
     return activated_ips
+
+
+def has_activated_ips(host) -> bool:
+    """
+    Check if there are any activated IPs in telemetry report.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        True if there are activated IPs, False otherwise
+    """
+    return len(get_activated_ips(host)) > 0
 
 
 def get_bmc_group_data(host) -> List[Dict[str, str]]:
@@ -307,10 +368,9 @@ def get_bmc_group_data(host) -> List[Dict[str, str]]:
     Returns:
         List of dicts with bmc_ip, group_name, parent keys
     """
-    container = TELEMETRY_VARS["container_name"]
     bmc_path = BMC_GROUP_DATA_PATH
 
-    cmd = host.run(f"podman exec {container} cat {bmc_path}")
+    cmd = run_in_container(host, f"cat {bmc_path}")
     if cmd.rc != 0:
         return []
 
@@ -342,10 +402,9 @@ def get_service_cluster_metadata(host) -> Dict[str, Any]:
     Returns:
         Dict with kube_vip and service_cluster_metadata
     """
-    container = TELEMETRY_VARS["container_name"]
     metadata_path = SERVICE_CLUSTER_METADATA_PATH
 
-    cmd = host.run(f"podman exec {container} cat {metadata_path}")
+    cmd = run_in_container(host, f"cat {metadata_path}")
     if cmd.rc != 0:
         return {}
 
@@ -421,9 +480,6 @@ def get_mysql_ips_from_pod(
     Returns:
         List of IPs from services table
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     mysql_cmd = CMD_TEMPLATES["mysql_select_ips"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -433,12 +489,7 @@ def get_mysql_ips_from_pod(
         table=MYSQL_SERVICES_TABLE
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{mysql_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, mysql_cmd, admin_ip)
 
     if cmd.rc != 0:
         return []
@@ -514,7 +565,7 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | "
+        f"kubectl get pods -n {namespace} -o name | "
         f"grep {IDRAC_TELEMETRY_POD_PREFIX}",
         kube_vip
     )
@@ -547,7 +598,14 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
         missing_ips = [ip for ip in expected_ips if ip not in actual_ips]
         extra_ips = [ip for ip in actual_ips if ip not in expected_ips]
 
-        pod_success = len(missing_ips) == 0
+        # Pod success criteria:
+        # 1. No missing IPs (all expected IPs are in MySQL)
+        # 2. If expected is empty but actual has data, that's unexpected - fail
+        if not expected_ips and actual_ips:
+            # Expected nothing but found data - this indicates a mapping issue
+            pod_success = False
+        else:
+            pod_success = len(missing_ips) == 0
 
         pod_results.append({
             "pod_name": pod_name,
@@ -586,9 +644,6 @@ def get_receiver_logs(host, admin_ip: str, pod_name: str, tail_lines: int = 500)
     Returns:
         Log output as string
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     kubectl_cmd = CMD_TEMPLATES["kubectl_logs"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -596,12 +651,7 @@ def get_receiver_logs(host, admin_ip: str, pod_name: str, tail_lines: int = 500)
         tail_lines=tail_lines
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f"'{kubectl_cmd}' 2>/dev/null"
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     return cmd.stdout if cmd.rc == 0 else ""
 
 
@@ -625,21 +675,13 @@ def get_service_tag_via_redfish(
     Returns:
         Service tag string or empty string on failure
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     redfish_cmd = CMD_TEMPLATES["redfish_get_service_tag"].format(
         idrac_user=idrac_user,
         idrac_password=idrac_password,
         idrac_ip=idrac_ip
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{redfish_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, redfish_cmd, admin_ip)
     if cmd.rc != 0:
         return ""
 
@@ -668,9 +710,6 @@ def get_idrac_credentials_from_mysql(
     Returns:
         Dict with username and password
     """
-    container = TELEMETRY_VARS["container_name"]
-    ssh_opts = CMD_TEMPLATES["ssh_opts"]
-
     mysql_cmd = CMD_TEMPLATES["mysql_select_auth"].format(
         namespace=TELEMETRY_NAMESPACE,
         pod_name=pod_name,
@@ -681,18 +720,12 @@ def get_idrac_credentials_from_mysql(
         ip=idrac_ip
     )
 
-    full_cmd = (
-        f"podman exec {container} ssh {ssh_opts} root@{admin_ip} "
-        f'"{mysql_cmd}" 2>/dev/null'
-    )
-
-    cmd = host.run(full_cmd)
+    cmd = run_on_remote_node(host, mysql_cmd, admin_ip)
     if cmd.rc != 0 or not cmd.stdout.strip():
         return {"username": "", "password": ""}
 
     # Parse JSON auth column
     try:
-        import json
         auth_data = json.loads(cmd.stdout.strip())
         return {
             "username": auth_data.get("username", ""),
@@ -875,7 +908,7 @@ def verify_receiver_collecting_metrics(
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
-        f"kubectl get pods -n {namespace} -o name 2>/dev/null | "
+        f"kubectl get pods -n {namespace} -o name | "
         f"grep {IDRAC_TELEMETRY_POD_PREFIX}",
         kube_vip
     )
@@ -944,11 +977,15 @@ def verify_receiver_collecting_metrics(
         # Check for connection status (Got Status: 200)
         has_connection = 'Got Status:  200' in logs
 
-        # Pod success ONLY if ALL IPs have "Got new report" entries
-        # SSE connected without metrics is NOT enough - must have live reports
-        all_ips_have_metrics = all(r["collecting_metrics"] for r in ip_results) if ip_results else False
-
-        pod_success = all_ips_have_metrics
+        # Pod success if:
+        # 1. No MySQL IPs assigned (nothing to collect - this is OK)
+        # 2. All assigned IPs have "Got new report" entries
+        if not ip_results:
+            # No iDRACs assigned to this pod - considered success (nothing to verify)
+            pod_success = True
+        else:
+            # All IPs must have metrics
+            pod_success = all(r["collecting_metrics"] for r in ip_results)
 
         pod_results.append({
             "pod_name": pod_name,

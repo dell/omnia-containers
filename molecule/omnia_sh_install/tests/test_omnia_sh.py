@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,23 @@
 # limitations under the License.
 
 """
-Testinfra tests for omnia.sh installation verification.
+Omnia.sh Install Test Cases.
 
-This file contains minimal test functions that call the centralized
-verification functions in omnia_sh_func.py.
+This module contains pytest test cases for verifying omnia.sh installation.
+
+Test cases:
+1. Verify omnia_core container is running
+2. Verify omnia_core.container file exists
+3. Verify omnia_core service is running
+4. Verify oim_metadata.yml file exists inside container
+5. Verify passwordless SSH to container works
+6. Verify passwordless SSH from container works
 """
 
 from automation_library.core import TestLogger
+from automation_library.omnia_sh.vars.omnia_sh_vars import TEST_VARS
 from automation_library.omnia_sh.messages.omnia_sh_msgs import (
-    TEST_VARS, TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
+    TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
 from automation_library.omnia_sh.functions.omnia_sh_func import (
     check_container_running,
@@ -36,13 +44,17 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 def test_omnia_core_container_running(host):
     """Verify omnia_core container is running."""
     log = TestLogger(TEST_NAMES["container_running"])
-    log.check("Checking container: omnia_core")
 
     result = check_container_running(host)
 
     if result["success"]:
         d = result["details"]
-        details = f"Container: {d['container']}\nStatus: {d['status']}\nImage: {d['image']}\nPorts: {d['ports']}"
+        details = (
+            f"Container: {d['container']}\n"
+            f"Status: {d['status']}\n"
+            f"Image: {d['image']}\n"
+            f"Ports: {d['ports']}"
+        )
         log.passed(LOG_MSGS["container_running"], details)
     else:
         log.failed(LOG_MSGS["container_not_running"], result["error"])
@@ -54,14 +66,13 @@ def test_omnia_core_container_file_exists(host):
     """Verify omnia_core.container file is present."""
     log = TestLogger(TEST_NAMES["container_file"])
     path = TEST_VARS["container_file"]
-    log.check(f"Checking file: {path}")
 
     result = check_file_exists(host, path)
 
     if result["success"]:
-        log.passed(LOG_MSGS["file_exists"], result["details"])
+        log.passed(LOG_MSGS["file_exists"], f"Path: {path}\n{result['details']}")
     else:
-        log.failed(LOG_MSGS["file_not_found"], result["error"])
+        log.failed(LOG_MSGS["file_not_found"], f"Path: {path}\n{result['error']}")
 
     assert result["success"], result["error"]
 
@@ -70,14 +81,16 @@ def test_omnia_core_service_running(host):
     """Verify omnia_core systemd service is running."""
     log = TestLogger(TEST_NAMES["service_running"])
     service = TEST_VARS["service_name"]
-    log.check(f"Checking service: {service}")
 
     result = check_service_running(host, service)
 
     if result["success"]:
-        log.passed(LOG_MSGS["service_active"], result["details"])
+        log.passed(LOG_MSGS["service_active"], f"Service: {service}\n{result['details']}")
     else:
-        log.failed(LOG_MSGS["service_inactive"].format(status=result["status"]), result["details"])
+        log.failed(
+            LOG_MSGS["service_inactive"].format(status=result["status"]),
+            f"Service: {service}\n{result['details']}"
+        )
 
     assert result["success"], ASSERT_MSGS["service_not_active"].format(status=result["status"])
 
@@ -86,14 +99,13 @@ def test_oim_metadata_file_exists(host):
     """Verify oim_metadata.yml file is present."""
     log = TestLogger(TEST_NAMES["metadata_file"])
     path = TEST_VARS["metadata_file"]
-    log.check(f"Checking file: {path}")
 
     result = check_metadata_file(host)
 
     if result["success"]:
-        log.passed(LOG_MSGS["file_exists"], result["details"])
+        log.passed(LOG_MSGS["file_exists"], f"Path: {path}\n{result['details']}")
     else:
-        log.failed(LOG_MSGS["file_not_found"], result["error"])
+        log.failed(LOG_MSGS["file_not_found"], f"Path: {path}\n{result['error']}")
 
     assert result["success"], result["error"]
 
@@ -102,16 +114,20 @@ def test_passwordless_ssh_to_container(host):
     """Verify passwordless SSH from OIM server to omnia_core container."""
     log = TestLogger(TEST_NAMES["ssh_to_container"])
     alias = TEST_VARS["ssh_alias"]
-    log.check(f"Testing SSH: OIM server → {alias}")
 
     result = check_ssh_to_container(host)
 
     if result["success"]:
         d = result["details"]
-        details = f"Connected as: {d['user']}\nWorking directory: {d['workdir']}\nConnection: {d['connection']}"
+        details = (
+            f"Direction: OIM server → {alias}\n"
+            f"Connected as: {d['user']}\n"
+            f"Working directory: {d['workdir']}\n"
+            f"Connection: {d['connection']}"
+        )
         log.passed(LOG_MSGS["ssh_success"], details)
     else:
-        log.failed(LOG_MSGS["ssh_failed"], result["error"])
+        log.failed(LOG_MSGS["ssh_failed"], f"Direction: OIM server → {alias}\n{result['error']}")
 
     assert result["success"], ASSERT_MSGS["ssh_failed"].format(error=result["error"])
 
@@ -124,15 +140,18 @@ def test_passwordless_ssh_from_container_to_host(host):
 
     assert oim_ip, ASSERT_MSGS["config_missing"]
 
-    log.check(f"Testing SSH: {alias} → OIM server ({oim_ip})")
-
     result = check_ssh_from_container(host, oim_ip)
 
     if result["success"]:
         d = result["details"]
-        details = f"Connected as: {d['user']}\nTarget: {d['target']}\nConnection: {d['connection']}"
+        details = (
+            f"Direction: {alias} → OIM server ({oim_ip})\n"
+            f"Connected as: {d['user']}\n"
+            f"Target: {d['target']}\n"
+            f"Connection: {d['connection']}"
+        )
         log.passed(LOG_MSGS["ssh_success"], details)
     else:
-        log.failed(LOG_MSGS["ssh_failed"], result["error"])
+        log.failed(LOG_MSGS["ssh_failed"], f"Direction: {alias} → OIM server ({oim_ip})\n{result['error']}")
 
     assert result["success"], ASSERT_MSGS["ssh_failed"].format(error=result["error"])

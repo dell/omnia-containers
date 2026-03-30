@@ -70,7 +70,6 @@ TELEMETRY_VARS: Dict[str, Any] = {
     "telemetry_playbook": "/omnia/telemetry/telemetry.yml",
 
     # Prerequisite files (inside container)
-    "provision_config_path": "/opt/omnia/input/project_default/provision_config.yml",
     "bmc_group_data_path": "/opt/omnia/telemetry/bmc_group_data.csv",
     "service_cluster_metadata_path": "/opt/omnia/.data/service_cluster_metadata.yml",
 
@@ -78,7 +77,7 @@ TELEMETRY_VARS: Dict[str, Any] = {
     "telemetry_namespace": "telemetry",
 
     # Functional group for K8s control plane (used to get admin IP for SSH)
-    "k8s_control_plane_functional_group": "service_kube_control_plane",
+    "k8s_control_plane_functional_group": "service_kube_control_plane_x86_64",
 
     # iDRAC telemetry pod prefix
     "idrac_telemetry_pod_prefix": "idrac-telemetry",
@@ -103,11 +102,9 @@ TELEMETRY_VARS: Dict[str, Any] = {
 # Convenience Constants
 # =============================================================================
 
-PROVISION_CONFIG_PATH = TELEMETRY_VARS["provision_config_path"]
 BMC_GROUP_DATA_PATH = TELEMETRY_VARS["bmc_group_data_path"]
 SERVICE_CLUSTER_METADATA_PATH = TELEMETRY_VARS["service_cluster_metadata_path"]
 TELEMETRY_NAMESPACE = TELEMETRY_VARS["telemetry_namespace"]
-K8S_CONTROL_PLANE_FUNCTIONAL_GROUP = TELEMETRY_VARS["k8s_control_plane_functional_group"]
 IDRAC_TELEMETRY_POD_PREFIX = TELEMETRY_VARS["idrac_telemetry_pod_prefix"]
 STABILITY_WAIT_TIME = TELEMETRY_VARS["stability_wait_time"]
 IDRAC_TELEMETRY_REPORT_PATH = TELEMETRY_VARS["idrac_telemetry_report_path"]
@@ -129,22 +126,24 @@ CMD_TEMPLATES: Dict[str, str] = {
     "kubectl_logs": "kubectl logs -n {namespace} {pod_name} -c {container} --tail={tail_lines}",
 
     # MySQL commands
+    # NOTE: run_on_remote_node auto-escapes double quotes for SSH.
+    # Callers pass normal commands with plain double quotes.
     "mysql_select_ips": (
-        "kubectl exec -n {namespace} {pod_name} -c mysqldb -- "
-        "mysql -u {mysql_user} -p{mysql_password} -N -e "
-        "\\\"SELECT ip FROM {database}.{table};\\\""
+        'kubectl exec -n {namespace} {pod_name} -c mysqldb -- '
+        'mysql -u {mysql_user} -p{mysql_password} -N -e '
+        '"SELECT ip FROM {database}.{table};"'
     ),
     "mysql_select_auth": (
-        "kubectl exec -n {namespace} {pod_name} -c mysqldb -- "
-        "mysql -u {mysql_user} -p{mysql_password} -N -e "
-        "\\\"SELECT auth FROM {database}.{table} WHERE ip='{ip}';\\\""
+        'kubectl exec -n {namespace} {pod_name} -c mysqldb -- '
+        'mysql -u {mysql_user} -p{mysql_password} -N -B -e '
+        '"SELECT auth FROM {database}.{table} WHERE ip=\'{ip}\';"'
     ),
 
     # Redfish command to get service tag
     "redfish_get_service_tag": (
         "curl -sk -u {idrac_user}:{idrac_password} "
-        "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 2>/dev/null | "
-        "python3 -c \\\"import sys,json; print(json.load(sys.stdin).get('SKU',''))\\\""
+        "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 | "
+        'python3 -c \'import sys,json; print(json.load(sys.stdin).get("SKU",""))\''
     ),
 
     # Ansible vault commands
@@ -163,23 +162,3 @@ MYSQL_SERVICES_TABLE = "services"
 
 # Receiver container name
 IDRAC_RECEIVER_CONTAINER = "idrac-telemetry-receiver"
-
-
-# =============================================================================
-# Validation Functions
-# =============================================================================
-
-def validate_telemetry_config() -> Dict[str, Any]:
-    """Validate telemetry configuration."""
-    errors = []
-
-    if not TELEMETRY_VARS.get("oim_server_ip"):
-        errors.append("oim_server_ip is required in user_config.yml")
-
-    if not TELEMETRY_VARS.get("oim_ssh_password"):
-        errors.append("oim_ssh_password is required in user_config.yml")
-
-    return {
-        "valid": len(errors) == 0,
-        "errors": errors,
-    }

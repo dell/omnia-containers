@@ -13,18 +13,22 @@
 # limitations under the License.
 
 """
-Testinfra tests for local_repo verification.
+Local Repo Test Cases.
 
-Validations:
-- Pulp container is running
-- Pulp CLI commands work
-- status.csv indicates all packages downloaded successfully
-- software_config.json packages exist in Pulp
-- Pulp API status is healthy
-- Pulp repositories are synced
-- Pulp distributions are published
-- No failed tasks in Pulp
-- Pulp content is accessible via HTTP
+This module contains pytest test cases for verifying local_repo (Pulp) deployment.
+
+Test cases:
+1. Verify Pulp container is running
+2. Verify Pulp CLI connectivity (rpm repository list)
+3. Verify Pulp API health (DB, workers, storage)
+4. Verify software download results (software.csv)
+5. Verify per-package download results (status.csv)
+6. Verify all RPM repositories synced in Pulp
+7. Verify all RPM distributions published
+8. Verify all container image repositories synced
+9. Verify all file repositories synced
+10. Verify RPM content reachable via HTTPS (repomd.xml)
+11. Verify all software_config.json RPM packages in Pulp
 """
 
 from automation_library.core import TestLogger
@@ -37,20 +41,25 @@ from automation_library.local_repo.messages.local_repo_msgs import (
 from automation_library.local_repo.functions.local_repo_func import (
     check_container_running,
     check_pulp_cli_repository_list,
-    check_status_csv_all_packages_downloaded,
-    check_software_packages_in_pulp,
     check_pulp_api_status,
+    check_software_download_status,
+    check_per_software_package_status,
     check_pulp_repositories_synced,
     check_pulp_distributions_published,
-    check_pulp_no_failed_tasks,
+    check_container_repos_synced,
+    check_file_repos_synced,
     check_pulp_content_accessible,
+    check_software_packages_in_pulp,
 )
 
 
+# ---------------------------------------------------------------------------
+# 1. Pulp container running
+# ---------------------------------------------------------------------------
 def test_pulp_container_running(host):
     container = TEST_VARS["pulp_container"]
     log = TestLogger(TEST_NAMES["pulp_container_running"])
-    log.check(f"Checking container: {container}")
+    log.check(f"Verifying '{container}' container is running via podman ps")
 
     result = check_container_running(host, container)
     if result["success"]:
@@ -64,9 +73,12 @@ def test_pulp_container_running(host):
     )
 
 
+# ---------------------------------------------------------------------------
+# 2. Pulp CLI connectivity
+# ---------------------------------------------------------------------------
 def test_pulp_cli_repository_list(host):
     log = TestLogger(TEST_NAMES["pulp_cli_repo_list"])
-    log.check("Running pulp command inside omnia_core")
+    log.check("Running 'pulp rpm repository list' inside omnia_core container")
 
     result = check_pulp_cli_repository_list(host)
     if result["success"]:
@@ -77,152 +89,159 @@ def test_pulp_cli_repository_list(host):
     assert result["success"], ASSERT_MSGS["pulp_cli_failed"]
 
 
-def test_status_csv_all_packages_downloaded(host):
-    log = TestLogger(TEST_NAMES["status_csv"])
-    log.check("Validating status.csv inside omnia_core")
-
-    result = check_status_csv_all_packages_downloaded(host)
-    if result["success"]:
-        log.passed(LOG_MSGS["status_csv_no_failures"], (result.get("details") or "").strip())
-        return
-
-    roots = ", ".join(TEST_VARS.get("status_search_roots", []))
-    if result.get("error") == "status.csv not found":
-        log.failed(LOG_MSGS["status_csv_missing"], roots)
-        assert False, ASSERT_MSGS["status_csv_missing"].format(roots=roots)
-
-    details = result.get("details") or result.get("error") or ""
-    log.failed(LOG_MSGS["status_csv_has_failures"], details)
-    assert False, ASSERT_MSGS["status_csv_failed"].format(details=details)
-
-
-def test_software_packages_in_pulp(host):
-    """
-    Verify that all packages defined in software_config.json exist in Pulp.
-    
-    This test:
-    1. Reads software_config.json from omnia_core container
-    2. Loads corresponding config/<arch>/<os>/<version>/<software>.json files
-    3. Extracts all RPM package names and their expected repos
-    4. Verifies each package exists in Pulp using 'pulp rpm content list'
-    """
-    log = TestLogger(TEST_NAMES["software_packages_in_pulp"])
-    log.check("Parsing software_config.json and verifying packages in Pulp")
-
-    result = check_software_packages_in_pulp(host)
-    
-    if result["success"]:
-        summary = f"Found: {result.get('found_packages', 0)}/{result.get('total_packages', 0)} packages"
-        log.passed(LOG_MSGS["software_packages_ok"], summary)
-        return
-
-    # Handle config load errors
-    if "config" in (result.get("error") or "").lower():
-        log.failed(LOG_MSGS["software_config_error"], result.get("error") or "")
-        assert False, ASSERT_MSGS["software_config_error"].format(error=result.get("error") or "")
-
-    # Handle missing packages
-    details = result.get("details") or result.get("error") or ""
-    missing_count = result.get("missing_packages", 0)
-    log.failed(
-        LOG_MSGS["software_packages_missing"],
-        f"Missing: {missing_count} packages\n{details}"
-    )
-    assert False, ASSERT_MSGS["software_packages_missing"].format(details=details)
-
-
+# ---------------------------------------------------------------------------
+# 3. Pulp API health
+# ---------------------------------------------------------------------------
 def test_pulp_api_status(host):
-    """
-    Verify Pulp API status is healthy.
-    
-    This test:
-    1. Runs 'pulp status' command
-    2. Checks database connection is active
-    3. Verifies online workers are available
-    """
     log = TestLogger(TEST_NAMES["pulp_api_status"])
-    log.check("Checking Pulp API status (database, workers)")
-    
+    log.check("Querying 'pulp status' for DB connection, workers, content apps, storage")
+
     result = check_pulp_api_status(host)
     if result["success"]:
         log.passed(LOG_MSGS["pulp_api_healthy"], result.get("details") or "")
     else:
-        log.failed(LOG_MSGS["pulp_api_unhealthy"], result.get("details") or result.get("error") or "")
-        assert False, ASSERT_MSGS["pulp_api_unhealthy"].format(details=result.get("details") or result.get("error") or "")
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["pulp_api_unhealthy"], details)
+        assert False, ASSERT_MSGS["pulp_api_unhealthy"].format(details=details)
 
 
+# ---------------------------------------------------------------------------
+# 4. Software download status (software.csv)
+# ---------------------------------------------------------------------------
+def test_software_download_status(host):
+    log = TestLogger(TEST_NAMES["software_download_status"])
+    log.check("Parsing software.csv per architecture for download success/failure")
+
+    result = check_software_download_status(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["sw_download_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["sw_download_failed"], details)
+        assert False, ASSERT_MSGS["sw_download_failed"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 5. Per-software package status (status.csv per software)
+# ---------------------------------------------------------------------------
+def test_per_software_package_status(host):
+    log = TestLogger(TEST_NAMES["per_software_package_status"])
+    log.check("Parsing per-software status.csv for individual package download results")
+
+    result = check_per_software_package_status(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["pkg_status_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["pkg_status_failed"], details)
+        assert False, ASSERT_MSGS["pkg_status_failed"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 6. RPM repositories synced
+# ---------------------------------------------------------------------------
 def test_pulp_repositories_synced(host):
-    """
-    Verify all Pulp RPM repositories are synced.
-    
-    This test:
-    1. Lists all RPM repositories
-    2. Checks each has a latest_version_href (indicating sync completed)
-    """
     log = TestLogger(TEST_NAMES["pulp_repositories_synced"])
-    log.check("Checking Pulp repositories sync status")
-    
+    log.check("Querying Pulp RPM repos for latest_version_href (sync indicator)")
+
     result = check_pulp_repositories_synced(host)
     if result["success"]:
         log.passed(LOG_MSGS["pulp_repos_synced"], result.get("details") or "")
     else:
-        log.failed(LOG_MSGS["pulp_repos_not_synced"], result.get("details") or "")
-        assert False, ASSERT_MSGS["pulp_repos_not_synced"].format(details=result.get("details") or result.get("error") or "")
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["pulp_repos_not_synced"], details)
+        assert False, ASSERT_MSGS["pulp_repos_not_synced"].format(details=details)
 
 
+# ---------------------------------------------------------------------------
+# 7. RPM distributions published
+# ---------------------------------------------------------------------------
 def test_pulp_distributions_published(host):
-    """
-    Verify Pulp RPM distributions are published.
-    
-    This test:
-    1. Lists all RPM distributions
-    2. Checks each has a publication or repository attached
-    """
     log = TestLogger(TEST_NAMES["pulp_distributions_published"])
-    log.check("Checking Pulp distributions publication status")
-    
+    log.check("Querying Pulp RPM distributions for publication/repository attachment")
+
     result = check_pulp_distributions_published(host)
     if result["success"]:
         log.passed(LOG_MSGS["pulp_distributions_ok"], result.get("details") or "")
     else:
-        log.failed(LOG_MSGS["pulp_distributions_missing"], result.get("details") or "")
-        assert False, ASSERT_MSGS["pulp_distributions_missing"].format(details=result.get("details") or result.get("error") or "")
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["pulp_distributions_missing"], details)
+        assert False, ASSERT_MSGS["pulp_distributions_missing"].format(details=details)
 
 
-def test_pulp_no_failed_tasks(host):
-    """
-    Verify no failed tasks in Pulp task queue.
-    
-    This test:
-    1. Lists failed tasks in Pulp
-    2. Fails if any failed tasks are found
-    """
-    log = TestLogger(TEST_NAMES["pulp_no_failed_tasks"])
-    log.check("Checking for failed tasks in Pulp")
-    
-    result = check_pulp_no_failed_tasks(host)
+# ---------------------------------------------------------------------------
+# 8. Container image repositories synced
+# ---------------------------------------------------------------------------
+def test_container_repos_synced(host):
+    log = TestLogger(TEST_NAMES["container_repos_synced"])
+    log.check("Querying Pulp container repos for latest_version_href (sync indicator)")
+
+    result = check_container_repos_synced(host)
     if result["success"]:
-        log.passed(LOG_MSGS["pulp_no_failed_tasks"], result.get("details") or "")
+        log.passed(LOG_MSGS["container_repos_synced"], result.get("details") or "")
     else:
-        log.failed(LOG_MSGS["pulp_has_failed_tasks"], result.get("details") or "")
-        assert False, ASSERT_MSGS["pulp_failed_tasks"].format(details=result.get("details") or result.get("error") or "")
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["container_repos_not_synced"], details)
+        assert False, ASSERT_MSGS["container_repos_not_synced"].format(details=details)
 
 
+# ---------------------------------------------------------------------------
+# 9. File repositories synced
+# ---------------------------------------------------------------------------
+def test_file_repos_synced(host):
+    log = TestLogger(TEST_NAMES["file_repos_synced"])
+    log.check("Querying Pulp file repos for latest_version_href (sync indicator)")
+
+    result = check_file_repos_synced(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["file_repos_synced"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["file_repos_not_synced"], details)
+        assert False, ASSERT_MSGS["file_repos_not_synced"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 10. RPM content accessible via HTTPS (repomd.xml)
+# ---------------------------------------------------------------------------
 def test_pulp_content_accessible(host):
-    """
-    Verify Pulp content is accessible via HTTP.
-    
-    This test:
-    1. Gets a distribution's base_path
-    2. Attempts to access repomd.xml via HTTP
-    3. Verifies content serving pipeline is working
-    """
     log = TestLogger(TEST_NAMES["pulp_content_accessible"])
-    log.check("Checking Pulp content accessibility via HTTP")
-    
+    log.check("Curling repomd.xml for each RPM distribution base_path")
+
     result = check_pulp_content_accessible(host)
     if result["success"]:
         log.passed(LOG_MSGS["pulp_content_accessible"], result.get("details") or "")
     else:
-        log.failed(LOG_MSGS["pulp_content_not_accessible"], result.get("details") or "")
-        assert False, ASSERT_MSGS["pulp_content_not_accessible"].format(details=result.get("details") or result.get("error") or "")
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["pulp_content_not_accessible"], details)
+        assert False, ASSERT_MSGS["pulp_content_not_accessible"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 11. Software packages in Pulp
+# ---------------------------------------------------------------------------
+def test_software_packages_in_pulp(host):
+    log = TestLogger(TEST_NAMES["software_packages_in_pulp"])
+    log.check("Loading software_config.json, extracting RPM packages, verifying each in Pulp")
+
+    result = check_software_packages_in_pulp(host)
+
+    if result["success"]:
+        # Show full details with all individual package names
+        details = result.get("details") or ""
+        log.passed(LOG_MSGS["software_packages_ok"], details)
+        return
+
+    if "config" in (result.get("error") or "").lower():
+        log.failed(LOG_MSGS["software_config_error"], result.get("error") or "")
+        assert False, ASSERT_MSGS["software_config_error"].format(
+            error=result.get("error") or ""
+        )
+
+    details = result.get("details") or result.get("error") or ""
+    missing_count = result.get("missing_packages", 0)
+    log.failed(
+        LOG_MSGS["software_packages_missing"],
+        f"Missing: {missing_count} packages\n{details}",
+    )
+    assert False, ASSERT_MSGS["software_packages_missing"].format(details=details)

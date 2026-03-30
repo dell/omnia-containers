@@ -22,17 +22,9 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, List, TYPE_CHECKING
+from typing import Dict, Any, List
 
 import yaml
-
-try:
-    import testinfra
-except ImportError:
-    testinfra = None
-
-if TYPE_CHECKING:
-    import testinfra
 
 from .vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 

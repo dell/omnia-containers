@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,15 +27,16 @@ from .functions.idrac_telemetry_func import (
     verify_idrac_telemetry_pod_count,
     verify_all_telemetry_pods_running,
 )
-from .functions.kafka_func import (
+from .functions.shared_func import (
     is_kafka_enabled,
     is_ldms_enabled,
-    verify_kafka_mtls_connection,
-    verify_kafka_topics,
+)
+from .functions.kafka_func import (
+    verify_kafka_topics_via_rest,
     verify_kafka_config_match,
     verify_ldms_pods_running,
     verify_ldms_services_ports,
 )
-from .vars.idrac_telemetry_vars import TELEMETRY_VARS, validate_telemetry_config
+from .vars.idrac_telemetry_vars import TELEMETRY_VARS
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
-from .messages.telemetry_msgs import TELEMETRY_MSGS, TEST_NAMES
+from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES

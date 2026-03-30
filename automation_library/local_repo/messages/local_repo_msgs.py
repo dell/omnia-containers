@@ -20,9 +20,7 @@ and test variables for the local_repo automation.
 Author: Dell Technologies
 """
 
-from typing import Dict
-
-from ..vars.local_repo_vars import LOCAL_REPO_VARS
+from ..vars.local_repo_vars import OMNIA_CORE_CONTAINER, PULP_CONTAINER
 
 
 # =============================================================================
@@ -30,51 +28,61 @@ from ..vars.local_repo_vars import LOCAL_REPO_VARS
 # =============================================================================
 
 TEST_VARS = {
-    "pulp_container": LOCAL_REPO_VARS["pulp_container"],
-    "omnia_core_container": LOCAL_REPO_VARS["omnia_core_container"],
-    "status_search_roots": LOCAL_REPO_VARS["status_search_roots"],
+    "pulp_container": PULP_CONTAINER,
+    "omnia_core_container": OMNIA_CORE_CONTAINER,
 }
 
 
 TEST_NAMES = {
-    "pulp_container_running": "Verify pulp container is running",
-    "pulp_cli_repo_list": "Verify pulp CLI works (pulp rpm repository list)",
-    "status_csv": "Verify packages downloaded successfully (status.csv)",
-    "software_packages_in_pulp": "Verify software_config packages exist in Pulp",
-    "pulp_api_status": "Verify Pulp API status is healthy",
-    "pulp_repositories_synced": "Verify Pulp repositories are synced",
-    "pulp_distributions_published": "Verify Pulp distributions are published",
-    "pulp_no_failed_tasks": "Verify no failed tasks in Pulp",
-    "pulp_content_accessible": "Verify Pulp content is accessible via HTTP",
+    "pulp_container_running": "Verify Pulp container is running",
+    "pulp_cli_repo_list": "Verify Pulp CLI connectivity (rpm repository list)",
+    "pulp_api_status": "Verify Pulp API health (DB, workers, storage)",
+    "software_download_status": "Verify software download results (software.csv)",
+    "per_software_package_status": "Verify per-package download results (status.csv)",
+    "pulp_repositories_synced": "Verify all RPM repositories synced in Pulp",
+    "pulp_distributions_published": "Verify all RPM distributions published",
+    "container_repos_synced": "Verify all container image repositories synced",
+    "file_repos_synced": "Verify all file repositories synced",
+    "pulp_content_accessible": "Verify RPM content reachable via HTTPS (repomd.xml)",
+    "software_packages_in_pulp": "Verify all software_config.json RPM packages in Pulp",
 }
 
 
 TEST_LOG_MSGS = {
+    # 1. Container
     "container_running": "Container {container} is running",
     "container_not_running": "Container {container} is NOT running",
-    "pulp_cli_ok": "pulp rpm repository list succeeded",
-    "pulp_cli_fail": "pulp rpm repository list failed",
-    "status_csv_found": "Found status.csv",
-    "status_csv_missing": "status.csv not found",
-    "status_csv_empty": "status.csv is empty",
-    "status_csv_no_rows": "status.csv has no rows",
-    "status_csv_no_failures": "All packages show success in top-level status.csv",
-    "status_csv_has_failures": "Top-level status.csv contains failures",
-    "per_pkg_some_failed": "Some packages failed download/validation",
-    "software_packages_ok": "All software_config packages found in Pulp",
-    "software_packages_missing": "Some software_config packages missing from Pulp",
+    # 2. Pulp CLI
+    "pulp_cli_ok": "Pulp CLI responding — repository list retrieved",
+    "pulp_cli_fail": "Pulp CLI not responding — repository list failed",
+    # 3. Pulp API
+    "pulp_api_healthy": "Pulp API healthy — DB connected, workers online",
+    "pulp_api_unhealthy": "Pulp API unhealthy — check DB/workers",
+    # 4. Software download status
+    "sw_download_ok": "All software downloads succeeded (software.csv)",
+    "sw_download_failed": "Software download failures detected (software.csv)",
+    # 5. Per-software package status
+    "pkg_status_ok": "All per-package downloads succeeded (status.csv)",
+    "pkg_status_failed": "Package download failures detected (status.csv)",
+    # 6. RPM repos
+    "pulp_repos_synced": "All RPM repositories synced with latest version",
+    "pulp_repos_not_synced": "RPM repositories with missing sync detected",
+    # 7. RPM distributions
+    "pulp_distributions_ok": "All RPM distributions published and serving",
+    "pulp_distributions_missing": "Unpublished RPM distributions detected",
+    # 8. Container repos
+    "container_repos_synced": "All container image repositories synced",
+    "container_repos_not_synced": "Container image repositories with missing sync",
+    # 9. File repos
+    "file_repos_synced": "All file repositories synced",
+    "file_repos_not_synced": "File repositories with missing sync detected",
+    # 10. Content accessible
+    "pulp_content_accessible": "All RPM distribution endpoints return HTTP 200",
+    "pulp_content_not_accessible": "RPM distribution endpoints not returning HTTP 200",
+    # 11. Software packages in Pulp
+    "software_packages_ok": "All software_config.json RPM packages found in Pulp",
+    "software_packages_missing": "RPM packages from software_config.json missing in Pulp",
     "software_config_error": "Failed to load software_config.json",
-    # Pulp API and functionality messages
-    "pulp_api_healthy": "Pulp API status is healthy",
-    "pulp_api_unhealthy": "Pulp API status check failed",
-    "pulp_repos_synced": "All Pulp repositories are synced",
-    "pulp_repos_not_synced": "Some Pulp repositories are not synced",
-    "pulp_distributions_ok": "All Pulp distributions are published",
-    "pulp_distributions_missing": "Some Pulp distributions are missing",
-    "pulp_no_failed_tasks": "No failed tasks in Pulp",
-    "pulp_has_failed_tasks": "Failed tasks found in Pulp",
-    "pulp_content_accessible": "Pulp content is accessible via HTTP",
-    "pulp_content_not_accessible": "Pulp content is not accessible",
 }
 
 
@@ -103,29 +111,103 @@ TEST_ASSERT_MSGS = {
 ║   3. Check pulp logs: podman logs pulp
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
-    "status_csv_missing": """
+    "pulp_api_unhealthy": """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║ STATUS.CSV NOT FOUND
+║ PULP API STATUS CHECK FAILED
 ╠══════════════════════════════════════════════════════════════════════════════╣
-║ Searched: {roots}
-║
-║ HOW TO FIX:
-║   1. Confirm local_repo playbook ran successfully
-║   2. Check logs under /opt/omnia/log and /local/omnia/log
-║   3. Search manually: find {roots} -name status.csv
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "status_csv_failed": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ STATUS.CSV INDICATES FAILURES
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ Details:
 ║ {details}
 ║
 ║ HOW TO FIX:
-║   1. Inspect status.csv and referenced per-package CSVs
-║   2. Check pulp logs: podman logs pulp
+║   1. Check pulp container is running: podman ps | grep pulp
+║   2. Check pulp status: podman exec omnia_core pulp status
+║   3. Check pulp logs: podman logs pulp
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "sw_download_failed": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ SOFTWARE DOWNLOAD FAILURES DETECTED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check /opt/omnia/log/local_repo/<arch>/software.csv for failed entries
+║   2. Check /opt/omnia/log/local_repo/standard.log for errors
+║   3. Verify internet connectivity and repo URL availability
+║   4. Re-run local_repo.yml inside omnia_core
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pkg_status_failed": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PACKAGE DOWNLOAD/SYNC FAILURES DETECTED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check per-software status.csv files under /opt/omnia/log/local_repo/
+║   2. Look for 'Failed' entries and check corresponding repos
+║   3. Verify repo URLs in local_repo_config.yml are accessible
+║   4. Re-run local_repo.yml inside omnia_core
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_repos_not_synced": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ RPM REPOSITORIES NOT SYNCED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check repository sync status: pulp rpm repository list
+║   2. Re-run sync: pulp rpm repository sync --name <repo_name> --remote <name>
+║   3. Check pulp logs for sync errors: podman logs pulp
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_distributions_missing": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ RPM DISTRIBUTIONS NOT PUBLISHED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. List distributions: pulp rpm distribution list
+║   2. Create missing distribution: pulp rpm distribution create
+║   3. Check publication status: pulp rpm publication list
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "container_repos_not_synced": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ CONTAINER REPOSITORIES NOT SYNCED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check container repos: pulp container repository list
+║   2. Verify image references in software config JSONs
+║   3. Check registry accessibility and credentials
+║   4. Re-run local_repo.yml inside omnia_core
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "file_repos_not_synced": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ FILE REPOSITORIES NOT SYNCED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check file repos: pulp file repository list
+║   2. Verify tarball/ISO/manifest URLs in software config JSONs
 ║   3. Re-run local_repo.yml inside omnia_core
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "pulp_content_not_accessible": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PULP RPM CONTENT NOT ACCESSIBLE
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check distribution exists: pulp rpm distribution list
+║   2. Verify content URL: curl -sk https://localhost:2225/pulp/content/<base_path>/repodata/repomd.xml
+║   3. Check nginx/pulp content app: podman logs pulp
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "software_packages_missing": """
@@ -153,80 +235,4 @@ TEST_ASSERT_MSGS = {
 ║   3. Ensure config/<arch>/<os>/<version>/*.json files exist
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
-    "pulp_api_unhealthy": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP API STATUS CHECK FAILED
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. Check pulp container is running: podman ps | grep pulp
-║   2. Check pulp status: podman exec omnia_core pulp status
-║   3. Check pulp logs: podman logs pulp
-║   4. Restart pulp: systemctl restart pulp
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "pulp_repos_not_synced": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP REPOSITORIES NOT SYNCED
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. Check repository sync status: pulp rpm repository list
-║   2. Re-run sync: pulp rpm repository sync --name <repo_name>
-║   3. Check pulp logs for sync errors: podman logs pulp
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "pulp_distributions_missing": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP DISTRIBUTIONS NOT PUBLISHED
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. List distributions: pulp rpm distribution list
-║   2. Create missing distribution: pulp rpm distribution create
-║   3. Check publication status: pulp rpm publication list
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "pulp_failed_tasks": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP HAS FAILED TASKS
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. List failed tasks: pulp task list --state=failed
-║   2. Check task details for specific errors
-║   3. Re-run failed sync/publish operations
-║   4. Check pulp logs: podman logs pulp
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-    "pulp_content_not_accessible": """
-╔══════════════════════════════════════════════════════════════════════════════╗
-║ PULP CONTENT NOT ACCESSIBLE
-╠══════════════════════════════════════════════════════════════════════════════╣
-║ {details}
-║
-║ HOW TO FIX:
-║   1. Check distribution exists: pulp rpm distribution list
-║   2. Verify content URL: curl -s <pulp_url>/pulp/content/<repo>/repodata/repomd.xml
-║   3. Check nginx/pulp content app: podman logs pulp
-╚══════════════════════════════════════════════════════════════════════════════╝
-""",
-}
-
-
-# =============================================================================
-# FUNCTION MESSAGES (for local_repo_func.py)
-# =============================================================================
-
-LOCAL_REPO_MSGS: Dict[str, str] = {
-    "container_running": "Container {container} is running",
-    "container_not_running": "Container {container} is NOT running",
-    "status_csv_missing": "status.csv not found",
-    "status_csv_empty": "status.csv is empty",
-    "status_csv_no_rows": "status.csv has no rows",
-    "status_csv_has_failures": "status.csv indicates failures",
 }

@@ -133,6 +133,10 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
     "build_image_playbook": "/omnia/build_image_x86_64/build_image_x86_64.yml",
     "functional_group_file_path": "/opt/omnia/.data/functional_groups_config.yml",
     "pxe_mapping_file_path": _get_pxe_mapping_path_from_provision_config(),
+    "image_config_yaml_dir": "/opt/omnia/openchami/workdir/images",
+    "temp_image_path": "/tmp/omnia_test_image",
+    "temp_mount_path": "/tmp/omnia_test_mount",
+    "base_image_version": "10.0",  # RHEL version for base image YAML naming
 
     # =========================================================================
     # S3 COMMANDS

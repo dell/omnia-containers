@@ -1,0 +1,100 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run oim_cleanup.yml on OIM Server
+# =============================================================================
+
+- name: OIM Cleanup - Setup inventory and load config
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for cleanup
+      ansible.builtin.set_fact:
+        user_config: "{{ user_config }}"
+        cacheable: true
+      no_log: true
+
+- name: OIM Cleanup - Run oim_cleanup.yml via omnia_core container
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running oim_cleanup.yml on OIM server: {{ ansible_host }}"
+
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell:
+        cmd: set -o pipefail && podman ps -a --format '{{ '{{' }}.Names{{ '}}' }}' | grep -E '^{{ container_name }}$'
+      register: container_exists
+      changed_when: false
+      failed_when: false
+
+    - name: Skip cleanup if container doesn't exist
+      ansible.builtin.debug:
+        msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping oim_cleanup"
+      when: container_exists.rc != 0
+
+    - name: Run oim_cleanup.yml inside omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -it -w /omnia/utils {{ container_name }} \
+            ansible-playbook oim_cleanup.yml -v
+      register: cleanup_result
+      when: container_exists.rc == 0
+      changed_when: cleanup_result.rc == 0
+      failed_when: false
+
+    - name: Display playbook stdout
+      ansible.builtin.debug:
+        var: cleanup_result.stdout_lines
+      when: cleanup_result is defined and cleanup_result.stdout_lines is defined
+
+    - name: Display cleanup execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          OIM CLEANUP PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ cleanup_result.rc | default('N/A') }}
+          ============================================
+      when: cleanup_result is defined
+
+    - name: Fail if cleanup failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    OIM CLEANUP PLAYBOOK EXECUTION FAILED                      ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ cleanup_result.rc }}
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Enter container: podman exec -it {{ container_name }} bash
+          ║   3. Check omnia logs: ls -la /opt/omnia/log/
+          ║   4. Check container status: podman ps -a
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: cleanup_result is defined and cleanup_result.rc is defined and cleanup_result.rc != 0

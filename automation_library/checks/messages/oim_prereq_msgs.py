@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -338,21 +338,16 @@ ACTION REQUIRED: Omnia repository not configured.
     # Error instructions for Container Build
     "container_build_instruction": """
 ACTION REQUIRED: Container build failed.
-- Command: ./build_images.sh {images} omnia_branch={omnia_branch}
+- Command: ./build_images.sh core core_tag={core_tag} omnia_branch={omnia_branch}
 - Exit code: {exit_code}
 - Check the output above for errors.
 - Check if Podman is running correctly.
 - Verify network connectivity for pulling base images.
 """,
-    "container_images_not_configured": """
-ACTION REQUIRED: Set 'container_images' in {config_path}.
-- Specify comma-separated container images to build.
-- Example: container_images: "core" or container_images: "core,auth"
-""",
     "omnia_branch_not_configured": """
 ACTION REQUIRED: Set 'omnia_branch' in {config_path}.
-- This specifies which Omnia branch to use for container build.
-- Example: omnia_branch: "main" or omnia_branch: "release-1.6"
+- This specifies which Omnia branch/tag to use for core image build.
+- Example: omnia_branch: "main" or omnia_branch: "pub/q1_dev" or omnia_branch: "v1.6.0"
 """,
     "build_script_not_found": """
 ACTION REQUIRED: Script not found at {script_path}.

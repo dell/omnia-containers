@@ -30,18 +30,20 @@
 #   list      - List available scenarios
 #
 # Scenarios:
-#   omnia_sh_install - Install omnia.sh and verify
-#   omnia_sh_cleanup - Cleanup omnia.sh and verify
-#   prepare_oim      - Prepare OIM and verify
-#   build_image      - Build image playbook and verify
-#   telemetry        - Run telemetry playbook and verify
-#   all              - Run omnia_sh_install + prepare_oim + build_image (not cleanup)
-#   (more scenarios can be added)
+#   omnia_sh_install  - Install omnia.sh and verify
+#   omnia_sh_uninstall  - Uninstall omnia.sh and verify
+#   prepare_oim       - Prepare OIM and verify
+#   build_image_x86_64  - Build x86_64 images and verify
+#   build_image_aarch64 - Build aarch64 images and verify
+#   local_repo        - Verify local repo
+#   telemetry         - Run telemetry playbook and verify
+#   oim_cleanup       - Run OIM cleanup and verify
+#   all               - Run install + prepare + build + local_repo (not cleanup)
 #
 # Examples:
 #   ./run_molecule.sh omnia_sh_install test      # Install + verify
 #   ./run_molecule.sh omnia_sh_install verify    # Verify install only
-#   ./run_molecule.sh omnia_sh_cleanup test      # Cleanup + verify
+#   ./run_molecule.sh omnia_sh_uninstall test      # Cleanup + verify
 #   ./run_molecule.sh all test                   # Run ALL scenarios
 #   ./run_molecule.sh list                       # List scenarios
 #
@@ -76,7 +78,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image slurm telemetry omnia_sh_cleanup"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 telemetry oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -98,7 +100,7 @@ case "$SCENARIO" in
         echo ""
         echo "Scenarios:"
         echo "  <name>    - Run specific scenario"
-        echo "  all       - Run omnia_sh_install + prepare_oim (not cleanup)"
+        echo "  all       - Run install + prepare + build + local_repo (not cleanup)"
         echo ""
         echo "Special Commands:"
         echo "  list      - List available scenarios"
@@ -107,11 +109,14 @@ case "$SCENARIO" in
         echo "Examples:"
         echo "  $0 omnia_sh_install test      # Install + verify"
         echo "  $0 omnia_sh_install verify    # Verify install only"
-        echo "  $0 omnia_sh_cleanup test      # Cleanup + verify"
+        echo "  $0 omnia_sh_uninstall test    # Uninstall + verify"
         echo "  $0 prepare_oim test           # Prepare OIM + verify"
-        echo "  $0 build_image test           # Build image + verify"
+        echo "  $0 build_image_x86_64 test    # Build x86_64 images + verify"
+        echo "  $0 build_image_aarch64 test   # Build aarch64 images + verify"
         echo "  $0 telemetry test             # Telemetry + verify"
         echo "  $0 telemetry verify           # Verify telemetry only"
+        echo "  $0 oim_cleanup test           # OIM cleanup + verify"
+        echo "  $0 oim_cleanup verify         # Verify OIM cleanup only"
         echo "  $0 all test                   # Run ALL scenarios"
         echo "  $0 list                       # List scenarios"
         exit 0
@@ -133,7 +138,7 @@ case "$SCENARIO" in
         
         # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
-        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image slurm"
+        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64"
         
         FAILED=0
         for name in $SCENARIOS; do
@@ -188,56 +193,30 @@ echo -e "  Command  : ${GREEN}${COMMAND}${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
+# Run molecule command with logging
+run_molecule() {
+    local cmd="$1"
+    local scenario="$2"
+    local label="$3"
+
+    echo -e "${YELLOW}➜ ${label}...${NC}"
+    echo ""
+
+    LOG_FILE="/tmp/molecule_${scenario}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
+    export MOLECULE_LOG_FILE="$LOG_FILE"
+    export MOLECULE_COMMAND="${cmd}"
+
+    molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"
+    echo ""
+    echo -e "${GREEN}✔ ${label} completed.${NC}"
+}
+
 case "$COMMAND" in
-    test)
-        echo -e "${YELLOW}➜ Running full test...${NC}"
-        echo ""
-        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
-        export MOLECULE_LOG_FILE="$LOG_FILE"
-        export MOLECULE_COMMAND="test"
-        molecule test -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
-        echo ""
-        echo -e "${GREEN}✔ Test completed.${NC}"
-        ;;
-    
-    verify)
-        echo -e "${YELLOW}➜ Running verification tests only...${NC}"
-        echo ""
-        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
-        export MOLECULE_LOG_FILE="$LOG_FILE"
-        export MOLECULE_COMMAND="verify"
-        molecule verify -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
-        echo ""
-        echo -e "${GREEN}✔ Verify completed.${NC}"
-        ;;
-    
-    converge)
-        echo -e "${YELLOW}➜ Running converge...${NC}"
-        echo ""
-        LOG_FILE="/tmp/molecule_${SCENARIO}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
-        export MOLECULE_LOG_FILE="$LOG_FILE"
-        export MOLECULE_COMMAND="converge"
-        molecule converge -s "$SCENARIO" 2>&1 | tee "$LOG_FILE"
-        echo ""
-        echo -e "${GREEN}✔ Converge completed.${NC}"
-        ;;
-    
-    create)
-        echo -e "${YELLOW}➜ Creating inventory...${NC}"
-        echo ""
-        molecule create -s "$SCENARIO"
-        echo ""
-        echo -e "${GREEN}✔ Create completed.${NC}"
-        ;;
-    
-    prepare)
-        echo -e "${YELLOW}➜ Running prepare...${NC}"
-        echo ""
-        molecule prepare -s "$SCENARIO"
-        echo ""
-        echo -e "${GREEN}✔ Prepare completed.${NC}"
-        ;;
-    
+    test)     run_molecule test     "$SCENARIO" "Running full test" ;;
+    verify)   run_molecule verify   "$SCENARIO" "Running verification tests only" ;;
+    converge) run_molecule converge "$SCENARIO" "Running converge" ;;
+    create)   run_molecule create   "$SCENARIO" "Creating inventory" ;;
+    prepare)  run_molecule prepare  "$SCENARIO" "Running prepare" ;;
     *)
         echo -e "${RED}Unknown command: $COMMAND${NC}"
         echo "Run '$0 help' for usage."

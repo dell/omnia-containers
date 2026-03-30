@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,9 +41,60 @@ import subprocess
 import time
 from typing import Dict, Any, Tuple, Optional
 
-from ..vars.omnia_sh_vars import OMNIA_SH_VARS, get_omnia_sh_path, validate_config
-from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS, TEST_VARS
+from ..vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
+from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
 from ...core.formatting import log as _log
+from ...core import run_in_container
+from ...checks.vars.oim_prereq_vars import USER_CONFIG_PATH
+
+
+def get_omnia_sh_path() -> str:
+    """
+    Get the path to omnia.sh script.
+
+    Returns:
+        Absolute path to omnia.sh
+    """
+    return os.path.join(OMNIA_SH_VARS["omnia_clone_path"], "omnia.sh")
+
+
+def validate_config() -> Dict[str, Any]:
+    """
+    Validate user inputs for omnia.sh execution.
+
+    Returns:
+        Dict with 'valid' (bool) and 'errors' (list of error messages)
+    """
+    errors = []
+
+    # Check user_config.yml exists
+    if not os.path.exists(USER_CONFIG_PATH):
+        errors.append(f"user_config.yml not found at {USER_CONFIG_PATH}")
+        return {"valid": False, "errors": errors}
+
+    # Check required user inputs
+    if not OMNIA_SH_VARS["share_option"]:
+        errors.append(f"share_option not set in {USER_CONFIG_PATH}")
+
+    if not OMNIA_SH_VARS["omnia_shared_path"]:
+        errors.append(f"omnia_shared_path not set in {USER_CONFIG_PATH}")
+
+    if not OMNIA_SH_VARS["omnia_core_password"]:
+        errors.append(f"omnia_core_password not set in {USER_CONFIG_PATH}")
+
+    # Check NFS inputs (only if NFS selected)
+    if OMNIA_SH_VARS["share_option"] == "NFS":
+        if not OMNIA_SH_VARS["nfs_type"]:
+            errors.append(f"nfs_type not set in {USER_CONFIG_PATH}")
+        if not OMNIA_SH_VARS["nfs_server_ip"]:
+            errors.append(f"nfs_server_ip not set in {USER_CONFIG_PATH}")
+        if not OMNIA_SH_VARS["nfs_share_path"]:
+            errors.append(f"nfs_share_path not set in {USER_CONFIG_PATH}")
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors
+    }
 
 
 # =============================================================================
@@ -1018,7 +1069,7 @@ def check_ssh_from_container(host, oim_ip: str, timeout: int = 5) -> Dict[str, A
 
 def check_metadata_file(host) -> Dict[str, Any]:
     """
-    Check if oim_metadata.yml file exists and return its content.
+    Check if oim_metadata.yml file exists inside the container and return its content.
 
     Args:
         host: testinfra host object
@@ -1027,20 +1078,21 @@ def check_metadata_file(host) -> Dict[str, Any]:
         Dict with 'success', 'details', 'error'
     """
     path = TEST_VARS["metadata_file"]
-    f = host.file(path)
 
-    if f.exists:
-        content = host.run(f"head -15 {path}").stdout.strip()
+    # Check inside the container (file is at /opt/omnia/.data/ inside container)
+    check_cmd = run_in_container(host, f"test -f {path} && echo exists")
+    if "exists" in check_cmd.stdout:
+        content_cmd = run_in_container(host, f"head -15 {path}")
         return {
             "success": True,
-            "details": content,
+            "details": content_cmd.stdout.strip(),
             "error": None
         }
 
     return {
         "success": False,
         "details": None,
-        "error": f"Metadata file not found: {path}"
+        "error": f"Metadata file not found inside container: {path}"
     }
 
 
@@ -1119,7 +1171,7 @@ def check_fstab_entry_removed(host, omnia_shared_path: str = None) -> Dict[str, 
         Dict with 'success', 'details', 'error'
     """
     if omnia_shared_path is None:
-        omnia_shared_path = OMNIA_SH_VARS.get("omnia_shared_path", "/opt/omnia")
+        omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
 
     cmd = host.run(f"grep -E '\\s+{omnia_shared_path}\\s+' /etc/fstab")
 
@@ -1150,7 +1202,7 @@ def check_mount_removed(host, omnia_shared_path: str = None) -> Dict[str, Any]:
         Dict with 'success', 'details', 'error'
     """
     if omnia_shared_path is None:
-        omnia_shared_path = OMNIA_SH_VARS.get("omnia_shared_path", "/opt/omnia")
+        omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
 
     cmd = host.run(f"mountpoint -q {omnia_shared_path}")
 
