@@ -24,6 +24,8 @@ For module-specific constants, see:
 - victoria_vars.py - VictoriaMetrics specific
 """
 
+from ...core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
+
 # =============================================================================
 # Telemetry Namespace
 # =============================================================================
@@ -32,7 +34,7 @@ TELEMETRY_NAMESPACE = "telemetry"
 
 
 # =============================================================================
-# Container
+# Container - from core vars
 # =============================================================================
 
-CONTAINER_NAME = "omnia_core"
+CONTAINER_NAME = _CORE_CONTAINER

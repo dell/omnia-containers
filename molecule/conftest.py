@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,6 +58,29 @@ def pytest_configure(config):
     config.addinivalue_line("filterwarnings", "ignore::pytest.PytestCollectionWarning")
     # Register custom markers
     config.addinivalue_line("markers", "cleanup: marks tests as cleanup verification (deselected by default)")
+    config.addinivalue_line("markers", "order(n): specify test execution order (lower numbers run first)")
+
+
+def pytest_collection_modifyitems(session, config, items):
+    """
+    Modify test collection to control execution order.
+
+    Tests are ordered by:
+    1. @pytest.mark.order(n) marker - lower numbers run first
+    2. Test file name (alphabetical)
+    3. Test function order in file
+
+    This allows controlling test order without renaming files.
+    """
+    def get_order_key(item):
+        # Check for @pytest.mark.order(n) marker
+        order_marker = item.get_closest_marker("order")
+        if order_marker and order_marker.args:
+            return (0, order_marker.args[0], item.fspath.basename, item.name)
+        # Default: sort by file name then function name
+        return (1, 0, item.fspath.basename, item.name)
+
+    items.sort(key=get_order_key)
 
 
 def pytest_sessionstart(session):

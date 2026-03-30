@@ -14,6 +14,12 @@
 
 """Build Image functions module."""
 
+# Re-export from core module for backward compatibility
+from automation_library.core import (
+    get_functional_groups_from_pxe_mapping,
+    get_group_names_from_pxe_mapping,
+)
+
 from .build_image_func import (
     check_container_running,
     check_s3_containers,
@@ -25,12 +31,6 @@ from .build_image_func import (
     verify_all_image_packages,
     run_all_prechecks,
     run_all_validations,
-)
-
-# Re-export from core module for backward compatibility
-from automation_library.core import (  # noqa: E402
-    get_functional_groups_from_pxe_mapping,
-    get_group_names_from_pxe_mapping,
 )
 
 __all__ = [

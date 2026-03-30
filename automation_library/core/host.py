@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -472,3 +472,54 @@ def get_group_names_from_pxe_mapping(host: testinfra.host.Host) -> set:
         if len(parts) > grp_idx and parts[grp_idx].strip():
             groups.add(parts[grp_idx].strip())
     return groups
+
+
+# =============================================================================
+# CONTAINER UTILITIES
+# =============================================================================
+
+def check_container_running(host, container_name: str) -> Dict[str, Any]:
+    """
+    Check if a specific container is running.
+
+    Args:
+        host: Testinfra host object
+        container_name: Name of the container to check
+
+    Returns:
+        Dict with 'success', 'status', 'details', 'error'
+    """
+    cmd = host.run(
+        f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' "
+        f"| grep -E '^{container_name} '"
+    )
+
+    if cmd.rc == 0 and container_name in cmd.stdout:
+        status = cmd.stdout.strip().replace(container_name, "").strip()
+        return {
+            "success": True,
+            "status": status,
+            "details": f"Container {container_name} is running: {status}",
+            "error": None,
+        }
+
+    # Check if container exists but not running
+    exists_cmd = host.run(
+        f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' "
+        f"| grep -E '^{container_name} '"
+    )
+    if exists_cmd.rc == 0:
+        status = exists_cmd.stdout.strip().replace(container_name, "").strip()
+        return {
+            "success": False,
+            "status": status,
+            "details": None,
+            "error": f"Container {container_name} exists but not running: {status}",
+        }
+
+    return {
+        "success": False,
+        "status": "not_found",
+        "details": None,
+        "error": f"Container {container_name} does not exist",
+    }

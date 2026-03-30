@@ -39,6 +39,7 @@ import yaml as pyyaml
 
 from automation_library.core import (
     run_in_container,
+    check_container_running as _core_check_container,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
     get_nodes_info,
@@ -122,48 +123,8 @@ def _get_adjusted_functional_groups(host, functional_groups: list) -> list:
 # =============================================================================
 
 def check_container_running(host, container_name: str) -> Dict[str, Any]:
-    """
-    Check if a specific container is running.
-
-    Args:
-        host: testinfra host object
-        container_name: name of the container to check
-
-    Returns:
-        Dict with 'success', 'status', 'details', 'error'
-    """
-    cmd = host.run(
-        f"podman ps --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '"
-    )
-
-    if cmd.rc == 0 and container_name in cmd.stdout:
-        status = cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": True,
-            "status": status,
-            "details": f"Container {container_name} is running: {status}",
-            "error": None
-        }
-
-    # Check if container exists but not running
-    exists_cmd = host.run(
-        f"podman ps -a --format '{{{{.Names}}}} {{{{.Status}}}}' | grep -E '^{container_name} '"
-    )
-    if exists_cmd.rc == 0:
-        status = exists_cmd.stdout.strip().replace(container_name, "").strip()
-        return {
-            "success": False,
-            "status": status,
-            "details": None,
-            "error": f"Container {container_name} exists but not running: {status}"
-        }
-
-    return {
-        "success": False,
-        "status": "not_found",
-        "details": None,
-        "error": f"Container {container_name} does not exist"
-    }
+    """Check if a specific container is running. Delegates to core."""
+    return _core_check_container(host, container_name)
 
 
 def check_s3_containers(host) -> Dict[str, Any]:

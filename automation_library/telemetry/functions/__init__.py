@@ -52,6 +52,7 @@ from .kafka_func import (
     verify_ldms_services_ports,
     verify_idrac_data_in_kafka,
     verify_ldms_data_in_kafka,
+    verify_ldms_earliest_data_in_kafka,
     get_ldms_sampler_plugins,
     get_domain_name,
     get_ldms_node_hostnames,
