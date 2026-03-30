@@ -1,0 +1,42 @@
+{
+    "additional_packages": {
+        "cluster": [
+
+        ]
+    },
+    "service_kube_control_plane_first": {
+        "cluster": [
+
+        ]
+    },
+    "service_kube_control_plane": {
+        "cluster": [
+
+        ]
+    },
+    "service_kube_node": {
+        "cluster": [
+
+        ]
+    },
+    "slurm_control_node": {
+        "cluster": [
+
+        ]
+    },
+    "slurm_node": {
+        "cluster": [
+
+        ]
+    },
+    "login_node": {
+        "cluster": [
+
+        ]
+    },
+    "login_compiler_node": {
+        "cluster": [
+
+        ]
+    }
+}

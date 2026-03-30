@@ -23,14 +23,12 @@ local_repo and telemetry modules.
 
 from typing import Dict, Any
 
-import yaml
-
-from automation_library.core import run_on_oim, run_in_container
+from automation_library.core import (
+    run_on_oim, run_in_container, load_container_file,
+)
+from automation_library.core.vars import OIM_METADATA_PATH, OIM_SHARED_PATH
 
 from ..vars.oim_cleanup_vars import OIM_CLEANUP_VARS
-
-# Path to oim_metadata.yml inside the omnia_core container
-_OIM_METADATA_PATH = "/opt/omnia/.data/oim_metadata.yml"
 
 # Runtime cache for oim_shared_path
 _oim_shared_path_cache: Dict[str, str] = {}
@@ -48,14 +46,8 @@ def _get_nfs_base(host) -> str:
     if cache_key in _oim_shared_path_cache:
         return _oim_shared_path_cache[cache_key]
 
-    cmd = run_in_container(host, f"cat {_OIM_METADATA_PATH} 2>/dev/null")
-    oim_shared_path = "/opt/omnia"
-    if cmd.rc == 0 and cmd.stdout.strip():
-        try:
-            metadata = yaml.safe_load(cmd.stdout.strip()) or {}
-            oim_shared_path = metadata.get("oim_shared_path", "/opt/omnia")
-        except yaml.YAMLError:
-            pass
+    metadata = load_container_file(host, OIM_METADATA_PATH)
+    oim_shared_path = metadata.get("oim_shared_path", OIM_SHARED_PATH)
 
     nfs_base = f"{oim_shared_path}/omnia"
     _oim_shared_path_cache[cache_key] = nfs_base
@@ -500,6 +492,58 @@ def check_auth_removed(host) -> Dict[str, Any]:
     else:
         lines.append(f"✗ {auth_dir}: STILL PRESENT")
         failed_items.append(auth_dir)
+
+    return {
+        "success": len(failed_items) == 0,
+        "details": _build_details(lines),
+        "error": f"Still present: {', '.join(failed_items)}" if failed_items else "",
+    }
+
+
+# =============================================================================
+# 11. BUILD STREAM REMOVED
+# =============================================================================
+
+def check_build_stream_removed(host) -> Dict[str, Any]:
+    """
+    Verify build_stream containers, service, and quadlet files are removed.
+
+    Returns:
+        Dict with success, details, error keys
+    """
+    lines = []
+    failed_items = []
+
+    # Check build_stream containers removed
+    for ctr in OIM_CLEANUP_VARS["build_stream_containers"]:
+        cmd = run_on_oim(host, f"podman container exists {ctr} 2>/dev/null")
+        if cmd.rc != 0:
+            lines.append(f"✓ {ctr} container: removed")
+        else:
+            lines.append(f"✗ {ctr} container: STILL PRESENT")
+            failed_items.append(f"{ctr} container")
+
+    # Check build_stream service stopped
+    svc = OIM_CLEANUP_VARS["build_stream_service"]
+    cmd = run_on_oim(host, f"systemctl is-active {svc} 2>/dev/null")
+    state = cmd.stdout.strip()
+    if state in ("inactive", "unknown", "") or cmd.rc != 0:
+        lines.append(f"✓ {svc}: removed")
+    else:
+        lines.append(f"✗ {svc}: STILL ACTIVE ({state})")
+        failed_items.append(svc)
+
+    # Check quadlet files removed
+    for quadlet in [
+        OIM_CLEANUP_VARS["build_stream_quadlet_file"],
+        OIM_CLEANUP_VARS["build_stream_postgres_quadlet_file"],
+    ]:
+        cmd = run_on_oim(host, f"test -f {quadlet}")
+        if cmd.rc != 0:
+            lines.append(f"✓ {quadlet}: removed")
+        else:
+            lines.append(f"✗ {quadlet}: STILL PRESENT")
+            failed_items.append(quadlet)
 
     return {
         "success": len(failed_items) == 0,

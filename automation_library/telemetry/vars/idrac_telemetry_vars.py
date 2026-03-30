@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,17 @@ import os
 from typing import Dict, Any
 
 import yaml
+
+from ...core.vars import (
+    OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
+    BMC_GROUP_DATA_PATH as _CORE_BMC_PATH,
+    SERVICE_CLUSTER_METADATA_PATH as _CORE_SCM_PATH,
+    IDRAC_TELEMETRY_REPORT_PATH as _CORE_IDRAC_REPORT_PATH,
+    OMNIA_CREDENTIALS_PATH as _CORE_CREDS_PATH,
+    OMNIA_CREDENTIALS_KEY_PATH as _CORE_CREDS_KEY_PATH,
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP as _CORE_K8S_CP_GROUP,
+)
 
 
 # =============================================================================
@@ -61,23 +72,23 @@ TELEMETRY_VARS: Dict[str, Any] = {
     "oim_ssh_user": _user_config.get("oim_ssh_user", "root"),
     "oim_ssh_password": _user_config.get("oim_ssh_password", ""),
     "oim_ssh_port": _user_config.get("oim_ssh_port", 22),
-    "omnia_shared_path": _user_config.get("omnia_shared_path", "/opt/omnia"),
+    "omnia_shared_path": _user_config.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
 
     # Container
-    "container_name": "omnia_core",
+    "container_name": _CORE_CONTAINER,
 
     # Telemetry playbook path (inside container)
     "telemetry_playbook": "/omnia/telemetry/telemetry.yml",
 
-    # Prerequisite files (inside container)
-    "bmc_group_data_path": "/opt/omnia/telemetry/bmc_group_data.csv",
-    "service_cluster_metadata_path": "/opt/omnia/.data/service_cluster_metadata.yml",
+    # Prerequisite files (inside container) - from core vars
+    "bmc_group_data_path": _CORE_BMC_PATH,
+    "service_cluster_metadata_path": _CORE_SCM_PATH,
 
     # Telemetry namespace in K8s
     "telemetry_namespace": "telemetry",
 
     # Functional group for K8s control plane (used to get admin IP for SSH)
-    "k8s_control_plane_functional_group": "service_kube_control_plane_x86_64",
+    "k8s_control_plane_functional_group": _CORE_K8S_CP_GROUP,
 
     # iDRAC telemetry pod prefix
     "idrac_telemetry_pod_prefix": "idrac-telemetry",
@@ -85,16 +96,12 @@ TELEMETRY_VARS: Dict[str, Any] = {
     # Stability check wait time (seconds)
     "stability_wait_time": 30,
 
-    # iDRAC telemetry report path
-    "idrac_telemetry_report_path": "/opt/omnia/telemetry/idrac_telemetry_report.yml",
+    # iDRAC telemetry report path - from core vars
+    "idrac_telemetry_report_path": _CORE_IDRAC_REPORT_PATH,
 
-    # Omnia config credentials (ansible vault)
-    "omnia_config_credentials_path": (
-        "/opt/omnia/input/project_default/omnia_config_credentials.yml"
-    ),
-    "omnia_config_credentials_key_path": (
-        "/opt/omnia/input/project_default/.omnia_config_credentials_key"
-    ),
+    # Omnia config credentials (ansible vault) - from core vars
+    "omnia_config_credentials_path": _CORE_CREDS_PATH,
+    "omnia_config_credentials_key_path": _CORE_CREDS_KEY_PATH,
 }
 
 
@@ -145,9 +152,6 @@ CMD_TEMPLATES: Dict[str, str] = {
         "https://{idrac_ip}/redfish/v1/Systems/System.Embedded.1 | "
         'python3 -c \'import sys,json; print(json.load(sys.stdin).get("SKU",""))\''
     ),
-
-    # Ansible vault commands
-    "vault_view": "ansible-vault view {vault_file} --vault-password-file {key_file}",
 
     # Podman exec with SSH
     "podman_ssh_cmd": (

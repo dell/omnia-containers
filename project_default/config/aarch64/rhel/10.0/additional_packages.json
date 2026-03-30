@@ -1,0 +1,22 @@
+{
+    "additional_packages": {
+        "cluster": [
+
+        ]
+    },
+    "slurm_node": {
+        "cluster": [
+
+        ]
+    },
+    "login_node": {
+        "cluster": [
+
+        ]
+    },
+    "login_compiler_node": {
+        "cluster": [
+
+        ]
+    }
+}

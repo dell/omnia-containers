@@ -30,6 +30,11 @@ from typing import Dict, Any, List, Set
 import yaml
 
 from automation_library.checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
+from automation_library.core.vars import (
+    OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+    FUNCTIONAL_GROUPS_CONFIG_PATH as _CORE_FG_CONFIG_PATH,
+)
 
 
 def _get_project_root() -> str:
@@ -122,18 +127,18 @@ BUILD_IMAGE_VARS: Dict[str, Any] = {
     # =========================================================================
     # CONTAINER SETTINGS
     # =========================================================================
-    "container_name": "omnia_core",
-    "ssh_alias": "omnia_core",
+    "container_name": _CORE_CONTAINER,
+    "ssh_alias": _CORE_CONTAINER,
     "ssh_port": 2222,
 
     # =========================================================================
     # PATHS
     # =========================================================================
-    "omnia_shared_path": OIM_PREREQ_VARS.get("omnia_shared_path", "/opt/omnia"),
+    "omnia_shared_path": OIM_PREREQ_VARS.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
     "build_image_playbook": "/omnia/build_image_x86_64/build_image_x86_64.yml",
-    "functional_group_file_path": "/opt/omnia/.data/functional_groups_config.yml",
+    "functional_group_file_path": _CORE_FG_CONFIG_PATH,
     "pxe_mapping_file_path": _get_pxe_mapping_path_from_provision_config(),
-    "image_config_yaml_dir": "/opt/omnia/openchami/workdir/images",
+    "image_config_yaml_dir": f"{_CORE_OIM_SHARED_PATH}/openchami/workdir/images",
     "temp_image_path": "/tmp/omnia_test_image",
     "temp_mount_path": "/tmp/omnia_test_mount",
     "base_image_version": "10.0",  # RHEL version for base image YAML naming

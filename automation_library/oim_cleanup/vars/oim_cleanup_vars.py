@@ -22,7 +22,13 @@ role vars files inside omnia_core container.
 Paths use core module constants (INPUT_BASE_PATH, SERVICE_CLUSTER_METADATA_PATH).
 """
 
-from automation_library.core.vars import INPUT_BASE_PATH, SERVICE_CLUSTER_METADATA_PATH
+from automation_library.core.vars import (
+    INPUT_BASE_PATH,
+    SERVICE_CLUSTER_METADATA_PATH,
+    FUNCTIONAL_GROUPS_CONFIG_PATH,
+    OMNIA_CREDENTIALS_PATH,
+    OMNIA_CREDENTIALS_KEY_PATH,
+)
 
 # =============================================================================
 # OIM Cleanup Variables
@@ -168,12 +174,12 @@ OIM_CLEANUP_VARS = {
     # Credential files to verify removed (inside container)
     # =========================================================================
     "credential_files": [
-        f"{INPUT_BASE_PATH}/omnia_config_credentials.yml",
-        f"{INPUT_BASE_PATH}/.omnia_config_credentials_key",
+        OMNIA_CREDENTIALS_PATH,
+        OMNIA_CREDENTIALS_KEY_PATH,
     ],
     "metadata_files": [
         SERVICE_CLUSTER_METADATA_PATH,
-        "/opt/omnia/.data/functional_groups_config.yml",
+        FUNCTIONAL_GROUPS_CONFIG_PATH,
     ],
 
     # =========================================================================
@@ -237,4 +243,19 @@ OIM_CLEANUP_VARS = {
     # chrony config
     # =========================================================================
     "chrony_conf_path": "/etc/chrony.conf",
+
+    # =========================================================================
+    # Build Stream (deployed only when enable_build_stream is true)
+    # =========================================================================
+    "build_stream_containers": [
+        "omnia_postgres",
+        "omnia_build_stream",
+    ],
+    "build_stream_service": "playbook_watcher.service",
+    "build_stream_quadlet_file": (
+        "/etc/containers/systemd/omnia_build_stream.container"
+    ),
+    "build_stream_postgres_quadlet_file": (
+        "/etc/containers/systemd/omnia_postgres.container"
+    ),
 }

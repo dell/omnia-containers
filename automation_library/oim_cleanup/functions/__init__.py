@@ -25,4 +25,5 @@ from .oim_cleanup_func import (
     check_packages_removed,
     check_chronyd_removed,
     check_auth_removed,
+    check_build_stream_removed,
 )

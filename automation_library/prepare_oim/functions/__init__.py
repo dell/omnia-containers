@@ -19,6 +19,7 @@ Prepare OIM functions module.
 from .prepare_oim_func import (
     # Config helpers
     is_ldap_enabled,
+    is_build_stream_enabled,
     get_primary_oim_admin_ip,
     # Check functions
     check_container_running,
@@ -38,6 +39,7 @@ from .prepare_oim_func import (
 __all__ = [
     # Config helpers
     "is_ldap_enabled",
+    "is_build_stream_enabled",
     "get_primary_oim_admin_ip",
     # Check functions
     "check_container_running",

@@ -37,6 +37,8 @@ from typing import Dict, Any
 
 import yaml
 
+from automation_library.core.vars import OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH
+
 
 # =============================================================================
 # Configuration File Path
@@ -192,7 +194,7 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     "nfs_type": _user_config.get("nfs_type", "external"),
 
     # omnia_shared_path: Local path for omnia data storage
-    "omnia_shared_path": _user_config.get("omnia_shared_path", "/opt/omnia"),
+    "omnia_shared_path": _user_config.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
 
     # omnia_core_password: Root password for omnia_core container SSH
     "omnia_core_password": _user_config.get("omnia_core_password", ""),

@@ -20,13 +20,18 @@ Contains all Kafka and LDMS related constants and command templates.
 
 from typing import Dict
 
+from ...core.vars import (
+    TELEMETRY_CONFIG_PATH as _CORE_TEL_PATH,
+    SOFTWARE_CONFIG_PATH as _CORE_SW_PATH,
+    OIM_METADATA_PATH as _CORE_OIM_METADATA_PATH,
+)
 
 # =============================================================================
-# Config File Paths (inside container)
+# Config File Paths (inside container) - from core vars
 # =============================================================================
 
-TELEMETRY_CONFIG_PATH = "/opt/omnia/input/project_default/telemetry_config.yml"
-SOFTWARE_CONFIG_PATH = "/opt/omnia/input/project_default/software_config.json"
+TELEMETRY_CONFIG_PATH = _CORE_TEL_PATH
+SOFTWARE_CONFIG_PATH = _CORE_SW_PATH
 
 
 # =============================================================================
@@ -60,8 +65,8 @@ LDMS_FUNCTIONAL_GROUPS = [
     "login_compiler_node_aarch64",
 ]
 
-# OIM metadata path (for domain name)
-OIM_METADATA_PATH = "/opt/omnia/.data/oim_metadata.yml"
+# OIM metadata path (for domain name) - from core vars
+OIM_METADATA_PATH = _CORE_OIM_METADATA_PATH
 
 
 # =============================================================================
