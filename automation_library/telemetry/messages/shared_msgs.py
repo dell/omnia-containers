@@ -28,6 +28,9 @@ from typing import Dict
 
 from .kafka_msgs import KAFKA_TEST_NAMES, KAFKA_LOG_MSGS, KAFKA_ASSERT_MSGS
 from .idrac_telemetry_msgs import IDRAC_TEST_NAMES, IDRAC_LOG_MSGS, IDRAC_ASSERT_MSGS
+from .delete_node_msgs import (
+    DELETE_NODE_TEST_NAMES, DELETE_NODE_LOG_MSGS, DELETE_NODE_ASSERT_MSGS,
+)
 
 
 # =============================================================================
@@ -54,6 +57,7 @@ TEST_NAMES: Dict[str, str] = {
     **SHARED_TEST_NAMES,
     **KAFKA_TEST_NAMES,
     **IDRAC_TEST_NAMES,
+    **DELETE_NODE_TEST_NAMES,
 }
 
 
@@ -104,6 +108,7 @@ TEST_LOG_MSGS: Dict[str, str] = {
     **SHARED_LOG_MSGS,
     **KAFKA_LOG_MSGS,
     **IDRAC_LOG_MSGS,
+    **DELETE_NODE_LOG_MSGS,
 }
 
 
@@ -175,6 +180,7 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
     **SHARED_ASSERT_MSGS,
     **KAFKA_ASSERT_MSGS,
     **IDRAC_ASSERT_MSGS,
+    **DELETE_NODE_ASSERT_MSGS,
 }
 
 

@@ -72,6 +72,7 @@ from automation_library.telemetry.functions.victoria_func import (
 # TEST CASES
 # =============================================================================
 
+@pytest.mark.order(12)
 def test_victoria_enabled(host):
     """
     Test Case 1: Verify VictoriaMetrics is enabled.
@@ -117,6 +118,7 @@ def test_victoria_enabled(host):
     log.passed(VICTORIA_LOG_MSGS["victoria_enabled"], details)
 
 
+@pytest.mark.order(13)
 def test_victoria_persistence_size(host):
     """
     Test Case 2: Verify VictoriaMetrics persistence size matches config.
@@ -171,6 +173,7 @@ def test_victoria_persistence_size(host):
         )
 
 
+@pytest.mark.order(14)
 def test_victoria_single_node_pods(host):
     """
     Test Case 3: Verify VictoriaMetrics single-node pods are running.
@@ -239,6 +242,7 @@ def test_victoria_single_node_pods(host):
         )
 
 
+@pytest.mark.order(15)
 def test_victoria_cluster_pods(host):
     """
     Test Case 4: Verify VictoriaMetrics cluster pods are running.
@@ -277,22 +281,20 @@ def test_victoria_cluster_pods(host):
     details_lines = []
     all_success = True
     for comp_result in result.get("component_results", []):
-        component = comp_result["component"]
-        expected = comp_result["expected_replicas"]
-        running = comp_result["running_count"]
-        success = comp_result["success"]
-        status = "✓" if success else "✗"
-
-        details_lines.append(f"{status} {component}: {running}/{expected} running")
+        comp_ok = comp_result["success"]
+        status = "✓" if comp_ok else "✗"
+        details_lines.append(
+            f"{status} {comp_result['component']}: "
+            f"{comp_result['running_count']}/{comp_result['expected_replicas']} running"
+        )
 
         for pod_result in comp_result.get("pod_results", []):
-            pod = pod_result["pod"]
-            phase = pod_result["phase"]
-            pod_running = pod_result["running"]
-            pod_status = "✓" if pod_running else "✗"
-            details_lines.append(f"    {pod_status} {pod}: {phase}")
+            pod_status = "✓" if pod_result["running"] else "✗"
+            details_lines.append(
+                f"    {pod_status} {pod_result['pod']}: {pod_result['phase']}"
+            )
 
-        if not success:
+        if not comp_ok:
             all_success = False
 
     details = "\n".join(details_lines)
@@ -317,6 +319,7 @@ def test_victoria_cluster_pods(host):
         assert False, "; ".join(errors)
 
 
+@pytest.mark.order(16)
 def test_vmagent_pod_running(host):
     """
     Test Case 5: Verify vmagent pod is running.
@@ -364,6 +367,7 @@ def test_vmagent_pod_running(host):
         assert False, VICTORIA_ASSERT_MSGS["vmagent_not_running"]
 
 
+@pytest.mark.order(17)
 def test_victoria_services(host):
     """
     Test Case 6: Verify VictoriaMetrics services have external IPs.
@@ -421,6 +425,7 @@ def test_victoria_services(host):
             )
 
 
+@pytest.mark.order(18)
 def test_victoria_tls_secret(host):
     """
     Test Case 7: Verify VictoriaMetrics TLS secret exists.
@@ -473,6 +478,7 @@ def test_victoria_tls_secret(host):
         )
 
 
+@pytest.mark.order(19)
 def test_victoria_tls_health(host):
     """
     Test Case 8: Verify TLS connection and health endpoint.
@@ -525,6 +531,36 @@ def test_victoria_tls_health(host):
         )
 
 
+def _build_victoria_tag_lines(tag_result):
+    """Build detail lines for a single VictoriaMetrics service tag result."""
+    lines = []
+    stag = tag_result["service_tag"]
+    if tag_result["found"]:
+        lines.append(f"  ✓ {stag}")
+        lines.append(
+            f"      Metrics     : {tag_result['metric_count']} found"
+        )
+        latest_ts = tag_result.get("latest_timestamp", 0)
+        if latest_ts:
+            try:
+                human_ts = datetime.fromtimestamp(
+                    int(latest_ts)
+                ).strftime("%Y-%m-%d %H:%M:%S")
+                lines.append(
+                    f"      VM Time     : {latest_ts} ({human_ts})"
+                )
+            except (ValueError, OSError):
+                lines.append(f"      VM Time     : {latest_ts}")
+        for sample in tag_result.get("sample_metrics", []):
+            lines.append(
+                f"        - {sample['metric_name']}: {sample['value']}"
+            )
+    else:
+        lines.append(f"  ✗ {stag}: NO DATA FOUND")
+    return lines
+
+
+@pytest.mark.order(20)
 def test_victoria_idrac_data(host):
     """
     Test Case 9: Verify iDRAC telemetry data in VictoriaMetrics.
@@ -570,43 +606,24 @@ def test_victoria_idrac_data(host):
     ]
 
     for tag_result in result.get("service_tag_results", []):
-        service_tag = tag_result["service_tag"]
-        found = tag_result["found"]
-        latest_ts = tag_result.get("latest_timestamp", 0)
-        metric_count = tag_result["metric_count"]
-
-        if found:
-            details_lines.append(f"  ✓ {service_tag}")
-            details_lines.append(f"      Metrics     : {metric_count} found")
-            if latest_ts:
-                try:
-                    human_ts = datetime.fromtimestamp(int(latest_ts)).strftime("%Y-%m-%d %H:%M:%S")
-                    details_lines.append(f"      VM Time     : {latest_ts} ({human_ts})")
-                except (ValueError, OSError):
-                    details_lines.append(f"      VM Time     : {latest_ts}")
-            for sample in tag_result.get("sample_metrics", []):
-                metric_name = sample["metric_name"]
-                value = sample["value"]
-                details_lines.append(f"        - {metric_name}: {value}")
-        else:
-            details_lines.append(f"  ✗ {service_tag}: NO DATA FOUND")
+        details_lines.extend(_build_victoria_tag_lines(tag_result))
 
     details = "\n".join(details_lines)
 
     if result["success"]:
-        found_count = len(result.get("found_tags", []))
         log.passed(
-            VICTORIA_LOG_MSGS["idrac_data_all_found"].format(count=found_count),
+            VICTORIA_LOG_MSGS["idrac_data_all_found"].format(
+                count=len(result.get("found_tags", []))
+            ),
             details
         )
     else:
-        missing = result.get("missing_tags", [])
-        found = result.get("found_tags", [])
         log.failed(
-            f"iDRAC data missing for {len(missing)} service tags",
+            f"iDRAC data missing for "
+            f"{len(result.get('missing_tags', []))} service tags",
             details
         )
         assert False, VICTORIA_ASSERT_MSGS["idrac_data_missing"].format(
-            missing=missing,
-            found=found
+            missing=result.get("missing_tags", []),
+            found=result.get("found_tags", [])
         )

@@ -114,6 +114,26 @@ BUILD_STREAM_QUADLET_FILES: List[str] = [
 ]
 
 # =============================================================================
+# PULP API SETTINGS
+# =============================================================================
+
+# Pulp API port for status checks
+PULP_API_PORT: int = 2225
+
+# =============================================================================
+# OCHAMI AUTH / CERTIFICATE RENEWAL SETTINGS
+# =============================================================================
+
+# Number of retries for gen_access_token
+OCHAMI_AUTH_RETRIES: int = 3
+
+# Delay in seconds between gen_access_token retries
+OCHAMI_AUTH_DELAY: int = 5
+
+# Seconds to wait after restarting acme-deploy before rechecking
+CERT_WAIT_TIME: int = 30
+
+# =============================================================================
 # CERTIFICATE PATHS (inside omnia_core container)
 # =============================================================================
 

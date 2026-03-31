@@ -19,6 +19,7 @@ This module contains all verification functions for prepare_oim tests.
 Test functions should call these functions - all logic resides here.
 """
 
+import time
 from typing import Dict, Any, List
 
 from automation_library.core import (
@@ -40,6 +41,10 @@ from ..vars.prepare_oim_vars import (
     LDAP_CERT_PATH,
     BUILD_STREAM_CONTAINERS,
     BUILD_STREAM_SERVICE,
+    PULP_API_PORT,
+    OCHAMI_AUTH_RETRIES,
+    OCHAMI_AUTH_DELAY,
+    CERT_WAIT_TIME,
 )
 
 
@@ -106,23 +111,33 @@ def check_pulp_api_status(host) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'status', 'details', 'error'
     """
-    # Try to access Pulp API on port 2225
-    cmd = host.run("curl -s -o /dev/null -w '%{http_code}' http://localhost:2225/pulp/api/v3/status/ 2>/dev/null")
+    # Try to access Pulp API
+    curl_cmd = (
+        "curl -s -o /dev/null -w '%{http_code}' "
+        f"http://localhost:{PULP_API_PORT}/pulp/api/v3/status/ 2>/dev/null"
+    )
+    cmd = host.run(curl_cmd)
 
     # Any HTTP response (200, 400, 401, 403) means Pulp API is accessible
     if cmd.rc == 0 and cmd.stdout.strip() in ["200", "400", "401", "403"]:
         return {
             "success": True,
             "status": "accessible",
-            "details": "Pulp API accessible on port 2225. Password is correctly configured.",
+            "details": (
+                f"Pulp API accessible on port {PULP_API_PORT}. "
+                f"Password is correctly configured."
+            ),
             "error": None
         }
 
+    http_status = cmd.stdout.strip() if cmd.stdout else 'N/A'
     return {
         "success": False,
         "status": "unreachable",
         "details": None,
-        "error": f"Pulp API not accessible. HTTP status: {cmd.stdout.strip() if cmd.stdout else 'N/A'}"
+        "error": (
+            f"Pulp API not accessible. HTTP status: {http_status}"
+        ),
     }
 
 
@@ -143,7 +158,11 @@ def check_pulp_certificate(host) -> Dict[str, Any]:
         cert_info_cmd = run_in_container(
             host, f"openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
         )
-        cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
+        cert_details = (
+            cert_info_cmd.stdout.strip()
+            if cert_info_cmd.rc == 0
+            else "Certificate exists"
+        )
         return {
             "success": True,
             "status": "exists",
@@ -160,8 +179,63 @@ def check_pulp_certificate(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# OCHAMI SERVICE STATUS VERIFICATION (BSS and SMD via ochami CLI)
+# OCHAMI AUTH / CERTIFICATE HELPERS
 # =============================================================================
+
+def _generate_access_token(host) -> Dict[str, Any]:
+    """
+    Generate a fresh access token with retries.
+
+    Runs 'gen_access_token' with retries/delay until a non-empty,
+    non-null token is returned.
+
+    Returns:
+        Dict with 'success', 'token', 'env_var', 'error'
+    """
+    hostname = host.run("hostname -s").stdout.strip().upper()
+    env_var = f"{hostname}_ACCESS_TOKEN"
+
+    for attempt in range(1, OCHAMI_AUTH_RETRIES + 1):
+        cmd = host.run("sudo bash -lc 'gen_access_token'")
+        token = cmd.stdout.strip()
+        if cmd.rc == 0 and token and token != "null":
+            return {"success": True, "token": token, "env_var": env_var, "error": None}
+        if attempt < OCHAMI_AUTH_RETRIES:
+            time.sleep(OCHAMI_AUTH_DELAY)
+
+    return {
+        "success": False,
+        "token": "",
+        "env_var": env_var,
+        "error": f"Failed to generate access token after {OCHAMI_AUTH_RETRIES} attempts",
+    }
+
+
+def _regenerate_certificate(host) -> Dict[str, Any]:
+    """
+    Regenerate the certificate by restarting acme-deploy service.
+
+    Steps:
+        1. Restart acme-deploy service
+        2. Wait CERT_WAIT_TIME seconds for cert provisioning
+        3. Return success/failure
+
+    Returns:
+        Dict with 'success', 'error'
+    """
+    restart_cmd = host.run("systemctl restart acme-deploy")
+    if restart_cmd.rc != 0:
+        return {
+            "success": False,
+            "error": (
+                f"Failed to restart acme-deploy service: "
+                f"{restart_cmd.stderr.strip() or restart_cmd.stdout.strip()}"
+            ),
+        }
+
+    time.sleep(CERT_WAIT_TIME)
+    return {"success": True, "error": None}
+
 
 def _run_ochami_cmd(host, ochami_cmd: str) -> Dict[str, Any]:
     """
@@ -170,19 +244,31 @@ def _run_ochami_cmd(host, ochami_cmd: str) -> Dict[str, Any]:
     Returns:
         Dict with 'rc', 'stdout', 'stderr'
     """
-    hostname = host.run("hostname -s").stdout.strip().upper()
-    env_var = f"{hostname}_ACCESS_TOKEN"
+    auth = _generate_access_token(host)
+    if not auth["success"]:
+        return {"rc": 1, "stdout": "", "stderr": auth["error"]}
+
     cmd = host.run(
-        f"export {env_var}=$(sudo bash -lc 'gen_access_token') && "
+        f"export {auth['env_var']}={auth['token']} && "
         f"ochami {ochami_cmd}"
     )
     return {"rc": cmd.rc, "stdout": cmd.stdout.strip(), "stderr": cmd.stderr.strip()}
 
 
+# =============================================================================
+# OCHAMI SERVICE STATUS VERIFICATION (BSS and SMD via ochami CLI)
+# =============================================================================
+
 def check_bss_service(host) -> Dict[str, Any]:
     """
     Check ochami BSS service status.
-    Generates a fresh token, then runs ochami bss service status.
+
+    Logic:
+        1. Generate a fresh access token (with retries)
+        2. Run ochami bss service status
+        3. If it fails -> restart acme-deploy to regenerate certificate
+        4. Wait CERT_WAIT_TIME seconds, then recheck
+
     Expected response: {"bss-status":"running"}
 
     Args:
@@ -202,18 +288,52 @@ def check_bss_service(host) -> Dict[str, Any]:
             "error": None
         }
 
+    # First attempt failed - regenerate certificate and retry
+    cert_result = _regenerate_certificate(host)
+    if not cert_result["success"]:
+        return {
+            "success": False,
+            "status": "not running",
+            "details": output if output else None,
+            "error": (
+                f"BSS check failed and certificate regeneration also failed: "
+                f"{cert_result['error']}"
+            ),
+        }
+
+    # Retry after certificate regeneration
+    result = _run_ochami_cmd(host, "bss service status")
+    output = result["stdout"]
+
+    if result["rc"] == 0 and '"bss-status":"running"' in output.replace(" ", ""):
+        return {
+            "success": True,
+            "status": "running",
+            "details": f"{output} (recovered after certificate regeneration)",
+            "error": None
+        }
+
     return {
         "success": False,
         "status": "not running",
         "details": output if output else None,
-        "error": result["stderr"] or output or "BSS service is not running"
+        "error": (
+            result["stderr"] or output
+            or "BSS service is not running (even after certificate regeneration)"
+        ),
     }
 
 
 def check_smd_service(host) -> Dict[str, Any]:
     """
     Check ochami SMD service status.
-    Generates a fresh token, then runs ochami smd service status.
+
+    Logic:
+        1. Generate a fresh access token (with retries)
+        2. Run ochami smd service status
+        3. If it fails -> restart acme-deploy to regenerate certificate
+        4. Wait CERT_WAIT_TIME seconds, then recheck
+
     Expected response: {"code":0,"message":"HSM is healthy"}
 
     Args:
@@ -226,7 +346,12 @@ def check_smd_service(host) -> Dict[str, Any]:
     output = result["stdout"]
 
     output_normalized = output.replace(" ", "")
-    if result["rc"] == 0 and '"code":0' in output_normalized and 'HSMishealthy' in output_normalized:
+    is_healthy = (
+        result["rc"] == 0
+        and '"code":0' in output_normalized
+        and 'HSMishealthy' in output_normalized
+    )
+    if is_healthy:
         return {
             "success": True,
             "status": "healthy",
@@ -234,11 +359,45 @@ def check_smd_service(host) -> Dict[str, Any]:
             "error": None
         }
 
+    # First attempt failed - regenerate certificate and retry
+    cert_result = _regenerate_certificate(host)
+    if not cert_result["success"]:
+        return {
+            "success": False,
+            "status": "not healthy",
+            "details": output if output else None,
+            "error": (
+                f"SMD check failed and certificate regeneration "
+                f"also failed: {cert_result['error']}"
+            ),
+        }
+
+    # Retry after certificate regeneration
+    result = _run_ochami_cmd(host, "smd service status")
+    output = result["stdout"]
+
+    output_normalized = output.replace(" ", "")
+    is_healthy = (
+        result["rc"] == 0
+        and '"code":0' in output_normalized
+        and 'HSMishealthy' in output_normalized
+    )
+    if is_healthy:
+        return {
+            "success": True,
+            "status": "healthy",
+            "details": f"{output} (recovered after certificate regeneration)",
+            "error": None
+        }
+
     return {
         "success": False,
         "status": "not healthy",
         "details": output if output else None,
-        "error": result["stderr"] or output or "SMD service is not healthy"
+        "error": (
+            result["stderr"] or output
+            or "SMD service is not healthy (even after certificate regeneration)"
+        ),
     }
 
 
@@ -273,7 +432,11 @@ def check_ldap_auth_certificate(host) -> Dict[str, Any]:
         cert_info_cmd = run_in_container(
             host, f"openssl x509 -in {cert_path} -noout -subject -dates 2>/dev/null"
         )
-        cert_details = cert_info_cmd.stdout.strip() if cert_info_cmd.rc == 0 else "Certificate exists"
+        cert_details = (
+            cert_info_cmd.stdout.strip()
+            if cert_info_cmd.rc == 0
+            else "Certificate exists"
+        )
         return {
             "success": True,
             "status": "exists",
@@ -314,40 +477,43 @@ def check_all_services_status(host) -> Dict[str, Any]:
     failed = 0
 
     for svc in expected:
-        name = svc["name"]
-        expected_active = svc["expected_active"]
-        category = svc["category"]
-        reason = svc["reason"]
-
-        status_cmd = host.run(f"systemctl is-active {name} 2>/dev/null")
+        status_cmd = host.run(
+            f"systemctl is-active {svc['name']} 2>/dev/null"
+        )
         actual_status = status_cmd.stdout.strip()
         is_active = actual_status == "active"
 
-        if expected_active and is_active:
+        if svc["expected_active"] and is_active:
             verdict = "pass"
-            message = f"{name}: active"
+            message = f"{svc['name']}: active"
             passed += 1
-        elif expected_active and not is_active:
+        elif svc["expected_active"] and not is_active:
             verdict = "fail"
-            message = f"{name}: {actual_status} (expected active)"
+            message = f"{svc['name']}: {actual_status} (expected active)"
             failed += 1
-        elif not expected_active and not is_active:
+        elif not svc["expected_active"] and not is_active:
             verdict = "pass"
-            message = f"{name}: not running (expected, {reason})"
+            message = (
+                f"{svc['name']}: not running "
+                f"(expected, {svc['reason']})"
+            )
             passed += 1
         else:
             verdict = "fail"
-            message = f"{name}: active (should NOT be running, {reason})"
+            message = (
+                f"{svc['name']}: active "
+                f"(should NOT be running, {svc['reason']})"
+            )
             failed += 1
 
         results.append({
-            "name": name,
-            "category": category,
-            "expected_active": expected_active,
+            "name": svc["name"],
+            "category": svc["category"],
+            "expected_active": svc["expected_active"],
             "actual_status": actual_status,
             "is_active": is_active,
             "verdict": verdict,
-            "reason": reason,
+            "reason": svc["reason"],
             "message": message,
         })
 
@@ -386,40 +552,43 @@ def check_all_containers_status(host) -> Dict[str, Any]:
     failed = 0
 
     for ctr in expected:
-        name = ctr["name"]
-        expected_running = ctr["expected_running"]
-        category = ctr["category"]
-        reason = ctr["reason"]
-
-        result = check_container_running(host, name)
+        result = check_container_running(host, ctr["name"])
         is_running = result["success"]
         actual_status = result["status"]
 
-        if expected_running and is_running:
+        if ctr["expected_running"] and is_running:
             verdict = "pass"
-            message = f"{name}: running"
+            message = f"{ctr['name']}: running"
             passed += 1
-        elif expected_running and not is_running:
+        elif ctr["expected_running"] and not is_running:
             verdict = "fail"
-            message = f"{name}: {actual_status} (expected running)"
+            message = (
+                f"{ctr['name']}: {actual_status} (expected running)"
+            )
             failed += 1
-        elif not expected_running and not is_running:
+        elif not ctr["expected_running"] and not is_running:
             verdict = "pass"
-            message = f"{name}: not running (expected, {reason})"
+            message = (
+                f"{ctr['name']}: not running "
+                f"(expected, {ctr['reason']})"
+            )
             passed += 1
         else:
             verdict = "fail"
-            message = f"{name}: running (should NOT be running, {reason})"
+            message = (
+                f"{ctr['name']}: running "
+                f"(should NOT be running, {ctr['reason']})"
+            )
             failed += 1
 
         results.append({
-            "name": name,
-            "category": category,
-            "expected_running": expected_running,
+            "name": ctr["name"],
+            "category": ctr["category"],
+            "expected_running": ctr["expected_running"],
             "actual_status": actual_status,
             "is_running": is_running,
             "verdict": verdict,
-            "reason": reason,
+            "reason": ctr["reason"],
             "message": message,
         })
 
