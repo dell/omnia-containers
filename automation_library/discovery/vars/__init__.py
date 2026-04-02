@@ -36,3 +36,8 @@ from .ldap_vars import (
     CONTAINER_STABLE_WAIT_SECONDS,
     CONTAINER_CHECK_INTERVAL,
 )
+
+# Admin debug packages
+from .admin_debug_packages_vars import (
+    ADMIN_DEBUG_PACKAGES_JSON,
+)
