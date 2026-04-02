@@ -35,6 +35,13 @@ from .victoria_msgs import (
     VICTORIA_ASSERT_MSGS,
 )
 
+# Delete node verification messages
+from .delete_node_msgs import (
+    DELETE_NODE_TEST_NAMES,
+    DELETE_NODE_LOG_MSGS,
+    DELETE_NODE_ASSERT_MSGS,
+)
+
 # Shared messages (used across all telemetry modules)
 from .shared_msgs import (
     TELEMETRY_MSGS,

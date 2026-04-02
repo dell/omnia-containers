@@ -70,3 +70,20 @@ from .victoria_func import (
     verify_victoria_tls_health,
     verify_victoria_idrac_data,
 )
+
+# Delete node verification functions
+from .delete_node_func import (
+    get_deleted_nodes,
+    get_deleted_nodes_cached,
+    clear_deleted_nodes_cache,
+    update_pxe_backup,
+    get_deleted_ldms_hostnames,
+    get_deleted_service_tags,
+    get_deleted_bmc_ips,
+    save_pxe_backup,
+    skip_if_no_deleted_nodes,
+    verify_ldms_deleted_node_in_kafka,
+    verify_idrac_deleted_node_in_kafka,
+    verify_idrac_deleted_node_in_mysql,
+    verify_idrac_deleted_node_in_victoria,
+)

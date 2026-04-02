@@ -47,6 +47,7 @@ from automation_library.telemetry.functions import (
 # IDRAC TELEMETRY TEST CASES
 # =============================================================================
 
+@pytest.mark.order(1)
 def test_idrac_telemetry_pod_count(host):
     """
     Test Case 1: Verify idrac-telemetry pods count matches expected.
@@ -87,6 +88,7 @@ def test_idrac_telemetry_pod_count(host):
     )
 
 
+@pytest.mark.order(2)
 def test_all_telemetry_pods_running(host):
     """
     Test Case 2: Verify all pods in telemetry namespace are running.
@@ -146,6 +148,7 @@ def test_all_telemetry_pods_running(host):
     )
 
 
+@pytest.mark.order(3)
 def test_mysql_data_in_idrac_telemetry_pods(host):
     """
     Test Case 3: Verify MySQL data in idrac-telemetry pods.
@@ -194,7 +197,7 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
         actual = pod_result["actual_ips"]
         missing = pod_result["missing_ips"]
 
-        details_lines.append(f"")
+        details_lines.append("")
         details_lines.append(f"Pod: {pod_name}")
         details_lines.append(f"  Expected IPs: {expected}")
         details_lines.append(f"  Actual IPs  : {actual}")
@@ -204,9 +207,10 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
                 f"  ✓ {LOG_MSGS['mysql_pod_verified'].format(pod_name=pod_name)}"
             )
         else:
-            details_lines.append(
-                f"  ✗ {LOG_MSGS['mysql_pod_missing_ips'].format(pod_name=pod_name, missing=missing)}"
+            msg = LOG_MSGS['mysql_pod_missing_ips'].format(
+                pod_name=pod_name, missing=missing
             )
+            details_lines.append(f"  ✗ {msg}")
             all_success = False
 
     details = "\n".join(details_lines)
@@ -231,6 +235,42 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
             )
 
 
+def _build_receiver_pod_details(pod_result):
+    """Build detail lines for a single receiver pod result."""
+    lines = []
+    lines.append(f"Pod: {pod_result['pod_name']}")
+    lines.append(f"  MySQL IPs: {pod_result['mysql_ips']}")
+
+    for ip_result in pod_result.get("ip_results", []):
+        ip_addr = ip_result.get("ip", "")
+        service_tag = ip_result.get("service_tag", "")
+        sample_reports = ip_result.get("sample_reports", [])
+
+        if service_tag and sample_reports:
+            lines.append(
+                f"  ✓ {ip_addr} → {service_tag} - Collecting metrics"
+            )
+            for report in sample_reports:
+                if '/redfish/v1/TelemetryService/MetricReports/' in report:
+                    metric_name = report.split('/MetricReports/')[-1]
+                    lines.append(
+                        f"      - {service_tag}: .../{metric_name}"
+                    )
+        elif service_tag:
+            lines.append(
+                f"  ⚠ {ip_addr} → {service_tag}"
+                f" - SSE connected (no recent reports)"
+            )
+        else:
+            lines.append(
+                f"  ✗ {ip_addr} → NOT FOUND - Not collecting"
+            )
+
+    lines.append("")
+    return lines
+
+
+@pytest.mark.order(4)
 def test_receiver_collecting_metrics(host):
     """
     Test Case 4: Verify idrac-telemetry-receiver is collecting metrics.
@@ -265,40 +305,9 @@ def test_receiver_collecting_metrics(host):
     details_lines = []
     all_success = True
     for pod_result in result.get("pod_results", []):
-        pod_name = pod_result["pod_name"]
-        mysql_ips = pod_result["mysql_ips"]
-        ip_results = pod_result.get("ip_results", [])
-
-        details_lines.append(f"Pod: {pod_name}")
-        details_lines.append(f"  MySQL IPs: {mysql_ips}")
-
-        for ip_result in ip_results:
-            ip = ip_result.get("ip", "")
-            service_tag = ip_result.get("service_tag", "")
-            sample_reports = ip_result.get("sample_reports", [])
-
-            if service_tag and sample_reports:
-                details_lines.append(
-                    f"  ✓ {ip} → {service_tag} - Collecting metrics"
-                )
-                for report in sample_reports:
-                    if '/redfish/v1/TelemetryService/MetricReports/' in report:
-                        metric_name = report.split('/MetricReports/')[-1]
-                        details_lines.append(
-                            f"      - {service_tag}: .../{metric_name}"
-                        )
-            elif service_tag:
-                details_lines.append(
-                    f"  ⚠ {ip} → {service_tag} - SSE connected (no recent reports)"
-                )
-            else:
-                details_lines.append(
-                    f"  ✗ {ip} → NOT FOUND - Not collecting"
-                )
-
+        details_lines.extend(_build_receiver_pod_details(pod_result))
         if not pod_result["success"]:
             all_success = False
-        details_lines.append("")
 
     details = "\n".join(details_lines)
 
@@ -317,5 +326,8 @@ def test_receiver_collecting_metrics(host):
             assert False, ASSERT_MSGS["receiver_not_collecting"].format(
                 pod_name=failed_pod["pod_name"],
                 mysql_ips=failed_pod["mysql_ips"],
-                service_tags=[r.get("service_tag", "") for r in failed_pod.get("ip_results", [])]
+                service_tags=[
+                    r.get("service_tag", "")
+                    for r in failed_pod.get("ip_results", [])
+                ]
             )
