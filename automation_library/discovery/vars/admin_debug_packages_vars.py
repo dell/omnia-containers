@@ -12,27 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Discovery Messages Module."""
+"""
+Admin Debug Packages Variables.
 
-from .discovery_msgs import (
-    TEST_NAMES,
-    TEST_LOG_MSGS,
-    TEST_ASSERT_MSGS,
-    SKIP_MSGS,
-)
-from .admin_debug_packages_msgs import (
-    ADMIN_DEBUG_TEST_NAMES,
-    ADMIN_DEBUG_LOG_MSGS,
-    ADMIN_DEBUG_ASSERT_MSGS,
+Constants and paths for admin debug packages verification.
+"""
+
+# Path to admin_debug_packages.json inside omnia_core container
+ADMIN_DEBUG_PACKAGES_JSON = (
+    "/opt/omnia/input/project_default/config"
+    "/x86_64/rhel/10.0/admin_debug_packages.json"
 )
 
 __all__ = [
-    "TEST_NAMES",
-    "TEST_LOG_MSGS",
-    "TEST_ASSERT_MSGS",
-    "SKIP_MSGS",
-    # Admin debug packages
-    "ADMIN_DEBUG_TEST_NAMES",
-    "ADMIN_DEBUG_LOG_MSGS",
-    "ADMIN_DEBUG_ASSERT_MSGS",
+    "ADMIN_DEBUG_PACKAGES_JSON",
 ]

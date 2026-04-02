@@ -77,3 +77,10 @@ from .ldap_func import (
     verify_ldap_user_login_from_core,
     verify_pam_slurm_adopt,
 )
+
+# Admin debug packages functions
+from .admin_debug_packages_func import (
+    get_packages_from_json,
+    verify_admin_debug_packages_config,
+    verify_debug_packages_installed,
+)
