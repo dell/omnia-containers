@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - automation
+      - automation-v2.1.0.0
 
 jobs:
   build:
