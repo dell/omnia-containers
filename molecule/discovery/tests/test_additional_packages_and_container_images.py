@@ -81,7 +81,7 @@ def test_additional_packages(host):
             json_path=json_path
         )
 
-    # Build details output
+    # Build details output in per-package format
     details_lines = []
     total_checked = result.get("total_packages_checked", 0)
     total_missing = result.get("total_missing", 0)
@@ -99,25 +99,28 @@ def test_additional_packages(host):
         
         # Header with normalization indicator
         if role_name in ["service_kube_control_plane", "service_kube_control_plane_first"] and normalized_role != role_name:
-            details_lines.append(f"\n{fg} ({len(expected_pkgs)} packages) [treated as: {normalized_role}]")
+            details_lines.append(f"\n[{fg}] [treated as: {normalized_role}]")
         else:
-            details_lines.append(f"\n{fg} ({len(expected_pkgs)} packages)")
-        
-        details_lines.append(f"  Expected: {', '.join(expected_pkgs)}")
+            details_lines.append(f"\n[{fg}]")
 
         for node in group_data.get("nodes", []):
             hostname = node["hostname"]
             admin_ip = node.get("admin_ip", "")
             missing = node.get("missing", [])
+            installed = node.get("installed", [])
 
             if not admin_ip:
-                details_lines.append(f"  ✗ {hostname} (no admin_ip)")
+                details_lines.append(f"  {hostname} (no admin_ip)")
                 continue
 
-            if not missing:
-                details_lines.append(f"  ✓ {hostname} ({admin_ip})")
-            else:
-                details_lines.append(f"  ✗ {hostname} ({admin_ip}) - missing: {', '.join(missing)}")
+            details_lines.append(f"  {hostname}")
+            
+            # Show each package with installation status
+            for pkg in expected_pkgs:
+                if pkg in missing:
+                    details_lines.append(f"    {pkg} [not installed]")
+                else:
+                    details_lines.append(f"    {pkg} [installed]")
 
     details = "\n".join(details_lines)
 
@@ -201,7 +204,7 @@ def test_additional_container_images(host):
             json_path=json_path
         )
 
-    # Build details output
+    # Build details output in per-image format
     details_lines = []
     total_checked = result.get("total_images_checked", 0)
     total_missing = result.get("total_missing", 0)
@@ -221,36 +224,35 @@ def test_additional_container_images(host):
         # Header based on role type
         if is_k8s_role:
             if role_name in ["service_kube_control_plane", "service_kube_control_plane_first"] and normalized_role != role_name:
-                details_lines.append(f"\n{fg} ({len(expected_images)} images) [treated as: {normalized_role}]")
+                details_lines.append(f"\n[{fg}] [treated as: {normalized_role}]")
             else:
-                details_lines.append(f"\n{fg} ({len(expected_images)} images)")
-            if expected_images:
-                details_lines.append(f"  Expected: {', '.join(expected_images)}")
+                details_lines.append(f"\n[{fg}]")
         else:
             # Non-K8s role (e.g., Slurm)
-            details_lines.append(f"\n{fg} (Non-K8s role)")
-            details_lines.append(f"  Note: {group_data.get('reason', 'No container images expected')}")
+            details_lines.append(f"\n[{fg}] (Non-K8s role - no images expected)")
 
         for node in group_data.get("nodes", []):
             hostname = node["hostname"]
             admin_ip = node.get("admin_ip", "")
             missing = node.get("missing", [])
-            note = node.get("note", "")
 
             if not admin_ip:
-                details_lines.append(f"  ✗ {hostname} (no admin_ip)")
+                details_lines.append(f"  {hostname} (no admin_ip)")
                 continue
 
-            # Handle non-K8s nodes
+            details_lines.append(f"  {hostname}")
+            
+            # Handle non-K8s nodes - no images to check
             if not is_k8s_role:
-                details_lines.append(f"  ○ {hostname} ({admin_ip}) - no images expected")
+                details_lines.append(f"    (no images expected for non-K8s role)")
                 continue
 
-            # Handle K8s nodes
-            if not missing:
-                details_lines.append(f"  ✓ {hostname} ({admin_ip})")
-            else:
-                details_lines.append(f"  ✗ {hostname} ({admin_ip}) - missing: {', '.join(missing)}")
+            # Handle K8s nodes - show each image with status
+            for img in expected_images:
+                if img in missing:
+                    details_lines.append(f"    {img} [not present]")
+                else:
+                    details_lines.append(f"    {img} [present]")
 
     details = "\n".join(details_lines)
 
