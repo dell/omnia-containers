@@ -197,14 +197,11 @@ def _normalize_kube_control_plane_role(host, functional_group: str) -> str:
     if not all_kube_cp_groups:
         return role_name
     
-    # Get all nodes across all kube control plane groups
+    # Get all nodes across all kube control plane groups (preserving PXE mapping order)
     all_kube_cp_nodes = []
     for fg in all_kube_cp_groups:
         nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
         all_kube_cp_nodes.extend(nodes)
-    
-    # Sort by hostname to ensure consistent ordering
-    all_kube_cp_nodes.sort(key=lambda n: n.get("hostname", ""))
     
     total_kube_cp_nodes = len(all_kube_cp_nodes)
     
@@ -212,8 +209,9 @@ def _normalize_kube_control_plane_role(host, functional_group: str) -> str:
     if total_kube_cp_nodes == 1:
         return "service_kube_control_plane_first"
     
-    # If multiple nodes, determine if current functional_group contains the first node
+    # If multiple nodes, the first node in PXE mapping order is 'first'
     if total_kube_cp_nodes > 1:
+        # First node in the list (as it appears in PXE mapping)
         first_node_hostname = all_kube_cp_nodes[0].get("hostname", "")
         current_nodes = get_nodes_info(host, search_by="functional_group", search_value=functional_group)
         
