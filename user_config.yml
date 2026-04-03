@@ -233,3 +233,25 @@ external_ldap_bind_username: ""
 
 # External LDAP bind password (REQUIRED)
 external_ldap_bind_password: ""
+
+# =============================================================================
+# BUILD STREAM JOB OVERRIDE
+# =============================================================================
+# When build_stream is enabled, every pipeline run is tracked as a job in
+# postgres (build_stream_db). Each module checks that its pipeline stage
+# completed before running tests:
+#
+#   Module              Stage checked
+#   ──────────────────  ──────────────────────────
+#   build_image_x86_64  build-image-x86_64
+#   build_image_aarch64 build-image-aarch64
+#   local_repo          create-local-repository
+#   discovery           validate-image-on-test
+#
+# By default the automation resolves the LATEST COMPLETED job automatically
+# from the database. To pin verification to a specific pipeline run, set the
+# job UUID here — it will be used across ALL modules above.
+#
+# Format: UUID string (e.g., "c01cdd28-3c60-4124-bcf0-b53a0ef93c8b")
+# Leave empty ("") to use the latest completed job (default behavior).
+build_stream_job_id: ""
