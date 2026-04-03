@@ -45,11 +45,22 @@
     oim_input_dir: "/opt/omnia/input/project_default"
     local_repo_playbook: "/omnia/local_repo/local_repo.yml"
     pulp_container_name: "pulp"
+    build_stream_config_path: "/opt/omnia/input/project_default/build_stream_config.yml"
+    omnia_core_container: "omnia_core"
+    container_name: "omnia_core"
+    converge_scenario: "local_repo"
 
   tasks:
     - name: Display target OIM server
       ansible.builtin.debug:
         msg: "Running local_repo on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # GUARD: ABORT IF BUILD_STREAM IS ENABLED
+    # =========================================================================
+
+    - name: Guard - abort converge if build_stream is enabled
+      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
 
     - name: Check if omnia_core container is running
       ansible.builtin.shell:

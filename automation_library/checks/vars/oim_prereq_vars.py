@@ -293,4 +293,11 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
 
     # command_timeout: Default timeout in seconds for shell commands
     "command_timeout": 30,
+
+    # =========================================================================
+    # BUILD STREAM JOB OVERRIDE
+    # =========================================================================
+    # Optional: pin a specific build_stream job UUID to verify.
+    # When empty (""), the automation uses the latest COMPLETED job from postgres.
+    "build_stream_job_id": _user_config.get("build_stream_job_id", ""),
 }

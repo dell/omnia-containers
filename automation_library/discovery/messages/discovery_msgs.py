@@ -25,6 +25,10 @@ from typing import Dict
 # =============================================================================
 
 TEST_NAMES: Dict[str, str] = {
+    # Build stream job stage (first test)
+    "build_stream_job_stage": (
+        "Verify build_stream pipeline stage '{stage}' completed successfully"
+    ),
     # Common tests
     "nodes_booted": "Verify all cluster nodes are booted",
     "passwordless_ssh": "Verify passwordless SSH to all nodes",
@@ -39,6 +43,9 @@ TEST_NAMES: Dict[str, str] = {
 
     # K8s tests
     "k8s_nodes_ready": "Verify all K8s nodes are Ready",
+
+    # Package verification tests
+    "node_packages": "Verify all required packages installed on all nodes",
 }
 
 # =============================================================================
@@ -46,6 +53,19 @@ TEST_NAMES: Dict[str, str] = {
 # =============================================================================
 
 TEST_LOG_MSGS: Dict[str, str] = {
+    # Build stream job stage
+    "build_stream_disabled_skip": (
+        "build_stream is DISABLED — skipping job stage validation"
+    ),
+    "build_stream_job_checking": (
+        "Checking build_stream stage '{stage}' (source: {source})"
+    ),
+    "build_stream_job_ok": (
+        "Stage '{stage}' COMPLETED — job UUID: {job_id} (source: {source})"
+    ),
+    "build_stream_job_failed": (
+        "Stage '{stage}' is '{state}' — expected COMPLETED (job: {job_id})"
+    ),
     # Common
     "nodes_booted_ok": "All {count} nodes are booted and reachable",
     "nodes_booted_fail": "{failed}/{total} nodes not reachable",
@@ -69,6 +89,10 @@ TEST_LOG_MSGS: Dict[str, str] = {
     # K8s
     "k8s_nodes_ok": "All {count} K8s nodes are Ready",
     "k8s_nodes_fail": "{not_ready} nodes not Ready",
+
+    # Package verification
+    "packages_ok": "All required packages installed on all {count} nodes",
+    "packages_fail": "{failed}/{total} nodes have missing packages",
 }
 
 # =============================================================================
@@ -149,6 +173,36 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  1. Check kubelet: systemctl status kubelet\n"
         "  2. Check node conditions: kubectl describe node <name>"
     ),
+
+    "packages_failed": (
+        "Required packages missing on nodes.\n"
+        "Failed nodes: {failed_nodes}\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check functional_groups_config.yml: "
+        "podman exec omnia_core cat /opt/omnia/.data/functional_groups_config.yml\n"
+        "  2. Verify package installation on node: ssh root@<node> rpm -qa | grep <pkg>\n"
+        "  3. Re-run discovery/provision playbook to reinstall packages\n"
+        "  4. Check package availability in local_repo"
+    ),
+
+    "build_stream_job_stage_failed": (
+        "BUILD STREAM STAGE VALIDATION FAILED\n"
+        "Stage   : {stage}\n"
+        "Job ID  : {job_id}\n"
+        "Status  : {state}\n"
+        "Expected: COMPLETED\n\n"
+        "WHAT HAPPENED:\n"
+        "  The build_stream pipeline stage did not complete successfully.\n"
+        "  Discovery verification depends on the pipeline completing first.\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check build_stream API logs on the OIM server\n"
+        "  2. Query DB: podman exec omnia_postgres psql -U omnia -d build_stream_db\n"
+        "            -c \"SELECT * FROM job_stages WHERE job_id = '{job_id}';\"\n"
+        "  3. If FAILED, re-trigger the build_stream pipeline\n"
+        "  4. If still RUNNING, wait for it to complete\n"
+        "  5. To override: set build_stream_job_id in user_config.yml"
+    ),
 }
 
 # =============================================================================
@@ -160,6 +214,7 @@ SKIP_MSGS: Dict[str, str] = {
     "ucx_not_enabled": "UCX is not enabled in software_config.json",
     "openldap_not_enabled": "OpenLDAP is not enabled in software_config.json",
     "ldms_not_enabled": "LDMS is not enabled in software_config.json",
+    "no_nodes_for_packages": "No nodes found in PXE mapping for package verification",
     "no_slurm_nodes": "No Slurm nodes found in PXE mapping",
     "no_k8s_nodes": "No K8s nodes found in PXE mapping",
     "skip_detail_not_enabled": "Test skipped - {software} not enabled",

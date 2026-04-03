@@ -18,7 +18,10 @@ Discovery Module - Common Variables.
 SSH options and common constants used across discovery tests.
 """
 
-from automation_library.core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
+from automation_library.core.vars import (
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+    OIM_SHARED_PATH as _OIM_SHARED_PATH,
+)
 
 # =============================================================================
 # SSH OPTIONS (for handling changed host keys)
@@ -36,3 +39,12 @@ SSH_OPTS = (
 # =============================================================================
 
 CONTAINER_NAME = _CORE_CONTAINER
+
+# =============================================================================
+# IMAGE CONFIG YAML DIRECTORY
+# Same path used by build_image_x86_64 playbook (build_image_vars.py).
+# Contains per-functional-group YAML files with 'packages' list.
+# e.g. rhel-slurm_control_node_x86_64_<uuid>-image-build-10.0.yaml
+# =============================================================================
+
+IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"

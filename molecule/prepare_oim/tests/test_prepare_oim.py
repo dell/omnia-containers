@@ -29,6 +29,8 @@ Test cases:
 9. Verify ochami SMD service is active via CLI
 """
 
+import pytest
+
 from automation_library.core import TestLogger
 from automation_library.prepare_oim.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
@@ -51,6 +53,7 @@ from automation_library.prepare_oim.functions import (
 # 1. CONSOLIDATED SERVICE STATUS TEST
 # =============================================================================
 
+@pytest.mark.order(1)
 def test_service_status(host):
     """Check ALL systemd services and targets in one pass."""
     log = TestLogger(TEST_NAMES["service_status"])
@@ -74,6 +77,7 @@ def test_service_status(host):
 # 2. CONSOLIDATED CONTAINER STATUS TEST
 # =============================================================================
 
+@pytest.mark.order(2)
 def test_container_status(host):
     """Check ALL containers in one pass."""
     log = TestLogger(TEST_NAMES["container_status"])
@@ -97,6 +101,7 @@ def test_container_status(host):
 # 3. OPENCHAMI TARGET TEST
 # =============================================================================
 
+@pytest.mark.order(3)
 def test_openchami_target(host):
     """Compare openchami.target dependencies against expected list."""
     log = TestLogger(TEST_NAMES["openchami_target"])
@@ -122,6 +127,7 @@ def test_openchami_target(host):
 # 4. OMNIA TARGET TEST
 # =============================================================================
 
+@pytest.mark.order(4)
 def test_omnia_target(host):
     """Compare omnia.target dependencies against expected list."""
     log = TestLogger(TEST_NAMES["omnia_target"])
@@ -147,6 +153,7 @@ def test_omnia_target(host):
 # 5. PULP API PASSWORD TEST
 # =============================================================================
 
+@pytest.mark.order(5)
 def test_pulp_api_password(host):
     """Verify Pulp API password from omnia_config_credentials.yml is correctly configured."""
     log = TestLogger(TEST_NAMES["pulp_api_status"])
@@ -168,6 +175,7 @@ def test_pulp_api_password(host):
 # 6. PULP CERTIFICATE TEST
 # =============================================================================
 
+@pytest.mark.order(6)
 def test_pulp_certificate(host):
     """Verify Pulp webserver certificate exists inside omnia_core container."""
     log = TestLogger(TEST_NAMES["pulp_certificate"])
@@ -189,6 +197,7 @@ def test_pulp_certificate(host):
 # 7. LDAP AUTH CERTIFICATE TEST
 # =============================================================================
 
+@pytest.mark.order(7)
 def test_ldap_auth_certificate(host):
     """Verify LDAP auth certificate exists (only if LDAP enabled)."""
     ldap_enabled = is_ldap_enabled(host)
@@ -217,6 +226,7 @@ def test_ldap_auth_certificate(host):
 # 8. BSS SERVICE TEST
 # =============================================================================
 
+@pytest.mark.order(8)
 def test_bss_service_active(host):
     """Verify ochami BSS service is running via ochami CLI."""
     log = TestLogger(TEST_NAMES["bss_service_active"])
@@ -238,6 +248,7 @@ def test_bss_service_active(host):
 # 9. SMD SERVICE TEST
 # =============================================================================
 
+@pytest.mark.order(9)
 def test_smd_service_active(host):
     """Verify ochami SMD service is healthy via ochami CLI."""
     log = TestLogger(TEST_NAMES["smd_service_active"])

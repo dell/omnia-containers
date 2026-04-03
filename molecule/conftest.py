@@ -24,8 +24,30 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 from automation_library.core import (
-    get_testinfra_host, TestReport, set_current_report, get_current_report, get_test_output
+    get_testinfra_host, TestReport, set_current_report, get_current_report, get_test_output,
+    TestLogger, is_build_stream_enabled,
 )
+
+
+# =============================================================================
+# SHARED BUILD_STREAM JOB STATE
+# =============================================================================
+# Module-level dict to track build_stream job validation state.
+# Set by test_build_stream_job_stage in each module, used by autouse fixture
+# to skip remaining tests when job is not COMPLETED.
+#
+# Each test module that uses build_stream should:
+# 1. Import this dict: from molecule.conftest import build_stream_job_state
+# 2. Set values in test_build_stream_job_stage after validation
+# 3. The autouse fixture below will handle skipping automatically
+# =============================================================================
+build_stream_job_state: dict = {
+    "checked": False,
+    "success": None,
+    "job_id": None,
+    "job_state": None,
+    "error": None,
+}
 
 
 class _TeeStream:
@@ -153,8 +175,6 @@ def pytest_runtest_makereport(item, call):
         else:
             skip_reason = str(longrepr) if longrepr else "Skipped"
 
-        print(f"\nSKIPPED REASON: {skip_reason}")
-
     if result.outcome == "passed":
         status = "PASSED"
     elif result.outcome == "failed":
@@ -236,3 +256,57 @@ def host():
         )
 
     return h
+
+
+# =============================================================================
+# SHARED BUILD_STREAM AUTOUSE FIXTURE
+# =============================================================================
+@pytest.fixture(autouse=True)
+def _require_build_stream_job(host, request):
+    """
+    Autouse fixture: skip any test (except test_build_stream_job_stage) when
+    build_stream is enabled but the job stage check did not pass.
+
+    This fixture is shared across all modules that use build_stream validation.
+    Each module's test_build_stream_job_stage must set build_stream_job_state
+    values after validation.
+
+    Uses log.skipped() so skips appear properly in test report.
+    """
+    # Skip the job-stage test itself (it sets the state)
+    if request.node.name == "test_build_stream_job_stage":
+        yield
+        return
+
+    # Only skip if build_stream is enabled AND job check failed
+    if (is_build_stream_enabled(host) and
+            build_stream_job_state["checked"] and
+            not build_stream_job_state["success"]):
+
+        # Use TestLogger to properly report the skip in test output/report
+        log = TestLogger(request.node.name)
+        job_id = build_stream_job_state.get("job_id", "unknown")
+        job_state = build_stream_job_state.get("job_state", "NOT FOUND")
+        error = build_stream_job_state.get("error", "unknown error")
+
+        # Use very short skip reason with exact state for pytest (to avoid truncation)
+        # Put detailed error in log.skipped details (with proper line breaks)
+        short_skip_reason = job_state
+        detailed_error = f"build_stream job is {job_state} — skipping test.\nFix: {error}"
+        
+        log.skipped(
+            f"Skipped due to build_stream job failure (job_id: {job_id})",
+            detailed_error
+        )
+        pytest.skip(short_skip_reason)
+
+    yield
+
+
+def reset_build_stream_state():
+    """Reset build_stream job state. Call at start of each test module."""
+    build_stream_job_state["checked"] = False
+    build_stream_job_state["success"] = None
+    build_stream_job_state["job_id"] = None
+    build_stream_job_state["job_state"] = None
+    build_stream_job_state["error"] = None

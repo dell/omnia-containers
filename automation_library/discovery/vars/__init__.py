@@ -17,6 +17,7 @@
 from .common_vars import (
     SSH_OPTS,
     CONTAINER_NAME,
+    IMAGE_CONFIG_YAML_DIR,
 )
 
 from .slurm_vars import (

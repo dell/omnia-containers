@@ -44,11 +44,20 @@
     container_name: "omnia_core"
     discovery_playbook: "/omnia/discovery/discovery.yml"
     provision_config_path: "/opt/omnia/input/project_default/provision_config.yml"
+    build_stream_config_path: "/opt/omnia/input/project_default/build_stream_config.yml"
+    converge_scenario: "discovery"
 
   tasks:
     - name: Display target OIM server
       ansible.builtin.debug:
         msg: "Running discovery on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # GUARD: ABORT IF BUILD_STREAM IS ENABLED
+    # =========================================================================
+
+    - name: Guard - abort converge if build_stream is enabled
+      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
 
     # =========================================================================
     # PREREQUISITE CHECKS

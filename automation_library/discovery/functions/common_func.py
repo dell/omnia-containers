@@ -38,6 +38,11 @@ from automation_library.core import (
 )
 from ..vars import SSH_OPTS
 from ..messages import SKIP_MSGS
+from .package_collector import (
+    get_base_image_packages,
+    get_packages_for_functional_group,
+    build_package_map,
+)
 
 
 # =============================================================================
@@ -653,3 +658,194 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             results["success"] = False
 
     return results
+
+
+# =============================================================================
+# NODE PACKAGE VERIFICATION
+# =============================================================================
+
+
+def _verify_packages_on_node(
+    host,
+    node: Dict[str, str],
+    packages: List[str],
+) -> Dict[str, Any]:
+    """
+    Verify expected packages are installed on a single node via rpm -qa.
+
+    Uses same matching strategies as build_image_func.py _verify_single_image_packages():
+    - Strategy 1: installed name starts with base package name
+    - Strategy 2: base package name contained and is prefix of installed name
+    - Strategy 3: python3.X -> python3-X.Y RHEL naming convention
+
+    Returns package_details matching build_image test format:
+        [{"expected": pkg, "found": found_version_or_None, "status": "installed"|"missing"}]
+
+    Args:
+        host: Testinfra host object
+        node: Node dict with hostname, admin_ip, functional_group
+        packages: List of expected package names
+
+    Returns:
+        Dict with success, hostname, found_packages, missing_packages,
+        package_details, details, error
+    """
+    hostname = node.get("hostname", "")
+    admin_ip = node.get("admin_ip", "")
+
+    if not packages:
+        return {
+            "hostname": hostname,
+            "success": True,
+            "found_packages": [],
+            "missing_packages": [],
+            "package_details": [],
+            "details": "No packages defined in image YAML for this functional group",
+            "error": None,
+        }
+
+    cmd = run_on_remote_node(host, "rpm -qa 2>/dev/null", admin_ip)
+    if cmd.rc != 0:
+        return {
+            "hostname": hostname,
+            "success": False,
+            "found_packages": [],
+            "missing_packages": packages,
+            "package_details": [],
+            "details": None,
+            "error": f"rpm -qa failed on {hostname}: {cmd.stderr or cmd.stdout}",
+        }
+
+    installed_packages = [
+        line.strip()
+        for line in cmd.stdout.strip().split("\n")
+        if line.strip()
+    ]
+
+    found_packages: List[str] = []
+    missing_packages: List[str] = []
+    package_details: List[Dict[str, Any]] = []
+
+    for pkg in packages:
+        base_pkg = (
+            pkg.split("-")[0]
+            if "-" in pkg and pkg.split("-")[-1][0].isdigit()
+            else pkg
+        )
+
+        found = False
+        found_version = None
+
+        for installed in installed_packages:
+            inst_lower = installed.lower()
+            base_lower = base_pkg.lower()
+            if inst_lower.startswith(base_lower):
+                found = True
+                found_version = installed
+                break
+            if base_lower in inst_lower and inst_lower.split("-")[0] == base_lower:
+                found = True
+                found_version = installed
+                break
+            if base_lower.startswith("python") and "." in base_lower:
+                py_version = base_lower.replace("python", "")
+                if inst_lower.startswith(f"python3-{py_version}"):
+                    found = True
+                    found_version = installed
+                    break
+
+        if found:
+            found_packages.append(pkg)
+            package_details.append({"expected": pkg, "found": found_version, "status": "installed"})
+        else:
+            missing_packages.append(pkg)
+            package_details.append({"expected": pkg, "found": None, "status": "missing"})
+
+    success = len(missing_packages) == 0
+    details_lines = [f"  {len(found_packages)}/{len(packages)} packages installed"]
+    if missing_packages:
+        details_lines.append(f"  Missing: {', '.join(missing_packages)}")
+
+    return {
+        "hostname": hostname,
+        "success": success,
+        "found_packages": found_packages,
+        "missing_packages": missing_packages,
+        "package_details": package_details,
+        "details": "\n".join(details_lines),
+        "error": f"Missing: {', '.join(missing_packages)}" if missing_packages else None,
+    }
+
+
+def verify_node_packages(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Verify all expected packages are installed on each provisioned node.
+
+    Delegates package collection to package_collector.py which replicates
+    the exact same logic as build_image_x86_64 playbook:
+    1. Reads all functional groups dynamically from PXE mapping (no hardcoding)
+    2. For each FG finds its image YAML in IMAGE_CONFIG_YAML_DIR via glob
+    3. Combines base image packages + compute packages (deduplicated)
+    4. SSHs to each node and verifies via rpm -qa
+
+    Args:
+        host: Testinfra host object
+        nodes: List of node dicts with hostname, admin_ip, functional_group
+
+    Returns:
+        Dict with success, total, passed, failed, results (per-node with
+        package_details), nodes_missing_packages, error
+    """
+    result: Dict[str, Any] = {
+        "success": True,
+        "total": len(nodes),
+        "passed": 0,
+        "failed": 0,
+        "results": [],
+        "nodes_missing_packages": [],
+        "error": None,
+    }
+
+    # Build complete package map for all FGs present in PXE mapping
+    # package_collector reads FGs dynamically - no hardcoding
+    package_map = build_package_map(host)
+
+    # Also build per-arch base packages cache for any FGs not in package_map
+    x86_base: List[str] = []
+    aarch64_base: List[str] = []
+
+    _fg_pkg_cache: Dict[str, List[str]] = {}
+
+    for node in nodes:
+        functional_group = node.get("functional_group", "")
+
+        if functional_group not in _fg_pkg_cache:
+            if functional_group in package_map:
+                _fg_pkg_cache[functional_group] = package_map[functional_group]
+            else:
+                # FG not in PXE mapping but present in nodes: collect on-demand
+                arch = "aarch64" if "aarch64" in functional_group else "x86_64"
+                if arch == "x86_64":
+                    if not x86_base:
+                        x86_base = get_base_image_packages(host, "x86_64")
+                    base = x86_base
+                else:
+                    if not aarch64_base:
+                        aarch64_base = get_base_image_packages(host, "aarch64")
+                    base = aarch64_base
+                _fg_pkg_cache[functional_group] = get_packages_for_functional_group(
+                    host, functional_group, base
+                )
+
+        packages = _fg_pkg_cache[functional_group]
+        node_result = _verify_packages_on_node(host, node, packages)
+        result["results"].append(node_result)
+
+        if node_result["success"]:
+            result["passed"] += 1
+        else:
+            result["failed"] += 1
+            result["success"] = False
+            result["nodes_missing_packages"].append(node_result["hostname"])
+
+    return result

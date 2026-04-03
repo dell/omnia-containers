@@ -26,6 +26,8 @@ Test cases:
 6. Verify passwordless SSH from container works
 """
 
+import pytest
+
 from automation_library.core import TestLogger
 from automation_library.omnia_sh.vars.omnia_sh_vars import TEST_VARS
 from automation_library.omnia_sh.messages.omnia_sh_msgs import (
@@ -41,6 +43,7 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 )
 
 
+@pytest.mark.order(1)
 def test_omnia_core_container_running(host):
     """Verify omnia_core container is running."""
     log = TestLogger(TEST_NAMES["container_running"])
@@ -62,6 +65,7 @@ def test_omnia_core_container_running(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.order(2)
 def test_omnia_core_container_file_exists(host):
     """Verify omnia_core.container file is present."""
     log = TestLogger(TEST_NAMES["container_file"])
@@ -77,6 +81,7 @@ def test_omnia_core_container_file_exists(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.order(3)
 def test_omnia_core_service_running(host):
     """Verify omnia_core systemd service is running."""
     log = TestLogger(TEST_NAMES["service_running"])
@@ -95,6 +100,7 @@ def test_omnia_core_service_running(host):
     assert result["success"], ASSERT_MSGS["service_not_active"].format(status=result["status"])
 
 
+@pytest.mark.order(4)
 def test_oim_metadata_file_exists(host):
     """Verify oim_metadata.yml file is present."""
     log = TestLogger(TEST_NAMES["metadata_file"])
@@ -110,6 +116,7 @@ def test_oim_metadata_file_exists(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.order(5)
 def test_passwordless_ssh_to_container(host):
     """Verify passwordless SSH from OIM server to omnia_core container."""
     log = TestLogger(TEST_NAMES["ssh_to_container"])
@@ -132,6 +139,7 @@ def test_passwordless_ssh_to_container(host):
     assert result["success"], ASSERT_MSGS["ssh_failed"].format(error=result["error"])
 
 
+@pytest.mark.order(6)
 def test_passwordless_ssh_from_container_to_host(host):
     """Verify passwordless SSH from omnia_core container to OIM server."""
     log = TestLogger(TEST_NAMES["ssh_from_container"])

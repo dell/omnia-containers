@@ -24,6 +24,8 @@ Test cases:
 4. Verify omnia_shared_path is NOT mounted
 """
 
+import pytest
+
 from automation_library.core import TestLogger
 from automation_library.omnia_sh.vars.omnia_sh_vars import TEST_VARS
 from automation_library.omnia_sh.messages.omnia_sh_msgs import (
@@ -37,6 +39,7 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 )
 
 
+@pytest.mark.order(1)
 def test_uninstall_container_removed(host):
     """Verify omnia_core container is NOT running after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_container_removed"])
@@ -51,6 +54,7 @@ def test_uninstall_container_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
+@pytest.mark.order(2)
 def test_uninstall_service_file_removed(host):
     """Verify omnia_core.container service file is removed after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_service_removed"])
@@ -66,6 +70,7 @@ def test_uninstall_service_file_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
+@pytest.mark.order(3)
 def test_uninstall_fstab_entry_removed(host):
     """Verify fstab entry for omnia_shared_path is removed after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
@@ -80,6 +85,7 @@ def test_uninstall_fstab_entry_removed(host):
     assert result["success"], ASSERT_MSGS["cleanup_failed"].format(error=result["error"])
 
 
+@pytest.mark.order(4)
 def test_uninstall_mount_removed(host):
     """Verify omnia_shared_path is NOT mounted after uninstall."""
     log = TestLogger(TEST_NAMES["cleanup_mount_removed"])

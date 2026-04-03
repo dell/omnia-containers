@@ -52,6 +52,18 @@ from .secrets import (
     get_credential_value,
     get_multiple_credentials,
 )
+from .db_exec import exec_psql_query, query_db_row
+from .build_stream import (
+    is_build_stream_enabled,
+    get_build_stream_job_id,
+    check_build_stream_stage,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
 from .vars import (
     # Base paths
     OIM_SHARED_PATH,
@@ -149,6 +161,19 @@ __all__ = [
     "view_credentials_file",
     "get_credential_value",
     "get_multiple_credentials",
+    # DB executor
+    "exec_psql_query",
+    "query_db_row",
+    # Build stream
+    "is_build_stream_enabled",
+    "get_build_stream_job_id",
+    "check_build_stream_stage",
+    "STAGE_BUILD_IMAGE_X86_64",
+    "STAGE_BUILD_IMAGE_AARCH64",
+    "STAGE_CREATE_LOCAL_REPO",
+    "STAGE_VALIDATE_IMAGE",
+    "STAGE_PARSE_CATALOG",
+    "STAGE_GENERATE_INPUT",
     # Vars - Base paths
     "OIM_SHARED_PATH",
     "OMNIA_DATA_PATH",
