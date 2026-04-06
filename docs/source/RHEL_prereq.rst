@@ -44,7 +44,7 @@ Networking
 
 InfiniBand
 ------------
-* Before deploying Omnia on clusters using InfiniBand (IB) networking, ensure that the Open Subnet Manager (OpenSM) service is enabled and running on the InfiniBand switch.
+* Before deploying Omnia on clusters using InfiniBand (IB) networking, ensure that the Subnet Manager (SM) service is enabled and running on the InfiniBand switch or host.
 
 .. note:: Failure to meet this prerequisite may result in InfiniBand ports on hosts remaining in the Initializing state and prevent IB communication between nodes.
 
