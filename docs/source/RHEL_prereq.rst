@@ -71,7 +71,7 @@ Aarch64 Node Prerequisites
 
 * Ensure that a disk is available to the aarch64 node for Full OS installation and you must install the OS manually.
 * Ensure that an IP address is assigned to the aarch64 node and the node has connectivity to the PXE network.
-* Ensure that the same NFS share used in OIM is mounted on the aarch64 node.
+* Ensure that the same NFS share used in OIM is reachable on the aarch64 node.
 
 Repository
 -----------
@@ -99,6 +99,7 @@ Repository
     - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_slurm_custom" }
 
    Run ``ansible-playbook local_repo/local_repo.yml``.
+
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.
 .. note:: 
     *  If any user repository is already hosted externally, update the value of the ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` parameter in ``/opt/omnia/input/project_default/local_repo_config.yml`` with the hosted repository URL based on the architecture.
@@ -108,7 +109,7 @@ Repository
 Service Kubernetes Cluster 
 ---------------------------
 
-* A minimum of **three Kubernetes controller nodes** must be available.
+* A minimum of **three Kubernetes controller nodes** and **one kube node** must be available.
 * Ensure that each Service Kubernetes Cluster node has at least 64 GB RAM.
 
 iDRAC Telemetry Metrics Collection 
