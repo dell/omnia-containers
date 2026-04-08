@@ -94,7 +94,7 @@ Repository
 
   - { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_slurm_custom" }
 
-user_repo_url_aarch64:
+  user_repo_url_aarch64:
 
   - { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "aarch64_slurm_custom" }
 
