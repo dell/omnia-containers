@@ -63,7 +63,7 @@ Omnia Infrastructure Manager (OIM)
         dnf install git -y
 
 * All target bare-metal servers (cluster nodes) must be **reachable from the OIM**.
-* Make sure that the required ports are open on the OIM node for cluster deployment. For detailed information on the required ports, refer to the :doc:`Omnia Ports <omnia_ports>`.
+* Make sure that the required ports are open on the OIM node for cluster deployment. For detailed information on the required ports, refer to the :doc:`Omnia Ports <OmniaInstallGuide/RHEL_new/omnia_ports>`.
 * The ``omnia_core`` and ``omnia_auth`` container images are deployed on the OIM. For instructions to deploy containers, see :doc:`Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup>`.
 
 Aarch64 Node Prerequisites
