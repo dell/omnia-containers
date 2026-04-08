@@ -3,7 +3,7 @@ Best Practices
 
 * Ensure that PowerCap policy is disabled and the BIOS system profile is set to 'Performance' on the OIM.
 * Always run playbooks inside the Omnia core container from the directory where they are located. Use the ``cd`` command to navigate to the playbook's directory before executing it.
-* If telemetry is enabled, ensure sufficient storage is available in NFS as provided in the ``telemetry_config.yml``.
+* If telemetry is enabled, ensure sufficient storage is available in NFS as specified in the ``storage_config.yml`` file.
 * When using PowerScale as an NFS server, integrate it using the Dell CSI PowerScale driver instead of configuring it as an external NFS server.
 * Ensure that the external NFS is accessible by all the nodes intended to be booted and is reachable by admin network. 
 * Avoid rebooting the OIM as much as possible to prevent disruptions to the network configuration.
