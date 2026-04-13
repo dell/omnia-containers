@@ -165,13 +165,13 @@ sudo dnf install -y python3-devel python3-Cython
 1. Clones OVIS repository from GitHub (https://github.com/ovis-hpc/ovis.git)
 2. Uses specified LDMS version tag (default: v4.5.1)
 3. Sets `LDMS_REPO` environment variable
-4. Builds RPM in `RpmFile/ldms/build/` directory
+4. Builds RPM in `/root/ovis-code/ovis` directory
 5. Runs `start_build_container.rockylinux10.bash` in container
 
 ### Notes
 - SLURM repository parameters are optional but recommended for SLURM metrics
 - Without SLURM repo, warning is shown but build continues
-- Built RPMs are available in `RpmFile/ldms/build/` directory
+- Built RPMs are available in `/root/ovis-code/ovis` directory
 - Requires Docker/Podman for container-based build
 - Supports both x86_64 and aarch64 architectures
 - Run this script on the respective platform to build for that architecture
