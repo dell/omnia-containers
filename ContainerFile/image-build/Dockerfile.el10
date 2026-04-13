@@ -1,7 +1,7 @@
 FROM docker.io/library/almalinux:10.0
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.25.5
+ARG GO_VERSION=1.25.8
 
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
@@ -48,6 +48,7 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     go get github.com/containernetworking/plugins@v1.9.0 && \
     go mod tidy && \
     go get github.com/sigstore/fulcio@v1.8.5 && \
+    go get github.com/sigstore/sigstore@v1.10.4 && \
     go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \

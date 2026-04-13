@@ -18,7 +18,7 @@ dependencies = [
     "omsdk==1.2.518",
     "pysnmp==7.1.22",
     "kubernetes==32.0.1",
-    "cryptography==46.0.3",
+    "cryptography==46.0.5",
     "logger==1.4",
     "prettytable==3.14.0",
     "toml==0.10.2",
@@ -30,6 +30,6 @@ dependencies = [
     "pyasn1==0.6.2",
     "filelock==3.20.3",
     "wheel==0.46.2",
-    "ansible-core==2.16.14rc1"
+    "ansible-core==2.16.14"
 ]
 
