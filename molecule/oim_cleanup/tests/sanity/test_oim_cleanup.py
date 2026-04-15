@@ -57,7 +57,13 @@ from automation_library.oim_cleanup.functions import (
 @pytest.mark.sanity
 @pytest.mark.order(1)
 def test_services_removed(host):
-    """Verify all OIM services are stopped and removed."""
+    """
+    Test Case 1: Verify all OIM services are stopped and removed.
+
+    Checks:
+    - All OIM systemd services are stopped
+    - Services are disabled and removed from systemd
+    """
     log = TestLogger(TEST_NAMES["services_removed"])
     log.check("Checking all systemd services and targets")
 
@@ -80,7 +86,13 @@ def test_services_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(2)
 def test_containers_removed(host):
-    """Verify all OIM containers are removed."""
+    """
+    Test Case 2: Verify all OIM containers are removed.
+
+    Checks:
+    - No OIM containers exist in podman ps output
+    - All container images are cleaned up
+    """
     log = TestLogger(TEST_NAMES["containers_removed"])
     log.check("Checking all expected containers")
 
@@ -103,7 +115,13 @@ def test_containers_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(3)
 def test_container_files_removed(host):
-    """Verify all .container systemd files and omnia.target are removed."""
+    """
+    Test Case 3: Verify all .container systemd files and omnia.target are removed.
+
+    Checks:
+    - All .container unit files are deleted
+    - omnia.target systemd target is removed
+    """
     log = TestLogger(TEST_NAMES["container_files_removed"])
     log.check("Checking .container systemd files and omnia.target")
 
@@ -126,7 +144,13 @@ def test_container_files_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(4)
 def test_volumes_secrets_removed(host):
-    """Verify OpenCHAMI volumes and secrets are removed."""
+    """
+    Test Case 4: Verify OpenCHAMI volumes and secrets are removed.
+
+    Checks:
+    - All podman volumes are deleted
+    - All podman secrets are removed
+    """
     log = TestLogger(TEST_NAMES["volumes_secrets_removed"])
     log.check("Checking podman volumes and secrets")
 
@@ -149,7 +173,14 @@ def test_volumes_secrets_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(5)
 def test_credential_files_removed(host):
-    """Verify credential files and vault key are removed."""
+    """
+    Test Case 5: Verify credential files and vault key are removed.
+
+    Checks:
+    - Ansible vault key file is deleted
+    - Credential YAML files are removed
+    - OIM metadata file is cleaned up
+    """
     log = TestLogger(TEST_NAMES["credential_files_removed"])
     log.check("Checking credential and metadata files inside container")
 
@@ -172,7 +203,14 @@ def test_credential_files_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(6)
 def test_firewall_ports_removed(host):
-    """Verify firewall ports are removed."""
+    """
+    Test Case 6: Verify firewall ports are removed.
+
+    Checks:
+    - All OIM TCP ports are closed
+    - All OIM UDP ports are closed
+    - Firewall rules are cleaned up
+    """
     log = TestLogger(TEST_NAMES["firewall_ports_removed"])
     log.check("Checking TCP and UDP firewall ports")
 
@@ -195,7 +233,13 @@ def test_firewall_ports_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(7)
 def test_directories_removed(host):
-    """Verify cleanup directories are removed."""
+    """
+    Test Case 7: Verify cleanup directories are removed.
+
+    Checks:
+    - OIM data directories are deleted
+    - Configuration directories are cleaned up
+    """
     log = TestLogger(TEST_NAMES["directories_removed"])
     log.check("Checking cleanup directories on OIM host")
 
@@ -218,7 +262,14 @@ def test_directories_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(8)
 def test_packages_removed(host):
-    """Verify regctl binary, s3cmd and openchami packages are removed."""
+    """
+    Test Case 8: Verify regctl binary, s3cmd and openchami packages are removed.
+
+    Checks:
+    - regctl binary is deleted
+    - s3cmd package is uninstalled
+    - openchami packages are removed
+    """
     log = TestLogger(TEST_NAMES["packages_removed"])
     log.check("Checking regctl binary and openchami packages")
 
@@ -241,7 +292,14 @@ def test_packages_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(9)
 def test_chronyd_removed(host):
-    """Verify chronyd is stopped, disabled, and allow list removed."""
+    """
+    Test Case 9: Verify chronyd is stopped, disabled, and allow list removed.
+
+    Checks:
+    - chronyd service is stopped
+    - chronyd is disabled from auto-start
+    - chrony.conf allow list entries are removed
+    """
     log = TestLogger(TEST_NAMES["chronyd_removed"])
     log.check("Checking chronyd service and chrony.conf")
 

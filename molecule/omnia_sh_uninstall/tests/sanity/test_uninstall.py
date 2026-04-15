@@ -42,7 +42,13 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 @pytest.mark.sanity
 @pytest.mark.order(1)
 def test_uninstall_container_removed(host):
-    """Verify omnia_core container is NOT running after uninstall."""
+    """
+    Test Case 1: Verify omnia_core container is NOT running after uninstall.
+
+    Checks:
+    - Container does not exist in podman ps output
+    - No container with name 'omnia_core' is found
+    """
     log = TestLogger(TEST_NAMES["cleanup_container_removed"])
 
     result = check_container_not_running(host)
@@ -58,7 +64,13 @@ def test_uninstall_container_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(2)
 def test_uninstall_service_file_removed(host):
-    """Verify omnia_core.container service file is removed after uninstall."""
+    """
+    Test Case 2: Verify omnia_core.container service file is removed.
+
+    Checks:
+    - Systemd container unit file no longer exists
+    - Service is not registered with systemd
+    """
     log = TestLogger(TEST_NAMES["cleanup_service_removed"])
     path = TEST_VARS["container_file"]
 
@@ -75,7 +87,13 @@ def test_uninstall_service_file_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(3)
 def test_uninstall_fstab_entry_removed(host):
-    """Verify fstab entry for omnia_shared_path is removed after uninstall."""
+    """
+    Test Case 3: Verify fstab entry for omnia_shared_path is removed.
+
+    Checks:
+    - No fstab entry exists for the omnia shared path
+    - NFS mount configuration is cleaned up
+    """
     log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
 
     result = check_fstab_entry_removed(host)
@@ -91,7 +109,13 @@ def test_uninstall_fstab_entry_removed(host):
 @pytest.mark.sanity
 @pytest.mark.order(4)
 def test_uninstall_mount_removed(host):
-    """Verify omnia_shared_path is NOT mounted after uninstall."""
+    """
+    Test Case 4: Verify omnia_shared_path is NOT mounted.
+
+    Checks:
+    - Mount point is not active
+    - No NFS share is mounted at the omnia shared path
+    """
     log = TestLogger(TEST_NAMES["cleanup_mount_removed"])
 
     result = check_mount_removed(host)
