@@ -1,510 +1,274 @@
 # Omnia Automation Framework - Implementation Guide
 
-This document provides a comprehensive understanding of the Omnia Automation Framework architecture, code structure, and how all components work together.
+Comprehensive technical documentation for the Omnia Automation Framework architecture, execution flow, and development patterns.
 
 ---
 
 ## Table of Contents
 
-1. [Overview](#1-overview)
-2. [Repository Structure](#2-repository-structure)
-3. [Core Module (`automation_library/core/`)](#3-core-module)
-4. [Test Modules](#4-test-modules)
-5. [Molecule Test Framework](#5-molecule-test-framework)
-6. [Test Execution Flow](#6-test-execution-flow)
-7. [Configuration Files](#7-configuration-files)
-8. [Test Suites and Markers](#8-test-suites-and-markers)
-9. [Adding New Tests](#9-adding-new-tests)
-10. [Troubleshooting](#10-troubleshooting)
+1. [Framework Overview](#1-framework-overview)
+2. [Architecture](#2-architecture)
+3. [Execution Flow](#3-execution-flow)
+4. [Core Library](#4-core-library)
+5. [Module Structure](#5-module-structure)
+6. [Configuration Reference](#6-configuration-reference)
+7. [Development Guide](#7-development-guide)
+8. [Troubleshooting](#8-troubleshooting)
 
 ---
 
-## 1. Overview
+## 1. Framework Overview
 
-The Omnia Automation Framework is a Python-based testing framework built on top of:
+### What This Framework Does
 
-- **Molecule** - Test orchestration for Ansible
-- **Pytest** - Python testing framework
-- **Testinfra** - Infrastructure testing with Python
+The Omnia Automation Framework automates end-to-end testing of Omnia Infrastructure Manager (OIM) deployments. It:
 
-### Purpose
+1. **Configures** - User edits `omnia_test_config.yml` with OIM server details and dataset selection
+2. **Validates** - Runs prerequisite checks on the target OIM server
+3. **Executes** - Runs Ansible playbooks inside the `omnia_core` container
+4. **Verifies** - Runs pytest tests to validate deployment state
+5. **Reports** - Generates interactive HTML and JSON reports for download and browser viewing
 
-The framework automates verification of Omnia Infrastructure Manager (OIM) deployments by:
+### Technology Stack
 
-1. Connecting to the OIM server via SSH
-2. Running verification tests against services, containers, and configurations
-3. Generating detailed HTML/JSON reports
+| Component | Purpose |
+|-----------|----------|
+| **Molecule** | Test orchestration for Ansible playbooks |
+| **Pytest** | Python test framework with markers and fixtures |
+| **Testinfra** | Infrastructure testing via SSH |
+| **Ansible** | Playbook execution inside containers |
+| **Ansible-lint** | Playbook linting and validation |
 
-### Key Concepts
+### Test Report Types
 
-| Concept | Description |
-|---------|-------------|
-| **OIM Server** | The target server where Omnia is deployed |
-| **omnia_core container** | Main container on OIM that runs Omnia services |
-| **Molecule Scenario** | A test module (e.g., `prepare_oim`, `telemetry`) |
-| **Test Suite** | Category of tests (sanity, negative, regression, smoke) |
+The framework generates two report formats:
 
----
-
-## 2. Repository Structure
-
-```
-omnia-artifactory/
-├── omnia_test_config.yml          # Main configuration (OIM server IP, credentials)
-├── run_molecule.sh                # Test runner script
-├── setup_env.sh                   # Environment setup script
-├── requirements.txt               # Python dependencies
-├── pytest.ini                     # Pytest configuration
-│
-├── automation_library/            # Python test library
-│   ├── core/                      # Shared utilities (MOST IMPORTANT)
-│   ├── prepare_oim/               # prepare_oim module functions
-│   ├── telemetry/                 # telemetry module functions
-│   ├── discovery/                 # discovery module functions
-│   ├── build_image/               # build_image module functions
-│   ├── local_repo/                # local_repo module functions
-│   ├── oim_cleanup/               # oim_cleanup module functions
-│   ├── omnia_sh/                  # omnia.sh install/uninstall functions
-│   ├── kubernetes/                # kubernetes module functions
-│   └── checks/                    # Prerequisite check functions
-│
-├── molecule/                      # Molecule test scenarios
-│   ├── conftest.py                # Shared pytest fixtures
-│   ├── shared/                    # Shared Ansible tasks
-│   ├── prepare_oim/               # prepare_oim scenario
-│   ├── telemetry/                 # telemetry scenario
-│   ├── discovery/                 # discovery scenario
-│   ├── build_image_x86_64/        # build_image x86_64 scenario
-│   ├── build_image_aarch64/       # build_image aarch64 scenario
-│   ├── local_repo/                # local_repo scenario
-│   ├── oim_cleanup/               # oim_cleanup scenario
-│   ├── omnia_sh_install/          # omnia.sh install scenario
-│   ├── omnia_sh_uninstall/        # omnia.sh uninstall scenario
-│   └── kubernetes/                # kubernetes scenario
-│
-├── datasets/                      # Input configuration datasets
-│   └── project_default/           # Default dataset
-│       ├── software_config.json
-│       ├── telemetry_config.yml
-│       ├── provision_config.yml
-│       ├── pxe_mapping_file.csv
-│       └── ...
-│
-├── docs/                          # Documentation
-│   ├── IMPLEMENTATION.md          # This file
-│   └── BUILD_STREAM_WORKFLOW.md   # Build stream documentation
-│
-└── reports/                       # Generated test reports (gitignored)
-    ├── test_report.html
-    └── test_report.json
-```
+| Report | Location | Description |
+|--------|----------|-------------|
+| **HTML Report** | `reports/test_report.html` | Interactive dark-themed report with collapsible sections, playbook logs, and per-test details. Open in browser. |
+| **JSON Report** | `reports/test_report.json` | Machine-readable format organized by server IP, suitable for CI/CD integration. |
 
 ---
 
-## 3. Core Module (`automation_library/core/`)
+## 2. Architecture
 
-The `core` module is the foundation of the framework. **All other modules should import utilities from core.**
-
-### 3.1 Module Structure
+### Connection Topology
 
 ```
-automation_library/core/
-├── __init__.py          # Exports all public functions
-├── host.py              # SSH connection and command execution
-├── formatting.py        # Colors, symbols, TestLogger
-├── load_inputs.py       # Load config files from container
-├── secrets.py           # Credential management
-├── report.py            # Test report generation
-├── build_stream.py      # Build stream utilities
-├── db_exec.py           # Database query execution
-└── vars.py              # Shared constants and paths
+┌─────────────────────────────────────────────────────────────────────────┐
+│  AUTOMATION SERVER (where tests run)                                    │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  run_molecule.sh                                                │    │
+│  │    └── molecule verify -s <scenario>                            │    │
+│  │          └── pytest (testinfra)                                 │    │
+│  │                └── automation_library/core/host.py              │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │ SSH (oim_server_ip)
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  OIM SERVER                                                             │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │  podman exec omnia_core <command>                               │    │
+│  │    └── Ansible playbooks                                        │    │
+│  │    └── Pulp CLI, ochami CLI                                     │    │
+│  │    └── kubectl, ssh to nodes                                    │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+└────────────────────────────────┬────────────────────────────────────────┘
+                                 │ SSH (admin_ip from PXE mapping)
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  COMPUTE/K8S NODES                                                      │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
+│  │ k8s_control_plane│  │ k8s_worker_node │  │ slurm_node      │          │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.2 Key Functions
+### Command Execution Layers
 
-#### Connection Functions (`host.py`)
+```python
+# Layer 1: Run on OIM server directly
+run_on_oim(host, "systemctl status podman")
+
+# Layer 2: Run inside omnia_core container
+run_in_container(host, "pulp rpm repository list")
+
+# Layer 3: Run on remote node via SSH through container
+run_on_remote_node(host, "kubectl get nodes", admin_ip="10.0.0.5")
+```
+
+---
+
+## 3. Execution Flow
+
+### High-Level Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STEP 1: CONFIGURE                                                      │
+│  ─────────────────                                                      │
+│  Edit omnia_test_config.yml:                                            │
+│    - OIM server IP and SSH credentials                                  │
+│    - Dataset selection (project_default)                                │
+│    - Hardware thresholds, network settings                              │
+└─────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STEP 2: PREREQUISITE CHECK (optional)                                  │
+│  ─────────────────────────────────────                                  │
+│  Run: oim-prereq-check                                                  │
+│    - Validates hardware (CPU, memory, disk)                             │
+│    - Validates OS and kernel version                                    │
+│    - Validates network interfaces                                       │
+│    - Validates NFS server connectivity                                  │
+│    - Validates Podman installation                                      │
+└─────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STEP 3: RUN TESTS                                                      │
+│  ─────────────────                                                      │
+│  Run: run_molecule <scenario> verify --suite sanity                     │
+│    - Molecule loads scenario configuration                              │
+│    - Syncs dataset folder to container                                  │
+│    - Executes Ansible playbook (converge)                               │
+│    - Runs pytest verification tests                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│  STEP 4: VIEW REPORTS                                                   │
+│  ────────────────────                                                   │
+│  Open: reports/test_report.html in browser                              │
+│    - Interactive HTML with dark theme                                   │
+│    - Collapsible test sections                                          │
+│    - Playbook logs embedded                                             │
+│    - Per-test pass/fail/skip status                                     │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Molecule Lifecycle
+
+Each scenario follows the Molecule lifecycle:
+
+```
+create.yml              converge.yml                    verify (pytest)
+──────────              ────────────                    ───────────────
+1. Load config          1. Check omnia_core running     1. SSH to OIM server
+2. Build inventory      2. Sync dataset folder          2. Run test functions
+3. Wait for SSH         3. Execute ansible playbook     3. Collect results
+                        4. Report playbook status       4. Generate reports
+```
+
+---
+
+## 4. Core Library
+
+The `automation_library/core/` module provides shared infrastructure for all test modules.
+
+### Module Files
+
+| File | Purpose |
+|------|---------|
+| `host.py` | SSH connections, command execution, PXE mapping parsing |
+| `load_inputs.py` | Load YAML/JSON config files from container |
+| `formatting.py` | Colors, symbols, TestLogger for structured output |
+| `report.py` | Test report generation (HTML/JSON) |
+| `secrets.py` | Ansible vault decryption, credential handling |
+| `build_stream.py` | BuildStream pipeline utilities |
+| `db_exec.py` | Database query execution (MySQL) |
+| `vars.py` | Path constants, container names, functional groups |
+
+### Key Functions
 
 ```python
 from automation_library.core import (
-    get_testinfra_host,      # Get testinfra host connected to OIM
-    load_user_config,        # Load omnia_test_config.yml
-    run_on_oim,              # Run command on OIM server
-    run_in_container,        # Run command inside omnia_core container
-    run_on_remote_node,      # Run command on remote K8s node via SSH
-    get_node_info,           # Get single node info from PXE mapping
-    get_nodes_info,          # Get multiple nodes info from PXE mapping
-    check_container_running, # Check if a container is running
-    get_project_root,        # Get project root directory path
-    make_verification_result,# Create standardized result dictionary
-)
-```
-
-#### Input Loading Functions (`load_inputs.py`)
-
-```python
-from automation_library.core import (
-    load_input_file,         # Load YAML/JSON from container
-    load_container_file,     # Load raw file content from container
-    get_input_value,         # Get specific value from config
-    get_input_bool,          # Get boolean value from config
-    is_software_enabled,     # Check if software component is enabled
-)
-```
-
-#### Formatting Functions (`formatting.py`)
-
-```python
-from automation_library.core import (
-    Colors,                  # ANSI color codes
-    Symbols,                 # Unicode symbols (✓, ✗, →)
-    TestLogger,              # Structured test logging
-    log,                     # Simple logging function
-)
-```
-
-#### Shared Variables (`vars.py`)
-
-```python
-from automation_library.core import (
-    # Container paths
-    INPUT_BASE_PATH,         # /opt/omnia/input/project_default
-    OIM_SHARED_PATH,         # /opt/omnia
-    OMNIA_CORE_CONTAINER,    # "omnia_core"
+    # Connection
+    get_testinfra_host,       # Get SSH connection to OIM
+    run_on_oim,               # Run command on OIM server
+    run_in_container,         # Run command in omnia_core
+    run_on_remote_node,       # Run command on K8s node
     
-    # Config file paths (inside container)
-    SOFTWARE_CONFIG_PATH,
-    TELEMETRY_CONFIG_PATH,
-    PROVISION_CONFIG_PATH,
-    PXE_MAPPING_FILE_PATH,
+    # PXE Mapping
+    get_node_info,            # Get single node by search criteria
+    get_nodes_info,           # Get multiple nodes by functional group
     
-    # Functional group names
-    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
-    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+    # Config Loading
+    load_input_file,          # Load YAML/JSON from container
+    get_input_value,          # Get specific config value
+    is_software_enabled,      # Check software_config.json
+    
+    # Output
+    TestLogger,               # Structured test logging
+    Colors, Symbols,          # Terminal formatting
+    
+    # Credentials
+    view_credentials_file,    # Decrypt ansible-vault files
+    get_credential_value,     # Get specific credential
 )
 ```
 
-### 3.3 How Commands Are Executed
+### TestLogger Usage
 
+```python
+log = TestLogger("Verify container running")
+log.check("Checking omnia_core container status")
+
+if result["success"]:
+    log.passed("Container is running", result["details"])
+else:
+    log.failed("Container not running", result["error"])
+
+# For skipped tests
+log.skipped("Feature not enabled", "Enable in config")
+pytest.skip("Feature not enabled")
 ```
-┌─────────────────┐     SSH      ┌─────────────────┐
-│  Test Machine   │ ──────────▶  │   OIM Server    │
-│  (run_molecule) │              │                 │
-└─────────────────┘              └────────┬────────┘
-                                          │
-                                   podman exec
-                                          │
-                                          ▼
-                                 ┌─────────────────┐
-                                 │  omnia_core     │
-                                 │  container      │
-                                 └────────┬────────┘
-                                          │
-                                    SSH to K8s
-                                          │
-                                          ▼
-                                 ┌─────────────────┐
-                                 │  K8s Nodes      │
-                                 │  (admin_ip)     │
-                                 └─────────────────┘
-```
-
-**Command execution chain:**
-
-1. `run_on_oim(host, cmd)` - Runs command directly on OIM server
-2. `run_in_container(host, cmd)` - Runs command inside omnia_core container
-3. `run_on_remote_node(host, cmd, admin_ip)` - Runs command on K8s node via SSH through container
 
 ---
 
-## 4. Test Modules
+## 5. Module Structure
 
-Each test module follows a consistent structure:
+### Directory Layout
+
+Each test module follows this structure:
 
 ```
-automation_library/<module_name>/
+automation_library/<module>/
 ├── __init__.py              # Module exports
 ├── functions/
 │   ├── __init__.py          # Function exports
-│   └── <module>_func.py     # Core verification functions
+│   └── <module>_func.py     # Verification functions
 ├── vars/
 │   ├── __init__.py          # Variable exports
-│   └── <module>_vars.py     # Constants and configuration
+│   └── <module>_vars.py     # Constants, expected values
 └── messages/
     ├── __init__.py          # Message exports
-    └── <module>_msgs.py     # Test names, log messages, assert messages
+    └── <module>_msgs.py     # TEST_NAMES, LOG_MSGS, ASSERT_MSGS
 ```
 
-### 4.1 Module Pattern
-
-Every verification function returns a standardized dictionary:
-
-```python
-def verify_something(host, admin_ip: str) -> Dict[str, Any]:
-    """Verify something important."""
-    # ... verification logic ...
-    
-    return {
-        "success": True/False,
-        "details": "Human-readable details",
-        "error": "" or "Error message",
-        # Additional keys as needed
-    }
-```
-
-### 4.2 Available Modules
-
-| Module | Purpose |
-|--------|---------|
-| `prepare_oim` | Verify OIM services, containers, certificates |
-| `telemetry` | Verify telemetry stack (Kafka, Victoria, iDRAC) |
-| `discovery` | Verify node discovery (SSH, packages, cloud-init) |
-| `build_image` | Verify image builds for x86_64 and aarch64 |
-| `local_repo` | Verify local repository setup |
-| `oim_cleanup` | Verify OIM cleanup operations |
-| `omnia_sh` | Verify omnia.sh install/uninstall |
-| `kubernetes` | Verify Kubernetes cluster health |
-
----
-
-## 5. Molecule Test Framework
-
-### 5.1 Scenario Structure
-
-Each molecule scenario has:
+### Molecule Scenario Layout
 
 ```
 molecule/<scenario>/
 ├── molecule.yml             # Scenario configuration
-├── create.yml               # Inventory creation playbook
-├── converge.yml             # Main playbook (optional)
-├── prepare.yml              # Pre-test setup (optional)
+├── create.yml               # Inventory setup playbook
+├── converge.yml             # Main Ansible playbook execution
 └── tests/
     └── sanity/              # Test suite folder
         ├── __init__.py
         └── test_<module>.py # Pytest test file
 ```
 
-### 5.2 molecule.yml Configuration
+### Verification Function Pattern
 
-```yaml
-dependency:
-  name: galaxy
-driver:
-  name: default
-platforms:
-  - name: localhost
-provisioner:
-  name: ansible
-verifier:
-  name: testinfra
-  directory: tests
-  options:
-    v: true
-```
-
-### 5.3 Shared Fixtures (`molecule/conftest.py`)
-
-The `conftest.py` provides shared pytest fixtures:
+All verification functions return a standardized dictionary:
 
 ```python
-@pytest.fixture(scope="module")
-def host():
-    """Testinfra host fixture - connects to OIM server."""
-    # Validates configuration
-    # Checks SSH connectivity
-    # Returns testinfra host object
-    return get_testinfra_host()
-```
-
-**Registered Markers:**
-
-- `@pytest.mark.sanity` - Basic functionality tests
-- `@pytest.mark.negative` - Error handling tests
-- `@pytest.mark.regression` - Full coverage tests
-- `@pytest.mark.smoke` - Critical path tests
-- `@pytest.mark.cleanup` - Cleanup verification tests
-
----
-
-## 6. Test Execution Flow
-
-### 6.1 Complete Flow
-
-```
-1. User runs: run_molecule prepare_oim verify --suite sanity
-
-2. run_molecule.sh:
-   ├── Activates .venv
-   ├── Sets PYTEST_ADDOPTS="-m sanity"
-   └── Calls: molecule verify -s prepare_oim
-
-3. Molecule:
-   ├── Reads molecule/prepare_oim/molecule.yml
-   ├── Runs verifier (testinfra)
-   └── Executes pytest on tests/sanity/
-
-4. Pytest:
-   ├── Loads conftest.py fixtures
-   ├── Creates testinfra host connection
-   └── Runs test functions
-
-5. Test Functions:
-   ├── Import from automation_library
-   ├── Call verification functions
-   ├── Use TestLogger for output
-   └── Assert results
-
-6. Report Generation:
-   ├── TestReport collects results
-   └── Saves to reports/test_report.html
-```
-
-### 6.2 Test Function Pattern
-
-```python
-@pytest.mark.sanity
-@pytest.mark.order(1)
-def test_service_status(host):
-    """Verify all service/target status."""
-    log = TestLogger("Verify all service/target status")
-    log.check("Checking all systemd services and targets")
-    
-    result = verify_all_services(host)
-    
-    if result["success"]:
-        log.passed("All services in expected state", result["details"])
-    else:
-        log.failed("Some services not in expected state", result["error"])
-    
-    assert result["success"], result["error"]
-```
-
----
-
-## 7. Configuration Files
-
-### 7.1 omnia_test_config.yml (Main Config)
-
-```yaml
-# OIM Server Connection
-oim_server_ip: "192.168.1.100"
-oim_ssh_user: "root"
-oim_ssh_password: "your_password"
-oim_ssh_port: 22
-
-# Execution Control
-skip_on_failure: false
-
-# Dataset Selection
-dataset: "project_default"
-```
-
-### 7.2 Dataset Files (datasets/project_default/)
-
-| File | Purpose |
-|------|---------|
-| `software_config.json` | Software component enablement |
-| `telemetry_config.yml` | Telemetry configuration |
-| `provision_config.yml` | Provisioning settings, PXE mapping path |
-| `pxe_mapping_file.csv` | Node inventory (IP, hostname, functional group) |
-| `omnia_config.yml` | Omnia configuration |
-| `ha_config.yml` | High availability settings |
-
----
-
-## 8. Test Suites and Markers
-
-### 8.1 Test Organization
-
-Tests are organized in suite folders:
-
-```
-molecule/<scenario>/tests/
-├── sanity/                  # Basic functionality tests
-│   ├── __init__.py
-│   └── test_<module>.py
-├── negative/                # Error handling tests (future)
-│   └── ...
-└── regression/              # Full coverage tests (future)
-    └── ...
-```
-
-### 8.2 Running Specific Suites
-
-```bash
-# Run sanity tests only
-run_molecule prepare_oim verify --suite sanity
-
-# Run negative tests only
-run_molecule telemetry verify --suite negative
-
-# Run multiple suites
-run_molecule discovery verify --suite sanity,negative
-
-# Run with custom marker
-run_molecule telemetry verify --marker smoke
-```
-
-### 8.3 Marker Decorators
-
-```python
-@pytest.mark.sanity      # Basic functionality
-@pytest.mark.negative    # Error handling
-@pytest.mark.regression  # Full coverage
-@pytest.mark.smoke       # Critical path only
-@pytest.mark.cleanup     # Cleanup verification
-@pytest.mark.order(n)    # Execution order
-```
-
----
-
-## 9. Adding New Tests
-
-### 9.1 Add a New Test Function
-
-1. Open `molecule/<scenario>/tests/sanity/test_<module>.py`
-2. Add test function with markers:
-
-```python
-@pytest.mark.sanity
-@pytest.mark.order(10)
-def test_new_feature(host):
-    """Verify new feature works correctly."""
-    from automation_library.core import TestLogger
-    from automation_library.<module>.functions import verify_new_feature
-    
-    log = TestLogger("Verify new feature")
-    log.check("Checking new feature")
-    
-    result = verify_new_feature(host)
-    
-    if result["success"]:
-        log.passed("New feature verified", result["details"])
-    else:
-        log.failed("New feature failed", result["error"])
-    
-    assert result["success"], result["error"]
-```
-
-### 9.2 Add a New Verification Function
-
-1. Open `automation_library/<module>/functions/<module>_func.py`
-2. Add function following the pattern:
-
-```python
-def verify_new_feature(host) -> Dict[str, Any]:
-    """
-    Verify new feature.
-    
-    Args:
-        host: Testinfra host object
-        
-    Returns:
-        Dict with success, details, error keys
-    """
-    from automation_library.core import run_in_container
-    
-    cmd = run_in_container(host, "check_something")
+def verify_something(host, param: str) -> Dict[str, Any]:
+    """Verify something."""
+    cmd = run_in_container(host, f"check {param}")
     
     if cmd.rc == 0:
         return {
@@ -515,98 +279,193 @@ def verify_new_feature(host) -> Dict[str, Any]:
     
     return {
         "success": False,
-        "details": None,
+        "details": "",
         "error": cmd.stderr.strip(),
     }
 ```
 
-### 9.3 Add a New Module
+---
 
-1. Create directory structure:
-```bash
-mkdir -p automation_library/new_module/{functions,vars,messages}
-touch automation_library/new_module/{__init__.py,functions/__init__.py,vars/__init__.py,messages/__init__.py}
+## 6. Configuration Reference
+
+### omnia_test_config.yml
+
+```yaml
+# ═══════════════════════════════════════════════════════════════════════════
+# OIM SERVER CONNECTION (REQUIRED)
+# ═══════════════════════════════════════════════════════════════════════════
+oim_server_ip: "192.168.1.100"      # Target OIM server IP address
+oim_ssh_user: "root"                # SSH username
+oim_ssh_password: "your_password"   # SSH password
+oim_ssh_port: 22                    # SSH port
+oim_hostname: "oim.example.com"     # FQDN for OIM server
+
+# ═══════════════════════════════════════════════════════════════════════════
+# DATASET SELECTION
+# ═══════════════════════════════════════════════════════════════════════════
+dataset: "project_default"          # Folder name under datasets/
+
+# ═══════════════════════════════════════════════════════════════════════════
+# EXECUTION CONTROL
+# ═══════════════════════════════════════════════════════════════════════════
+skip_on_failure: false              # Stop on first failure
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PREREQUISITE CHECK SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════
+min_cores: 4                        # Minimum CPU cores
+min_memory_gb: 8                    # Minimum RAM in GB
+min_disk_gb: 50                     # Minimum disk space in GB
+required_os: "rhel"                 # Required OS name
+required_os_version: "10"           # Required OS version
+required_kernel_version: "6.12.0"   # Required kernel version
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NETWORK SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════
+network_type: "dedicated"           # "dedicated" or "lom"
+pxe_interface: "eno1"               # PXE network interface
+public_interface: "eno2"            # Public network interface
+pxe_ip: "172.16.107.254/24"         # PXE interface IP with CIDR
+force_configure_pxe: false          # Force PXE IP configuration
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NFS SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════
+nfs_server_ip: "192.168.1.200"      # NFS server IP
+nfs_share_path: "/mnt/share"        # NFS share path
+nfs_min_capacity_gb: 100            # Minimum NFS capacity
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PODMAN SETTINGS
+# ═══════════════════════════════════════════════════════════════════════════
+podman_min_version: "5.0.0"         # Minimum Podman version
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CONTAINER IMAGE BUILD (optional)
+# ═══════════════════════════════════════════════════════════════════════════
+reconfigure_images: false           # Build container images
+omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
+artifactory_branch: "omnia-container"
+omnia_clone_path: "/opt/omnia-artifactory"
+omnia_branch: "pub/k8s_telemetry"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# OMNIA.SH INSTALLATION
+# ═══════════════════════════════════════════════════════════════════════════
+share_option: "NFS"                 # "NFS" or "Local"
+nfs_type: "external"                # "external" or "internal"
+omnia_shared_path: "/opt/omnia"     # Omnia shared path
+omnia_core_password: "password"     # Container password
+
+# ═══════════════════════════════════════════════════════════════════════════
+# LDAP CREDENTIALS (optional)
+# ═══════════════════════════════════════════════════════════════════════════
+ldap_credentials:
+  - username: "testuser1"
+    password: "testpass"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BUILD STREAM JOB OVERRIDE (optional)
+# ═══════════════════════════════════════════════════════════════════════════
+build_stream_job_id: ""             # Override job ID for testing
 ```
-
-2. Create molecule scenario:
-```bash
-mkdir -p molecule/new_module/tests/sanity
-touch molecule/new_module/{molecule.yml,create.yml}
-touch molecule/new_module/tests/sanity/{__init__.py,test_new_module.py}
-```
-
-3. Add to `run_molecule.sh` ORDERED_SCENARIOS
 
 ---
 
-## 10. Troubleshooting
+## 7. Development Guide
 
-### 10.1 Common Issues
+### Adding a New Test Function
+
+1. Open `molecule/<scenario>/tests/sanity/test_<module>.py`
+2. Add test with proper docstring:
+
+```python
+@pytest.mark.sanity
+@pytest.mark.order(10)
+def test_new_feature(host):
+    """
+    Test Case 10: Verify new feature works.
+
+    Checks:
+    - Feature is enabled in config
+    - Feature returns expected output
+    """
+    log = TestLogger("Verify new feature")
+    log.check("Checking new feature")
+    
+    result = verify_new_feature(host)
+    
+    if result["success"]:
+        log.passed("Feature verified", result["details"])
+    else:
+        log.failed("Feature failed", result["error"])
+    
+    assert result["success"], result["error"]
+```
+
+### Adding a New Module
+
+```bash
+# 1. Create module structure
+mkdir -p automation_library/new_module/{functions,vars,messages}
+touch automation_library/new_module/{__init__.py,functions/__init__.py}
+touch automation_library/new_module/{vars/__init__.py,messages/__init__.py}
+
+# 2. Create molecule scenario
+mkdir -p molecule/new_module/tests/sanity
+touch molecule/new_module/{molecule.yml,create.yml,converge.yml}
+touch molecule/new_module/tests/sanity/{__init__.py,test_new_module.py}
+
+# 3. Add to run_molecule.sh ORDERED_SCENARIOS array
+```
+
+### Running Ansible-lint
+
+```bash
+# Lint all playbooks
+ansible-lint molecule/*/converge.yml
+
+# Lint specific playbook
+ansible-lint molecule/prepare_oim/converge.yml
+```
+
+---
+
+## 8. Troubleshooting
+
+### Common Issues
 
 | Issue | Solution |
 |-------|----------|
-| SSH connection failed | Check `oim_server_ip` and `oim_ssh_password` in `omnia_test_config.yml` |
+| SSH connection failed | Verify `oim_server_ip` and `oim_ssh_password` in config |
 | Module not found | Run `source .venv/bin/activate` first |
-| Container not running | Verify OIM deployment with `podman ps` on OIM server |
-| Tests skipped | Check if feature is enabled in config files |
+| Container not running | Check `podman ps` on OIM server |
+| Tests skipped | Verify feature is enabled in dataset config files |
+| Permission denied | Ensure SSH user has root/sudo access |
 
-### 10.2 Debug Mode
+### Debug Commands
 
 ```bash
-# Run with verbose output
+# Verbose test output
 run_molecule prepare_oim verify --suite sanity 2>&1 | tee debug.log
 
-# Check specific test
+# Run single test
 pytest molecule/prepare_oim/tests/sanity/test_prepare_oim.py::test_service_status -v
+
+# Check OIM server connectivity
+ssh root@<oim_server_ip> "podman ps"
+
+# Check container logs
+ssh root@<oim_server_ip> "podman logs omnia_core"
 ```
 
-### 10.3 Report Location
+### Report Locations
 
-After test execution, reports are saved to:
-- **HTML**: `reports/test_report.html`
-- **JSON**: `reports/test_report.json`
-
----
-
-## Quick Reference
-
-### Commands
-
-```bash
-# Setup environment
-./setup_env.sh
-
-# Activate virtual environment
-source .venv/bin/activate
-
-# List available scenarios
-run_molecule list
-
-# Run tests
-run_molecule <scenario> verify --suite sanity
-
-# Run all scenarios
-run_molecule all verify
-```
-
-### Key Imports
-
-```python
-# Core utilities
-from automation_library.core import (
-    get_testinfra_host,
-    run_in_container,
-    run_on_remote_node,
-    TestLogger,
-    load_input_file,
-    get_node_info,
-)
-
-# Module-specific
-from automation_library.<module>.functions import <function>
-from automation_library.<module>.vars import <VARIABLE>
-from automation_library.<module>.messages import TEST_NAMES, TEST_LOG_MSGS
-```
+| Report | Path | How to View |
+|--------|------|-------------|
+| HTML | `reports/test_report.html` | Open in browser |
+| JSON | `reports/test_report.json` | Parse with jq or Python |
 
 ---
 

@@ -4,18 +4,12 @@ End-to-end automation and Molecule-based infrastructure testing for **Omnia Infr
 
 ## Overview
 
-This framework provides:
+This framework automates end-to-end testing of Omnia Infrastructure Manager (OIM) deployments:
 
-- **Prerequisite Validation** (`oim-prereq-check`) -- Validates that the target OIM server meets hardware, OS, network, and software requirements before deployment.
-- **Container Lifecycle** -- Installs/uninstalls the `omnia_core` container via `omnia.sh`, verifies SSH connectivity, systemd service registration, and NFS mounts.
-- **OIM Preparation** -- Runs `prepare_oim.yml` inside the container to bring up all OpenCHAMI services (Pulp, MinIO, BSS, SMD, LDAP, etc.) and verifies their status.
-- **Local Repository Management** -- Syncs RPM, container-image, and file repositories via Pulp and verifies content accessibility.
-- **Image Building** -- Builds bootable OS images (initrd, rootfs, vmlinuz) for x86\_64 and aarch64, pushes to S3/registry, and verifies packages.
-- **Node Discovery** -- Discovers provisioned nodes via PXE mapping, validates cloud-init, SSH, Slurm services, LDAP, and Kubernetes readiness.
-- **Telemetry** -- Validates iDRAC telemetry pods, Kafka topics, LDMS metric collection, VictoriaMetrics storage, TLS, and data flow -- including node-removal verification.
-- **Kubernetes Validation** -- Verifies K8s cluster health, node readiness, CRI-O runtime, HA virtual IPs, and storage classes.
-- **OIM Cleanup** -- Tears down all OIM infrastructure (services, containers, volumes, credentials, firewall rules, packages) and verifies removal.
-- **Reporting** -- Generates JSON and interactive HTML test reports organized by server, with playbook logs and per-test output.
+1. **Configure** - Edit `omnia_test_config.yml` with OIM server details
+2. **Validate** - Run prerequisite checks on the target server
+3. **Test** - Execute Molecule scenarios to run playbooks and verify results
+4. **Report** - View interactive HTML reports in your browser
 
 ## Architecture
 
@@ -241,18 +235,18 @@ The check runs either locally or remotely over SSH depending on whether `oim_ser
 
 Tests are organized into ordered scenarios that cover the full OIM lifecycle:
 
-| # | Scenario                | Tests | What It Does                                                            |
-|---|-------------------------|-------|-------------------------------------------------------------------------|
-| 1 | `omnia_sh_install`      | 6     | Install `omnia_core` container via `omnia.sh`, verify container/service/SSH |
-| 2 | `prepare_oim`           | 9     | Run `prepare_oim.yml`, verify services, containers, OpenCHAMI, Pulp, LDAP, BSS/SMD |
-| 3 | `local_repo`            | 11    | Run `local_repo.yml`, verify Pulp API, repository sync, content accessibility |
-| 4 | `build_image_x86_64`    | 4     | Build x86\_64 images, verify functional groups, registry, S3, packages  |
-| 5 | `build_image_aarch64`   | 4     | Build aarch64 images (same checks as x86\_64)                          |
-| 6 | `discovery`             | 18    | Run `discovery.yml`, verify cloud-init, SSH, Slurm, LDAP, K8s nodes    |
-| 7 | `telemetry`             | 24    | Run `telemetry.yml`, verify iDRAC pods, Kafka, LDMS, VictoriaMetrics, node deletion |
-| 8 | `kubernetes`            | 11+   | Verify K8s cluster health, nodes, CRI-O, HA, storage (verify-only)     |
-| 9 | `oim_cleanup`           | 9     | Run `oim_cleanup.yml`, verify all resources removed                     |
-| 10 | `omnia_sh_uninstall`   | 4     | Uninstall `omnia_core`, verify container/service/mount removed          |
+| # | Scenario                | Description                                                             |
+|---|-------------------------|-------------------------------------------------------------------------|
+| 1 | `omnia_sh_install`      | Install `omnia_core` container via `omnia.sh` |
+| 2 | `prepare_oim`           | Run `prepare_oim.yml`, verify OpenCHAMI services |
+| 3 | `local_repo`            | Run `local_repo.yml`, verify Pulp repository sync |
+| 4 | `build_image_x86_64`    | Build x86\_64 images, verify registry and S3 |
+| 5 | `build_image_aarch64`   | Build aarch64 images |
+| 6 | `discovery`             | Run `discovery.yml`, verify node provisioning |
+| 7 | `telemetry`             | Run `telemetry.yml`, verify telemetry stack |
+| 8 | `kubernetes`            | Verify K8s cluster health (verify-only) |
+| 9 | `oim_cleanup`           | Run `oim_cleanup.yml`, verify cleanup |
+| 10 | `omnia_sh_uninstall`   | Uninstall `omnia_core` container |
 
 ### Running Tests
 
@@ -269,37 +263,58 @@ run_molecule <scenario> converge   # Run playbook only
 run_molecule <scenario> verify     # Run tests only (skip playbook)
 run_molecule <scenario> create     # Setup inventory only
 
-# Run specific test suites
-run_molecule <scenario> verify --suite sanity     # Run sanity tests only
-run_molecule <scenario> verify --suite negative   # Run negative tests only
-run_molecule <scenario> verify --marker smoke     # Run smoke tests
+# Run specific test suites or markers
+run_molecule <scenario> verify --suite sanity
+run_molecule <scenario> verify --marker smoke
 ```
 
-When running `all`, a shared `OMNIA_REPORT_ID` UUID links all scenario results into a single report run.
+### Suite vs Marker: What's the Difference?
+
+| Option | Purpose | Example |
+|--------|---------|----------|
+| `--suite` | **Folder-based filtering** - Runs tests from a specific folder under `tests/` (e.g., `sanity/`, `negative/`, `regression/`) | `--suite sanity` runs `tests/sanity/*.py` |
+| `--marker` | **Decorator-based filtering** - Runs tests with a specific `@pytest.mark.<marker>` decorator regardless of folder | `--marker smoke` runs all tests with `@pytest.mark.smoke` |
+
+**When to use which:**
+- Use `--suite sanity` for standard test runs (most common)
+- Use `--marker smoke` for quick critical-path validation
+- Use `--marker cleanup` for cleanup-specific tests
 
 ### Test Execution Flow
 
-Each scenario follows the Molecule lifecycle:
-
 ```
-create.yml                    converge.yml                       verify (pytest)
-───────────                   ────────────                       ──────────────
-1. Load omnia_test_config.yml       1. Setup inventory                 1. conftest.py:
-2. Add OIM to inventory       2. Check omnia_core running           - SSH pre-checks
-3. Wait for SSH               3. Sync dataset folder              - Create host fixture
-                              4. Run ansible playbook               - Init TestReport
-                                 via podman exec               2. test_*.py:
-                              5. Report success/failure            - Use automation_library
-                                                                     functions
-                                                                  - Assert results
-                                                               3. Save report
+create.yml              converge.yml                    verify (pytest)
+──────────              ────────────                    ───────────────
+1. Load config          1. Check omnia_core running     1. SSH to OIM server
+2. Build inventory      2. Sync dataset folder          2. Run test functions
+3. Wait for SSH         3. Execute ansible playbook     3. Collect results
+                        4. Report playbook status       4. Generate reports
 ```
 
 ### Test Reports
 
-After running tests, reports are generated in `reports/`:
-- `test_report.json` -- Machine-readable JSON organized by server IP
-- `test_report.html` -- Interactive HTML report with dark theme, collapsible sections, and playbook logs
+After running tests, two report types are generated in `reports/`:
+
+| Report | File | Description |
+|--------|------|-------------|
+| **HTML** | `test_report.html` | Interactive dark-themed report with collapsible sections, playbook logs, and per-test details |
+| **JSON** | `test_report.json` | Machine-readable format organized by server IP for CI/CD integration |
+
+**How to view reports:**
+
+```bash
+# Open HTML report in browser (Linux)
+xdg-open reports/test_report.html
+
+# Open HTML report in browser (macOS)
+open reports/test_report.html
+
+# Download report from remote server
+scp user@automation-server:/path/to/reports/test_report.html .
+
+# Parse JSON report
+jq '.servers' reports/test_report.json
+```
 
 Report structure:
 ```
@@ -352,43 +367,49 @@ omnia-artifactory/
 
 ## Core Library (`automation_library/core/`)
 
-The core module provides shared infrastructure used by all domain modules:
+The core module provides shared infrastructure used by all test modules. Import functions from here instead of reimplementing.
 
-### host.py -- Host Connections & PXE Mapping
+### Key Functions
 
-- `get_testinfra_host()` -- Returns a testinfra host connected to the OIM server via SSH (auto-detects local vs remote).
-- `run_on_oim(host, cmd)` -- Executes a command on the OIM server.
-- `run_in_container(host, cmd, container)` -- Executes a command inside a Podman container (default: `omnia_core`).
-- `run_on_remote_node(host, cmd, admin_ip)` -- Executes a command on a remote node via SSH from the OIM server.
-- `get_node_info(host, search_by, value)` / `get_nodes_info(...)` -- Parses the PXE mapping CSV to look up nodes by functional group, hostname, service tag, admin IP, or BMC IP.
-- `check_container_running(host, name)` -- Checks if a Podman container is running.
+```python
+from automation_library.core import (
+    # Connection & Command Execution
+    get_testinfra_host,       # Get SSH connection to OIM server
+    run_on_oim,               # Run command on OIM server
+    run_in_container,         # Run command inside omnia_core container
+    run_on_remote_node,       # Run command on K8s/Slurm node via SSH
+    
+    # PXE Mapping & Node Lookup
+    get_node_info,            # Get single node by hostname, IP, or service tag
+    get_nodes_info,           # Get multiple nodes by functional group
+    
+    # Config File Loading
+    load_input_file,          # Load YAML/JSON from container
+    get_input_value,          # Get specific config value with dot-notation
+    is_software_enabled,      # Check if software is enabled in software_config.json
+    
+    # Test Output
+    TestLogger,               # Structured logging with check/passed/failed/skipped
+    Colors, Symbols,          # Terminal colors and Unicode symbols
+    
+    # Credentials
+    view_credentials_file,    # Decrypt ansible-vault files
+    get_credential_value,     # Get specific credential value
+)
+```
 
-### load\_inputs.py -- Config File Loader
+### Module Files
 
-- `load_input_file(host, filename)` -- Loads a YAML/JSON file from `/opt/omnia/input/project_default` inside the container, with automatic caching.
-- `get_input_value(host, filename, key)` -- Gets a single value using dot-notation keys (e.g., `"Networks[0].admin_network.oim_nic_name"`).
-- `is_software_enabled(host, name)` -- Checks if a software component is enabled in `software_config.json`.
-
-### formatting.py -- Terminal Output
-
-- `Colors` / `Symbols` classes -- ANSI color codes and Unicode symbols (auto-disabled when no TTY).
-- `TestLogger` -- Structured logger for test output with `check()`, `passed()`, `failed()`, `skipped()` methods.
-- `log(message, level)` -- Timestamped log with color.
-
-### report.py -- Test Reports
-
-- `TestReport(module_name, report_id)` -- Collects test results and generates JSON/HTML reports.
-- Results are organized by server IP and grouped by module within each test run.
-- HTML reports feature a dark theme, collapsible sections, and embedded playbook logs.
-
-### secrets.py -- Credential Handling
-
-- `view_credentials_file(host, path, key_path)` -- Decrypts ansible-vault files or reads plain YAML.
-- `get_credential_value(host, path, key_path, key)` -- Gets a single credential value.
-
-### vars.py -- Path Constants
-
-Defines all container paths (`/opt/omnia/...`), config file names, container names, and functional group identifiers used throughout the library.
+| File | Purpose |
+|------|---------|
+| `host.py` | SSH connections, command execution, PXE mapping parsing |
+| `load_inputs.py` | Load YAML/JSON config files from container |
+| `formatting.py` | Colors, symbols, TestLogger for structured output |
+| `report.py` | Test report generation (HTML/JSON) |
+| `secrets.py` | Ansible vault decryption, credential handling |
+| `build_stream.py` | BuildStream pipeline utilities |
+| `db_exec.py` | Database query execution (MySQL) |
+| `vars.py` | Path constants, container names, functional groups |
 
 ## License
 
