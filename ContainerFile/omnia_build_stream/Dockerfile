@@ -68,17 +68,10 @@ WORKDIR /opt/omnia/build_stream
 # Create SSL directory for volume mount
 RUN mkdir -p /etc/ssl/omnia
 
-# Create the pulp config directory for CLI usage
-RUN mkdir -p /root/.config/pulp
-
 # -----------------------------
 # Runtime defaults
 # -----------------------------
 ENV APP_DIR=/opt/omnia/build_stream
-# Path where Pulp's cert is mounted by Quadlet
-ENV PULP_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
-ENV REQUESTS_CA_BUNDLE=/etc/pulp/certs/pulp_webserver.crt
-ENV SYSTEM_ANCHOR=/etc/pki/ca-trust/source/anchors/pulp_webserver.crt
 
 # SSL certificate paths for uvicorn
 ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
