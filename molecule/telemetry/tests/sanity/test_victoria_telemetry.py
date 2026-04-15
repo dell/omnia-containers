@@ -72,6 +72,7 @@ from automation_library.telemetry.functions.victoria_func import (
 # TEST CASES
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(12)
 def test_victoria_enabled(host):
     """
@@ -118,6 +119,7 @@ def test_victoria_enabled(host):
     log.passed(VICTORIA_LOG_MSGS["victoria_enabled"], details)
 
 
+@pytest.mark.sanity
 @pytest.mark.order(13)
 def test_victoria_persistence_size(host):
     """
@@ -173,6 +175,7 @@ def test_victoria_persistence_size(host):
         )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(14)
 def test_victoria_single_node_pods(host):
     """
@@ -242,6 +245,7 @@ def test_victoria_single_node_pods(host):
         )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(15)
 def test_victoria_cluster_pods(host):
     """
@@ -319,6 +323,7 @@ def test_victoria_cluster_pods(host):
         assert False, "; ".join(errors)
 
 
+@pytest.mark.sanity
 @pytest.mark.order(16)
 def test_vmagent_pod_running(host):
     """
@@ -367,6 +372,7 @@ def test_vmagent_pod_running(host):
         assert False, VICTORIA_ASSERT_MSGS["vmagent_not_running"]
 
 
+@pytest.mark.sanity
 @pytest.mark.order(17)
 def test_victoria_services(host):
     """
@@ -425,6 +431,7 @@ def test_victoria_services(host):
             )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(18)
 def test_victoria_tls_secret(host):
     """
@@ -478,6 +485,7 @@ def test_victoria_tls_secret(host):
         )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(19)
 def test_victoria_tls_health(host):
     """
@@ -560,6 +568,7 @@ def _build_victoria_tag_lines(tag_result):
     return lines
 
 
+@pytest.mark.sanity
 @pytest.mark.order(20)
 def test_victoria_idrac_data(host):
     """

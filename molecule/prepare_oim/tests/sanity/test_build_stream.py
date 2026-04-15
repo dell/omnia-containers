@@ -42,6 +42,7 @@ from automation_library.prepare_oim.functions import (
 # 1. BUILD STREAM API HEALTH CHECK
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_build_stream_health(host):
     """
@@ -89,6 +90,7 @@ def test_build_stream_health(host):
 # 2. POSTGRES DB TABLES CHECK
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_postgres_db_tables(host):
     """

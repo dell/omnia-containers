@@ -35,13 +35,7 @@ from automation_library.core.vars import (
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
     FUNCTIONAL_GROUPS_CONFIG_PATH as _CORE_FG_CONFIG_PATH,
 )
-
-
-def _get_project_root() -> str:
-    """Get the project root directory."""
-    return os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
+from automation_library.core import get_project_root
 
 
 def _get_pxe_mapping_path_from_provision_config() -> str:
@@ -52,7 +46,7 @@ def _get_pxe_mapping_path_from_provision_config() -> str:
         Full path to pxe_mapping file as specified in provision_config.yml
     """
     provision_config_path = os.path.join(
-        _get_project_root(), "project_default", "provision_config.yml"
+        get_project_root(), "datasets", "project_default", "provision_config.yml"
     )
     if os.path.exists(provision_config_path):
         try:

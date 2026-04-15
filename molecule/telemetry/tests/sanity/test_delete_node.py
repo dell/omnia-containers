@@ -66,6 +66,7 @@ from automation_library.telemetry.functions.delete_node_func import (
 # TEST CASE 1: iDRAC Deleted Node Data in MySQL (order 21)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(21)
 def test_idrac_deleted_node_data_in_mysql(host):
     """
@@ -167,6 +168,7 @@ def test_idrac_deleted_node_data_in_mysql(host):
 # TEST CASE 2: iDRAC Deleted Node Data in Kafka (order 22)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(22)
 def test_idrac_deleted_node_data_in_kafka(host):
     """
@@ -262,6 +264,7 @@ def test_idrac_deleted_node_data_in_kafka(host):
 # TEST CASE 3: LDMS Deleted Node Data in Kafka (order 23)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(23)
 def test_ldms_deleted_node_data_in_kafka(host):
     """
@@ -352,6 +355,7 @@ def test_ldms_deleted_node_data_in_kafka(host):
 # TEST CASE 4: iDRAC Deleted Node Data in VictoriaMetrics (order 24)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(24)
 def test_idrac_deleted_node_data_in_victoria(host):
     """

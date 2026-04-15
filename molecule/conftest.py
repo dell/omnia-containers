@@ -81,6 +81,11 @@ def pytest_configure(config):
     # Register custom markers
     config.addinivalue_line("markers", "cleanup: marks tests as cleanup verification (deselected by default)")
     config.addinivalue_line("markers", "order(n): specify test execution order (lower numbers run first)")
+    # Test suite markers
+    config.addinivalue_line("markers", "sanity: marks tests as sanity tests (basic functionality)")
+    config.addinivalue_line("markers", "negative: marks tests as negative tests (error handling)")
+    config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
+    config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -214,7 +219,7 @@ def host():
     # Pre-check 1: Verify OIM IP is configured
     if not oim_ip:
         pytest.fail(
-            "oim_server_ip is not set in user_config.yml. "
+            "oim_server_ip is not set in automation_config.yml. "
             "Please configure the OIM server IP before running tests."
         )
 
@@ -235,7 +240,7 @@ def host():
     except (_sp.CalledProcessError, _sp.TimeoutExpired, OSError):
         pytest.fail(
             f"OIM server {oim_ip}:{ssh_port} is not reachable.\n"
-            f"Check oim_server_ip and oim_ssh_port in user_config.yml"
+            f"Check oim_server_ip and oim_ssh_port in automation_config.yml"
         )
 
     # Pre-check 4: Verify SSH authentication works
@@ -247,12 +252,12 @@ def host():
             pytest.fail(
                 f"SSH to OIM server {oim_ip} failed (rc={result.rc}).\n"
                 f"Error: {stderr}\n"
-                f"Check oim_ssh_user and oim_ssh_password in user_config.yml"
+                f"Check oim_ssh_user and oim_ssh_password in automation_config.yml"
             )
     except Exception as e:
         pytest.fail(
             f"SSH connection to OIM server {oim_ip} failed: {e}\n"
-            f"Check oim_server_ip, oim_ssh_user, oim_ssh_password in user_config.yml"
+            f"Check oim_server_ip, oim_ssh_user, oim_ssh_password in automation_config.yml"
         )
 
     return h

@@ -20,7 +20,7 @@ This framework provides:
 ## Architecture
 
 ```
-                          user_config.yml
+                          automation_config.yml
                                 |
                                 v
                     +-------------------------+
@@ -84,15 +84,16 @@ cd omnia-artifactory
 source .venv/bin/activate
 
 # 3. Configure your settings
-vi user_config.yml          # OIM server IP, SSH creds, thresholds
-vi project_default/*.yml    # Omnia config files (network, storage, telemetry, etc.)
+vi automation_config.yml              # OIM server IP, SSH creds, thresholds
+vi datasets/project_default/*.yml     # Omnia config files (network, storage, telemetry, etc.)
 
 # 4. Run prerequisite checks
 oim-prereq-check
 
 # 5. Run molecule tests
-./run_molecule.sh all test          # All scenarios end-to-end
-./run_molecule.sh telemetry verify  # Single scenario, verify only
+run_molecule all test                    # All scenarios end-to-end
+run_molecule telemetry verify            # Single scenario, verify only
+run_molecule prepare_oim verify --suite sanity  # Run sanity tests only
 ```
 
 ## Installation
@@ -130,7 +131,7 @@ pip install -r requirements.txt   # Installs ansible-core, molecule, pytest-test
 
 ## Configuration
 
-### user\_config.yml (Required)
+### automation\_config.yml (Required)
 
 Central configuration for all automation tasks. Edit this file before running anything:
 
@@ -188,7 +189,7 @@ ldap_credentials:
     password: "testpass"
 ```
 
-### project\_default/ Directory
+### datasets/project\_default/ Directory
 
 Omnia deployment configuration files synced into the `omnia_core` container:
 
@@ -258,16 +259,21 @@ Tests are organized into ordered scenarios that cover the full OIM lifecycle:
 
 ```bash
 # List available scenarios
-./run_molecule.sh list
+run_molecule list
 
 # Run all scenarios sequentially (full lifecycle)
-./run_molecule.sh all test
+run_molecule all test
 
 # Run a specific scenario
-./run_molecule.sh <scenario> test       # Full lifecycle (create + converge + verify)
-./run_molecule.sh <scenario> converge   # Run playbook only
-./run_molecule.sh <scenario> verify     # Run tests only (skip playbook)
-./run_molecule.sh <scenario> create     # Setup inventory only
+run_molecule <scenario> test       # Full lifecycle (create + converge + verify)
+run_molecule <scenario> converge   # Run playbook only
+run_molecule <scenario> verify     # Run tests only (skip playbook)
+run_molecule <scenario> create     # Setup inventory only
+
+# Run specific test suites
+run_molecule <scenario> verify --suite sanity     # Run sanity tests only
+run_molecule <scenario> verify --suite negative   # Run negative tests only
+run_molecule <scenario> verify --marker smoke     # Run smoke tests
 ```
 
 When running `all`, a shared `OMNIA_REPORT_ID` UUID links all scenario results into a single report run.
@@ -279,7 +285,7 @@ Each scenario follows the Molecule lifecycle:
 ```
 create.yml                    converge.yml                       verify (pytest)
 ───────────                   ────────────                       ──────────────
-1. Load user_config.yml       1. Setup inventory                 1. conftest.py:
+1. Load automation_config.yml       1. Setup inventory                 1. conftest.py:
 2. Add OIM to inventory       2. Check omnia_core running           - SSH pre-checks
 3. Wait for SSH               3. Sync project_default/              - Create host fixture
                               4. Run ansible playbook               - Init TestReport

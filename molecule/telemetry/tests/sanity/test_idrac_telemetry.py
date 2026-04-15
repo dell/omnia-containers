@@ -47,6 +47,7 @@ from automation_library.telemetry.functions import (
 # IDRAC TELEMETRY TEST CASES
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_idrac_telemetry_pod_count(host):
     """
@@ -88,6 +89,7 @@ def test_idrac_telemetry_pod_count(host):
     )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_all_telemetry_pods_running(host):
     """
@@ -148,6 +150,7 @@ def test_all_telemetry_pods_running(host):
     )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(3)
 def test_mysql_data_in_idrac_telemetry_pods(host):
     """
@@ -270,6 +273,7 @@ def _build_receiver_pod_details(pod_result):
     return lines
 
 
+@pytest.mark.sanity
 @pytest.mark.order(4)
 def test_receiver_collecting_metrics(host):
     """

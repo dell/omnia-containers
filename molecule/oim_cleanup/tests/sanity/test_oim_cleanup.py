@@ -54,6 +54,7 @@ from automation_library.oim_cleanup.functions import (
 # 1. SERVICES REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_services_removed(host):
     """Verify all OIM services are stopped and removed."""
@@ -76,6 +77,7 @@ def test_services_removed(host):
 # 2. CONTAINERS REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_containers_removed(host):
     """Verify all OIM containers are removed."""
@@ -98,6 +100,7 @@ def test_containers_removed(host):
 # 3. CONTAINER FILES AND OMNIA TARGET REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(3)
 def test_container_files_removed(host):
     """Verify all .container systemd files and omnia.target are removed."""
@@ -120,6 +123,7 @@ def test_container_files_removed(host):
 # 4. VOLUMES AND SECRETS REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(4)
 def test_volumes_secrets_removed(host):
     """Verify OpenCHAMI volumes and secrets are removed."""
@@ -142,6 +146,7 @@ def test_volumes_secrets_removed(host):
 # 5. CREDENTIAL FILES REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(5)
 def test_credential_files_removed(host):
     """Verify credential files and vault key are removed."""
@@ -164,6 +169,7 @@ def test_credential_files_removed(host):
 # 6. FIREWALL PORTS REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(6)
 def test_firewall_ports_removed(host):
     """Verify firewall ports are removed."""
@@ -186,6 +192,7 @@ def test_firewall_ports_removed(host):
 # 7. DIRECTORIES REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(7)
 def test_directories_removed(host):
     """Verify cleanup directories are removed."""
@@ -208,6 +215,7 @@ def test_directories_removed(host):
 # 8. REGCTL, S3CMD, PACKAGES REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(8)
 def test_packages_removed(host):
     """Verify regctl binary, s3cmd and openchami packages are removed."""
@@ -230,6 +238,7 @@ def test_packages_removed(host):
 # 9. CHRONYD REMOVED
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(9)
 def test_chronyd_removed(host):
     """Verify chronyd is stopped, disabled, and allow list removed."""

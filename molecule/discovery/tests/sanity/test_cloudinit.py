@@ -31,6 +31,7 @@ from automation_library.discovery.functions import (
 )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_cloudinit_completed(host):
     """

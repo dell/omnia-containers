@@ -55,6 +55,7 @@ from automation_library.discovery.vars import (
 )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_slurm_control_node_services(host):
     """
@@ -101,6 +102,7 @@ def test_slurm_control_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_slurm_node_services(host):
     """
@@ -146,6 +148,7 @@ def test_slurm_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(12)
 def test_login_node_services(host):
     """
@@ -191,6 +194,7 @@ def test_login_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(13)
 def test_login_compiler_node_services(host):
     """
@@ -240,6 +244,7 @@ def test_login_compiler_node_services(host):
 # CROSS-NODE SSH TEST
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(14)
 def test_cross_node_ssh(host):
     """
@@ -281,6 +286,7 @@ def test_cross_node_ssh(host):
 # SINFO AND SOFTWARE TESTS
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(15)
 def test_sinfo_nodes(host):
     """
@@ -325,6 +331,7 @@ def test_sinfo_nodes(host):
     assert result["success"], f"sinfo mismatch: {'; '.join(error_parts) if error_parts else 'unknown'}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(16)
 def test_openmpi_installed(host):
     """
@@ -359,6 +366,7 @@ def test_openmpi_installed(host):
         assert False, result.get("error", "OpenMPI verification failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(17)
 def test_ucx_installed(host):
     """
@@ -397,6 +405,7 @@ def test_ucx_installed(host):
 # LDMS PLUGIN CONFIGURATION TEST (if enabled in software_config.json)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(18)
 def test_ldms_sampler_plugins(host):
     """
@@ -451,6 +460,7 @@ def test_ldms_sampler_plugins(host):
 # LDAP TESTS (if enabled in software_config.json)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(19)
 def test_ldap_slapd_configuration(host):
     """
@@ -481,6 +491,7 @@ def test_ldap_slapd_configuration(host):
         assert False, f"LDAP test failed: {result['error']}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(20)
 def test_ldap_user_login_from_oim(host):
     """
@@ -533,6 +544,7 @@ def test_ldap_user_login_from_oim(host):
         assert False, result.get("error", "LDAP login failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(21)
 def test_ldap_user_login_from_core(host):
     """
@@ -585,6 +597,7 @@ def test_ldap_user_login_from_core(host):
         assert False, result.get("error", "LDAP login failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(22)
 def test_pam_slurm_adopt(host):
     """

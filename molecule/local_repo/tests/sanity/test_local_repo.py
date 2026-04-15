@@ -64,6 +64,7 @@ from automation_library.local_repo.functions.local_repo_func import (
 # ---------------------------------------------------------------------------
 # 1. Build stream job stage validation
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_build_stream_job_stage(host):
     """
@@ -120,6 +121,7 @@ def test_build_stream_job_stage(host):
 # ---------------------------------------------------------------------------
 # 2. Pulp container running
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_pulp_container_running(host):
     container = TEST_VARS["pulp_container"]
@@ -141,6 +143,7 @@ def test_pulp_container_running(host):
 # ---------------------------------------------------------------------------
 # 2. Pulp CLI connectivity
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(3)
 def test_pulp_cli_repository_list(host):
     log = TestLogger(TEST_NAMES["pulp_cli_repo_list"])
@@ -158,6 +161,7 @@ def test_pulp_cli_repository_list(host):
 # ---------------------------------------------------------------------------
 # 3. Pulp API health
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(4)
 def test_pulp_api_status(host):
     log = TestLogger(TEST_NAMES["pulp_api_status"])
@@ -175,6 +179,7 @@ def test_pulp_api_status(host):
 # ---------------------------------------------------------------------------
 # 4. Software download status (software.csv)
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(5)
 def test_software_download_status(host):
     log = TestLogger(TEST_NAMES["software_download_status"])
@@ -192,6 +197,7 @@ def test_software_download_status(host):
 # ---------------------------------------------------------------------------
 # 5. Per-software package status (status.csv per software)
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(6)
 def test_per_software_package_status(host):
     log = TestLogger(TEST_NAMES["per_software_package_status"])
@@ -209,6 +215,7 @@ def test_per_software_package_status(host):
 # ---------------------------------------------------------------------------
 # 6. RPM repositories synced
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(7)
 def test_pulp_repositories_synced(host):
     log = TestLogger(TEST_NAMES["pulp_repositories_synced"])
@@ -226,6 +233,7 @@ def test_pulp_repositories_synced(host):
 # ---------------------------------------------------------------------------
 # 7. RPM distributions published
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(8)
 def test_pulp_distributions_published(host):
     log = TestLogger(TEST_NAMES["pulp_distributions_published"])
@@ -243,6 +251,7 @@ def test_pulp_distributions_published(host):
 # ---------------------------------------------------------------------------
 # 8. Container image repositories synced
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(9)
 def test_container_repos_synced(host):
     log = TestLogger(TEST_NAMES["container_repos_synced"])
@@ -260,6 +269,7 @@ def test_container_repos_synced(host):
 # ---------------------------------------------------------------------------
 # 9. File repositories synced
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_file_repos_synced(host):
     log = TestLogger(TEST_NAMES["file_repos_synced"])
@@ -277,6 +287,7 @@ def test_file_repos_synced(host):
 # ---------------------------------------------------------------------------
 # 10. RPM content accessible via HTTPS (repomd.xml)
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_pulp_content_accessible(host):
     log = TestLogger(TEST_NAMES["pulp_content_accessible"])
@@ -294,6 +305,7 @@ def test_pulp_content_accessible(host):
 # ---------------------------------------------------------------------------
 # 11. Software packages in Pulp
 # ---------------------------------------------------------------------------
+@pytest.mark.sanity
 @pytest.mark.order(12)
 def test_software_packages_in_pulp(host):
     log = TestLogger(TEST_NAMES["software_packages_in_pulp"])

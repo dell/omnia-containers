@@ -34,12 +34,19 @@ def _get_project_root() -> str:
 
 
 def load_user_config() -> Dict[str, Any]:
-    """Load user_config.yml."""
-    config_path = os.path.join(_get_project_root(), "user_config.yml")
+    """Load automation_config.yml."""
+    config_path = os.path.join(_get_project_root(), "automation_config.yml")
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     return {}
+
+
+def get_dataset_path() -> str:
+    """Get the configured dataset path from automation_config.yml."""
+    config = load_user_config()
+    dataset = config.get("dataset", "project_default")
+    return os.path.join(_get_project_root(), "datasets", dataset)
 
 
 def _is_local_ip(ip: str) -> bool:
@@ -67,7 +74,7 @@ def get_testinfra_host() -> testinfra.host.Host:
 
     if not oim_ip or oim_ip.strip() == "":
         raise ValueError(
-            "oim_server_ip is required in user_config.yml. "
+            "oim_server_ip is required in automation_config.yml. "
             "Please set the IP address of your OIM server."
         )
 
@@ -472,6 +479,50 @@ def get_group_names_from_pxe_mapping(host: testinfra.host.Host) -> set:
         if len(parts) > grp_idx and parts[grp_idx].strip():
             groups.add(parts[grp_idx].strip())
     return groups
+
+
+# =============================================================================
+# RESULT HELPERS
+# =============================================================================
+
+def make_verification_result(
+    results: list,
+    passed: int,
+    failed: int,
+    total: int = None,
+    details: str = None
+) -> Dict[str, Any]:
+    """
+    Create a standardized verification result dictionary.
+
+    Args:
+        results: List of individual check results
+        passed: Number of passed checks
+        failed: Number of failed checks
+        total: Total number of checks (defaults to passed + failed)
+        details: Optional details string
+
+    Returns:
+        Dict with 'success', 'results', 'passed', 'failed', 'total', 'details'
+    """
+    return {
+        "success": failed == 0,
+        "results": results,
+        "passed": passed,
+        "failed": failed,
+        "total": total if total is not None else (passed + failed),
+        "details": details,
+    }
+
+
+def get_project_root() -> str:
+    """
+    Get the project root directory.
+
+    Returns:
+        Absolute path to the project root directory
+    """
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 # =============================================================================

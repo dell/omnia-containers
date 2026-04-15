@@ -22,7 +22,7 @@
 #   run_molecule discovery <TAB>    # Shows commands
 #
 # Usage:
-#   ./run_molecule.sh <scenario> <command>
+#   ./run_molecule.sh <scenario> <command> [options]
 #   ./run_molecule.sh all <command>              # Run install + prepare_oim
 #
 # Commands:
@@ -32,6 +32,16 @@
 #   create    - Create inventory only
 #   prepare   - Run prepare only
 #   list      - List available scenarios
+#
+# Options:
+#   --suite <name>    Run specific test suite (sanity, negative, regression, smoke)
+#   --marker <expr>   Run tests matching pytest marker expression
+#
+# Test Suites:
+#   sanity      - Basic functionality tests (quick validation)
+#   negative    - Error handling and edge cases
+#   regression  - Full test coverage
+#   smoke       - Critical path only (fastest)
 #
 # Scenarios (in execution order):
 #   omnia_sh_install    - Install omnia.sh and verify
@@ -48,9 +58,12 @@
 # Examples:
 #   ./run_molecule.sh omnia_sh_install test      # Install + verify
 #   ./run_molecule.sh omnia_sh_install verify    # Verify install only
-#   ./run_molecule.sh omnia_sh_uninstall test      # Cleanup + verify
+#   ./run_molecule.sh omnia_sh_uninstall test    # Cleanup + verify
 #   ./run_molecule.sh all test                   # Run ALL scenarios
 #   ./run_molecule.sh list                       # List scenarios
+#   ./run_molecule.sh prepare_oim verify --suite sanity    # Run sanity tests only
+#   ./run_molecule.sh telemetry verify --suite negative    # Run negative tests only
+#   ./run_molecule.sh discovery verify --marker smoke      # Run smoke tests
 #
 # =============================================================================
 
@@ -74,6 +87,51 @@ fi
 # Parse arguments
 SCENARIO="$1"
 COMMAND="$2"
+SUITE=""
+MARKER=""
+
+# Parse optional arguments (--suite, --marker) only if we have more than 2 args
+if [[ $# -gt 2 ]]; then
+    shift 2
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --suite)
+                SUITE="$2"
+                shift 2
+                ;;
+            --marker)
+                MARKER="$2"
+                shift 2
+                ;;
+            *)
+                echo -e "${RED}Unknown option: $1${NC}"
+                echo "Run '$0 help' for usage."
+                exit 1
+                ;;
+        esac
+    done
+fi
+
+# Build pytest marker arguments based on --suite or --marker
+build_pytest_args() {
+    local pytest_args=""
+    if [[ -n "$SUITE" ]]; then
+        # Convert suite to pytest marker expression
+        # sanity -> -m sanity
+        # sanity,negative -> -m "sanity or negative"
+        if [[ "$SUITE" == *","* ]]; then
+            local markers
+            markers=$(echo "$SUITE" | sed 's/,/ or /g')
+            pytest_args="-m \"$markers\""
+        else
+            pytest_args="-m $SUITE"
+        fi
+    fi
+    if [[ -n "$MARKER" ]]; then
+        pytest_args="-m $MARKER"
+    fi
+    echo "$pytest_args"
+}
 
 # Handle special commands that don't need scenario
 case "$SCENARIO" in
@@ -94,7 +152,7 @@ case "$SCENARIO" in
         ;;
     
     help|--help|-h|"")
-        echo "Usage: $0 <scenario> <command>"
+        echo "Usage: $0 <scenario> <command> [options]"
         echo ""
         echo "Commands:"
         echo "  test      - Run full test (create + prepare + converge + verify)"
@@ -102,6 +160,16 @@ case "$SCENARIO" in
         echo "  converge  - Run converge only"
         echo "  create    - Create inventory only"
         echo "  prepare   - Run prepare only"
+        echo ""
+        echo "Options:"
+        echo "  --suite <name>    Run specific test suite (sanity, negative, regression, smoke)"
+        echo "  --marker <expr>   Run tests matching pytest marker expression"
+        echo ""
+        echo "Test Suites:"
+        echo "  sanity      - Basic functionality tests (quick)"
+        echo "  negative    - Error handling and edge cases"
+        echo "  regression  - Full test coverage"
+        echo "  smoke       - Critical path only (fastest)"
         echo ""
         echo "Scenarios:"
         echo "  <name>    - Run specific scenario"
@@ -115,15 +183,9 @@ case "$SCENARIO" in
         echo "  $0 omnia_sh_install test      # Install + verify"
         echo "  $0 omnia_sh_install verify    # Verify install only"
         echo "  $0 omnia_sh_uninstall test    # Uninstall + verify"
-        echo "  $0 prepare_oim test           # Prepare OIM + verify"
-        echo "  $0 build_image_x86_64 test    # Build x86_64 images + verify"
-        echo "  $0 build_image_aarch64 test   # Build aarch64 images + verify"
-        echo "  $0 discovery test             # Discovery + verify"
-        echo "  $0 discovery verify           # Verify discovery only"
-        echo "  $0 telemetry test             # Telemetry + verify"
-        echo "  $0 telemetry verify           # Verify telemetry only"
-        echo "  $0 oim_cleanup test           # OIM cleanup + verify"
-        echo "  $0 oim_cleanup verify         # Verify OIM cleanup only"
+        echo "  $0 prepare_oim verify --suite sanity     # Run sanity tests only"
+        echo "  $0 telemetry verify --suite negative     # Run negative tests only"
+        echo "  $0 discovery verify --marker smoke       # Run smoke tests"
         echo "  $0 all test                   # Run ALL scenarios"
         echo "  $0 list                       # List scenarios"
         exit 0
@@ -197,6 +259,12 @@ echo -e "${BLUE}  Omnia Molecule Test Runner${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "  Scenario : ${GREEN}${SCENARIO}${NC}"
 echo -e "  Command  : ${GREEN}${COMMAND}${NC}"
+if [[ -n "$SUITE" ]]; then
+    echo -e "  Suite    : ${GREEN}${SUITE}${NC}"
+fi
+if [[ -n "$MARKER" ]]; then
+    echo -e "  Marker   : ${GREEN}${MARKER}${NC}"
+fi
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -212,6 +280,15 @@ run_molecule() {
     LOG_FILE="/tmp/molecule_${scenario}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
     export MOLECULE_LOG_FILE="$LOG_FILE"
     export MOLECULE_COMMAND="${cmd}"
+
+    # Build pytest args for test suite filtering
+    local pytest_args
+    pytest_args=$(build_pytest_args)
+    if [[ -n "$pytest_args" ]]; then
+        export PYTEST_ADDOPTS="$pytest_args"
+        echo -e "  Suite/Marker: ${GREEN}${pytest_args}${NC}"
+        echo ""
+    fi
 
     molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"
     echo ""

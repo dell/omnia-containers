@@ -57,6 +57,7 @@ from automation_library.discovery.messages import (
 # 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_build_stream_job_stage(host):
     """
@@ -114,6 +115,7 @@ def test_build_stream_job_stage(host):
 # 2. NODE PACKAGE VERIFICATION TEST
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_node_packages_installed(host):
     """
