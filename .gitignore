@@ -23,3 +23,6 @@ omnia_test_config.yml
 
 # Windsurf rules (local development only)
 .windsurf/rules.md
+
+# Automation skills (local development only)
+automation_skills/
