@@ -50,7 +50,7 @@ The framework automates verification of Omnia Infrastructure Manager (OIM) deplo
 
 ```
 omnia-artifactory/
-├── automation_config.yml          # Main configuration (OIM server IP, credentials)
+├── omnia_test_config.yml          # Main configuration (OIM server IP, credentials)
 ├── run_molecule.sh                # Test runner script
 ├── setup_env.sh                   # Environment setup script
 ├── requirements.txt               # Python dependencies
@@ -127,7 +127,7 @@ automation_library/core/
 ```python
 from automation_library.core import (
     get_testinfra_host,      # Get testinfra host connected to OIM
-    load_user_config,        # Load automation_config.yml
+    load_user_config,        # Load omnia_test_config.yml
     run_on_oim,              # Run command on OIM server
     run_in_container,        # Run command inside omnia_core container
     run_on_remote_node,      # Run command on remote K8s node via SSH
@@ -383,7 +383,7 @@ def test_service_status(host):
 
 ## 7. Configuration Files
 
-### 7.1 automation_config.yml (Main Config)
+### 7.1 omnia_test_config.yml (Main Config)
 
 ```yaml
 # OIM Server Connection
@@ -545,7 +545,7 @@ touch molecule/new_module/tests/sanity/{__init__.py,test_new_module.py}
 
 | Issue | Solution |
 |-------|----------|
-| SSH connection failed | Check `oim_server_ip` and `oim_ssh_password` in `automation_config.yml` |
+| SSH connection failed | Check `oim_server_ip` and `oim_ssh_password` in `omnia_test_config.yml` |
 | Module not found | Run `source .venv/bin/activate` first |
 | Container not running | Verify OIM deployment with `podman ps` on OIM server |
 | Tests skipped | Check if feature is enabled in config files |

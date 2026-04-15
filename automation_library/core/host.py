@@ -34,8 +34,8 @@ def _get_project_root() -> str:
 
 
 def load_user_config() -> Dict[str, Any]:
-    """Load automation_config.yml."""
-    config_path = os.path.join(_get_project_root(), "automation_config.yml")
+    """Load omnia_test_config.yml."""
+    config_path = os.path.join(_get_project_root(), "omnia_test_config.yml")
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
@@ -43,7 +43,7 @@ def load_user_config() -> Dict[str, Any]:
 
 
 def get_dataset_path() -> str:
-    """Get the configured dataset path from automation_config.yml."""
+    """Get the configured dataset path from omnia_test_config.yml."""
     config = load_user_config()
     dataset = config.get("dataset", "project_default")
     return os.path.join(_get_project_root(), "datasets", dataset)
@@ -74,7 +74,7 @@ def get_testinfra_host() -> testinfra.host.Host:
 
     if not oim_ip or oim_ip.strip() == "":
         raise ValueError(
-            "oim_server_ip is required in automation_config.yml. "
+            "oim_server_ip is required in omnia_test_config.yml. "
             "Please set the IP address of your OIM server."
         )
 

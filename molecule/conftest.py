@@ -219,7 +219,7 @@ def host():
     # Pre-check 1: Verify OIM IP is configured
     if not oim_ip:
         pytest.fail(
-            "oim_server_ip is not set in automation_config.yml. "
+            "oim_server_ip is not set in omnia_test_config.yml. "
             "Please configure the OIM server IP before running tests."
         )
 
@@ -240,7 +240,7 @@ def host():
     except (_sp.CalledProcessError, _sp.TimeoutExpired, OSError):
         pytest.fail(
             f"OIM server {oim_ip}:{ssh_port} is not reachable.\n"
-            f"Check oim_server_ip and oim_ssh_port in automation_config.yml"
+            f"Check oim_server_ip and oim_ssh_port in omnia_test_config.yml"
         )
 
     # Pre-check 4: Verify SSH authentication works
@@ -252,12 +252,12 @@ def host():
             pytest.fail(
                 f"SSH to OIM server {oim_ip} failed (rc={result.rc}).\n"
                 f"Error: {stderr}\n"
-                f"Check oim_ssh_user and oim_ssh_password in automation_config.yml"
+                f"Check oim_ssh_user and oim_ssh_password in omnia_test_config.yml"
             )
     except Exception as e:
         pytest.fail(
             f"SSH connection to OIM server {oim_ip} failed: {e}\n"
-            f"Check oim_server_ip, oim_ssh_user, oim_ssh_password in automation_config.yml"
+            f"Check oim_server_ip, oim_ssh_user, oim_ssh_password in omnia_test_config.yml"
         )
 
     return h

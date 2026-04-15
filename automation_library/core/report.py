@@ -36,8 +36,8 @@ def _get_report_dir() -> str:
 
 
 def _get_server_info() -> Dict[str, str]:
-    """Get current server IP and hostname from automation_config.yml."""
-    config_path = os.path.join(get_project_root(), "automation_config.yml")
+    """Get current server IP and hostname from omnia_test_config.yml."""
+    config_path = os.path.join(get_project_root(), "omnia_test_config.yml")
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f) or {}

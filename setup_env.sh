@@ -40,7 +40,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="${SCRIPT_DIR}/.venv"
 REQ_FILE="${SCRIPT_DIR}/requirements.txt"
-USER_CONFIG="${SCRIPT_DIR}/automation_config.yml"
+USER_CONFIG="${SCRIPT_DIR}/omnia_test_config.yml"
 PREREQ_SCRIPT="${SCRIPT_DIR}/run_prereq_check.py"
 MOLECULE_SCRIPT="${SCRIPT_DIR}/run_molecule.sh"
 MIN_PYTHON_MAJOR=3

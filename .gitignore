@@ -19,4 +19,7 @@ reports/
 .backup/
 
 # User configuration (contains sensitive data)
-automation_config.yml
+omnia_test_config.yml
+
+# Windsurf rules (local development only)
+.windsurf/rules.md
