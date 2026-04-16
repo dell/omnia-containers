@@ -2,35 +2,35 @@
 name = "omnia_build_stream"
 version = "1.0.0"
 description = "Python environment for the Omnia Build Stream FastAPI container."
-requires-python = ">= 3.11"
+requires-python = ">= 3.12"
 dependencies = [
     "fastapi>=0.115.6",
     "starlette>=0.49.1",
     "uvicorn[standard]>=0.34.0",
     "ansible-core>=2.16.0",
-    "python-multipart>=0.0.22",
-    "requests==2.32.5",
+    "python-multipart>=0.0.26",
+    "requests>=2.33.0",
     "pyyaml==6.0.3",
     "jmespath==1.0.1",
     "urllib3>=2.6.3",
-    "pulp-cli[pygments]==0.33.0",
     "jsonschema>=4.0.0",
     "argon2-cffi>=21.0.0",
-    "PyJWT>=2.8.0",
+    "PyJWT>=2.12.0",
     "dependency-injector>=4.41.0",
     "pydantic-settings>=2.0.0",
     "pydantic>=2.0.0,<2.10.0",
-    "cryptography>=46.0.5",
+    "cryptography>=46.0.7",
     "httpx>=0.25.0",
     "sqlalchemy>=2.0.0",
     "alembic>=1.13.0",
     "psycopg2-binary>=2.9.0",
     "python-dotenv>=1.0.0",
     "debugpy==1.8.20",
-    "pytest>=7.4.0",
+    "pytest>=9.0.3",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "pylint>=3.0.0",
-    "black>=23.0.0",
-    "isort>=5.12.0"
+    "black>=26.3.1",
+    "isort>=5.12.0",
+    "pygments>=2.20.0"
 ]
