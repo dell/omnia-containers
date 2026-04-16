@@ -82,9 +82,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv lock --upgrade && \
     uv pip install --system -r <(uv pip compile pyproject.toml)
 
-# Verify uvicorn is installed
-RUN python3 -c "import uvicorn; print(f'uvicorn version: {uvicorn.__version__}')"
-
 # Optionally install dev dependencies
 ARG BUILD_ENV=production
 RUN if [ "$BUILD_ENV" = "development" ]; then \
