@@ -77,15 +77,18 @@ COPY pyproject.toml uv.lock ./
 
 # -------------------------------------------------------
 # Regenerate lockfile inside the build to match Python 3.13
-# then install production dependencies
+# then install production dependencies into system Python
 # -------------------------------------------------------
 RUN uv lock --upgrade && \
-    uv sync --frozen --no-install-project
+    uv pip install --system -r <(uv pip compile pyproject.toml)
+
+# Verify uvicorn is installed
+RUN python3 -c "import uvicorn; print(f'uvicorn version: {uvicorn.__version__}')"
 
 # Optionally install dev dependencies
 ARG BUILD_ENV=production
 RUN if [ "$BUILD_ENV" = "development" ]; then \
-      uv sync --frozen --no-install-project --extra dev; \
+      uv pip install --system -r <(uv pip compile pyproject.toml --extra dev); \
     fi
 
 # Create app and SSL directories
