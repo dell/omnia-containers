@@ -65,13 +65,13 @@ skip_on_failure: false
 # Remote OIM server where all operations will be executed via SSH
 
 # OIM server IP address (REQUIRED)
-oim_server_ip: ""
+oim_server_ip: "172.18.36.7"
 
 # SSH username for remote OIM server (default: root)
-oim_ssh_user: ""
+oim_ssh_user: "root"
 
 # SSH password for remote OIM server (REQUIRED)
-oim_ssh_password: ""
+oim_ssh_password: "Dell1234"
 
 # SSH port (default: 22)
 oim_ssh_port: 22

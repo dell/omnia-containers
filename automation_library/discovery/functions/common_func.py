@@ -20,6 +20,9 @@ Functions for SSH verification and node retrieval used across all tests.
 
 from typing import Dict, Any, List
 
+import sys
+import time
+
 import pytest
 
 from automation_library.core import (
@@ -36,7 +39,13 @@ from automation_library.core import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     K8S_WORKER_NODE_FUNCTIONAL_GROUP,
 )
-from ..vars import SSH_OPTS
+from ..vars import (
+    SSH_OPTS,
+    CLOUDINIT_RETRY_LIMIT,
+    CLOUDINIT_RETRY_INTERVAL,
+    CLOUDINIT_PASSED_STATUSES,
+    CLOUDINIT_RETRY_STATUSES,
+)
 from ..messages import SKIP_MSGS
 from .package_collector import (
     get_base_image_packages,
@@ -339,12 +348,81 @@ def verify_ssh_from_oim(
 # CLOUD-INIT VERIFICATION
 # =============================================================================
 
+def _get_cloudinit_status(host, admin_ip: str) -> str:
+    """
+    Get cloud-init status from a single node.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Node admin IP address
+
+    Returns:
+        Status string: 'done', 'running', 'not started', 'error', or 'unknown'
+    """
+    cmd = run_on_remote_node(host, "cloud-init status 2>&1", admin_ip)
+    output = cmd.stdout.strip() if cmd.stdout else ""
+
+    if "status: done" in output:
+        return "done"
+    elif "status: running" in output:
+        return "running"
+    elif "status: not started" in output or "not started" in output.lower():
+        return "not started"
+    elif "status: error" in output:
+        return "error"
+    elif cmd.rc != 0 and not output:
+        return "command_failed"
+    else:
+        return "unknown"
+
+
+def _print_progress(node_statuses: Dict[str, Dict], total: int):
+    """
+    Print single-line progress that updates in place.
+
+    Args:
+        node_statuses: Dict of hostname -> {status, retries, done}
+        total: Total number of nodes
+    """
+    import sys
+
+    parts = []
+    done_count = sum(1 for ns in node_statuses.values() if ns["done"])
+
+    for hostname, ns in node_statuses.items():
+        short_name = hostname[:12] + ".." if len(hostname) > 14 else hostname
+        if ns["done"]:
+            if ns["status"] in ["done"]:
+                parts.append(f"{short_name}[✓]")
+            else:
+                parts.append(f"{short_name}[✗]")
+        else:
+            parts.append(f"{short_name}[{ns['status']},r{ns['retries']}]")
+
+    line = f"\rCloud-init: {done_count}/{total} done | " + " ".join(parts)
+    # Truncate if too long and pad to clear previous output
+    max_width = 120
+    if len(line) > max_width:
+        line = line[:max_width - 3] + "..."
+    line = line.ljust(max_width)
+    sys.stdout.write(line)
+    sys.stdout.flush()
+
+
 def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
     """
-    Verify cloud-init completed successfully on all nodes.
+    Verify cloud-init completed successfully on all nodes with retry logic.
 
     For diskless OS deployments, cloud-init handles provisioning.
-    Checks 'cloud-init status' command output.
+    Checks 'cloud-init status' command output with configurable retry.
+
+    Retry behavior:
+    - If status is in CLOUDINIT_PASSED_STATUSES (e.g., 'done'): pass, no retry
+    - If status is in CLOUDINIT_RETRY_STATUSES (e.g., 'running'): retry with delay
+    - If status is 'error' or unknown: fail after checking all nodes
+    - Retries up to CLOUDINIT_RETRY_LIMIT times with CLOUDINIT_RETRY_INTERVAL seconds
+
+    Progress is printed on a single line that updates in place.
 
     Args:
         host: Testinfra host object
@@ -359,54 +437,91 @@ def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]
         "results": [],
     }
 
+    # Track status for each node: {hostname: {status, retries, done, admin_ip}}
+    node_statuses: Dict[str, Dict] = {}
     for node in nodes:
         hostname = node.get("hostname", "")
         admin_ip = node.get("admin_ip", "")
+        node_statuses[hostname] = {
+            "status": "checking",
+            "retries": 0,
+            "done": False,
+            "admin_ip": admin_ip,
+            "warnings": "",
+        }
+
+    # Print initial progress
+    _print_progress(node_statuses, len(nodes))
+
+    # Retry loop
+    all_done = False
+    while not all_done:
+        all_done = True
+
+        for hostname, ns in node_statuses.items():
+            if ns["done"]:
+                continue
+
+            admin_ip = ns["admin_ip"]
+            status = _get_cloudinit_status(host, admin_ip)
+            ns["status"] = status
+
+            # Check if passed
+            if status in CLOUDINIT_PASSED_STATUSES:
+                ns["done"] = True
+                continue
+
+            # Check if should retry
+            if status in CLOUDINIT_RETRY_STATUSES:
+                ns["retries"] += 1
+                if ns["retries"] >= CLOUDINIT_RETRY_LIMIT:
+                    # Retry limit reached - mark as failed
+                    ns["done"] = True
+                    ns["status"] = f"{status} (retry limit {CLOUDINIT_RETRY_LIMIT} reached)"
+                else:
+                    all_done = False
+            else:
+                # Status is error/unknown/command_failed - mark as done (failed)
+                ns["done"] = True
+
+        # Update progress
+        _print_progress(node_statuses, len(nodes))
+
+        # If not all done, wait before next retry
+        if not all_done:
+            time.sleep(CLOUDINIT_RETRY_INTERVAL)
+
+    # Print newline after progress
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+
+    # Build final results
+    for node in nodes:
+        hostname = node.get("hostname", "")
+        admin_ip = node.get("admin_ip", "")
+        ns = node_statuses[hostname]
 
         node_result = {
             "hostname": hostname,
             "admin_ip": admin_ip,
-            "success": False,
-            "status": "unknown",
+            "success": ns["status"] in CLOUDINIT_PASSED_STATUSES,
+            "status": ns["status"],
+            "retries": ns["retries"],
             "errors": "",
-            "warnings": "",
+            "warnings": ns.get("warnings", ""),
         }
 
-        # Get cloud-init status
-        # Note: cloud-init status returns rc=2 for "recoverable error" which is still success
-        cmd = run_on_remote_node(host, "cloud-init status 2>&1", admin_ip)
-
-        output = cmd.stdout.strip()
-
-        # Parse status from output (rc can be 0, 1, or 2)
-        # rc=0: done, rc=1: running/error, rc=2: recoverable error (still done)
-        if "status: done" in output:
-            node_result["status"] = "done"
-            node_result["success"] = True
-        elif "status: running" in output:
-            node_result["status"] = "running"
-            node_result["errors"] = "cloud-init still running"
+        # Set error message for failed nodes
+        if not node_result["success"]:
+            if "retry limit" in ns["status"]:
+                node_result["errors"] = f"cloud-init {ns['status']}"
+            elif ns["status"] == "error":
+                node_result["errors"] = "cloud-init completed with errors"
+            elif ns["status"] == "command_failed":
+                node_result["errors"] = "cloud-init command failed"
+            else:
+                node_result["errors"] = f"cloud-init status: {ns['status']}"
             results["success"] = False
-        elif "status: error" in output:
-            node_result["status"] = "error"
-            node_result["errors"] = "cloud-init completed with errors"
-            results["success"] = False
-        elif cmd.rc != 0 and not output:
-            node_result["status"] = "command_failed"
-            node_result["errors"] = f"cloud-init command failed: rc={cmd.rc}"
-            results["success"] = False
-        else:
-            node_result["status"] = "unknown"
-            node_result["errors"] = f"Unknown status: {output[:100]}"
-            results["success"] = False
-
-        # Check for warnings
-        if "warning" in output.lower() or "recoverable_errors" in output.lower():
-            warn_start = output.lower().find("warning")
-            if warn_start == -1:
-                warn_start = output.lower().find("recoverable_errors")
-            if warn_start >= 0:
-                node_result["warnings"] = output[warn_start:warn_start + 300].strip()
 
         results["results"].append(node_result)
 

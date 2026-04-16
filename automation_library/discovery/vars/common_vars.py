@@ -41,6 +41,22 @@ SSH_OPTS = (
 CONTAINER_NAME = _CORE_CONTAINER
 
 # =============================================================================
+# CLOUD-INIT RETRY CONFIGURATION
+# =============================================================================
+
+# Maximum number of retries per node when cloud-init is still running
+CLOUDINIT_RETRY_LIMIT = 50
+
+# Seconds to wait between retry attempts
+CLOUDINIT_RETRY_INTERVAL = 10
+
+# Statuses that indicate cloud-init completed successfully (no retry needed)
+CLOUDINIT_PASSED_STATUSES = ["done"]
+
+# Statuses that indicate cloud-init is still in progress (should retry)
+CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
+
+# =============================================================================
 # IMAGE CONFIG YAML DIRECTORY
 # Same path used by build_image_x86_64 playbook (build_image_vars.py).
 # Contains per-functional-group YAML files with 'packages' list.
