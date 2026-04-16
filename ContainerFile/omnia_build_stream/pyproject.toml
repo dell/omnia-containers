@@ -34,5 +34,3 @@ dependencies = [
     "isort>=5.12.0",
     "pygments>=2.20.0"
 ]
-
-
