@@ -1,3 +1,4 @@
+.. _adding_additional_packages:
 Add Additional Packages
 ==========================
 
