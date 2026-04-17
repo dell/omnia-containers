@@ -5,7 +5,7 @@ Add Additional Packages
 To download and deploy additional software packages and container images using Omnia local repositories, update the required Omnia input files and execute the playbooks.
 
 Configure Additional Container Images from User Registry to Local Repository
----------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 
 Omnia supports configuring additional container images from specified user registries to Omnia Local Repository, so that these images are available and can be pulled by Service Kubernetes Cluster nodes as per requirement. User registries may be hosted either on OIM or on an external server, and both HTTP and HTTPS registries are supported.
 
