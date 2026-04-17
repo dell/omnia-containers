@@ -16,6 +16,7 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
   - **Slurm Login/Compiler Node** 
   - **Slurm Control Node** 
   - **Slurm Compute Node**
+  - **Minimal OS**
 
 
 Create Mapping File
@@ -74,9 +75,9 @@ The following is the sample format of a mapping file for x86_64 and aarch64 clus
     * Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
 
 .. note::
-    **Minimal OS Functional Groups**: The ``os_x86_64`` and ``os_aarch64`` functional groups provide a clean operating system baseline designed for downstream platform software installation (e.g., RKE2, custom Kubernetes). These groups include only essential OS packages and LDMS telemetry packages, with no schedulers, container runtimes, or orchestration software. Use these groups when you need a clean OS environment without conflicts from pre-installed components.
+    **Minimal OS Functional Groups**: The ``os_x86_64`` and ``os_aarch64`` functional groups provide a clean operating system baseline designed for downstream platform software installation (For example, Rancher Kubernetes Engine 2 (RKE2), custom Kubernetes). These groups include only essential OS packages and LDMS telemetry packages, with no schedulers, container runtimes, or orchestration software. Use these groups when you need a clean OS environment without conflicts from pre-installed components.
     
-    **Additional Packages Support**: Administrators can optionally include additional packages by creating ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``. When present, these packages are included in the Minimal OS images alongside the base and LDMS packages. If the file is absent or empty, images build successfully with the standard Minimal OS package set only.
+    **Additional Packages Support**: Administrators can optionally include additional packages by creating ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``. For detailed instructions on configuring additional packages, see :ref:`adding_additional_packages`. When present, these packages are included in the Minimal OS images alongside the base and LDMS packages. If the file is absent or empty, images build successfully with the standard Minimal OS package set only.
 
 .. _group-attributes-section:
 
@@ -146,7 +147,7 @@ The following table lists the functional groups along with the recommended softw
 +-----------------------------------------+--------------------------------------------------------------------------------------+
 
 .. note::
-    **Additional Packages for Minimal OS Groups**: The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package set shown above.
+    The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package set shown above.
 
    
 
