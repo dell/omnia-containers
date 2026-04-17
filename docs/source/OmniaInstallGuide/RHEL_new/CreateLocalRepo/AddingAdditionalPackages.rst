@@ -76,8 +76,23 @@ The following is a sample ``additional_packages.json`` file: ::
         { "package": "sssd", "type": "rpm", "repo_name": "x86_64_baseos" },
         { "package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "x86_64_appstream" },
         { "package": "quay.io/strimzi/kafka-bridge", "type": "image", "tag": "0.33.1" },
-        { "package": "registry.k8s.io/pause", "type": "image", "digest": "sha256:7031c1b283388c2c47cc389c74e7a6a1f91e3c23f7f9c2d9e25f7c8b1a2d3e4f" }
+        { "package": "registry.k8s.io/pause", "type": "image", "digest": "sha256:7031c1b283388c2c47cc389c74e7a6a1f91e3c23f7f9c2d9e25f7c8b1a2d3e4f" },
         { "package": "172.16.0.254:7000/ubuntu/squid", "type": "image", "tag": "latest" }
+        ]
+    },
+    "os_x86_64": {
+        "cluster": [
+        { "package": "podman", "type": "rpm", "repo_name": "x86_64_appstream" },
+        { "package": "curl", "type": "rpm", "repo_name": "x86_64_baseos" },
+        { "package": "wget", "type": "rpm", "repo_name": "x86_64_appstream" },
+        { "package": "docker.io/library/nginx", "type": "image", "tag": "alpine" }
+        ]
+    },
+    "os_aarch64": {
+        "cluster": [
+        { "package": "podman", "type": "rpm", "repo_name": "aarch64_appstream" },
+        { "package": "curl", "type": "rpm", "repo_name": "aarch64_baseos" },
+        { "package": "wget", "type": "rpm", "repo_name": "aarch64_appstream" }
         ]
     }
     }

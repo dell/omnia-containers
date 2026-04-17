@@ -147,7 +147,7 @@ The following table lists the functional groups along with the recommended softw
 +-----------------------------------------+--------------------------------------------------------------------------------------+
 
 .. note::
-    The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package set shown above.
+    The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package.
 
    
 
