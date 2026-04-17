@@ -43,6 +43,7 @@ The following is the sample format of a mapping file for x86_64 cluster::
     service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57
+    os_x86_64,grp6,ABEF56,,minimal-node1,xx:yy:zz:aa:bb:ff,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60
 
 The following is the sample format of a mapping file for x86_64 and aarch64 cluster::
 
@@ -58,7 +59,8 @@ The following is the sample format of a mapping file for x86_64 and aarch64 clus
     service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57
-
+    os_x86_64,grp6,ABEF56,,minimal-node1,xx:yy:zz:aa:bb:ff,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60
+    os_aarch64,grp7,ABEF78,,minimal-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:ac,172.17.107.61
 
 
 .. note::
@@ -71,6 +73,10 @@ The following is the sample format of a mapping file for x86_64 and aarch64 clus
     * The ADMIN_MAC and BMC_MAC addresses provided in ``pxe_mapping_file.csv`` should refer to the PXE NIC and BMC NIC on the target nodes respectively.
     * Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
 
+.. note::
+    **Minimal OS Functional Groups**: The ``os_x86_64`` and ``os_aarch64`` functional groups provide a clean operating system baseline designed for downstream platform software installation (e.g., RKE2, custom Kubernetes). These groups include only essential OS packages and LDMS telemetry packages, with no schedulers, container runtimes, or orchestration software. Use these groups when you need a clean OS environment without conflicts from pre-installed components.
+    
+    **Additional Packages Support**: Administrators can optionally include additional packages by creating ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``. When present, these packages are included in the Minimal OS images alongside the base and LDMS packages. If the file is absent or empty, images build successfully with the standard Minimal OS package set only.
 
 .. _group-attributes-section:
 
@@ -134,9 +140,13 @@ The following table lists the functional groups along with the recommended softw
 +-----------------------------------------+--------------------------------------------------------------------------------------+
 | login_compiler_node_aarch64             | slurm_custom.json, openldap.json, ucx.json, openmpi.json, ldms.json                  |
 +-----------------------------------------+--------------------------------------------------------------------------------------+
+| os_x86_64                               | default_packages.json, ldms.json                                                     |
++-----------------------------------------+--------------------------------------------------------------------------------------+
+| os_aarch64                              | default_packages.json, ldms.json                                                     |
++-----------------------------------------+--------------------------------------------------------------------------------------+
 
-
-
+.. note::
+    **Additional Packages for Minimal OS Groups**: The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package set shown above.
 
    
 

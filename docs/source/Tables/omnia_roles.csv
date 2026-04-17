@@ -22,3 +22,11 @@ Slurm Login and Compiler node - ``login_compiler_node_x86_64``,Management,"* Thi
 Slurm Login and Compiler node- ``login_compiler_node_aarch64``,Management,"* This functional group is used to configure nodes for compilation on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation.  
 * Nodes in this functional group can be used to compile code on aarch64 systems.
 "
+Minimal OS compute node - ``os_x86_64``,Compute,"* This functional group provides a clean operating system baseline for x86_64 architecture, designed for downstream platform software installation (e.g., RKE2, custom Kubernetes).  
+* The nodes included in this functional group contain only essential OS packages and LDMS telemetry packages, with no schedulers, container runtimes, or orchestration software.  
+* This functional group is ideal for deploying platform software that requires a clean OS environment without conflicts from pre-installed components.  
+* Administrators can optionally include additional packages via ``additional_packages.json`` files for custom requirements."
+Minimal OS compute node - ``os_aarch64``,Compute,"* This functional group provides a clean operating system baseline for aarch64 architecture, designed for downstream platform software installation (e.g., RKE2, custom Kubernetes).  
+* The nodes included in this functional group contain only essential OS packages and LDMS telemetry packages, with no schedulers, container runtimes, or orchestration software.  
+* This functional group is ideal for deploying platform software that requires a clean OS environment without conflicts from pre-installed components.  
+* Administrators can optionally include additional packages via ``additional_packages.json`` files for custom requirements."

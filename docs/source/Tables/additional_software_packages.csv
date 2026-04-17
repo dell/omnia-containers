@@ -20,3 +20,9 @@
 **login_compiler_node**,"* **Type**: string
 * Provide the name of the additional software packages to be available on login compiler node.","* **rpm**: requires ``repo_name``
 * **image**: requires ``tag`` or ``digest``"
+**os_x86_64**,"* **Type**: string
+* Provide the name of the additional software packages to be available on Minimal OS x86_64 nodes. These packages are included via ``additional_packages.json`` configuration file.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"
+**os_aarch64**,"* **Type**: string
+* Provide the name of the additional software packages to be available on Minimal OS aarch64 nodes. These packages are included via ``additional_packages.json`` configuration file.","* **rpm**: requires ``repo_name``
+* **image**: requires ``tag`` or ``digest``"
