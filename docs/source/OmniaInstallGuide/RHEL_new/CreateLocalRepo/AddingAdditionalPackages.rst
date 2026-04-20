@@ -95,6 +95,13 @@ The following is a sample ``additional_packages.json`` file: ::
         { "package": "wget", "type": "rpm", "repo_name": "aarch64_appstream" }
         ]
     }
+    "os": {
+        "cluster": [
+        { "package": "podman", "type": "rpm", "repo_name": "arm64_appstream" },
+        { "package": "curl", "type": "rpm", "repo_name": "arm64_baseos" },
+        { "package": "wget", "type": "rpm", "repo_name": "arm64_appstream" }
+        ]
+    }
     }
 
 Architecture Support Guidelines
@@ -104,8 +111,8 @@ Architecture Support Guidelines
 
 **Supported Functional Groups by Architecture:**
 
-- **x86_64**: ``slurm_control_node``, ``slurm_node``, ``login_node``, ``login_compiler_node``, ``service_kube_control_plane``, ``service_kube_control_plane_first``, ``service_kube_node``
-- **aarch64**: ``slurm_node``, ``login_node``, ``login_compiler_node``
+- **x86_64**: ``slurm_control_node``, ``slurm_node``, ``login_node``, ``login_compiler_node``, ``service_kube_control_plane``, ``service_kube_control_plane_first``, ``service_kube_node``, ``os_x86_64``
+- **aarch64**: ``slurm_node``, ``login_node``, ``login_compiler_node``, ``os_aarch64``
 
 **Configuration Steps:**
 
