@@ -17,7 +17,7 @@ After the registry is ready, mention the inputs in ``local_repo_config.yml``, se
 
 Steps
 -----
-To deploy additional packages, follow these steps:
+To add additional packages, follow these steps:
 
 1. Open ``/opt/omnia/input/project_default/software_config.json``.
 
@@ -99,6 +99,9 @@ The following is a sample ``additional_packages.json`` file: ::
         },
         "os": {
             "cluster": [
+            { "package": "podman", "type": "rpm", "repo_name": "x86_64_appstream" },
+            { "package": "curl", "type": "rpm", "repo_name": "x86_64_baseos" },
+            { "package": "wget", "type": "rpm", "repo_name": "x86_64_appstream" },
             { "package": "podman", "type": "rpm", "repo_name": "arm64_appstream" },
             { "package": "curl", "type": "rpm", "repo_name": "arm64_baseos" },
             { "package": "wget", "type": "rpm", "repo_name": "arm64_appstream" }
