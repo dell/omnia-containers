@@ -25,6 +25,11 @@ from .admin_debug_packages_msgs import (
     ADMIN_DEBUG_LOG_MSGS,
     ADMIN_DEBUG_ASSERT_MSGS,
 )
+from .minimal_os_msgs import (
+    TEST_NAMES as MINIMAL_OS_TEST_NAMES,
+    TEST_LOG_MSGS as MINIMAL_OS_LOG_MSGS,
+    TEST_ASSERT_MSGS as MINIMAL_OS_ASSERT_MSGS,
+)
 
 __all__ = [
     "TEST_NAMES",
@@ -35,4 +40,8 @@ __all__ = [
     "ADMIN_DEBUG_TEST_NAMES",
     "ADMIN_DEBUG_LOG_MSGS",
     "ADMIN_DEBUG_ASSERT_MSGS",
+    # Minimal OS
+    "MINIMAL_OS_TEST_NAMES",
+    "MINIMAL_OS_LOG_MSGS",
+    "MINIMAL_OS_ASSERT_MSGS",
 ]

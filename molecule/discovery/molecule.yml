@@ -19,11 +19,20 @@
 # This module runs discovery.yml playbook inside omnia_core container
 # and verifies the discovery deployment was successful.
 #
+# INCLUDES:
+# ---------
+#   - Discovery playbook execution and validation
+#   - Minimal OS functional group validation (os_x86_64, os_aarch64)
+#   - SSH connectivity tests
+#   - Cloud-init verification
+#   - Slurm and K8s telemetry checks
+#
 # PREREQUISITES:
 # --------------
 #   - omnia_core container running (omnia.sh --install completed)
 #   - prepare_oim.yml completed
 #   - pxe_mapping_file.csv configured with nodes
+#   - (Optional) Minimal OS functional groups configured
 #
 # USAGE:
 # ------

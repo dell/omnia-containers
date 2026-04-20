@@ -15,13 +15,16 @@
 """
 Discovery Module
 
-This module provides functions for discovery playbook verification.
+This module provides functions for discovery playbook verification,
+including Minimal OS functional group validation.
+
 Uses core module utilities for SSH, PXE mapping, and config reading.
 
 Test Categories:
 - Common: Node boot, passwordless SSH, hostname sync
 - Slurm: Services, cross-node SSH, sinfo, OpenMPI/UCX
 - K8s: Node ready status
+- Minimal OS: Functional groups, packages, LDMS, security
 """
 
 from .functions import (

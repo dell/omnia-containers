@@ -182,6 +182,58 @@
         msg: "discovery playbook not found at {{ discovery_playbook }}"
       when: "'NOT_FOUND' in playbook_check.stdout"
 
+    # =========================================================================
+    # MINIMAL OS CHECKS
+    # =========================================================================
+    - name: Check for minimal OS functional groups
+      ansible.builtin.command:
+        cmd: >
+          podman exec {{ container_name }} bash -c
+          "ls /etc/omnia/functional_groups/os_x86_64.yml /etc/omnia/functional_groups/os_aarch64.yml 2>/dev/null | wc -l"
+      register: minimal_os_groups
+      changed_when: false
+      failed_when: false
+
+    - name: Display minimal OS functional groups status
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          MINIMAL OS FUNCTIONAL GROUPS
+          ============================================
+          Found: {{ minimal_os_groups.stdout | default('0') }} groups
+          {% if minimal_os_groups.stdout | int > 0 %}
+          Status: ✓ Minimal OS functional groups configured
+          {% else %}
+          Status: ⚠ Minimal OS functional groups not found (optional)
+          {% endif %}
+          ============================================
+
+    - name: Check for minimal OS nodes in PXE mapping
+      ansible.builtin.shell:
+        cmd: |
+          if [ -f /opt/omnia/input/project_default/pxe_mapping_file.csv ]; then
+            grep -E "os_x86_64|os_aarch64" /opt/omnia/input/project_default/pxe_mapping_file.csv | wc -l
+          else
+            echo "0"
+          fi
+      register: minimal_os_nodes
+      changed_when: false
+      failed_when: false
+
+    - name: Display minimal OS nodes status
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          MINIMAL OS NODES IN PXE MAPPING
+          ============================================
+          Found: {{ minimal_os_nodes.stdout | default('0') }} nodes
+          {% if minimal_os_nodes.stdout | int > 0 %}
+          Status: ✓ Minimal OS nodes configured
+          {% else %}
+          Status: ⚠ No minimal OS nodes in PXE mapping (optional)
+          {% endif %}
+          ============================================
+
     - name: Discovery converge complete
       ansible.builtin.debug:
         msg: |
@@ -191,5 +243,7 @@
           - omnia_core container: Running
           - Prerequisites: Checked
           - discovery.yml playbook: Executed successfully
+          - Minimal OS groups: {{ minimal_os_groups.stdout | default('0') }} found
+          - Minimal OS nodes: {{ minimal_os_nodes.stdout | default('0') }} found
           - Ready for pytest verification
           ============================================
