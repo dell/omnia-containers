@@ -33,8 +33,7 @@ To deploy additional packages, follow these steps:
         
         {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
 
-
-        The following is a sample ``software_config.json`` snippet with ``additional_packages`` enabled: ::
+The following is a sample ``software_config.json`` snippet with ``additional_packages`` enabled: ::
 
             {
             "cluster_os_type": "rhel",
@@ -59,6 +58,8 @@ To deploy additional packages, follow these steps:
 
 4. Update the ``additional_packages.json`` file available at ``/opt/omnia/input/project_default/config/<architecture>/rhel/10.0/`` with the required packages/images.
 
+.. note:: All container images specified in ``additional_packages.json`` under any given subgroup are configured in Omnia local repository and can be pulled on all Service Kubernetes Cluster nodes.
+
 
 .. csv-table:: Additional software packages
    :file: ../../../Tables/additional_software_packages.csv
@@ -66,9 +67,8 @@ To deploy additional packages, follow these steps:
    :keepspace:
    :widths: auto
 
-.. note:: All container images specified in ``additional_packages.json`` under any given subgroup are configured in Omnia local repository and can be pulled on all Service Kubernetes Cluster nodes.
 
-    The following is a sample ``additional_packages.json`` file: ::
+The following is a sample ``additional_packages.json`` file: ::
 
         {
         "additional_packages": {
@@ -96,7 +96,7 @@ To deploy additional packages, follow these steps:
             { "package": "curl", "type": "rpm", "repo_name": "aarch64_baseos" },
             { "package": "wget", "type": "rpm", "repo_name": "aarch64_appstream" }
             ]
-        }
+        },
         "os": {
             "cluster": [
             { "package": "podman", "type": "rpm", "repo_name": "arm64_appstream" },
