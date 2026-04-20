@@ -22,10 +22,10 @@ To deploy additional packages, follow these steps:
 1. Open ``/opt/omnia/input/project_default/software_config.json``.
 
     .. csv-table:: Parameters for Software Configuration
-    :file: ../../../Tables/software_config_rhel.csv
-    :header-rows: 1
-    :keepspace:
-    :widths: auto
+        :file: ../../../Tables/software_config_rhel.csv
+        :header-rows: 1
+        :keepspace:
+        :widths: auto
 
 2. Under ``softwares``, add the ``additional_packages`` entry. 
 
@@ -34,26 +34,26 @@ To deploy additional packages, follow these steps:
         {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
 
 
-    The following is a sample ``software_config.json`` snippet with ``additional_packages`` enabled: ::
+        The following is a sample ``software_config.json`` snippet with ``additional_packages`` enabled: ::
 
-        {
-        "cluster_os_type": "rhel",
-        "cluster_os_version": "10.0",
-        "repo_config": "always",
-        "softwares": [
-            {"name": "default_packages", "arch": ["x86_64","aarch64"]},
-            {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
-        ],
-        "additional_packages": [
-            {"name": "slurm_control_node"},
-            {"name": "slurm_node"},
-            {"name": "login_node"},
-            {"name": "login_compiler_node"},
-            {"name": "service_kube_control_plane"},
-            {"name": "service_kube_node"},
-            {"name": "os"}
-        ]
-        }
+            {
+            "cluster_os_type": "rhel",
+            "cluster_os_version": "10.0",
+            "repo_config": "always",
+            "softwares": [
+                {"name": "default_packages", "arch": ["x86_64","aarch64"]},
+                {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
+            ],
+            "additional_packages": [
+                {"name": "slurm_control_node"},
+                {"name": "slurm_node"},
+                {"name": "login_node"},
+                {"name": "login_compiler_node"},
+                {"name": "service_kube_control_plane"},
+                {"name": "service_kube_node"},
+                {"name": "os"}
+            ]
+            }
 
 3. Save the ``software_config.json`` file.
 
