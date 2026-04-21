@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -270,7 +270,7 @@ TEST_ASSERT_MSGS = {
 ║             -c "SELECT * FROM job_stages WHERE job_id = '{job_id}';"
 ║   3. If FAILED, re-trigger the build_stream pipeline
 ║   4. If still RUNNING, wait for it to complete
-║   5. To override: set build_stream_job_id in user_config.yml
+║   5. To override: set build_stream_job_id in omnia_test_config.yml
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 }

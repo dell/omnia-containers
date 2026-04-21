@@ -38,7 +38,7 @@ def get_last_build_image_job_id(host, arch: str = "x86_64") -> Dict[str, Any]:
     job for the given architecture.
 
     Delegates to ``core.get_build_stream_job_id`` which:
-      - Honours the ``build_stream_job_id`` override in ``user_config.yml``
+      - Honours the ``build_stream_job_id`` override in ``omnia_test_config.yml``
       - Falls back to the latest COMPLETED entry in ``build_stream_db``
       - Returns exact DB ``job_state`` so callers can print it on failure
 

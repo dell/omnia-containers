@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,14 +26,14 @@
     project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
 
   tasks:
-    - name: Check if user_config.yml exists
+    - name: Check if omnia_test_config.yml exists
       ansible.builtin.stat:
-        path: "{{ project_dir }}/user_config.yml"
+        path: "{{ project_dir }}/omnia_test_config.yml"
       register: user_config_stat
 
-    - name: Fail if user_config.yml not found
+    - name: Fail if omnia_test_config.yml not found
       ansible.builtin.fail:
-        msg: "user_config.yml not found at {{ project_dir }}/user_config.yml"
+        msg: "omnia_test_config.yml not found at {{ project_dir }}/omnia_test_config.yml"
       when: not user_config_stat.stat.exists
 
     - name: Setup dynamic inventory

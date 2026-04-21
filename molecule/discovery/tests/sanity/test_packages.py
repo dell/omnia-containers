@@ -64,7 +64,7 @@ def test_build_stream_job_stage(host):
     Test 1: When build_stream is enabled, verify the validate-image-on-test
     pipeline stage completed successfully before checking node packages.
 
-    - Reads build_stream_job_id override from user_config.yml if set.
+    - Reads build_stream_job_id override from omnia_test_config.yml if set.
     - Falls back to the latest job in build_stream_db otherwise.
     - Prints the exact DB stage_state if not COMPLETED.
     - Skipped when build_stream is disabled.

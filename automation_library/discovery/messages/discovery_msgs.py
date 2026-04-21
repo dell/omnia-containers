@@ -201,7 +201,7 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "            -c \"SELECT * FROM job_stages WHERE job_id = '{job_id}';\"\n"
         "  3. If FAILED, re-trigger the build_stream pipeline\n"
         "  4. If still RUNNING, wait for it to complete\n"
-        "  5. To override: set build_stream_job_id in user_config.yml"
+        "  5. To override: set build_stream_job_id in omnia_test_config.yml"
     ),
 }
 

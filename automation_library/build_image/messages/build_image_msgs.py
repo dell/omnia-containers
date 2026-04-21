@@ -239,7 +239,7 @@ TEST_ASSERT_MSGS = {
 \u2551             -c "SELECT * FROM job_stages WHERE job_id = '{job_id}';"
 \u2551   3. If stage is FAILED, re-trigger the build_stream pipeline
 \u2551   4. If stage is still RUNNING, wait for it to complete
-\u2551   5. To override: set build_stream_job_id in user_config.yml
+\u2551   5. To override: set build_stream_job_id in omnia_test_config.yml
 \u255a{border}\u255d
 """.format(border="═" * 74, stage="{stage}", job_id="{job_id}", state="{state}"),
 }

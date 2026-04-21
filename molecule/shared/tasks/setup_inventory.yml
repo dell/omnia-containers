@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +13,13 @@
 # limitations under the License.
 
 # =============================================================================
-# Shared task to setup dynamic inventory from user_config.yml
+# Shared task to setup dynamic inventory from omnia_test_config.yml
 # Include this in playbooks that need to connect to OIM server
 # =============================================================================
 
-- name: Load user_config.yml
+- name: Load omnia_test_config.yml
   ansible.builtin.include_vars:
-    file: "{{ project_dir }}/user_config.yml"
+    file: "{{ project_dir }}/omnia_test_config.yml"
     name: user_config
   no_log: true
 

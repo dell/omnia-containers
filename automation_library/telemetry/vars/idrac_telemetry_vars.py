@@ -15,7 +15,7 @@
 """
 Telemetry Automation - Configuration Variables.
 
-Loads user configuration from user_config.yml for OIM server connection.
+Loads user configuration from omnia_test_config.yml for OIM server connection.
 """
 
 import os
@@ -41,7 +41,7 @@ from ...core.vars import (
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
-_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "user_config.yml")
+_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_config.yml")
 
 
 # =============================================================================
@@ -67,7 +67,7 @@ _user_config = _load_user_config()
 # =============================================================================
 
 TELEMETRY_VARS: Dict[str, Any] = {
-    # OIM Server Connection (from user_config.yml)
+    # OIM Server Connection (from omnia_test_config.yml)
     "oim_server_ip": _user_config.get("oim_server_ip", ""),
     "oim_ssh_user": _user_config.get("oim_ssh_user", "root"),
     "oim_ssh_password": _user_config.get("oim_ssh_password", ""),

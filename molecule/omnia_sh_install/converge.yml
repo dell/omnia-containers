@@ -43,7 +43,7 @@
   vars:
     user_config: "{{ hostvars['localhost']['user_config'] }}"
     project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
-    # All config from user_config.yml
+    # All config from omnia_test_config.yml
     omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
     share_option: "{{ user_config.share_option | default('NFS') }}"

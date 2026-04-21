@@ -15,7 +15,7 @@
 """
 OIM Prerequisite Check - Configuration Variables.
 
-This module loads user configuration from user_config.yml and provides
+This module loads user configuration from omnia_test_config.yml and provides
 sensible defaults for all prerequisite check parameters.
 
 Usage:
@@ -25,9 +25,9 @@ Usage:
     server_ip = OIM_PREREQ_VARS["oim_server_ip"]
 
 Note:
-    - Users should edit user_config.yml, NOT this file
-    - All values can be overridden via user_config.yml
-    - Default values are used when user_config.yml doesn't specify a value
+    - Users should edit omnia_test_config.yml, NOT this file
+    - All values can be overridden via omnia_test_config.yml
+    - Default values are used when omnia_test_config.yml doesn't specify a value
 
 Author: Dell Technologies
 """
@@ -48,7 +48,7 @@ from automation_library.core.vars import OIM_SHARED_PATH as _CORE_OIM_SHARED_PAT
 # automation_library/checks/vars/oim_prereq_vars.py -> go up 4 levels to project root
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
-_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "user_config.yml")
+_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_config.yml")
 
 # Export config path for use in error messages
 USER_CONFIG_PATH = _USER_CONFIG_FILE
@@ -86,10 +86,10 @@ _user_config = _load_user_config()
 # =============================================================================
 #
 # This dictionary contains all configuration variables for prerequisite checks.
-# Values are loaded from user_config.yml with defaults as fallback.
+# Values are loaded from omnia_test_config.yml with defaults as fallback.
 #
 # Variable Naming Convention:
-#   - Keys match the YAML keys in user_config.yml where applicable
+#   - Keys match the YAML keys in omnia_test_config.yml where applicable
 #   - Defaults are provided for optional values
 #   - Empty string ("") indicates required user input
 #

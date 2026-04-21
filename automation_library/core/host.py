@@ -66,7 +66,7 @@ def get_testinfra_host() -> testinfra.host.Host:
     """
     Get testinfra host connected to OIM server.
 
-    Always reads IP directly from user_config.yml to avoid hostname resolution issues.
+    Always reads IP directly from omnia_test_config.yml to avoid hostname resolution issues.
     Raises ValueError if oim_server_ip is not configured.
     """
     config = load_user_config()
@@ -82,7 +82,7 @@ def get_testinfra_host() -> testinfra.host.Host:
     if _is_local_ip(oim_ip):
         return testinfra.get_host("local://")
 
-    # Remote - always use direct SSH with IP from user_config.yml
+    # Remote - always use direct SSH with IP from omnia_test_config.yml
     ssh_user = config.get("oim_ssh_user", "root")
     ssh_port = config.get("oim_ssh_port", 22)
     ssh_password = config.get("oim_ssh_password", "")

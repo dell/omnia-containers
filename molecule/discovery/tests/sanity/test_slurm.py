@@ -469,7 +469,7 @@ def test_ldap_slapd_configuration(host):
     Skips if OpenLDAP is not enabled in software_config.json.
 
     This test:
-    1. Gets external_slapd_conf_path and ldap_server_ip from user_config.yml
+    1. Gets external_slapd_conf_path and ldap_server_ip from omnia_test_config.yml
     2. Backs up existing slapd.conf
     3. Copies new slapd.conf to /opt/omnia/auth/slapd.conf
     4. Restarts omnia_auth container
@@ -499,7 +499,7 @@ def test_ldap_user_login_from_oim(host):
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
-    Reads ldap_credentials from user_config.yml (format: "user1:pwd1,user2:pwd2").
+    Reads ldap_credentials from omnia_test_config.yml (format: "user1:pwd1,user2:pwd2").
     Tests SSH login from OIM to slurm_control_node, login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
@@ -552,7 +552,7 @@ def test_ldap_user_login_from_core(host):
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
-    Reads ldap_credentials from user_config.yml (format: "user1:pwd1,user2:pwd2").
+    Reads ldap_credentials from omnia_test_config.yml (format: "user1:pwd1,user2:pwd2").
     Tests SSH login from omnia_core container to slurm_control_node, login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """

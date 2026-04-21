@@ -111,7 +111,7 @@ S3_CONTAINERS: List[str] = [
 BUILD_IMAGE_VARS: Dict[str, Any] = {
 
     # =========================================================================
-    # CONNECTION SETTINGS (from user_config.yml)
+    # CONNECTION SETTINGS (from omnia_test_config.yml)
     # =========================================================================
     "oim_server_ip": OIM_PREREQ_VARS.get("oim_server_ip", ""),
     "oim_ssh_user": OIM_PREREQ_VARS.get("oim_ssh_user", "root"),

@@ -68,7 +68,7 @@ STAGE_GENERATE_INPUT = "generate-input-files"
 
 def _get_user_config_job_id() -> str:
     """
-    Read build_stream_job_id override from user_config.yml on the local machine.
+    Read build_stream_job_id override from omnia_test_config.yml on the local machine.
 
     Returns the UUID string if set and non-empty, otherwise empty string.
     This is the local file (project root), NOT inside any container.
@@ -76,7 +76,7 @@ def _get_user_config_job_id() -> str:
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
-    user_config_path = os.path.join(project_root, "user_config.yml")
+    user_config_path = os.path.join(project_root, "omnia_test_config.yml")
     if not os.path.exists(user_config_path):
         return ""
     try:
@@ -124,7 +124,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
 
     Resolution order
     ----------------
-    1. If ``build_stream_job_id`` is set in ``user_config.yml`` (non-empty),
+    1. If ``build_stream_job_id`` is set in ``omnia_test_config.yml`` (non-empty),
        that UUID is used as-is — no DB lookup is performed.
     2. Otherwise, query ``build_stream_db.job_stages`` for the latest row
        where ``stage_name = <stage_name>`` and ``stage_state = 'COMPLETED'``,
@@ -196,7 +196,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                     f"job_id '{override_id}' not found — "
                     f"no '{stage_name}' stage entry exists for this job in "
                     f"{_POSTGRES_DB}.job_stages. "
-                    "Check the UUID in user_config.yml under 'build_stream_job_id'."
+                    "Check the UUID in omnia_test_config.yml under 'build_stream_job_id'."
                 ),
             }
 
@@ -222,7 +222,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                 "job_state": job_state or "NOT FOUND",
                 "source": "user_config",
                 "error": (
-                    f"Job '{override_id}' (from user_config.yml) is in state "
+                    f"Job '{override_id}' (from omnia_test_config.yml) is in state "
                     f"'{job_state or 'NOT FOUND'}' — expected '{_COMPLETED_STATE}'. "
                     "The pipeline must complete before tests can run."
                 ),
