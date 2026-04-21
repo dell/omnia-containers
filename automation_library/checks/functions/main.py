@@ -353,7 +353,7 @@ def run_all_prereq_checks(stop_on_failure: bool = None, save_report: bool = True
 
     Args:
         stop_on_failure: If True, stop execution on first failure.
-                         If None, uses skip_on_failure from omnia_omnia_test_config.yml (inverted)
+                         If None, uses skip_on_failure from omnia_test_config.yml (inverted)
         save_report: If True, save report to file
 
     Returns:
@@ -587,7 +587,7 @@ def _run_all_checks(stop_on_failure: bool):
     else:
         _log("Skipping Git, Omnia Artifactory, and Container Build (reconfigure_images: false)", "INFO")
         skip_msg = "Skipped (reconfigure_images: false)"
-        skip_details = "Set 'reconfigure_images: true' in omnia_omnia_test_config.yml to enable"
+        skip_details = "Set 'reconfigure_images: true' in omnia_test_config.yml to enable"
         _report.add_check("Git", True, skip_msg, skip_details, skipped=True)
         _report.add_check("Omnia Artifactory", True, skip_msg, skip_details, skipped=True)
         _report.add_check("Container Build", True, skip_msg, skip_details, skipped=True)
@@ -603,7 +603,7 @@ def _finish_report(report: PrereqReport, all_passed: bool, save_report: bool = T
     report.print_summary()
 
     if save_report:
-        # Save report in project root (same folder as omnia_omnia_test_config.yml)
+        # Save report in project root (same folder as omnia_test_config.yml)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         report_path = os.path.join(project_root, "oim_prereq_report.txt")
         report.save_report(report_path)
