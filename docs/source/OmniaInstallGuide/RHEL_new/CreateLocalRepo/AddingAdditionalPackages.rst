@@ -73,38 +73,23 @@ The following is a sample ``additional_packages.json`` file: ::
         {
         "additional_packages": {
             "cluster": [
-            { "package": "fuse-overlayfs", "type": "rpm", "repo_name": "x86_64_appstream" },
-            { "package": "python3-PyMySQL", "type": "rpm", "repo_name": "x86_64_appstream" },
+            { "package": "fuse-overlayfs", "type": "rpm", "repo_name": "appstream" },
+            { "package": "python3-PyMySQL", "type": "rpm", "repo_name": "appstream" },
             { "package": "sssd", "type": "rpm", "repo_name": "x86_64_baseos" },
-            { "package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "x86_64_appstream" },
+            { "package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "appstream" },
             { "package": "quay.io/strimzi/kafka-bridge", "type": "image", "tag": "0.33.1" },
             { "package": "registry.k8s.io/pause", "type": "image", "digest": "sha256:7031c1b283388c2c47cc389c74e7a6a1f91e3c23f7f9c2d9e25f7c8b1a2d3e4f" },
             { "package": "172.16.0.254:7000/ubuntu/squid", "type": "image", "tag": "latest" }
             ]
         },
-        "os_x86_64": {
-            "cluster": [
-            { "package": "podman", "type": "rpm", "repo_name": "x86_64_appstream" },
-            { "package": "curl", "type": "rpm", "repo_name": "x86_64_baseos" },
-            { "package": "wget", "type": "rpm", "repo_name": "x86_64_appstream" },
-            { "package": "docker.io/library/nginx", "type": "image", "tag": "alpine" }
-            ]
-        },
-        "os_aarch64": {
-            "cluster": [
-            { "package": "podman", "type": "rpm", "repo_name": "aarch64_appstream" },
-            { "package": "curl", "type": "rpm", "repo_name": "aarch64_baseos" },
-            { "package": "wget", "type": "rpm", "repo_name": "aarch64_appstream" }
-            ]
-        },
         "os": {
             "cluster": [
-            { "package": "podman", "type": "rpm", "repo_name": "x86_64_appstream" },
+            { "package": "podman", "type": "rpm", "repo_name": "appstream" },
             { "package": "curl", "type": "rpm", "repo_name": "x86_64_baseos" },
-            { "package": "wget", "type": "rpm", "repo_name": "x86_64_appstream" },
-            { "package": "podman", "type": "rpm", "repo_name": "arm64_appstream" },
+            { "package": "wget", "type": "rpm", "repo_name": "appstream" },
+            { "package": "podman", "type": "rpm", "repo_name": "appstream" },
             { "package": "curl", "type": "rpm", "repo_name": "arm64_baseos" },
-            { "package": "wget", "type": "rpm", "repo_name": "arm64_appstream" }
+            { "package": "wget", "type": "rpm", "repo_name": "appstream" }
             ]
         }
         }
@@ -113,15 +98,15 @@ The following is a sample ``additional_packages.json`` file: ::
 3. Save the ``additional_packages.json`` file.
 
 
-Architecture Support Guidelines
--------------------------------
+Guidelines for Configuring Additional Packages for Specific Architectures
+-------------------------------------------------------------------------
 
 .. note:: The ``additional_packages`` feature has architecture-specific functional group support. Users must configure both ``software_config.json`` and the architecture-specific ``additional_packages.json`` files according to the supported groups for their target architecture.
 
 **Supported Functional Groups by Architecture:**
 
-- **x86_64**: ``slurm_control_node``, ``slurm_node``, ``login_node``, ``login_compiler_node``, ``service_kube_control_plane``, ``service_kube_control_plane_first``, ``service_kube_node``, ``os_x86_64``
-- **aarch64**: ``slurm_node``, ``login_node``, ``login_compiler_node``, ``os_aarch64``
+- **x86_64**: ``slurm_control_node``, ``slurm_node``, ``login_node``, ``login_compiler_node``, ``service_kube_control_plane``, ``service_kube_control_plane_first``, ``service_kube_node``, ``os``
+- **aarch64**: ``slurm_node``, ``login_node``, ``login_compiler_node``, ``os``
 
 **Configuration Steps:**
 
