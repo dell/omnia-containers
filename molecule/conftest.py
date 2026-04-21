@@ -212,8 +212,8 @@ def host():
     import shutil
     import subprocess as _sp
 
-    from automation_library.core import load_user_config
-    config = load_user_config()
+    from automation_library.core import load_omnia_test_config
+    config = load_omnia_test_config()
     oim_ip = config.get("oim_server_ip", "")
 
     # Pre-check 1: Verify OIM IP is configured

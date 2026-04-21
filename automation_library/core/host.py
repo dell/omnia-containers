@@ -33,7 +33,7 @@ def _get_project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def load_user_config() -> Dict[str, Any]:
+def load_omnia_test_config() -> Dict[str, Any]:
     """Load omnia_test_config.yml."""
     config_path = os.path.join(_get_project_root(), "omnia_test_config.yml")
     if os.path.exists(config_path):
@@ -44,7 +44,7 @@ def load_user_config() -> Dict[str, Any]:
 
 def get_dataset_path() -> str:
     """Get the configured dataset path from omnia_test_config.yml."""
-    config = load_user_config()
+    config = load_omnia_test_config()
     dataset = config.get("dataset", "project_default")
     return os.path.join(_get_project_root(), "datasets", dataset)
 
@@ -69,7 +69,7 @@ def get_testinfra_host() -> testinfra.host.Host:
     Always reads IP directly from omnia_test_config.yml to avoid hostname resolution issues.
     Raises ValueError if oim_server_ip is not configured.
     """
-    config = load_user_config()
+    config = load_omnia_test_config()
     oim_ip = config.get("oim_server_ip", "")
 
     if not oim_ip or oim_ip.strip() == "":

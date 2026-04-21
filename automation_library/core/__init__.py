@@ -24,7 +24,7 @@ Modules:
 from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
 from .host import (
     get_testinfra_host,
-    load_user_config,
+    load_omnia_test_config,
     get_dataset_path,
     run_on_oim,
     run_in_container,
@@ -137,7 +137,7 @@ __all__ = [
     "get_test_output",
     # Host
     "get_testinfra_host",
-    "load_user_config",
+    "load_omnia_test_config",
     "get_dataset_path",
     "run_on_oim",
     "run_in_container",

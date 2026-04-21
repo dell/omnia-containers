@@ -513,7 +513,7 @@ def test_ldap_user_login_from_oim(host):
 
     result = verify_ldap_user_login_from_oim(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 
@@ -566,7 +566,7 @@ def test_ldap_user_login_from_core(host):
 
     result = verify_ldap_user_login_from_core(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 
@@ -619,7 +619,7 @@ def test_pam_slurm_adopt(host):
 
     result = verify_pam_slurm_adopt(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 

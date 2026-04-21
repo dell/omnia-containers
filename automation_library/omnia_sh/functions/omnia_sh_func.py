@@ -46,7 +46,7 @@ from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
 from ...core.formatting import log as _log
 from ...core import run_in_container
 from ...core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
-from ...checks.vars.oim_prereq_vars import USER_CONFIG_PATH
+from ...checks.vars.oim_prereq_vars import OMNIA_TEST_CONFIG_PATH
 
 
 def get_omnia_sh_path() -> str:
@@ -69,28 +69,28 @@ def validate_config() -> Dict[str, Any]:
     errors = []
 
     # Check omnia_test_config.yml exists
-    if not os.path.exists(USER_CONFIG_PATH):
-        errors.append(f"omnia_test_config.yml not found at {USER_CONFIG_PATH}")
+    if not os.path.exists(OMNIA_TEST_CONFIG_PATH):
+        errors.append(f"omnia_test_config.yml not found at {OMNIA_TEST_CONFIG_PATH}")
         return {"valid": False, "errors": errors}
 
     # Check required user inputs
     if not OMNIA_SH_VARS["share_option"]:
-        errors.append(f"share_option not set in {USER_CONFIG_PATH}")
+        errors.append(f"share_option not set in {OMNIA_TEST_CONFIG_PATH}")
 
     if not OMNIA_SH_VARS["omnia_shared_path"]:
-        errors.append(f"omnia_shared_path not set in {USER_CONFIG_PATH}")
+        errors.append(f"omnia_shared_path not set in {OMNIA_TEST_CONFIG_PATH}")
 
     if not OMNIA_SH_VARS["omnia_core_password"]:
-        errors.append(f"omnia_core_password not set in {USER_CONFIG_PATH}")
+        errors.append(f"omnia_core_password not set in {OMNIA_TEST_CONFIG_PATH}")
 
     # Check NFS inputs (only if NFS selected)
     if OMNIA_SH_VARS["share_option"] == "NFS":
         if not OMNIA_SH_VARS["nfs_type"]:
-            errors.append(f"nfs_type not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_type not set in {OMNIA_TEST_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_server_ip"]:
-            errors.append(f"nfs_server_ip not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_server_ip not set in {OMNIA_TEST_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_share_path"]:
-            errors.append(f"nfs_share_path not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_share_path not set in {OMNIA_TEST_CONFIG_PATH}")
 
     return {
         "valid": len(errors) == 0,

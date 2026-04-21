@@ -29,7 +29,7 @@
 
     - name: Set facts for cleanup
       ansible.builtin.set_fact:
-        user_config: "{{ user_config }}"
+        omnia_test_config: "{{ omnia_test_config }}"
         cacheable: true
       no_log: true
 
@@ -38,10 +38,10 @@
   gather_facts: false
 
   vars:
-    user_config: "{{ hostvars['localhost']['user_config'] }}"
-    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    omnia_clone_path: "{{ omnia_test_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
-    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
+    omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
     container_name: "omnia_core"
 
   tasks:

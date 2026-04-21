@@ -66,7 +66,7 @@ STAGE_GENERATE_INPUT = "generate-input-files"
 # USER CONFIG READER
 # =============================================================================
 
-def _get_user_config_job_id() -> str:
+def _get_omnia_test_config_job_id() -> str:
     """
     Read build_stream_job_id override from omnia_test_config.yml on the local machine.
 
@@ -76,11 +76,11 @@ def _get_user_config_job_id() -> str:
     project_root = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
-    user_config_path = os.path.join(project_root, "omnia_test_config.yml")
-    if not os.path.exists(user_config_path):
+    omnia_test_config_path = os.path.join(project_root, "omnia_test_config.yml")
+    if not os.path.exists(omnia_test_config_path):
         return ""
     try:
-        with open(user_config_path, "r", encoding="utf-8") as fh:
+        with open(omnia_test_config_path, "r", encoding="utf-8") as fh:
             config = yaml.safe_load(fh) or {}
         return str(config.get("build_stream_job_id", "") or "").strip()
     except (IOError, yaml.YAMLError):
@@ -143,10 +143,10 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             ``job_id``    – UUID string, or None if not resolved.
             ``stage``     – stage_name queried.
             ``job_state`` – actual job state from ``jobs`` table (or None).
-            ``source``    – ``"user_config"`` or ``"database"``.
+            ``source``    – ``"omnia_test_config"`` or ``"database"``.
             ``error``     – error string, or None on success.
     """
-    override_id = _get_user_config_job_id()
+    override_id = _get_omnia_test_config_job_id()
 
     if override_id:
         # ------------------------------------------------------------------ #
@@ -159,7 +159,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                 "job_id": override_id,
                 "stage": stage_name,
                 "job_state": None,
-                "source": "user_config",
+                "source": "omnia_test_config",
                 "error": (
                     f"Failed to read '{_POSTGRES_USER_KEY}' from "
                     "omnia_config_credentials.yml"
@@ -191,7 +191,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                 "job_id": override_id,
                 "stage": stage_name,
                 "job_state": None,
-                "source": "user_config",
+                "source": "omnia_test_config",
                 "error": (
                     f"job_id '{override_id}' not found — "
                     f"no '{stage_name}' stage entry exists for this job in "
@@ -220,7 +220,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
                 "job_id": override_id,
                 "stage": stage_name,
                 "job_state": job_state or "NOT FOUND",
-                "source": "user_config",
+                "source": "omnia_test_config",
                 "error": (
                     f"Job '{override_id}' (from omnia_test_config.yml) is in state "
                     f"'{job_state or 'NOT FOUND'}' — expected '{_COMPLETED_STATE}'. "
@@ -233,7 +233,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             "job_id": override_id,
             "stage": stage_name,
             "job_state": job_state,
-            "source": "user_config",
+            "source": "omnia_test_config",
             "error": None,
         }
 

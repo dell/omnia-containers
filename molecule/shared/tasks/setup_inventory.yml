@@ -20,21 +20,21 @@
 - name: Load omnia_test_config.yml
   ansible.builtin.include_vars:
     file: "{{ project_dir }}/omnia_test_config.yml"
-    name: user_config
+    name: omnia_test_config
   no_log: true
 
 - name: Add OIM server to inventory dynamically
   ansible.builtin.add_host:
     name: oim_server
     groups: oim
-    ansible_host: "{{ user_config.oim_server_ip }}"
-    ansible_user: "{{ user_config.oim_ssh_user | default('root') }}"
-    ansible_password: "{{ user_config.oim_ssh_password }}"
-    ansible_port: "{{ user_config.oim_ssh_port | default(22) }}"
+    ansible_host: "{{ omnia_test_config.oim_server_ip }}"
+    ansible_user: "{{ omnia_test_config.oim_ssh_user | default('root') }}"
+    ansible_password: "{{ omnia_test_config.oim_ssh_password }}"
+    ansible_port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
     ansible_connection: ssh
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
   no_log: true
 
 - name: Display target server
   ansible.builtin.debug:
-    msg: "Target OIM server: {{ user_config.oim_server_ip }}"
+    msg: "Target OIM server: {{ omnia_test_config.oim_server_ip }}"
