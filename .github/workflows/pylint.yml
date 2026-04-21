@@ -5,6 +5,7 @@ on:
     branches:
       - automation
       - automation-v2.1.0.0
+      - automation-v2.2.0.0
 
 jobs:
   build:
