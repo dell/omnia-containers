@@ -24,13 +24,16 @@ Modules:
 from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
 from .host import (
     get_testinfra_host,
-    load_user_config,
+    load_omnia_test_config,
+    get_dataset_path,
     run_on_oim,
     run_in_container,
     run_on_remote_node,
     get_node_info,
     get_nodes_info,
     check_container_running,
+    make_verification_result,
+    get_project_root,
     # Backward compatibility functions
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
@@ -51,6 +54,18 @@ from .secrets import (
     view_credentials_file,
     get_credential_value,
     get_multiple_credentials,
+)
+from .db_exec import exec_psql_query, query_db_row
+from .build_stream import (
+    is_build_stream_enabled,
+    get_build_stream_job_id,
+    check_build_stream_stage,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
 )
 from .vars import (
     # Base paths
@@ -122,13 +137,16 @@ __all__ = [
     "get_test_output",
     # Host
     "get_testinfra_host",
-    "load_user_config",
+    "load_omnia_test_config",
+    "get_dataset_path",
     "run_on_oim",
     "run_in_container",
     "run_on_remote_node",
     "get_node_info",
     "get_nodes_info",
     "check_container_running",
+    "make_verification_result",
+    "get_project_root",
     "get_node_admin_ip",
     "get_functional_groups_from_pxe_mapping",
     "get_group_names_from_pxe_mapping",
@@ -149,6 +167,19 @@ __all__ = [
     "view_credentials_file",
     "get_credential_value",
     "get_multiple_credentials",
+    # DB executor
+    "exec_psql_query",
+    "query_db_row",
+    # Build stream
+    "is_build_stream_enabled",
+    "get_build_stream_job_id",
+    "check_build_stream_stage",
+    "STAGE_BUILD_IMAGE_X86_64",
+    "STAGE_BUILD_IMAGE_AARCH64",
+    "STAGE_CREATE_LOCAL_REPO",
+    "STAGE_VALIDATE_IMAGE",
+    "STAGE_PARSE_CATALOG",
+    "STAGE_GENERATE_INPUT",
     # Vars - Base paths
     "OIM_SHARED_PATH",
     "OMNIA_DATA_PATH",

@@ -31,6 +31,7 @@ from automation_library.discovery.functions import (
 )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_cloudinit_completed(host):
     """
@@ -62,7 +63,9 @@ def test_cloudinit_completed(host):
     details_lines = [f"Nodes checked: {result['total']}"]
     for node_result in result.get("results", []):
         status_icon = "✓" if node_result["success"] else "✗"
-        details_lines.append(f"{status_icon} {node_result['hostname']}")
+        retries = node_result.get("retries", 0)
+        retry_info = f" (after {retries} retries)" if retries > 0 else ""
+        details_lines.append(f"{status_icon} {node_result['hostname']}{retry_info}")
         details_lines.append(f"    Status: {node_result['status']}")
         if node_result.get("errors"):
             details_lines.append(f"    Errors: {node_result['errors']}")

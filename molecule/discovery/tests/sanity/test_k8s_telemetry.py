@@ -30,6 +30,7 @@ from automation_library.discovery.functions import (
 )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(30)
 def test_k8s_nodes_ready(host):
     """
@@ -94,6 +95,7 @@ def test_k8s_nodes_ready(host):
     assert result["success"], f"K8s node check failed: {'; '.join(error_parts)}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(31)
 def test_k8s_telemetry_pods(host):
     """

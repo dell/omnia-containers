@@ -29,7 +29,6 @@ import json
 import os
 import time
 import urllib.parse
-from pathlib import Path
 from typing import Dict, Any, List, Set
 
 import pytest
@@ -110,14 +109,10 @@ def update_pxe_backup(host):
 # PXE MAPPING BACKUP MANAGEMENT
 # =============================================================================
 
-def _get_project_root() -> str:
-    """Get the project root directory path."""
-    return str(Path(__file__).resolve().parents[3])
-
-
 def _get_backup_dir() -> str:
     """Get the .backup/ directory path in the project root."""
-    return os.path.join(_get_project_root(), ".backup")
+    from automation_library.core import get_project_root
+    return os.path.join(get_project_root(), ".backup")
 
 
 def _get_backup_path() -> str:

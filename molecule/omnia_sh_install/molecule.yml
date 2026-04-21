@@ -25,7 +25,7 @@
 #   ./run_molecule.sh install    # Install only
 #
 # Configuration:
-#   - user_config.yml: All configuration settings
+#   - omnia_test_config.yml: All configuration settings
 #
 # =============================================================================
 

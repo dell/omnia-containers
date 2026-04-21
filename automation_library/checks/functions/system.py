@@ -203,7 +203,7 @@ def configure_hostname() -> Dict:
 
     target_hostname = OIM_PREREQ_VARS.get("oim_hostname", "")
 
-    # Check if hostname is configured in user_config.yml
+    # Check if hostname is configured in omnia_test_config.yml
     if not target_hostname:
         return {
             "passed": False,

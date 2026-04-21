@@ -31,7 +31,7 @@
 
     - name: Set facts for OIM server play
       ansible.builtin.set_fact:
-        user_config: "{{ user_config }}"
+        omnia_test_config: "{{ omnia_test_config }}"
         cacheable: true
       no_log: true
 
@@ -41,15 +41,15 @@
   gather_facts: false
 
   vars:
-    user_config: "{{ hostvars['localhost']['user_config'] }}"
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
     project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
-    # All config from user_config.yml
-    omnia_clone_path: "{{ user_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
+    # All config from omnia_test_config.yml
+    omnia_clone_path: "{{ omnia_test_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
-    share_option: "{{ user_config.share_option | default('NFS') }}"
-    nfs_type: "{{ user_config.nfs_type | default('external') }}"
-    omnia_shared_path: "{{ user_config.omnia_shared_path | default('/opt/omnia') }}"
-    omnia_core_password: "{{ user_config.omnia_core_password | default('') }}"
+    share_option: "{{ omnia_test_config.share_option | default('NFS') }}"
+    nfs_type: "{{ omnia_test_config.nfs_type | default('external') }}"
+    omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
+    omnia_core_password: "{{ omnia_test_config.omnia_core_password | default('') }}"
     # container_name is hardcoded in omnia.sh script - cannot be changed
     container_name: "omnia_core"
     # project_default paths
@@ -139,8 +139,8 @@
         msg:
           - "Share Option: {{ share_option }}"
           - "NFS Type: {{ nfs_type | default('N/A') }}"
-          - "NFS Server IP: {{ user_config.nfs_server_ip | default('N/A') }}"
-          - "NFS Share Path: {{ user_config.nfs_share_path | default('N/A') }}"
+          - "NFS Server IP: {{ omnia_test_config.nfs_server_ip | default('N/A') }}"
+          - "NFS Share Path: {{ omnia_test_config.nfs_share_path | default('N/A') }}"
           - "Omnia Shared Path: {{ omnia_shared_path }}"
       when: container_check.rc != 0
 
@@ -155,8 +155,8 @@
         content: |
           1
           1
-          {{ user_config.nfs_server_ip }}
-          {{ user_config.nfs_share_path }}
+          {{ omnia_test_config.nfs_server_ip }}
+          {{ omnia_test_config.nfs_share_path }}
           {{ omnia_shared_path }}
           {{ omnia_core_password }}
           {{ omnia_core_password }}
@@ -169,8 +169,8 @@
         content: |
           1
           2
-          {{ user_config.nfs_server_ip }}
-          {{ user_config.nfs_share_path }}
+          {{ omnia_test_config.nfs_server_ip }}
+          {{ omnia_test_config.nfs_share_path }}
           {{ omnia_core_password }}
           {{ omnia_core_password }}
         dest: /tmp/omnia_sh_inputs.txt

@@ -29,7 +29,7 @@ Placeholders:
     Example: "OS validation passed: {os_name} {os_version}"
 
     Common placeholders:
-        {config_path}   - Path to user_config.yml
+        {config_path}   - Path to omnia_test_config.yml
         {interface}     - Network interface name
         {server}        - Server IP address
         {error}         - Error message from command
@@ -57,11 +57,11 @@ OIM_PREREQ_MSGS: Dict[str, str] = {
     "hostname_verify_pass": "Hostname verified: {hostname} (domain: {domain})",
     "hostname_set_fail": "Failed to set hostname: {error}",
     "hostname_invalid": "Hostname is invalid or missing domain",
-    "hostname_not_configured": "Hostname not configured in user_config.yml",
+    "hostname_not_configured": "Hostname not configured in omnia_test_config.yml",
 
     # Error instructions for Hostname
     "hostname_instruction": """
-ACTION REQUIRED: Configure hostname in user_config.yml.
+ACTION REQUIRED: Configure hostname in omnia_test_config.yml.
 - Set 'oim_hostname' to a valid FQDN (e.g., "oim.omnia.test")
 - The hostname MUST include a domain (hostname.domain.tld)
 - Example: oim_hostname: "oim.omnia.test"

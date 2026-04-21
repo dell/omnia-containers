@@ -33,13 +33,20 @@ def _get_project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def load_user_config() -> Dict[str, Any]:
-    """Load user_config.yml."""
-    config_path = os.path.join(_get_project_root(), "user_config.yml")
+def load_omnia_test_config() -> Dict[str, Any]:
+    """Load omnia_test_config.yml."""
+    config_path = os.path.join(_get_project_root(), "omnia_test_config.yml")
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     return {}
+
+
+def get_dataset_path() -> str:
+    """Get the configured dataset path from omnia_test_config.yml."""
+    config = load_omnia_test_config()
+    dataset = config.get("dataset", "project_default")
+    return os.path.join(_get_project_root(), "datasets", dataset)
 
 
 def _is_local_ip(ip: str) -> bool:
@@ -59,15 +66,15 @@ def get_testinfra_host() -> testinfra.host.Host:
     """
     Get testinfra host connected to OIM server.
 
-    Always reads IP directly from user_config.yml to avoid hostname resolution issues.
+    Always reads IP directly from omnia_test_config.yml to avoid hostname resolution issues.
     Raises ValueError if oim_server_ip is not configured.
     """
-    config = load_user_config()
+    config = load_omnia_test_config()
     oim_ip = config.get("oim_server_ip", "")
 
     if not oim_ip or oim_ip.strip() == "":
         raise ValueError(
-            "oim_server_ip is required in user_config.yml. "
+            "oim_server_ip is required in omnia_test_config.yml. "
             "Please set the IP address of your OIM server."
         )
 
@@ -75,7 +82,7 @@ def get_testinfra_host() -> testinfra.host.Host:
     if _is_local_ip(oim_ip):
         return testinfra.get_host("local://")
 
-    # Remote - always use direct SSH with IP from user_config.yml
+    # Remote - always use direct SSH with IP from omnia_test_config.yml
     ssh_user = config.get("oim_ssh_user", "root")
     ssh_port = config.get("oim_ssh_port", 22)
     ssh_password = config.get("oim_ssh_password", "")
@@ -472,6 +479,50 @@ def get_group_names_from_pxe_mapping(host: testinfra.host.Host) -> set:
         if len(parts) > grp_idx and parts[grp_idx].strip():
             groups.add(parts[grp_idx].strip())
     return groups
+
+
+# =============================================================================
+# RESULT HELPERS
+# =============================================================================
+
+def make_verification_result(
+    results: list,
+    passed: int,
+    failed: int,
+    total: int = None,
+    details: str = None
+) -> Dict[str, Any]:
+    """
+    Create a standardized verification result dictionary.
+
+    Args:
+        results: List of individual check results
+        passed: Number of passed checks
+        failed: Number of failed checks
+        total: Total number of checks (defaults to passed + failed)
+        details: Optional details string
+
+    Returns:
+        Dict with 'success', 'results', 'passed', 'failed', 'total', 'details'
+    """
+    return {
+        "success": failed == 0,
+        "results": results,
+        "passed": passed,
+        "failed": failed,
+        "total": total if total is not None else (passed + failed),
+        "details": details,
+    }
+
+
+def get_project_root() -> str:
+    """
+    Get the project root directory.
+
+    Returns:
+        Absolute path to the project root directory
+    """
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 # =============================================================================

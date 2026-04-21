@@ -28,7 +28,7 @@ Options:
     --debug                Show debug messages (verbose output)
     --help                 Show this help message
 
-Note: By default, uses 'skip_on_failure' setting from user_config.yml
+Note: By default, uses 'skip_on_failure' setting from omnia_test_config.yml
 """
 
 import sys

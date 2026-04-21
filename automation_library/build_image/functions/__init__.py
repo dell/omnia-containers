@@ -33,6 +33,11 @@ from .build_image_func import (
     run_all_validations,
 )
 
+from .build_stream_job_func import (
+    is_build_stream_enabled,
+    get_last_build_image_job_id,
+)
+
 __all__ = [
     "check_container_running",
     "check_s3_containers",
@@ -47,4 +52,7 @@ __all__ = [
     # Re-exported from core module
     "get_functional_groups_from_pxe_mapping",
     "get_group_names_from_pxe_mapping",
+    # Build stream job functions
+    "is_build_stream_enabled",
+    "get_last_build_image_job_id",
 ]

@@ -36,7 +36,7 @@ from paramiko.ssh_exception import (
     SSHException,
 )
 from automation_library.checks.vars.oim_prereq_vars import (
-    USER_CONFIG_PATH as DEFAULT_USER_CONFIG_PATH,
+    OMNIA_TEST_CONFIG_PATH as DEFAULT_OMNIA_TEST_CONFIG_PATH,
 )
 from automation_library.kubernetes.messages.k8s_msgs import (
     ERROR_NO_CONTROL_PLANE_NODES,
@@ -79,7 +79,7 @@ from automation_library.kubernetes.vars.k8s_vars import (
 )
 
 # Constants
-USER_CONFIG_PATH = DEFAULT_USER_CONFIG_PATH
+OMNIA_TEST_CONFIG_PATH = DEFAULT_OMNIA_TEST_CONFIG_PATH
 OMNIA_CORE_CONTAINER_NAME = "omnia_core"
 PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 
@@ -89,16 +89,16 @@ class OIMOperations:
         """Initialize OIM operations with configuration.
 
         Args:
-            config_path (str, optional): Path to the user config file.
-                Defaults to USER_CONFIG_PATH.
+            config_path (str, optional): Path to the _omnia_test_config file.
+                Defaults to OMNIA_TEST_CONFIG_PATH.
         """
-        self.config_path = config_path or USER_CONFIG_PATH
+        self.config_path = config_path or OMNIA_TEST_CONFIG_PATH
         self.config = self._load_config()
         self.ssh_client = None
         self._omnia_core_container_id = None
 
     def _load_config(self):
-        """Load configuration from user config file."""
+        """Load configuration from _omnia_test_config file."""
         with open(self.config_path, 'r', encoding="utf-8") as file:
             return yaml.safe_load(file)
 
@@ -1242,7 +1242,7 @@ class OIMOperations:
         expected_nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
 
         if not expected_nodes:
-            raise ValueError("No nodes found in PXE mapping file")
+            raise ValueError("No nodes found in PXE mapping")
 
         control_plane_node = self._get_control_plane_node(expected_nodes)
         node_name = control_plane_node.get("hostname") or control_plane_node.get("admin_ip") or "unknown"
@@ -2348,7 +2348,7 @@ class OIMOperations:
 
 def get_oim_operations(config_path=None):
     """Get an instance of OIMOperations.
-        config_path (str, optional): Path to the user config file.
+        config_path (str, optional): Path to the _omnia_test_config file.
 
     Returns:
         OIMOperations: An instance of OIMOperations.
