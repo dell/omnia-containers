@@ -89,3 +89,25 @@ from .ldap_func import (
     verify_ldap_user_login_from_core,
     verify_pam_slurm_adopt,
 )
+
+# Minimal OS functions
+from .minimal_os_func import (
+    get_pxe_mapping,
+    get_minimal_os_nodes,
+    get_test_node,
+    check_functional_groups,
+    validate_functional_group_schema,
+    validate_node_architecture,
+    check_base_packages,
+    check_ldms_packages,
+    check_excluded_packages,
+    check_additional_packages,
+    check_image_in_storage,
+    check_network_identity,
+    check_ram_filesystem,
+    check_required_services,
+    check_ssh_key_auth,
+    check_package_manager,
+    check_ldms_service_state,
+    check_no_embedded_credentials,
+)

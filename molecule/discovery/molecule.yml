@@ -19,20 +19,25 @@
 # This module runs discovery.yml playbook inside omnia_core container
 # and verifies the discovery deployment was successful.
 #
+# Includes Minimal OS functional group validation.
+#
 # PREREQUISITES:
 # --------------
 #   - omnia_core container running (omnia.sh --install completed)
 #   - prepare_oim.yml completed
 #   - pxe_mapping_file.csv configured with nodes
+#   - (Optional) Minimal OS nodes configured in PXE mapping
 #
 # USAGE:
 # ------
 #   ./run_molecule.sh discovery test       # Run prereq checks + playbook + verify
 #   ./run_molecule.sh discovery converge   # Run playbook only
-#   ./run_molecule.sh discovery verify     # Verify only
+#   ./run_molecule.sh discovery verify     # Verify only (includes minimal OS tests)
 #
 # Configuration:
 #   - omnia_test_config.yml: OIM server connection settings
+#   - provision_config.yml: PXE mapping file path
+#   - functional_groups_config.yml: Functional groups (including os_x86_64, os_aarch64)
 #
 # =============================================================================
 
