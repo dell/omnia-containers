@@ -15,7 +15,7 @@
 """
 Telemetry Automation - Configuration Variables.
 
-Loads user configuration from user_config.yml for OIM server connection.
+Loads user configuration from omnia_test_config.yml for OIM server connection.
 """
 
 import os
@@ -41,25 +41,25 @@ from ...core.vars import (
 
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
-_USER_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "user_config.yml")
+_OMNIA_TEST_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_config.yml")
 
 
 # =============================================================================
 # Configuration Loader
 # =============================================================================
 
-def _load_user_config() -> Dict[str, Any]:
+def _load_omnia_test_config() -> Dict[str, Any]:
     """Load user configuration from YAML file."""
-    if os.path.exists(_USER_CONFIG_FILE):
+    if os.path.exists(_OMNIA_TEST_CONFIG_FILE):
         try:
-            with open(_USER_CONFIG_FILE, "r", encoding="utf-8") as f:
+            with open(_OMNIA_TEST_CONFIG_FILE, "r", encoding="utf-8") as f:
                 return yaml.safe_load(f) or {}
         except (IOError, yaml.YAMLError):
             return {}
     return {}
 
 
-_user_config = _load_user_config()
+_omnia_test_config = _load_omnia_test_config()
 
 
 # =============================================================================
@@ -67,12 +67,12 @@ _user_config = _load_user_config()
 # =============================================================================
 
 TELEMETRY_VARS: Dict[str, Any] = {
-    # OIM Server Connection (from user_config.yml)
-    "oim_server_ip": _user_config.get("oim_server_ip", ""),
-    "oim_ssh_user": _user_config.get("oim_ssh_user", "root"),
-    "oim_ssh_password": _user_config.get("oim_ssh_password", ""),
-    "oim_ssh_port": _user_config.get("oim_ssh_port", 22),
-    "omnia_shared_path": _user_config.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
+    # OIM Server Connection (from omnia_test_config.yml)
+    "oim_server_ip": _omnia_test_config.get("oim_server_ip", ""),
+    "oim_ssh_user": _omnia_test_config.get("oim_ssh_user", "root"),
+    "oim_ssh_password": _omnia_test_config.get("oim_ssh_password", ""),
+    "oim_ssh_port": _omnia_test_config.get("oim_ssh_port", 22),
+    "omnia_shared_path": _omnia_test_config.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
 
     # Container
     "container_name": _CORE_CONTAINER,

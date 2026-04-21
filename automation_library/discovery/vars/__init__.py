@@ -17,6 +17,11 @@
 from .common_vars import (
     SSH_OPTS,
     CONTAINER_NAME,
+    IMAGE_CONFIG_YAML_DIR,
+    CLOUDINIT_RETRY_LIMIT,
+    CLOUDINIT_RETRY_INTERVAL,
+    CLOUDINIT_PASSED_STATUSES,
+    CLOUDINIT_RETRY_STATUSES,
 )
 
 from .slurm_vars import (

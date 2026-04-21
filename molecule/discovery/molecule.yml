@@ -32,7 +32,7 @@
 #   ./run_molecule.sh discovery verify     # Verify only
 #
 # Configuration:
-#   - user_config.yml: OIM server connection settings
+#   - omnia_test_config.yml: OIM server connection settings
 #
 # =============================================================================
 

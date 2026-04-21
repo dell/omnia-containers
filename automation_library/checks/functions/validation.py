@@ -18,7 +18,7 @@ from typing import Dict
 
 from ...core.formatting import log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 from .system import run_command, run_shell
 
 
@@ -68,7 +68,7 @@ def validate_os() -> Dict:
             "passed": False,
             "os_info": os_info,
             "message": f"OS mismatch: {actual_os} != {required_os}",
-            "details": f"ACTION REQUIRED: OS does not match.\n- Required: {required_os}\n- Actual: {actual_os}\n- Update 'required_os' in {USER_CONFIG_PATH} if this OS is acceptable."
+            "details": f"ACTION REQUIRED: OS does not match.\n- Required: {required_os}\n- Actual: {actual_os}\n- Update 'required_os' in {OMNIA_TEST_CONFIG_PATH} if this OS is acceptable."
         }
 
     # Check OS version
@@ -78,7 +78,7 @@ def validate_os() -> Dict:
             "passed": False,
             "os_info": os_info,
             "message": f"OS version mismatch: {actual_version} != {required_version}",
-            "details": f"ACTION REQUIRED: OS version does not match.\n- Required: {required_version}\n- Actual: {actual_version}\n- Update 'required_os_version' in {USER_CONFIG_PATH} or upgrade OS."
+            "details": f"ACTION REQUIRED: OS version does not match.\n- Required: {required_version}\n- Actual: {actual_version}\n- Update 'required_os_version' in {OMNIA_TEST_CONFIG_PATH} or upgrade OS."
         }
 
     # Check kernel version if required
@@ -89,7 +89,7 @@ def validate_os() -> Dict:
                 "passed": False,
                 "os_info": os_info,
                 "message": f"Kernel version mismatch: {actual_kernel} != {required_kernel}",
-                "details": f"ACTION REQUIRED: Kernel version does not match.\n- Required: {required_kernel}\n- Actual: {actual_kernel}\n- Update 'required_kernel_version' in {USER_CONFIG_PATH} or upgrade kernel."
+                "details": f"ACTION REQUIRED: Kernel version does not match.\n- Required: {required_kernel}\n- Actual: {actual_kernel}\n- Update 'required_kernel_version' in {OMNIA_TEST_CONFIG_PATH} or upgrade kernel."
             }
 
     return {"passed": True, "os_info": os_info, "message": OIM_PREREQ_MSGS["os_check_pass"].format(os_name=os_info["name"], os_version=os_info["version"])}

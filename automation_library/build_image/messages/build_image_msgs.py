@@ -44,6 +44,10 @@ TEST_VARS = {
 
 # Test names (displayed in test output header)
 TEST_NAMES = {
+    # Build stream job stage validation (first test)
+    "build_stream_job_stage": (
+        "Verify build_stream pipeline stage '{stage}' completed successfully"
+    ),
     # Precheck
     "s3_containers_running": "Verify S3 containers are running (precheck)",
     "container_running": "Verify container {container} is running",
@@ -94,11 +98,30 @@ TEST_LOG_MSGS = {
     # Image package verification messages
     "image_packages_ok": "All packages verified in all images",
     "image_packages_failed": "{count} image(s) have missing packages",
+    # Build stream job validation messages
+    "build_stream_disabled_skip": (
+        "build_stream is DISABLED — skipping job stage validation"
+    ),
+    "build_stream_job_checking": (
+        "Checking build_stream stage '{stage}' (source: {source})"
+    ),
+    "build_stream_job_ok": (
+        "Stage '{stage}' COMPLETED — job UUID: {job_id} (source: {source})"
+    ),
+    "build_stream_job_failed": (
+        "Stage '{stage}' is '{state}' — expected COMPLETED (job: {job_id})"
+    ),
+    "build_stream_job_not_found": (
+        "No completed '{stage}' stage found in build_stream_db"
+    ),
     # Prerequisite messages
     "squashfs_tools_not_installed": (
         "squashfs-tools package is NOT installed. "
-        "This package is required to mount and verify S3 images.\n"
-        "Install it using: dnf install -y squashfs-tools"
+        "This package is required to mount and verify S3 images."
+    ),
+    "squashfs_repo_not_configured": (
+        "squashfs-tools is not available — no enabled repository provides it.\n"
+        "Configure a repository that provides squashfs-tools and re-run."
     ),
 }
 
@@ -197,6 +220,28 @@ TEST_ASSERT_MSGS = {
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "validation_failed": "Validation failed: {error}",
+    "build_stream_job_stage_failed": """
+\u2554{border}\u2557
+\u2551 BUILD STREAM STAGE VALIDATION FAILED
+\u2560{border}\u2563
+\u2551 Stage   : {stage}
+\u2551 Job ID  : {job_id}
+\u2551 Status  : {state}
+\u2551 Expected: COMPLETED
+\u2551
+\u2551 WHAT HAPPENED:
+\u2551   The build_stream pipeline stage did not complete successfully.
+\u2551   All downstream verifications (S3 images, registry) depend on this.
+\u2551
+\u2551 HOW TO FIX:
+\u2551   1. Check build_stream API logs on the OIM server
+\u2551   2. Query DB: podman exec omnia_postgres psql -U omnia -d build_stream_db
+\u2551             -c "SELECT * FROM job_stages WHERE job_id = '{job_id}';"
+\u2551   3. If stage is FAILED, re-trigger the build_stream pipeline
+\u2551   4. If stage is still RUNNING, wait for it to complete
+\u2551   5. To override: set build_stream_job_id in omnia_test_config.yml
+\u255a{border}\u255d
+""".format(border="═" * 74, stage="{stage}", job_id="{job_id}", state="{state}"),
 }
 
 # =============================================================================

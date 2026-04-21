@@ -26,6 +26,8 @@ Test cases:
 6. Verify passwordless SSH from container works
 """
 
+import pytest
+
 from automation_library.core import TestLogger
 from automation_library.omnia_sh.vars.omnia_sh_vars import TEST_VARS
 from automation_library.omnia_sh.messages.omnia_sh_msgs import (
@@ -41,8 +43,16 @@ from automation_library.omnia_sh.functions.omnia_sh_func import (
 )
 
 
+@pytest.mark.sanity
+@pytest.mark.order(1)
 def test_omnia_core_container_running(host):
-    """Verify omnia_core container is running."""
+    """
+    Test Case 1: Verify omnia_core container is running.
+
+    Checks:
+    - Container exists and is in 'running' state
+    - Reports container image, status, and ports
+    """
     log = TestLogger(TEST_NAMES["container_running"])
 
     result = check_container_running(host)
@@ -62,8 +72,16 @@ def test_omnia_core_container_running(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_omnia_core_container_file_exists(host):
-    """Verify omnia_core.container file is present."""
+    """
+    Test Case 2: Verify omnia_core.container file is present.
+
+    Checks:
+    - Systemd container unit file exists at expected path
+    - File is readable and has correct permissions
+    """
     log = TestLogger(TEST_NAMES["container_file"])
     path = TEST_VARS["container_file"]
 
@@ -77,8 +95,16 @@ def test_omnia_core_container_file_exists(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.sanity
+@pytest.mark.order(3)
 def test_omnia_core_service_running(host):
-    """Verify omnia_core systemd service is running."""
+    """
+    Test Case 3: Verify omnia_core systemd service is running.
+
+    Checks:
+    - Service is active (running)
+    - Service is enabled for auto-start
+    """
     log = TestLogger(TEST_NAMES["service_running"])
     service = TEST_VARS["service_name"]
 
@@ -95,8 +121,16 @@ def test_omnia_core_service_running(host):
     assert result["success"], ASSERT_MSGS["service_not_active"].format(status=result["status"])
 
 
+@pytest.mark.sanity
+@pytest.mark.order(4)
 def test_oim_metadata_file_exists(host):
-    """Verify oim_metadata.yml file is present."""
+    """
+    Test Case 4: Verify oim_metadata.yml file is present inside container.
+
+    Checks:
+    - Metadata file exists at /opt/omnia/.data/oim_metadata.yml
+    - File contains valid YAML with OIM configuration
+    """
     log = TestLogger(TEST_NAMES["metadata_file"])
     path = TEST_VARS["metadata_file"]
 
@@ -110,8 +144,16 @@ def test_oim_metadata_file_exists(host):
     assert result["success"], result["error"]
 
 
+@pytest.mark.sanity
+@pytest.mark.order(5)
 def test_passwordless_ssh_to_container(host):
-    """Verify passwordless SSH from OIM server to omnia_core container."""
+    """
+    Test Case 5: Verify passwordless SSH from OIM server to omnia_core container.
+
+    Checks:
+    - SSH connection works without password prompt
+    - Can execute commands inside container via SSH
+    """
     log = TestLogger(TEST_NAMES["ssh_to_container"])
     alias = TEST_VARS["ssh_alias"]
 
@@ -132,8 +174,16 @@ def test_passwordless_ssh_to_container(host):
     assert result["success"], ASSERT_MSGS["ssh_failed"].format(error=result["error"])
 
 
+@pytest.mark.sanity
+@pytest.mark.order(6)
 def test_passwordless_ssh_from_container_to_host(host):
-    """Verify passwordless SSH from omnia_core container to OIM server."""
+    """
+    Test Case 6: Verify passwordless SSH from omnia_core container to OIM server.
+
+    Checks:
+    - SSH connection from container to OIM works without password
+    - Bidirectional SSH connectivity is established
+    """
     log = TestLogger(TEST_NAMES["ssh_from_container"])
     alias = TEST_VARS["ssh_alias"]
     oim_ip = TEST_VARS["oim_server_ip"]

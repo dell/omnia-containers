@@ -20,6 +20,9 @@ Functions for SSH verification and node retrieval used across all tests.
 
 from typing import Dict, Any, List
 
+import sys
+import time
+
 import pytest
 
 from automation_library.core import (
@@ -36,8 +39,19 @@ from automation_library.core import (
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     K8S_WORKER_NODE_FUNCTIONAL_GROUP,
 )
-from ..vars import SSH_OPTS
+from ..vars import (
+    SSH_OPTS,
+    CLOUDINIT_RETRY_LIMIT,
+    CLOUDINIT_RETRY_INTERVAL,
+    CLOUDINIT_PASSED_STATUSES,
+    CLOUDINIT_RETRY_STATUSES,
+)
 from ..messages import SKIP_MSGS
+from .package_collector import (
+    get_base_image_packages,
+    get_packages_for_functional_group,
+    build_package_map,
+)
 
 
 # =============================================================================
@@ -334,12 +348,81 @@ def verify_ssh_from_oim(
 # CLOUD-INIT VERIFICATION
 # =============================================================================
 
+def _get_cloudinit_status(host, admin_ip: str) -> str:
+    """
+    Get cloud-init status from a single node.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Node admin IP address
+
+    Returns:
+        Status string: 'done', 'running', 'not started', 'error', or 'unknown'
+    """
+    cmd = run_on_remote_node(host, "cloud-init status 2>&1", admin_ip)
+    output = cmd.stdout.strip() if cmd.stdout else ""
+
+    if "status: done" in output:
+        return "done"
+    elif "status: running" in output:
+        return "running"
+    elif "status: not started" in output or "not started" in output.lower():
+        return "not started"
+    elif "status: error" in output:
+        return "error"
+    elif cmd.rc != 0 and not output:
+        return "command_failed"
+    else:
+        return "unknown"
+
+
+def _print_progress(node_statuses: Dict[str, Dict], total: int):
+    """
+    Print single-line progress that updates in place.
+
+    Args:
+        node_statuses: Dict of hostname -> {status, retries, done}
+        total: Total number of nodes
+    """
+    import sys
+
+    parts = []
+    done_count = sum(1 for ns in node_statuses.values() if ns["done"])
+
+    for hostname, ns in node_statuses.items():
+        short_name = hostname[:12] + ".." if len(hostname) > 14 else hostname
+        if ns["done"]:
+            if ns["status"] in ["done"]:
+                parts.append(f"{short_name}[✓]")
+            else:
+                parts.append(f"{short_name}[✗]")
+        else:
+            parts.append(f"{short_name}[{ns['status']},r{ns['retries']}]")
+
+    line = f"\rCloud-init: {done_count}/{total} done | " + " ".join(parts)
+    # Truncate if too long and pad to clear previous output
+    max_width = 120
+    if len(line) > max_width:
+        line = line[:max_width - 3] + "..."
+    line = line.ljust(max_width)
+    sys.stdout.write(line)
+    sys.stdout.flush()
+
+
 def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
     """
-    Verify cloud-init completed successfully on all nodes.
+    Verify cloud-init completed successfully on all nodes with retry logic.
 
     For diskless OS deployments, cloud-init handles provisioning.
-    Checks 'cloud-init status' command output.
+    Checks 'cloud-init status' command output with configurable retry.
+
+    Retry behavior:
+    - If status is in CLOUDINIT_PASSED_STATUSES (e.g., 'done'): pass, no retry
+    - If status is in CLOUDINIT_RETRY_STATUSES (e.g., 'running'): retry with delay
+    - If status is 'error' or unknown: fail after checking all nodes
+    - Retries up to CLOUDINIT_RETRY_LIMIT times with CLOUDINIT_RETRY_INTERVAL seconds
+
+    Progress is printed on a single line that updates in place.
 
     Args:
         host: Testinfra host object
@@ -354,54 +437,91 @@ def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]
         "results": [],
     }
 
+    # Track status for each node: {hostname: {status, retries, done, admin_ip}}
+    node_statuses: Dict[str, Dict] = {}
     for node in nodes:
         hostname = node.get("hostname", "")
         admin_ip = node.get("admin_ip", "")
+        node_statuses[hostname] = {
+            "status": "checking",
+            "retries": 0,
+            "done": False,
+            "admin_ip": admin_ip,
+            "warnings": "",
+        }
+
+    # Print initial progress
+    _print_progress(node_statuses, len(nodes))
+
+    # Retry loop
+    all_done = False
+    while not all_done:
+        all_done = True
+
+        for hostname, ns in node_statuses.items():
+            if ns["done"]:
+                continue
+
+            admin_ip = ns["admin_ip"]
+            status = _get_cloudinit_status(host, admin_ip)
+            ns["status"] = status
+
+            # Check if passed
+            if status in CLOUDINIT_PASSED_STATUSES:
+                ns["done"] = True
+                continue
+
+            # Check if should retry
+            if status in CLOUDINIT_RETRY_STATUSES:
+                ns["retries"] += 1
+                if ns["retries"] >= CLOUDINIT_RETRY_LIMIT:
+                    # Retry limit reached - mark as failed
+                    ns["done"] = True
+                    ns["status"] = f"{status} (retry limit {CLOUDINIT_RETRY_LIMIT} reached)"
+                else:
+                    all_done = False
+            else:
+                # Status is error/unknown/command_failed - mark as done (failed)
+                ns["done"] = True
+
+        # Update progress
+        _print_progress(node_statuses, len(nodes))
+
+        # If not all done, wait before next retry
+        if not all_done:
+            time.sleep(CLOUDINIT_RETRY_INTERVAL)
+
+    # Print newline after progress
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+
+    # Build final results
+    for node in nodes:
+        hostname = node.get("hostname", "")
+        admin_ip = node.get("admin_ip", "")
+        ns = node_statuses[hostname]
 
         node_result = {
             "hostname": hostname,
             "admin_ip": admin_ip,
-            "success": False,
-            "status": "unknown",
+            "success": ns["status"] in CLOUDINIT_PASSED_STATUSES,
+            "status": ns["status"],
+            "retries": ns["retries"],
             "errors": "",
-            "warnings": "",
+            "warnings": ns.get("warnings", ""),
         }
 
-        # Get cloud-init status
-        # Note: cloud-init status returns rc=2 for "recoverable error" which is still success
-        cmd = run_on_remote_node(host, "cloud-init status 2>&1", admin_ip)
-
-        output = cmd.stdout.strip()
-
-        # Parse status from output (rc can be 0, 1, or 2)
-        # rc=0: done, rc=1: running/error, rc=2: recoverable error (still done)
-        if "status: done" in output:
-            node_result["status"] = "done"
-            node_result["success"] = True
-        elif "status: running" in output:
-            node_result["status"] = "running"
-            node_result["errors"] = "cloud-init still running"
+        # Set error message for failed nodes
+        if not node_result["success"]:
+            if "retry limit" in ns["status"]:
+                node_result["errors"] = f"cloud-init {ns['status']}"
+            elif ns["status"] == "error":
+                node_result["errors"] = "cloud-init completed with errors"
+            elif ns["status"] == "command_failed":
+                node_result["errors"] = "cloud-init command failed"
+            else:
+                node_result["errors"] = f"cloud-init status: {ns['status']}"
             results["success"] = False
-        elif "status: error" in output:
-            node_result["status"] = "error"
-            node_result["errors"] = "cloud-init completed with errors"
-            results["success"] = False
-        elif cmd.rc != 0 and not output:
-            node_result["status"] = "command_failed"
-            node_result["errors"] = f"cloud-init command failed: rc={cmd.rc}"
-            results["success"] = False
-        else:
-            node_result["status"] = "unknown"
-            node_result["errors"] = f"Unknown status: {output[:100]}"
-            results["success"] = False
-
-        # Check for warnings
-        if "warning" in output.lower() or "recoverable_errors" in output.lower():
-            warn_start = output.lower().find("warning")
-            if warn_start == -1:
-                warn_start = output.lower().find("recoverable_errors")
-            if warn_start >= 0:
-                node_result["warnings"] = output[warn_start:warn_start + 300].strip()
 
         results["results"].append(node_result)
 
@@ -653,3 +773,194 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             results["success"] = False
 
     return results
+
+
+# =============================================================================
+# NODE PACKAGE VERIFICATION
+# =============================================================================
+
+
+def _verify_packages_on_node(
+    host,
+    node: Dict[str, str],
+    packages: List[str],
+) -> Dict[str, Any]:
+    """
+    Verify expected packages are installed on a single node via rpm -qa.
+
+    Uses same matching strategies as build_image_func.py _verify_single_image_packages():
+    - Strategy 1: installed name starts with base package name
+    - Strategy 2: base package name contained and is prefix of installed name
+    - Strategy 3: python3.X -> python3-X.Y RHEL naming convention
+
+    Returns package_details matching build_image test format:
+        [{"expected": pkg, "found": found_version_or_None, "status": "installed"|"missing"}]
+
+    Args:
+        host: Testinfra host object
+        node: Node dict with hostname, admin_ip, functional_group
+        packages: List of expected package names
+
+    Returns:
+        Dict with success, hostname, found_packages, missing_packages,
+        package_details, details, error
+    """
+    hostname = node.get("hostname", "")
+    admin_ip = node.get("admin_ip", "")
+
+    if not packages:
+        return {
+            "hostname": hostname,
+            "success": True,
+            "found_packages": [],
+            "missing_packages": [],
+            "package_details": [],
+            "details": "No packages defined in image YAML for this functional group",
+            "error": None,
+        }
+
+    cmd = run_on_remote_node(host, "rpm -qa 2>/dev/null", admin_ip)
+    if cmd.rc != 0:
+        return {
+            "hostname": hostname,
+            "success": False,
+            "found_packages": [],
+            "missing_packages": packages,
+            "package_details": [],
+            "details": None,
+            "error": f"rpm -qa failed on {hostname}: {cmd.stderr or cmd.stdout}",
+        }
+
+    installed_packages = [
+        line.strip()
+        for line in cmd.stdout.strip().split("\n")
+        if line.strip()
+    ]
+
+    found_packages: List[str] = []
+    missing_packages: List[str] = []
+    package_details: List[Dict[str, Any]] = []
+
+    for pkg in packages:
+        base_pkg = (
+            pkg.split("-")[0]
+            if "-" in pkg and pkg.split("-")[-1][0].isdigit()
+            else pkg
+        )
+
+        found = False
+        found_version = None
+
+        for installed in installed_packages:
+            inst_lower = installed.lower()
+            base_lower = base_pkg.lower()
+            if inst_lower.startswith(base_lower):
+                found = True
+                found_version = installed
+                break
+            if base_lower in inst_lower and inst_lower.split("-")[0] == base_lower:
+                found = True
+                found_version = installed
+                break
+            if base_lower.startswith("python") and "." in base_lower:
+                py_version = base_lower.replace("python", "")
+                if inst_lower.startswith(f"python3-{py_version}"):
+                    found = True
+                    found_version = installed
+                    break
+
+        if found:
+            found_packages.append(pkg)
+            package_details.append({"expected": pkg, "found": found_version, "status": "installed"})
+        else:
+            missing_packages.append(pkg)
+            package_details.append({"expected": pkg, "found": None, "status": "missing"})
+
+    success = len(missing_packages) == 0
+    details_lines = [f"  {len(found_packages)}/{len(packages)} packages installed"]
+    if missing_packages:
+        details_lines.append(f"  Missing: {', '.join(missing_packages)}")
+
+    return {
+        "hostname": hostname,
+        "success": success,
+        "found_packages": found_packages,
+        "missing_packages": missing_packages,
+        "package_details": package_details,
+        "details": "\n".join(details_lines),
+        "error": f"Missing: {', '.join(missing_packages)}" if missing_packages else None,
+    }
+
+
+def verify_node_packages(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Verify all expected packages are installed on each provisioned node.
+
+    Delegates package collection to package_collector.py which replicates
+    the exact same logic as build_image_x86_64 playbook:
+    1. Reads all functional groups dynamically from PXE mapping (no hardcoding)
+    2. For each FG finds its image YAML in IMAGE_CONFIG_YAML_DIR via glob
+    3. Combines base image packages + compute packages (deduplicated)
+    4. SSHs to each node and verifies via rpm -qa
+
+    Args:
+        host: Testinfra host object
+        nodes: List of node dicts with hostname, admin_ip, functional_group
+
+    Returns:
+        Dict with success, total, passed, failed, results (per-node with
+        package_details), nodes_missing_packages, error
+    """
+    result: Dict[str, Any] = {
+        "success": True,
+        "total": len(nodes),
+        "passed": 0,
+        "failed": 0,
+        "results": [],
+        "nodes_missing_packages": [],
+        "error": None,
+    }
+
+    # Build complete package map for all FGs present in PXE mapping
+    # package_collector reads FGs dynamically - no hardcoding
+    package_map = build_package_map(host)
+
+    # Also build per-arch base packages cache for any FGs not in package_map
+    x86_base: List[str] = []
+    aarch64_base: List[str] = []
+
+    _fg_pkg_cache: Dict[str, List[str]] = {}
+
+    for node in nodes:
+        functional_group = node.get("functional_group", "")
+
+        if functional_group not in _fg_pkg_cache:
+            if functional_group in package_map:
+                _fg_pkg_cache[functional_group] = package_map[functional_group]
+            else:
+                # FG not in PXE mapping but present in nodes: collect on-demand
+                arch = "aarch64" if "aarch64" in functional_group else "x86_64"
+                if arch == "x86_64":
+                    if not x86_base:
+                        x86_base = get_base_image_packages(host, "x86_64")
+                    base = x86_base
+                else:
+                    if not aarch64_base:
+                        aarch64_base = get_base_image_packages(host, "aarch64")
+                    base = aarch64_base
+                _fg_pkg_cache[functional_group] = get_packages_for_functional_group(
+                    host, functional_group, base
+                )
+
+        packages = _fg_pkg_cache[functional_group]
+        node_result = _verify_packages_on_node(host, node, packages)
+        result["results"].append(node_result)
+
+        if node_result["success"]:
+            result["passed"] += 1
+        else:
+            result["failed"] += 1
+            result["success"] = False
+            result["nodes_missing_packages"].append(node_result["hostname"])
+
+    return result

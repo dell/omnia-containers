@@ -31,10 +31,10 @@
 
     - name: Wait for SSH to be available on OIM server
       ansible.builtin.wait_for:
-        host: "{{ user_config.oim_server_ip }}"
-        port: "{{ user_config.oim_ssh_port | default(22) }}"
+        host: "{{ omnia_test_config.oim_server_ip }}"
+        port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
         timeout: 30
 
     - name: OIM server ready
       ansible.builtin.debug:
-        msg: "OIM server {{ user_config.oim_server_ip }} is reachable via SSH"
+        msg: "OIM server {{ omnia_test_config.oim_server_ip }} is reachable via SSH"

@@ -55,6 +55,7 @@ from automation_library.discovery.vars import (
 )
 
 
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_slurm_control_node_services(host):
     """
@@ -101,6 +102,7 @@ def test_slurm_control_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_slurm_node_services(host):
     """
@@ -146,6 +148,7 @@ def test_slurm_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(12)
 def test_login_node_services(host):
     """
@@ -191,6 +194,7 @@ def test_login_node_services(host):
     assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(13)
 def test_login_compiler_node_services(host):
     """
@@ -240,6 +244,7 @@ def test_login_compiler_node_services(host):
 # CROSS-NODE SSH TEST
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(14)
 def test_cross_node_ssh(host):
     """
@@ -281,6 +286,7 @@ def test_cross_node_ssh(host):
 # SINFO AND SOFTWARE TESTS
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(15)
 def test_sinfo_nodes(host):
     """
@@ -325,6 +331,7 @@ def test_sinfo_nodes(host):
     assert result["success"], f"sinfo mismatch: {'; '.join(error_parts) if error_parts else 'unknown'}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(16)
 def test_openmpi_installed(host):
     """
@@ -359,6 +366,7 @@ def test_openmpi_installed(host):
         assert False, result.get("error", "OpenMPI verification failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(17)
 def test_ucx_installed(host):
     """
@@ -397,6 +405,7 @@ def test_ucx_installed(host):
 # LDMS PLUGIN CONFIGURATION TEST (if enabled in software_config.json)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(18)
 def test_ldms_sampler_plugins(host):
     """
@@ -451,6 +460,7 @@ def test_ldms_sampler_plugins(host):
 # LDAP TESTS (if enabled in software_config.json)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(19)
 def test_ldap_slapd_configuration(host):
     """
@@ -459,7 +469,7 @@ def test_ldap_slapd_configuration(host):
     Skips if OpenLDAP is not enabled in software_config.json.
 
     This test:
-    1. Gets external_slapd_conf_path and ldap_server_ip from user_config.yml
+    1. Gets external_slapd_conf_path and ldap_server_ip from omnia_test_config.yml
     2. Backs up existing slapd.conf
     3. Copies new slapd.conf to /opt/omnia/auth/slapd.conf
     4. Restarts omnia_auth container
@@ -481,6 +491,7 @@ def test_ldap_slapd_configuration(host):
         assert False, f"LDAP test failed: {result['error']}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(20)
 def test_ldap_user_login_from_oim(host):
     """
@@ -488,7 +499,7 @@ def test_ldap_user_login_from_oim(host):
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
-    Reads ldap_credentials from user_config.yml (format: "user1:pwd1,user2:pwd2").
+    Reads ldap_credentials from omnia_test_config.yml (format: "user1:pwd1,user2:pwd2").
     Tests SSH login from OIM to slurm_control_node, login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
@@ -502,7 +513,7 @@ def test_ldap_user_login_from_oim(host):
 
     result = verify_ldap_user_login_from_oim(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 
@@ -533,6 +544,7 @@ def test_ldap_user_login_from_oim(host):
         assert False, result.get("error", "LDAP login failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(21)
 def test_ldap_user_login_from_core(host):
     """
@@ -540,7 +552,7 @@ def test_ldap_user_login_from_core(host):
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
-    Reads ldap_credentials from user_config.yml (format: "user1:pwd1,user2:pwd2").
+    Reads ldap_credentials from omnia_test_config.yml (format: "user1:pwd1,user2:pwd2").
     Tests SSH login from omnia_core container to slurm_control_node, login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
@@ -554,7 +566,7 @@ def test_ldap_user_login_from_core(host):
 
     result = verify_ldap_user_login_from_core(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 
@@ -585,6 +597,7 @@ def test_ldap_user_login_from_core(host):
         assert False, result.get("error", "LDAP login failed")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(22)
 def test_pam_slurm_adopt(host):
     """
@@ -606,7 +619,7 @@ def test_pam_slurm_adopt(host):
 
     result = verify_pam_slurm_adopt(host)
 
-    if result.get("error") and "not set in user_config" in result["error"]:
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
         log.skipped("LDAP credentials not configured", result["error"])
         pytest.skip(result["error"])
 

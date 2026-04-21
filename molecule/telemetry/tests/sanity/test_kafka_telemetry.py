@@ -58,6 +58,7 @@ from automation_library.telemetry.functions.kafka_func import (
 # LDMS TEST CASES (run first, before Kafka tests)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(5)
 def test_ldms_pods_running(host):
     """
@@ -98,6 +99,7 @@ def test_ldms_pods_running(host):
         assert False, f"LDMS pods not running: {'; '.join(errors)}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(6)
 def test_ldms_services_ports(host):
     """
@@ -282,6 +284,7 @@ def _build_topic_result_lines(result):
 # KAFKA TEST CASES
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(7)
 def test_kafka_topics(host):
     """
@@ -330,6 +333,7 @@ def test_kafka_topics(host):
         assert False, "; ".join(errors)
 
 
+@pytest.mark.sanity
 @pytest.mark.order(8)
 def test_kafka_config_match(host):
     """
@@ -381,6 +385,7 @@ def test_kafka_config_match(host):
         assert False, ASSERT_MSGS["kafka_config_mismatch"].format(mismatches=mismatch_str)
 
 
+@pytest.mark.sanity
 @pytest.mark.order(9)
 def test_idrac_data_in_kafka_topic(host):
     """
@@ -437,6 +442,7 @@ def test_idrac_data_in_kafka_topic(host):
         assert False, result.get("error", "iDRAC data missing")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_ldms_earliest_data_in_kafka(host):
     """
@@ -499,6 +505,7 @@ def test_ldms_earliest_data_in_kafka(host):
         assert False, "No LDMS earliest data found in Kafka topic"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_ldms_latest_data_in_kafka(host):
     """

@@ -26,7 +26,7 @@
 #   ./run_molecule.sh prepare_oim verify     # Verify only
 #
 # Configuration:
-#   - user_config.yml: OIM server connection settings
+#   - omnia_test_config.yml: OIM server connection settings
 #   - input/software_config.json: Determines if auth container is required
 #
 # =============================================================================

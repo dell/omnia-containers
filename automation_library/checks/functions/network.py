@@ -18,7 +18,7 @@ from typing import Dict, List
 
 from ...core.formatting import log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 from .system import run_command, run_shell
 
 
@@ -72,7 +72,7 @@ def validate_network_interfaces() -> Dict:
                 "passed": False,
                 "message": OIM_PREREQ_MSGS["iface_pxe_not_found"].format(interface=pxe_iface),
                 "instruction": OIM_PREREQ_MSGS["iface_pxe_not_found_instruction"].format(
-                    interface=pxe_iface, config_path=USER_CONFIG_PATH)
+                    interface=pxe_iface, config_path=OMNIA_TEST_CONFIG_PATH)
             })
         elif pxe_info["state"] != "up":
             results["passed"] = False
@@ -93,8 +93,8 @@ def validate_network_interfaces() -> Dict:
         results["checks"].append({
             "name": "pxe_interface",
             "passed": False,
-            "message": OIM_PREREQ_MSGS["iface_not_configured"],
-            "instruction": (f"ACTION REQUIRED: Set 'pxe_interface' in {USER_CONFIG_PATH} "
+            "message": OIM_PREREQ_MSGS["iface_omnia_test_configured"],
+            "instruction": (f"ACTION REQUIRED: Set 'pxe_interface' in {OMNIA_TEST_CONFIG_PATH} "
                            f"with your PXE network interface name.")
         })
         results["passed"] = False
@@ -111,7 +111,7 @@ def validate_network_interfaces() -> Dict:
                 "passed": False,
                 "message": OIM_PREREQ_MSGS["iface_public_not_found"].format(interface=public_iface),
                 "instruction": OIM_PREREQ_MSGS["iface_public_not_found_instruction"].format(
-                    interface=public_iface, config_path=USER_CONFIG_PATH)
+                    interface=public_iface, config_path=OMNIA_TEST_CONFIG_PATH)
             })
         elif public_info["state"] != "up":
             results["passed"] = False
@@ -132,8 +132,8 @@ def validate_network_interfaces() -> Dict:
         results["checks"].append({
             "name": "public_interface",
             "passed": False,
-            "message": OIM_PREREQ_MSGS["iface_not_configured"],
-            "instruction": f"ACTION REQUIRED: Set 'public_interface' in {USER_CONFIG_PATH} with your public network interface name."
+            "message": OIM_PREREQ_MSGS["iface_omnia_test_configured"],
+            "instruction": f"ACTION REQUIRED: Set 'public_interface' in {OMNIA_TEST_CONFIG_PATH} with your public network interface name."
         })
         results["passed"] = False
 
@@ -222,8 +222,8 @@ def configure_pxe_nic() -> Dict:
         return {
             "passed": False,
             "configured": False,
-            "message": OIM_PREREQ_MSGS["pxe_interface_not_configured"],
-            "details": OIM_PREREQ_MSGS["pxe_interface_not_configured_details"]
+            "message": OIM_PREREQ_MSGS["pxe_interface_omnia_test_configured"],
+            "details": OIM_PREREQ_MSGS["pxe_interface_omnia_test_configured_details"]
         }
 
     # Check if interface exists
@@ -272,7 +272,7 @@ def configure_pxe_nic() -> Dict:
             "already_configured": True,
             "current_ip": current_ip,
             "message": OIM_PREREQ_MSGS["pxe_nic_already_configured"].format(interface=pxe_iface, ip=current_ip),
-            "details": f"To reconfigure, set 'force_configure_pxe: true' in {USER_CONFIG_PATH}"
+            "details": f"To reconfigure, set 'force_configure_pxe: true' in {OMNIA_TEST_CONFIG_PATH}"
         }
 
     # Case 2: Force reconfigure - flush ALL IPs first
@@ -473,7 +473,7 @@ def check_pxe_is_public_interface() -> Dict:
                 f"The PXE interface is used for node provisioning and should be an "
                 f"isolated network.\nHaving the same NIC for PXE and public internet "
                 f"can cause provisioning issues.\n"
-                f"Please verify your settings in {USER_CONFIG_PATH}:\n"
+                f"Please verify your settings in {OMNIA_TEST_CONFIG_PATH}:\n"
                 f"  pxe_interface: {pxe_iface}\n"
                 f"  public_interface: {public_iface}"
             ),
@@ -492,7 +492,7 @@ def check_pxe_is_public_interface() -> Dict:
                 f"The PXE interface should be on an isolated provisioning network.\n"
                 f"If '{pxe_iface}' is intentionally used for both PXE and internet, "
                 f"you can ignore this warning.\n"
-                f"Otherwise, update 'pxe_interface' in {USER_CONFIG_PATH}."
+                f"Otherwise, update 'pxe_interface' in {OMNIA_TEST_CONFIG_PATH}."
             ),
         }
 

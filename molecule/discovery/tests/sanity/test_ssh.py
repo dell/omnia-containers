@@ -36,6 +36,7 @@ from automation_library.discovery.functions import (
 # OIM SSH TESTS (run first)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_ssh_from_oim_via_admin_ip(host):
     """
@@ -66,6 +67,7 @@ def test_ssh_from_oim_via_admin_ip(host):
     assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(3)
 def test_ssh_from_oim_via_hostname(host):
     """
@@ -100,6 +102,7 @@ def test_ssh_from_oim_via_hostname(host):
 # OMNIA_CORE SSH TESTS
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(4)
 def test_ssh_from_core_via_admin_ip(host):
     """
@@ -130,6 +133,7 @@ def test_ssh_from_core_via_admin_ip(host):
     assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
 
 
+@pytest.mark.sanity
 @pytest.mark.order(5)
 def test_ssh_from_core_via_hostname(host):
     """
