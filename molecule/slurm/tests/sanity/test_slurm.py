@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Slurm cluster test cases for OMNIA.
 
 This module contains test cases to verify the health and status of a Slurm cluster:
