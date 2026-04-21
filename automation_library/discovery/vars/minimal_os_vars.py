@@ -67,36 +67,10 @@ REQUIRED_SERVICES = [
     "NetworkManager",
 ]
 
-# Image storage paths
-IMAGE_PATHS = {
-    "base": "/var/lib/omnia/images",
-    "os_x86_64": [
-        "os_x86_64.img",
-        "minimal-os-x86_64.img",
-        "omnia-minimal-x86_64.img",
-    ],
-    "os_aarch64": [
-        "os_aarch64.img",
-        "minimal-os-aarch64.img",
-        "omnia-minimal-aarch64.img",
-    ],
-}
-
-# PXE mapping paths
-PXE_MAPPING_PATHS = [
-    "/etc/omnia/pxe_mapping.yaml",
-    "/opt/omnia/config/pxe_mapping.yaml",
-    "/opt/omnia/oim_shared/input/pxe_mapping.yaml",
-]
-
-# Additional packages config path
-ADDITIONAL_PACKAGES_PATH = "/etc/omnia/additional_packages.json"
-
-# Functional group schema paths
-FUNCTIONAL_GROUP_SCHEMA_PATHS = [
-    "/etc/omnia/functional_groups",
-    "/opt/omnia/config/functional_groups",
-]
+# Configuration file paths - read dynamically from these files
+PROVISION_CONFIG_PATH = "/opt/omnia/input/project_default/provision_config.yml"
+SOFTWARE_CONFIG_PATH = "/opt/omnia/input/project_default/software_config.json"
+FUNCTIONAL_GROUPS_CONFIG_PATH = "/opt/omnia/.data/functional_groups_config.yml"
 
 # All variables in a single dict for easy import
 MINIMAL_OS_VARS = {
@@ -106,8 +80,7 @@ MINIMAL_OS_VARS = {
     "excluded_package_patterns": EXCLUDED_PACKAGE_PATTERNS,
     "excluded_services": EXCLUDED_SERVICES,
     "required_services": REQUIRED_SERVICES,
-    "image_paths": IMAGE_PATHS,
-    "pxe_mapping_paths": PXE_MAPPING_PATHS,
-    "additional_packages_path": ADDITIONAL_PACKAGES_PATH,
-    "functional_group_schema_paths": FUNCTIONAL_GROUP_SCHEMA_PATHS,
+    "provision_config_path": PROVISION_CONFIG_PATH,
+    "software_config_path": SOFTWARE_CONFIG_PATH,
+    "functional_groups_config_path": FUNCTIONAL_GROUPS_CONFIG_PATH,
 }
