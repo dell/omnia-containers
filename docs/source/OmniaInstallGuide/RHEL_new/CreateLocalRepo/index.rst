@@ -11,4 +11,5 @@ Once the Pulp container is ready, you can provide inputs in the ``/opt/omnia/inp
     localrepos
     RunningLocalRepo
     AdminDebugPackages
+    AddingAdditionalPackages
     CleanupLocalPulpRepositories
