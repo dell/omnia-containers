@@ -19,10 +19,19 @@ This module contains all constants, paths, and configuration values
 for the Minimal OS automation tests.
 """
 
-# Functional group names
+from automation_library.core.vars import (
+    PROVISION_CONFIG_PATH,
+    SOFTWARE_CONFIG_PATH,
+    FUNCTIONAL_GROUPS_CONFIG_PATH,
+    INPUT_BASE_PATH,
+    MINIMAL_OS_X86_64_FUNCTIONAL_GROUP,
+    MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP,
+)
+
+# Functional group names (imported from core)
 FUNCTIONAL_GROUPS = {
-    "os_x86_64": "os_x86_64",
-    "os_aarch64": "os_aarch64",
+    "os_x86_64": MINIMAL_OS_X86_64_FUNCTIONAL_GROUP,
+    "os_aarch64": MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP,
 }
 
 # Base OS packages that must be present (AC-2.1, FS-IC-01, FS-CR-03)
@@ -54,6 +63,9 @@ EXCLUDED_PACKAGE_PATTERNS = {
 EXCLUDED_SERVICES = [
     "slurmd",
     "slurmctld",
+    "slurmdbd",
+    "slurmrestd",
+    "munge",
     "kubelet",
     "docker",
     "podman",
@@ -67,10 +79,8 @@ REQUIRED_SERVICES = [
     "NetworkManager",
 ]
 
-# Configuration file paths - read dynamically from these files
-PROVISION_CONFIG_PATH = "/opt/omnia/input/project_default/provision_config.yml"
-SOFTWARE_CONFIG_PATH = "/opt/omnia/input/project_default/software_config.json"
-FUNCTIONAL_GROUPS_CONFIG_PATH = "/opt/omnia/.data/functional_groups_config.yml"
+# LDMS service check command
+LDMS_SERVICE_CHECK_CMD = "systemctl is-active ldmsd"
 
 # All variables in a single dict for easy import
 MINIMAL_OS_VARS = {
@@ -83,4 +93,6 @@ MINIMAL_OS_VARS = {
     "provision_config_path": PROVISION_CONFIG_PATH,
     "software_config_path": SOFTWARE_CONFIG_PATH,
     "functional_groups_config_path": FUNCTIONAL_GROUPS_CONFIG_PATH,
+    "input_base_path": INPUT_BASE_PATH,
+    "ldms_service_check_cmd": LDMS_SERVICE_CHECK_CMD,
 }

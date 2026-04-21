@@ -130,9 +130,9 @@ TEST_ASSERT_MSGS = {
 ║
 ║ HOW TO FIX:
 ║   1. Verify os_x86_64 and os_aarch64 functional groups are defined
-║   2. Check /etc/omnia/functional_groups/ for schema files
+║   2. Check /opt/omnia/.data/functional_groups_config.yml
 ║   3. Ensure OIM is properly deployed with Omnia
-║   4. Run: omnictl functional-group list
+║   4. Verify functional groups in PXE mapping file
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "arch_mismatch": """
@@ -155,8 +155,8 @@ TEST_ASSERT_MSGS = {
 ║ Error: {error}
 ║
 ║ HOW TO FIX:
-║   1. Check PXE mapping file exists at expected path
-║   2. Verify YAML syntax: cat /opt/omnia/oim_shared/input/pxe_mapping.yaml
+║   1. Check PXE mapping file path in provision_config.yml
+║   2. Verify file exists at configured path
 ║   3. Ensure each node has a functional_group assigned
 ║   4. Verify no node is assigned to multiple groups
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -210,10 +210,10 @@ TEST_ASSERT_MSGS = {
 ║ Missing: {arch} image
 ║
 ║ HOW TO FIX:
-║   1. Trigger image build for {arch}
-║   2. Verify build completed successfully
-║   3. Check object storage: ls /var/lib/omnia/images/
-║   4. Verify image checksum matches build output
+║   1. Images are built on-demand during node provisioning
+║   2. Verify build_stream_config.yml is configured correctly
+║   3. Check build logs for any errors
+║   4. Image storage is managed by Omnia provisioning system
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "handoff_services_failed": """

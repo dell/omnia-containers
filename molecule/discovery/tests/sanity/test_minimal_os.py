@@ -55,7 +55,8 @@ from automation_library.discovery.functions import (
 # TC-F01: FUNCTIONAL GROUP SCHEMA VALIDATION
 # =============================================================================
 
-@pytest.mark.order(1)
+@pytest.mark.minimal_os
+@pytest.mark.order(100)
 def test_functional_group_schema(host):
     """
     TC-F01: Functional Group Schema Validation.
@@ -82,7 +83,8 @@ def test_functional_group_schema(host):
 # TC-F02: ARCHITECTURE VALIDATION (x86_64)
 # =============================================================================
 
-@pytest.mark.order(2)
+@pytest.mark.minimal_os
+@pytest.mark.order(101)
 def test_architecture_x86_64(host):
     """
     TC-F02: Architecture Validation (x86_64).
@@ -121,7 +123,8 @@ def test_architecture_x86_64(host):
 # TC-F03: ARCHITECTURE VALIDATION (aarch64)
 # =============================================================================
 
-@pytest.mark.order(3)
+@pytest.mark.minimal_os
+@pytest.mark.order(102)
 def test_architecture_aarch64(host):
     """
     TC-F03: Architecture Validation (aarch64).
@@ -160,7 +163,8 @@ def test_architecture_aarch64(host):
 # TC-F05: BASE OS PACKAGES PRESENT
 # =============================================================================
 
-@pytest.mark.order(4)
+@pytest.mark.minimal_os
+@pytest.mark.order(103)
 def test_base_packages(host):
     """
     TC-F05: Base OS Packages Present.
@@ -192,7 +196,8 @@ def test_base_packages(host):
 # TC-F06: LDMS PACKAGES PRESENT
 # =============================================================================
 
-@pytest.mark.order(5)
+@pytest.mark.minimal_os
+@pytest.mark.order(104)
 def test_ldms_packages(host):
     """
     TC-F06: LDMS Packages Present.
@@ -225,7 +230,8 @@ def test_ldms_packages(host):
 # TC-F07: EXCLUDED PACKAGES VERIFICATION
 # =============================================================================
 
-@pytest.mark.order(6)
+@pytest.mark.minimal_os
+@pytest.mark.order(105)
 def test_excluded_packages(host):
     """
     TC-F07: Excluded Packages Verification.
@@ -257,7 +263,8 @@ def test_excluded_packages(host):
 # TC-F09: ADDITIONAL PACKAGES SUPPORT
 # =============================================================================
 
-@pytest.mark.order(7)
+@pytest.mark.minimal_os
+@pytest.mark.order(106)
 def test_additional_packages(host):
     """
     TC-F09: Additional Packages Support.
@@ -295,7 +302,8 @@ def test_additional_packages(host):
 # TC-F10: GRACEFUL FALLBACK (NO ADDITIONAL PACKAGES)
 # =============================================================================
 
-@pytest.mark.order(8)
+@pytest.mark.minimal_os
+@pytest.mark.order(107)
 def test_additional_packages_fallback(host):
     """
     TC-F10: Graceful Fallback (No Additional Packages).
@@ -327,7 +335,8 @@ def test_additional_packages_fallback(host):
 # TC-F12: NETWORK IDENTITY ASSIGNMENT
 # =============================================================================
 
-@pytest.mark.order(9)
+@pytest.mark.minimal_os
+@pytest.mark.order(108)
 def test_network_identity(host):
     """
     TC-F12: Network Identity Assignment.
@@ -359,7 +368,8 @@ def test_network_identity(host):
 # TC-F14: HANDOFF SERVICE STATE
 # =============================================================================
 
-@pytest.mark.order(10)
+@pytest.mark.minimal_os
+@pytest.mark.order(109)
 def test_handoff_services(host):
     """
     TC-F14: Handoff Service State.
@@ -391,7 +401,8 @@ def test_handoff_services(host):
 # TC-F15: SSH ACCESS WITH AUTHORIZED KEYS
 # =============================================================================
 
-@pytest.mark.order(11)
+@pytest.mark.minimal_os
+@pytest.mark.order(110)
 def test_ssh_access(host):
     """
     TC-F15: SSH Access with Authorized Keys.
@@ -434,7 +445,8 @@ def test_ssh_access(host):
 # TC-F16: PACKAGE MANAGER FUNCTIONALITY
 # =============================================================================
 
-@pytest.mark.order(12)
+@pytest.mark.minimal_os
+@pytest.mark.order(111)
 def test_package_manager(host):
     """
     TC-F16: Package Manager Functionality.
@@ -466,7 +478,8 @@ def test_package_manager(host):
 # TC-F17: LDMS SERVICE STATE (NOT RUNNING)
 # =============================================================================
 
-@pytest.mark.order(13)
+@pytest.mark.minimal_os
+@pytest.mark.order(112)
 def test_ldms_service_state(host):
     """
     TC-F17: LDMS Service State (Not Running).
@@ -498,7 +511,8 @@ def test_ldms_service_state(host):
 # TC-E01: ARCHITECTURE MISMATCH REJECTION
 # =============================================================================
 
-@pytest.mark.order(14)
+@pytest.mark.minimal_os
+@pytest.mark.order(113)
 def test_architecture_mismatch_detection(host):
     """
     TC-E01: Architecture Mismatch Rejection.
@@ -529,7 +543,8 @@ def test_architecture_mismatch_detection(host):
 # TC-E03: MISSING IMAGE DETECTION
 # =============================================================================
 
-@pytest.mark.order(15)
+@pytest.mark.minimal_os
+@pytest.mark.order(114)
 def test_missing_image_detection(host):
     """
     TC-E03: Missing Image Detection.
@@ -549,7 +564,8 @@ def test_missing_image_detection(host):
 # TC-E04: INVALID ADDITIONAL PACKAGES HANDLING
 # =============================================================================
 
-@pytest.mark.order(16)
+@pytest.mark.minimal_os
+@pytest.mark.order(115)
 def test_invalid_packages_handling(host):
     """
     TC-E04: Invalid Additional Packages Handling.
@@ -583,7 +599,8 @@ def test_invalid_packages_handling(host):
 # TC-S01: MANAGEMENT NETWORK ISOLATION
 # =============================================================================
 
-@pytest.mark.order(17)
+@pytest.mark.minimal_os
+@pytest.mark.order(116)
 def test_network_isolation(host):
     """
     TC-S01: Management Network Isolation.
@@ -617,7 +634,8 @@ def test_network_isolation(host):
 # TC-S02: SSH KEY-BASED ACCESS CONTROL
 # =============================================================================
 
-@pytest.mark.order(18)
+@pytest.mark.minimal_os
+@pytest.mark.order(117)
 def test_ssh_key_access(host):
     """
     TC-S02: SSH Key-Based Access Control.
@@ -650,7 +668,8 @@ def test_ssh_key_access(host):
 # TC-S03: NO EMBEDDED CREDENTIALS
 # =============================================================================
 
-@pytest.mark.order(19)
+@pytest.mark.minimal_os
+@pytest.mark.order(118)
 def test_no_embedded_credentials(host):
     """
     TC-S03: No Embedded Credentials.

@@ -24,6 +24,7 @@ import yaml
 import csv
 from io import StringIO
 
+from automation_library.core.host import run_on_remote_node
 from automation_library.discovery.vars.minimal_os_vars import (
     FUNCTIONAL_GROUPS,
     BASE_PACKAGES,
@@ -34,6 +35,8 @@ from automation_library.discovery.vars.minimal_os_vars import (
     PROVISION_CONFIG_PATH,
     SOFTWARE_CONFIG_PATH,
     FUNCTIONAL_GROUPS_CONFIG_PATH,
+    INPUT_BASE_PATH,
+    LDMS_SERVICE_CHECK_CMD,
 )
 
 
@@ -314,14 +317,6 @@ def validate_node_architecture(host, node_ip, expected_group):
 # PACKAGE VERIFICATION FUNCTIONS
 # =============================================================================
 
-def _run_on_node(host, node_ip, command):
-    """Run command on remote node via SSH."""
-    return host.run(
-        f"ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 "
-        f"root@{node_ip} '{command}' 2>/dev/null"
-    )
-
-
 def check_base_packages(host, node_ip):
     """
     TC-F05: Check if all base OS packages are installed.
@@ -338,7 +333,7 @@ def check_base_packages(host, node_ip):
     }
     
     for package in BASE_PACKAGES:
-        cmd_result = _run_on_node(host, node_ip, f"rpm -q {package}")
+        cmd_result = run_on_remote_node(host, f"rpm -q {package}", node_ip)
         if cmd_result.rc == 0:
             result["installed"].append(package)
         else:
@@ -372,14 +367,14 @@ def check_ldms_packages(host, node_ip):
     
     # Check packages
     for package in LDMS_PACKAGES:
-        cmd_result = _run_on_node(host, node_ip, f"rpm -q {package}")
+        cmd_result = run_on_remote_node(host, f"rpm -q {package}", node_ip)
         if cmd_result.rc == 0:
             result["installed"].append(package)
         else:
             result["missing"].append(package)
     
     # Check ldmsd binary
-    cmd_result = _run_on_node(host, node_ip, "which ldmsd")
+    cmd_result = run_on_remote_node(host, "which ldmsd", node_ip)
     if cmd_result.rc == 0:
         result["binary_path"] = cmd_result.stdout.strip()
     
@@ -414,14 +409,14 @@ def check_excluded_packages(host, node_ip):
     
     # Check for excluded package patterns
     for pattern, name in EXCLUDED_PACKAGE_PATTERNS.items():
-        cmd_result = _run_on_node(host, node_ip, f"rpm -qa | grep -E '{pattern}'")
+        cmd_result = run_on_remote_node(host, f"rpm -qa | grep -E '{pattern}'", node_ip)
         if cmd_result.rc == 0 and cmd_result.stdout.strip():
             result["found_packages"].append(name)
             result["success"] = False
     
     # Check for excluded services
     for service in EXCLUDED_SERVICES:
-        cmd_result = _run_on_node(host, node_ip, f"systemctl is-active {service}")
+        cmd_result = run_on_remote_node(host, f"systemctl is-active {service}", node_ip)
         if cmd_result.rc == 0 and "active" in cmd_result.stdout:
             result["found_services"].append(service)
             result["success"] = False
@@ -485,7 +480,7 @@ def check_additional_packages(host, node_ip):
                 if pkg_name and "os" in pkg_name.lower():
                     # This is an os-related package config
                     # Read the actual package list from the referenced file
-                    packages_file = f"/opt/omnia/input/project_default/{pkg_name}_packages.json"
+                    packages_file = f"{INPUT_BASE_PATH}/{pkg_name}_packages.json"
                     pkg_result = host.run(f"cat {packages_file} 2>/dev/null")
                     if pkg_result.rc == 0:
                         try:
@@ -514,7 +509,7 @@ def check_additional_packages(host, node_ip):
         if not package_name:
             continue
         
-        cmd_result = _run_on_node(host, node_ip, f"rpm -q {package_name}")
+        cmd_result = run_on_remote_node(host, f"rpm -q {package_name}", node_ip)
         if cmd_result.rc == 0 and cmd_result.stdout.strip():
             result["installed"].append(package_name)
         else:
@@ -554,7 +549,7 @@ def check_required_services(host, node_ip):
     }
     
     for service in REQUIRED_SERVICES:
-        cmd_result = _run_on_node(host, node_ip, f"systemctl is-active {service}")
+        cmd_result = run_on_remote_node(host, f"systemctl is-active {service}", node_ip)
         if cmd_result.rc == 0 and "active" in cmd_result.stdout:
             result["running"].append(service)
         else:
@@ -584,7 +579,7 @@ def check_excluded_services(host, node_ip):
     }
     
     for service in EXCLUDED_SERVICES:
-        cmd_result = _run_on_node(host, node_ip, f"systemctl is-active {service}")
+        cmd_result = run_on_remote_node(host, f"systemctl is-active {service}", node_ip)
         if cmd_result.rc == 0 and "active" in cmd_result.stdout:
             result["running"].append(service)
             result["success"] = False
@@ -613,15 +608,15 @@ def check_ldms_service_state(host, node_ip):
     }
     
     # Check if service is active
-    cmd_result = _run_on_node(host, node_ip, "systemctl is-active ldmsd")
+    cmd_result = run_on_remote_node(host, LDMS_SERVICE_CHECK_CMD, node_ip)
     result["service_active"] = cmd_result.rc == 0 and "active" in cmd_result.stdout
     
     # Check if service is enabled
-    cmd_result = _run_on_node(host, node_ip, "systemctl is-enabled ldmsd")
+    cmd_result = run_on_remote_node(host, "systemctl is-enabled ldmsd", node_ip)
     result["service_enabled"] = cmd_result.rc == 0 and "enabled" in cmd_result.stdout
     
     # Check for running processes
-    cmd_result = _run_on_node(host, node_ip, "pgrep -c ldmsd")
+    cmd_result = run_on_remote_node(host, "pgrep -c ldmsd", node_ip)
     has_processes = cmd_result.rc == 0 and cmd_result.stdout.strip() != "0"
     
     if not result["service_active"] and not has_processes:
@@ -653,7 +648,7 @@ def check_ram_filesystem(host, node_ip):
     }
     
     # Check filesystem type
-    cmd_result = _run_on_node(host, node_ip, "df -T / | tail -1")
+    cmd_result = run_on_remote_node(host, "df -T / | tail -1", node_ip)
     if cmd_result.rc == 0:
         result["mount_info"] = cmd_result.stdout.strip()
         if "tmpfs" in cmd_result.stdout:
@@ -690,12 +685,12 @@ def check_network_identity(host, node_ip, expected_hostname):
     }
     
     # Check hostname
-    cmd_result = _run_on_node(host, node_ip, "hostname")
+    cmd_result = run_on_remote_node(host, "hostname", node_ip)
     if cmd_result.rc == 0:
         result["actual_hostname"] = cmd_result.stdout.strip()
     
     # Check IP is configured
-    cmd_result = _run_on_node(host, node_ip, f"ip addr show | grep {node_ip}")
+    cmd_result = run_on_remote_node(host, f"ip addr show | grep {node_ip}", node_ip)
     result["ip_configured"] = cmd_result.rc == 0
     
     hostname_match = result["actual_hostname"] == expected_hostname
@@ -732,7 +727,7 @@ def check_ssh_access(host, node_ip):
         "error": None,
     }
     
-    cmd_result = _run_on_node(host, node_ip, "echo ok")
+    cmd_result = run_on_remote_node(host, "echo ok", node_ip)
     if cmd_result.rc == 0 and "ok" in cmd_result.stdout:
         result["success"] = True
         result["details"] = "SSH connection successful"
@@ -758,7 +753,7 @@ def check_ssh_key_auth(host, node_ip):
     }
     
     # Check authorized_keys
-    cmd_result = _run_on_node(host, node_ip, "test -f /root/.ssh/authorized_keys && echo EXISTS")
+    cmd_result = run_on_remote_node(host, "test -f /root/.ssh/authorized_keys && echo EXISTS", node_ip)
     result["authorized_keys_exists"] = "EXISTS" in cmd_result.stdout
     
     # Check password auth disabled
@@ -804,7 +799,7 @@ def check_package_manager(host, node_ip):
     }
     
     # Check dnf binary
-    cmd_result = _run_on_node(host, node_ip, "which dnf")
+    cmd_result = run_on_remote_node(host, "which dnf", node_ip)
     result["dnf_exists"] = cmd_result.rc == 0
     
     if not result["dnf_exists"]:
@@ -812,7 +807,7 @@ def check_package_manager(host, node_ip):
         return result
     
     # Check repositories
-    cmd_result = _run_on_node(host, node_ip, "dnf repolist")
+    cmd_result = run_on_remote_node(host, "dnf repolist", node_ip)
     if cmd_result.rc == 0:
         result["repos_configured"] = True
         result["repo_list"] = cmd_result.stdout.strip()[:200]
@@ -911,7 +906,7 @@ def check_network_isolation(host, node_ip):
     }
     
     # Check default route
-    cmd_result = _run_on_node(host, node_ip, "ip route | grep default")
+    cmd_result = run_on_remote_node(host, "ip route | grep default", node_ip)
     if cmd_result.rc == 0:
         result["default_route"] = cmd_result.stdout.strip()
         result["success"] = True
