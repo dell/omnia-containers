@@ -1,4 +1,4 @@
 ﻿Network Topology Type,Supported by Omnia,Validated with current version of Omnia
 Dedicated,Yes,Yes
 Shared LOM,Yes,Not validated
-Hybrid (Dedicated + Shared),Yes,Not validated
+Hybrid (Dedicated + Shared),Yes,Yes
