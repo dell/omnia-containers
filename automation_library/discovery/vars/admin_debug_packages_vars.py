@@ -12,32 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Discovery Variables Module."""
+"""
+Admin Debug Packages Variables.
 
-from .common_vars import (
-    SSH_OPTS,
-    CONTAINER_NAME,
+Constants and paths for admin debug packages verification.
+"""
+
+# Path to admin_debug_packages.json inside omnia_core container
+ADMIN_DEBUG_PACKAGES_JSON = (
+    "/opt/omnia/input/project_default/config"
+    "/x86_64/rhel/10.0/admin_debug_packages.json"
 )
 
-from .slurm_vars import (
-    SLURM_CONTROL_SERVICES,
-    SLURM_NODE_SERVICES,
-    LOGIN_NODE_SERVICES,
-    OPENMPI_BIN_PATH,
-    UCX_BIN_PATH,
-    LDMS_SAMPLER_SERVICE,
-    LDMS_SAMPLER_CONF_PATH,
-    LDMS_SAMPLER_ENV_PATH,
-)
-
-from .ldap_vars import (
-    LDAP_CONTAINER_NAME,
-    SLAPD_CONF_TEMPLATE,
-    CONTAINER_STABLE_WAIT_SECONDS,
-    CONTAINER_CHECK_INTERVAL,
-)
-
-# Admin debug packages
-from .admin_debug_packages_vars import (
-    ADMIN_DEBUG_PACKAGES_JSON,
-)
+__all__ = [
+    "ADMIN_DEBUG_PACKAGES_JSON",
+]
