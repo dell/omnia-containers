@@ -36,6 +36,11 @@ from .prepare_oim_func import (
     get_expected_services,
 )
 
+from .build_stream_func import (
+    check_build_stream_health,
+    verify_postgres_db_tables,
+)
+
 __all__ = [
     # Config helpers
     "is_ldap_enabled",
@@ -54,4 +59,7 @@ __all__ = [
     "check_omnia_target_deps",
     "get_expected_containers",
     "get_expected_services",
+    # Build stream functions
+    "check_build_stream_health",
+    "verify_postgres_db_tables",
 ]

@@ -18,7 +18,10 @@ Discovery Module - Common Variables.
 SSH options and common constants used across discovery tests.
 """
 
-from automation_library.core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
+from automation_library.core.vars import (
+    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
+    OIM_SHARED_PATH as _OIM_SHARED_PATH,
+)
 
 # =============================================================================
 # SSH OPTIONS (for handling changed host keys)
@@ -36,3 +39,28 @@ SSH_OPTS = (
 # =============================================================================
 
 CONTAINER_NAME = _CORE_CONTAINER
+
+# =============================================================================
+# CLOUD-INIT RETRY CONFIGURATION
+# =============================================================================
+
+# Maximum number of retries per node when cloud-init is still running
+CLOUDINIT_RETRY_LIMIT = 50
+
+# Seconds to wait between retry attempts
+CLOUDINIT_RETRY_INTERVAL = 10
+
+# Statuses that indicate cloud-init completed successfully (no retry needed)
+CLOUDINIT_PASSED_STATUSES = ["done"]
+
+# Statuses that indicate cloud-init is still in progress (should retry)
+CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
+
+# =============================================================================
+# IMAGE CONFIG YAML DIRECTORY
+# Same path used by build_image_x86_64 playbook (build_image_vars.py).
+# Contains per-functional-group YAML files with 'packages' list.
+# e.g. rhel-slurm_control_node_x86_64_<uuid>-image-build-10.0.yaml
+# =============================================================================
+
+IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"

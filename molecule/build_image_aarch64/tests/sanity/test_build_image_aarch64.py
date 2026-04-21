@@ -18,14 +18,24 @@ Build Image aarch64 Test Cases.
 This module contains pytest test cases for verifying build_image_aarch64 deployment.
 
 Test cases:
-1. Verify functional_groups_config.yml exists and contains all roles/groups from pxe_mapping
-2. Verify base and compute images are available in regctl registry
-3. Verify all 3 images (initramfs, vmlinuz, rhel) are pushed to S3 bucket
-4. Verify all expected packages are installed in S3 images
+1. Verify build_stream pipeline stage 'build-image-aarch64' COMPLETED (when enabled)
+2. Verify functional_groups_config.yml exists and contains all roles/groups from pxe_mapping
+3. Verify base and compute images are available in regctl registry
+4. Verify all 3 images (initramfs, vmlinuz, rhel) are pushed to S3 bucket
+5. Verify all expected packages are installed in S3 images
+
+All tests skip gracefully when no aarch64 functional groups are found in pxe_mapping.
 """
 
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import (
+    TestLogger,
+    get_functional_groups_from_pxe_mapping,
+    is_build_stream_enabled,
+    get_build_stream_job_id,
+    STAGE_BUILD_IMAGE_AARCH64,
+)
+from molecule.conftest import build_stream_job_state
 from automation_library.build_image.vars import BUILD_IMAGE_VARS
 from automation_library.build_image.messages import (
     TEST_NAMES,
@@ -41,17 +51,104 @@ from automation_library.build_image.functions import (
 )
 
 
+def _has_aarch64_groups(host) -> bool:
+    """Return True when at least one aarch64 functional group is in pxe_mapping."""
+    all_groups = get_functional_groups_from_pxe_mapping(host)
+    return any("aarch64" in fg for fg in all_groups)
+
+
 # Architecture constant for this test module
 ARCH = "aarch64"
 
+# =============================================================================
+# 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(1)
+def test_build_stream_job_stage(host):
+    """
+    Test 1: When build_stream is enabled, verify the build-image-aarch64 pipeline
+    stage completed successfully before running any other checks.
+
+    - Reads build_stream_job_id override from omnia_test_config.yml if set.
+    - Falls back to the latest job in build_stream_db otherwise.
+    - Prints the exact DB stage_state if not COMPLETED.
+    - Skipped when build_stream is disabled or no aarch64 FGs in pxe_mapping.
+    - If job not COMPLETED, all remaining tests are SKIPPED (not failed).
+    """
+    stage = STAGE_BUILD_IMAGE_AARCH64
+    log = TestLogger(TEST_NAMES["build_stream_job_stage"].format(stage=stage))
+
+    if not _has_aarch64_groups(host):
+        log.check("Checking for aarch64 functional groups in pxe_mapping")
+        log.skipped(
+            "No aarch64 functional groups found in pxe_mapping",
+            "Test skipped - no aarch64 nodes to verify"
+        )
+        pytest.skip("No aarch64 functional groups found in pxe_mapping")
+
+    if not is_build_stream_enabled(host):
+        log.check("Checking if build_stream is enabled")
+        log.skipped(
+            LOG_MSGS["build_stream_disabled_skip"],
+            "Test skipped - build_stream not enabled"
+        )
+        pytest.skip(LOG_MSGS["build_stream_disabled_skip"])
+
+    result = get_build_stream_job_id(host, stage_name=stage)
+    job_id = result.get("job_id") or "unknown"
+    job_state = result.get("job_state") or "NOT FOUND"
+    source = result.get("source", "database")
+
+    # Set shared state so autouse fixture in conftest.py can skip remaining tests
+    build_stream_job_state["checked"] = True
+    build_stream_job_state["success"] = result["success"]
+    build_stream_job_state["job_id"] = job_id
+    build_stream_job_state["job_state"] = job_state
+    build_stream_job_state["error"] = result.get("error", "")
+
+    log.check(LOG_MSGS["build_stream_job_checking"].format(stage=stage, source=source))
+
+    if result["success"]:
+        log.passed(
+            LOG_MSGS["build_stream_job_ok"].format(
+                stage=stage, job_id=job_id, source=source
+            )
+        )
+    else:
+        log.failed(
+            LOG_MSGS["build_stream_job_failed"].format(
+                stage=stage, state=job_state, job_id=job_id
+            ),
+            result.get("error", "")
+        )
+        # Use pytest.fail() so this test shows as FAILED (not skipped)
+        # Remaining tests will be SKIPPED via autouse fixture
+        pytest.fail(
+            ASSERT_MSGS["build_stream_job_stage_failed"].format(
+                stage=stage, job_id=job_id, state=job_state
+            )
+        )
+
 
 # =============================================================================
-# FUNCTIONAL GROUP VALIDATION TESTS
+# 2. FUNCTIONAL GROUP VALIDATION TESTS
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_functional_group_content(host):
     """Verify functional_groups_config.yml exists and contains all roles/groups from pxe_mapping."""
     log = TestLogger(TEST_NAMES["functional_group_content"])
+
+    if not _has_aarch64_groups(host):
+        log.check("Checking for aarch64 functional groups in pxe_mapping")
+        log.skipped(
+            "No aarch64 functional groups found in pxe_mapping",
+            "Test skipped - no aarch64 nodes to verify"
+        )
+        pytest.skip("No aarch64 functional groups found in pxe_mapping")
     file_path = BUILD_IMAGE_VARS["functional_group_file_path"]
 
     # Check file exists first - fail with clear message if not
@@ -96,25 +193,41 @@ def test_functional_group_content(host):
 # REGCTL REGISTRY VALIDATION TESTS
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(3)
 def test_regctl_registry_images(host):
     """Validate that base and compute images are available in regctl registry."""
     log = TestLogger(TEST_NAMES["regctl_registry_images"])
+
+    if not _has_aarch64_groups(host):
+        log.check("Checking for aarch64 functional groups in pxe_mapping")
+        log.skipped(
+            "No aarch64 functional groups found in pxe_mapping",
+            "Test skipped - no aarch64 nodes to verify"
+        )
+        pytest.skip("No aarch64 functional groups found in pxe_mapping")
     result = check_regctl_registry_images(host, arch=ARCH)
     found_count = len(result.get("found_images", []))
+    registry_url = result.get('registry_url', 'unknown')
+    build_stream_on = is_build_stream_enabled(host)
+
+    mode_str = "build_stream ENABLED" if build_stream_on else "build_stream DISABLED"
     log.check(
         f"Checking regctl registry for {ARCH} base image + "
-        f"{found_count} functional group images"
+        f"{found_count} functional group images | {mode_str}"
     )
 
-    # Build details
+    # Build details with FULL registry image paths (hostname:port/image-name)
     details_lines = [
         f"Architecture: {ARCH}",
-        f"Registry: {result.get('registry_url', 'unknown')}",
+        f"Registry: {registry_url}",
+        f"Mode: {mode_str} (regctl images do NOT contain UUID in name)",
     ]
     for img in result.get("found_images", []):
-        details_lines.append(f"✓ {img}")
+        # Show full registry path: hostname:port/image-name
+        details_lines.append(f"✓ {registry_url}/{img}")
     for img in result.get("missing_images", []):
-        details_lines.append(f"✗ {img}: MISSING")
+        details_lines.append(f"✗ {registry_url}/{img}: MISSING")
     details = "\n".join(details_lines)
 
     if result["success"]:
@@ -136,25 +249,51 @@ def test_regctl_registry_images(host):
 # S3 BUCKET VALIDATION TESTS
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(4)
 def test_s3_bucket_images(host):
     """Verify all images are pushed to S3 bucket for all functional groups."""
     log = TestLogger(TEST_NAMES["s3_bucket_images"])
+
+    if not _has_aarch64_groups(host):
+        log.check("Checking for aarch64 functional groups in pxe_mapping")
+        log.skipped(
+            "No aarch64 functional groups found in pxe_mapping",
+            "Test skipped - no aarch64 nodes to verify"
+        )
+        pytest.skip("No aarch64 functional groups found in pxe_mapping")
     image_types = BUILD_IMAGE_VARS["image_types"]
     result = check_s3_bucket_images(host, arch=ARCH)
+
+    # check_s3_bucket_images already returns skipped=True if no aarch64 groups
+    if result.get("skipped"):
+        log.skipped(result["details"])
+        pytest.skip(result["details"])
+
     group_count = len(result.get("results", []))
+    job_id = result.get("job_id")
+    build_stream_on = is_build_stream_enabled(host)
+
+    mode_str = (
+        f"build_stream ENABLED (job UUID: {job_id})"
+        if build_stream_on
+        else "build_stream DISABLED (no UUID)"
+    )
     log.check(
         f"Checking S3 bucket for {group_count} {ARCH} functional groups x "
-        f"{len(image_types)} images each"
+        f"{len(image_types)} images each | {mode_str}"
     )
 
-    # Build details for all functional groups with actual image names and sizes
-    details_lines = [f"Architecture: {ARCH}"]
+    # Build details for all functional groups with FULL S3 paths (shows UUID when build_stream enabled)
+    details_lines = [f"Architecture: {ARCH}", f"Mode: {mode_str}"]
     for fg_result in result.get("results", []):
         fg = fg_result["functional_group"]
         if fg_result["success"]:
             details_lines.append(f"✓ {fg}:")
             for img in fg_result.get("image_details", []):
-                details_lines.append(f"    {img['type']}: {img['filename']} ({img['size_human']})")
+                # Show meaningful directory name with UUID (trimmed from full S3 path)
+                display_path = img.get('display_path', img['filename'])
+                details_lines.append(f"    {img['type']}: {display_path} ({img['size_human']})")
         else:
             missing_imgs = fg_result.get("missing_images", [])
             details_lines.append(f"✗ {fg}: missing {', '.join(missing_imgs)}")
@@ -184,9 +323,19 @@ def test_s3_bucket_images(host):
 # IMAGE PACKAGE VERIFICATION TESTS
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(5)
 def test_all_image_packages(host):
     """Verify all packages are installed in ALL S3 images by mounting and checking RPM db."""
     log = TestLogger(TEST_NAMES["image_packages"])
+
+    if not _has_aarch64_groups(host):
+        log.check("Checking for aarch64 functional groups in pxe_mapping")
+        log.skipped(
+            "No aarch64 functional groups found in pxe_mapping",
+            "Test skipped - no aarch64 nodes to verify"
+        )
+        pytest.skip("No aarch64 functional groups found in pxe_mapping")
     result = verify_all_image_packages(host, arch=ARCH)
 
     # Check for prerequisite failure (squashfs-tools not installed)

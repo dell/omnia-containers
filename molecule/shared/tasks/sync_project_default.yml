@@ -28,7 +28,7 @@
   ansible.builtin.shell:
     cmd: >
       rsync -avz --delete
-      -e "sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      -e "sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       {{ project_default_src }}/
       root@{{ ansible_host }}:{{ project_default_dest }}/
@@ -42,7 +42,7 @@
 - name: Check if vault key exists in container
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "test -f {{ project_default_dest }}/{{ omnia_config_credentials_key }} && echo EXISTS || echo NOT_FOUND"
@@ -53,7 +53,7 @@
 - name: Create vault key file in container (32 char random password)  # noqa: risky-shell-pipe
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "head -c 32 /dev/urandom | base64 | head -c 32 > {{ project_default_dest }}/{{ omnia_config_credentials_key }} &&
@@ -65,7 +65,7 @@
 - name: Check if credentials file is already encrypted  # noqa: risky-shell-pipe
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "head -n1 {{ project_default_dest }}/{{ omnia_config_credentials_file }} 2>/dev/null | grep -q 'ANSIBLE_VAULT' && echo ENCRYPTED || echo PLAIN"
@@ -77,7 +77,7 @@
 - name: Encrypt omnia_config_credentials.yml in container
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ user_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "cd {{ project_default_dest }} &&

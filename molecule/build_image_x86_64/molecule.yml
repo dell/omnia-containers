@@ -34,7 +34,7 @@
 #   ./run_molecule.sh build_image verify     # Verify only
 #
 # Configuration:
-#   - user_config.yml: OIM server connection settings
+#   - omnia_test_config.yml: OIM server connection settings
 #   - project_default/pxe_mapping_file.csv: Functional groups and roles
 #
 # =============================================================================

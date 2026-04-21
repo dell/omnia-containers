@@ -33,7 +33,7 @@ Usage:
 
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import yaml as pyyaml
 
@@ -51,6 +51,10 @@ from ..vars.build_image_vars import (
     get_pxe_mapping_filename,
 )
 from ..messages.build_image_msgs import BUILD_IMAGE_MSGS, TEST_LOG_MSGS
+from .build_stream_job_func import (
+    is_build_stream_enabled,
+    get_last_build_image_job_id,
+)
 
 
 # =============================================================================
@@ -425,121 +429,234 @@ def _parse_human_size(size_str: str) -> int:
     return int(size_str)
 
 
+def _parse_s3_listing(s3_output: str) -> Dict[str, Any]:
+    """
+    Parse `s3cmd ls -Hr` output into a dict keyed by full S3 path.
+
+    Format per line: "DATE TIME  SIZE  s3://bucket/path"
+    Returns: {"s3://...": {"size": int, "filename": str}}
+    """
+    s3_files = {}
+    for line in s3_output.strip().split("\n"):
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 4:
+            try:
+                size = _parse_human_size(parts[2])
+                path = parts[3]
+                filename = path.split("/")[-1]
+                s3_files[path] = {"size": size, "filename": filename}
+            except (ValueError, IndexError):
+                pass
+    return s3_files
+
+
+def _match_s3_images_for_group(
+    fg: str,
+    image_types: list,
+    s3_files: Dict[str, Any],
+    job_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Find all required image types for one functional group in the S3 listing.
+
+    When job_id is given (build_stream enabled) the path must contain the
+    UUID suffix ``<fg>_<job_id>-image-build`` to be considered a match.
+    When job_id is None (build_stream disabled) any path containing ``<fg>``
+    and the image type keyword is accepted.
+
+    Returns a group-level result dict.
+    """
+    group_result = {
+        "functional_group": fg,
+        "found_images": [],
+        "missing_images": [],
+        "image_details": [],
+        "success": True,
+        "job_id": job_id,
+    }
+
+    # When build_stream is enabled the image dir is named
+    # "rhel-<fg>_<UUID>-image-build" so we can be precise.
+    uuid_segment = f"{fg}_{job_id}-image-build" if job_id else None
+
+    for img_type in image_types:
+        found = False
+        for path, info in s3_files.items():
+            # Must contain the functional group name
+            if fg not in path:
+                continue
+            # Must contain the image type keyword
+            if img_type not in path:
+                continue
+            # When build_stream enabled, path must contain the UUID segment
+            if uuid_segment and uuid_segment not in path:
+                continue
+            found = True
+            group_result["found_images"].append(img_type)
+            
+            # Extract meaningful directory name (rhel-<fg>_<UUID>-image-build) from full path
+            # From: s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build/file
+            # To: rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build
+            path_parts = path.split('/')
+            display_path = next((part for part in path_parts if part.startswith('rhel-') and '-image-build' in part), info["filename"])
+            
+            group_result["image_details"].append({
+                "type": img_type,
+                "filename": info["filename"],
+                "full_path": path,
+                "display_path": display_path,
+                "size": info["size"],
+                "size_human": _format_size(info["size"]),
+            })
+            break
+
+        if not found:
+            group_result["missing_images"].append(img_type)
+            group_result["success"] = False
+
+    return group_result
+
+
 def check_s3_bucket_images(host, arch: str = None) -> Dict[str, Any]:
     """
     Validate that images are pushed to the S3 bucket.
-    Checks for all 3 images (initramfs, rootfs, vmlinuz) for each functional group.
-    Returns actual image filenames and sizes for detailed output.
+
+    Handles two naming schemes automatically:
+
+    **build_stream ENABLED** (enable_build_stream: true):
+      The build_image playbook embeds the postgres job UUID in every image
+      directory name::
+
+          s3://boot-images/<fg>/rhel-<fg>_<UUID>-image-build/<files>
+
+      This function queries the omnia_postgres ``job_stages`` table to get
+      the UUID of the last COMPLETED ``build-image-<arch>`` stage, then
+      verifies that the S3 paths contain that exact UUID.  If no COMPLETED
+      job exists the check fails with a clear error.
+
+    **build_stream DISABLED** (enable_build_stream: false):
+      Images are stored without a UUID sub-directory::
+
+          s3://boot-images/<fg>/<files>
+
+      A simple substring match on ``<fg>`` and image type is used.
 
     Args:
         host: testinfra host object
-        arch: Architecture to filter by (x86_64 or aarch64). If None, checks all.
+        arch: Architecture to filter by (``x86_64`` or ``aarch64``).
+              If None, checks all groups from pxe_mapping.
 
     Returns:
-        Dict with 'success', 'status', 'details', 'error', 'results'
-        Each result contains 'image_details' with actual filenames and sizes.
+        Dict with ``success``, ``status``, ``details``, ``error``, ``results``,
+        ``job_id`` (UUID when build_stream enabled, else None).
     """
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
     image_types = BUILD_IMAGE_VARS["image_types"]
+
     raw_functional_groups = get_functional_groups_from_pxe_mapping(host)
-    # Filter by architecture if specified
     if arch:
         raw_functional_groups = _filter_functional_groups_by_arch(raw_functional_groups, arch)
     functional_groups = _get_adjusted_functional_groups(host, raw_functional_groups)
 
     if not functional_groups:
         return {
-            "success": False,
-            "status": "no_groups",
-            "details": None,
-            "error": f"No functional groups found in {get_pxe_mapping_filename()}",
+            "success": True,
+            "status": "skipped",
+            "skipped": True,
+            "details": (
+                f"No {arch or 'any'} functional groups found in "
+                f"{get_pxe_mapping_filename()} — skipping S3 check"
+            ),
+            "error": None,
             "results": [],
-            "s3_output": ""
+            "job_id": None,
+            "s3_output": "",
         }
 
-    # Get complete S3 bucket listing
+    # -----------------------------------------------------------------------
+    # Determine whether build_stream is enabled and get the job UUID
+    # -----------------------------------------------------------------------
+    build_stream_on = is_build_stream_enabled(host)
+    job_id: Optional[str] = None
+
+    if build_stream_on:
+        job_result = get_last_build_image_job_id(host, arch=arch or "x86_64")
+        if not job_result["success"] or not job_result["job_id"]:
+            return {
+                "success": False,
+                "status": "no_completed_job",
+                "skipped": False,
+                "details": None,
+                "error": (
+                    job_result["error"]
+                    or f"No COMPLETED build-image-{arch or 'x86_64'} job found "
+                       "in build_stream_db.job_stages"
+                ),
+                "results": [],
+                "job_id": None,
+                "s3_output": "",
+            }
+        job_id = job_result["job_id"]
+
+    # -----------------------------------------------------------------------
+    # Fetch full S3 listing once
+    # -----------------------------------------------------------------------
     s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null")
     s3_output = s3_list_cmd.stdout if s3_list_cmd.rc == 0 else ""
+    s3_files = _parse_s3_listing(s3_output)
 
-    # Parse S3 output into structured data: {path: {size, filename}}
-    # Format: "2026-02-19 08:58    72M  s3://boot-images/..."
-    s3_files = {}
-    for line in s3_output.strip().split('\n'):
-        if line.strip():
-            parts = line.split()
-            if len(parts) >= 4:
-                try:
-                    # Size is human-readable (e.g., 72M, 1326M, 15M)
-                    size_str = parts[2]
-                    size = _parse_human_size(size_str)
-                    path = parts[3]
-                    filename = path.split('/')[-1]
-                    s3_files[path] = {"size": size, "filename": filename}
-                except (ValueError, IndexError):
-                    pass
-
-    # Check for each functional group's images
+    # -----------------------------------------------------------------------
+    # Match images per functional group
+    # -----------------------------------------------------------------------
     results = []
     all_passed = True
 
     for fg in functional_groups:
-        group_result = {
-            "functional_group": fg,
-            "found_images": [],
-            "missing_images": [],
-            "image_details": [],
-            "success": True
-        }
-
-        for img_type in image_types:
-            # Find matching files for this functional group and image type
-            found = False
-            for path, info in s3_files.items():
-                if fg in path and img_type in path:
-                    found = True
-                    group_result["found_images"].append(img_type)
-                    group_result["image_details"].append({
-                        "type": img_type,
-                        "filename": info["filename"],
-                        "size": info["size"],
-                        "size_human": _format_size(info["size"])
-                    })
-                    break
-
-            if not found:
-                group_result["missing_images"].append(img_type)
-                group_result["success"] = False
-                all_passed = False
-
+        group_result = _match_s3_images_for_group(fg, image_types, s3_files, job_id)
         results.append(group_result)
+        if not group_result["success"]:
+            all_passed = False
 
     total_groups = len(functional_groups)
     passed_groups = sum(1 for r in results if r["success"])
+
+    mode = f"UUID={job_id}" if job_id else "no-UUID (build_stream disabled)"
 
     if all_passed:
         return {
             "success": True,
             "status": "all_found",
-            "details": f"All 3 images found for all {total_groups} functional groups in S3 bucket",
+            "skipped": False,
+            "details": (
+                f"All 3 images found for all {total_groups} functional groups "
+                f"({mode})"
+            ),
             "error": None,
             "results": results,
-            "s3_output": s3_output
+            "job_id": job_id,
+            "s3_output": s3_output,
         }
 
     failed_groups = [r for r in results if not r["success"]]
-    error_details = []
-    for fg_result in failed_groups:
-        error_details.append(
-            f"{fg_result['functional_group']}: missing {', '.join(fg_result['missing_images'])}"
-        )
+    error_details = [
+        f"{r['functional_group']}: missing {', '.join(r['missing_images'])}"
+        for r in failed_groups
+    ]
 
     return {
         "success": False,
         "status": "missing_images",
-        "details": f"{passed_groups}/{total_groups} functional groups have all images",
+        "skipped": False,
+        "details": (
+            f"{passed_groups}/{total_groups} functional groups have all images "
+            f"({mode})"
+        ),
         "error": "; ".join(error_details),
         "results": results,
-        "s3_output": s3_output
+        "job_id": job_id,
+        "s3_output": s3_output,
     }
 
 
@@ -597,15 +714,39 @@ def check_s3_bucket_images_for_group(host, functional_group: str) -> Dict[str, A
 def _check_squashfs_tools_installed(host) -> Dict[str, Any]:
     """
     Check if squashfs-tools package is installed (required for mounting images).
+
+    If not installed, also checks whether any enabled repository provides it.
+    This distinguishes "package missing — just install it" from "no repo is
+    configured that has this package — configure a repo first".
+
     Returns dict with 'installed' boolean and 'error' message if not installed.
     """
     check_cmd = host.run("which unsquashfs 2>/dev/null || rpm -q squashfs-tools 2>/dev/null")
-    if check_cmd.rc != 0:
+    if check_cmd.rc == 0:
+        return {"installed": True, "error": None}
+
+    # Package is not installed — check if any enabled repo provides it
+    repo_check = host.run("dnf provides squashfs-tools --quiet 2>/dev/null | grep -q 'squashfs-tools'")
+    if repo_check.rc != 0:
+        # No repo provides it — repo configuration needed
         return {
             "installed": False,
-            "error": TEST_LOG_MSGS["squashfs_tools_not_installed"]
+            "error": (
+                TEST_LOG_MSGS["squashfs_repo_not_configured"] + "\n"
+                "  squashfs-tools is not available in any enabled repository.\n"
+                "  Enable a repository that provides it "
+                "(e.g., 'dnf config-manager --enable <repo>'), then re-run."
+            ),
         }
-    return {"installed": True, "error": None}
+
+    # Repo provides it but package is not installed
+    return {
+        "installed": False,
+        "error": (
+            TEST_LOG_MSGS["squashfs_tools_not_installed"] + "\n"
+            "  Install it using: dnf install -y squashfs-tools"
+        ),
+    }
 
 
 def _get_base_image_packages(host, images_dir: str, arch: str = "x86_64") -> list:
@@ -627,7 +768,8 @@ def _get_base_image_packages(host, images_dir: str, arch: str = "x86_64") -> lis
 
 def _verify_single_image_packages(host, functional_group: str, images_dir: str,
                                    temp_image: str, temp_mount: str,
-                                   base_packages: list = None) -> Dict[str, Any]:
+                                   base_packages: list = None,
+                                   job_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Helper function to verify packages in a single image.
     Downloads, mounts, checks RPM database, and cleans up.
@@ -696,11 +838,21 @@ def _verify_single_image_packages(host, functional_group: str, images_dir: str,
     expected_packages = all_expected
 
     # Find the S3 image path
+    # When build_stream is enabled, the image dir contains the job UUID:
+    #   rhel-<fg>_<UUID>-image-build/  — filter precisely to avoid stale images.
+    # When build_stream is disabled, match by functional group name only.
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
-    s3_list = host.run(
-        f"{s3_cmd} 2>/dev/null | grep '{functional_group}' | "
-        "grep -v efi-images | grep -v initramfs | grep -v vmlinuz"
-    )
+    uuid_segment = f"{functional_group}_{job_id}-image-build" if job_id else None
+    if uuid_segment:
+        s3_list = host.run(
+            f"{s3_cmd} 2>/dev/null | grep '{uuid_segment}' | "
+            "grep -v efi-images | grep -v initramfs | grep -v vmlinuz"
+        )
+    else:
+        s3_list = host.run(
+            f"{s3_cmd} 2>/dev/null | grep '{functional_group}' | "
+            "grep -v efi-images | grep -v initramfs | grep -v vmlinuz"
+        )
     if s3_list.rc != 0 or not s3_list.stdout.strip():
         return {
             "functional_group": functional_group,
@@ -894,9 +1046,16 @@ def verify_all_image_packages(host, arch: str = None) -> Dict[str, Any]:
     results = []
     all_passed = True
 
+    # Resolve job_id for S3 path filtering (None when build_stream disabled)
+    job_id: Optional[str] = None
+    if is_build_stream_enabled(host):
+        job_result = get_last_build_image_job_id(host, arch=arch or "x86_64")
+        if job_result["success"]:
+            job_id = job_result["job_id"]
+
     for fg in groups_to_verify:
         result = _verify_single_image_packages(
-            host, fg, images_dir, temp_image, temp_mount, base_packages
+            host, fg, images_dir, temp_image, temp_mount, base_packages, job_id
         )
         results.append(result)
         if not result["success"]:

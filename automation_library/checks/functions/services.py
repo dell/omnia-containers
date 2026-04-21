@@ -18,7 +18,7 @@ from typing import Dict
 
 from ...core.formatting import log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 from .system import run_command
 
 
@@ -33,7 +33,7 @@ def check_nfs_reachable() -> Dict:
         return {
             "reachable": False,
             "message": "NFS server IP not configured",
-            "details": OIM_PREREQ_MSGS["nfs_not_configured_instruction"].format(config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["nfs_omnia_test_configured_instruction"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Step 1: Ping NFS server
@@ -44,7 +44,7 @@ def check_nfs_reachable() -> Dict:
             "reachable": False,
             "server": nfs_server,
             "message": f"NFS server {nfs_server} is NOT reachable",
-            "details": OIM_PREREQ_MSGS["nfs_not_reachable_instruction"].format(server=nfs_server, config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["nfs_not_reachable_instruction"].format(server=nfs_server, config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     _log(f"NFS server {nfs_server} is reachable", "OK")
@@ -70,7 +70,7 @@ def check_nfs_reachable() -> Dict:
             "reachable": True,
             "server": nfs_server,
             "message": f"NFS server {nfs_server} is reachable (share path not configured)",
-            "details": f"Set 'nfs_share_path' in {USER_CONFIG_PATH} to check capacity"
+            "details": f"Set 'nfs_share_path' in {OMNIA_TEST_CONFIG_PATH} to check capacity"
         }
 
     return {

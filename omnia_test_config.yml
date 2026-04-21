@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # =============================================================================
-# Omnia Infrastructure Manager (OIM) - User Configuration
+# Omnia Infrastructure Manager (OIM) - Automation Configuration
 # =============================================================================
 #
 # This is the single configuration file for all OIM automation tasks:
@@ -25,6 +25,25 @@
 # All automation scripts read from this file.
 #
 # =============================================================================
+
+# =============================================================================
+# DATASET CONFIGURATION
+# =============================================================================
+# Specify which dataset folder to use for input configurations.
+# The dataset folder should exist under datasets/ directory.
+#
+# Available datasets:
+#   - project_default: Standard configuration (default)
+#   - <custom>: Any custom folder you create under datasets/
+#
+# Each dataset folder contains input files like:
+#   - software_config.json
+#   - telemetry_config.yml
+#   - provision_config.yml
+#   - network_spec.yml
+#   - etc.
+#
+dataset: "project_default"
 
 # =============================================================================
 # EXECUTION CONTROL
@@ -233,3 +252,26 @@ external_ldap_bind_username: ""
 
 # External LDAP bind password (REQUIRED)
 external_ldap_bind_password: ""
+
+# =============================================================================
+# BUILD STREAM JOB OVERRIDE
+# =============================================================================
+# When build_stream is enabled, every pipeline run is tracked as a job in
+# postgres (build_stream_db). Each module checks that its pipeline stage
+# completed before running tests:
+#
+#   Module              Stage checked
+#   ──────────────────  ──────────────────────────
+#   build_image_x86_64  build-image-x86_64
+#   build_image_aarch64 build-image-aarch64
+#   local_repo          create-local-repository
+#   discovery           validate-image-on-test
+#
+# By default the automation resolves the LATEST COMPLETED job automatically
+# from the database. To pin verification to a specific pipeline run, set the
+# job UUID here — it will be used across ALL modules above.
+#
+# Format: UUID string (e.g., "c01cdd28-3c60-4124-bcf0-b53a0ef93c8b")
+# Leave empty ("") to use the latest completed job (default behavior).
+# Wrong UUID → test_build_stream_job_stage skips all tests with a clear error.
+build_stream_job_id: ""

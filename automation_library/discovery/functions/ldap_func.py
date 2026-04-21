@@ -28,7 +28,7 @@ from automation_library.core import (
     run_in_container,
     is_software_enabled,
     get_multiple_credentials,
-    load_user_config,
+    load_omnia_test_config,
     SLAPD_CONF_PATH,
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
@@ -138,12 +138,12 @@ def get_ldap_credentials(host) -> Dict[str, Any]:
 
 def get_external_ldap_config() -> Dict[str, str]:
     """
-    Get external LDAP configuration from local user_config.yml.
+    Get external LDAP configuration from local omnia_test_config.yml.
 
     Returns:
         Dict with external LDAP config values
     """
-    config = load_user_config()
+    config = load_omnia_test_config()
     return {
         "server_ip": config.get("external_ldap_server_ip", ""),
         "server_port": config.get("external_ldap_server_port", ""),
@@ -178,14 +178,14 @@ def build_slapd_config(host) -> Dict[str, Any]:
         result["error"] = f"Failed to get LDAP credentials: {creds['error']}"
         return result
 
-    # Get external LDAP config from local user_config.yml
+    # Get external LDAP config from local omnia_test_config.yml
     ext_config = get_external_ldap_config()
 
     # Validate required external fields
     required = ["server_ip", "server_port", "domain", "bind_username", "bind_password"]
     for field in required:
         if not ext_config.get(field):
-            result["error"] = f"external_ldap_{field} not configured in user_config.yml"
+            result["error"] = f"external_ldap_{field} not configured in omnia_test_config.yml"
             return result
 
     # Build DC from domain names
@@ -246,7 +246,7 @@ def apply_slapd_conf_and_verify(host) -> Dict[str, Any]:
     This test:
     1. Gets OIM hostname and builds local DC
     2. Gets LDAP password from omnia_config_credentials.yml (decrypted)
-    3. Gets external LDAP config from user_config.yml
+    3. Gets external LDAP config from omnia_test_config.yml
     4. Builds external DC from external hostname
     5. Generates slapd.conf from template
     6. Backs up existing slapd.conf
@@ -370,9 +370,9 @@ def apply_slapd_conf_and_verify(host) -> Dict[str, Any]:
 # LDAP USER LOGIN VERIFICATION
 # =============================================================================
 
-def parse_ldap_credentials(user_config: Dict[str, Any]) -> List[Dict[str, str]]:
+def parse_ldap_credentials(omnia_config: Dict[str, Any]) -> List[Dict[str, str]]:
     """
-    Parse LDAP credentials from user_config.yml.
+    Parse LDAP credentials from omnia_test_config.yml.
 
     Supports two formats:
     1. New format: ldap_credentials: "user1:pwd1,user2:pwd2"
@@ -384,9 +384,9 @@ def parse_ldap_credentials(user_config: Dict[str, Any]) -> List[Dict[str, str]]:
     credentials = []
 
     # Try new format first: ldap_credentials: "user1:pwd1,user2:pwd2"
-    ldap_credentials = user_config.get("ldap_credentials", "")
-    if ldap_credentials:
-        for cred in ldap_credentials.split(","):
+    ldap_creds_str = omnia_config.get("ldap_credentials", "")
+    if ldap_creds_str:
+        for cred in ldap_creds_str.split(","):
             cred = cred.strip()
             if ":" in cred:
                 parts = cred.split(":", 1)
@@ -397,8 +397,8 @@ def parse_ldap_credentials(user_config: Dict[str, Any]) -> List[Dict[str, str]]:
 
     # Fall back to legacy format if no new format found
     if not credentials:
-        ldap_user = user_config.get("ldap_user", "")
-        ldap_password = user_config.get("ldap_password", "")
+        ldap_user = omnia_config.get("ldap_user", "")
+        ldap_password = omnia_config.get("ldap_password", "")
         if ldap_user and ldap_password:
             credentials.append({
                 "user": ldap_user,
@@ -439,14 +439,14 @@ def _verify_ldap_user_login(host, run_func) -> Dict[str, Any]:
         "error": "",
     }
 
-    user_config = load_user_config()
-    if not user_config:
-        results["error"] = "Failed to load user_config.yml"
+    omnia_test_config = load_omnia_test_config()
+    if not omnia_test_config:
+        results["error"] = "Failed to load omnia_test_config.yml"
         return results
 
-    credentials = parse_ldap_credentials(user_config)
+    credentials = parse_ldap_credentials(omnia_test_config)
     if not credentials:
-        results["error"] = "ldap_credentials not set in user_config.yml"
+        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
         return results
 
     results["ldap_users"] = [c["user"] for c in credentials]
@@ -546,15 +546,15 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
         "error": "",
     }
 
-    # Get LDAP credentials from user_config.yml
-    user_config = load_user_config()
-    if not user_config:
-        results["error"] = "Failed to load user_config.yml"
+    # Get LDAP credentials from omnia_test_config.yml
+    omnia_test_config = load_omnia_test_config()
+    if not omnia_test_config:
+        results["error"] = "Failed to load omnia_test_config.yml"
         return results
 
-    credentials = parse_ldap_credentials(user_config)
+    credentials = parse_ldap_credentials(omnia_test_config)
     if not credentials:
-        results["error"] = "ldap_credentials not set in user_config.yml"
+        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
         return results
 
     # For PAM test, use only the first user (PAM behavior is the same for all users)

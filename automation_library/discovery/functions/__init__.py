@@ -14,6 +14,16 @@
 
 """Discovery Functions Module."""
 
+# Package collector functions
+from .package_collector import (
+    get_base_image_packages,
+    get_image_yaml_path_for_group,
+    get_image_packages_for_group,
+    get_packages_for_functional_group,
+    get_all_functional_groups,
+    build_package_map,
+)
+
 # Common functions
 from .common_func import (
     # SSH error parsing
@@ -38,6 +48,8 @@ from .common_func import (
     # K8s verification
     verify_k8s_nodes_ready,
     verify_k8s_telemetry_pods,
+    # Package verification
+    verify_node_packages,
 )
 
 # Slurm functions

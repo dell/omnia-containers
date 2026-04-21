@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ TEST_VARS = {
 
 
 TEST_NAMES = {
+    "build_stream_job_stage": (
+        "Verify build_stream pipeline stage '{stage}' completed successfully"
+    ),
     "pulp_container_running": "Verify Pulp container is running",
     "pulp_cli_repo_list": "Verify Pulp CLI connectivity (rpm repository list)",
     "pulp_api_status": "Verify Pulp API health (DB, workers, storage)",
@@ -49,6 +52,19 @@ TEST_NAMES = {
 
 
 TEST_LOG_MSGS = {
+    # 0. Build stream job stage
+    "build_stream_disabled_skip": (
+        "build_stream is DISABLED \u2014 skipping job stage validation"
+    ),
+    "build_stream_job_checking": (
+        "Checking build_stream stage '{stage}' (source: {source})"
+    ),
+    "build_stream_job_ok": (
+        "Stage '{stage}' COMPLETED \u2014 job UUID: {job_id} (source: {source})"
+    ),
+    "build_stream_job_failed": (
+        "Stage '{stage}' is '{state}' \u2014 expected COMPLETED (job: {job_id})"
+    ),
     # 1. Container
     "container_running": "Container {container} is running",
     "container_not_running": "Container {container} is NOT running",
@@ -233,6 +249,28 @@ TEST_ASSERT_MSGS = {
 ║   1. Verify software_config.json exists in /opt/omnia/input/project_default/
 ║   2. Check JSON syntax is valid
 ║   3. Ensure config/<arch>/<os>/<version>/*.json files exist
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "build_stream_job_stage_failed": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ BUILD STREAM STAGE VALIDATION FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Stage   : {stage}
+║ Job ID  : {job_id}
+║ Status  : {state}
+║ Expected: COMPLETED
+║
+║ WHAT HAPPENED:
+║   The build_stream pipeline stage did not complete successfully.
+║   local_repo verification depends on the pipeline completing first.
+║
+║ HOW TO FIX:
+║   1. Check build_stream API logs on the OIM server
+║   2. Query DB: podman exec omnia_postgres psql -U omnia -d build_stream_db
+║             -c "SELECT * FROM job_stages WHERE job_id = '{job_id}';"
+║   3. If FAILED, re-trigger the build_stream pipeline
+║   4. If still RUNNING, wait for it to complete
+║   5. To override: set build_stream_job_id in omnia_test_config.yml
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
 }

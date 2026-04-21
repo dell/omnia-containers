@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,20 +26,18 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-
-def _get_project_root() -> str:
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from .host import get_project_root
 
 
 def _get_report_dir() -> str:
-    report_dir = os.path.join(_get_project_root(), "reports")
+    report_dir = os.path.join(get_project_root(), "reports")
     os.makedirs(report_dir, exist_ok=True)
     return report_dir
 
 
 def _get_server_info() -> Dict[str, str]:
-    """Get current server IP and hostname from user_config.yml."""
-    config_path = os.path.join(_get_project_root(), "user_config.yml")
+    """Get current server IP and hostname from omnia_test_config.yml."""
+    config_path = os.path.join(get_project_root(), "omnia_test_config.yml")
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f) or {}

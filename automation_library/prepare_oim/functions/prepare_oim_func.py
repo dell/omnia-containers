@@ -27,9 +27,9 @@ from automation_library.core import (
     check_container_running as _core_check_container,
     load_input_file,
     get_input_value,
+    is_build_stream_enabled,
     SOFTWARE_CONFIG_FILE,
     NETWORK_SPEC_FILE,
-    BUILD_STREAM_CONFIG_FILE,
 )
 from ..vars.prepare_oim_vars import (
     OPENCHAMI_CONTAINERS,
@@ -66,12 +66,6 @@ def is_ldap_enabled(host) -> bool:
             if "openldap" in software.lower() or "ldap" in software.lower():
                 return True
     return False
-
-
-def is_build_stream_enabled(host) -> bool:
-    """Check if enable_build_stream is true in build_stream_config.yml."""
-    config = load_input_file(host, BUILD_STREAM_CONFIG_FILE)
-    return bool(config.get("enable_build_stream", False))
 
 
 def get_primary_oim_admin_ip(host) -> str:

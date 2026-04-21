@@ -19,7 +19,7 @@ from typing import Dict
 
 from ...core.formatting import log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
-from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, USER_CONFIG_PATH
+from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 from .system import run_command, run_shell
 
 
@@ -96,7 +96,7 @@ def install_git() -> Dict:
         "success": False,
         "message": "Git installation FAILED",
         "error": stderr,
-        "details": OIM_PREREQ_MSGS["git_install_instruction"].format(error=stderr, config_path=USER_CONFIG_PATH)
+        "details": OIM_PREREQ_MSGS["git_install_instruction"].format(error=stderr, config_path=OMNIA_TEST_CONFIG_PATH)
     }
 
 
@@ -117,7 +117,7 @@ def ensure_git_installed() -> Dict:
         "installed": False,
         "version": None,
         "message": install_result.get("message", "Git installation failed"),
-        "details": install_result.get("details", OIM_PREREQ_MSGS["git_install_instruction"].format(error="Unknown error", config_path=USER_CONFIG_PATH))
+        "details": install_result.get("details", OIM_PREREQ_MSGS["git_install_instruction"].format(error="Unknown error", config_path=OMNIA_TEST_CONFIG_PATH))
     }
 
 
@@ -132,7 +132,7 @@ def clone_omnia_repo() -> Dict:
         return {
             "passed": False,
             "message": "Omnia repository URL not configured",
-            "details": OIM_PREREQ_MSGS["omnia_repo_not_configured_instruction"].format(config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_repo_omnia_test_configured_instruction"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     _log(f"Repo URL: {repo_url}", "DEBUG")
@@ -161,7 +161,7 @@ def clone_omnia_repo() -> Dict:
             "passed": False,
             "message": f"Failed to clone Omnia artifactory",
             "details": OIM_PREREQ_MSGS["omnia_clone_instruction"].format(
-                repo_url=repo_url, clone_path=clone_path, error=stderr, config_path=USER_CONFIG_PATH
+                repo_url=repo_url, clone_path=clone_path, error=stderr, config_path=OMNIA_TEST_CONFIG_PATH
             )
         }
 
@@ -184,7 +184,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "omnia_branch not configured",
-            "details": OIM_PREREQ_MSGS["omnia_branch_not_configured"].format(config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_branch_omnia_test_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Check if clone path exists
@@ -193,7 +193,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "Omnia artifactory not cloned",
-            "details": OIM_PREREQ_MSGS["clone_path_not_found"].format(clone_path=clone_path, config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["clone_path_not_found"].format(clone_path=clone_path, config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Check if build_images.sh exists
@@ -246,7 +246,7 @@ def download_omnia_sh() -> Dict:
         return {
             "passed": False,
             "message": "omnia_branch not configured",
-            "details": OIM_PREREQ_MSGS["omnia_sh_branch_not_configured"].format(config_path=USER_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_sh_branch_omnia_test_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Create directory if it doesn't exist

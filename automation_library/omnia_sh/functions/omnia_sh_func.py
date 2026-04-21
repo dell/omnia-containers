@@ -46,7 +46,7 @@ from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
 from ...core.formatting import log as _log
 from ...core import run_in_container
 from ...core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
-from ...checks.vars.oim_prereq_vars import USER_CONFIG_PATH
+from ...checks.vars.oim_prereq_vars import OMNIA_TEST_CONFIG_PATH
 
 
 def get_omnia_sh_path() -> str:
@@ -68,29 +68,29 @@ def validate_config() -> Dict[str, Any]:
     """
     errors = []
 
-    # Check user_config.yml exists
-    if not os.path.exists(USER_CONFIG_PATH):
-        errors.append(f"user_config.yml not found at {USER_CONFIG_PATH}")
+    # Check omnia_test_config.yml exists
+    if not os.path.exists(OMNIA_TEST_CONFIG_PATH):
+        errors.append(f"omnia_test_config.yml not found at {OMNIA_TEST_CONFIG_PATH}")
         return {"valid": False, "errors": errors}
 
     # Check required user inputs
     if not OMNIA_SH_VARS["share_option"]:
-        errors.append(f"share_option not set in {USER_CONFIG_PATH}")
+        errors.append(f"share_option not set in {OMNIA_TEST_CONFIG_PATH}")
 
     if not OMNIA_SH_VARS["omnia_shared_path"]:
-        errors.append(f"omnia_shared_path not set in {USER_CONFIG_PATH}")
+        errors.append(f"omnia_shared_path not set in {OMNIA_TEST_CONFIG_PATH}")
 
     if not OMNIA_SH_VARS["omnia_core_password"]:
-        errors.append(f"omnia_core_password not set in {USER_CONFIG_PATH}")
+        errors.append(f"omnia_core_password not set in {OMNIA_TEST_CONFIG_PATH}")
 
     # Check NFS inputs (only if NFS selected)
     if OMNIA_SH_VARS["share_option"] == "NFS":
         if not OMNIA_SH_VARS["nfs_type"]:
-            errors.append(f"nfs_type not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_type not set in {OMNIA_TEST_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_server_ip"]:
-            errors.append(f"nfs_server_ip not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_server_ip not set in {OMNIA_TEST_CONFIG_PATH}")
         if not OMNIA_SH_VARS["nfs_share_path"]:
-            errors.append(f"nfs_share_path not set in {USER_CONFIG_PATH}")
+            errors.append(f"nfs_share_path not set in {OMNIA_TEST_CONFIG_PATH}")
 
     return {
         "valid": len(errors) == 0,
@@ -422,7 +422,7 @@ def check_prerequisites() -> Dict[str, Any]:
 def build_install_inputs() -> list:
     """
     Build the list of inputs for omnia.sh --install based on configuration.
-    Uses values from user_config.yml (NFS IP, path, password).
+    Uses values from omnia_test_config.yml (NFS IP, path, password).
 
     Returns:
         List of input strings to provide to the interactive script
@@ -444,9 +444,9 @@ def build_install_inputs() -> list:
         if nfs_type == "external":
             # Select "External" (option 1)
             inputs.append("1")
-            # Provide NFS server IP (from user_config.yml nfs_server_ip)
+            # Provide NFS server IP (from omnia_test_config.yml nfs_server_ip)
             inputs.append(OMNIA_SH_VARS["nfs_server_ip"])
-            # Provide NFS share path (from user_config.yml nfs_share_path)
+            # Provide NFS share path (from omnia_test_config.yml nfs_share_path)
             inputs.append(OMNIA_SH_VARS["nfs_share_path"])
             # Provide local mount path (same as NFS share path)
             inputs.append(OMNIA_SH_VARS["omnia_shared_path"])
@@ -458,7 +458,7 @@ def build_install_inputs() -> list:
             # Provide OIM share path
             inputs.append(OMNIA_SH_VARS["nfs_share_path"])
 
-    # Provide password (from user_config.yml oim_ssh_password)
+    # Provide password (from omnia_test_config.yml oim_ssh_password)
     inputs.append(OMNIA_SH_VARS["omnia_core_password"])
     # Confirm password
     inputs.append(OMNIA_SH_VARS["omnia_core_password"])
@@ -491,7 +491,7 @@ def run_omnia_sh_install(omnia_sh_path: Optional[str] = None) -> Dict[str, Any]:
     # Make script executable
     run_shell(f"chmod +x {omnia_sh_path}")
 
-    # Build inputs from user_config.yml values
+    # Build inputs from omnia_test_config.yml values
     inputs = build_install_inputs()
     _log(f"Prepared {len(inputs)} inputs for interactive install", "DEBUG")
     _log(f"Share option: {OMNIA_SH_VARS['share_option']}", "DEBUG")

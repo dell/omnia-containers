@@ -40,7 +40,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="${SCRIPT_DIR}/.venv"
 REQ_FILE="${SCRIPT_DIR}/requirements.txt"
-USER_CONFIG="${SCRIPT_DIR}/user_config.yml"
+USER_CONFIG="${SCRIPT_DIR}/omnia_test_config.yml"
 PREREQ_SCRIPT="${SCRIPT_DIR}/run_prereq_check.py"
 MOLECULE_SCRIPT="${SCRIPT_DIR}/run_molecule.sh"
 MIN_PYTHON_MAJOR=3
@@ -286,12 +286,20 @@ _run_molecule_completions() {
     fi
     local commands="test verify converge create prepare"
     local special="all list help"
+    local options="--suite --marker"
+    local suites="sanity negative regression smoke"
     case "$COMP_CWORD" in
         1) COMPREPLY=( $(compgen -W "${scenarios} ${special}" -- "$cur") ) ;;
         2)
             case "$prev" in
                 list|help|--help|-h) COMPREPLY=() ;;
                 *) COMPREPLY=( $(compgen -W "${commands}" -- "$cur") ) ;;
+            esac ;;
+        *)
+            case "$prev" in
+                --suite) COMPREPLY=( $(compgen -W "${suites}" -- "$cur") ) ;;
+                --marker) COMPREPLY=( $(compgen -W "${suites}" -- "$cur") ) ;;
+                *) COMPREPLY=( $(compgen -W "${options}" -- "$cur") ) ;;
             esac ;;
     esac
 }
@@ -314,11 +322,11 @@ separator
 echo ""
 printf "  ${C_WHITE}${C_BOLD}Next Steps:${C_RESET}\n"
 echo ""
-printf "  ${C_CYAN}1.${C_RESET} Edit the user configuration file:\n"
+printf "  ${C_CYAN}1.${C_RESET} Edit the automation configuration file:\n"
 printf "     ${C_DIM}vi ${USER_CONFIG}${C_RESET}\n"
 echo ""
-printf "  ${C_CYAN}2.${C_RESET} Fill the inputs in the project_default/ folder:\n"
-printf "     ${C_DIM}ls project_default/${C_RESET}\n"
+printf "  ${C_CYAN}2.${C_RESET} Fill the inputs in the datasets/project_default/ folder:\n"
+printf "     ${C_DIM}ls datasets/project_default/${C_RESET}\n"
 printf "     ${C_DIM}# Contains: software_config.json, telemetry_config.yml, provision_config.yml,${C_RESET}\n"
 printf "     ${C_DIM}#           pxe_mapping_file.csv, omnia_config.yml, local_repo_config.yml, etc.${C_RESET}\n"
 printf "     ${C_DIM}# For verify-only runs, filling inputs is not required.${C_RESET}\n"
@@ -336,6 +344,7 @@ printf "     ${C_DIM}run_molecule all test                   ${C_RESET}${C_DIM}#
 printf "     ${C_DIM}run_molecule all verify                 ${C_RESET}${C_DIM}# verify-only for all modules${C_RESET}\n"
 printf "     ${C_DIM}run_molecule discovery verify           ${C_RESET}${C_DIM}# verify a specific module${C_RESET}\n"
 printf "     ${C_DIM}run_molecule telemetry test             ${C_RESET}${C_DIM}# playbook + verify for a module${C_RESET}\n"
+printf "     ${C_DIM}run_molecule prepare_oim verify --suite sanity  ${C_RESET}${C_DIM}# run sanity tests only${C_RESET}\n"
 printf "     ${C_DIM}run_molecule list                       ${C_RESET}${C_DIM}# list available modules${C_RESET}\n"
 echo ""
 

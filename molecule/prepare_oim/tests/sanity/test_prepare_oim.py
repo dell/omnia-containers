@@ -29,6 +29,8 @@ Test cases:
 9. Verify ochami SMD service is active via CLI
 """
 
+import pytest
+
 from automation_library.core import TestLogger
 from automation_library.prepare_oim.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
@@ -51,8 +53,16 @@ from automation_library.prepare_oim.functions import (
 # 1. CONSOLIDATED SERVICE STATUS TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(1)
 def test_service_status(host):
-    """Check ALL systemd services and targets in one pass."""
+    """
+    Test Case 1: Verify all expected systemd services are running.
+
+    Checks:
+    - All OIM systemd services are active
+    - All systemd targets are in expected state
+    """
     log = TestLogger(TEST_NAMES["service_status"])
     log.check("Checking all systemd services and targets")
 
@@ -74,8 +84,16 @@ def test_service_status(host):
 # 2. CONSOLIDATED CONTAINER STATUS TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_container_status(host):
-    """Check ALL containers in one pass."""
+    """
+    Test Case 2: Verify all expected containers are running.
+
+    Checks:
+    - All OIM containers are in 'running' state
+    - Container health checks pass
+    """
     log = TestLogger(TEST_NAMES["container_status"])
     log.check("Checking all expected containers")
 
@@ -97,8 +115,16 @@ def test_container_status(host):
 # 3. OPENCHAMI TARGET TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(3)
 def test_openchami_target(host):
-    """Compare openchami.target dependencies against expected list."""
+    """
+    Test Case 3: Verify openchami.target is active with all attached services.
+
+    Checks:
+    - openchami.target systemd target is active
+    - All expected dependencies are present and running
+    """
     log = TestLogger(TEST_NAMES["openchami_target"])
     log.check("Comparing openchami.target dependencies against expected list")
 
@@ -122,8 +148,16 @@ def test_openchami_target(host):
 # 4. OMNIA TARGET TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(4)
 def test_omnia_target(host):
-    """Compare omnia.target dependencies against expected list."""
+    """
+    Test Case 4: Verify omnia.target is active with all attached services.
+
+    Checks:
+    - omnia.target systemd target is active
+    - All expected dependencies are present and running
+    """
     log = TestLogger(TEST_NAMES["omnia_target"])
     log.check("Comparing omnia.target dependencies against expected list")
 
@@ -147,8 +181,16 @@ def test_omnia_target(host):
 # 5. PULP API PASSWORD TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(5)
 def test_pulp_api_password(host):
-    """Verify Pulp API password from omnia_config_credentials.yml is correctly configured."""
+    """
+    Test Case 5: Verify Pulp API password is valid.
+
+    Checks:
+    - pulp_password from omnia_config_credentials.yml works
+    - Pulp API responds with valid authentication
+    """
     log = TestLogger(TEST_NAMES["pulp_api_status"])
     log.check("Validating pulp_password from omnia_config_credentials.yml against Pulp API")
 
@@ -168,8 +210,16 @@ def test_pulp_api_password(host):
 # 6. PULP CERTIFICATE TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(6)
 def test_pulp_certificate(host):
-    """Verify Pulp webserver certificate exists inside omnia_core container."""
+    """
+    Test Case 6: Verify Pulp webserver certificate exists.
+
+    Checks:
+    - Certificate file exists in omnia_core container
+    - Certificate is valid and readable
+    """
     log = TestLogger(TEST_NAMES["pulp_certificate"])
     log.check("Checking Pulp webserver certificate in omnia_core container")
 
@@ -189,8 +239,16 @@ def test_pulp_certificate(host):
 # 7. LDAP AUTH CERTIFICATE TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(7)
 def test_ldap_auth_certificate(host):
-    """Verify LDAP auth certificate exists (only if LDAP enabled)."""
+    """
+    Test Case 7: Verify LDAP auth certificate exists (skip if LDAP disabled).
+
+    Checks:
+    - LDAP certificate file exists in omnia_core container
+    - Skips gracefully if LDAP is not enabled in configuration
+    """
     ldap_enabled = is_ldap_enabled(host)
 
     if ldap_enabled:
@@ -217,8 +275,16 @@ def test_ldap_auth_certificate(host):
 # 8. BSS SERVICE TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(8)
 def test_bss_service_active(host):
-    """Verify ochami BSS service is running via ochami CLI."""
+    """
+    Test Case 8: Verify ochami BSS service is active via CLI.
+
+    Checks:
+    - BSS (Boot Script Service) is running
+    - ochami CLI can query BSS status successfully
+    """
     log = TestLogger(TEST_NAMES["bss_service_active"])
     log.check("Checking ochami BSS service status")
 
@@ -238,8 +304,16 @@ def test_bss_service_active(host):
 # 9. SMD SERVICE TEST
 # =============================================================================
 
+@pytest.mark.sanity
+@pytest.mark.order(9)
 def test_smd_service_active(host):
-    """Verify ochami SMD service is healthy via ochami CLI."""
+    """
+    Test Case 9: Verify ochami SMD service is active via CLI.
+
+    Checks:
+    - SMD (State Management Database) is running
+    - ochami CLI can query SMD status successfully
+    """
     log = TestLogger(TEST_NAMES["smd_service_active"])
     log.check("Checking ochami SMD service status")
 
