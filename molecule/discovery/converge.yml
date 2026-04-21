@@ -194,7 +194,9 @@
     - name: Check minimal OS functional groups in container
       ansible.builtin.shell:
         cmd: |
-          podman exec {{ container_name }} cat /opt/omnia/.data/functional_groups_config.yml 2>/dev/null | grep -E "os_x86_64|os_aarch64" || echo "NO_MINIMAL_OS"
+          set -o pipefail
+          podman exec {{ container_name }} cat /opt/omnia/.data/functional_groups_config.yml 2>/dev/null | \
+            grep -E "os_x86_64|os_aarch64" || echo "NO_MINIMAL_OS"
       register: minimal_os_groups
       changed_when: false
       failed_when: false
@@ -216,7 +218,11 @@
     - name: Check minimal OS nodes in PXE mapping
       ansible.builtin.shell:
         cmd: |
-          podman exec {{ container_name }} cat {{ provision_config_path }} 2>/dev/null | grep pxe_mapping_file_path | awk '{print $2}' | tr -d '"' | xargs -I {} podman exec {{ container_name }} cat {} 2>/dev/null | grep -E "os_x86_64|os_aarch64" || echo "NO_MINIMAL_OS_NODES"
+          set -o pipefail
+          podman exec {{ container_name }} cat {{ provision_config_path }} 2>/dev/null | \
+            grep pxe_mapping_file_path | awk '{print $2}' | tr -d '"' | \
+            xargs -I {} podman exec {{ container_name }} cat {} 2>/dev/null | \
+            grep -E "os_x86_64|os_aarch64" || echo "NO_MINIMAL_OS_NODES"
       register: minimal_os_nodes
       changed_when: false
       failed_when: false

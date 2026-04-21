@@ -34,7 +34,6 @@ from automation_library.discovery.messages import (
     MINIMAL_OS_ASSERT_MSGS as ASSERT_MSGS,
 )
 from automation_library.discovery.functions import (
-    get_minimal_os_nodes,
     get_test_node,
     check_functional_groups,
     validate_node_architecture,
@@ -545,11 +544,14 @@ def test_architecture_mismatch_detection(host):
 
 @pytest.mark.minimal_os
 @pytest.mark.order(114)
-def test_missing_image_detection(host):
+def test_missing_image_detection(host):  # pylint: disable=unused-argument
     """
     TC-E03: Missing Image Detection.
 
     Verifies that missing images are properly detected.
+
+    Args:
+        host: Testinfra host (unused - kept for pytest fixture compatibility)
     """
     log = TestLogger(TEST_NAMES["missing_image"])
 
