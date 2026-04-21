@@ -29,7 +29,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from automation_library.core import (
     load_input_file,
-    load_user_config,
+    load_omnia_test_config,
     run_on_remote_node,
 )
 from automation_library.core.vars import STORAGE_CONFIG_FILE
@@ -118,7 +118,7 @@ def _get_ldap_credentials() -> Dict[str, str]:
     separated list; only the first pair is used).  Falls back to legacy
     ldap_user / ldap_password keys for backwards compatibility.
     """
-    config = load_user_config()
+    config = load_omnia_test_config()
 
     # Primary: ldap_credentials: "user:password" or "user:pass,user2:pass2"
     ldap_credentials = config.get("ldap_credentials", "")
@@ -159,7 +159,7 @@ def _get_all_ldap_credentials() -> Dict[str, Any]:
         Dict with 'users' (list of dicts with ldap_user/ldap_password)
         and 'error' (empty string on success).
     """
-    config = load_user_config()
+    config = load_omnia_test_config()
 
     users = []
 

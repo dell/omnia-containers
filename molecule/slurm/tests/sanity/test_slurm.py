@@ -108,6 +108,7 @@ from automation_library.slurm.functions.slurm_ldap_func import (
 # TC1: slurmctld service active on slurm control node(s)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_slurmctld_active_on_control_nodes(host):
     """Test that slurmctld service is active on all slurm control nodes."""
@@ -133,6 +134,7 @@ def test_slurmctld_active_on_control_nodes(host):
 # TC2: slurmd service active on slurm nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(2)
 def test_slurmd_active_on_slurm_nodes(host):
     """Test that slurmd service is active on all slurm compute nodes."""
@@ -158,6 +160,7 @@ def test_slurmd_active_on_slurm_nodes(host):
 # TC3: slurmd service active on login nodes (separate)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(3)
 def test_slurmd_active_on_login_nodes_only(host):
     """Test that slurmd service is active on login nodes."""
@@ -187,6 +190,7 @@ def test_slurmd_active_on_login_nodes_only(host):
 # TC4: slurmd service active on login compiler nodes (separate)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(4)
 def test_slurmd_active_on_login_compiler_nodes_only(host):
     """Test that slurmd service is active on login compiler nodes."""
@@ -216,6 +220,7 @@ def test_slurmd_active_on_login_compiler_nodes_only(host):
 # TC5: munge service active on slurm control nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(5)
 def test_munge_active_on_control_nodes(host):
     """Test that munge service is active on slurm control nodes."""
@@ -245,6 +250,7 @@ def test_munge_active_on_control_nodes(host):
 # TC6: munge service active on slurm compute nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(6)
 def test_munge_active_on_slurm_nodes(host):
     """Test that munge service is active on slurm compute nodes."""
@@ -274,6 +280,7 @@ def test_munge_active_on_slurm_nodes(host):
 # TC7: munge service active on login nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(7)
 def test_munge_active_on_login_nodes(host):
     """Test that munge service is active on login nodes."""
@@ -303,6 +310,7 @@ def test_munge_active_on_login_nodes(host):
 # TC8: munge service active on login compiler nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(8)
 def test_munge_active_on_login_compiler_nodes(host):
     """Test that munge service is active on login compiler nodes."""
@@ -336,6 +344,7 @@ def test_munge_active_on_login_compiler_nodes(host):
 # TC9: All slurm compute nodes in idle state (sinfo)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(9)
 def test_all_slurm_nodes_idle(host):
     """Test that all slurm compute nodes are in idle state using sinfo command."""
@@ -363,6 +372,7 @@ def test_all_slurm_nodes_idle(host):
 # TC10: All login and login compiler nodes in idle state (scontrol)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(10)
 def test_login_nodes_idle(host):
     """Test that all login and login compiler nodes are in idle state."""
@@ -423,6 +433,7 @@ def _run_ssh_test(host, log, src_type, dst_type):
     assert result["success"], result["message"]
 
 
+@pytest.mark.sanity
 @pytest.mark.order(11)
 def test_ssh_control_to_slurm(host):
     """TC11: Test passwordless SSH from slurm control nodes to slurm compute nodes."""
@@ -431,6 +442,7 @@ def test_ssh_control_to_slurm(host):
     _run_ssh_test(host, log, "slurm_control_node", "slurm_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(12)
 def test_ssh_control_to_login(host):
     """TC12: Test passwordless SSH from slurm control nodes to login nodes."""
@@ -439,6 +451,7 @@ def test_ssh_control_to_login(host):
     _run_ssh_test(host, log, "slurm_control_node", "login_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(13)
 def test_ssh_control_to_login_compiler(host):
     """TC13: Test passwordless SSH from slurm control nodes to login compiler nodes."""
@@ -447,6 +460,7 @@ def test_ssh_control_to_login_compiler(host):
     _run_ssh_test(host, log, "slurm_control_node", "login_compiler_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(14)
 def test_ssh_slurm_to_control(host):
     """TC14: Test passwordless SSH from slurm compute nodes to slurm control nodes."""
@@ -455,6 +469,7 @@ def test_ssh_slurm_to_control(host):
     _run_ssh_test(host, log, "slurm_node", "slurm_control_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(15)
 def test_ssh_slurm_to_login(host):
     """TC15: Test passwordless SSH from slurm compute nodes to login nodes."""
@@ -463,6 +478,7 @@ def test_ssh_slurm_to_login(host):
     _run_ssh_test(host, log, "slurm_node", "login_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(16)
 def test_ssh_slurm_to_login_compiler(host):
     """TC16: Test passwordless SSH from slurm compute nodes to login compiler nodes."""
@@ -471,6 +487,7 @@ def test_ssh_slurm_to_login_compiler(host):
     _run_ssh_test(host, log, "slurm_node", "login_compiler_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(17)
 def test_ssh_login_to_control(host):
     """TC17: Test passwordless SSH from login nodes to slurm control nodes."""
@@ -479,6 +496,7 @@ def test_ssh_login_to_control(host):
     _run_ssh_test(host, log, "login_node", "slurm_control_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(18)
 def test_ssh_login_to_slurm(host):
     """TC18: Test passwordless SSH from login nodes to slurm compute nodes."""
@@ -487,6 +505,7 @@ def test_ssh_login_to_slurm(host):
     _run_ssh_test(host, log, "login_node", "slurm_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(19)
 def test_ssh_login_to_login_compiler(host):
     """TC19: Test passwordless SSH from login nodes to login compiler nodes."""
@@ -495,6 +514,7 @@ def test_ssh_login_to_login_compiler(host):
     _run_ssh_test(host, log, "login_node", "login_compiler_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(20)
 def test_ssh_login_compiler_to_control(host):
     """TC20: Test passwordless SSH from login compiler nodes to slurm control nodes."""
@@ -503,6 +523,7 @@ def test_ssh_login_compiler_to_control(host):
     _run_ssh_test(host, log, "login_compiler_node", "slurm_control_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(21)
 def test_ssh_login_compiler_to_slurm(host):
     """TC21: Test passwordless SSH from login compiler nodes to slurm compute nodes."""
@@ -511,6 +532,7 @@ def test_ssh_login_compiler_to_slurm(host):
     _run_ssh_test(host, log, "login_compiler_node", "slurm_node")
 
 
+@pytest.mark.sanity
 @pytest.mark.order(22)
 def test_ssh_login_compiler_to_login(host):
     """TC22: Test passwordless SSH from login compiler nodes to login nodes."""
@@ -527,6 +549,7 @@ def test_ssh_login_compiler_to_login(host):
 # TC23: srun job from control node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(23)
 def test_srun_job(host):
     """TC23: Test submitting a basic srun job from the control node.
@@ -554,6 +577,7 @@ def test_srun_job(host):
 # TC24: sbatch job from control node verified via sacct
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(24)
 def test_sbatch_job(host):
     """TC24: Test submitting a basic sbatch job from the control node as root.
@@ -598,6 +622,7 @@ def test_sbatch_job(host):
 # TC25: Root single sbatch job from login node(s)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(25)
 def test_root_sbatch_from_login_nodes(host):
     """TC25: Test submitting a single sbatch job as root from each login/login_compiler node."""
@@ -624,6 +649,7 @@ def test_root_sbatch_from_login_nodes(host):
 # TC26: Root multiple sbatch jobs from login node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(26)
 def test_root_multi_sbatch_from_login_node(host):
     """TC26: Test submitting multiple sbatch jobs as root from a login node."""
@@ -650,6 +676,7 @@ def test_root_multi_sbatch_from_login_node(host):
 # TC27: Root sbatch from multiple login nodes (>1 required)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(27)
 def test_root_sbatch_from_multiple_login_nodes(host):
     """TC27: Test submitting sbatch jobs from multiple login nodes.
@@ -684,6 +711,7 @@ def test_root_sbatch_from_multiple_login_nodes(host):
 # TC28: Drain/undrain queuing - PENDING while drained, RUNNING after undrain
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(28)
 def test_drain_undrain_queuing(host):
     """TC28: Test job queuing when compute nodes are drained.
@@ -722,6 +750,7 @@ def test_drain_undrain_queuing(host):
 # TC29: Insufficient resources - job PENDING or rejected
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(29)
 def test_insufficient_resources(host):
     """TC29: Test submitting a job requesting more resources than available.
@@ -753,6 +782,7 @@ def test_insufficient_resources(host):
 # TC30: Job queuing - first RUNNING, second PENDING on same node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(30)
 def test_job_queuing(host):
     """TC30: Test Slurm job queuing behavior.
@@ -814,6 +844,7 @@ def _ensure_ldap_prereq(host):
 # TC31: ldapuser login on slurm control nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(31)
 def test_ldapuser_login_on_control_nodes(host):
     """TC31: Test that all LDAP users can SSH login to slurm control nodes."""
@@ -853,6 +884,7 @@ def test_ldapuser_login_on_control_nodes(host):
 # TC32: ldapuser login on login nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(32)
 def test_ldapuser_login_on_login_nodes(host):
     """TC32: Test that all LDAP users can SSH login to login nodes."""
@@ -891,6 +923,7 @@ def test_ldapuser_login_on_login_nodes(host):
 # TC33: ldapuser login on login compiler nodes
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(33)
 def test_ldapuser_login_on_login_compiler_nodes(host):
     """TC33: Test that all LDAP users can SSH login to login compiler nodes."""
@@ -929,6 +962,7 @@ def test_ldapuser_login_on_login_compiler_nodes(host):
 # TC34: ldapuser login blocked on slurm nodes (no running jobs)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(34)
 def test_ldapuser_blocked_on_slurm_nodes(host):
     """TC34: Test that all LDAP users login is blocked on slurm nodes when no jobs are running."""
@@ -960,6 +994,7 @@ def test_ldapuser_blocked_on_slurm_nodes(host):
 # TC35: Invalid LDAP username denied login
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(35)
 def test_invalid_ldap_username(host):
     """TC35: Test that an invalid (random) LDAP username is denied login on all nodes."""
@@ -992,6 +1027,7 @@ def test_invalid_ldap_username(host):
 # TC36: Invalid LDAP password denied login
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(36)
 def test_invalid_ldap_password(host):
     """TC36: Test that all valid LDAP usernames with invalid (random) passwords are denied login."""
@@ -1027,6 +1063,7 @@ def test_invalid_ldap_password(host):
 # TC37: LDAP user single sbatch job from login node(s)
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(37)
 def test_ldap_sbatch_from_login_nodes(host):
     """TC37: Test submitting a single sbatch job as ldapuser from each login/login_compiler node."""
@@ -1054,6 +1091,7 @@ def test_ldap_sbatch_from_login_nodes(host):
 # TC38: LDAP user multiple sbatch jobs from login node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(38)
 def test_ldap_multi_sbatch_from_login_node(host):
     """TC38: Test submitting multiple sbatch jobs as ldapuser from a login node."""
@@ -1081,6 +1119,7 @@ def test_ldap_multi_sbatch_from_login_node(host):
 # TC39: PAM support - ldapuser job from login node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(39)
 def test_pam_support_from_login_node(host):
     """TC39: Test PAM support: submit sleep job as ldapuser from login node.
@@ -1124,6 +1163,7 @@ def test_pam_support_from_login_node(host):
 # TC40: PAM support - ldapuser job from control node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(40)
 def test_pam_support_from_control_node(host):
     """TC40: Test PAM support: submit sleep job as ldapuser from slurm control node.
@@ -1161,6 +1201,7 @@ def test_pam_support_from_control_node(host):
 # TC41: PAM support - ldapuser job from login_compiler node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(41)
 def test_pam_support_from_login_compiler_node(host):
     """TC41: Test PAM support: submit sleep job as ldapuser from login_compiler node.
@@ -1204,6 +1245,7 @@ def test_pam_support_from_login_compiler_node(host):
 # TC42: OpenMPI job from ldapuser on login_compiler node
 # =============================================================================
 
+@pytest.mark.sanity
 @pytest.mark.order(42)
 def test_openmpi_job(host):
     """TC42: Test submitting an OpenMPI compile+run job as ldapuser from a login_compiler node.

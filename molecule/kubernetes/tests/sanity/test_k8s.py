@@ -50,6 +50,7 @@ def _oim_ops_fixture():
     finally:
         ops.close()
 
+@pytest.mark.sanity
 def test_kubelet_active_on_k8s_nodes(oim_ops):
     """Test that kubelet is active on all reachable Kubernetes nodes."""
     log = TestLogger("Verify kubelet is active on all reachable Kubernetes nodes")
@@ -61,6 +62,7 @@ def test_kubelet_active_on_k8s_nodes(oim_ops):
         log.failed(message)
     assert success, message
 
+@pytest.mark.sanity
 def test_crio_active_on_k8s_nodes(oim_ops):
     """Test that crio (or cri-o) is active on all reachable Kubernetes nodes."""
     log = TestLogger("Verify CRI-O is active on all reachable Kubernetes nodes")
@@ -72,6 +74,7 @@ def test_crio_active_on_k8s_nodes(oim_ops):
         log.failed(message)
     assert success, message
 
+@pytest.mark.sanity
 def test_all_nodes_joined_cluster(oim_ops):
     """Test that all nodes from PXE mapping have joined the Kubernetes cluster."""
     log = TestLogger("Verify all PXE-mapped nodes have joined the Kubernetes cluster")
@@ -83,6 +86,7 @@ def test_all_nodes_joined_cluster(oim_ops):
         log.failed("Some nodes have not joined the cluster", message)
     assert success, message
 
+@pytest.mark.sanity
 def test_all_nodes_in_ready_state(oim_ops):
     """Test that all nodes in the Kubernetes cluster are in Ready state."""
     log = TestLogger("Verify all Kubernetes nodes are in Ready state")
@@ -94,6 +98,7 @@ def test_all_nodes_in_ready_state(oim_ops):
         log.failed("Some nodes are not Ready", message)
     assert success, message
 
+@pytest.mark.sanity
 def test_kubectl_version(oim_ops):
     """Test that kubectl client version matches the expected version on control plane nodes."""
     log = TestLogger("Verify kubectl version on control plane nodes")
@@ -108,6 +113,7 @@ def test_kubectl_version(oim_ops):
         log.failed("kubectl version mismatch detected", message)
     assert success, message
 
+@pytest.mark.sanity
 def test_all_nodes_using_crio(oim_ops):
     """Test that all nodes are using CRI-O with the expected version as the container runtime."""
     log = TestLogger("Verify all nodes are using CRI-O runtime")
@@ -140,6 +146,7 @@ def test_all_nodes_using_crio(oim_ops):
 
     assert all_passed, "Container runtime check failed. See above for details."
 
+@pytest.mark.sanity
 def test_virtual_ip_configured_to_single_control_plane(oim_ops):
     """
     Test that virtual_ip_address is configured on exactly one control plane node.
@@ -156,6 +163,7 @@ def test_virtual_ip_configured_to_single_control_plane(oim_ops):
         log.failed("VIP configuration validation failed", message)
     assert success, message
 
+@pytest.mark.sanity
 def test_clico_pods_running(oim_ops):
     """Test that all Calico pods are in 'Running' state."""
     _check_pods_with_prefix(oim_ops, "calico", "Calico")
@@ -176,38 +184,47 @@ def _check_pods_with_prefix(oim_ops, prefix, component_name):
         log.failed(message)
     assert success, message
 
+@pytest.mark.sanity
 def test_coredns_pods_running(oim_ops):
     """Test that all CoreDNS pods are running."""
     _check_pods_with_prefix(oim_ops, "coredns", "CoreDNS")
 
+@pytest.mark.sanity
 def test_etcd_pods_running(oim_ops):
     """Test that all etcd pods are running."""
     _check_pods_with_prefix(oim_ops, "etcd", "etcd")
 
+@pytest.mark.sanity
 def test_kube_apiserver_pods_running(oim_ops):
     """Test that all kube-apiserver pods are running."""
     _check_pods_with_prefix(oim_ops, "kube-apiserver", "kube-apiserver")
 
+@pytest.mark.sanity
 def test_kube_controller_manager_pods_running(oim_ops):
     """Test that all kube-controller-manager pods are running."""
     _check_pods_with_prefix(oim_ops, "kube-controller-manager", "kube-controller-manager")
 
+@pytest.mark.sanity
 def test_kube_proxy_pods_running(oim_ops):
     """Test that all kube-proxy pods are running."""
     _check_pods_with_prefix(oim_ops, "kube-proxy", "kube-proxy")
 
+@pytest.mark.sanity
 def test_kube_scheduler_pods_running(oim_ops):
     """Test that all kube-scheduler pods are running."""
     _check_pods_with_prefix(oim_ops, "kube-scheduler", "kube-scheduler")
 
+@pytest.mark.sanity
 def test_kube_vip_pods_running(oim_ops):
     """Test that all kube-vip pods are running."""
     _check_pods_with_prefix(oim_ops, "kube-vip", "kube-vip")
 
+@pytest.mark.sanity
 def test_snapshot_controller_pods_running(oim_ops):
     """Test that all snapshot-controller pods are running."""
     _check_pods_with_prefix(oim_ops, "snapshot-controller", "snapshot-controller")
 
+@pytest.mark.sanity
 def test_metallb_system_pods_running(oim_ops):
     """Test that all pods in the metallb-system namespace are running."""
     log = TestLogger("Verify MetalLB pods are running")
@@ -229,6 +246,7 @@ def test_metallb_system_pods_running(oim_ops):
         log.failed(message, details)
     assert success, f"MetalLB pods check failed: {message}"
 
+@pytest.mark.sanity
 def test_nfs_client_provisioner_pod_running(oim_ops):
     """Test that the nfs-client-nfs-subdir-external-provisioner pod is running."""
     log = TestLogger("Verify NFS client provisioner pod is running")
@@ -246,6 +264,7 @@ def test_nfs_client_provisioner_pod_running(oim_ops):
         log.failed(message, details)
     assert success, f"NFS provisioner pod check failed: {message}"
 
+@pytest.mark.sanity
 def test_etcd_cluster_health(oim_ops):
     """Verify etcd cluster endpoint health from within an etcd pod."""
     log = TestLogger("Verify etcd cluster endpoint health")
@@ -257,6 +276,7 @@ def test_etcd_cluster_health(oim_ops):
         log.failed(message, output)
     assert success, message
 
+@pytest.mark.sanity
 def test_service_cluster_metadata_exists(oim_ops):
     """Test that service_cluster_metadata.yml exists in the omnia_core container."""
     log = TestLogger("Verify service_cluster_metadata.yml exists")
@@ -268,6 +288,7 @@ def test_service_cluster_metadata_exists(oim_ops):
         log.failed(message)
     assert exists, f"Required file not found: {SERVICE_CLUSTER_METADATA_PATH}"
 
+@pytest.mark.sanity
 def test_isilon_csi_driver_pods(oim_ops):
     """Test that Isilon CSI Driver pods are running only when configured in software_config.json."""
     log = TestLogger("Verify Isilon CSI Driver pods")
@@ -282,6 +303,7 @@ def test_isilon_csi_driver_pods(oim_ops):
         log.failed(message)
     assert status, message
 
+@pytest.mark.sanity
 def test_persistent_volumes_with_nfs(oim_ops):
     """Test that all Persistent Volumes are in the expected state when NFS is configured."""
     log = TestLogger("Verify Persistent Volumes with NFS")
@@ -301,6 +323,7 @@ def test_persistent_volumes_with_nfs(oim_ops):
         log.failed(message)
     assert success, message
 
+@pytest.mark.sanity
 def test_default_storage_class_csi(oim_ops):
     """Test that the default storage class exists and is set as default."""
     log = TestLogger("Verify default storage class for CSI")
@@ -320,6 +343,7 @@ def test_default_storage_class_csi(oim_ops):
         log.failed(message)
     assert success, f"Storage class verification failed: {message}"
 
+@pytest.mark.sanity
 def test_persistent_volumes_with_csi(oim_ops):
     """Test that all Persistent Volumes are in the expected state when CSI is configured."""
     log = TestLogger("Verify Persistent Volumes with CSI")
@@ -341,6 +365,7 @@ def test_persistent_volumes_with_csi(oim_ops):
         log.failed(message)
     assert success, message
 
+@pytest.mark.sanity
 def test_deploy_basic_busybox_pod(oim_ops):
     """Deploy a basic BusyBox pod and verify it reaches Running/Ready state."""
     log = TestLogger("Deploy and verify BusyBox pod")
@@ -359,6 +384,7 @@ def test_deploy_basic_busybox_pod(oim_ops):
         log.failed(message, details)
     assert success, message
 
+@pytest.mark.sanity
 def test_pvc_pv_bound_and_pod_running_powerscale(oim_ops):
     """Verify PowerScale PVC/PV binding and a test pod reaching Running/Ready."""
     log = TestLogger("Verify PowerScale PVC/PV bind and pod running")
