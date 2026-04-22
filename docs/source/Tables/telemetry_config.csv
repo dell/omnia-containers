@@ -11,8 +11,7 @@
    If you want to deploy only Slurm clusters (``slurm_custom``),  ``idrac_telemetry_support`` must be set to ``false``."
 ``idrac_telemetry_collection_type``,Mandatory,"*  Specify where to store iDRAC telemetry data.
 * **Supported values:**
-    * ``victoria``: Store in VictoriaMetrics (metrics). When **victoria** is selected,
-  **VictoriaLogs** is deployed alongside the VictoriaMetrics for centralized log management.
+    * ``victoria``: Store in VictoriaMetrics (metrics). When **victoria** is selected,   **VictoriaLogs** is deployed alongside the VictoriaMetrics for centralized log management.
     *  ``Kafka``: Store in Kafka only
     *  ``victoria,kafka`` : Store in both (recommended)
 * **Default:** ``victoria,kafka``"

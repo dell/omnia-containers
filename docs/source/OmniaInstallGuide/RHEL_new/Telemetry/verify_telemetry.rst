@@ -164,7 +164,7 @@ View Collected Logs using VictoriaLogs Query Interface
 
 After applying the ``telemetry.yml`` configuration with ``idrac_telemetry_collection_type`` set to ``victoria``,
 you can access the VictoriaLogs query interface to validate that log data is being collected and stored
-successfully. For more details on querying VictoriaLogs, see `Query VictoriaLogs <query_victorialogs.html>`_.
+successfully.
 
 1. Run the following command to verify that the VictoriaLogs vlselect pod is running::
 
