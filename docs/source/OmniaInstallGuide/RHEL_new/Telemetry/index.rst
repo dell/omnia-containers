@@ -83,7 +83,7 @@ iDRAC and LDMS Telemetry Data Flows
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     service_cluster_telemetry
     ldms_telemetry
