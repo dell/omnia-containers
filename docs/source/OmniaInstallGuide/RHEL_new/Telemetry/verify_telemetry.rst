@@ -11,7 +11,7 @@ verifying message flow, confirming TLS connectivity, and reviewing collected tel
 Verify Telemetry-Related Pods Are Running
 -------------------------------------------
 
-To verify that the iDRAC Telemetry, Kafka, LDMS, and VictoriaMetrics pods are running, do the following::
+To verify that the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLogs pods are running, do the following::
 
 1. Run the following command::
 
@@ -23,6 +23,7 @@ To verify that the iDRAC Telemetry, Kafka, LDMS, and VictoriaMetrics pods are ru
     * Kafka broker, controller, and operator pods
     * LDMS aggregator and store pods
     * VictoriaMetrics and vmagent pods
+    * VictoriaLogs pods (vlstorage, vlinsert, vlselect, vlagent)
 
 The following is the sample output file:
 
@@ -31,7 +32,7 @@ The following is the sample output file:
 Verify Kubernetes Telemetry Services Attached to Telemetry 
 ----------------------------------------------------------
 
-To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, LDMS, and VictoriaMetrics pods, do the following:
+To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLogs pods, do the following:
 
 1. Run the following command::
 
@@ -43,6 +44,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
     * Kafka broker, controller, and bridge services
     * LDMS aggregator and store services
     * VictoriaMetrics service
+    * VictoriaLogs services (vlselect, vlinsert, vlstorage)
 
 The following is the sample output file:
 
@@ -141,6 +143,62 @@ verify that certificates and secure connectivity are functioning correctly::
 After the job completes, check the logs to confirm that the TLS connection is successful::
 
     kubectl logs victoria-tls-test-xxx -n telemetry    
+
+
+Verify VictoriaLogs TLS Connectivity
+--------------------------------------
+
+To verify TLS connectivity for VictoriaLogs, run the VictoriaLogs TLS test job to
+verify that certificates and secure connectivity are functioning correctly::
+
+    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+    kubectl apply -f victorialogs-tls-test-job.yaml
+
+After the job completes, check the logs to confirm that the TLS connection is successful::
+
+    kubectl logs victorialogs-tls-test-xxx -n telemetry
+
+
+View Collected Logs using VictoriaLogs Query Interface
+-----------------------------------------------------
+
+After applying the ``telemetry.yml`` configuration with ``idrac_telemetry_collection_type`` set to ``victoria``,
+you can access the VictoriaLogs query interface to validate that log data is being collected and stored
+successfully. For more details on querying VictoriaLogs, see `Query VictoriaLogs <query_victorialogs.html>`_.
+
+1. Run the following command to verify that the VictoriaLogs vlselect pod is running::
+
+    kubectl get pods -n telemetry -o wide | grep vlselect
+
+2. Run the following command to verify that the VictoriaLogs vlselect service is running::
+
+    kubectl get service -n telemetry -o wide | grep vlselect
+
+3. Note the **External IP** and **port number** of the VictoriaLogs vlselect service. The external IP and port number will be used to access the VictoriaLogs query interface.
+
+4. Access the VictoriaLogs query interface in a web browser using::
+
+    https://<external vlselect loadbalancer IP>:9480/select/0/vmui
+
+5. Filter and view logs using LogsQL queries in the query interface.
+For example, the following query displays recent log entries::
+
+    * | sort by time desc
+
+Verify VictoriaLogs Log Ingestion
+---------------------------------
+
+After recording the VictoriaLogs endpoint information from the deployment, verify that the VictoriaLogs deployment is fully functional by testing end-to-end log ingestion:
+
+1. Test log ingestion by sending a test syslog message to VLAgent::
+
+    echo "test message" | nc -u <LoadBalancer IP> 514
+
+2. Verify the test message appears in VictoriaLogs query results::
+
+    curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{_msg=\"test message\"}"'
+
+3. Confirm the query returns the test log entry, indicating successful ingestion and query functionality.
 
 
 View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Single Mode Deployment

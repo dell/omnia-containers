@@ -8,11 +8,18 @@ providing flexible deployment and simplified lifecycle management.
 
 * **iDRAC Telemetry** provides out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and streamed to **Kafka** or **VictoriaMetrics**, depending on the deployment needs.
+  and streamed to **Kafka** or **VictoriaMetrics**, depending on the deployment needs. When **VictoriaMetrics** is selected,
+  **VictoriaLogs** is deployed alongside it for centralized log management.
 
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
   and streamed to **Kafka**.
+
+
+* **VictoriaLogs** provides centralized log management for the cluster, collecting logs from
+  various sources including network devices, storage systems, and fabric managers. VictoriaLogs
+  is deployed in cluster mode for high availability and scalability.
+
 
 .. note::
 
@@ -48,6 +55,8 @@ Hosts telemetry collection and storage services:
 - **Kafka Broker** – Streams telemetry data
 - **VMAgent** – Forwards metrics to Victoria Metrics
 - **Victoria Metrics** – Time-series database for metric storage
+- **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
+- **VLAgent** – Platform-managed log collection agent that receives logs from external sources
 
 
 **Slurm Cluster**

@@ -11,7 +11,8 @@
    If you want to deploy only Slurm clusters (``slurm_custom``),  ``idrac_telemetry_support`` must be set to ``false``."
 ``idrac_telemetry_collection_type``,Mandatory,"*  Specify where to store iDRAC telemetry data.
 * **Supported values:**
-    * ``victoria``: Store in VictoriaMetrics only
+    * ``victoria``: Store in VictoriaMetrics (metrics). When **victoria** is selected,
+  **VictoriaLogs** is deployed alongside the VictoriaMetrics for centralized log management.
     *  ``Kafka``: Store in Kafka only
     *  ``victoria,kafka`` : Store in both (recommended)
 * **Default:** ``victoria,kafka``"
@@ -39,6 +40,19 @@ victoria_configurations > ``persistence_size``,Conditional Mandatory,"
 "
 victoria_configurations > ``retention_period``,Conditional Mandatory,"* Specify the number of hours to retain victoria logs before they are deleted.
 * **Default**: 168 (7 days)"
+victoria_logs_configurations > ``retention_period``,Conditional Mandatory,"* Specify the number of hours to retain VictoriaLogs data before it is automatically deleted.
+* **Type**: Integer (hours)
+* **Accepted values**: 24-8760 (1 day to 1 year)
+* **Default**: 168 (7 days)
+* **Note**: Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations."
+victoria_logs_configurations > ``storage_size``,Conditional Mandatory,"* The amount of storage allocated for **each** VictoriaLogs vlstorage replica.
+* **Important: Total VictoriaLogs storage depends on deployment mode and replica count:**
+    * Cluster mode: Total storage = ``storage_size * 3 vlstorage replicas``
+* **Example (cluster)**: ``8Gi * 3 = 24Gi`` total VictoriaLogs storage
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``8Gi`` (results in **24Gi total storage** for cluster mode)
+* **Sizing formula**: (140 MB/day × retention_days × node_count) / 3 replicas
+.. warning:: Storage under-provisioning can lead to data loss before the retention period is reached. Calculate storage requirements based on expected log volume and retention needs."
 kafka_configurations > ``persistence_size``,Conditional Mandatory,"* The amount of storage allocated for **each** Kafka persistent volume.
 * **Important: Total Kafka storage =** ``persistence_size * 6 pods``
   * 3 Kafka brokers (each gets ``persistence_size`` storage)
