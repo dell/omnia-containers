@@ -85,7 +85,7 @@ LDAP_LOGIN_PASSED = "ldapuser login succeeded on all login/login_compiler/contro
 LDAP_LOGIN_FAILED = "ldapuser login failed on one or more nodes"
 LDAP_LOGIN_BLOCKED_PASSED = "ldapuser login correctly blocked on slurm nodes with no running jobs"
 LDAP_LOGIN_BLOCKED_FAILED = "ldapuser login was NOT blocked on one or more idle slurm nodes"
-LDAP_CREDS_MISSING = "ldap_credentials in 'username:password' format required in user_config.yml"
+LDAP_CREDS_MISSING = "ldap_credentials in 'username:password' format required in omnia_test_config.yml"
 LDAP_SETUP_FAILED = "LDAP user setup failed: {error}"
 
 # =============================================================================
@@ -211,3 +211,50 @@ LDAP_HOME_PERMS_PASSED = "Write and execute permissions set on /home/{user}/ acr
 LDAP_HOME_PERMS_FAILED = "Failed to set permissions on /home/{user}/ on one or more nodes: {error}"
 LDAP_HOME_PERMS_ALL_PASSED = "Home directory permissions set for all {count} LDAP user(s) across all nodes"
 LDAP_HOME_PERMS_ALL_FAILED = "Home directory permission setup failed for one or more LDAP users"
+
+# =============================================================================
+# Reboot Messages
+# =============================================================================
+REBOOT_INITIATED = "Reboot initiated on {node} ({ip})"
+REBOOT_INITIATE_FAILED = "Failed to initiate reboot on {node} ({ip}): {error}"
+REBOOT_ONLINE_PASSED = "Node {node} ({ip}) is back online after reboot"
+REBOOT_ONLINE_FAILED = "Node {node} ({ip}) did not come back online within {timeout}s"
+REBOOT_WAIT_ONLINE_TIMEOUT = "Timed out waiting for node {node} ({ip}) to come back online"
+
+CLOUD_INIT_PASSED = "cloud-init completed successfully on {node} ({ip})"
+CLOUD_INIT_FAILED = "cloud-init did NOT complete successfully on {node} ({ip}): {status}"
+CLOUD_INIT_ALL_PASSED = "cloud-init completed successfully on all rebooted nodes"
+CLOUD_INIT_ALL_FAILED = "cloud-init failed or did not complete on one or more nodes"
+
+REBOOT_CONTROL_SERVICES_PASSED = "All slurm control node services (slurmctld, slurmdbd, munge) are active after reboot"
+REBOOT_CONTROL_SERVICES_FAILED = "One or more slurm control node services failed to recover after reboot"
+REBOOT_COMPUTE_SERVICES_PASSED = "All slurm compute node services (slurmd, munge) are active after reboot"
+REBOOT_COMPUTE_SERVICES_FAILED = "One or more slurm compute node services failed to recover after reboot"
+REBOOT_LOGIN_SERVICES_PASSED = "All login/login_compiler node services (slurmd, munge) are active after reboot"
+REBOOT_LOGIN_SERVICES_FAILED = "One or more login/login_compiler node services failed to recover after reboot"
+
+SLURMDBD_ACTIVE_PASSED = "slurmdbd service is active on slurm control node(s)"
+SLURMDBD_ACTIVE_FAILED = "slurmdbd service is NOT active on one or more slurm control nodes"
+SLURMDBD_DATA_PASSED = "slurmdbd job history preserved after reboot: job {job_id} found in sacct"
+SLURMDBD_DATA_FAILED = "slurmdbd job history NOT preserved after reboot: job {job_id} not found in sacct"
+SLURMDBD_DATA_NO_JOB = "No pre-reboot job ID provided to verify slurmdbd data preservation"
+
+NODES_IDLE_AFTER_REBOOT_PASSED = "All slurm nodes returned to idle state after reboot"
+NODES_IDLE_AFTER_REBOOT_FAILED = "One or more slurm nodes did not return to idle state after reboot"
+
+REBOOT_SBATCH_PASSED = "sbatch job completed successfully after reboot (JobID: {job_id})"
+REBOOT_SBATCH_FAILED = "sbatch job failed after reboot: {error}"
+REBOOT_LDAP_LOGIN_PASSED = "LDAP user login succeeded after reboot"
+REBOOT_LDAP_LOGIN_FAILED = "LDAP user login failed after reboot"
+REBOOT_LDAP_SBATCH_PASSED = "LDAP user sbatch job completed successfully after reboot"
+REBOOT_LDAP_SBATCH_FAILED = "LDAP user sbatch job failed after reboot: {error}"
+
+# =============================================================================
+# PXE Mapping to Slurm Cluster Verification Messages
+# =============================================================================
+PXE_CLUSTER_VERIFY_PASSED = "All {pxe_count} nodes from PXE mapping are joined to the Slurm cluster"
+PXE_CLUSTER_VERIFY_FAILED = "One or more nodes from PXE mapping are NOT joined to the Slurm cluster"
+PXE_CLUSTER_VERIFY_NO_NODES = "No nodes found in PXE mapping"
+PXE_CLUSTER_VERIFY_NO_SLURM_NODES = "No nodes found in Slurm cluster"
+PXE_CLUSTER_VERIFY_MISSING_NODES = "Missing nodes in Slurm cluster: {missing_nodes}"
+PXE_CLUSTER_VERIFY_EXTRA_NODES = "Extra nodes in Slurm cluster (not in PXE): {extra_nodes}"

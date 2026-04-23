@@ -33,7 +33,7 @@ from automation_library.core import (
     run_on_remote_node,
 )
 from automation_library.core.vars import STORAGE_CONFIG_FILE
-# LDAP user creation skipped - using existing credentials from user_config.yml
+# LDAP user creation skipped - using existing credentials from omnia_test_config.yml
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
     SLURM_NODE_FUNCTIONAL_GROUP,
@@ -112,7 +112,7 @@ from .slurm_func import (
 # =============================================================================
 
 def _get_ldap_credentials() -> Dict[str, str]:
-    """Read LDAP credentials from user_config.yml.
+    """Read LDAP credentials from omnia_test_config.yml.
 
     Reads ldap_credentials in 'username:password' format (supports comma-
     separated list; only the first pair is used).  Falls back to legacy
@@ -149,7 +149,7 @@ def _get_ldap_credentials() -> Dict[str, str]:
 
 
 def _get_all_ldap_credentials() -> Dict[str, Any]:
-    """Read ALL LDAP credentials from user_config.yml.
+    """Read ALL LDAP credentials from omnia_test_config.yml.
 
     Reads ldap_credentials in 'username:password' format.  Supports comma-
     separated list for multiple users: "user1:pwd1, user2:pwd2, ...".
