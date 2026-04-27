@@ -1,0 +1,1325 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Slurm cluster test cases for OMNIA.
+
+This module contains test cases to verify the health and status of a Slurm cluster:
+  TC1  - All nodes from PXE mapping are joined to Slurm cluster
+  TC2  - slurmctld service active on slurm control nodes
+  TC3  - slurmd service active on slurm compute nodes
+  TC4  - slurmd service active on login nodes (separate)
+  TC5  - slurmd service active on login compiler nodes (separate)
+  TC6  - munge service active on slurm control nodes
+  TC7  - munge service active on slurm compute nodes
+  TC8  - munge service active on login nodes
+  TC9  - munge service active on login compiler nodes
+  TC10 - All slurm compute nodes in idle state (sinfo)
+  TC11 - All login and login compiler nodes in idle state (scontrol)
+  TC12-TC23 - Passwordless SSH between all node type pairs
+  TC24 - srun job from control node
+  TC25 - sbatch job from control node verified via sacct
+  TC26 - Root single sbatch job from login node(s)
+  TC27 - Root multiple sbatch jobs from login node
+  TC28 - Root sbatch from multiple login nodes (>1 required)
+  TC29 - Drain/undrain queuing: PENDING while drained, RUNNING after undrain
+  TC30 - Insufficient resources: job PENDING or rejected
+  TC31 - Job queuing: first job RUNNING, second job PENDING on same node
+  TC32 - ldapuser login on slurm control nodes
+  TC33 - ldapuser login on login nodes
+  TC34 - ldapuser login on login compiler nodes
+  TC35 - ldapuser login blocked on slurm nodes (no running jobs)
+  TC36 - Invalid LDAP username denied login
+  TC37 - Invalid LDAP password denied login
+  TC38 - LDAP user single sbatch job from login node(s)
+  TC39 - LDAP user multiple sbatch jobs from login node
+  TC40 - PAM support: ldapuser job from login node
+  TC41 - PAM support: ldapuser job from control node
+  TC42 - PAM support: ldapuser job from login_compiler node
+  TC43 - OpenMPI job from ldapuser on login_compiler node
+"""
+
+import os
+import sys
+
+# Add the project root to the Python path
+_PROJECT_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "../../../.."),
+)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+import pytest
+from automation_library.core import TestLogger
+from automation_library.core.load_inputs import is_software_enabled
+from automation_library.slurm.functions.slurm_func import (
+    verify_slurmctld_active,
+    verify_slurmd_active,
+    verify_slurm_nodes_idle,
+    verify_login_nodes_idle,
+    verify_srun_job,
+    verify_sbatch_job,
+    verify_root_sbatch_from_login_node,
+    verify_root_multi_sbatch_from_login_node,
+    verify_drain_undrain_queuing,
+    verify_insufficient_resources,
+    verify_slurmd_on_login_nodes_only,
+    verify_slurmd_on_login_compiler_nodes_only,
+    verify_munge_on_control_nodes,
+    verify_munge_on_slurm_nodes,
+    verify_munge_on_login_nodes,
+    verify_all_pxe_nodes_in_slurm_cluster,
+    verify_munge_on_login_compiler_nodes,
+    verify_passwordless_ssh,
+    verify_root_sbatch_from_multiple_login_nodes,
+)
+from automation_library.slurm.functions.slurm_ldap_func import (
+    verify_ldapuser_login,
+    verify_ldapuser_blocked_on_slurm_nodes,
+    verify_pam_from_login_node,
+    verify_pam_from_login_compiler_node,
+    verify_pam_from_control_node,
+    verify_openmpi_job,
+    verify_job_queuing,
+    verify_ldap_sbatch_from_login_nodes,
+    verify_ldap_multi_sbatch_from_login_node,
+    verify_ldapuser_login_on_control_nodes,
+    verify_ldapuser_login_on_login_nodes,
+    verify_ldapuser_login_on_login_compiler_nodes,
+    verify_invalid_ldap_username,
+    verify_invalid_ldap_password,
+    set_ldapuser_home_permissions,
+)
+
+# =============================================================================
+# CLUSTER VERIFICATION TESTS (TC1)
+# =============================================================================
+
+# =============================================================================
+# TC1: All nodes from PXE mapping are joined to Slurm cluster
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(1)
+def test_all_pxe_nodes_in_slurm_cluster(host):
+    """Test that all nodes in PXE mapping are joined to the Slurm cluster."""
+    log = TestLogger("Verify all PXE mapping nodes are in Slurm cluster")
+    log.check("Comparing PXE mapping nodes with Slurm cluster nodes")
+
+    result = verify_all_pxe_nodes_in_slurm_cluster(host)
+
+    log.check(f"  PXE nodes count: {len(result.get('pxe_nodes', []))}")
+    log.check(f"  Slurm nodes count: {len(result.get('slurm_nodes', []))}")
+
+    if result.get("missing_nodes"):
+        log.check(f"  Missing nodes in Slurm cluster: {result['missing_nodes']}")
+    if result.get("extra_nodes"):
+        log.check(f"  Extra nodes in Slurm cluster (not in PXE): {result['extra_nodes']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# SERVICE TESTS (TC2-TC9)
+# =============================================================================
+
+# =============================================================================
+# TC2: slurmctld service active on slurm control node(s)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(2)
+def test_slurmctld_active_on_control_nodes(host):
+    """Test that slurmctld service is active on all slurm control nodes."""
+    log = TestLogger("Verify slurmctld is active on slurm control nodes")
+    log.check("Checking slurmctld service on slurm control nodes")
+
+    result = verify_slurmctld_active(host)
+
+    # Log per-node details
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): slurmctld {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC3: slurmd service active on slurm nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(3)
+def test_slurmd_active_on_slurm_nodes(host):
+    """Test that slurmd service is active on all slurm compute nodes."""
+    log = TestLogger("Verify slurmd is active on slurm compute nodes")
+    log.check("Checking slurmd service on slurm nodes")
+
+    result = verify_slurmd_active(host)
+
+    # Log per-node details
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): slurmd {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC4: slurmd service active on login nodes (separate)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(4)
+def test_slurmd_active_on_login_nodes_only(host):
+    """Test that slurmd service is active on login nodes."""
+    log = TestLogger("Verify slurmd is active on login nodes")
+    log.check("Checking slurmd service on login nodes")
+
+    result = verify_slurmd_on_login_nodes_only(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): slurmd {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC4: slurmd service active on login compiler nodes (separate)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(5)
+def test_slurmd_active_on_login_compiler_nodes_only(host):
+    """Test that slurmd service is active on login compiler nodes."""
+    log = TestLogger("Verify slurmd is active on login compiler nodes")
+    log.check("Checking slurmd service on login compiler nodes")
+
+    result = verify_slurmd_on_login_compiler_nodes_only(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): slurmd {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC5: munge service active on slurm control nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(6)
+def test_munge_active_on_control_nodes(host):
+    """Test that munge service is active on slurm control nodes."""
+    log = TestLogger("Verify munge is active on slurm control nodes")
+    log.check("Checking munge service on slurm control nodes")
+
+    result = verify_munge_on_control_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): munge {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC6: munge service active on slurm compute nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(7)
+def test_munge_active_on_slurm_nodes(host):
+    """Test that munge service is active on slurm compute nodes."""
+    log = TestLogger("Verify munge is active on slurm compute nodes")
+    log.check("Checking munge service on slurm compute nodes")
+
+    result = verify_munge_on_slurm_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): munge {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC7: munge service active on login nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(8)
+def test_munge_active_on_login_nodes(host):
+    """Test that munge service is active on login nodes."""
+    log = TestLogger("Verify munge is active on login nodes")
+    log.check("Checking munge service on login nodes")
+
+    result = verify_munge_on_login_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): munge {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC8: munge service active on login compiler nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(9)
+def test_munge_active_on_login_compiler_nodes(host):
+    """Test that munge service is active on login compiler nodes."""
+    log = TestLogger("Verify munge is active on login compiler nodes")
+    log.check("Checking munge service on login compiler nodes")
+
+    result = verify_munge_on_login_compiler_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for node in result.get("details", []):
+        status = "active" if node["active"] else "NOT active"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): munge {status} [{node['output']}]")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# NODE IDLE STATE TESTS (TC9-TC10)
+# =============================================================================
+
+# =============================================================================
+# TC9: All slurm compute nodes in idle state (sinfo)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(10)
+def test_all_slurm_nodes_idle(host):
+    """Test that all slurm compute nodes are in idle state using sinfo command."""
+    log = TestLogger("Verify all slurm compute nodes are in idle state")
+    log.check("Running sinfo on slurm control node")
+
+    result = verify_slurm_nodes_idle(host)
+
+    for ns in result.get("node_states", []):
+        idle_str = "idle" if ns["idle"] else "NOT idle"
+        log.check(f"  {ns['node']}: {ns['state']} ({idle_str})")
+
+    if result.get("sinfo_output"):
+        log.check(f"sinfo output:\n{result['sinfo_output']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC10: All login and login compiler nodes in idle state (scontrol)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(11)
+def test_login_nodes_idle(host):
+    """Test that all login and login compiler nodes are in idle state."""
+    log = TestLogger("Verify all login and login compiler nodes are in idle state")
+    log.check("Checking node state via scontrol for each login/login_compiler node")
+
+    result = verify_login_nodes_idle(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for ns in result.get("node_states", []):
+        idle_str = "idle" if ns["idle"] else "NOT idle"
+        log.check(f"  {ns['node']}: {ns['state']} ({idle_str})")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# PASSWORDLESS SSH TESTS (TC11-TC22)
+# =============================================================================
+
+_SSH_NODE_TYPES = [
+    "slurm_control_node",
+    "slurm_node",
+    "login_node",
+    "login_compiler_node",
+]
+
+
+def _run_ssh_test(host, log, src_type, dst_type):
+    """Helper to run and log passwordless SSH test."""
+    result = verify_passwordless_ssh(host, src_type, dst_type)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for pr in result.get("pair_results", []):
+        status = "OK" if pr["success"] else "FAILED"
+        log.check(f"  {pr['src']} -> {pr['dst']}: {status}")
+        if pr.get("error"):
+            log.check(f"    Error: {pr['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+@pytest.mark.sanity
+@pytest.mark.order(12)
+def test_ssh_control_to_slurm(host):
+    """TC11: Test passwordless SSH from slurm control nodes to slurm compute nodes."""
+    log = TestLogger("Verify passwordless SSH: control -> slurm nodes")
+    log.check("Testing SSH from control nodes to slurm nodes")
+    _run_ssh_test(host, log, "slurm_control_node", "slurm_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(13)
+def test_ssh_control_to_login(host):
+    """TC12: Test passwordless SSH from slurm control nodes to login nodes."""
+    log = TestLogger("Verify passwordless SSH: control -> login nodes")
+    log.check("Testing SSH from control nodes to login nodes")
+    _run_ssh_test(host, log, "slurm_control_node", "login_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(14)
+def test_ssh_control_to_login_compiler(host):
+    """TC13: Test passwordless SSH from slurm control nodes to login compiler nodes."""
+    log = TestLogger("Verify passwordless SSH: control -> login compiler nodes")
+    log.check("Testing SSH from control nodes to login compiler nodes")
+    _run_ssh_test(host, log, "slurm_control_node", "login_compiler_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(15)
+def test_ssh_slurm_to_control(host):
+    """TC14: Test passwordless SSH from slurm compute nodes to slurm control nodes."""
+    log = TestLogger("Verify passwordless SSH: slurm nodes -> control")
+    log.check("Testing SSH from slurm nodes to control nodes")
+    _run_ssh_test(host, log, "slurm_node", "slurm_control_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(16)
+def test_ssh_slurm_to_login(host):
+    """TC15: Test passwordless SSH from slurm compute nodes to login nodes."""
+    log = TestLogger("Verify passwordless SSH: slurm nodes -> login nodes")
+    log.check("Testing SSH from slurm nodes to login nodes")
+    _run_ssh_test(host, log, "slurm_node", "login_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(17)
+def test_ssh_slurm_to_login_compiler(host):
+    """TC16: Test passwordless SSH from slurm compute nodes to login compiler nodes."""
+    log = TestLogger("Verify passwordless SSH: slurm nodes -> login compiler nodes")
+    log.check("Testing SSH from slurm nodes to login compiler nodes")
+    _run_ssh_test(host, log, "slurm_node", "login_compiler_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(18)
+def test_ssh_login_to_control(host):
+    """TC17: Test passwordless SSH from login nodes to slurm control nodes."""
+    log = TestLogger("Verify passwordless SSH: login nodes -> control")
+    log.check("Testing SSH from login nodes to control nodes")
+    _run_ssh_test(host, log, "login_node", "slurm_control_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(19)
+def test_ssh_login_to_slurm(host):
+    """TC18: Test passwordless SSH from login nodes to slurm compute nodes."""
+    log = TestLogger("Verify passwordless SSH: login nodes -> slurm nodes")
+    log.check("Testing SSH from login nodes to slurm nodes")
+    _run_ssh_test(host, log, "login_node", "slurm_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(20)
+def test_ssh_login_to_login_compiler(host):
+    """TC19: Test passwordless SSH from login nodes to login compiler nodes."""
+    log = TestLogger("Verify passwordless SSH: login nodes -> login compiler nodes")
+    log.check("Testing SSH from login nodes to login compiler nodes")
+    _run_ssh_test(host, log, "login_node", "login_compiler_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(21)
+def test_ssh_login_compiler_to_control(host):
+    """TC20: Test passwordless SSH from login compiler nodes to slurm control nodes."""
+    log = TestLogger("Verify passwordless SSH: login compiler -> control")
+    log.check("Testing SSH from login compiler nodes to control nodes")
+    _run_ssh_test(host, log, "login_compiler_node", "slurm_control_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(22)
+def test_ssh_login_compiler_to_slurm(host):
+    """TC21: Test passwordless SSH from login compiler nodes to slurm compute nodes."""
+    log = TestLogger("Verify passwordless SSH: login compiler -> slurm nodes")
+    log.check("Testing SSH from login compiler nodes to slurm nodes")
+    _run_ssh_test(host, log, "login_compiler_node", "slurm_node")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(23)
+def test_ssh_login_compiler_to_login(host):
+    """TC22: Test passwordless SSH from login compiler nodes to login nodes."""
+    log = TestLogger("Verify passwordless SSH: login compiler -> login nodes")
+    log.check("Testing SSH from login compiler nodes to login nodes")
+    _run_ssh_test(host, log, "login_compiler_node", "login_node")
+
+
+# =============================================================================
+# BASIC JOB TESTS (TC23-TC24)
+# =============================================================================
+
+# =============================================================================
+# TC23: srun job from control node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(24)
+def test_srun_job(host):
+    """TC23: Test submitting a basic srun job from the control node.
+
+    Runs: srun -N <total_slurm_nodes> hostname
+    """
+    log = TestLogger("Verify srun job execution from slurm control node")
+    log.check("Submitting srun job on all slurm nodes")
+
+    result = verify_srun_job(host)
+
+    if result.get("output"):
+        log.check(f"srun output:\n{result['output']}")
+    log.check(f"Number of slurm nodes: {result.get('num_nodes', 0)}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC24: sbatch job from control node verified via sacct
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(25)
+def test_sbatch_job(host):
+    """TC24: Test submitting a basic sbatch job from the control node as root.
+
+    Submits an sbatch job and verifies completion using sacct.
+    """
+    log = TestLogger("Verify sbatch job execution from slurm control node")
+    log.check("Submitting sbatch job and verifying via sacct")
+
+    result = verify_sbatch_job(host)
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("job_state"):
+        log.check(f"Job state: {result['job_state']}")
+    if result.get("output"):
+        log.check(f"Submit output: {result['output']}")
+    if result.get("job_output"):
+        log.check(f"Job output:\n{result['job_output']}")
+
+    output_status = "VERIFIED" if result.get("output_verified") else "FAILED"
+    log.check(f"Output verification: {output_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+        job_output = result.get("job_output", "")
+        if job_output:
+            assert "completed" in job_output.lower() or "Job" in job_output, \
+                f"Job output does not contain expected completion message: {job_output}"
+            log.check("Job output verification passed")
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# ROOT JOB SUBMISSION TESTS (TC25-TC30)
+# =============================================================================
+
+# =============================================================================
+# TC25: Root single sbatch job from login node(s)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(26)
+def test_root_sbatch_from_login_nodes(host):
+    """TC25: Test submitting a single sbatch job as root from each login/login_compiler node."""
+    log = TestLogger("Verify root sbatch job from login node(s)")
+    log.check("Submitting single sbatch job as root from each login node")
+
+    result = verify_root_sbatch_from_login_node(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for nr in result.get("node_results", []):
+        status = "COMPLETED" if nr["success"] else "FAILED"
+        log.check(f"  {nr['node']}: {status} (JobID: {nr.get('job_id', '')}, State: {nr.get('job_state', '')})")
+        if nr.get("error"):
+            log.check(f"    Error: {nr['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC26: Root multiple sbatch jobs from login node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(27)
+def test_root_multi_sbatch_from_login_node(host):
+    """TC26: Test submitting multiple sbatch jobs as root from a login node."""
+    log = TestLogger("Verify root multiple sbatch jobs from login node")
+    log.check("Submitting multiple sbatch jobs as root from login node")
+
+    result = verify_root_multi_sbatch_from_login_node(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+    for jr in result.get("job_results", []):
+        status = "COMPLETED" if jr["success"] else "FAILED"
+        log.check(f"  Job {jr['index']}: {status} (JobID: {jr.get('job_id', '')}, State: {jr.get('job_state', '')})")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC27: Root sbatch from multiple login nodes (>1 required)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(28)
+def test_root_sbatch_from_multiple_login_nodes(host):
+    """TC27: Test submitting sbatch jobs from multiple login nodes.
+
+    Skips if only 1 or 0 login nodes found.
+    """
+    log = TestLogger("Verify root sbatch from multiple login nodes")
+    log.check("Submitting sbatch jobs from each login node (>1 required)")
+
+    result = verify_root_sbatch_from_multiple_login_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for nr in result.get("node_results", []):
+        status = "COMPLETED" if nr["success"] else "FAILED"
+        log.check(f"  {nr['node']}: {status} (JobID: {nr.get('job_id', '')}, State: {nr.get('job_state', '')})")
+        if nr.get("error"):
+            log.check(f"    Error: {nr['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC28: Drain/undrain queuing - PENDING while drained, RUNNING after undrain
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(29)
+def test_drain_undrain_queuing(host):
+    """TC28: Test job queuing when compute nodes are drained.
+
+    Drains all slurm nodes, submits a job, verifies PENDING with reason,
+    undrains nodes, verifies job transitions to COMPLETED.
+    """
+    log = TestLogger("Verify drain/undrain job queuing")
+    log.check("Draining nodes, submitting job, verifying PENDING, undraining")
+
+    result = verify_drain_undrain_queuing(host)
+
+    for step in result.get("steps", []):
+        step_name = step.get("step", "")
+        step_ok = "OK" if step.get("success") else "FAILED"
+        log.check(f"  Step: {step_name} - {step_ok}")
+        if step.get("sinfo_output"):
+            log.check(f"    sinfo: {step['sinfo_output']}")
+        if step.get("state_reason"):
+            log.check(f"    State/Reason: {step['state_reason']}")
+        if step.get("final_state"):
+            log.check(f"    Final state: {step['final_state']}")
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC29: Insufficient resources - job PENDING or rejected
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(30)
+def test_insufficient_resources(host):
+    """TC29: Test submitting a job requesting more resources than available.
+
+    Verifies that the job enters PENDING with a resource-related reason
+    or is rejected outright by Slurm.
+    """
+    log = TestLogger("Verify insufficient resources job handling")
+    log.check("Submitting job with excessive CPU request")
+
+    result = verify_insufficient_resources(host)
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("job_state"):
+        log.check(f"Job state: {result['job_state']}")
+    if result.get("reason"):
+        log.check(f"Reason: {result['reason']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC30: Job queuing - first RUNNING, second PENDING on same node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(31)
+def test_job_queuing(host):
+    """TC30: Test Slurm job queuing behavior.
+
+    Submits a sleep job, waits for RUNNING, then submits a second job
+    on the same node and verifies it goes to PENDING state.
+    """
+    log = TestLogger("Verify Slurm job queuing")
+    log.check("Submitting first sleep job, then second on same node")
+
+    result = verify_job_queuing(host)
+
+    if result.get("job1_id"):
+        log.check(f"Job 1 ID: {result['job1_id']} - State: {result.get('job1_state', '')}")
+    if result.get("job1_squeue"):
+        log.check(f"Job 1 squeue: {result['job1_squeue']}")
+    if result.get("allocated_node"):
+        log.check(f"Allocated node: {result['allocated_node']}")
+    if result.get("job2_id"):
+        log.check(f"Job 2 ID: {result['job2_id']} - State: {result.get('job2_state', '')}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# LDAP USER TESTS (TC31-TC42)
+# Prerequisites: set_ldapuser_home_permissions() is called as a prereq before
+# the first LDAP test to ensure /home/<ldapuser> is writable on all nodes.
+# =============================================================================
+
+_ldap_prereq_done = False
+
+
+def _skip_if_no_openldap(host):
+    """Skip LDAP tests if openldap is not enabled in software_config.json."""
+    if not is_software_enabled(host, "openldap"):
+        pytest.skip("OpenLDAP is not enabled in software_config.json, skipping LDAP tests")
+
+
+def _ensure_ldap_prereq(host):
+    """Ensure LDAP home directory permissions are set before any LDAP test.
+
+    This is a non-test prereq function. It runs set_ldapuser_home_permissions()
+    once per test session to ensure /home/<ldapuser> has write+execute permissions
+    on all cluster nodes before LDAP job submission tests begin.
+    """
+    global _ldap_prereq_done
+    if not _ldap_prereq_done:
+        set_ldapuser_home_permissions(host)
+        _ldap_prereq_done = True
+
+
+# =============================================================================
+# TC31: ldapuser login on slurm control nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(32)
+def test_ldapuser_login_on_control_nodes(host):
+    """TC31: Test that all LDAP users can SSH login to slurm control nodes."""
+    _skip_if_no_openldap(host)
+    _ensure_ldap_prereq(host)
+    log = TestLogger("Verify ldapuser login on slurm control nodes")
+    log.check("Testing ldapuser SSH login on slurm control nodes")
+
+    result = verify_ldapuser_login_on_control_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("ldap_users"):
+        log.check(f"LDAP users: {', '.join(result['ldap_users'])}")
+
+    for node in result.get("details", []):
+        status = "OK" if node["login_success"] else "FAILED"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): login {status}")
+        for ur in node.get("user_results", []):
+            ur_status = "OK" if ur["login_success"] else "FAILED"
+            log.check(f"    {ur['ldap_user']}: {ur_status}")
+            if ur.get("error"):
+                log.check(f"      Error: {ur['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC32: ldapuser login on login nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(33)
+def test_ldapuser_login_on_login_nodes(host):
+    """TC32: Test that all LDAP users can SSH login to login nodes."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify ldapuser login on login nodes")
+    log.check("Testing ldapuser SSH login on login nodes")
+
+    result = verify_ldapuser_login_on_login_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("ldap_users"):
+        log.check(f"LDAP users: {', '.join(result['ldap_users'])}")
+
+    for node in result.get("details", []):
+        status = "OK" if node["login_success"] else "FAILED"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): login {status}")
+        for ur in node.get("user_results", []):
+            ur_status = "OK" if ur["login_success"] else "FAILED"
+            log.check(f"    {ur['ldap_user']}: {ur_status}")
+            if ur.get("error"):
+                log.check(f"      Error: {ur['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC33: ldapuser login on login compiler nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(34)
+def test_ldapuser_login_on_login_compiler_nodes(host):
+    """TC33: Test that all LDAP users can SSH login to login compiler nodes."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify ldapuser login on login compiler nodes")
+    log.check("Testing ldapuser SSH login on login compiler nodes")
+
+    result = verify_ldapuser_login_on_login_compiler_nodes(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("ldap_users"):
+        log.check(f"LDAP users: {', '.join(result['ldap_users'])}")
+
+    for node in result.get("details", []):
+        status = "OK" if node["login_success"] else "FAILED"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): login {status}")
+        for ur in node.get("user_results", []):
+            ur_status = "OK" if ur["login_success"] else "FAILED"
+            log.check(f"    {ur['ldap_user']}: {ur_status}")
+            if ur.get("error"):
+                log.check(f"      Error: {ur['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC34: ldapuser login blocked on slurm nodes (no running jobs)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(35)
+def test_ldapuser_blocked_on_slurm_nodes(host):
+    """TC34: Test that all LDAP users login is blocked on slurm nodes when no jobs are running."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify ldapuser login blocked on idle slurm nodes")
+    log.check("Testing ldapuser SSH login is blocked on slurm nodes")
+
+    result = verify_ldapuser_blocked_on_slurm_nodes(host)
+
+    if result.get("ldap_users"):
+        log.check(f"LDAP users: {', '.join(result['ldap_users'])}")
+
+    for node in result.get("details", []):
+        status = "BLOCKED" if node["login_blocked"] else "NOT BLOCKED"
+        log.check(f"  {node['hostname']} ({node.get('admin_ip', '')}): {status}")
+        for ur in node.get("user_results", []):
+            ur_status = "BLOCKED" if ur["login_blocked"] else "NOT BLOCKED"
+            log.check(f"    {ur['ldap_user']}: {ur_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC35: Invalid LDAP username denied login
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(36)
+def test_invalid_ldap_username(host):
+    """TC35: Test that an invalid (random) LDAP username is denied login on all nodes."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify invalid LDAP username denied login")
+    log.check("Testing random invalid username on login/control nodes")
+
+    result = verify_invalid_ldap_username(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("invalid_user"):
+        log.check(f"Invalid username tested: {result['invalid_user']}")
+    for node in result.get("details", []):
+        status = "DENIED" if node["login_denied"] else "ALLOWED (unexpected)"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): {status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC36: Invalid LDAP password denied login
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(37)
+def test_invalid_ldap_password(host):
+    """TC36: Test that all valid LDAP usernames with invalid (random) passwords are denied login."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify invalid LDAP password denied login")
+    log.check("Testing valid usernames with random invalid passwords")
+
+    result = verify_invalid_ldap_password(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("ldap_users"):
+        log.check(f"LDAP users tested: {', '.join(result['ldap_users'])}")
+    for node in result.get("details", []):
+        status = "DENIED" if node["login_denied"] else "ALLOWED (unexpected)"
+        log.check(f"  {node['hostname']} ({node['admin_ip']}): {status}")
+        for ur in node.get("user_results", []):
+            ur_status = "DENIED" if ur["login_denied"] else "ALLOWED (unexpected)"
+            log.check(f"    {ur['ldap_user']}: {ur_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC37: LDAP user single sbatch job from login node(s)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(38)
+def test_ldap_sbatch_from_login_nodes(host):
+    """TC37: Test submitting a single sbatch job as ldapuser from each login/login_compiler node."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify LDAP user sbatch job from login node(s)")
+    log.check("Submitting single sbatch job as ldapuser from each login node")
+
+    result = verify_ldap_sbatch_from_login_nodes(host)
+
+    for nr in result.get("node_results", []):
+        status = "COMPLETED" if nr["success"] else "FAILED"
+        log.check(f"  {nr['node']}: {status} (JobID: {nr.get('job_id', '')}, State: {nr.get('job_state', '')})")
+        if nr.get("error"):
+            log.check(f"    Error: {nr['error']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC38: LDAP user multiple sbatch jobs from login node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(39)
+def test_ldap_multi_sbatch_from_login_node(host):
+    """TC38: Test submitting multiple sbatch jobs as ldapuser from a login node."""
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify LDAP user multiple sbatch jobs from login node")
+    log.check("Submitting multiple sbatch jobs as ldapuser from login node")
+
+    result = verify_ldap_multi_sbatch_from_login_node(host)
+
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+    for jr in result.get("job_results", []):
+        status = "COMPLETED" if jr["success"] else "FAILED"
+        log.check(f"  Job {jr['index']}: {status} (JobID: {jr.get('job_id', '')}, State: {jr.get('job_state', '')})")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC39: PAM support - ldapuser job from login node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(40)
+def test_pam_support_from_login_node(host):
+    """TC39: Test PAM support: submit sleep job as ldapuser from login node.
+
+    Verifies that ldapuser can login to slurm nodes during a running job
+    and is blocked after the job completes.
+    Skips if no login nodes are present in the cluster.
+    """
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify PAM support from login node")
+    log.check("Submitting sleep job as ldapuser from login node")
+
+    result = verify_pam_from_login_node(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for step in result.get("steps", []):
+        step_name = step.get("step", "")
+        step_ok = "OK" if step.get("success") else "FAILED"
+        log.check(f"  Step: {step_name} - {step_ok}")
+        for detail in step.get("details", []):
+            log.check(f"    {detail}")
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC40: PAM support - ldapuser job from control node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(41)
+def test_pam_support_from_control_node(host):
+    """TC40: Test PAM support: submit sleep job as ldapuser from slurm control node.
+
+    Verifies that ldapuser can login to slurm nodes during a running job
+    and is blocked after the job completes.
+    """
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify PAM support from slurm control node")
+    log.check("Submitting sleep job as ldapuser from control node")
+
+    result = verify_pam_from_control_node(host)
+
+    for step in result.get("steps", []):
+        step_name = step.get("step", "")
+        step_ok = "OK" if step.get("success") else "FAILED"
+        log.check(f"  Step: {step_name} - {step_ok}")
+        for detail in step.get("details", []):
+            log.check(f"    {detail}")
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC41: PAM support - ldapuser job from login_compiler node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(42)
+def test_pam_support_from_login_compiler_node(host):
+    """TC41: Test PAM support: submit sleep job as ldapuser from login_compiler node.
+
+    Verifies that ldapuser can login to slurm nodes during a running job
+    and is blocked after the job completes.
+    Skips if no login compiler nodes are present in the cluster.
+    """
+    _skip_if_no_openldap(host)
+    log = TestLogger("Verify PAM support from login compiler node")
+    log.check("Submitting sleep job as ldapuser from login compiler node")
+
+    result = verify_pam_from_login_compiler_node(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    for step in result.get("steps", []):
+        step_name = step.get("step", "")
+        step_ok = "OK" if step.get("success") else "FAILED"
+        log.check(f"  Step: {step_name} - {step_ok}")
+        for detail in step.get("details", []):
+            log.check(f"    {detail}")
+
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC42: OpenMPI job from ldapuser on login_compiler node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(43)
+def test_openmpi_job(host):
+    """TC42: Test submitting an OpenMPI compile+run job as ldapuser from a login_compiler node.
+
+    Submits a job that compiles and runs a simple MPI C program,
+    then verifies the expected output (Compilation successful, Hello World,
+    MPI job completed successfully).
+    """
+    _skip_if_no_openldap(host)
+    _ensure_ldap_prereq(host)
+    log = TestLogger("Verify OpenMPI job from ldapuser on login_compiler node")
+    log.check("Submitting MPI compile+run job as ldapuser")
+
+    result = verify_openmpi_job(host)
+
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("job_state"):
+        log.check(f"Job state: {result['job_state']}")
+    if result.get("job_output"):
+        log.check(f"Job output:\n{result['job_output']}")
+
+    output_status = "VERIFIED" if result.get("output_verified") else "FAILED"
+    log.check(f"Output verification: {output_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
