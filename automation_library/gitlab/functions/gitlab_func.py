@@ -443,7 +443,7 @@ def verify_gitlab_project_visibility(host) -> Dict[str, Any]:
     # First verify project exists
     project_result = verify_gitlab_project_exists(host)
     if not project_result["success"]:
-        result["error"] = f"Project '{project_name}' not found: {project_result['error']}"
+        result["error"] = project_result["error"]
         return result
 
     rails_cmd = (
@@ -500,7 +500,7 @@ def verify_gitlab_default_branch(host) -> Dict[str, Any]:
     # First verify project exists
     project_result = verify_gitlab_project_exists(host)
     if not project_result["success"]:
-        result["error"] = f"Project '{project_name}' not found: {project_result['error']}"
+        result["error"] = project_result["error"]
         return result
 
     rails_cmd = (

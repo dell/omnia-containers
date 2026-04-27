@@ -34,7 +34,8 @@ TEST_NAMES = {
     "sidekiq_concurrency": "Verify sidekiq concurrency configuration",
     # Project
     "gitlab_project_exists": "Verify GitLab project exists",
-    "catalog_synced": "Verify catalog is synced to GitLab",
+    "gitlab_project_visibility": "Verify GitLab project visibility",
+    "gitlab_default_branch": "Verify GitLab default branch",
 }
 
 # =============================================================================
@@ -58,10 +59,12 @@ TEST_LOG_MSGS = {
     "sidekiq_mismatch": "Sidekiq concurrency mismatch: expected {expected}, actual {actual}",
     # Project - Success
     "project_exists": "GitLab project '{name}' exists (ID: {id})",
-    "catalog_synced": "Catalog is synced to GitLab project '{name}'",
+    "visibility_ok": "Project visibility configured correctly: {visibility}",
+    "default_branch_ok": "Default branch configured correctly: {branch}",
     # Project - Failure
     "project_not_found": "GitLab project '{name}' not found",
-    "catalog_not_synced": "Catalog is not synced to GitLab",
+    "visibility_mismatch": "Project visibility mismatch: expected {expected}, actual {actual}",
+    "default_branch_mismatch": "Default branch mismatch: expected {expected}, actual {actual}",
 }
 
 # =============================================================================
@@ -91,17 +94,20 @@ TEST_ASSERT_MSGS = {
     "storage_insufficient": (
         "Insufficient storage. Required: {required}GB, Available: {actual}GB"
     ),
-    "puma_workers_mismatch": (
-        "Puma workers mismatch. Expected: {expected}, Actual: {actual}"
-    ),
-    "sidekiq_mismatch": (
-        "Sidekiq concurrency mismatch. Expected: {expected}, Actual: {actual}"
-    ),
     # Project
     "project_not_found": (
         "GitLab project '{name}' not found"
     ),
-    "catalog_not_synced": (
-        "Catalog not synced to GitLab project '{name}'"
+    "visibility_mismatch": (
+        "Project visibility mismatch. Expected: {expected}, Actual: {actual}"
+    ),
+    "default_branch_mismatch": (
+        "Default branch mismatch. Expected: {expected}, Actual: {actual}"
+    ),
+    "project_not_exist_for_visibility": (
+        "Cannot check visibility - project '{name}' does not exist"
+    ),
+    "project_not_exist_for_branch": (
+        "Cannot check default branch - project '{name}' does not exist"
     ),
 }

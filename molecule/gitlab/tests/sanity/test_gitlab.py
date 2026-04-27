@@ -317,17 +317,14 @@ def test_gitlab_project_visibility(host):
         )
     else:
         details = result["error"]
-        if "does not exist" in result["error"]:
+        if "not found" in result["error"].lower():
             log.failed(
-                LOG_MSGS["project_not_exist_for_visibility"].format(name=result['project_name']),
+                f"Cannot check visibility - project '{result['project_name']}' does not exist",
                 details
             )
         else:
             log.failed(
-                LOG_MSGS["visibility_mismatch"].format(
-                    expected=result['expected'],
-                    actual=result['actual']
-                ),
+                f"Visibility mismatch: expected {result['expected']}, actual {result['actual']}",
                 details
             )
 
@@ -355,17 +352,15 @@ def test_gitlab_default_branch(host):
         )
     else:
         details = result["error"]
-        if "does not exist" in result["error"]:
+        if "not found" in result["error"].lower():
             log.failed(
-                LOG_MSGS["project_not_exist_for_branch"].format(name=result['project_name']),
+                f"Cannot check default branch - project '{result['project_name']}' does not exist",
                 details
             )
         else:
             log.failed(
-                LOG_MSGS["default_branch_mismatch"].format(
-                    expected=result['expected'],
-                    actual=result['actual']
-                ),
+                f"Default branch mismatch: expected {result['expected']}, "
+                f"actual {result['actual']}",
                 details
             )
 
