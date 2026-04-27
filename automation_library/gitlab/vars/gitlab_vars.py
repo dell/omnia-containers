@@ -93,12 +93,9 @@ GITLAB_CLEANUP_DIRECTORIES = [
 ]
 
 # =============================================================================
-# GITLAB CLEANUP PACKAGES
+# GITLAB PACKAGES (installed during deployment)
 # =============================================================================
 
-GITLAB_CLEANUP_PACKAGES = [
+GITLAB_INSTALLED_PACKAGES = [
     "gitlab-ce",
-    "gitlab-ee",
-    "gitlab-ci",
-    "gitlab-runner",
 ]

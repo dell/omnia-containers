@@ -26,6 +26,7 @@ For module-specific functions, see:
 
 TEST_NAMES = {
     # GitLab Install - Server
+    "gitlab_packages_installed": "Verify GitLab packages are installed",
     "gitlab_server_reachable": "Verify GitLab server is reachable",
     "gitlab_runner_container": "Verify gitlab-runner container running",
     "gitlab_runner_quadlet_exists": "Verify gitlab-runner quadlet file exists",
@@ -40,6 +41,7 @@ TEST_NAMES = {
     "gitlab_project_visibility": "Verify GitLab project visibility",
     "gitlab_default_branch": "Verify GitLab default branch",
     # GitLab Cleanup
+    "gitlab_packages_removed": "Verify GitLab packages are removed",
     "gitlab_runner_container_removed": "Verify gitlab-runner container removed",
     "gitlab_runner_quadlet_removed": "Verify gitlab-runner quadlet file removed",
     "gitlab_runner_service_stopped": "Verify gitlab-runner service stopped",
@@ -54,6 +56,7 @@ TEST_NAMES = {
 
 TEST_LOG_MSGS = {
     # GitLab Install - Server - Success
+    "packages_installed": "GitLab packages installed: {packages}",
     "server_reachable": "GitLab server {host} is reachable",
     "container_running": "gitlab-runner container is running: {status}",
     "quadlet_exists": "gitlab-runner quadlet file exists: {path}",
@@ -64,6 +67,7 @@ TEST_LOG_MSGS = {
     "puma_workers_ok": "Puma workers configured correctly: {workers}",
     "sidekiq_ok": "Sidekiq concurrency configured correctly: {concurrency}",
     # GitLab Install - Server - Failure
+    "packages_not_installed": "GitLab packages not installed: {packages}",
     "server_not_reachable": "GitLab server {host} is not reachable",
     "container_not_running": "gitlab-runner container not running",
     "quadlet_not_found": "gitlab-runner quadlet file not found: {path}",
@@ -82,6 +86,7 @@ TEST_LOG_MSGS = {
     "visibility_mismatch": "Project visibility mismatch: expected {expected}, actual {actual}",
     "default_branch_mismatch": "Default branch mismatch: expected {expected}, actual {actual}",
     # GitLab Cleanup - Success
+    "packages_removed": "GitLab packages removed: {packages}",
     "container_removed": "gitlab-runner container removed",
     "quadlet_removed": "gitlab-runner quadlet file removed",
     "service_stopped": "gitlab-runner service stopped",
@@ -89,6 +94,7 @@ TEST_LOG_MSGS = {
     "directories_removed": "GitLab directories removed",
     "services_stopped": "All GitLab services stopped",
     # GitLab Cleanup - Failure
+    "packages_still_installed": "GitLab packages still installed: {packages}",
     "container_still_exists": "gitlab-runner container still exists",
     "quadlet_still_exists": "gitlab-runner quadlet file still exists: {path}",
     "service_still_running": "gitlab-runner service still running: {status}",
@@ -103,6 +109,10 @@ TEST_LOG_MSGS = {
 
 TEST_ASSERT_MSGS = {
     # GitLab Install - Server
+    "packages_not_installed": (
+        "GitLab packages not installed: {packages}. "
+        "Run gitlab.yml playbook to deploy GitLab"
+    ),
     "server_not_reachable": (
         "GitLab server {host} is not reachable. Check network connectivity"
     ),
@@ -152,6 +162,9 @@ TEST_ASSERT_MSGS = {
         "Default branch mismatch. Expected: {expected}, Actual: {actual}"
     ),
     # GitLab Cleanup
+    "packages_still_installed": (
+        "GitLab packages still installed: {packages}. Cleanup failed"
+    ),
     "container_still_exists": (
         "gitlab-runner container still exists. Cleanup failed"
     ),

@@ -29,6 +29,7 @@ from .shared_func import (
     clear_cache,
     ssh_to_gitlab,
     skip_if_build_stream_not_enabled,
+    skip_if_gitlab_host_not_configured,
 )
 from .gitlab_func import (
     verify_gitlab_url_accessible,
@@ -44,6 +45,7 @@ from .gitlab_func import (
     verify_gitlab_runner_quadlet_exists,
     verify_gitlab_runner_service_running,
     verify_gitlab_server_reachable,
+    verify_gitlab_packages_installed,
     # Cleanup verification
     verify_gitlab_runner_container_removed,
     verify_gitlab_runner_quadlet_removed,
@@ -51,6 +53,7 @@ from .gitlab_func import (
     verify_gitlab_url_not_accessible,
     verify_gitlab_directories_removed,
     verify_gitlab_services_stopped,
+    verify_gitlab_packages_removed,
 )
 
 __all__ = [
@@ -69,6 +72,7 @@ __all__ = [
     "clear_cache",
     "ssh_to_gitlab",
     "skip_if_build_stream_not_enabled",
+    "skip_if_gitlab_host_not_configured",
     # GitLab verification
     "verify_gitlab_url_accessible",
     "verify_gitlab_runner_container",
@@ -83,6 +87,7 @@ __all__ = [
     "verify_gitlab_runner_quadlet_exists",
     "verify_gitlab_runner_service_running",
     "verify_gitlab_server_reachable",
+    "verify_gitlab_packages_installed",
     # Cleanup verification
     "verify_gitlab_runner_container_removed",
     "verify_gitlab_runner_quadlet_removed",
@@ -90,4 +95,5 @@ __all__ = [
     "verify_gitlab_url_not_accessible",
     "verify_gitlab_directories_removed",
     "verify_gitlab_services_stopped",
+    "verify_gitlab_packages_removed",
 ]

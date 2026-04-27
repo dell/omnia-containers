@@ -54,6 +54,7 @@ from .functions import (
     verify_gitlab_runner_quadlet_exists,
     verify_gitlab_runner_service_running,
     verify_gitlab_server_reachable,
+    verify_gitlab_packages_installed,
     # Cleanup verification
     verify_gitlab_runner_container_removed,
     verify_gitlab_runner_quadlet_removed,
@@ -61,6 +62,7 @@ from .functions import (
     verify_gitlab_url_not_accessible,
     verify_gitlab_directories_removed,
     verify_gitlab_services_stopped,
+    verify_gitlab_packages_removed,
 )
 from .vars import (
     GITLAB_SERVICES,

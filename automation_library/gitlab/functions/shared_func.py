@@ -218,3 +218,22 @@ def skip_if_build_stream_not_enabled(host, log):
             "Test skipped - GitLab requires build_stream to be enabled"
         )
         pytest.skip("build_stream is not enabled")
+
+
+def skip_if_gitlab_host_not_configured(host, log):
+    """
+    Skip test if gitlab_host is not configured.
+
+    Checks gitlab_host in gitlab_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    gitlab_host = get_gitlab_host(host)
+    if not gitlab_host:
+        log.skipped(
+            "gitlab_host is not configured in gitlab_config.yml",
+            "Test skipped - GitLab host not configured"
+        )
+        pytest.skip("gitlab_host is not configured")

@@ -18,12 +18,13 @@ GitLab Cleanup Sanity Test Cases.
 This module contains pytest test cases for verifying GitLab cleanup.
 
 Test cases:
-1. Verify gitlab-runner container removed
-2. Verify gitlab-runner quadlet file removed
-3. Verify gitlab-runner service stopped
-4. Verify GitLab URL is not accessible
-5. Verify GitLab directories removed
-6. Verify GitLab services stopped
+1. Verify GitLab packages are removed
+2. Verify gitlab-runner container removed
+3. Verify gitlab-runner quadlet file removed
+4. Verify gitlab-runner service stopped
+5. Verify GitLab URL is not accessible
+6. Verify GitLab directories removed
+7. Verify GitLab services stopped
 """
 
 import pytest
@@ -31,6 +32,8 @@ import pytest
 from automation_library.core import TestLogger
 from automation_library.gitlab.functions import (
     skip_if_build_stream_not_enabled,
+    skip_if_gitlab_host_not_configured,
+    verify_gitlab_packages_removed,
     verify_gitlab_runner_container_removed,
     verify_gitlab_runner_quadlet_removed,
     verify_gitlab_runner_service_stopped,
@@ -51,13 +54,52 @@ from automation_library.gitlab.messages import (
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
+def test_gitlab_packages_removed(host):
+    """
+    Test Case 1: Verify GitLab packages are removed after cleanup.
+
+    Checks: gitlab-ce package
+    """
+    log = TestLogger(TEST_NAMES["gitlab_packages_removed"])
+
+    skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
+
+    log.check("Checking GitLab packages are removed")
+    result = verify_gitlab_packages_removed(host)
+
+    details = (
+        f"Expected removed: {result['expected_removed']}\n"
+        f"Removed: {result['removed']}\n"
+        f"Still installed: {result['still_installed']}"
+    )
+
+    if result["success"]:
+        log.passed(
+            LOG_MSGS["packages_removed"].format(packages=result['removed']),
+            details
+        )
+    else:
+        log.failed(
+            LOG_MSGS["packages_still_installed"].format(packages=result['still_installed']),
+            details
+        )
+
+    assert result["success"], ASSERT_MSGS["packages_still_installed"].format(
+        packages=result['still_installed']
+    )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_gitlab_runner_container_removed(host):
     """
-    Test Case 1: Verify gitlab-runner container is removed after cleanup.
+    Test Case 2: Verify gitlab-runner container is removed after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_container_removed"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner container is removed")
     result = verify_gitlab_runner_container_removed(host)
@@ -71,14 +113,15 @@ def test_gitlab_runner_container_removed(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(3)
 def test_gitlab_runner_quadlet_removed(host):
     """
-    Test Case 2: Verify gitlab-runner quadlet file is removed after cleanup.
+    Test Case 3: Verify gitlab-runner quadlet file is removed after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_quadlet_removed"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner quadlet file is removed")
     result = verify_gitlab_runner_quadlet_removed(host)
@@ -97,14 +140,15 @@ def test_gitlab_runner_quadlet_removed(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(3)
+@pytest.mark.order(4)
 def test_gitlab_runner_service_stopped(host):
     """
-    Test Case 3: Verify gitlab-runner service is stopped after cleanup.
+    Test Case 4: Verify gitlab-runner service is stopped after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_service_stopped"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner service is stopped")
     result = verify_gitlab_runner_service_stopped(host)
@@ -121,14 +165,15 @@ def test_gitlab_runner_service_stopped(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(4)
+@pytest.mark.order(5)
 def test_gitlab_url_not_accessible(host):
     """
-    Test Case 4: Verify GitLab URL is not accessible after cleanup.
+    Test Case 5: Verify GitLab URL is not accessible after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_url_not_accessible"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab URL is not accessible")
     result = verify_gitlab_url_not_accessible(host)
@@ -147,14 +192,15 @@ def test_gitlab_url_not_accessible(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(5)
+@pytest.mark.order(6)
 def test_gitlab_directories_removed(host):
     """
-    Test Case 5: Verify GitLab directories are removed after cleanup.
+    Test Case 6: Verify GitLab directories are removed after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_directories_removed"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab directories are removed")
     result = verify_gitlab_directories_removed(host)
@@ -178,14 +224,15 @@ def test_gitlab_directories_removed(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(7)
 def test_gitlab_services_stopped(host):
     """
-    Test Case 6: Verify all GitLab services are stopped after cleanup.
+    Test Case 7: Verify all GitLab services are stopped after cleanup.
     """
     log = TestLogger(TEST_NAMES["gitlab_services_stopped"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab services are stopped")
     result = verify_gitlab_services_stopped(host)

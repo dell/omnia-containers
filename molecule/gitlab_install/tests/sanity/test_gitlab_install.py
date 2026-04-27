@@ -18,18 +18,19 @@ GitLab Install Sanity Test Cases.
 This module contains pytest test cases for verifying GitLab deployment.
 
 Test cases:
-1. Verify GitLab server is reachable
-2. Verify gitlab-runner container running
-3. Verify gitlab-runner quadlet file exists
-4. Verify gitlab-runner service is running
-5. Verify GitLab URL is accessible
-6. Verify GitLab services are running
-7. Verify GitLab server meets resource requirements
-8. Verify puma workers configuration
-9. Verify sidekiq concurrency configuration
-10. Verify GitLab project exists
-11. Verify GitLab project visibility
-12. Verify GitLab default branch
+1. Verify GitLab packages are installed
+2. Verify GitLab server is reachable
+3. Verify gitlab-runner container running
+4. Verify gitlab-runner quadlet file exists
+5. Verify gitlab-runner service is running
+6. Verify GitLab URL is accessible
+7. Verify GitLab services are running
+8. Verify GitLab server meets resource requirements
+9. Verify puma workers configuration
+10. Verify sidekiq concurrency configuration
+11. Verify GitLab project exists
+12. Verify GitLab project visibility
+13. Verify GitLab default branch
 """
 
 import pytest
@@ -37,6 +38,8 @@ import pytest
 from automation_library.core import TestLogger
 from automation_library.gitlab.functions import (
     skip_if_build_stream_not_enabled,
+    skip_if_gitlab_host_not_configured,
+    verify_gitlab_packages_installed,
     verify_gitlab_server_reachable,
     verify_gitlab_runner_container,
     verify_gitlab_runner_quadlet_exists,
@@ -63,13 +66,52 @@ from automation_library.gitlab.messages import (
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
+def test_gitlab_packages_installed(host):
+    """
+    Test Case 1: Verify GitLab packages are installed on GitLab server.
+
+    Checks: gitlab-ce package
+    """
+    log = TestLogger(TEST_NAMES["gitlab_packages_installed"])
+
+    skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
+
+    log.check("Checking GitLab packages are installed")
+    result = verify_gitlab_packages_installed(host)
+
+    details = (
+        f"Expected: {result['expected']}\n"
+        f"Installed: {result['installed']}\n"
+        f"Not installed: {result['not_installed']}"
+    )
+
+    if result["success"]:
+        log.passed(
+            LOG_MSGS["packages_installed"].format(packages=result['installed']),
+            details
+        )
+    else:
+        log.failed(
+            LOG_MSGS["packages_not_installed"].format(packages=result['not_installed']),
+            details
+        )
+
+    assert result["success"], ASSERT_MSGS["packages_not_installed"].format(
+        packages=result['not_installed']
+    )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_gitlab_server_reachable(host):
     """
-    Test Case 1: Verify GitLab server is reachable from omnia_core container.
+    Test Case 2: Verify GitLab server is reachable from omnia_core container.
     """
     log = TestLogger(TEST_NAMES["gitlab_server_reachable"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab server reachability")
     result = verify_gitlab_server_reachable(host)
@@ -86,14 +128,15 @@ def test_gitlab_server_reachable(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(3)
 def test_gitlab_runner_container(host):
     """
-    Test Case 2: Verify gitlab-runner container is running on GitLab server.
+    Test Case 3: Verify gitlab-runner container is running on GitLab server.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_container"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner container on GitLab server")
     result = verify_gitlab_runner_container(host)
@@ -110,14 +153,15 @@ def test_gitlab_runner_container(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(3)
+@pytest.mark.order(4)
 def test_gitlab_runner_quadlet_exists(host):
     """
-    Test Case 3: Verify gitlab-runner quadlet file exists on GitLab server.
+    Test Case 4: Verify gitlab-runner quadlet file exists on GitLab server.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_quadlet_exists"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner quadlet file")
     result = verify_gitlab_runner_quadlet_exists(host)
@@ -134,14 +178,15 @@ def test_gitlab_runner_quadlet_exists(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(4)
+@pytest.mark.order(5)
 def test_gitlab_runner_service_running(host):
     """
-    Test Case 4: Verify gitlab-runner systemd service is running on GitLab server.
+    Test Case 5: Verify gitlab-runner systemd service is running on GitLab server.
     """
     log = TestLogger(TEST_NAMES["gitlab_runner_service_running"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking gitlab-runner service status")
     result = verify_gitlab_runner_service_running(host)
@@ -156,14 +201,15 @@ def test_gitlab_runner_service_running(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(5)
+@pytest.mark.order(6)
 def test_gitlab_url_accessible(host):
     """
-    Test Case 5: Verify GitLab URL is accessible from OIM server.
+    Test Case 6: Verify GitLab URL is accessible from OIM server.
     """
     log = TestLogger(TEST_NAMES["gitlab_url_accessible"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab URL accessibility from OIM")
     result = verify_gitlab_url_accessible(host)
@@ -185,14 +231,15 @@ def test_gitlab_url_accessible(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(7)
 def test_gitlab_services_running(host):
     """
-    Test Case 6: Verify all GitLab services are running.
+    Test Case 7: Verify all GitLab services are running.
     """
     log = TestLogger(TEST_NAMES["gitlab_services_running"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab services")
     result = verify_gitlab_services_running(host)
@@ -222,16 +269,17 @@ def test_gitlab_services_running(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(7)
+@pytest.mark.order(8)
 def test_gitlab_resources(host):
     """
-    Test Case 7: Verify GitLab server meets minimum resource requirements.
+    Test Case 8: Verify GitLab server meets minimum resource requirements.
 
     Checks: CPU cores, memory (GB), storage (GB)
     """
     log = TestLogger(TEST_NAMES["gitlab_resources"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab server resources")
     result = verify_gitlab_resources(host)
@@ -271,14 +319,15 @@ def test_gitlab_resources(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(8)
+@pytest.mark.order(9)
 def test_puma_workers(host):
     """
-    Test Case 8: Verify puma workers are configured correctly.
+    Test Case 9: Verify puma workers are configured correctly.
     """
     log = TestLogger(TEST_NAMES["puma_workers"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking puma workers configuration")
     result = verify_puma_workers(host)
@@ -306,14 +355,15 @@ def test_puma_workers(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(9)
+@pytest.mark.order(10)
 def test_sidekiq_concurrency(host):
     """
-    Test Case 9: Verify sidekiq concurrency is configured correctly.
+    Test Case 10: Verify sidekiq concurrency is configured correctly.
     """
     log = TestLogger(TEST_NAMES["sidekiq_concurrency"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking sidekiq concurrency configuration")
     result = verify_sidekiq_concurrency(host)
@@ -345,14 +395,15 @@ def test_sidekiq_concurrency(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(10)
+@pytest.mark.order(11)
 def test_gitlab_project_exists(host):
     """
-    Test Case 10: Verify GitLab project exists.
+    Test Case 11: Verify GitLab project exists.
     """
     log = TestLogger(TEST_NAMES["gitlab_project_exists"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab project")
     result = verify_gitlab_project_exists(host)
@@ -373,14 +424,15 @@ def test_gitlab_project_exists(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(11)
+@pytest.mark.order(12)
 def test_gitlab_project_visibility(host):
     """
-    Test Case 11: Verify GitLab project visibility.
+    Test Case 12: Verify GitLab project visibility.
     """
     log = TestLogger(TEST_NAMES["gitlab_project_visibility"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab project visibility")
     result = verify_gitlab_project_visibility(host)
@@ -408,14 +460,15 @@ def test_gitlab_project_visibility(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(12)
+@pytest.mark.order(13)
 def test_gitlab_default_branch(host):
     """
-    Test Case 12: Verify GitLab default branch.
+    Test Case 13: Verify GitLab default branch.
     """
     log = TestLogger(TEST_NAMES["gitlab_default_branch"])
 
     skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
 
     log.check("Checking GitLab default branch")
     result = verify_gitlab_default_branch(host)

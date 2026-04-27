@@ -49,6 +49,7 @@ from ..vars import (
     GITLAB_RUNNER_QUADLET_FILE,
     GITLAB_RUNNER_SERVICE_NAME,
     GITLAB_CLEANUP_DIRECTORIES,
+    GITLAB_INSTALLED_PACKAGES,
 )
 
 
@@ -108,7 +109,7 @@ def verify_gitlab_runner_container(host) -> Dict[str, Any]:
     """
     Verify gitlab-runner container is running on GitLab server.
 
-    Uses podman ps via SSH to check container status.
+    Uses podman ps to check specific container status.
     """
     result = {
         "success": False,
@@ -117,28 +118,26 @@ def verify_gitlab_runner_container(host) -> Dict[str, Any]:
         "error": "",
     }
 
-    # Use simple podman ps output without format string to avoid escaping issues
-    ssh_result = ssh_to_gitlab(host, "podman ps")
+    # Check if specific container is running
+    cmd = f"podman ps --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Status}}}}'"
+    ssh_result = ssh_to_gitlab(host, cmd)
     if not ssh_result["success"]:
         result["error"] = ssh_result["error"]
         return result
 
-    output = ssh_result["stdout"]
-    for line in output.split('\n'):
-        if GITLAB_RUNNER_CONTAINER in line:
-            # Container found and running (podman ps only shows running containers)
-            result["status"] = "Up"
-            result["success"] = True
-            return result
+    status = ssh_result["stdout"].strip()
+    if status:
+        result["status"] = status
+        result["success"] = True
+        return result
 
     # Check if container exists but not running
-    ssh_result = ssh_to_gitlab(host, "podman ps -a")
-    if ssh_result["success"]:
-        for line in ssh_result["stdout"].split('\n'):
-            if GITLAB_RUNNER_CONTAINER in line:
-                result["status"] = "Exited"
-                result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} exists but not running"
-                return result
+    cmd = f"podman ps -a --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Status}}}}'"
+    ssh_result = ssh_to_gitlab(host, cmd)
+    if ssh_result["success"] and ssh_result["stdout"].strip():
+        result["status"] = ssh_result["stdout"].strip()
+        result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} exists but not running"
+        return result
 
     result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} not found"
     return result
@@ -460,17 +459,21 @@ def verify_gitlab_project_visibility(host) -> Dict[str, Any]:
         result["error"] = f"Failed to query GitLab: {ssh_result['error']}"
         return result
 
-    actual_visibility = ssh_result["stdout"].strip()
+    actual_level = ssh_result["stdout"].strip()
+
+    # Convert numeric level to human-readable name
+    level_to_name = {v: k for k, v in GITLAB_VISIBILITY_LEVELS.items()}
+    actual_visibility = level_to_name.get(actual_level, f"unknown({actual_level})")
     result["actual"] = actual_visibility
 
     expected_level = GITLAB_VISIBILITY_LEVELS.get(expected_visibility, "0")
 
-    if actual_visibility == expected_level:
+    if actual_level == expected_level:
         result["success"] = True
     else:
         result["error"] = (
-            f"Visibility mismatch: expected {expected_visibility} (level {expected_level}), "
-            f"actual level {actual_visibility}"
+            f"Visibility mismatch: expected {expected_visibility}, "
+            f"actual {actual_visibility}"
         )
 
     return result
@@ -538,7 +541,7 @@ def verify_gitlab_runner_quadlet_exists(host) -> Dict[str, Any]:
     """
     Verify gitlab-runner quadlet file exists on GitLab server.
 
-    Checks if /etc/containers/systemd/gitlab-runner.container exists.
+    Checks if quadlet file exists at configured path.
     """
     result = {
         "success": False,
@@ -636,7 +639,7 @@ def verify_gitlab_runner_container_removed(host) -> Dict[str, Any]:
     """
     Verify gitlab-runner container is removed after cleanup.
 
-    Checks that container does not exist.
+    Checks that specific container does not exist using podman ps filter.
     """
     result = {
         "success": False,
@@ -645,12 +648,13 @@ def verify_gitlab_runner_container_removed(host) -> Dict[str, Any]:
         "error": "",
     }
 
-    ssh_result = ssh_to_gitlab(host, "podman ps -a")
+    cmd = f"podman ps -a --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Names}}}}'"
+    ssh_result = ssh_to_gitlab(host, cmd)
     if not ssh_result["success"]:
         result["error"] = ssh_result["error"]
         return result
 
-    if GITLAB_RUNNER_CONTAINER not in ssh_result["stdout"]:
+    if not ssh_result["stdout"].strip():
         result["exists"] = False
         result["success"] = True
     else:
@@ -663,7 +667,7 @@ def verify_gitlab_runner_quadlet_removed(host) -> Dict[str, Any]:
     """
     Verify gitlab-runner quadlet file is removed after cleanup.
 
-    Checks that /etc/containers/systemd/gitlab-runner.container does not exist.
+    Checks that quadlet file does not exist at configured path.
     """
     result = {
         "success": False,
@@ -911,5 +915,78 @@ def verify_catalog_synced(host) -> Dict[str, Any]:
             result["ci_file_exists"] = True  # Assume synced if repo exists
         else:
             result["error"] = "Could not verify catalog sync"
+
+    return result
+
+
+# =============================================================================
+# GITLAB PACKAGE VERIFICATION FUNCTIONS
+# =============================================================================
+
+def verify_gitlab_packages_installed(host) -> Dict[str, Any]:
+    """
+    Verify GitLab packages are installed on GitLab server.
+
+    Checks each package from GITLAB_INSTALLED_PACKAGES using rpm -q.
+    """
+    result = {
+        "success": False,
+        "installed": [],
+        "not_installed": [],
+        "expected": GITLAB_INSTALLED_PACKAGES,
+        "error": "",
+    }
+
+    for pkg in GITLAB_INSTALLED_PACKAGES:
+        ssh_result = ssh_to_gitlab(host, f"rpm -q {pkg}")
+
+        if not ssh_result["success"]:
+            result["error"] = ssh_result["error"]
+            return result
+
+        if ssh_result["rc"] == 0:
+            result["installed"].append(pkg)
+        else:
+            result["not_installed"].append(pkg)
+
+    if not result["not_installed"]:
+        result["success"] = True
+    else:
+        result["error"] = f"Missing packages: {result['not_installed']}"
+
+    return result
+
+
+def verify_gitlab_packages_removed(host) -> Dict[str, Any]:
+    """
+    Verify GitLab packages are removed after cleanup.
+
+    Checks each package from GITLAB_INSTALLED_PACKAGES using rpm -q.
+    Only checks the same packages that were installed.
+    """
+    result = {
+        "success": False,
+        "removed": [],
+        "still_installed": [],
+        "expected_removed": GITLAB_INSTALLED_PACKAGES,
+        "error": "",
+    }
+
+    for pkg in GITLAB_INSTALLED_PACKAGES:
+        ssh_result = ssh_to_gitlab(host, f"rpm -q {pkg}")
+
+        if not ssh_result["success"]:
+            result["error"] = ssh_result["error"]
+            return result
+
+        if ssh_result["rc"] == 0:
+            result["still_installed"].append(pkg)
+        else:
+            result["removed"].append(pkg)
+
+    if not result["still_installed"]:
+        result["success"] = True
+    else:
+        result["error"] = f"Packages still installed: {result['still_installed']}"
 
     return result

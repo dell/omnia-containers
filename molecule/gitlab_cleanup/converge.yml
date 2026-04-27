@@ -99,11 +99,11 @@
       register: gitlab_host_check
       changed_when: false
 
-    - name: Verify GitLab server SSH connectivity
+    - name: Verify GitLab server is reachable via ping
       ansible.builtin.shell:
         cmd: |
-          podman exec {{ container_name }} sshpass -p "$(podman exec {{ container_name }} cat /opt/omnia/input/project_default/omnia_config_credentials.yml | grep provision_password | awk '{print $2}' | tr -d '\"')" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@{{ gitlab_host_check.stdout }} echo REACHABLE
-      register: gitlab_ssh_check
+          podman exec {{ container_name }} ping -c 1 -W 5 {{ gitlab_host_check.stdout }}
+      register: gitlab_ping_check
       changed_when: false
       failed_when: false
 
@@ -115,10 +115,10 @@
           ╠══════════════════════════════════════════════════════════════════════════════╣
           ║ GitLab server: {{ gitlab_host_check.stdout }}
           ║
-          ║ Cannot reach GitLab server via SSH.
+          ║ Cannot reach GitLab server via ping.
           ║ Ensure the server is running and accessible.
           ╚══════════════════════════════════════════════════════════════════════════════╝
-      when: gitlab_ssh_check.rc != 0 or 'REACHABLE' not in gitlab_ssh_check.stdout
+      when: gitlab_ping_check.rc != 0
 
     # =========================================================================
     # PREREQUISITE SUMMARY
