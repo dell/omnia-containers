@@ -81,6 +81,8 @@ The following is a sample ``additional_packages.json`` file: ::
     }
     }
 
+.. note:: When ``user_registry`` is configured in ``local_repo_config.yml``, ``local_repo.yml`` pulls all images in ``additional_packages.json`` exclusively from the specified registry. Images are not pulled from public registries (e.g., Docker Hub). Ensure all required images are available in the configured user registry.
+
 Architecture Support Guidelines
 -------------------------------
 
