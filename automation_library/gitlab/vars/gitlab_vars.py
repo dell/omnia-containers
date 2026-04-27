@@ -59,3 +59,15 @@ GITLAB_SUCCESS_HTTP_CODES = [200, 302]
 # =============================================================================
 
 GITLAB_API_VERSION = "v4"
+
+# =============================================================================
+# GITLAB VISIBILITY LEVELS
+# =============================================================================
+# GitLab visibility level mapping (numeric values used by GitLab Rails)
+# private: 0, internal: 10, public: 20
+
+GITLAB_VISIBILITY_LEVELS = {
+    "private": "0",
+    "internal": "10",
+    "public": "20",
+}

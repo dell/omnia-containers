@@ -13,17 +13,15 @@
 # limitations under the License.
 
 """
-GitLab Automation Module
+GitLab Module
 
-Modular organization of GitLab deployment verification functions
-organized by functionality: functions, variables, and messages.
+This module provides functions for GitLab deployment and verification.
+Organized by functionality: functions, variables, and messages.
 
-This module automates the gitlab.yml playbook verification for:
-- GitLab URL accessibility and services
-- GitLab runner container status
-- Resource requirements (CPU, memory, storage)
+Key verification functions:
+- GitLab server status and resource requirements
 - Puma workers and sidekiq concurrency configuration
-- Project existence and catalog sync
+- Project existence, visibility, and default branch
 """
 
 from .functions import (
@@ -32,9 +30,15 @@ from .functions import (
     get_gitlab_host,
     get_gitlab_https_port,
     get_gitlab_project_name,
+    get_gitlab_project_visibility,
+    get_gitlab_default_branch,
+    get_gitlab_puma_workers,
+    get_gitlab_sidekiq_concurrency,
+    get_gitlab_min_resources,
     get_provision_password,
     get_gitlab_root_password,
     clear_cache,
+    ssh_to_gitlab,
     skip_if_build_stream_not_enabled,
     # GitLab verification
     verify_gitlab_url_accessible,
@@ -44,12 +48,14 @@ from .functions import (
     verify_puma_workers,
     verify_sidekiq_concurrency,
     verify_gitlab_project_exists,
-    verify_catalog_synced,
+    verify_gitlab_project_visibility,
+    verify_gitlab_default_branch,
 )
 from .vars import (
     GITLAB_SERVICES,
     GITLAB_RUNNER_CONTAINER,
     GITLAB_RB_PATH,
+    GITLAB_VISIBILITY_LEVELS,
 )
 from .messages import (
     TEST_NAMES,
@@ -63,6 +69,8 @@ __all__ = [
     "get_gitlab_host",
     "get_gitlab_https_port",
     "get_gitlab_project_name",
+    "get_gitlab_project_visibility",
+    "get_gitlab_default_branch",
     "get_provision_password",
     "get_gitlab_root_password",
     "clear_cache",
@@ -75,11 +83,13 @@ __all__ = [
     "verify_puma_workers",
     "verify_sidekiq_concurrency",
     "verify_gitlab_project_exists",
-    "verify_catalog_synced",
+    "verify_gitlab_project_visibility",
+    "verify_gitlab_default_branch",
     # Vars
     "GITLAB_SERVICES",
     "GITLAB_RUNNER_CONTAINER",
     "GITLAB_RB_PATH",
+    "GITLAB_VISIBILITY_LEVELS",
     # Messages
     "TEST_NAMES",
     "TEST_LOG_MSGS",

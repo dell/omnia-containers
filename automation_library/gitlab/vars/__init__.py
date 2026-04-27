@@ -21,6 +21,7 @@ from .gitlab_vars import (
     GITLAB_GIT_DATA_PATH,
     GITLAB_SUCCESS_HTTP_CODES,
     GITLAB_API_VERSION,
+    GITLAB_VISIBILITY_LEVELS,
 )
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "GITLAB_GIT_DATA_PATH",
     "GITLAB_SUCCESS_HTTP_CODES",
     "GITLAB_API_VERSION",
+    "GITLAB_VISIBILITY_LEVELS",
 ]

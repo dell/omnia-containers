@@ -32,6 +32,8 @@ from .shared_func import (
     get_gitlab_puma_workers,
     get_gitlab_sidekiq_concurrency,
     get_gitlab_project_name,
+    get_gitlab_project_visibility,
+    get_gitlab_default_branch,
     get_gitlab_root_password,
     ssh_to_gitlab,
 )
@@ -42,6 +44,7 @@ from ..vars import (
     GITLAB_GIT_DATA_PATH,
     GITLAB_SUCCESS_HTTP_CODES,
     GITLAB_API_VERSION,
+    GITLAB_VISIBILITY_LEVELS,
 )
 
 
@@ -408,6 +411,117 @@ def verify_gitlab_project_exists(host) -> Dict[str, Any]:
         result["success"] = True
     else:
         result["error"] = f"Project '{project_name}' not found"
+
+    return result
+
+
+def verify_gitlab_project_visibility(host) -> Dict[str, Any]:
+    """
+    Verify that GitLab project visibility is configured correctly.
+
+    Uses gitlab-rails runner to check project visibility.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, project_name, expected, actual, and error keys
+    """
+    result = {
+        "success": False,
+        "project_name": "",
+        "expected": "",
+        "actual": "",
+        "error": "",
+    }
+
+    project_name = get_gitlab_project_name(host)
+    expected_visibility = get_gitlab_project_visibility(host)
+    result["project_name"] = project_name
+    result["expected"] = expected_visibility
+
+    # First verify project exists
+    project_result = verify_gitlab_project_exists(host)
+    if not project_result["success"]:
+        result["error"] = f"Project '{project_name}' not found: {project_result['error']}"
+        return result
+
+    rails_cmd = (
+        f'gitlab-rails runner "puts Project.find_by(name: '
+        f'\\\"{project_name}\\\")&.visibility_level" 2>/dev/null'
+    )
+    ssh_result = ssh_to_gitlab(host, rails_cmd)
+
+    if not ssh_result["success"]:
+        result["error"] = f"Failed to query GitLab: {ssh_result['error']}"
+        return result
+
+    actual_visibility = ssh_result["stdout"].strip()
+    result["actual"] = actual_visibility
+
+    expected_level = GITLAB_VISIBILITY_LEVELS.get(expected_visibility, "0")
+
+    if actual_visibility == expected_level:
+        result["success"] = True
+    else:
+        result["error"] = (
+            f"Visibility mismatch: expected {expected_visibility} (level {expected_level}), "
+            f"actual level {actual_visibility}"
+        )
+
+    return result
+
+
+def verify_gitlab_default_branch(host) -> Dict[str, Any]:
+    """
+    Verify that GitLab project default branch is configured correctly.
+
+    Uses gitlab-rails runner to check default branch.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, project_name, expected, actual, and error keys
+    """
+    result = {
+        "success": False,
+        "project_name": "",
+        "expected": "",
+        "actual": "",
+        "error": "",
+    }
+
+    project_name = get_gitlab_project_name(host)
+    expected_branch = get_gitlab_default_branch(host)
+    result["project_name"] = project_name
+    result["expected"] = expected_branch
+
+    # First verify project exists
+    project_result = verify_gitlab_project_exists(host)
+    if not project_result["success"]:
+        result["error"] = f"Project '{project_name}' not found: {project_result['error']}"
+        return result
+
+    rails_cmd = (
+        f'gitlab-rails runner "puts Project.find_by(name: '
+        f'\\\"{project_name}\\\")&.default_branch" 2>/dev/null'
+    )
+    ssh_result = ssh_to_gitlab(host, rails_cmd)
+
+    if not ssh_result["success"]:
+        result["error"] = f"Failed to query GitLab: {ssh_result['error']}"
+        return result
+
+    actual_branch = ssh_result["stdout"].strip()
+    result["actual"] = actual_branch
+
+    if actual_branch == expected_branch:
+        result["success"] = True
+    else:
+        result["error"] = (
+            f"Default branch mismatch: expected {expected_branch}, actual {actual_branch}"
+        )
 
     return result
 

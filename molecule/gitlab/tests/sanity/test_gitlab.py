@@ -25,7 +25,8 @@ Test cases:
 5. Verify puma workers configuration
 6. Verify sidekiq concurrency configuration
 7. Verify GitLab project exists
-8. Verify catalog is synced
+8. Verify GitLab project visibility
+9. Verify GitLab default branch
 """
 
 import pytest
@@ -40,7 +41,8 @@ from automation_library.gitlab.functions import (
     verify_puma_workers,
     verify_sidekiq_concurrency,
     verify_gitlab_project_exists,
-    verify_catalog_synced,
+    verify_gitlab_project_visibility,
+    verify_gitlab_default_branch,
 )
 from automation_library.gitlab.messages import (
     TEST_NAMES,
@@ -160,13 +162,13 @@ def test_gitlab_resources(host):
 
     details = (
         f"CPU: {result['actual']['cpu_cores']} cores "
-        f"(required: {result['required']['min_cpu_cores']}) - "
+        f"(required: {result['required']['min_cpu_cores']}) "
         f"{'✓' if result['checks']['cpu'] else '✗'}\n"
         f"Memory: {result['actual']['memory_gb']} GB "
-        f"(required: {result['required']['min_memory_gb']}) - "
+        f"(required: {result['required']['min_memory_gb']}) "
         f"{'✓' if result['checks']['memory'] else '✗'}\n"
         f"Storage: {result['actual']['storage_gb']} GB "
-        f"(required: {result['required']['min_storage_gb']}) - "
+        f"(required: {result['required']['min_storage_gb']}) "
         f"{'✓' if result['checks']['storage'] else '✗'}"
     )
 
@@ -296,31 +298,75 @@ def test_gitlab_project_exists(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_catalog_synced(host):
+def test_gitlab_project_visibility(host):
     """
-    Test Case 8: Verify catalog is synced to GitLab.
+    Test Case 8: Verify GitLab project visibility.
     """
-    log = TestLogger(TEST_NAMES["catalog_synced"])
+    log = TestLogger(TEST_NAMES["gitlab_project_visibility"])
 
     skip_if_build_stream_not_enabled(host, log)
 
-    log.check("Checking catalog sync")
-    result = verify_catalog_synced(host)
-
-    details = (
-        f"Project: {result['project_name']}\n"
-        f"CI file exists: {result['ci_file_exists']}\n"
-        f"Files found: {result['files_found']}"
-    )
+    log.check("Checking GitLab project visibility")
+    result = verify_gitlab_project_visibility(host)
 
     if result["success"]:
+        details = f"Expected: {result['expected']}, Actual: {result['actual']}"
         log.passed(
-            LOG_MSGS["catalog_synced"].format(name=result['project_name']),
+            LOG_MSGS["visibility_ok"].format(visibility=result['expected']),
             details
         )
     else:
-        log.failed(LOG_MSGS["catalog_not_synced"], details)
+        details = result["error"]
+        if "does not exist" in result["error"]:
+            log.failed(
+                LOG_MSGS["project_not_exist_for_visibility"].format(name=result['project_name']),
+                details
+            )
+        else:
+            log.failed(
+                LOG_MSGS["visibility_mismatch"].format(
+                    expected=result['expected'],
+                    actual=result['actual']
+                ),
+                details
+            )
 
-    assert result["success"], ASSERT_MSGS["catalog_not_synced"].format(
-        name=result['project_name']
-    )
+    assert result["success"], result["error"]
+
+
+@pytest.mark.sanity
+@pytest.mark.order(9)
+def test_gitlab_default_branch(host):
+    """
+    Test Case 9: Verify GitLab default branch.
+    """
+    log = TestLogger(TEST_NAMES["gitlab_default_branch"])
+
+    skip_if_build_stream_not_enabled(host, log)
+
+    log.check("Checking GitLab default branch")
+    result = verify_gitlab_default_branch(host)
+
+    if result["success"]:
+        details = f"Expected: {result['expected']}, Actual: {result['actual']}"
+        log.passed(
+            LOG_MSGS["default_branch_ok"].format(branch=result['expected']),
+            details
+        )
+    else:
+        details = result["error"]
+        if "does not exist" in result["error"]:
+            log.failed(
+                LOG_MSGS["project_not_exist_for_branch"].format(name=result['project_name']),
+                details
+            )
+        else:
+            log.failed(
+                LOG_MSGS["default_branch_mismatch"].format(
+                    expected=result['expected'],
+                    actual=result['actual']
+                ),
+                details
+            )
+
+    assert result["success"], result["error"]
