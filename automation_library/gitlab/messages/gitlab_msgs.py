@@ -94,6 +94,12 @@ TEST_ASSERT_MSGS = {
     "storage_insufficient": (
         "Insufficient storage. Required: {required}GB, Available: {actual}GB"
     ),
+    "puma_workers_mismatch": (
+        "Puma workers mismatch. Expected: {expected}, Actual: {actual}"
+    ),
+    "sidekiq_mismatch": (
+        "Sidekiq concurrency mismatch. Expected: {expected}, Actual: {actual}"
+    ),
     # Project
     "project_not_found": (
         "GitLab project '{name}' not found"
