@@ -36,7 +36,13 @@ from paramiko.ssh_exception import (
     SSHException,
 )
 from automation_library.checks.vars.oim_prereq_vars import (
-    OMNIA_TEST_CONFIG_PATH as DEFAULT_OMNIA_TEST_CONFIG_PATH,
+    OMNIA_TEST_CONFIG_PATH as DEFAULT_USER_CONFIG_PATH,
+)
+from automation_library.core.host import (
+    get_testinfra_host,
+    run_in_container,
+    run_on_remote_node,
+    get_nodes_info,
 )
 from automation_library.kubernetes.messages.k8s_msgs import (
     ERROR_NO_CONTROL_PLANE_NODES,
@@ -66,20 +72,41 @@ from automation_library.kubernetes.messages.k8s_msgs import (
     RUNTIME_CHECK_SOME_FAILED,
     RUNTIME_MISMATCH,
     EXPECTED_RUNTIME_MSG,
+    REBOOT_VIP_NODE_INITIATED,
+    REBOOT_VIP_NODE_NOT_FOUND,
+    REBOOT_VIP_NO_REMAINING,
+    K8S_NODE_ONLINE_PASSED,
+    K8S_NODE_ONLINE_FAILED,
+    K8S_CLOUD_INIT_PASSED,
+    K8S_CLOUD_INIT_FAILED,
+    K8S_NODE_READY_PASSED,
+    K8S_NODE_READY_FAILED,
+    K8S_VIP_FAILOVER_PASSED,
+    K8S_VIP_FAILOVER_FAILED,
+    K8S_VIP_FAILOVER_MULTI,
 )
 from automation_library.kubernetes.vars.k8s_vars import (
     CRI_O_SERVICE,
     CRIO_SERVICE,
+    CHRONYD_SERVICE,
     CONTROL_PLANE_GROUP,
     HA_CONFIG_FILE,
     KUBELET_SERVICE,
     READY_STATE_MAX_RETRIES,
     READY_STATE_RETRY_DELAY_SECONDS,
     WORKER_NODE_GROUP,
+    K8S_REBOOT_WAIT_ONLINE_TIMEOUT,
+    K8S_REBOOT_WAIT_ONLINE_POLL,
+    K8S_CLOUD_INIT_TIMEOUT,
+    K8S_CLOUD_INIT_POLL,
+    K8S_NODE_READY_TIMEOUT,
+    K8S_NODE_READY_POLL,
+    K8S_VIP_FAILOVER_TIMEOUT,
+    K8S_VIP_FAILOVER_POLL,
 )
 
 # Constants
-OMNIA_TEST_CONFIG_PATH = DEFAULT_OMNIA_TEST_CONFIG_PATH
+USER_CONFIG_PATH = DEFAULT_USER_CONFIG_PATH
 OMNIA_CORE_CONTAINER_NAME = "omnia_core"
 PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 
@@ -89,16 +116,17 @@ class OIMOperations:
         """Initialize OIM operations with configuration.
 
         Args:
-            config_path (str, optional): Path to the _omnia_test_config file.
-                Defaults to OMNIA_TEST_CONFIG_PATH.
+            config_path (str, optional): Path to the user config file.
+                Defaults to USER_CONFIG_PATH.
         """
-        self.config_path = config_path or OMNIA_TEST_CONFIG_PATH
+        self.config_path = config_path or USER_CONFIG_PATH
         self.config = self._load_config()
         self.ssh_client = None
         self._omnia_core_container_id = None
+        self._testinfra_host = None
 
     def _load_config(self):
-        """Load configuration from _omnia_test_config file."""
+        """Load configuration from user config file."""
         with open(self.config_path, 'r', encoding="utf-8") as file:
             return yaml.safe_load(file)
 
@@ -200,8 +228,13 @@ class OIMOperations:
     def close(self):
         """Close SSH connection."""
         if self.ssh_client:
-            self.ssh_client.close()
-            self.ssh_client = None
+            try:
+                self.ssh_client.close()
+            except (OSError, SSHException):
+                pass
+            finally:
+                self.ssh_client = None
+        self._testinfra_host = None
 
     def get_virtual_ip_from_config(self):
         """
@@ -358,85 +391,6 @@ class OIMOperations:
         except Exception as e:
             return False, HA_VIP_CHECK_FAILED.format(message=str(e))
 
-    def verify_vip_failover_scenario(self, max_wait_seconds: int = 60, poll_seconds: int = 5):
-        try:
-            virtual_ip = self.get_virtual_ip_from_config()
-        except Exception as e:
-            return None, str(e)
-
-        try:
-            control_plane_nodes = self.get_control_plane_nodes()
-        except Exception as e:
-            return None, str(e)
-
-        if len(control_plane_nodes) < 2:
-            return None, "Less than two control-plane nodes found in PXE mapping"
-
-        nodes_with_vip = []
-        for node in control_plane_nodes:
-            node_ip = (node.get("admin_ip") or "").strip()
-            if not node_ip:
-                continue
-            try:
-                has_vip, _ = self.is_virtual_ip_configured(node_ip, virtual_ip)
-            except Exception:
-                has_vip = False
-            if has_vip:
-                nodes_with_vip.append(node)
-
-        if len(nodes_with_vip) != 1:
-            if len(nodes_with_vip) == 0:
-                return False, HA_VIP_NOT_CONFIGURED.format(vip=virtual_ip)
-            node_names = [n.get("hostname", "unknown") for n in nodes_with_vip]
-            return False, HA_VIP_MULTIPLE_NODES.format(vip=virtual_ip, nodes=", ".join(node_names))
-
-        vip_node = nodes_with_vip[0]
-        vip_node_ip = (vip_node.get("admin_ip") or "").strip()
-        if not vip_node_ip:
-            return False, "VIP holder node has no admin_ip"
-
-        remaining_nodes = [n for n in control_plane_nodes if (n.get("admin_ip") or "").strip() and (n.get("admin_ip") or "").strip() != vip_node_ip]
-        if not remaining_nodes:
-            return None, "No remaining control-plane nodes found for VIP failover verification"
-
-        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
-        self._ssh_from_omnia_core(vip_node_ip, reboot_cmd)
-
-        start = time.time()
-        last_state = ""
-
-        while time.time() - start < float(max_wait_seconds):
-            new_vip_holders = []
-            unreachable = []
-
-            for node in remaining_nodes:
-                node_ip = (node.get("admin_ip") or "").strip()
-                try:
-                    has_vip, _ = self.is_virtual_ip_configured(node_ip, virtual_ip)
-                    if has_vip:
-                        new_vip_holders.append(node)
-                except Exception:
-                    unreachable.append(node_ip)
-
-            if len(new_vip_holders) == 1:
-                new_holder = new_vip_holders[0]
-                new_holder_ip = (new_holder.get("admin_ip") or "").strip()
-                return True, (
-                    f"VIP failover passed: VIP {virtual_ip} moved from {vip_node.get('hostname') or vip_node_ip} "
-                    f"to {new_holder.get('hostname') or new_holder_ip} within {max_wait_seconds}s"
-                )
-
-            if len(new_vip_holders) > 1:
-                holder_names = [h.get("hostname") or (h.get("admin_ip") or "unknown") for h in new_vip_holders]
-                return False, f"VIP failover failed: VIP {virtual_ip} found on multiple nodes after reboot: {', '.join(holder_names)}"
-
-            last_state = f"vip_holders=0 unreachable={','.join(unreachable) if unreachable else 'none'}"
-            time.sleep(int(poll_seconds))
-
-        return False, (
-            f"VIP failover failed: VIP {virtual_ip} did not appear on any remaining control-plane node within {max_wait_seconds}s "
-            f"(last_state={last_state})"
-        )
 
     def get_control_plane_nodes_from_pxe_mapping(self):
         pxe_mapping = self.read_pxe_mapping_file()
@@ -471,182 +425,7 @@ class OIMOperations:
                     nodes.append({"hostname": hostname, "admin_ip": admin_ip})
         return nodes
 
-    def verify_control_plane_reboot_scenario(self, max_wait_seconds: int = 600, poll_seconds: int = 10):
-        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
-        if len(control_planes) < 2:
-            return None, "Less than two control-plane nodes found in PXE mapping"
 
-        reboot_node = control_planes[0]
-        watcher_node = control_planes[1]
-
-        reboot_host = (reboot_node.get("hostname") or reboot_node.get("admin_ip") or "").strip()
-        watcher_host = (watcher_node.get("hostname") or watcher_node.get("admin_ip") or "").strip()
-
-        if not reboot_host or not watcher_host:
-            return False, "Control-plane nodes are missing hostname/admin_ip in PXE mapping"
-
-        reboot_identity_candidates = []
-        if reboot_node.get("hostname"):
-            reboot_identity_candidates.append(reboot_node.get("hostname"))
-        if reboot_node.get("admin_ip"):
-            reboot_identity_candidates.append(reboot_node.get("admin_ip"))
-
-        def _kubectl_get_nodes():
-            rc, out, err = self._ssh_from_omnia_core(watcher_host, "kubectl get nodes --no-headers")
-            if rc != 0:
-                return None, err or out
-            return out, ""
-
-        def _find_node_status(nodes_output: str):
-            if not nodes_output:
-                return None
-            for line in nodes_output.splitlines():
-                parts = line.split()
-                if len(parts) < 2:
-                    continue
-                name = parts[0]
-                status = parts[1]
-                if any(c and (name == c) for c in reboot_identity_candidates):
-                    return status
-            for line in nodes_output.splitlines():
-                for c in reboot_identity_candidates:
-                    if c and c in line:
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            return parts[1]
-            return None
-
-        nodes_out, nodes_err = _kubectl_get_nodes()
-        if nodes_out is None:
-            return False, f"Failed to run kubectl from watcher control-plane {watcher_host}: {nodes_err}"
-
-        initial_status = _find_node_status(nodes_out)
-        if initial_status is None:
-            return False, f"Reboot target node not found in 'kubectl get nodes' output (target={reboot_host})"
-
-        if not initial_status.startswith("Ready"):
-            return False, f"Reboot target node is not Ready before reboot (node={reboot_host}, status={initial_status})"
-
-        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
-        self._ssh_from_omnia_core(reboot_host, reboot_cmd)
-
-        start = time.time()
-        observed_not_ready = False
-        last_status = initial_status
-
-        while time.time() - start < float(max_wait_seconds):
-            nodes_out, nodes_err = _kubectl_get_nodes()
-            if nodes_out is None:
-                last_status = f"kubectl_error: {nodes_err}"
-                time.sleep(int(poll_seconds))
-                continue
-
-            status = _find_node_status(nodes_out)
-            if status is None:
-                last_status = "NotFound"
-                observed_not_ready = True
-            else:
-                last_status = status
-                if not status.startswith("Ready"):
-                    observed_not_ready = True
-                if observed_not_ready and status.startswith("Ready"):
-                    return True, f"Control-plane reboot scenario passed: {reboot_host} transitioned to NotReady/NotFound and returned to Ready within {max_wait_seconds}s"
-
-            time.sleep(int(poll_seconds))
-
-        if not observed_not_ready:
-            return False, f"Control-plane reboot scenario failed: node {reboot_host} never became NotReady within {max_wait_seconds}s (last_status={last_status})"
-        return False, f"Control-plane reboot scenario failed: node {reboot_host} did not return to Ready within {max_wait_seconds}s (last_status={last_status})"
-
-    def verify_worker_node_reboot_scenario(self, max_wait_seconds: int = 600, poll_seconds: int = 10):
-        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
-        workers = self.get_worker_nodes_from_pxe_mapping()
-        if not control_planes:
-            return None, "No control-plane nodes found in PXE mapping"
-        if not workers:
-            return None, "No worker nodes found in PXE mapping"
-
-        reboot_node = workers[0]
-        watcher_node = control_planes[0]
-
-        reboot_host = (reboot_node.get("hostname") or reboot_node.get("admin_ip") or "").strip()
-        watcher_host = (watcher_node.get("hostname") or watcher_node.get("admin_ip") or "").strip()
-
-        if not reboot_host or not watcher_host:
-            return False, "Worker/control-plane nodes are missing hostname/admin_ip in PXE mapping"
-
-        reboot_identity_candidates = []
-        if reboot_node.get("hostname"):
-            reboot_identity_candidates.append(reboot_node.get("hostname"))
-        if reboot_node.get("admin_ip"):
-            reboot_identity_candidates.append(reboot_node.get("admin_ip"))
-
-        def _kubectl_get_nodes():
-            rc, out, err = self._ssh_from_omnia_core(watcher_host, "kubectl get nodes --no-headers")
-            if rc != 0:
-                return None, err or out
-            return out, ""
-
-        def _find_node_status(nodes_output: str):
-            if not nodes_output:
-                return None
-            for line in nodes_output.splitlines():
-                parts = line.split()
-                if len(parts) < 2:
-                    continue
-                name = parts[0]
-                status = parts[1]
-                if any(c and (name == c) for c in reboot_identity_candidates):
-                    return status
-            for line in nodes_output.splitlines():
-                for c in reboot_identity_candidates:
-                    if c and c in line:
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            return parts[1]
-            return None
-
-        nodes_out, nodes_err = _kubectl_get_nodes()
-        if nodes_out is None:
-            return False, f"Failed to run kubectl from watcher control-plane {watcher_host}: {nodes_err}"
-
-        initial_status = _find_node_status(nodes_out)
-        if initial_status is None:
-            return False, f"Worker reboot target not found in 'kubectl get nodes' output (target={reboot_host})"
-
-        if not initial_status.startswith("Ready"):
-            return False, f"Worker reboot target node is not Ready before reboot (node={reboot_host}, status={initial_status})"
-
-        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
-        self._ssh_from_omnia_core(reboot_host, reboot_cmd)
-
-        start = time.time()
-        observed_not_ready = False
-        last_status = initial_status
-
-        while time.time() - start < float(max_wait_seconds):
-            nodes_out, nodes_err = _kubectl_get_nodes()
-            if nodes_out is None:
-                last_status = f"kubectl_error: {nodes_err}"
-                time.sleep(int(poll_seconds))
-                continue
-
-            status = _find_node_status(nodes_out)
-            if status is None:
-                last_status = "NotFound"
-                observed_not_ready = True
-            else:
-                last_status = status
-                if not status.startswith("Ready"):
-                    observed_not_ready = True
-                if observed_not_ready and status.startswith("Ready"):
-                    return True, f"Worker reboot scenario passed: {reboot_host} transitioned to NotReady/NotFound and returned to Ready within {max_wait_seconds}s"
-
-            time.sleep(int(poll_seconds))
-
-        if not observed_not_ready:
-            return False, f"Worker reboot scenario failed: node {reboot_host} never became NotReady within {max_wait_seconds}s (last_status={last_status})"
-        return False, f"Worker reboot scenario failed: node {reboot_host} did not return to Ready within {max_wait_seconds}s (last_status={last_status})"
 
     def verify_etcd_cluster_health(self):
         control_planes = self.get_control_plane_nodes_from_pxe_mapping()
@@ -663,12 +442,16 @@ class OIMOperations:
 
         endpoints = ",".join([f"https://{ip}:2379" for ip in admin_ips])
 
-        find_pod_inner = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-' | head -n 1"
-        find_pod_cmd = f"bash -lc {shlex.quote(find_pod_inner)}"
-        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pod_cmd)
-        etcd_pod = ((out or "").strip() or "").replace("pod/", "")
-        if rc != 0 or not etcd_pod:
-            return False, f"Failed to find etcd pod: {err or out}", (err or out or "")
+        # Get all etcd pods
+        find_pods_inner = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
+        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
+        if rc != 0 or not out:
+            return False, f"Failed to find etcd pods: {err or out}", (err or out or "")
+
+        etcd_pods = [line.strip().replace("pod/", "") for line in (out or "").splitlines() if line.strip()]
+        if not etcd_pods:
+            return False, "No etcd pods found in kube-system namespace", out
 
         etcdctl_cmd = (
             "ETCDCTL_API=3 etcdctl "
@@ -678,23 +461,42 @@ class OIMOperations:
             "--key=/etc/kubernetes/pki/etcd/server.key "
             "endpoint health"
         )
-        exec_inner = (
-            f"kubectl exec -n kube-system {shlex.quote(etcd_pod)} -- sh -lc {shlex.quote(etcdctl_cmd)}"
-        )
-        exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
-        rc, out, err = self._ssh_from_omnia_core(watcher_host, exec_cmd)
-        output = (out or "").strip() + ("\n" + (err or "").strip() if (err or "").strip() else "")
 
-        if rc != 0:
-            return False, f"etcdctl endpoint health command failed (rc={rc})", output
+        # Try each etcd pod until one succeeds or we get valid output
+        last_error = ""
+        last_output = ""
+        for etcd_pod in etcd_pods:
+            exec_inner = (
+                f"kubectl exec -n kube-system {shlex.quote(etcd_pod)} -- sh -lc {shlex.quote(etcdctl_cmd)}"
+            )
+            exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
+            rc, out, err = self._ssh_from_omnia_core(watcher_host, exec_cmd)
+            output = (out or "").strip() + ("\n" + (err or "").strip() if (err or "").strip() else "")
 
-        health_lines = [line for line in (out or "").splitlines() if line.strip()]
-        healthy_count = sum(1 for line in health_lines if "is healthy" in line.lower())
-        expected_count = len(admin_ips)
-        if healthy_count < expected_count:
-            return False, f"Not all etcd endpoints are healthy (healthy={healthy_count}, expected={expected_count})", output
+            # Check if we got valid health output (even if rc != 0)
+            # etcdctl returns non-zero if any endpoint is unhealthy
+            health_lines = [line for line in (out or "").splitlines() if line.strip()]
+            healthy_count = sum(1 for line in health_lines if "is healthy" in line.lower())
+            unhealthy_count = sum(1 for line in health_lines if "is unhealthy" in line.lower())
+            
+            # If we got health status output, process it
+            if healthy_count > 0 or unhealthy_count > 0:
+                expected_count = len(admin_ips)
+                
+                # Fail if ANY endpoint is unhealthy
+                if healthy_count == expected_count:
+                    return True, f"All {expected_count} etcd endpoints are healthy", output
+                else:
+                    # Get details of unhealthy endpoints
+                    unhealthy_endpoints = [line.split()[0] for line in health_lines if "is unhealthy" in line.lower()]
+                    return False, f"Not all etcd endpoints are healthy: {healthy_count}/{expected_count} healthy. Unhealthy endpoints: {', '.join(unhealthy_endpoints)}", output
+            else:
+                # No valid health output, try next pod
+                last_error = f"Pod {etcd_pod}: no valid health output"
+                last_output = output
 
-        return True, "All etcd endpoints are healthy", output
+        # All pods failed to provide valid output
+        return False, f"etcdctl endpoint health failed on all etcd pods. Last error: {last_error}", last_output
 
     def verify_container_runtime_via_crictl(self, expected_runtime, expected_version):
         """
@@ -890,17 +692,19 @@ class OIMOperations:
             pxe_mapping (str): The content of the pxe_mapping_file.
 
         Returns:
-            list: List of dicts containing node information (hostname, admin_ip).
+            list: List of dicts containing node information (hostname, admin_ip, role).
         """
         reader = csv.DictReader(io.StringIO(pxe_mapping))
         nodes = []
         wanted = {"service_kube_control_plane_x86_64", "service_kube_node_x86_64"}
         for row in reader:
-            if (row.get("FUNCTIONAL_GROUP_NAME") or "").strip() in wanted:
+            func_group = (row.get("FUNCTIONAL_GROUP_NAME") or "").strip()
+            if func_group in wanted:
                 hostname = (row.get("HOSTNAME") or "").strip()
                 admin_ip = (row.get("ADMIN_IP") or "").strip()
+                role = "control_plane" if func_group == "service_kube_control_plane_x86_64" else "worker"
                 if hostname or admin_ip:
-                    nodes.append({"hostname": hostname, "admin_ip": admin_ip})
+                    nodes.append({"hostname": hostname, "admin_ip": admin_ip, "role": role})
         return nodes
 
     def _ssh_from_omnia_core(self, host, remote_cmd):
@@ -1242,7 +1046,7 @@ class OIMOperations:
         expected_nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
 
         if not expected_nodes:
-            raise ValueError("No nodes found in PXE mapping")
+            raise ValueError("No nodes found in PXE mapping file")
 
         control_plane_node = self._get_control_plane_node(expected_nodes)
         node_name = control_plane_node.get("hostname") or control_plane_node.get("admin_ip") or "unknown"
@@ -1299,8 +1103,7 @@ class OIMOperations:
         """
         control_plane_nodes = [
             node for node in nodes
-            if any(k in (node.get("hostname") or "").lower()
-                   for k in ["master", "control", "kcp"])
+            if node.get("role") == "control_plane"
         ]
         return control_plane_nodes[0] if control_plane_nodes else nodes[0]
 
@@ -1434,18 +1237,30 @@ class OIMOperations:
         results = list(self.verify_kubectl_version_on_control_planes(expected_version))
         all_passed = True
         failures = []
+        reachable_count = 0
+        
         for node_name, is_correct, actual_version, error in results:
             if error:
+                # Check if it's an SSH/connectivity error (unreachable node)
+                if "No route to host" in error or "Connection refused" in error or "Connection timed out" in error:
+                    # Skip unreachable nodes
+                    continue
                 all_passed = False
                 failures.append(f"{node_name}: {error}")
             elif not is_correct:
+                reachable_count += 1
                 all_passed = False
                 failures.append(
                     f"{node_name}: expected {expected_version}, got {actual_version}"
                 )
+            else:
+                reachable_count += 1
 
+        if reachable_count == 0:
+            return False, "All control plane nodes are unreachable", results
+            
         if all_passed:
-            return True, f"kubectl client version matches expected version {expected_version} on all control planes", results
+            return True, f"kubectl client version matches expected version {expected_version} on all reachable control planes", results
         return False, "\n".join(failures) if failures else "kubectl version check failed", results
 
     def verify_all_nodes_container_runtime(self, expected_runtime="cri-o", expected_version=None):
@@ -1520,8 +1335,7 @@ class OIMOperations:
         # Get control plane nodes
         control_plane_nodes = [
             node for node in nodes
-            if any(k in (node.get("hostname") or "").lower()
-                for k in ["master", "control", "kcp"])
+            if node.get("role") == "control_plane"
         ]
 
         if not control_plane_nodes:
@@ -1603,6 +1417,52 @@ class OIMOperations:
 
         except Exception as e:
             return False, f"Error verifying MetalLB pods: {str(e)}", []
+
+    def format_pod_details(self, pod_statuses, default_namespace="default"):
+        """Format pod statuses into a details string for logging.
+
+        Args:
+            pod_statuses (list): List of pod status dictionaries with keys:
+                - name: Pod name
+                - namespace: Pod namespace
+                - status: Pod status (e.g., Running, Pending)
+                - node: Node name where pod is running
+            default_namespace (str): Default namespace if not present in pod dict
+
+        Returns:
+            str or None: Formatted details string, or None if no pods
+        """
+        if not pod_statuses:
+            return None
+        details_lines = []
+        for pod in pod_statuses:
+            namespace = pod.get("namespace") or default_namespace
+            line = (
+                f"{namespace}/{pod.get('name')} (Node: {pod.get('node', 'Unknown')}): "
+                f"{pod.get('status')}"
+            )
+            details_lines.append(line)
+        return "\n".join(details_lines) if details_lines else None
+
+    def format_container_runtime_details(self, results):
+        """Format container runtime verification results into a details string.
+
+        Args:
+            results (list): List of tuples (node_name, is_correct, actual_runtime, error)
+
+        Returns:
+            str or None: Formatted details string, or None if no results
+        """
+        if not results:
+            return None
+        details_lines = []
+        for node_name, is_correct, actual_runtime, error in results:
+            if is_correct:
+                details_lines.append(f"{node_name}: {actual_runtime}")
+            else:
+                suffix = f" ({error})" if error else ""
+                details_lines.append(f"{node_name}: {actual_runtime or 'unknown'}{suffix}")
+        return "\n".join(details_lines) if details_lines else None
 
     def verify_nfs_provisioner_pod(self):
         """Verify that the nfs-client-nfs-subdir-external-provisioner pod is running.
@@ -2346,9 +2206,990 @@ class OIMOperations:
         return False, "csi_driver_powerscale is not present in software_config.json"
 
 
+    # =========================================================================
+    # Per-node-type service checks
+    # =========================================================================
+
+    def _verify_service_on_node_type(self, service_name, node_type, display_name=None):
+        """Verify a service is active on nodes of a specific type.
+
+        Args:
+            service_name: systemd service name
+            node_type: 'control_plane' or 'worker'
+            display_name: human-readable name for logging
+
+        Returns:
+            tuple: (success, message, details_list)
+        """
+        display_name = display_name or service_name
+        if node_type == "control_plane":
+            nodes = self.get_control_plane_nodes_from_pxe_mapping()
+            type_label = "kube control plane"
+        else:
+            nodes = self.get_worker_nodes_from_pxe_mapping()
+            type_label = "kube node"
+
+        if not nodes:
+            return False, f"No {type_label} nodes found in PXE mapping", []
+
+        failures = []
+        details = []
+        for node in nodes:
+            hostname = node.get("hostname") or node.get("admin_ip") or "<unknown>"
+            is_active, target, out, err, unreachable = self.is_service_active_on_node(
+                node, service_name,
+            )
+            if unreachable:
+                details.append(f"{hostname}: SKIPPED (unreachable)")
+                continue
+            if is_active:
+                details.append(f"{hostname}: active")
+            else:
+                details.append(f"{hostname}: NOT active (out={out!r}, err={err!r})")
+                failures.append(hostname)
+
+        if failures:
+            msg = f"{display_name} is NOT active on {type_label} node(s): {', '.join(failures)}"
+            return False, msg, details
+        return True, f"{display_name} is active on all {type_label} nodes", details
+
+    def verify_kubelet_active_on_control_planes(self):
+        """Verify kubelet is active on all kube control plane nodes."""
+        return self._verify_service_on_node_type(KUBELET_SERVICE, "control_plane", "kubelet")
+
+    def verify_kubelet_active_on_kube_nodes(self):
+        """Verify kubelet is active on all kube worker nodes."""
+        return self._verify_service_on_node_type(KUBELET_SERVICE, "worker", "kubelet")
+
+    def verify_crio_active_on_control_planes(self):
+        """Verify crio/cri-o is active on all kube control plane nodes."""
+        nodes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not nodes:
+            return False, "No kube control plane nodes found in PXE mapping", []
+
+        failures = []
+        details = []
+        for node in nodes:
+            hostname = node.get("hostname") or node.get("admin_ip") or "<unknown>"
+            crio_active, _, _, _, crio_unreach = self.is_service_active_on_node(node, CRIO_SERVICE)
+            crio_o_active, _, _, _, crio_o_unreach = self.is_service_active_on_node(node, CRI_O_SERVICE)
+            if crio_unreach and crio_o_unreach:
+                details.append(f"{hostname}: SKIPPED (unreachable)")
+                continue
+            if crio_active or crio_o_active:
+                svc = "crio" if crio_active else "cri-o"
+                details.append(f"{hostname}: {svc} active")
+            else:
+                details.append(f"{hostname}: crio/cri-o NOT active")
+                failures.append(hostname)
+
+        if failures:
+            return False, f"crio/cri-o is NOT active on control plane node(s): {', '.join(failures)}", details
+        return True, "crio/cri-o is active on all kube control plane nodes", details
+
+    def verify_crio_active_on_kube_nodes(self):
+        """Verify crio/cri-o is active on all kube worker nodes."""
+        nodes = self.get_worker_nodes_from_pxe_mapping()
+        if not nodes:
+            return False, "No kube worker nodes found in PXE mapping", []
+
+        failures = []
+        details = []
+        for node in nodes:
+            hostname = node.get("hostname") or node.get("admin_ip") or "<unknown>"
+            crio_active, _, _, _, crio_unreach = self.is_service_active_on_node(node, CRIO_SERVICE)
+            crio_o_active, _, _, _, crio_o_unreach = self.is_service_active_on_node(node, CRI_O_SERVICE)
+            if crio_unreach and crio_o_unreach:
+                details.append(f"{hostname}: SKIPPED (unreachable)")
+                continue
+            if crio_active or crio_o_active:
+                svc = "crio" if crio_active else "cri-o"
+                details.append(f"{hostname}: {svc} active")
+            else:
+                details.append(f"{hostname}: crio/cri-o NOT active")
+                failures.append(hostname)
+
+        if failures:
+            return False, f"crio/cri-o is NOT active on kube node(s): {', '.join(failures)}", details
+        return True, "crio/cri-o is active on all kube worker nodes", details
+
+    def verify_chronyd_active_on_control_planes(self):
+        """Verify chronyd is active on all kube control plane nodes."""
+        return self._verify_service_on_node_type(CHRONYD_SERVICE, "control_plane", "chronyd")
+
+    # =========================================================================
+    # Per-node-type READY state checks
+    # =========================================================================
+
+    def _verify_nodes_ready_by_type(self, node_type):
+        """Verify nodes of a specific type are in READY state.
+
+        Args:
+            node_type: 'control_plane' or 'worker'
+
+        Returns:
+            tuple: (success, message, details_list)
+        """
+        if node_type == "control_plane":
+            pxe_nodes = self.get_control_plane_nodes_from_pxe_mapping()
+            type_label = "kube control plane"
+        else:
+            pxe_nodes = self.get_worker_nodes_from_pxe_mapping()
+            type_label = "kube node"
+
+        if not pxe_nodes:
+            return False, f"No {type_label} nodes found in PXE mapping", []
+
+        # Get a control plane host to run kubectl
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not control_planes:
+            return False, "No control plane nodes found to run kubectl", []
+        cp_host = (control_planes[0].get("hostname") or control_planes[0].get("admin_ip") or "").strip()
+        if not cp_host:
+            return False, "Control plane node has no hostname/admin_ip", []
+
+        rc, out, err = self._ssh_from_omnia_core(cp_host, "kubectl get nodes --no-headers")
+        if rc != 0:
+            return False, f"Failed to run kubectl get nodes: {err}", []
+
+        # Build map: node_name -> status
+        node_status_map = {}
+        for line in (out or "").splitlines():
+            parts = line.split()
+            if len(parts) >= 2:
+                node_status_map[parts[0]] = parts[1]
+
+        # Check each PXE node
+        failures = []
+        details = []
+        for node in pxe_nodes:
+            hostname = (node.get("hostname") or "").strip()
+            admin_ip = (node.get("admin_ip") or "").strip()
+            # Try to find in kubectl output
+            status = node_status_map.get(hostname) or node_status_map.get(admin_ip)
+            if status is None:
+                details.append(f"{hostname or admin_ip}: NOT FOUND in cluster")
+                failures.append(hostname or admin_ip)
+            elif status == "Ready":
+                details.append(f"{hostname or admin_ip}: Ready")
+            else:
+                details.append(f"{hostname or admin_ip}: {status}")
+                failures.append(hostname or admin_ip)
+
+        if failures:
+            return False, f"Not all {type_label} nodes are in Ready state: {', '.join(failures)}", details
+        return True, f"All {type_label} nodes are in Ready state", details
+
+    def verify_control_plane_nodes_ready(self):
+        """Verify all kube control plane nodes are in READY state."""
+        return self._verify_nodes_ready_by_type("control_plane")
+
+    def verify_kube_nodes_ready(self):
+        """Verify all kube worker nodes are in READY state."""
+        return self._verify_nodes_ready_by_type("worker")
+
+    # =========================================================================
+    # kubeadm version matches crio version
+    # =========================================================================
+
+    def verify_kubeadm_version_matches_crio(self):
+        """Verify kubeadm is installed with same version as crio on control plane nodes.
+
+        Returns:
+            tuple: (success, message, details_list)
+        """
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not control_planes:
+            return False, "No control plane nodes found in PXE mapping", []
+
+        failures = []
+        details = []
+        reachable_count = 0
+
+        for node in control_planes:
+            hostname = (node.get("hostname") or node.get("admin_ip") or "").strip()
+            if not hostname:
+                continue
+
+            # Get kubeadm version
+            rc_ka, ka_out, ka_err = self._ssh_from_omnia_core(hostname, "kubeadm version -o short")
+            if rc_ka != 0:
+                # Check if it's an SSH/connectivity error (unreachable node)
+                if "No route to host" in ka_err or "Connection refused" in ka_err or "Connection timed out" in ka_err:
+                    details.append(f"{hostname}: SKIPPED (unreachable)")
+                    continue
+                details.append(f"{hostname}: kubeadm version failed ({ka_err})")
+                failures.append(hostname)
+                continue
+            
+            reachable_count += 1
+            kubeadm_ver = (ka_out or "").strip()
+
+            # Get crio version
+            rc_cr, cr_out, cr_err = self._ssh_from_omnia_core(hostname, "crio --version 2>/dev/null || cri-o --version 2>/dev/null")
+            if rc_cr != 0:
+                details.append(f"{hostname}: crio version failed ({cr_err})")
+                failures.append(hostname)
+                continue
+
+            # Parse crio version - e.g. "crio version 1.34.1"
+            crio_ver = ""
+            for line in (cr_out or "").splitlines():
+                ver_match = re.search(r'(\d+\.\d+\.\d+)', line)
+                if ver_match:
+                    crio_ver = ver_match.group(1)
+                    break
+
+            # Parse kubeadm version - e.g. "v1.34.1"
+            kubeadm_parsed = ""
+            ka_match = re.search(r'v?(\d+\.\d+\.\d+)', kubeadm_ver)
+            if ka_match:
+                kubeadm_parsed = ka_match.group(1)
+
+            if not kubeadm_parsed or not crio_ver:
+                details.append(f"{hostname}: could not parse versions (kubeadm={kubeadm_ver!r}, crio={cr_out!r})")
+                failures.append(hostname)
+                continue
+
+            if kubeadm_parsed == crio_ver:
+                details.append(f"{hostname}: kubeadm={kubeadm_parsed}, crio={crio_ver} (match)")
+            else:
+                details.append(f"{hostname}: kubeadm={kubeadm_parsed}, crio={crio_ver} (MISMATCH)")
+                failures.append(hostname)
+
+        if reachable_count == 0:
+            return False, "All control plane nodes are unreachable", details
+
+        if failures:
+            return False, f"kubeadm/crio version mismatch on: {', '.join(failures)}", details
+        return True, "kubeadm version matches crio version on all reachable control plane nodes", details
+
+    # =========================================================================
+    # etcd member list
+    # =========================================================================
+
+    def verify_etcd_member_list(self):
+        """Verify etcd member list from within an etcd pod.
+
+        Returns:
+            tuple: (success, message, output)
+        """
+        if self._testinfra_host is None:
+            self._testinfra_host = get_testinfra_host()
+
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not control_planes:
+            return False, "No control-plane nodes found in PXE mapping", ""
+
+        admin_ips = self.get_control_plane_admin_ips_from_pxe_mapping()
+        if not admin_ips:
+            return False, "No control-plane admin IPs found in PXE mapping", ""
+
+        watcher_ip = (control_planes[0].get("admin_ip") or "").strip()
+        if not watcher_ip:
+            return False, "Control-plane node missing admin_ip", ""
+
+        # Get all etcd pods
+        find_pods_cmd = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        result = run_on_remote_node(self._testinfra_host, find_pods_cmd, watcher_ip)
+        if result.rc != 0 or not result.stdout:
+            return False, f"Failed to find etcd pods: {result.stderr or result.stdout}", (result.stderr or result.stdout or "")
+
+        etcd_pods = [line.strip().replace("pod/", "") for line in (result.stdout or "").splitlines() if line.strip()]
+        if not etcd_pods:
+            return False, "No etcd pods found in kube-system namespace", result.stdout
+
+        endpoints = ",".join([f"https://{ip}:2379" for ip in admin_ips])
+
+        etcdctl_cmd = (
+            f"ETCDCTL_API=3 etcdctl "
+            f"--endpoints={endpoints} "
+            f"--cacert=/etc/kubernetes/pki/etcd/ca.crt "
+            f"--cert=/etc/kubernetes/pki/etcd/server.crt "
+            f"--key=/etc/kubernetes/pki/etcd/server.key "
+            f"member list -w table"
+        )
+
+        # Try each etcd pod until one succeeds
+        last_error = ""
+        for etcd_pod in etcd_pods:
+            exec_cmd = f"kubectl exec -n kube-system {etcd_pod} -- sh -c '{etcdctl_cmd}'"
+            result = run_on_remote_node(self._testinfra_host, exec_cmd, watcher_ip)
+            output = (result.stdout or "").strip() + ("\n" + (result.stderr or "").strip() if (result.stderr or "").strip() else "")
+
+            if result.rc == 0:
+                # Success - verify member count
+                member_lines = [line for line in (result.stdout or "").splitlines() if line.strip() and "|" in line and "ID" not in line.upper() and "---" not in line]
+                expected_count = len(admin_ips)
+                if len(member_lines) < expected_count:
+                    return False, f"etcd member count mismatch (found={len(member_lines)}, expected={expected_count})", output
+                return True, f"etcd member list verified ({len(member_lines)} members)", output
+            else:
+                last_error = f"Pod {etcd_pod}: {output}"
+
+        # All pods failed
+        return False, f"etcdctl member list failed on all etcd pods. Last error: {last_error}", last_error
+
+    # =========================================================================
+    # kubectl get componentstatus
+    # =========================================================================
+
+    def verify_k8s_component_status(self):
+        """Verify k8s cluster health using kubectl get componentstatus.
+
+        Expected: controller-manager, scheduler, etcd-0 all Healthy.
+
+        Returns:
+            tuple: (success, message, output)
+        """
+        if self._testinfra_host is None:
+            self._testinfra_host = get_testinfra_host()
+
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not control_planes:
+            return False, "No control-plane nodes found in PXE mapping", ""
+
+        cp_ip = (control_planes[0].get("admin_ip") or "").strip()
+        if not cp_ip:
+            return False, "Control-plane node missing admin_ip", ""
+
+        result = run_on_remote_node(self._testinfra_host, "kubectl get componentstatus --no-headers", cp_ip)
+        if result.rc != 0:
+            return False, f"kubectl get componentstatus failed: {result.stderr}", (result.stdout or "")
+
+        output = (result.stdout or "").strip()
+        if not output:
+            return False, "No component status output received", ""
+
+        # Parse each line: NAME STATUS MESSAGE ERROR
+        unhealthy = []
+        details = []
+        for line in output.splitlines():
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            name = parts[0]
+            status = parts[1]
+            details.append(f"{name}: {status}")
+            if status != "Healthy":
+                unhealthy.append(name)
+
+        full_output = (result.stdout or "") + ("\n" + (result.stderr or "") if result.stderr else "")
+
+        if unhealthy:
+            return False, f"Unhealthy components: {', '.join(unhealthy)}", full_output
+        return True, "All k8s components are Healthy", full_output
+
+
+    # =========================================================================
+    # ETCD Leader and Consistency Verification
+    # =========================================================================
+
+    def verify_etcd_leader_and_consistency(self):
+        """Verify etcd leader identification and consistency across all control plane nodes.
+
+        Returns:
+            Dict with keys:
+                success (bool)
+                message (str)
+                leader_ip (str)
+                members (list): List of dicts with member details
+                raft_term (int)
+                raft_index (int)
+        """
+        import shlex
+        import json
+
+        cp_nodes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not cp_nodes:
+            return {
+                "success": False,
+                "message": "No control-plane nodes found in PXE mapping",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        # Build endpoints list from control plane admin IPs
+        endpoints = []
+        for node in cp_nodes:
+            admin_ip = (node.get("admin_ip") or "").strip()
+            if admin_ip:
+                endpoints.append(f"https://{admin_ip}:2379")
+
+        if not endpoints:
+            return {
+                "success": False,
+                "message": "No valid admin IPs found for control plane nodes",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        endpoints_str = ",".join(endpoints)
+        watcher_host = (cp_nodes[0].get("hostname") or cp_nodes[0].get("admin_ip") or "").strip()
+        if not watcher_host:
+            return {
+                "success": False,
+                "message": "Control-plane node missing hostname/admin_ip in PXE mapping",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        # Get etcd pods
+        find_pods_inner = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
+        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
+        if rc != 0 or not out:
+            return {
+                "success": False,
+                "message": f"Failed to find etcd pods: {err or out}",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        etcd_pods = [line.strip().replace("pod/", "") for line in (out or "").splitlines() if line.strip()]
+        if not etcd_pods:
+            return {
+                "success": False,
+                "message": "No etcd pods found in kube-system namespace",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        # Run etcdctl endpoint status to get leader and consistency info
+        etcd_cmd = (
+            f"ETCDCTL_API=3 etcdctl "
+            f"--endpoints={shlex.quote(endpoints_str)} "
+            "--cacert=/etc/kubernetes/pki/etcd/ca.crt "
+            "--cert=/etc/kubernetes/pki/etcd/server.crt "
+            "--key=/etc/kubernetes/pki/etcd/server.key "
+            "endpoint status -w json"
+        )
+
+        # Try each etcd pod until one succeeds
+        last_error = ""
+        for etcd_pod in etcd_pods:
+            exec_inner = (
+                f"kubectl exec -n kube-system {shlex.quote(etcd_pod)} -- sh -lc {shlex.quote(etcd_cmd)}"
+            )
+            exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
+            rc, stdout, stderr = self._ssh_from_omnia_core(watcher_host, exec_cmd)
+            
+            if rc == 0 and stdout:
+                break
+            last_error = stderr or stdout
+        else:
+            return {
+                "success": False,
+                "message": f"Failed to run etcdctl from etcd pods: {last_error}",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        # Parse JSON output
+        try:
+            members_data = json.loads(stdout)
+        except json.JSONDecodeError as e:
+            return {
+                "success": False,
+                "message": f"Failed to parse etcdctl output: {str(e)}",
+                "leader_ip": "",
+                "members": [],
+            }
+
+        # Extract member info
+        members = []
+        leader_ip = ""
+        raft_terms = set()
+        raft_indices = []
+
+        for member in members_data:
+            endpoint = member.get("Endpoint", "")
+            is_leader = member.get("Status", {}).get("leader") == member.get("Status", {}).get("header", {}).get("member_id")
+            raft_term = member.get("Status", {}).get("header", {}).get("raft_term", 0)
+            raft_index = member.get("Status", {}).get("raftIndex", 0)
+
+            # Extract IP from endpoint
+            member_ip = endpoint.replace("https://", "").replace(":2379", "")
+
+            members.append({
+                "endpoint": endpoint,
+                "ip": member_ip,
+                "is_leader": is_leader,
+                "raft_term": raft_term,
+                "raft_index": raft_index,
+            })
+
+            if is_leader:
+                leader_ip = member_ip
+
+            raft_terms.add(raft_term)
+            raft_indices.append(raft_index)
+
+        # Verify consistency
+        if len(raft_terms) != 1:
+            return {
+                "success": False,
+                "message": f"Inconsistent RAFT terms across members: {raft_terms}",
+                "leader_ip": leader_ip,
+                "members": members,
+            }
+
+        # RAFT indices can differ slightly due to ongoing operations
+        # Check that all indices are within a reasonable delta (e.g., 10)
+        if raft_indices:
+            min_index = min(raft_indices)
+            max_index = max(raft_indices)
+            index_delta = max_index - min_index
+            if index_delta > 10:
+                return {
+                    "success": False,
+                    "message": f"RAFT indices too far apart (delta={index_delta}): {sorted(set(raft_indices))}",
+                    "leader_ip": leader_ip,
+                    "members": members,
+                }
+
+        if not leader_ip:
+            return {
+                "success": False,
+                "message": "No etcd leader found",
+                "leader_ip": "",
+                "members": members,
+            }
+
+        return {
+            "success": True,
+            "message": f"etcd leader identified ({leader_ip}) and consistency validated across all members",
+            "leader_ip": leader_ip,
+            "members": members,
+            "raft_term": list(raft_terms)[0],
+            "raft_index": raft_indices[0] if raft_indices else 0,
+        }
+
+    # =========================================================================
+    # VIP Control-Plane Reboot Scenario
+    # =========================================================================
+
+    def reboot_vip_control_plane(self):
+        """Find which control plane holds the VIP and reboot it.
+
+        Returns:
+            Dict with keys:
+                success (bool)
+                message (str)
+                virtual_ip (str)        - the HA virtual IP
+                vip_node (dict)         - {hostname, admin_ip} of rebooted node
+                remaining_nodes (list)  - other CP nodes
+                watcher_host (str)      - hostname/IP of a remaining CP for kubectl
+        """
+        try:
+            virtual_ip = self.get_virtual_ip_from_config()
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+
+        cp_nodes = self.get_control_plane_nodes_from_pxe_mapping()
+        if not cp_nodes:
+            return {"success": False, "message": HA_NO_CONTROL_PLANE_NODES}
+
+        vip_node = None
+        remaining_nodes = []
+        for node in cp_nodes:
+            node_ip = (node.get("admin_ip") or "").strip()
+            if not node_ip:
+                continue
+            try:
+                has_vip, _ = self.is_virtual_ip_configured(node_ip, virtual_ip)
+            except Exception:
+                has_vip = False
+            if has_vip:
+                vip_node = node
+            else:
+                remaining_nodes.append(node)
+
+        if vip_node is None:
+            return {
+                "success": False,
+                "message": REBOOT_VIP_NODE_NOT_FOUND.format(vip=virtual_ip),
+            }
+
+        if not remaining_nodes:
+            return {"success": False, "message": REBOOT_VIP_NO_REMAINING}
+
+        vip_node_ip = (vip_node.get("admin_ip") or "").strip()
+        vip_node_hostname = (vip_node.get("hostname") or vip_node_ip).strip()
+        watcher_host = (
+            remaining_nodes[0].get("hostname") or
+            remaining_nodes[0].get("admin_ip") or ""
+        ).strip()
+
+        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
+        self._ssh_from_omnia_core(vip_node_ip, reboot_cmd)
+
+        return {
+            "success": True,
+            "message": REBOOT_VIP_NODE_INITIATED.format(
+                node=vip_node_hostname, ip=vip_node_ip,
+            ),
+            "virtual_ip": virtual_ip,
+            "vip_node": vip_node,
+            "remaining_nodes": remaining_nodes,
+            "watcher_host": watcher_host,
+        }
+
+    def wait_for_node_online_via_omnia_core(
+        self, node_ip, hostname, timeout=None, poll=None,
+    ):
+        """Poll SSH (via omnia_core) until the node comes back online after reboot.
+
+        Returns:
+            Dict with success, elapsed, message, error.
+        """
+        timeout = K8S_REBOOT_WAIT_ONLINE_TIMEOUT if timeout is None else int(timeout)
+        poll = K8S_REBOOT_WAIT_ONLINE_POLL if poll is None else int(poll)
+        start = time.time()
+        while time.time() - start < timeout:
+            time.sleep(poll)
+            rc, out, _ = self._ssh_from_omnia_core(node_ip, "echo online")
+            if rc == 0 and "online" in out:
+                elapsed = int(time.time() - start)
+                return {
+                    "success": True,
+                    "elapsed": elapsed,
+                    "message": K8S_NODE_ONLINE_PASSED.format(
+                        node=hostname, ip=node_ip, elapsed=elapsed,
+                    ),
+                    "error": "",
+                }
+        elapsed = int(time.time() - start)
+        return {
+            "success": False,
+            "elapsed": elapsed,
+            "message": K8S_NODE_ONLINE_FAILED.format(
+                node=hostname, ip=node_ip, timeout=timeout,
+            ),
+            "error": f"Node {hostname} ({node_ip}) did not respond within {timeout}s",
+        }
+
+    def verify_cloud_init_on_node(self, node_ip, hostname, timeout=None, poll=None):
+        """Verify cloud-init completed successfully on a node after reboot.
+
+        Polls /var/log/cloud-init-output.log until the success string appears
+        or the timeout is reached.
+
+        Returns:
+            Dict with success, message, log_tail, error.
+        """
+        timeout = K8S_CLOUD_INIT_TIMEOUT if timeout is None else int(timeout)
+        poll = K8S_CLOUD_INIT_POLL if poll is None else int(poll)
+        start = time.time()
+        while time.time() - start < timeout:
+            time.sleep(poll)
+            rc, out, _ = self._ssh_from_omnia_core(
+                node_ip,
+                "grep 'Cloud-Init finished successfully after the reboot' "
+                "/var/log/cloud-init-output.log 2>/dev/null",
+            )
+            if rc == 0 and "Cloud-Init finished successfully after the reboot" in out:
+                return {
+                    "success": True,
+                    "message": K8S_CLOUD_INIT_PASSED.format(node=hostname, ip=node_ip),
+                    "log_tail": out.strip(),
+                    "error": "",
+                }
+        rc, out, _ = self._ssh_from_omnia_core(
+            node_ip, "tail -50 /var/log/cloud-init-output.log 2>/dev/null",
+        )
+        log_tail = out.strip() if rc == 0 else "log file not accessible"
+        return {
+            "success": False,
+            "message": K8S_CLOUD_INIT_FAILED.format(
+                node=hostname, ip=node_ip, timeout=timeout,
+            ),
+            "log_tail": log_tail,
+            "error": (
+                f"cloud-init did not complete within {timeout}s on {hostname}. "
+                f"Last 50 lines of log:\n{log_tail}"
+            ),
+        }
+
+    def wait_for_node_ready_after_reboot(self, node, watcher_host, timeout=None, poll=None):
+        """Wait for a control plane node to return to Ready state in kubectl.
+
+        Args:
+            node (dict): {hostname, admin_ip} of the rebooted node
+            watcher_host (str): hostname/IP of a remaining CP to run kubectl from
+            timeout (int): seconds to wait
+            poll (int): poll interval in seconds
+
+        Returns:
+            tuple (success: bool, message: str)
+        """
+        timeout = K8S_NODE_READY_TIMEOUT if timeout is None else int(timeout)
+        poll = K8S_NODE_READY_POLL if poll is None else int(poll)
+        node_hostname = (node.get("hostname") or "").strip()
+        node_ip = (node.get("admin_ip") or "").strip()
+        identity = node_hostname or node_ip
+
+        last_status = "Unknown"
+        start = time.time()
+        while time.time() - start < timeout:
+            time.sleep(poll)
+            rc, out, _ = self._ssh_from_omnia_core(
+                watcher_host, "kubectl get nodes --no-headers",
+            )
+            if rc != 0:
+                continue
+            for line in (out or "").splitlines():
+                parts = line.split()
+                if len(parts) < 2:
+                    continue
+                name, status = parts[0], parts[1]
+                if identity and (name == identity or identity in name):
+                    last_status = status
+                    if status == "Ready":
+                        return True, K8S_NODE_READY_PASSED.format(node=identity)
+        return False, K8S_NODE_READY_FAILED.format(
+            node=identity, timeout=timeout, status=last_status,
+        )
+
+    def verify_vip_failover_to_remaining_nodes(
+        self, virtual_ip, original_node_ip, remaining_nodes, timeout=None, poll=None,
+    ):
+        """Verify the VIP has moved to one of the remaining control plane nodes.
+
+        Args:
+            virtual_ip (str): The HA virtual IP address to watch
+            original_node_ip (str): admin_ip of the rebooted node (for display)
+            remaining_nodes (list): List of {hostname, admin_ip} dicts
+            timeout (int): seconds to wait
+            poll (int): poll interval in seconds
+
+        Returns:
+            tuple (success: bool, message: str, new_vip_holder: dict or None)
+        """
+        timeout = K8S_VIP_FAILOVER_TIMEOUT if timeout is None else int(timeout)
+        poll = K8S_VIP_FAILOVER_POLL if poll is None else int(poll)
+        start = time.time()
+        while time.time() - start < timeout:
+            time.sleep(poll)
+            holders = []
+            for node in remaining_nodes:
+                node_ip = (node.get("admin_ip") or "").strip()
+                if not node_ip:
+                    continue
+                try:
+                    has_vip, _ = self.is_virtual_ip_configured(node_ip, virtual_ip)
+                    if has_vip:
+                        holders.append(node)
+                except Exception:
+                    pass
+
+            if len(holders) == 1:
+                holder = holders[0]
+                new_ip = (holder.get("admin_ip") or "").strip()
+                new_name = (holder.get("hostname") or new_ip).strip()
+                return True, K8S_VIP_FAILOVER_PASSED.format(
+                    vip=virtual_ip,
+                    old_node=original_node_ip,
+                    new_node=new_name,
+                    new_ip=new_ip,
+                ), holder
+
+            if len(holders) > 1:
+                names = [n.get("hostname") or n.get("admin_ip") for n in holders]
+                return False, K8S_VIP_FAILOVER_MULTI.format(
+                    vip=virtual_ip, nodes=", ".join(names),
+                ), None
+
+        return False, K8S_VIP_FAILOVER_FAILED.format(
+            vip=virtual_ip, timeout=timeout,
+        ), None
+
+    # =========================================================================
+    # High-Level Reboot Scenario Wrappers (with cloud-init verification)
+    # =========================================================================
+
+    def verify_control_plane_reboot_scenario(self, max_wait_seconds: int = 600, poll_seconds: int = 10):
+        """Reboot a control plane node and verify it returns to Ready with cloud-init success.
+
+        Returns:
+            tuple (success: bool, message: str) or (None, skip_reason)
+        """
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        if len(control_planes) < 2:
+            return None, "Less than two control-plane nodes found in PXE mapping"
+
+        reboot_node = control_planes[0]
+        watcher_node = control_planes[1]
+
+        reboot_host = (reboot_node.get("hostname") or reboot_node.get("admin_ip") or "").strip()
+        watcher_host = (watcher_node.get("hostname") or watcher_node.get("admin_ip") or "").strip()
+
+        if not reboot_host or not watcher_host:
+            return False, "Control-plane nodes are missing hostname/admin_ip in PXE mapping"
+
+        reboot_node_ip = (reboot_node.get("admin_ip") or "").strip()
+        if not reboot_node_ip:
+            return False, "Reboot target node has no admin_ip"
+
+        # Reboot the node
+        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
+        self._ssh_from_omnia_core(reboot_node_ip, reboot_cmd)
+
+        # Wait for node to come back online
+        online_result = self.wait_for_node_online_via_omnia_core(reboot_node_ip, reboot_host)
+        if not online_result["success"]:
+            return False, f"Node did not come back online: {online_result['message']}"
+
+        # Verify cloud-init completed
+        cloud_init_result = self.verify_cloud_init_on_node(reboot_node_ip, reboot_host)
+        if not cloud_init_result["success"]:
+            return False, f"Cloud-init verification failed: {cloud_init_result['message']}"
+
+        # Wait for node to be Ready
+        success, message = self.wait_for_node_ready_after_reboot(reboot_node, watcher_host, timeout=max_wait_seconds, poll=poll_seconds)
+
+        if success:
+            return True, f"Control-plane reboot scenario passed: {reboot_host} returned to Ready within {max_wait_seconds}s"
+        return False, f"Control-plane reboot scenario failed: {message}"
+
+    def verify_worker_node_reboot_scenario(self, max_wait_seconds: int = 600, poll_seconds: int = 10):
+        """Reboot a worker node and verify it returns to Ready with cloud-init success.
+
+        Returns:
+            tuple (success: bool, message: str) or (None, skip_reason)
+        """
+        control_planes = self.get_control_plane_nodes_from_pxe_mapping()
+        workers = self.get_worker_nodes_from_pxe_mapping()
+        if not control_planes:
+            return None, "No control-plane nodes found in PXE mapping"
+        if not workers:
+            return None, "No worker nodes found in PXE mapping"
+
+        reboot_node = workers[0]
+        watcher_node = control_planes[0]
+
+        reboot_host = (reboot_node.get("hostname") or reboot_node.get("admin_ip") or "").strip()
+        watcher_host = (watcher_node.get("hostname") or watcher_node.get("admin_ip") or "").strip()
+
+        if not reboot_host or not watcher_host:
+            return False, "Worker/control-plane nodes are missing hostname/admin_ip in PXE mapping"
+
+        reboot_node_ip = (reboot_node.get("admin_ip") or "").strip()
+        if not reboot_node_ip:
+            return False, "Reboot target node has no admin_ip"
+
+        # Reboot the node
+        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
+        self._ssh_from_omnia_core(reboot_node_ip, reboot_cmd)
+
+        # Wait for node to come back online
+        online_result = self.wait_for_node_online_via_omnia_core(reboot_node_ip, reboot_host)
+        if not online_result["success"]:
+            return False, f"Node did not come back online: {online_result['message']}"
+
+        # Verify cloud-init completed
+        cloud_init_result = self.verify_cloud_init_on_node(reboot_node_ip, reboot_host)
+        if not cloud_init_result["success"]:
+            return False, f"Cloud-init verification failed: {cloud_init_result['message']}"
+
+        # Wait for node to be Ready
+        success, message = self.wait_for_node_ready_after_reboot(reboot_node, watcher_host, timeout=max_wait_seconds, poll=poll_seconds)
+
+        if success:
+            return True, f"Worker reboot scenario passed: {reboot_host} returned to Ready within {max_wait_seconds}s"
+        return False, f"Worker reboot scenario failed: {message}"
+
+    def verify_vip_failover_scenario(self, max_wait_seconds: int = 600, poll_seconds: int = 5):
+        """Reboot the VIP-holding control plane and verify VIP fails over with cloud-init verification.
+
+        This function:
+        1. Identifies which control plane holds the VIP
+        2. Reboots that node
+        3. Waits for node to come back online
+        4. Verifies cloud-init completes successfully
+        5. Waits for node to return to Ready state
+        6. Verifies VIP has failed over to another control plane
+
+        Returns:
+            tuple (success: bool, message: str) or (None, skip_reason)
+        """
+        try:
+            virtual_ip = self.get_virtual_ip_from_config()
+        except Exception as e:
+            return None, str(e)
+
+        control_plane_nodes = self.get_control_plane_nodes()
+        if not control_plane_nodes:
+            return None, "No control-plane nodes found"
+
+        if len(control_plane_nodes) < 2:
+            return None, "Less than two control-plane nodes found"
+
+        nodes_with_vip = []
+        for node in control_plane_nodes:
+            node_ip = (node.get("admin_ip") or "").strip()
+            if not node_ip:
+                continue
+            try:
+                has_vip, _ = self.is_virtual_ip_configured(node_ip, virtual_ip)
+            except Exception:
+                has_vip = False
+            if has_vip:
+                nodes_with_vip.append(node)
+
+        if len(nodes_with_vip) != 1:
+            if len(nodes_with_vip) == 0:
+                return False, HA_VIP_NOT_CONFIGURED.format(vip=virtual_ip)
+            node_names = [n.get("hostname", "unknown") for n in nodes_with_vip]
+            return False, HA_VIP_MULTIPLE_NODES.format(vip=virtual_ip, nodes=", ".join(node_names))
+
+        vip_node = nodes_with_vip[0]
+        vip_node_ip = (vip_node.get("admin_ip") or "").strip()
+        vip_node_hostname = (vip_node.get("hostname") or vip_node_ip).strip()
+        if not vip_node_ip:
+            return False, "VIP holder node has no admin_ip"
+
+        remaining_nodes = [n for n in control_plane_nodes if (n.get("admin_ip") or "").strip() and (n.get("admin_ip") or "").strip() != vip_node_ip]
+        if not remaining_nodes:
+            return None, "No remaining control-plane nodes found for VIP failover verification"
+
+        # Reboot the VIP holder
+        reboot_cmd = "nohup sh -c 'sleep 2; reboot' >/dev/null 2>&1 &"
+        self._ssh_from_omnia_core(vip_node_ip, reboot_cmd)
+
+        # Wait for node to come back online
+        online_result = self.wait_for_node_online_via_omnia_core(vip_node_ip, vip_node_hostname)
+        if not online_result["success"]:
+            return False, f"Node did not come back online: {online_result['message']}"
+
+        # Verify cloud-init completed
+        cloud_init_result = self.verify_cloud_init_on_node(vip_node_ip, vip_node_hostname)
+        if not cloud_init_result["success"]:
+            return False, f"Cloud-init verification failed: {cloud_init_result['message']}"
+
+        # Wait for node to be Ready
+        watcher_host = (remaining_nodes[0].get("hostname") or remaining_nodes[0].get("admin_ip") or "").strip()
+        ready_success, ready_message = self.wait_for_node_ready_after_reboot(vip_node, watcher_host)
+        if not ready_success:
+            return False, f"Node did not return to Ready: {ready_message}"
+
+        # Verify VIP failover
+        vip_success, vip_message, new_holder = self.verify_vip_failover_to_remaining_nodes(
+            virtual_ip=virtual_ip,
+            original_node_ip=vip_node_ip,
+            remaining_nodes=remaining_nodes,
+            timeout=max_wait_seconds,
+            poll=poll_seconds,
+        )
+
+        if vip_success:
+            return True, vip_message
+        return False, vip_message
+
+
 def get_oim_operations(config_path=None):
     """Get an instance of OIMOperations.
-        config_path (str, optional): Path to the _omnia_test_config file.
+        config_path (str, optional): Path to the user config file.
 
     Returns:
         OIMOperations: An instance of OIMOperations.

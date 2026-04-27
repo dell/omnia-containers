@@ -85,3 +85,20 @@ FILE_NOT_FOUND = "File {path} not found in omnia_core container"
 DIRECTORY_EXISTS = "Directory {path} exists"
 DIRECTORY_NOT_FOUND = "Directory {path} does not exist"
 FILE_CHECK_ERROR = "Error checking file: {error}"
+
+REBOOT_VIP_NODE_INITIATED = "Reboot initiated on VIP-holder control plane {node} ({ip})"
+REBOOT_VIP_NODE_NOT_FOUND = "VIP {vip} is not configured on any control plane node"
+REBOOT_VIP_NO_REMAINING = "No remaining control plane nodes found after VIP holder identified"
+
+K8S_NODE_ONLINE_PASSED = "Node {node} ({ip}) is back online after reboot (elapsed: {elapsed}s)"
+K8S_NODE_ONLINE_FAILED = "Node {node} ({ip}) did not come back online within {timeout}s"
+
+K8S_CLOUD_INIT_PASSED = "cloud-init completed successfully on {node} ({ip})"
+K8S_CLOUD_INIT_FAILED = "cloud-init did NOT complete on {node} ({ip}) within {timeout}s"
+
+K8S_NODE_READY_PASSED = "Node {node} returned to Ready state after reboot"
+K8S_NODE_READY_FAILED = "Node {node} did not return to Ready state within {timeout}s (last status: {status})"
+
+K8S_VIP_FAILOVER_PASSED = "VIP {vip} successfully failed over from {old_node} to {new_node} ({new_ip})"
+K8S_VIP_FAILOVER_FAILED = "VIP {vip} did not fail over to any remaining control plane within {timeout}s"
+K8S_VIP_FAILOVER_MULTI = "VIP {vip} found on multiple nodes after failover: {nodes}"
