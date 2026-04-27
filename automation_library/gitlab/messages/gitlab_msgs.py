@@ -25,17 +25,27 @@ For module-specific functions, see:
 # =============================================================================
 
 TEST_NAMES = {
-    # GitLab server
+    # GitLab Install - Server
+    "gitlab_server_reachable": "Verify GitLab server is reachable",
     "gitlab_runner_container": "Verify gitlab-runner container running",
+    "gitlab_runner_quadlet_exists": "Verify gitlab-runner quadlet file exists",
+    "gitlab_runner_service_running": "Verify gitlab-runner service is running",
     "gitlab_url_accessible": "Verify GitLab URL is accessible",
     "gitlab_services_running": "Verify GitLab services are running",
     "gitlab_resources": "Verify GitLab server meets resource requirements",
     "puma_workers": "Verify puma workers configuration",
     "sidekiq_concurrency": "Verify sidekiq concurrency configuration",
-    # Project
+    # GitLab Install - Project
     "gitlab_project_exists": "Verify GitLab project exists",
     "gitlab_project_visibility": "Verify GitLab project visibility",
     "gitlab_default_branch": "Verify GitLab default branch",
+    # GitLab Cleanup
+    "gitlab_runner_container_removed": "Verify gitlab-runner container removed",
+    "gitlab_runner_quadlet_removed": "Verify gitlab-runner quadlet file removed",
+    "gitlab_runner_service_stopped": "Verify gitlab-runner service stopped",
+    "gitlab_url_not_accessible": "Verify GitLab URL is not accessible",
+    "gitlab_directories_removed": "Verify GitLab directories removed",
+    "gitlab_services_stopped": "Verify GitLab services stopped",
 }
 
 # =============================================================================
@@ -43,28 +53,48 @@ TEST_NAMES = {
 # =============================================================================
 
 TEST_LOG_MSGS = {
-    # GitLab server - Success
+    # GitLab Install - Server - Success
+    "server_reachable": "GitLab server {host} is reachable",
     "container_running": "gitlab-runner container is running: {status}",
+    "quadlet_exists": "gitlab-runner quadlet file exists: {path}",
+    "service_running": "gitlab-runner service is running: {status}",
     "gitlab_accessible": "GitLab is accessible at {url} (HTTP {code})",
     "gitlab_services_ok": "All GitLab services are running ({count} services)",
     "resources_ok": "GitLab server meets resource requirements",
     "puma_workers_ok": "Puma workers configured correctly: {workers}",
     "sidekiq_ok": "Sidekiq concurrency configured correctly: {concurrency}",
-    # GitLab server - Failure
+    # GitLab Install - Server - Failure
+    "server_not_reachable": "GitLab server {host} is not reachable",
     "container_not_running": "gitlab-runner container not running",
+    "quadlet_not_found": "gitlab-runner quadlet file not found: {path}",
+    "service_not_running": "gitlab-runner service is not running: {status}",
     "gitlab_not_accessible": "GitLab is not accessible at {url}",
     "gitlab_services_failed": "Some GitLab services are not running: {services}",
     "resources_insufficient": "GitLab server does not meet resource requirements",
     "puma_workers_mismatch": "Puma workers mismatch: expected {expected}, actual {actual}",
     "sidekiq_mismatch": "Sidekiq concurrency mismatch: expected {expected}, actual {actual}",
-    # Project - Success
+    # GitLab Install - Project - Success
     "project_exists": "GitLab project '{name}' exists (ID: {id})",
     "visibility_ok": "Project visibility configured correctly: {visibility}",
     "default_branch_ok": "Default branch configured correctly: {branch}",
-    # Project - Failure
+    # GitLab Install - Project - Failure
     "project_not_found": "GitLab project '{name}' not found",
     "visibility_mismatch": "Project visibility mismatch: expected {expected}, actual {actual}",
     "default_branch_mismatch": "Default branch mismatch: expected {expected}, actual {actual}",
+    # GitLab Cleanup - Success
+    "container_removed": "gitlab-runner container removed",
+    "quadlet_removed": "gitlab-runner quadlet file removed",
+    "service_stopped": "gitlab-runner service stopped",
+    "gitlab_not_accessible_cleanup": "GitLab URL is not accessible (cleanup successful)",
+    "directories_removed": "GitLab directories removed",
+    "services_stopped": "All GitLab services stopped",
+    # GitLab Cleanup - Failure
+    "container_still_exists": "gitlab-runner container still exists",
+    "quadlet_still_exists": "gitlab-runner quadlet file still exists: {path}",
+    "service_still_running": "gitlab-runner service still running: {status}",
+    "gitlab_still_accessible": "GitLab URL still accessible at {url}",
+    "directories_still_exist": "GitLab directories still exist: {dirs}",
+    "services_still_running": "GitLab services still running: {services}",
 }
 
 # =============================================================================
@@ -72,10 +102,21 @@ TEST_LOG_MSGS = {
 # =============================================================================
 
 TEST_ASSERT_MSGS = {
-    # GitLab server
+    # GitLab Install - Server
+    "server_not_reachable": (
+        "GitLab server {host} is not reachable. Check network connectivity"
+    ),
     "container_not_running": (
         "gitlab-runner container not running on GitLab server. "
         "Run gitlab.yml playbook to deploy GitLab"
+    ),
+    "quadlet_not_found": (
+        "gitlab-runner quadlet file not found at {path}. "
+        "Run gitlab.yml playbook to deploy GitLab"
+    ),
+    "service_not_running": (
+        "gitlab-runner service is not running. "
+        "Run 'systemctl start gitlab-runner' on GitLab server"
     ),
     "gitlab_not_accessible": (
         "GitLab is not accessible at {url} (HTTP {code}). "
@@ -100,7 +141,7 @@ TEST_ASSERT_MSGS = {
     "sidekiq_mismatch": (
         "Sidekiq concurrency mismatch. Expected: {expected}, Actual: {actual}"
     ),
-    # Project
+    # GitLab Install - Project
     "project_not_found": (
         "GitLab project '{name}' not found"
     ),
@@ -110,10 +151,23 @@ TEST_ASSERT_MSGS = {
     "default_branch_mismatch": (
         "Default branch mismatch. Expected: {expected}, Actual: {actual}"
     ),
-    "project_not_exist_for_visibility": (
-        "Cannot check visibility - project '{name}' does not exist"
+    # GitLab Cleanup
+    "container_still_exists": (
+        "gitlab-runner container still exists. Cleanup failed"
     ),
-    "project_not_exist_for_branch": (
-        "Cannot check default branch - project '{name}' does not exist"
+    "quadlet_still_exists": (
+        "gitlab-runner quadlet file still exists at {path}. Cleanup failed"
+    ),
+    "service_still_running": (
+        "gitlab-runner service still running. Cleanup failed"
+    ),
+    "gitlab_still_accessible": (
+        "GitLab URL still accessible at {url}. Cleanup failed"
+    ),
+    "directories_still_exist": (
+        "GitLab directories still exist: {dirs}. Cleanup failed"
+    ),
+    "services_still_running": (
+        "GitLab services still running: {services}. Cleanup failed"
     ),
 }

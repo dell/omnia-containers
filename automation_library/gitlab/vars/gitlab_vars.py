@@ -71,3 +71,34 @@ GITLAB_VISIBILITY_LEVELS = {
     "internal": "10",
     "public": "20",
 }
+
+# =============================================================================
+# GITLAB RUNNER PATHS (on GitLab server)
+# =============================================================================
+
+GITLAB_RUNNER_QUADLET_DIR = "/etc/containers/systemd"
+GITLAB_RUNNER_QUADLET_FILE = "gitlab-runner.container"
+GITLAB_RUNNER_SERVICE_NAME = "gitlab-runner"
+GITLAB_RUNNER_CONFIG_PATH = "/srv/gitlab-runner/config"
+
+# =============================================================================
+# GITLAB CLEANUP DIRECTORIES (verified after cleanup)
+# =============================================================================
+
+GITLAB_CLEANUP_DIRECTORIES = [
+    "/etc/gitlab",
+    "/var/opt/gitlab",
+    "/var/log/gitlab",
+    "/opt/gitlab",
+]
+
+# =============================================================================
+# GITLAB CLEANUP PACKAGES
+# =============================================================================
+
+GITLAB_CLEANUP_PACKAGES = [
+    "gitlab-ce",
+    "gitlab-ee",
+    "gitlab-ci",
+    "gitlab-runner",
+]

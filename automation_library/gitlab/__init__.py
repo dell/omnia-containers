@@ -50,6 +50,17 @@ from .functions import (
     verify_gitlab_project_exists,
     verify_gitlab_project_visibility,
     verify_gitlab_default_branch,
+    # Install verification
+    verify_gitlab_runner_quadlet_exists,
+    verify_gitlab_runner_service_running,
+    verify_gitlab_server_reachable,
+    # Cleanup verification
+    verify_gitlab_runner_container_removed,
+    verify_gitlab_runner_quadlet_removed,
+    verify_gitlab_runner_service_stopped,
+    verify_gitlab_url_not_accessible,
+    verify_gitlab_directories_removed,
+    verify_gitlab_services_stopped,
 )
 from .vars import (
     GITLAB_SERVICES,
@@ -85,6 +96,17 @@ __all__ = [
     "verify_gitlab_project_exists",
     "verify_gitlab_project_visibility",
     "verify_gitlab_default_branch",
+    # Functions - Install verification
+    "verify_gitlab_runner_quadlet_exists",
+    "verify_gitlab_runner_service_running",
+    "verify_gitlab_server_reachable",
+    # Functions - Cleanup verification
+    "verify_gitlab_runner_container_removed",
+    "verify_gitlab_runner_quadlet_removed",
+    "verify_gitlab_runner_service_stopped",
+    "verify_gitlab_url_not_accessible",
+    "verify_gitlab_directories_removed",
+    "verify_gitlab_services_stopped",
     # Vars
     "GITLAB_SERVICES",
     "GITLAB_RUNNER_CONTAINER",

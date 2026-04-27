@@ -45,6 +45,10 @@ from ..vars import (
     GITLAB_SUCCESS_HTTP_CODES,
     GITLAB_API_VERSION,
     GITLAB_VISIBILITY_LEVELS,
+    GITLAB_RUNNER_QUADLET_DIR,
+    GITLAB_RUNNER_QUADLET_FILE,
+    GITLAB_RUNNER_SERVICE_NAME,
+    GITLAB_CLEANUP_DIRECTORIES,
 )
 
 
@@ -522,6 +526,307 @@ def verify_gitlab_default_branch(host) -> Dict[str, Any]:
         result["error"] = (
             f"Default branch mismatch: expected {expected_branch}, actual {actual_branch}"
         )
+
+    return result
+
+
+# =============================================================================
+# GITLAB INSTALL VERIFICATION FUNCTIONS
+# =============================================================================
+
+def verify_gitlab_runner_quadlet_exists(host) -> Dict[str, Any]:
+    """
+    Verify gitlab-runner quadlet file exists on GitLab server.
+
+    Checks if /etc/containers/systemd/gitlab-runner.container exists.
+    """
+    result = {
+        "success": False,
+        "quadlet_path": f"{GITLAB_RUNNER_QUADLET_DIR}/{GITLAB_RUNNER_QUADLET_FILE}",
+        "exists": False,
+        "error": "",
+    }
+
+    quadlet_path = f"{GITLAB_RUNNER_QUADLET_DIR}/{GITLAB_RUNNER_QUADLET_FILE}"
+    ssh_result = ssh_to_gitlab(
+        host,
+        f"test -f {quadlet_path} && echo EXISTS || echo NOT_FOUND"
+    )
+
+    if not ssh_result["success"]:
+        result["error"] = ssh_result["error"]
+        return result
+
+    if "EXISTS" in ssh_result["stdout"]:
+        result["exists"] = True
+        result["success"] = True
+    else:
+        result["error"] = f"Quadlet file not found: {result['quadlet_path']}"
+
+    return result
+
+
+def verify_gitlab_runner_service_running(host) -> Dict[str, Any]:
+    """
+    Verify gitlab-runner systemd service is running on GitLab server.
+
+    Checks if gitlab-runner.service is active.
+    """
+    result = {
+        "success": False,
+        "service_name": f"{GITLAB_RUNNER_SERVICE_NAME}.service",
+        "status": "",
+        "error": "",
+    }
+
+    ssh_result = ssh_to_gitlab(
+        host,
+        f"systemctl is-active {GITLAB_RUNNER_SERVICE_NAME}.service 2>/dev/null"
+    )
+
+    if not ssh_result["success"]:
+        result["error"] = ssh_result["error"]
+        return result
+
+    status = ssh_result["stdout"].strip()
+    result["status"] = status
+
+    if status == "active":
+        result["success"] = True
+    else:
+        result["error"] = f"Service {result['service_name']} is not active: {status}"
+
+    return result
+
+
+def verify_gitlab_server_reachable(host) -> Dict[str, Any]:
+    """
+    Verify GitLab server is reachable from omnia_core container via SSH.
+
+    Uses ssh to check if GitLab server responds.
+    """
+    result = {
+        "success": False,
+        "gitlab_host": "",
+        "error": "",
+    }
+
+    gitlab_host = get_gitlab_host(host)
+    result["gitlab_host"] = gitlab_host
+
+    if not gitlab_host:
+        result["error"] = "gitlab_host not configured in gitlab_config.yml"
+        return result
+
+    ssh_result = ssh_to_gitlab(host, "echo REACHABLE")
+
+    if ssh_result["success"] and "REACHABLE" in ssh_result["stdout"]:
+        result["success"] = True
+    else:
+        result["error"] = f"GitLab server {gitlab_host} not reachable: {ssh_result['error']}"
+
+    return result
+
+
+# =============================================================================
+# GITLAB CLEANUP VERIFICATION FUNCTIONS
+# =============================================================================
+
+def verify_gitlab_runner_container_removed(host) -> Dict[str, Any]:
+    """
+    Verify gitlab-runner container is removed after cleanup.
+
+    Checks that container does not exist.
+    """
+    result = {
+        "success": False,
+        "container": GITLAB_RUNNER_CONTAINER,
+        "exists": True,
+        "error": "",
+    }
+
+    ssh_result = ssh_to_gitlab(host, "podman ps -a")
+    if not ssh_result["success"]:
+        result["error"] = ssh_result["error"]
+        return result
+
+    if GITLAB_RUNNER_CONTAINER not in ssh_result["stdout"]:
+        result["exists"] = False
+        result["success"] = True
+    else:
+        result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} still exists"
+
+    return result
+
+
+def verify_gitlab_runner_quadlet_removed(host) -> Dict[str, Any]:
+    """
+    Verify gitlab-runner quadlet file is removed after cleanup.
+
+    Checks that /etc/containers/systemd/gitlab-runner.container does not exist.
+    """
+    result = {
+        "success": False,
+        "quadlet_path": f"{GITLAB_RUNNER_QUADLET_DIR}/{GITLAB_RUNNER_QUADLET_FILE}",
+        "exists": True,
+        "error": "",
+    }
+
+    quadlet_path = f"{GITLAB_RUNNER_QUADLET_DIR}/{GITLAB_RUNNER_QUADLET_FILE}"
+    ssh_result = ssh_to_gitlab(
+        host,
+        f"test -f {quadlet_path} && echo EXISTS || echo NOT_FOUND"
+    )
+
+    if not ssh_result["success"]:
+        result["error"] = ssh_result["error"]
+        return result
+
+    if "NOT_FOUND" in ssh_result["stdout"]:
+        result["exists"] = False
+        result["success"] = True
+    else:
+        result["error"] = f"Quadlet file still exists: {result['quadlet_path']}"
+
+    return result
+
+
+def verify_gitlab_runner_service_stopped(host) -> Dict[str, Any]:
+    """
+    Verify gitlab-runner systemd service is stopped after cleanup.
+
+    Checks that gitlab-runner.service is not active.
+    """
+    result = {
+        "success": False,
+        "service_name": f"{GITLAB_RUNNER_SERVICE_NAME}.service",
+        "status": "",
+        "error": "",
+    }
+
+    ssh_result = ssh_to_gitlab(
+        host,
+        f"systemctl is-active {GITLAB_RUNNER_SERVICE_NAME}.service 2>/dev/null"
+    )
+
+    status = ssh_result["stdout"].strip() if ssh_result["stdout"] else "inactive"
+    result["status"] = status
+
+    if status in ["inactive", "failed", ""]:
+        result["success"] = True
+    else:
+        result["error"] = f"Service {result['service_name']} is still active: {status}"
+
+    return result
+
+
+def verify_gitlab_url_not_accessible(host) -> Dict[str, Any]:
+    """
+    Verify GitLab URL is NOT accessible after cleanup.
+
+    Uses curl to check that GitLab does not respond.
+    """
+    result = {
+        "success": False,
+        "url": "",
+        "http_code": 0,
+        "error": "",
+    }
+
+    gitlab_host = get_gitlab_host(host)
+    gitlab_port = get_gitlab_https_port(host)
+
+    if not gitlab_host:
+        result["error"] = "gitlab_host not configured in gitlab_config.yml"
+        return result
+
+    url = f"https://{gitlab_host}:{gitlab_port}/"
+    result["url"] = url
+
+    cmd = run_on_oim(
+        host,
+        f"curl -k -s -o /dev/null -w '%{{http_code}}' --connect-timeout 5 '{url}' 2>/dev/null"
+    )
+
+    http_code = cmd.stdout.strip() if cmd.stdout else "0"
+    try:
+        result["http_code"] = int(http_code)
+    except ValueError:
+        result["http_code"] = 0
+
+    # Success means GitLab is NOT accessible
+    if result["http_code"] == 0 or result["http_code"] >= 500:
+        result["success"] = True
+    else:
+        result["error"] = f"GitLab still accessible at {url} (HTTP {result['http_code']})"
+
+    return result
+
+
+def verify_gitlab_directories_removed(host) -> Dict[str, Any]:
+    """
+    Verify GitLab directories are removed after cleanup.
+
+    Checks /etc/gitlab, /var/opt/gitlab, /var/log/gitlab, /opt/gitlab.
+    """
+    result = {
+        "success": False,
+        "directories": GITLAB_CLEANUP_DIRECTORIES,
+        "existing": [],
+        "removed": [],
+        "error": "",
+    }
+
+    for directory in GITLAB_CLEANUP_DIRECTORIES:
+        ssh_result = ssh_to_gitlab(
+            host,
+            f"test -d {directory} && echo EXISTS || echo NOT_FOUND"
+        )
+
+        if ssh_result["success"]:
+            if "EXISTS" in ssh_result["stdout"]:
+                result["existing"].append(directory)
+            else:
+                result["removed"].append(directory)
+
+    if not result["existing"]:
+        result["success"] = True
+    else:
+        result["error"] = f"Directories still exist: {', '.join(result['existing'])}"
+
+    return result
+
+
+def verify_gitlab_services_stopped(host) -> Dict[str, Any]:
+    """
+    Verify all GitLab services are stopped after cleanup.
+
+    Checks that gitlab-ctl status returns error or no services running.
+    """
+    result = {
+        "success": False,
+        "services": GITLAB_SERVICES,
+        "running": [],
+        "error": "",
+    }
+
+    ssh_result = ssh_to_gitlab(host, "gitlab-ctl status 2>/dev/null")
+
+    # If gitlab-ctl doesn't exist or returns error, cleanup was successful
+    if not ssh_result["success"] or "command not found" in ssh_result["stderr"].lower():
+        result["success"] = True
+        return result
+
+    output = ssh_result["stdout"]
+    for service in GITLAB_SERVICES:
+        for line in output.split('\n'):
+            if service in line and line.startswith("run:"):
+                result["running"].append(service)
+
+    if not result["running"]:
+        result["success"] = True
+    else:
+        result["error"] = f"Services still running: {', '.join(result['running'])}"
 
     return result
 

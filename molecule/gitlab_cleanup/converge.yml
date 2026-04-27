@@ -1,0 +1,200 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run cleanup_gitlab.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - Run GitLab cleanup prerequisite checks and playbook
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
+    container_name: "omnia_core"
+    cleanup_playbook: "/omnia/gitlab/cleanup_gitlab.yml"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running GitLab cleanup on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # SYNC PROJECT_DEFAULT INTO CONTAINER
+    # =========================================================================
+
+    - name: Ensure project_dir for sync
+      ansible.builtin.set_fact:
+        project_dir: "{{ project_dir | default(playbook_dir + '/../..') }}"
+
+    - name: Sync project_default and generate vault key
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+    # =========================================================================
+    # PREREQUISITE CHECKS
+    # =========================================================================
+
+    - name: Check if build_stream is enabled
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} cat /opt/omnia/input/project_default/build_stream_config.yml | grep -E "^enable_build_stream:" | awk '{print $2}'
+      register: build_stream_enabled_check
+      changed_when: false
+
+    - name: Fail if build_stream is not enabled
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    BUILD STREAM NOT ENABLED                                   ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ enable_build_stream is set to '{{ build_stream_enabled_check.stdout }}'
+          ║
+          ║ GitLab cleanup requires build_stream to be enabled.
+          ║ Set enable_build_stream: true in build_stream_config.yml
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: build_stream_enabled_check.stdout | lower not in ['true', 'yes']
+
+    - name: Check OIM server is reachable
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host }}"
+        port: 22
+        timeout: 10
+      delegate_to: localhost
+
+    - name: Check GitLab server is reachable
+      ansible.builtin.shell:
+        cmd: |
+          podman exec {{ container_name }} cat /opt/omnia/input/project_default/gitlab_config.yml | grep -E "^gitlab_host:" | awk '{print $2}' | tr -d '"'
+      register: gitlab_host_check
+      changed_when: false
+
+    - name: Verify GitLab server SSH connectivity
+      ansible.builtin.shell:
+        cmd: |
+          podman exec {{ container_name }} sshpass -p "$(podman exec {{ container_name }} cat /opt/omnia/input/project_default/omnia_config_credentials.yml | grep provision_password | awk '{print $2}' | tr -d '\"')" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 root@{{ gitlab_host_check.stdout }} echo REACHABLE
+      register: gitlab_ssh_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if GitLab server is not reachable
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    GITLAB SERVER NOT REACHABLE                                ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ GitLab server: {{ gitlab_host_check.stdout }}
+          ║
+          ║ Cannot reach GitLab server via SSH.
+          ║ Ensure the server is running and accessible.
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: gitlab_ssh_check.rc != 0 or 'REACHABLE' not in gitlab_ssh_check.stdout
+
+    # =========================================================================
+    # PREREQUISITE SUMMARY
+    # =========================================================================
+
+    - name: Display prerequisite check summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================"
+          - "  GITLAB CLEANUP PREREQUISITE CHECK SUMMARY"
+          - "============================================"
+          - ""
+          - "BUILD STREAM:"
+          - "  enable_build_stream:     {{ build_stream_enabled_check.stdout }}"
+          - ""
+          - "CONNECTIVITY:"
+          - "  OIM server:              reachable"
+          - "  GitLab server:           {{ gitlab_host_check.stdout }} (reachable)"
+          - ""
+          - "============================================"
+
+    # =========================================================================
+    # RUN CLEANUP GITLAB PLAYBOOK
+    # =========================================================================
+
+    - name: Check if cleanup_gitlab playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec -it {{ container_name }} test -f {{ cleanup_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "cleanup_gitlab.yml playbook ({{ cleanup_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute cleanup_gitlab playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -it -w /omnia/gitlab {{ container_name }} \
+            ansible-playbook cleanup_gitlab.yml -v
+      register: playbook_result
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Display playbook stdout
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          GITLAB CLEANUP PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    GITLAB CLEANUP PLAYBOOK EXECUTION FAILED                   ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Enter container: podman exec -it omnia_core bash
+          ║   3. Run manually: cd /omnia/gitlab && ansible-playbook cleanup_gitlab.yml -vvv
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "cleanup_gitlab playbook not found at {{ cleanup_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"

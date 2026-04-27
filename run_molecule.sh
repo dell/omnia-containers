@@ -46,12 +46,13 @@
 # Scenarios (in execution order):
 #   omnia_sh_install    - Install omnia.sh and verify
 #   prepare_oim         - Prepare OIM and verify
-#   gitlab              - Run GitLab playbook and verify
+#   gitlab_install      - Run GitLab playbook and verify
 #   local_repo          - Verify local repo
 #   build_image_x86_64  - Build x86_64 images and verify
 #   build_image_aarch64 - Build aarch64 images and verify
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
+#   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
 #   omnia_sh_uninstall  - Uninstall omnia.sh and verify
 #   all                 - Run all scenarios in order (not cleanup)
@@ -63,7 +64,8 @@
 #   ./run_molecule.sh all test                   # Run ALL scenarios
 #   ./run_molecule.sh list                       # List scenarios
 #   ./run_molecule.sh prepare_oim verify --suite sanity    # Run sanity tests only
-#   ./run_molecule.sh gitlab verify --suite sanity         # Run GitLab sanity tests
+#   ./run_molecule.sh gitlab_install verify --suite sanity # Run GitLab install sanity tests
+#   ./run_molecule.sh gitlab_cleanup verify --suite sanity # Run GitLab cleanup sanity tests
 #   ./run_molecule.sh telemetry verify --suite negative    # Run negative tests only
 #   ./run_molecule.sh discovery verify --marker smoke      # Run smoke tests
 #
@@ -143,7 +145,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim gitlab local_repo build_image_x86_64 build_image_aarch64 discovery telemetry oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery telemetry gitlab_cleanup oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -186,7 +188,7 @@ case "$SCENARIO" in
         echo "  $0 omnia_sh_install verify    # Verify install only"
         echo "  $0 omnia_sh_uninstall test    # Uninstall + verify"
         echo "  $0 prepare_oim verify --suite sanity     # Run sanity tests only"
-        echo "  $0 gitlab verify --suite sanity         # Run GitLab sanity tests"
+        echo "  $0 gitlab_install verify --suite sanity # Run GitLab install sanity tests"
         echo "  $0 telemetry verify --suite negative     # Run negative tests only"
         echo "  $0 discovery verify --marker smoke       # Run smoke tests"
         echo "  $0 all test                   # Run ALL scenarios"
@@ -210,7 +212,7 @@ case "$SCENARIO" in
         
         # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
-        SCENARIOS="omnia_sh_install prepare_oim gitlab local_repo build_image_x86_64 build_image_aarch64 discovery telemetry"
+        SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery telemetry"
         
         FAILED=0
         for name in $SCENARIOS; do

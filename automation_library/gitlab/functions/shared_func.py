@@ -75,6 +75,16 @@ def get_gitlab_project_name(host) -> str:
     return get_input_value(host, GITLAB_CONFIG_FILE, "gitlab_project_name", default="")
 
 
+def get_gitlab_project_visibility(host) -> str:
+    """Get gitlab_project_visibility from gitlab_config.yml."""
+    return get_input_value(host, GITLAB_CONFIG_FILE, "gitlab_project_visibility", default="private")
+
+
+def get_gitlab_default_branch(host) -> str:
+    """Get gitlab_default_branch from gitlab_config.yml."""
+    return get_input_value(host, GITLAB_CONFIG_FILE, "gitlab_default_branch", default="main")
+
+
 def get_gitlab_puma_workers(host) -> int:
     """Get gitlab_puma_workers from gitlab_config.yml."""
     return get_input_value(host, GITLAB_CONFIG_FILE, "gitlab_puma_workers", default=2)

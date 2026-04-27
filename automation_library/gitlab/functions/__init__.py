@@ -19,6 +19,8 @@ from .shared_func import (
     get_gitlab_host,
     get_gitlab_https_port,
     get_gitlab_project_name,
+    get_gitlab_project_visibility,
+    get_gitlab_default_branch,
     get_gitlab_puma_workers,
     get_gitlab_sidekiq_concurrency,
     get_gitlab_min_resources,
@@ -36,7 +38,19 @@ from .gitlab_func import (
     verify_puma_workers,
     verify_sidekiq_concurrency,
     verify_gitlab_project_exists,
-    verify_catalog_synced,
+    verify_gitlab_project_visibility,
+    verify_gitlab_default_branch,
+    # Install verification
+    verify_gitlab_runner_quadlet_exists,
+    verify_gitlab_runner_service_running,
+    verify_gitlab_server_reachable,
+    # Cleanup verification
+    verify_gitlab_runner_container_removed,
+    verify_gitlab_runner_quadlet_removed,
+    verify_gitlab_runner_service_stopped,
+    verify_gitlab_url_not_accessible,
+    verify_gitlab_directories_removed,
+    verify_gitlab_services_stopped,
 )
 
 __all__ = [
@@ -45,6 +59,8 @@ __all__ = [
     "get_gitlab_host",
     "get_gitlab_https_port",
     "get_gitlab_project_name",
+    "get_gitlab_project_visibility",
+    "get_gitlab_default_branch",
     "get_gitlab_puma_workers",
     "get_gitlab_sidekiq_concurrency",
     "get_gitlab_min_resources",
@@ -61,5 +77,17 @@ __all__ = [
     "verify_puma_workers",
     "verify_sidekiq_concurrency",
     "verify_gitlab_project_exists",
-    "verify_catalog_synced",
+    "verify_gitlab_project_visibility",
+    "verify_gitlab_default_branch",
+    # Install verification
+    "verify_gitlab_runner_quadlet_exists",
+    "verify_gitlab_runner_service_running",
+    "verify_gitlab_server_reachable",
+    # Cleanup verification
+    "verify_gitlab_runner_container_removed",
+    "verify_gitlab_runner_quadlet_removed",
+    "verify_gitlab_runner_service_stopped",
+    "verify_gitlab_url_not_accessible",
+    "verify_gitlab_directories_removed",
+    "verify_gitlab_services_stopped",
 ]
