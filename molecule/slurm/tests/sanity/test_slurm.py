@@ -101,7 +101,6 @@ from automation_library.slurm.functions.slurm_ldap_func import (
     set_ldapuser_home_permissions,
 )
 
-
 # =============================================================================
 # CLUSTER VERIFICATION TESTS (TC1)
 # =============================================================================
