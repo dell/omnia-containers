@@ -4,6 +4,7 @@ molecule-plugins==25.8.12
 paramiko==4.0.0
 pexpect==4.9.0
 pytest==9.0.2
+pytest-order==1.2.1
 pytest-testinfra==10.2.2
 PyYAML==6.0.1
 

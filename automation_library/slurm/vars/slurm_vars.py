@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP = "login_compiler_node"
 # =============================================================================
 SLURMCTLD_SERVICE = "slurmctld"
 SLURMD_SERVICE = "slurmd"
+SLURMDBD_SERVICE = "slurmdbd"
 MUNGE_SERVICE = "munge"
 
 # =============================================================================
@@ -87,3 +88,14 @@ LDAP_LOGIN_ALLOWED_GROUPS = [
     LOGIN_NODE_FUNCTIONAL_GROUP,
     LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
 ]
+
+# =============================================================================
+# Reboot Test Configuration
+# =============================================================================
+REBOOT_WAIT_ONLINE_TIMEOUT = 900
+REBOOT_WAIT_ONLINE_POLL_INTERVAL = 15
+CLOUD_INIT_WAIT_TIMEOUT = 2400
+CLOUD_INIT_WAIT_POLL_INTERVAL = 15
+SLURM_POST_REBOOT_SETTLE_DELAY = 30
+NODE_IDLE_WAIT_TIMEOUT = 600
+NODE_IDLE_WAIT_POLL_INTERVAL = 10

@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,6 +77,12 @@ from automation_library.slurm.messages.slurm_msgs import (
     SRUN_CHECK_PASSED,
     SRUN_CHECK_FAILED,
     SRUN_NO_CONTROL_NODE,
+    PXE_CLUSTER_VERIFY_PASSED,
+    PXE_CLUSTER_VERIFY_FAILED,
+    PXE_CLUSTER_VERIFY_NO_NODES,
+    PXE_CLUSTER_VERIFY_NO_SLURM_NODES,
+    PXE_CLUSTER_VERIFY_MISSING_NODES,
+    PXE_CLUSTER_VERIFY_EXTRA_NODES,
     SBATCH_CHECK_PASSED,
     SBATCH_CHECK_FAILED,
     SBATCH_SUBMIT_FAILED,
@@ -180,6 +186,137 @@ def get_all_munge_nodes(host) -> Dict[str, List[Dict[str, str]]]:
 def get_slurm_node_count(host) -> int:
     """Get total number of slurm compute nodes from PXE mapping."""
     return len(get_slurm_nodes(host))
+
+
+def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
+    """Verify that all nodes in PXE mapping are present in slurm.conf.
+
+    Reads /etc/slurm/slurm.conf and extracts all NodeName entries,
+    then compares with nodes from PXE mapping to ensure all PXE nodes
+    are configured in Slurm.
+
+    Returns:
+        Dict with success, message, pxe_nodes, slurm_nodes, missing_nodes, extra_nodes, error.
+    """
+    # Get all nodes from PXE mapping (excluding control nodes)
+    all_groups = get_functional_groups_from_pxe_mapping(host)
+    pxe_nodes = []
+    for fg in all_groups:
+        # Skip control node functional groups
+        if SLURM_CONTROL_NODE_FUNCTIONAL_GROUP in fg:
+            continue
+        fg_nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
+        pxe_nodes.extend(fg_nodes)
+
+    if not pxe_nodes:
+        return {
+            "success": False,
+            "message": PXE_CLUSTER_VERIFY_NO_NODES,
+            "pxe_nodes": [],
+            "slurm_nodes": [],
+            "missing_nodes": [],
+            "extra_nodes": [],
+            "error": "No nodes found in PXE mapping",
+        }
+
+    # Get control node to read slurm.conf
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {
+            "success": False,
+            "message": ERROR_NO_SLURM_CONTROL_NODES,
+            "pxe_nodes": [n["hostname"] for n in pxe_nodes],
+            "slurm_nodes": [],
+            "missing_nodes": [n["hostname"] for n in pxe_nodes],
+            "extra_nodes": [],
+            "error": "No slurm control node found to read slurm.conf",
+        }
+
+    control_node = control_nodes[0]
+    control_ip = control_node.get("admin_ip")
+    control_hostname = control_node.get("hostname", "unknown")
+
+    # Read slurm.conf and extract NodeName entries
+    slurm_conf_cmd = _safe_run_on_remote_node(
+        host, 
+        "grep '^NodeName=' /etc/slurm/slurm.conf 2>/dev/null", 
+        control_ip
+    )
+
+    if slurm_conf_cmd.rc != 0:
+        return {
+            "success": False,
+            "message": PXE_CLUSTER_VERIFY_NO_SLURM_NODES,
+            "pxe_nodes": [n["hostname"] for n in pxe_nodes],
+            "slurm_nodes": [],
+            "missing_nodes": [n["hostname"] for n in pxe_nodes],
+            "extra_nodes": [],
+            "error": f"Failed to read slurm.conf on {control_hostname}: {slurm_conf_cmd.stderr.strip()}",
+        }
+
+    # Parse NodeName entries from slurm.conf
+    slurm_nodes = set()
+    for line in slurm_conf_cmd.stdout.strip().split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        
+        # Extract NodeName value (e.g., "NodeName=snode1" or "NodeName=DEFAULT")
+        if line.startswith("NodeName="):
+            node_part = line.split()[0]
+            node_name = node_part.split("=", 1)[1]
+            
+            # Skip DEFAULT and other special entries
+            if node_name.upper() != "DEFAULT":
+                slurm_nodes.add(node_name)
+
+    if not slurm_nodes:
+        return {
+            "success": False,
+            "message": PXE_CLUSTER_VERIFY_NO_SLURM_NODES,
+            "pxe_nodes": [n["hostname"] for n in pxe_nodes],
+            "slurm_nodes": [],
+            "missing_nodes": [n["hostname"] for n in pxe_nodes],
+            "extra_nodes": [],
+            "error": "No NodeName entries found in slurm.conf",
+        }
+
+    # Compare PXE nodes with slurm.conf nodes
+    pxe_hostnames = set(n["hostname"] for n in pxe_nodes)
+    missing_nodes = pxe_hostnames - slurm_nodes
+    extra_nodes = slurm_nodes - pxe_hostnames
+
+    if missing_nodes:
+        return {
+            "success": False,
+            "message": PXE_CLUSTER_VERIFY_FAILED,
+            "pxe_nodes": sorted(pxe_hostnames),
+            "slurm_nodes": sorted(slurm_nodes),
+            "missing_nodes": sorted(missing_nodes),
+            "extra_nodes": sorted(extra_nodes),
+            "error": PXE_CLUSTER_VERIFY_MISSING_NODES.format(missing_nodes=", ".join(sorted(missing_nodes))),
+        }
+
+    if extra_nodes:
+        return {
+            "success": False,
+            "message": PXE_CLUSTER_VERIFY_FAILED,
+            "pxe_nodes": sorted(pxe_hostnames),
+            "slurm_nodes": sorted(slurm_nodes),
+            "missing_nodes": [],
+            "extra_nodes": sorted(extra_nodes),
+            "error": PXE_CLUSTER_VERIFY_EXTRA_NODES.format(extra_nodes=", ".join(sorted(extra_nodes))),
+        }
+
+    return {
+        "success": True,
+        "message": PXE_CLUSTER_VERIFY_PASSED.format(pxe_count=len(pxe_hostnames)),
+        "pxe_nodes": sorted(pxe_hostnames),
+        "slurm_nodes": sorted(slurm_nodes),
+        "missing_nodes": [],
+        "extra_nodes": [],
+        "error": "",
+    }
 
 
 # =============================================================================
@@ -902,7 +1039,7 @@ def verify_root_sbatch_from_login_node(host) -> Dict[str, Any]:
     """
     all_login = _get_all_login_nodes(host)
     if not all_login:
-        return {"success": False, "message": ROOT_NO_LOGIN_NODES,
+        return {"skipped": True, "message": ROOT_NO_LOGIN_NODES,
                 "node_results": [], "error": ROOT_NO_LOGIN_NODES}
 
     control_nodes = get_slurm_control_nodes(host)
@@ -975,7 +1112,7 @@ def verify_root_multi_sbatch_from_login_node(host) -> Dict[str, Any]:
     """
     all_login = _get_all_login_nodes(host)
     if not all_login:
-        return {"success": False, "message": ROOT_NO_LOGIN_NODES,
+        return {"skipped": True, "message": ROOT_NO_LOGIN_NODES,
                 "submit_node": "", "job_results": [],
                 "error": ROOT_NO_LOGIN_NODES}
 
