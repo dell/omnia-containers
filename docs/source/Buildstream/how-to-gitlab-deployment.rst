@@ -50,6 +50,8 @@ Procedure
 
       ansible-playbook gitlab.yml
 
+5. When it prompts you to enter the GitLab password, enter the password. Note the password as it is required to access the GitLab project and instance.
+
 This ``gitlab.yml`` playbook performs the following tasks:
 
 - Installs the GitLab instance on the host specified in the ``gitlab_config.yml`` file.
@@ -67,7 +69,7 @@ This ``gitlab.yml`` playbook performs the following tasks:
 .. note::
    The installation may take 10-15 minutes to complete.
 
-5. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.
+6. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.
 
 Verification
 ------------
