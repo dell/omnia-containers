@@ -2,8 +2,9 @@
 telemetry_sources > ``idrac`` > ``metrics_enabled``,Mandatory,"* **Type**: Boolean
 * Enable or disable iDRAC metrics collection from Dell PowerEdge servers
 * **Collected metrics**: temperature, power, fan speed, storage health, CPU/memory errors
-* **Data path**: iDRAC Receiver → ActiveMQ → KafkaPump → Kafka 'idrac' topic
-*              iDRAC Receiver → ActiveMQ → VictoriaPump → vmagent → victoria_metrics
+* **Data path**: 
+    * iDRAC Receiver -> ActiveMQ -> KafkaPump ->  Kafka 'idrac' topic
+    * iDRAC Receiver → ActiveMQ ->  VictoriaPump -> vmagent -> victoria_metrics
 * **Accepted values**: ``true`` or ``false``
 * **Default value**: ``true``
 
@@ -11,11 +12,10 @@ telemetry_sources > ``idrac`` > ``metrics_enabled``,Mandatory,"* **Type**: Boole
 
 .. note::
    If you want to deploy only Slurm clusters (``slurm_custom``), set ``metrics_enabled`` to ``false``."
-telemetry_sources > ``idrac`` > ``collection_targets``,Mandatory,"* Collection targets define where iDRAC data is sent BEFORE Vector processing
+telemetry_sources > ``idrac`` > ``collection_targets``,Mandatory,"* Collection targets define where iDRAC data is sent before Vector processing
 * **Supported values**: ``victoria_metrics``, ``kafka``
 * **Multiple targets**: Can specify both [``victoria_metrics``, ``kafka``]
-* **Default**: [``victoria_metrics``, ``kafka``]
-* **Note**: When victoria_metrics is selected, VictoriaLogs is deployed alongside for centralized log management"
+* **Default**: [``victoria_metrics``, ``kafka``]"
 telemetry_sources > ``ldms`` > ``metrics_enabled``,Mandatory,"* **Type**: Boolean
 * Enable or disable LDMS metrics collection from compute nodes
 * **Collected metrics**: CPU, memory, network, disk metrics
