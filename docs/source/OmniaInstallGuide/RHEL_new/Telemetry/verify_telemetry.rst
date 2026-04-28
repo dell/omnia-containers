@@ -44,7 +44,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
     * Kafka broker, controller, and bridge services
     * LDMS aggregator and store services
     * VictoriaMetrics service
-    * VictoriaLogs services (vlselect, vlinsert, vlstorage)
+    * VictoriaLogs service
 
 The following is the sample output file:
 
@@ -178,7 +178,7 @@ successfully.
 
 4. Access the VictoriaLogs query interface in a web browser using::
 
-    https://<external vlselect loadbalancer IP>:9480/select/0/vmui
+    https://<external vlselect loadbalancer IP>:9480/select/vmui
 
 5. Filter and view logs using LogsQL queries in the query interface.
 For example, the following query displays recent log entries::

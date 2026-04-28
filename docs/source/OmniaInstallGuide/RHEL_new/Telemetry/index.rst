@@ -16,10 +16,6 @@ providing flexible deployment and simplified lifecycle management.
   and streamed to **Kafka**.
 
 
-* **VictoriaLogs** provides centralized log management for the cluster, collecting logs from
-  various sources including network devices, storage systems, and fabric managers. VictoriaLogs
-  is deployed in cluster mode for high availability and scalability.
-
 
 .. note::
 
