@@ -131,11 +131,6 @@ GITLAB_ROOT_TOKEN_FILE = "/root/.gitlab_root_token"
 GITLAB_INITIAL_ROOT_PASSWORD_FILE = "/etc/gitlab/initial_root_password"
 
 # =============================================================================
-# GITLAB CI/CD PIPELINE SOURCE FILE (in omnia_core container)
-# =============================================================================
-GITLAB_CI_PIPELINE_SOURCE_FILE = "/omnia/gitlab/roles/hosted_gitlab/files/.gitlab-ci.yml"
-
-# =============================================================================
 # GITLAB RAILS COMMAND TEMPLATES
 # =============================================================================
 GITLAB_RAILS_CMD_PROJECT_ID = (

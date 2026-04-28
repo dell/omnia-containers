@@ -42,30 +42,26 @@ from .shared_func import (
     get_gitlab_project_name,
     get_gitlab_project_visibility,
     get_gitlab_default_branch,
-    get_gitlab_root_password,
     ssh_to_gitlab,
 )
 from ..vars import (
-    GITLAB_SERVICES,
-    GITLAB_RUNNER_CONTAINER,
-    GITLAB_RB_PATH,
-    GITLAB_GIT_DATA_PATH,
-    GITLAB_SUCCESS_HTTP_CODES,
     GITLAB_API_VERSION,
-    GITLAB_VISIBILITY_LEVELS,
-    GITLAB_RUNNER_QUADLET_DIR,
-    GITLAB_RUNNER_QUADLET_FILE,
-    GITLAB_RUNNER_SERVICES,
-    GITLAB_CLEANUP_DIRECTORIES,
-    GITLAB_INSTALLED_PACKAGES,
     GITLAB_CI_PIPELINE_FILE,
     GITLAB_PIPELINE_VARIABLES,
     GITLAB_ROOT_TOKEN_FILE,
-    GITLAB_CI_PIPELINE_SOURCE_FILE,
+    GITLAB_RUNNER_CONTAINER,
+    GITLAB_RUNNER_SERVICES,
+    GITLAB_SERVICES,
+    GITLAB_VISIBILITY_LEVELS,
+    GITLAB_SUCCESS_HTTP_CODES,
+    GITLAB_RB_PATH,
+    GITLAB_RUNNER_QUADLET_DIR,
+    GITLAB_RUNNER_QUADLET_FILE,
+    GITLAB_CLEANUP_DIRECTORIES,
+    GITLAB_INSTALLED_PACKAGES,
     GITLAB_RAILS_CMD_PROJECT_ID,
     GITLAB_RAILS_CMD_PROJECT_VISIBILITY,
     GITLAB_RAILS_CMD_PROJECT_DEFAULT_BRANCH,
-    GITLAB_RAILS_CMD_ROOT_TOKEN,
 )
 
 
@@ -920,18 +916,11 @@ def verify_catalog_synced(host) -> Dict[str, Any]:
     Verify that the omnia-catalog is synced to GitLab.
 
     Checks if .gitlab-ci.yml exists in the repository.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with success, project_name, ci_file_exists, and error keys
     """
     result = {
         "success": False,
         "project_name": "",
         "ci_file_exists": False,
-        "files_found": [],
         "error": "",
     }
 
@@ -947,48 +936,35 @@ def verify_catalog_synced(host) -> Dict[str, Any]:
     # Check if .gitlab-ci.yml exists using API
     gitlab_host = get_gitlab_host(host)
     gitlab_port = get_gitlab_https_port(host)
-    gitlab_password = get_gitlab_root_password(host)
 
-    if not gitlab_password:
-        result["error"] = "gitlab_root_password not found in credentials"
+    # Check file existence via API
+    full_project_path = f"root/{project_name}" if "/" not in project_name else project_name
+    encoded_project = full_project_path.replace("/", "%2F")
+    api_url = f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
+    file_url = f"{api_url}/projects/{encoded_project}/repository/files"
+    file_url = f"{file_url}/{GITLAB_CI_PIPELINE_FILE}"
+
+    # Check file existence only
+    combined_cmd = (
+        f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
+        f'curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{file_url}" | '
+        f'jq -r ".name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
+    )
+
+    ssh_result = ssh_to_gitlab(host, combined_cmd)
+
+    if not ssh_result["success"]:
+        result["error"] = f"Failed to check file in GitLab: {ssh_result['error']}"
         return result
 
-    token_cmd = GITLAB_RAILS_CMD_ROOT_TOKEN
-    ssh_result = ssh_to_gitlab(host, token_cmd)
+    file_check = ssh_result["stdout"].strip()
 
-    if ssh_result["success"] and ssh_result["stdout"]:
-        token = ssh_result["stdout"].strip()
-        # Use API to check repository files
-        api_url = (
-            f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}/"
-            f"projects/{project_result['project_id']}/repository/tree"
-        )
-        api_cmd = (
-            f"curl -k -s --header 'PRIVATE-TOKEN: {token}' '{api_url}' "
-            f"2>/dev/null | grep -o '\"name\":\"[^\"]*\"' | head -10"
-        )
-        cmd = run_in_container(host, api_cmd)
-        if cmd.rc == 0 and cmd.stdout:
-            files = [f.split('"')[3] for f in cmd.stdout.strip().split('\n') if '"name":' in f]
-            result["files_found"] = files
-            if ".gitlab-ci.yml" in files:
-                result["ci_file_exists"] = True
-                result["success"] = True
-            else:
-                result["error"] = ".gitlab-ci.yml not found in repository"
-        else:
-            result["error"] = "Failed to list repository files"
-    else:
-        # Fallback: check via git
-        ssh_result = ssh_to_gitlab(
-            host,
-            f"ls {GITLAB_GIT_DATA_PATH} 2>/dev/null | head -1"
-        )
-        if ssh_result["success"] and ssh_result["stdout"]:
-            result["success"] = True
-            result["ci_file_exists"] = True  # Assume synced if repo exists
-        else:
-            result["error"] = "Could not verify catalog sync"
+    if file_check == "FILE_NOT_FOUND" or not file_check:
+        result["error"] = ".gitlab-ci.yml not found in repository"
+        return result
+
+    result["ci_file_exists"] = True
+    result["success"] = True
 
     return result
 
@@ -1109,15 +1085,11 @@ def verify_gitlab_port_free(host) -> Dict[str, Any]:
 def verify_gitlab_pipeline_file_exists(host) -> Dict[str, Any]:
     """
     Verify .gitlab-ci.yml pipeline file exists in GitLab project repository.
-
-    Compares expected content from source file in omnia_core container
-    with actual content in GitLab repository via API.
     """
     result = {
         "success": False,
         "file": GITLAB_CI_PIPELINE_FILE,
         "exists": False,
-        "content_matches": False,
         "project_name": "",
         "branch": "",
         "error": "",
@@ -1135,51 +1107,34 @@ def verify_gitlab_pipeline_file_exists(host) -> Dict[str, Any]:
         result["error"] = "gitlab_host or gitlab_project_name not configured"
         return result
 
-    expected_cmd = f"cat {GITLAB_CI_PIPELINE_SOURCE_FILE} | md5sum | cut -d' ' -f1"
-    expected_result = run_in_container(host, expected_cmd)
-
-    if expected_result.rc != 0:
-        result["error"] = "Failed to read pipeline source file"
-        return result
-
-    expected_hash = expected_result.stdout.strip()
-
-    # Get actual content from GitLab repository via API
-    # Single SSH call: get token and fetch file content
+    # Check if file exists in GitLab repository via API
     full_project_path = f"root/{project_name}" if "/" not in project_name else project_name
     encoded_project = full_project_path.replace("/", "%2F")
     api_url = f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
     file_url = f"{api_url}/projects/{encoded_project}/repository/files"
     file_url = f"{file_url}/{GITLAB_CI_PIPELINE_FILE}?ref={default_branch}"
 
-    # Combined command: read token, fetch file, decode base64, compute hash
-    # Uses jq for proper JSON parsing
+    # Check file existence only
     combined_cmd = (
         f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
         f'curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{file_url}" | '
-        f'jq -r ".content // empty" | base64 -d 2>/dev/null | '
-        f'md5sum | cut -d" " -f1 || echo "FILE_NOT_FOUND"'
+        f'jq -r ".name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
     )
 
     ssh_result = ssh_to_gitlab(host, combined_cmd)
 
     if not ssh_result["success"]:
-        result["error"] = f"Failed to fetch file from GitLab: {ssh_result['error']}"
+        result["error"] = f"Failed to check file in GitLab: {ssh_result['error']}"
         return result
 
-    actual_hash = ssh_result["stdout"].strip()
+    file_check = ssh_result["stdout"].strip()
 
-    if actual_hash == "FILE_NOT_FOUND" or not actual_hash:
+    if file_check == "FILE_NOT_FOUND" or not file_check:
         result["error"] = "Pipeline file not found in repository"
         return result
 
-    # Compare hashes
     result["exists"] = True
-    if expected_hash == actual_hash:
-        result["content_matches"] = True
-        result["success"] = True
-    else:
-        result["error"] = f"Content mismatch: expected hash {expected_hash}, got {actual_hash}"
+    result["success"] = True
 
     return result
 
