@@ -36,6 +36,18 @@ from .functions.local_repo_func import (
     check_pulp_content_accessible,
     check_software_packages_in_pulp,
     load_software_config,
+    check_rhel10_base_repos_in_pulp,
+    check_aarch64_repos_in_pulp,
+    check_epel_repos_in_pulp,
+    check_crb_repos_in_pulp,
+    check_slurm_repo_in_pulp,
+    check_cuda_packages_in_pulp,
+    check_openmpi_ucx_packages_in_pulp,
+    check_openldap_packages_in_pulp,
+    check_multiarch_repo_segregation,
+    check_subscription_status,
+    check_software_config_json_valid,
+    check_pulp_repo_metadata_present,
 )
 from .vars.local_repo_vars import (
     OMNIA_CORE_CONTAINER,

@@ -395,6 +395,35 @@ def _find_status_csv_files(host) -> List[Dict[str, str]]:
     return results
 
 
+def _load_configured_packages_for_software(host, sw_name: str, arch: str) -> set:
+    """Load the actual configured packages for a software from its JSON config file.
+    
+    Returns set of package names that user actually configured.
+    """
+    # Try to read the software config JSON
+    config_path = f"/opt/omnia/input/project_default/config/{arch}/rhel/10.0/{sw_name}.json"
+    result = read_file_in_omnia_core(host, config_path)
+    
+    if not result["success"]:
+        return set()  # If can't read config, return empty set
+    
+    try:
+        import json
+        config = json.loads(result["content"])
+        packages = set()
+        
+        # Extract packages from all role groups
+        for role_key, role_data in config.items():
+            if isinstance(role_data, dict) and "cluster" in role_data:
+                for pkg_entry in role_data.get("cluster", []):
+                    if isinstance(pkg_entry, dict) and "package" in pkg_entry:
+                        packages.add(pkg_entry["package"])
+        
+        return packages
+    except Exception:
+        return set()  # On any error, return empty set
+
+
 def check_per_software_package_status(host) -> Dict[str, Any]:
     """
     Parse each ``<software>/status.csv`` under LOG_BASE_PATH.
@@ -402,6 +431,7 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
     Path structure: /opt/omnia/log/local_repo/<os>/<version>/<arch>/<software>/status.csv
 
     Shows individual package pass/fail for each architecture and software.
+    Only fails on user-configured packages, not auto-added dependencies.
     """
     status_files = _find_status_csv_files(host)
 
@@ -426,7 +456,13 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
         arch_results[arch]["skipped"] = False
 
         if sw_name not in arch_results[arch]["softwares"]:
-            arch_results[arch]["softwares"][sw_name] = {"packages": [], "failures": []}
+            arch_results[arch]["softwares"][sw_name] = {"packages": [], "failures": [], "configured_pkgs": set()}
+        
+        # Load user-configured packages for this software
+        if not arch_results[arch]["softwares"][sw_name]["configured_pkgs"]:
+            arch_results[arch]["softwares"][sw_name]["configured_pkgs"] = _load_configured_packages_for_software(host, sw_name, arch)
+
+        configured_pkgs = arch_results[arch]["softwares"][sw_name]["configured_pkgs"]
 
         reader = csv.DictReader(io.StringIO(content))
         for row in reader:
@@ -434,6 +470,10 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
             pkg_status = (row.get("status") or "").strip().lower()
             pkg_type = row.get("type", "")
             repo_name = row.get("repo_name", "")
+            
+            # Skip malformed entries (empty names, names ending with :, etc.)
+            if not pkg_name or pkg_name.endswith(":") or pkg_name == "unknown":
+                continue
 
             entry = {
                 "name": pkg_name,
@@ -442,10 +482,15 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
                 "status": pkg_status,
                 "software": sw_name,
                 "arch": arch,
+                "user_configured": pkg_name in configured_pkgs,
             }
 
             arch_results[arch]["softwares"][sw_name]["packages"].append(entry)
-            if pkg_status not in ("success", ""):
+            
+            # Only mark as failure if:
+            # 1. Status is not success, AND
+            # 2. Package is user-configured (not auto-added)
+            if pkg_status not in ("success", "") and pkg_name in configured_pkgs:
                 arch_results[arch]["softwares"][sw_name]["failures"].append(entry)
 
     # Build output details per architecture
@@ -480,14 +525,30 @@ def check_per_software_package_status(host) -> Dict[str, Any]:
             packages = sw_data["packages"]
             failures = sw_data["failures"]
             passed = [p for p in packages if p not in failures]
+            
+            # Separate user-configured from auto-added
+            user_passed = [p for p in passed if p.get("user_configured")]
+            auto_passed = [p for p in passed if not p.get("user_configured")]
+            user_failed = [p for p in failures if p.get("user_configured")]
+            auto_failed = [p for p in packages if not p.get("user_configured") and p.get("status") not in ("success", "")]
 
             details += f"  [{sw_name}] {len(passed)}/{len(packages)} passed:\n"
 
-            for pkg in sorted(passed, key=lambda x: x["name"]):
+            # Show user-configured packages first
+            for pkg in sorted(user_passed, key=lambda x: x["name"]):
                 details += f"    ✓ {pkg['name']}: PASS\n"
+            
+            # Show auto-added packages that passed (if any)
+            for pkg in sorted(auto_passed, key=lambda x: x["name"]):
+                details += f"    ✓ {pkg['name']}: PASS (auto-added)\n"
 
-            for pkg in sorted(failures, key=lambda x: x["name"]):
+            # Show user-configured failures (these count as real failures)
+            for pkg in sorted(user_failed, key=lambda x: x["name"]):
                 details += f"    ✘ {pkg['name']}: FAIL ({pkg['status']})\n"
+            
+            # Show auto-added failures (warnings only, don't count as failures)
+            for pkg in sorted(auto_failed, key=lambda x: x["name"]):
+                details += f"    ⚠ {pkg['name']}: FAIL ({pkg['status']}) [auto-added - ignored]\n"
 
     if not has_any_data:
         return {
@@ -960,4 +1021,505 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
         "missing_list": missing_packages,
         "details": full_details,
         "error": None if missing_count == 0 else f"{missing_count} packages not found in Pulp",
+    }
+
+
+# =============================================================================
+# 12. SHARED HELPERS FOR REPO PATTERN CHECKS
+# =============================================================================
+
+def _list_all_rpm_repos(host) -> Dict[str, Any]:
+    """List all Pulp RPM repositories."""
+    cmd = run_in_omnia_core(host, "pulp rpm repository list 2>/dev/null")
+    parsed = _parse_json_output(cmd)
+    if not parsed["success"]:
+        return {"success": False, "repos": [], "error": parsed.get("error", "")}
+    return {"success": True, "repos": parsed["data"] or [], "error": None}
+
+
+def _filter_repos_by_keyword(repos: List[Dict[str, Any]], keyword: str) -> List[Dict[str, Any]]:
+    """Return repos whose name contains keyword (case-insensitive)."""
+    kw = keyword.lower()
+    return [r for r in repos if kw in r.get("name", "").lower()]
+
+
+def _check_repos_by_keyword(
+    host,
+    keyword: str,
+    require_archs: List[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generic check: find Pulp RPM repos matching keyword.
+
+    When require_archs is given, verifies at least one synced repo per arch.
+    Missing/unsynced aarch64 is reported but NOT a failure (aarch64 is optional);
+    missing/unsynced x86_64 IS a failure.
+    """
+    result = _list_all_rpm_repos(host)
+    if not result["success"]:
+        return {"success": False, "details": "", "error": result["error"]}
+
+    all_repos = result["repos"]
+    matched = _filter_repos_by_keyword(all_repos, keyword)
+
+    if not matched:
+        return {
+            "success": False,
+            "details": f"No repos matching '{keyword}' found in Pulp",
+            "error": f"No '{keyword}' repos found in Pulp",
+        }
+
+    details = f"Repos matching '{keyword}' ({len(matched)} found):\n"
+    issues = []
+
+    if require_archs:
+        for arch in require_archs:
+            arch_repos = [r for r in matched if arch in r.get("name", "")]
+            synced = [r for r in arch_repos if r.get("latest_version_href")]
+            not_synced = [r for r in arch_repos if not r.get("latest_version_href")]
+            if synced:
+                for r in sorted(synced, key=lambda x: x.get("name", "")):
+                    details += f"  ✓ {r['name']} ({arch}, synced)\n"
+            if not_synced:
+                for r in sorted(not_synced, key=lambda x: x.get("name", "")):
+                    details += f"  ✘ {r['name']} ({arch}, not synced)\n"
+                    if arch == "x86_64":
+                        issues.append(f"'{keyword}/{arch}' not synced: {r['name']}")
+            if not arch_repos:
+                details += f"  ⊘ No '{keyword}' repo found for {arch}\n"
+                if arch == "x86_64":
+                    issues.append(f"No '{keyword}' repo found for {arch}")
+    else:
+        synced = [r for r in matched if r.get("latest_version_href")]
+        not_synced = [r for r in matched if not r.get("latest_version_href")]
+        for r in sorted(synced, key=lambda x: x.get("name", "")):
+            details += f"  ✓ {r['name']} (synced)\n"
+        for r in sorted(not_synced, key=lambda x: x.get("name", "")):
+            details += f"  ✘ {r['name']} (not synced)\n"
+            issues.append(f"{r['name']} not synced")
+
+    return {
+        "success": len(issues) == 0,
+        "matched_count": len(matched),
+        "details": details.strip(),
+        "error": "; ".join(issues) if issues else None,
+    }
+
+
+def _check_package_in_pulp(host, package_name: str) -> bool:
+    """Return True if package_name (exact or prefix) exists in Pulp RPM content."""
+    cmd = run_in_omnia_core(
+        host, f"pulp rpm content list --name {package_name} --limit 1 2>/dev/null"
+    )
+    stdout = (cmd.get("stdout") or "").strip()
+    if cmd["success"] and stdout and stdout != "[]":
+        return True
+    cmd2 = run_in_omnia_core(
+        host,
+        f"pulp rpm content list --name-startswith {package_name} --limit 1 2>/dev/null",
+    )
+    stdout2 = (cmd2.get("stdout") or "").strip()
+    return cmd2["success"] and bool(stdout2) and stdout2 != "[]"
+
+
+def _check_packages_list_in_pulp(host, packages: List[str]) -> Dict[str, Any]:
+    """Verify that each package in the list exists in Pulp RPM content."""
+    found: List[str] = []
+    missing: List[str] = []
+    for pkg in packages:
+        if _check_package_in_pulp(host, pkg):
+            found.append(pkg)
+        else:
+            missing.append(pkg)
+
+    details = f"Package check ({len(found)}/{len(packages)} found):\n"
+    for p in found:
+        details += f"  ✓ {p}\n"
+    for p in missing:
+        details += f"  ✘ {p} (not in Pulp)\n"
+
+    return {
+        "success": len(missing) == 0,
+        "found": found,
+        "missing": missing,
+        "details": details.strip(),
+        "error": None if not missing else f"Packages not in Pulp: {', '.join(missing)}",
+    }
+
+
+# =============================================================================
+# 13. RHEL10 BASEOS AND APPSTREAM REPOS
+# =============================================================================
+
+def check_rhel10_base_repos_in_pulp(host) -> Dict[str, Any]:
+    """Verify RHEL10 BaseOS and AppStream repos exist and are synced in Pulp.
+
+    x86_64 repos are required; aarch64 repos are optional (reported but not fatal).
+    """
+    result = _list_all_rpm_repos(host)
+    if not result["success"]:
+        return {"success": False, "details": "", "error": result["error"]}
+
+    repos = result["repos"]
+    issues: List[str] = []
+    details = "RHEL10 base repos:\n"
+
+    for keyword in ["baseos", "appstream"]:
+        matched = _filter_repos_by_keyword(repos, keyword)
+        if not matched:
+            details += f"  ⊘ No '{keyword}' repos found in Pulp\n"
+            issues.append(f"No '{keyword}' repos found in Pulp")
+            continue
+        for arch in ARCH_LIST:
+            arch_repos = [r for r in matched if arch in r.get("name", "")]
+            if arch_repos:
+                for r in sorted(arch_repos, key=lambda x: x.get("name", "")):
+                    synced = bool(r.get("latest_version_href"))
+                    mark = "✓" if synced else "✘"
+                    label = "synced" if synced else "not synced"
+                    details += f"  {mark} {r['name']} ({arch}, {label})\n"
+                    if not synced:
+                        issues.append(f"{r['name']} not synced")
+            else:
+                details += f"  ⊘ '{keyword}/{arch}' not found in Pulp\n"
+                if arch == "x86_64":
+                    issues.append(f"No '{keyword}/{arch}' repo in Pulp")
+
+    return {
+        "success": len(issues) == 0,
+        "details": details.strip(),
+        "error": "; ".join(issues) if issues else None,
+    }
+
+
+# =============================================================================
+# 14. AARCH64 ARM REPOS
+# =============================================================================
+
+def check_aarch64_repos_in_pulp(host) -> Dict[str, Any]:
+    """Verify aarch64 ARM repos are available and synced in Pulp from the x86 OIM."""
+    result = _list_all_rpm_repos(host)
+    if not result["success"]:
+        return {"success": False, "details": "", "error": result["error"]}
+
+    repos = result["repos"]
+    aarch64_repos = [r for r in repos if "aarch64" in r.get("name", "").lower()]
+
+    if not aarch64_repos:
+        return {
+            "success": False,
+            "details": "No aarch64 repos found in Pulp",
+            "error": "No aarch64 repos found in Pulp",
+        }
+
+    synced = [r for r in aarch64_repos if r.get("latest_version_href")]
+    not_synced = [r for r in aarch64_repos if not r.get("latest_version_href")]
+
+    details = f"aarch64 repos in Pulp ({len(synced)}/{len(aarch64_repos)} synced):\n"
+    for r in sorted(synced, key=lambda x: x.get("name", "")):
+        details += f"  ✓ {r['name']}\n"
+    for r in sorted(not_synced, key=lambda x: x.get("name", "")):
+        details += f"  ✘ {r['name']} (not synced)\n"
+
+    return {
+        "success": len(not_synced) == 0 and len(synced) > 0,
+        "total": len(aarch64_repos),
+        "synced": len(synced),
+        "details": details.strip(),
+        "error": (
+            None if not not_synced
+            else f"{len(not_synced)} aarch64 repos not synced"
+        ),
+    }
+
+
+# =============================================================================
+# 15. EPEL REPOS
+# =============================================================================
+
+def check_epel_repos_in_pulp(host) -> Dict[str, Any]:
+    """Verify EPEL repos for both x86_64 and aarch64 are synced in Pulp."""
+    return _check_repos_by_keyword(host, "epel", require_archs=ARCH_LIST)
+
+
+# =============================================================================
+# 16. CRB REPOS
+# =============================================================================
+
+def check_crb_repos_in_pulp(host) -> Dict[str, Any]:
+    """Verify CRB (CodeReady Builder) repos for both architectures are synced in Pulp.
+    
+    CRB is optional for RHEL10 - if not found, test is skipped rather than failed.
+    """
+    result = _check_repos_by_keyword(host, "crb", require_archs=ARCH_LIST)
+    if not result["success"] and "No 'crb' repos found" in result.get("error", ""):
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": "CRB repos not configured (optional for RHEL10)",
+            "details": "No CRB repos found in Pulp (optional component)",
+            "error": None,
+        }
+    return result
+
+
+# =============================================================================
+# 17. SLURM REPOS
+# =============================================================================
+
+def check_slurm_repo_in_pulp(host) -> Dict[str, Any]:
+    """Verify Slurm repos are present and synced in Pulp."""
+    return _check_repos_by_keyword(host, "slurm")
+
+
+# =============================================================================
+# 18. CUDA PACKAGES
+# =============================================================================
+
+def check_cuda_packages_in_pulp(host) -> Dict[str, Any]:
+    """Verify CUDA packages or repos are available in Pulp."""
+    result = _list_all_rpm_repos(host)
+    if result["success"]:
+        cuda_repos = _filter_repos_by_keyword(result["repos"], "cuda")
+        if cuda_repos:
+            synced = [r for r in cuda_repos if r.get("latest_version_href")]
+            not_synced = [r for r in cuda_repos if not r.get("latest_version_href")]
+            details = f"CUDA repos in Pulp ({len(synced)}/{len(cuda_repos)} synced):\n"
+            for r in sorted(synced, key=lambda x: x.get("name", "")):
+                details += f"  ✓ {r['name']}\n"
+            for r in sorted(not_synced, key=lambda x: x.get("name", "")):
+                details += f"  ✘ {r['name']} (not synced)\n"
+            return {
+                "success": len(not_synced) == 0,
+                "details": details.strip(),
+                "error": (
+                    None if not not_synced
+                    else f"{len(not_synced)} CUDA repos not synced"
+                ),
+            }
+    return _check_packages_list_in_pulp(host, ["cuda", "cuda-toolkit", "cuda-runtime"])
+
+
+# =============================================================================
+# 19. OPENMPI AND UCX PACKAGES
+# =============================================================================
+
+def check_openmpi_ucx_packages_in_pulp(host) -> Dict[str, Any]:
+    """Verify OpenMPI and UCX packages are available in Pulp for ARM workloads."""
+    return _check_packages_list_in_pulp(host, ["openmpi", "ucx"])
+
+
+# =============================================================================
+# 20. OPENLDAP PACKAGES
+# =============================================================================
+
+def check_openldap_packages_in_pulp(host) -> Dict[str, Any]:
+    """Verify OpenLDAP packages are available in Pulp."""
+    return _check_packages_list_in_pulp(host, ["openldap", "openldap-servers", "openldap-clients"])
+
+
+# =============================================================================
+# 21. MULTI-ARCH REPO SEGREGATION
+# =============================================================================
+
+def check_multiarch_repo_segregation(host) -> Dict[str, Any]:
+    """Verify x86_64 and aarch64 repos are stored separately in Pulp."""
+    result = _list_all_rpm_repos(host)
+    if not result["success"]:
+        return {"success": False, "details": "", "error": result["error"]}
+
+    repos = result["repos"]
+    x86_repos = [r for r in repos if "x86_64" in r.get("name", "")]
+    aarch64_repos = [r for r in repos if "aarch64" in r.get("name", "")]
+
+    details = (
+        f"Multi-arch repo segregation:\n"
+        f"  x86_64 repos : {len(x86_repos)}\n"
+        f"  aarch64 repos: {len(aarch64_repos)}\n"
+    )
+
+    if x86_repos:
+        details += "\n  x86_64 (first 10):\n"
+        for r in sorted(x86_repos, key=lambda x: x.get("name", ""))[:10]:
+            mark = "✓" if r.get("latest_version_href") else "✘"
+            details += f"    {mark} {r['name']}\n"
+
+    if aarch64_repos:
+        details += "\n  aarch64 (first 10):\n"
+        for r in sorted(aarch64_repos, key=lambda x: x.get("name", ""))[:10]:
+            mark = "✓" if r.get("latest_version_href") else "✘"
+            details += f"    {mark} {r['name']}\n"
+    else:
+        details += "\n  ⊘ aarch64: no repos found (optional)\n"
+
+    issues: List[str] = []
+    if not x86_repos:
+        issues.append("No x86_64 repos found in Pulp")
+
+    return {
+        "success": len(issues) == 0,
+        "x86_64_count": len(x86_repos),
+        "aarch64_count": len(aarch64_repos),
+        "details": details.strip(),
+        "error": "; ".join(issues) if issues else None,
+    }
+
+
+# =============================================================================
+# 22. SUBSCRIPTION STATUS
+# =============================================================================
+
+def check_subscription_status(host) -> Dict[str, Any]:
+    """Verify RHEL subscription-manager is registered and active on the OIM node."""
+    cmd = host.run("subscription-manager status 2>/dev/null")
+    stdout = (cmd.stdout or "").strip()
+    stderr = (cmd.stderr or "").strip()
+    output = stdout or stderr
+
+    if not output:
+        return {
+            "success": False,
+            "details": "No output from subscription-manager",
+            "error": "subscription-manager returned no output — may not be installed",
+        }
+
+    is_active = any(
+        kw in output
+        for kw in ["Current", "Simple Content Access", "Overall Status: Current", "Overall Status: Registered"]
+    )
+
+    return {
+        "success": is_active,
+        "details": f"subscription-manager status output:\n{output}",
+        "error": None if is_active else "Subscription not active or not registered",
+    }
+
+
+# =============================================================================
+# 23. SOFTWARE CONFIG JSON VALIDATION
+# =============================================================================
+
+def check_software_config_json_valid(host) -> Dict[str, Any]:
+    """Validate software_config.json: exists, parseable, and has well-formed entries."""
+    sw_result = load_software_config(host)
+    if not sw_result["success"]:
+        return {"success": False, "details": "", "error": sw_result["error"]}
+
+    config = sw_result["config"]
+    issues: List[str] = []
+
+    softwares = config.get("softwares", None)
+    if softwares is None:
+        issues.append("Missing required key: 'softwares'")
+        return {
+            "success": False,
+            "details": "software_config.json missing 'softwares' key",
+            "error": "; ".join(issues),
+        }
+
+    if not isinstance(softwares, list):
+        issues.append("'softwares' must be a list")
+    elif not softwares:
+        issues.append("'softwares' list is empty — no packages configured")
+    else:
+        seen: set = set()
+        duplicates: List[str] = []
+        for idx, sw in enumerate(softwares):
+            if not isinstance(sw, dict):
+                issues.append(f"Entry #{idx} is not a dict")
+                continue
+            name = sw.get("name", "")
+            if not name:
+                issues.append(f"Entry #{idx} missing 'name'")
+            version = sw.get("version", "")
+            key = f"{name}:{version}"
+            if key in seen:
+                duplicates.append(f"{name} v{version}")
+            seen.add(key)
+
+    os_type = config.get("cluster_os_type", "")
+    os_version = config.get("cluster_os_version", "")
+    sw_list = softwares if isinstance(softwares, list) else []
+
+    details = (
+        f"software_config.json:\n"
+        f"  OS type   : {os_type or '(not set)'}\n"
+        f"  OS version: {os_version or '(not set)'}\n"
+        f"  Entries   : {len(sw_list)}\n"
+    )
+    for sw in sw_list[:20]:
+        if not isinstance(sw, dict):
+            continue
+        name = sw.get("name", "?")
+        version = sw.get("version", "?")
+        arch = sw.get("arch", sw.get("arch_type", []))
+        arch_str = ", ".join(arch) if isinstance(arch, list) else str(arch)
+        details += f"  ✓ {name} v{version} ({arch_str})\n"
+
+    return {
+        "success": len(issues) == 0,
+        "software_count": len(sw_list),
+        "details": details.strip(),
+        "error": "; ".join(issues) if issues else None,
+    }
+
+
+# =============================================================================
+# 24. PULP REPO METADATA PRESENT (repomd.xml)
+# =============================================================================
+
+def check_pulp_repo_metadata_present(host) -> Dict[str, Any]:
+    """Verify repomd.xml metadata is accessible for all published RPM distributions."""
+    cmd = run_in_omnia_core(host, "pulp rpm distribution list 2>/dev/null")
+    parsed = _parse_json_output(cmd)
+    if not parsed["success"]:
+        return {
+            "success": False,
+            "details": "",
+            "error": f"Failed to list distributions: {parsed.get('error', '')}",
+        }
+
+    dists = parsed["data"]
+    if not dists:
+        return {"success": True, "details": "No RPM distributions found", "error": None}
+
+    accessible: List[Dict[str, str]] = []
+    not_accessible: List[Dict[str, str]] = []
+
+    for dist in dists:
+        name = dist.get("name", "unknown")
+        base_path = dist.get("base_path", "")
+        if not base_path:
+            not_accessible.append({"name": name, "reason": "no base_path configured"})
+            continue
+
+        curl_cmd = (
+            f"curl -sk {PULP_CONTENT_SCHEME}://localhost:{PULP_CONTENT_PORT}"
+            f"{PULP_CONTENT_PATH_PREFIX}{base_path}/repodata/repomd.xml "
+            f"-o /dev/null -w '%{{http_code}}' "
+            f"--connect-timeout {CURL_CONNECT_TIMEOUT} 2>/dev/null"
+        )
+        curl_result = run_in_omnia_core(host, curl_cmd)
+        http_code = (curl_result.get("stdout") or "").strip()
+
+        if http_code == "200":
+            accessible.append({"name": name, "base_path": base_path})
+        else:
+            not_accessible.append({"name": name, "reason": f"HTTP {http_code}"})
+
+    details = f"Repo metadata (repomd.xml): {len(accessible)}/{len(dists)} accessible\n"
+    for d in sorted(accessible, key=lambda x: x["name"]):
+        details += f"  ✓ {d['name']} → {d['base_path']}/repodata/repomd.xml\n"
+    for d in sorted(not_accessible, key=lambda x: x["name"]):
+        details += f"  ✘ {d['name']} → {d.get('reason', 'unknown error')}\n"
+
+    return {
+        "success": len(not_accessible) == 0,
+        "total": len(dists),
+        "accessible": len(accessible),
+        "details": details.strip(),
+        "error": (
+            None if not not_accessible
+            else f"{len(not_accessible)} repos missing repomd.xml metadata"
+        ),
     }

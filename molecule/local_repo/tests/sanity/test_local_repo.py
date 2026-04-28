@@ -30,16 +30,28 @@ Test cases:
 10. Verify all file repositories synced
 11. Verify RPM content reachable via HTTPS (repomd.xml)
 12. Verify all software_config.json RPM packages in Pulp
+13. Verify RHEL10 BaseOS and AppStream repos synced in Pulp
+14. Verify aarch64 ARM repos available in Pulp from x86 OIM
+15. Verify EPEL repos synced for both x86_64 and aarch64
+16. Verify CRB repos synced for both architectures
+17. Verify Slurm repo available in Pulp
+18. Verify CUDA packages available in Pulp
+19. Verify OpenMPI and UCX packages available in Pulp for ARM
+20. Verify OpenLDAP packages available in Pulp
+21. Verify multi-arch repo segregation (x86_64 vs aarch64) in Pulp
+22. Verify RHEL10 subscription-manager is registered and active
+23. Verify software_config.json is valid and parseable
+24. Verify repo metadata (repomd.xml) present for all distributions
 """
 
 import pytest
+
 from automation_library.core import (
     TestLogger,
     is_build_stream_enabled,
     get_build_stream_job_id,
     STAGE_CREATE_LOCAL_REPO,
 )
-from molecule.conftest import build_stream_job_state
 from automation_library.local_repo.messages.local_repo_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
@@ -58,7 +70,20 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_file_repos_synced,
     check_pulp_content_accessible,
     check_software_packages_in_pulp,
+    check_rhel10_base_repos_in_pulp,
+    check_aarch64_repos_in_pulp,
+    check_epel_repos_in_pulp,
+    check_crb_repos_in_pulp,
+    check_slurm_repo_in_pulp,
+    check_cuda_packages_in_pulp,
+    check_openmpi_ucx_packages_in_pulp,
+    check_openldap_packages_in_pulp,
+    check_multiarch_repo_segregation,
+    check_subscription_status,
+    check_software_config_json_valid,
+    check_pulp_repo_metadata_present,
 )
+from molecule.conftest import build_stream_job_state
 
 
 # ---------------------------------------------------------------------------
@@ -332,3 +357,313 @@ def test_software_packages_in_pulp(host):
         f"Missing: {missing_count} packages\n{details}",
     )
     assert False, ASSERT_MSGS["software_packages_missing"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 13. RHEL10 BaseOS and AppStream repos in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(13)
+def test_rhel10_base_repos_in_pulp(host):
+    """
+    Test 13: Verify RHEL10 BaseOS and AppStream repos are synced in Pulp.
+
+    Checks both x86_64 (required) and aarch64 (optional) variants.
+    Maps to: pulp_rhel10_structure, validate_fallback_to_iso_mount_when.
+    """
+    log = TestLogger(TEST_NAMES["rhel10_base_repos"])
+    log.check("Verifying RHEL10 BaseOS and AppStream repos in Pulp for both architectures")
+
+    result = check_rhel10_base_repos_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["rhel10_base_repos_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["rhel10_base_repos_fail"], details)
+        assert False, ASSERT_MSGS["rhel10_base_repos_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 14. aarch64 ARM repos in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(14)
+def test_aarch64_repos_in_pulp(host):
+    """
+    Test 14: Verify aarch64 ARM repos are available and synced in Pulp from x86 OIM.
+
+    Maps to: validate_availability_of_arm_repo_on, pulp_multiarch_repo_validation.
+    """
+    log = TestLogger(TEST_NAMES["aarch64_repos"])
+    log.check("Checking Pulp RPM repository list for aarch64 (ARM) repos")
+
+    result = check_aarch64_repos_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["aarch64_repos_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["aarch64_repos_fail"], details)
+        assert False, ASSERT_MSGS["aarch64_repos_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 15. EPEL repos for both architectures
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(15)
+def test_epel_repos_in_pulp(host):
+    """
+    Test 15: Verify EPEL repos for both x86_64 and aarch64 are synced in Pulp.
+
+    Maps to: validate_epel_repository_sync_for_both.
+    """
+    log = TestLogger(TEST_NAMES["epel_repos"])
+    log.check("Checking Pulp for EPEL repos for x86_64 and aarch64")
+
+    result = check_epel_repos_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["epel_repos_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["epel_repos_fail"], details)
+        assert False, ASSERT_MSGS["epel_repos_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 16. CRB repos for both architectures
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(16)
+def test_crb_repos_in_pulp(host):
+    """
+    Test 16: Verify CRB repos for both architectures are synced in Pulp.
+
+    Maps to: validate_crb_repo_sync_and_visibility.
+    """
+    log = TestLogger(TEST_NAMES["crb_repos"])
+    log.check("Checking Pulp for CRB (CodeReady Builder) repos for x86_64 and aarch64")
+
+    result = check_crb_repos_in_pulp(host)
+    if result.get("skipped"):
+        reason = result.get("reason", "CRB repos not configured")
+        log.skipped(reason)
+        pytest.skip(reason)
+    elif result["success"]:
+        log.passed(LOG_MSGS["crb_repos_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["crb_repos_fail"], details)
+        assert False, ASSERT_MSGS["crb_repos_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 17. Slurm repos in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(17)
+def test_slurm_repo_in_pulp(host):
+    """
+    Test 17: Verify Slurm repos are present and synced in Pulp.
+
+    Maps to: validate_custom_slurm_repo_creation_and, pulp_slurm_repo_ready,
+             validate_multi_architecture_slurm_image_creation.
+    """
+    log = TestLogger(TEST_NAMES["slurm_repos"])
+    log.check("Checking Pulp for Slurm repos")
+
+    result = check_slurm_repo_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["slurm_repos_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["slurm_repos_fail"], details)
+        assert False, ASSERT_MSGS["slurm_repos_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 18. CUDA packages in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(18)
+def test_cuda_packages_in_pulp(host):
+    """
+    Test 18: Verify CUDA packages or repos are available in Pulp.
+
+    Maps to: validate_cuda_packages_availability_from_local.
+    """
+    log = TestLogger(TEST_NAMES["cuda_packages"])
+    log.check("Checking Pulp for CUDA repos or RPM packages")
+
+    result = check_cuda_packages_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["cuda_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["cuda_fail"], details)
+        assert False, ASSERT_MSGS["cuda_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 19. OpenMPI and UCX packages in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(19)
+def test_openmpi_ucx_packages_in_pulp(host):
+    """
+    Test 19: Verify OpenMPI and UCX packages are available in Pulp for ARM workloads.
+
+    Maps to: validate_openmpi_and_ucx_packages_served.
+    """
+    log = TestLogger(TEST_NAMES["openmpi_ucx_packages"])
+    log.check("Checking Pulp RPM content for openmpi and ucx packages")
+
+    result = check_openmpi_ucx_packages_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["openmpi_ucx_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["openmpi_ucx_fail"], details)
+        assert False, ASSERT_MSGS["openmpi_ucx_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 20. OpenLDAP packages in Pulp
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(20)
+def test_openldap_packages_in_pulp(host):
+    """
+    Test 20: Verify OpenLDAP packages are available in Pulp.
+
+    Maps to: validate_openldap_rpms_are_available_after.
+    """
+    log = TestLogger(TEST_NAMES["openldap_packages"])
+    log.check("Checking Pulp RPM content for openldap, openldap-servers, openldap-clients")
+
+    result = check_openldap_packages_in_pulp(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["openldap_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["openldap_fail"], details)
+        assert False, ASSERT_MSGS["openldap_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 21. Multi-arch repo segregation
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(21)
+def test_multiarch_repo_segregation(host):
+    """
+    Test 21: Verify x86_64 and aarch64 repos are stored separately in Pulp.
+
+    Maps to: pulp_multiarch_repo_validation, validate_multi_arch_repo_sync_within.
+    """
+    log = TestLogger(TEST_NAMES["multiarch_segregation"])
+    log.check("Verifying x86_64 and aarch64 repos are segregated in Pulp")
+
+    result = check_multiarch_repo_segregation(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["multiarch_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["multiarch_fail"], details)
+        assert False, ASSERT_MSGS["multiarch_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 22. RHEL10 subscription status
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(22)
+def test_subscription_status(host):
+    """
+    Test 22: Verify RHEL subscription-manager is registered and active on the OIM node.
+
+    Maps to: validate_subscription_enablement_for_rhel10.
+    """
+    log = TestLogger(TEST_NAMES["subscription_status"])
+    log.check("Running 'subscription-manager status' on the OIM node")
+
+    result = check_subscription_status(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["subscription_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["subscription_fail"], details)
+        assert False, ASSERT_MSGS["subscription_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 23. software_config.json validation
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(23)
+def test_software_config_json_valid(host):
+    """
+    Test 23: Verify software_config.json is parseable and has well-formed entries.
+
+    Maps to: custom_json_valid_inputs, custom_json_duplicate_entries.
+    """
+    log = TestLogger(TEST_NAMES["software_config_valid"])
+    log.check("Loading and validating software_config.json structure and entries")
+
+    result = check_software_config_json_valid(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["software_config_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["software_config_fail"], details)
+        assert False, ASSERT_MSGS["software_config_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 24. Pulp repo metadata (repomd.xml) present
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(24)
+def test_pulp_repo_metadata_present(host):
+    """
+    Test 24: Verify repomd.xml metadata is accessible for all published RPM distributions.
+
+    Maps to: pulp_metadata_verification, validate_repo_metadata_creation_and_storage.
+    """
+    log = TestLogger(TEST_NAMES["repo_metadata_present"])
+    log.check("Curling repomd.xml for each RPM distribution to verify metadata presence")
+
+    result = check_pulp_repo_metadata_present(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["repo_metadata_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["repo_metadata_fail"], details)
+        assert False, ASSERT_MSGS["repo_metadata_fail"].format(details=details)
+
+
+# =============================================================================
+# PYTEST HOOKS FOR TEST SUMMARY
+# =============================================================================
+
+def pytest_terminal_summary(terminalreporter, exitstatus, _config):
+    """Add custom test summary at the end of pytest output."""
+    passed = len(terminalreporter.stats.get("passed", []))
+    failed = len(terminalreporter.stats.get("failed", []))
+    skipped = len(terminalreporter.stats.get("skipped", []))
+    errors = len(terminalreporter.stats.get("error", []))
+    total = passed + failed + skipped + errors
+    
+    terminalreporter.write_sep("=", "LOCAL_REPO TEST SUMMARY", bold=True)
+    terminalreporter.write_line(f"  Total Tests   : {total}")
+    terminalreporter.write_line(f"  ✓ Passed      : {passed}", green=True)
+    if failed > 0:
+        terminalreporter.write_line(f"  ✗ Failed      : {failed}", red=True)
+    else:
+        terminalreporter.write_line(f"  ✗ Failed      : {failed}")
+    if skipped > 0:
+        terminalreporter.write_line(f"  ⊘ Skipped     : {skipped}", yellow=True)
+    else:
+        terminalreporter.write_line(f"  ⊘ Skipped     : {skipped}")
+    if errors > 0:
+        terminalreporter.write_line(f"  ⚠ Errors      : {errors}", red=True)
+    terminalreporter.write_sep("=", "")

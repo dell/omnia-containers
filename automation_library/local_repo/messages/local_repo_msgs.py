@@ -48,6 +48,18 @@ TEST_NAMES = {
     "file_repos_synced": "Verify all file repositories synced",
     "pulp_content_accessible": "Verify RPM content reachable via HTTPS (repomd.xml)",
     "software_packages_in_pulp": "Verify all software_config.json RPM packages in Pulp",
+    "rhel10_base_repos": "Verify RHEL10 BaseOS and AppStream repos synced in Pulp",
+    "aarch64_repos": "Verify aarch64 ARM repos available in Pulp from x86 OIM",
+    "epel_repos": "Verify EPEL repos synced for both x86_64 and aarch64",
+    "crb_repos": "Verify CRB repos synced for both architectures",
+    "slurm_repos": "Verify Slurm repo available in Pulp",
+    "cuda_packages": "Verify CUDA packages available in Pulp",
+    "openmpi_ucx_packages": "Verify OpenMPI and UCX packages available in Pulp for ARM",
+    "openldap_packages": "Verify OpenLDAP packages available in Pulp",
+    "multiarch_segregation": "Verify multi-arch repo segregation (x86_64 vs aarch64) in Pulp",
+    "subscription_status": "Verify RHEL10 subscription-manager is registered and active",
+    "software_config_valid": "Verify software_config.json is valid and parseable",
+    "repo_metadata_present": "Verify repo metadata (repomd.xml) present for all distributions",
 }
 
 
@@ -99,6 +111,30 @@ TEST_LOG_MSGS = {
     "software_packages_ok": "All software_config.json RPM packages found in Pulp",
     "software_packages_missing": "RPM packages from software_config.json missing in Pulp",
     "software_config_error": "Failed to load software_config.json",
+    "rhel10_base_repos_ok": "RHEL10 BaseOS and AppStream repos synced in Pulp",
+    "rhel10_base_repos_fail": "RHEL10 BaseOS or AppStream repos missing or not synced in Pulp",
+    "aarch64_repos_ok": "aarch64 ARM repos are available and synced in Pulp",
+    "aarch64_repos_fail": "aarch64 repos missing or not synced in Pulp",
+    "epel_repos_ok": "EPEL repos synced for both architectures",
+    "epel_repos_fail": "EPEL repos missing or not synced in Pulp",
+    "crb_repos_ok": "CRB repos synced for both architectures",
+    "crb_repos_fail": "CRB repos missing or not synced in Pulp",
+    "slurm_repos_ok": "Slurm repos found and synced in Pulp",
+    "slurm_repos_fail": "Slurm repos missing or not synced in Pulp",
+    "cuda_ok": "CUDA packages or repos available in Pulp",
+    "cuda_fail": "CUDA packages or repos not found in Pulp",
+    "openmpi_ucx_ok": "OpenMPI and UCX packages available in Pulp",
+    "openmpi_ucx_fail": "OpenMPI or UCX packages not found in Pulp",
+    "openldap_ok": "OpenLDAP packages available in Pulp",
+    "openldap_fail": "OpenLDAP packages not found in Pulp",
+    "multiarch_ok": "Multi-arch repo segregation verified — x86_64 and aarch64 repos present",
+    "multiarch_fail": "Multi-arch repo segregation issue — x86_64 repos missing from Pulp",
+    "subscription_ok": "RHEL10 subscription is active (Current)",
+    "subscription_fail": "RHEL10 subscription not active or not registered",
+    "software_config_ok": "software_config.json is valid and all entries are well-formed",
+    "software_config_fail": "software_config.json validation failed",
+    "repo_metadata_ok": "Repo metadata (repomd.xml) present for all distributions",
+    "repo_metadata_fail": "Repo metadata (repomd.xml) missing for one or more distributions",
 }
 
 
@@ -249,6 +285,160 @@ TEST_ASSERT_MSGS = {
 ║   1. Verify software_config.json exists in /opt/omnia/input/project_default/
 ║   2. Check JSON syntax is valid
 ║   3. Ensure config/<arch>/<os>/<version>/*.json files exist
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "rhel10_base_repos_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ RHEL10 BASE REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check if local_repo.yml ran with RHEL10 URLs or ISO mount
+║   2. Verify BaseOS/AppStream URLs in local_repo_config.yml
+║   3. Check pulp rpm repository list for baseos/appstream entries
+║   4. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "aarch64_repos_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ AARCH64 REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify aarch64 repo URLs configured in local_repo_config.yml
+║   2. Check local_repo_config.yml includes aarch64 paths
+║   3. Run: pulp rpm repository list | grep aarch64
+║   4. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "epel_repos_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ EPEL REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify epel_url_x86 and epel_url_arm set in local_repo_config.yml
+║      Example: https://dl.fedoraproject.org/pub/epel/10/Everything/x86_64
+║   2. Run: pulp rpm repository list | grep epel
+║   3. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "crb_repos_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ CRB REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify CRB repo URLs configured in local_repo_config.yml
+║   2. Run: pulp rpm repository list | grep crb
+║   3. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "slurm_repos_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ SLURM REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify Slurm RPMs placed under slurm/25.05/{{arch}} repo paths
+║   2. Check software_config.json includes slurm entry
+║   3. Run: pulp rpm repository list | grep slurm
+║   4. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "cuda_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ CUDA PACKAGES/REPOS CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify cuda_url configured in software_config.json
+║   2. Check software_config.json: {{"name": "cuda", "version": "12.x", ...}}
+║   3. Run: pulp rpm content list --name cuda
+║   4. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "openmpi_ucx_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ OPENMPI / UCX PACKAGES CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify openmpi/ucx URLs defined in software_config.json for ARM arch
+║   2. Run: pulp rpm content list --name openmpi
+║   3. Run: pulp rpm content list --name ucx
+║   4. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "openldap_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ OPENLDAP PACKAGES CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify openldap packages in software_config.json
+║      Example: {{"name": "openldap", "version": "2.6.0", "arch_type": ["x86"]}}
+║   2. Run: pulp rpm content list --name openldap
+║   3. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "multiarch_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ MULTI-ARCH REPO SEGREGATION CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify x86_64 repos exist: pulp rpm repository list | grep x86_64
+║   2. Check arch_type settings in software_config.json
+║   3. Re-run: ansible-playbook local_repo.yml
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "subscription_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ RHEL SUBSCRIPTION CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Register: subscription-manager register --username <user> --password <pwd>
+║   2. Check status: subscription-manager status
+║   3. List available: subscription-manager list --available
+║   4. Attach: subscription-manager attach --auto
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "software_config_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ SOFTWARE CONFIG JSON VALIDATION FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Verify /opt/omnia/input/project_default/software_config.json exists
+║   2. Check JSON syntax is valid (no missing keys: name, version)
+║   3. Ensure 'softwares' list has at least one entry
+║   4. Remove duplicate name+version entries
+╚══════════════════════════════════════════════════════════════════════════════╝
+""",
+    "repo_metadata_fail": """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ PULP REPO METADATA CHECK FAILED
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ {details}
+║
+║ HOW TO FIX:
+║   1. Check distribution base_path: pulp rpm distribution list
+║   2. Verify repomd.xml: curl -sk https://localhost:2225/pulp/content/<path>/repodata/repomd.xml
+║   3. Re-publish: pulp rpm publication create --repository <name>
+║   4. Check pulp logs: podman logs pulp
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "build_stream_job_stage_failed": """
