@@ -87,3 +87,14 @@ from .delete_node_func import (
     verify_idrac_deleted_node_in_mysql,
     verify_idrac_deleted_node_in_victoria,
 )
+
+# Poweroff test functions
+from .poweroff_func import (
+    get_k8s_worker_nodes,
+    poweroff_node,
+    get_telemetry_pods_on_node,
+    get_all_telemetry_pods,
+    wait_for_pods_reschedule,
+    verify_pods_not_on_node,
+    verify_all_pods_running,
+)

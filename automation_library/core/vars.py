@@ -38,6 +38,7 @@ INPUT_BASE_PATH = f"{OIM_SHARED_PATH}/input/project_default"
 
 SOFTWARE_CONFIG_FILE = "software_config.json"
 BUILD_STREAM_CONFIG_FILE = "build_stream_config.yml"
+GITLAB_CONFIG_FILE = "gitlab_config.yml"
 NETWORK_SPEC_FILE = "network_spec.yml"
 PROVISION_CONFIG_FILE = "provision_config.yml"
 TELEMETRY_CONFIG_FILE = "telemetry_config.yml"
@@ -61,6 +62,7 @@ HA_CONFIG_PATH = f"{INPUT_BASE_PATH}/{HA_CONFIG_FILE}"
 PXE_MAPPING_FILE_PATH = f"{INPUT_BASE_PATH}/{PXE_MAPPING_FILE}"
 OMNIA_CREDENTIALS_PATH = f"{INPUT_BASE_PATH}/{OMNIA_CREDENTIALS_FILE}"
 OMNIA_CREDENTIALS_KEY_PATH = f"{INPUT_BASE_PATH}/.omnia_config_credentials_key"
+GITLAB_CONFIG_PATH = f"{INPUT_BASE_PATH}/{GITLAB_CONFIG_FILE}"
 
 # =============================================================================
 # OMNIA DATA PATHS (inside omnia_core container under .data/)
