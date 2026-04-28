@@ -23,7 +23,7 @@ To verify that the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLo
     * Kafka broker, controller, and operator pods
     * LDMS aggregator and store pods
     * VictoriaMetrics and vmagent pods
-    * VictoriaLogs pods (vlstorage, vlinsert, vlselect, vlagent)
+    * VictoriaLogs pods
 
 The following is the sample output file:
 
@@ -164,50 +164,12 @@ successfully.
 
 4. Access the VictoriaLogs query interface in a web browser using::
 
-    https://<external vlselect loadbalancer IP>:9480/select/vmui
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 5. Filter and view logs using LogsQL queries in the query interface.
 For example, the following query displays recent log entries::
 
     * | sort by time desc
-
-
-View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Single Mode Deployment
-----------------------------------------------------------------------------------------------
-
-After applying the ``telemetry.yml`` configuration using the VictoriaMetrics deployment mode as ``single-node``, 
-use the (VMUI) to validate that iDRAC telemetry data is being collected and stored 
-successfully in a single-mode VictoriaMetrics deployment. For more details, see
-`VictoriaMetrics Single Server documentation <https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/>`_.
-
-.. note:: Metric availability depends on the server hardware configuration and iDRAC capabilities. Only telemetry metrics that are exposed and streamed by iDRAC can be retrieved and viewed. Metrics that appear as “NA” (Not Available) in iDRAC are not included in telemetry data and therefore do not appear in telemetry queries or views.
-
-1. Run the following command to verify that the VictoriaMetrics pod is running::
-
-    kubectl get pods -n telemetry -o wide -l app=victoriametrics
-
-.. image:: ../../../images/victoria_metrics_pod.png
-
-2. Run the following command to verify that the VictoriaMetrics service is running::
-
-    kubectl get service -n telemetry -o wide -l app=victoriametrics
-
-.. image:: ../../../images/victoria_metrics_service.png
-
-3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
-
-4. Access the VMUI in a web browser using::
-
-    http://<external victoria metrics loadbalancer IP>:8443/vmui
-
-5. Filter and view telemetry metrics using queries in VMUI.
-For example, the following query displays detailed temperature
-readings for each hardware component::
-
-    {name="PowerEdge_TemperatureReading", FQDD!=""}
-
-.. image:: ../../../images/victoria_metrics_vmui.png
-
 
 
 View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
