@@ -942,13 +942,13 @@ def verify_catalog_synced(host) -> Dict[str, Any]:
     encoded_project = full_project_path.replace("/", "%2F")
     api_url = f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
     file_url = f"{api_url}/projects/{encoded_project}/repository/files"
-    file_url = f"{file_url}/{GITLAB_CI_PIPELINE_FILE}"
+    file_url = f"{file_url}/{GITLAB_CI_PIPELINE_FILE}?ref=main"
 
     # Check file existence only
     combined_cmd = (
         f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
         f'curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{file_url}" | '
-        f'jq -r ".name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
+        f'jq -r ".file_name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
     )
 
     ssh_result = ssh_to_gitlab(host, combined_cmd)
@@ -1118,7 +1118,7 @@ def verify_gitlab_pipeline_file_exists(host) -> Dict[str, Any]:
     combined_cmd = (
         f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
         f'curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{file_url}" | '
-        f'jq -r ".name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
+        f'jq -r ".file_name // empty" 2>/dev/null || echo "FILE_NOT_FOUND"'
     )
 
     ssh_result = ssh_to_gitlab(host, combined_cmd)
