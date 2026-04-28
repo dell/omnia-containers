@@ -1,117 +1,140 @@
 "Parameter	",Mandatory/Optional,Details
-``idrac_telemetry_support``,Mandatory,"* **Type**: Boolean
-* If you want iDRAC telemetry support on your service cluster, set this variable  to ``true`` before executing  ``telemetry.yml`` and  ``discovery.yml`` playbooks.              
-            
+telemetry_sources > ``idrac`` > ``metrics_enabled``,Mandatory,"* **Type**: Boolean
+* Enable or disable iDRAC metrics collection from Dell PowerEdge servers
+* **Collected metrics**: temperature, power, fan speed, storage health, CPU/memory errors
+* **Data path**: 
+    * iDRAC Receiver -> ActiveMQ -> KafkaPump ->  Kafka 'idrac' topic
+    * iDRAC Receiver -> ActiveMQ ->  VictoriaPump -> vmagent -> victoria_metrics
 * **Accepted values**: ``true`` or ``false``
 * **Default value**: ``true``
 
-.. note:: If ``idrac_telemetry_support`` is set to ``true``,``mysqldb_user``, ``mysqldb_password``, and ``mysqldb_root_password`` parameters in  the ``omnia_config_credentials.yml`` file becomes mandatory. 
+.. note:: If iDRAC telemetry is enabled, ``mysqldb_user``, ``mysqldb_password``, and ``mysqldb_root_password`` parameters in the ``omnia_config_credentials.yml`` file become mandatory. 
 
 .. note::
-   If you want to deploy only Slurm clusters (``slurm_custom``),  ``idrac_telemetry_support`` must be set to ``false``."
-``idrac_telemetry_collection_type``,Mandatory,"*  Specify where to store iDRAC telemetry data.
-* **Supported values:**
-    * ``victoria``: Store in VictoriaMetrics only
-    *  ``Kafka``: Store in Kafka only
-    *  ``victoria,kafka`` : Store in both (recommended)
-* **Default:** ``victoria,kafka``"
-victoria_configurations > ``deployment_mode``,Mandatory,"* **Supported values:**
-    * ``single-node``: Simple deployment (1 pod, suitable for dev/test)
-    * ``cluster``: High-availability deployment (7 pods, recommended for production)
-* **Default:** ``cluster``
-* **Cluster Mode Benefits:**
-    * High availability (no single point of failure)
-    * Horizontal scalability (scale components independently)
-    * Better performance (4x ingestion, 2x query speed)  
-    * Production-ready architecture
-*  **Single-Node Benefits:**
-    * Simple setup (fewer resources)
-    * Suitable for small deployments (<10 nodes)
-    * Lower resource usage (~4Gi memory vs ~10Gi for cluster)"
-victoria_configurations > ``persistence_size``,Conditional Mandatory,"
-* The amount of storage allocated for **each** VictoriaMetrics persistent volume.
+   If you want to deploy only Slurm clusters (``slurm_custom``), set ``metrics_enabled`` to ``false``."
+telemetry_sources > ``idrac`` > ``collection_targets``,Mandatory,"* Collection targets define where iDRAC data is sent before Vector processing
+* **Supported values**: ``victoria_metrics``, ``kafka``
+* **Multiple targets**: Can specify both [``victoria_metrics``, ``kafka``]
+* **Default**: [``victoria_metrics``, ``kafka``]"
+telemetry_sources > ``ldms`` > ``metrics_enabled``,Mandatory,"* **Type**: Boolean
+* Enable or disable LDMS metrics collection from compute nodes
+* **Collected metrics**: CPU, memory, network, disk metrics
+* **Data path**: LDMS samplers → LDMS aggregator → store_avro_kafka → Kafka 'ldms' topic
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_sources > ``ldms`` > ``collection_targets``,Mandatory,"* LDMS only supports Kafka collection (no direct victoria_metrics path)
+* Vector-LDMS bridge consumes from Kafka and routes to victoria_metrics
+* **Supported values**: ``kafka``
+* **Default**: [``kafka``]"
+telemetry_sources > ``dcgm`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable DCGM (NVIDIA Data Center GPU Manager) metrics collection
+* **Collected metrics**: GPU temperature, utilization, memory, ECC errors, power
+* **Requires**: NVIDIA GPU driver installed on compute nodes
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_sources > ``powerscale`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable PowerScale metrics collection from Dell PowerScale (OneFS) storage
+* **Collected metrics**: Storage metrics from Dell PowerScale clusters
+* **Requires**: CSM Observability (Karavi) values file configured
+* **Data path**: CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metrics
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_sources > ``powerscale`` > ``logs_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable PowerScale logs collection
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_sources > ``powerscale`` > ``collection_targets``,Conditional Mandatory,"* PowerScale uses dedicated vmagent(shared) (no Kafka, no Vector)
+* **Supported values**: ``victoria_metrics``, ``victoria_logs``
+* **Default**: [``victoria_metrics``, ``victoria_logs``]"
+telemetry_bridges > ``vector_ldms`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable Vector-LDMS bridge (Kafka-to-victoria_metrics bridge for LDMS metrics)
+* **Purpose**: Consume LDMS metrics from Kafka 'ldms' topic, transform NERSC schema to Prometheus format, and write to victoria_metrics
+* **Data flow**: Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → victoria_metrics
+* **Requires**: telemetry_sources.ldms.metrics_enabled = true
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_bridges > ``vector_ome`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable Vector-OME metrics routing (Kafka-to-Victoria bridge for OME metrics)
+* **Data flow**: Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics)
+* **Requires**: OME to be configured with kafka
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_bridges > ``vector_ome`` > ``logs_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable Vector-OME logs routing
+* **Data flow**: Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs)
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``true``"
+telemetry_bridges > ``vector_ome`` > ``ome_identifier``,Optional,"* Identifier used by Vector-OME for topic identification and routing
+* Internally used to match topics with the prefix (e.g., ``^ome\\..*$``)
+* **Default**: ``ome``
+* **Note**: Change only if your OME Kafka topics use a different prefix"
+telemetry_sinks > ``victoria_metrics`` > ``persistence_size``,Conditional Mandatory,"* Storage per vmstorage pod PVC
 * **Important: Total VictoriaMetrics storage depends on deployment mode:**
     * ``Single-node mode``: Total storage = ``persistence_size * 1 pod``
     * ``Cluster mode``: Total storage = ``persistence_size * 3 vmstorage pods``
-* **Example (cluster):** ``8Gi *  3 = 24Gi`` total VictoriaMetrics storage
-* **Accepted values:** Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
-* **Default value:** ``8Gi`` (results in **24Gi total storage** for cluster mode)
-"
-victoria_configurations > ``retention_period``,Conditional Mandatory,"* Specify the number of hours to retain victoria logs before they are deleted.
+* **Example (cluster)**: ``8Gi * 3 = 24Gi`` total VictoriaMetrics storage
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``8Gi`` (results in **24Gi total storage** for cluster mode)"
+telemetry_sinks > ``victoria_metrics`` > ``retention_period``,Conditional Mandatory,"* Metric retention period in hours
 * **Default**: 168 (7 days)"
-kafka_configurations > ``persistence_size``,Conditional Mandatory,"* The amount of storage allocated for **each** Kafka persistent volume.
-* **Important: Total Kafka storage =** ``persistence_size * 6 pods``
-  * 3 Kafka brokers (each gets ``persistence_size`` storage)
-  * 3 Kafka controllers (each gets ``persistence_size`` storage)
-*  **Example:** ``8Gi * 6 = 48Gi`` total Kafka storage
-* **Accepted values:** Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
-* **Default value:** ``8Gi`` (results in **48Gi total storage**)
-* The default ``8Gi`` size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, you should increase the ``persistent size`` and adjust ``log_retention_hours`` and ``log_retention_bytes`` based on expected data volume and cluster size.
-.. caution:: Ensure that the Kafka broker settings ``persistence_size``, ``log_retention_hours``, and ``log_retention_bytes`` are configured based on your data retention requirements. If the persistent volume reaches its capacity before logs are deleted according to the log retention period configured, Kafka brokers may run out of disk space.  For more details on managing Kafka log retention and cleanup policies, see `Managing Kafka logs with delete and compact policies <https://strimzi.io/docs/operators/in-development/deploying#managing_kafka_logs_with_delete_and_compact_policies>`_."
-kafka_configurations > ``log_retention_hours``,Conditional Mandatory,"*  Specify the number of hours to retain Kafka logs before they are deleted.
-*  **Default**: 168 (7 days)"
-kafka_configurations > ``log_retention_bytes``,Conditional Mandatory,"* Specify the maximum size of Kafka logs (in bytes) before they are deleted.
+telemetry_sinks > ``victoria_logs`` > ``storage_size``,Conditional Mandatory,"* Storage per vlstorage pod PVC
+* **Total storage = storage_size × 3 vlstorage pods**
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``8Gi`` (results in **24Gi total storage**)
+* **Sizing formula**: (140 MB/day × retention_days × node_count) / 3 replicas
+.. warning:: Storage under-provisioning can lead to data loss before the retention period is reached. Calculate storage requirements based on expected log volume and retention needs."
+telemetry_sinks > ``victoria_logs`` > ``retention_period``,Conditional Mandatory,"* Log retention period in hours
+* **Type**: Integer (hours)
+* **Accepted values**: 24-8760 (1 day to 1 year)
+* **Default**: 168 (7 days)
+* **Note**: Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations."
+telemetry_sinks > ``kafka`` > ``persistence_size``,Conditional Mandatory,"* Storage per Kafka pod PVC
+* **Total = persistence_size × 6 pods (3 brokers + 3 controllers)**
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``8Gi`` (results in **48Gi total storage**)
+* The default ``8Gi`` size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, you should increase the ``persistence_size`` and adjust ``log_retention_hours`` and ``log_retention_bytes`` based on expected data volume and cluster size.
+.. caution:: Ensure that the Kafka broker settings ``persistence_size``, ``log_retention_hours``, and ``log_retention_bytes`` are configured based on your data retention requirements. If the persistent volume reaches its capacity before logs are deleted according to the log retention period configured, Kafka brokers may run out of disk space. For more details on managing Kafka log retention and cleanup policies, see `Managing Kafka logs with delete and compact policies <https://strimzi.io/docs/operators/in-development/deploying#managing_kafka_logs_with_delete_and_compact_policies>`_."
+telemetry_sinks > ``kafka`` > ``log_retention_hours``,Conditional Mandatory,"* Log retention period in hours
+* **Default**: 168 (7 days)"
+telemetry_sinks > ``kafka`` > ``log_retention_bytes``,Conditional Mandatory,"* Maximum size of Kafka logs (in bytes) before deletion
 * **Default**: -1 (unlimited)"
-kafka_configurations > ``log_segment_bytes``,Conditional Mandatory,"
-* Specify the maximum size of Kafka log segments (in bytes) before they are deleted.
+telemetry_sinks > ``kafka`` > ``log_segment_bytes``,Conditional Mandatory,"* Maximum size of Kafka log segments (in bytes)
 * **Default**: 1073741824 (1 GB)"
-kafka_configurations > ``topic_partitions``,Conditional Mandatory,"* Specify the partition counts for the following topics:
-  * idrac
-  * ldms
-  * ome
-
-* Default partition counts: ``idrac=1``, ``ldms=2``, ``ome=1``
-
-* Example:
-
-  topic_partitions:
-
-    name: ""idrac""
-
-    partitions: 1
-
-    name: ""ldms""
-
-    partitions: 2       "
-LDMS port configurations > ``ldms_agg_port``,Conditional Mandatory,"*  Specify the aggregator port to be used on the service k8s cluster.
+telemetry_sinks > ``kafka`` > ``topic_partitions``,Conditional Mandatory,"* Topic partitions per source (auto-created for enabled sources targeting kafka)
+* Only sources with kafka in collection_targets get topics
+* Topic name = source name (e.g., ``idrac``, ``ldms``)
+* **Default partition counts**: ``idrac=1``, ``ldms=2``"
+ldms_configurations > ``agg_port``,Conditional Mandatory,"* Aggregator port on service K8s cluster
 * **Valid range**: 6001-6100
 * **Default**: 6001"
-LDMS port configurations > ``ldms_store_port``,Conditional Mandatory,"*  Specify the store daemon port to be used on the service k8s cluster
-* The port can be the same as LDMS aggregator port specified for ``ldms_agg_port``
+ldms_configurations > ``store_port``,Conditional Mandatory,"* Store daemon port on service K8s cluster
+* The port can be the same as LDMS aggregator port
 * **Valid range**: 6001-6100
 * **Default**: 6001"
-LDMS port configurations > ``ldms_sampler_port``,Conditional Mandatory,"* Specify the sampler port to be used on the compute nodes.
+ldms_configurations > ``sampler_port``,Conditional Mandatory,"* Sampler port on compute nodes
 * **Valid range**: 10001-10100
 * **Default**: 10001"
-ldms_sampler_configurations > ``meminfo``,Mandatory,"* Collects memory usage statistics (free, used, buffers, cached, etc.).
-* **plugin_name:** ``meminfo``
-* **config_parameters** ``""""``
-*  **activation_parameters**:``interval=1000000``  indicates memory data  metrics collected every 1 second.
-* The interval unit is microseconds
-"
-ldms_sampler_configurations > ``procstat2``,Mandatory,"* Collects process statistics (CPU, memory, I/O per process).
-* **plugin_name:** ``procstat2``
-* **config_parameters** ``""""``
-* **activation_parameters:** ``interval=1000000``
-* The interval unit is microseconds
-"
-ldms_sampler_configurations > ``vmstat``,Mandatory,"* Collects virtual memory statistics (paging, swapping, memory pressure).
-* **plugin_name:** ``vmstat``
-* **config_parameters** ``""""``
-* **activation_parameters:** ``interval=1000000``
-* The interval unit is microseconds
-"
-ldms_sampler_configurations > ``loadavg``,Mandatory,"* Collects system load average (1, 5, and 15 minute averages).
-* **plugin_name:** ``loadavg``
-* **config_parameters:** ``""""``
-* **activation_parameters** ``interval=1000000``
-* The interval unit is microseconds
-"
-ldms_sampler_configurations > ``procnetdev2``,Mandatory,"* Collects network interface statistics (bytes, packets, errors, drops per interface)
-* The possible config parameters are:
-    * ifaces=eth0,eth1: Specific interfaces to monitor
-    * If not specified, all network interfaces will be monitored
-* **plugin_name**: procnetdev2
-* **config_parameters**: """"  
-* **activation_parameters**: ``interval=1000000 offset=0``
-* The interval unit is microseconds"
+ldms_configurations > ``sampler_plugins``,Mandatory,"* Sampler plugins define which metrics to collect from compute nodes
+* **Parameters**:
+    * plugin_name: Name of the LDMS sampler plugin
+    * config_parameters: Plugin-specific configuration (as a single string)
+    * activation_parameters: Collection schedule in MICROSECONDS
+        Format: ``interval=<microseconds> offset=<microseconds>``
+        Example: ``interval=30000000`` (30 seconds)
+* **Default plugins**:
+    * ``meminfo``: Memory usage statistics (free, used, buffers, cached)
+    * ``procstat2``: Process statistics (CPU, memory, I/O per process)
+    * ``vmstat``: Virtual memory statistics (paging, swapping, memory pressure)
+    * ``loadavg``: System load average (1, 5, and 15 minute averages)
+    * ``procnetdev2``: Network interface statistics (bytes, packets, errors, drops per interface)
+* **Default activation_parameters**: ``interval=30000000`` (30 seconds for all plugins except procnetdev2 which includes offset=0)"
+powerscale_configurations > ``otel_collector_storage_size``,Conditional Mandatory,"* PVC size for OTEL Collector metric batching and buffering
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``5Gi``"
+powerscale_configurations > ``csm_observability_values_file_path``,Conditional Mandatory,"* Path to the CSM Observability (Karavi Observability) values.yaml file
+* **Required when**: powerscale_configurations.powerscale_telemetry_support: true
+* **Reference**: https://github.com/dell/helm-charts/blob/main/charts/karavi-observability/values.yaml
+* **Default value**: ``""``"
+powerscale_configurations > ``additional_remote_write_endpoints``,Optional,"* Additional victoria_metrics remote_write endpoints (optional)
+* **Default**: [] (empty — only the primary Omnia victoria_metrics endpoint is used)
+* **Format**: List of endpoint URLs"
