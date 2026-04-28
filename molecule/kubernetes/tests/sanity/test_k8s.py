@@ -219,7 +219,6 @@ def test_kubectl_version(oim_ops):
     details_lines = []
     for node_name, is_correct, actual_version, error in (results or []):
         if error:
-            # Check if it's an SSH/connectivity error (unreachable node)
             if "No route to host" in error or "Connection refused" in error or "Connection timed out" in error:
                 details_lines.append(f"{node_name}: SKIPPED (unreachable)")
             else:
@@ -259,8 +258,6 @@ def test_all_nodes_using_crio(oim_ops):
     log.check(
         f"Validating container runtime is {EXPECTED_CONTAINER_RUNTIME}://{expected_version}",
     )
-
-    # Verify container runtime on all nodes using the new method
     all_passed, results = oim_ops.verify_all_nodes_container_runtime(
         expected_runtime=EXPECTED_CONTAINER_RUNTIME,
         expected_version=expected_version,
@@ -270,7 +267,6 @@ def test_all_nodes_using_crio(oim_ops):
         log.passed("All nodes are using expected container runtime", details)
     else:
         log.failed("One or more nodes are not using expected container runtime", details)
-
     assert all_passed, "Container runtime check failed. See above for details."
 
 # =============================================================================
@@ -326,22 +322,20 @@ def test_etcd_leader_and_consistency(oim_ops):
     log = TestLogger("Verify etcd leader and consistency")
     log.check("Collecting control plane admin IPs from PXE mapping file")
     log.check("Running etcdctl endpoint status across all control plane nodes")
-    
     result = oim_ops.verify_etcd_leader_and_consistency()
-    
     if not result["success"]:
         log.failed(result["message"])
         assert False, result["message"]
-    
     log.check(f"etcd leader identified: {result['leader_ip']}")
     log.check(f"RAFT term: {result.get('raft_term', 'N/A')}")
     log.check(f"RAFT index: {result.get('raft_index', 'N/A')}")
-    
     log.check("Member status:")
     for member in result.get("members", []):
         leader_status = "LEADER" if member["is_leader"] else "FOLLOWER"
-        log.check(f"  {member['ip']} - {leader_status} (term: {member['raft_term']}, index: {member['raft_index']})")
-    
+        log.check(
+            f"  {member['ip']} - {leader_status} "
+            f"(term: {member['raft_term']}, index: {member['raft_index']})"
+        )
     log.passed(result["message"])
     assert result["success"], result["message"]
 
@@ -352,12 +346,7 @@ def test_etcd_leader_and_consistency(oim_ops):
 @pytest.mark.sanity
 @pytest.mark.order(17)
 def test_virtual_ip_configured_to_single_control_plane(oim_ops):
-    """
-    Test that virtual_ip_address is configured on exactly one control plane node.
-
-    This test verifies that the virtual IP defined in the high availability config
-    is configured on exactly one of the control plane nodes in the Kubernetes cluster.
-    """
+    """Test that virtual_ip_address is configured on exactly one control plane node."""
     log = TestLogger("Verify virtual IP is configured on exactly one control plane")
     log.check("Checking VIP ownership across control-plane nodes")
     success, message = oim_ops.verify_virtual_ip_configuration()
@@ -372,12 +361,7 @@ def test_virtual_ip_configured_to_single_control_plane(oim_ops):
 # =============================================================================
 
 def _check_pods_with_prefix(oim_ops, prefix, component_name):
-    """
-    Helper function to check pods with a given prefix.
-
-    This is a wrapper around the OIMOperations.verify_pods_with_prefix method
-    to maintain backward compatibility with existing test code.
-    """
+    """Helper to check pods with a given prefix."""
     log = TestLogger(f"Verify {component_name} pods are running")
     log.check(f"Checking pods with prefix '{prefix}'")
     success, message = oim_ops.verify_pods_with_prefix(prefix, component_name)
@@ -538,12 +522,198 @@ def test_default_storage_class_csi(oim_ops):
         log.failed(message)
     assert success, f"Storage class verification failed: {message}"
 
+@pytest.mark.sanity
+@pytest.mark.order(31)
+def test_persistent_volumes_with_nfs(oim_ops):
+    """Test that all Persistent Volumes are in the expected state when NFS is configured."""
+    log = TestLogger("Verify Persistent Volumes with NFS")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("PV check skipped", config_message)
+        pytest.skip(config_message)
+    if configured:
+        log.passed("PV check skipped", config_message)
+        pytest.skip(config_message)
+    log.check("Validating PVs use storageClass=nfs-client")
+    success, message = oim_ops.verify_persistent_volumes(expected_storage_class="nfs-client")
+    if success:
+        log.passed(message)
+    else:
+        log.failed(message)
+    assert success, message
+
+@pytest.mark.sanity
+@pytest.mark.order(32)
+def test_persistent_volumes_with_csi(oim_ops):
+    """Test that all Persistent Volumes are in the expected state when CSI is configured."""
+    log = TestLogger("Verify Persistent Volumes with CSI")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("PV check skipped", config_message)
+        pytest.skip(config_message)
+    if not configured:
+        log.passed("PV check skipped", config_message)
+        pytest.skip(config_message)
+    log.check(f"Validating PVs use storageClass={DEFAULT_STORAGE_CLASS}")
+    success, message = oim_ops.verify_persistent_volumes(
+        expected_storage_class=DEFAULT_STORAGE_CLASS,
+    )
+    if success:
+        log.passed(message)
+    else:
+        log.failed(message)
+    assert success, message
+
 # =============================================================================
-# 11. APPLICATION DEPLOYMENT TESTS
+# 11. NFS STORAGE VERIFICATION TESTS
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(31)
+@pytest.mark.order(33)
+def test_nfs_storage_class_dynamic(oim_ops):
+    """Verify the NFS StorageClass is dynamic and properly configured."""
+    log = TestLogger("Verify NFS StorageClass is dynamic")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("NFS StorageClass check skipped", config_message)
+        pytest.skip(config_message)
+    if configured:
+        log.passed("NFS StorageClass check skipped", config_message)
+        pytest.skip(config_message)
+    log.check("Verifying StorageClass 'nfs-client' exists and is dynamic")
+    success, message, sc_details = oim_ops.verify_nfs_storage_class(storage_class_name="nfs-client")
+    if success:
+        details = (
+            f"provisioner={sc_details.get('provisioner')}, "
+            f"server={sc_details.get('nfs_server')}, "
+            f"path={sc_details.get('nfs_path')}"
+        )
+        log.passed(message, details)
+    else:
+        log.failed(message)
+    assert success, message
+
+
+@pytest.mark.sanity
+@pytest.mark.order(34)
+def test_nfs_telemetry_pvcs_bound(oim_ops):
+    """Verify all telemetry PVCs are Bound with correct storage class, PV, and volume size.
+
+    Checks every PVC in the 'telemetry' namespace against telemetry_config.yml:
+      - Kafka PVCs size == kafka_configurations.persistence_size
+      - vmstorage/vlstorage PVC size == victoria_configurations.persistence_size
+      - All PVCs: phase=Bound, storageClass=nfs-client, volumeName set
+    """
+    log = TestLogger("Verify telemetry PVCs Bound with correct PV and size")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("Telemetry PVC check skipped", config_message)
+        pytest.skip(config_message)
+    if configured:
+        log.passed("Telemetry PVC check skipped", config_message)
+        pytest.skip(config_message)
+    log.check("Verifying all PVCs in 'telemetry' namespace: Bound, nfs-client SC, correct size from telemetry_config.yml")
+    success, message, pvc_results = oim_ops.verify_telemetry_pvcs(
+        storage_class_name="nfs-client", namespace="telemetry",
+    )
+    for r in pvc_results:
+        status = "OK" if r.get("success") else "FAIL"
+        issues = "; ".join(r.get("issues", [])) or "OK"
+        log.check(
+            f"[{status}] {r.get('pvc')}: phase={r.get('phase')}, "
+            f"SC={r.get('storageClass')}, PV={r.get('volumeName') or 'NONE'}, "
+            f"size={r.get('actualSize')} | {issues}"
+        )
+    if success:
+        log.passed(message)
+    else:
+        log.failed(message)
+    assert success, message
+
+
+@pytest.mark.sanity
+@pytest.mark.order(35)
+def test_nfs_backend_directories(oim_ops):
+    """Verify NFS backend directories exist for each PV with correct permissions."""
+    log = TestLogger("Verify NFS backend directories")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("NFS backend directory check skipped", config_message)
+        pytest.skip(config_message)
+    if configured:
+        log.passed("NFS backend directory check skipped", config_message)
+        pytest.skip(config_message)
+    log.check("Checking NFS backend directories and permissions for all NFS PVs")
+    success, message, dir_results = oim_ops.verify_nfs_backend_directories(storage_class_name="nfs-client")
+    for r in dir_results:
+        status = "OK" if r.get("success") else "FAIL"
+        log.check(
+            f"[{status}] PV {r.get('pv')}: {r.get('path')} on {r.get('nfs_server')} "
+            f"(perms: {r.get('permissions', r.get('reason', ''))})"
+        )
+    if success:
+        log.passed(message)
+    else:
+        log.failed(message)
+    assert success, message
+
+
+# =============================================================================
+# 12. CSI STORAGE VERIFICATION TESTS
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(36)
+def test_csi_telemetry_pvcs_bound(oim_ops):
+    """Verify all telemetry PVCs are Bound with the CSI storage class, correct PV, and volume size.
+
+    Checks every PVC in the 'telemetry' namespace against telemetry_config.yml:
+      - Kafka PVCs size == kafka_configurations.persistence_size
+      - vmstorage/vlstorage PVC size == victoria_configurations.persistence_size
+      - All PVCs: phase=Bound, storageClass=DEFAULT_STORAGE_CLASS, volumeName set
+    """
+    log = TestLogger("Verify CSI telemetry PVCs Bound with correct PV and size")
+    log.check("Checking if PowerScale CSI is configured")
+    configured, config_message = oim_ops.is_powerscale_csi_configured_in_software_config()
+    if configured is None:
+        log.passed("CSI telemetry PVC check skipped", config_message)
+        pytest.skip(config_message)
+    if not configured:
+        log.passed("CSI telemetry PVC check skipped", config_message)
+        pytest.skip(config_message)
+    log.check(
+        f"Verifying all PVCs in 'telemetry' namespace: Bound, {DEFAULT_STORAGE_CLASS} SC, "
+        "correct size from telemetry_config.yml"
+    )
+    success, message, pvc_results = oim_ops.verify_telemetry_pvcs(
+        storage_class_name=DEFAULT_STORAGE_CLASS, namespace="telemetry",
+    )
+    for r in pvc_results:
+        status = "OK" if r.get("success") else "FAIL"
+        issues = "; ".join(r.get("issues", [])) or "OK"
+        log.check(
+            f"[{status}] {r.get('pvc')}: phase={r.get('phase')}, "
+            f"SC={r.get('storageClass')}, PV={r.get('volumeName') or 'NONE'}, "
+            f"size={r.get('actualSize')} | {issues}"
+        )
+    if success:
+        log.passed(message)
+    else:
+        log.failed(message)
+    assert success, message
+
+
+# =============================================================================
+# 13. APPLICATION DEPLOYMENT TESTS
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(37)
 def test_deploy_basic_busybox_pod(oim_ops):
     """Deploy a basic BusyBox pod and verify it reaches Running/Ready state."""
     log = TestLogger("Deploy and verify BusyBox pod")
@@ -563,7 +733,7 @@ def test_deploy_basic_busybox_pod(oim_ops):
     assert success, message
 
 @pytest.mark.sanity
-@pytest.mark.order(32)
+@pytest.mark.order(38)
 def test_pvc_pv_bound_and_pod_running_powerscale(oim_ops):
     """Verify PowerScale PVC/PV binding and a test pod reaching Running/Ready."""
     log = TestLogger("Verify PowerScale PVC/PV bind and pod running")

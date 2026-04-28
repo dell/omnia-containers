@@ -84,6 +84,61 @@ from automation_library.kubernetes.messages.k8s_msgs import (
     K8S_VIP_FAILOVER_PASSED,
     K8S_VIP_FAILOVER_FAILED,
     K8S_VIP_FAILOVER_MULTI,
+    ERR_NO_CONTROL_PLANE_HOST,
+    ERR_NO_NODES_IN_PXE,
+    ERR_NO_CP_IN_PXE,
+    ERR_NO_CP_ADMIN_IPS,
+    ERR_CP_MISSING_HOST,
+    ERR_CP_MISSING_ADMIN_IP,
+    ERR_NO_VALID_CP_IPS,
+    NFS_SC_NOT_FOUND,
+    NFS_SC_PARSE_ERROR,
+    NFS_SC_NO_DYNAMIC_PROVISIONER,
+    NFS_SC_UNEXPECTED_BINDING_MODE,
+    NFS_SC_NO_SERVER,
+    NFS_SC_NO_PATH,
+    NFS_SC_VALIDATION_FAILED,
+    NFS_SC_DYNAMIC,
+    NFS_SC_ERROR,
+    TELEMETRY_PVC_READ_CONFIG_ERROR,
+    TELEMETRY_PVC_PARSE_CONFIG_ERROR,
+    TELEMETRY_PVC_GET_ERROR,
+    TELEMETRY_PVC_PARSE_ERROR,
+    TELEMETRY_PVC_NONE_FOUND,
+    TELEMETRY_PVC_PHASE_MISMATCH,
+    TELEMETRY_PVC_SC_MISMATCH,
+    TELEMETRY_PVC_NO_VOLUME,
+    TELEMETRY_PVC_KAFKA_SIZE_MISMATCH,
+    TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH,
+    TELEMETRY_PVC_CHECK_FAILED,
+    TELEMETRY_PVC_CHECK_PASSED,
+    TELEMETRY_PVC_ERROR,
+    NFS_DIR_GET_PV_ERROR,
+    NFS_DIR_PARSE_PV_ERROR,
+    NFS_DIR_NO_PVS,
+    NFS_DIR_MOUNT_ERROR,
+    NFS_DIR_NOT_FOUND,
+    NFS_DIR_NOT_FOUND_REASON,
+    NFS_DIR_CHECK_FAILED,
+    NFS_DIR_CHECK_PASSED,
+    NFS_DIR_ERROR,
+    SC_GET_ERROR,
+    SC_NONE_FOUND,
+    SC_NOT_FOUND,
+    SC_NOT_DEFAULT,
+    SC_IS_DEFAULT,
+    SC_PARSE_ERROR,
+    SC_VERIFY_ERROR,
+    ETCD_PODS_FIND_FAILED,
+    ETCD_PODS_NONE_FOUND,
+    ETCD_HEALTH_ALL_PASSED,
+    ETCD_HEALTH_PARTIAL,
+    ETCD_HEALTH_NO_OUTPUT,
+    ETCD_MEMBER_COUNT_MISMATCH,
+    ETCD_MEMBER_LIST_PASSED,
+    ETCD_MEMBER_LIST_FAILED,
+    ETCD_LEADER_FAILED_RUN,
+    ETCD_LEADER_PARSE_FAILED,
 )
 from automation_library.kubernetes.vars.k8s_vars import (
     CRI_O_SERVICE,
@@ -103,12 +158,39 @@ from automation_library.kubernetes.vars.k8s_vars import (
     K8S_NODE_READY_POLL,
     K8S_VIP_FAILOVER_TIMEOUT,
     K8S_VIP_FAILOVER_POLL,
+    PXE_MAPPING_FILE_PATH,
+    TELEMETRY_CONFIG_PATH,
+    NFS_DEFAULT_STORAGE_CLASS,
+    NFS_PROVISIONER_POD_PREFIX,
+    NFS_PROVISIONER_APP_LABEL,
+    NFS_SERVER_ENV_VAR,
+    NFS_PATH_ENV_VAR,
+    NFS_MANUAL_PROVISIONER,
+    SC_BINDING_MODE_IMMEDIATE,
+    NFS_MOUNT_TMP_PREFIX,
+    NFS_MOUNT_OPTIONS,
+    SC_DEFAULT_ANNOTATION,
+    SC_DEFAULT_ANNOTATION_BETA,
+    TELEMETRY_NAMESPACE,
+    TELEMETRY_KAFKA_PVC_PATTERN,
+    TELEMETRY_VMSTORAGE_PVC_PATTERN,
+    TELEMETRY_VLSTORAGE_PVC_PATTERN,
+    TELEMETRY_KAFKA_CFG_SECTION,
+    TELEMETRY_VICTORIA_CFG_SECTION,
+    TELEMETRY_PERSISTENCE_SIZE_KEY,
+    ETCD_NAMESPACE,
+    ETCD_PORT,
+    ETCD_PKI_CACERT,
+    ETCD_PKI_CERT,
+    ETCD_PKI_KEY,
+    ETCD_RAFT_DELTA_MAX,
+    K8S_CMD_TEMPLATES,
+    NFS_CMD_TEMPLATES,
 )
 
 # Constants
 USER_CONFIG_PATH = DEFAULT_USER_CONFIG_PATH
 OMNIA_CORE_CONTAINER_NAME = "omnia_core"
-PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 
 class OIMOperations:
     """Collection of Kubernetes validation helpers used by OMNIA automation."""
@@ -440,34 +522,34 @@ class OIMOperations:
         if not watcher_host:
             return False, "Control-plane node missing hostname/admin_ip in PXE mapping", ""
 
-        endpoints = ",".join([f"https://{ip}:2379" for ip in admin_ips])
+        endpoints = ",".join([f"https://{ip}:{ETCD_PORT}" for ip in admin_ips])
 
         # Get all etcd pods
-        find_pods_inner = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        find_pods_inner = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
         find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
         rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
         if rc != 0 or not out:
-            return False, f"Failed to find etcd pods: {err or out}", (err or out or "")
+            return False, ETCD_PODS_FIND_FAILED.format(error=err or out), (err or out or "")
 
         etcd_pods = [line.strip().replace("pod/", "") for line in (out or "").splitlines() if line.strip()]
         if not etcd_pods:
-            return False, "No etcd pods found in kube-system namespace", out
+            return False, ETCD_PODS_NONE_FOUND, out
 
-        etcdctl_cmd = (
-            "ETCDCTL_API=3 etcdctl "
-            f"--endpoints={shlex.quote(endpoints)} "
-            "--cacert=/etc/kubernetes/pki/etcd/ca.crt "
-            "--cert=/etc/kubernetes/pki/etcd/server.crt "
-            "--key=/etc/kubernetes/pki/etcd/server.key "
-            "endpoint health"
+        etcdctl_cmd = K8S_CMD_TEMPLATES["etcdctl_health"].format(
+            endpoints=shlex.quote(endpoints),
+            cacert=ETCD_PKI_CACERT,
+            cert=ETCD_PKI_CERT,
+            key=ETCD_PKI_KEY,
         )
 
         # Try each etcd pod until one succeeds or we get valid output
         last_error = ""
         last_output = ""
         for etcd_pod in etcd_pods:
-            exec_inner = (
-                f"kubectl exec -n kube-system {shlex.quote(etcd_pod)} -- sh -lc {shlex.quote(etcdctl_cmd)}"
+            exec_inner = K8S_CMD_TEMPLATES["kubectl_exec_sh_lc"].format(
+                namespace=ETCD_NAMESPACE,
+                pod=shlex.quote(etcd_pod),
+                cmd=shlex.quote(etcdctl_cmd),
             )
             exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
             rc, out, err = self._ssh_from_omnia_core(watcher_host, exec_cmd)
@@ -478,25 +560,23 @@ class OIMOperations:
             health_lines = [line for line in (out or "").splitlines() if line.strip()]
             healthy_count = sum(1 for line in health_lines if "is healthy" in line.lower())
             unhealthy_count = sum(1 for line in health_lines if "is unhealthy" in line.lower())
-            
-            # If we got health status output, process it
+
             if healthy_count > 0 or unhealthy_count > 0:
                 expected_count = len(admin_ips)
-                
-                # Fail if ANY endpoint is unhealthy
                 if healthy_count == expected_count:
-                    return True, f"All {expected_count} etcd endpoints are healthy", output
-                else:
-                    # Get details of unhealthy endpoints
-                    unhealthy_endpoints = [line.split()[0] for line in health_lines if "is unhealthy" in line.lower()]
-                    return False, f"Not all etcd endpoints are healthy: {healthy_count}/{expected_count} healthy. Unhealthy endpoints: {', '.join(unhealthy_endpoints)}", output
+                    return True, ETCD_HEALTH_ALL_PASSED.format(count=expected_count), output
+                unhealthy_endpoints = [
+                    line.split()[0] for line in health_lines if "is unhealthy" in line.lower()
+                ]
+                return False, ETCD_HEALTH_PARTIAL.format(
+                    healthy=healthy_count, total=expected_count,
+                    unhealthy=", ".join(unhealthy_endpoints),
+                ), output
             else:
-                # No valid health output, try next pod
                 last_error = f"Pod {etcd_pod}: no valid health output"
                 last_output = output
 
-        # All pods failed to provide valid output
-        return False, f"etcdctl endpoint health failed on all etcd pods. Last error: {last_error}", last_output
+        return False, ETCD_HEALTH_NO_OUTPUT.format(error=last_error), last_output
 
     def verify_container_runtime_via_crictl(self, expected_runtime, expected_version):
         """
@@ -1481,7 +1561,7 @@ class OIMOperations:
             control_plane_host = control_plane.get("hostname") or control_plane.get("admin_ip")
 
             # Get all pods in all namespaces to find the NFS provisioner pod
-            cmd = "kubectl get pods --all-namespaces -o json"
+            cmd = K8S_CMD_TEMPLATES["get_pods_all_json"]
             rc, out, err = self._ssh_from_omnia_core(control_plane_host, cmd)
 
             if rc != 0:
@@ -1493,7 +1573,7 @@ class OIMOperations:
                 pods_data = json.loads(out)
                 for item in pods_data.get('items', []):
                     pod_name = item.get('metadata', {}).get('name', '')
-                    if pod_name.startswith('nfs-client-nfs-subdir-external-provisioner'):
+                    if pod_name.startswith(NFS_PROVISIONER_POD_PREFIX):
                         deletion_timestamp = item.get('metadata', {}).get('deletionTimestamp')
                         phase = item.get('status', {}).get('phase', 'Unknown')
                         effective_status = 'Terminating' if deletion_timestamp else phase
@@ -1521,6 +1601,370 @@ class OIMOperations:
 
         except Exception as e:
             return False, f"Error verifying NFS provisioner pod: {str(e)}", {}
+
+    def _get_nfs_provisioner_server_path(self, control_plane_host):
+        """Get NFS server and path from the nfs-subdir-external-provisioner pod env vars.
+
+        The Helm chart for nfs-subdir-external-provisioner stores NFS_SERVER and NFS_PATH
+        as container env vars in the provisioner deployment, not in the StorageClass parameters.
+
+        Returns:
+            tuple: (nfs_server, nfs_path) strings, or (None, None) if not found
+        """
+        cmd = NFS_CMD_TEMPLATES["get_provisioner_pods"].format(
+            app_label=NFS_PROVISIONER_APP_LABEL,
+        )
+        rc, out, _ = self._ssh_from_omnia_core(control_plane_host, cmd)
+        if rc != 0 or not out:
+            return None, None
+        try:
+            pods = json.loads(out)
+            for pod in pods.get("items", []):
+                for container in pod.get("spec", {}).get("containers", []):
+                    env_map = {e["name"]: e.get("value", "") for e in container.get("env", [])}
+                    nfs_server = env_map.get(NFS_SERVER_ENV_VAR, "")
+                    nfs_path = env_map.get(NFS_PATH_ENV_VAR, "")
+                    if nfs_server and nfs_path:
+                        return nfs_server, nfs_path
+        except (json.JSONDecodeError, KeyError):
+            pass
+        return None, None
+
+    def verify_nfs_storage_class(self, storage_class_name="nfs-client"):
+        """Verify the NFS StorageClass exists, has a dynamic provisioner, and is usable.
+
+        Checks:
+          - StorageClass exists
+          - Provisioner is set and not manual (kubernetes.io/no-provisioner)
+          - volumeBindingMode is Immediate or unset (default Immediate)
+          - NFS server and path resolved from provisioner pod env vars (NFS_SERVER, NFS_PATH)
+
+        Returns:
+            tuple: (bool, str, dict) - (success, message, sc_details)
+        """
+        try:
+            pxe_mapping = self.read_pxe_mapping_file()
+            nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
+            control_plane = self._get_control_plane_node(nodes)
+            control_plane_host = control_plane.get("hostname") or control_plane.get("admin_ip")
+            if not control_plane_host:
+                return False, "Control plane node has no hostname or IP address", {}
+
+            rc, out, err = self._ssh_from_omnia_core(
+                control_plane_host,
+                K8S_CMD_TEMPLATES["get_sc_name_json"].format(name=storage_class_name),
+            )
+            if rc != 0:
+                return False, NFS_SC_NOT_FOUND.format(name=storage_class_name, error=err or out), {}
+
+            try:
+                sc = json.loads(out)
+            except json.JSONDecodeError as e:
+                return False, NFS_SC_PARSE_ERROR.format(error=str(e)), {}
+
+            provisioner = sc.get("provisioner", "")
+            reclaim_policy = sc.get("reclaimPolicy", "")
+            binding_mode = sc.get("volumeBindingMode", "")
+
+            # NFS server/path are in the provisioner pod env vars, not SC parameters
+            nfs_server, nfs_path = self._get_nfs_provisioner_server_path(control_plane_host)
+
+            sc_details = {
+                "name": storage_class_name,
+                "provisioner": provisioner,
+                "reclaimPolicy": reclaim_policy,
+                "volumeBindingMode": binding_mode or SC_BINDING_MODE_IMMEDIATE,
+                "nfs_server": nfs_server or "",
+                "nfs_path": nfs_path or "",
+            }
+
+            errors = []
+            if not provisioner or provisioner == NFS_MANUAL_PROVISIONER:
+                errors.append(NFS_SC_NO_DYNAMIC_PROVISIONER.format(provisioner=provisioner))
+            if binding_mode and binding_mode != SC_BINDING_MODE_IMMEDIATE:
+                errors.append(NFS_SC_UNEXPECTED_BINDING_MODE.format(mode=binding_mode))
+            if not nfs_server:
+                errors.append(NFS_SC_NO_SERVER)
+            if not nfs_path:
+                errors.append(NFS_SC_NO_PATH)
+
+            if errors:
+                return False, NFS_SC_VALIDATION_FAILED.format(
+                    name=storage_class_name, errors="; ".join(errors),
+                ), sc_details
+
+            return True, NFS_SC_DYNAMIC.format(
+                name=storage_class_name, provisioner=provisioner,
+                server=nfs_server, path=nfs_path,
+            ), sc_details
+
+        except Exception as e:
+            return False, NFS_SC_ERROR.format(error=str(e)), {}
+
+    def _read_telemetry_config(self):
+        """Read and parse telemetry_config.yml from the omnia_core container.
+
+        Returns:
+            tuple: (dict or None, error_str or None)
+        """
+        rc, out, err = self._run_in_omnia_core(f"cat {TELEMETRY_CONFIG_PATH}", check=False)
+        if rc != 0:
+            return None, TELEMETRY_PVC_READ_CONFIG_ERROR.format(error=err or out)
+        try:
+            return yaml.safe_load(out), None
+        except yaml.YAMLError as e:
+            return None, TELEMETRY_PVC_PARSE_CONFIG_ERROR.format(error=str(e))
+
+    def verify_telemetry_pvcs(self, storage_class_name="nfs-client", namespace="telemetry"):
+        """Verify all telemetry PVCs are Bound with correct storage class, PV, and volume size.
+
+        Reads telemetry_config.yml to validate expected storage sizes:
+          - PVCs with 'kafka' in the name: kafka_configurations.persistence_size
+          - PVCs with 'vmstorage' in the name: victoria_configurations.persistence_size
+          - PVCs with 'vlstorage' in the name: victoria_configurations.persistence_size
+          - Other PVCs (mysql, vlagent, etc.): verified Bound and correct SC only
+
+        Works for both NFS (storage_class_name='nfs-client') and CSI (e.g. 'ps01') setups.
+
+        Returns:
+            tuple: (bool, str, list) - (success, message, pvc_results)
+        """
+        try:
+            telemetry_cfg, cfg_err = self._read_telemetry_config()
+            if cfg_err:
+                return False, cfg_err, []
+
+            kafka_size = (
+                (telemetry_cfg.get(TELEMETRY_KAFKA_CFG_SECTION) or {})
+                .get(TELEMETRY_PERSISTENCE_SIZE_KEY, "")
+            )
+            victoria_size = (
+                (telemetry_cfg.get(TELEMETRY_VICTORIA_CFG_SECTION) or {})
+                .get(TELEMETRY_PERSISTENCE_SIZE_KEY, "")
+            )
+
+            pxe_mapping = self.read_pxe_mapping_file()
+            nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
+            control_plane = self._get_control_plane_node(nodes)
+            control_plane_host = control_plane.get("hostname") or control_plane.get("admin_ip")
+            if not control_plane_host:
+                return False, ERR_NO_CONTROL_PLANE_HOST, []
+
+            rc, out, err = self._ssh_from_omnia_core(
+                control_plane_host,
+                K8S_CMD_TEMPLATES["get_pvc_ns_json"].format(namespace=namespace),
+            )
+            if rc != 0:
+                return False, TELEMETRY_PVC_GET_ERROR.format(namespace=namespace, error=err or out), []
+
+            try:
+                pvcs_json = json.loads(out)
+            except json.JSONDecodeError as e:
+                return False, TELEMETRY_PVC_PARSE_ERROR.format(error=str(e)), []
+
+            items = pvcs_json.get("items", [])
+            if not items:
+                return False, TELEMETRY_PVC_NONE_FOUND.format(namespace=namespace), []
+
+            pvc_results = []
+            errors = []
+
+            for pvc in items:
+                pvc_name = pvc.get("metadata", {}).get("name", "unknown")
+                phase = pvc.get("status", {}).get("phase", "")
+                sc = pvc.get("spec", {}).get("storageClassName", "")
+                volume_name = pvc.get("spec", {}).get("volumeName", "")
+                actual_size = (
+                    pvc.get("spec", {}).get("resources", {}).get("requests", {}).get("storage", "")
+                )
+
+                result = {
+                    "pvc": pvc_name,
+                    "phase": phase,
+                    "storageClass": sc,
+                    "volumeName": volume_name,
+                    "actualSize": actual_size,
+                    "success": True,
+                    "issues": [],
+                }
+
+                if phase != "Bound":
+                    result["issues"].append(TELEMETRY_PVC_PHASE_MISMATCH.format(phase=phase))
+                if sc != storage_class_name:
+                    result["issues"].append(
+                        TELEMETRY_PVC_SC_MISMATCH.format(sc=sc, expected=storage_class_name)
+                    )
+                if not volume_name:
+                    result["issues"].append(TELEMETRY_PVC_NO_VOLUME)
+
+                if TELEMETRY_KAFKA_PVC_PATTERN in pvc_name and kafka_size:
+                    if actual_size != kafka_size:
+                        result["issues"].append(
+                            TELEMETRY_PVC_KAFKA_SIZE_MISMATCH.format(
+                                actual=actual_size, expected=kafka_size,
+                            )
+                        )
+                elif (
+                    TELEMETRY_VMSTORAGE_PVC_PATTERN in pvc_name
+                    or TELEMETRY_VLSTORAGE_PVC_PATTERN in pvc_name
+                ) and victoria_size:
+                    if actual_size != victoria_size:
+                        result["issues"].append(
+                            TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH.format(
+                                actual=actual_size, expected=victoria_size,
+                            )
+                        )
+
+                if result["issues"]:
+                    result["success"] = False
+                    errors.append(f"PVC {pvc_name}: " + "; ".join(result["issues"]))
+
+                pvc_results.append(result)
+
+            if errors:
+                return False, TELEMETRY_PVC_CHECK_FAILED.format(
+                    failed=len(errors), total=len(items), errors="; ".join(errors),
+                ), pvc_results
+
+            return True, TELEMETRY_PVC_CHECK_PASSED.format(
+                count=len(items), namespace=namespace, sc=storage_class_name,
+            ), pvc_results
+
+        except Exception as e:
+            return False, TELEMETRY_PVC_ERROR.format(error=str(e)), []
+
+    def verify_nfs_backend_directories(self, storage_class_name="nfs-client"):
+        """Verify NFS backend directories exist for each PV and have correct permissions.
+
+        For each PV using the NFS storage class:
+          - Reads NFS server and full path from pv.spec.nfs
+          - Groups PVs by (nfs_server, base_path) to minimise mount operations
+          - Mounts the NFS export read-only on the control plane node
+          - Verifies each PV subdirectory exists and reports permissions
+          - Unmounts after all checks
+
+        Note: Uses NFS mount from the control plane node rather than SSH to the NFS
+        server, since the NFS server may not have SSH access configured.
+
+        Returns:
+            tuple: (bool, str, list) - (success, message, dir_results)
+        """
+        try:
+            pxe_mapping = self.read_pxe_mapping_file()
+            nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
+            control_plane = self._get_control_plane_node(nodes)
+            control_plane_host = control_plane.get("hostname") or control_plane.get("admin_ip")
+            if not control_plane_host:
+                return False, ERR_NO_CONTROL_PLANE_HOST, []
+
+            rc, out, err = self._ssh_from_omnia_core(
+                control_plane_host, K8S_CMD_TEMPLATES["get_pv_json"],
+            )
+            if rc != 0:
+                return False, NFS_DIR_GET_PV_ERROR.format(error=err or out), []
+
+            try:
+                pvs_json = json.loads(out)
+            except json.JSONDecodeError as e:
+                return False, NFS_DIR_PARSE_PV_ERROR.format(error=str(e)), []
+
+            nfs_pvs = [
+                pv for pv in pvs_json.get("items", [])
+                if pv.get("spec", {}).get("storageClassName", "") == storage_class_name
+                and pv.get("spec", {}).get("nfs")
+            ]
+
+            if not nfs_pvs:
+                return True, NFS_DIR_NO_PVS.format(sc=storage_class_name), []
+
+            # Group PVs by (nfs_server, base_path) to share mount points
+            # pv.spec.nfs.path = <base_path>/<subdir> (the provisioner creates one subdir level)
+            mount_groups = {}  # (server, base_path) -> [(pv_name, subdir), ...]
+            for pv in nfs_pvs:
+                pv_name = pv.get("metadata", {}).get("name", "unknown")
+                nfs_spec = pv.get("spec", {}).get("nfs", {})
+                nfs_server = nfs_spec.get("server", "")
+                full_path = nfs_spec.get("path", "").rstrip("/")
+                if not nfs_server or not full_path:
+                    continue
+                parts = full_path.rsplit("/", 1)
+                base_path = parts[0] if len(parts) == 2 else "/"
+                subdir = parts[1] if len(parts) == 2 else full_path.lstrip("/")
+                key = (nfs_server, base_path)
+                mount_groups.setdefault(key, []).append((pv_name, subdir))
+
+            dir_results = []
+            errors = []
+
+            for (nfs_server, base_path), pv_subdirs in mount_groups.items():
+                mount_point = f"{NFS_MOUNT_TMP_PREFIX}{abs(hash((nfs_server, base_path))) % 100000}"
+                mount_cmd = NFS_CMD_TEMPLATES["mount_nfs"].format(
+                    mount_point=mount_point,
+                    options=NFS_MOUNT_OPTIONS,
+                    server=nfs_server,
+                    path=base_path,
+                )
+                rc, out, err = self._ssh_from_omnia_core(control_plane_host, mount_cmd)
+                if rc != 0:
+                    msg = NFS_DIR_MOUNT_ERROR.format(
+                        server=nfs_server, path=base_path, error=err or out,
+                    )
+                    for pv_name, _ in pv_subdirs:
+                        errors.append(f"PV {pv_name}: {msg}")
+                        dir_results.append({
+                            "pv": pv_name, "nfs_server": nfs_server,
+                            "path": base_path, "success": False, "reason": msg,
+                        })
+                    continue
+
+                try:
+                    for pv_name, subdir in pv_subdirs:
+                        full_dir = f"{mount_point}/{subdir}"
+                        check_rc, check_out, _ = self._ssh_from_omnia_core(
+                            control_plane_host,
+                            NFS_CMD_TEMPLATES["check_dir_exists"].format(path=full_dir),
+                        )
+                        exists = check_rc == 0 and "EXISTS" in check_out
+
+                        if not exists:
+                            errors.append(
+                                f"PV {pv_name}: "
+                                + NFS_DIR_NOT_FOUND.format(
+                                    subdir=subdir, server=nfs_server, path=base_path,
+                                )
+                            )
+                            dir_results.append({
+                                "pv": pv_name, "nfs_server": nfs_server,
+                                "path": f"{base_path}/{subdir}", "success": False,
+                                "reason": NFS_DIR_NOT_FOUND_REASON,
+                            })
+                            continue
+
+                        stat_rc, stat_out, _ = self._ssh_from_omnia_core(
+                            control_plane_host,
+                            NFS_CMD_TEMPLATES["stat_dir"].format(path=full_dir),
+                        )
+                        perms = stat_out.strip() if stat_rc == 0 else "unknown"
+                        dir_results.append({
+                            "pv": pv_name, "nfs_server": nfs_server,
+                            "path": f"{base_path}/{subdir}", "success": True,
+                            "permissions": perms,
+                        })
+                finally:
+                    self._ssh_from_omnia_core(
+                        control_plane_host,
+                        NFS_CMD_TEMPLATES["umount_cleanup"].format(mount_point=mount_point),
+                    )
+
+            if errors:
+                return False, NFS_DIR_CHECK_FAILED.format(
+                    failed=len(errors), total=len(nfs_pvs), errors="; ".join(errors),
+                ), dir_results
+
+            return True, NFS_DIR_CHECK_PASSED.format(count=len(nfs_pvs)), dir_results
+
+        except Exception as e:
+            return False, NFS_DIR_ERROR.format(error=str(e)), []
 
     def verify_file_exists(self, file_path):
         """Check if a file exists in the omnia_core container.
@@ -1602,25 +2046,26 @@ class OIMOperations:
             pxe_mapping = self.read_pxe_mapping_file()
             nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
             if not nodes:
-                return False, "No nodes found in PXE mapping"
+                return False, ERR_NO_NODES_IN_PXE
 
             control_plane = self._get_control_plane_node(nodes)
             control_plane_host = control_plane.get("hostname") or control_plane.get("admin_ip")
 
             if not control_plane_host:
-                return False, "Control plane node has no hostname or IP address"
+                return False, ERR_NO_CONTROL_PLANE_HOST
 
             # Run kubectl get sc with output in JSON format
-            cmd = "kubectl get sc -o json"
-            rc, out, err = self._ssh_from_omnia_core(control_plane_host, cmd)
+            rc, out, err = self._ssh_from_omnia_core(
+                control_plane_host, K8S_CMD_TEMPLATES["get_sc_all_json"],
+            )
 
             if rc != 0:
-                return False, f"Failed to get storage classes: {err}"
+                return False, SC_GET_ERROR.format(error=err)
 
             try:
                 sc_data = json.loads(out)
                 if 'items' not in sc_data:
-                    return False, "No storage classes found"
+                    return False, SC_NONE_FOUND
 
                 # Look for the specified storage class and check if it's default
                 target_sc = None
@@ -1630,24 +2075,24 @@ class OIMOperations:
                         break
 
                 if not target_sc:
-                    return False, f"Storage class '{storage_class_name}' not found"
+                    return False, SC_NOT_FOUND.format(name=storage_class_name)
 
                 # Check if it's the default storage class
-                is_default = False
                 annotations = target_sc['metadata'].get('annotations', {})
-                if annotations.get('storageclass.kubernetes.io/is-default-class') == 'true' or \
-                   annotations.get('storageclass.beta.kubernetes.io/is-default-class') == 'true':
-                    is_default = True
+                is_default = (
+                    annotations.get(SC_DEFAULT_ANNOTATION) == 'true'
+                    or annotations.get(SC_DEFAULT_ANNOTATION_BETA) == 'true'
+                )
 
                 if is_default:
-                    return True, f"Storage class '{storage_class_name}' exists and is set as default"
-                return False, f"Storage class '{storage_class_name}' exists but is not set as default"
+                    return True, SC_IS_DEFAULT.format(name=storage_class_name)
+                return False, SC_NOT_DEFAULT.format(name=storage_class_name)
 
             except json.JSONDecodeError as e:
-                return False, f"Failed to parse storage class information: {str(e)}"
+                return False, SC_PARSE_ERROR.format(error=str(e))
 
         except Exception as e:
-            return False, f"Error verifying storage class: {str(e)}"
+            return False, SC_VERIFY_ERROR.format(error=str(e))
 
     def verify_pvc_pv_bound_and_pod_running(
         self,
@@ -1831,55 +2276,15 @@ class OIMOperations:
             return False, {"error": f"Error getting storage class details: {str(e)}"}
 
     def verify_persistent_volumes(self, expected_storage_class: str = "ps01"):
-        """Verify that all Persistent Volumes are in the expected state.
+        """Verify that all Persistent Volumes in the cluster are Bound and use the expected storage class.
+
+        Args:
+            expected_storage_class (str): The expected storageClassName for all PVs.
 
         Returns:
-            tuple: (bool, str) - (True if all PVs are valid, status message)
+            tuple: (bool, str) - (True if all PVs pass validation, status message)
         """
         try:
-            telemetry_config_path = "/opt/omnia/input/project_default/telemetry_config.yml"
-            exists, _, file_info = self.verify_file_exists(telemetry_config_path)
-            if not exists:
-                return False, f"Telemetry config file not found: {telemetry_config_path}"
-
-            telemetry_config_raw = (file_info or {}).get("contents") or ""
-            try:
-                telemetry_config = yaml.safe_load(telemetry_config_raw) or {}
-            except Exception as e:
-                return False, f"Failed to parse telemetry config file: {str(e)}"
-
-            victoria_cfg = telemetry_config.get("victoria_configurations") or {}
-            deployment_mode = str(victoria_cfg.get("deployment_mode") or "cluster").strip().strip('"').strip("'")
-            if deployment_mode not in {"cluster", "single-node"}:
-                deployment_mode = "cluster"
-
-            expected_claim_to_capacity = {
-                "telemetry/mysqldb-pvc-idrac-telemetry-0": "1Gi",
-                "telemetry/data-0-kafka-broker-0": "8Gi",
-                "telemetry/data-0-kafka-broker-1": "8Gi",
-                "telemetry/data-0-kafka-broker-2": "8Gi",
-                "telemetry/data-0-kafka-controller-3": "8Gi",
-                "telemetry/data-0-kafka-controller-4": "8Gi",
-                "telemetry/data-0-kafka-controller-5": "8Gi",
-                "telemetry/vmstorage-data-vmstorage-0": "8Gi",
-                "telemetry/vmstorage-data-vmstorage-1": "8Gi",
-                "telemetry/vmstorage-data-vmstorage-2": "8Gi",
-            }
-
-            if deployment_mode == "single-node":
-                expected_claim_to_capacity = {
-                    k: v
-                    for k, v in expected_claim_to_capacity.items()
-                    if k
-                    not in {
-                        "telemetry/vmstorage-data-vmstorage-1",
-                        "telemetry/vmstorage-data-vmstorage-2",
-                    }
-                }
-
-                if expected_storage_class != "ps01":
-                    expected_claim_to_capacity.pop("default/pvc-powerscale", None)
-
             pxe_mapping = self.read_pxe_mapping_file()
             nodes = self.get_k8s_nodes_from_pxe(pxe_mapping)
             if not nodes:
@@ -1890,62 +2295,58 @@ class OIMOperations:
             if not control_plane_host:
                 return False, "Control plane node has no hostname or IP address"
 
-            # Get PVs in JSON format
-            cmd = "kubectl get pv -o json"
-            rc, out, err = self._ssh_from_omnia_core(control_plane_host, cmd)
-
+            rc, out, err = self._ssh_from_omnia_core(control_plane_host, "kubectl get pv -o json")
             if rc != 0:
-                return False, f"Failed to get PVs: {err}"
+                return False, f"Failed to get PVs: {err or out}"
 
             try:
-                pvs = json.loads(out)
-                if 'items' not in pvs:
-                    return False, "No PVs found in the cluster"
+                pvs_json = json.loads(out)
+            except json.JSONDecodeError as e:
+                return False, f"Failed to parse PV output: {str(e)}"
 
-                errors = []
-                pv_by_claim = {}
-                for pv in pvs['items']:
-                    claim = pv.get('spec', {}).get('claimRef', {}).get('name', '')
-                    namespace = pv.get('spec', {}).get('claimRef', {}).get('namespace', '')
-                    if claim and namespace:
-                        pv_by_claim[f"{namespace}/{claim}"] = pv
+            items = pvs_json.get("items", [])
+            if not items:
+                return True, f"No Persistent Volumes found in the cluster (storageClass={expected_storage_class})"
 
-                for claim_key, expected_capacity in expected_claim_to_capacity.items():
-                    pv = pv_by_claim.get(claim_key)
-                    if not pv:
-                        errors.append(f"Expected PV for claim {claim_key} was not found")
-                        continue
+            errors = []
+            checked = 0
+            for pv in items:
+                name = pv.get("metadata", {}).get("name", "unknown")
+                status = pv.get("status", {}).get("phase", "")
+                storage_class = pv.get("spec", {}).get("storageClassName", "")
+                capacity = pv.get("spec", {}).get("capacity", {}).get("storage", "")
+                claim_ref = pv.get("spec", {}).get("claimRef") or {}
+                claim = f"{claim_ref.get('namespace','')}/{claim_ref.get('name','')}" if claim_ref else ""
 
-                    name = pv.get('metadata', {}).get('name', 'unknown')
-                    status = pv.get('status', {}).get('phase', '')
-                    storage_class = pv.get('spec', {}).get('storageClassName', '')
-                    capacity = pv.get('spec', {}).get('capacity', {}).get('storage', '')
+                # Skip PVs with no storage class (manually provisioned)
+                if not storage_class:
+                    continue
 
-                    if status != 'Bound':
-                        errors.append(
-                            f"PV {name} for claim {claim_key} is not in Bound state (current: {status})"
-                        )
+                checked += 1
 
-                    if storage_class != expected_storage_class:
-                        errors.append(
-                            f"PV {name} for claim {claim_key} has unexpected storage class: {storage_class} (expected: {expected_storage_class})"
-                        )
+                if status != "Bound":
+                    errors.append(
+                        f"PV {name} (claim: {claim}) is not Bound (current: {status})"
+                    )
 
-                    if expected_capacity and capacity != expected_capacity:
-                        errors.append(
-                            f"PV {name} for claim {claim_key} has unexpected capacity: {capacity} (expected: {expected_capacity})"
-                        )
+                if storage_class != expected_storage_class:
+                    errors.append(
+                        f"PV {name} (claim: {claim}) has storageClass={storage_class} (expected: {expected_storage_class}), capacity={capacity}"
+                    )
 
-                if errors:
-                    return False, "PV validation failed:\n" + "\n".join(f"  - {e}" for e in errors)
+            if not checked:
+                return True, f"No PVs with storageClass found to validate (storageClass={expected_storage_class})"
 
-                return True, (
-                    f"Validated {len(expected_claim_to_capacity)} PV claims in deployment_mode={deployment_mode} "
-                    f"with storageClass={expected_storage_class}"
+            if errors:
+                return False, (
+                    f"PV validation failed ({len(errors)} issue(s) across {checked} PVs, "
+                    f"expected storageClass={expected_storage_class}):\n"
+                    + "\n".join(f"  - {e}" for e in errors)
                 )
 
-            except json.JSONDecodeError as e:
-                return False, f"Failed to parse PV information: {str(e)}"
+            return True, (
+                f"All {checked} Persistent Volume(s) are Bound with storageClass={expected_storage_class}"
+            )
 
         except Exception as e:
             return False, f"Error verifying PVs: {str(e)}"
@@ -2479,56 +2880,63 @@ class OIMOperations:
 
         control_planes = self.get_control_plane_nodes_from_pxe_mapping()
         if not control_planes:
-            return False, "No control-plane nodes found in PXE mapping", ""
+            return False, ERR_NO_CP_IN_PXE, ""
 
         admin_ips = self.get_control_plane_admin_ips_from_pxe_mapping()
         if not admin_ips:
-            return False, "No control-plane admin IPs found in PXE mapping", ""
+            return False, ERR_NO_CP_ADMIN_IPS, ""
 
         watcher_ip = (control_planes[0].get("admin_ip") or "").strip()
         if not watcher_ip:
-            return False, "Control-plane node missing admin_ip", ""
+            return False, ERR_CP_MISSING_ADMIN_IP, ""
 
         # Get all etcd pods
-        find_pods_cmd = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        find_pods_cmd = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
         result = run_on_remote_node(self._testinfra_host, find_pods_cmd, watcher_ip)
         if result.rc != 0 or not result.stdout:
-            return False, f"Failed to find etcd pods: {result.stderr or result.stdout}", (result.stderr or result.stdout or "")
+            return False, ETCD_PODS_FIND_FAILED.format(
+                error=result.stderr or result.stdout,
+            ), (result.stderr or result.stdout or "")
 
         etcd_pods = [line.strip().replace("pod/", "") for line in (result.stdout or "").splitlines() if line.strip()]
         if not etcd_pods:
-            return False, "No etcd pods found in kube-system namespace", result.stdout
+            return False, ETCD_PODS_NONE_FOUND, result.stdout
 
-        endpoints = ",".join([f"https://{ip}:2379" for ip in admin_ips])
+        endpoints = ",".join([f"https://{ip}:{ETCD_PORT}" for ip in admin_ips])
 
-        etcdctl_cmd = (
-            f"ETCDCTL_API=3 etcdctl "
-            f"--endpoints={endpoints} "
-            f"--cacert=/etc/kubernetes/pki/etcd/ca.crt "
-            f"--cert=/etc/kubernetes/pki/etcd/server.crt "
-            f"--key=/etc/kubernetes/pki/etcd/server.key "
-            f"member list -w table"
+        etcdctl_cmd = K8S_CMD_TEMPLATES["etcdctl_member_list"].format(
+            endpoints=endpoints,
+            cacert=ETCD_PKI_CACERT,
+            cert=ETCD_PKI_CERT,
+            key=ETCD_PKI_KEY,
         )
 
         # Try each etcd pod until one succeeds
         last_error = ""
         for etcd_pod in etcd_pods:
-            exec_cmd = f"kubectl exec -n kube-system {etcd_pod} -- sh -c '{etcdctl_cmd}'"
+            exec_cmd = K8S_CMD_TEMPLATES["kubectl_exec_sh_c"].format(
+                namespace=ETCD_NAMESPACE,
+                pod=etcd_pod,
+                cmd=f"'{etcdctl_cmd}'",
+            )
             result = run_on_remote_node(self._testinfra_host, exec_cmd, watcher_ip)
             output = (result.stdout or "").strip() + ("\n" + (result.stderr or "").strip() if (result.stderr or "").strip() else "")
 
             if result.rc == 0:
-                # Success - verify member count
-                member_lines = [line for line in (result.stdout or "").splitlines() if line.strip() and "|" in line and "ID" not in line.upper() and "---" not in line]
+                member_lines = [
+                    line for line in (result.stdout or "").splitlines()
+                    if line.strip() and "|" in line and "ID" not in line.upper() and "---" not in line
+                ]
                 expected_count = len(admin_ips)
                 if len(member_lines) < expected_count:
-                    return False, f"etcd member count mismatch (found={len(member_lines)}, expected={expected_count})", output
-                return True, f"etcd member list verified ({len(member_lines)} members)", output
+                    return False, ETCD_MEMBER_COUNT_MISMATCH.format(
+                        found=len(member_lines), expected=expected_count,
+                    ), output
+                return True, ETCD_MEMBER_LIST_PASSED.format(count=len(member_lines)), output
             else:
                 last_error = f"Pod {etcd_pod}: {output}"
 
-        # All pods failed
-        return False, f"etcdctl member list failed on all etcd pods. Last error: {last_error}", last_error
+        return False, ETCD_MEMBER_LIST_FAILED.format(error=last_error), last_error
 
     # =========================================================================
     # kubectl get componentstatus
@@ -2547,13 +2955,15 @@ class OIMOperations:
 
         control_planes = self.get_control_plane_nodes_from_pxe_mapping()
         if not control_planes:
-            return False, "No control-plane nodes found in PXE mapping", ""
+            return False, ERR_NO_CP_IN_PXE, ""
 
         cp_ip = (control_planes[0].get("admin_ip") or "").strip()
         if not cp_ip:
-            return False, "Control-plane node missing admin_ip", ""
+            return False, ERR_CP_MISSING_ADMIN_IP, ""
 
-        result = run_on_remote_node(self._testinfra_host, "kubectl get componentstatus --no-headers", cp_ip)
+        result = run_on_remote_node(
+            self._testinfra_host, K8S_CMD_TEMPLATES["get_component_status"], cp_ip,
+        )
         if result.rc != 0:
             return False, f"kubectl get componentstatus failed: {result.stderr}", (result.stdout or "")
 
@@ -2561,7 +2971,6 @@ class OIMOperations:
         if not output:
             return False, "No component status output received", ""
 
-        # Parse each line: NAME STATUS MESSAGE ERROR
         unhealthy = []
         details = []
         for line in output.splitlines():
@@ -2604,7 +3013,7 @@ class OIMOperations:
         if not cp_nodes:
             return {
                 "success": False,
-                "message": "No control-plane nodes found in PXE mapping",
+                "message": ERR_NO_CP_IN_PXE,
                 "leader_ip": "",
                 "members": [],
             }
@@ -2614,12 +3023,12 @@ class OIMOperations:
         for node in cp_nodes:
             admin_ip = (node.get("admin_ip") or "").strip()
             if admin_ip:
-                endpoints.append(f"https://{admin_ip}:2379")
+                endpoints.append(f"https://{admin_ip}:{ETCD_PORT}")
 
         if not endpoints:
             return {
                 "success": False,
-                "message": "No valid admin IPs found for control plane nodes",
+                "message": ERR_NO_VALID_CP_IPS,
                 "leader_ip": "",
                 "members": [],
             }
@@ -2629,19 +3038,19 @@ class OIMOperations:
         if not watcher_host:
             return {
                 "success": False,
-                "message": "Control-plane node missing hostname/admin_ip in PXE mapping",
+                "message": ERR_CP_MISSING_HOST,
                 "leader_ip": "",
                 "members": [],
             }
 
         # Get etcd pods
-        find_pods_inner = "kubectl get pods -n kube-system -o name | grep '^pod/etcd-'"
+        find_pods_inner = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
         find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
         rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
         if rc != 0 or not out:
             return {
                 "success": False,
-                "message": f"Failed to find etcd pods: {err or out}",
+                "message": ETCD_PODS_FIND_FAILED.format(error=err or out),
                 "leader_ip": "",
                 "members": [],
             }
@@ -2650,37 +3059,37 @@ class OIMOperations:
         if not etcd_pods:
             return {
                 "success": False,
-                "message": "No etcd pods found in kube-system namespace",
+                "message": ETCD_PODS_NONE_FOUND,
                 "leader_ip": "",
                 "members": [],
             }
 
         # Run etcdctl endpoint status to get leader and consistency info
-        etcd_cmd = (
-            f"ETCDCTL_API=3 etcdctl "
-            f"--endpoints={shlex.quote(endpoints_str)} "
-            "--cacert=/etc/kubernetes/pki/etcd/ca.crt "
-            "--cert=/etc/kubernetes/pki/etcd/server.crt "
-            "--key=/etc/kubernetes/pki/etcd/server.key "
-            "endpoint status -w json"
+        etcd_cmd = K8S_CMD_TEMPLATES["etcdctl_endpoint_status"].format(
+            endpoints=shlex.quote(endpoints_str),
+            cacert=ETCD_PKI_CACERT,
+            cert=ETCD_PKI_CERT,
+            key=ETCD_PKI_KEY,
         )
 
         # Try each etcd pod until one succeeds
         last_error = ""
         for etcd_pod in etcd_pods:
-            exec_inner = (
-                f"kubectl exec -n kube-system {shlex.quote(etcd_pod)} -- sh -lc {shlex.quote(etcd_cmd)}"
+            exec_inner = K8S_CMD_TEMPLATES["kubectl_exec_sh_lc"].format(
+                namespace=ETCD_NAMESPACE,
+                pod=shlex.quote(etcd_pod),
+                cmd=shlex.quote(etcd_cmd),
             )
             exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
             rc, stdout, stderr = self._ssh_from_omnia_core(watcher_host, exec_cmd)
-            
+
             if rc == 0 and stdout:
                 break
             last_error = stderr or stdout
         else:
             return {
                 "success": False,
-                "message": f"Failed to run etcdctl from etcd pods: {last_error}",
+                "message": ETCD_LEADER_FAILED_RUN.format(error=last_error),
                 "leader_ip": "",
                 "members": [],
             }
@@ -2691,7 +3100,7 @@ class OIMOperations:
         except json.JSONDecodeError as e:
             return {
                 "success": False,
-                "message": f"Failed to parse etcdctl output: {str(e)}",
+                "message": ETCD_LEADER_PARSE_FAILED.format(error=str(e)),
                 "leader_ip": "",
                 "members": [],
             }
@@ -2709,7 +3118,7 @@ class OIMOperations:
             raft_index = member.get("Status", {}).get("raftIndex", 0)
 
             # Extract IP from endpoint
-            member_ip = endpoint.replace("https://", "").replace(":2379", "")
+            member_ip = endpoint.replace("https://", "").replace(f":{ETCD_PORT}", "")
 
             members.append({
                 "endpoint": endpoint,

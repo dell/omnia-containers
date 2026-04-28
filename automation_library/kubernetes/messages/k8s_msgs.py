@@ -102,3 +102,94 @@ K8S_NODE_READY_FAILED = "Node {node} did not return to Ready state within {timeo
 K8S_VIP_FAILOVER_PASSED = "VIP {vip} successfully failed over from {old_node} to {new_node} ({new_ip})"
 K8S_VIP_FAILOVER_FAILED = "VIP {vip} did not fail over to any remaining control plane within {timeout}s"
 K8S_VIP_FAILOVER_MULTI = "VIP {vip} found on multiple nodes after failover: {nodes}"
+
+# =============================================================================
+# Generic / shared kubectl errors
+# =============================================================================
+ERR_NO_CONTROL_PLANE_HOST = "Control plane node has no hostname or IP address"
+ERR_NO_NODES_IN_PXE = "No nodes found in PXE mapping"
+ERR_NO_CP_IN_PXE = "No control-plane nodes found in PXE mapping"
+ERR_NO_CP_ADMIN_IPS = "No control-plane admin IPs found in PXE mapping"
+ERR_CP_MISSING_HOST = "Control-plane node missing hostname/admin_ip in PXE mapping"
+ERR_CP_MISSING_ADMIN_IP = "Control-plane node missing admin_ip"
+ERR_NO_VALID_CP_IPS = "No valid admin IPs found for control plane nodes"
+
+# =============================================================================
+# NFS StorageClass messages
+# =============================================================================
+NFS_SC_NOT_FOUND = "StorageClass '{name}' not found: {error}"
+NFS_SC_PARSE_ERROR = "Failed to parse StorageClass output: {error}"
+NFS_SC_NO_DYNAMIC_PROVISIONER = "StorageClass has no dynamic provisioner (provisioner={provisioner})"
+NFS_SC_UNEXPECTED_BINDING_MODE = "Unexpected volumeBindingMode: {mode} (expected 'Immediate')"
+NFS_SC_NO_SERVER = "Could not resolve NFS server from provisioner pod env vars (NFS_SERVER)"
+NFS_SC_NO_PATH = "Could not resolve NFS path from provisioner pod env vars (NFS_PATH)"
+NFS_SC_VALIDATION_FAILED = "NFS StorageClass '{name}' validation failed: {errors}"
+NFS_SC_DYNAMIC = "NFS StorageClass '{name}' is dynamic: provisioner={provisioner}, server={server}, path={path}"
+NFS_SC_ERROR = "Error verifying NFS StorageClass: {error}"
+
+# =============================================================================
+# Telemetry PVC messages
+# =============================================================================
+TELEMETRY_PVC_READ_CONFIG_ERROR = "Failed to read telemetry_config.yml: {error}"
+TELEMETRY_PVC_PARSE_CONFIG_ERROR = "Failed to parse telemetry_config.yml: {error}"
+TELEMETRY_PVC_GET_ERROR = "Failed to get PVCs in namespace '{namespace}': {error}"
+TELEMETRY_PVC_PARSE_ERROR = "Failed to parse PVC output: {error}"
+TELEMETRY_PVC_NONE_FOUND = "No PVCs found in namespace '{namespace}'"
+TELEMETRY_PVC_PHASE_MISMATCH = "phase={phase} (expected 'Bound')"
+TELEMETRY_PVC_SC_MISMATCH = "storageClass={sc} (expected {expected})"
+TELEMETRY_PVC_NO_VOLUME = "volumeName not set (no PV provisioned)"
+TELEMETRY_PVC_KAFKA_SIZE_MISMATCH = (
+    "size={actual} (expected {expected} from kafka_configurations.persistence_size)"
+)
+TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH = (
+    "size={actual} (expected {expected} from victoria_configurations.persistence_size)"
+)
+TELEMETRY_PVC_CHECK_FAILED = (
+    "Telemetry PVC check failed ({failed}/{total} PVCs): {errors}"
+)
+TELEMETRY_PVC_CHECK_PASSED = (
+    "All {count} telemetry PVC(s) in namespace '{namespace}' are Bound "
+    "with StorageClass={sc} and correct PV/size assigned"
+)
+TELEMETRY_PVC_ERROR = "Error verifying telemetry PVCs: {error}"
+
+# =============================================================================
+# NFS backend directory messages
+# =============================================================================
+NFS_DIR_GET_PV_ERROR = "Failed to get PVs: {error}"
+NFS_DIR_PARSE_PV_ERROR = "Failed to parse PV output: {error}"
+NFS_DIR_NO_PVS = "No PVs found with StorageClass={sc} to check directories for"
+NFS_DIR_MOUNT_ERROR = "Could not mount NFS export {server}:{path}: {error}"
+NFS_DIR_NOT_FOUND = "directory '{subdir}' not found under {server}:{path}"
+NFS_DIR_NOT_FOUND_REASON = "Directory not found"
+NFS_DIR_CHECK_FAILED = "NFS backend directory check failed ({failed}/{total} PVs): {errors}"
+NFS_DIR_CHECK_PASSED = "All {count} NFS backend directories verified via NFS mount"
+NFS_DIR_ERROR = "Error verifying NFS backend directories: {error}"
+
+# =============================================================================
+# StorageClass (default SC) messages
+# =============================================================================
+SC_GET_ERROR = "Failed to get storage classes: {error}"
+SC_NONE_FOUND = "No storage classes found"
+SC_NOT_FOUND = "Storage class '{name}' not found"
+SC_NOT_DEFAULT = "Storage class '{name}' exists but is not set as default"
+SC_IS_DEFAULT = "Storage class '{name}' exists and is set as default"
+SC_PARSE_ERROR = "Failed to parse storage class information: {error}"
+SC_VERIFY_ERROR = "Error verifying storage class: {error}"
+
+# =============================================================================
+# etcd messages
+# =============================================================================
+ETCD_PODS_FIND_FAILED = "Failed to find etcd pods: {error}"
+ETCD_PODS_NONE_FOUND = "No etcd pods found in kube-system namespace"
+ETCD_HEALTH_ALL_PASSED = "All {count} etcd endpoints are healthy"
+ETCD_HEALTH_PARTIAL = (
+    "Not all etcd endpoints are healthy: {healthy}/{total} healthy. "
+    "Unhealthy endpoints: {unhealthy}"
+)
+ETCD_HEALTH_NO_OUTPUT = "etcdctl endpoint health failed on all etcd pods. Last error: {error}"
+ETCD_MEMBER_COUNT_MISMATCH = "etcd member count mismatch (found={found}, expected={expected})"
+ETCD_MEMBER_LIST_PASSED = "etcd member list verified ({count} members)"
+ETCD_MEMBER_LIST_FAILED = "etcdctl member list failed on all etcd pods. Last error: {error}"
+ETCD_LEADER_FAILED_RUN = "Failed to run etcdctl from etcd pods: {error}"
+ETCD_LEADER_PARSE_FAILED = "Failed to parse etcdctl output: {error}"
