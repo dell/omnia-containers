@@ -57,7 +57,9 @@
 
     - name: Check if build_stream is enabled
       ansible.builtin.shell:
-        cmd: podman exec {{ container_name }} cat /opt/omnia/input/project_default/build_stream_config.yml | grep -E "^enable_build_stream:" | awk '{print $2}'
+        cmd: |
+          set -o pipefail
+          podman exec {{ container_name }} cat /opt/omnia/input/project_default/build_stream_config.yml | grep -E "^enable_build_stream:" | awk '{print $2}'
       register: build_stream_enabled_check
       changed_when: false
 
@@ -84,6 +86,7 @@
     - name: Check GitLab server is reachable
       ansible.builtin.shell:
         cmd: |
+          set -o pipefail
           podman exec {{ container_name }} cat /opt/omnia/input/project_default/gitlab_config.yml | grep -E "^gitlab_host:" | awk '{print $2}' | tr -d '"'
       register: gitlab_host_check
       changed_when: false
