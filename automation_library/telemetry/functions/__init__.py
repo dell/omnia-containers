@@ -88,13 +88,19 @@ from .delete_node_func import (
     verify_idrac_deleted_node_in_victoria,
 )
 
-# Poweroff test functions
-from .poweroff_func import (
+# Failover test functions (poweroff/reboot)
+from .failover_func import (
     get_k8s_worker_nodes,
+    select_target_node_for_poweroff,
     poweroff_node,
+    wait_for_node_down,
     get_telemetry_pods_on_node,
     get_all_telemetry_pods,
     wait_for_pods_reschedule,
     verify_pods_not_on_node,
     verify_all_pods_running,
+    reboot_node,
+    wait_for_node_online,
+    wait_for_cloudinit_done,
+    wait_for_node_rejoin_cluster,
 )

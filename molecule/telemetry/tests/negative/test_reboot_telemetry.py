@@ -13,18 +13,19 @@
 # limitations under the License.
 
 """
-Telemetry Poweroff Negative Test Cases.
+Telemetry Reboot Negative Test Cases.
 
-Tests telemetry pod resilience when a K8s worker node is powered off.
-Verifies that pods reschedule to available nodes and all sanity tests pass.
+Tests telemetry pod resilience when a K8s worker node is rebooted.
+Verifies that the node comes back online, cloud-init completes, node rejoins
+the cluster, and all telemetry pods are running.
 
 Skip Logic:
-- If service_kube is not enabled -> ALL tests skip
-- If less than 2 worker nodes -> ALL tests skip
-- If poweroff test (test case 1) skips or fails -> ALL subsequent tests skip
+- If service_k8s is not enabled -> ALL tests skip
+- If less than 1 worker node -> ALL tests skip
+- If reboot test (test case 1) skips or fails -> ALL subsequent tests skip
 
-Test cases (mirrors sanity tests after poweroff):
-1. Verify telemetry pods reschedule after worker node poweroff
+Test cases (mirrors sanity tests after reboot):
+1. Verify telemetry pods after worker node reboot
 2. Verify idrac-telemetry pod count
 3. Verify MySQL data in idrac-telemetry pods
 4. Verify idrac-telemetry-receiver is collecting metrics
@@ -51,11 +52,13 @@ from automation_library.core import TestLogger
 from automation_library.telemetry.functions import (
     get_k8s_worker_nodes,
     select_target_node_for_poweroff,
-    poweroff_node,
+    reboot_node,
     wait_for_node_down,
+    wait_for_node_online,
+    wait_for_cloudinit_done,
+    wait_for_node_rejoin_cluster,
     get_telemetry_pods_on_node,
     get_all_telemetry_pods,
-    wait_for_pods_reschedule,
     verify_all_telemetry_pods_running,
     verify_idrac_telemetry_pod_count,
     verify_mysql_data_in_pods,
@@ -89,7 +92,10 @@ from automation_library.telemetry.functions.shared_func import (
     skip_if_ldms_not_enabled,
     skip_if_victoria_not_enabled,
 )
-from automation_library.telemetry.vars import NODE_POWEROFF_WAIT_SECONDS
+from automation_library.telemetry.vars import (
+    NODE_REBOOT_WAIT_SECONDS,
+    NODE_ONLINE_TIMEOUT_SECONDS,
+)
 from automation_library.telemetry.vars.victoria_vars import (
     DEPLOYMENT_MODE_SINGLE,
     DEPLOYMENT_MODE_CLUSTER,
@@ -127,11 +133,11 @@ from automation_library.telemetry.functions.delete_node_func import (
 # MODULE-LEVEL STATE (shared between tests)
 # =============================================================================
 
-_poweroff_state = {
+_reboot_state = {
     "node_name": None,
     "node_ip": None,
-    "poweroff_done": False,
-    "poweroff_skipped": False,
+    "reboot_done": False,
+    "reboot_skipped": False,
     "skip_reason": None,
     "workers_ready": False,
 }
@@ -155,8 +161,10 @@ def _is_service_k8s_enabled(host) -> bool:
 
 def _check_prerequisites(host, log):
     """
-    Check prerequisites for all poweroff tests.
+    Check prerequisites for all reboot tests.
     Returns (can_proceed, admin_ip, skip_reason).
+    
+    For reboot test, we only need at least 1 Ready worker node.
     """
     # Check if service_k8s is enabled in softwares list
     if not _is_service_k8s_enabled(host):
@@ -164,33 +172,34 @@ def _check_prerequisites(host, log):
 
     admin_ip = get_admin_ip(host, log)
 
-    # Check worker nodes
+    # Check worker nodes - need at least 1 Ready worker for reboot test
     workers = get_k8s_worker_nodes(host, admin_ip)
-    if len(workers) < 2:
-        return False, admin_ip, f"Need at least 2 worker nodes, found {len(workers)}"
+    if len(workers) < 1:
+        return False, admin_ip, f"Need at least 1 worker node, found {len(workers)}"
 
-    # Check if workers are Ready
-    not_ready = [w for w in workers if w["status"] != "Ready"]
-    if not_ready:
-        return False, admin_ip, f"Worker nodes not Ready: {[w['hostname'] for w in not_ready]}"
+    # Check if at least 1 worker is Ready (not all workers need to be Ready)
+    ready_workers = [w for w in workers if w["status"] == "Ready"]
+    if len(ready_workers) < 1:
+        not_ready = [w for w in workers if w["status"] != "Ready"]
+        return False, admin_ip, f"No Ready worker nodes found. Not Ready: {[w['hostname'] for w in not_ready]}"
 
-    _poweroff_state["workers_ready"] = True
+    _reboot_state["workers_ready"] = True
     return True, admin_ip, None
 
 
-def _skip_if_poweroff_not_done(log):
-    """Skip test if poweroff was not performed or was skipped."""
-    if _poweroff_state["poweroff_skipped"]:
-        reason = _poweroff_state["skip_reason"] or "Poweroff test was skipped"
+def _skip_if_reboot_not_done(log):
+    """Skip test if reboot was not performed or was skipped."""
+    if _reboot_state["reboot_skipped"]:
+        reason = _reboot_state["skip_reason"] or "Reboot test was skipped"
         log.skipped(reason, "Skipping dependent test")
         pytest.skip(reason)
 
-    if not _poweroff_state["poweroff_done"]:
+    if not _reboot_state["reboot_done"]:
         log.skipped(
-            "Poweroff test was not run",
-            "Run test_pods_reschedule_after_node_poweroff first"
+            "Reboot test was not run",
+            "Run test_telemetry_after_node_reboot first"
         )
-        pytest.skip("Poweroff test was not run")
+        pytest.skip("Reboot test was not run")
 
 
 def _skip_if_service_k8s_not_enabled(host, log):
@@ -204,35 +213,35 @@ def _skip_if_service_k8s_not_enabled(host, log):
 
 
 # =============================================================================
-# TEST CASE 1: POD RESCHEDULE AFTER POWEROFF
+# TEST CASE 1: NODE REBOOT AND RECOVERY
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(1)
-def test_pods_reschedule_after_node_poweroff(host):
+@pytest.mark.order(20)
+def test_telemetry_after_node_reboot(host):
     """
-    Test Case 1: Verify telemetry pods reschedule after worker node poweroff.
+    Test Case 1: Verify telemetry pods after worker node reboot.
 
     This test verifies telemetry resilience by:
     1. Check if service_k8s is enabled in software_config
     2. Get K8s worker nodes from kubectl
-    3. Skip if less than 2 worker nodes (need spare capacity)
-    4. Select node with most telemetry pods for poweroff
-    5. Power off the selected worker node
+    3. Skip if no worker nodes available
+    4. Select node with most telemetry pods for reboot
+    5. Reboot the selected worker node
     6. Wait for node to go down (NotReady status)
-    7. Wait for pods to reschedule to other nodes (with progress bar)
-    8. Verify all pods are running on remaining nodes
-
-    Note: Manual power-on of the node is required after test.
+    7. Wait for node to come back online (ping + SSH)
+    8. Wait for cloud-init to complete
+    9. Wait for node to rejoin K8s cluster
+    10. Verify all telemetry pods are running
     """
-    log = TestLogger("Verify telemetry pods reschedule after node poweroff")
+    log = TestLogger("Verify telemetry pods after node reboot")
 
     # Check prerequisites
     can_proceed, admin_ip, skip_reason = _check_prerequisites(host, log)
 
     if not can_proceed:
-        _poweroff_state["poweroff_skipped"] = True
-        _poweroff_state["skip_reason"] = skip_reason
+        _reboot_state["reboot_skipped"] = True
+        _reboot_state["skip_reason"] = skip_reason
         log.skipped(skip_reason, "Prerequisites not met")
         pytest.skip(skip_reason)
 
@@ -245,9 +254,13 @@ def test_pods_reschedule_after_node_poweroff(host):
     for w in workers:
         log.check(f"  {w['hostname']} ({w['ip']}) - {w['status']}")
 
-    # Select target node (node with most pods)
-    log.check("Selecting target node for poweroff (node with most telemetry pods)")
-    selection = select_target_node_for_poweroff(host, admin_ip, workers)
+    # Filter to only Ready workers for reboot target selection
+    ready_workers = [w for w in workers if w["status"] == "Ready"]
+    log.check(f"Ready workers available for reboot: {len(ready_workers)}")
+
+    # Select target node from Ready workers only (node with most pods)
+    log.check("Selecting target node for reboot (Ready node with most telemetry pods)")
+    selection = select_target_node_for_poweroff(host, admin_ip, ready_workers)
     
     target_worker = selection["selected"]
     target_hostname = target_worker["hostname"]
@@ -260,72 +273,88 @@ def test_pods_reschedule_after_node_poweroff(host):
     
     log.check(f"Selected: {target_hostname} ({target_ip}) - {selection['reason']}")
 
-    _poweroff_state["node_name"] = target_hostname
-    _poweroff_state["node_ip"] = target_ip
+    _reboot_state["node_name"] = target_hostname
+    _reboot_state["node_ip"] = target_ip
 
-    # Get ALL pods in telemetry namespace before poweroff
-    log.check("Listing all pods in telemetry namespace before poweroff:")
+    # Get ALL pods in telemetry namespace before reboot
+    log.check("Listing all pods in telemetry namespace before reboot:")
     all_pods_before = get_all_telemetry_pods(host, admin_ip)
     log.check(f"Total pods: {len(all_pods_before)}")
     for pod in all_pods_before:
         log.check(f"  {pod['name']:<45} {pod['status']:<12} {pod['node']}")
 
-    # Get pods on target node
-    original_pods = get_telemetry_pods_on_node(host, admin_ip, target_hostname)
+    # Reboot the node
+    log.check(f"Rebooting node: {target_hostname} ({target_ip})")
+    reboot_result = reboot_node(host, admin_ip, target_ip)
 
-    if not original_pods:
-        _poweroff_state["poweroff_skipped"] = True
-        _poweroff_state["skip_reason"] = f"No telemetry pods on {target_hostname}"
-        log.skipped(f"No telemetry pods on {target_hostname}", "Nothing to reschedule")
-        pytest.skip(f"No telemetry pods on {target_hostname}")
-
-    log.check(f"Pods on target node {target_hostname} ({len(original_pods)} pods):")
-    for pod in original_pods:
-        log.check(f"  {pod['name']:<45} {pod['status']}")
-
-    # Power off the node
-    log.check(f"Powering off node: {target_hostname} ({target_ip})")
-    poweroff_result = poweroff_node(host, admin_ip, target_ip)
-
-    if not poweroff_result["success"]:
-        _poweroff_state["poweroff_skipped"] = True
-        _poweroff_state["skip_reason"] = f"Failed to power off: {poweroff_result.get('error')}"
-        log.failed(f"Failed to power off {target_hostname}", poweroff_result.get("error", ""))
-        assert False, f"Failed to power off node: {poweroff_result.get('error')}"
-
-    _poweroff_state["poweroff_done"] = True
+    if not reboot_result["success"]:
+        _reboot_state["reboot_skipped"] = True
+        _reboot_state["skip_reason"] = f"Failed to reboot: {reboot_result.get('error')}"
+        log.failed(f"Failed to reboot {target_hostname}", reboot_result.get("error", ""))
+        assert False, f"Failed to reboot node: {reboot_result.get('error')}"
 
     # Wait for node to go down
-    log.check(f"Waiting for node {target_hostname} to go down (max {NODE_POWEROFF_WAIT_SECONDS}s)")
-    node_down = wait_for_node_down(host, admin_ip, target_hostname, NODE_POWEROFF_WAIT_SECONDS)
+    log.check(f"Waiting for node {target_hostname} to go down")
+    time.sleep(NODE_REBOOT_WAIT_SECONDS)
     
+    node_down = wait_for_node_down(host, admin_ip, target_hostname, timeout_seconds=60)
     if node_down["success"]:
         log.check(f"Node {target_hostname} is now {node_down['status']} (took {node_down['elapsed_seconds']}s)")
     else:
-        log.check(f"Warning: Node {target_hostname} may still be Ready, continuing with pod reschedule check")
+        log.check(f"Note: Node may have rebooted quickly, continuing with online check")
 
-    # Wait for pods to reschedule with progress bar
-    log.check("Waiting for pods to reschedule to other nodes:")
-    reschedule_result = wait_for_pods_reschedule(host, admin_ip, target_hostname, original_pods)
+    # Wait for node to come back online
+    log.check(f"Waiting for node {target_hostname} to come back online (max {NODE_ONLINE_TIMEOUT_SECONDS}s)")
+    online_result = wait_for_node_online(host, admin_ip, target_ip, NODE_ONLINE_TIMEOUT_SECONDS)
+    
+    if not online_result["success"]:
+        _reboot_state["reboot_skipped"] = True
+        _reboot_state["skip_reason"] = f"Node did not come online: {online_result.get('error')}"
+        log.failed(f"Node {target_hostname} did not come back online", online_result.get("error", ""))
+        assert False, f"Node did not come online: {online_result.get('error')}"
+    
+    log.check(f"Node {target_hostname} is online (ping: {online_result['ping_ok']}, ssh: {online_result['ssh_ok']}, took {online_result['elapsed_seconds']}s)")
+
+    # Wait for cloud-init to complete
+    log.check(f"Waiting for cloud-init to complete on {target_hostname}")
+    cloudinit_result = wait_for_cloudinit_done(host, admin_ip, target_ip, target_hostname)
+    
+    if cloudinit_result["success"]:
+        log.check(f"Cloud-init completed: {cloudinit_result['status']} (took {cloudinit_result['elapsed_seconds']}s)")
+    else:
+        log.check(f"Warning: Cloud-init status: {cloudinit_result['status']} - continuing anyway")
+
+    # Wait for node to rejoin K8s cluster
+    log.check(f"Waiting for node {target_hostname} to rejoin K8s cluster")
+    rejoin_result = wait_for_node_rejoin_cluster(host, admin_ip, target_hostname, timeout_seconds=120)
+    
+    if not rejoin_result["success"]:
+        _reboot_state["reboot_skipped"] = True
+        _reboot_state["skip_reason"] = f"Node did not rejoin cluster: {rejoin_result.get('error')}"
+        log.failed(f"Node {target_hostname} did not rejoin cluster", rejoin_result.get("error", ""))
+        assert False, f"Node did not rejoin cluster: {rejoin_result.get('error')}"
+    
+    log.check(f"Node {target_hostname} rejoined cluster with status: {rejoin_result['status']} (took {rejoin_result['elapsed_seconds']}s)")
+
+    _reboot_state["reboot_done"] = True
 
     # Verify ALL pods in telemetry namespace are running
     log.check("Verifying all pods in telemetry namespace are running")
     running_result = verify_all_telemetry_pods_running(host, admin_ip)
 
-    # List all pods after poweroff with their new locations
-    log.check("All telemetry pods after poweroff:")
+    # List all pods after reboot with their locations
+    log.check("All telemetry pods after reboot:")
     if running_result.get("output"):
         for line in running_result["output"].strip().split('\n'):
             log.check(f"  {line}")
 
     # Build details for final report
     details_lines = [
-        f"Target node: {target_hostname} ({target_ip})",
-        f"Original pods on target: {len(original_pods)}",
+        f"Rebooted node: {target_hostname} ({target_ip})",
         f"Total pods in namespace: {running_result['total_pods']}",
-        "",
-        "Reschedule Results:",
-        reschedule_result["details"],
+        f"Node online after: {online_result['elapsed_seconds']}s",
+        f"Cloud-init status: {cloudinit_result['status']}",
+        f"Node rejoin after: {rejoin_result['elapsed_seconds']}s",
         "",
         f"Final: {running_result['running_count']} running, {running_result['not_running_count']} not running",
     ]
@@ -336,41 +365,34 @@ def test_pods_reschedule_after_node_poweroff(host):
             details_lines.append(f"  {pod['name']}: {pod['status']}")
 
     details = "\n".join(details_lines)
-    success = reschedule_result["success"] and running_result["success"]
+    success = running_result["success"]
 
     if success:
-        log.passed(f"All {len(original_pods)} pods rescheduled successfully", details)
+        log.passed(f"All telemetry pods running after reboot of {target_hostname}", details)
     else:
-        error_msg = reschedule_result.get("error") or running_result.get("error")
-        log.failed(f"Pod rescheduling failed: {error_msg}", details)
-
-    # Reminder to power on the node
-    log.check("")
-    log.check("=" * 60)
-    log.check(f"IMPORTANT: Node {target_hostname} ({target_ip}) is powered off.")
-    log.check("Please power on the node manually before running this test again.")
-    log.check("=" * 60)
+        error_msg = running_result.get("error")
+        log.failed(f"Some pods not running after reboot: {error_msg}", details)
 
     assert success, (
-        f"Pod rescheduling failed after powering off {target_hostname}: "
-        f"{reschedule_result.get('error') or running_result.get('error')}"
+        f"Telemetry pods not running after rebooting {target_hostname}: "
+        f"{running_result.get('error')}"
     )
 
 
 # =============================================================================
-# IDRAC TELEMETRY TEST CASES (after poweroff)
+# IDRAC TELEMETRY TEST CASES (after reboot)
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(2)
-def test_idrac_telemetry_pod_count(host):
+@pytest.mark.order(21)
+def test_idrac_telemetry_pod_count_after_reboot(host):
     """
-    Test Case 2: Verify idrac-telemetry pods count matches expected after poweroff.
+    Test Case 2: Verify idrac-telemetry pods count matches expected after reboot.
     """
-    log = TestLogger(TEST_NAMES["idrac_telemetry_pod_count"] + " (after poweroff)")
+    log = TestLogger(TEST_NAMES["idrac_telemetry_pod_count"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     admin_ip = get_admin_ip(host, log)
 
@@ -378,35 +400,34 @@ def test_idrac_telemetry_pod_count(host):
     result = verify_idrac_telemetry_pod_count(host, admin_ip)
 
     details = (
-        f"service_kube_node count: {result['service_kube_node_count']}\n"
-        f"service_kube_nodes with children: {result['service_kube_nodes_with_children']}\n"
-        f"Expected pods: {result['expected_count']}\n"
-        f"Actual pods: {result['actual_count']}\n"
-        f"Pods: {result['pods']}"
+        f"service_kube_node count: {result.get('service_kube_node_count', 'N/A')}\n"
+        f"service_kube_nodes with children: {result.get('service_kube_nodes_with_children', 'N/A')}\n"
+        f"Expected pods: {result.get('expected_pods', 'N/A')}\n"
+        f"Actual pods: {result.get('actual_pods', 'N/A')}"
     )
+
+    if result.get("error"):
+        log.failed(f"Failed to verify pod count: {result['error']}", details)
+        assert False, result["error"]
 
     if result["success"]:
-        log.passed(LOG_MSGS["idrac_pod_count_match"].format(expected=result['expected_count']), details)
+        log.passed(f"idrac-telemetry pod count matches: {result.get('actual_pods', 'N/A')}", details)
     else:
-        log.failed(LOG_MSGS["idrac_pod_count_mismatch"], details)
+        log.failed(f"Pod count mismatch: expected {result.get('expected_pods', 'N/A')}, got {result.get('actual_pods', 'N/A')}", details)
 
-    assert result["success"], ASSERT_MSGS["idrac_pod_count_mismatch"].format(
-        expected=result['expected_count'],
-        actual=result['actual_count'],
-        svc_count=result['service_kube_node_count']
-    )
+    assert result["success"], f"Pod count mismatch: {details}"
 
 
 @pytest.mark.negative
-@pytest.mark.order(3)
-def test_mysql_data_in_idrac_telemetry_pods(host):
+@pytest.mark.order(22)
+def test_mysql_data_in_idrac_telemetry_pods_after_reboot(host):
     """
-    Test Case 3: Verify MySQL data in idrac-telemetry pods after poweroff.
+    Test Case 3: Verify MySQL data in idrac-telemetry pods after reboot.
     """
-    log = TestLogger(TEST_NAMES["mysql_data_in_pods"] + " (after poweroff)")
+    log = TestLogger(TEST_NAMES["mysql_data_in_pods"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     admin_ip = get_admin_ip(host, log)
 
@@ -418,58 +439,40 @@ def test_mysql_data_in_idrac_telemetry_pods(host):
     result = verify_mysql_data_in_pods(host, admin_ip)
 
     if result.get("error") and not result.get("pod_results"):
-        log.failed(LOG_MSGS["mysql_creds_failed"], result["error"])
+        log.failed("Failed to verify MySQL data", result["error"])
         assert False, result["error"]
 
-    details_lines = [
-        LOG_MSGS["mysql_creds_decrypted"],
-        f"Activated IPs: {result.get('activated_ips', [])}",
-    ]
+    pod_results = result.get("pod_results", [])
+    passed = sum(1 for pr in pod_results if pr["success"])
+    failed = len(pod_results) - passed
 
-    all_success = True
-    for pod_result in result.get("pod_results", []):
-        pod_name = pod_result["pod_name"]
-        expected = pod_result["expected_ips"]
-        actual = pod_result["actual_ips"]
-        missing = pod_result["missing_ips"]
-
-        details_lines.append("")
-        details_lines.append(f"Pod: {pod_name}")
-        details_lines.append(f"  Expected IPs: {expected}")
-        details_lines.append(f"  Actual IPs  : {actual}")
-
-        if pod_result["success"]:
-            details_lines.append(f"  \u2713 {LOG_MSGS['mysql_pod_verified'].format(pod_name=pod_name)}")
-        else:
-            details_lines.append(f"  \u2717 {LOG_MSGS['mysql_pod_missing_ips'].format(pod_name=pod_name, missing=missing)}")
-            all_success = False
+    details_lines = []
+    for pr in pod_results:
+        status = "✓" if pr["success"] else "✗"
+        details_lines.append(f"  {status} {pr['pod_name']}: {pr.get('row_count', 0)} rows")
+        if pr.get("error"):
+            details_lines.append(f"      Error: {pr['error']}")
 
     details = "\n".join(details_lines)
 
-    if all_success:
-        log.passed(LOG_MSGS["mysql_all_pods_verified"], details)
+    if failed == 0:
+        log.passed(f"MySQL data verified in {passed} pods", details)
     else:
-        failed_pod = next((p for p in result.get("pod_results", []) if not p["success"]), None)
-        log.failed(result.get("error", "MySQL data missing"), details)
-        if failed_pod:
-            assert False, ASSERT_MSGS["mysql_data_missing"].format(
-                pod_name=failed_pod["pod_name"],
-                expected=failed_pod["expected_ips"],
-                actual=failed_pod["actual_ips"],
-                missing=failed_pod["missing_ips"]
-            )
+        log.failed(f"MySQL data verification failed in {failed}/{len(pod_results)} pods", details)
+
+    assert failed == 0, f"MySQL data verification failed in {failed} pods"
 
 
 @pytest.mark.negative
-@pytest.mark.order(4)
-def test_receiver_collecting_metrics(host):
+@pytest.mark.order(23)
+def test_receiver_collecting_metrics_after_reboot(host):
     """
-    Test Case 4: Verify idrac-telemetry-receiver is collecting metrics after poweroff.
+    Test Case 4: Verify idrac-telemetry-receiver is collecting metrics after reboot.
     """
-    log = TestLogger(TEST_NAMES["receiver_collecting_metrics"] + " (after poweroff)")
+    log = TestLogger(TEST_NAMES["receiver_collecting_metrics"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     admin_ip = get_admin_ip(host, log)
 
@@ -481,47 +484,42 @@ def test_receiver_collecting_metrics(host):
     result = verify_receiver_collecting_metrics(host, admin_ip)
 
     if result.get("error") and not result.get("pod_results"):
-        log.failed("Failed to verify receiver logs", result["error"])
+        log.failed("Failed to verify receiver metrics", result["error"])
         assert False, result["error"]
 
+    pod_results = result.get("pod_results", [])
+    passed = sum(1 for pr in pod_results if pr["success"])
+    failed = len(pod_results) - passed
+
     details_lines = []
-    all_success = True
-    for pod_result in result.get("pod_results", []):
-        details_lines.append(f"Pod: {pod_result['pod_name']}")
-        details_lines.append(f"  MySQL IPs: {pod_result['mysql_ips']}")
-        if not pod_result["success"]:
-            all_success = False
-        details_lines.append("")
+    for pr in pod_results:
+        status = "✓" if pr["success"] else "✗"
+        details_lines.append(f"  {status} {pr['pod_name']}: {pr.get('metrics_count', 0)} metrics")
 
     details = "\n".join(details_lines)
 
-    if all_success:
-        log.passed(LOG_MSGS["receiver_all_collecting"], details)
+    if failed == 0:
+        log.passed(f"Receiver collecting metrics in {passed} pods", details)
     else:
-        failed_pod = next((p for p in result.get("pod_results", []) if not p["success"]), None)
-        log.failed(result.get("error", "Receiver not collecting"), details)
-        if failed_pod:
-            assert False, ASSERT_MSGS["receiver_not_collecting"].format(
-                pod_name=failed_pod["pod_name"],
-                mysql_ips=failed_pod["mysql_ips"],
-                service_tags=[r.get("service_tag", "") for r in failed_pod.get("ip_results", [])]
-            )
+        log.failed(f"Receiver not collecting in {failed}/{len(pod_results)} pods", details)
+
+    assert failed == 0, f"Receiver not collecting metrics in {failed} pods"
 
 
 # =============================================================================
-# KAFKA TEST CASES (after poweroff)
+# KAFKA TEST CASES (after reboot)
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(5)
-def test_ldms_pods_running(host):
+@pytest.mark.order(24)
+def test_ldms_pods_running_after_reboot(host):
     """
-    Test Case 5: Verify LDMS pods are running after poweroff.
+    Test Case 5: Verify LDMS pods are running after reboot.
     """
-    log = TestLogger(TEST_NAMES.get("ldms_pods_running", "Verify LDMS pods running") + " (after poweroff)")
+    log = TestLogger(TEST_NAMES.get("ldms_pods_running", "Verify LDMS pods running") + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_ldms_enabled(host):
         log.skipped("LDMS is not enabled", "Test skipped")
@@ -536,30 +534,30 @@ def test_ldms_pods_running(host):
         pytest.skip(result.get("reason", "LDMS not enabled"))
 
     details_lines = []
-    for pod_result in result.get("pod_results", []):
-        status = "\u2713" if pod_result["running"] else "\u2717"
-        details_lines.append(f"{status} Pod '{pod_result['pod']}': {pod_result['phase']}")
+    for pod in result.get("pods", []):
+        status = "✓" if pod["status"] == "Running" else "✗"
+        details_lines.append(f"  {status} {pod['name']}: {pod['status']}")
 
-    details = "\n".join(details_lines)
+    details = "\n".join(details_lines) if details_lines else "No LDMS pods found"
 
     if result["success"]:
-        log.passed("All LDMS pods are running", details)
+        log.passed(f"All {len(result.get('pods', []))} LDMS pods running", details)
     else:
-        errors = result.get("errors", [])
-        log.failed("LDMS pods verification failed", details + "\n" + "; ".join(errors))
-        assert False, f"LDMS pods not running: {'; '.join(errors)}"
+        log.failed(result.get("error", "LDMS pods not running"), details)
+
+    assert result["success"], result.get("error", "LDMS pods not running")
 
 
 @pytest.mark.negative
-@pytest.mark.order(6)
-def test_ldms_services_ports(host):
+@pytest.mark.order(25)
+def test_ldms_services_ports_after_reboot(host):
     """
-    Test Case 6: Verify LDMS services ports match telemetry_config.yml after poweroff.
+    Test Case 6: Verify LDMS services ports match telemetry_config.yml after reboot.
     """
-    log = TestLogger(TEST_NAMES.get("ldms_services_ports", "Verify LDMS services ports") + " (after poweroff)")
+    log = TestLogger(TEST_NAMES.get("ldms_services_ports", "Verify LDMS services ports") + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_ldms_enabled(host):
         log.skipped("LDMS is not enabled", "Test skipped")
@@ -577,39 +575,31 @@ def test_ldms_services_ports(host):
         log.failed("Failed to get LDMS services", result["error"])
         assert False, result["error"]
 
-    expected = result.get("expected_config", {})
-    details_lines = [
-        f"Expected ldms_agg_port: {expected.get('ldms_agg_port')}",
-        f"Expected ldms_store_port: {expected.get('ldms_store_port')}",
-    ]
+    details_lines = []
+    for svc in result.get("services", []):
+        status = "✓" if svc["match"] else "✗"
+        details_lines.append(f"  {status} {svc['name']}: expected {svc['expected']}, actual {svc['actual']}")
 
-    for svc_result in result.get("service_results", []):
-        status = "\u2713" if svc_result["match"] else "\u2717"
-        details_lines.append(
-            f"{status} Service '{svc_result['service']}': "
-            f"expected={svc_result['expected_port']}, actual={svc_result['actual_port']}"
-        )
-
-    details = "\n".join(details_lines)
+    details = "\n".join(details_lines) if details_lines else "No services found"
 
     if result["success"]:
-        log.passed("All LDMS services ports match", details)
+        log.passed("All LDMS service ports match config", details)
     else:
-        errors = result.get("errors", [])
-        log.failed("LDMS services port mismatch", details + "\n" + "; ".join(errors))
-        assert False, f"LDMS services port mismatch: {'; '.join(errors)}"
+        log.failed("LDMS service port mismatch", details)
+
+    assert result["success"], "LDMS service port mismatch"
 
 
 @pytest.mark.negative
-@pytest.mark.order(7)
-def test_kafka_topics(host):
+@pytest.mark.order(26)
+def test_kafka_topics_after_reboot(host):
     """
-    Test Case 7: Verify Kafka topics via REST proxy after poweroff.
+    Test Case 7: Verify Kafka topics via REST proxy after reboot.
     """
-    log = TestLogger(TEST_NAMES["kafka_topics_verification"] + " (after poweroff)")
+    log = TestLogger(TEST_NAMES["kafka_topics_verification"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     admin_ip = get_admin_ip(host, log)
 
@@ -621,33 +611,29 @@ def test_kafka_topics(host):
         pytest.skip(result.get("skip_reason", "Kafka not enabled"))
 
     if result.get("error") and not result.get("topics"):
-        log.failed("Failed to get topics via REST proxy", result["error"])
+        log.failed("Failed to get Kafka topics", result["error"])
         assert False, result["error"]
 
-    details_lines = [
-        f"Kafka bridge IP: {result.get('bridge_ip', '')}",
-        f"Topics found: {result.get('topics', [])}",
-    ]
-    details = "\n".join(details_lines)
+    details = f"Topics found: {', '.join(result.get('topics', []))}"
 
     if result["success"]:
-        log.passed("All Kafka topic checks passed", details)
+        log.passed("Kafka topics verified", details)
     else:
-        errors = result.get("errors", [])
-        log.failed("Kafka topic verification failed", details + "\n" + "; ".join(errors))
-        assert False, "; ".join(errors)
+        log.failed(result.get("error", "Topic verification failed"), details)
+
+    assert result["success"], result.get("error", "Kafka topic verification failed")
 
 
 @pytest.mark.negative
-@pytest.mark.order(8)
-def test_kafka_config_match(host):
+@pytest.mark.order(27)
+def test_kafka_config_match_after_reboot(host):
     """
-    Test Case 8: Verify Kafka configurations match telemetry_config.yml after poweroff.
+    Test Case 8: Verify Kafka configurations match telemetry_config.yml after reboot.
     """
-    log = TestLogger(TEST_NAMES["kafka_config_match"] + " (after poweroff)")
+    log = TestLogger(TEST_NAMES["kafka_config_match"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_kafka_enabled(host):
         log.skipped("Kafka is not enabled", "Test skipped")
@@ -659,38 +645,34 @@ def test_kafka_config_match(host):
     result = verify_kafka_config_match(host, admin_ip)
 
     if result.get("error"):
-        log.failed("Failed to get Kafka config", result["error"])
+        log.failed("Failed to verify Kafka config", result["error"])
         assert False, result["error"]
 
-    expected = result.get("expected_config", {})
-    actual = result.get("actual_config", {})
+    details_lines = []
+    for key, match_info in result.get("config_matches", {}).items():
+        status = "✓" if match_info["match"] else "✗"
+        details_lines.append(f"  {status} {key}: expected={match_info['expected']}, actual={match_info['actual']}")
 
-    details_lines = [
-        f"log_retention_hours: expected={expected.get('log_retention_hours')}, actual={actual.get('log.retention.hours')}",
-        f"log_retention_bytes: expected={expected.get('log_retention_bytes')}, actual={actual.get('log.retention.bytes')}",
-        f"log_segment_bytes: expected={expected.get('log_segment_bytes')}, actual={actual.get('log.segment.bytes')}",
-    ]
-    details = "\n".join(details_lines)
+    details = "\n".join(details_lines) if details_lines else "No config to verify"
 
     if result["success"]:
-        log.passed(LOG_MSGS["kafka_config_match"], details)
+        log.passed("Kafka config matches telemetry_config.yml", details)
     else:
-        mismatches = result.get("mismatches", [])
-        mismatch_str = "\n".join([f"  \u2717 {m['config']}: expected {m['expected']}, actual {m['actual']}" for m in mismatches])
-        log.failed("Kafka configuration mismatch", details + "\n\nMismatches:\n" + mismatch_str)
-        assert False, ASSERT_MSGS["kafka_config_mismatch"].format(mismatches=mismatch_str)
+        log.failed("Kafka config mismatch", details)
+
+    assert result["success"], "Kafka config mismatch"
 
 
 @pytest.mark.negative
-@pytest.mark.order(9)
-def test_idrac_data_in_kafka_topic(host):
+@pytest.mark.order(28)
+def test_idrac_data_in_kafka_topic_after_reboot(host):
     """
-    Test Case 9: Verify iDRAC telemetry data in Kafka topic after poweroff.
+    Test Case 9: Verify iDRAC telemetry data in Kafka topic after reboot.
     """
-    log = TestLogger(TEST_NAMES.get("kafka_idrac_data", "Verify iDRAC data in Kafka") + " (after poweroff)")
+    log = TestLogger(TEST_NAMES.get("kafka_idrac_data", "Verify iDRAC data in Kafka") + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_kafka_enabled(host):
         log.skipped("Kafka is not enabled", "Test skipped")
@@ -701,36 +683,34 @@ def test_idrac_data_in_kafka_topic(host):
     log.check("Verifying iDRAC telemetry data in Kafka topic")
     result = verify_idrac_data_in_kafka(host, admin_ip, timeout_seconds=30)
 
-    if result.get("skipped"):
-        log.skipped(result.get("reason", ""), "Test skipped")
-        pytest.skip(result.get("reason", ""))
+    if result.get("skip"):
+        log.skipped(result.get("skip_reason", ""), "Test skipped")
+        pytest.skip(result.get("skip_reason", ""))
 
-    if result.get("error") and not result.get("service_tag_results"):
+    if result.get("error"):
         log.failed("Failed to verify iDRAC data in Kafka", result["error"])
         assert False, result["error"]
 
-    details_lines = [f"Kafka bridge IP: {result.get('bridge_ip', '')}"]
-    details = "\n".join(details_lines)
+    details = f"Found {result.get('message_count', 0)} messages with iDRAC data"
 
     if result["success"]:
-        found_count = len(result.get("found_tags", []))
-        log.passed(f"iDRAC data found for all {found_count} service tags", details)
+        log.passed("iDRAC data found in Kafka topic", details)
     else:
-        missing = result.get("missing_tags", [])
-        log.failed(f"iDRAC data missing for {len(missing)} service tags", details)
-        assert False, result.get("error", "iDRAC data missing")
+        log.failed("No iDRAC data in Kafka topic", details)
+
+    assert result["success"], "No iDRAC data found in Kafka topic"
 
 
 @pytest.mark.negative
-@pytest.mark.order(10)
-def test_ldms_latest_data_in_kafka(host):
+@pytest.mark.order(29)
+def test_ldms_latest_data_in_kafka_after_reboot(host):
     """
-    Test Case 10: Verify LDMS latest data in Kafka topic after poweroff.
+    Test Case 10: Verify LDMS latest data in Kafka topic after reboot.
     """
-    log = TestLogger(TEST_NAMES.get("ldms_latest_data", "Verify LDMS data in Kafka") + " (after poweroff)")
+    log = TestLogger(TEST_NAMES.get("ldms_latest_data", "Verify LDMS data in Kafka") + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_ldms_enabled(host):
         log.skipped("LDMS is not enabled", "Test skipped")
@@ -741,36 +721,38 @@ def test_ldms_latest_data_in_kafka(host):
     log.check("Verifying latest LDMS data in Kafka topic")
     result = verify_ldms_data_in_kafka(host, admin_ip, timeout_seconds=30)
 
-    if result.get("skipped"):
-        log.skipped(result.get("reason", "LDMS not enabled"), "Test skipped")
-        pytest.skip(result.get("reason", "LDMS not enabled"))
+    if result.get("skip"):
+        log.skipped(result.get("skip_reason", ""), "Test skipped")
+        pytest.skip(result.get("skip_reason", ""))
 
-    expected_count = result.get("expected_instance_count", 0)
-    found_count = result.get("found_instance_count", 0)
-    details = f"Expected instances: {expected_count}, Found: {found_count}"
+    if result.get("error"):
+        log.failed("Failed to verify LDMS data in Kafka", result["error"])
+        assert False, result["error"]
+
+    details = f"Found {result.get('message_count', 0)} LDMS messages"
 
     if result["success"]:
-        log.passed(f"LDMS latest data verified for all {len(result.get('found_hostnames', []))} hostnames", details)
+        log.passed("LDMS data found in Kafka topic", details)
     else:
-        missing_hosts = result.get("missing_hostnames", [])
-        log.failed(f"LDMS data missing from {len(missing_hosts)} hostnames", details)
-        assert False, f"LDMS data missing: {missing_hosts}"
+        log.failed("No LDMS data in Kafka topic", details)
+
+    assert result["success"], "No LDMS data found in Kafka topic"
 
 
 # =============================================================================
-# VICTORIAMETRICS TEST CASES (after poweroff)
+# VICTORIAMETRICS TEST CASES (after reboot)
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(11)
-def test_victoria_enabled(host):
+@pytest.mark.order(30)
+def test_victoria_enabled_after_reboot(host):
     """
-    Test Case 11: Verify VictoriaMetrics is enabled after poweroff.
+    Test Case 11: Verify VictoriaMetrics is enabled after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_enabled"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_enabled"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_idrac_telemetry_enabled(host):
         log.skipped("iDRAC telemetry is not enabled", "Test skipped")
@@ -781,32 +763,22 @@ def test_victoria_enabled(host):
         pytest.skip("VictoriaMetrics is not enabled")
 
     deployment_mode = get_deployment_mode(host)
-    victoria_config = get_victoria_config(host)
-
-    mode_msg = (
-        VICTORIA_LOG_MSGS["deployment_mode_single"]
-        if deployment_mode == DEPLOYMENT_MODE_SINGLE
-        else VICTORIA_LOG_MSGS["deployment_mode_cluster"]
+    log.passed(
+        f"VictoriaMetrics is enabled (mode: {deployment_mode})",
+        f"Deployment mode: {deployment_mode}"
     )
-    details = (
-        f"{mode_msg}\n"
-        f"persistence_size: {victoria_config.get('persistence_size', 'N/A')}\n"
-        f"retention_period: {victoria_config.get('retention_period', 'N/A')}"
-    )
-
-    log.passed(VICTORIA_LOG_MSGS["victoria_enabled"], details)
 
 
 @pytest.mark.negative
-@pytest.mark.order(12)
-def test_victoria_persistence_size(host):
+@pytest.mark.order(31)
+def test_victoria_persistence_size_after_reboot(host):
     """
-    Test Case 12: Verify VictoriaMetrics persistence size matches config after poweroff.
+    Test Case 12: Verify VictoriaMetrics persistence size matches config after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_persistence_size"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_persistence_size"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -821,33 +793,29 @@ def test_victoria_persistence_size(host):
         log.failed("Failed to verify persistence size", result["error"])
         assert False, result["error"]
 
-    deployment_mode = result.get("deployment_mode", "")
-    expected_size = result.get("expected_size", "")
-    details_lines = [f"Deployment mode: {deployment_mode}", f"Expected size: {expected_size}"]
-
-    for pvc_result in result.get("pvc_results", []):
-        status = "\u2713" if pvc_result["match"] else "\u2717"
-        details_lines.append(f"{status} PVC '{pvc_result['pvc_name']}': {pvc_result['actual_size']}")
-
-    details = "\n".join(details_lines)
+    details = (
+        f"Expected: {result.get('expected_size', 'N/A')}\n"
+        f"Actual: {result.get('actual_size', 'N/A')}"
+    )
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["persistence_size_match"].format(size=expected_size), details)
+        log.passed("VictoriaMetrics persistence size matches config", details)
     else:
-        log.failed(VICTORIA_LOG_MSGS["persistence_size_mismatch"], details)
-        assert False, "Persistence size mismatch"
+        log.failed("Persistence size mismatch", details)
+
+    assert result["success"], "VictoriaMetrics persistence size mismatch"
 
 
 @pytest.mark.negative
-@pytest.mark.order(13)
-def test_victoria_pods(host):
+@pytest.mark.order(32)
+def test_victoria_pods_after_reboot(host):
     """
-    Test Case 13: Verify VictoriaMetrics pods are running after poweroff.
+    Test Case 13: Verify VictoriaMetrics pods are running after reboot.
     """
-    log = TestLogger("Verify VictoriaMetrics pods (after poweroff)")
+    log = TestLogger("Verify VictoriaMetrics pods (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -860,45 +828,42 @@ def test_victoria_pods(host):
 
     if deployment_mode == DEPLOYMENT_MODE_SINGLE:
         result = verify_victoria_single_node_pods(host, admin_ip)
-    elif deployment_mode == DEPLOYMENT_MODE_CLUSTER:
-        result = verify_victoria_cluster_pods(host, admin_ip)
     else:
-        log.skipped(f"Unknown deployment mode: {deployment_mode}", "Test skipped")
-        pytest.skip(f"Unknown deployment mode: {deployment_mode}")
+        result = verify_victoria_cluster_pods(host, admin_ip)
 
     if result.get("skip"):
         log.skipped(result.get("skip_reason", ""), "Test skipped")
         pytest.skip(result.get("skip_reason", ""))
 
     if result.get("error"):
-        log.failed("Failed to verify pods", result["error"])
+        log.failed("Failed to verify VictoriaMetrics pods", result["error"])
         assert False, result["error"]
 
     details_lines = []
-    for pod_result in result.get("pod_results", []):
-        status = "\u2713" if pod_result["running"] else "\u2717"
-        details_lines.append(f"{status} Pod '{pod_result['pod']}': {pod_result['phase']}")
+    for pod in result.get("pods", []):
+        status = "✓" if pod.get("running", False) else "✗"
+        details_lines.append(f"  {status} {pod['name']}: {pod.get('status', 'Unknown')}")
 
-    details = "\n".join(details_lines)
+    details = "\n".join(details_lines) if details_lines else "No pods found"
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["all_pods_running"].format(component=deployment_mode, count=len(result.get("pod_results", []))), details)
+        log.passed(f"All VictoriaMetrics pods running ({deployment_mode} mode)", details)
     else:
-        errors = result.get("errors", [])
-        log.failed(VICTORIA_LOG_MSGS["pods_not_running"].format(component=deployment_mode), details + "\n" + "; ".join(errors))
-        assert False, "; ".join(errors)
+        log.failed("VictoriaMetrics pods not running", details)
+
+    assert result["success"], "VictoriaMetrics pods not running"
 
 
 @pytest.mark.negative
-@pytest.mark.order(14)
-def test_vmagent_pod_running(host):
+@pytest.mark.order(33)
+def test_vmagent_pod_running_after_reboot(host):
     """
-    Test Case 14: Verify vmagent pod is running after poweroff.
+    Test Case 14: Verify vmagent pod is running after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["vmagent_pod_running"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["vmagent_pod_running"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -913,31 +878,26 @@ def test_vmagent_pod_running(host):
         log.failed("Failed to verify vmagent pod", result["error"])
         assert False, result["error"]
 
-    details_lines = []
-    for pod_result in result.get("pod_results", []):
-        status = "\u2713" if pod_result["running"] else "\u2717"
-        details_lines.append(f"{status} Pod '{pod_result['pod']}': {pod_result['phase']}")
-
-    details = "\n".join(details_lines)
+    details = f"vmagent pod: {result.get('pod_name', 'N/A')} - {result.get('status', 'Unknown')}"
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["all_pods_running"].format(component="vmagent", count=len(result.get("pod_results", []))), details)
+        log.passed("vmagent pod is running", details)
     else:
-        errors = result.get("errors", [])
-        log.failed(VICTORIA_LOG_MSGS["pods_not_running"].format(component="vmagent"), details + "\n" + "; ".join(errors))
-        assert False, VICTORIA_ASSERT_MSGS["vmagent_not_running"]
+        log.failed("vmagent pod not running", details)
+
+    assert result["success"], "vmagent pod not running"
 
 
 @pytest.mark.negative
-@pytest.mark.order(15)
-def test_victoria_services(host):
+@pytest.mark.order(34)
+def test_victoria_services_after_reboot(host):
     """
-    Test Case 15: Verify VictoriaMetrics services have external IPs after poweroff.
+    Test Case 15: Verify VictoriaMetrics services have external IPs after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_services"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_services"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -950,42 +910,34 @@ def test_victoria_services(host):
     result = verify_victoria_services(host, admin_ip)
 
     if result.get("error"):
-        log.failed("Failed to verify services", result["error"])
+        log.failed("Failed to verify VictoriaMetrics services", result["error"])
         assert False, result["error"]
 
     details_lines = []
-    for svc_result in result.get("service_results", []):
-        service = svc_result["service"]
-        external_ip = svc_result.get("external_ip", "")
-        port = svc_result["port"]
-        has_ip = svc_result["has_external_ip"]
-        status = "\u2713" if has_ip else "\u2717"
+    for svc in result.get("services", []):
+        status = "✓" if svc.get("has_external_ip", False) else "✗"
+        details_lines.append(f"  {status} {svc['name']}: {svc.get('external_ip', 'None')}")
 
-        if has_ip:
-            details_lines.append(f"{status} Service '{service}': {external_ip}:{port}")
-        else:
-            details_lines.append(f"{status} Service '{service}': NO EXTERNAL IP")
-
-    details = "\n".join(details_lines)
+    details = "\n".join(details_lines) if details_lines else "No services found"
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["all_services_ready"], details)
+        log.passed("VictoriaMetrics services have external IPs", details)
     else:
-        errors = result.get("errors", [])
-        log.failed("VictoriaMetrics services not ready", details + "\n" + "; ".join(errors))
-        assert False, "; ".join(errors)
+        log.failed("VictoriaMetrics services missing external IPs", details)
+
+    assert result["success"], "VictoriaMetrics services missing external IPs"
 
 
 @pytest.mark.negative
-@pytest.mark.order(16)
-def test_victoria_tls_secret(host):
+@pytest.mark.order(35)
+def test_victoria_tls_secret_after_reboot(host):
     """
-    Test Case 16: Verify VictoriaMetrics TLS secret exists after poweroff.
+    Test Case 16: Verify VictoriaMetrics TLS secret exists after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_tls_secret"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_tls_secret"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -996,41 +948,35 @@ def test_victoria_tls_secret(host):
     log.check(f"Verifying TLS secret '{VICTORIA_TLS_SECRET}'")
     result = verify_victoria_tls_secret(host, admin_ip)
 
-    if not result.get("secret_exists", False):
-        log.failed(
-            VICTORIA_LOG_MSGS["tls_secret_missing"].format(secret=VICTORIA_TLS_SECRET),
-            result.get("error", "")
-        )
-        assert False, VICTORIA_ASSERT_MSGS["tls_secret_missing"].format(secret=VICTORIA_TLS_SECRET)
+    if result.get("error"):
+        log.failed("Failed to verify TLS secret", result["error"])
+        assert False, result["error"]
 
-    keys_found = result.get("keys_found", [])
-    missing_keys = result.get("missing_keys", [])
-    details_lines = [f"Keys found: {keys_found}"]
-    if missing_keys:
-        details_lines.append(f"Missing keys: {missing_keys}")
+    details_lines = [f"Secret: {VICTORIA_TLS_SECRET}"]
+    for key in result.get("keys", []):
+        status = "✓" if key.get("exists", False) else "✗"
+        details_lines.append(f"  {status} {key['name']}")
 
     details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["tls_secret_exists"].format(secret=VICTORIA_TLS_SECRET), details)
+        log.passed("TLS secret exists with required keys", details)
     else:
-        log.failed(VICTORIA_LOG_MSGS["tls_secret_missing_keys"].format(keys=missing_keys), details)
-        assert False, VICTORIA_ASSERT_MSGS["tls_secret_missing_keys"].format(
-            secret=VICTORIA_TLS_SECRET,
-            missing_keys=missing_keys
-        )
+        log.failed("TLS secret missing or incomplete", details)
+
+    assert result["success"], "TLS secret missing or incomplete"
 
 
 @pytest.mark.negative
-@pytest.mark.order(17)
-def test_victoria_tls_health(host):
+@pytest.mark.order(36)
+def test_victoria_tls_health_after_reboot(host):
     """
-    Test Case 17: Verify TLS connection and health endpoint after poweroff.
+    Test Case 17: Verify TLS connection and health endpoint after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_tls_health"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_tls_health"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -1043,45 +989,33 @@ def test_victoria_tls_health(host):
     result = verify_victoria_tls_health(host, admin_ip)
 
     if result.get("error"):
-        log.failed(VICTORIA_LOG_MSGS["tls_connection_failed"], result["error"])
-        assert False, VICTORIA_ASSERT_MSGS["tls_connection_failed"].format(
-            host=result.get("external_ip", ""),
-            port=result.get("port", ""),
-            error=result.get("error", "")
-        )
-
-    external_ip = result.get("external_ip", "")
-    port = result.get("port", "")
-    health_response = result.get("health_response", "")
+        log.failed("Failed to verify TLS health", result["error"])
+        assert False, result["error"]
 
     details = (
-        f"Service: {result.get('service_name', '')}\n"
-        f"URL: https://{external_ip}:{port}/health\n"
-        f"TLS connected: {result.get('tls_connected', False)}\n"
-        f"Health response: {health_response}"
+        f"Endpoint: {result.get('endpoint', 'N/A')}\n"
+        f"Status: {result.get('status', 'Unknown')}\n"
+        f"Response: {result.get('response', 'N/A')[:100]}"
     )
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["tls_connection_success"], details)
+        log.passed("TLS connection healthy", details)
     else:
-        log.failed(VICTORIA_LOG_MSGS["health_endpoint_failed"], details)
-        assert False, VICTORIA_ASSERT_MSGS["health_check_failed"].format(
-            host=external_ip,
-            port=port,
-            response=health_response
-        )
+        log.failed("TLS connection unhealthy", details)
+
+    assert result["success"], "TLS connection unhealthy"
 
 
 @pytest.mark.negative
-@pytest.mark.order(18)
-def test_victoria_idrac_data(host):
+@pytest.mark.order(37)
+def test_victoria_idrac_data_after_reboot(host):
     """
-    Test Case 18: Verify iDRAC telemetry data in VictoriaMetrics after poweroff.
+    Test Case 18: Verify iDRAC telemetry data in VictoriaMetrics after reboot.
     """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_idrac_data"] + " (after poweroff)")
+    log = TestLogger(VICTORIA_TEST_NAMES["victoria_idrac_data"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")
@@ -1091,10 +1025,10 @@ def test_victoria_idrac_data(host):
 
     activated_tags = get_activated_service_tags(host, admin_ip)
     if not activated_tags:
-        log.skipped("No activated service tags found in telemetry report", "Test skipped")
-        pytest.skip("No activated service tags found in telemetry report")
+        log.skipped("No activated service tags found", "Test skipped")
+        pytest.skip("No activated service tags found")
 
-    log.check(VICTORIA_LOG_MSGS["idrac_data_verifying"])
+    log.check(f"Verifying iDRAC data for {len(activated_tags)} service tags")
     result = verify_victoria_idrac_data(host, admin_ip)
 
     if result.get("skip"):
@@ -1134,35 +1068,27 @@ def test_victoria_idrac_data(host):
     details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed(
-            VICTORIA_LOG_MSGS["idrac_data_all_found"].format(count=len(result.get("found_tags", []))),
-            details
-        )
+        log.passed("iDRAC data found in VictoriaMetrics", details)
     else:
-        log.failed(
-            f"iDRAC data missing for {len(result.get('missing_tags', []))} service tags",
-            details
-        )
-        assert False, VICTORIA_ASSERT_MSGS["idrac_data_missing"].format(
-            missing=result.get("missing_tags", []),
-            found=result.get("found_tags", [])
-        )
+        log.failed("iDRAC data missing in VictoriaMetrics", details)
+
+    assert result["success"], "iDRAC data missing in VictoriaMetrics"
 
 
 # =============================================================================
-# DELETE NODE TEST CASES (after poweroff)
+# DELETE NODE TEST CASES (after reboot)
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(19)
-def test_idrac_deleted_node_data_in_mysql_after_poweroff(host):
+@pytest.mark.order(38)
+def test_idrac_deleted_node_data_in_mysql_after_reboot(host):
     """
-    Test Case 19: Verify deleted node BMC IPs not in MySQL after poweroff.
+    Test Case 19: Verify deleted node BMC IPs not in MySQL after reboot.
     """
-    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_mysql"] + " (after poweroff)")
+    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_mysql"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     deleted_nodes_info = get_deleted_nodes_cached(host)
     skip_if_no_deleted_nodes(deleted_nodes_info, log)
@@ -1201,15 +1127,15 @@ def test_idrac_deleted_node_data_in_mysql_after_poweroff(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(20)
-def test_idrac_deleted_node_data_in_kafka_after_poweroff(host):
+@pytest.mark.order(39)
+def test_idrac_deleted_node_data_in_kafka_after_reboot(host):
     """
-    Test Case 20: Verify deleted iDRAC node data not in Kafka after poweroff.
+    Test Case 20: Verify deleted iDRAC node data not in Kafka after reboot.
     """
-    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_kafka"] + " (after poweroff)")
+    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_kafka"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_kafka_enabled(host):
         log.skipped("Kafka is not enabled", "Test skipped")
@@ -1248,15 +1174,15 @@ def test_idrac_deleted_node_data_in_kafka_after_poweroff(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(21)
-def test_ldms_deleted_node_data_in_kafka_after_poweroff(host):
+@pytest.mark.order(40)
+def test_ldms_deleted_node_data_in_kafka_after_reboot(host):
     """
-    Test Case 21: Verify deleted LDMS node data not in Kafka after poweroff.
+    Test Case 21: Verify deleted LDMS node data not in Kafka after reboot.
     """
-    log = TestLogger(DELETE_NODE_TEST_NAMES["ldms_deleted_node_kafka"] + " (after poweroff)")
+    log = TestLogger(DELETE_NODE_TEST_NAMES["ldms_deleted_node_kafka"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_ldms_enabled(host):
         log.skipped("LDMS is not enabled", "Test skipped")
@@ -1295,15 +1221,15 @@ def test_ldms_deleted_node_data_in_kafka_after_poweroff(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(22)
-def test_idrac_deleted_node_data_in_victoria_after_poweroff(host):
+@pytest.mark.order(41)
+def test_idrac_deleted_node_data_in_victoria_after_reboot(host):
     """
-    Test Case 22: Verify deleted iDRAC node data not in VictoriaMetrics after poweroff.
+    Test Case 22: Verify deleted iDRAC node data not in VictoriaMetrics after reboot.
     """
-    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_victoria"] + " (after poweroff)")
+    log = TestLogger(DELETE_NODE_TEST_NAMES["idrac_deleted_node_victoria"] + " (after reboot)")
 
     _skip_if_service_k8s_not_enabled(host, log)
-    _skip_if_poweroff_not_done(log)
+    _skip_if_reboot_not_done(log)
 
     if not is_victoria_enabled(host):
         log.skipped("VictoriaMetrics is not enabled", "Test skipped")

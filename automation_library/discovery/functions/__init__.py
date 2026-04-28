@@ -30,6 +30,10 @@ from .common_func import (
     parse_ssh_error,
     # SSH key cleanup
     cleanup_ssh_known_hosts,
+    # Node connectivity check
+    check_node_connectivity,
+    check_nodes_connectivity,
+    filter_reachable_nodes,
     # Node retrieval
     get_slurm_control_nodes,
     get_slurm_compute_nodes,

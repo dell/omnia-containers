@@ -56,6 +56,11 @@ from .secrets import (
     get_multiple_credentials,
 )
 from .db_exec import exec_psql_query, query_db_row
+from .cloudinit import (
+    get_cloudinit_status,
+    wait_for_cloudinit,
+    verify_cloudinit_status_multi,
+)
 from .build_stream import (
     is_build_stream_enabled,
     get_build_stream_job_id,

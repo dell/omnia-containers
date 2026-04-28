@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Telemetry Poweroff Test Functions.
+Telemetry Failover Test Functions.
 
-Functions for verifying telemetry pod rescheduling after node poweroff.
+Functions for verifying telemetry pod rescheduling after node poweroff/reboot.
 """
 
 import sys
@@ -24,18 +24,29 @@ from typing import Dict, Any, List
 
 from ...core import (
     run_on_remote_node,
+    run_in_container,
     is_software_enabled,
 )
 from ..vars import TELEMETRY_NAMESPACE
-from ..vars.poweroff_vars import (
+from ..vars.failover_vars import (
     POD_RESCHEDULE_RETRY_LIMIT,
     POD_RESCHEDULE_RETRY_INTERVAL,
     NODE_POWEROFF_WAIT_SECONDS,
+    NODE_REBOOT_WAIT_SECONDS,
+    NODE_ONLINE_TIMEOUT_SECONDS,
     POD_RUNNING_STATUSES,
     CMD_GET_WORKER_NODES,
     CMD_GET_PODS_ON_NODE,
     CMD_GET_ALL_PODS,
     CMD_SSH_POWEROFF,
+    CMD_SSH_REBOOT,
+    CMD_PING_NODE,
+    CMD_SSH_CHECK,
+    CMD_CLOUDINIT_STATUS,
+    CLOUDINIT_RETRY_LIMIT,
+    CLOUDINIT_RETRY_INTERVAL,
+    CLOUDINIT_PASSED_STATUSES,
+    CLOUDINIT_RETRY_STATUSES,
 )
 
 
@@ -52,7 +63,7 @@ def get_k8s_worker_nodes(host, admin_ip: str) -> List[Dict[str, str]]:
         admin_ip: Admin IP of K8s control plane
 
     Returns:
-        List of dicts with name, status, ip keys
+        List of dicts with hostname, status, ip keys
     """
     cmd = run_on_remote_node(
         host,
@@ -70,12 +81,79 @@ def get_k8s_worker_nodes(host, admin_ip: str) -> List[Dict[str, str]]:
         parts = line.split()
         if len(parts) >= 6:
             workers.append({
-                "name": parts[0],
+                "hostname": parts[0],
                 "status": parts[1],
                 "ip": parts[5],
             })
 
     return workers
+
+
+def select_target_node_for_poweroff(
+    host, admin_ip: str, workers: List[Dict[str, str]]
+) -> Dict[str, Any]:
+    """
+    Select the best worker node to power off for testing.
+    
+    Selects the node with the most telemetry pods running on it.
+    If pods are evenly distributed, selects randomly.
+    
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane
+        workers: List of worker node dicts with hostname, status, ip
+    
+    Returns:
+        Dict with selected node info and pod counts per node
+    """
+    import random
+    
+    # Get all pods and count per node
+    all_pods = get_all_telemetry_pods(host, admin_ip)
+    
+    # Count pods per worker node
+    pod_counts = {}
+    for worker in workers:
+        hostname = worker["hostname"]
+        pod_counts[hostname] = {
+            "count": 0,
+            "pods": [],
+            "worker": worker,
+        }
+    
+    for pod in all_pods:
+        node = pod.get("node", "")
+        if node in pod_counts:
+            pod_counts[node]["count"] += 1
+            pod_counts[node]["pods"].append(pod["name"])
+    
+    # Find node(s) with most pods
+    max_count = max(pc["count"] for pc in pod_counts.values()) if pod_counts else 0
+    
+    if max_count == 0:
+        # No pods on any worker, select first
+        return {
+            "selected": workers[0] if workers else None,
+            "pod_counts": pod_counts,
+            "reason": "No telemetry pods found on workers",
+        }
+    
+    # Get nodes with max pods
+    max_nodes = [h for h, pc in pod_counts.items() if pc["count"] == max_count]
+    
+    if len(max_nodes) == 1:
+        selected_hostname = max_nodes[0]
+        reason = f"Node has most pods ({max_count})"
+    else:
+        # Multiple nodes with same count, select randomly
+        selected_hostname = random.choice(max_nodes)
+        reason = f"Random selection from {len(max_nodes)} nodes with {max_count} pods each"
+    
+    return {
+        "selected": pod_counts[selected_hostname]["worker"],
+        "pod_counts": pod_counts,
+        "reason": reason,
+    }
 
 
 def poweroff_node(host, admin_ip: str, target_ip: str) -> Dict[str, Any]:
@@ -103,6 +181,47 @@ def poweroff_node(host, admin_ip: str, target_ip: str) -> Dict[str, Any]:
         "success": True,
         "node_ip": target_ip,
         "error": "",
+    }
+
+
+def wait_for_node_down(
+    host, admin_ip: str, target_hostname: str, timeout_seconds: int = 60
+) -> Dict[str, Any]:
+    """
+    Wait for a K8s node to show NotReady status.
+    
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane
+        target_hostname: Hostname of node to check
+        timeout_seconds: Max seconds to wait
+    
+    Returns:
+        Dict with success, status, elapsed_seconds
+    """
+    start_time = time.time()
+    check_interval = 5
+    
+    while (time.time() - start_time) < timeout_seconds:
+        workers = get_k8s_worker_nodes(host, admin_ip)
+        
+        for w in workers:
+            if w["hostname"] == target_hostname:
+                if w["status"] != "Ready":
+                    return {
+                        "success": True,
+                        "status": w["status"],
+                        "elapsed_seconds": int(time.time() - start_time),
+                    }
+                break
+        
+        time.sleep(check_interval)
+    
+    return {
+        "success": False,
+        "status": "Ready",
+        "elapsed_seconds": timeout_seconds,
+        "error": f"Node {target_hostname} still Ready after {timeout_seconds}s",
     }
 
 
@@ -185,51 +304,6 @@ def get_all_telemetry_pods(host, admin_ip: str) -> List[Dict[str, str]]:
     return pods
 
 
-def _print_pod_progress(
-    pods_status: Dict[str, Dict],
-    powered_off_node: str,
-    retry_count: int,
-    max_retries: int
-):
-    """
-    Print single-line progress that updates in place.
-
-    Args:
-        pods_status: Dict of pod_name -> {status, node, rescheduled}
-        powered_off_node: Name of the powered-off node
-        retry_count: Current retry count
-        max_retries: Maximum retries
-    """
-    rescheduled = sum(1 for ps in pods_status.values() if ps["rescheduled"])
-    total = len(pods_status)
-
-    # Build status summary
-    status_parts = []
-    for pod_name, ps in list(pods_status.items())[:5]:  # Show first 5
-        short_name = pod_name[:15] + ".." if len(pod_name) > 17 else pod_name
-        if ps["rescheduled"]:
-            status_parts.append(f"{short_name}[\u2713]")
-        else:
-            status_parts.append(f"{short_name}[{ps['status']}]")
-
-    if len(pods_status) > 5:
-        status_parts.append(f"...+{len(pods_status) - 5}")
-
-    line = (
-        f"\rPod reschedule: {rescheduled}/{total} done, "
-        f"retry {retry_count}/{max_retries} | " + " ".join(status_parts)
-    )
-
-    # Truncate and pad
-    max_width = 120
-    if len(line) > max_width:
-        line = line[:max_width - 3] + "..."
-    line = line.ljust(max_width)
-
-    sys.stdout.write(line)
-    sys.stdout.flush()
-
-
 def wait_for_pods_reschedule(
     host,
     admin_ip: str,
@@ -268,11 +342,11 @@ def wait_for_pods_reschedule(
             "rescheduled": False,
         }
 
-    # Print initial progress
-    _print_pod_progress(pods_status, powered_off_node, 0, POD_RESCHEDULE_RETRY_LIMIT)
-
     # Retry loop
     for retry in range(1, POD_RESCHEDULE_RETRY_LIMIT + 1):
+        # Print retry status
+        rescheduled_count = sum(1 for ps in pods_status.values() if ps["rescheduled"])
+        print(f"  → Waiting for pods to reschedule: {rescheduled_count}/{len(pods_status)} (retry {retry}/{POD_RESCHEDULE_RETRY_LIMIT})")
         # Get current pod status
         current_pods = get_all_telemetry_pods(host, admin_ip)
 
@@ -314,18 +388,12 @@ def wait_for_pods_reschedule(
                     all_rescheduled = False
                     ps["status"] = "not_found"
 
-        # Update progress
-        _print_pod_progress(pods_status, powered_off_node, retry, POD_RESCHEDULE_RETRY_LIMIT)
-
         if all_rescheduled:
+            print(f"  → All pods rescheduled successfully")
             break
 
         # Wait before next retry
         time.sleep(POD_RESCHEDULE_RETRY_INTERVAL)
-
-    # Print newline after progress
-    sys.stdout.write("\n")
-    sys.stdout.flush()
 
     # Build results
     rescheduled_pods = []
@@ -433,4 +501,171 @@ def verify_all_pods_running(host, admin_ip: str) -> Dict[str, Any]:
         "error": "" if not not_running_pods else (
             f"{len(not_running_pods)} pods not running"
         ),
+    }
+
+
+# =============================================================================
+# REBOOT FUNCTIONS
+# =============================================================================
+
+def reboot_node(host, admin_ip: str, target_ip: str) -> Dict[str, Any]:
+    """
+    Reboot a K8s worker node via SSH.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane (for SSH hop)
+        target_ip: IP of node to reboot
+
+    Returns:
+        Dict with success, error keys
+    """
+    cmd = run_on_remote_node(
+        host,
+        CMD_SSH_REBOOT.format(target_ip=target_ip),
+        admin_ip
+    )
+
+    # Command may return error since connection drops, that's expected
+    return {
+        "success": True,
+        "node_ip": target_ip,
+        "error": "",
+    }
+
+
+def wait_for_node_online(
+    host, admin_ip: str, target_ip: str, timeout_seconds: int = None
+) -> Dict[str, Any]:
+    """
+    Wait for a node to come back online after reboot.
+    
+    Checks ping first, then SSH connectivity.
+    
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane
+        target_ip: IP of node to check
+        timeout_seconds: Max seconds to wait (default from config)
+    
+    Returns:
+        Dict with success, ping_ok, ssh_ok, elapsed_seconds
+    """
+    if timeout_seconds is None:
+        timeout_seconds = NODE_ONLINE_TIMEOUT_SECONDS
+    
+    start_time = time.time()
+    check_interval = 10
+    ping_ok = False
+    ssh_ok = False
+    
+    while (time.time() - start_time) < timeout_seconds:
+        elapsed = int(time.time() - start_time)
+        
+        # Check ping first
+        if not ping_ok:
+            cmd = run_in_container(host, CMD_PING_NODE.format(target_ip=target_ip))
+            if cmd.rc == 0:
+                ping_ok = True
+                print(f"  → Node {target_ip} is pingable (took {elapsed}s)")
+        
+        # If ping ok, check SSH
+        if ping_ok and not ssh_ok:
+            cmd = run_on_remote_node(host, "echo ok 2>&1", target_ip)
+            if cmd.rc == 0 and "ok" in (cmd.stdout or ""):
+                ssh_ok = True
+                print(f"  → Node {target_ip} SSH is ready (took {elapsed}s)")
+                return {
+                    "success": True,
+                    "ping_ok": True,
+                    "ssh_ok": True,
+                    "elapsed_seconds": elapsed,
+                }
+        
+        time.sleep(check_interval)
+    
+    return {
+        "success": False,
+        "ping_ok": ping_ok,
+        "ssh_ok": ssh_ok,
+        "elapsed_seconds": timeout_seconds,
+        "error": f"Node {target_ip} not online after {timeout_seconds}s",
+    }
+
+
+def wait_for_cloudinit_done(
+    host, admin_ip: str, target_ip: str, target_hostname: str
+) -> Dict[str, Any]:
+    """
+    Wait for cloud-init to complete on a rebooted node.
+    
+    Uses core.cloudinit module for the actual verification.
+    
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane
+        target_ip: IP of rebooted node
+        target_hostname: Hostname of rebooted node
+    
+    Returns:
+        Dict with success, status, retries, elapsed_seconds
+    """
+    from ...core import wait_for_cloudinit
+    
+    return wait_for_cloudinit(
+        host,
+        target_ip,
+        hostname=target_hostname,
+        retry_limit=CLOUDINIT_RETRY_LIMIT,
+        retry_interval=CLOUDINIT_RETRY_INTERVAL,
+        passed_statuses=CLOUDINIT_PASSED_STATUSES,
+        retry_statuses=CLOUDINIT_RETRY_STATUSES,
+        show_progress=True,
+    )
+
+
+def wait_for_node_rejoin_cluster(
+    host, admin_ip: str, target_hostname: str, timeout_seconds: int = 120
+) -> Dict[str, Any]:
+    """
+    Wait for a node to rejoin the K8s cluster with Ready status.
+    
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s control plane
+        target_hostname: Hostname of node to check
+        timeout_seconds: Max seconds to wait
+    
+    Returns:
+        Dict with success, status, elapsed_seconds
+    """
+    start_time = time.time()
+    check_interval = 10
+    
+    while (time.time() - start_time) < timeout_seconds:
+        elapsed = int(time.time() - start_time)
+        
+        workers = get_k8s_worker_nodes(host, admin_ip)
+        
+        for w in workers:
+            if w["hostname"] == target_hostname:
+                if w["status"] == "Ready":
+                    print(f"  → Node {target_hostname} rejoined cluster (took {elapsed}s)")
+                    return {
+                        "success": True,
+                        "status": "Ready",
+                        "elapsed_seconds": elapsed,
+                    }
+                else:
+                    # Node found but not ready yet
+                    break
+        
+        print(f"  → Waiting for node {target_hostname} to rejoin cluster ({elapsed}s/{timeout_seconds}s)")
+        time.sleep(check_interval)
+    
+    return {
+        "success": False,
+        "status": "NotReady",
+        "elapsed_seconds": timeout_seconds,
+        "error": f"Node {target_hostname} did not rejoin cluster after {timeout_seconds}s",
     }
