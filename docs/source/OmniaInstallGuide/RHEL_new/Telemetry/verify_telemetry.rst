@@ -145,20 +145,6 @@ After the job completes, check the logs to confirm that the TLS connection is su
     kubectl logs victoria-tls-test-xxx -n telemetry    
 
 
-Verify VictoriaLogs TLS Connectivity
---------------------------------------
-
-To verify TLS connectivity for VictoriaLogs, run the VictoriaLogs TLS test job to
-verify that certificates and secure connectivity are functioning correctly::
-
-    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
-    kubectl apply -f victorialogs-tls-test-job.yaml
-
-After the job completes, check the logs to confirm that the TLS connection is successful::
-
-    kubectl logs victorialogs-tls-test-xxx -n telemetry
-
-
 View Collected Logs using VictoriaLogs Query Interface
 -----------------------------------------------------
 
@@ -184,21 +170,6 @@ successfully.
 For example, the following query displays recent log entries::
 
     * | sort by time desc
-
-Verify VictoriaLogs Log Ingestion
----------------------------------
-
-After recording the VictoriaLogs endpoint information from the deployment, verify that the VictoriaLogs deployment is fully functional by testing end-to-end log ingestion:
-
-1. Test log ingestion by sending a test syslog message to VLAgent::
-
-    echo "test message" | nc -u <LoadBalancer IP> 514
-
-2. Verify the test message appears in VictoriaLogs query results::
-
-    curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{_msg=\"test message\"}"'
-
-3. Confirm the query returns the test log entry, indicating successful ingestion and query functionality.
 
 
 View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Single Mode Deployment
