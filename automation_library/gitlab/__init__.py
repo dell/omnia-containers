@@ -52,17 +52,20 @@ from .functions import (
     verify_gitlab_default_branch,
     # Install verification
     verify_gitlab_runner_quadlet_exists,
-    verify_gitlab_runner_service_running,
+    verify_gitlab_runner_services_status,
     verify_gitlab_server_reachable,
     verify_gitlab_packages_installed,
     # Cleanup verification
     verify_gitlab_runner_container_removed,
     verify_gitlab_runner_quadlet_removed,
-    verify_gitlab_runner_service_stopped,
+    verify_gitlab_runner_services_stopped,
     verify_gitlab_url_not_accessible,
     verify_gitlab_directories_removed,
     verify_gitlab_services_stopped,
     verify_gitlab_packages_removed,
+    verify_gitlab_port_free,
+    verify_gitlab_pipeline_file_exists,
+    verify_gitlab_pipeline_variables,
 )
 from .vars import (
     GITLAB_SERVICES,
@@ -100,12 +103,12 @@ __all__ = [
     "verify_gitlab_default_branch",
     # Functions - Install verification
     "verify_gitlab_runner_quadlet_exists",
-    "verify_gitlab_runner_service_running",
+    "verify_gitlab_runner_services_status",
     "verify_gitlab_server_reachable",
     # Functions - Cleanup verification
     "verify_gitlab_runner_container_removed",
     "verify_gitlab_runner_quadlet_removed",
-    "verify_gitlab_runner_service_stopped",
+    "verify_gitlab_runner_services_stopped",
     "verify_gitlab_url_not_accessible",
     "verify_gitlab_directories_removed",
     "verify_gitlab_services_stopped",

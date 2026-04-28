@@ -31,6 +31,8 @@ Test cases:
 11. Verify GitLab project exists
 12. Verify GitLab project visibility
 13. Verify GitLab default branch
+14. Verify GitLab pipeline file exists
+15. Verify GitLab pipeline variables configured
 """
 
 import pytest
@@ -43,7 +45,7 @@ from automation_library.gitlab.functions import (
     verify_gitlab_server_reachable,
     verify_gitlab_runner_container,
     verify_gitlab_runner_quadlet_exists,
-    verify_gitlab_runner_service_running,
+    verify_gitlab_runner_services_status,
     verify_gitlab_url_accessible,
     verify_gitlab_services_running,
     verify_gitlab_resources,
@@ -52,6 +54,8 @@ from automation_library.gitlab.functions import (
     verify_gitlab_project_exists,
     verify_gitlab_project_visibility,
     verify_gitlab_default_branch,
+    verify_gitlab_pipeline_file_exists,
+    verify_gitlab_pipeline_variables,
 )
 from automation_library.gitlab.messages import (
     TEST_NAMES,
@@ -179,25 +183,30 @@ def test_gitlab_runner_quadlet_exists(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
-def test_gitlab_runner_service_running(host):
+def test_gitlab_runner_services_status(host):
     """
-    Test Case 5: Verify gitlab-runner systemd service is running on GitLab server.
+    Test Case 5: Verify GitLab runner services are running on GitLab server.
+
+    Checks gitlab-runner.service and gitlab-runsvdir.service.
     """
-    log = TestLogger(TEST_NAMES["gitlab_runner_service_running"])
+    log = TestLogger(TEST_NAMES["gitlab_runner_services_status"])
 
     skip_if_build_stream_not_enabled(host, log)
     skip_if_gitlab_host_not_configured(host, log)
 
-    log.check("Checking gitlab-runner service status")
-    result = verify_gitlab_runner_service_running(host)
+    log.check("Checking GitLab runner services status")
+    result = verify_gitlab_runner_services_status(host)
 
     if result["success"]:
-        log.passed(LOG_MSGS["service_running"].format(status=result['status']))
+        log.passed(LOG_MSGS["runner_services_ok"], result["details"])
     else:
-        log.failed(LOG_MSGS["service_not_running"].format(status=result['status']),
-                   result["error"])
+        log.failed(LOG_MSGS["runner_services_failed"], result["details"])
 
-    assert result["success"], ASSERT_MSGS["service_not_running"]
+    assert result["success"], (
+        f"GITLAB RUNNER SERVICES CHECK FAILED: "
+        f"{result['passed']}/{result['total']} running\n"
+        + result["details"]
+    )
 
 
 @pytest.mark.sanity
@@ -494,3 +503,94 @@ def test_gitlab_default_branch(host):
             )
 
     assert result["success"], result["error"]
+
+
+@pytest.mark.sanity
+@pytest.mark.order(14)
+def test_gitlab_pipeline_file_exists(host):
+    """
+    Test Case 14: Verify GitLab pipeline file exists in project repository.
+
+    Checks that .gitlab-ci.yml file is present in the GitLab project.
+    """
+    log = TestLogger(TEST_NAMES["gitlab_pipeline_file_exists"])
+
+    skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
+
+    log.check("Checking GitLab pipeline file exists")
+    result = verify_gitlab_pipeline_file_exists(host)
+
+    details = (
+        f"Project: {result['project_name']}\n"
+        f"Branch: {result['branch']}\n"
+        f"File: {result['file']}"
+    )
+
+    if result["success"]:
+        log.passed(
+            LOG_MSGS["pipeline_file_exists"].format(file=result['file']),
+            details
+        )
+    else:
+        log.failed(
+            LOG_MSGS["pipeline_file_not_found"].format(file=result['file']),
+            details
+        )
+
+    assert result["success"], ASSERT_MSGS["pipeline_file_not_found"].format(
+        file=result['file']
+    )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(15)
+def test_gitlab_pipeline_variables(host):
+    """
+    Test Case 15: Verify GitLab pipeline variables are configured.
+
+    Checks that BSM_API_URL, BSM_API_USERNAME, BSM_API_PASSWORD, BSM_API_CERT
+    variables are set in the GitLab project CI/CD settings.
+    """
+    log = TestLogger(TEST_NAMES["gitlab_pipeline_variables"])
+
+    skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
+
+    log.check("Checking GitLab pipeline variables")
+    result = verify_gitlab_pipeline_variables(host)
+
+    # Build details with tick marks (only if build_stream is enabled)
+    details_lines = [f"Project: {result['project_name']}"]
+    if "not enabled" not in result.get("error", ""):
+        for var in result['expected']:
+            if var in result.get('configured_correctly', []):
+                details_lines.append(f"  ✓ {var}: configured correctly")
+            elif var in result.get('missing', []):
+                details_lines.append(f"  ✗ {var}: missing")
+            else:
+                # Check if it's in value_mismatch
+                mismatch = next(
+                    (v for v in result.get('value_mismatch', []) if v['variable'] == var),
+                    None
+                )
+                if mismatch:
+                    details_lines.append(f"  ✗ {var}: value mismatch")
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(LOG_MSGS["pipeline_variables_ok"], details)
+    else:
+        if "not enabled" in result.get("error", ""):
+            log.skipped(result["error"], details)
+        else:
+            log.failed(
+                LOG_MSGS["pipeline_variables_missing"].format(vars=result.get('missing', [])),
+                details
+            )
+
+    # Only assert if build_stream is enabled
+    if "not enabled" not in result.get("error", ""):
+        assert result["success"], ASSERT_MSGS["pipeline_variables_missing"].format(
+            vars=result.get('missing', [])
+        )

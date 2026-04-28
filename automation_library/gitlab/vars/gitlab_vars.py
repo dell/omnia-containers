@@ -82,6 +82,15 @@ GITLAB_RUNNER_SERVICE_NAME = "gitlab-runner"
 GITLAB_RUNNER_CONFIG_PATH = "/srv/gitlab-runner/config"
 
 # =============================================================================
+# GITLAB SERVICES (on GitLab server)
+# =============================================================================
+
+GITLAB_RUNNER_SERVICES = [
+    {"name": "gitlab-runner.service", "description": "GitLab Runner Container"},
+    {"name": "gitlab-runsvdir.service", "description": "GitLab Runit supervision process"},
+]
+
+# =============================================================================
 # GITLAB CLEANUP DIRECTORIES (verified after cleanup)
 # =============================================================================
 
@@ -99,3 +108,51 @@ GITLAB_CLEANUP_DIRECTORIES = [
 GITLAB_INSTALLED_PACKAGES = [
     "gitlab-ce",
 ]
+
+# =============================================================================
+# GITLAB CI/CD PIPELINE CONFIGURATION
+# =============================================================================
+
+GITLAB_CI_PIPELINE_FILE = ".gitlab-ci.yml"
+
+# Pipeline variables set by gitlab.yml playbook (from build_stream_oauth_credentials)
+GITLAB_PIPELINE_VARIABLES = [
+    "GITLAB_API_TOKEN",
+    "BSM_API_URL",
+    "BSM_API_USERNAME",
+    "BSM_API_PASSWORD",
+    "BSM_API_CERT",
+]
+
+# =============================================================================
+# GITLAB FILE PATHS (on GitLab server)
+# =============================================================================
+GITLAB_ROOT_TOKEN_FILE = "/root/.gitlab_root_token"
+GITLAB_INITIAL_ROOT_PASSWORD_FILE = "/etc/gitlab/initial_root_password"
+
+# =============================================================================
+# GITLAB CI/CD PIPELINE SOURCE FILE (in omnia_core container)
+# =============================================================================
+GITLAB_CI_PIPELINE_SOURCE_FILE = "/omnia/gitlab/roles/hosted_gitlab/files/.gitlab-ci.yml"
+
+# =============================================================================
+# GITLAB RAILS COMMAND TEMPLATES
+# =============================================================================
+GITLAB_RAILS_CMD_PROJECT_ID = (
+    'gitlab-rails runner "puts Project.find_by(name: '
+    '\\\"{project_name}\\\")&.id" 2>/dev/null'
+)
+GITLAB_RAILS_CMD_PROJECT_VISIBILITY = (
+    'gitlab-rails runner "puts Project.find_by(name: '
+    '\\\"{project_name}\\\")&.visibility_level" 2>/dev/null'
+)
+GITLAB_RAILS_CMD_PROJECT_DEFAULT_BRANCH = (
+    'gitlab-rails runner "puts Project.find_by(name: '
+    '\\\"{project_name}\\\")&.default_branch" 2>/dev/null'
+)
+GITLAB_RAILS_CMD_ROOT_TOKEN = (
+    'gitlab-rails runner "'
+    "user = User.find_by(username: 'root'); "
+    "token = user.personal_access_tokens.active.first; "
+    'puts token&.token" 2>/dev/null'
+)

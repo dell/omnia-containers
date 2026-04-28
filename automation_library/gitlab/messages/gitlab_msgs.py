@@ -31,6 +31,7 @@ TEST_NAMES = {
     "gitlab_runner_container": "Verify gitlab-runner container running",
     "gitlab_runner_quadlet_exists": "Verify gitlab-runner quadlet file exists",
     "gitlab_runner_service_running": "Verify gitlab-runner service is running",
+    "gitlab_runner_services_status": "Verify GitLab runner services status",
     "gitlab_url_accessible": "Verify GitLab URL is accessible",
     "gitlab_services_running": "Verify GitLab services are running",
     "gitlab_resources": "Verify GitLab server meets resource requirements",
@@ -40,14 +41,18 @@ TEST_NAMES = {
     "gitlab_project_exists": "Verify GitLab project exists",
     "gitlab_project_visibility": "Verify GitLab project visibility",
     "gitlab_default_branch": "Verify GitLab default branch",
+    "gitlab_pipeline_file_exists": "Verify GitLab pipeline file exists",
+    "gitlab_pipeline_variables": "Verify GitLab pipeline variables configured",
     # GitLab Cleanup
     "gitlab_packages_removed": "Verify GitLab packages are removed",
     "gitlab_runner_container_removed": "Verify gitlab-runner container removed",
     "gitlab_runner_quadlet_removed": "Verify gitlab-runner quadlet file removed",
     "gitlab_runner_service_stopped": "Verify gitlab-runner service stopped",
+    "gitlab_runner_services_stopped": "Verify GitLab runner services stopped",
     "gitlab_url_not_accessible": "Verify GitLab URL is not accessible",
     "gitlab_directories_removed": "Verify GitLab directories removed",
     "gitlab_services_stopped": "Verify GitLab services stopped",
+    "gitlab_port_free": "Verify GitLab port is free",
 }
 
 # =============================================================================
@@ -61,6 +66,7 @@ TEST_LOG_MSGS = {
     "container_running": "gitlab-runner container is running: {status}",
     "quadlet_exists": "gitlab-runner quadlet file exists: {path}",
     "service_running": "gitlab-runner service is running: {status}",
+    "runner_services_ok": "All GitLab runner services are running",
     "gitlab_accessible": "GitLab is accessible at {url} (HTTP {code})",
     "gitlab_services_ok": "All GitLab services are running ({count} services)",
     "resources_ok": "GitLab server meets resource requirements",
@@ -72,6 +78,7 @@ TEST_LOG_MSGS = {
     "container_not_running": "gitlab-runner container not running",
     "quadlet_not_found": "gitlab-runner quadlet file not found: {path}",
     "service_not_running": "gitlab-runner service is not running: {status}",
+    "runner_services_failed": "Some GitLab runner services are not running",
     "gitlab_not_accessible": "GitLab is not accessible at {url}",
     "gitlab_services_failed": "Some GitLab services are not running: {services}",
     "resources_insufficient": "GitLab server does not meet resource requirements",
@@ -81,26 +88,34 @@ TEST_LOG_MSGS = {
     "project_exists": "GitLab project '{name}' exists (ID: {id})",
     "visibility_ok": "Project visibility configured correctly: {visibility}",
     "default_branch_ok": "Default branch configured correctly: {branch}",
+    "pipeline_file_exists": "GitLab pipeline file exists: {file}",
+    "pipeline_variables_ok": "GitLab pipeline variables configured",
     # GitLab Install - Project - Failure
     "project_not_found": "GitLab project '{name}' not found",
     "visibility_mismatch": "Project visibility mismatch: expected {expected}, actual {actual}",
     "default_branch_mismatch": "Default branch mismatch: expected {expected}, actual {actual}",
+    "pipeline_file_not_found": "GitLab pipeline file not found: {file}",
+    "pipeline_variables_missing": "GitLab pipeline variables missing: {vars}",
     # GitLab Cleanup - Success
     "packages_removed": "GitLab packages removed: {packages}",
     "container_removed": "gitlab-runner container removed",
     "quadlet_removed": "gitlab-runner quadlet file removed",
     "service_stopped": "gitlab-runner service stopped",
+    "runner_services_stopped": "All GitLab runner services stopped",
     "gitlab_not_accessible_cleanup": "GitLab URL is not accessible (cleanup successful)",
     "directories_removed": "GitLab directories removed",
     "services_stopped": "All GitLab services stopped",
+    "port_free": "GitLab port {port} is free",
     # GitLab Cleanup - Failure
     "packages_still_installed": "GitLab packages still installed: {packages}",
     "container_still_exists": "gitlab-runner container still exists",
     "quadlet_still_exists": "gitlab-runner quadlet file still exists: {path}",
     "service_still_running": "gitlab-runner service still running: {status}",
+    "runner_services_still_running": "Some GitLab runner services still running",
     "gitlab_still_accessible": "GitLab URL still accessible at {url}",
     "directories_still_exist": "GitLab directories still exist: {dirs}",
     "services_still_running": "GitLab services still running: {services}",
+    "port_still_in_use": "GitLab port {port} is still in use",
 }
 
 # =============================================================================
@@ -161,6 +176,14 @@ TEST_ASSERT_MSGS = {
     "default_branch_mismatch": (
         "Default branch mismatch. Expected: {expected}, Actual: {actual}"
     ),
+    "pipeline_file_not_found": (
+        "GitLab pipeline file {file} not found in project. "
+        "Run gitlab.yml playbook to deploy GitLab"
+    ),
+    "pipeline_variables_missing": (
+        "GitLab pipeline variables missing: {vars}. "
+        "Run gitlab.yml playbook to deploy GitLab"
+    ),
     # GitLab Cleanup
     "packages_still_installed": (
         "GitLab packages still installed: {packages}. Cleanup failed"
@@ -182,5 +205,8 @@ TEST_ASSERT_MSGS = {
     ),
     "services_still_running": (
         "GitLab services still running: {services}. Cleanup failed"
+    ),
+    "port_still_in_use": (
+        "GitLab port {port} is still in use. Cleanup failed"
     ),
 }

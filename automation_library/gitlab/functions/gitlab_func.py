@@ -21,8 +21,16 @@ For shared functions, see:
 - shared_func.py - Config loading, caching, skip helpers
 """
 
+import json
 from typing import Any, Dict
 
+from automation_library.core import (
+    get_input_value,
+    view_credentials_file,
+    BUILD_STREAM_CONFIG_FILE,
+    BUILD_STREAM_OAUTH_CREDENTIALS_PATH,
+    BUILD_STREAM_OAUTH_CREDENTIALS_KEY_PATH,
+)
 from ...core import run_on_oim, run_in_container
 
 from .shared_func import (
@@ -47,9 +55,17 @@ from ..vars import (
     GITLAB_VISIBILITY_LEVELS,
     GITLAB_RUNNER_QUADLET_DIR,
     GITLAB_RUNNER_QUADLET_FILE,
-    GITLAB_RUNNER_SERVICE_NAME,
+    GITLAB_RUNNER_SERVICES,
     GITLAB_CLEANUP_DIRECTORIES,
     GITLAB_INSTALLED_PACKAGES,
+    GITLAB_CI_PIPELINE_FILE,
+    GITLAB_PIPELINE_VARIABLES,
+    GITLAB_ROOT_TOKEN_FILE,
+    GITLAB_CI_PIPELINE_SOURCE_FILE,
+    GITLAB_RAILS_CMD_PROJECT_ID,
+    GITLAB_RAILS_CMD_PROJECT_VISIBILITY,
+    GITLAB_RAILS_CMD_PROJECT_DEFAULT_BRANCH,
+    GITLAB_RAILS_CMD_ROOT_TOKEN,
 )
 
 
@@ -119,25 +135,27 @@ def verify_gitlab_runner_container(host) -> Dict[str, Any]:
     }
 
     # Check if specific container is running
-    cmd = f"podman ps --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Status}}}}'"
+    cmd = 'podman ps --format "{{.Names}} {{.Status}}" 2>/dev/null || true'
     ssh_result = ssh_to_gitlab(host, cmd)
-    if not ssh_result["success"]:
-        result["error"] = ssh_result["error"]
-        return result
 
-    status = ssh_result["stdout"].strip()
-    if status:
-        result["status"] = status
-        result["success"] = True
-        return result
+    if GITLAB_RUNNER_CONTAINER in ssh_result["stdout"]:
+        # Extract status from output
+        for line in ssh_result["stdout"].strip().split("\n"):
+            if GITLAB_RUNNER_CONTAINER in line:
+                result["status"] = line.strip()
+                result["success"] = True
+                return result
 
     # Check if container exists but not running
-    cmd = f"podman ps -a --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Status}}}}'"
+    cmd = 'podman ps -a --format "{{.Names}} {{.Status}}" 2>/dev/null || true'
     ssh_result = ssh_to_gitlab(host, cmd)
-    if ssh_result["success"] and ssh_result["stdout"].strip():
-        result["status"] = ssh_result["stdout"].strip()
-        result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} exists but not running"
-        return result
+
+    if GITLAB_RUNNER_CONTAINER in ssh_result["stdout"]:
+        for line in ssh_result["stdout"].strip().split("\n"):
+            if GITLAB_RUNNER_CONTAINER in line:
+                result["status"] = line.strip()
+                result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} exists but not running"
+                return result
 
     result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} not found"
     return result
@@ -398,10 +416,7 @@ def verify_gitlab_project_exists(host) -> Dict[str, Any]:
     project_name = get_gitlab_project_name(host)
     result["project_name"] = project_name
 
-    rails_cmd = (
-        f'gitlab-rails runner "puts Project.find_by(name: '
-        f'\\\"{project_name}\\\")&.id" 2>/dev/null'
-    )
+    rails_cmd = GITLAB_RAILS_CMD_PROJECT_ID.format(project_name=project_name)
     ssh_result = ssh_to_gitlab(host, rails_cmd)
 
     if not ssh_result["success"]:
@@ -449,10 +464,7 @@ def verify_gitlab_project_visibility(host) -> Dict[str, Any]:
         result["error"] = project_result["error"]
         return result
 
-    rails_cmd = (
-        f'gitlab-rails runner "puts Project.find_by(name: '
-        f'\\\"{project_name}\\\")&.visibility_level" 2>/dev/null'
-    )
+    rails_cmd = GITLAB_RAILS_CMD_PROJECT_VISIBILITY.format(project_name=project_name)
     ssh_result = ssh_to_gitlab(host, rails_cmd)
 
     if not ssh_result["success"]:
@@ -510,10 +522,7 @@ def verify_gitlab_default_branch(host) -> Dict[str, Any]:
         result["error"] = project_result["error"]
         return result
 
-    rails_cmd = (
-        f'gitlab-rails runner "puts Project.find_by(name: '
-        f'\\\"{project_name}\\\")&.default_branch" 2>/dev/null'
-    )
+    rails_cmd = GITLAB_RAILS_CMD_PROJECT_DEFAULT_BRANCH.format(project_name=project_name)
     ssh_result = ssh_to_gitlab(host, rails_cmd)
 
     if not ssh_result["success"]:
@@ -569,35 +578,71 @@ def verify_gitlab_runner_quadlet_exists(host) -> Dict[str, Any]:
     return result
 
 
-def verify_gitlab_runner_service_running(host) -> Dict[str, Any]:
+def verify_gitlab_runner_services_status(host) -> Dict[str, Any]:
     """
-    Verify gitlab-runner systemd service is running on GitLab server.
+    Verify all GitLab runner services are running on GitLab server.
 
-    Checks if gitlab-runner.service is active.
+    Checks gitlab-runner.service and gitlab-runsvdir.service.
+    Returns consolidated status like prepare_oim service check.
     """
     result = {
         "success": False,
-        "service_name": f"{GITLAB_RUNNER_SERVICE_NAME}.service",
-        "status": "",
+        "results": [],
+        "passed": 0,
+        "failed": 0,
+        "total": 0,
+        "details": "",
         "error": "",
     }
 
-    ssh_result = ssh_to_gitlab(
-        host,
-        f"systemctl is-active {GITLAB_RUNNER_SERVICE_NAME}.service 2>/dev/null"
-    )
+    passed = 0
+    failed = 0
+    results = []
 
-    if not ssh_result["success"]:
-        result["error"] = ssh_result["error"]
-        return result
+    for svc in GITLAB_RUNNER_SERVICES:
+        svc_name = svc["name"]
+        ssh_result = ssh_to_gitlab(
+            host,
+            f"systemctl is-active {svc_name} 2>/dev/null"
+        )
 
-    status = ssh_result["stdout"].strip()
-    result["status"] = status
+        if not ssh_result["success"]:
+            result["error"] = ssh_result["error"]
+            return result
 
-    if status == "active":
-        result["success"] = True
-    else:
-        result["error"] = f"Service {result['service_name']} is not active: {status}"
+        status = ssh_result["stdout"].strip()
+        is_active = status == "active"
+
+        if is_active:
+            verdict = "pass"
+            message = f"{svc_name}: active"
+            passed += 1
+        else:
+            verdict = "fail"
+            message = f"{svc_name}: {status} (expected active)"
+            failed += 1
+
+        results.append({
+            "name": svc_name,
+            "description": svc["description"],
+            "status": status,
+            "is_active": is_active,
+            "verdict": verdict,
+            "message": message,
+        })
+
+    total = passed + failed
+    details = f"Services: {passed}/{total} running\n"
+    for svc in results:
+        mark = "✓" if svc["verdict"] == "pass" else "✘"
+        details += f"  {mark} {svc['message']}\n"
+
+    result["success"] = failed == 0
+    result["results"] = results
+    result["passed"] = passed
+    result["failed"] = failed
+    result["total"] = total
+    result["details"] = details
 
     return result
 
@@ -648,17 +693,16 @@ def verify_gitlab_runner_container_removed(host) -> Dict[str, Any]:
         "error": "",
     }
 
-    cmd = f"podman ps -a --filter name={GITLAB_RUNNER_CONTAINER} --format '{{{{.Names}}}}'"
+    # Use podman ps -a to check if container exists
+    cmd = 'podman ps -a --format "{{.Names}}" 2>/dev/null || true'
     ssh_result = ssh_to_gitlab(host, cmd)
-    if not ssh_result["success"]:
-        result["error"] = ssh_result["error"]
-        return result
 
-    if not ssh_result["stdout"].strip():
+    # Check stdout for container name
+    if GITLAB_RUNNER_CONTAINER in ssh_result["stdout"]:
+        result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} still exists"
+    else:
         result["exists"] = False
         result["success"] = True
-    else:
-        result["error"] = f"Container {GITLAB_RUNNER_CONTAINER} still exists"
 
     return result
 
@@ -695,31 +739,67 @@ def verify_gitlab_runner_quadlet_removed(host) -> Dict[str, Any]:
     return result
 
 
-def verify_gitlab_runner_service_stopped(host) -> Dict[str, Any]:
+def verify_gitlab_runner_services_stopped(host) -> Dict[str, Any]:
     """
-    Verify gitlab-runner systemd service is stopped after cleanup.
+    Verify all GitLab runner services are stopped after cleanup.
 
-    Checks that gitlab-runner.service is not active.
+    Checks gitlab-runner.service and gitlab-runsvdir.service are not active.
+    Returns consolidated status like prepare_oim service check.
     """
     result = {
         "success": False,
-        "service_name": f"{GITLAB_RUNNER_SERVICE_NAME}.service",
-        "status": "",
+        "results": [],
+        "passed": 0,
+        "failed": 0,
+        "total": 0,
+        "details": "",
         "error": "",
     }
 
-    ssh_result = ssh_to_gitlab(
-        host,
-        f"systemctl is-active {GITLAB_RUNNER_SERVICE_NAME}.service 2>/dev/null"
-    )
+    passed = 0
+    failed = 0
+    results = []
 
-    status = ssh_result["stdout"].strip() if ssh_result["stdout"] else "inactive"
-    result["status"] = status
+    for svc in GITLAB_RUNNER_SERVICES:
+        svc_name = svc["name"]
+        ssh_result = ssh_to_gitlab(
+            host,
+            f"systemctl is-active {svc_name} 2>/dev/null"
+        )
 
-    if status in ["inactive", "failed", ""]:
-        result["success"] = True
-    else:
-        result["error"] = f"Service {result['service_name']} is still active: {status}"
+        status = ssh_result["stdout"].strip() if ssh_result["stdout"] else "inactive"
+        is_stopped = status in ["inactive", "failed", ""]
+
+        if is_stopped:
+            verdict = "pass"
+            message = f"{svc_name}: stopped"
+            passed += 1
+        else:
+            verdict = "fail"
+            message = f"{svc_name}: {status} (expected stopped)"
+            failed += 1
+
+        results.append({
+            "name": svc_name,
+            "description": svc["description"],
+            "status": status,
+            "is_stopped": is_stopped,
+            "verdict": verdict,
+            "message": message,
+        })
+
+    total = passed + failed
+    details = f"Services: {passed}/{total} stopped\n"
+    for svc in results:
+        mark = "✓" if svc["verdict"] == "pass" else "✘"
+        details += f"  {mark} {svc['message']}\n"
+
+    result["success"] = failed == 0
+    result["results"] = results
+    result["passed"] = passed
+    result["failed"] = failed
+    result["total"] = total
+    result["details"] = details
 
     return result
 
@@ -873,13 +953,7 @@ def verify_catalog_synced(host) -> Dict[str, Any]:
         result["error"] = "gitlab_root_password not found in credentials"
         return result
 
-    # Get private token first
-    token_cmd = (
-        'gitlab-rails runner "'
-        "user = User.find_by(username: 'root'); "
-        "token = user.personal_access_tokens.active.first; "
-        'puts token&.token" 2>/dev/null'
-    )
+    token_cmd = GITLAB_RAILS_CMD_ROOT_TOKEN
     ssh_result = ssh_to_gitlab(host, token_cmd)
 
     if ssh_result["success"] and ssh_result["stdout"]:
@@ -940,7 +1014,10 @@ def verify_gitlab_packages_installed(host) -> Dict[str, Any]:
     for pkg in GITLAB_INSTALLED_PACKAGES:
         ssh_result = ssh_to_gitlab(host, f"rpm -q {pkg}")
 
-        if not ssh_result["success"]:
+        # rpm -q returns non-zero when package not found
+        # Only fail if SSH connection itself failed
+        err = ssh_result.get("error", "").lower()
+        if "ssh" in err and "connection" in err:
             result["error"] = ssh_result["error"]
             return result
 
@@ -975,7 +1052,10 @@ def verify_gitlab_packages_removed(host) -> Dict[str, Any]:
     for pkg in GITLAB_INSTALLED_PACKAGES:
         ssh_result = ssh_to_gitlab(host, f"rpm -q {pkg}")
 
-        if not ssh_result["success"]:
+        # rpm -q returns non-zero when package not found, which is expected
+        # Only fail if SSH connection itself failed
+        err = ssh_result.get("error", "").lower()
+        if "ssh" in err and "connection" in err:
             result["error"] = ssh_result["error"]
             return result
 
@@ -988,5 +1068,300 @@ def verify_gitlab_packages_removed(host) -> Dict[str, Any]:
         result["success"] = True
     else:
         result["error"] = f"Packages still installed: {result['still_installed']}"
+
+    return result
+
+
+def verify_gitlab_port_free(host) -> Dict[str, Any]:
+    """
+    Verify GitLab HTTPS port is free after cleanup.
+
+    Checks that the configured gitlab_https_port is not in use.
+    """
+    result = {
+        "success": False,
+        "port": 0,
+        "in_use": True,
+        "error": "",
+    }
+
+    gitlab_port = get_gitlab_https_port(host)
+    result["port"] = gitlab_port
+
+    # Check if port is listening on GitLab server
+    cmd = f"ss -tlnp | grep -w {gitlab_port} || true"
+    ssh_result = ssh_to_gitlab(host, cmd)
+
+    if not ssh_result["stdout"].strip():
+        # Port is not in use - good for cleanup
+        result["in_use"] = False
+        result["success"] = True
+    else:
+        result["error"] = f"Port {gitlab_port} is still in use"
+
+    return result
+
+
+# =============================================================================
+# GITLAB CI/CD PIPELINE VERIFICATION FUNCTIONS
+# =============================================================================
+
+def verify_gitlab_pipeline_file_exists(host) -> Dict[str, Any]:
+    """
+    Verify .gitlab-ci.yml pipeline file exists in GitLab project repository.
+
+    Compares expected content from source file in omnia_core container
+    with actual content in GitLab repository via API.
+    """
+    result = {
+        "success": False,
+        "file": GITLAB_CI_PIPELINE_FILE,
+        "exists": False,
+        "content_matches": False,
+        "project_name": "",
+        "branch": "",
+        "error": "",
+    }
+
+    gitlab_host = get_gitlab_host(host)
+    gitlab_port = get_gitlab_https_port(host)
+    project_name = get_gitlab_project_name(host)
+    default_branch = get_gitlab_default_branch(host)
+
+    result["project_name"] = project_name
+    result["branch"] = default_branch
+
+    if not gitlab_host or not project_name:
+        result["error"] = "gitlab_host or gitlab_project_name not configured"
+        return result
+
+    expected_cmd = f"cat {GITLAB_CI_PIPELINE_SOURCE_FILE} | md5sum | cut -d' ' -f1"
+    expected_result = run_in_container(host, expected_cmd)
+
+    if expected_result.rc != 0:
+        result["error"] = "Failed to read pipeline source file"
+        return result
+
+    expected_hash = expected_result.stdout.strip()
+
+    # Get actual content from GitLab repository via API
+    # Single SSH call: get token and fetch file content
+    full_project_path = f"root/{project_name}" if "/" not in project_name else project_name
+    encoded_project = full_project_path.replace("/", "%2F")
+    api_url = f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
+    file_url = f"{api_url}/projects/{encoded_project}/repository/files"
+    file_url = f"{file_url}/{GITLAB_CI_PIPELINE_FILE}?ref={default_branch}"
+
+    # Combined command: read token, fetch file, decode base64, compute hash
+    # Uses jq for proper JSON parsing
+    combined_cmd = (
+        f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
+        f'curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{file_url}" | '
+        f'jq -r ".content // empty" | base64 -d 2>/dev/null | '
+        f'md5sum | cut -d" " -f1 || echo "FILE_NOT_FOUND"'
+    )
+
+    ssh_result = ssh_to_gitlab(host, combined_cmd)
+
+    if not ssh_result["success"]:
+        result["error"] = f"Failed to fetch file from GitLab: {ssh_result['error']}"
+        return result
+
+    actual_hash = ssh_result["stdout"].strip()
+
+    if actual_hash == "FILE_NOT_FOUND" or not actual_hash:
+        result["error"] = "Pipeline file not found in repository"
+        return result
+
+    # Compare hashes
+    result["exists"] = True
+    if expected_hash == actual_hash:
+        result["content_matches"] = True
+        result["success"] = True
+    else:
+        result["error"] = f"Content mismatch: expected hash {expected_hash}, got {actual_hash}"
+
+    return result
+
+
+def verify_gitlab_pipeline_variables(host) -> Dict[str, Any]:
+    """
+    Verify GitLab pipeline variables are configured with correct values.
+
+    Checks that GITLAB_API_TOKEN, BSM_API_URL, BSM_API_USERNAME, BSM_API_PASSWORD,
+    BSM_API_CERT variables are set with expected values from config files.
+
+    Expected values come from:
+    - GITLAB_API_TOKEN: /root/.gitlab_root_token on GitLab server
+    - BSM_API_URL: https://{build_stream_host_ip}:{build_stream_port}
+    - BSM_API_USERNAME: auth_registration.username from oauth credentials
+    - BSM_API_PASSWORD: auth_registration.password from oauth credentials
+    - BSM_API_CERT: certificate content (just check exists)
+    """
+    result = {
+        "success": False,
+        "expected": GITLAB_PIPELINE_VARIABLES,
+        "configured_correctly": [],
+        "missing": [],
+        "value_mismatch": [],
+        "project_name": "",
+        "error": "",
+    }
+
+    gitlab_host = get_gitlab_host(host)
+    gitlab_port = get_gitlab_https_port(host)
+    project_name = get_gitlab_project_name(host)
+
+    result["project_name"] = project_name
+
+    if not gitlab_host or not project_name:
+        result["error"] = "gitlab_host or gitlab_project_name not configured"
+        return result
+
+    # Check if build_stream is enabled
+    build_stream_enabled = get_input_value(
+        host, BUILD_STREAM_CONFIG_FILE, "enable_build_stream", default=False
+    )
+    if not build_stream_enabled:
+        result["error"] = "build_stream is not enabled - pipeline variables not expected"
+        return result
+
+    # Build expected values dictionary from config files
+    # 1. BSM_API_URL from build_stream_config.yml
+    build_stream_host = get_input_value(
+        host, BUILD_STREAM_CONFIG_FILE, "build_stream_host_ip", default=""
+    )
+    build_stream_port = get_input_value(
+        host, BUILD_STREAM_CONFIG_FILE, "build_stream_port", default=8010
+    )
+
+    # 2. BSM_API_USERNAME and BSM_API_PASSWORD from oauth credentials
+    oauth_creds = view_credentials_file(
+        host,
+        BUILD_STREAM_OAUTH_CREDENTIALS_PATH,
+        BUILD_STREAM_OAUTH_CREDENTIALS_KEY_PATH
+    )
+
+    expected_username = ""
+    expected_password = ""
+    if oauth_creds["success"]:
+        auth_reg = oauth_creds["content"].get("auth_registration", {})
+        expected_username = auth_reg.get("username", "")
+        expected_password = auth_reg.get("password", "")
+
+    # 3. BSM_API_CERT from /opt/omnia/build_stream_ssl/ssl/bs_cert.pem in omnia_core
+    cert_path = "/opt/omnia/build_stream_ssl/ssl/bs_cert.pem"
+    cert_result = run_in_container(host, f"cat {cert_path} 2>/dev/null")
+    expected_cert = cert_result.stdout.strip() if cert_result.rc == 0 else ""
+
+    # 4. GITLAB_API_TOKEN from /root/.gitlab_root_token on GitLab server
+    # Will be fetched along with variables in single SSH call
+
+    # Store all expected values in dictionary for comparison
+    expected_values = {
+        "BSM_API_URL": f"https://{build_stream_host}:{build_stream_port}",
+        "BSM_API_USERNAME": expected_username,
+        "BSM_API_PASSWORD": expected_password,
+        "BSM_API_CERT": expected_cert,
+        # GITLAB_API_TOKEN - compare with token from GitLab server
+    }
+
+    # Single SSH call to GitLab: get token AND fetch all variables
+    # Output format: TOKEN_VALUE|||JSON_RESPONSE (separated by |||)
+    full_project_path = f"root/{project_name}" if "/" not in project_name else project_name
+    encoded_project = full_project_path.replace("/", "%2F")
+    api_url = f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
+    vars_url = f"{api_url}/projects/{encoded_project}/variables"
+
+    # Combined command: read token, output it, then fetch variables
+    # Output: TOKEN|||JSON_RESPONSE
+    combined_cmd = (
+        f'TOKEN=$(cat {GITLAB_ROOT_TOKEN_FILE}); '
+        f'echo "$TOKEN|||$(curl -sk -H "PRIVATE-TOKEN: $TOKEN" "{vars_url}")"'
+    )
+
+    ssh_result = ssh_to_gitlab(host, combined_cmd)
+    if not ssh_result["success"]:
+        result["error"] = f"Failed to fetch variables: {ssh_result['error']}"
+        return result
+
+    # Parse the response: TOKEN|||JSON_RESPONSE
+    try:
+        output = ssh_result["stdout"].strip()
+        if "|||" not in output:
+            result["error"] = f"Invalid response format: {output[:100]}"
+            return result
+
+        expected_token, json_content = output.split("|||", 1)
+        expected_token = expected_token.strip()
+
+        # Add expected token to expected_values for comparison
+        expected_values["GITLAB_API_TOKEN"] = expected_token
+
+        if not json_content:
+            result["error"] = "Empty response from variables API"
+            return result
+
+        variables_data = json.loads(json_content)
+        if not isinstance(variables_data, list):
+            # API returned error (e.g., 401 Unauthorized)
+            if isinstance(variables_data, dict) and "message" in variables_data:
+                result["error"] = f"API error: {variables_data['message']}"
+            else:
+                result["error"] = f"Unexpected response: {json_content[:100]}"
+            return result
+
+        # Build actual variables dictionary from API response
+        actual_variables = {var["key"]: var["value"] for var in variables_data}
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
+        result["error"] = f"Failed to parse response: {str(e)[:100]}"
+        return result
+
+    # Compare expected vs actual for each pipeline variable
+    for var_name in GITLAB_PIPELINE_VARIABLES:
+        if var_name not in actual_variables:
+            result["missing"].append(var_name)
+        else:
+            actual_value = actual_variables[var_name].strip()
+
+            if var_name in expected_values:
+                # Compare with expected value (strip whitespace for comparison)
+                expected_val = expected_values[var_name].strip()
+                if actual_value == expected_val:
+                    result["configured_correctly"].append(var_name)
+                else:
+                    # Truncate long values for display
+                    max_len = 50
+                    if len(expected_val) > max_len:
+                        exp_display = expected_val[:max_len] + "..."
+                    else:
+                        exp_display = expected_val
+                    if len(actual_value) > max_len:
+                        act_display = actual_value[:max_len] + "..."
+                    else:
+                        act_display = actual_value
+                    result["value_mismatch"].append({
+                        "variable": var_name,
+                        "expected": exp_display,
+                        "actual": act_display
+                    })
+            else:
+                # Unknown variable - just verify non-empty
+                if actual_value:
+                    result["configured_correctly"].append(var_name)
+                else:
+                    result["missing"].append(var_name)
+
+    # Set success if no missing and no mismatches
+    if not result["missing"] and not result["value_mismatch"]:
+        result["success"] = True
+    else:
+        errors = []
+        if result["missing"]:
+            errors.append(f"Missing: {result['missing']}")
+        if result["value_mismatch"]:
+            mismatches = [v['variable'] for v in result["value_mismatch"]]
+            errors.append(f"Value mismatch: {mismatches}")
+        result["error"] = "; ".join(errors)
 
     return result

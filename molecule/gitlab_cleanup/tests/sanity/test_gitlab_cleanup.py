@@ -25,6 +25,7 @@ Test cases:
 5. Verify GitLab URL is not accessible
 6. Verify GitLab directories removed
 7. Verify GitLab services stopped
+8. Verify GitLab port is free
 """
 
 import pytest
@@ -36,10 +37,11 @@ from automation_library.gitlab.functions import (
     verify_gitlab_packages_removed,
     verify_gitlab_runner_container_removed,
     verify_gitlab_runner_quadlet_removed,
-    verify_gitlab_runner_service_stopped,
+    verify_gitlab_runner_services_stopped,
     verify_gitlab_url_not_accessible,
     verify_gitlab_directories_removed,
     verify_gitlab_services_stopped,
+    verify_gitlab_port_free,
 )
 from automation_library.gitlab.messages import (
     TEST_NAMES,
@@ -68,11 +70,14 @@ def test_gitlab_packages_removed(host):
     log.check("Checking GitLab packages are removed")
     result = verify_gitlab_packages_removed(host)
 
-    details = (
-        f"Expected removed: {result['expected_removed']}\n"
-        f"Removed: {result['removed']}\n"
-        f"Still installed: {result['still_installed']}"
-    )
+    # Build details with tick marks for removed items
+    details_lines = []
+    for pkg in result['expected_removed']:
+        if pkg in result['removed']:
+            details_lines.append(f"  ✓ {pkg} removed")
+        else:
+            details_lines.append(f"  ✗ {pkg} still installed")
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(
@@ -141,27 +146,30 @@ def test_gitlab_runner_quadlet_removed(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(4)
-def test_gitlab_runner_service_stopped(host):
+def test_gitlab_runner_services_stopped(host):
     """
-    Test Case 4: Verify gitlab-runner service is stopped after cleanup.
+    Test Case 4: Verify GitLab runner services are stopped after cleanup.
+
+    Checks gitlab-runner.service and gitlab-runsvdir.service are stopped.
     """
-    log = TestLogger(TEST_NAMES["gitlab_runner_service_stopped"])
+    log = TestLogger(TEST_NAMES["gitlab_runner_services_stopped"])
 
     skip_if_build_stream_not_enabled(host, log)
     skip_if_gitlab_host_not_configured(host, log)
 
-    log.check("Checking gitlab-runner service is stopped")
-    result = verify_gitlab_runner_service_stopped(host)
+    log.check("Checking GitLab runner services are stopped")
+    result = verify_gitlab_runner_services_stopped(host)
 
     if result["success"]:
-        log.passed(LOG_MSGS["service_stopped"])
+        log.passed(LOG_MSGS["runner_services_stopped"], result["details"])
     else:
-        log.failed(
-            LOG_MSGS["service_still_running"].format(status=result['status']),
-            result["error"]
-        )
+        log.failed(LOG_MSGS["runner_services_still_running"], result["details"])
 
-    assert result["success"], ASSERT_MSGS["service_still_running"]
+    assert result["success"], (
+        f"GITLAB RUNNER SERVICES CHECK FAILED: "
+        f"{result['passed']}/{result['total']} stopped\n"
+        + result["details"]
+    )
 
 
 @pytest.mark.sanity
@@ -205,10 +213,13 @@ def test_gitlab_directories_removed(host):
     log.check("Checking GitLab directories are removed")
     result = verify_gitlab_directories_removed(host)
 
-    details = (
-        f"Removed: {result['removed']}\n"
-        f"Still existing: {result['existing']}"
-    )
+    # Build details with tick marks for removed directories
+    details_lines = []
+    for dir_path in result['removed']:
+        details_lines.append(f"  ✓ {dir_path} removed")
+    for dir_path in result['existing']:
+        details_lines.append(f"  ✗ {dir_path} still exists")
+    details = "\n".join(details_lines)
 
     if result["success"]:
         log.passed(LOG_MSGS["directories_removed"], details)
@@ -247,4 +258,34 @@ def test_gitlab_services_stopped(host):
 
     assert result["success"], ASSERT_MSGS["services_still_running"].format(
         services=result['running']
+    )
+
+
+@pytest.mark.sanity
+@pytest.mark.order(8)
+def test_gitlab_port_free(host):
+    """
+    Test Case 8: Verify GitLab HTTPS port is free after cleanup.
+    """
+    log = TestLogger(TEST_NAMES["gitlab_port_free"])
+
+    skip_if_build_stream_not_enabled(host, log)
+    skip_if_gitlab_host_not_configured(host, log)
+
+    log.check("Checking GitLab port is free")
+    result = verify_gitlab_port_free(host)
+
+    if result["success"]:
+        log.passed(
+            LOG_MSGS["port_free"].format(port=result['port']),
+            f"  ✓ Port {result['port']} is free"
+        )
+    else:
+        log.failed(
+            LOG_MSGS["port_still_in_use"].format(port=result['port']),
+            f"  ✗ Port {result['port']} is still in use"
+        )
+
+    assert result["success"], ASSERT_MSGS["port_still_in_use"].format(
+        port=result['port']
     )
