@@ -1,6 +1,7 @@
 ﻿Parameter,Mandatory/Optional,Description
 gitlab_host,Mandatory,"* IP address of the target host where GitLab will be deployed.
 * Must be accessible from the OIM server.
+* The GitLab host IP address must be different from the Omnia Infrastructure Manager (OIM) IP address.
 "
 gitlab_project_name,Mandatory,"* Name of the GitLab project that Omnia creates or manage.
 * **Default value**: ``omnia-catalog``
