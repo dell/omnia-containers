@@ -117,7 +117,7 @@ The cuda_13.0.2_580.95.05_linux.run file is downloaded.
 
 4. After the file is downloaded, run the following command from the directory where the file is downloaded: ::
     
-        bash cuda_13.0.2_580.95.05_linux.run --silent --toolkit --toolkitpath=/usr/local/cuda -–override
+        bash cuda_13.0.2_580.95.05_linux.run --silent --toolkit --toolkitpath=/usr/local/cuda --override
 
 5. Run the RPM Build command. Run the following command from the directory containing the downloaded tar file. The following command is provided as an example: ::
 
