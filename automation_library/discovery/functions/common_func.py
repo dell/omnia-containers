@@ -370,20 +370,28 @@ def verify_ssh_from_core(
             admin_ip = node["admin_ip"]
             target = hostname if use_hostname else admin_ip
 
+            # First check ping (single attempt, no retry)
+            ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
+            if ping_cmd.rc != 0:
+                details_lines.append(f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})")
+                results["failed"] += 1
+                results["failed_nodes"].append(hostname)
+                results["success"] = False
+                continue
+
             # Cleanup old SSH key first
             cleanup_ssh_known_hosts(host, target)
 
-            # Test SSH - capture output for error details
+            # Test SSH - capture output for error details (single attempt)
             cmd = run_on_remote_node(host, "whoami 2>&1", target)
             output = (cmd.stdout or "") + (cmd.stderr or "")
             ok = cmd.rc == 0 and "root" in output
 
-            status = "✓" if ok else "✗"
             if ok:
-                details_lines.append(f"    {status} {hostname}")
+                details_lines.append(f"    ✓ {hostname}")
             else:
                 error_msg = parse_ssh_error(output)
-                details_lines.append(f"    {status} {hostname}: {error_msg}")
+                details_lines.append(f"    ✗ {hostname}: SSH failed - {error_msg}")
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False
@@ -431,21 +439,29 @@ def verify_ssh_from_oim(
             admin_ip = node["admin_ip"]
             target = hostname if use_hostname else admin_ip
 
+            # First check ping (single attempt, no retry)
+            ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
+            if ping_cmd.rc != 0:
+                details_lines.append(f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})")
+                results["failed"] += 1
+                results["failed_nodes"].append(hostname)
+                results["success"] = False
+                continue
+
             # Cleanup old SSH key first
             cleanup_ssh_known_hosts(host, target)
 
-            # Test SSH from inside container - capture stderr for error details
+            # Test SSH from inside container - capture stderr for error details (single attempt)
             ssh_cmd = f"ssh {SSH_OPTS} root@{target} whoami 2>&1"
             cmd = run_in_container(host, ssh_cmd)
             output = cmd.stdout.strip() if cmd.stdout else ""
             ok = cmd.rc == 0 and "root" in output
 
-            status = "✓" if ok else "✗"
             if ok:
-                details_lines.append(f"    {status} {hostname}")
+                details_lines.append(f"    ✓ {hostname}")
             else:
                 error_msg = parse_ssh_error(output)
-                details_lines.append(f"    {status} {hostname}: {error_msg}")
+                details_lines.append(f"    ✗ {hostname}: SSH failed - {error_msg}")
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False

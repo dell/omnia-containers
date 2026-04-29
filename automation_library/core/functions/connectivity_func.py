@@ -128,11 +128,15 @@ def check_node_ping(
     
     start_time = time.time()
     
+    print(f"  → Pinging {hostname} ({admin_ip})...", flush=True)
+    
     for retry in range(1, retry_limit + 1):
         elapsed = int(time.time() - start_time)
+        remaining = (retry_limit - retry) * retry_interval
         
         cmd = run_in_container(host, CMD_PING_NODE.format(target_ip=admin_ip))
         if cmd.rc == 0:
+            print(f"  → ✓ {hostname}: ping OK (attempt {retry})", flush=True)
             return {
                 "success": True,
                 "ping_ok": True,
@@ -142,13 +146,14 @@ def check_node_ping(
                 "elapsed_seconds": elapsed,
             }
         
-        # Print status every 12 retries (1 minute)
-        if retry % 12 == 0:
-            print(f"  → Waiting for {hostname} to respond to ping ({elapsed}s)")
+        # Print status on first retry and every 6 retries (30 seconds)
+        if retry == 1 or retry % 6 == 0:
+            print(f"  → {hostname}: not pingable, retrying... (attempt {retry}/{retry_limit}, {elapsed}s elapsed, ~{remaining}s remaining)", flush=True)
         
         time.sleep(retry_interval)
     
     elapsed = int(time.time() - start_time)
+    print(f"  → ✗ {hostname}: PING FAILED after {retry_limit} attempts ({elapsed}s)", flush=True)
     return {
         "success": False,
         "ping_ok": False,
@@ -193,11 +198,15 @@ def check_node_ssh(
     
     start_time = time.time()
     
+    print(f"  → Checking SSH to {hostname} ({admin_ip})...", flush=True)
+    
     for retry in range(1, retry_limit + 1):
         elapsed = int(time.time() - start_time)
+        remaining = (retry_limit - retry) * retry_interval
         
         cmd = run_on_remote_node(host, "echo ok 2>&1", admin_ip)
         if cmd.rc == 0 and "ok" in (cmd.stdout or ""):
+            print(f"  → ✓ {hostname}: SSH OK (attempt {retry})", flush=True)
             return {
                 "success": True,
                 "ssh_ok": True,
@@ -207,13 +216,14 @@ def check_node_ssh(
                 "elapsed_seconds": elapsed,
             }
         
-        # Print status every 12 retries (1 minute)
-        if retry % 12 == 0:
-            print(f"  → Waiting for SSH on {hostname} ({elapsed}s)")
+        # Print status on first retry and every 6 retries (30 seconds)
+        if retry == 1 or retry % 6 == 0:
+            print(f"  → {hostname}: SSH failed, retrying... (attempt {retry}/{retry_limit}, {elapsed}s elapsed, ~{remaining}s remaining)", flush=True)
         
         time.sleep(retry_interval)
     
     elapsed = int(time.time() - start_time)
+    print(f"  → ✗ {hostname}: SSH FAILED after {retry_limit} attempts ({elapsed}s)", flush=True)
     return {
         "success": False,
         "ssh_ok": False,
@@ -352,11 +362,15 @@ def verify_nodes_connectivity(
         "results": [],
     }
     
-    for node in nodes:
+    print(f"\n  ═══════════════════════════════════════════════════════════════", flush=True)
+    print(f"  Connectivity Check: {len(nodes)} nodes", flush=True)
+    print(f"  ═══════════════════════════════════════════════════════════════\n", flush=True)
+    
+    for idx, node in enumerate(nodes, 1):
         admin_ip = node.get("admin_ip", "")
         hostname = node.get("hostname", admin_ip)
         
-        print(f"  → Checking connectivity to {hostname} ({admin_ip})")
+        print(f"  [{idx}/{len(nodes)}] Checking {hostname} ({admin_ip})...", flush=True)
         
         node_result = check_node_connectivity(
             host, admin_ip, hostname,
@@ -368,15 +382,15 @@ def verify_nodes_connectivity(
         
         if node_result["reachable"]:
             results["reachable_count"] += 1
-            print(f"  → ✓ {hostname}: reachable (ping: {node_result['ping_retries']} retries, ssh: {node_result['ssh_retries']} retries)")
         else:
             results["unreachable_count"] += 1
             results["success"] = False
-            if not node_result["ping_ok"]:
-                print(f"  → ✗ {hostname}: not pingable")
-            else:
-                print(f"  → ✗ {hostname}: ping OK but SSH failed")
         
         results["results"].append(node_result)
+        print("", flush=True)  # Blank line between nodes
+    
+    print(f"  ═══════════════════════════════════════════════════════════════", flush=True)
+    print(f"  Summary: {results['reachable_count']}/{results['total']} nodes reachable", flush=True)
+    print(f"  ═══════════════════════════════════════════════════════════════\n", flush=True)
     
     return results

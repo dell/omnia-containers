@@ -346,7 +346,7 @@ def wait_for_pods_reschedule(
     for retry in range(1, POD_RESCHEDULE_RETRY_LIMIT + 1):
         # Print retry status
         rescheduled_count = sum(1 for ps in pods_status.values() if ps["rescheduled"])
-        print(f"  → Waiting for pods to reschedule: {rescheduled_count}/{len(pods_status)} (retry {retry}/{POD_RESCHEDULE_RETRY_LIMIT})")
+        print(f"  → Waiting for pods to reschedule: {rescheduled_count}/{len(pods_status)} (retry {retry}/{POD_RESCHEDULE_RETRY_LIMIT})", flush=True)
         # Get current pod status
         current_pods = get_all_telemetry_pods(host, admin_ip)
 
@@ -389,7 +389,7 @@ def wait_for_pods_reschedule(
                     ps["status"] = "not_found"
 
         if all_rescheduled:
-            print(f"  → All pods rescheduled successfully")
+            print(f"  → All pods rescheduled successfully", flush=True)
             break
 
         # Wait before next retry
@@ -559,6 +559,8 @@ def wait_for_node_online(
     ping_ok = False
     ssh_ok = False
     
+    print(f"  → Waiting for node {target_ip} to come online (timeout: {timeout_seconds}s)...", flush=True)
+    
     while (time.time() - start_time) < timeout_seconds:
         elapsed = int(time.time() - start_time)
         
@@ -567,20 +569,28 @@ def wait_for_node_online(
             cmd = run_in_container(host, CMD_PING_NODE.format(target_ip=target_ip))
             if cmd.rc == 0:
                 ping_ok = True
-                print(f"  → Node {target_ip} is pingable (took {elapsed}s)")
+                print(f"  → Node {target_ip} is pingable (took {elapsed}s)", flush=True)
+            else:
+                # Print waiting status every 30 seconds
+                if elapsed > 0 and elapsed % 30 == 0:
+                    print(f"  → Waiting for ping to {target_ip}... ({elapsed}s/{timeout_seconds}s)", flush=True)
         
         # If ping ok, check SSH
         if ping_ok and not ssh_ok:
             cmd = run_on_remote_node(host, "echo ok 2>&1", target_ip)
             if cmd.rc == 0 and "ok" in (cmd.stdout or ""):
                 ssh_ok = True
-                print(f"  → Node {target_ip} SSH is ready (took {elapsed}s)")
+                print(f"  → Node {target_ip} SSH is ready (took {elapsed}s)", flush=True)
                 return {
                     "success": True,
                     "ping_ok": True,
                     "ssh_ok": True,
                     "elapsed_seconds": elapsed,
                 }
+            else:
+                # Print waiting status every 30 seconds
+                if elapsed > 0 and elapsed % 30 == 0:
+                    print(f"  → Waiting for SSH to {target_ip}... ({elapsed}s/{timeout_seconds}s)", flush=True)
         
         time.sleep(check_interval)
     
@@ -650,7 +660,7 @@ def wait_for_node_rejoin_cluster(
         for w in workers:
             if w["hostname"] == target_hostname:
                 if w["status"] == "Ready":
-                    print(f"  → Node {target_hostname} rejoined cluster (took {elapsed}s)")
+                    print(f"  → Node {target_hostname} rejoined cluster (took {elapsed}s)", flush=True)
                     return {
                         "success": True,
                         "status": "Ready",
@@ -660,7 +670,7 @@ def wait_for_node_rejoin_cluster(
                     # Node found but not ready yet
                     break
         
-        print(f"  → Waiting for node {target_hostname} to rejoin cluster ({elapsed}s/{timeout_seconds}s)")
+        print(f"  → Waiting for node {target_hostname} to rejoin cluster ({elapsed}s/{timeout_seconds}s)", flush=True)
         time.sleep(check_interval)
     
     return {

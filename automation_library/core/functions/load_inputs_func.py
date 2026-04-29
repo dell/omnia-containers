@@ -377,7 +377,7 @@ def get_nfs_client_mount_path(host, nfs_name: str = None) -> str:
     Returns:
         NFS client mount path string, or empty string if not found
     """
-    from .vars import STORAGE_CONFIG_FILE
+    from ..vars.paths_vars import STORAGE_CONFIG_FILE
 
     # Try nfs_client_params first (current format), then nfs_client (legacy)
     for list_key in ["nfs_client_params", "nfs_client"]:
