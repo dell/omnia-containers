@@ -13,27 +13,24 @@
 # limitations under the License.
 
 """
-Core Cloud-Init Verification Functions.
+Core Cloud-Init Functions.
 
-Functions for checking cloud-init status on nodes with retry logic
-and progress bar display. Used by discovery and telemetry modules.
+Functions for checking cloud-init status on nodes with retry logic.
+Uses connectivity cache to skip unreachable nodes.
 """
 
-import sys
 import time
 from typing import Dict, Any, List
 
-from .host import run_on_remote_node
-
-
-# =============================================================================
-# DEFAULT CONFIGURATION
-# =============================================================================
-
-DEFAULT_CLOUDINIT_RETRY_LIMIT = 60
-DEFAULT_CLOUDINIT_RETRY_INTERVAL = 10
-DEFAULT_CLOUDINIT_PASSED_STATUSES = ["done"]
-DEFAULT_CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
+from .host_func_full import run_on_remote_node
+from .connectivity_func import get_connectivity_cache
+from ..vars.cloudinit_vars import (
+    CLOUDINIT_RETRY_LIMIT,
+    CLOUDINIT_RETRY_INTERVAL,
+    CLOUDINIT_PASSED_STATUSES,
+    CLOUDINIT_RETRY_STATUSES,
+    CMD_CLOUDINIT_STATUS,
+)
 
 
 # =============================================================================
@@ -51,7 +48,7 @@ def get_cloudinit_status(host, target_ip: str) -> str:
     Returns:
         Status string: 'done', 'running', 'not started', 'error', or 'unknown'
     """
-    cmd = run_on_remote_node(host, "cloud-init status 2>&1", target_ip)
+    cmd = run_on_remote_node(host, CMD_CLOUDINIT_STATUS, target_ip)
     output = cmd.stdout.strip() if cmd.stdout else ""
 
     if "status: done" in output:
@@ -79,30 +76,29 @@ def wait_for_cloudinit(
     show_progress: bool = True,
 ) -> Dict[str, Any]:
     """
-    Wait for cloud-init to complete on a single node with progress bar.
+    Wait for cloud-init to complete on a single node.
     
     Args:
         host: Testinfra host object
         target_ip: IP of node to check
         hostname: Hostname for display (defaults to target_ip)
-        retry_limit: Max retries (default: 30)
+        retry_limit: Max retries (default: 60)
         retry_interval: Seconds between retries (default: 10)
         passed_statuses: Statuses that indicate success (default: ['done'])
         retry_statuses: Statuses that should retry (default: ['running', 'not started'])
-        show_progress: Whether to show progress bar
+        show_progress: Whether to show progress output
     
     Returns:
         Dict with success, status, retries, elapsed_seconds, error
     """
-    # Apply defaults
     if retry_limit is None:
-        retry_limit = DEFAULT_CLOUDINIT_RETRY_LIMIT
+        retry_limit = CLOUDINIT_RETRY_LIMIT
     if retry_interval is None:
-        retry_interval = DEFAULT_CLOUDINIT_RETRY_INTERVAL
+        retry_interval = CLOUDINIT_RETRY_INTERVAL
     if passed_statuses is None:
-        passed_statuses = DEFAULT_CLOUDINIT_PASSED_STATUSES
+        passed_statuses = CLOUDINIT_PASSED_STATUSES
     if retry_statuses is None:
-        retry_statuses = DEFAULT_CLOUDINIT_RETRY_STATUSES
+        retry_statuses = CLOUDINIT_RETRY_STATUSES
     if hostname is None:
         hostname = target_ip
     
@@ -125,7 +121,6 @@ def wait_for_cloudinit(
             }
         
         if status not in retry_statuses:
-            # Error or unknown status - don't retry
             return {
                 "success": False,
                 "status": status,
@@ -152,11 +147,12 @@ def verify_cloudinit_status_multi(
     retry_interval: int = None,
     passed_statuses: List[str] = None,
     retry_statuses: List[str] = None,
+    skip_unreachable: bool = True,
 ) -> Dict[str, Any]:
     """
     Verify cloud-init completed on multiple nodes with retry logic.
 
-    Progress is printed on a single line that updates in place.
+    Uses connectivity cache to skip unreachable nodes.
 
     Args:
         host: Testinfra host object
@@ -165,19 +161,21 @@ def verify_cloudinit_status_multi(
         retry_interval: Seconds between retries
         passed_statuses: Statuses that indicate success
         retry_statuses: Statuses that should retry
+        skip_unreachable: Skip nodes that are not reachable (from cache)
 
     Returns:
         Dict with success, total, results (per-node details)
     """
-    # Apply defaults
     if retry_limit is None:
-        retry_limit = DEFAULT_CLOUDINIT_RETRY_LIMIT
+        retry_limit = CLOUDINIT_RETRY_LIMIT
     if retry_interval is None:
-        retry_interval = DEFAULT_CLOUDINIT_RETRY_INTERVAL
+        retry_interval = CLOUDINIT_RETRY_INTERVAL
     if passed_statuses is None:
-        passed_statuses = DEFAULT_CLOUDINIT_PASSED_STATUSES
+        passed_statuses = CLOUDINIT_PASSED_STATUSES
     if retry_statuses is None:
-        retry_statuses = DEFAULT_CLOUDINIT_RETRY_STATUSES
+        retry_statuses = CLOUDINIT_RETRY_STATUSES
+    
+    connectivity_cache = get_connectivity_cache()
     
     results = {
         "success": True,
@@ -190,6 +188,29 @@ def verify_cloudinit_status_multi(
     for node in nodes:
         hostname = node.get("hostname", "")
         admin_ip = node.get("admin_ip", "")
+        
+        # Check if node is reachable from cache
+        if skip_unreachable and admin_ip in connectivity_cache:
+            cache_entry = connectivity_cache[admin_ip]
+            if not cache_entry.get("reachable", False):
+                # Node is unreachable, skip with appropriate error
+                if not cache_entry.get("ping_ok", False):
+                    error = f"Node {hostname} is not pingable"
+                else:
+                    error = f"SSH to {hostname} is not working"
+                
+                results["results"].append({
+                    "hostname": hostname,
+                    "admin_ip": admin_ip,
+                    "success": False,
+                    "status": "skipped",
+                    "retries": 0,
+                    "errors": error,
+                })
+                results["success"] = False
+                print(f"  → ✗ {hostname}: {error} (skipped)")
+                continue
+        
         node_statuses[hostname] = {
             "status": "checking",
             "retries": 0,
@@ -197,21 +218,10 @@ def verify_cloudinit_status_multi(
             "admin_ip": admin_ip,
         }
 
-    # Retry loop
+    # Retry loop for reachable nodes
     all_done = False
-    retry_count = 0
     while not all_done:
         all_done = True
-        retry_count += 1
-
-        # Print status summary
-        done_count = sum(1 for ns in node_statuses.values() if ns["done"])
-        status_counts = {}
-        for ns in node_statuses.values():
-            s = ns["status"]
-            status_counts[s] = status_counts.get(s, 0) + 1
-        status_str = ", ".join(f"{s}:{c}" for s, c in status_counts.items())
-        print(f"  → Cloud-init: {done_count}/{len(nodes)} done | {status_str}")
 
         for hostname, ns in node_statuses.items():
             if ns["done"]:
@@ -221,32 +231,31 @@ def verify_cloudinit_status_multi(
             status = get_cloudinit_status(host, admin_ip)
             ns["status"] = status
 
-            # Check if passed
             if status in passed_statuses:
                 ns["done"] = True
+                print(f"  → ✓ {hostname}: cloud-init done")
                 continue
 
-            # Check if should retry
             if status in retry_statuses:
                 ns["retries"] += 1
                 if ns["retries"] >= retry_limit:
                     ns["done"] = True
                     ns["status"] = f"{status} (retry limit reached)"
+                    print(f"  → ✗ {hostname}: cloud-init {status} (retry limit reached)")
                 else:
                     all_done = False
+                    if ns["retries"] % 6 == 0:  # Print every minute
+                        print(f"  → {hostname}: cloud-init {status} (retry {ns['retries']}/{retry_limit})")
             else:
-                # Error/unknown - mark as done (failed)
                 ns["done"] = True
+                print(f"  → ✗ {hostname}: cloud-init {status}")
 
-        # Wait before next retry
         if not all_done:
             time.sleep(retry_interval)
 
     # Build final results
-    for node in nodes:
-        hostname = node.get("hostname", "")
-        admin_ip = node.get("admin_ip", "")
-        ns = node_statuses[hostname]
+    for hostname, ns in node_statuses.items():
+        admin_ip = ns["admin_ip"]
 
         node_result = {
             "hostname": hostname,

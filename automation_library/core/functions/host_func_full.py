@@ -25,12 +25,13 @@ from typing import Dict, Any, List
 import yaml
 import testinfra
 
-from .vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ..vars.paths_vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
 
 
 def _get_project_root() -> str:
     """Get the project root directory."""
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # From functions/ -> core/ -> automation_library/ -> project_root/
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 
 def load_omnia_test_config() -> Dict[str, Any]:

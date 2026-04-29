@@ -43,9 +43,9 @@ from typing import Dict, Any, Tuple, Optional
 
 from ..vars.omnia_sh_vars import OMNIA_SH_VARS, TEST_VARS
 from ..messages.omnia_sh_msgs import OMNIA_SH_MSGS
-from ...core.formatting import log as _log
+from ...core import log as _log
 from ...core import run_in_container
-from ...core.vars import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
+from ...core import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
 from ...checks.vars.oim_prereq_vars import OMNIA_TEST_CONFIG_PATH
 
 

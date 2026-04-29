@@ -21,8 +21,16 @@ Modules:
 - report: Test report generation
 """
 
-from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
-from .host import (
+# Import all from functions module
+from .functions import (
+    # Formatting
+    Colors,
+    Symbols,
+    log,
+    set_debug_mode,
+    TestLogger,
+    get_test_output,
+    # Host
     get_testinfra_host,
     load_omnia_test_config,
     get_dataset_path,
@@ -34,12 +42,10 @@ from .host import (
     check_container_running,
     make_verification_result,
     get_project_root,
-    # Backward compatibility functions
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
-)
-from .load_inputs import (
+    # Load inputs
     load_container_file,
     load_input_file,
     get_input_value,
@@ -48,20 +54,31 @@ from .load_inputs import (
     is_software_enabled,
     get_config_list_item,
     get_nfs_client_mount_path,
-)
-from .report import TestReport, get_current_report, set_current_report
-from .secrets import (
+    # Report
+    TestReport,
+    get_current_report,
+    set_current_report,
+    # Secrets
     view_credentials_file,
     get_credential_value,
     get_multiple_credentials,
-)
-from .db_exec import exec_psql_query, query_db_row
-from .cloudinit import (
+    # DB exec
+    exec_psql_query,
+    query_db_row,
+    # Cloud-init
     get_cloudinit_status,
     wait_for_cloudinit,
     verify_cloudinit_status_multi,
-)
-from .build_stream import (
+    # Connectivity
+    check_node_ping,
+    check_node_ssh,
+    check_node_connectivity,
+    verify_nodes_connectivity,
+    get_connectivity_cache,
+    clear_connectivity_cache,
+    get_reachable_nodes,
+    get_unreachable_nodes,
+    # Build stream
     is_build_stream_enabled,
     get_build_stream_job_id,
     check_build_stream_stage,
@@ -71,6 +88,21 @@ from .build_stream import (
     STAGE_VALIDATE_IMAGE,
     STAGE_PARSE_CATALOG,
     STAGE_GENERATE_INPUT,
+)
+
+# Import connectivity vars
+from .vars.connectivity_vars import (
+    PING_RETRY_LIMIT,
+    PING_RETRY_INTERVAL,
+    SSH_RETRY_LIMIT,
+    SSH_RETRY_INTERVAL,
+)
+
+# Import connectivity messages
+from .msgs.connectivity_msgs import (
+    CONNECTIVITY_TEST_NAMES,
+    CONNECTIVITY_LOG_MSGS,
+    CONNECTIVITY_ASSERT_MSGS,
 )
 from .vars import (
     # Base paths
@@ -246,4 +278,22 @@ __all__ = [
     "LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP",
     "LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP",
     "LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP",
+    # Connectivity functions
+    "check_node_ping",
+    "check_node_ssh",
+    "check_node_connectivity",
+    "verify_nodes_connectivity",
+    "get_connectivity_cache",
+    "clear_connectivity_cache",
+    "get_reachable_nodes",
+    "get_unreachable_nodes",
+    # Connectivity vars
+    "PING_RETRY_LIMIT",
+    "PING_RETRY_INTERVAL",
+    "SSH_RETRY_LIMIT",
+    "SSH_RETRY_INTERVAL",
+    # Connectivity messages
+    "CONNECTIVITY_TEST_NAMES",
+    "CONNECTIVITY_LOG_MSGS",
+    "CONNECTIVITY_ASSERT_MSGS",
 ]

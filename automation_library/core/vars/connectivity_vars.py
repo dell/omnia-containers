@@ -13,28 +13,32 @@
 # limitations under the License.
 
 """
-Telemetry Automation - Shared Variables.
+Core Connectivity Variables.
 
-This module contains shared constants used across all telemetry modules
-(iDRAC, Kafka, VictoriaMetrics).
-
-For module-specific constants, see:
-- idrac_telemetry_vars.py - iDRAC telemetry specific
-- kafka_vars.py - Kafka and LDMS specific
-- victoria_vars.py - VictoriaMetrics specific
+Configuration for ping and SSH connectivity checks with retry logic.
 """
 
-from ...core import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
-
 # =============================================================================
-# Telemetry Namespace
+# PING RETRY CONFIGURATION (20 minutes total)
 # =============================================================================
 
-TELEMETRY_NAMESPACE = "telemetry"
-
+PING_RETRY_LIMIT = 240
+PING_RETRY_INTERVAL = 5
 
 # =============================================================================
-# Container - from core vars
+# SSH RETRY CONFIGURATION (5 minutes total)
 # =============================================================================
 
-CONTAINER_NAME = _CORE_CONTAINER
+SSH_RETRY_LIMIT = 60
+SSH_RETRY_INTERVAL = 5
+
+# =============================================================================
+# CONNECTIVITY COMMANDS
+# =============================================================================
+
+CMD_PING_NODE = "ping -c 1 -W 2 {target_ip}"
+
+CMD_SSH_CHECK = (
+    "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes "
+    "root@{target_ip} 'echo ok' 2>&1"
+)

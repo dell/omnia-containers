@@ -16,14 +16,21 @@
 Discovery SSH Verification Test Cases.
 
 Test cases for verifying passwordless SSH connectivity:
-1. SSH from OIM to nodes via admin IP
-2. SSH from OIM to nodes via hostname
-3. SSH from omnia_core to nodes via admin IP
-4. SSH from omnia_core to nodes via hostname
+1. Node connectivity pre-check (ping + SSH with retry)
+2. SSH from OIM to nodes via admin IP
+3. SSH from OIM to nodes via hostname
+4. SSH from omnia_core to nodes via admin IP
+5. SSH from omnia_core to nodes via hostname
 """
 
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import (
+    TestLogger,
+    verify_nodes_connectivity,
+    get_connectivity_cache,
+    get_reachable_nodes,
+    get_unreachable_nodes,
+)
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
@@ -33,7 +40,72 @@ from automation_library.discovery.functions import (
 
 
 # =============================================================================
-# OIM SSH TESTS (run first)
+# NODE CONNECTIVITY PRE-CHECK (run first with retry)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(1)
+def test_node_connectivity_precheck(host):
+    """
+    Test Case 1: Verify all nodes are reachable (ping + SSH) with retry.
+    
+    This test runs first and checks connectivity to all nodes with:
+    - Ping retry: 20 minutes (240 retries x 5 seconds)
+    - SSH retry: 5 minutes (60 retries x 5 seconds)
+    
+    Results are cached for use by subsequent tests.
+    """
+    log = TestLogger("Verify node connectivity (ping + SSH)")
+
+    slurm_nodes = get_all_slurm_nodes(host)
+    k8s_nodes = get_k8s_nodes(host)
+    all_nodes = slurm_nodes + k8s_nodes
+
+    if not all_nodes:
+        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping")
+
+    log.check(f"Checking connectivity to {len(all_nodes)} nodes (ping + SSH with retry)")
+
+    result = verify_nodes_connectivity(host, all_nodes)
+
+    # Build details
+    details_lines = [
+        f"Total nodes: {result['total']}",
+        f"Reachable: {result['reachable_count']}",
+        f"Unreachable: {result['unreachable_count']}",
+        "",
+    ]
+
+    for node_result in result["results"]:
+        hostname = node_result["hostname"]
+        admin_ip = node_result["admin_ip"]
+        if node_result["reachable"]:
+            details_lines.append(f"  ✓ {hostname} ({admin_ip}): reachable")
+        else:
+            if not node_result["ping_ok"]:
+                details_lines.append(f"  ✗ {hostname} ({admin_ip}): not pingable")
+            else:
+                details_lines.append(f"  ✗ {hostname} ({admin_ip}): ping OK but SSH failed")
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(f"All {result['total']} nodes are reachable", details)
+    else:
+        log.failed(
+            f"{result['unreachable_count']} of {result['total']} nodes unreachable",
+            details
+        )
+
+    assert result["success"], (
+        f"{result['unreachable_count']} nodes are unreachable. "
+        "Check node status and network connectivity."
+    )
+
+
+# =============================================================================
+# OIM SSH TESTS
 # =============================================================================
 
 @pytest.mark.sanity

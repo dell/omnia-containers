@@ -13,28 +13,20 @@
 # limitations under the License.
 
 """
-Telemetry Automation - Shared Variables.
+Core Common Variables.
 
-This module contains shared constants used across all telemetry modules
-(iDRAC, Kafka, VictoriaMetrics).
-
-For module-specific constants, see:
-- idrac_telemetry_vars.py - iDRAC telemetry specific
-- kafka_vars.py - Kafka and LDMS specific
-- victoria_vars.py - VictoriaMetrics specific
+Shared constants used across all core functions.
 """
 
-from ...core import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
-
 # =============================================================================
-# Telemetry Namespace
+# CONTAINER CONFIGURATION
 # =============================================================================
 
-TELEMETRY_NAMESPACE = "telemetry"
-
+OMNIA_CORE_CONTAINER = "omnia_core"
+PODMAN_EXEC_PREFIX = f"podman exec {OMNIA_CORE_CONTAINER} bash -lc"
 
 # =============================================================================
-# Container - from core vars
+# SSH OPTIONS
 # =============================================================================
 
-CONTAINER_NAME = _CORE_CONTAINER
+SSH_OPTS = "-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"

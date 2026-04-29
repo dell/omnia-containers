@@ -22,7 +22,7 @@ from typing import Dict, Any
 
 import yaml
 
-from .host import run_in_container
+from .host_func_full import run_in_container
 
 
 def view_credentials_file(host, file_path: str, key_file_path: str) -> Dict[str, Any]:

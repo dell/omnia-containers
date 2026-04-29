@@ -15,30 +15,39 @@
 """
 Discovery Cloud-Init Verification Test Cases.
 
-First test to run - verifies OS provisioning completed successfully on all nodes.
+Verifies OS provisioning completed successfully on all nodes.
 For diskless OS deployments, cloud-init is used for provisioning.
 
 Test cases:
 1. Verify cloud-init completed successfully on all nodes (no errors)
+
+Note: This test runs after test_ssh.py::test_node_connectivity_precheck
+which caches connectivity status. Unreachable nodes are skipped with
+clear error messages.
 """
 
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import (
+    TestLogger,
+    verify_cloudinit_status_multi,
+    get_connectivity_cache,
+    get_reachable_nodes,
+    get_unreachable_nodes,
+)
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
-    verify_cloudinit_status,
 )
 
 
 @pytest.mark.sanity
-@pytest.mark.order(1)
+@pytest.mark.order(6)
 def test_cloudinit_completed(host):
     """
-    Test Case 1: Verify cloud-init completed successfully on all nodes.
+    Test Case 6: Verify cloud-init completed successfully on all nodes.
 
-    This is the FIRST test to run - confirms OS provisioning is complete.
-    For diskless OS, cloud-init handles provisioning.
+    Runs after connectivity pre-check. Uses cached connectivity status
+    to skip unreachable nodes with clear error messages.
 
     Checks:
     - cloud-init status is 'done'
@@ -55,9 +64,25 @@ def test_cloudinit_completed(host):
         log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
         pytest.skip("No nodes found in PXE mapping")
 
+    # Check for unreachable nodes from connectivity cache
+    unreachable = get_unreachable_nodes(all_nodes)
+    if unreachable:
+        unreachable_msgs = []
+        for node in unreachable:
+            hostname = node.get("hostname", "")
+            admin_ip = node.get("admin_ip", "")
+            if not node.get("ping_ok", False):
+                unreachable_msgs.append(f"  ✗ {hostname} ({admin_ip}): not pingable")
+            else:
+                unreachable_msgs.append(f"  ✗ {hostname} ({admin_ip}): SSH not working")
+        
+        log.check(f"Skipping {len(unreachable)} unreachable nodes:")
+        for msg in unreachable_msgs:
+            print(msg)
+
     log.check(f"Checking cloud-init status on {len(all_nodes)} nodes")
 
-    result = verify_cloudinit_status(host, all_nodes)
+    result = verify_cloudinit_status_multi(host, all_nodes, skip_unreachable=True)
 
     # Build detailed output
     details_lines = [f"Nodes checked: {result['total']}"]
@@ -69,8 +94,6 @@ def test_cloudinit_completed(host):
         details_lines.append(f"    Status: {node_result['status']}")
         if node_result.get("errors"):
             details_lines.append(f"    Errors: {node_result['errors']}")
-        if node_result.get("warnings"):
-            details_lines.append(f"    Warnings: {node_result['warnings'][:100]}...")
 
     details = "\n".join(details_lines)
 

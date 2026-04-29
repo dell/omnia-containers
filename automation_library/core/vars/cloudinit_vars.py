@@ -13,28 +13,27 @@
 # limitations under the License.
 
 """
-Telemetry Automation - Shared Variables.
+Core Cloud-Init Variables.
 
-This module contains shared constants used across all telemetry modules
-(iDRAC, Kafka, VictoriaMetrics).
-
-For module-specific constants, see:
-- idrac_telemetry_vars.py - iDRAC telemetry specific
-- kafka_vars.py - Kafka and LDMS specific
-- victoria_vars.py - VictoriaMetrics specific
+Configuration for cloud-init status verification with retry logic.
 """
 
-from ...core import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
-
 # =============================================================================
-# Telemetry Namespace
+# CLOUD-INIT RETRY CONFIGURATION (10 minutes total)
 # =============================================================================
 
-TELEMETRY_NAMESPACE = "telemetry"
-
+CLOUDINIT_RETRY_LIMIT = 60
+CLOUDINIT_RETRY_INTERVAL = 10
 
 # =============================================================================
-# Container - from core vars
+# CLOUD-INIT STATUS VALUES
 # =============================================================================
 
-CONTAINER_NAME = _CORE_CONTAINER
+CLOUDINIT_PASSED_STATUSES = ["done"]
+CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
+
+# =============================================================================
+# CLOUD-INIT COMMANDS
+# =============================================================================
+
+CMD_CLOUDINIT_STATUS = "cloud-init status 2>&1"

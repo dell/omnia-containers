@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from .host import get_project_root
+from .host_func_full import get_project_root
 
 
 def _get_report_dir() -> str:
