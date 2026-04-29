@@ -22,7 +22,7 @@ role vars files inside omnia_core container.
 Paths use core module constants (INPUT_BASE_PATH, SERVICE_CLUSTER_METADATA_PATH).
 """
 
-from automation_library.core.vars import (
+from automation_library.core import (
     INPUT_BASE_PATH,
     SERVICE_CLUSTER_METADATA_PATH,
     FUNCTIONAL_GROUPS_CONFIG_PATH,

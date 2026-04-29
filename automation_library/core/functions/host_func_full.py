@@ -26,6 +26,7 @@ import yaml
 import testinfra
 
 from ..vars.paths_vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ..vars.common_vars import SSH_OPTS, OMNIA_CORE_CONTAINER
 
 
 def _get_project_root() -> str:
@@ -122,7 +123,7 @@ def run_on_oim(host: testinfra.host.Host, cmd: str) -> subprocess.CompletedProce
 def run_in_container(
     host: testinfra.host.Host,
     cmd: str,
-    container: str = "omnia_core"
+    container: str = OMNIA_CORE_CONTAINER
 ) -> subprocess.CompletedProcess:
     """
     Run command inside a container on OIM server.
@@ -161,9 +162,8 @@ def run_on_remote_node(
     Returns:
         Result with stdout, stderr, rc attributes
     """
-    ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
     escaped_cmd = cmd.replace('"', '\\"')
-    ssh_cmd = f'ssh {ssh_opts} root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
+    ssh_cmd = f'ssh {SSH_OPTS} -o UserKnownHostsFile=/dev/null root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
     return run_in_container(host, ssh_cmd)
 
 

@@ -37,6 +37,19 @@ from .cloudinit_vars import (
     CMD_CLOUDINIT_STATUS,
 )
 
+from .build_stream_vars import (
+    POSTGRES_CONTAINER,
+    POSTGRES_DB,
+    POSTGRES_USER_KEY,
+    COMPLETED_STATE,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
+
 from .paths_vars import (
     # Base paths
     OIM_SHARED_PATH,

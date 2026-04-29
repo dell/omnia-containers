@@ -18,7 +18,7 @@ Discovery Module - Common Variables.
 SSH options and common constants used across discovery tests.
 """
 
-from automation_library.core.vars import (
+from automation_library.core import (
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
     OIM_SHARED_PATH as _OIM_SHARED_PATH,
 )

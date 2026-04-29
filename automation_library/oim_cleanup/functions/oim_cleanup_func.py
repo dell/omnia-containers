@@ -26,7 +26,7 @@ from typing import Dict, Any
 from automation_library.core import (
     run_on_oim, run_in_container, load_container_file,
 )
-from automation_library.core.vars import OIM_METADATA_PATH, OIM_SHARED_PATH
+from automation_library.core import OIM_METADATA_PATH, OIM_SHARED_PATH
 
 from ..vars.oim_cleanup_vars import OIM_CLEANUP_VARS
 

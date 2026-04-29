@@ -42,24 +42,18 @@ from ..vars.paths_vars import (
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
 )
-
-
-# =============================================================================
-# CONSTANTS
-# =============================================================================
-
-_POSTGRES_CONTAINER = "omnia_postgres"
-_POSTGRES_DB = "build_stream_db"
-_POSTGRES_USER_KEY = "postgres_user"
-_COMPLETED_STATE = "COMPLETED"
-
-# Well-known stage names — callers may pass any stage string, these are docs
-STAGE_BUILD_IMAGE_X86_64 = "build-image-x86_64"
-STAGE_BUILD_IMAGE_AARCH64 = "build-image-aarch64"
-STAGE_CREATE_LOCAL_REPO = "create-local-repository"
-STAGE_VALIDATE_IMAGE = "validate-image-on-test"
-STAGE_PARSE_CATALOG = "parse-catalog"
-STAGE_GENERATE_INPUT = "generate-input-files"
+from ..vars.build_stream_vars import (
+    POSTGRES_CONTAINER as _POSTGRES_CONTAINER,
+    POSTGRES_DB as _POSTGRES_DB,
+    POSTGRES_USER_KEY as _POSTGRES_USER_KEY,
+    COMPLETED_STATE as _COMPLETED_STATE,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
 
 
 # =============================================================================

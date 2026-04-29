@@ -12,33 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Core Connectivity Variables.
-
-Configuration for ping and SSH connectivity checks with retry logic.
-"""
+"""Core Build Stream Variables."""
 
 # =============================================================================
-# PING RETRY CONFIGURATION (20 minutes total)
+# POSTGRES CONFIGURATION
 # =============================================================================
 
-PING_RETRY_LIMIT = 5
-PING_RETRY_INTERVAL = 5
+POSTGRES_CONTAINER = "omnia_postgres"
+POSTGRES_DB = "build_stream_db"
+POSTGRES_USER_KEY = "postgres_user"
+COMPLETED_STATE = "COMPLETED"
 
 # =============================================================================
-# SSH RETRY CONFIGURATION (5 minutes total)
+# WELL-KNOWN STAGE NAMES
 # =============================================================================
 
-SSH_RETRY_LIMIT = 5
-SSH_RETRY_INTERVAL = 5
-
-# =============================================================================
-# CONNECTIVITY COMMANDS
-# =============================================================================
-
-CMD_PING_NODE = "ping -c 1 -W 2 {target_ip}"
-
-CMD_SSH_CHECK = (
-    "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes "
-    "root@{target_ip} 'echo ok' 2>&1"
-)
+STAGE_BUILD_IMAGE_X86_64 = "build-image-x86_64"
+STAGE_BUILD_IMAGE_AARCH64 = "build-image-aarch64"
+STAGE_CREATE_LOCAL_REPO = "create-local-repository"
+STAGE_VALIDATE_IMAGE = "validate-image-on-test"
+STAGE_PARSE_CATALOG = "parse-catalog"
+STAGE_GENERATE_INPUT = "generate-input-files"
