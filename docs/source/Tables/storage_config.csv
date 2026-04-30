@@ -1,36 +1,26 @@
 ﻿Variables,Details
-"**nfs_client_params**
+"**nfs_client_params**","* This is a list of dictionaries.
+* nfs_name—Provide the name of the NFS share which is referred by slurm and service kubernetes.
+* server_ip—Provide the IP or hostname of the NFS server which is accessible to all the diskful and diskless nodes.
+* server_share_path—Provide the full path of the directory in the NFS Server.
+* client_share_path—Provide the full path where nfs server contents needs to be mounted.
+* client_mount_options—Provide the mount options as a comma-separated value. Possible values are: nosuid, rw, sync, hard, intr
 
-     ``List (dict)``
-
-     Required    ","* This is a list of dictionaries.
-* nfs_name—Provide the name of the NFS share which is referred by slurm and service kubernetes. 
-* server_ip—Provide the IP or hostname of the NFS server which is accessible to all the diskful and diskless nodes. 
-* server_share_path—Provide the full path of the directory in the NFS Server. 
-* client_share_path—Provide the full path where nfs server contents needs to be mounted. 
-* client_mount_options—Provide the mount options as a comma-separated value. **Possible values are**: ``nosuid``, ``rw``, ``sync``, ``hard``, ``intr``
-
-
-**Sample**::
-
-        nfs_client_params:
-        - server_ip: "172.16.107.168" # Provide the IP of the NFS server
-          server_share_path: "/mnt/share/omnia" # Provide server share path of the NFS Server
-          client_share_path: /share_omnia
-          client_mount_options: "nosuid,rw,sync,hard,intr"
-          nfs_name: nfs_slurm
- 
-        - server_ip: "172.16.107.121" # Provide the IP of the NFS server
-          server_share_path: "/mnt/share/omnia_k8s" # Provide server share path of the NFS Server
-          client_share_path: /share_omnia_k8s
-          client_mount_options: "nosuid,rw,sync,hard,intr"
-          nfs_name: nfs_k8s
-"**powervault_config**
-
-     ``dict``
-
-     Optional  ","* The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
-
+Sample:
+nfs_client_params:
+- server_ip: "172.16.107.168"
+  server_share_path: "/mnt/share/omnia"
+  client_share_path: /share_omnia
+  client_mount_options: "nosuid,rw,sync,hard,intr"
+  nfs_name: nfs_slurm
+- server_ip: "172.16.107.121"
+  server_share_path: "/mnt/share/omnia_k8s"
+  client_share_path: /share_omnia_k8s
+  client_mount_options: "nosuid,rw,sync,hard,intr"
+  nfs_name: nfs_k8s
+"**powervault_config**","* The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
+* Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
+* Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
     * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
     * Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
 
