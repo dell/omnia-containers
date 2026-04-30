@@ -85,8 +85,6 @@ See the following sample:
    :header-rows: 1
    :keepspace:
 
-For detailed information on configuring storage, including mounts, PowerVault, and swap settings, see :doc:`ConfiguringMounts`.
-
 
 
 ``/opt/omnia/input/project_default/high_availability_config.yml``
