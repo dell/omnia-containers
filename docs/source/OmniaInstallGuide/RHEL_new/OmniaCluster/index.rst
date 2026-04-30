@@ -14,6 +14,7 @@ The ``omnia.yml`` playbook allows you to set up the following on your cluster:
 
     schedulerprereqs
     schedulerinputparams
+    ConfiguringMounts
     BuildingCluster/index
 
 
