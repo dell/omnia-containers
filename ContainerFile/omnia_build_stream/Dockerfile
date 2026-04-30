@@ -23,8 +23,8 @@ LABEL org.opencontainers.image.base.name="fedora:42"
 LABEL omnia.component="build_stream"
 LABEL omnia.type="api_service"
 
-# Install system dependencies
-RUN dnf -y install python3 python3-pip curl ca-certificates \
+# Install system dependencies including s3cmd for MinIO access
+RUN dnf -y install python3 python3-pip curl ca-certificates s3cmd \
     gcc gcc-c++ make python3-devel openssh openssh-server passwd && \
     dnf clean all && rm -rf /var/cache/dnf
 
@@ -88,6 +88,13 @@ RUN if [ "$BUILD_ENV" = "development" ]; then \
       uv pip install --system -r <(uv pip compile pyproject.toml --extra dev); \
     fi
 
+# -----------------------------
+# S3 Configuration Setup
+# -----------------------------
+# Copy s3cmd initialization script
+COPY init_s3cfg.sh /usr/local/bin/init_s3cfg.sh
+RUN chmod +x /usr/local/bin/init_s3cfg.sh
+
 # Create app and SSL directories
 WORKDIR /opt/omnia/build_stream
 RUN mkdir -p /etc/ssl/omnia
@@ -97,7 +104,13 @@ ENV APP_DIR=/opt/omnia/build_stream
 ENV SSL_KEYFILE=/etc/ssl/omnia/bs_key.pem
 ENV SSL_CERTFILE=/etc/ssl/omnia/bs_cert.pem
 
+# MinIO S3 configuration (will be overridden by Quadlet at runtime)
+ENV MINIO_ACCESS_KEY=admin
+ENV MINIO_SECRET_KEY=
+ENV MINIO_HOST=localhost:9000
+ENV MINIO_USE_HTTPS=False
+
 WORKDIR ${APP_DIR}
 
-# Entrypoint starts FastAPI service using system Python
-ENTRYPOINT ["/bin/bash", "-c", "python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:?HOST env required}\" --port \"${PORT:?PORT env required}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
+# Entrypoint initializes s3cmd config and starts FastAPI service
+ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/init_s3cfg.sh || true && exec python3 -Xfrozen_modules=off -m uvicorn main:app --host \"${HOST:?HOST env required}\" --port \"${PORT:?PORT env required}\" --ssl-keyfile \"${SSL_KEYFILE}\" --ssl-certfile \"${SSL_CERTFILE}\""]
