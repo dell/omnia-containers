@@ -15,6 +15,8 @@ providing flexible deployment and simplified lifecycle management.
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
   and streamed to **Kafka**.
 
+* **PowerScale Telemetry** collects storage performance metrics and logs from PowerScale storage nodes. The PowerScale Telemetry data and logs can be collected and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+
 
 
 .. note::
@@ -77,9 +79,20 @@ iDRAC and LDMS Telemetry Data Flows
 
    iDRAC (BMC) → iDRAC Collector → Kafka
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
+   iDRAC (BMC) → iDRAC Collector → VLAgent → Victoria Logs
+
+PowerScale Telemetry Data Flows
+------------------------------------
+
+::
+
+   PowerScale Nodes → csm-metrics → otel-collector → vmagent → Victoria Metrics
+   PowerScale Nodes → csm-metrics → otel-collector → vlagent → Victoria Logs
+
 
 .. toctree::
     :maxdepth: 2
 
     service_cluster_telemetry
     ldms_telemetry
+    power_scale_telemetry
