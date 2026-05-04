@@ -21,7 +21,7 @@ This removes all SSH entries for that IP from your ``local ~/.ssh/known_hosts`` 
 **Resolution**: Wait for 5 minutes and retry provisioning the node. If the issue persists, redeploy the cluster after running the ``oim_cleanup.yml`` playbook.
 
 
-⦾ **Why do systems with BCM57504 card fail to PXE boot with firmware 23.x.x?**
+⦾ **Why do systems with BCM57504 card fail to PXE boot with firmware 23.x.x and above?**
 
 **Potential Causes**: iPXE version used in Omnia 2.1 does not support firmware version 23.x.x and above for Broadcom BCM57504 card.
 
