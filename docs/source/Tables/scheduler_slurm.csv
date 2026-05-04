@@ -13,7 +13,7 @@
 
 
     Mandatory","* Indicates the NFS storage name for the NFS storage to be used by this slurm cluster.
-* This is defined in storage_config.yml as nfs_name."
+* This is defined in storage_config.yml as name."
 "**config_sources**
 
     ``filepath`` or ``mapping``
