@@ -9,6 +9,7 @@ Broadcom ,"* 10GBASE-T Ethernet
 * Adv Dual 10GBASE-t Ethernet
 * Adv Dual 25Gb Ethernet
 * NetXtreme Gigabit Ethernet
-* BCM5760x","* 10GBASE-T Ethernet
+* BCM5760x
+* BCM57504","* 10GBASE-T Ethernet
 * Gigabit Ethetnet BCM5720
 * Adv Dual 10GBASE-t Ethernet"
