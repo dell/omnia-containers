@@ -45,6 +45,237 @@ Step 11: Set up Slurm on nodes
 
 * You must have the ``user_repo`` which is compiled with nvml and cgroup-v2. If slurm-nodes have GPU then you must provide at least one ``login_compiler_node``.
 
+Automated CUDA and DCGM Provisioning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Overview
+
+When Omnia provisions Slurm nodes, GPU readiness is configured automatically during node
+initialization. No user action is required on individual nodes. The provisioning sequence covers
+driver installation, CUDA toolkit availability, DCGM service setup, and optional GPUDirect RDMA
+support. Nodes without NVIDIA GPU hardware are detected automatically and skipped without error.
+
+CUDA Toolkit Availability
+
+The CUDA toolkit is installed once to a shared NFS location and made available to all Slurm nodes
+simultaneously. Compute nodes access the toolkit through a persistent NFS mount at
+``/usr/local/cuda``. The toolkit is not installed redundantly on each node.
+
+In clusters where a login or compiler node is present, the toolkit is installed and published to
+the shared NFS path by that node. Compute nodes mount the already-installed toolkit directly.
+In clusters without a login or compiler node, toolkit installation is coordinated automatically
+across compute nodes to ensure it is performed exactly once.
+
+NVIDIA Driver
+
+The NVIDIA driver is installed locally on each GPU-capable Slurm node during provisioning. If the
+driver is already present and functional from a prior provisioning cycle, installation is skipped.
+
+DCGM Service
+
+DCGM is installed on each GPU-capable Slurm node. The installed DCGM package is selected
+automatically based on the CUDA version present on the node. On clusters running CUDA 12 or later,
+the multinode diagnostic plugin is installed in addition to the base DCGM package.
+
+The ``nvidia-dcgm`` systemd service is enabled and started automatically. GPU discovery is
+performed and logged upon successful startup.
+
+DCGM installation on Slurm nodes is governed by the ``metrics_enabled`` parameter under ``telemetry_sources.dcgm`` in the ``input/telemetry_config.yml`` file::
+
+    # --------------------------------------------------------------------------
+    # DCGM — NVIDIA Data Center GPU Manager
+    # --------------------------------------------------------------------------
+    # Collects: GPU temperature, utilization, memory, ECC errors, power
+    # Requires: NVIDIA GPU driver installed on compute nodes
+    dcgm:
+      # Enable or disable DCGM metrics collection
+      # Default: true
+      metrics_enabled: true
+
+* When set to ``true`` (default), Omnia installs NVIDIA DCGM on Slurm compute nodes during the cloud-init phase.
+* When set to ``false``, DCGM installation is skipped.
+
+.. note:: At present, DCGM-based metrics are not collected through the telemetry pipeline, even if DCGM is installed.
+
+``nvidia-peermem`` (GPUDirect RDMA)
+
+On nodes with RDMA-capable GPU hardware, the ``nvidia-peermem`` kernel module is installed and
+loaded using DKMS. This enables GPUDirect RDMA peer memory access for high-performance MPI
+workloads. Nodes without GPU hardware or without the required kernel headers are skipped. If the
+module fails to load and no RDMA dependency exists in the workload environment, the failure is
+treated as a non-blocking warning.
+
+Post-Provisioning Verification
+
+Use the following commands on any GPU-capable Slurm node to confirm successful provisioning::
+
+    # Verify NVIDIA driver
+    nvidia-smi
+
+    # Verify CUDA toolkit
+    nvcc --version
+
+    # Verify DCGM service
+    systemctl status nvidia-dcgm
+    dcgmi discovery -l
+
+    # Verify CUDA environment is available in session
+    echo $CUDA_HOME
+    nvcc --version
+
+    # Verify NFS mount for CUDA toolkit
+    mount | grep cuda
+
+    # Verify nvidia-peermem (RDMA environments only)
+    lsmod | grep -E 'nv_peer_mem|nvidia_peermem'
+
+Manual Recovery: CUDA Toolkit and DCGM Setup Failure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If automated GPU setup fails during provisioning — due to repository unavailability, NFS
+connectivity issues, or node initialization errors — the affected components can be recovered
+manually on the impacted node. All recovery steps are safe to run on an already-provisioned node.
+
+.. note:: Perform all recovery steps as ``root`` on the affected node. Verify that the
+   shared NFS path is reachable and repositories are accessible before proceeding.
+
+Step 1: Verify Prerequisites
+
+Before attempting any recovery, confirm the following::
+
+    # Verify NFS reachability
+    showmount -e <NFS_SERVER_IP>
+
+    # Verify GPU hardware presence
+    lspci | grep -i nvidia
+
+    # Verify repository access
+    dnf repolist | grep -i cuda
+
+    # Verify available disk space
+    df -h /usr/local
+
+Step 2: Recover NVIDIA Driver
+
+If ``nvidia-smi`` is missing or returning errors::
+
+    dnf install -y cuda-drivers
+
+Validate::
+
+    nvidia-smi
+
+Step 3: Recover CUDA Toolkit
+
+The CUDA toolkit recovery procedure differs depending on both the node type and whether a
+login or compiler node is present in the cluster. Identify your scenario before proceeding.
+
+**Scenario A — Login or Compiler Node present in the cluster**
+
+In this topology, the login/compiler node is the designated installer. It installs the toolkit
+to the shared NFS location at ``/hpc_tools/cuda``. Slurm compute nodes mount this path at
+``/usr/local/cuda`` and do not perform any installation themselves.
+
+*On the login or compiler node:*
+
+Check whether the toolkit is installed::
+
+    ls /hpc_tools/cuda/bin/nvcc 2>/dev/null && echo "Toolkit present" || echo "Toolkit NOT present"
+
+If not present, trigger the installation manually::
+
+    CUDA_INSTALL_MANUAL=true /usr/local/bin/install_cuda_toolkit.sh
+
+.. note:: Run this only after confirming no active toolkit installation is already in progress.
+   Review ``/var/log/cuda_toolkit_install.log`` to check current installation status.
+
+Validate on the login/compiler node::
+
+    ls /hpc_tools/cuda/bin/nvcc
+    nvcc --version
+
+*On a Slurm compute node (after toolkit is confirmed installed on NFS):*
+
+The compute node accesses the toolkit via an NFS mount at ``/usr/local/cuda``. Verify the mount::
+
+    mount | grep cuda
+
+If the mount is absent, re-mount manually::
+
+    mount -t nfs <NFS_SERVER>:<hpc_tools_path>/hpc_tools/cuda /usr/local/cuda
+
+Validate on the compute node::
+
+    ls /usr/local/cuda/bin/nvcc
+    nvcc --version
+
+**Scenario B — No Login or Compiler Node in the cluster**
+
+In this topology, Slurm compute nodes are responsible for installing the toolkit themselves.
+The NFS ``hpc_tools`` share is mounted at ``/hpc_tools`` on all compute nodes, and the toolkit
+is installed to ``/hpc_tools/cuda`` by whichever node acquires the installation role.
+``CUDA_HOME`` is set to ``/hpc_tools/cuda`` on all nodes.
+
+Check whether the toolkit is installed on the shared NFS location::
+
+    ls /hpc_tools/cuda/bin/nvcc 2>/dev/null && echo "Toolkit present" || echo "Toolkit NOT present"
+
+If not present, trigger the installation manually on any compute node::
+
+    CUDA_INSTALL_MANUAL=true /usr/local/bin/install_cuda_toolkit.sh
+
+.. note:: Run this only after confirming no active toolkit installation is already in progress.
+   Review ``/var/log/cuda_toolkit_install.log`` to check current installation status.
+
+Validate::
+
+    ls /hpc_tools/cuda/bin/nvcc
+    nvcc --version
+
+Step 4: Recover DCGM
+
+If the ``nvidia-dcgm`` service is inactive or failed::
+
+    # Verify CUDA version on node
+    nvidia-smi | grep "CUDA Version"
+
+    # Install the appropriate DCGM package
+    dnf install -y datacenter-gpu-manager-4-cuda<N>
+
+    # Enable and start the service
+    systemctl enable nvidia-dcgm
+    systemctl start nvidia-dcgm
+
+Validate::
+
+    systemctl status nvidia-dcgm
+    dcgmi discovery -l
+    journalctl -u nvidia-dcgm -n 100 --no-pager
+
+Step 5: Recover ``nvidia-peermem`` (RDMA environments only)
+
+If the ``nvidia-peermem`` module is not loaded::
+
+    # Verify kernel headers are available
+    ls /lib/modules/$(uname -r)/build
+
+    # Install kernel headers if missing
+    dnf install -y kernel-devel-$(uname -r)
+
+    # Load the module
+    modprobe nvidia-peermem
+
+Validate::
+
+    lsmod | grep -E 'nv_peer_mem|nvidia_peermem'
+
+Log File Reference
+
+- ``/var/log/nvidia_install.log``: NVIDIA driver installation output
+- ``/var/log/cuda_toolkit_install.log``: CUDA toolkit installation output and timing
+- ``/var/log/dcgm_setup.log``: DCGM package install, service startup, GPU discovery
+- ``/var/log/nvidia_peermem_install.log``: ``nvidia-peermem`` DKMS build and load output
+
 
 .. note:: If the iDRAC of a Slurm node is not accessible through OIM—because of issues such as an incorrect iDRAC port configuration or invalid credentials—the node configuration specified in ``/etc/slurm/slurm.conf`` for ``NodeName`` will default to: ``Sockets=2 CoresPerSocket=72 ThreadsPerCore=1 RealMemory=884736``. Update ``slurm.conf`` with the correct hardware values and run ``scontrol reconfigure`` to apply the changes.
 
@@ -274,9 +505,32 @@ It is recommended to run this script on a login or compiler node.
         --gpu-affinity 0:1
 
 .. note:: For detailed guidance on using Apptainer and NVIDIA HPC Benchmarks, refer to:
-    
+
     * Apptainer User Documentation: https://apptainer.org/docs/user/main/
     * NVIDIA HPC Benchmarks (NGC Catalog): https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks?version=25.09
+
+HPC Benchmark Image Layer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After Slurm setup, benchmark assets are available from the shared ``hpc_tools`` workspace on Slurm-mounted storage. Source-based benchmarks are provided as staged sources for user-controlled build and run workflows.
+
+Available tarball tools: OSU Micro-Benchmarks, IMB, LIKWID, PAPI, msr-safe (x86_64 only), GEOPM, SIONlib (optional).
+
+HPL, HPL-MxP, and STREAM are documented as container-first benchmarks and should be used through the approved container workflow.
+
+For container-first benchmarks, first check available image tags in your approved registry, then pull a specific tag.
+
+Example command to list tags::
+
+    curl -s <registry-endpoint>/v2/<repository>/tags/list | python3 -m json.tool
+
+Example masked pull command::
+
+    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>:<port>/nvidia/hpc-benchmarks:<tag>
+
+Example command to pull selected tag::
+
+    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>/<repository>:<tag>
 
 
 

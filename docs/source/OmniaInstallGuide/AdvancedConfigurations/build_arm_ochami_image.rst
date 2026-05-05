@@ -10,7 +10,7 @@ Install RHEL 10 on aarch64 Bare-metal Node
 
 **Prerequisites:** Ensure that a disk is available to the aarch64 node for OS installation.
 
-1. Manually install the RHEL 10 OS on one of the aarch64 nodes with the root password enabled.
+1. Manually install the **full Red Hat Enterprise Linux 10 OS** on one of the aarch64 nodes with the root password enabled.
 
   .. note:: 
       * The root password must be at least 8 characters long, contain alphanumeric characters, and must not include commas (,), hyphens (-), single quotes ('), double quotes ("), or backslashes (\).
