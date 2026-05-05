@@ -522,7 +522,7 @@ The NVIDIA driver was not functional at the time DCGM attempted to start
 
 Verify driver is functional: ``nvidia-smi``. Identify the installed CUDA version: ``nvidia-smi | grep "CUDA Version"``. Re-install the matching DCGM package and restart the service. Review ``/var/log/dcgm_setup.log`` for errors.
 
-DCGM Not Installed (``dcgm_support`` Disabled)
+DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
 
 **Symptom**
 
@@ -530,11 +530,11 @@ DCGM Not Installed (``dcgm_support`` Disabled)
 
 **Probable cause**
 
-``dcgm_support`` is set to ``false`` in ``telemetry_config.yml``, so Omnia intentionally skips DCGM installation during Slurm node cloud-init
+``dcgm.metrics_enabled`` is set to ``false`` under ``telemetry_sources`` in ``telemetry_config.yml``, so Omnia intentionally skips DCGM installation during Slurm node cloud-init
 
 **Resolution**
 
-Set ``dcgm_support: true`` in ``input/telemetry_config.yml``, re-run provisioning for affected Slurm nodes, then validate with ``systemctl status nvidia-dcgm`` and ``dcgmi discovery -l``
+Set ``dcgm.metrics_enabled: true`` under ``telemetry_sources`` in ``input/telemetry_config.yml``, re-run provisioning for affected Slurm nodes, then validate with ``systemctl status nvidia-dcgm`` and ``dcgmi discovery -l``
 
 DCGM Package Version Mismatch
 
