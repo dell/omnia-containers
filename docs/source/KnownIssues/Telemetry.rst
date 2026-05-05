@@ -63,17 +63,17 @@ Save the following script as ``kafka_lock_cleanup.sh``::
    for PVC in $PVCS; do
     echo "[3] Cleaning lock files from PVC: $PVC"
     kubectl run kafka-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
-{
-  \"spec\": {
-    \"containers\": [{
-      \"name\": \"cleanup\",
-      \"image\": \"busybox:1.36\",
-      \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.lock' -o -name '*.sock' -o -name '*.pid' \\\\) -print -delete; echo Done\"],
-      \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
-    }],
-    \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
-  }
-}"
+    {
+    \"spec\": {
+        \"containers\": [{
+        \"name\": \"cleanup\",
+        \"image\": \"busybox:1.36\",
+        \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.lock' -o -name '*.sock' -o -name '*.pid' \\\\) -print -delete; echo Done\"],
+        \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
+        }],
+        \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
+    }
+    }"
 
 
     # Step 4: Wait for completion
@@ -134,17 +134,17 @@ Save the following script as ``idrac_lock_cleanup.sh``::
    for PVC in $PVCS; do
      echo "[4] Cleaning lock files from PVC: $PVC"
      kubectl run mysql-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
-{
-  \"spec\": {
-    \"containers\": [{
-      \"name\": \"cleanup\",
-      \"image\": \"busybox:1.36\",
-      \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.sock' -o -name '*.pid' -o -name '*.lock' -o -name 'ibdata1.lock' \\\\) -print -delete; echo Done\"],
-      \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
-    }],
-    \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
-  }
-}"
+    {
+    \"spec\": {
+        \"containers\": [{
+        \"name\": \"cleanup\",
+        \"image\": \"busybox:1.36\",
+        \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.sock' -o -name '*.pid' -o -name '*.lock' -o -name 'ibdata1.lock' \\\\) -print -delete; echo Done\"],
+        \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
+        }],
+        \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
+    }
+    }"
 
      echo "[5] Waiting for cleanup pod..."
      kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/mysql-lock-cleanup -n "$NAMESPACE" --timeout=120s
