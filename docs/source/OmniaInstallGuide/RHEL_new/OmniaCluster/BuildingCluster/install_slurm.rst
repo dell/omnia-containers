@@ -274,10 +274,70 @@ It is recommended to run this script on a login or compiler node.
         --gpu-affinity 0:1
 
 .. note:: For detailed guidance on using Apptainer and NVIDIA HPC Benchmarks, refer to:
-    
+
     * Apptainer User Documentation: https://apptainer.org/docs/user/main/
     * NVIDIA HPC Benchmarks (NGC Catalog): https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks?version=25.09
 
+Load nvidia-peermem.ko driver on compute nodes with GPU
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On compute nodes with GPU, the nvidia-peermem.ko driver must be loaded to enable proper GPU memory access.
+
+**Procedure:**
+
+1. Check the DKMS status. ::
+
+    sudo dkms status
+
+2. Add the NVIDIA module to DKMS. ::
+
+    sudo dkms add -m nvidia -v 580.95.05
+
+3. Build the NVIDIA module for the current kernel. ::
+
+    sudo dkms build -m nvidia -v 580.95.05 -k $(uname -r) --force
+
+4. Install the NVIDIA module for the current kernel. ::
+
+    sudo dkms install -m nvidia -v 580.95.05 -k $(uname -r) --force
+
+5. Check the nvidia-peermem module information. ::
+
+    modinfo nvidia-peermem
+
+6. Check if the nv_peer_mem module is loaded. ::
+
+    lsmod | grep nv_peer_mem
+
+7. Verify the current kernel version. ::
+
+    uname -r
+
+8. Verify the nvidia-peermem module information again. ::
+
+    modinfo nvidia-peermem
+
+9. Check for nv_peer_mem module. ::
+
+    lsmod | grep nv_peer_mem
+
+10. Check for nvidia_peermem module.
+
+   .. code-block:: bash
+
+      lsmod | grep nvidia_peermem
+
+11. Load the nvidia-peermem module.
+
+   .. code-block:: bash
+
+      sudo modprobe nvidia-peermem
+
+12. Verify the nvidia_peermem module is loaded.
+
+   .. code-block:: bash
+
+      lsmod | grep nvidia_peermem
 
 
 .. _slurm-configuration-utilities:

@@ -40,7 +40,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
 2. Ensure the following service entries exist:
 
     * iDRAC Telemetry service
-    * Kafka broker, controller, and bridge services
+    * Kafka broker, controller (bootstrap), and bridge services
     * LDMS aggregator and store services
     * VictoriaMetrics service
 

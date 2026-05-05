@@ -168,6 +168,18 @@ IP address conflict with old node.
 
 Retry login or reprovision the node.
 
+
+2.5 BCM57504 Card PXE Boot Failure with Firmware 23.x.x and Above
+------------------------------------------------------------------
+
+**Cause**
+
+iPXE version used in Omnia 2.1 does not support firmware version 23.x.x and above for Broadcom BCM57504 card.
+
+**Resolution**
+
+Downgrade the BCM57504 card firmware to Network_Firmware_P5P4D_LN64_22.92.07.50_02 and perform an A/C powercycle on the system.
+
 3. Local Repository & Pulp Issues
 =================================
 

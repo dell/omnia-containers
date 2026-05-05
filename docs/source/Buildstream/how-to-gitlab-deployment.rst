@@ -32,7 +32,7 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for reference.
+2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update GitLab host IP address and other parameters related to GitLab for BuildStreaM in the ``gitlab_config.yml`` file. Use the :ref:`GitLab configuration table <buildstream-tables-gitlab-configuration>` for reference.
     
    .. code-block:: bash
 
