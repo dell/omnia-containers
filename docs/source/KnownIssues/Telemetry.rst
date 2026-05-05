@@ -19,6 +19,22 @@ acquire the existing locks and fails to initialize, resulting in a crash loop.
 
 **Resolution**: Use the following scripts to automate lock cleanup and data corruption recovery. These scripts check for the type of failure and apply the appropriate resolution automatically.
 
+**Usage Instructions**
+
+1. Save each script to a file with the corresponding name (e.g., ``kafka_lock_cleanup.sh``, ``idrac_lock_cleanup.sh``, ``idrac_data_corruption_recovery.sh``)
+
+2. Make the scripts executable::
+
+   ::
+
+      chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
+
+3. Run the appropriate script based on the affected component:
+
+   - For Kafka lock issues: ``./kafka_lock_cleanup.sh`` 
+   - For iDRAC lock issues: ``./idrac_lock_cleanup.sh`` 
+   - For iDRAC data corruption: ``./idrac_data_corruption_recovery.sh``
+
 **Kafka Lock Cleanup Script**
 
 Save the following script as ``kafka_lock_cleanup.sh``:
@@ -248,16 +264,3 @@ Save the following script as ``idrac_data_corruption_recovery.sh``:
 
    echo "    Use the SAME inputs as previous deployment."
 
-**Usage Instructions**
-
-1. Save each script to a file with the corresponding name (e.g., ``kafka_lock_cleanup.sh``, ``idrac_lock_cleanup.sh``, ``idrac_data_corruption_recovery.sh``)
-
-2. Make the scripts executable::
-
-   chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
-
-3. Run the appropriate script based on the affected component:
-
-   - For Kafka lock issues: ``./kafka_lock_cleanup.sh``
-   - For iDRAC lock issues: ``./idrac_lock_cleanup.sh`` (this script automatically checks for corruption and aborts if found)
-   - For iDRAC data corruption: ``./idrac_data_corruption_recovery.sh``
