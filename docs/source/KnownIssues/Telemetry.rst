@@ -25,9 +25,7 @@ acquire the existing locks and fails to initialize, resulting in a crash loop.
 
 2. Make the scripts executable::
 
-   ::
-
-      chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
+    chmod +x kafka_lock_cleanup.sh idrac_lock_cleanup.sh idrac_data_corruption_recovery.sh
 
 3. Run the appropriate script based on the affected component:
 
