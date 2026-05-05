@@ -271,17 +271,10 @@ Validate::
 
 Log File Reference
 
-+----------------------------------------+--------------------------------------------------------------+
-| Log File                               | Content                                                      |
-+========================================+==============================================================+
-| ``/var/log/nvidia_install.log``        | NVIDIA driver installation output                           |
-+----------------------------------------+--------------------------------------------------------------+
-| ``/var/log/cuda_toolkit_install.log``  | CUDA toolkit installation output and timing                 |
-+----------------------------------------+--------------------------------------------------------------+
-| ``/var/log/dcgm_setup.log``            | DCGM package install, service startup, GPU discovery         |
-+----------------------------------------+--------------------------------------------------------------+
-| ``/var/log/nvidia_peermem_install.log``| ``nvidia-peermem`` DKMS build and load output               |
-+----------------------------------------+--------------------------------------------------------------+
+- ``/var/log/nvidia_install.log``: NVIDIA driver installation output
+- ``/var/log/cuda_toolkit_install.log``: CUDA toolkit installation output and timing
+- ``/var/log/dcgm_setup.log``: DCGM package install, service startup, GPU discovery
+- ``/var/log/nvidia_peermem_install.log``: ``nvidia-peermem`` DKMS build and load output
 
 
 .. note:: If the iDRAC of a Slurm node is not accessible through OIM—because of issues such as an incorrect iDRAC port configuration or invalid credentials—the node configuration specified in ``/etc/slurm/slurm.conf`` for ``NodeName`` will default to: ``Sockets=2 CoresPerSocket=72 ThreadsPerCore=1 RealMemory=884736``. Update ``slurm.conf`` with the correct hardware values and run ``scontrol reconfigure`` to apply the changes.
