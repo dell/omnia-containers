@@ -43,20 +43,20 @@ Save the following script as ``kafka_lock_cleanup.sh``::
    NAMESPACE="telemetry"
    echo "=== Kafka Lock Cleanup ==="
    # Step 1: Get PVC names before deleting pods
-
-
+   
+   
    echo "[1] Collecting PVC names..."
    PVCS=$(kubectl get pods -n "$NAMESPACE" -l strimzi.io/kind=Kafka \
      -o jsonpath='{.items[*].spec.volumes[*].persistentVolumeClaim.claimName}')
    echo "PVCs found: $PVCS"
    # Step 2: Force delete all Kafka pods
-
-
+   
+   
    echo "[2] Force deleting Kafka pods..."
    kubectl delete pod -n "$NAMESPACE" -l strimzi.io/kind=Kafka --force --grace-period=0
    # Step 3: Clean lock files from each PVC
-
-
+   
+   
    for PVC in $PVCS; do
      echo "[3] Cleaning lock files from PVC: $PVC"
      kubectl run kafka-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
@@ -72,14 +72,16 @@ Save the following script as ``kafka_lock_cleanup.sh``::
      }
    }"
      # Step 4: Wait for completion
-
-
+   
+   
      echo "[4] Waiting for cleanup pod..."
      kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/kafka-lock-cleanup -n telemetry --timeout=120s
      kubectl logs kafka-lock-cleanup -n "$NAMESPACE"
      kubectl delete pod kafka-lock-cleanup -n "$NAMESPACE"
    done
    echo "[5] Verify: kubectl get pods -n $NAMESPACE -l strimzi.io/kind=Kafka"
+
+
 **iDRAC Lock Cleanup Script**
 Save the following script as ``idrac_lock_cleanup.sh``::
    #!/bin/bash
@@ -87,8 +89,8 @@ Save the following script as ``idrac_lock_cleanup.sh``::
    NAMESPACE="telemetry"
    echo "=== iDRAC Lock Cleanup ==="
    # Step 1: Check for corruption — abort if found
-
-
+   
+   
    echo "[1] Checking logs for data corruption..."
    for POD in $(kubectl get pods -n "$NAMESPACE" -l app=idrac-telemetry -o jsonpath='{.items[*].metadata.name}'); do
      LOGS=$(kubectl logs "$POD" -n "$NAMESPACE" --tail=50 2>/dev/null || echo "")
@@ -109,20 +111,20 @@ Save the following script as ``idrac_lock_cleanup.sh``::
    done
    echo "No corruption detected. Proceeding with lock cleanup..."
    # Step 2: Get PVC names
-
-
+   
+   
    echo "[2] Collecting PVC names..."
    PVCS=$(kubectl get pods -n "$NAMESPACE" -l app=idrac-telemetry \
      -o jsonpath='{.items[*].spec.volumes[*].persistentVolumeClaim.claimName}')
    echo "PVCs found: $PVCS"
    # Step 3: Force delete all iDRAC pods
-
-
+   
+   
    echo "[3] Force deleting iDRAC pods..."
    kubectl delete pod -n "$NAMESPACE" -l app=idrac-telemetry --force --grace-period=0
    # Step 4: Clean lock files from each PVC
-
-
+   
+   
    for PVC in $PVCS; do
      echo "[4] Cleaning lock files from PVC: $PVC"
      kubectl run mysql-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
@@ -143,58 +145,64 @@ Save the following script as ``idrac_lock_cleanup.sh``::
      kubectl delete pod mysql-lock-cleanup -n "$NAMESPACE"
    done
    echo "[6] Verify: kubectl get pods -n $NAMESPACE -l app=idrac-telemetry"
+
 **iDRAC Data Corruption Recovery Script**
+
 Save the following script as ``idrac_data_corruption_recovery.sh``::
-#!/bin/bash
-set -euo pipefail
-NAMESPACE="telemetry"
-echo "=== iDRAC Data Corruption Recovery ==="
-echo "WARNING: This will DELETE all iDRAC PVCs and wipe stored data."
-read -rp "Type DELETE to confirm: " CONFIRM
-[[ "$CONFIRM" != "DELETE" ]] && echo "Aborted." && exit 0
-# Step 1: List PVCs
+   #!/bin/bash
+   set -euo pipefail
+   NAMESPACE="telemetry"
+
+   echo "=== iDRAC Data Corruption Recovery ==="
+   echo "WARNING: This will DELETE all iDRAC PVCs and wipe stored data."
+   read -rp "Type DELETE to confirm: " CONFIRM
+   [[ "$CONFIRM" != "DELETE" ]] && echo "Aborted." && exit 0
+
+   # Step 1: List PVCs
+
+   echo "[1] Current iDRAC PVCs:"
+   kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry
+
+   # Step 2: Force delete all pods FIRST (releases PVC binding)
+
+   echo "[2] Force deleting iDRAC pods..."
+   kubectl delete pod -n "$NAMESPACE" -l app=idrac-telemetry --force --grace-period=0
+
+   # Step 3: Wait for pods to terminate
+
+   echo "[3] Waiting for pods to terminate..."
+   sleep 10
+
+   # Step 4: Delete PVCs (now unbound)
+
+   echo "[4] Deleting iDRAC PVCs..."
+   kubectl delete pvc -n "$NAMESPACE" -l app=idrac-telemetry --wait=false
+
+   # Step 5: Verify PVCs are terminating
 
 
-echo "[1] Current iDRAC PVCs:"
-kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry
-# Step 2: Force delete all pods FIRST (releases PVC binding)
+   echo "[5] Checking PVC status..."
+   sleep 5
+   REMAINING=$(kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry --no-headers 2>/dev/null | wc -l)
+   if [[ "$REMAINING" -gt 0 ]]; then
+     echo "PVCs still terminating. Removing finalizers..."
+     for PVC in $(kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry -o jsonpath='{.items[*].metadata.name}'); do
+       kubectl patch pvc "$PVC" -n "$NAMESPACE" -p '{"metadata":{"finalizers":null}}'
+       echo "Finalizer removed from: $PVC"
+     done
+     sleep 5
+   fi
+
+   # Step 6: Final verification
 
 
-echo "[2] Force deleting iDRAC pods..."
-kubectl delete pod -n "$NAMESPACE" -l app=idrac-telemetry --force --grace-period=0
-# Step 3: Wait for pods to terminate
+   echo "[6] Verifying cleanup..."
+   kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry 2>/dev/null || echo "All PVCs deleted."
+   kubectl get pod -n "$NAMESPACE" -l app=idrac-telemetry 2>/dev/null || echo "All pods deleted."
+
+   # Step 7: Re-deploy
 
 
-echo "[3] Waiting for pods to terminate..."
-sleep 10
-# Step 4: Delete PVCs (now unbound)
-
-
-echo "[4] Deleting iDRAC PVCs..."
-kubectl delete pvc -n "$NAMESPACE" -l app=idrac-telemetry --wait=false
-# Step 5: Verify PVCs are terminating
-
-
-echo "[5] Checking PVC status..."
-sleep 5
-REMAINING=$(kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry --no-headers 2>/dev/null | wc -l)
-if [[ "$REMAINING" -gt 0 ]]; then
-  echo "PVCs still terminating. Removing finalizers..."
-  for PVC in $(kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry -o jsonpath='{.items[*].metadata.name}'); do
-    kubectl patch pvc "$PVC" -n "$NAMESPACE" -p '{"metadata":{"finalizers":null}}'
-    echo "Finalizer removed from: $PVC"
-  done
-  sleep 5
-fi
-# Step 6: Final verification
-
-
-echo "[6] Verifying cleanup..."
-kubectl get pvc -n "$NAMESPACE" -l app=idrac-telemetry 2>/dev/null || echo "All PVCs deleted."
-kubectl get pod -n "$NAMESPACE" -l app=idrac-telemetry 2>/dev/null || echo "All pods deleted."
-# Step 7: Re-deploy
-
-
-echo ""
-echo "[7] Re-deploy with: ansible-playbook telemetry/telemetry.yml"
-echo "    Use the SAME inputs as previous deployment."
+   echo ""
+   echo "[7] Re-deploy with: ansible-playbook telemetry/telemetry.yml"
+   echo "    Use the SAME inputs as previous deployment."
