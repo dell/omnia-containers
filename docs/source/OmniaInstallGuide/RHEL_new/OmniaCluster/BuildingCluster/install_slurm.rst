@@ -512,25 +512,54 @@ It is recommended to run this script on a login or compiler node.
 HPC Benchmark Image Layer
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After Slurm setup, benchmark assets are available from the shared ``hpc_tools`` workspace on Slurm-mounted storage. Source-based benchmarks are provided as staged sources for user-controlled build and run workflows.
+After Slurm setup, Omnia deploys runtime benchmark staging assets to shared storage:
 
-Available tarball tools: OSU Micro-Benchmarks, IMB, LIKWID, PAPI, msr-safe (x86_64 only), GEOPM, SIONlib (optional).
+- ``/hpc_tools/scripts/pull_benchmarks.sh``
+- ``/hpc_tools/scripts/benchmark_tools.list``
 
-HPL, HPL-MxP, and STREAM are documented as container-first benchmarks and should be used through the approved container workflow.
+Benchmark artifacts are staged by executing the runtime script:
 
-For container-first benchmarks, first check available image tags in your approved registry, then pull a specific tag.
+.. code-block:: bash
 
-Example command to list tags::
+   /hpc_tools/scripts/pull_benchmarks.sh
 
-    curl -s <registry-endpoint>/v2/<repository>/tags/list | python3 -m json.tool
+**Runtime behavior**
 
-Example masked pull command::
+- Reads tool list from ``/hpc_tools/scripts/benchmark_tools.list``.
+- Auto-detects architecture (``uname -m``).
+- Skips ``msr-safe`` on ``aarch64``.
+- Creates ``/hpc_tools/<tool>/`` if needed.
+- Pulls tarballs from the configured Pulp mirror path.
+- Uses ``wget`` by default, with ``curl`` fallback.
+- Skips tools already staged (non-empty destination directory).
+- Writes per-tool status and summary to ``/var/log/pull_benchmarks.log``.
 
-    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>:<port>/nvidia/hpc-benchmarks:<tag>
+**Benchmark tools list (source-only)**
 
-Example command to pull selected tag::
+- ``osu-micro-benchmarks``
+- ``imb``
+- ``likwid``
+- ``papi``
+- ``geopm``
+- ``sionlib`` (optional)
+- ``msr-safe`` (``x86_64`` only)
 
-    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>/<repository>:<tag>
+**Container-first benchmarks**
+
+HPL, HPL-MxP, and STREAM remain container-first.
+Use approved registry endpoint and explicit tag:
+
+.. code-block:: bash
+
+   apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>/<repository>:<tag>
+
+**Quick verification**
+
+.. code-block:: bash
+
+   ls -l /hpc_tools/scripts
+   ls -l /hpc_tools
+   tail -n 100 /var/log/pull_benchmarks.log
 
 
 

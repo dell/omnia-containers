@@ -587,29 +587,57 @@ Review ``/var/log/nvidia_peermem_install.log`` for details.
 
 **Symptom**
 
-Benchmark tools are not visible under shared Slurm benchmark storage.
+- Benchmark tool directories are missing or incomplete under ``/hpc_tools``.
+- Expected benchmark artifacts are not visible on login/compiler/compute nodes.
 
 **Possible causes**
 
-- Shared storage is not mounted
-- Local repository content is missing
-- The benchmark set is not prepared for the selected architecture
+- Shared NFS path (``/hpc_tools``) is not mounted or not accessible.
+- ``pull_benchmarks.sh`` or ``benchmark_tools.list`` is missing under ``/hpc_tools/scripts``.
+- Pulp mirror endpoint is unreachable from the node.
+- Required benchmark content is not available in local repository/Pulp.
+- Tool directory already exists and contains files (script skips re-download by design).
+- Architecture mismatch (for example, ``msr-safe`` on ``aarch64``, which is skipped by design).
 
 **Resolution**
 
-- Confirm Slurm shared storage mount health on login, compiler, and compute nodes.
-- Confirm benchmark artifacts are present in local repositories, then rerun the standard Slurm provisioning workflow.
-- Re-verify benchmark directory availability on shared storage after provisioning completes.
+1. Verify NFS and scripts path:
 
-.. image:: images/troubleshoot_ldms_1.png
+.. code-block:: bash
 
-.. image:: images/troubleshoot_ldms_2.png
+   ls -ld /hpc_tools
+   ls -l /hpc_tools/scripts
 
-.. image:: images/troubleshoot_ldms_3.png
+Expected files:
 
-.. image:: images/troubleshoot_ldms_4.png
+- ``/hpc_tools/scripts/pull_benchmarks.sh``
+- ``/hpc_tools/scripts/benchmark_tools.list``
 
-.. image:: images/troubleshoot_ldms_5.png
+2. Run runtime staging script and review output:
+
+.. code-block:: bash
+
+   /hpc_tools/scripts/pull_benchmarks.sh
+
+3. Review runtime log:
+
+.. code-block:: bash
+
+   tail -n 200 /var/log/pull_benchmarks.log
+
+4. Validate staged benchmark directories:
+
+.. code-block:: bash
+
+   ls -l /hpc_tools
+   ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi /hpc_tools/geopm /hpc_tools/sionlib
+
+.. note:: ``msr-safe`` is expected only on ``x86_64``.
+
+5. If a tool was skipped as already present:
+
+- Remove that tool directory only if refresh is required.
+- Re-run ``/hpc_tools/scripts/pull_benchmarks.sh``.
 
 7. Telemetry Issues
 ===================
