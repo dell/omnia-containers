@@ -674,7 +674,7 @@ def test_pam_slurm_adopt_session_termination(host):
 
     skip_if_openldap_not_enabled(host, log)
 
-    log.check("Copying job.sh to submit node, submitting as root, verifying PAM behavior on compute node")
+    log.check("Copying job.sh to submit node, submitting as ldapuser, verifying PAM behavior on compute node")
 
     result = verify_pam_slurm_adopt_session_termination(host)
 
