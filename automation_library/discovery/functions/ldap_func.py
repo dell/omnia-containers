@@ -26,6 +26,7 @@ import pytest
 from automation_library.core import (
     run_on_oim,
     run_in_container,
+    run_on_remote_node,
     is_software_enabled,
     get_multiple_credentials,
     load_omnia_test_config,
@@ -621,4 +622,309 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
     if not all_correct:
         results["error"] = "PAM slurm_adopt not working correctly on some nodes"
 
+    return results
+
+
+def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
+    """
+    Verify PAM slurm_adopt session termination behavior.
+
+    Test flow:
+    1. Find a submit node (slurm_control_node > login_node > login_compiler_node)
+    2. Copy job.sh from vars/ to the submit node /root/ via root SSH
+    3. Submit the job as root from /root/ targeting a compute node
+    4. Wait for job to start RUNNING
+    5. Login to compute node as ldapuser during active job
+    6. Wait for job to complete
+    7. Verify auto-logout and display the disconnect message
+    8. Try login as ldapuser again - should be blocked (no active job)
+
+    Returns:
+        Dict with success, details, error, job_id, messages, etc.
+    """
+    import os
+    import base64
+    from .common_func import (
+        get_slurm_control_nodes,
+        get_slurm_compute_nodes,
+        get_login_nodes,
+        get_login_compiler_nodes,
+    )
+
+    results = {
+        "success": False,
+        "details": "",
+        "error": "",
+        "job_id": "",
+        "login_during_job": False,
+        "login_during_job_message": "",
+        "session_terminated_after_job": False,
+        "post_job_block_message": "",
+        "ldap_users": [],
+        "submit_node": "",
+        "submit_node_type": "",
+        "compute_node": "",
+    }
+
+    # Get LDAP credentials
+    omnia_test_config = load_omnia_test_config()
+    if not omnia_test_config:
+        results["error"] = "Failed to load omnia_test_config.yml"
+        return results
+
+    credentials = parse_ldap_credentials(omnia_test_config)
+    if not credentials:
+        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
+        return results
+
+    ldap_user = credentials[0]["user"]
+    ldap_password = credentials[0]["password"]
+    results["ldap_users"] = [ldap_user]
+
+    # Find submit node: slurm_control_node > login_node > login_compiler_node
+    submit_node = None
+    submit_node_type = ""
+
+    control_nodes = get_slurm_control_nodes(host)
+    if control_nodes:
+        submit_node = control_nodes[0]
+        submit_node_type = "slurm_control_node"
+
+    if not submit_node:
+        login_nodes = get_login_nodes(host)
+        if login_nodes:
+            submit_node = login_nodes[0]
+            submit_node_type = "login_node"
+
+    if not submit_node:
+        lc_nodes = get_login_compiler_nodes(host)
+        if lc_nodes:
+            submit_node = lc_nodes[0]
+            submit_node_type = "login_compiler_node"
+
+    if not submit_node:
+        results["error"] = (
+            "No slurm_control_node, login_node, or "
+            "login_compiler_node in PXE mapping"
+        )
+        return results
+
+    compute_nodes = get_slurm_compute_nodes(host)
+    if not compute_nodes:
+        results["error"] = "No slurm_node in PXE mapping"
+        return results
+
+    submit_ip = submit_node.get("admin_ip", "")
+    submit_hostname = submit_node.get("hostname", "")
+    compute_ip = compute_nodes[0].get("admin_ip", "")
+    compute_hostname = compute_nodes[0].get("hostname", "")
+
+    results["submit_node"] = f"{submit_hostname} (IP: {submit_ip})"
+    results["submit_node_type"] = submit_node_type
+    results["compute_node"] = f"{compute_hostname} (IP: {compute_ip})"
+
+    details_lines = [
+        f"LDAP user: {ldap_user}",
+        f"Submit node ({submit_node_type}): {submit_hostname} (IP: {submit_ip})",
+        f"Compute node: {compute_hostname} (IP: {compute_ip})",
+    ]
+
+    # ── Step 1: Read job.sh from vars/ and copy to both /root/ and /home/ldapuser/ ──
+    job_sh_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "vars", "job.sh",
+    )
+    try:
+        with open(job_sh_path, "r", encoding="utf-8") as f:
+            job_sh_content = f.read()
+    except FileNotFoundError:
+        results["error"] = f"job.sh not found at {job_sh_path}"
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    encoded = base64.b64encode(job_sh_content.encode()).decode()
+    # Copy job.sh to ldapuser's home directory on the submit node
+    copy_cmd = (
+        f"echo '{encoded}' | base64 -d > /home/{ldap_user}/job.sh && "
+        f"chmod 755 /home/{ldap_user}/job.sh && "
+        f"echo COPY_OK"
+    )
+    cmd = run_on_remote_node(host, copy_cmd, submit_ip)
+    if "COPY_OK" not in (cmd.stdout or ""):
+        results["error"] = (
+            f"Failed to copy job.sh to {submit_hostname}: "
+            f"{(cmd.stdout or '').strip()}"
+        )
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"Copied job.sh to {submit_hostname}:/home/{ldap_user}/job.sh")
+
+    # ── Step 2: Submit job as ldapuser using sbatch --uid (root privilege) ──
+    # sbatch --uid=ldapuser lets root submit a job owned by ldapuser.
+    # Use /home/ldapuser/ for working directory and output files.
+    _ssh = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    submit_ssh = (
+        f'ssh {_ssh} root@{submit_ip} '
+        f'"sbatch --uid={ldap_user} -w {compute_hostname} '
+        f'-D /home/{ldap_user} --output=/home/{ldap_user}/slurm_%j.out --error=/home/{ldap_user}/slurm_%j.err '
+        f'/home/{ldap_user}/job.sh" 2>&1'
+    )
+    cmd = run_in_container(host, submit_ssh)
+    output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+    job_id = ""
+    if "Submitted batch job" in output:
+        for part in output.split("\n"):
+            if "Submitted batch job" in part:
+                job_id = part.strip().split()[-1]
+                break
+    else:
+        results["error"] = (
+            f"Failed to submit job as {ldap_user} on {submit_hostname}: {output}"
+        )
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    results["job_id"] = job_id
+    details_lines.append(f"Submitted job ID: {job_id} (as {ldap_user})")
+
+    # ── Step 3: Wait for job to start RUNNING (max 30s) ──
+    job_running = False
+    job_state = ""
+    for _ in range(15):
+        time.sleep(2)
+        sq_ssh = (
+            f'ssh {_ssh} root@{submit_ip} '
+            f'"squeue -j {job_id} -h -o %T" 2>&1'
+        )
+        cmd = run_in_container(host, sq_ssh)
+        raw = (cmd.stdout or "").strip()
+        # filter out SSH warnings, keep only slurm state lines
+        lines = [
+            l.strip() for l in raw.splitlines()
+            if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+        ]
+        job_state = lines[-1] if lines else ""
+        if job_state == "RUNNING":
+            job_running = True
+            break
+
+    if not job_running:
+        details_lines.append(f"Job state: '{job_state}' (expected RUNNING)")
+        results["error"] = (
+            f"Job {job_id} did not reach RUNNING state: '{job_state}'"
+        )
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"Job {job_id}: RUNNING on {compute_hostname}")
+
+    # ── Step 4: Login to compute node as ldapuser during active job ──
+    SSH_OPTS = (
+        "-o StrictHostKeyChecking=no "
+        "-o UserKnownHostsFile=/dev/null "
+        "-o ConnectTimeout=10"
+    )
+    login_cmd = (
+        f"sshpass -p '{ldap_password}' ssh {SSH_OPTS} "
+        f"{ldap_user}@{compute_ip} 'echo LOGIN_SUCCESS' 2>&1"
+    )
+    cmd = run_on_oim(host, login_cmd)
+    login_output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+    # Strip SSH warnings for cleaner message
+    login_msg_lines = [
+        line for line in login_output.splitlines()
+        if not line.startswith("Warning:") and "known hosts" not in line
+    ]
+    clean_login_msg = "\n".join(login_msg_lines).strip()
+
+    if "LOGIN_SUCCESS" in login_output:
+        results["login_during_job"] = True
+        results["login_during_job_message"] = "Login allowed (session adopted by active job)"
+        details_lines.append("Login during job: ALLOWED (session adopted)")
+    else:
+        results["login_during_job"] = False
+        results["login_during_job_message"] = clean_login_msg
+        details_lines.append("Login during job: BLOCKED")
+        details_lines.append(f"  Message: {clean_login_msg[:200]}")
+
+    # ── Step 5: Wait for job to complete (job.sh sleeps 40s, max wait 90s) ──
+    job_finished = False
+    final_state = ""
+    for _ in range(45):
+        time.sleep(2)
+        sq_ssh = (
+            f'ssh {_ssh} root@{submit_ip} '
+            f'"squeue -j {job_id} -h -o %T" 2>&1'
+        )
+        cmd = run_in_container(host, sq_ssh)
+        raw = (cmd.stdout or "").strip()
+        lines = [
+            l.strip() for l in raw.splitlines()
+            if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+        ]
+        state = lines[-1] if lines else ""
+        if not state or state in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT"):
+            job_finished = True
+            final_state = state or "COMPLETED"
+            break
+        final_state = state
+
+    if not job_finished:
+        # Cancel job to clean up
+        run_in_container(
+            host,
+            f'ssh {_ssh} root@{submit_ip} "scancel {job_id}" 2>&1'
+        )
+        results["error"] = (
+            f"Job {job_id} did not finish within timeout "
+            f"(last state: {final_state})"
+        )
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    details_lines.append(f"Job completed with state: {final_state}")
+
+    # Small delay for PAM to terminate adopted sessions
+    time.sleep(5)
+
+    # ── Step 6: Try login as ldapuser after job ends → should be blocked ──
+    cmd = run_on_oim(host, login_cmd)
+    post_output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+    # Strip SSH warnings for cleaner message
+    post_msg_lines = [
+        line for line in post_output.splitlines()
+        if not line.startswith("Warning:") and "known hosts" not in line
+    ]
+    clean_post_msg = "\n".join(post_msg_lines).strip()
+    results["post_job_block_message"] = clean_post_msg
+
+    if cmd.rc == 0 and "LOGIN_SUCCESS" in post_output:
+        results["session_terminated_after_job"] = False
+        details_lines.append("Login after job: ALLOWED (should have been blocked)")
+        details_lines.append(f"  Message: {clean_post_msg[:200]}")
+        results["error"] = "Login should have been blocked after job ended"
+    elif "pam_slurm_adopt" in post_output or "no active jobs" in post_output.lower():
+        results["session_terminated_after_job"] = True
+        details_lines.append("Login after job: BLOCKED by pam_slurm_adopt")
+        details_lines.append(f"  Message: {clean_post_msg[:200]}")
+    elif "Connection closed" in post_output or "Connection refused" in post_output:
+        results["session_terminated_after_job"] = True
+        details_lines.append("Login after job: BLOCKED (connection closed/refused)")
+        details_lines.append(f"  Message: {clean_post_msg[:200]}")
+    elif cmd.rc != 0:
+        results["session_terminated_after_job"] = True
+        details_lines.append("Login after job: BLOCKED")
+        details_lines.append(f"  Message: {clean_post_msg[:200]}")
+    else:
+        results["session_terminated_after_job"] = True
+        details_lines.append("Login after job: BLOCKED")
+        details_lines.append(f"  Message: {clean_post_msg[:200]}")
+
+    # Determine overall success
+    results["success"] = results["session_terminated_after_job"]
+    results["details"] = "\n".join(details_lines)
     return results

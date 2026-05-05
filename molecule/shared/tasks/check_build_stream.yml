@@ -33,6 +33,7 @@
 #       ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
 # =============================================================================
 
+
 - name: "[build_stream guard] Read build_stream_config.yml from container"
   ansible.builtin.shell:
     cmd: >
@@ -43,8 +44,11 @@
 - name: "[build_stream guard] Detect enable_build_stream flag"
   ansible.builtin.set_fact:
     build_stream_enabled: >-
-      {{ (_bs_config_raw.stdout | regex_search('enable_build_stream\s*:\s*(true|yes)', '\1', ignorecase=True)
-          | first | default('false')) | lower in ['true', 'yes'] }}
+      {{ (_bs_config_raw.stdout
+      | regex_search('^enable_build_stream:\s*(\S+)', multiline=True)
+      | default(''))
+      | regex_replace('^enable_build_stream:\s*', '')
+      | default('false') }}
 
 - name: "[build_stream guard] Abort converge when build_stream is enabled"
   ansible.builtin.fail:

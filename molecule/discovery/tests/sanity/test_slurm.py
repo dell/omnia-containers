@@ -53,6 +53,7 @@ from automation_library.discovery.vars import (
     SLURM_NODE_SERVICES,
     LOGIN_NODE_SERVICES,
 )
+from automation_library.discovery.messages import TEST_ASSERT_MSGS as ASSERT_MSGS
 
 
 @pytest.mark.sanity
@@ -648,3 +649,76 @@ def test_pam_slurm_adopt(host):
     else:
         log.failed("PAM slurm_adopt not working correctly", details)
         assert False, result.get("error", "PAM test failed")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(23)
+def test_pam_slurm_adopt_session_termination(host):
+    """
+    Test Case 23: Verify PAM slurm_adopt session termination behavior.
+
+    Skips if OpenLDAP is not enabled in software_config.json.
+
+    This test:
+    1. Copies job.sh (40s sleep) to a submit node via root SSH
+    2. Submits the job as root targeting a compute node
+    3. Waits for job to start RUNNING
+    4. Tries ldapuser login to compute node during active job
+    5. Waits for job to complete
+    6. Verifies ldapuser login is blocked after job ends (auto-logout)
+    7. Displays the actual PAM / disconnect messages
+    """
+    from automation_library.discovery.functions import verify_pam_slurm_adopt_session_termination
+
+    log = TestLogger("Verify PAM slurm_adopt session termination behavior")
+
+    skip_if_openldap_not_enabled(host, log)
+
+    log.check("Copying job.sh to submit node, submitting as root, verifying PAM behavior on compute node")
+
+    result = verify_pam_slurm_adopt_session_termination(host)
+
+    # Handle skip conditions
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
+        log.skipped("LDAP credentials not configured", result["error"])
+        pytest.skip(result["error"])
+
+    if result.get("error") and ("No slurm" in result["error"] or "No slurm_control_node" in result["error"]):
+        log.skipped("Required nodes not in PXE mapping", result["error"])
+        pytest.skip(result["error"])
+
+    # Build details for display
+    details_lines = [
+        f"LDAP user: {', '.join(result.get('ldap_users', []))}",
+        f"Submit node ({result.get('submit_node_type', '')}): {result.get('submit_node', '')}",
+        f"Compute node: {result.get('compute_node', '')}",
+        f"Job ID: {result.get('job_id', '')}",
+    ]
+
+    # Login during job result
+    details_lines.append("")
+    if result.get("login_during_job"):
+        details_lines.append("Login during active job: ALLOWED (session adopted) ✓")
+    else:
+        details_lines.append("Login during active job: BLOCKED")
+    if result.get("login_during_job_message"):
+        details_lines.append(f"  {result['login_during_job_message']}")
+
+    # Post-job login result
+    details_lines.append("")
+    if result.get("session_terminated_after_job"):
+        details_lines.append("Login after job ended: BLOCKED (auto-logout) ✓")
+    elif result.get("post_job_block_message"):
+        details_lines.append("Login after job ended: NOT BLOCKED")
+    if result.get("post_job_block_message"):
+        details_lines.append(f"  {result['post_job_block_message']}")
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed("PAM slurm_adopt session termination verified", details)
+    else:
+        log.failed("PAM session termination not working", details)
+        assert False, ASSERT_MSGS["pam_session_failed"].format(
+            details=result.get("error", result.get("details", ""))
+        )
