@@ -64,3 +64,12 @@ CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
 # =============================================================================
 
 IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"
+
+# =============================================================================
+# OPENCHAMI WORKDIR PATHS (discovery output artifacts inside omnia_core)
+# =============================================================================
+
+OPENCHAMI_WORKDIR = f"{_OIM_SHARED_PATH}/openchami/workdir"
+NODES_YAML_DIR = f"{OPENCHAMI_WORKDIR}/nodes"
+BSS_BOOT_DIR = f"{OPENCHAMI_WORKDIR}/boot"
+CLOUDINIT_TEMPLATE_DIR = f"{OPENCHAMI_WORKDIR}/cloud-init"

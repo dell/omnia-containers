@@ -51,6 +51,12 @@ from .functions import (
     # LDAP functions
     skip_if_openldap_not_enabled,
     apply_slapd_conf_and_verify,
+    verify_pam_slurm_adopt,
+    verify_pam_slurm_adopt_session_termination,
+    # Discovery output verification
+    verify_nodes_yaml_generated,
+    verify_bss_templates_created,
+    verify_cloudinit_templates_created,
 )
 from .vars import (
     SSH_OPTS,
@@ -62,6 +68,10 @@ from .vars import (
     UCX_BIN_PATH,
     LDAP_CONTAINER_NAME,
     SLAPD_CONF_TEMPLATE,
+    OPENCHAMI_WORKDIR,
+    NODES_YAML_DIR,
+    BSS_BOOT_DIR,
+    CLOUDINIT_TEMPLATE_DIR,
 )
 from .messages import (
     TEST_NAMES,
