@@ -38,48 +38,48 @@ acquire the existing locks and fails to initialize, resulting in a crash loop.
 **Kafka Lock Cleanup Script**
 
 Save the following script as ``kafka_lock_cleanup.sh``::
-   #!/bin/bash
-   set -euo pipefail
-   NAMESPACE="telemetry"
-   echo "=== Kafka Lock Cleanup ==="
-   # Step 1: Get PVC names before deleting pods
-   
-   
-   echo "[1] Collecting PVC names..."
-   PVCS=$(kubectl get pods -n "$NAMESPACE" -l strimzi.io/kind=Kafka \
-     -o jsonpath='{.items[*].spec.volumes[*].persistentVolumeClaim.claimName}')
-   echo "PVCs found: $PVCS"
-   # Step 2: Force delete all Kafka pods
-   
-   
-   echo "[2] Force deleting Kafka pods..."
-   kubectl delete pod -n "$NAMESPACE" -l strimzi.io/kind=Kafka --force --grace-period=0
-   # Step 3: Clean lock files from each PVC
-   
-   
-   for PVC in $PVCS; do
-     echo "[3] Cleaning lock files from PVC: $PVC"
-     kubectl run kafka-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
-   {
-     \"spec\": {
-       \"containers\": [{
-         \"name\": \"cleanup\",
-         \"image\": \"busybox:1.36\",
-         \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.lock' -o -name '*.sock' -o -name '*.pid' \\\\) -print -delete; echo Done\"],
-         \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
-       }],
-       \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
-     }
-   }"
-     # Step 4: Wait for completion
-   
-   
-     echo "[4] Waiting for cleanup pod..."
-     kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/kafka-lock-cleanup -n telemetry --timeout=120s
-     kubectl logs kafka-lock-cleanup -n "$NAMESPACE"
-     kubectl delete pod kafka-lock-cleanup -n "$NAMESPACE"
-   done
-   echo "[5] Verify: kubectl get pods -n $NAMESPACE -l strimzi.io/kind=Kafka"
+    #!/bin/bash
+    set -euo pipefail
+    NAMESPACE="telemetry"
+    echo "=== Kafka Lock Cleanup ==="
+    # Step 1: Get PVC names before deleting pods
+    
+    
+    echo "[1] Collecting PVC names..."
+    PVCS=$(kubectl get pods -n "$NAMESPACE" -l strimzi.io/kind=Kafka \
+        -o jsonpath='{.items[*].spec.volumes[*].persistentVolumeClaim.claimName}')
+    echo "PVCs found: $PVCS"
+    # Step 2: Force delete all Kafka pods
+    
+    
+    echo "[2] Force deleting Kafka pods..."
+    kubectl delete pod -n "$NAMESPACE" -l strimzi.io/kind=Kafka --force --grace-period=0
+    # Step 3: Clean lock files from each PVC
+    
+    
+    for PVC in $PVCS; do
+        echo "[3] Cleaning lock files from PVC: $PVC"
+        kubectl run kafka-lock-cleanup --image=busybox:1.36 -n "$NAMESPACE" --restart=Never --overrides="
+    {
+        \"spec\": {
+        \"containers\": [{
+            \"name\": \"cleanup\",
+            \"image\": \"busybox:1.36\",
+            \"command\": [\"sh\", \"-c\", \"find /data -type f \\\\( -name '*.lock' -o -name '*.sock' -o -name '*.pid' \\\\) -print -delete; echo Done\"],
+            \"volumeMounts\": [{\"name\": \"data\", \"mountPath\": \"/data\"}]
+        }],
+        \"volumes\": [{\"name\": \"data\", \"persistentVolumeClaim\": {\"claimName\": \"$PVC\"}}]
+        }
+    }"
+        # Step 4: Wait for completion
+    
+    
+        echo "[4] Waiting for cleanup pod..."
+        kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/kafka-lock-cleanup -n telemetry --timeout=120s
+        kubectl logs kafka-lock-cleanup -n "$NAMESPACE"
+        kubectl delete pod kafka-lock-cleanup -n "$NAMESPACE"
+    done
+    echo "[5] Verify: kubectl get pods -n $NAMESPACE -l strimzi.io/kind=Kafka"
 
 
 **iDRAC Lock Cleanup Script**
