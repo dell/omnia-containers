@@ -321,17 +321,23 @@ On compute nodes with GPU, the nvidia-peermem.ko driver must be loaded to enable
 
     lsmod | grep nv_peer_mem
 
-10. Check for nvidia\_peermem module. ::
+10. Check for nvidia_peermem module.
 
-    lsmod | grep nvidia\_peermem
+   .. code-block:: bash
 
-11. Load the nvidia-peermem module. ::
+      lsmod | grep nvidia_peermem
 
-    sudo modprobe nvidia-peermem
+11. Load the nvidia-peermem module.
 
-12. Verify the nvidia\_peermem module is loaded. ::
+   .. code-block:: bash
 
-    lsmod | grep nvidia\_peermem
+      sudo modprobe nvidia-peermem
+
+12. Verify the nvidia_peermem module is loaded.
+
+   .. code-block:: bash
+
+      lsmod | grep nvidia_peermem
 
 
 .. _slurm-configuration-utilities:
