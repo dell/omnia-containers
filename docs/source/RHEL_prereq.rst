@@ -188,15 +188,9 @@ GPU-capable nodes are present. These apply in addition to general Slurm prerequi
 
 Repository Requirements
 
-+------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| Requirement            | Detail                                                                                                                                                                                                   |
-+========================+==========================================================================================================================================================================================================+
-| CUDA repository        | Must be reachable from Slurm compute nodes. The CUDA repository must be accessible through the local Pulp repository configured during ``local_repo.yml`` execution.                                    |
-+------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DCGM repository        | ``datacenter-gpu-manager-4-cuda<N>`` must be available in the configured local repository. For CUDA 12+, ``datacenter-gpu-manager-4-multinode-cuda<N>`` must also be available.                           |
-+------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DKMS and kernel headers| Required only for ``nvidia-peermem``. The ``kernel-devel`` package for the running kernel must be present in the local repository. Verify kernel headers exist at ``/lib/modules/$(uname -r)/build`` prior to provisioning. |
-+------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+- CUDA repository: Must be reachable from Slurm compute nodes. The CUDA repository must be accessible through the local Pulp repository configured during ``local_repo.yml`` execution.
+- DCGM repository: ``datacenter-gpu-manager-4-cuda<N>`` must be available in the configured local repository. For CUDA 12+, ``datacenter-gpu-manager-4-multinode-cuda<N>`` must also be available.
+- DKMS and kernel headers: Required only for ``nvidia-peermem``. The ``kernel-devel`` package for the running kernel must be present in the local repository. Verify kernel headers exist at ``/lib/modules/$(uname -r)/build`` prior to provisioning.
 
 NFS Requirements
 
@@ -207,15 +201,9 @@ NFS Requirements
 
 Hardware Requirements
 
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| Requirement        | Detail                                                                                                                                  |
-+====================+==========================================================================================================================================+
-| NVIDIA GPU hardware| Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped at runtime.         |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| Kernel headers     | Required only for ``nvidia-peermem`` DKMS build.                                                                                        |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------+
-| DKMS               | Must be installed on nodes where ``nvidia-peermem`` is required.                                                                        |
-+--------------------+------------------------------------------------------------------------------------------------------------------------------------------+
+- NVIDIA GPU hardware: Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped at runtime.
+- Kernel headers: Required only for ``nvidia-peermem`` DKMS build.
+- DKMS: Must be installed on nodes where ``nvidia-peermem`` is required.
 
 .. note:: If repositories are not reachable or the NFS path is unavailable at provisioning time,
    GPU setup will fail on affected nodes and the DCGM service will not be started. Refer to the
