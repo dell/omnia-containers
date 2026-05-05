@@ -22,11 +22,10 @@ user intervention on individual nodes.
 - CUDA toolkit made available cluster-wide via a shared NFS location accessible to all nodes
   simultaneously
 - DCGM installation with automatic CUDA version detection and appropriate package selection
-- Configurable DCGM enablement using ``dcgm_support`` in ``telemetry_config.yml`` (default: ``true``)
-- DCGM multinode diagnostic plugin installation on clusters using CUDA 12 or later
+- Configurable DCGM enablement using ``dcgm.metrics_enabled`` under ``telemetry_sources`` in ``telemetry_config.yml`` (default: ``true``)
 - ``nvidia-dcgm`` service enablement and validated startup on each GPU node
 - GPU enumeration and discovery validation using ``dcgmi``
-- Optional ``nvidia-peermem`` kernel module installation for GPUDirect RDMA-capable environments
+- ``nvidia-peermem`` kernel module installation for GPUDirect RDMA-capable environments
 - Persistent CUDA environment configuration across login shells, non-login shells, and Slurm job
   environments
 - Nodes without NVIDIA GPU hardware are automatically skipped — no manual exclusion required
