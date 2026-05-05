@@ -538,6 +538,25 @@ DCGM Package Version Mismatch
 | **Note**                 | If RDMA is not required for any workload on this node, this warning is non-blocking.                                                                                                                                                                                    |
 +--------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
+6.6 Benchmark assets missing on Slurm nodes
+-------------------------------------------
+
+**Symptom**
+
+Benchmark tools are not visible under shared Slurm benchmark storage.
+
+**Possible causes**
+
+- Shared storage is not mounted
+- Local repository content is missing
+- The benchmark set is not prepared for the selected architecture
+
+**Resolution**
+
+- Confirm Slurm shared storage mount health on login, compiler, and compute nodes.
+- Confirm benchmark artifacts are present in local repositories, then rerun the standard Slurm provisioning workflow.
+- Re-verify benchmark directory availability on shared storage after provisioning completes.
+
 .. image:: images/troubleshoot_ldms_1.png
 
 .. image:: images/troubleshoot_ldms_2.png

@@ -512,9 +512,32 @@ It is recommended to run this script on a login or compiler node.
         --gpu-affinity 0:1
 
 .. note:: For detailed guidance on using Apptainer and NVIDIA HPC Benchmarks, refer to:
-    
+
     * Apptainer User Documentation: https://apptainer.org/docs/user/main/
     * NVIDIA HPC Benchmarks (NGC Catalog): https://catalog.ngc.nvidia.com/orgs/nvidia/containers/hpc-benchmarks?version=25.09
+
+HPC Benchmark Image Layer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After Slurm setup, benchmark assets are available from the shared ``hpc_tools`` workspace on Slurm-mounted storage. Source-based benchmarks are provided as staged sources for user-controlled build and run workflows.
+
+Available tarball tools: OSU Micro-Benchmarks, IMB, LIKWID, PAPI, msr-safe (x86_64 only), GEOPM, SIONlib (optional).
+
+HPL, HPL-MxP, and STREAM are documented as container-first benchmarks and should be used through the approved container workflow.
+
+For container-first benchmarks, first check available image tags in your approved registry, then pull a specific tag.
+
+Example command to list tags::
+
+    curl -s <registry-endpoint>/v2/<repository>/tags/list | python3 -m json.tool
+
+Example masked pull command::
+
+    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>:<port>/nvidia/hpc-benchmarks:<tag>
+
+Example command to pull selected tag::
+
+    apptainer pull hpc-benchmarks.sif docker://<registry-endpoint>/<repository>:<tag>
 
 
 

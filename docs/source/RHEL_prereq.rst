@@ -172,6 +172,14 @@ Slurm
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.
 * After Slurm RPMS are generated, change the rpms in corresponding role accordingly if the rpm names are not matching with rpms in ``input/config/x86_64/rhel/10.0/slurm_custom.json``.
 
+HPC Benchmark Image Layer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Omnia supports an HPC Benchmark Image Layer for Slurm deployments.
+- Benchmark sources are staged to shared Slurm storage, providing a consistent benchmark workspace across login, compiler, and compute nodes.
+- This capability is staging-only; Omnia does not automatically compile or execute benchmark workloads.
+- Ensure Slurm shared storage is available and local repositories are prepared before running deployment workflows.
+
 CUDA and DCGM Prerequisites for Slurm GPU Nodes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
