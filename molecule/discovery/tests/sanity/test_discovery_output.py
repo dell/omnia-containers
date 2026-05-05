@@ -38,7 +38,7 @@ from automation_library.discovery.messages import (
 
 
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(2)
 def test_nodes_yaml_generated(host):
     """
     Test Case 6: Verify nodes.yaml is generated completely and accurately
@@ -71,7 +71,7 @@ def test_nodes_yaml_generated(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(7)
+@pytest.mark.order(3)
 def test_bss_templates_created(host):
     """
     Test Case 7: Verify BSS boot templates are created per functional group.
@@ -106,7 +106,7 @@ def test_bss_templates_created(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(8)
+@pytest.mark.order(4)
 def test_cloudinit_templates_created(host):
     """
     Test Case 8: Verify cloud-init templates are created per functional group.

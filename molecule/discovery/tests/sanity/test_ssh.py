@@ -37,7 +37,7 @@ from automation_library.discovery.functions import (
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(5)
 def test_ssh_from_oim_via_admin_ip(host):
     """
     Test Case 2: Verify passwordless SSH from OIM to nodes via admin IP.
@@ -68,7 +68,7 @@ def test_ssh_from_oim_via_admin_ip(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(3)
+@pytest.mark.order(6)
 def test_ssh_from_oim_via_hostname(host):
     """
     Test Case 3: Verify passwordless SSH from OIM to nodes via hostname.
@@ -103,7 +103,7 @@ def test_ssh_from_oim_via_hostname(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(4)
+@pytest.mark.order(7)
 def test_ssh_from_core_via_admin_ip(host):
     """
     Test Case 4: Verify passwordless SSH from omnia_core to nodes via admin IP.
@@ -134,7 +134,7 @@ def test_ssh_from_core_via_admin_ip(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(5)
+@pytest.mark.order(8)
 def test_ssh_from_core_via_hostname(host):
     """
     Test Case 5: Verify passwordless SSH from omnia_core to nodes via hostname.
