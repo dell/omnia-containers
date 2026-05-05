@@ -22,7 +22,7 @@ To initiate the iDRAC telemetry service on the service cluster, run the ``teleme
    As a result, the ``telemetry.yml`` playbook is executed against the VIP rather than an
    individual control plane node.
 
-.. note:: You do not need to run ``telemetry.yml`` if the service cluster is configured only for LDMS. By default, LDMS begins collecting data after ``discovery.yml`` is executed.
+.. note:: Run the ``telemetry.yml`` playbook only if iDRAC telemetry is enabled. It is not required for other telemetry types.
 
 Collect Telemetry from External Nodes
 ------------------------------------
