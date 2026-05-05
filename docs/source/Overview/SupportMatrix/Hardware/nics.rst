@@ -7,4 +7,4 @@ NICs
       :keepspace:
 
 .. note::
-   Use Broadcom BCM57504 version lower than 23 for the NIC.
+   Broadcom BCM57504 NIC firmware version must be below version 23.
