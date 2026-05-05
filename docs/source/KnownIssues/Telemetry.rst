@@ -37,9 +37,7 @@ acquire the existing locks and fails to initialize, resulting in a crash loop.
 
 **Kafka Lock Cleanup Script**
 
-Save the following script as ``kafka_lock_cleanup.sh``:
-
-.. code-block:: bash
+Save the following script as ``kafka_lock_cleanup.sh``::
 
    #!/bin/bash
 
@@ -110,9 +108,7 @@ Save the following script as ``kafka_lock_cleanup.sh``:
 
 **iDRAC Lock Cleanup Script**
 
-Save the following script as ``idrac_lock_cleanup.sh``:
-
-.. code-block:: bash
+Save the following script as ``idrac_lock_cleanup.sh``::
 
    #!/bin/bash
 
@@ -222,9 +218,7 @@ Save the following script as ``idrac_lock_cleanup.sh``:
 
 **iDRAC Data Corruption Recovery Script**
 
-Save the following script as ``idrac_data_corruption_recovery.sh``:
-
-.. code-block:: bash
+Save the following script as ``idrac_data_corruption_recovery.sh``::
 
    #!/bin/bash
 
