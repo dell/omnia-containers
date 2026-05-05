@@ -42,7 +42,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
 2. Ensure the following service entries exist:
 
     * iDRAC Telemetry service
-    * Kafka broker, controller, and bridge services
+    * Kafka broker, controller (bootstrap), and bridge services
     * LDMS aggregator and store services
     * VictoriaMetrics service
     * VictoriaLogs service
@@ -228,18 +228,24 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
-3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+3. Run the following command to verify if OTEL collector is receiving telemetry data::
 
-4. Access the VMUI in a web browser using::
+    kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i metric
+
+.. image:: ../../../images/otel_collector_pod_cluster.png
+
+4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+
+5. Access the VMUI in a web browser using::
 
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
 
 5. Filter and view telemetry metrics using queries in VMUI.
 For example, the following query displays detailed PowerScale metrics for each hardware component::
 
-    {__name__=~"PowerScale_.*"}
+    {__name__=~"powerscale"}
 
-.. image:: ../../../images/victoria_metrics_vmui_cluster.png
+.. image:: ../../../images/powerscale_metrics_vmui_cluster.png
 
 
 Accessing the MySQL Database

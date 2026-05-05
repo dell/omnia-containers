@@ -64,9 +64,9 @@ Each slurm compute node runs:
 - **LDMS Sampler** – Collects OS metrics (CPU, memory, network, and I/O)
 - **iDRAC** – Provides hardware health data (temperature, power, and fans)
 
-**PowerScale Cluster**
+**PowerScale Storage**
 
-Each PowerScale node runs:
+Each PowerScale storage node runs:
 
 - **csm-metrics** – Collects PowerScale metrics
 - **otel-collector** – Forwards metrics to Victoria Metrics and Victoria Logs
