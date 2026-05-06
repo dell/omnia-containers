@@ -87,3 +87,23 @@ from .delete_node_func import (
     verify_idrac_deleted_node_in_mysql,
     verify_idrac_deleted_node_in_victoria,
 )
+
+# Vector verification functions
+from .vector_func import (
+    verify_vector_pod_running,
+    verify_vector_resource_specs,
+    verify_vector_no_pvc,
+    verify_vector_configmap_exists,
+    verify_vector_mtls_config,
+    get_vector_pod_logs,
+    verify_vector_no_errors_in_logs,
+    verify_no_plaintext_credentials,
+    verify_vector_self_metrics_endpoint,
+    delete_vector_pod,
+    rollout_restart_vector,
+    scale_vector_deployment,
+    create_kafka_topic,
+    produce_test_message_to_kafka,
+    query_victoria_metrics,
+    query_victoria_logs,
+)

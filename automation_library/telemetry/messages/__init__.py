@@ -52,3 +52,12 @@ from .shared_msgs import (
     SHARED_LOG_MSGS,
     SHARED_ASSERT_MSGS,
 )
+
+# Vector-specific messages
+from .vector_msgs import (
+    VECTOR_TEST_NAMES,
+    VECTOR_TEST_LOG_MSGS,
+    VECTOR_TEST_ASSERT_MSGS,
+    VECTOR_SUCCESS_MSGS,
+    VECTOR_FAILURE_MSGS,
+)

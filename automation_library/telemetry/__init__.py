@@ -37,6 +37,35 @@ from .functions.kafka_func import (
     verify_ldms_pods_running,
     verify_ldms_services_ports,
 )
+from .functions.vector_func import (
+    verify_vector_pod_running,
+    verify_vector_resource_specs,
+    verify_vector_no_pvc,
+    verify_vector_configmap_exists,
+    verify_vector_mtls_config,
+    get_vector_pod_logs,
+    verify_vector_no_errors_in_logs,
+    verify_no_plaintext_credentials,
+    verify_vector_self_metrics_endpoint,
+    delete_vector_pod,
+    rollout_restart_vector,
+    scale_vector_deployment,
+    create_kafka_topic,
+    produce_test_message_to_kafka,
+    query_victoria_metrics,
+    query_victoria_logs,
+)
 from .vars.idrac_telemetry_vars import TELEMETRY_VARS
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
+from .vars.vector_vars import (
+    VECTOR_DEPLOYMENT_NAME,
+    VECTOR_RESOURCE_SPECS,
+    VECTOR_KAFKA_TOPICS,
+    VECTOR_SELF_METRICS,
+)
 from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES
+from .messages.vector_msgs import (
+    VECTOR_TEST_NAMES,
+    VECTOR_TEST_LOG_MSGS,
+    VECTOR_TEST_ASSERT_MSGS,
+)
