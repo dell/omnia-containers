@@ -699,6 +699,8 @@ def test_pam_slurm_adopt_session_termination(host):
         details_lines.append(f"Submit node ({node_result.get('node_type', '')}): {submit_hostname}")
         details_lines.append(f"  IP: {node_result.get('admin_ip', '')}")
         details_lines.append(f"  Job ID: {node_result.get('job_id', '')}")
+        if node_result.get("compute_hostname"):
+            details_lines.append(f"  Compute node: {node_result['compute_hostname']} (IP: {node_result.get('compute_ip', '')})")
 
         if node_result.get("error"):
             details_lines.append(f"  ✗ Error: {node_result['error']}")

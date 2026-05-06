@@ -693,12 +693,15 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
         results["error"] = "No slurm_node in PXE mapping"
         return results
 
-    compute_ip = compute_nodes[0].get("admin_ip", "")
-    compute_hostname = compute_nodes[0].get("hostname", "")
+    # Build hostname -> admin_ip lookup for compute nodes
+    compute_node_map = {
+        n.get("hostname", ""): n.get("admin_ip", "")
+        for n in compute_nodes
+    }
 
     details_lines = [
         f"LDAP user: {ldap_user}",
-        f"Compute node: {compute_hostname} (IP: {compute_ip})",
+        f"Available compute nodes: {', '.join(compute_node_map.keys())}",
     ]
 
     # ── Read job.sh from vars/ ──
@@ -761,10 +764,10 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
 
             details_lines.append(f"  ✓ Copied job.sh to {submit_hostname}:/home/{ldap_user}/job.sh")
 
-            # Submit job as ldapuser using sbatch --uid
+            # Submit job as ldapuser using sbatch --uid (no -w: let Slurm assign any compute node)
             submit_ssh = (
                 f'ssh {_ssh} root@{submit_ip} '
-                f'"sbatch --uid={ldap_user} -w {compute_hostname} '
+                f'"sbatch --uid={ldap_user} '
                 f'-D /home/{ldap_user} --output=/home/{ldap_user}/slurm_%j.out --error=/home/{ldap_user}/slurm_%j.err '
                 f'/home/{ldap_user}/job.sh" 2>&1'
             )
@@ -787,14 +790,16 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
             node_result["job_id"] = job_id
             details_lines.append(f"  ✓ Submitted job ID: {job_id} (as {ldap_user})")
 
-            # Wait for job to start RUNNING (max 30s)
+            # Wait for job to start RUNNING and detect which compute node it's on (max 30s)
             job_running = False
             job_state = ""
+            actual_compute_hostname = ""
+            actual_compute_ip = ""
             for _ in range(15):
                 time.sleep(2)
                 sq_ssh = (
                     f'ssh {_ssh} root@{submit_ip} '
-                    f'"squeue -j {job_id} -h -o %T" 2>&1'
+                    f'"squeue -j {job_id} -h -o \"%T %N\"" 2>&1'
                 )
                 cmd = run_in_container(host, sq_ssh)
                 raw = (cmd.stdout or "").strip()
@@ -802,8 +807,12 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
                     l.strip() for l in raw.splitlines()
                     if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
                 ]
-                job_state = lines[-1] if lines else ""
-                if job_state == "RUNNING":
+                last_line = lines[-1] if lines else ""
+                parts = last_line.split()
+                job_state = parts[0] if parts else ""
+                if job_state == "RUNNING" and len(parts) >= 2:
+                    actual_compute_hostname = parts[1]
+                    actual_compute_ip = compute_node_map.get(actual_compute_hostname, "")
                     job_running = True
                     break
 
@@ -814,12 +823,31 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
                 details_lines.append(f"  ✗ Job state: {node_result['error']}")
                 continue
 
-            details_lines.append(f"  ✓ Job {job_id}: RUNNING on {compute_hostname}")
+            if not actual_compute_ip:
+                # hostname from squeue may be short; try partial match
+                for chost, cip in compute_node_map.items():
+                    if actual_compute_hostname in chost or chost in actual_compute_hostname:
+                        actual_compute_ip = cip
+                        actual_compute_hostname = chost
+                        break
 
-            # Login to compute node as ldapuser during active job
+            if not actual_compute_ip:
+                node_result["error"] = (
+                    f"Cannot find IP for compute node '{actual_compute_hostname}' in PXE mapping"
+                )
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ {node_result['error']}")
+                continue
+
+            node_result["compute_hostname"] = actual_compute_hostname
+            node_result["compute_ip"] = actual_compute_ip
+            details_lines.append(f"  ✓ Job {job_id}: RUNNING on {actual_compute_hostname} (IP: {actual_compute_ip})")
+
+            # Login to the actual compute node as ldapuser during active job
             login_cmd = (
                 f"sshpass -p '{ldap_password}' ssh {SSH_OPTS} "
-                f"{ldap_user}@{compute_ip} 'echo LOGIN_SUCCESS' 2>&1"
+                f"{ldap_user}@{actual_compute_ip} 'echo LOGIN_SUCCESS' 2>&1"
             )
             cmd = run_on_oim(host, login_cmd)
             login_output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
