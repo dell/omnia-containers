@@ -208,3 +208,12 @@ Save the following script as ``idrac_data_corruption_recovery.sh``::
    echo ""
    echo "[7] Re-deploy with: ansible-playbook telemetry/telemetry.yml"
    echo "    Use the SAME inputs as previous deployment."
+
+
+⦾ **GPUUsage Metrics from PowerEdge XE8712 Cannot Be Consumed**
+
+**Potential Cause**: On the PowerEdge XE8712 with NVIDIA GB200 accelerators, the GPU Usage metric is not retrieved in Kafka and VictoriaMetrics. VictoriaMetrics shows zero consumption for GPU usage metrics, while running ``nvidia-smi`` on the host shows 100% utilization. This indicates a telemetry collection or reporting issue specific to this platform and accelerator combination.
+
+For more details, see: `https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/183 <https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/183>`_
+
+**Resolution**: Use ``nvidia-smi`` on the host to monitor GPU utilization instead of relying on iDRAC telemetry.
