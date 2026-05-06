@@ -660,13 +660,14 @@ def test_pam_slurm_adopt_session_termination(host):
     Skips if OpenLDAP is not enabled in software_config.json.
 
     This test:
-    1. Copies job.sh (40s sleep) to a submit node via root SSH
-    2. Submits the job as root targeting a compute node
-    3. Waits for job to start RUNNING
-    4. Tries ldapuser login to compute node during active job
-    5. Waits for job to complete
-    6. Verifies ldapuser login is blocked after job ends (auto-logout)
-    7. Displays the actual PAM / disconnect messages
+    1. For each submit node (slurm_control_node, login_node, login_compiler_node):
+       - Copies job.sh (40s sleep) to the submit node via root SSH
+       - Submits the job as ldapuser targeting a compute node
+       - Waits for job to start RUNNING
+       - Tries ldapuser login to compute node during active job
+       - Waits for job to complete
+       - Verifies ldapuser login is blocked after job ends (auto-logout)
+    2. Displays the actual PAM / disconnect messages for each submit node
     """
     from automation_library.discovery.functions import verify_pam_slurm_adopt_session_termination
 
@@ -674,7 +675,7 @@ def test_pam_slurm_adopt_session_termination(host):
 
     skip_if_openldap_not_enabled(host, log)
 
-    log.check("Copying job.sh to submit node, submitting as ldapuser, verifying PAM behavior on compute node")
+    log.check("Submitting jobs from all submit nodes, verifying PAM behavior on compute node")
 
     result = verify_pam_slurm_adopt_session_termination(host)
 
@@ -690,28 +691,37 @@ def test_pam_slurm_adopt_session_termination(host):
     # Build details for display
     details_lines = [
         f"LDAP user: {', '.join(result.get('ldap_users', []))}",
-        f"Submit node ({result.get('submit_node_type', '')}): {result.get('submit_node', '')}",
-        f"Compute node: {result.get('compute_node', '')}",
-        f"Job ID: {result.get('job_id', '')}",
     ]
 
-    # Login during job result
-    details_lines.append("")
-    if result.get("login_during_job"):
-        details_lines.append("Login during active job: ALLOWED (session adopted) ✓")
-    else:
-        details_lines.append("Login during active job: BLOCKED")
-    if result.get("login_during_job_message"):
-        details_lines.append(f"  {result['login_during_job_message']}")
+    # Display results for each submit node
+    for submit_hostname, node_result in result.get("results_by_submit_node", {}).items():
+        details_lines.append("")
+        details_lines.append(f"Submit node ({node_result.get('node_type', '')}): {submit_hostname}")
+        details_lines.append(f"  IP: {node_result.get('admin_ip', '')}")
+        details_lines.append(f"  Job ID: {node_result.get('job_id', '')}")
 
-    # Post-job login result
+        if node_result.get("error"):
+            details_lines.append(f"  ✗ Error: {node_result['error']}")
+            continue
+
+        # Login during job result
+        if node_result.get("login_during_job"):
+            details_lines.append("  ✓ Login during active job: ALLOWED (session adopted)")
+        else:
+            details_lines.append("  ✗ Login during active job: BLOCKED")
+        if node_result.get("login_during_job_message"):
+            details_lines.append(f"      {node_result['login_during_job_message'][:100]}")
+
+        # Post-job login result
+        if node_result.get("session_terminated_after_job"):
+            details_lines.append("  ✓ Login after job ended: BLOCKED (auto-logout)")
+        else:
+            details_lines.append("  ✗ Login after job ended: NOT BLOCKED")
+        if node_result.get("post_job_block_message"):
+            details_lines.append(f"      {node_result['post_job_block_message'][:100]}")
+
     details_lines.append("")
-    if result.get("session_terminated_after_job"):
-        details_lines.append("Login after job ended: BLOCKED (auto-logout) ✓")
-    elif result.get("post_job_block_message"):
-        details_lines.append("Login after job ended: NOT BLOCKED")
-    if result.get("post_job_block_message"):
-        details_lines.append(f"  {result['post_job_block_message']}")
+    details_lines.append(result.get("details", ""))
 
     details = "\n".join(details_lines)
 
