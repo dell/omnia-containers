@@ -356,9 +356,36 @@ def test_cross_node_ssh(host):
         log.skipped("Less than 2 Slurm nodes", "Need at least 2 nodes")
         pytest.skip("Less than 2 Slurm nodes")
 
-    log.check(f"Testing cross-node SSH for {len(all_nodes)} Slurm nodes")
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_cross_node_ssh(host)
+    if reach["unreachable"]:
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for node in reach["unreachable"]:
+            print(f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable")
+
+    log.check(f"Testing cross-node SSH for {len(reach['reachable'])} reachable Slurm nodes")
+
+    if reach["reachable"]:
+        result = verify_cross_node_ssh(host)
+    else:
+        result = {"success": False, "total_pairs": 0, "failed": 0, "failed_pairs": []}
+
+    # Fail if any unreachable or SSH failed
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"SSH failed: {result['failed']} pairs")
+        log.failed("Cross-node SSH test failed", "; ".join(fail_parts))
+        assert False, "; ".join(fail_parts)
 
     # Build detailed output grouped by source node
     details_lines = [f"Total pairs tested: {result['total_pairs']}"]
@@ -431,7 +458,7 @@ def test_sinfo_nodes(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(16)
+@pytest.mark.order(19)
 def test_openmpi_installed(host):
     """
     Test Case 16: Verify OpenMPI is installed and version matches software_config.json.
@@ -467,7 +494,7 @@ def test_openmpi_installed(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(17)
+@pytest.mark.order(20)
 def test_ucx_installed(host):
     """
     Test Case 17: Verify UCX is installed and version matches software_config.json.
@@ -592,7 +619,7 @@ def test_ldap_slapd_configuration(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(20)
+@pytest.mark.order(16)
 def test_ldap_user_login_from_oim(host):
     """
     Test Case 20: Verify LDAP users can SSH login from OIM.
@@ -650,7 +677,7 @@ def test_ldap_user_login_from_oim(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(21)
+@pytest.mark.order(17)
 def test_ldap_user_login_from_core(host):
     """
     Test Case 21: Verify LDAP users can SSH login from omnia_core container.
@@ -709,7 +736,7 @@ def test_ldap_user_login_from_core(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(22)
+@pytest.mark.order(18)
 def test_pam_slurm_adopt(host):
     """
     Test Case 22: Verify PAM slurm_adopt blocks login on slurm_node.

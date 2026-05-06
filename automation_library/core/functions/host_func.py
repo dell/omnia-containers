@@ -522,12 +522,15 @@ def make_verification_result(
 
 def get_project_root() -> str:
     """
-    Get the project root directory.
+    Get the project root directory (omnia-artifactory).
 
     Returns:
         Absolute path to the project root directory
     """
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # From functions/ -> core/ -> automation_library/ -> project_root/
+    return os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
 
 
 # =============================================================================

@@ -78,8 +78,8 @@ def test_ssh_from_oim_via_admin_ip(host):
     all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        logger.skipped("No nodes found in PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping file")
+        logger.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping")
 
     # Check reachability (uses cache, 2 retries for unreachable)
     reach = check_nodes_reachability(
@@ -157,8 +157,8 @@ def test_ssh_from_oim_via_hostname(host):
     all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        logger.skipped("No nodes found in PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping file")
+        logger.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping")
 
     reach = check_nodes_reachability(
         host, all_nodes,
@@ -235,8 +235,8 @@ def test_ssh_from_core_via_admin_ip(host):
     all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        logger.skipped("No nodes found in PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping file")
+        logger.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping")
 
     reach = check_nodes_reachability(
         host, all_nodes,
@@ -309,8 +309,8 @@ def test_ssh_from_core_via_hostname(host):
     all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        logger.skipped("No nodes found in PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping file")
+        logger.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping")
 
     reach = check_nodes_reachability(
         host, all_nodes,

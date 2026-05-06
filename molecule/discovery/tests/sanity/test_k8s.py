@@ -31,7 +31,7 @@ from automation_library.discovery.functions import (
 
 
 @pytest.mark.sanity
-@pytest.mark.order(20)
+@pytest.mark.order(30)
 def test_k8s_nodes_ready(host):
     """
     Test Case 20: Verify K8s nodes from PXE mapping are Ready.
@@ -96,7 +96,7 @@ def test_k8s_nodes_ready(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(21)
+@pytest.mark.order(31)
 def test_k8s_telemetry_pods(host):
     """
     Test Case 21: Verify telemetry pods are running in K8s cluster.
