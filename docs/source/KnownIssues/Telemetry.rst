@@ -210,10 +210,10 @@ Save the following script as ``idrac_data_corruption_recovery.sh``::
    echo "    Use the SAME inputs as previous deployment."
 
 
-⦾ **GPUUsage Metrics from PowerEdge XE8712 Cannot Be Consumed**
+⦾ **GPU Usage Metrics Not Available via iDRAC Telemetry on PowerEdge XE8712**
 
-**Potential Cause**: On the PowerEdge XE8712 with NVIDIA GB200 accelerators, the GPU Usage metric is not retrieved in Kafka and VictoriaMetrics. VictoriaMetrics shows zero consumption for GPU usage metrics, while running ``nvidia-smi`` on the host shows 100% utilization. This indicates a telemetry collection or reporting issue specific to this platform and accelerator combination.
+**Description:** On the PowerEdge XE8712 equipped with NVIDIA GB200 accelerators, GPU utilization metrics are not correctly reported through iDRAC telemetry. As a result, downstream consumers such as Kafka and VictoriaMetrics show zero GPU usage, even though the GPUs are fully utilized. This behavior is inconsistent with on-host monitoring, where nvidia-smi reports 100% GPU utilization.
 
-For more details, see: `https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/183 <https://github.com/dell/iDRAC-Telemetry-Reference-Tools/issues/183>`_
+**Potential Cause:** The issue has been identified as an iDRAC telemetry limitation specific to this platform and accelerator combination. The behavior has been observed with iDRAC version 1.30.30.50 and lower.
 
-**Resolution**: Use ``nvidia-smi`` on the host to monitor GPU utilization instead of relying on iDRAC telemetry.
+**Resolution / Workaround:** Until a fix is provided in a future iDRAC release, GPU utilization should be monitored directly from the host using ``nvidia-smi``, rather than relying on iDRAC-based telemetry for GPU usage metrics.
