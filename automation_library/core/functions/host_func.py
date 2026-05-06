@@ -25,12 +25,15 @@ from typing import Dict, Any, List
 import yaml
 import testinfra
 
-from .vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ..vars.paths_vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
+from ..vars.common_vars import SSH_OPTS, OMNIA_CORE_CONTAINER
 
 
 def _get_project_root() -> str:
     """Get the project root directory."""
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # From functions/ -> core/ -> automation_library/ -> project_root/
+    current_file = os.path.abspath(__file__)
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 
 
 def load_omnia_test_config() -> Dict[str, Any]:
@@ -121,7 +124,7 @@ def run_on_oim(host: testinfra.host.Host, cmd: str) -> subprocess.CompletedProce
 def run_in_container(
     host: testinfra.host.Host,
     cmd: str,
-    container: str = "omnia_core"
+    container: str = OMNIA_CORE_CONTAINER
 ) -> subprocess.CompletedProcess:
     """
     Run command inside a container on OIM server.
@@ -160,9 +163,11 @@ def run_on_remote_node(
     Returns:
         Result with stdout, stderr, rc attributes
     """
-    ssh_opts = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
     escaped_cmd = cmd.replace('"', '\\"')
-    ssh_cmd = f'ssh {ssh_opts} root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
+    ssh_cmd = (
+        f'ssh {SSH_OPTS} -o UserKnownHostsFile=/dev/null '
+        f'root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
+    )
     return run_in_container(host, ssh_cmd)
 
 
@@ -517,12 +522,15 @@ def make_verification_result(
 
 def get_project_root() -> str:
     """
-    Get the project root directory.
+    Get the project root directory (omnia-artifactory).
 
     Returns:
         Absolute path to the project root directory
     """
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    # From functions/ -> core/ -> automation_library/ -> project_root/
+    return os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
 
 
 # =============================================================================

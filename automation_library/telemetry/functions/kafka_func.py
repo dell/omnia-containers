@@ -24,7 +24,7 @@ import time
 from typing import Dict, Any, List
 
 from ...core import load_container_file
-from ...core.host import run_on_remote_node
+from ...core import run_on_remote_node
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..messages.kafka_msgs import KAFKA_ASSERT_MSGS
 from ..vars.kafka_vars import (

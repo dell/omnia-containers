@@ -12,29 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Telemetry Automation - Shared Variables.
-
-This module contains shared constants used across all telemetry modules
-(iDRAC, Kafka, VictoriaMetrics).
-
-For module-specific constants, see:
-- idrac_telemetry_vars.py - iDRAC telemetry specific
-- kafka_vars.py - Kafka and LDMS specific
-- victoria_vars.py - VictoriaMetrics specific
-"""
-
-from ...core import OMNIA_CORE_CONTAINER as _CORE_CONTAINER
+"""Core Build Stream Variables."""
 
 # =============================================================================
-# Telemetry Namespace
+# POSTGRES CONFIGURATION
 # =============================================================================
 
-TELEMETRY_NAMESPACE = "telemetry"
-
+POSTGRES_CONTAINER = "omnia_postgres"
+POSTGRES_DB = "build_stream_db"
+POSTGRES_USER_KEY = "postgres_user"
+COMPLETED_STATE = "COMPLETED"
 
 # =============================================================================
-# Container - from core vars
+# WELL-KNOWN STAGE NAMES
 # =============================================================================
 
-CONTAINER_NAME = _CORE_CONTAINER
+STAGE_BUILD_IMAGE_X86_64 = "build-image-x86_64"
+STAGE_BUILD_IMAGE_AARCH64 = "build-image-aarch64"
+STAGE_CREATE_LOCAL_REPO = "create-local-repository"
+STAGE_VALIDATE_IMAGE = "validate-image-on-test"
+STAGE_PARSE_CATALOG = "parse-catalog"
+STAGE_GENERATE_INPUT = "generate-input-files"

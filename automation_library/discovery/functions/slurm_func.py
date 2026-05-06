@@ -153,9 +153,10 @@ def verify_services_on_nodes(
 
         for service in services:
             # Check if service exists first
-            cmd_exists = run_on_remote_node(
-                host, f"systemctl list-unit-files {service}.service 2>/dev/null | grep -q {service}", admin_ip
+            check_cmd = (
+                f"systemctl list-unit-files {service}.service 2>/dev/null | grep -q {service}"
             )
+            cmd_exists = run_on_remote_node(host, check_cmd, admin_ip)
             service_exists = cmd_exists.rc == 0
 
             if not service_exists:
@@ -365,7 +366,9 @@ def get_software_version(host, software_name: str) -> str:
     return ""
 
 
-def _verify_hpc_software(host, software_name: str, bin_path: str, version_flag: str) -> Dict[str, Any]:
+def _verify_hpc_software(
+    host, software_name: str, bin_path: str, version_flag: str
+) -> Dict[str, Any]:
     """
     Verify an HPC software is installed and version matches software_config.json.
 
@@ -422,7 +425,10 @@ def _verify_hpc_software(host, software_name: str, bin_path: str, version_flag: 
             results["version_match"] = True
             results["success"] = True
         else:
-            results["error"] = f"Version mismatch: found '{results['version']}', expected '{expected_version}'"
+            results["error"] = (
+                f"Version mismatch: found '{results['version']}', "
+                f"expected '{expected_version}'"
+            )
     else:
         results["version"] = "unknown"
         results["error"] = f"Could not determine {software_name} version"

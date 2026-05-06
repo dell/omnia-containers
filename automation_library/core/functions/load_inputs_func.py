@@ -19,7 +19,7 @@ Reads YAML/JSON config files from inside the omnia_core container with
 automatic caching to avoid repeated podman exec calls.
 
 Usage:
-    from automation_library.core.load_inputs import load_input_file, get_input_value
+    from automation_library.core import load_input_file, get_input_value
 
     # Load entire config as dict
     config = load_input_file(host, "build_stream_config.yml")
@@ -36,8 +36,8 @@ from typing import Any, Dict
 
 import yaml
 
-from .host import run_in_container
-from .vars import INPUT_BASE_PATH
+from .host_func import run_in_container
+from ..vars.paths_vars import INPUT_BASE_PATH
 
 # =============================================================================
 # CACHE
@@ -261,7 +261,7 @@ def is_software_enabled(host, software_name: str) -> bool:
         if is_software_enabled(host, "openldap"):
             # Run OpenLDAP-specific tests
     """
-    from .vars import SOFTWARE_CONFIG_FILE
+    from ..vars.paths_vars import SOFTWARE_CONFIG_FILE
     softwares = get_input_value(host, SOFTWARE_CONFIG_FILE, "softwares")
     if not softwares:
         return False
@@ -377,7 +377,7 @@ def get_nfs_client_mount_path(host, nfs_name: str = None) -> str:
     Returns:
         NFS client mount path string, or empty string if not found
     """
-    from .vars import STORAGE_CONFIG_FILE
+    from ..vars.paths_vars import STORAGE_CONFIG_FILE
 
     # Try nfs_client_params first (current format), then nfs_client (legacy)
     for list_key in ["nfs_client_params", "nfs_client"]:

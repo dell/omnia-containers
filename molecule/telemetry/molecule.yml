@@ -61,6 +61,7 @@ provisioner:
 
 verifier:
   name: testinfra
+  directory: tests
   options:
     v: true
     s: true

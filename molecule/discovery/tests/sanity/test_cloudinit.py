@@ -15,37 +15,56 @@
 """
 Discovery Cloud-Init Verification Test Cases.
 
-First test to run - verifies OS provisioning completed successfully on all nodes.
-For diskless OS deployments, cloud-init is used for provisioning.
+This is the FIRST test in discovery - verifies:
+1. Node connectivity (ping + SSH) with retries
+2. Cloud-init status on reachable nodes
 
-Test cases:
-1. Verify cloud-init completed successfully on all nodes (no errors)
+Results are cached for subsequent tests.
 """
 
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import (
+    TestLogger,
+    clear_connectivity_cache,
+    verify_nodes_connectivity,
+    verify_cloudinit_status,
+)
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
-    verify_cloudinit_status,
 )
+
+
+def _group_nodes_by_functional_group(nodes):
+    """Group nodes by functional_group."""
+    groups = {}
+    for node in nodes:
+        fg = node.get("functional_group", "unknown")
+        if fg not in groups:
+            groups[fg] = []
+        groups[fg].append(node)
+    return groups
 
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
-def test_cloudinit_completed(host):
+def test_node_connectivity_and_cloudinit(host):
     """
-    Test Case 1: Verify cloud-init completed successfully on all nodes.
+    Test Case 1: Verify node connectivity and cloud-init status.
 
-    This is the FIRST test to run - confirms OS provisioning is complete.
-    For diskless OS, cloud-init handles provisioning.
+    This is the FIRST test - does full connectivity check with retry,
+    then checks cloud-init on reachable nodes.
 
-    Checks:
-    - cloud-init status is 'done'
-    - No errors in cloud-init status
-    - Reports any warnings/recoverable errors
+    Steps:
+    1. Check ping + SSH connectivity with retries
+    2. For reachable nodes, check cloud-init status
+    3. Report unreachable nodes as failures
+    4. Cache results for subsequent tests
     """
-    log = TestLogger("Verify cloud-init completed on all nodes")
+    log = TestLogger("Verify node connectivity and cloud-init status")
+
+    # Clear cache for fresh check
+    clear_connectivity_cache()
 
     slurm_nodes = get_all_slurm_nodes(host)
     k8s_nodes = get_k8s_nodes(host)
@@ -55,29 +74,105 @@ def test_cloudinit_completed(host):
         log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
         pytest.skip("No nodes found in PXE mapping")
 
-    log.check(f"Checking cloud-init status on {len(all_nodes)} nodes")
+    # Group nodes by functional group for display
+    grouped = _group_nodes_by_functional_group(all_nodes)
 
-    result = verify_cloudinit_status(host, all_nodes)
+    log.check(f"Checking connectivity to {len(all_nodes)} nodes")
 
-    # Build detailed output
-    details_lines = [f"Nodes checked: {result['total']}"]
-    for node_result in result.get("results", []):
-        status_icon = "✓" if node_result["success"] else "✗"
-        retries = node_result.get("retries", 0)
-        retry_info = f" (after {retries} retries)" if retries > 0 else ""
-        details_lines.append(f"{status_icon} {node_result['hostname']}{retry_info}")
-        details_lines.append(f"    Status: {node_result['status']}")
-        if node_result.get("errors"):
-            details_lines.append(f"    Errors: {node_result['errors']}")
-        if node_result.get("warnings"):
-            details_lines.append(f"    Warnings: {node_result['warnings'][:100]}...")
+    # Full connectivity check with retry
+    conn_result = verify_nodes_connectivity(host, all_nodes, use_cache=False)
+
+    # Separate reachable and unreachable
+    reachable_nodes = []
+    unreachable_nodes = []
+    for r in conn_result["results"]:
+        node = next((n for n in all_nodes if n["hostname"] == r["hostname"]), None)
+        if node:
+            if r["reachable"]:
+                reachable_nodes.append(node)
+            else:
+                unreachable_nodes.append({**node, "error": r.get("error", "unreachable")})
+
+    # Build connectivity details grouped by functional group
+    details_lines = [
+        f"Total nodes: {len(all_nodes)}",
+        f"Reachable: {len(reachable_nodes)}",
+        f"Unreachable: {len(unreachable_nodes)}",
+        "",
+        "Connectivity Results:",
+    ]
+
+    for fg, nodes in grouped.items():
+        details_lines.append(f"  [{fg}]")
+        for node in nodes:
+            hostname = node["hostname"]
+            admin_ip = node["admin_ip"]
+            conn_r = next((r for r in conn_result["results"] if r["hostname"] == hostname), None)
+            if conn_r and conn_r["reachable"]:
+                details_lines.append(f"    ✓ {hostname} ({admin_ip}): reachable")
+            else:
+                error = conn_r.get("error", "unreachable") if conn_r else "unreachable"
+                details_lines.append(f"    ✗ {hostname} ({admin_ip}): {error}")
+
+    # Check cloud-init only on reachable nodes
+    cloudinit_failed = []
+    if reachable_nodes:
+        details_lines.append("")
+        details_lines.append("Cloud-init Status:")
+
+        cloudinit_result = verify_cloudinit_status(host, reachable_nodes)
+
+        # Group cloudinit results by functional group
+        for fg, nodes in grouped.items():
+            fg_results = []
+            for node in nodes:
+                hostname = node["hostname"]
+                ci_r = next(
+                    (r for r in cloudinit_result.get("results", []) if r["hostname"] == hostname),
+                    None
+                )
+                if ci_r:
+                    fg_results.append(ci_r)
+
+            if fg_results:
+                details_lines.append(f"  [{fg}]")
+                for ci_r in fg_results:
+                    status_icon = "✓" if ci_r["success"] else "✗"
+                    retries = ci_r.get("retries", 0)
+                    retry_info = f" (after {retries} retries)" if retries > 0 else ""
+                    details_lines.append(
+                        f"    {status_icon} {ci_r['hostname']}: {ci_r['status']}{retry_info}"
+                    )
+                    if ci_r.get("errors"):
+                        details_lines.append(f"        Errors: {ci_r['errors']}")
+                    if not ci_r["success"]:
+                        cloudinit_failed.append(ci_r["hostname"])
 
     details = "\n".join(details_lines)
 
-    if result["success"]:
-        log.passed(f"Cloud-init completed on all {result['total']} nodes", details)
-    else:
-        failed_nodes = [r["hostname"] for r in result["results"] if not r["success"]]
-        log.failed(f"Cloud-init failed on {len(failed_nodes)} nodes", details)
+    # Determine overall success
+    all_success = len(unreachable_nodes) == 0 and len(cloudinit_failed) == 0
 
-    assert result["success"], f"Cloud-init failed on: {', '.join(failed_nodes)}"
+    if all_success:
+        log.passed(
+            f"All {len(all_nodes)} nodes reachable, cloud-init completed",
+            details
+        )
+    else:
+        error_parts = []
+        if unreachable_nodes:
+            error_parts.append(f"{len(unreachable_nodes)} unreachable")
+        if cloudinit_failed:
+            error_parts.append(f"{len(cloudinit_failed)} cloud-init failed")
+        log.failed(f"Node check failed: {', '.join(error_parts)}", details)
+
+        # Build failure message
+        fail_msgs = []
+        if unreachable_nodes:
+            fail_msgs.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in unreachable_nodes)}"
+            )
+        if cloudinit_failed:
+            fail_msgs.append(f"Cloud-init failed: {', '.join(cloudinit_failed)}")
+
+        assert False, "; ".join(fail_msgs)
