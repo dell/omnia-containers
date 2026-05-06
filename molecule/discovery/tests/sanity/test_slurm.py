@@ -688,42 +688,49 @@ def test_pam_slurm_adopt_session_termination(host):
         log.skipped("Required nodes not in PXE mapping", result["error"])
         pytest.skip(result["error"])
 
-    # Build details for display
-    details_lines = [
-        f"LDAP user: {', '.join(result.get('ldap_users', []))}",
-    ]
+    # Build details for display - one block per submit node matching old format
+    ldap_user_str = ', '.join(result.get('ldap_users', []))
+    details_lines = []
 
-    # Display results for each submit node
     for submit_hostname, node_result in result.get("results_by_submit_node", {}).items():
-        details_lines.append("")
-        details_lines.append(f"Submit node ({node_result.get('node_type', '')}): {submit_hostname}")
-        details_lines.append(f"  IP: {node_result.get('admin_ip', '')}")
-        details_lines.append(f"  Job ID: {node_result.get('job_id', '')}")
+        details_lines.append(f"LDAP user: {ldap_user_str}")
+        details_lines.append(
+            f"Submit node ({node_result.get('node_type', '')}): "
+            f"{submit_hostname} (IP: {node_result.get('admin_ip', '')})"
+        )
         if node_result.get("compute_hostname"):
-            details_lines.append(f"  Compute node: {node_result['compute_hostname']} (IP: {node_result.get('compute_ip', '')})")
+            details_lines.append(
+                f"Compute node: {node_result['compute_hostname']} "
+                f"(IP: {node_result.get('compute_ip', '')})"
+            )
+        details_lines.append(f"Job ID: {node_result.get('job_id', '')}")
 
         if node_result.get("error"):
-            details_lines.append(f"  ✗ Error: {node_result['error']}")
+            details_lines.append(f"✗ Error: {node_result['error']}")
+            details_lines.append("")
             continue
 
-        # Login during job result
+        details_lines.append("")
+
+        # Login during job
         if node_result.get("login_during_job"):
-            details_lines.append("  ✓ Login during active job: ALLOWED (session adopted)")
+            details_lines.append("Login during active job: ALLOWED (session adopted) ✓")
         else:
-            details_lines.append("  ✗ Login during active job: BLOCKED")
+            details_lines.append("Login during active job: BLOCKED ✗")
         if node_result.get("login_during_job_message"):
-            details_lines.append(f"      {node_result['login_during_job_message'][:100]}")
+            details_lines.append(f"  {node_result['login_during_job_message']}")
 
-        # Post-job login result
+        details_lines.append("")
+
+        # Login after job
         if node_result.get("session_terminated_after_job"):
-            details_lines.append("  ✓ Login after job ended: BLOCKED (auto-logout)")
+            details_lines.append("Login after job ended: BLOCKED (auto-logout) ✓")
         else:
-            details_lines.append("  ✗ Login after job ended: NOT BLOCKED")
+            details_lines.append("Login after job ended: NOT BLOCKED ✗")
         if node_result.get("post_job_block_message"):
-            details_lines.append(f"      {node_result['post_job_block_message'][:100]}")
+            details_lines.append(f"  {node_result['post_job_block_message']}")
 
-    details_lines.append("")
-    details_lines.append(result.get("details", ""))
+        details_lines.append("")
 
     details = "\n".join(details_lines)
 
