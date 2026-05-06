@@ -669,17 +669,17 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
     ldap_password = credentials[0]["password"]
     results["ldap_users"] = [ldap_user]
 
-    # Collect all submit nodes by type
+    # Collect first node per type (one per type that exists in PXE mapping)
     submit_nodes_by_type = {}
     control_nodes = get_slurm_control_nodes(host)
     if control_nodes:
-        submit_nodes_by_type["slurm_control_node"] = control_nodes
+        submit_nodes_by_type["slurm_control_node"] = [control_nodes[0]]
     login_nodes = get_login_nodes(host)
     if login_nodes:
-        submit_nodes_by_type["login_node"] = login_nodes
+        submit_nodes_by_type["login_node"] = [login_nodes[0]]
     lc_nodes = get_login_compiler_nodes(host)
     if lc_nodes:
-        submit_nodes_by_type["login_compiler_node"] = lc_nodes
+        submit_nodes_by_type["login_compiler_node"] = [lc_nodes[0]]
 
     if not submit_nodes_by_type:
         results["error"] = (
