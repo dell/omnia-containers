@@ -24,7 +24,7 @@ For new code prefer importing directly from ``automation_library.core``.
 
 from typing import Dict, Any
 
-from automation_library.core.build_stream import (
+from automation_library.core import (
     is_build_stream_enabled,
     get_build_stream_job_id as _core_get_job_id,
     STAGE_BUILD_IMAGE_X86_64,

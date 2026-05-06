@@ -26,7 +26,7 @@ Usage:
 from typing import Dict, Any
 
 from ...checks.vars.oim_prereq_vars import OIM_PREREQ_VARS
-from ...core.vars import (
+from ...core import (
     OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
     OIM_METADATA_PATH as _CORE_OIM_METADATA_PATH,
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,

@@ -21,7 +21,7 @@ All dynamic configuration is read at runtime via core/load_inputs.py.
 Author: Dell Technologies
 """
 
-from automation_library.core.vars import (
+from automation_library.core import (
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
     LOCAL_REPO_LOG_PATH as _CORE_LOG_PATH,
 )

@@ -22,7 +22,7 @@ import json
 import urllib.parse
 from typing import Dict, Any
 
-from ...core.host import run_on_remote_node
+from ...core import run_on_remote_node
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..vars.victoria_vars import (
     DEPLOYMENT_MODE_SINGLE,

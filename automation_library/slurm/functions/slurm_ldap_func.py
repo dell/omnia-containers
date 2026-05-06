@@ -32,7 +32,7 @@ from automation_library.core import (
     load_omnia_test_config,
     run_on_remote_node,
 )
-from automation_library.core.vars import STORAGE_CONFIG_FILE
+from automation_library.core import STORAGE_CONFIG_FILE
 # LDAP user creation skipped - using existing credentials from omnia_test_config.yml
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,

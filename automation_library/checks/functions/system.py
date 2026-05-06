@@ -17,7 +17,7 @@
 import subprocess
 from typing import Dict, List, Optional, Tuple
 
-from ...core.formatting import log as _log
+from ...core import log as _log
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS
 

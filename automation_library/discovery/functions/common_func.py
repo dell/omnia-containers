@@ -122,6 +122,116 @@ def cleanup_ssh_known_hosts(host, target: str):
 
 
 # =============================================================================
+# NODE CONNECTIVITY CHECK (ping + SSH)
+# =============================================================================
+
+# Cache for node connectivity status
+_node_connectivity_cache: Dict[str, Dict[str, Any]] = {}
+
+
+def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[str, Any]:
+    """
+    Check if a node is reachable via ping and SSH.
+
+    Results are cached to avoid repeated checks.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of the node
+        hostname: Hostname for display (defaults to admin_ip)
+
+    Returns:
+        Dict with ping_ok, ssh_ok, reachable, error
+    """
+    if hostname is None:
+        hostname = admin_ip
+
+    # Check cache first
+    if admin_ip in _node_connectivity_cache:
+        return _node_connectivity_cache[admin_ip]
+
+    result = {
+        "ping_ok": False,
+        "ssh_ok": False,
+        "reachable": False,
+        "hostname": hostname,
+        "admin_ip": admin_ip,
+        "error": "",
+    }
+
+    # Check ping first
+    cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
+    if cmd.rc == 0:
+        result["ping_ok"] = True
+    else:
+        result["error"] = f"Node {hostname} ({admin_ip}) is not pingable"
+        _node_connectivity_cache[admin_ip] = result
+        return result
+
+    # Check SSH
+    cmd = run_on_remote_node(host, "echo ok 2>&1", admin_ip)
+    if cmd.rc == 0 and "ok" in (cmd.stdout or ""):
+        result["ssh_ok"] = True
+        result["reachable"] = True
+    else:
+        result["error"] = f"Node {hostname} ({admin_ip}) SSH not working"
+
+    _node_connectivity_cache[admin_ip] = result
+    return result
+
+
+def check_nodes_connectivity(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Check connectivity for multiple nodes.
+
+    Args:
+        host: Testinfra host object
+        nodes: List of node dicts with admin_ip, hostname
+
+    Returns:
+        Dict with success, reachable_nodes, unreachable_nodes
+    """
+    reachable = []
+    unreachable = []
+
+    for node in nodes:
+        admin_ip = node.get("admin_ip", "")
+        hostname = node.get("hostname", admin_ip)
+
+        result = check_node_connectivity(host, admin_ip, hostname)
+
+        if result["reachable"]:
+            reachable.append(node)
+        else:
+            unreachable.append({
+                **node,
+                "error": result["error"],
+            })
+
+    return {
+        "success": len(unreachable) == 0,
+        "total": len(nodes),
+        "reachable_nodes": reachable,
+        "unreachable_nodes": unreachable,
+    }
+
+
+def filter_reachable_nodes(host, nodes: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """
+    Filter nodes to only those that are reachable (ping + SSH).
+
+    Args:
+        host: Testinfra host object
+        nodes: List of node dicts
+
+    Returns:
+        List of reachable nodes
+    """
+    result = check_nodes_connectivity(host, nodes)
+    return result["reachable_nodes"]
+
+
+# =============================================================================
 # NODE RETRIEVAL FUNCTIONS
 # =============================================================================
 
@@ -260,20 +370,30 @@ def verify_ssh_from_core(
             admin_ip = node["admin_ip"]
             target = hostname if use_hostname else admin_ip
 
+            # First check ping (single attempt, no retry)
+            ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
+            if ping_cmd.rc != 0:
+                details_lines.append(
+                    f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})"
+                )
+                results["failed"] += 1
+                results["failed_nodes"].append(hostname)
+                results["success"] = False
+                continue
+
             # Cleanup old SSH key first
             cleanup_ssh_known_hosts(host, target)
 
-            # Test SSH - capture output for error details
+            # Test SSH - capture output for error details (single attempt)
             cmd = run_on_remote_node(host, "whoami 2>&1", target)
             output = (cmd.stdout or "") + (cmd.stderr or "")
             ok = cmd.rc == 0 and "root" in output
 
-            status = "✓" if ok else "✗"
             if ok:
-                details_lines.append(f"    {status} {hostname}")
+                details_lines.append(f"    ✓ {hostname}")
             else:
                 error_msg = parse_ssh_error(output)
-                details_lines.append(f"    {status} {hostname}: {error_msg}")
+                details_lines.append(f"    ✗ {hostname}: SSH failed - {error_msg}")
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False
@@ -321,21 +441,31 @@ def verify_ssh_from_oim(
             admin_ip = node["admin_ip"]
             target = hostname if use_hostname else admin_ip
 
+            # First check ping (single attempt, no retry)
+            ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
+            if ping_cmd.rc != 0:
+                details_lines.append(
+                    f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})"
+                )
+                results["failed"] += 1
+                results["failed_nodes"].append(hostname)
+                results["success"] = False
+                continue
+
             # Cleanup old SSH key first
             cleanup_ssh_known_hosts(host, target)
 
-            # Test SSH from inside container - capture stderr for error details
+            # Test SSH from inside container - capture stderr for error details (single attempt)
             ssh_cmd = f"ssh {SSH_OPTS} root@{target} whoami 2>&1"
             cmd = run_in_container(host, ssh_cmd)
             output = cmd.stdout.strip() if cmd.stdout else ""
             ok = cmd.rc == 0 and "root" in output
 
-            status = "✓" if ok else "✗"
             if ok:
-                details_lines.append(f"    {status} {hostname}")
+                details_lines.append(f"    ✓ {hostname}")
             else:
                 error_msg = parse_ssh_error(output)
-                details_lines.append(f"    {status} {hostname}: {error_msg}")
+                details_lines.append(f"    ✗ {hostname}: SSH failed - {error_msg}")
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False
@@ -345,84 +475,15 @@ def verify_ssh_from_oim(
 
 
 # =============================================================================
-# CLOUD-INIT VERIFICATION
+# CLOUD-INIT VERIFICATION (uses core module)
 # =============================================================================
-
-def _get_cloudinit_status(host, admin_ip: str) -> str:
-    """
-    Get cloud-init status from a single node.
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Node admin IP address
-
-    Returns:
-        Status string: 'done', 'running', 'not started', 'error', or 'unknown'
-    """
-    cmd = run_on_remote_node(host, "cloud-init status 2>&1", admin_ip)
-    output = cmd.stdout.strip() if cmd.stdout else ""
-
-    if "status: done" in output:
-        return "done"
-    elif "status: running" in output:
-        return "running"
-    elif "status: not started" in output or "not started" in output.lower():
-        return "not started"
-    elif "status: error" in output:
-        return "error"
-    elif cmd.rc != 0 and not output:
-        return "command_failed"
-    else:
-        return "unknown"
-
-
-def _print_progress(node_statuses: Dict[str, Dict], total: int):
-    """
-    Print single-line progress that updates in place.
-
-    Args:
-        node_statuses: Dict of hostname -> {status, retries, done}
-        total: Total number of nodes
-    """
-    import sys
-
-    parts = []
-    done_count = sum(1 for ns in node_statuses.values() if ns["done"])
-
-    for hostname, ns in node_statuses.items():
-        short_name = hostname[:12] + ".." if len(hostname) > 14 else hostname
-        if ns["done"]:
-            if ns["status"] in ["done"]:
-                parts.append(f"{short_name}[✓]")
-            else:
-                parts.append(f"{short_name}[✗]")
-        else:
-            parts.append(f"{short_name}[{ns['status']},r{ns['retries']}]")
-
-    line = f"\rCloud-init: {done_count}/{total} done | " + " ".join(parts)
-    # Truncate if too long and pad to clear previous output
-    max_width = 120
-    if len(line) > max_width:
-        line = line[:max_width - 3] + "..."
-    line = line.ljust(max_width)
-    sys.stdout.write(line)
-    sys.stdout.flush()
-
 
 def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
     """
     Verify cloud-init completed successfully on all nodes with retry logic.
 
     For diskless OS deployments, cloud-init handles provisioning.
-    Checks 'cloud-init status' command output with configurable retry.
-
-    Retry behavior:
-    - If status is in CLOUDINIT_PASSED_STATUSES (e.g., 'done'): pass, no retry
-    - If status is in CLOUDINIT_RETRY_STATUSES (e.g., 'running'): retry with delay
-    - If status is 'error' or unknown: fail after checking all nodes
-    - Retries up to CLOUDINIT_RETRY_LIMIT times with CLOUDINIT_RETRY_INTERVAL seconds
-
-    Progress is printed on a single line that updates in place.
+    Uses core.cloudinit module for the actual verification.
 
     Args:
         host: Testinfra host object
@@ -431,101 +492,16 @@ def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]
     Returns:
         Dict with success, total, results (per-node details)
     """
-    results = {
-        "success": True,
-        "total": len(nodes),
-        "results": [],
-    }
+    from automation_library.core import verify_cloudinit_status_multi
 
-    # Track status for each node: {hostname: {status, retries, done, admin_ip}}
-    node_statuses: Dict[str, Dict] = {}
-    for node in nodes:
-        hostname = node.get("hostname", "")
-        admin_ip = node.get("admin_ip", "")
-        node_statuses[hostname] = {
-            "status": "checking",
-            "retries": 0,
-            "done": False,
-            "admin_ip": admin_ip,
-            "warnings": "",
-        }
-
-    # Print initial progress
-    _print_progress(node_statuses, len(nodes))
-
-    # Retry loop
-    all_done = False
-    while not all_done:
-        all_done = True
-
-        for hostname, ns in node_statuses.items():
-            if ns["done"]:
-                continue
-
-            admin_ip = ns["admin_ip"]
-            status = _get_cloudinit_status(host, admin_ip)
-            ns["status"] = status
-
-            # Check if passed
-            if status in CLOUDINIT_PASSED_STATUSES:
-                ns["done"] = True
-                continue
-
-            # Check if should retry
-            if status in CLOUDINIT_RETRY_STATUSES:
-                ns["retries"] += 1
-                if ns["retries"] >= CLOUDINIT_RETRY_LIMIT:
-                    # Retry limit reached - mark as failed
-                    ns["done"] = True
-                    ns["status"] = f"{status} (retry limit {CLOUDINIT_RETRY_LIMIT} reached)"
-                else:
-                    all_done = False
-            else:
-                # Status is error/unknown/command_failed - mark as done (failed)
-                ns["done"] = True
-
-        # Update progress
-        _print_progress(node_statuses, len(nodes))
-
-        # If not all done, wait before next retry
-        if not all_done:
-            time.sleep(CLOUDINIT_RETRY_INTERVAL)
-
-    # Print newline after progress
-    sys.stdout.write("\n")
-    sys.stdout.flush()
-
-    # Build final results
-    for node in nodes:
-        hostname = node.get("hostname", "")
-        admin_ip = node.get("admin_ip", "")
-        ns = node_statuses[hostname]
-
-        node_result = {
-            "hostname": hostname,
-            "admin_ip": admin_ip,
-            "success": ns["status"] in CLOUDINIT_PASSED_STATUSES,
-            "status": ns["status"],
-            "retries": ns["retries"],
-            "errors": "",
-            "warnings": ns.get("warnings", ""),
-        }
-
-        # Set error message for failed nodes
-        if not node_result["success"]:
-            if "retry limit" in ns["status"]:
-                node_result["errors"] = f"cloud-init {ns['status']}"
-            elif ns["status"] == "error":
-                node_result["errors"] = "cloud-init completed with errors"
-            elif ns["status"] == "command_failed":
-                node_result["errors"] = "cloud-init command failed"
-            else:
-                node_result["errors"] = f"cloud-init status: {ns['status']}"
-            results["success"] = False
-
-        results["results"].append(node_result)
-
-    return results
+    return verify_cloudinit_status_multi(
+        host,
+        nodes,
+        retry_limit=CLOUDINIT_RETRY_LIMIT,
+        retry_interval=CLOUDINIT_RETRY_INTERVAL,
+        passed_statuses=CLOUDINIT_PASSED_STATUSES,
+        retry_statuses=CLOUDINIT_RETRY_STATUSES,
+    )
 
 
 # =============================================================================
@@ -704,13 +680,17 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
         expected_prefixes.extend(["nersc-ldms-aggr", "nersc-ldms-store"])
 
     # iDRAC telemetry pods - only if idrac_telemetry_support is true
-    idrac_enabled = telemetry_config.get("idrac_telemetry_support", False) if telemetry_config else False
+    idrac_enabled = (
+        telemetry_config.get("idrac_telemetry_support", False) if telemetry_config else False
+    )
     results["idrac_enabled"] = idrac_enabled
     if idrac_enabled:
         expected_prefixes.append("idrac-telemetry")
 
     # VictoriaMetrics pods based on deployment_mode
-    victoria_config = telemetry_config.get("victoria_configurations", {}) if telemetry_config else {}
+    victoria_config = (
+        telemetry_config.get("victoria_configurations", {}) if telemetry_config else {}
+    )
     deployment_mode = victoria_config.get("deployment_mode", "cluster")
     results["deployment_mode"] = deployment_mode
 
