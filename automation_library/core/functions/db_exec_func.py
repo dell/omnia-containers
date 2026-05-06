@@ -69,7 +69,7 @@ def exec_psql_query(
         result = exec_psql_query(
             host,
             container="omnia_postgres",
-            db_user="omnia",
+            db_user=pg_user,  # from get_credential_value()
             db_name="build_stream_db",
             sql="SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;",
         )
@@ -160,7 +160,7 @@ def query_db_row(
         result = query_db_row(
             host,
             container="omnia_postgres",
-            db_user="omnia",
+            db_user=pg_user,  # from get_credential_value()
             db_name="build_stream_db",
             table="job_stages",
             select_col="job_id",
@@ -169,18 +169,18 @@ def query_db_row(
             order_by="started_at DESC",
             limit=1,
         )
-        job_uuid = result["value"]  # e.g. "c01cdd28-3c60-4124-bcf0-b53a0ef93c8b"
+        job_uuid = result["value"]  # e.g. "c01cdd28-..."
 
         # Get job_state for a known job_id
         result = query_db_row(
             host,
             container="omnia_postgres",
-            db_user="omnia",
+            db_user=pg_user,  # from get_credential_value()
             db_name="build_stream_db",
             table="jobs",
             select_col="job_state",
             where_col="job_id",
-            where_val="c01cdd28-3c60-4124-bcf0-b53a0ef93c8b",
+            where_val="c01cdd28-...",
         )
         state = result["value"]  # "COMPLETED"
     """

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Telemetry Poweroff Test Variables.
+Telemetry Failover Test Variables.
 
 Configuration for node poweroff/reboot telemetry resilience tests.
 """
@@ -33,13 +33,29 @@ POD_RESCHEDULE_RETRY_INTERVAL = 20
 # =============================================================================
 
 # Seconds to wait after powering off node before checking pods
-NODE_POWEROFF_WAIT_SECONDS = 30
+NODE_POWEROFF_WAIT_SECONDS = 60
 
 # Valid pod statuses that indicate pod is running properly
 POD_RUNNING_STATUSES = ["Running", "Completed"]
 
 # Pod statuses that indicate pod is in trouble (for detection)
 POD_TROUBLE_STATUSES = ["CrashLoopBackOff", "Error", "Pending", "Terminating"]
+
+# =============================================================================
+# NODE REBOOT CONFIGURATION
+# =============================================================================
+
+# Seconds to wait after reboot command before checking node status
+NODE_REBOOT_WAIT_SECONDS = 30
+
+# Maximum seconds to wait for node to come back online after reboot
+NODE_ONLINE_TIMEOUT_SECONDS = 300
+
+# Cloud-init retry configuration for reboot (10 minutes total)
+CLOUDINIT_RETRY_LIMIT = 60
+CLOUDINIT_RETRY_INTERVAL = 10
+CLOUDINIT_PASSED_STATUSES = ["done"]
+CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
 
 # =============================================================================
 # KUBECTL COMMANDS (no hardcoding in functions)
@@ -58,7 +74,7 @@ CMD_GET_PODS_ON_NODE = (
 CMD_GET_ALL_PODS = "kubectl get pods -n {namespace} -o wide --no-headers"
 
 # =============================================================================
-# SSH/POWEROFF COMMANDS
+# SSH/POWEROFF/REBOOT COMMANDS
 # =============================================================================
 
 # SSH poweroff command (use .format(target_ip=))
@@ -66,3 +82,21 @@ CMD_SSH_POWEROFF = (
     "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{target_ip} "
     "'nohup shutdown -h now &' 2>&1 || true"
 )
+
+# SSH reboot command (use .format(target_ip=))
+CMD_SSH_REBOOT = (
+    "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 root@{target_ip} "
+    "'nohup reboot &' 2>&1 || true"
+)
+
+# Ping command to check node is online (use .format(target_ip=))
+CMD_PING_NODE = "ping -c 1 -W 2 {target_ip}"
+
+# SSH check command (use .format(target_ip=))
+CMD_SSH_CHECK = (
+    "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes "
+    "root@{target_ip} 'echo ok' 2>&1"
+)
+
+# Cloud-init status command
+CMD_CLOUDINIT_STATUS = "cloud-init status 2>&1"

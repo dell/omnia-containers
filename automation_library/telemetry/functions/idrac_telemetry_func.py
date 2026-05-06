@@ -30,7 +30,7 @@ from ...core import (
     PROVISION_CONFIG_FILE,
     get_multiple_credentials,
 )
-from ...core.host import run_on_remote_node
+from ...core import run_on_remote_node
 from ..vars.idrac_telemetry_vars import (
     TELEMETRY_NAMESPACE,
     IDRAC_TELEMETRY_POD_PREFIX,
@@ -149,7 +149,7 @@ def verify_idrac_telemetry_pod_count(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, expected_count, actual_count, pods, error
     """
-    from ...core.host import run_on_remote_node
+    from ...core import run_on_remote_node
 
     # Get expected count (service_kube_nodes with children + 1 for mgmt)
     service_kube_nodes_with_children = get_service_kube_nodes_with_children(host)
@@ -196,7 +196,7 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, total_pods, running_pods, not_running_pods, output, error
     """
-    from ...core.host import run_on_remote_node
+    from ...core import run_on_remote_node
 
     namespace = TELEMETRY_NAMESPACE
 
@@ -583,7 +583,7 @@ def verify_mysql_data_in_pods(host, admin_ip: str) -> Dict[str, Any]:
     kube_vip = cluster_metadata.get("kube_vip", admin_ip)
 
     # Get list of idrac-telemetry pods
-    from ...core.host import run_on_remote_node
+    from ...core import run_on_remote_node
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,
@@ -926,7 +926,7 @@ def verify_receiver_collecting_metrics(
     kube_vip = cluster_metadata.get("kube_vip", admin_ip)
 
     # Get list of idrac-telemetry pods
-    from ...core.host import run_on_remote_node
+    from ...core import run_on_remote_node
     namespace = TELEMETRY_NAMESPACE
     cmd = run_on_remote_node(
         host,

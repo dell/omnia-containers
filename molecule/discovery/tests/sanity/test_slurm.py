@@ -28,7 +28,7 @@ Test cases for verifying Slurm cluster:
 """
 
 import pytest
-from automation_library.core import TestLogger
+from automation_library.core import TestLogger, check_nodes_reachability
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
     get_slurm_control_nodes,
@@ -52,6 +52,8 @@ from automation_library.discovery.vars import (
     SLURM_CONTROL_SERVICES,
     SLURM_NODE_SERVICES,
     LOGIN_NODE_SERVICES,
+    DISCOVERY_REACHABILITY_RETRY,
+    DISCOVERY_REACHABILITY_INTERVAL,
 )
 from automation_library.discovery.messages import TEST_ASSERT_MSGS as ASSERT_MSGS
 
@@ -73,6 +75,24 @@ def test_slurm_control_node_services(host):
         log.skipped("No slurm_control_node in PXE mapping", "Check PXE mapping file")
         pytest.skip("No slurm_control_node in PXE mapping")
 
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
+
+    # Report unreachable nodes
+    if reach["unreachable"]:
+        unreachable_details = []
+        for node in reach["unreachable"]:
+            unreachable_details.append(
+                f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable"
+            )
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for detail in unreachable_details:
+            print(detail)
+
     openldap_enabled = is_openldap_enabled(host)
     ldms_enabled = is_ldms_enabled(host)
 
@@ -90,17 +110,28 @@ def test_slurm_control_node_services(host):
         notes.append("ldms")
     note_str = f" ({', '.join(notes)} enabled)" if notes else ""
 
-    log.check(f"Checking services on {len(nodes)} slurm_control_node{note_str}")
+    log.check(f"Checking services on {len(reach['reachable'])} slurm_control_node{note_str}")
 
-    result = verify_services_on_nodes(host, nodes, services)
-    details = build_service_details(result)
-
-    if result["success"]:
-        log.passed("All services running on slurm_control_node", details)
+    if reach["reachable"]:
+        result = verify_services_on_nodes(host, reach["reachable"], services)
+        details = build_service_details(result)
     else:
-        log.failed("Services not running on slurm_control_node", details)
+        result = {"success": False, "failed_details": ["No reachable nodes"]}
+        details = "No reachable nodes to check"
 
-    assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
+    # Fail if any unreachable or service check failed
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"Services failed: {', '.join(result['failed_details'])}")
+        log.failed("slurm_control_node services check failed", details)
+        assert False, "; ".join(fail_parts)
+
+    log.passed("All services running on slurm_control_node", details)
 
 
 @pytest.mark.sanity
@@ -120,6 +151,18 @@ def test_slurm_node_services(host):
         log.skipped("No slurm_node in PXE mapping", "Check PXE mapping file")
         pytest.skip("No slurm_node in PXE mapping")
 
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
+
+    if reach["unreachable"]:
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for node in reach["unreachable"]:
+            print(f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable")
+
     openldap_enabled = is_openldap_enabled(host)
     ldms_enabled = is_ldms_enabled(host)
 
@@ -136,17 +179,27 @@ def test_slurm_node_services(host):
         notes.append("ldms")
     note_str = f" ({', '.join(notes)} enabled)" if notes else ""
 
-    log.check(f"Checking services on {len(nodes)} slurm_node{note_str}")
+    log.check(f"Checking services on {len(reach['reachable'])} slurm_node{note_str}")
 
-    result = verify_services_on_nodes(host, nodes, services)
-    details = build_service_details(result)
-
-    if result["success"]:
-        log.passed("All services running on slurm_node", details)
+    if reach["reachable"]:
+        result = verify_services_on_nodes(host, reach["reachable"], services)
+        details = build_service_details(result)
     else:
-        log.failed("Services not running on slurm_node", details)
+        result = {"success": False, "failed_details": ["No reachable nodes"]}
+        details = "No reachable nodes to check"
 
-    assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"Services failed: {', '.join(result['failed_details'])}")
+        log.failed("slurm_node services check failed", details)
+        assert False, "; ".join(fail_parts)
+
+    log.passed("All services running on slurm_node", details)
 
 
 @pytest.mark.sanity
@@ -166,6 +219,18 @@ def test_login_node_services(host):
         log.skipped("No login_node in PXE mapping", "Check PXE mapping file")
         pytest.skip("No login_node in PXE mapping")
 
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
+
+    if reach["unreachable"]:
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for node in reach["unreachable"]:
+            print(f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable")
+
     openldap_enabled = is_openldap_enabled(host)
     ldms_enabled = is_ldms_enabled(host)
 
@@ -182,17 +247,27 @@ def test_login_node_services(host):
         notes.append("ldms")
     note_str = f" ({', '.join(notes)} enabled)" if notes else ""
 
-    log.check(f"Checking services on {len(nodes)} login_node{note_str}")
+    log.check(f"Checking services on {len(reach['reachable'])} login_node{note_str}")
 
-    result = verify_services_on_nodes(host, nodes, services)
-    details = build_service_details(result)
-
-    if result["success"]:
-        log.passed("All services running on login_node", details)
+    if reach["reachable"]:
+        result = verify_services_on_nodes(host, reach["reachable"], services)
+        details = build_service_details(result)
     else:
-        log.failed("Services not running on login_node", details)
+        result = {"success": False, "failed_details": ["No reachable nodes"]}
+        details = "No reachable nodes to check"
 
-    assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"Services failed: {', '.join(result['failed_details'])}")
+        log.failed("login_node services check failed", details)
+        assert False, "; ".join(fail_parts)
+
+    log.passed("All services running on login_node", details)
 
 
 @pytest.mark.sanity
@@ -212,6 +287,18 @@ def test_login_compiler_node_services(host):
         log.skipped("No login_compiler_node in PXE mapping", "Check PXE mapping file")
         pytest.skip("No login_compiler_node in PXE mapping")
 
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
+
+    if reach["unreachable"]:
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for node in reach["unreachable"]:
+            print(f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable")
+
     openldap_enabled = is_openldap_enabled(host)
     ldms_enabled = is_ldms_enabled(host)
 
@@ -228,17 +315,27 @@ def test_login_compiler_node_services(host):
         notes.append("ldms")
     note_str = f" ({', '.join(notes)} enabled)" if notes else ""
 
-    log.check(f"Checking services on {len(nodes)} login_compiler_node{note_str}")
+    log.check(f"Checking services on {len(reach['reachable'])} login_compiler_node{note_str}")
 
-    result = verify_services_on_nodes(host, nodes, services)
-    details = build_service_details(result)
-
-    if result["success"]:
-        log.passed("All services running on login_compiler_node", details)
+    if reach["reachable"]:
+        result = verify_services_on_nodes(host, reach["reachable"], services)
+        details = build_service_details(result)
     else:
-        log.failed("Services not running on login_compiler_node", details)
+        result = {"success": False, "failed_details": ["No reachable nodes"]}
+        details = "No reachable nodes to check"
 
-    assert result["success"], f"Services failed: {', '.join(result['failed_details'])}"
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"Services failed: {', '.join(result['failed_details'])}")
+        log.failed("login_compiler_node services check failed", details)
+        assert False, "; ".join(fail_parts)
+
+    log.passed("All services running on login_compiler_node", details)
 
 
 # =============================================================================
@@ -260,9 +357,36 @@ def test_cross_node_ssh(host):
         log.skipped("Less than 2 Slurm nodes", "Need at least 2 nodes")
         pytest.skip("Less than 2 Slurm nodes")
 
-    log.check(f"Testing cross-node SSH for {len(all_nodes)} Slurm nodes")
+    # Check reachability with retry
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_cross_node_ssh(host)
+    if reach["unreachable"]:
+        log.check(f"Unreachable nodes ({len(reach['unreachable'])}):")
+        for node in reach["unreachable"]:
+            print(f"  ✗ {node['hostname']} ({node['admin_ip']}): not reachable")
+
+    log.check(f"Testing cross-node SSH for {len(reach['reachable'])} reachable Slurm nodes")
+
+    if reach["reachable"]:
+        result = verify_cross_node_ssh(host)
+    else:
+        result = {"success": False, "total_pairs": 0, "failed": 0, "failed_pairs": []}
+
+    # Fail if any unreachable or SSH failed
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            fail_parts.append(f"SSH failed: {result['failed']} pairs")
+        log.failed("Cross-node SSH test failed", "; ".join(fail_parts))
+        assert False, "; ".join(fail_parts)
 
     # Build detailed output grouped by source node
     details_lines = [f"Total pairs tested: {result['total_pairs']}"]
@@ -319,21 +443,23 @@ def test_sinfo_nodes(host):
 
     details = "\n".join(details_lines)
 
+    error_parts = []
+    if result.get("missing"):
+        error_parts.append(f"missing: {', '.join(result['missing'])}")
+    if result.get("extra"):
+        error_parts.append(f"extra: {', '.join(result['extra'])}")
+
     if result["success"]:
         log.passed(f"sinfo shows exactly {len(result['expected'])} compute nodes", details)
     else:
-        error_parts = []
-        if result["missing"]:
-            error_parts.append(f"missing: {', '.join(result['missing'])}")
-        if result["extra"]:
-            error_parts.append(f"extra: {', '.join(result['extra'])}")
         log.failed(f"sinfo node mismatch - {'; '.join(error_parts)}", details)
 
-    assert result["success"], f"sinfo mismatch: {'; '.join(error_parts) if error_parts else 'unknown'}"
+    err_msg = '; '.join(error_parts) if error_parts else 'unknown'
+    assert result["success"], f"sinfo mismatch: {err_msg}"
 
 
 @pytest.mark.sanity
-@pytest.mark.order(16)
+@pytest.mark.order(19)
 def test_openmpi_installed(host):
     """
     Test Case 16: Verify OpenMPI is installed and version matches software_config.json.
@@ -363,12 +489,13 @@ def test_openmpi_installed(host):
     if result["success"]:
         log.passed(f"OpenMPI installed: {result['version']}", details)
     else:
-        log.failed("OpenMPI verification failed", f"{result.get('error', 'Unknown error')}\n{details}")
+        error = result.get('error', 'Unknown error')
+        log.failed("OpenMPI verification failed", f"{error}\n{details}")
         assert False, result.get("error", "OpenMPI verification failed")
 
 
 @pytest.mark.sanity
-@pytest.mark.order(17)
+@pytest.mark.order(20)
 def test_ucx_installed(host):
     """
     Test Case 17: Verify UCX is installed and version matches software_config.json.
@@ -493,7 +620,7 @@ def test_ldap_slapd_configuration(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(20)
+@pytest.mark.order(16)
 def test_ldap_user_login_from_oim(host):
     """
     Test Case 20: Verify LDAP users can SSH login from OIM.
@@ -530,15 +657,20 @@ def test_ldap_user_login_from_oim(host):
         details_lines.append(f"[{func_group}]")
         for node_result in nodes:
             node_status = "✓" if node_result["success"] else "✗"
-            details_lines.append(f"  {node_status} {node_result['hostname']} (IP: {node_result['admin_ip']})")
+            hostname = node_result['hostname']
+            admin_ip = node_result['admin_ip']
+            details_lines.append(f"  {node_status} {hostname} (IP: {admin_ip})")
             for user_result in node_result.get("user_results", []):
                 user_status = "✓" if user_result["success"] else "✗"
-                details_lines.append(f"      {user_status} {user_result['user']}: {user_result['message']}")
+                user = user_result['user']
+                msg = user_result['message']
+                details_lines.append(f"      {user_status} {user}: {msg}")
 
     details = "\n".join(details_lines)
 
     if result["success"]:
-        total_nodes = sum(len(nodes) for nodes in result.get("results_by_group", {}).values())
+        groups = result.get("results_by_group", {})
+        total_nodes = sum(len(nodes) for nodes in groups.values())
         log.passed(f"LDAP user login successful on {total_nodes} nodes from OIM", details)
     else:
         log.failed("LDAP user login failed from OIM", details)
@@ -546,7 +678,7 @@ def test_ldap_user_login_from_oim(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(21)
+@pytest.mark.order(17)
 def test_ldap_user_login_from_core(host):
     """
     Test Case 21: Verify LDAP users can SSH login from omnia_core container.
@@ -554,7 +686,8 @@ def test_ldap_user_login_from_core(host):
     Skips if OpenLDAP is not enabled in software_config.json.
 
     Reads ldap_credentials from omnia_test_config.yml (format: "user1:pwd1,user2:pwd2").
-    Tests SSH login from omnia_core container to slurm_control_node, login_node, login_compiler_node.
+    Tests SSH login from omnia_core container to slurm_control_node,
+    login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
     from automation_library.discovery.functions import verify_ldap_user_login_from_core
@@ -583,23 +716,28 @@ def test_ldap_user_login_from_core(host):
         details_lines.append(f"[{func_group}]")
         for node_result in nodes:
             node_status = "✓" if node_result["success"] else "✗"
-            details_lines.append(f"  {node_status} {node_result['hostname']} (IP: {node_result['admin_ip']})")
+            hostname = node_result['hostname']
+            admin_ip = node_result['admin_ip']
+            details_lines.append(f"  {node_status} {hostname} (IP: {admin_ip})")
             for user_result in node_result.get("user_results", []):
                 user_status = "✓" if user_result["success"] else "✗"
-                details_lines.append(f"      {user_status} {user_result['user']}: {user_result['message']}")
+                user = user_result['user']
+                msg = user_result['message']
+                details_lines.append(f"      {user_status} {user}: {msg}")
 
     details = "\n".join(details_lines)
 
     if result["success"]:
-        total_nodes = sum(len(nodes) for nodes in result.get("results_by_group", {}).values())
-        log.passed(f"LDAP user login successful on {total_nodes} nodes from omnia_core", details)
+        groups = result.get("results_by_group", {})
+        total_nodes = sum(len(nodes) for nodes in groups.values())
+        log.passed(f"LDAP login OK on {total_nodes} nodes from omnia_core", details)
     else:
         log.failed("LDAP user login failed from omnia_core", details)
         assert False, result.get("error", "LDAP login failed")
 
 
 @pytest.mark.sanity
-@pytest.mark.order(22)
+@pytest.mark.order(18)
 def test_pam_slurm_adopt(host):
     """
     Test Case 22: Verify PAM slurm_adopt blocks login on slurm_node.

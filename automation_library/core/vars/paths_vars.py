@@ -63,6 +63,8 @@ PXE_MAPPING_FILE_PATH = f"{INPUT_BASE_PATH}/{PXE_MAPPING_FILE}"
 OMNIA_CREDENTIALS_PATH = f"{INPUT_BASE_PATH}/{OMNIA_CREDENTIALS_FILE}"
 OMNIA_CREDENTIALS_KEY_PATH = f"{INPUT_BASE_PATH}/.omnia_config_credentials_key"
 GITLAB_CONFIG_PATH = f"{INPUT_BASE_PATH}/{GITLAB_CONFIG_FILE}"
+BUILD_STREAM_OAUTH_CREDENTIALS_PATH = f"{INPUT_BASE_PATH}/build_stream_oauth_credentials.yml"
+BUILD_STREAM_OAUTH_CREDENTIALS_KEY_PATH = f"{INPUT_BASE_PATH}/.build_stream_oauth_credentials_key"
 
 # =============================================================================
 # OMNIA DATA PATHS (inside omnia_core container under .data/)

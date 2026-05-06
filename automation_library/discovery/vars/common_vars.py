@@ -18,7 +18,7 @@ Discovery Module - Common Variables.
 SSH options and common constants used across discovery tests.
 """
 
-from automation_library.core.vars import (
+from automation_library.core import (
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
     OIM_SHARED_PATH as _OIM_SHARED_PATH,
 )
@@ -39,6 +39,16 @@ SSH_OPTS = (
 # =============================================================================
 
 CONTAINER_NAME = _CORE_CONTAINER
+
+# =============================================================================
+# REACHABILITY CHECK CONFIGURATION (for subsequent tests)
+# =============================================================================
+
+# Number of retries for unreachable nodes in subsequent tests
+DISCOVERY_REACHABILITY_RETRY = 2
+
+# Seconds between reachability retry attempts
+DISCOVERY_REACHABILITY_INTERVAL = 5
 
 # =============================================================================
 # CLOUD-INIT RETRY CONFIGURATION

@@ -20,7 +20,7 @@ Contains all Kafka and LDMS related constants and command templates.
 
 from typing import Dict
 
-from ...core.vars import (
+from ...core import (
     TELEMETRY_CONFIG_PATH as _CORE_TEL_PATH,
     SOFTWARE_CONFIG_PATH as _CORE_SW_PATH,
     OIM_METADATA_PATH as _CORE_OIM_METADATA_PATH,

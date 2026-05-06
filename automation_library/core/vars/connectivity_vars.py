@@ -13,49 +13,39 @@
 # limitations under the License.
 
 """
-Local Repo - Configuration Constants.
+Core Connectivity Variables.
 
-Pure constants used by local_repo verification functions.
-All dynamic configuration is read at runtime via core/load_inputs.py.
-
-Author: Dell Technologies
+Configuration for ping and SSH connectivity checks with retry logic.
 """
 
-from automation_library.core import (
-    OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
-    LOCAL_REPO_LOG_PATH as _CORE_LOG_PATH,
+# =============================================================================
+# PING RETRY CONFIGURATION (20 minutes total)
+# =============================================================================
+
+PING_RETRY_LIMIT = 240  # 240 retries * 5s = 20 minutes
+PING_RETRY_INTERVAL = 5  # 5 seconds between retries
+
+# =============================================================================
+# SSH RETRY CONFIGURATION (5 minutes total)
+# =============================================================================
+
+SSH_RETRY_LIMIT = 60  # 60 retries * 5s = 5 minutes
+SSH_RETRY_INTERVAL = 5  # 5 seconds between retries
+
+# =============================================================================
+# PARALLEL CONNECTIVITY CONFIGURATION
+# =============================================================================
+
+MAX_PARALLEL_WORKERS = 6  # Maximum parallel threads for connectivity checks
+CONNECTIVITY_PROGRESS_INTERVAL = 5  # Print progress every 5 seconds
+
+# =============================================================================
+# CONNECTIVITY COMMANDS
+# =============================================================================
+
+CMD_PING_NODE = "ping -c 1 -W 2 {target_ip}"
+
+CMD_SSH_CHECK = (
+    "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes "
+    "root@{target_ip} 'echo ok' 2>&1"
 )
-
-# =============================================================================
-# CONTAINER NAMES
-# =============================================================================
-
-OMNIA_CORE_CONTAINER = _CORE_CONTAINER
-PULP_CONTAINER = "pulp"
-
-# =============================================================================
-# PATHS (inside omnia_core container) - from core vars
-# =============================================================================
-
-LOG_BASE_PATH = _CORE_LOG_PATH
-SOFTWARE_CSV_FILENAME = "software.csv"
-STATUS_CSV_FILENAME = "status.csv"
-
-# Supported architectures
-ARCH_LIST = ["x86_64", "aarch64"]
-
-# =============================================================================
-# PULP SETTINGS
-# =============================================================================
-
-PULP_CONTENT_PORT = 2225
-PULP_CONTENT_SCHEME = "https"
-PULP_API_STATUS_URI = "/pulp/api/v3/status/"
-PULP_CONTENT_PATH_PREFIX = "/pulp/content/"
-
-# =============================================================================
-# TIMEOUTS
-# =============================================================================
-
-PULP_API_TIMEOUT_SECONDS = 300
-CURL_CONNECT_TIMEOUT = 10

@@ -34,32 +34,26 @@ from typing import Dict, Any, Optional
 
 import yaml
 
-from .db_exec import query_db_row
-from .load_inputs import load_input_file
-from .secrets import get_credential_value
-from .vars import (
+from .db_exec_func import query_db_row
+from .load_inputs_func import load_input_file
+from .secrets_func import get_credential_value
+from ..vars.paths_vars import (
     BUILD_STREAM_CONFIG_FILE,
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
 )
-
-
-# =============================================================================
-# CONSTANTS
-# =============================================================================
-
-_POSTGRES_CONTAINER = "omnia_postgres"
-_POSTGRES_DB = "build_stream_db"
-_POSTGRES_USER_KEY = "postgres_user"
-_COMPLETED_STATE = "COMPLETED"
-
-# Well-known stage names — callers may pass any stage string, these are docs
-STAGE_BUILD_IMAGE_X86_64 = "build-image-x86_64"
-STAGE_BUILD_IMAGE_AARCH64 = "build-image-aarch64"
-STAGE_CREATE_LOCAL_REPO = "create-local-repository"
-STAGE_VALIDATE_IMAGE = "validate-image-on-test"
-STAGE_PARSE_CATALOG = "parse-catalog"
-STAGE_GENERATE_INPUT = "generate-input-files"
+from ..vars.build_stream_vars import (
+    POSTGRES_CONTAINER as _POSTGRES_CONTAINER,
+    POSTGRES_DB as _POSTGRES_DB,
+    POSTGRES_USER_KEY as _POSTGRES_USER_KEY,
+    COMPLETED_STATE as _COMPLETED_STATE,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
 
 
 # =============================================================================
@@ -182,7 +176,8 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             db_name=_POSTGRES_DB,
             sql=_stage_sql,
         )
-        stage_state = stage_check["rows"][0] if (stage_check["success"] and stage_check["rows"]) else None
+        has_rows = stage_check["success"] and stage_check["rows"]
+        stage_state = stage_check["rows"][0] if has_rows else None
 
         # If the stage row doesn't exist for this job_id + stage_name, it's a wrong job_id
         if not stage_state:
@@ -301,7 +296,8 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             db_name=_POSTGRES_DB,
             sql=_any_sql,
         )
-        latest_state = (any_result["rows"][0] if (any_result["success"] and any_result["rows"]) else None)
+        has_any_rows = any_result["success"] and any_result["rows"]
+        latest_state = any_result["rows"][0] if has_any_rows else None
         if latest_state:
             return {
                 "success": False,

@@ -607,7 +607,9 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
         if "pam_slurm_adopt" in output or "no active jobs" in output.lower():
             node_result["success"] = True
             node_result["login_blocked"] = True
-            node_result["message"] = "Access denied by pam_slurm_adopt: you have no active jobs on this node"
+            node_result["message"] = (
+                "Access denied by pam_slurm_adopt: you have no active jobs on this node"
+            )
         elif "Connection closed" in output and cmd.rc != 0:
             # Connection closed after PAM denial
             node_result["success"] = True
