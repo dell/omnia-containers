@@ -176,9 +176,22 @@ HPC Benchmark Image Layer
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Omnia supports an HPC Benchmark Image Layer for Slurm deployments.
-- Benchmark sources are staged to shared Slurm storage, providing a consistent benchmark workspace across login, compiler, and compute nodes.
-- This capability is staging-only; Omnia does not automatically compile or execute benchmark workloads.
-- Ensure Slurm shared storage is available and local repositories are prepared before running deployment workflows.
+- This capability is runtime script-driven:
+  - Provisioning deploys ``pull_benchmarks.sh`` and ``benchmark_tools.list`` to ``/hpc_tools/scripts``.
+  - Runtime staging is executed via ``/hpc_tools/scripts/pull_benchmarks.sh``.
+- Benchmark artifacts are pulled from the local Pulp mirror path to ``/hpc_tools/<tool>/``.
+- The feature is staging-only; Omnia does not compile or execute benchmark workloads.
+- Ensure Slurm shared storage (``/hpc_tools``) is available and local repository content is prepared before runtime staging.
+
+**Operational notes**
+
+- ``msr-safe`` is ``x86_64`` only and is automatically skipped on ``aarch64``.
+- If a destination directory already contains files, the tool is skipped to prevent overwrite.
+- Runtime summary and per-tool outcomes are logged at:
+
+.. code-block:: bash
+
+   /var/log/pull_benchmarks.log
 
 CUDA and DCGM Prerequisites for Slurm GPU Nodes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
