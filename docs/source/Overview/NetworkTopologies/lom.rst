@@ -16,6 +16,6 @@ In a **Shared LOM setup**, the Administration and BMC logical networks share the
 .. note:: Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
 **Recommended Discovery Mechanism**
 
-* `Discovery Mechanism and Mapping File <../../OmniaInstallGuide/RHEL_new/Provision/discover_mechanism_mappingfile.html>`_.
+* `Discovery Mechanisms <../../OmniaInstallGuide/RHEL_new/Provision/discover_mechanism_mappingfile.html>`_ (OME-based BMC Discovery is recommended)
 
 
