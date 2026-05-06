@@ -13,8 +13,8 @@ In a **Hybrid Setup**, the OIM and special nodes such as the head and login node
 
 * **Infiniband Network (Yellow Line)**: This indicates the high-speed InfiniBand network used for high throughput inter-node communication in the cluster.
 
-.. note:: Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets. 
+.. note:: Omnia supports classless IP addressing, which allows the Admin network, BMC network, Public network, and the Additional network to be assigned different subnets.
 
 **Recommended discovery mechanism**
 
-* `Discovery Mechanism and Mapping File <../../OmniaInstallGuide/RHEL_new/Provision/discover_mechanism_mappingfile.html>`_.
+* `Discovery Mechanisms <../../OmniaInstallGuide/RHEL_new/Provision/discover_mechanism_mappingfile.html>`_ (OME-based BMC Discovery is recommended)

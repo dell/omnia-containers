@@ -1,10 +1,11 @@
 Discover the Cluster Nodes
 ============================
 
-The ``discovery.yml`` playbook discovers the probable bare-metal cluster nodes. This playbook is dependent on inputs from the mapping file and the following input files:
+The ``discovery.yml`` playbook discovers the probable bare-metal cluster nodes using OpenManage Enterprise (OME). This playbook is dependent on inputs from the discovery configuration and the following input files:
 
 * ``/opt/omnia/input/project_default/provision_config.yml``
 * ``/opt/omnia/input/project_default/network_spec.yml``
+* ``/opt/omnia/input/project_default/discovery_config.yml`` (for OME-based discovery)
 
 .. note:: The first PXE device on target nodes should be the designated active NIC for PXE booting.
 
@@ -26,15 +27,20 @@ Playbook execution
 
 **Prerequisites**
 
-Before running the ``discovery.yml`` playbook, ensure that the images are created for each functional group defined in the mapping file. To verify that the images are created, run the following command on the OIM::
+Before running the ``discovery.yml`` playbook with OME-based discovery:
+
+* Ensure that the images are created for each functional group. To verify that the images are created, run the following command on the OIM::
 
     s3cmd ls -Hr s3://boot-images
 
-To deploy the Omnia provision tool, execute the following commands: ::
+* Ensure that OpenManage Enterprise (OME) is accessible from the OIM and configured with the target servers.
+* Ensure that the ``discovery_config.yml`` file is configured with the OME connection details.
+
+To deploy the Omnia provision tool using OME-based BMC discovery, execute the following commands: ::
 
     ssh omnia_core
     cd /omnia/discovery
-    ansible-playbook discovery.yml
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
 .. note::
 

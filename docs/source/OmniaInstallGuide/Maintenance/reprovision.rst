@@ -28,9 +28,15 @@ The OS is automatically installed on every PXE boot if there are no modification
 Re-provision the Nodes with Modifications
 ------------------------------------------
 
-1. Update the mapping file and ``software_config.json`` as required.
+1. Update the mapping file (for mapping file discovery) or ensure nodes are configured in OME (for OME-based discovery), and update ``software_config.json`` as required.
 2. In the event of any modification to the ``software_config.json``, run the ``local_repo.yml`` playbook, and then run the ``build_image_x86_64.yml`` or ``build_image_aarch64.yml`` to build the new images. For more information, see :doc:`../RHEL_new/CreateLocalRepo/RunningLocalRepo`.
-3. After the images are created, run the ``discovery.yml`` playbook. For more information, see :doc:`../RHEL_new/Provision/installprovisiontool`.
+3. After the images are created, run the ``discovery.yml`` playbook. For OME-based discovery, use::
+
+    ssh omnia_core
+    cd /omnia/discovery
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+
+   For more information, see :doc:`../RHEL_new/Provision/installprovisiontool`.
 4. PXE boot the required nodes to be reprovisioned.
 
 .. note:: The entire cluster needs to be reprovisioned if you want to reprovision the Slurm Control node and Kube Control Plane.    

@@ -1,8 +1,33 @@
-Create Mapping File with the Target Node Information
+Discovery Mechanisms for Target Node Information
 ========================================================
 
-Target nodes for provisioning can be discovered only using the mapping file.
-Manually collect PXE NIC information for target servers and manually define them to Omnia using the **pxe_mapping_file.csv** file. Provide the file path to the ``pxe_mapping_file`` variable in ``/opt/omnia/input/project_default/provision_config.yml``. 
+Omnia supports two discovery mechanisms for discovering target nodes for provisioning:
+
+* **OME-based BMC Discovery** (Recommended): Uses OpenManage Enterprise (OME) to automatically discover and manage target servers via their BMC/iDRAC interfaces.
+* **Mapping File Discovery**: Manually collect PXE NIC information for target servers and define them to Omnia using the **pxe_mapping_file.csv** file.
+
+OME-based BMC Discovery
+-------------------------
+
+OME-based BMC discovery is the recommended method for discovering target nodes. This mechanism leverages OpenManage Enterprise to automatically discover servers through their BMC/iDRAC interfaces, reducing manual configuration effort.
+
+To use OME-based discovery:
+
+1. Ensure OpenManage Enterprise (OME) is accessible from the OIM and configured with the target servers.
+2. Configure the ``discovery_config.yml`` file with OME connection details and discovery parameters.
+3. Execute the ``discovery.yml`` playbook with the ``discovery_mechanism=ome`` parameter::
+
+    ssh omnia_core
+    cd /omnia/discovery
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+
+For detailed configuration of ``discovery_config.yml``, see :doc:`provisionparams`.
+
+Mapping File Discovery
+-----------------------
+
+Target nodes for provisioning can also be discovered using the mapping file method.
+Manually collect PXE NIC information for target servers and manually define them to Omnia using the **pxe_mapping_file.csv** file. Provide the file path to the ``pxe_mapping_file`` variable in ``/opt/omnia/input/project_default/provision_config.yml``.
 A sample format is shown below:
 
 ::
