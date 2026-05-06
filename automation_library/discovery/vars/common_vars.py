@@ -41,6 +41,16 @@ SSH_OPTS = (
 CONTAINER_NAME = _CORE_CONTAINER
 
 # =============================================================================
+# REACHABILITY CHECK CONFIGURATION (for subsequent tests)
+# =============================================================================
+
+# Number of retries for unreachable nodes in subsequent tests
+DISCOVERY_REACHABILITY_RETRY = 2
+
+# Seconds between reachability retry attempts
+DISCOVERY_REACHABILITY_INTERVAL = 5
+
+# =============================================================================
 # CLOUD-INIT RETRY CONFIGURATION
 # =============================================================================
 

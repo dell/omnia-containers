@@ -31,10 +31,10 @@ from automation_library.discovery.functions import (
 
 
 @pytest.mark.sanity
-@pytest.mark.order(30)
+@pytest.mark.order(20)
 def test_k8s_nodes_ready(host):
     """
-    Test Case 30: Verify K8s nodes from PXE mapping are Ready.
+    Test Case 20: Verify K8s nodes from PXE mapping are Ready.
 
     Checks:
     - All K8s nodes from PXE mapping exist in cluster
@@ -96,10 +96,10 @@ def test_k8s_nodes_ready(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(31)
+@pytest.mark.order(21)
 def test_k8s_telemetry_pods(host):
     """
-    Test Case 31: Verify telemetry pods are running in K8s cluster.
+    Test Case 21: Verify telemetry pods are running in K8s cluster.
 
     Checks pods based on telemetry_config.yml and software_config.json:
     - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled
@@ -132,9 +132,10 @@ def test_k8s_telemetry_pods(host):
 
     for pod_detail in result.get("pod_details", []):
         status_icon = "✓" if pod_detail["running"] else "✗"
-        details_lines.append(
-            f"  {status_icon} {pod_detail['prefix']}: {pod_detail['pod_name']} ({pod_detail['status']})"
-        )
+        prefix = pod_detail['prefix']
+        pod_name = pod_detail['pod_name']
+        status = pod_detail['status']
+        details_lines.append(f"  {status_icon} {prefix}: {pod_name} ({status})")
 
     if result.get("missing_pods"):
         details_lines.append("Missing pods (not expected if feature disabled):")

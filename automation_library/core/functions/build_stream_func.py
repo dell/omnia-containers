@@ -176,7 +176,8 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             db_name=_POSTGRES_DB,
             sql=_stage_sql,
         )
-        stage_state = stage_check["rows"][0] if (stage_check["success"] and stage_check["rows"]) else None
+        has_rows = stage_check["success"] and stage_check["rows"]
+        stage_state = stage_check["rows"][0] if has_rows else None
 
         # If the stage row doesn't exist for this job_id + stage_name, it's a wrong job_id
         if not stage_state:
@@ -295,7 +296,8 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             db_name=_POSTGRES_DB,
             sql=_any_sql,
         )
-        latest_state = (any_result["rows"][0] if (any_result["success"] and any_result["rows"]) else None)
+        has_any_rows = any_result["success"] and any_result["rows"]
+        latest_state = any_result["rows"][0] if has_any_rows else None
         if latest_state:
             return {
                 "success": False,

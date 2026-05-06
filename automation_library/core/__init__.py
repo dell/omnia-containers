@@ -65,19 +65,21 @@ from .functions import (
     # DB exec
     exec_psql_query,
     query_db_row,
-    # Cloud-init
-    get_cloudinit_status,
-    wait_for_cloudinit,
-    verify_cloudinit_status_multi,
-    # Connectivity
-    check_node_ping,
-    check_node_ssh,
-    check_node_connectivity,
-    verify_nodes_connectivity,
-    get_connectivity_cache,
+    # Node checks (connectivity + cloud-init)
     clear_connectivity_cache,
+    get_connectivity_cache,
     get_reachable_nodes,
     get_unreachable_nodes,
+    is_node_reachable,
+    get_node_error,
+    check_node_connectivity_once,
+    check_node_connectivity_with_retry,
+    verify_nodes_connectivity,
+    check_nodes_reachability,
+    print_unreachable_nodes,
+    get_cloudinit_status,
+    wait_for_cloudinit,
+    verify_cloudinit_status,
     # Build stream
     is_build_stream_enabled,
     get_build_stream_job_id,

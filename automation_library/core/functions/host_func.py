@@ -32,7 +32,8 @@ from ..vars.common_vars import SSH_OPTS, OMNIA_CORE_CONTAINER
 def _get_project_root() -> str:
     """Get the project root directory."""
     # From functions/ -> core/ -> automation_library/ -> project_root/
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    current_file = os.path.abspath(__file__)
+    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 
 
 def load_omnia_test_config() -> Dict[str, Any]:
@@ -163,7 +164,10 @@ def run_on_remote_node(
         Result with stdout, stderr, rc attributes
     """
     escaped_cmd = cmd.replace('"', '\\"')
-    ssh_cmd = f'ssh {SSH_OPTS} -o UserKnownHostsFile=/dev/null root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
+    ssh_cmd = (
+        f'ssh {SSH_OPTS} -o UserKnownHostsFile=/dev/null '
+        f'root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
+    )
     return run_in_container(host, ssh_cmd)
 
 

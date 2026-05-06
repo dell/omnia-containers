@@ -132,24 +132,24 @@ _node_connectivity_cache: Dict[str, Dict[str, Any]] = {}
 def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[str, Any]:
     """
     Check if a node is reachable via ping and SSH.
-    
+
     Results are cached to avoid repeated checks.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP of the node
         hostname: Hostname for display (defaults to admin_ip)
-    
+
     Returns:
         Dict with ping_ok, ssh_ok, reachable, error
     """
     if hostname is None:
         hostname = admin_ip
-    
+
     # Check cache first
     if admin_ip in _node_connectivity_cache:
         return _node_connectivity_cache[admin_ip]
-    
+
     result = {
         "ping_ok": False,
         "ssh_ok": False,
@@ -158,7 +158,7 @@ def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[s
         "admin_ip": admin_ip,
         "error": "",
     }
-    
+
     # Check ping first
     cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
     if cmd.rc == 0:
@@ -167,7 +167,7 @@ def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[s
         result["error"] = f"Node {hostname} ({admin_ip}) is not pingable"
         _node_connectivity_cache[admin_ip] = result
         return result
-    
+
     # Check SSH
     cmd = run_on_remote_node(host, "echo ok 2>&1", admin_ip)
     if cmd.rc == 0 and "ok" in (cmd.stdout or ""):
@@ -175,7 +175,7 @@ def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[s
         result["reachable"] = True
     else:
         result["error"] = f"Node {hostname} ({admin_ip}) SSH not working"
-    
+
     _node_connectivity_cache[admin_ip] = result
     return result
 
@@ -183,23 +183,23 @@ def check_node_connectivity(host, admin_ip: str, hostname: str = None) -> Dict[s
 def check_nodes_connectivity(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]:
     """
     Check connectivity for multiple nodes.
-    
+
     Args:
         host: Testinfra host object
         nodes: List of node dicts with admin_ip, hostname
-    
+
     Returns:
         Dict with success, reachable_nodes, unreachable_nodes
     """
     reachable = []
     unreachable = []
-    
+
     for node in nodes:
         admin_ip = node.get("admin_ip", "")
         hostname = node.get("hostname", admin_ip)
-        
+
         result = check_node_connectivity(host, admin_ip, hostname)
-        
+
         if result["reachable"]:
             reachable.append(node)
         else:
@@ -207,7 +207,7 @@ def check_nodes_connectivity(host, nodes: List[Dict[str, str]]) -> Dict[str, Any
                 **node,
                 "error": result["error"],
             })
-    
+
     return {
         "success": len(unreachable) == 0,
         "total": len(nodes),
@@ -219,11 +219,11 @@ def check_nodes_connectivity(host, nodes: List[Dict[str, str]]) -> Dict[str, Any
 def filter_reachable_nodes(host, nodes: List[Dict[str, str]]) -> List[Dict[str, str]]:
     """
     Filter nodes to only those that are reachable (ping + SSH).
-    
+
     Args:
         host: Testinfra host object
         nodes: List of node dicts
-    
+
     Returns:
         List of reachable nodes
     """
@@ -373,7 +373,9 @@ def verify_ssh_from_core(
             # First check ping (single attempt, no retry)
             ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
             if ping_cmd.rc != 0:
-                details_lines.append(f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})")
+                details_lines.append(
+                    f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})"
+                )
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False
@@ -442,7 +444,9 @@ def verify_ssh_from_oim(
             # First check ping (single attempt, no retry)
             ping_cmd = run_in_container(host, f"ping -c 1 -W 2 {admin_ip} 2>&1")
             if ping_cmd.rc != 0:
-                details_lines.append(f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})")
+                details_lines.append(
+                    f"    ✗ {hostname}: Node not reachable (ping failed to {admin_ip})"
+                )
                 results["failed"] += 1
                 results["failed_nodes"].append(hostname)
                 results["success"] = False
@@ -489,7 +493,7 @@ def verify_cloudinit_status(host, nodes: List[Dict[str, str]]) -> Dict[str, Any]
         Dict with success, total, results (per-node details)
     """
     from automation_library.core import verify_cloudinit_status_multi
-    
+
     return verify_cloudinit_status_multi(
         host,
         nodes,
@@ -676,13 +680,17 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
         expected_prefixes.extend(["nersc-ldms-aggr", "nersc-ldms-store"])
 
     # iDRAC telemetry pods - only if idrac_telemetry_support is true
-    idrac_enabled = telemetry_config.get("idrac_telemetry_support", False) if telemetry_config else False
+    idrac_enabled = (
+        telemetry_config.get("idrac_telemetry_support", False) if telemetry_config else False
+    )
     results["idrac_enabled"] = idrac_enabled
     if idrac_enabled:
         expected_prefixes.append("idrac-telemetry")
 
     # VictoriaMetrics pods based on deployment_mode
-    victoria_config = telemetry_config.get("victoria_configurations", {}) if telemetry_config else {}
+    victoria_config = (
+        telemetry_config.get("victoria_configurations", {}) if telemetry_config else {}
+    )
     deployment_mode = victoria_config.get("deployment_mode", "cluster")
     results["deployment_mode"] = deployment_mode
 

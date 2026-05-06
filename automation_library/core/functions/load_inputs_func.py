@@ -36,7 +36,7 @@ from typing import Any, Dict
 
 import yaml
 
-from .host_func_full import run_in_container
+from .host_func import run_in_container
 from ..vars.paths_vars import INPUT_BASE_PATH
 
 # =============================================================================

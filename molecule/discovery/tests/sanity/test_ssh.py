@@ -15,21 +15,21 @@
 """
 Discovery SSH Verification Test Cases.
 
+Runs AFTER test_cloudinit.py (order 2-5).
 Test cases for verifying passwordless SSH connectivity:
-1. Node connectivity pre-check (ping + SSH with retry)
 2. SSH from OIM to nodes via admin IP
 3. SSH from OIM to nodes via hostname
 4. SSH from omnia_core to nodes via admin IP
 5. SSH from omnia_core to nodes via hostname
+
+All tests use 2 retries for unreachable nodes and fail (not skip)
+if nodes are unreachable.
 """
 
 import pytest
 from automation_library.core import (
     TestLogger,
-    verify_nodes_connectivity,
-    get_connectivity_cache,
-    get_reachable_nodes,
-    get_unreachable_nodes,
+    check_nodes_reachability,
 )
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
@@ -37,71 +37,28 @@ from automation_library.discovery.functions import (
     verify_ssh_from_core,
     verify_ssh_from_oim,
 )
+from automation_library.discovery.vars import (
+    DISCOVERY_REACHABILITY_RETRY,
+    DISCOVERY_REACHABILITY_INTERVAL,
+)
 
 
-# =============================================================================
-# NODE CONNECTIVITY PRE-CHECK (run first with retry)
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(1)
-def test_node_connectivity_precheck(host):
-    """
-    Test Case 1: Verify all nodes are reachable (ping + SSH) with retry.
-    
-    This test runs first and checks connectivity to all nodes with:
-    - Ping retry: 20 minutes (240 retries x 5 seconds)
-    - SSH retry: 5 minutes (60 retries x 5 seconds)
-    
-    Results are cached for use by subsequent tests.
-    """
-    log = TestLogger("Verify node connectivity (ping + SSH)")
-
+def _get_all_nodes(host):
+    """Get all nodes from PXE mapping."""
     slurm_nodes = get_all_slurm_nodes(host)
     k8s_nodes = get_k8s_nodes(host)
-    all_nodes = slurm_nodes + k8s_nodes
+    return slurm_nodes + k8s_nodes
 
-    if not all_nodes:
-        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping")
 
-    log.check(f"Checking connectivity to {len(all_nodes)} nodes (ping + SSH with retry)")
-
-    result = verify_nodes_connectivity(host, all_nodes)
-
-    # Build details
-    details_lines = [
-        f"Total nodes: {result['total']}",
-        f"Reachable: {result['reachable_count']}",
-        f"Unreachable: {result['unreachable_count']}",
-        "",
-    ]
-
-    for node_result in result["results"]:
-        hostname = node_result["hostname"]
-        admin_ip = node_result["admin_ip"]
-        if node_result["reachable"]:
-            details_lines.append(f"  ✓ {hostname} ({admin_ip}): reachable")
-        else:
-            if not node_result["ping_ok"]:
-                details_lines.append(f"  ✗ {hostname} ({admin_ip}): not pingable")
-            else:
-                details_lines.append(f"  ✗ {hostname} ({admin_ip}): ping OK but SSH failed")
-
-    details = "\n".join(details_lines)
-
-    if result["success"]:
-        log.passed(f"All {result['total']} nodes are reachable", details)
-    else:
-        log.failed(
-            f"{result['unreachable_count']} of {result['total']} nodes unreachable",
-            details
-        )
-
-    assert result["success"], (
-        f"{result['unreachable_count']} nodes are unreachable. "
-        "Check node status and network connectivity."
-    )
+def _group_nodes_by_functional_group(nodes):
+    """Group nodes by functional_group."""
+    groups = {}
+    for node in nodes:
+        fg = node.get("functional_group", "unknown")
+        if fg not in groups:
+            groups[fg] = []
+        groups[fg].append(node)
+    return groups
 
 
 # =============================================================================
@@ -112,62 +69,153 @@ def test_node_connectivity_precheck(host):
 @pytest.mark.order(2)
 def test_ssh_from_oim_via_admin_ip(host):
     """
-    Test Case 2: Verify passwordless SSH from OIM to nodes via admin IP.
+    Test Case 2: Verify SSH from OIM to nodes via admin IP.
+    Uses cached connectivity with 2 retries for unreachable nodes.
+    Fails if any nodes are unreachable.
     """
-    log = TestLogger("Verify passwordless SSH from OIM via admin IP")
+    logger = TestLogger("Verify SSH from OIM via admin IP")
 
-    slurm_nodes = get_all_slurm_nodes(host)
-    k8s_nodes = get_k8s_nodes(host)
-    all_nodes = slurm_nodes + k8s_nodes
+    all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping")
+        logger.skipped("No nodes found in PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping file")
 
-    log.check(f"Testing SSH from OIM to {len(all_nodes)} nodes using admin IP")
+    # Check reachability (uses cache, 2 retries for unreachable)
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_ssh_from_oim(host, all_nodes, use_hostname=False)
+    # Build details grouped by functional group
+    grouped = _group_nodes_by_functional_group(all_nodes)
+    details_lines = []
 
-    if result["success"]:
-        log.passed(
-            f"SSH working to all {result['total']} nodes via admin IP",
-            result["details"]
+    # Report unreachable nodes first
+    if reach["unreachable"]:
+        unreachable_count = len(reach['unreachable'])
+        retry_count = DISCOVERY_REACHABILITY_RETRY
+        details_lines.append(
+            f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
-    else:
-        log.failed(f"SSH failed for {result['failed']} nodes", result["details"])
+        for node in reach["unreachable"]:
+            fg = node.get("functional_group", "unknown")
+            hostname = node['hostname']
+            admin_ip = node['admin_ip']
+            details_lines.append(f"  [{fg}] ✗ {hostname} ({admin_ip}): not reachable")
+        details_lines.append("")
 
-    assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
+    logger.check(f"Testing SSH to {len(reach['reachable'])} reachable nodes")
+
+    # Test SSH on reachable nodes
+    if reach["reachable"]:
+        result = verify_ssh_from_oim(host, reach["reachable"], use_hostname=False)
+
+        details_lines.append(f"SSH Results ({result['total']} nodes):")
+        failed_nodes = result.get("failed_nodes", [])
+        for fg, nodes in grouped.items():
+            reachable_hostnames = [r["hostname"] for r in reach["reachable"]]
+            fg_nodes = [n for n in nodes if n["hostname"] in reachable_hostnames]
+            if fg_nodes:
+                details_lines.append(f"  [{fg}]")
+                for node in fg_nodes:
+                    hostname = node["hostname"]
+                    if hostname in failed_nodes:
+                        details_lines.append(f"    ✗ {hostname}: SSH failed")
+                    else:
+                        details_lines.append(f"    ✓ {hostname}: SSH OK")
+    else:
+        result = {"success": False, "failed_nodes": []}
+
+    details = "\n".join(details_lines)
+
+    # Fail if any unreachable or SSH failed
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            unreachable_hosts = [n['hostname'] for n in reach['unreachable']]
+            fail_parts.append(f"Unreachable: {', '.join(unreachable_hosts)}")
+        if result.get("failed_nodes"):
+            fail_parts.append(f"SSH failed: {', '.join(result['failed_nodes'])}")
+        logger.failed(f"SSH test failed", details=details)
+        assert False, "; ".join(fail_parts)
+
+    logger.passed(f"SSH successful to all {result['total']} nodes", details=details)
 
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
 def test_ssh_from_oim_via_hostname(host):
     """
-    Test Case 3: Verify passwordless SSH from OIM to nodes via hostname.
+    Test Case 3: Verify SSH from OIM to nodes via hostname.
+    Uses cached connectivity with 2 retries for unreachable nodes.
+    Fails if any nodes are unreachable.
     """
-    log = TestLogger("Verify passwordless SSH from OIM via hostname")
+    logger = TestLogger("Verify SSH from OIM via hostname")
 
-    slurm_nodes = get_all_slurm_nodes(host)
-    k8s_nodes = get_k8s_nodes(host)
-    all_nodes = slurm_nodes + k8s_nodes
+    all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping")
+        logger.skipped("No nodes found in PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping file")
 
-    log.check(f"Testing SSH from OIM to {len(all_nodes)} nodes using hostname")
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_ssh_from_oim(host, all_nodes, use_hostname=True)
+    grouped = _group_nodes_by_functional_group(all_nodes)
+    details_lines = []
 
-    if result["success"]:
-        log.passed(
-            f"SSH working to all {result['total']} nodes via hostname",
-            result["details"]
+    if reach["unreachable"]:
+        unreachable_count = len(reach['unreachable'])
+        retry_count = DISCOVERY_REACHABILITY_RETRY
+        details_lines.append(
+            f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
-    else:
-        log.failed(f"SSH failed for {result['failed']} nodes", result["details"])
+        for node in reach["unreachable"]:
+            fg = node.get("functional_group", "unknown")
+            hostname = node['hostname']
+            admin_ip = node['admin_ip']
+            details_lines.append(f"  [{fg}] ✗ {hostname} ({admin_ip}): not reachable")
+        details_lines.append("")
 
-    assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
+    logger.check(f"Testing SSH to {len(reach['reachable'])} reachable nodes")
+
+    if reach["reachable"]:
+        result = verify_ssh_from_oim(host, reach["reachable"], use_hostname=True)
+
+        details_lines.append(f"SSH Results ({result['total']} nodes):")
+        failed_nodes = result.get("failed_nodes", [])
+        for fg, nodes in grouped.items():
+            reachable_hostnames = [r["hostname"] for r in reach["reachable"]]
+            fg_nodes = [n for n in nodes if n["hostname"] in reachable_hostnames]
+            if fg_nodes:
+                details_lines.append(f"  [{fg}]")
+                for node in fg_nodes:
+                    hostname = node["hostname"]
+                    if hostname in failed_nodes:
+                        details_lines.append(f"    ✗ {hostname}: SSH failed")
+                    else:
+                        details_lines.append(f"    ✓ {hostname}: SSH OK")
+    else:
+        result = {"success": False, "failed_nodes": []}
+
+    details = "\n".join(details_lines)
+
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            unreachable_hosts = [n['hostname'] for n in reach['unreachable']]
+            fail_parts.append(f"Unreachable: {', '.join(unreachable_hosts)}")
+        if result.get("failed_nodes"):
+            fail_parts.append(f"SSH failed: {', '.join(result['failed_nodes'])}")
+        logger.failed(f"SSH test failed", details=details)
+        assert False, "; ".join(fail_parts)
+
+    logger.passed(f"SSH successful to all {result['total']} nodes", details=details)
 
 
 # =============================================================================
@@ -178,59 +226,145 @@ def test_ssh_from_oim_via_hostname(host):
 @pytest.mark.order(4)
 def test_ssh_from_core_via_admin_ip(host):
     """
-    Test Case 4: Verify passwordless SSH from omnia_core to nodes via admin IP.
+    Test Case 4: Verify SSH from omnia_core to nodes via admin IP.
+    Uses cached connectivity with 2 retries for unreachable nodes.
+    Fails if any nodes are unreachable.
     """
-    log = TestLogger("Verify passwordless SSH from omnia_core via admin IP")
+    logger = TestLogger("Verify SSH from omnia_core via admin IP")
 
-    slurm_nodes = get_all_slurm_nodes(host)
-    k8s_nodes = get_k8s_nodes(host)
-    all_nodes = slurm_nodes + k8s_nodes
+    all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping")
+        logger.skipped("No nodes found in PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping file")
 
-    log.check(f"Testing SSH from omnia_core to {len(all_nodes)} nodes using admin IP")
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_ssh_from_core(host, all_nodes, use_hostname=False)
+    grouped = _group_nodes_by_functional_group(all_nodes)
+    details_lines = []
 
-    if result["success"]:
-        log.passed(
-            f"SSH working to all {result['total']} nodes via admin IP",
-            result["details"]
+    if reach["unreachable"]:
+        unreachable_count = len(reach['unreachable'])
+        retry_count = DISCOVERY_REACHABILITY_RETRY
+        details_lines.append(
+            f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
-    else:
-        log.failed(f"SSH failed for {result['failed']} nodes", result["details"])
+        for node in reach["unreachable"]:
+            fg = node.get("functional_group", "unknown")
+            hostname = node['hostname']
+            admin_ip = node['admin_ip']
+            details_lines.append(f"  [{fg}] ✗ {hostname} ({admin_ip}): not reachable")
+        details_lines.append("")
 
-    assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
+    logger.check(f"Testing SSH to {len(reach['reachable'])} reachable nodes")
+
+    if reach["reachable"]:
+        result = verify_ssh_from_core(host, reach["reachable"], use_hostname=False)
+
+        details_lines.append(f"SSH Results ({result['total']} nodes):")
+        failed_nodes = result.get("failed_nodes", [])
+        for fg, nodes in grouped.items():
+            reachable_hostnames = [r["hostname"] for r in reach["reachable"]]
+            fg_nodes = [n for n in nodes if n["hostname"] in reachable_hostnames]
+            if fg_nodes:
+                details_lines.append(f"  [{fg}]")
+                for node in fg_nodes:
+                    hostname = node["hostname"]
+                    if hostname in failed_nodes:
+                        details_lines.append(f"    ✗ {hostname}: SSH failed")
+                    else:
+                        details_lines.append(f"    ✓ {hostname}: SSH OK")
+    else:
+        result = {"success": False, "failed_nodes": []}
+
+    details = "\n".join(details_lines)
+
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            unreachable_hosts = [n['hostname'] for n in reach['unreachable']]
+            fail_parts.append(f"Unreachable: {', '.join(unreachable_hosts)}")
+        if result.get("failed_nodes"):
+            fail_parts.append(f"SSH failed: {', '.join(result['failed_nodes'])}")
+        logger.failed(f"SSH test failed", details=details)
+        assert False, "; ".join(fail_parts)
+
+    logger.passed(f"SSH successful to all {result['total']} nodes", details=details)
 
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
 def test_ssh_from_core_via_hostname(host):
     """
-    Test Case 5: Verify passwordless SSH from omnia_core to nodes via hostname.
+    Test Case 5: Verify SSH from omnia_core to nodes via hostname.
+    Uses cached connectivity with 2 retries for unreachable nodes.
+    Fails if any nodes are unreachable.
     """
-    log = TestLogger("Verify passwordless SSH from omnia_core via hostname")
+    logger = TestLogger("Verify SSH from omnia_core via hostname")
 
-    slurm_nodes = get_all_slurm_nodes(host)
-    k8s_nodes = get_k8s_nodes(host)
-    all_nodes = slurm_nodes + k8s_nodes
+    all_nodes = _get_all_nodes(host)
 
     if not all_nodes:
-        log.skipped("No nodes found in PXE mapping", "Check PXE mapping file")
-        pytest.skip("No nodes found in PXE mapping")
+        logger.skipped("No nodes found in PXE mapping file")
+        pytest.skip("No nodes found in PXE mapping file")
 
-    log.check(f"Testing SSH from omnia_core to {len(all_nodes)} nodes using hostname")
+    reach = check_nodes_reachability(
+        host, all_nodes,
+        retry_limit=DISCOVERY_REACHABILITY_RETRY,
+        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+    )
 
-    result = verify_ssh_from_core(host, all_nodes, use_hostname=True)
+    grouped = _group_nodes_by_functional_group(all_nodes)
+    details_lines = []
 
-    if result["success"]:
-        log.passed(
-            f"SSH working to all {result['total']} nodes via hostname",
-            result["details"]
+    if reach["unreachable"]:
+        unreachable_count = len(reach['unreachable'])
+        retry_count = DISCOVERY_REACHABILITY_RETRY
+        details_lines.append(
+            f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
-    else:
-        log.failed(f"SSH failed for {result['failed']} nodes", result["details"])
+        for node in reach["unreachable"]:
+            fg = node.get("functional_group", "unknown")
+            hostname = node['hostname']
+            admin_ip = node['admin_ip']
+            details_lines.append(f"  [{fg}] ✗ {hostname} ({admin_ip}): not reachable")
+        details_lines.append("")
 
-    assert result["success"], f"SSH failed for: {', '.join(result['failed_nodes'])}"
+    logger.check(f"Testing SSH to {len(reach['reachable'])} reachable nodes")
+
+    if reach["reachable"]:
+        result = verify_ssh_from_core(host, reach["reachable"], use_hostname=True)
+
+        details_lines.append(f"SSH Results ({result['total']} nodes):")
+        failed_nodes = result.get("failed_nodes", [])
+        for fg, nodes in grouped.items():
+            reachable_hostnames = [r["hostname"] for r in reach["reachable"]]
+            fg_nodes = [n for n in nodes if n["hostname"] in reachable_hostnames]
+            if fg_nodes:
+                details_lines.append(f"  [{fg}]")
+                for node in fg_nodes:
+                    hostname = node["hostname"]
+                    if hostname in failed_nodes:
+                        details_lines.append(f"    ✗ {hostname}: SSH failed")
+                    else:
+                        details_lines.append(f"    ✓ {hostname}: SSH OK")
+    else:
+        result = {"success": False, "failed_nodes": []}
+
+    details = "\n".join(details_lines)
+
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            unreachable_hosts = [n['hostname'] for n in reach['unreachable']]
+            fail_parts.append(f"Unreachable: {', '.join(unreachable_hosts)}")
+        if result.get("failed_nodes"):
+            fail_parts.append(f"SSH failed: {', '.join(result['failed_nodes'])}")
+        logger.failed(f"SSH test failed", details=details)
+        assert False, "; ".join(fail_parts)
+
+    logger.passed(f"SSH successful to all {result['total']} nodes", details=details)

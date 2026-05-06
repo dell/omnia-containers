@@ -22,15 +22,22 @@ Configuration for ping and SSH connectivity checks with retry logic.
 # PING RETRY CONFIGURATION (20 minutes total)
 # =============================================================================
 
-PING_RETRY_LIMIT = 5
-PING_RETRY_INTERVAL = 5
+PING_RETRY_LIMIT = 240  # 240 retries * 5s = 20 minutes
+PING_RETRY_INTERVAL = 5  # 5 seconds between retries
 
 # =============================================================================
 # SSH RETRY CONFIGURATION (5 minutes total)
 # =============================================================================
 
-SSH_RETRY_LIMIT = 5
-SSH_RETRY_INTERVAL = 5
+SSH_RETRY_LIMIT = 60  # 60 retries * 5s = 5 minutes
+SSH_RETRY_INTERVAL = 5  # 5 seconds between retries
+
+# =============================================================================
+# PARALLEL CONNECTIVITY CONFIGURATION
+# =============================================================================
+
+MAX_PARALLEL_WORKERS = 6  # Maximum parallel threads for connectivity checks
+CONNECTIVITY_PROGRESS_INTERVAL = 5  # Print progress every 5 seconds
 
 # =============================================================================
 # CONNECTIVITY COMMANDS

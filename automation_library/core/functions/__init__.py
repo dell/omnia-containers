@@ -15,7 +15,7 @@
 """Core Functions Module."""
 
 # Host functions
-from .host_func_full import (
+from .host_func import (
     get_testinfra_host,
     load_omnia_test_config,
     get_dataset_path,
@@ -32,23 +32,25 @@ from .host_func_full import (
     get_group_names_from_pxe_mapping,
 )
 
-# Connectivity functions
-from .connectivity_func import (
-    check_node_ping,
-    check_node_ssh,
-    check_node_connectivity,
-    verify_nodes_connectivity,
-    get_connectivity_cache,
+# Node checks functions (connectivity + cloud-init)
+from .node_checks_func import (
+    # Connectivity cache
     clear_connectivity_cache,
+    get_connectivity_cache,
     get_reachable_nodes,
     get_unreachable_nodes,
-)
-
-# Cloud-init functions
-from .cloudinit_func import (
+    is_node_reachable,
+    get_node_error,
+    # Connectivity checks
+    check_node_connectivity_once,
+    check_node_connectivity_with_retry,
+    verify_nodes_connectivity,
+    check_nodes_reachability,
+    print_unreachable_nodes,
+    # Cloud-init
     get_cloudinit_status,
     wait_for_cloudinit,
-    verify_cloudinit_status_multi,
+    verify_cloudinit_status,
 )
 
 # Formatting functions

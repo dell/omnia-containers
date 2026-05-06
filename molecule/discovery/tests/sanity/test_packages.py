@@ -58,7 +58,7 @@ from automation_library.discovery.messages import (
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(1)
+@pytest.mark.order(6)
 def test_build_stream_job_stage(host):
     """
     Test 1: When build_stream is enabled, verify the validate-image-on-test
@@ -116,7 +116,7 @@ def test_build_stream_job_stage(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(7)
 def test_node_packages_installed(host):
     """
     Test Case 1: Verify all required packages are installed on all nodes.
@@ -156,7 +156,9 @@ def test_node_packages_installed(host):
     details_lines = []
     for node_result in result.get("results", []):
         hostname = node_result["hostname"]
-        expected = len(node_result.get("found_packages", [])) + len(node_result.get("missing_packages", []))
+        found_pkgs = node_result.get("found_packages", [])
+        missing_pkgs = node_result.get("missing_packages", [])
+        expected = len(found_pkgs) + len(missing_pkgs)
         found = len(node_result.get("found_packages", []))
         status = "\u2713" if node_result["success"] else "\u2717"
 
