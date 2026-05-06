@@ -790,7 +790,7 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
             node_result["job_id"] = job_id
             details_lines.append(f"  ✓ Submitted job ID: {job_id} (as {ldap_user})")
 
-            # Wait for job to start RUNNING and detect which compute node it's on (max 30s)
+            # Wait for job to start RUNNING (max 30s) — use %T only (same as old working approach)
             job_running = False
             job_state = ""
             actual_compute_hostname = ""
@@ -799,7 +799,7 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
                 time.sleep(2)
                 sq_ssh = (
                     f'ssh {_ssh} root@{submit_ip} '
-                    f'"squeue -j {job_id} -h -o \"%T %N\"" 2>&1'
+                    f'"squeue -j {job_id} -h -o %T" 2>&1'
                 )
                 cmd = run_in_container(host, sq_ssh)
                 raw = (cmd.stdout or "").strip()
@@ -807,14 +807,25 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
                     l.strip() for l in raw.splitlines()
                     if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
                 ]
-                last_line = lines[-1] if lines else ""
-                parts = last_line.split()
-                job_state = parts[0] if parts else ""
-                if job_state == "RUNNING" and len(parts) >= 2:
-                    actual_compute_hostname = parts[1]
-                    actual_compute_ip = compute_node_map.get(actual_compute_hostname, "")
+                job_state = lines[-1] if lines else ""
+                if job_state == "RUNNING":
                     job_running = True
                     break
+
+            # Once RUNNING, get the actual compute node with a separate %N query
+            if job_running:
+                sq_node_ssh = (
+                    f'ssh {_ssh} root@{submit_ip} '
+                    f'"squeue -j {job_id} -h -o %N" 2>&1'
+                )
+                cmd = run_in_container(host, sq_node_ssh)
+                raw = (cmd.stdout or "").strip()
+                node_lines = [
+                    l.strip() for l in raw.splitlines()
+                    if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+                ]
+                actual_compute_hostname = node_lines[-1] if node_lines else ""
+                actual_compute_ip = compute_node_map.get(actual_compute_hostname, "")
 
             if not job_running:
                 node_result["error"] = f"Job did not reach RUNNING: '{job_state}'"
