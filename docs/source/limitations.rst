@@ -10,3 +10,4 @@ Limitations
 - The ``local_repo.yml`` playbook passes even when an incorrect GPG key is provided during repository configuration. GPG key validation is currently not enforced during Pulp remote creation. Although ``localrepo`` includes support for GPG keys, this functionality is not yet enabled in Pulp. This issue has been raised with the Pulp team for tracking: `https://github.com/pulp/pulp_rpm/issues/4241 <https://github.com/pulp/pulp_rpm/issues/4241>`_.
 - BuildStreaM does not support customization of catalog ``catalog_rhel.json`` or additional package installations.
 - BuildStreaM does not support retry of failed pipeline jobs.
+- On the PowerEdge XE8712 with NVIDIA GB200 accelerators, the GPU Usage metric from iDRAC telmetry cannot be retrieved in Kafka and VictoriaMetrics. 
