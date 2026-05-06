@@ -133,4 +133,4 @@ Verify Log Ingestion
    Query latency depends on time range and data volume. Narrow the time range for faster results.
 
 .. note::
-   VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. These entries are not retained in VictoriaLogs.
+   VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.
