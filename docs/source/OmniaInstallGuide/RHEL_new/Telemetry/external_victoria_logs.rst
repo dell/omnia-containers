@@ -131,3 +131,6 @@ Verify Log Ingestion
 
 .. note::
    Query latency depends on time range and data volume. Narrow the time range for faster results.
+
+.. warning::
+   VictoriaLogs silently discards log entries with timestamps outside the configured retention window (-retentionPeriod) while returning HTTP 200 OK.
