@@ -88,7 +88,7 @@ telemetry_sinks > ``victoria_logs`` > ``retention_period``,Conditional Mandatory
 * **Accepted values**: 24-8760 (1 day to 1 year)
 * **Default**: 168 (7 days)
 * **Note**: Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations.
-.. note:: VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window (-retentionPeriod) are submitted. These entries are discarded during the retention process."
+.. note:: VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. These entries are not retained in VictoriaLogs."
 telemetry_sinks > ``kafka`` > ``persistence_size``,Conditional Mandatory,"* Storage per Kafka pod PVC
 * **Total = persistence_size × 6 pods (3 brokers + 3 controllers)**
 * **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
