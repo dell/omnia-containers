@@ -56,9 +56,6 @@ Hosts telemetry collection and storage services:
 - **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
 - **VLAgent** – Platform-managed log collection agent that receives logs from external sources
 
-.. warning::
-   VictoriaLogs silently discards log entries with timestamps outside the configured retention window (-retentionPeriod) while returning HTTP 200 OK.
-
 
 **Slurm Cluster**
 
