@@ -75,7 +75,7 @@ Build Slurm repository without GPU support
 
 3. Run the RPM Build command. Run the following command from the directory containing the downloaded tar file. The following command is provided as an example:  ::
 
-        rpmbuild -ta slurm-25.05.2.tar.bz2  --with pmix   --define "with_pmix --with-pmix=/usr"    --with yaml   --define "with_yaml --with-yaml"  --without hdf5   --define "without_hdf5 --without-hdf5"
+        rpmbuild -ta slurm-25.05.2.tar.bz2   --with pmix   --define "with_pmix --with-pmix=/usr"   --with yaml   --define "with_yaml --with-yaml"   --without hdf5   --define "without_hdf5 --without-hdf5"   --with nvml   --define "_with_nvml --with-nvml=/usr/local/cuda"   --without ucx   --define "without_ucx --without-ucx"
 
 After the build is completed, the RPMs are available at ``/root/rpmbuild/RPMS/x86_64/`` or ``/root/rpmbuild/RPMS/aarch64/``.
 
@@ -121,7 +121,7 @@ The cuda_13.0.2_580.95.05_linux.run file is downloaded.
 
 5. Run the RPM Build command. Run the following command from the directory containing the downloaded tar file. The following command is provided as an example: ::
 
-        rpmbuild -ta slurm-25.05.2.tar.bz2  --with pmix   --define "with_pmix --with-pmix=/usr"     --with yaml   --define "with_yaml --with-yaml"  --without hdf5   --define "without_hdf5 --without-hdf5" --with nvml   --define "_with_nvml --with-nvml=/usr/local/cuda"
+       rpmbuild -ta slurm-25.05.2.tar.bz2   --with pmix   --define "with_pmix --with-pmix=/usr"   --with yaml   --define "with_yaml --with-yaml"   --without hdf5   --define "without_hdf5 --without-hdf5"   --with nvml   --define "_with_nvml --with-nvml=/usr/local/cuda"   --without ucx   --define "without_ucx --without-ucx"
 
 After the build is completed, the RPMs are available at ``/root/rpmbuild/RPMS/x86_64/`` or ``/root/rpmbuild/RPMS/aarch64/``.
 
