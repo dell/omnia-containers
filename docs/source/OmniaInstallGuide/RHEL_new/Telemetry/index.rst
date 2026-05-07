@@ -11,7 +11,7 @@ Omnia supports the following telemetry collection to monitor and manage your HPC
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
   and streamed to **Kafka**.
 
-* **PowerScale Telemetry** Collects the PowerScale Telemetry data and logs and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
 
 
 .. note::

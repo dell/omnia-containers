@@ -18,6 +18,7 @@ Supported Metrics and Logs
 ---------------------------
 
 **Metrics:**
+
 The PowerScale metrics include the following:
 
 - **Performance:** Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency
@@ -27,7 +28,8 @@ The PowerScale metrics include the following:
 
 For more details on PowerScale metrics, see `Supported PowerScale Metrics <https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/>`_
 
-**Logs**
+**Logs:**
+
 The PowerScale logs include the following:
 
 - Capacity warnings, disk failures, node state changes, protocol errors
