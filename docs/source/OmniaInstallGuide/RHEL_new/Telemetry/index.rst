@@ -1,27 +1,22 @@
 Step 8: Configure Telemetry Requirements
 ========================================
 
-Omnia enables telemetry collection using both iDRAC Telemetry and LDMS
-(Lightweight Distributed Metric Service) in HPC environments. This design ensures that
-telemetry components are dynamically provisioned with stateless provisioning tool, 
-providing flexible deployment and simplified lifecycle management.
+Omnia supports the following telemetry collection to monitor and manage your HPC infrastructure. 
 
 * **iDRAC Telemetry** provides out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and streamed to **Kafka** or **VictoriaMetrics**, depending on the deployment needs. When **VictoriaMetrics** is selected,
-  **VictoriaLogs** is deployed alongside it for centralized log management.
+  and streamed to **Kafka** and **VictoriaMetrics**. The iDRAC logs can be collected and streamed to **VictoriaLogs**.
 
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
   and streamed to **Kafka**.
 
-* **PowerScale Telemetry** collects storage performance metrics and logs from PowerScale storage nodes. The PowerScale Telemetry data and logs can be collected and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
-
+* **PowerScale Telemetry** Collects the PowerScale Telemetry data and logs and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
 
 
 .. note::
 
-   Ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file when ``idrac_telemetry_support`` is set to ``true`` in the ``telemetry_config.yml`` file.
+   To enable any telemetry and log collections (iDRAC telemetry, LDMS, PowerScale telemetry, or PowerScale logs), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and ``idrac_telemetry_support`` is set to ``true`` in the ``telemetry_config.yml`` file.
 
 
 Omnia Telemetry Architecture
@@ -55,6 +50,9 @@ Hosts telemetry collection and storage services:
 - **Victoria Metrics** – Time-series database for metric storage
 - **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
 - **VLAgent** – Platform-managed log collection agent that receives logs from external sources
+- **csm-metrics** – Collects PowerScale metrics
+- **otel-collector** – Forwards metrics to Victoria Metrics and Victoria Logs
+- **CSI Driver for Dell PowerScale:** – Driver required for communication between PowerScale and service Kubernetes nodes
 
 
 **Slurm Cluster**
@@ -64,12 +62,6 @@ Each slurm compute node runs:
 - **LDMS Sampler** – Collects OS metrics (CPU, memory, network, and I/O)
 - **iDRAC** – Provides hardware health data (temperature, power, and fans)
 
-**PowerScale Storage**
-
-Each PowerScale storage node runs:
-
-- **csm-metrics** – Collects PowerScale metrics
-- **otel-collector** – Forwards metrics to Victoria Metrics and Victoria Logs
 
 iDRAC and LDMS Telemetry Data Flows
 ------------------------------------
@@ -93,8 +85,8 @@ PowerScale Telemetry Data Flows
 
 ::
 
-   PowerScale Nodes → csm-metrics → otel-collector → vmagent → Victoria Metrics
-   PowerScale Nodes → csm-metrics → otel-collector → vlagent → Victoria Logs
+   PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metric
+   PowerScale Nodes forwards syslog →  vlagent → Victoria Logs
 
 
 .. toctree::

@@ -13,22 +13,22 @@ PowerScale Telemetry collects storage performance metrics and logs. PowerScale T
 - **CSI Driver for Dell PowerScale:** Required for Omnia-orchestrated deployment mode.
 - **cert-manager:** Required for TLS certificate management in Omnia-orchestrated mode.
 
-For more details on Dell CSM Metrics, see `CSM Metrics for PowerScale <https://github.com/dell/csm-metrics>`_
-
-PowerScale Telemetry supports two deployment modes:
-
 
 Supported Metrics and Logs
 ---------------------------
 
-**Metrics include:**
+**Metrics:**
+The PowerScale metrics include the following:
 
 - **Performance:** Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency
 - **Capacity:** Total cluster capacity, used capacity, available capacity, per-node capacity
 - **Health:** Node online/offline status, disk health, cluster rebalance status, protection group status
 - **Topology:** Cluster node membership, node roles, interconnect layout, protection domain mapping
 
-**Logs include:**
+For more details on PowerScale metrics, see `Supported PowerScale Metrics <https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/>`_
+
+**Logs**
+The PowerScale logs include the following:
 
 - Capacity warnings, disk failures, node state changes, protocol errors
 - Events are labeled with host/cluster, severity, and facility
@@ -45,13 +45,14 @@ Prerequisites
 Steps
 -------
 
-1. Specify the following entries in the ``software_config.json``. If any entry is missing, Omnia skips PowerScale Telemetry deployment and logs an informational message. 
-   For more information, see :doc:`../CreateLocalRepo/InputParameters`.
+1. Specify the following entries in the ``software_config.json``.  For detailed information on updating the ``software_config.json``, see :doc:`../CreateLocalRepo/InputParameters`.
 
-.. code-block:: json
+    .. note:: The entry must be present when ``telemetry_sources > powerscale > metrics_enabled`` is set to ``true`` in the ``telemetry_config.yml`` file.
 
-    {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
-    {"name": "csm-metrics", "arch": ["x86_64"]}
+    .. code-block:: json
+
+        {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "arch": ["x86_64"]}
 
 2. Configure the ``omnia_config.yml``:
 

@@ -4,7 +4,7 @@ Step 15: Initialize and Verify Telemetry
 Prerequisites
 ---------------
 
-* Ensure that the ``discovery.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
+* Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 
 Steps
 ------
