@@ -14,9 +14,9 @@
 * **fsck_pass**—Fsck pass number (usually ""0"" or ""2""). Optional. If specified, takes PRIORITY over mount_params profile
 * **mount_params**—Name of a profile in mount_params section. Optional. Used ONLY for fields not explicitly specified in the mount entry
 * **permissions**—Directory ownership and mode for the mount point. Optional
-  * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
-  * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
-  * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
+    * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+    * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+    * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
 * **node_key**—cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies per-node bind mount where source path is constructed using the queried variable value. The variable chosen must be unique per host to ensure isolation between nodes. fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic). Source becomes: <source>/<ds.meta_data.node_key>/<mount_point_stripped_leading_slash>
 * **node_mount_point**—List of bind mount targets. Required when node_key is set. Each target gets: <source>/<node_key_value>/<target_stripped_slash> -> <target>
 * **functional_group_prefix**—List of functional group prefixes. All nodes whose role starts with any prefix get this mount * e.g., [""slurm""] matches slurm_control_node, slurm_node, etc. If omitted (and no group), mount applies to all nodes. Mutually exclusive with groups.
@@ -43,7 +43,7 @@
 
 ``dict``
 
- Optional    ","* Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).
+ Optional    ","Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).""
 
 * **nfs_default**—Default NFS mount with standard NFS4.1 with high-performance options
     * **fs_type**: ""nfs""
@@ -56,7 +56,7 @@
 * **vast_rdma**—VAST NFS with RDMA configuration
     * **fs_type**: ""nfs""
     * **mnt_opts**: ""proto=rdma,port=20049,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard,intr,localaddr=192.168.0.23""
-**powervault_config**"
+"
 "**powervault_config:**
 
 ``List (dict)``
