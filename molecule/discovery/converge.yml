@@ -56,9 +56,6 @@
     # GUARD: ABORT IF BUILD_STREAM IS ENABLED
     # =========================================================================
 
-    - name: Guard - abort converge if build_stream is enabled
-      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
-
     # =========================================================================
     # PREREQUISITE CHECKS
     # =========================================================================
@@ -92,6 +89,9 @@
 
     - name: Sync project_default to container
       ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+    - name: Guard - abort converge if build_stream is enabled
+      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
 
     - name: Read provision_config.yml to get pxe_mapping_file_path
       ansible.builtin.command:
@@ -191,6 +191,156 @@
         msg: "discovery playbook not found at {{ discovery_playbook }}"
       when: "'NOT_FOUND' in playbook_check.stdout"
 
+    # =========================================================================
+    # POST-DISCOVERY: VERIFY PXE MAPPING FILE EXISTS
+    # =========================================================================
+
+    - name: Verify PXE mapping file exists after discovery
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: post_pxe_mapping_check
+      changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
+
+    - name: Fail if PXE mapping file not found after discovery
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                  PXE MAPPING FILE NOT FOUND AFTER DISCOVERY                  ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Expected: {{ pxe_mapping_file_path }}                                        ║
+          ║                                                                              ║
+          ║ HOW TO FIX:                                                                  ║
+          ║   1. Verify pxe_mapping_file_path in provision_config.yml                    ║
+          ║   2. Re-run discovery.yml                                                    ║
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: >
+        post_pxe_mapping_check is defined and
+        'NOT_FOUND' in (post_pxe_mapping_check.stdout | default(''))
+
+    - name: Display PXE mapping file verification
+      ansible.builtin.debug:
+        msg: "✓ PXE mapping file exists: {{ pxe_mapping_file_path }}"
+      when: >
+        post_pxe_mapping_check is defined and
+        'EXISTS' in (post_pxe_mapping_check.stdout | default(''))
+
+    # =========================================================================
+    # POST-DISCOVERY: CREATE BMC INVENTORY FROM PXE MAPPING
+    # =========================================================================
+
+    - name: Read BMC IPs from PXE mapping file
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec {{ container_name }} bash -c '
+            PXE_FILE="{{ pxe_mapping_file_path }}"
+            # Get header line and find BMC_IP column index
+            HEADER=$(head -1 "$PXE_FILE")
+            BMC_COL=$(echo "$HEADER" | tr "," "\n" | grep -n "BMC_IP" | cut -d: -f1)
+            if [ -z "$BMC_COL" ]; then
+              echo "ERROR: BMC_IP column not found in PXE mapping"
+              exit 1
+            fi
+            # Extract BMC IPs from data rows (skip header)
+            tail -n +2 "$PXE_FILE" | cut -d"," -f"$BMC_COL" | grep -v "^$" | sort -u
+          '
+        executable: /bin/bash
+      register: bmc_ips_result
+      changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
+
+    - name: Display extracted BMC IPs
+      ansible.builtin.debug:
+        msg: "BMC IPs from PXE mapping: {{ bmc_ips_result.stdout_lines | default([]) }}"
+      when: bmc_ips_result is defined and bmc_ips_result.stdout_lines is defined
+
+    - name: Create BMC inventory file with [bmc] inside core container
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec {{ container_name }} bash -c '
+            INVENTORY_DIR="/omnia/utils"
+            mkdir -p "$INVENTORY_DIR"
+            INVENTORY_FILE="$INVENTORY_DIR/bmc_inventory"
+            echo "[bmc]" > "$INVENTORY_FILE"
+            {% for ip in bmc_ips_result.stdout_lines %}
+            echo "{{ ip }}" >> "$INVENTORY_FILE"
+            {% endfor %}
+            echo "BMC inventory created at $INVENTORY_FILE"
+            cat "$INVENTORY_FILE"
+          '
+        executable: /bin/bash
+      register: bmc_inventory_result
+      changed_when: true
+      when:
+        - bmc_ips_result is defined
+        - bmc_ips_result.stdout_lines is defined
+        - bmc_ips_result.stdout_lines | length > 0
+
+    - name: Display BMC inventory creation result
+      ansible.builtin.debug:
+        msg: "{{ bmc_inventory_result.stdout | default('BMC inventory not created') }}"
+      when: bmc_inventory_result is defined
+
+    # =========================================================================
+    # POST-DISCOVERY: EXECUTE SET PXE BOOT PLAYBOOK
+    # =========================================================================
+
+    - name: Check if set_pxe_boot playbook exists in container
+      ansible.builtin.shell:  # noqa: risky-shell-pipe
+        cmd: >
+          podman exec {{ container_name }}
+          bash -o pipefail -c
+          'ls /omnia/utils/set_pxe_boot.yml /omnia/discovery/set_pxe_boot.yml 2>/dev/null | head -1'
+      register: pxe_boot_playbook_check
+      changed_when: false
+
+    - name: Set PXE boot playbook path
+      ansible.builtin.set_fact:
+        pxe_boot_playbook: "{{ pxe_boot_playbook_check.stdout | trim }}"
+      when: pxe_boot_playbook_check.stdout | default('') | trim | length > 0
+
+    - name: Execute set PXE boot playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia {{ container_name }} \
+            ansible-playbook {{ pxe_boot_playbook }} -i /omnia/utils/bmc_inventory -v
+      register: pxe_boot_result
+      when: pxe_boot_playbook is defined and pxe_boot_playbook | length > 0
+      changed_when: pxe_boot_result.rc == 0
+      failed_when: false
+
+    - name: Display set PXE boot result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SET PXE BOOT PLAYBOOK RESULT
+          ============================================
+          Return Code: {{ pxe_boot_result.rc | default('N/A') }}
+          ============================================
+      when: pxe_boot_result is defined
+
+    - name: Warn if set PXE boot playbook failed
+      ansible.builtin.debug:
+        msg: "⚠ set_pxe_boot playbook returned rc={{ pxe_boot_result.rc }} - check logs"
+      when: pxe_boot_result is defined and pxe_boot_result.rc is defined and pxe_boot_result.rc != 0
+
+    - name: Warn if set PXE boot playbook not found
+      ansible.builtin.debug:
+        msg: "⚠ set_pxe_boot playbook not found in container (checked /omnia/utils/ and /omnia/discovery/)"
+      when: pxe_boot_playbook is not defined or pxe_boot_playbook | length == 0
+
+    - name: Compute converge summary facts
+      ansible.builtin.set_fact:
+        _bmc_status: "{{ 'Created' if bmc_inventory_result is defined and bmc_inventory_result.rc == 0 else 'Skipped' }}"
+        _pxe_status: >-
+          {{ 'Executed (rc=' + (pxe_boot_result.rc | string) + ')'
+          if pxe_boot_result is defined and pxe_boot_result.rc is defined
+          else 'Skipped' }}
+
     - name: Discovery converge complete
       ansible.builtin.debug:
         msg: |
@@ -200,5 +350,8 @@
           - omnia_core container: Running
           - Prerequisites: Checked
           - discovery.yml playbook: Executed successfully
+          - PXE mapping file: Verified
+          - BMC inventory: {{ _bmc_status }}
+          - Set PXE boot: {{ _pxe_status }}
           - Ready for pytest verification
           ============================================

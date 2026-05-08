@@ -55,6 +55,7 @@ from automation_library.discovery.vars import (
     DISCOVERY_REACHABILITY_RETRY,
     DISCOVERY_REACHABILITY_INTERVAL,
 )
+from automation_library.discovery.messages import TEST_ASSERT_MSGS as ASSERT_MSGS
 
 
 @pytest.mark.sanity
@@ -786,3 +787,95 @@ def test_pam_slurm_adopt(host):
     else:
         log.failed("PAM slurm_adopt not working correctly", details)
         assert False, result.get("error", "PAM test failed")
+
+
+@pytest.mark.sanity
+@pytest.mark.order(23)
+def test_pam_slurm_adopt_session_termination(host):
+    """
+    Test Case 23: Verify PAM slurm_adopt session termination behavior.
+
+    Skips if OpenLDAP is not enabled in software_config.json.
+
+    This test:
+    1. For each submit node (slurm_control_node, login_node, login_compiler_node):
+       - Copies job.sh (40s sleep) to the submit node via root SSH
+       - Submits the job as ldapuser targeting a compute node
+       - Waits for job to start RUNNING
+       - Tries ldapuser login to compute node during active job
+       - Waits for job to complete
+       - Verifies ldapuser login is blocked after job ends (auto-logout)
+    2. Displays the actual PAM / disconnect messages for each submit node
+    """
+    from automation_library.discovery.functions import verify_pam_slurm_adopt_session_termination
+
+    log = TestLogger("Verify PAM slurm_adopt session termination behavior")
+
+    skip_if_openldap_not_enabled(host, log)
+
+    log.check("Submitting jobs from all submit nodes, verifying PAM behavior on compute node")
+
+    result = verify_pam_slurm_adopt_session_termination(host)
+
+    # Handle skip conditions
+    if result.get("error") and "not set in omnia_test_config" in result["error"]:
+        log.skipped("LDAP credentials not configured", result["error"])
+        pytest.skip(result["error"])
+
+    if result.get("error") and ("No slurm" in result["error"] or "No slurm_control_node" in result["error"]):
+        log.skipped("Required nodes not in PXE mapping", result["error"])
+        pytest.skip(result["error"])
+
+    # Build details for display - one block per submit node matching old format
+    ldap_user_str = ', '.join(result.get('ldap_users', []))
+    details_lines = []
+
+    for submit_hostname, node_result in result.get("results_by_submit_node", {}).items():
+        details_lines.append(f"LDAP user: {ldap_user_str}")
+        details_lines.append(
+            f"Submit node ({node_result.get('node_type', '')}): "
+            f"{submit_hostname} (IP: {node_result.get('admin_ip', '')})"
+        )
+        if node_result.get("compute_hostname"):
+            details_lines.append(
+                f"Compute node: {node_result['compute_hostname']} "
+                f"(IP: {node_result.get('compute_ip', '')})"
+            )
+        details_lines.append(f"Job ID: {node_result.get('job_id', '')}")
+
+        if node_result.get("error"):
+            details_lines.append(f"✗ Error: {node_result['error']}")
+            details_lines.append("")
+            continue
+
+        details_lines.append("")
+
+        # Login during job
+        if node_result.get("login_during_job"):
+            details_lines.append("Login during active job: ALLOWED (session adopted) ✓")
+        else:
+            details_lines.append("Login during active job: BLOCKED ✗")
+        if node_result.get("login_during_job_message"):
+            details_lines.append(f"  {node_result['login_during_job_message']}")
+
+        details_lines.append("")
+
+        # Login after job
+        if node_result.get("session_terminated_after_job"):
+            details_lines.append("Login after job ended: BLOCKED (auto-logout) ✓")
+        else:
+            details_lines.append("Login after job ended: NOT BLOCKED ✗")
+        if node_result.get("post_job_block_message"):
+            details_lines.append(f"  {node_result['post_job_block_message']}")
+
+        details_lines.append("")
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed("PAM slurm_adopt session termination verified", details)
+    else:
+        log.failed("PAM session termination not working", details)
+        assert False, ASSERT_MSGS["pam_session_failed"].format(
+            details=result.get("error", result.get("details", ""))
+        )
