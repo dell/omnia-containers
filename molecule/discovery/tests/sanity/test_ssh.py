@@ -297,7 +297,7 @@ def test_ssh_from_core_via_admin_ip(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(8)
+@pytest.mark.order(9)
 def test_ssh_from_core_via_hostname(host):
     """
     Test Case 5: Verify SSH from omnia_core to nodes via hostname.

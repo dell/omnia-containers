@@ -42,7 +42,6 @@ TEST_NAMES: Dict[str, str] = {
     "ucx_installed": "Verify UCX installation",
 
     # Discovery output verification tests
-    "nodes_yaml_generated": "Verify nodes.yaml generated from mapping input",
     "bss_templates_created": "Verify BSS templates created per functional group",
     "cloudinit_templates_created": "Verify cloud-init templates created per functional group",
 
@@ -95,8 +94,6 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "ucx_fail": "UCX not found",
 
     # Discovery output verification
-    "nodes_yaml_ok": "nodes.yaml generated successfully",
-    "nodes_yaml_fail": "nodes.yaml not found or invalid",
     "bss_templates_ok": "BSS templates generated for all {count} functional groups",
     "bss_templates_fail": "BSS templates missing for {missing} functional groups",
     "cloudinit_templates_ok": "Cloud-init templates generated for all {count} functional groups",
@@ -204,15 +201,6 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  2. Verify package installation on node: ssh root@<node> rpm -qa | grep <pkg>\n"
         "  3. Re-run discovery/provision playbook to reinstall packages\n"
         "  4. Check package availability in local_repo"
-    ),
-
-    "nodes_yaml_failed": (
-        "nodes.yaml not generated.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Re-run discovery.yml\n"
-        "  2. Check discovery logs: cat /opt/omnia/log/omnia.log\n"
-        "  3. Verify PXE mapping file is valid"
     ),
 
     "bss_templates_failed": (

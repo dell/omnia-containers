@@ -54,7 +54,6 @@ from .functions import (
     verify_pam_slurm_adopt,
     verify_pam_slurm_adopt_session_termination,
     # Discovery output verification
-    verify_nodes_yaml_generated,
     verify_bss_templates_created,
     verify_cloudinit_templates_created,
 )

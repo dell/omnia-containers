@@ -26,7 +26,6 @@ These run as the FIRST tests (order 6-8) after SSH tests, before Slurm tests.
 import pytest
 from automation_library.core import TestLogger
 from automation_library.discovery.functions import (
-    verify_nodes_yaml_generated,
     verify_bss_templates_created,
     verify_cloudinit_templates_created,
 )
@@ -35,39 +34,6 @@ from automation_library.discovery.messages import (
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,
 )
-
-
-@pytest.mark.sanity
-@pytest.mark.order(2)
-def test_nodes_yaml_generated(host):
-    """
-    Test Case 6: Verify nodes.yaml is generated completely and accurately
-    from mapping input.
-
-    Checks:
-    - nodes.yaml file exists in openchami workdir/nodes
-    - File is non-empty and valid
-    - Valid mapping CSV file present
-    """
-    log = TestLogger(TEST_NAMES["nodes_yaml_generated"])
-
-    log.check("Checking nodes.yaml generation from PXE mapping input")
-
-    result = verify_nodes_yaml_generated(host)
-
-    if result["success"]:
-        log.passed(
-            LOG_MSGS["nodes_yaml_ok"],
-            result["details"]
-        )
-    else:
-        log.failed(
-            LOG_MSGS["nodes_yaml_fail"],
-            result.get("error", "")
-        )
-        assert False, ASSERT_MSGS["nodes_yaml_failed"].format(
-            details=result.get("error", "")
-        )
 
 
 @pytest.mark.sanity

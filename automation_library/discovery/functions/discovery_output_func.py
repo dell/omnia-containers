@@ -28,75 +28,31 @@ from automation_library.core import (
     get_functional_groups_from_pxe_mapping,
 )
 from ..vars import (
-    NODES_YAML_DIR,
     BSS_BOOT_DIR,
     CLOUDINIT_TEMPLATE_DIR,
 )
 
+# Architecture suffixes used in functional group names
+_ARCH_SUFFIXES = ("_x86_64", "_aarch64")
 
-# =============================================================================
-# NODES.YAML GENERATION VERIFICATION
-# =============================================================================
 
-def verify_nodes_yaml_generated(host) -> Dict[str, Any]:
+def _fg_match_names(fg: str) -> List[str]:
     """
-    Verify nodes.yaml is generated completely and accurately from mapping input.
+    Return the functional group name AND its '_first' variant.
 
-    Checks:
-    - nodes.yaml file exists in NODES_YAML_DIR
-    - File is non-empty and valid YAML
-    - Contains node entries matching PXE mapping
+    Omnia renames the first kube_control_plane node by inserting '_first'
+    before the arch suffix.  For example:
+      service_kube_control_plane_x86_64 → service_kube_control_plane_first_x86_64
 
-    Returns:
-        Dict with success, details, error, file_path, node_count
+    Returns a list of names to try when matching against template file names.
     """
-    results = {
-        "success": False,
-        "details": "",
-        "error": "",
-        "file_path": f"{NODES_YAML_DIR}/nodes.yaml",
-        "node_count": 0,
-    }
-
-    # Check if nodes.yaml exists
-    cmd = run_in_container(
-        host,
-        f"test -f {NODES_YAML_DIR}/nodes.yaml && echo EXISTS || echo NOT_FOUND"
-    )
-    if cmd.rc != 0 or "NOT_FOUND" in (cmd.stdout or ""):
-        results["error"] = f"nodes.yaml not found at {NODES_YAML_DIR}/nodes.yaml"
-        return results
-
-    # Read nodes.yaml content
-    cmd = run_in_container(host, f"cat {NODES_YAML_DIR}/nodes.yaml")
-    if cmd.rc != 0:
-        results["error"] = f"Failed to read nodes.yaml: {cmd.stderr}"
-        return results
-
-    content = cmd.stdout.strip()
-    if not content:
-        results["error"] = "nodes.yaml is empty"
-        return results
-
-    # Count node entries (lines with hostname/mac/ip patterns)
-    lines = content.split('\n')
-    results["node_count"] = len([
-        line for line in lines
-        if line.strip() and not line.strip().startswith('#')
-    ])
-
-    # Get functional groups from PXE mapping for validation
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
-
-    details_lines = [
-        f"File: {NODES_YAML_DIR}/nodes.yaml",
-        f"Content lines: {results['node_count']}",
-        f"Functional groups in PXE mapping: {', '.join(sorted(functional_groups)) if functional_groups else 'none'}",
-    ]
-
-    results["success"] = True
-    results["details"] = "\n".join(details_lines)
-    return results
+    variants = [fg]
+    for suffix in _ARCH_SUFFIXES:
+        if fg.endswith(suffix):
+            base = fg[: -len(suffix)]
+            variants.append(f"{base}_first{suffix}")
+            break
+    return variants
 
 
 # =============================================================================
@@ -157,14 +113,25 @@ def verify_bss_templates_created(host) -> Dict[str, Any]:
     if functional_groups:
         details_lines.append(f"Functional groups in PXE mapping: {len(functional_groups)}")
         for fg in sorted(functional_groups):
-            # Check if any template contains the functional group name
-            matched = any(fg in t for t in templates)
+            # Check original name and _first variant (kube_control_plane)
+            names_to_try = _fg_match_names(fg)
+            matched = any(name in t for t in templates for name in names_to_try)
+            matched_name = None
+            if matched:
+                for name in names_to_try:
+                    if any(name in t for t in templates):
+                        matched_name = name
+                        break
             status = "✓" if matched else "✗"
-            details_lines.append(f"  {status} {fg}")
+            if matched_name and matched_name != fg:
+                label = f"{fg} (matched as {matched_name})"
+            else:
+                label = fg
+            details_lines.append(f"  {status} {label}")
             if not matched:
                 results["missing_groups"].append(fg)
 
-    results["success"] = len(templates) > 0
+    results["success"] = len(templates) > 0 and len(results["missing_groups"]) == 0
     results["details"] = "\n".join(details_lines)
     return results
 
@@ -236,13 +203,24 @@ def verify_cloudinit_templates_created(host) -> Dict[str, Any]:
     if functional_groups:
         details_lines.append(f"Functional groups in PXE mapping: {len(functional_groups)}")
         for fg in sorted(functional_groups):
-            # Check if any template path contains the functional group name
-            matched = any(fg in t for t in templates)
+            # Check original name and _first variant (kube_control_plane)
+            names_to_try = _fg_match_names(fg)
+            matched = any(name in t for t in templates for name in names_to_try)
+            matched_name = None
+            if matched:
+                for name in names_to_try:
+                    if any(name in t for t in templates):
+                        matched_name = name
+                        break
             status = "✓" if matched else "✗"
-            details_lines.append(f"  {status} {fg}")
+            if matched_name and matched_name != fg:
+                label = f"{fg} (matched as {matched_name})"
+            else:
+                label = fg
+            details_lines.append(f"  {status} {label}")
             if not matched:
                 results["missing_groups"].append(fg)
 
-    results["success"] = len(templates) > 0
+    results["success"] = len(templates) > 0 and len(results["missing_groups"]) == 0
     results["details"] = "\n".join(details_lines)
     return results

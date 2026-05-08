@@ -97,7 +97,6 @@ from .ldap_func import (
 
 # Discovery output verification functions
 from .discovery_output_func import (
-    verify_nodes_yaml_generated,
     verify_bss_templates_created,
     verify_cloudinit_templates_created,
 )
