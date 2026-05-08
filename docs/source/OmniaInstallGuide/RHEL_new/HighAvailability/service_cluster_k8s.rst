@@ -86,9 +86,9 @@ Steps
 
 3. Run ``build_image_x86_64.yml`` playbook to build diskless images for cluster nodes. See `Build cluster node images <../build_images.html>`_.
 
-4. Run ``discovery.yml`` playbook to discover the potential cluster nodes, configure the boot script, and cloud-init based on the functional groups. See `Discover cluster nodes <../Provision/index.html>`_
+4. Run ``provision.yml`` playbook to discover the potential cluster nodes, configure the boot script, and cloud-init based on the functional groups. See `Discover cluster nodes <../Provision/index.html>`_
     
-    After successfully running the ``discovery.yml`` playbook, you can either manually PXE boot the nodes or use the ``set_pxe_boot.yml`` playbook. PXE booting allows the nodes to load diskless images from the Omnia Infrastructure Manager (OIM). For detailed steps on using ``set_pxe_boot.yml``, see :ref:`set-pxe-boot-order`.
+    After successfully running the ``provision.yml`` playbook, you can either manually PXE boot the nodes or use the ``set_pxe_boot.yml`` playbook. PXE booting allows the nodes to load diskless images from the Omnia Infrastructure Manager (OIM). For detailed steps on using ``set_pxe_boot.yml``, see :ref:`set-pxe-boot-order`.
 
 
 
@@ -108,7 +108,7 @@ After deploying Kubernetes, the following additional packages are installed on t
     Click `here <https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner>`_ for more information.
 
 2. **Doca-ofed installation**
-    After running ``discovery.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
+    After running ``provision.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
 
 Next Step
 ===========

@@ -13,7 +13,6 @@ PowerScale Telemetry collects storage performance metrics and logs. PowerScale T
 - **CSI Driver for Dell PowerScale:** Required for Omnia-orchestrated deployment mode.
 - **cert-manager:** Required for TLS certificate management in Omnia-orchestrated mode.
 
-
 Supported Metrics and Logs
 ---------------------------
 
@@ -28,18 +27,17 @@ The PowerScale metrics include the following:
 
 For more details on PowerScale metrics, see `Supported PowerScale Metrics <https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/>`_
 
-**Logs:**
+**Logs**
 
 The PowerScale logs include the following:
 
 - Capacity warnings, disk failures, node state changes, protocol errors
 - Events are labeled with host/cluster, severity, and facility
 
-
 Prerequisites
 ---------------
 
-* Ensure that the ``discovery.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
+* Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 * For Omnia-orchestrated mode, ensure the service Kubernetes cluster has sufficient resources to run CSM Metrics, OpenTelemetry Collector, CSI Driver, and cert-manager.
 * For operator-provided mode, ensure the external OpenTelemetry Collector endpoint is accessible from the service cluster over TLS.
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
@@ -62,7 +60,7 @@ Steps
         :file: ../../../Tables/omnia_config_service_cluster.csv
         :header-rows: 1
         :widths: 35,30,35
-        :keepspace: 
+        :keepspace:
 
 3. Ensure that the ``telemetry_config.yml`` has the entries specific for PowerScale Telemetry deployment.
 
@@ -93,7 +91,6 @@ Steps
     - Specify the external VictoriaMetrics endpoint in ``telemetry_config.yml``
     - Metrics will be delivered to both the internal time-series database and the external endpoint independently
 
-
 Feature Flags and Deployment Modes
 ------------------------------------
 
@@ -109,12 +106,10 @@ Select one of two deployment modes in ``telemetry_config.yml``:
 
 *Operator-provided endpoint:* The operator provides the Prometheus endpoint URL of an externally managed OpenTelemetry Collector. Omnia configures vmagent to scrape that endpoint without deploying CSM Metrics or OTel Collector pods.
 
-
 TLS and Authentication
 ---------------------
 
 All metric scraping uses TLS. Authentication uses Kubernetes service-account tokens. Mutual TLS (mTLS) is not required—the connection is encrypted but the PowerScale-side endpoint does not validate client identity via certificate exchange. TLS is enforced for all off-cluster communications.
-
 
 Operational Health Monitoring
 ------------------------------
@@ -128,7 +123,6 @@ The PowerScale telemetry integration exposes operational health metrics includin
 
 These metrics are available for alerting and monitoring via the same observability stack. The OpenTelemetry Collector endpoint maintains availability exceeding 98% over a 24-hour period.
 
-
 Feature Constraints
 -------------------
 
@@ -137,7 +131,6 @@ Feature Constraints
 - Mutual TLS is not required on the metrics exporter endpoint; transport is encrypted but client identity is not verified via certificate exchange
 - Syslog integration requires network connectivity between the PowerScale cluster and the Omnia log agent
 - The metric set is aligned with Dell CSM Metrics capabilities; metrics not exposed by CSM Metrics are not available
-
 
 Performance Requirements
 -------------------------

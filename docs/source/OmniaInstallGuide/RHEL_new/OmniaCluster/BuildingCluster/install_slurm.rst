@@ -11,7 +11,7 @@ Step 11: Set up Slurm on nodes
 
         * Slurm itself must be compiled without UCX and openmpi support.
 
-        After running ``discovery.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
+        After running ``provision.yml`` and PXE-booting the nodes, DOCA-OFED is installed on nodes that have Mellanox InfiniBand cards. A static IP is assigned to the InfiniBand interface only if the interface is up. If the interface is down, the user must bring it up to enable IP assignment.
 
 * Fill the mandatory parameters in ``omnia_config.yml``: `Input parameters for the cluster <../schedulerinputparams.html#id13>`_
 * Fill the parameters in ``storage_config.yml``: `Input parameters for the cluster <../schedulerinputparams.html#id13>`_
@@ -23,8 +23,8 @@ Step 11: Set up Slurm on nodes
 
 1. To download the artifacts required to set up Slurm on the nodes, run the ``local_repo.yml`` playbook.
 2. To build diskless images for cluster nodes, run build_image_x86_64.yml or build_image_aarch64.yml: `Build cluster node images <../../build_images.html>`_
-3. To discover the potential cluster nodes, configure the boot script, and cloud-init based on the functional groups, run  the ``discovery.yml`` playbook: `Discover cluster nodes <../../Provision/index.html>`_
-4. After successfully executing the ``discovery.yml`` playbook, you can PXE boot the slurm node, login node, and login compiler node simultaneously.
+3. To discover the potential cluster nodes, configure the boot script, and cloud-init based on the functional groups, run  the ``provision.yml`` playbook: `Discover cluster nodes <../../Provision/index.html>`_
+4. After successfully executing the ``provision.yml`` playbook, you can PXE boot the slurm node, login node, and login compiler node simultaneously.
 
 .. note:: If you want to deploy only Slurm clusters (``slurm_custom``), the ``idrac_telemetry_support`` parameter must be set to ``false`` in the ``telemetry_config.yml`` file. Omnia is Validated for Slurm version 25.05. If you use any other version, some functionality like PAM may not work.
 

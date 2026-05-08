@@ -119,7 +119,7 @@ IP address conflict with old node.
 
 - Ensure old node is powered off/disconnected
 - Verify IP address is unused
-- Re-run ``discovery.yml``
+- Re-run ``provision.yml``
 
 2.2 PXE Boot Timeout (TFTP/Service Timeout)
 --------------------------------------------
@@ -730,7 +730,7 @@ Stale SSH key.
 
    export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
 
-9.3 discovery.yml Fails - prepare_oim Needs to be Executed
+9.3 provision.yml Fails - prepare_oim Needs to be Executed
 ----------------------------------------------------------
 
 **Cause**

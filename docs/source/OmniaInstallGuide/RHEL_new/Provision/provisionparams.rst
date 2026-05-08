@@ -22,7 +22,7 @@ Specify the required parameters in the following input files:
 
 .. note::
 
-    The ``/opt/omnia/input/project_default/omnia_config_credentials.yml`` file is encrypted on the first execution of the ``discovery.yml`` or ``local_repo.yml`` playbooks.
+    The ``/opt/omnia/input/project_default/omnia_config_credentials.yml`` file is encrypted on the first execution of the ``provision.yml`` or ``local_repo.yml`` playbooks.
 
       * To view the encrypted parameters: ::
 
