@@ -79,22 +79,22 @@ Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). 
     * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
     * Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
 
-**Mandatory parameters:**
-* **name**—Unique identifier for this powervault entry. Required
-* **ip**—List of PowerVault controller IPv4 addresses for iSCSI target discovery. Required
-* **iscsi_initiator**—InitiatorName IQN for the host. Required
-* **volume_id**—WWN/identifier for the volume (used for multipath device matching). Required
-* **mount_point**—Where the discovered device gets mounted. Required
+* **Mandatory parameters:**
+  * **name**—Unique identifier for this powervault entry. Required
+  * **ip**—List of PowerVault controller IPv4 addresses for iSCSI target discovery. Required
+  * **iscsi_initiator**—InitiatorName IQN for the host. Required
+  * **volume_id**—WWN/identifier for the volume (used for multipath device matching). Required
+  * **mount_point**—Where the discovered device gets mounted. Required
 
-**Optional parameters:**
-* **port**—TCP port for iSCSI target service. Default: 3260
-* **mount_params**—Named profile for fs_type/mnt_opts (read by the runcmd script). Optional
-* **node_key**—ds.meta_data key for per-node bind mounts (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). Optional
-    * When present, implies bind mount: <mount_point>/<node_key_value>/<subdir> -> <target>
+* **Optional parameters:**
+  * **port**—TCP port for iSCSI target service. Default: 3260
+  * **mount_params**—Named profile for fs_type/mnt_opts (read by the runcmd script). Optional
+  * **node_key**—ds.meta_data key for per-node bind mounts (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). Optional
+     * When present, implies bind mount: <mount_point>/<node_key_value>/<subdir> -> <target>
     * fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic)
-* **node_mount_point**—List of bind mount targets. Required when node_key is set
+    * **node_mount_point**—List of bind mount targets. Required when node_key is set
     * Pattern: <mount_point>/<node_key_value>/<target_stripped_leading_slash> -> <target>
-* **functional_group_prefix**—List of functional group prefixes for node targeting. Mutually exclusive with group.
+    * **functional_group_prefix**—List of functional group prefixes for node targeting. Mutually exclusive with group.
 * **permissions**—Directory ownership and mode for the mount point. Optional
     * **owner**: User owner (name or UID). Default: ""root""
     * **group**: Group owner (name or GID). Default: ""root""
