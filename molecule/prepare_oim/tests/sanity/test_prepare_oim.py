@@ -27,16 +27,23 @@ Test cases:
 7. Verify LDAP auth certificate exists (skip if LDAP disabled)
 8. Verify ochami BSS service is active via CLI
 9. Verify ochami SMD service is active via CLI
+10. Verify Quadlet service files exist in /etc/containers/systemd/
+11. Verify conditional Quadlet service files based on configuration
 """
 
 import pytest
 
 from automation_library.core import TestLogger
+from automation_library.prepare_oim.vars import (
+    QUADLET_DIR,
+    ESSENTIAL_QUADLET_FILES,
+)
 from automation_library.prepare_oim.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS
 )
 from automation_library.prepare_oim.functions import (
     is_ldap_enabled,
+    is_build_stream_enabled,
     check_pulp_api_status,
     check_pulp_certificate,
     check_bss_service,
@@ -293,7 +300,10 @@ def test_bss_service_active(host):
     if result["success"]:
         log.passed(LOG_MSGS["bss_service_active"], result["details"])
     else:
-        log.failed(LOG_MSGS["bss_service_inactive"].format(status=result["status"]), result["error"])
+        log.failed(
+            LOG_MSGS["bss_service_inactive"].format(status=result["status"]),
+            result["error"]
+        )
 
     assert result["success"], ASSERT_MSGS["bss_service_failed"].format(
         status=result["status"]
@@ -322,8 +332,142 @@ def test_smd_service_active(host):
     if result["success"]:
         log.passed(LOG_MSGS["smd_service_active"], result["details"])
     else:
-        log.failed(LOG_MSGS["smd_service_inactive"].format(status=result["status"]), result["error"])
+        log.failed(
+            LOG_MSGS["smd_service_inactive"].format(status=result["status"]),
+            result["error"]
+        )
 
     assert result["success"], ASSERT_MSGS["smd_service_failed"].format(
         status=result["status"]
+    )
+
+
+# =============================================================================
+# 10. QUADLET SERVICE FILES VALIDATION
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(10)
+def test_quadlet_service_files_exist(host):
+    """
+    Test Case 10: Verify Quadlet service files exist.
+
+    Checks:
+    - Essential Quadlet .container files exist in /etc/containers/systemd/
+    - Validates Quadlet-based container orchestration is properly configured
+    """
+    log = TestLogger("Verify Quadlet service files exist")
+    log.check(f"Checking Quadlet service files in {QUADLET_DIR}")
+
+    missing_files = []
+    found_files = []
+
+    for quadlet_file in ESSENTIAL_QUADLET_FILES:
+        file_path = f"{QUADLET_DIR}/{quadlet_file}"
+        result = host.run(
+            f"test -f {file_path} && echo EXISTS || echo NOT_FOUND"
+        )
+
+        if "EXISTS" in result.stdout:
+            found_files.append(quadlet_file)
+        else:
+            missing_files.append(quadlet_file)
+
+    total_result = host.run(
+        f"ls {QUADLET_DIR}/*.container 2>/dev/null | wc -l"
+    )
+    total_count = total_result.stdout.strip()
+
+    found_count = len(found_files)
+    expected_count = len(ESSENTIAL_QUADLET_FILES)
+    details = (
+        f"Found {found_count}/{expected_count} essential Quadlet files "
+        f"(Total: {total_count})\n"
+    )
+    for f in found_files:
+        details += f"  ✓ {f}\n"
+    for f in missing_files:
+        details += f"  ✘ {f} (missing)\n"
+
+    if not missing_files:
+        log.passed("All essential Quadlet service files exist", details)
+    else:
+        log.failed("Missing Quadlet service files", details)
+
+    assert not missing_files, (
+        f"QUADLET FILES MISSING: {len(missing_files)} files not found\n"
+        f"{details}"
+    )
+
+
+# =============================================================================
+# 11. CONDITIONAL QUADLET SERVICE FILES VALIDATION
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(11)
+def test_conditional_quadlet_files_exist(host):
+    """
+    Test Case 11: Verify conditional Quadlet service files based on config.
+
+    Checks:
+    - omnia_auth.container exists if LDAP is enabled
+    - omnia_build_stream.container exists if build_stream is enabled
+    - omnia_postgres.container exists if build_stream is enabled
+    """
+    log = TestLogger("Verify conditional Quadlet service files")
+    log.check("Checking conditional Quadlet service files based on config")
+
+    ldap_enabled = is_ldap_enabled(host)
+    build_stream_enabled = is_build_stream_enabled(host)
+
+    expected_files = []
+    if ldap_enabled:
+        expected_files.append("omnia_auth.container")
+    if build_stream_enabled:
+        expected_files.append("omnia_build_stream.container")
+        expected_files.append("omnia_postgres.container")
+
+    if not expected_files:
+        log.skipped(
+            "No conditional Quadlet files expected "
+            "(LDAP and build_stream disabled)"
+        )
+        return
+
+    missing_files = []
+    found_files = []
+
+    for quadlet_file in expected_files:
+        file_path = f"{QUADLET_DIR}/{quadlet_file}"
+        result = host.run(
+            f"test -f {file_path} && echo EXISTS || echo NOT_FOUND"
+        )
+
+        if "EXISTS" in result.stdout:
+            found_files.append(quadlet_file)
+        else:
+            missing_files.append(quadlet_file)
+
+    details = (
+        f"Configuration: LDAP={ldap_enabled}, "
+        f"build_stream={build_stream_enabled}\n"
+    )
+    details += (
+        f"Found {len(found_files)}/{len(expected_files)} "
+        f"conditional Quadlet files\n"
+    )
+    for f in found_files:
+        details += f"  ✓ {f}\n"
+    for f in missing_files:
+        details += f"  ✘ {f} (missing)\n"
+
+    if not missing_files:
+        log.passed("All conditional Quadlet service files exist", details)
+    else:
+        log.failed("Missing conditional Quadlet service files", details)
+
+    assert not missing_files, (
+        f"CONDITIONAL QUADLET FILES MISSING: {len(missing_files)} "
+        f"files not found\n{details}"
     )

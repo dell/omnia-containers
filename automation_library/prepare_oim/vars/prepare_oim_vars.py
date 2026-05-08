@@ -62,6 +62,25 @@ CORE_CONTAINERS: List[str] = [
 AUTH_CONTAINER: str = "omnia_auth"
 
 # =============================================================================
+# QUADLET DEFINITIONS
+# =============================================================================
+
+# Directory where Quadlet .container files are stored
+QUADLET_DIR: str = "/etc/containers/systemd"
+
+# Essential Quadlet files that should always exist
+ESSENTIAL_QUADLET_FILES: List[str] = [
+    "omnia_core.container",
+    "pulp.container",
+    "minio.container",
+    "registry.container",
+    "haproxy.container",
+    "smd.container",
+    "bss.container",
+    "postgres.container",
+]
+
+# =============================================================================
 # SERVICE DEFINITIONS (from systemctl list-dependencies)
 # =============================================================================
 
@@ -139,4 +158,3 @@ CERT_WAIT_TIME: int = 30
 
 PULP_CERT_PATH: str = _CORE_PULP_CERT
 LDAP_CERT_PATH: str = _CORE_LDAP_CERT
-
