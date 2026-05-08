@@ -3,36 +3,24 @@
 
 ``List (dict)``
 
- Required    ","* This is a list of dictionaries. Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
+ Required    ","Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
 
 * **name**—Unique identifier for this mount entry. Required
-* **source**—Device or network path (e.g., /dev/sdc, UUID=xxx, 192.168.1.100:/share). Required
-* **mount_point**—Mount point path (e.g., /mnt, /opt/data). Required
-* **fs_type**—Filesystem type (e.g., ext4, xfs, nfs, nfs4, cifs, auto). Optional. If specified, takes PRIORITY over mount_params profile
-* **mnt_opts**—Mount options (e.g., defaults,noexec,nofail). Optional. If specified, takes PRIORITY over mount_params profile
+* **source**—Device or network path (e.g. 192.168.1.100:/share, /dev/sdc, UUID=xxx). Required
+* **mount_point**—Mount point path (e.g. /mnt, /opt/data). Required
+* **fs_type**—Filesystem type (e.g. ext4, xfs, nfs, nfs4, cifs, auto). Optional. If specified, takes PRIORITY over mount_params profile
+* **mnt_opts**—Mount options (e.g. defaults,noexec,nofail). Optional. If specified, takes PRIORITY over mount_params profile
 * **dump_freq**—Dump frequency (usually ""0""). Optional. If specified, takes PRIORITY over mount_params profile
 * **fsck_pass**—Fsck pass number (usually ""0"" or ""2""). Optional. If specified, takes PRIORITY over mount_params profile
 * **mount_params**—Name of a profile in mount_params section. Optional. Used ONLY for fields not explicitly specified in the mount entry
 * **permissions**—Directory ownership and mode for the mount point. Optional
-    * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
-    * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
-    * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
-    * Applied via cloud-init runcmd (chown + chmod) after mount
-* **node_key**—cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). Optional
-    * When present, implies per-node bind mount where source path is constructed using the queried variable value
-    * The variable chosen must be unique per host to ensure isolation between nodes
-    * fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic)
-    * Source becomes: <source>/<ds.meta_data.node_key>/<mount_point_stripped_leading_slash>
-* **node_mount_point**—List of bind mount targets. Required when node_key is set
-    * Each target gets: <source>/<node_key_value>/<target_stripped_slash> -> <target>
-* **functional_group_prefix**—List of functional group prefixes. Optional
-    * All nodes whose role starts with any prefix get this mount
-    * e.g., [""slurm""] matches slurm_control_node, slurm_node, etc.
-    * If omitted (and no group), mount applies to all nodes
-    * Mutually exclusive with group
-* **groups**—List of GROUP_NAME values from pxe_mapping_file.csv. Optional
-    * Mutually exclusive with functional_group_prefix
-    * e.g., groups: [""grp1"", ""grp2""] targets only nodes in those groups
+  * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+  * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+  * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
+* **node_key**—cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies per-node bind mount where source path is constructed using the queried variable value. The variable chosen must be unique per host to ensure isolation between nodes. fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic). Source becomes: <source>/<ds.meta_data.node_key>/<mount_point_stripped_leading_slash>
+* **node_mount_point**—List of bind mount targets. Required when node_key is set. Each target gets: <source>/<node_key_value>/<target_stripped_slash> -> <target>
+* **functional_group_prefix**—List of functional group prefixes. All nodes whose role starts with any prefix get this mount * e.g., [""slurm""] matches slurm_control_node, slurm_node, etc. If omitted (and no group), mount applies to all nodes. Mutually exclusive with groups.
+* **groups**—List of GROUP_NAME values from pxe_mapping_file.csv. Optional. Mutually exclusive with functional_group_prefix. e.g., groups: [""grp1"", ""grp2""] targets only nodes in those groups.
 
 **Sample**::
 
@@ -75,10 +63,6 @@
 
 Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
 
-* The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
-    * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
-    * Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
-
 * **Mandatory parameters:**
    * **name**—Unique identifier for this powervault entry. Required
    * **ip**—List of PowerVault controller IPv4 addresses for iSCSI target discovery. Required
@@ -89,16 +73,13 @@ Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). 
 * **Optional parameters:**
    * **port**—TCP port for iSCSI target service. Default: 3260
    * **mount_params**—Named profile for fs_type/mnt_opts (read by the runcmd script). Optional
-   * **node_key**—ds.meta_data key for per-node bind mounts (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). Optional
-    * When present, implies bind mount: <mount_point>/<node_key_value>/<subdir> -> <target>
-    * fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic)
-   * **node_mount_point**—List of bind mount targets. Required when node_key is set
-      * Pattern: <mount_point>/<node_key_value>/<target_stripped_leading_slash> -> <target>
+   * **node_key**—ds.meta_data key for per-node bind mounts (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies bind mount: <mount_point>/<node_key_value>/<subdir> -> <target>.
+   * **node_mount_point**—List of bind mount targets. Required when node_key is set Pattern: <mount_point>/<node_key_value>/<target_stripped_leading_slash> -> <target>
    * **functional_group_prefix**—List of functional group prefixes for node targeting. Mutually exclusive with group.
    * **permissions**—Directory ownership and mode for the mount point. Optional
-      * **owner**: User owner (name or UID). Default: ""root""
-      * **group**: Group owner (name or GID). Default: ""root""
-      * **mode**: Octal permission string (e.g., ""0755""). Default: ""0755""
+    * **owner**: User owner (name or UID). Default: ""root""
+    * **group**: Group owner (name or GID). Default: ""root""
+    * **mode**: Octal permission string (e.g., ""0644""). Default: ""0644""
 
 .. note:: 
     * Powervault storage is not replacement for the NFS storage used by slurm cluster.
