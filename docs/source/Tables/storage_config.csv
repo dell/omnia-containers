@@ -61,7 +61,7 @@
 
 ``List (dict)``
 
-Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
+Required    ","PowerVault iSCSI storage configuration. Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
 
 * **Mandatory parameters:**
    * **name**—Unique identifier for this powervault entry. Required
@@ -109,7 +109,7 @@ Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). 
 
 ``List (dict)``
 
- Optional    ","* Swap file configuration (list of swap configurations).
+ Optional    ","Swap file configuration (list of swap configurations).
 
 * **name**—Unique identifier. Required
 * **filename**—Path to the swap file (e.g., /swapfile). Required
