@@ -13,7 +13,7 @@
 * **dump_freq**—Dump frequency (usually ""0""). Optional. If specified, takes PRIORITY over mount_params profile
 * **fsck_pass**—Fsck pass number (usually ""0"" or ""2""). Optional. If specified, takes PRIORITY over mount_params profile
 * **mount_params**—Name of a profile in mount_params section. Optional. Used ONLY for fields not explicitly specified in the mount entry
-* **permissions**—""Directory ownership and mode for the mount point. Optional""
+* **permissions**—Directory ownership and mode for the mount point. Optional
     * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
     * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
     * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
@@ -45,15 +45,15 @@
 
  Optional    ","Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).""
 
-* **nfs_default**—""Default NFS mount with standard NFS4.1 with high-performance options""
+* **nfs_default**—Default NFS mount with standard NFS4.1 with high-performance options
     * **fs_type**: ""nfs""
     * **mnt_opts**: ""nosuid,rw,sync,hard,intr""
     * **dump_freq**: ""0""
     * **fsck_pass**: ""0""
-* **vast_nfs**—""VAST NFS storage with standard configuration""
+* **vast_nfs**—VAST NFS storage with standard configuration
     * **fs_type**: ""nfs""
     * **mnt_opts**: ""nosuid,rw,sync,hard,intr""
-* **vast_rdma**—""VAST NFS with RDMA configuration""
+* **vast_rdma**—VAST NFS with RDMA configuration
     * **fs_type**: ""nfs""
     * **mnt_opts**: ""proto=rdma,port=20049,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard,intr,localaddr=192.168.0.23""
 "
