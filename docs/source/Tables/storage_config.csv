@@ -1,9 +1,9 @@
 ﻿Variables,Details
 "**mounts**
 
-     ``List (dict)``
+``List (dict)``
 
-     Required    ","* This is a list of dictionaries. Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
+ Required    ","* This is a list of dictionaries. Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
 
 * **name**—Unique identifier for this mount entry. Required
 * **source**—Device or network path (e.g., /dev/sdc, UUID=xxx, 192.168.1.100:/share). Required
@@ -53,9 +53,9 @@
     functional_group_prefix: [""service_kube""]"
 "**mount_params**
 
-     ``dict``
+``dict``
 
-     Optional    ","* Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).
+ Optional    ","* Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).
 
 * **nfs_default**—Default NFS mount with standard NFS4.1 with high-performance options
     * **fs_type**: ""nfs""
@@ -71,9 +71,9 @@
 **powervault_config**"
 "**powervault_config:**
 
-     ``List (dict)``
+``List (dict)``
 
-     Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
+Required    ","* Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
 
 * The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
     * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
@@ -126,9 +126,9 @@
           mode: ""0750"""
 "**swap**
 
-     ``List (dict)``
+``List (dict)``
 
-     Optional    ","* Swap file configuration (list of swap configurations).
+ Optional    ","* Swap file configuration (list of swap configurations).
 
 * **name**—Unique identifier. Required
 * **filename**—Path to the swap file (e.g., /swapfile). Required
