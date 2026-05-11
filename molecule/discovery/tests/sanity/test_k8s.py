@@ -31,6 +31,7 @@ from automation_library.discovery.functions import (
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(30)
 def test_k8s_nodes_ready(host):
     """
@@ -96,6 +97,7 @@ def test_k8s_nodes_ready(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(31)
 def test_k8s_telemetry_pods(host):
     """

@@ -66,6 +66,7 @@ def _group_nodes_by_functional_group(nodes):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(5)
 def test_ssh_from_oim_via_admin_ip(host):
     """
@@ -145,6 +146,7 @@ def test_ssh_from_oim_via_admin_ip(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(6)
 def test_ssh_from_oim_via_hostname(host):
     """
@@ -223,6 +225,7 @@ def test_ssh_from_oim_via_hostname(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(7)
 def test_ssh_from_core_via_admin_ip(host):
     """
@@ -297,6 +300,7 @@ def test_ssh_from_core_via_admin_ip(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(9)
 def test_ssh_from_core_via_hostname(host):
     """
