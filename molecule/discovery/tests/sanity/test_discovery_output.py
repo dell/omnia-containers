@@ -37,6 +37,7 @@ from automation_library.discovery.messages import (
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(3)
 def test_bss_templates_created(host):
     """
@@ -72,6 +73,7 @@ def test_bss_templates_created(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(4)
 def test_cloudinit_templates_created(host):
     """

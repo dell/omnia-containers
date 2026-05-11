@@ -47,6 +47,7 @@ def _group_nodes_by_functional_group(nodes):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(1)
 def test_node_connectivity_and_cloudinit(host):
     """

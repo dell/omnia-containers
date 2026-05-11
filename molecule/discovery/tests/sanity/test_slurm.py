@@ -59,6 +59,7 @@ from automation_library.discovery.messages import TEST_ASSERT_MSGS as ASSERT_MSG
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(10)
 def test_slurm_control_node_services(host):
     """
@@ -135,6 +136,7 @@ def test_slurm_control_node_services(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(11)
 def test_slurm_node_services(host):
     """
@@ -203,6 +205,7 @@ def test_slurm_node_services(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(12)
 def test_login_node_services(host):
     """
@@ -271,6 +274,7 @@ def test_login_node_services(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(13)
 def test_login_compiler_node_services(host):
     """
@@ -343,6 +347,7 @@ def test_login_compiler_node_services(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(14)
 def test_cross_node_ssh(host):
     """
@@ -412,6 +417,7 @@ def test_cross_node_ssh(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(15)
 def test_sinfo_nodes(host):
     """
@@ -459,6 +465,7 @@ def test_sinfo_nodes(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(19)
 def test_openmpi_installed(host):
     """
@@ -495,6 +502,7 @@ def test_openmpi_installed(host):
 
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(20)
 def test_ucx_installed(host):
     """
@@ -534,6 +542,7 @@ def test_ucx_installed(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.build_stream
 @pytest.mark.order(18)
 def test_ldms_sampler_plugins(host):
     """

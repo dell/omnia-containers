@@ -13,6 +13,20 @@
 # limitations under the License.
 """
 Shared pytest configuration for all molecule scenarios.
+
+Test Markers:
+- sanity: Basic functionality tests (default test suite)
+- negative: Error handling tests
+- regression: Full coverage tests
+- smoke: Critical path only tests
+- build_stream: Build stream pipeline validation tests
+- cleanup: Cleanup verification tests (deselected by default)
+
+Usage Examples:
+  pytest -m sanity                    # Run all sanity tests (includes build_stream)
+  pytest -m build_stream              # Run only build_stream tests
+  pytest -m "sanity and build_stream" # Run tests with both markers
+  pytest -m "sanity and not build_stream" # Run sanity tests excluding build_stream
 """
 
 import os
@@ -86,6 +100,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "negative: marks tests as negative tests (error handling)")
     config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
     config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
+    config.addinivalue_line("markers", "build_stream: marks tests as build stream related tests (pipeline validation)")
 
 
 def pytest_collection_modifyitems(session, config, items):
