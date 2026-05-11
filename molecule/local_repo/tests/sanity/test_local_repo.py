@@ -22,24 +22,25 @@ Test cases:
 2. Verify Pulp container is running
 3. Verify Pulp CLI connectivity (rpm repository list)
 4. Verify Pulp API health (DB, workers, storage)
-5. Verify software download results (software.csv)
-6. Verify per-package download results (status.csv)
-7. Verify all RPM repositories synced in Pulp
-8. Verify all RPM distributions published
-9. Verify all container image repositories synced
-10. Verify all file repositories synced
-11. Verify RPM content reachable via HTTPS (repomd.xml)
-12. Verify all software_config.json RPM packages in Pulp
+5. Verify repo metadata (repomd.xml) present for all distributions
+6. Verify software download results (software.csv)
+7. Verify per-package download results (status.csv)
+8. Verify all RPM repositories synced in Pulp
+9. Verify all RPM distributions published
+10. Verify all container image repositories synced
+11. Verify all file repositories synced
+12. Verify RPM content reachable via HTTPS (repomd.xml)
+13. Verify all software_config.json RPM packages in Pulp
 """
 
 import pytest
+
 from automation_library.core import (
     TestLogger,
     is_build_stream_enabled,
     get_build_stream_job_id,
     STAGE_CREATE_LOCAL_REPO,
 )
-from molecule.conftest import build_stream_job_state
 from automation_library.local_repo.messages.local_repo_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
@@ -52,6 +53,7 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_pulp_api_status,
     check_software_download_status,
     check_per_software_package_status,
+    check_pulp_repo_metadata_present,
     check_pulp_repositories_synced,
     check_pulp_distributions_published,
     check_container_repos_synced,
@@ -59,6 +61,7 @@ from automation_library.local_repo.functions.local_repo_func import (
     check_pulp_content_accessible,
     check_software_packages_in_pulp,
 )
+from molecule.conftest import build_stream_job_state
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +135,10 @@ def test_pulp_container_running(host):
     if result["success"]:
         log.passed(LOG_MSGS["container_running"].format(container=container), result["status"])
     else:
-        log.failed(LOG_MSGS["container_not_running"].format(container=container), result.get("error"))
+        log.failed(
+            LOG_MSGS["container_not_running"].format(container=container),
+            result.get("error")
+        )
 
     assert result["success"], ASSERT_MSGS["container_not_running"].format(
         container=container,
@@ -141,7 +147,7 @@ def test_pulp_container_running(host):
 
 
 # ---------------------------------------------------------------------------
-# 2. Pulp CLI connectivity
+# 3. Pulp CLI connectivity
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
 @pytest.mark.order(3)
@@ -159,7 +165,7 @@ def test_pulp_cli_repository_list(host):
 
 
 # ---------------------------------------------------------------------------
-# 3. Pulp API health
+# 4. Pulp API health
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
 @pytest.mark.order(4)
@@ -177,10 +183,33 @@ def test_pulp_api_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 4. Software download status (software.csv)
+# 5. Pulp repo metadata (repomd.xml) present
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
 @pytest.mark.order(5)
+def test_pulp_repo_metadata_present(host):
+    """
+    Test 5: Verify repomd.xml metadata is accessible for all published RPM distributions.
+
+    Maps to: pulp_metadata_verification, validate_repo_metadata_creation_and_storage.
+    """
+    log = TestLogger(TEST_NAMES["repo_metadata_present"])
+    log.check("Curling repomd.xml for each RPM distribution to verify metadata presence")
+
+    result = check_pulp_repo_metadata_present(host)
+    if result["success"]:
+        log.passed(LOG_MSGS["repo_metadata_ok"], result.get("details") or "")
+    else:
+        details = result.get("details") or result.get("error") or ""
+        log.failed(LOG_MSGS["repo_metadata_fail"], details)
+        assert False, ASSERT_MSGS["repo_metadata_fail"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 6. Software download status (software.csv)
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(6)
 def test_software_download_status(host):
     log = TestLogger(TEST_NAMES["software_download_status"])
     log.check("Parsing software.csv per architecture for download success/failure")
@@ -195,10 +224,10 @@ def test_software_download_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 5. Per-software package status (status.csv per software)
+# 7. Per-software package status (status.csv per software)
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(7)
 def test_per_software_package_status(host):
     log = TestLogger(TEST_NAMES["per_software_package_status"])
     log.check("Parsing per-software status.csv for individual package download results")
@@ -213,10 +242,10 @@ def test_per_software_package_status(host):
 
 
 # ---------------------------------------------------------------------------
-# 6. RPM repositories synced
+# 8. RPM repositories synced
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(7)
+@pytest.mark.order(8)
 def test_pulp_repositories_synced(host):
     log = TestLogger(TEST_NAMES["pulp_repositories_synced"])
     log.check("Querying Pulp RPM repos for latest_version_href (sync indicator)")
@@ -231,10 +260,10 @@ def test_pulp_repositories_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 7. RPM distributions published
+# 9. RPM distributions published
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(8)
+@pytest.mark.order(9)
 def test_pulp_distributions_published(host):
     log = TestLogger(TEST_NAMES["pulp_distributions_published"])
     log.check("Querying Pulp RPM distributions for publication/repository attachment")
@@ -249,10 +278,10 @@ def test_pulp_distributions_published(host):
 
 
 # ---------------------------------------------------------------------------
-# 8. Container image repositories synced
+# 10. Container image repositories synced
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(9)
+@pytest.mark.order(10)
 def test_container_repos_synced(host):
     log = TestLogger(TEST_NAMES["container_repos_synced"])
     log.check("Querying Pulp container repos for latest_version_href (sync indicator)")
@@ -267,10 +296,10 @@ def test_container_repos_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 9. File repositories synced
+# 11. File repositories synced
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(10)
+@pytest.mark.order(11)
 def test_file_repos_synced(host):
     log = TestLogger(TEST_NAMES["file_repos_synced"])
     log.check("Querying Pulp file repos for latest_version_href (sync indicator)")
@@ -285,10 +314,10 @@ def test_file_repos_synced(host):
 
 
 # ---------------------------------------------------------------------------
-# 10. RPM content accessible via HTTPS (repomd.xml)
+# 12. RPM content accessible via HTTPS (repomd.xml)
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(11)
+@pytest.mark.order(12)
 def test_pulp_content_accessible(host):
     log = TestLogger(TEST_NAMES["pulp_content_accessible"])
     log.check("Curling repomd.xml for each RPM distribution base_path")
@@ -303,10 +332,10 @@ def test_pulp_content_accessible(host):
 
 
 # ---------------------------------------------------------------------------
-# 11. Software packages in Pulp
+# 13. Software packages in Pulp
 # ---------------------------------------------------------------------------
 @pytest.mark.sanity
-@pytest.mark.order(12)
+@pytest.mark.order(13)
 def test_software_packages_in_pulp(host):
     log = TestLogger(TEST_NAMES["software_packages_in_pulp"])
     log.check("Loading software_config.json, extracting RPM packages, verifying each in Pulp")
