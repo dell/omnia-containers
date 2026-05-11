@@ -92,4 +92,11 @@ from .ldap_func import (
     verify_ldap_user_login_from_oim,
     verify_ldap_user_login_from_core,
     verify_pam_slurm_adopt,
+    verify_pam_slurm_adopt_session_termination,
+)
+
+# Discovery output verification functions
+from .discovery_output_func import (
+    verify_bss_templates_created,
+    verify_cloudinit_templates_created,
 )

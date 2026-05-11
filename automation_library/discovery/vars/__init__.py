@@ -24,6 +24,10 @@ from .common_vars import (
     CLOUDINIT_RETRY_INTERVAL,
     CLOUDINIT_PASSED_STATUSES,
     CLOUDINIT_RETRY_STATUSES,
+    OPENCHAMI_WORKDIR,
+    NODES_YAML_DIR,
+    BSS_BOOT_DIR,
+    CLOUDINIT_TEMPLATE_DIR,
 )
 
 from .slurm_vars import (
