@@ -8,33 +8,33 @@ This document covers building multiple Omnia containers and advanced configurati
 
 ```bash
 # Build all OIM containers (recommended for production)
-./build_images.sh oim omnia_branch=v2.1.0.0
+./build_images.sh oim omnia_branch=v2.2.0.0
 
 # Build with Docker
-./build_images.sh oim omnia_branch=v2.1.0.0 build_tool=docker
+./build_images.sh oim omnia_branch=v2.2.0.0 build_tool=docker
 
 # Build with custom tags
-./build_images.sh oim omnia_branch=v2.1.0.0 core_tag=2.1 auth_tag=1.0
+./build_images.sh oim omnia_branch=v2.2.0.0 core_tag=2.2 auth_tag=1.0
 ```
 
 ### Build ALL Containers
 
 ```bash
 # Build everything (core, auth, ubuntu-ldms, build-stream, telemetry, image-builder)
-./build_images.sh all omnia_branch=v2.1.0.0
+./build_images.sh all omnia_branch=v2.2.0.0
 
 # Build all with custom tags
-./build_images.sh all omnia_branch=v2.1.0.0 core_tag=2.1 auth_tag=1.1 ubuntu_ldms_tag=1.0
+./build_images.sh all omnia_branch=v2.2.0.0 core_tag=2.2 auth_tag=1.1 ubuntu_ldms_tag=1.0
 ```
 
 ### Build Specific Combinations
 
 ```bash
 # Build core and auth
-./build_images.sh core,auth omnia_branch=v2.1.0.0 core_tag=2.1 auth_tag=1.0
+./build_images.sh core,auth omnia_branch=v2.2.0.0 core_tag=2.2 auth_tag=1.0
 
 # Build core and build-stream
-./build_images.sh core,build-stream omnia_branch=v2.1.0.0 core_tag=2.1
+./build_images.sh core,build-stream omnia_branch=v2.2.0.0 core_tag=2.2
 ```
 
 ---
@@ -92,7 +92,7 @@ This document covers building multiple Omnia containers and advanced configurati
 - `build_action=<load|push>` - Load locally or push to registry (default: `load`)
 
 **Container-specific tags:**
-- `core_tag=<tag>` - omnia_core tag (default: `2.1`)
+- `core_tag=<tag>` - omnia_core tag (default: `2.2`)
 - `auth_tag=<tag>` - omnia_auth tag (default: `1.0`)
 - `build_stream_tag=<tag>` - omnia_build_stream tag (default: `1.0`)
 - `ubuntu_ldms_tag=<tag>` - ubuntu-ldms tag (default: `1.0`)
@@ -103,7 +103,7 @@ This document covers building multiple Omnia containers and advanced configurati
 
 ```bash
 # Build and push core to registry (requires Docker)
-./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0 build_tool=docker build_action=push
+./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0 build_tool=docker build_action=push
 
 # Note: Requires OMNIA_DOCKER_REGISTERY variable in script
 ```
@@ -133,7 +133,7 @@ The script validates parameters and shows context-specific errors:
 
 | Container | Short Name | Default Tag | Description |
 |-----------|------------|-------------|-------------|
-| omnia_core | core | 2.1 | Core Omnia container |
+| omnia_core | core | 2.2 | Core Omnia container |
 | omnia_auth | auth | 1.0 | Auth service container |
 | omnia_build_stream | build-stream | 1.0 | FastAPI build automation |
 | ubuntu-ldms | ubuntu-ldms | 1.0 | LDMS (OVIS) monitoring |
