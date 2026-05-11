@@ -41,11 +41,18 @@ TEST_NAMES: Dict[str, str] = {
     "openmpi_installed": "Verify OpenMPI installation",
     "ucx_installed": "Verify UCX installation",
 
+    # Discovery output verification tests
+    "bss_templates_created": "Verify BSS templates created per functional group",
+    "cloudinit_templates_created": "Verify cloud-init templates created per functional group",
+
     # K8s tests
     "k8s_nodes_ready": "Verify all K8s nodes are Ready",
 
     # Package verification tests
     "node_packages": "Verify all required packages installed on all nodes",
+
+    # PAM session termination
+    "pam_session_termination": "Verify PAM slurm_adopt session termination behavior",
 }
 
 # =============================================================================
@@ -86,6 +93,12 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "ucx_ok": "UCX installed: {version}",
     "ucx_fail": "UCX not found",
 
+    # Discovery output verification
+    "bss_templates_ok": "BSS templates generated for all {count} functional groups",
+    "bss_templates_fail": "BSS templates missing for {missing} functional groups",
+    "cloudinit_templates_ok": "Cloud-init templates generated for all {count} functional groups",
+    "cloudinit_templates_fail": "Cloud-init templates missing for {missing} functional groups",
+
     # K8s
     "k8s_nodes_ok": "All {count} K8s nodes are Ready",
     "k8s_nodes_fail": "{not_ready} nodes not Ready",
@@ -93,6 +106,10 @@ TEST_LOG_MSGS: Dict[str, str] = {
     # Package verification
     "packages_ok": "All required packages installed on all {count} nodes",
     "packages_fail": "{failed}/{total} nodes have missing packages",
+
+    # PAM session termination
+    "pam_session_ok": "PAM adoption and auto-logout verified",
+    "pam_session_fail": "PAM session termination not working",
 }
 
 # =============================================================================
@@ -184,6 +201,33 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  2. Verify package installation on node: ssh root@<node> rpm -qa | grep <pkg>\n"
         "  3. Re-run discovery/provision playbook to reinstall packages\n"
         "  4. Check package availability in local_repo"
+    ),
+
+    "bss_templates_failed": (
+        "BSS templates not created for all functional groups.\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Re-run discovery.yml\n"
+        "  2. Check BSS boot directory inside container\n"
+        "  3. Verify PXE mapping functional groups"
+    ),
+
+    "cloudinit_templates_failed": (
+        "Cloud-init templates not created for all functional groups.\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Re-run discovery.yml\n"
+        "  2. Check cloud-init template directory inside container\n"
+        "  3. Verify PXE mapping functional groups"
+    ),
+
+    "pam_session_failed": (
+        "PAM slurm_adopt session termination not working.\n"
+        "{details}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check pam_slurm_adopt configuration on compute nodes\n"
+        "  2. Verify slurmctld and slurmd are running\n"
+        "  3. Check /etc/pam.d/sshd on compute nodes"
     ),
 
     "build_stream_job_stage_failed": (
