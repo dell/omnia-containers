@@ -86,6 +86,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "negative: marks tests as negative tests (error handling)")
     config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
     config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
+    config.addinivalue_line("markers", "build_stream: marks tests as build stream related tests (pipeline validation)")
 
 
 def pytest_collection_modifyitems(session, config, items):
