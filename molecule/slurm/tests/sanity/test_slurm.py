@@ -61,7 +61,7 @@ if _PROJECT_ROOT not in sys.path:
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.core.load_inputs import is_software_enabled
+from automation_library.core import is_software_enabled
 from automation_library.slurm.functions.slurm_func import (
     verify_slurmctld_active,
     verify_slurmd_active,
