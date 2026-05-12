@@ -71,15 +71,13 @@ from .apptainer_func import (
     # TC25
     verify_nfs_mount_visibility_in_container,
     # TC26
-    verify_slurm_env_vars_in_container,
-    # TC27
     verify_job_array_execution_in_containers,
-    # TC28
+    # TC27
     verify_container_cleanup_after_job_failure,
-    # TC29
+    # TC28
     verify_nfs_and_sif_accessible_after_reboot,
-    # TC30
+    # TC29
     verify_container_execution_post_reboot,
-    # TC31
+    # TC30
     verify_download_script_works_after_reboot,
 )
