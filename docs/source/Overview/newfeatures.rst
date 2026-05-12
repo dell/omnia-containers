@@ -1,7 +1,7 @@
 New Features
 =============
 
-The following sections describe the new features and enhancements introduced in Omnia 2.1 releases.
+The following sections describe the new features and enhancements introduced in Omnia 2.1.0.0 release.
 
 
 BuildStream: Catalog-Driven Build Automation
