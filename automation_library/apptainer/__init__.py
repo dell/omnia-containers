@@ -56,7 +56,6 @@ from .functions import (
     verify_gpu_memory_allocation_in_container,
     verify_infiniband_accessible_in_container,
     verify_nfs_mount_visibility_in_container,
-    verify_slurm_env_vars_in_container,
     verify_job_array_execution_in_containers,
     verify_container_cleanup_after_job_failure,
     verify_nfs_and_sif_accessible_after_reboot,
