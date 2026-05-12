@@ -38,7 +38,7 @@ from paramiko.ssh_exception import (
 from automation_library.checks.vars.oim_prereq_vars import (
     OMNIA_TEST_CONFIG_PATH as DEFAULT_USER_CONFIG_PATH,
 )
-from automation_library.core.host import (
+from automation_library.core import (
     get_testinfra_host,
     run_in_container,
     run_on_remote_node,

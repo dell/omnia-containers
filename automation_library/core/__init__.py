@@ -21,8 +21,16 @@ Modules:
 - report: Test report generation
 """
 
-from .formatting import Colors, Symbols, log, set_debug_mode, TestLogger, get_test_output
-from .host import (
+# Import all from functions module
+from .functions import (
+    # Formatting
+    Colors,
+    Symbols,
+    log,
+    set_debug_mode,
+    TestLogger,
+    get_test_output,
+    # Host
     get_testinfra_host,
     load_omnia_test_config,
     get_dataset_path,
@@ -34,12 +42,10 @@ from .host import (
     check_container_running,
     make_verification_result,
     get_project_root,
-    # Backward compatibility functions
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
-)
-from .load_inputs import (
+    # Load inputs
     load_container_file,
     load_input_file,
     get_input_value,
@@ -48,15 +54,33 @@ from .load_inputs import (
     is_software_enabled,
     get_config_list_item,
     get_nfs_client_mount_path,
-)
-from .report import TestReport, get_current_report, set_current_report
-from .secrets import (
+    # Report
+    TestReport,
+    get_current_report,
+    set_current_report,
+    # Secrets
     view_credentials_file,
     get_credential_value,
     get_multiple_credentials,
-)
-from .db_exec import exec_psql_query, query_db_row
-from .build_stream import (
+    # DB exec
+    exec_psql_query,
+    query_db_row,
+    # Node checks (connectivity + cloud-init)
+    clear_connectivity_cache,
+    get_connectivity_cache,
+    get_reachable_nodes,
+    get_unreachable_nodes,
+    is_node_reachable,
+    get_node_error,
+    check_node_connectivity_once,
+    check_node_connectivity_with_retry,
+    verify_nodes_connectivity,
+    check_nodes_reachability,
+    print_unreachable_nodes,
+    get_cloudinit_status,
+    wait_for_cloudinit,
+    verify_cloudinit_status,
+    # Build stream
     is_build_stream_enabled,
     get_build_stream_job_id,
     check_build_stream_stage,
@@ -67,7 +91,31 @@ from .build_stream import (
     STAGE_PARSE_CATALOG,
     STAGE_GENERATE_INPUT,
 )
+
+# Import connectivity vars
+from .vars.connectivity_vars import (
+    PING_RETRY_LIMIT,
+    PING_RETRY_INTERVAL,
+    SSH_RETRY_LIMIT,
+    SSH_RETRY_INTERVAL,
+)
+
+# Import connectivity messages
+from .msgs.connectivity_msgs import (
+    CONNECTIVITY_TEST_NAMES,
+    CONNECTIVITY_LOG_MSGS,
+    CONNECTIVITY_ASSERT_MSGS,
+)
 from .vars import (
+    # Common vars
+    SSH_OPTS,
+    OMNIA_CORE_CONTAINER,
+    PODMAN_EXEC_PREFIX,
+    # Build stream vars
+    POSTGRES_CONTAINER,
+    POSTGRES_DB,
+    POSTGRES_USER_KEY,
+    COMPLETED_STATE,
     # Base paths
     OIM_SHARED_PATH,
     OMNIA_DATA_PATH,
@@ -79,6 +127,7 @@ from .vars import (
     # Input file names
     SOFTWARE_CONFIG_FILE,
     BUILD_STREAM_CONFIG_FILE,
+    GITLAB_CONFIG_FILE,
     NETWORK_SPEC_FILE,
     PROVISION_CONFIG_FILE,
     TELEMETRY_CONFIG_FILE,
@@ -98,6 +147,9 @@ from .vars import (
     PXE_MAPPING_FILE_PATH,
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
+    GITLAB_CONFIG_PATH,
+    BUILD_STREAM_OAUTH_CREDENTIALS_PATH,
+    BUILD_STREAM_OAUTH_CREDENTIALS_KEY_PATH,
     # Data paths
     SERVICE_CLUSTER_METADATA_PATH,
     OIM_METADATA_PATH,
@@ -191,6 +243,7 @@ __all__ = [
     # Vars - Input file names
     "SOFTWARE_CONFIG_FILE",
     "BUILD_STREAM_CONFIG_FILE",
+    "GITLAB_CONFIG_FILE",
     "NETWORK_SPEC_FILE",
     "PROVISION_CONFIG_FILE",
     "TELEMETRY_CONFIG_FILE",
@@ -210,6 +263,7 @@ __all__ = [
     "PXE_MAPPING_FILE_PATH",
     "OMNIA_CREDENTIALS_PATH",
     "OMNIA_CREDENTIALS_KEY_PATH",
+    "GITLAB_CONFIG_PATH",
     # Vars - Data paths
     "SERVICE_CLUSTER_METADATA_PATH",
     "OIM_METADATA_PATH",
@@ -237,4 +291,22 @@ __all__ = [
     "LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP",
     "LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP",
     "LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP",
+    # Connectivity functions
+    "check_node_ping",
+    "check_node_ssh",
+    "check_node_connectivity",
+    "verify_nodes_connectivity",
+    "get_connectivity_cache",
+    "clear_connectivity_cache",
+    "get_reachable_nodes",
+    "get_unreachable_nodes",
+    # Connectivity vars
+    "PING_RETRY_LIMIT",
+    "PING_RETRY_INTERVAL",
+    "SSH_RETRY_LIMIT",
+    "SSH_RETRY_INTERVAL",
+    # Connectivity messages
+    "CONNECTIVITY_TEST_NAMES",
+    "CONNECTIVITY_LOG_MSGS",
+    "CONNECTIVITY_ASSERT_MSGS",
 ]

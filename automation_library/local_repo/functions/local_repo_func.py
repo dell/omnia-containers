@@ -29,9 +29,9 @@ import json
 import re
 from typing import Any, Dict, List
 
-from ...core.host import run_in_container, check_container_running as _core_check_container
-from ...core.load_inputs import load_input_file, load_container_file
-from ...core.vars import INPUT_BASE_PATH, SOFTWARE_CONFIG_FILE
+from ...core import run_in_container, check_container_running as _core_check_container
+from ...core import load_input_file, load_container_file
+from ...core import INPUT_BASE_PATH, SOFTWARE_CONFIG_FILE
 from ..vars.local_repo_vars import (
     ARCH_LIST,
     CURL_CONNECT_TIMEOUT,

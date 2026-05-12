@@ -172,7 +172,8 @@ class TestLogger:
         self.test_name = test_name
         self._output_lines = []
         self._add_line("")
-        self._add_line(f"  {Colors.BRIGHT_CYAN}{Colors.BOLD}{Symbols.TRIANGLE} {test_name}{Colors.RESET}")
+        header = f"  {Colors.BRIGHT_CYAN}{Colors.BOLD}{Symbols.TRIANGLE} {test_name}{Colors.RESET}"
+        self._add_line(header)
 
     def _add_line(self, line: str):
         """Add line to output and print."""

@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from .host import get_project_root
+from .host_func import get_project_root
 
 
 def _get_report_dir() -> str:
@@ -335,7 +335,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                     if module.get("playbook_logs"):
                         logs_id = f"{mod_id}-logs"
                         command_type = module.get("molecule_command", "execution").upper()
-                        
+
                         # Detect if playbook execution failed
                         playbook_failed = False
                         if module.get("playbook_logs"):
@@ -343,7 +343,7 @@ def _generate_html(data: Dict[str, Any]) -> str:
                             # More specific failure detection - look for actual Ansible failure indicators
                             failure_indicators = [
                                 "failed=1",
-                                "unreachable=1", 
+                                "unreachable=1",
                                 "fatal:",
                                 "failed: [",
                                 "molecule ➜ converge: failed",
@@ -351,10 +351,10 @@ def _generate_html(data: Dict[str, Any]) -> str:
                                 "molecule ➜ test: failed"
                             ]
                             playbook_failed = any(indicator in logs_content for indicator in failure_indicators)
-                        
+
                         status_class = "failed" if playbook_failed else "passed"
                         status_icon = "✗" if playbook_failed else "✓"
-                        
+
                         html += f'''
                             <div class="playbook-logs collapsed">
                                 <div class="logs-header" onclick="toggleLogs('{logs_id}')">
@@ -448,9 +448,9 @@ def _generate_html(data: Dict[str, Any]) -> str:
         function toggleLogs(id) {
             const logsContainer = document.getElementById('logs-' + id).parentElement;
             const logsBody = document.getElementById('logs-' + id);
-            
+
             logsContainer.classList.toggle('collapsed');
-            
+
             if (logsContainer.classList.contains('collapsed')) {
                 logsBody.style.display = 'none';
             } else {
@@ -501,7 +501,7 @@ class TestReport:
                         "collecting ...",
                         "┌────────────────────────────────────────────────────────────────────┐"
                     ]
-                    
+
                     molecule_logs = clean_content
                     for marker in test_start_markers:
                         if marker in clean_content:
