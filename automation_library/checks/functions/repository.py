@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ def clone_omnia_repo() -> Dict:
         return {
             "passed": False,
             "message": "Omnia repository URL not configured",
-            "details": OIM_PREREQ_MSGS["omnia_repo_omnia_test_configured_instruction"].format(config_path=OMNIA_TEST_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_repo_not_configured_instruction"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     _log(f"Repo URL: {repo_url}", "DEBUG")
@@ -184,7 +184,7 @@ def build_container_images() -> Dict:
         return {
             "passed": False,
             "message": "omnia_branch not configured",
-            "details": OIM_PREREQ_MSGS["omnia_branch_omnia_test_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_branch_not_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Check if clone path exists
@@ -246,7 +246,7 @@ def download_omnia_sh() -> Dict:
         return {
             "passed": False,
             "message": "omnia_branch not configured",
-            "details": OIM_PREREQ_MSGS["omnia_sh_branch_omnia_test_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
+            "details": OIM_PREREQ_MSGS["omnia_sh_branch_not_configured"].format(config_path=OMNIA_TEST_CONFIG_PATH)
         }
 
     # Create directory if it doesn't exist
