@@ -67,7 +67,7 @@ Omnia provides a one-shot log collection playbook for gathering cluster logs fro
 
 **Output artifacts**
 
-* Workspace: ``/opt/omnia/logs/``
+* Workspace: ``/opt/omnia/collector_logs``
 * Bundle: ``omnia-logs-<identifier>-<YYYYMMDD-HHMMSS-IST>.tar.gz``
 * Metadata: ``metadata.json`` (included in bundle)
 * Checksum: ``.sha256`` file for integrity verification
@@ -76,4 +76,3 @@ Omnia provides a one-shot log collection playbook for gathering cluster logs fro
 
 * PXE mapping file must exist at ``/opt/omnia/input/project_default/pxe_mapping_file.csv``
 * Nodes must be reachable from OIM
-* Write permissions on ``/opt/omnia/logs``
