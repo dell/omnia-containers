@@ -141,7 +141,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry dcg apptainer oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -207,7 +207,7 @@ case "$SCENARIO" in
         
         # Build ordered list: omnia_sh_install first, then prepare_oim
         # Note: cleanup scenarios are NOT included in "all" - run them explicitly
-        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry"
+        SCENARIOS="omnia_sh_install prepare_oim local_repo build_image_x86_64 build_image_aarch64 discovery telemetry dcgm apptainer"
         
         FAILED=0
         for name in $SCENARIOS; do
