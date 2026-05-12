@@ -469,7 +469,7 @@ def test_sinfo_nodes(host):
 @pytest.mark.order(21)
 def test_openmpi_installed(host):
     """
-    Test Case 16: Verify OpenMPI is installed and version matches software_config.json.
+    Test Case 21: Verify OpenMPI is installed and version matches software_config.json.
 
     Skips if OpenMPI is not enabled in software_config.json.
     """
@@ -506,7 +506,7 @@ def test_openmpi_installed(host):
 @pytest.mark.order(22)
 def test_ucx_installed(host):
     """
-    Test Case 17: Verify UCX is installed and version matches software_config.json.
+    Test Case 22: Verify UCX is installed and version matches software_config.json.
 
     Skips if UCX is not enabled in software_config.json.
     """
@@ -601,7 +601,7 @@ def test_ldms_sampler_plugins(host):
 @pytest.mark.order(16)
 def test_ldap_slapd_configuration(host):
     """
-    Test Case 19: Apply external slapd.conf and verify LDAP service.
+    Test Case 16: Apply external slapd.conf and verify LDAP service.
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
@@ -632,7 +632,7 @@ def test_ldap_slapd_configuration(host):
 @pytest.mark.order(17)
 def test_ldap_user_login_from_oim(host):
     """
-    Test Case 20: Verify LDAP users can SSH login from OIM.
+    Test Case 17: Verify LDAP users can SSH login from OIM.
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
@@ -690,7 +690,7 @@ def test_ldap_user_login_from_oim(host):
 @pytest.mark.order(18)
 def test_ldap_user_login_from_core(host):
     """
-    Test Case 21: Verify LDAP users can SSH login from omnia_core container.
+    Test Case 18: Verify LDAP users can SSH login from omnia_core container.
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
@@ -749,7 +749,7 @@ def test_ldap_user_login_from_core(host):
 @pytest.mark.order(19)
 def test_pam_slurm_adopt(host):
     """
-    Test Case 22: Verify PAM slurm_adopt blocks login on slurm_node.
+    Test Case 19: Verify PAM slurm_adopt blocks login on slurm_node.
 
     Skips if OpenLDAP is not enabled in software_config.json.
 
