@@ -1,0 +1,177 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run GPU/DCGM playbook inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - Run DCGM prerequisite checks and playbook
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
+
+  vars_files:
+    - vars/vars.yml
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running DCGM provisioning on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # SYNC PROJECT_DEFAULT INTO CONTAINER
+    # =========================================================================
+
+    - name: Ensure project_dir for sync
+      ansible.builtin.set_fact:
+        project_dir: "{{ project_dir | default(playbook_dir + '/../..') }}"
+
+    - name: Sync project_default and generate vault key
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+    # =========================================================================
+    # PREREQUISITE CHECKS
+    # =========================================================================
+
+    - name: Verify omnia_core container is running
+      ansible.builtin.shell:
+        cmd: podman ps --format '{{ "{{" }}.Names{{ "}}" }}' | grep -c {{ container_name }}
+      register: container_check
+      changed_when: false
+      failed_when: container_check.rc != 0
+
+    - name: Display container check result
+      ansible.builtin.debug:
+        msg: "omnia_core container: {{ 'RUNNING' if container_check.rc == 0 else 'NOT RUNNING' }}"
+
+    - name: Verify GPU nodes are listed in PXE mapping
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          grep -c "slurm_node_x86_64"
+          /opt/omnia/input/project_default/pxe_mapping_file.csv || true
+      register: gpu_node_check
+      changed_when: false
+
+    - name: Verify CUDA toolkit path accessible from container
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} test -d {{ cuda_install_path }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: cuda_path_check
+      changed_when: false
+
+    # =========================================================================
+    # PREREQUISITE SUMMARY
+    # =========================================================================
+
+    - name: Display DCGM prerequisite check summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================"
+          - "  DCGM PREREQUISITE CHECK SUMMARY"
+          - "============================================"
+          - ""
+          - "CONTAINER:"
+          - "  omnia_core running:        {{ 'YES' if container_check.rc == 0 else 'NO' }}"
+          - ""
+          - "GPU NODES:"
+          - "  slurm_node_x86_64 count:  {{ gpu_node_check.stdout | trim }}"
+          - ""
+          - "CUDA TOOLKIT:"
+          - "  {{ cuda_install_path }}:   {{ cuda_path_check.stdout | trim }}"
+          - ""
+          - "============================================"
+
+    # =========================================================================
+    # RUN GPU / DCGM PLAYBOOK
+    # =========================================================================
+
+    - name: Check if GPU playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} test -f {{ gpu_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "GPU playbook ({{ gpu_playbook }}): {{ playbook_check.stdout | trim }}"
+
+    - name: Execute GPU/DCGM playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -it {{ container_name }} \
+            ansible-playbook {{ gpu_playbook }} -v
+      register: playbook_result
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Display playbook stdout
+      ansible.builtin.debug:
+        var: playbook_result.stdout_lines
+      when: playbook_result is defined and playbook_result.stdout_lines is defined
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          DCGM PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Fail if GPU playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    DCGM PLAYBOOK EXECUTION FAILED                           ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Enter container:   podman exec -it omnia_core bash
+          ║   3. Check DCGM:        systemctl status nvidia-dcgm.service
+          ║   4. Check GPU:         dcgmi discovery -l
+          ║   5. Check CUDA:        nvcc --version
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Fail if GPU playbook not found
+      ansible.builtin.fail:
+        msg: "GPU playbook not found at {{ gpu_playbook }} inside omnia_core container."
+      when: "'NOT_FOUND' in playbook_check.stdout"
