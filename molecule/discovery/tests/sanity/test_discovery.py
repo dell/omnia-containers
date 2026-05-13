@@ -35,6 +35,7 @@ from automation_library.discovery.functions import (
     verify_ip_correlation,
     verify_parent_service_tag,
     get_pxe_mapping_bmc_ips_by_group,
+    get_network_spec_subnets,
     get_ome_session,
     get_ome_static_groups,
     get_ome_group_device_ips,
@@ -44,6 +45,8 @@ from automation_library.discovery.vars import (
     BMC_PXE_MAPPING_PATH,
     SUPPORTED_COLUMNS,
     SUPPORTED_FUNCTIONAL_GROUPS,
+    GROUPS_REQUIRING_PARENT_SERVICE_TAG,
+    VALID_PARENT_FUNCTIONAL_GROUPS,
 )
 from automation_library.discovery.messages import (
     TEST_NAMES,
@@ -51,6 +54,38 @@ from automation_library.discovery.messages import (
     TEST_ASSERT_MSGS as ASSERT_MSGS,
     SKIP_MSGS,
 )
+
+
+# =============================================================================
+# HELPER FUNCTIONS
+# =============================================================================
+
+def _get_pxe_mapping_data(host):
+    """Get PXE mapping data with headers and rows as dicts."""
+    mapping = read_bmc_pxe_mapping_raw(host)
+    if not mapping["success"]:
+        return None, mapping["error"]
+
+    headers = mapping["headers"]
+    rows = []
+    for row in mapping["rows"]:
+        row_dict = {}
+        for i, h in enumerate(headers):
+            row_dict[h] = row[i] if i < len(row) else ""
+        rows.append(row_dict)
+    return rows, None
+
+
+def _group_rows_by_functional_group(rows):
+    """Group rows by FUNCTIONAL_GROUP_NAME."""
+    grouped = {}
+    for row in rows:
+        fg = row.get("FUNCTIONAL_GROUP_NAME", "")
+        if fg:
+            if fg not in grouped:
+                grouped[fg] = []
+            grouped[fg].append(row)
+    return grouped
 
 
 # =============================================================================
@@ -120,8 +155,15 @@ def test_pxe_mapping_columns(host):
             present=", ".join(result["present_columns"])
         )
 
-    log.check(LOG_MSGS["columns_valid"].format(count=len(result["present_columns"])))
-    log.passed(result["details"], f"Columns: {', '.join(result['present_columns'][:5])}...")
+    # Display columns line by line with tick marks
+    column_details = []
+    for col in sorted(SUPPORTED_COLUMNS):
+        if col in result["present_columns"]:
+            column_details.append(f"✓ {col}")
+        else:
+            column_details.append(f"✗ {col}")
+
+    log.passed(f"All {len(result['present_columns'])} required columns present", "\n".join(column_details))
 
 
 # =============================================================================
@@ -145,7 +187,6 @@ def test_functional_groups_supported(host):
             log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], result["error"])
             pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
 
-        log.check(LOG_MSGS["groups_found"].format(groups=", ".join(result["supported_groups"])))
         log.check(LOG_MSGS["groups_unsupported"].format(groups=", ".join(result["unsupported_groups"])))
         log.failed("Unsupported functional groups found", result["error"])
         assert False, ASSERT_MSGS["unsupported_functional_groups"].format(
@@ -153,8 +194,19 @@ def test_functional_groups_supported(host):
             supported=", ".join(SUPPORTED_FUNCTIONAL_GROUPS[:5]) + "..."
         )
 
-    log.check(LOG_MSGS["groups_found"].format(groups=", ".join(result["supported_groups"])))
-    log.passed(result["details"], f"Groups: {', '.join(result['supported_groups'])}")
+    # Display functional groups line by line with tick marks
+    group_details = []
+    group_details.append("Functional Groups in PXE Mapping:")
+    for fg in sorted(result["supported_groups"]):
+        group_details.append(f"✓ {fg}")
+
+    if result["unsupported_groups"]:
+        group_details.append("")
+        group_details.append("Unsupported Groups:")
+        for fg in sorted(result["unsupported_groups"]):
+            group_details.append(f"✗ {fg}")
+
+    log.passed(f"All {len(result['supported_groups'])} functional groups are supported", "\n".join(group_details))
 
 
 # =============================================================================
@@ -175,6 +227,19 @@ def test_ip_correlation(host):
 
     log.check("Verifying IP correlation based on network_spec.yml subnets")
 
+    # Get subnet info
+    subnets = get_network_spec_subnets(host)
+    if subnets["success"]:
+        log.check(f"Admin Subnet: {subnets['admin_subnet']}")
+        if subnets["ib_subnet"]:
+            log.check(f"IB Subnet: {subnets['ib_subnet']}")
+
+    # Get PXE mapping data for detailed display
+    rows, err = _get_pxe_mapping_data(host)
+    if err:
+        log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], err)
+        pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
+
     result = verify_ip_correlation(host)
 
     if not result["success"]:
@@ -182,21 +247,49 @@ def test_ip_correlation(host):
             log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], result["error"])
             pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
 
-        log.check(LOG_MSGS["ip_correlation_invalid"].format(count=len(result["invalid_rows"])))
+    # Group by functional group and display role-wise
+    grouped = _group_rows_by_functional_group(rows)
+    
+    ip_details = []
+    
+    for fg_name in sorted(grouped.keys()):
+        fg_rows = grouped[fg_name]
+        ip_details.append(f"[{fg_name}]")
 
-        for row in result["invalid_rows"][:3]:
-            log.check(f"  - {row['hostname']}: {row.get('reason', 'Unknown')}")
+        for row in fg_rows:
+            hostname = row.get("HOSTNAME", "")
+            admin_ip = row.get("ADMIN_IP", "")
+            bmc_ip = row.get("BMC_IP", "")
+            ib_ip = row.get("IB_IP", "")
 
-        log.failed("IP correlation validation failed", result["error"])
+            # Check if this row is valid
+            is_valid = True
+            for inv in result.get("invalid_rows", []):
+                if inv.get("hostname") == hostname:
+                    is_valid = False
+                    break
 
-        example = result["invalid_rows"][0] if result["invalid_rows"] else {}
+            status = "✓" if is_valid else "✗"
+            ip_details.append(f"  {status} {hostname}:")
+            ip_details.append(f"      ADMIN_IP: {admin_ip}")
+            ip_details.append(f"      BMC_IP:   {bmc_ip}")
+            if ib_ip:
+                ip_details.append(f"      IB_IP:    {ib_ip}")
+
+    if result["invalid_rows"]:
+        ip_details.append("")
+        ip_details.append("Invalid Rows:")
+        for row in result["invalid_rows"]:
+            ip_details.append(f"✗ {row['hostname']}: {row.get('reason', 'Unknown')}")
+
+        log.failed("IP correlation validation failed", "\n".join(ip_details))
+        example = result["invalid_rows"][0]
         assert False, ASSERT_MSGS["ip_correlation_failed"].format(
             count=len(result["invalid_rows"]),
             example=f"{example.get('hostname', 'N/A')}: {example.get('reason', 'N/A')}"
         )
 
-    log.check(LOG_MSGS["ip_correlation_valid"].format(count=result["valid_count"]))
-    log.passed(result["details"], f"Validated {result['valid_count']} rows")
+    log.passed(f"All {result['valid_count']} rows have valid IP correlation", "\n".join(ip_details))
 
 
 # =============================================================================
@@ -213,33 +306,116 @@ def test_parent_service_tag(host):
     1. Only slurm_node groups should have PARENT_SERVICE_TAG populated
     2. PARENT_SERVICE_TAG should reference a service_kube_node's SERVICE_TAG
     3. Other functional groups should have empty PARENT_SERVICE_TAG
+    4. If service_kube_node exists, slurm_node MUST have parent service tag
     """
     log = TestLogger(TEST_NAMES["parent_service_tag"])
 
     log.check("Verifying PARENT_SERVICE_TAG rules")
+    log.check(f"Groups requiring PARENT_SERVICE_TAG: {', '.join(GROUPS_REQUIRING_PARENT_SERVICE_TAG)}")
+    log.check(f"Valid parent groups: {', '.join(VALID_PARENT_FUNCTIONAL_GROUPS)}")
+
+    # Get PXE mapping data
+    rows, err = _get_pxe_mapping_data(host)
+    if err:
+        log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], err)
+        pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
+
+    # Group by functional group
+    grouped = _group_rows_by_functional_group(rows)
+
+    # Build set of valid parent service tags (from service_kube_node)
+    valid_parent_tags = {}
+    for fg in VALID_PARENT_FUNCTIONAL_GROUPS:
+        if fg in grouped:
+            for row in grouped[fg]:
+                st = row.get("SERVICE_TAG", "")
+                hostname = row.get("HOSTNAME", "")
+                if st:
+                    valid_parent_tags[st] = hostname
+
+    # Check if service_kube_node exists
+    has_service_kube_node = bool(valid_parent_tags)
 
     result = verify_parent_service_tag(host)
 
-    if not result["success"]:
-        if "No BMC PXE mapping" in result.get("error", ""):
-            log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], result["error"])
-            pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
+    # Build details for display
+    parent_details = []
+    
+    if has_service_kube_node:
+        parent_details.append("Valid Parent Service Tags (from service_kube_node):")
+        for st, hostname in valid_parent_tags.items():
+            parent_details.append(f"✓ {st} ({hostname})")
+        parent_details.append("")
 
-        log.check(LOG_MSGS["parent_tag_invalid"].format(count=len(result["invalid_rows"])))
+    # Display validation results by group
+    invalid_nodes = []
 
-        for row in result["invalid_rows"][:3]:
-            log.check(f"  - {row['hostname']} ({row['functional_group']}): {row['reason']}")
+    for fg_name in sorted(grouped.keys()):
+        fg_rows = grouped[fg_name]
+        requires_parent = fg_name in GROUPS_REQUIRING_PARENT_SERVICE_TAG
 
-        log.failed("PARENT_SERVICE_TAG validation failed", result["error"])
+        parent_details.append(f"[{fg_name}]")
 
-        example = result["invalid_rows"][0] if result["invalid_rows"] else {}
+        for row in fg_rows:
+            hostname = row.get("HOSTNAME", "")
+            service_tag = row.get("SERVICE_TAG", "")
+            parent_tag = row.get("PARENT_SERVICE_TAG", "")
+
+            if requires_parent:
+                # slurm_node should have parent tag
+                if has_service_kube_node:
+                    if parent_tag and parent_tag in valid_parent_tags:
+                        parent_details.append(f"  ✓ {hostname}:")
+                        parent_details.append(f"      SERVICE_TAG: {service_tag}")
+                        parent_details.append(f"      PARENT_SERVICE_TAG: {parent_tag} → {valid_parent_tags[parent_tag]}")
+                    elif parent_tag and parent_tag not in valid_parent_tags:
+                        parent_details.append(f"  ✗ {hostname}:")
+                        parent_details.append(f"      SERVICE_TAG: {service_tag}")
+                        parent_details.append(f"      PARENT_SERVICE_TAG: {parent_tag} (INVALID - not a service_kube_node)")
+                        invalid_nodes.append({
+                            "hostname": hostname,
+                            "functional_group": fg_name,
+                            "reason": f"PARENT_SERVICE_TAG '{parent_tag}' is not a valid service_kube_node"
+                        })
+                    else:
+                        parent_details.append(f"  ✗ {hostname}:")
+                        parent_details.append(f"      SERVICE_TAG: {service_tag}")
+                        parent_details.append(f"      PARENT_SERVICE_TAG: (MISSING)")
+                        invalid_nodes.append({
+                            "hostname": hostname,
+                            "functional_group": fg_name,
+                            "reason": "slurm_node missing PARENT_SERVICE_TAG"
+                        })
+                else:
+                    # No service_kube_node, so parent tag not required
+                    parent_details.append(f"  ✓ {hostname}: (no service_kube_node in cluster)")
+            else:
+                # Non-slurm_node should NOT have parent tag
+                if parent_tag:
+                    parent_details.append(f"  ✗ {hostname}:")
+                    parent_details.append(f"      SERVICE_TAG: {service_tag}")
+                    parent_details.append(f"      PARENT_SERVICE_TAG: {parent_tag} (UNEXPECTED)")
+                    invalid_nodes.append({
+                        "hostname": hostname,
+                        "functional_group": fg_name,
+                        "reason": f"{fg_name} should NOT have PARENT_SERVICE_TAG"
+                    })
+                else:
+                    parent_details.append(f"  ✓ {hostname}: (no parent tag - correct)")
+
+    if invalid_nodes:
+        parent_details.append("")
+        parent_details.append("Invalid Nodes:")
+        for node in invalid_nodes:
+            parent_details.append(f"✗ {node['hostname']} ({node['functional_group']}): {node['reason']}")
+
+        log.failed("PARENT_SERVICE_TAG validation failed", "\n".join(parent_details))
         assert False, ASSERT_MSGS["parent_service_tag_failed"].format(
-            count=len(result["invalid_rows"]),
-            example=f"{example.get('hostname', 'N/A')}: {example.get('reason', 'N/A')}"
+            count=len(invalid_nodes),
+            example=f"{invalid_nodes[0]['hostname']}: {invalid_nodes[0]['reason']}"
         )
 
-    log.check(LOG_MSGS["parent_tag_valid"].format(count=result["valid_count"]))
-    log.passed(result["details"], f"Validated {result['valid_count']} rows")
+    log.passed(f"All {result['valid_count']} rows have valid PARENT_SERVICE_TAG", "\n".join(parent_details))
 
 
 # =============================================================================
@@ -306,20 +482,18 @@ def test_ome_static_groups_match(host):
         pytest.skip("No functional groups in PXE mapping")
 
     pxe_groups = fg_result["supported_groups"]
-    log.check(f"PXE mapping functional groups: {', '.join(pxe_groups)}")
 
     verified = []
     failed = []
     missing = []
+    group_details = {}
 
-    for fg_name in pxe_groups:
+    for fg_name in sorted(pxe_groups):
         if fg_name not in ome_group_map:
             missing.append(fg_name)
-            log.check(LOG_MSGS["ome_group_not_found"].format(name=fg_name))
             continue
 
         ome_group = ome_group_map[fg_name]
-        log.check(LOG_MSGS["ome_group_checking"].format(name=fg_name))
 
         # Get BMC IPs from PXE mapping
         pxe_ips_result = get_pxe_mapping_bmc_ips_by_group(host, fg_name)
@@ -338,8 +512,15 @@ def test_ome_static_groups_match(host):
         ome_ips = set(ome_ips_result["ips"])
 
         # Compare
+        matched_ips = pxe_ips & ome_ips
         missing_in_ome = pxe_ips - ome_ips
         extra_in_ome = ome_ips - pxe_ips
+
+        group_details[fg_name] = {
+            "matched": sorted(list(matched_ips)),
+            "missing_in_ome": sorted(list(missing_in_ome)),
+            "extra_in_ome": sorted(list(extra_in_ome)),
+        }
 
         if missing_in_ome or extra_in_ome:
             failed.append({
@@ -349,42 +530,58 @@ def test_ome_static_groups_match(host):
                 "missing_in_ome": sorted(list(missing_in_ome)),
                 "extra_in_ome": sorted(list(extra_in_ome)),
             })
-            log.check(LOG_MSGS["ome_group_mismatch"].format(
-                name=fg_name,
-                pxe_count=len(pxe_ips),
-                ome_count=len(ome_ips)
-            ))
         else:
             verified.append(fg_name)
-            log.check(LOG_MSGS["ome_group_match"].format(
-                name=fg_name,
-                matched=len(pxe_ips),
-                total=len(pxe_ips)
-            ))
 
-    # Report results
+    # Build details for display
+    ome_details = []
+    
+    # Display results by functional group with IPs
+    for fg_name in sorted(pxe_groups):
+        ome_details.append(f"[{fg_name}]")
+
+        if fg_name in missing:
+            ome_details.append(f"  ✗ Group not found in OME Static Groups")
+            continue
+
+        if fg_name not in group_details:
+            ome_details.append(f"  ✗ Error retrieving IPs")
+            continue
+
+        details = group_details[fg_name]
+
+        # Show matched IPs
+        for ip in details["matched"]:
+            ome_details.append(f"  ✓ {ip}")
+
+        # Show missing in OME (in PXE but not in OME)
+        for ip in details["missing_in_ome"]:
+            ome_details.append(f"  ✗ {ip} (missing in OME)")
+
+        # Show extra in OME (in OME but not in PXE)
+        for ip in details["extra_in_ome"]:
+            ome_details.append(f"  ✗ {ip} (unexpected - in OME but not in PXE)")
+
+    # Summary
+    ome_details.append("")
     if verified:
-        log.check(f"✓ Verified groups: {', '.join(verified)}")
+        ome_details.append(f"Verified Groups ({len(verified)}):")
+        for fg in verified:
+            ome_details.append(f"  ✓ {fg}")
 
     if missing:
-        log.check(f"✗ Missing in OME: {', '.join(missing)}")
-
-    if failed:
-        for fg in failed:
-            if "missing_in_ome" in fg:
-                log.check(f"✗ {fg['name']}: {len(fg.get('missing_in_ome', []))} IPs missing in OME")
+        ome_details.append(f"Missing in OME ({len(missing)}):")
+        for fg in missing:
+            ome_details.append(f"  ✗ {fg}")
 
     if not failed and not missing:
-        log.passed(
-            LOG_MSGS["all_groups_verified"].format(count=len(verified)),
-            f"Groups: {', '.join(verified)}"
-        )
+        log.passed(f"All {len(verified)} functional groups verified", "\n".join(ome_details))
     else:
         total = len(verified) + len(failed) + len(missing)
         fail_count = len(failed) + len(missing)
         log.failed(
-            LOG_MSGS["groups_verification_failed"].format(failed=fail_count, total=total),
-            f"Failed: {fail_count}, Verified: {len(verified)}"
+            f"{fail_count}/{total} functional groups failed verification",
+            "\n".join(ome_details)
         )
 
         if missing:

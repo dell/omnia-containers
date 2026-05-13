@@ -45,6 +45,7 @@ from .functions import (
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
     get_group_names_from_pxe_mapping,
+    is_local_execution,
     # Load inputs
     load_container_file,
     load_input_file,
@@ -207,6 +208,7 @@ __all__ = [
     "get_node_admin_ip",
     "get_functional_groups_from_pxe_mapping",
     "get_group_names_from_pxe_mapping",
+    "is_local_execution",
     # Report
     "TestReport",
     "get_current_report",

@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Discovery Slurm Test Cases.
+"""Provision Slurm Test Cases.
 
 Test cases for verifying Slurm cluster:
 1. Services on slurm_control_node (slurmctld, slurmdbd, munge, mariadb, sssd if enabled)
@@ -52,8 +51,8 @@ from automation_library.provision.vars import (
     SLURM_CONTROL_SERVICES,
     SLURM_NODE_SERVICES,
     LOGIN_NODE_SERVICES,
-    DISCOVERY_REACHABILITY_RETRY,
-    DISCOVERY_REACHABILITY_INTERVAL,
+    PROVISION_REACHABILITY_RETRY,
+    PROVISION_REACHABILITY_INTERVAL,
 )
 from automation_library.provision.messages import TEST_ASSERT_MSGS as ASSERT_MSGS
 
@@ -79,8 +78,8 @@ def test_slurm_control_node_services(host):
     # Check reachability with retry
     reach = check_nodes_reachability(
         host, nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     # Report unreachable nodes
@@ -156,8 +155,8 @@ def test_slurm_node_services(host):
     # Check reachability with retry
     reach = check_nodes_reachability(
         host, nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     if reach["unreachable"]:
@@ -225,8 +224,8 @@ def test_login_node_services(host):
     # Check reachability with retry
     reach = check_nodes_reachability(
         host, nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     if reach["unreachable"]:
@@ -294,8 +293,8 @@ def test_login_compiler_node_services(host):
     # Check reachability with retry
     reach = check_nodes_reachability(
         host, nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     if reach["unreachable"]:
@@ -365,8 +364,8 @@ def test_cross_node_ssh(host):
     # Check reachability with retry
     reach = check_nodes_reachability(
         host, all_nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     if reach["unreachable"]:
@@ -552,7 +551,7 @@ def test_ldms_sampler_plugins(host):
     Checks that exactly the plugins defined in telemetry_config.yml are configured
     on each Slurm node - no missing, no extra plugins.
     """
-    from automation_library.discovery.functions import verify_ldms_sampler_plugins
+    from automation_library.provision.functions import verify_ldms_sampler_plugins
 
     log = TestLogger("Verify LDMS sampler plugins configuration")
 
@@ -640,7 +639,7 @@ def test_ldap_user_login_from_oim(host):
     Tests SSH login from OIM to slurm_control_node, login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
-    from automation_library.discovery.functions import verify_ldap_user_login_from_oim
+    from automation_library.provision.functions import verify_ldap_user_login_from_oim
 
     log = TestLogger("Verify LDAP user SSH login from OIM")
 
@@ -699,7 +698,7 @@ def test_ldap_user_login_from_core(host):
     login_node, login_compiler_node.
     Note: slurm_node is tested separately (PAM blocks login).
     """
-    from automation_library.discovery.functions import verify_ldap_user_login_from_core
+    from automation_library.provision.functions import verify_ldap_user_login_from_core
 
     log = TestLogger("Verify LDAP user SSH login from omnia_core")
 
@@ -757,7 +756,7 @@ def test_pam_slurm_adopt(host):
     unless they have an active job running.
     Expected message: "Access denied by pam_slurm_adopt: you have no active jobs on this node"
     """
-    from automation_library.discovery.functions import verify_pam_slurm_adopt
+    from automation_library.provision.functions import verify_pam_slurm_adopt
 
     log = TestLogger("Verify PAM slurm_adopt on slurm_node")
 
@@ -816,7 +815,7 @@ def test_pam_slurm_adopt_session_termination(host):
        - Verifies ldapuser login is blocked after job ends (auto-logout)
     2. Displays the actual PAM / disconnect messages for each submit node
     """
-    from automation_library.discovery.functions import verify_pam_slurm_adopt_session_termination
+    from automation_library.provision.functions import verify_pam_slurm_adopt_session_termination
 
     log = TestLogger("Verify PAM slurm_adopt session termination behavior")
 
