@@ -65,6 +65,20 @@ def _is_local_ip(ip: str) -> bool:
         return False
 
 
+def is_local_execution() -> bool:
+    """
+    Determine if tests should run locally (on the OIM itself).
+    
+    Returns True when:
+    - oim_server_ip is empty/not set (implies running on the OIM)
+    - oim_server_ip matches a local IP address
+    """
+    config = load_omnia_test_config()
+    oim_ip = config.get("oim_server_ip", "")
+    if not oim_ip or oim_ip.strip() == "":
+        return True
+    return _is_local_ip(oim_ip.strip())
+
 def get_testinfra_host() -> testinfra.host.Host:
     """
     Get testinfra host connected to OIM server.
