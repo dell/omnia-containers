@@ -34,7 +34,7 @@ from typing import Dict, Any, Optional
 
 import yaml
 
-from .db_exec_func_func_func_func_func import query_db_row
+from .db_exec_func import query_db_row
 from .load_inputs_func import load_input_file
 from .secrets_func import get_credential_value
 from ..vars.paths_vars import (
