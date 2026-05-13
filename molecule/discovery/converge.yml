@@ -181,6 +181,7 @@
     - name: List BMC PXE mapping files with timestamps
       ansible.builtin.shell:
         cmd: >
+          set -o pipefail &&
           podman exec {{ container_name }}
           ls -1t /opt/omnia/input/project_default/bmc_pxe_mapping_file_*.csv 2>/dev/null | head -5
       register: bmc_pxe_files
