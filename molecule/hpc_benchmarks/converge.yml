@@ -59,7 +59,7 @@
 
     - name: Verify omnia_core container is running
       ansible.builtin.shell:
-        cmd: podman ps --format '{{ "{{" }}.Names{{ "}}" }}' | grep -c {{ container_name }}
+        cmd: set -o pipefail && podman ps --format '{{ "{{" }}.Names{{ "}}" }}' | grep -c {{ container_name }}
       register: container_check
       changed_when: false
       failed_when: container_check.rc != 0
