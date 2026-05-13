@@ -78,6 +78,22 @@ _login_compiler_ips: list = []
 _login_compiler_collection_error: str = None
 
 
+# =============================================================================
+# HPC BENCHMARKS NODE PARAMETRIZATION STATE
+# =============================================================================
+# Module-level state for HPC benchmark node discovery and parametrization.
+# Used by hpc_benchmarks scenario to parametrize tests across cluster nodes.
+#
+# Only active when running hpc_benchmarks scenario tests.
+# =============================================================================
+_x86_64_node_ips: list = []
+_x86_64_node_collection_error: str = None
+_aarch64_node_ips: list = []
+_aarch64_node_collection_error: str = None
+_x86_64_login_compiler_ips: list = []
+_x86_64_login_compiler_collection_error: str = None
+
+
 class _TeeStream:
     def __init__(self, primary, buffer):
         self._primary = primary
@@ -118,6 +134,9 @@ def pytest_configure(config):
 
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)
+
+    # HPC benchmarks node collection - only for hpc_benchmarks scenario
+    _collect_hpc_benchmark_nodes(config)
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -172,8 +191,49 @@ def _collect_dcgm_gpu_nodes(config):
         _login_compiler_ips = []
 
 
+def _collect_hpc_benchmark_nodes(config):
+    """Collect x86_64 and aarch64 node IPs for HPC benchmarks scenario parametrization."""
+    global _x86_64_node_ips, _x86_64_node_collection_error
+    global _aarch64_node_ips, _aarch64_node_collection_error
+    global _x86_64_login_compiler_ips, _x86_64_login_compiler_collection_error
+
+    # Only run for hpc_benchmarks scenario
+    if config.args:
+        path = config.args[0] if config.args else ""
+        if "hpc_benchmarks" not in path:
+            return
+
+    try:
+        from automation_library.hpc_benchmarks.functions import (
+            get_x86_64_cluster_nodes,
+            get_aarch64_cluster_nodes,
+            get_login_compiler_nodes_x86_64,
+        )
+
+        host = get_testinfra_host()
+
+        # Collect x86_64 cluster nodes
+        x86_nodes = get_x86_64_cluster_nodes(host)
+        _x86_64_node_ips = [n["admin_ip"] for n in x86_nodes] if x86_nodes else []
+
+        # Collect aarch64 cluster nodes
+        aa64_nodes = get_aarch64_cluster_nodes(host)
+        _aarch64_node_ips = [n["admin_ip"] for n in aa64_nodes] if aa64_nodes else []
+
+        # Collect x86_64 login/compiler nodes
+        lc_nodes = get_login_compiler_nodes_x86_64(host)
+        _x86_64_login_compiler_ips = [n["admin_ip"] for n in lc_nodes] if lc_nodes else []
+    except Exception as e:
+        _x86_64_node_collection_error = f"x86_64 node collection failed: {e}"
+        _aarch64_node_collection_error = f"aarch64 node collection failed: {e}"
+        _x86_64_login_compiler_collection_error = f"x86_64 login/compiler node collection failed: {e}"
+        _x86_64_node_ips = []
+        _aarch64_node_ips = []
+        _x86_64_login_compiler_ips = []
+
+
 def pytest_generate_tests(metafunc):
-    """Parametrize tests with gpu_node_ip and login_compiler_ip for DCGM scenario."""
+    """Parametrize tests with node IP fixtures for DCGM and HPC benchmarks scenarios."""
     # Parametrize gpu_node_ip
     if "gpu_node_ip" in metafunc.fixturenames:
         if not _gpu_node_ips:
@@ -203,6 +263,63 @@ def pytest_generate_tests(metafunc):
                 "login_compiler_ip",
                 _login_compiler_ips,
                 ids=_login_compiler_ips,
+            )
+
+    # Parametrize x86_64_node_ip (HPC benchmarks)
+    if "x86_64_node_ip" in metafunc.fixturenames:
+        if not _x86_64_node_ips:
+            reason = (
+                _x86_64_node_collection_error
+                if _x86_64_node_collection_error
+                else "No x86_64 cluster nodes found (functional group: slurm_node_x86_64)"
+            )
+            metafunc.parametrize(
+                "x86_64_node_ip",
+                [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
+            )
+        else:
+            metafunc.parametrize(
+                "x86_64_node_ip",
+                _x86_64_node_ips,
+                ids=_x86_64_node_ips,
+            )
+
+    # Parametrize aarch64_node_ip (HPC benchmarks)
+    if "aarch64_node_ip" in metafunc.fixturenames:
+        if not _aarch64_node_ips:
+            reason = (
+                _aarch64_node_collection_error
+                if _aarch64_node_collection_error
+                else "No aarch64 cluster nodes found (functional group: slurm_node_aarch64)"
+            )
+            metafunc.parametrize(
+                "aarch64_node_ip",
+                [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
+            )
+        else:
+            metafunc.parametrize(
+                "aarch64_node_ip",
+                _aarch64_node_ips,
+                ids=_aarch64_node_ips,
+            )
+
+    # Parametrize x86_64_login_compiler_ip (HPC benchmarks)
+    if "x86_64_login_compiler_ip" in metafunc.fixturenames:
+        if not _x86_64_login_compiler_ips:
+            reason = (
+                _x86_64_login_compiler_collection_error
+                if _x86_64_login_compiler_collection_error
+                else "No x86_64 login/compiler nodes found (functional group: login_compiler_x86_64)"
+            )
+            metafunc.parametrize(
+                "x86_64_login_compiler_ip",
+                [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
+            )
+        else:
+            metafunc.parametrize(
+                "x86_64_login_compiler_ip",
+                _x86_64_login_compiler_ips,
+                ids=_x86_64_login_compiler_ips,
             )
 
 

@@ -1,0 +1,145 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - HPC Benchmarks prerequisite checks
+# =============================================================================
+# This playbook verifies that HPC benchmark staging prerequisites are met.
+# Actual provisioning is assumed to have been completed via provision.yml.
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - HPC Benchmarks prerequisite checks
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    container_name: "omnia_core"
+    hpc_tools_base: "/hpc_tools"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running HPC Benchmarks verification on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # PREREQUISITE CHECKS
+    # =========================================================================
+
+    - name: Verify omnia_core container is running
+      ansible.builtin.shell:
+        cmd: podman ps --format '{{ "{{" }}.Names{{ "}}" }}' | grep -c {{ container_name }}
+      register: container_check
+      changed_when: false
+      failed_when: container_check.rc != 0
+
+    - name: Display container check result
+      ansible.builtin.debug:
+        msg: "omnia_core container: {{ 'RUNNING' if container_check.rc == 0 else 'NOT RUNNING' }}"
+
+    - name: Check for x86_64 slurm_custom.json
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          test -f /omnia/input/config/x86_64/rhel/10.0/slurm_custom.json && echo "EXISTS" || echo "NOT_FOUND"
+      register: x86_64_json_check
+      changed_when: false
+
+    - name: Check for aarch64 slurm_custom.json
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          test -f /omnia/input/config/aarch64/rhel/10.0/slurm_custom.json && echo "EXISTS" || echo "NOT_FOUND"
+      register: aarch64_json_check
+      changed_when: false
+
+    - name: Check for hpc_tools directory on NFS
+      ansible.builtin.stat:
+        path: "{{ hpc_tools_base }}"
+      register: hpc_tools_check
+
+    - name: Check for x86_64 cluster nodes in PXE mapping
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          grep -c "slurm_node_x86_64"
+          /opt/omnia/input/project_default/pxe_mapping_file.csv || echo "0"
+      register: x86_64_node_check
+      changed_when: false
+
+    - name: Check for aarch64 cluster nodes in PXE mapping
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          grep -c "slurm_node_aarch64"
+          /opt/omnia/input/project_default/pxe_mapping_file.csv || echo "0"
+      register: aarch64_node_check
+      changed_when: false
+
+    # =========================================================================
+    # PREREQUISITE SUMMARY
+    # =========================================================================
+
+    - name: Display HPC Benchmarks prerequisite check summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================"
+          - "  HPC BENCHMARKS PREREQUISITE CHECK"
+          - "============================================"
+          - ""
+          - "CONTAINER:"
+          - "  omnia_core running:        {{ 'YES' if container_check.rc == 0 else 'NO' }}"
+          - ""
+          - "CONFIGURATION FILES:"
+          - "  x86_64 slurm_custom.json:  {{ x86_64_json_check.stdout | trim }}"
+          - "  aarch64 slurm_custom.json: {{ aarch64_json_check.stdout | trim }}"
+          - ""
+          - "NFS SHARE:"
+          - "  {{ hpc_tools_base }}:      {{ 'EXISTS' if hpc_tools_check.stat.exists else 'NOT_FOUND' }}"
+          - ""
+          - "CLUSTER NODES:"
+          - "  x86_64 nodes (slurm_node_x86_64):   {{ x86_64_node_check.stdout | trim }}"
+          - "  aarch64 nodes (slurm_node_aarch64): {{ aarch64_node_check.stdout | trim }}"
+          - ""
+          - "============================================"
+          - ""
+          - "NOTE: HPC benchmark staging is performed via provision.yml"
+          - "      This converge playbook only validates prerequisites."
+          - "      Run verification tests to validate staged artifacts."
+          - "============================================"
+
+    - name: Fail if omnia_core container not running
+      ansible.builtin.fail:
+        msg: "omnia_core container is not running. Run omnia.sh --install first."
+      when: container_check.rc != 0
