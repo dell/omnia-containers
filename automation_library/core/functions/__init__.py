@@ -19,7 +19,6 @@ from .host_func import (
     get_testinfra_host,
     load_omnia_test_config,
     get_dataset_path,
-    is_local_execution,
     run_on_oim,
     run_in_container,
     run_on_remote_node,

@@ -13,66 +13,87 @@
 # limitations under the License.
 
 """
-Discovery Module
+Discovery Module.
 
-This module provides functions for discovery playbook verification.
-Uses core module utilities for SSH, PXE mapping, and config reading.
+This module provides functions for verifying discovery playbook output:
+1. BMC PXE mapping file generation with timestamps
+2. Column validation against supported columns
+3. Functional group validation against Omnia-supported groups
+4. IP correlation validation (ADMIN_IP/IB_IP <-> BMC_IP) based on network_spec.yml
+5. Parent service tag validation for slurm_node groups
+6. OME custom group verification against PXE mapping
 
-Test Categories:
-- Common: Node boot, passwordless SSH, hostname sync
-- Slurm: Services, cross-node SSH, sinfo, OpenMPI/UCX
-- K8s: Node ready status
+Organized by functionality: functions, variables, and messages.
 """
 
 from .functions import (
-    # Common functions
-    cleanup_ssh_known_hosts,
-    get_slurm_control_nodes,
-    get_slurm_compute_nodes,
-    get_login_nodes,
-    get_login_compiler_nodes,
-    get_all_slurm_nodes,
-    get_k8s_nodes,
-    skip_if_no_slurm_nodes,
-    skip_if_no_k8s_nodes,
-    verify_ssh_from_core,
-    verify_ssh_from_oim,
-    # Slurm functions
-    is_openmpi_enabled,
-    is_ucx_enabled,
-    is_openldap_enabled,
-    skip_if_openmpi_not_enabled,
-    skip_if_ucx_not_enabled,
-    verify_services_on_nodes,
-    verify_cross_node_ssh,
-    verify_sinfo_nodes,
-    verify_openmpi_installed,
-    verify_ucx_installed,
-    # LDAP functions
-    skip_if_openldap_not_enabled,
-    apply_slapd_conf_and_verify,
-    verify_pam_slurm_adopt,
-    verify_pam_slurm_adopt_session_termination,
-    # Discovery output verification
-    verify_bss_templates_created,
-    verify_cloudinit_templates_created,
+    get_latest_bmc_pxe_mapping_file,
+    read_bmc_pxe_mapping_raw,
+    get_network_spec_subnets,
+    verify_pxe_mapping_columns,
+    verify_functional_groups_supported,
+    verify_ip_correlation,
+    verify_parent_service_tag,
+    get_pxe_mapping_bmc_ips_by_group,
+    clear_ome_cache,
+    get_ome_session,
+    get_ome_static_groups,
+    get_ome_group_device_ips,
 )
+
 from .vars import (
-    SSH_OPTS,
-    CONTAINER_NAME,
-    SLURM_CONTROL_SERVICES,
-    SLURM_NODE_SERVICES,
-    LOGIN_NODE_SERVICES,
-    OPENMPI_BIN_PATH,
-    UCX_BIN_PATH,
-    LDAP_CONTAINER_NAME,
-    SLAPD_CONF_TEMPLATE,
-    OPENCHAMI_WORKDIR,
-    BSS_BOOT_DIR,
-    CLOUDINIT_TEMPLATE_DIR,
+    BMC_PXE_MAPPING_PATH,
+    BMC_PXE_MAPPING_PREFIX,
+    SUPPORTED_COLUMNS,
+    SUPPORTED_FUNCTIONAL_GROUPS,
+    GROUPS_REQUIRING_PARENT_SERVICE_TAG,
+    VALID_PARENT_FUNCTIONAL_GROUPS,
+    OME_API_TIMEOUT,
+    OME_SESSION_ENDPOINT,
+    OME_GROUPS_ENDPOINT,
+    OME_GROUP_DEVICES_ENDPOINT,
+    OME_CUSTOM_GROUP_TYPE,
+    NETWORK_SPEC_FILE,
 )
+
 from .messages import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
+    SKIP_MSGS,
 )
+
+__all__ = [
+    # PXE mapping functions
+    "get_latest_bmc_pxe_mapping_file",
+    "read_bmc_pxe_mapping_raw",
+    "get_network_spec_subnets",
+    "verify_pxe_mapping_columns",
+    "verify_functional_groups_supported",
+    "verify_ip_correlation",
+    "verify_parent_service_tag",
+    "get_pxe_mapping_bmc_ips_by_group",
+    # OME functions
+    "clear_ome_cache",
+    "get_ome_session",
+    "get_ome_static_groups",
+    "get_ome_group_device_ips",
+    # Variables
+    "BMC_PXE_MAPPING_PATH",
+    "BMC_PXE_MAPPING_PREFIX",
+    "SUPPORTED_COLUMNS",
+    "SUPPORTED_FUNCTIONAL_GROUPS",
+    "GROUPS_REQUIRING_PARENT_SERVICE_TAG",
+    "VALID_PARENT_FUNCTIONAL_GROUPS",
+    "OME_API_TIMEOUT",
+    "OME_SESSION_ENDPOINT",
+    "OME_GROUPS_ENDPOINT",
+    "OME_GROUP_DEVICES_ENDPOINT",
+    "OME_CUSTOM_GROUP_TYPE",
+    "NETWORK_SPEC_FILE",
+    # Messages
+    "TEST_NAMES",
+    "TEST_LOG_MSGS",
+    "TEST_ASSERT_MSGS",
+    "SKIP_MSGS",
+]

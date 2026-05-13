@@ -12,91 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Discovery Functions Module."""
+"""Discovery Module Functions."""
 
-# Package collector functions
-from .package_collector import (
-    get_base_image_packages,
-    get_image_yaml_path_for_group,
-    get_image_packages_for_group,
-    get_packages_for_functional_group,
-    get_all_functional_groups,
-    build_package_map,
+from .pxe_mapping_func import (
+    get_latest_bmc_pxe_mapping_file,
+    read_bmc_pxe_mapping_raw,
+    get_network_spec_subnets,
+    verify_pxe_mapping_columns,
+    verify_functional_groups_supported,
+    verify_ip_correlation,
+    verify_parent_service_tag,
+    get_pxe_mapping_bmc_ips_by_group,
 )
 
-# Common functions
-from .common_func import (
-    # SSH error parsing
-    parse_ssh_error,
-    # SSH key cleanup
-    cleanup_ssh_known_hosts,
-    # Node connectivity check
-    check_node_connectivity,
-    check_nodes_connectivity,
-    filter_reachable_nodes,
-    # Node retrieval
-    get_slurm_control_nodes,
-    get_slurm_compute_nodes,
-    get_login_nodes,
-    get_login_compiler_nodes,
-    get_all_slurm_nodes,
-    get_k8s_nodes,
-    # Skip functions
-    skip_if_no_slurm_nodes,
-    skip_if_no_k8s_nodes,
-    # SSH verification
-    verify_ssh_from_core,
-    verify_ssh_from_oim,
-    # Cloud-init verification
-    verify_cloudinit_status,
-    # K8s verification
-    verify_k8s_nodes_ready,
-    verify_k8s_telemetry_pods,
-    # Package verification
-    verify_node_packages,
+from .ome_func import (
+    clear_ome_cache,
+    get_ome_session,
+    get_ome_static_groups,
+    get_ome_group_device_ips,
 )
 
-# Slurm functions
-from .slurm_func import (
-    # Enable check functions
-    is_openmpi_enabled,
-    is_ucx_enabled,
-    is_ldms_enabled,
-    # Skip functions
-    skip_if_openmpi_not_enabled,
-    skip_if_ucx_not_enabled,
-    skip_if_ldms_not_enabled,
-    # Service output formatting helpers
-    format_service_status,
-    build_service_details,
-    # Service verification
-    verify_services_on_nodes,
-    # Cross-node SSH
-    verify_cross_node_ssh,
-    # sinfo
-    verify_sinfo_nodes,
-    # OpenMPI/UCX
-    verify_openmpi_installed,
-    verify_ucx_installed,
-    # LDMS
-    verify_ldms_sampler_service,
-    verify_ldms_sampler_port,
-    verify_ldms_sampler_plugins,
-)
-
-# LDAP functions
-from .ldap_func import (
-    is_openldap_enabled,
-    skip_if_openldap_not_enabled,
-    apply_slapd_conf_and_verify,
-    verify_ldap_user_login_from_oim,
-    verify_ldap_user_login_from_core,
-    verify_pam_slurm_adopt,
-    verify_pam_slurm_adopt_session_termination,
-)
-
-# Discovery output verification functions
-from .discovery_output_func import (
-    verify_bss_templates_created,
-    verify_cloudinit_templates_created,
-)
+__all__ = [
+    # PXE mapping functions
+    "get_latest_bmc_pxe_mapping_file",
+    "read_bmc_pxe_mapping_raw",
+    "get_network_spec_subnets",
+    "verify_pxe_mapping_columns",
+    "verify_functional_groups_supported",
+    "verify_ip_correlation",
+    "verify_parent_service_tag",
+    "get_pxe_mapping_bmc_ips_by_group",
+    # OME functions
+    "clear_ome_cache",
+    "get_ome_session",
+    "get_ome_static_groups",
+    "get_ome_group_device_ips",
+]

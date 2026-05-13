@@ -41,12 +41,14 @@ BUILD_STREAM_CONFIG_FILE = "build_stream_config.yml"
 GITLAB_CONFIG_FILE = "gitlab_config.yml"
 NETWORK_SPEC_FILE = "network_spec.yml"
 PROVISION_CONFIG_FILE = "provision_config.yml"
+DISCOVERY_CONFIG_FILE = "discovery_config.yml"
 TELEMETRY_CONFIG_FILE = "telemetry_config.yml"
 STORAGE_CONFIG_FILE = "storage_config.yml"
 OMNIA_CONFIG_FILE = "omnia_config.yml"
 OMNIA_CREDENTIALS_FILE = "omnia_config_credentials.yml"
 HA_CONFIG_FILE = "high_availability_config.yml"
 PXE_MAPPING_FILE = "pxe_mapping_file.csv"
+BMC_PXE_MAPPING_FILE_PREFIX = "bmc_pxe_mapping_file_"
 
 # =============================================================================
 # FULL INPUT FILE PATHS (built from INPUT_BASE_PATH + file names)
@@ -60,6 +62,7 @@ PROVISION_CONFIG_PATH = f"{INPUT_BASE_PATH}/{PROVISION_CONFIG_FILE}"
 STORAGE_CONFIG_PATH = f"{INPUT_BASE_PATH}/{STORAGE_CONFIG_FILE}"
 HA_CONFIG_PATH = f"{INPUT_BASE_PATH}/{HA_CONFIG_FILE}"
 PXE_MAPPING_FILE_PATH = f"{INPUT_BASE_PATH}/{PXE_MAPPING_FILE}"
+DISCOVERY_CONFIG_PATH = f"{INPUT_BASE_PATH}/{DISCOVERY_CONFIG_FILE}"
 OMNIA_CREDENTIALS_PATH = f"{INPUT_BASE_PATH}/{OMNIA_CREDENTIALS_FILE}"
 OMNIA_CREDENTIALS_KEY_PATH = f"{INPUT_BASE_PATH}/.omnia_config_credentials_key"
 GITLAB_CONFIG_PATH = f"{INPUT_BASE_PATH}/{GITLAB_CONFIG_FILE}"
@@ -124,3 +127,39 @@ LOGIN_NODE_FUNCTIONAL_GROUP = "login_node_x86_64"
 LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP = "login_node_aarch64"
 LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP = "login_compiler_node_x86_64"
 LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP = "login_compiler_node_aarch64"
+
+# =============================================================================
+# OMNIA SUPPORTED FUNCTIONAL GROUPS (all valid functional group names)
+# =============================================================================
+
+OMNIA_SUPPORTED_FUNCTIONAL_GROUPS = [
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+    K8S_WORKER_NODE_FUNCTIONAL_GROUP,
+    SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
+    SLURM_NODE_FUNCTIONAL_GROUP,
+    SLURM_NODE_AARCH64_FUNCTIONAL_GROUP,
+    LOGIN_NODE_FUNCTIONAL_GROUP,
+    LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP,
+    LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
+    LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP,
+]
+
+# =============================================================================
+# PXE MAPPING FILE COLUMNS (expected columns in discovery output)
+# =============================================================================
+
+PXE_MAPPING_REQUIRED_COLUMNS = [
+    "FUNCTIONAL_GROUP_NAME",
+    "GROUP_NAME",
+    "SERVICE_TAG",
+    "PARENT_SERVICE_TAG",
+    "HOSTNAME",
+    "ADMIN_MAC",
+    "ADMIN_IP",
+    "BMC_MAC",
+    "BMC_IP",
+    "IB_MAC",
+    "IB_IP",
+    "GPU_VENDOR",
+    "GPU_TYPE",
+]
