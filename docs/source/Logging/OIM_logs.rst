@@ -9,7 +9,7 @@ OIM Logs
 Cluster Log Collection
 -----------------------
 
-Omnia provides a one-shot log collection playbook for gathering cluster logs from Kubernetes and Slurm nodes for debugging and support handoff. For detailed information on log collection, see :doc:`../Utils/log_collector`.
+Omnia provides a one-shot log collection playbook for gathering cluster logs from Kubernetes and Slurm nodes for debugging and support handoff. For detailed information on log collection, see :doc:`../Omnia/log_collector`.
 
 **Usage**
 
@@ -46,8 +46,8 @@ To collect logs from the cluster, execute the following commands::
 * Nodes must be reachable from OIM
 
    
-Omnia Logs
------------
+Omnia playbook and container logs
+---------------------------------
 
 The following table provides an overview of the various Omnia log files, their locations, and their purposes for monitoring.
 
