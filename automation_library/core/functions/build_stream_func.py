@@ -161,7 +161,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
             }
 
         # Check the stage itself — filter by BOTH job_id AND stage_name
-        from .db_exec import exec_psql_query as _exec_psql
+        from .db_exec_func import exec_psql_query as _exec_psql
         _escaped_id = override_id.replace("'", "''")
         _escaped_stage = stage_name.replace("'", "''")
         _stage_sql = (
@@ -252,7 +252,7 @@ def get_build_stream_job_id(host, stage_name: str) -> Dict[str, Any]:
     # Find latest job_id where this stage is COMPLETED
     # Filter by both stage_name AND stage_state=COMPLETED so we get the
     # most recent successful run, not just the most recent attempt.
-    from .db_exec import exec_psql_query as _exec_psql
+    from .db_exec_func import exec_psql_query as _exec_psql
     _escaped_stage = stage_name.replace("'", "''")
     _find_sql = (
         f"SELECT job_id FROM job_stages "
@@ -402,7 +402,7 @@ def check_build_stream_stage(
         }
 
     # We need both job_id AND stage_name to match — use exec_psql_query directly
-    from .db_exec import exec_psql_query
+    from .db_exec_func import exec_psql_query
     sql = (
         f"SELECT stage_state FROM job_stages "
         f"WHERE job_id = '{job_id}' AND stage_name = '{stage_name}' "

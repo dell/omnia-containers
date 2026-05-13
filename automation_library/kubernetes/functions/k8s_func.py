@@ -25,6 +25,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 import time
 import yaml
 
@@ -40,6 +41,7 @@ from automation_library.checks.vars.oim_prereq_vars import (
 )
 from automation_library.core import (
     get_testinfra_host,
+    is_local_execution,
     run_in_container,
     run_on_remote_node,
     get_nodes_info,
@@ -206,6 +208,7 @@ class OIMOperations:
         self.ssh_client = None
         self._omnia_core_container_id = None
         self._testinfra_host = None
+        self._local_mode = is_local_execution()
 
     def _load_config(self):
         """Load configuration from user config file."""
@@ -213,7 +216,13 @@ class OIMOperations:
             return yaml.safe_load(file)
 
     def connect_ssh(self):
-        """Establish SSH connection to OIM server."""
+        """Establish SSH connection to OIM server.
+
+        In local mode (running on the OIM itself), this is a no-op.
+        """
+        if self._local_mode:
+            return None
+
         if self.ssh_client is not None:
             transport = self.ssh_client.get_transport()
             if transport and transport.is_active():
@@ -243,11 +252,38 @@ class OIMOperations:
                 self.ssh_client = None
             raise RuntimeError(f"Failed to establish SSH connection: {str(e)}") from e
 
+    def _run_local_command(self, command):
+        """Run a command locally via subprocess and return the output.
+        
+        Args:
+            command (str): The shell command to run locally.
+        
+        Returns:
+            str: The command output.
+
+        Raises:
+            RuntimeError: If the command fails.
+        """
+        try:
+            result = subprocess.run(
+                command, shell=True, capture_output=True, text=True, timeout=120
+            )
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"Command failed with exit code {result.returncode}: "
+                    f"{result.stderr.strip()}"
+                )
+            return result.stdout.strip()
+        except subprocess.TimeoutExpired as e:
+            raise RuntimeError(f"Command timed out: {command}") from e
+
     def _run_ssh_command(self, command):
-        """Run a command on the remote server via SSH and return the output.
+        """Run a command on the OIM server and return the output.
+        
+        In local mode, runs via subprocess. In remote mode, runs via SSH.
 
         Args:
-            command (str): The command to run on the remote server.
+            command (str): The command to run on the server.
 
         Returns:
             str: The command output.
@@ -255,6 +291,9 @@ class OIMOperations:
         Raises:
             Exception: If the command fails.
         """
+        if self._local_mode:
+            return self._run_local_command(command)
+
         self.connect_ssh()
 
         try:
@@ -752,6 +791,24 @@ class OIMOperations:
         container_id = self._get_omnia_core_container_id()
         wrapped = f"podman exec {container_id} bash -lc {shlex.quote(command)}"
 
+        if self._local_mode:
+            # Local execution: run via subprocess
+            try:
+                result = subprocess.run(
+                    wrapped, shell=True, capture_output=True, text=True, timeout=120
+                )
+                exit_code = result.returncode
+                out = result.stdout.strip()
+                err = result.stderr.strip()
+
+                if check and exit_code != 0:
+                    raise RuntimeError(f"Command failed with exit code {exit_code}: {err}")
+
+                return exit_code, out, err
+            except subprocess.TimeoutExpired as e:
+                raise RuntimeError(f"Command timed out: {wrapped}") from e
+
+        # Remote execution: run via SSH
         if not self.ssh_client:
             self.connect_ssh()
 
