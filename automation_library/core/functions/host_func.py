@@ -79,24 +79,20 @@ def is_local_execution() -> bool:
         return True
     return _is_local_ip(oim_ip.strip())
 
+
 def get_testinfra_host() -> testinfra.host.Host:
     """
     Get testinfra host connected to OIM server.
 
     Always reads IP directly from omnia_test_config.yml to avoid hostname resolution issues.
-    Raises ValueError if oim_server_ip is not configured.
+    When oim_server_ip is empty or matches a local IP, runs in local mode
+    (no SSH required — assumes tests are running on the OIM itself).
     """
     config = load_omnia_test_config()
     oim_ip = config.get("oim_server_ip", "")
 
-    if not oim_ip or oim_ip.strip() == "":
-        raise ValueError(
-            "oim_server_ip is required in omnia_test_config.yml. "
-            "Please set the IP address of your OIM server."
-        )
-
-    # Local execution
-    if _is_local_ip(oim_ip):
+    # Local execution: oim_server_ip is empty (running on OIM) or matches local IP
+    if not oim_ip or oim_ip.strip() == "" or _is_local_ip(oim_ip.strip()):
         return testinfra.get_host("local://")
 
     # Remote - always use direct SSH with IP from omnia_test_config.yml
