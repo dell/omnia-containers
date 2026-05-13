@@ -43,18 +43,13 @@
     omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
     container_name: "omnia_core"
     discovery_playbook: "/omnia/discovery/discovery.yml"
-    provision_config_path: "/opt/omnia/input/project_default/provision_config.yml"
-    build_stream_config_path: "/opt/omnia/input/project_default/build_stream_config.yml"
+    discovery_config_path: "/opt/omnia/input/project_default/discovery_config.yml"
     converge_scenario: "discovery"
 
   tasks:
     - name: Display target OIM server
       ansible.builtin.debug:
         msg: "Running discovery on OIM server: {{ ansible_host }}"
-
-    # =========================================================================
-    # GUARD: ABORT IF BUILD_STREAM IS ENABLED
-    # =========================================================================
 
     # =========================================================================
     # PREREQUISITE CHECKS
@@ -90,48 +85,37 @@
     - name: Sync project_default to container
       ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
 
-    - name: Guard - abort converge if build_stream is enabled
-      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
-
-    - name: Read provision_config.yml to get pxe_mapping_file_path
+    # =========================================================================
+    # CHECK DISCOVERY CONFIG
+    # =========================================================================
+    - name: Read discovery_config.yml
       ansible.builtin.command:
-        cmd: podman exec {{ container_name }} cat {{ provision_config_path }}
-      register: provision_config_content
+        cmd: podman exec {{ container_name }} cat {{ discovery_config_path }}
+      register: discovery_config_content
       changed_when: false
 
-    - name: Extract pxe_mapping_file_path from provision_config.yml
+    - name: Extract enable_bmc_discovery from discovery_config.yml
       ansible.builtin.set_fact:
-        pxe_mapping_file_path: >-
-          {{ provision_config_content.stdout |
-             regex_search('pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?', '\1') |
+        enable_bmc_discovery: >-
+          {{ discovery_config_content.stdout |
+             regex_search('enable_bmc_discovery:\s*(true|false)', '\1') |
+             first | default('false') | lower == 'true' }}
+
+    - name: Extract ome_ip from discovery_config.yml
+      ansible.builtin.set_fact:
+        ome_ip: >-
+          {{ discovery_config_content.stdout |
+             regex_search('ome_ip:\s*["\']?([^"\'#\n]+)["\']?', '\1') |
              first | default('') | trim }}
 
-    - name: Display extracted pxe_mapping_file_path
-      ansible.builtin.debug:
-        msg: "PXE mapping file path from provision_config.yml: {{ pxe_mapping_file_path | default('NOT FOUND') }}"
-
-    - name: Check if PXE mapping file exists
-      ansible.builtin.shell:
-        cmd: podman exec {{ container_name }} test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
-      register: pxe_mapping_check
-      changed_when: false
-      when: pxe_mapping_file_path | default('') | length > 0
-
-    - name: Display PXE mapping check result
-      ansible.builtin.debug:
-        msg: "PXE mapping file: {{ pxe_mapping_check.stdout | default('SKIPPED - path not found') }}"
-
-    # =========================================================================
-    # PREREQUISITE SUMMARY
-    # =========================================================================
-    - name: Display prerequisite check summary
+    - name: Display discovery configuration
       ansible.builtin.debug:
         msg: |
           ============================================
-          DISCOVERY PREREQUISITE CHECK SUMMARY
+          DISCOVERY CONFIGURATION
           ============================================
-          omnia_core container:    {{ container_check.stdout }}
-          pxe_mapping_file.csv:    {{ pxe_mapping_check.stdout | default('NOT FOUND') }}
+          enable_bmc_discovery: {{ enable_bmc_discovery }}
+          ome_ip: {{ ome_ip | default('NOT CONFIGURED') }}
           ============================================
 
     # =========================================================================
@@ -182,7 +166,7 @@
           ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
           ║   2. Enter container: podman exec -it omnia_core bash
           ║   3. Check logs: cat /opt/omnia/log/omnia.log
-          ║   4. Check OpenCHAMI: ochami smd component get
+          ║   4. Check OME connectivity: curl -k https://{{ ome_ip }}/api/SessionService/Sessions
           ╚══════════════════════════════════════════════════════════════════════════════╝
       when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
 
@@ -192,154 +176,24 @@
       when: "'NOT_FOUND' in playbook_check.stdout"
 
     # =========================================================================
-    # POST-DISCOVERY: VERIFY PXE MAPPING FILE EXISTS
+    # POST-DISCOVERY: VERIFY BMC PXE MAPPING FILE CREATED
     # =========================================================================
-
-    - name: Verify PXE mapping file exists after discovery
+    - name: List BMC PXE mapping files with timestamps
       ansible.builtin.shell:
         cmd: >
           podman exec {{ container_name }}
-          test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
-      register: post_pxe_mapping_check
-      changed_when: false
-      when: pxe_mapping_file_path | default('') | length > 0
-
-    - name: Fail if PXE mapping file not found after discovery
-      ansible.builtin.fail:
-        msg: |
-          ╔══════════════════════════════════════════════════════════════════════════════╗
-          ║                  PXE MAPPING FILE NOT FOUND AFTER DISCOVERY                  ║
-          ╠══════════════════════════════════════════════════════════════════════════════╣
-          ║ Expected: {{ pxe_mapping_file_path }}                                        ║
-          ║                                                                              ║
-          ║ HOW TO FIX:                                                                  ║
-          ║   1. Verify pxe_mapping_file_path in provision_config.yml                    ║
-          ║   2. Re-run discovery.yml                                                    ║
-          ╚══════════════════════════════════════════════════════════════════════════════╝
-      when: >
-        post_pxe_mapping_check is defined and
-        'NOT_FOUND' in (post_pxe_mapping_check.stdout | default(''))
-
-    - name: Display PXE mapping file verification
-      ansible.builtin.debug:
-        msg: "✓ PXE mapping file exists: {{ pxe_mapping_file_path }}"
-      when: >
-        post_pxe_mapping_check is defined and
-        'EXISTS' in (post_pxe_mapping_check.stdout | default(''))
-
-    # =========================================================================
-    # POST-DISCOVERY: CREATE BMC INVENTORY FROM PXE MAPPING
-    # =========================================================================
-
-    - name: Read BMC IPs from PXE mapping file
-      ansible.builtin.shell:
-        cmd: |
-          set -o pipefail
-          podman exec {{ container_name }} bash -c '
-            PXE_FILE="{{ pxe_mapping_file_path }}"
-            # Get header line and find BMC_IP column index
-            HEADER=$(head -1 "$PXE_FILE")
-            BMC_COL=$(echo "$HEADER" | tr "," "\n" | grep -n "BMC_IP" | cut -d: -f1)
-            if [ -z "$BMC_COL" ]; then
-              echo "ERROR: BMC_IP column not found in PXE mapping"
-              exit 1
-            fi
-            # Extract BMC IPs from data rows (skip header)
-            tail -n +2 "$PXE_FILE" | cut -d"," -f"$BMC_COL" | grep -v "^$" | sort -u
-          '
-        executable: /bin/bash
-      register: bmc_ips_result
-      changed_when: false
-      when: pxe_mapping_file_path | default('') | length > 0
-
-    - name: Display extracted BMC IPs
-      ansible.builtin.debug:
-        msg: "BMC IPs from PXE mapping: {{ bmc_ips_result.stdout_lines | default([]) }}"
-      when: bmc_ips_result is defined and bmc_ips_result.stdout_lines is defined
-
-    - name: Create BMC inventory file with [bmc] inside core container
-      ansible.builtin.shell:
-        cmd: |
-          set -o pipefail
-          podman exec {{ container_name }} bash -c '
-            INVENTORY_DIR="/omnia/utils"
-            mkdir -p "$INVENTORY_DIR"
-            INVENTORY_FILE="$INVENTORY_DIR/bmc_inventory"
-            echo "[bmc]" > "$INVENTORY_FILE"
-            {% for ip in bmc_ips_result.stdout_lines %}
-            echo "{{ ip }}" >> "$INVENTORY_FILE"
-            {% endfor %}
-            echo "BMC inventory created at $INVENTORY_FILE"
-            cat "$INVENTORY_FILE"
-          '
-        executable: /bin/bash
-      register: bmc_inventory_result
-      changed_when: true
-      when:
-        - bmc_ips_result is defined
-        - bmc_ips_result.stdout_lines is defined
-        - bmc_ips_result.stdout_lines | length > 0
-
-    - name: Display BMC inventory creation result
-      ansible.builtin.debug:
-        msg: "{{ bmc_inventory_result.stdout | default('BMC inventory not created') }}"
-      when: bmc_inventory_result is defined
-
-    # =========================================================================
-    # POST-DISCOVERY: EXECUTE SET PXE BOOT PLAYBOOK
-    # =========================================================================
-
-    - name: Check if set_pxe_boot playbook exists in container
-      ansible.builtin.shell:  # noqa: risky-shell-pipe
-        cmd: >
-          podman exec {{ container_name }}
-          bash -o pipefail -c
-          'ls /omnia/utils/set_pxe_boot.yml /omnia/discovery/set_pxe_boot.yml 2>/dev/null | head -1'
-      register: pxe_boot_playbook_check
+          ls -1t /opt/omnia/input/project_default/bmc_pxe_mapping_file_*.csv 2>/dev/null | head -5
+      register: bmc_pxe_files
       changed_when: false
 
-    - name: Set PXE boot playbook path
-      ansible.builtin.set_fact:
-        pxe_boot_playbook: "{{ pxe_boot_playbook_check.stdout | trim }}"
-      when: pxe_boot_playbook_check.stdout | default('') | trim | length > 0
-
-    - name: Execute set PXE boot playbook in omnia_core container
-      ansible.builtin.shell:
-        cmd: |
-          podman exec -w /omnia {{ container_name }} \
-            ansible-playbook {{ pxe_boot_playbook }} -i /omnia/utils/bmc_inventory -v
-      register: pxe_boot_result
-      when: pxe_boot_playbook is defined and pxe_boot_playbook | length > 0
-      changed_when: pxe_boot_result.rc == 0
-      failed_when: false
-
-    - name: Display set PXE boot result
+    - name: Display BMC PXE mapping files
       ansible.builtin.debug:
         msg: |
           ============================================
-          SET PXE BOOT PLAYBOOK RESULT
+          BMC PXE MAPPING FILES (latest first)
           ============================================
-          Return Code: {{ pxe_boot_result.rc | default('N/A') }}
+          {{ bmc_pxe_files.stdout | default('No files found') }}
           ============================================
-      when: pxe_boot_result is defined
-
-    - name: Warn if set PXE boot playbook failed
-      ansible.builtin.debug:
-        msg: "⚠ set_pxe_boot playbook returned rc={{ pxe_boot_result.rc }} - check logs"
-      when: pxe_boot_result is defined and pxe_boot_result.rc is defined and pxe_boot_result.rc != 0
-
-    - name: Warn if set PXE boot playbook not found
-      ansible.builtin.debug:
-        msg: "⚠ set_pxe_boot playbook not found in container (checked /omnia/utils/ and /omnia/discovery/)"
-      when: pxe_boot_playbook is not defined or pxe_boot_playbook | length == 0
-
-    - name: Compute converge summary facts
-      ansible.builtin.set_fact:
-        _bmc_status: "{{ 'Created' if bmc_inventory_result is defined and bmc_inventory_result.rc == 0 else 'Skipped' }}"
-        _pxe_status: >-
-          {{ 'Executed (rc=' + (pxe_boot_result.rc | string) + ')'
-          if pxe_boot_result is defined and pxe_boot_result.rc is defined
-          else 'Skipped' }}
 
     - name: Discovery converge complete
       ansible.builtin.debug:
@@ -348,10 +202,9 @@
           DISCOVERY CONVERGE COMPLETE!
           ============================================
           - omnia_core container: Running
-          - Prerequisites: Checked
+          - Discovery config: Loaded
+          - enable_bmc_discovery: {{ enable_bmc_discovery }}
+          - OME IP: {{ ome_ip | default('NOT CONFIGURED') }}
           - discovery.yml playbook: Executed successfully
-          - PXE mapping file: Verified
-          - BMC inventory: {{ _bmc_status }}
-          - Set PXE boot: {{ _pxe_status }}
           - Ready for pytest verification
           ============================================
