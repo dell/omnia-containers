@@ -30,6 +30,10 @@ from .common_func import (
     parse_ssh_error,
     # SSH key cleanup
     cleanup_ssh_known_hosts,
+    # Node connectivity check
+    check_node_connectivity,
+    check_nodes_connectivity,
+    filter_reachable_nodes,
     # Node retrieval
     get_slurm_control_nodes,
     get_slurm_compute_nodes,
@@ -88,4 +92,11 @@ from .ldap_func import (
     verify_ldap_user_login_from_oim,
     verify_ldap_user_login_from_core,
     verify_pam_slurm_adopt,
+    verify_pam_slurm_adopt_session_termination,
+)
+
+# Discovery output verification functions
+from .discovery_output_func import (
+    verify_bss_templates_created,
+    verify_cloudinit_templates_created,
 )

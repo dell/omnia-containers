@@ -13,6 +13,20 @@
 # limitations under the License.
 """
 Shared pytest configuration for all molecule scenarios.
+
+Test Markers:
+- sanity: Basic functionality tests (default test suite)
+- negative: Error handling tests
+- regression: Full coverage tests
+- smoke: Critical path only tests
+- build_stream: Build stream pipeline validation tests
+- cleanup: Cleanup verification tests (deselected by default)
+
+Usage Examples:
+  pytest -m sanity                    # Run all sanity tests (includes build_stream)
+  pytest -m build_stream              # Run only build_stream tests
+  pytest -m "sanity and build_stream" # Run tests with both markers
+  pytest -m "sanity and not build_stream" # Run sanity tests excluding build_stream
 """
 
 import os
@@ -24,7 +38,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 from automation_library.core import (
-    get_testinfra_host, TestReport, set_current_report, get_current_report, get_test_output,
+    get_testinfra_host, is_local_execution, TestReport, set_current_report, get_current_report, get_test_output,
     TestLogger, is_build_stream_enabled,
 )
 
@@ -86,6 +100,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "negative: marks tests as negative tests (error handling)")
     config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
     config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
+    config.addinivalue_line("markers", "build_stream: marks tests as build stream related tests (pipeline validation)")
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -208,7 +223,12 @@ def pytest_runtest_makereport(item, call):
 
 @pytest.fixture(scope="module")
 def host():
-    """Testinfra host fixture - connects to OIM server."""
+    """Testinfra host fixture - connects to OIM server.
+
+    When running on the OIM itself (oim_server_ip is empty or matches a local IP),
+    returns a local testinfra host — no SSH credentials required.
+    When running remotely, validates SSH connectivity before returning the host.
+    """
     import shutil
     import subprocess as _sp
 
@@ -216,21 +236,31 @@ def host():
     config = load_omnia_test_config()
     oim_ip = config.get("oim_server_ip", "")
 
-    # Pre-check 1: Verify OIM IP is configured
-    if not oim_ip:
-        pytest.fail(
-            "oim_server_ip is not set in omnia_test_config.yml. "
-            "Please configure the OIM server IP before running tests."
-        )
+    # Local execution mode: running on the OIM itself — skip all SSH checks
+    if is_local_execution():
+        h = get_testinfra_host()
+        # Quick sanity check that local execution works
+        try:
+            result = h.run("echo ok")
+            if result.rc != 0 or "ok" not in result.stdout:
+                pytest.fail(
+                    "Local command execution failed. "
+                    "Verify that the test user has proper permissions."
+                )
+        except Exception as e:
+            pytest.fail(f"Local command execution failed: {e}")
+        return h
 
-    # Pre-check 2: Verify sshpass is installed (needed for password-based SSH)
+    # --- Remote execution mode: oim_server_ip is set to a remote IP ---
+
+    # Pre-check 1: Verify sshpass is installed (needed for password-based SSH)
     if not shutil.which("sshpass"):
         pytest.fail(
             "sshpass is not installed. It is required for SSH password authentication.\n"
             "Install it: dnf install -y sshpass (RHEL) or apt install -y sshpass (Ubuntu)"
         )
 
-    # Pre-check 3: Verify OIM server is reachable (basic TCP check on SSH port)
+    # Pre-check 2: Verify OIM server is reachable (basic TCP check on SSH port)
     ssh_port = config.get("oim_ssh_port", 22)
     try:
         _sp.run(
@@ -243,7 +273,7 @@ def host():
             f"Check oim_server_ip and oim_ssh_port in omnia_test_config.yml"
         )
 
-    # Pre-check 4: Verify SSH authentication works
+    # Pre-check 3: Verify SSH authentication works
     h = get_testinfra_host()
     try:
         result = h.run("echo ok")

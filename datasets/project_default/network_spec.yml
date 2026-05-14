@@ -41,14 +41,14 @@
 
 Networks:
   - admin_network:
-    oim_nic_name: "eno1"
-    netmask_bits: "24"
-    primary_oim_admin_ip: "172.16.107.254"
-    primary_oim_bmc_ip: ""
-    dynamic_range: "172.16.107.201-172.16.107.250"
-    dns: []
-    ntp_servers: []
+      oim_nic_name: "eno1"
+      netmask_bits: "24"
+      primary_oim_admin_ip: "172.16.107.254"
+      primary_oim_bmc_ip: ""
+      dynamic_range: "172.16.107.201-172.16.107.250"
+      dns: []
+      ntp_servers: []
 
   - ib_network:
-    subnet: "192.168.0.0"
-    netmask_bits: "24"
+      subnet: "192.168.0.0"
+      netmask_bits: "24"

@@ -25,7 +25,7 @@ Usage:
 
 from typing import List
 
-from automation_library.core.vars import (
+from automation_library.core import (
     PULP_CERT_PATH as _CORE_PULP_CERT,
     LDAP_CERT_PATH as _CORE_LDAP_CERT,
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,

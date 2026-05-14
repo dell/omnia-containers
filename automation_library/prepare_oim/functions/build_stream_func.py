@@ -34,7 +34,7 @@ from automation_library.core import (
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
 )
-from automation_library.core.db_exec import exec_psql_query
+from automation_library.core import exec_psql_query
 
 from ..vars.build_stream_vars import (
     BUILD_STREAM_HOST_IP_KEY,

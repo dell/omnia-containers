@@ -33,7 +33,10 @@
       ansible.builtin.wait_for:
         host: "{{ omnia_test_config.oim_server_ip }}"
         port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
+      when: not _oim_local_mode
 
     - name: OIM server ready
       ansible.builtin.debug:
-        msg: "OIM server {{ omnia_test_config.oim_server_ip }} is reachable via SSH"
+        msg: >-
+          OIM server: {{ 'localhost (local mode)' if _oim_local_mode
+          else omnia_test_config.oim_server_ip ~ ' (reachable via SSH)' }}

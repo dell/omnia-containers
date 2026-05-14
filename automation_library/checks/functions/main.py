@@ -19,7 +19,7 @@ import re
 from datetime import datetime
 from typing import Dict
 
-from ...core.formatting import Colors, Symbols, log as _log
+from ...core import Colors, Symbols, log as _log
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 
 # Import all check functions

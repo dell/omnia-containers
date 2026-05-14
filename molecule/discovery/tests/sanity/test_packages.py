@@ -56,9 +56,8 @@ from automation_library.discovery.messages import (
 # =============================================================================
 # 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
 # =============================================================================
-
 @pytest.mark.sanity
-@pytest.mark.order(1)
+@pytest.mark.order(0)
 def test_build_stream_job_stage(host):
     """
     Test 1: When build_stream is enabled, verify the validate-image-on-test
@@ -70,10 +69,11 @@ def test_build_stream_job_stage(host):
     - Skipped when build_stream is disabled.
     """
     stage = STAGE_VALIDATE_IMAGE
-    if not is_build_stream_enabled(host):
-        pytest.skip(LOG_MSGS["build_stream_disabled_skip"])
-
     log = TestLogger(TEST_NAMES["build_stream_job_stage"].format(stage=stage))
+    
+    if not is_build_stream_enabled(host):
+        log.skipped("Build stream is disabled in software_config.json", "Test skipped - build stream not enabled")
+        pytest.skip(LOG_MSGS["build_stream_disabled_skip"])
 
     result = get_build_stream_job_id(host, stage_name=stage)
     job_id = result.get("job_id") or "unknown"
@@ -116,7 +116,7 @@ def test_build_stream_job_stage(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(8)
 def test_node_packages_installed(host):
     """
     Test Case 1: Verify all required packages are installed on all nodes.
@@ -156,7 +156,9 @@ def test_node_packages_installed(host):
     details_lines = []
     for node_result in result.get("results", []):
         hostname = node_result["hostname"]
-        expected = len(node_result.get("found_packages", [])) + len(node_result.get("missing_packages", []))
+        found_pkgs = node_result.get("found_packages", [])
+        missing_pkgs = node_result.get("missing_packages", [])
+        expected = len(found_pkgs) + len(missing_pkgs)
         found = len(node_result.get("found_packages", []))
         status = "\u2713" if node_result["success"] else "\u2717"
 

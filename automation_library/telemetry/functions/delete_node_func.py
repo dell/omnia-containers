@@ -34,7 +34,7 @@ from typing import Dict, Any, List, Set
 import pytest
 
 from ...core import PROVISION_CONFIG_FILE, get_input_value
-from ...core.host import run_in_container, run_on_remote_node
+from ...core import run_in_container, run_on_remote_node
 from ..messages.delete_node_msgs import DELETE_NODE_LOG_MSGS
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..vars.kafka_vars import (

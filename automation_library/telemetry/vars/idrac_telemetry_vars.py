@@ -23,7 +23,7 @@ from typing import Dict, Any
 
 import yaml
 
-from ...core.vars import (
+from ...core import (
     OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
     BMC_GROUP_DATA_PATH as _CORE_BMC_PATH,
     SERVICE_CLUSTER_METADATA_PATH as _CORE_SCM_PATH,

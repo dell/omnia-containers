@@ -19,7 +19,7 @@
 
 - name: Set project_default paths
   ansible.builtin.set_fact:
-    project_default_src: "{{ project_dir }}/project_default"
+    project_default_src: "{{ project_dir }}/datasets/{{ omnia_test_config.dataset | default('project_default') }}"
     project_default_dest: "/opt/omnia/input/project_default"
     omnia_config_credentials_file: "omnia_config_credentials.yml"
     omnia_config_credentials_key: ".omnia_config_credentials_key"

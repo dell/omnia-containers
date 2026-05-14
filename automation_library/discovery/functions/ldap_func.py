@@ -26,6 +26,7 @@ import pytest
 from automation_library.core import (
     run_on_oim,
     run_in_container,
+    run_on_remote_node,
     is_software_enabled,
     get_multiple_credentials,
     load_omnia_test_config,
@@ -33,7 +34,13 @@ from automation_library.core import (
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
 )
-from .common_func import parse_ssh_error
+from .common_func import (
+    parse_ssh_error,
+    get_slurm_control_nodes,
+    get_slurm_compute_nodes,
+    get_login_nodes,
+    get_login_compiler_nodes,
+)
 
 from ..messages import SKIP_MSGS
 from ..vars import (
@@ -600,7 +607,9 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
         if "pam_slurm_adopt" in output or "no active jobs" in output.lower():
             node_result["success"] = True
             node_result["login_blocked"] = True
-            node_result["message"] = "Access denied by pam_slurm_adopt: you have no active jobs on this node"
+            node_result["message"] = (
+                "Access denied by pam_slurm_adopt: you have no active jobs on this node"
+            )
         elif "Connection closed" in output and cmd.rc != 0:
             # Connection closed after PAM denial
             node_result["success"] = True
@@ -621,4 +630,315 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
     if not all_correct:
         results["error"] = "PAM slurm_adopt not working correctly on some nodes"
 
+    return results
+
+
+def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
+    """
+    Verify PAM slurm_adopt session termination behavior.
+
+    Submits jobs from ALL submit nodes (slurm_control_node, login_node, login_compiler_node)
+    and verifies for each:
+    1. LDAP user can login during active job (session adopted)
+    2. LDAP user login is blocked after job ends (auto-logout)
+
+    Returns:
+        Dict with success, details, error, results_by_submit_node
+    """
+    import os
+    import base64
+
+    results = {
+        "success": False,
+        "details": "",
+        "error": "",
+        "results_by_submit_node": {},
+        "ldap_users": [],
+    }
+
+    # Get LDAP credentials from omnia_test_config.yml
+    omnia_test_config = load_omnia_test_config()
+    if not omnia_test_config:
+        results["error"] = "Failed to load omnia_test_config.yml"
+        return results
+
+    credentials = parse_ldap_credentials(omnia_test_config)
+    if not credentials:
+        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
+        return results
+
+    ldap_user = credentials[0]["user"]
+    ldap_password = credentials[0]["password"]
+    results["ldap_users"] = [ldap_user]
+
+    # Collect all nodes per type (all slurm_control_node, login_node, login_compiler_node)
+    submit_nodes_by_type = {}
+    control_nodes = get_slurm_control_nodes(host)
+    if control_nodes:
+        submit_nodes_by_type["slurm_control_node"] = control_nodes
+    login_nodes = get_login_nodes(host)
+    if login_nodes:
+        submit_nodes_by_type["login_node"] = login_nodes
+    lc_nodes = get_login_compiler_nodes(host)
+    if lc_nodes:
+        submit_nodes_by_type["login_compiler_node"] = lc_nodes
+
+    if not submit_nodes_by_type:
+        results["error"] = (
+            "No slurm_control_node, login_node, or "
+            "login_compiler_node in PXE mapping"
+        )
+        return results
+
+    compute_nodes = get_slurm_compute_nodes(host)
+    if not compute_nodes:
+        results["error"] = "No slurm_node in PXE mapping"
+        return results
+
+    # Build hostname -> admin_ip lookup for compute nodes
+    compute_node_map = {
+        n.get("hostname", ""): n.get("admin_ip", "")
+        for n in compute_nodes
+    }
+
+    details_lines = [
+        f"LDAP user: {ldap_user}",
+        f"Available compute nodes: {', '.join(compute_node_map.keys())}",
+    ]
+
+    # ── Read job.sh from vars/ ──
+    job_sh_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "vars", "job.sh",
+    )
+    try:
+        with open(job_sh_path, "r", encoding="utf-8") as f:
+            job_sh_content = f.read()
+    except FileNotFoundError:
+        results["error"] = f"job.sh not found at {job_sh_path}"
+        results["details"] = "\n".join(details_lines)
+        return results
+
+    encoded = base64.b64encode(job_sh_content.encode()).decode()
+    _ssh = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+    SSH_OPTS = (
+        "-o StrictHostKeyChecking=no "
+        "-o UserKnownHostsFile=/dev/null "
+        "-o ConnectTimeout=10"
+    )
+
+    # ── Loop through all submit nodes ──
+    all_success = True
+    for node_type, nodes in submit_nodes_by_type.items():
+        for submit_node in nodes:
+            submit_ip = submit_node.get("admin_ip", "")
+            submit_hostname = submit_node.get("hostname", "")
+
+            details_lines.append("")
+            details_lines.append(f"=== Testing from {node_type}: {submit_hostname} (IP: {submit_ip}) ===")
+
+            node_result = {
+                "node_type": node_type,
+                "hostname": submit_hostname,
+                "admin_ip": submit_ip,
+                "success": False,
+                "job_id": "",
+                "login_during_job": False,
+                "login_during_job_message": "",
+                "session_terminated_after_job": False,
+                "post_job_block_message": "",
+                "error": "",
+            }
+
+            # Copy job.sh to ldapuser's home directory on the submit node
+            copy_cmd = (
+                f"echo '{encoded}' | base64 -d > /home/{ldap_user}/job.sh && "
+                f"chmod 755 /home/{ldap_user}/job.sh && "
+                f"echo COPY_OK"
+            )
+            cmd = run_on_remote_node(host, copy_cmd, submit_ip)
+            if "COPY_OK" not in (cmd.stdout or ""):
+                node_result["error"] = f"Failed to copy job.sh: {(cmd.stdout or '').strip()}"
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ Copy job.sh failed: {node_result['error']}")
+                continue
+
+            details_lines.append(f"  ✓ Copied job.sh to {submit_hostname}:/home/{ldap_user}/job.sh")
+
+            # Submit job as ldapuser using sbatch --uid (no -w: let Slurm assign any compute node)
+            submit_ssh = (
+                f'ssh {_ssh} root@{submit_ip} '
+                f'"sbatch --uid={ldap_user} '
+                f'-D /home/{ldap_user} --output=/home/{ldap_user}/slurm_%j.out --error=/home/{ldap_user}/slurm_%j.err '
+                f'/home/{ldap_user}/job.sh" 2>&1'
+            )
+            cmd = run_in_container(host, submit_ssh)
+            output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+            job_id = ""
+            if "Submitted batch job" in output:
+                for part in output.split("\n"):
+                    if "Submitted batch job" in part:
+                        job_id = part.strip().split()[-1]
+                        break
+            else:
+                node_result["error"] = f"Job submission failed: {output}"
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ Job submission failed: {node_result['error']}")
+                continue
+
+            node_result["job_id"] = job_id
+            details_lines.append(f"  ✓ Submitted job ID: {job_id} (as {ldap_user})")
+
+            # Wait for job to start RUNNING (max 30s) — use %T only (same as old working approach)
+            job_running = False
+            job_state = ""
+            actual_compute_hostname = ""
+            actual_compute_ip = ""
+            for _ in range(15):
+                time.sleep(2)
+                sq_ssh = (
+                    f'ssh {_ssh} root@{submit_ip} '
+                    f'"squeue -j {job_id} -h -o %T" 2>&1'
+                )
+                cmd = run_in_container(host, sq_ssh)
+                raw = (cmd.stdout or "").strip()
+                lines = [
+                    l.strip() for l in raw.splitlines()
+                    if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+                ]
+                job_state = lines[-1] if lines else ""
+                if job_state == "RUNNING":
+                    job_running = True
+                    break
+
+            # Once RUNNING, get the actual compute node with a separate %N query
+            if job_running:
+                sq_node_ssh = (
+                    f'ssh {_ssh} root@{submit_ip} '
+                    f'"squeue -j {job_id} -h -o %N" 2>&1'
+                )
+                cmd = run_in_container(host, sq_node_ssh)
+                raw = (cmd.stdout or "").strip()
+                node_lines = [
+                    l.strip() for l in raw.splitlines()
+                    if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+                ]
+                actual_compute_hostname = node_lines[-1] if node_lines else ""
+                actual_compute_ip = compute_node_map.get(actual_compute_hostname, "")
+
+            if not job_running:
+                node_result["error"] = f"Job did not reach RUNNING: '{job_state}'"
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ Job state: {node_result['error']}")
+                continue
+
+            if not actual_compute_ip:
+                # hostname from squeue may be short; try partial match
+                for chost, cip in compute_node_map.items():
+                    if actual_compute_hostname in chost or chost in actual_compute_hostname:
+                        actual_compute_ip = cip
+                        actual_compute_hostname = chost
+                        break
+
+            if not actual_compute_ip:
+                node_result["error"] = (
+                    f"Cannot find IP for compute node '{actual_compute_hostname}' in PXE mapping"
+                )
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ {node_result['error']}")
+                continue
+
+            node_result["compute_hostname"] = actual_compute_hostname
+            node_result["compute_ip"] = actual_compute_ip
+            details_lines.append(f"  ✓ Job {job_id}: RUNNING on {actual_compute_hostname} (IP: {actual_compute_ip})")
+
+            # Login to the actual compute node as ldapuser during active job
+            login_cmd = (
+                f"sshpass -p '{ldap_password}' ssh {SSH_OPTS} "
+                f"{ldap_user}@{actual_compute_ip} 'echo LOGIN_SUCCESS' 2>&1"
+            )
+            cmd = run_on_oim(host, login_cmd)
+            login_output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+            login_msg_lines = [
+                line for line in login_output.splitlines()
+                if not line.startswith("Warning:") and "known hosts" not in line
+            ]
+            clean_login_msg = "\n".join(login_msg_lines).strip()
+
+            if "LOGIN_SUCCESS" in login_output:
+                node_result["login_during_job"] = True
+                node_result["login_during_job_message"] = "Login allowed (session adopted)"
+                details_lines.append("  ✓ Login during job: ALLOWED (session adopted)")
+            else:
+                node_result["login_during_job"] = False
+                node_result["login_during_job_message"] = clean_login_msg
+                details_lines.append("  ✗ Login during job: BLOCKED - " + clean_login_msg[:100])
+
+            # Wait for job to complete (job.sh sleeps 40s, max wait 90s)
+            job_finished = False
+            final_state = ""
+            for _ in range(45):
+                time.sleep(2)
+                sq_ssh = (
+                    f'ssh {_ssh} root@{submit_ip} '
+                    f'"squeue -j {job_id} -h -o %T" 2>&1'
+                )
+                cmd = run_in_container(host, sq_ssh)
+                raw = (cmd.stdout or "").strip()
+                lines = [
+                    l.strip() for l in raw.splitlines()
+                    if l.strip() and not l.startswith("Warning:") and "known hosts" not in l
+                ]
+                state = lines[-1] if lines else ""
+                if not state or state in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT"):
+                    job_finished = True
+                    final_state = state or "COMPLETED"
+                    break
+                final_state = state
+
+            if not job_finished:
+                run_in_container(host, f'ssh {_ssh} root@{submit_ip} "scancel {job_id}" 2>&1')
+                node_result["error"] = f"Job timeout (last state: {final_state})"
+                results["results_by_submit_node"][submit_hostname] = node_result
+                all_success = False
+                details_lines.append(f"  ✗ Job timeout: {node_result['error']}")
+                continue
+
+            details_lines.append(f"  ✓ Job completed with state: {final_state}")
+
+            # Small delay for PAM to terminate adopted sessions
+            time.sleep(5)
+
+            # Try login as ldapuser after job ends → should be blocked
+            cmd = run_on_oim(host, login_cmd)
+            post_output = ((cmd.stdout or "") + (cmd.stderr or "")).strip()
+
+            post_msg_lines = [
+                line for line in post_output.splitlines()
+                if not line.startswith("Warning:") and "known hosts" not in line
+            ]
+            clean_post_msg = "\n".join(post_msg_lines).strip()
+            node_result["post_job_block_message"] = clean_post_msg
+
+            if cmd.rc == 0 and "LOGIN_SUCCESS" in post_output:
+                node_result["session_terminated_after_job"] = False
+                details_lines.append(f"  ✗ Login after job: ALLOWED (should be blocked) - {clean_post_msg[:100]}")
+            else:
+                node_result["session_terminated_after_job"] = True
+                details_lines.append(f"  ✓ Login after job: BLOCKED - {clean_post_msg[:100]}")
+
+            node_result["success"] = node_result["session_terminated_after_job"]
+            results["results_by_submit_node"][submit_hostname] = node_result
+
+            if not node_result["success"]:
+                all_success = False
+
+    results["success"] = all_success
+    results["details"] = "\n".join(details_lines)
     return results
