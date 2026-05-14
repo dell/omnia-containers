@@ -14,7 +14,7 @@ Download the Vast package using the following command:
 
     curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s --
 
-.. image:: ../../images/vastrepo1.png
+.. image:: ../../../images/vastrepo1.png
     :width: 600pt
     :align: center
 
@@ -27,7 +27,7 @@ Extract the downloaded tarball:
 
     tar -xf vastnfs-4.5.5.tar.xz vastnfs-4.5.5/
 
-.. image:: ../../images/vastrepo2.png
+.. image:: ../../../images/vastrepo2.png
     :width: 600pt
     :align: center
 
@@ -41,19 +41,19 @@ Navigate to the extracted directory and build the repository:
     cd vastnfs-4.5.5/
     ./build.sh bin
 
-.. image:: ../../images/vastrepo3.png
+.. image:: ../../../images/vastrepo3.png
     :width: 600pt
     :align: center
 
 Once the build is complete, you will see a message indicating that the RPM files have been created and are ready to be hosted as a user repository.
 
-.. image:: ../../images/vastrepo4.png
+.. image:: ../../../images/vastrepo4.png
     :width: 600pt
     :align: center
 
 The Vast RPMs will be located in the ``dist/`` directory within ``vastnfs-4.5.5/``.
 
-.. image:: ../../images/vastrepo5.png
+.. image:: ../../../images/vastrepo5.png
     :width: 600pt
     :align: center
 
@@ -68,7 +68,7 @@ Host the RPMs on an HTTP server (such as Apache) or any other server that will s
 
 For example, you can use the OIM as an HTTP server. Follow the steps provided in the documentation for hosting Slurm repositories on the Apache server (refer to `Host the RPMS on the Apache server <https://dell.github.io/omnia/OmniaInstallGuide/RHEL_new/CreateLocalRepo/localrepos.html>`_).
 
-.. image:: ../../images/vastrepo6.png
+.. image:: ../../../images/vastrepo6.png
     :width: 600pt
     :align: center
 
@@ -81,7 +81,7 @@ Step 5: Configure the User Repository in local_repo_config.yml
 
 Add the user repository URL to the ``local_repo_config.yml`` file.
 
-.. image:: ../../images/vastrepo7.png
+.. image:: ../../../images/vastrepo7.png
     :width: 600pt
     :align: center
 
