@@ -28,7 +28,7 @@ To verify that the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLo
 
 The following is the sample output file:
 
-.. image:: ../../../images/verify_telemetry_pods.png
+.. image:: ../../images/verify_telemetry_pods.png
 
 Verify Kubernetes Telemetry Services Attached to Telemetry 
 ----------------------------------------------------------
@@ -50,7 +50,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
 
 The following is the sample output file:
 
-.. image:: ../../../images/verify_kube_telemetry.png
+.. image:: ../../images/verify_kube_telemetry.png
 
 
 Verify iDRAC Telemetry Messages in Kafka
@@ -186,13 +186,13 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
+.. image:: ../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_service_cluster.png
+.. image:: ../../images/victoria_metrics_service_cluster.png
 
 3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -205,7 +205,7 @@ For example, the following query displays detailed PowerEdge metrics for each ha
 
     {__name__=~"PowerEdge_.*"}
 
-.. image:: ../../../images/victoria_metrics_vmui_cluster.png
+.. image:: ../../images/victoria_metrics_vmui_cluster.png
     
 
 View Collected PowerScale Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
@@ -220,19 +220,19 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
+.. image:: ../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_service_cluster.png
+.. image:: ../../images/victoria_metrics_service_cluster.png
 
 3. Run the following command to verify if OTEL collector is receiving telemetry data::
 
     kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i metric
 
-.. image:: ../../../images/otel_collector_pod_cluster.png
+.. image:: ../../images/otel_collector_pod_cluster.png
 
 4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -245,7 +245,7 @@ For example, the following query displays detailed PowerScale metrics for each h
 
     {__name__=~"powerscale"}
 
-.. image:: ../../../images/powerscale_metrics_vmui_cluster.png
+.. image:: ../../images/powerscale_metrics_vmui_cluster.png
 
 
 Accessing the MySQL Database
