@@ -109,7 +109,6 @@ from automation_library.slurm.functions.slurm_ldap_func import (
 # TC1: All nodes from PXE mapping are joined to Slurm cluster
 # =============================================================================
 
-@pytest.mark.sanity
 @pytest.mark.order(1)
 def test_all_pxe_nodes_in_slurm_cluster(host):
     """Test that all nodes in PXE mapping are joined to the Slurm cluster."""
