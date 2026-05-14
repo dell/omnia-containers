@@ -9,6 +9,7 @@ Once the Pulp container is ready, you can provide inputs in the ``/opt/omnia/inp
     Prerequisite
     InputParameters    
     localrepos
+    vast_repo_installation
     RunningLocalRepo
     AdminDebugPackages
     AddingAdditionalPackages
