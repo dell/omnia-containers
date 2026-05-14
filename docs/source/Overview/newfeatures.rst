@@ -12,7 +12,7 @@ Omnia now supports the installation of Vast NFS client on cluster nodes. This fe
 - Build the Vast repository from source using the provided download script
 - Host the Vast RPMs on an HTTP server (such as Apache) as a user repository
 - Configure the Vast repository in ``local_repo_config.yml``
-- Automatically install the Vast client on cluster nodes during the provisioning process
+- Automatically install the Vast client on cluster nodes during the provisioning process when an InfiniBand NIC is present
 
 The Vast repository can be built and hosted following the steps documented in `Vast Repo and Vast Client Installation <OmniaInstallGuide/RHEL_new/CreateLocalRepo/vast_repo_installation.html>`_.
 

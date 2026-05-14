@@ -81,10 +81,6 @@ Step 5: Configure the User Repository in local_repo_config.yml
 
 Add the user repository URL to the ``local_repo_config.yml`` file.
 
-.. image:: ../../../images/vastrepo7.png
-    :width: 600pt
-    :align: center
-
 Step 6: Run Omnia Playbooks
 ----------------------------
 
