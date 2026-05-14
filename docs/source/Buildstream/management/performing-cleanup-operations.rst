@@ -29,12 +29,12 @@ Procedure
 
 #. Click **Run Pipeline** to execute the cleanup pipeline.
 
-    .. image:: ../../../images/gitlab-clean-run-pipeline.png
+    .. image:: ../../images/gitlab-clean-run-pipeline.png
     :alt: GitLab Clean Run Pipeline
    
 #. In the pipeline, select the image to be cleaned up from the `select_image` stage.
 
-    .. image:: ../../../images/gitlab-clean-select-image.png
+    .. image:: ../../images/gitlab-clean-select-image.png
     :alt: GitLab Clean Select Image
 
 #. Monitor the pipeline progress through the GitLab web interface:
@@ -48,9 +48,9 @@ Procedure
     - |failed| **Red X**: Stage failed (click for error details)
     - |running| **Blue circle**: Stage currently running
 
-.. |success| image:: ../../../images/Icons/green_check.png
-.. |failed| image:: ../../../images/Icons/red_x.png
-.. |running| image:: ../../../images/Icons/blue_circle.png
+.. |success| image:: ../../images/Icons/green_check.png
+.. |failed| image:: ../../images/Icons/red_x.png
+.. |running| image:: ../../images/Icons/blue_circle.png
 
 Verification
 ------------

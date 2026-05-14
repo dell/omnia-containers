@@ -33,7 +33,7 @@ Procedure
 
 #. To retry the failed pipeline, click the **Retry donwstream pipline** icon on the stage that executes the entire pipeline.
 
-   .. image:: ../../../images/retry-pipeline.png
+   .. image:: ../../images/retry-pipeline.png
       :alt: Retry pipeline button
 
  .. note::

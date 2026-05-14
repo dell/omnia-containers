@@ -84,7 +84,7 @@ This ``gitlab.yml`` playbook performs the following tasks:
   - **Input Folder**:
     - ``input/`` - Directory containing all BuildStream input configuration files
 
-      .. image:: ../../../images/buildstream_project.png
+      .. image:: ../../images/buildstream_project.png
       
 The input folder includes the following configuration files (see :doc:`../reference/configuration-tables` for detailed parameter descriptions):
 
@@ -100,7 +100,7 @@ The input folder includes the following configuration files (see :doc:`../refere
    - ``storage_config.yml`` — Storage configuration file
    - ``telemetry_config.yml`` — Telemetry configuration file
 
-      .. image:: ../../../images/buildstream_project_input_files.png
+      .. image:: ../../images/buildstream_project_input_files.png
             :alt: BuildStream project input files structure
    
 7. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.

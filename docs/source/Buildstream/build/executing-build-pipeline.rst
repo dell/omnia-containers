@@ -45,12 +45,12 @@ Procedure
 
 5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed.
 
-   .. image:: ../../../images/buildstream-build-trigger.png
+   .. image:: ../../images/buildstream-build-trigger.png
       :alt: BuildStreaM Build Trigger
 
 6. Monitor the pipeline progress to ensure it completes successfully. See :ref:`Monitor Pipeline Progress <monitor-pipeline-progress>` for detailed instructions.
 
-   .. image:: ../../../images/buildstream-buid-success.png
+   .. image:: ../../images/buildstream-buid-success.png
       :alt: BuildStreaM Pipeline Execution
 
 .. note:: 
@@ -92,7 +92,7 @@ Procedure
    
    c. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **build**.
 
-   .. image:: ../../../images/gitlab-build-manual-config.png
+   .. image:: ../../images/gitlab-build-manual-config.png
       :alt: GitLab Build Manual Configuration
 
    d. Click **Run Pipeline** to execute the build pipeline.
@@ -125,9 +125,9 @@ Monitor the build pipeline progress through the GitLab web interface to track st
 
 5. If any stage fails, review the error logs by clicking on the failed job.
 
-.. |success| image:: ../../../images/Icons/green_check.png
-.. |failed| image:: ../../../images/Icons/red_x.png
-.. |running| image:: ../../../images/Icons/blue_circle.png
+.. |success| image:: ../../images/Icons/green_check.png
+.. |failed| image:: ../../images/Icons/red_x.png
+.. |running| image:: ../../images/Icons/blue_circle.png
 
 The following image shows the BuildStreaM pipeline is currently running and the stages are being executed:
 
