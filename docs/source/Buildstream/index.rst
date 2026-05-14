@@ -30,10 +30,10 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    build/executing-build-pipeline
    deploy/executing-deploy-pipeline
    management/configuring-pxe-boot
-   management/performing-cleanup-operations
-   management/retrying-pipelines
    monitoring/initializing-telemetry
    monitoring/verifying-telemetry-services
+   management/performing-cleanup-operations
+   management/retrying-pipelines
    reference/configuration-tables
    troubleshooting/common-pipeline-issues
    
