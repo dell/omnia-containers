@@ -81,7 +81,7 @@ Omnia provides a one-shot log collection playbook for gathering cluster logs fro
 **Output artifacts**
 
 * Workspace: ``/opt/omnia/collector_logs``
-* Bundle: ``omnia-logs-<identifier>-<YYYYMMDD-HHMMSS-IST>.tar.gz``
+* Bundle: ``omnia-logs-<YYYYMMDD-HHMMSS>.tar.gz``
 * Metadata: ``metadata.json`` (included in bundle)
 * Checksum: ``.sha256`` file for integrity verification
 
