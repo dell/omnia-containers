@@ -1,7 +1,20 @@
 New Features
 =============
 
-The following sections describe the new features and enhancements introduced in Omnia 2.1 releases.
+The following sections describe the new features and enhancements introduced in Omnia 2.2 releases.
+
+
+Vast Repo and Vast Client Installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports the installation of Vast NFS client on cluster nodes. This feature allows you to:
+
+- Build the Vast repository from source using the provided download script
+- Host the Vast RPMs on an HTTP server (such as Apache) as a user repository
+- Configure the Vast repository in ``local_repo_config.yml``
+- Automatically install the Vast client on cluster nodes during the provisioning process
+
+The Vast repository can be built and hosted following the steps documented in `Vast Repo and Vast Client Installation <OmniaInstallGuide/RHEL_new/CreateLocalRepo/vast_repo_installation.html>`_.
 
 
 Minimal OS Functional Groups
