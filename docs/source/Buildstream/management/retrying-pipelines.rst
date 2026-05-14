@@ -33,7 +33,7 @@ Procedure
 
 #. To retry the failed pipeline, click the **Retry donwstream pipline** icon on the stage that executes the entire pipeline.
 
-   .. image:: ../../../../images/retry-pipeline.png
+   .. image:: ../../../images/retry-pipeline.png
       :alt: Retry pipeline button
 
  .. note::
@@ -59,5 +59,5 @@ Related Topics
 
 * :doc:`../build/executing-build-pipeline` - Execute Build Pipeline
 * :doc:`../deploy/executing-deploy-pipeline` - Execute Deploy Pipeline
-* :doc:`../../../reference/buildstream/configuration-tables` - Configuration Reference
-* :doc:`../../../troubleshooting/buildstream/common-pipeline-issues` - Troubleshooting Guide
+* :doc:`../reference/configuration-tables` - Configuration Reference
+* :doc:`../troubleshooting/common-pipeline-issues` - Troubleshooting Guide

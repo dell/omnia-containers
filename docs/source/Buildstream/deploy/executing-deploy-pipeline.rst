@@ -34,19 +34,19 @@ Procedure
 
 #. Trigger the deploy pipeline by updating the ``pxe_mapping_file.csv`` file in the GitLab repository and committing the changes. 
 
-      .. image:: ../../../../images/gitlab-deploy-trigger.png
+      .. image:: ../../../images/gitlab-deploy-trigger.png
          :alt: GitLab Deploy Trigger
 
 .. note:: If the pipeline fails, you can use the manual retry procedure to update input parameters and retry the pipeline.
 
 #. In the deploy pipeline, select the image from the ``select_image`` stage.
 
-      .. image:: ../../../../images/gitlab-deploy-select-image.png
+      .. image:: ../../../images/gitlab-deploy-select-image.png
          :alt: GitLab Deploy Select Image
 
 #. After selecting the image, click the "Play" button to start the pipeline.
 
-      .. image:: ../../../../images/gitlab-deploy-play.png
+      .. image:: ../../../images/gitlab-deploy-play.png
          :alt: GitLab Deploy Play
 
 #. Monitor the pipeline progress to ensure it completes successfully. See :ref:`Monitor Deploy Pipeline Progress <monitor-deploy-pipeline-progress>` for detailed instructions.
@@ -72,7 +72,7 @@ Procedure
 
    a. Navigate to the ``input/`` folder in the GitLab repository.
    
-   b. Edit the relevant configuration file. For detailed parameter descriptions, see :doc:`../../../reference/buildstream/configuration-tables`.
+   b. Edit the relevant configuration file. For detailed parameter descriptions, see :doc:`../reference/configuration-tables`.
    
    c. Commit and push the changes.
 
@@ -84,7 +84,7 @@ Procedure
    
    c.  In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**.
 
-    .. image:: ../../../../images/gitlab-deploy-manual-config.png
+    .. image:: ../../../images/gitlab-deploy-manual-config.png
        :alt: GitLab Deploy Manual Configuration
 
    d. Click **Run Pipeline** to execute the deploy pipeline.
@@ -92,13 +92,13 @@ Procedure
 #. Monitor the pipeline progress to ensure it completes successfully.  See :ref:`Monitor Deploy Pipeline Progress <monitor-deploy-pipeline-progress>` for detailed instructions.
 
 
-   .. image:: ../../../../images/gitlab-deploy-success.png
+   .. image:: ../../../images/gitlab-deploy-success.png
       :alt: GitLab Deploy Success
 
 .. note::
    When using manual retry, ensure that only the necessary parameters are updated. Unnecessary changes may cause additional pipeline failures.
 
-For troubleshooting common pipeline issues, see :doc:`../../../troubleshooting/buildstream/common-pipeline-issues`.
+For troubleshooting common pipeline issues, see :doc:`../troubleshooting/common-pipeline-issues`.
 
 .. _monitor-deploy-pipeline-progress:
 
@@ -120,9 +120,9 @@ Monitor Deploy Pipeline Progress
       - |failed| **Red X**: Stage failed (click for error details)
       - |running| **Blue circle**: Stage currently running
 
-.. |success| image:: ../../../../images/Icons/green_check.png
-.. |failed| image:: ../../../../images/Icons/red_x.png
-.. |running| image:: ../../../../images/Icons/blue_circle.png
+.. |success| image:: ../../../images/Icons/green_check.png
+.. |failed| image:: ../../../images/Icons/red_x.png
+.. |running| image:: ../../../images/Icons/blue_circle.png
 
 #. If any stage fails, review the error logs by clicking on the failed job.
 

@@ -125,7 +125,7 @@ The ``prepare_oim.yml`` deploys the following on the OIM node:
 * BuildStreaM API container 
 * Playbook watcher service
 
-.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../KnownIssues/Login.html>`_.
+.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../../KnownIssues/Login.html>`_.
 
 Verification
 --------------

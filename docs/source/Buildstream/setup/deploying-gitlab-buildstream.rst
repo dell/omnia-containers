@@ -38,7 +38,7 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :doc:`../../../reference/buildstream/configuration-tables` for reference.
+2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :doc:`../reference/configuration-tables` for reference.
     
    .. code-block:: bash
 
@@ -46,7 +46,7 @@ Procedure
 
 3. Ensure that the BuildStream input configuration files are properly configured in ``/opt/omnia/input/project_default/``. 
 
-   For detailed parameter descriptions, see :doc:`../../../reference/buildstream/configuration-tables`.
+   For detailed parameter descriptions, see :doc:`../reference/configuration-tables`.
 
 4. Navigate to the GitLab directory.
 
@@ -84,9 +84,9 @@ This ``gitlab.yml`` playbook performs the following tasks:
   - **Input Folder**:
     - ``input/`` - Directory containing all BuildStream input configuration files
 
-      .. image:: ../../../../images/buildstream_project.png
+      .. image:: ../../../images/buildstream_project.png
       
-The input folder includes the following configuration files (see :doc:`../../../reference/buildstream/configuration-tables` for detailed parameter descriptions):
+The input folder includes the following configuration files (see :doc:`../reference/configuration-tables` for detailed parameter descriptions):
 
    - ``build_stream_config.yml`` — BuildStream configuration file
    - ``gitlab_config.yml`` — GitLab configuration file
@@ -100,7 +100,7 @@ The input folder includes the following configuration files (see :doc:`../../../
    - ``storage_config.yml`` — Storage configuration file
    - ``telemetry_config.yml`` — Telemetry configuration file
 
-      .. image:: ../../../../images/buildstream_project_input_files.png
+      .. image:: ../../../images/buildstream_project_input_files.png
             :alt: BuildStream project input files structure
    
 7. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.
