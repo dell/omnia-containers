@@ -36,7 +36,7 @@ To collect logs from the cluster, execute the following commands::
 **Output artifacts**
 
 * Workspace: ``/opt/omnia/collector_logs``
-* Bundle: ``omnia-logs-<YYYYMMDD-HHMMSS>.tar.gz``
+* Bundle: ``omnia_logs_<YYYYMMDD-HHMMSS>.tar.gz``
 * Metadata: ``metadata.json`` (included in bundle)
 * Checksum: ``.sha256`` file for integrity verification
 
