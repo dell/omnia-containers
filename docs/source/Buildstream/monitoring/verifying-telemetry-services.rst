@@ -1,4 +1,4 @@
-Step 8: Verify Telemetry Services Deployed on the Cluster
+Verify Telemetry Services Deployed on the Cluster
 ===========================================================
 
 This section outlines the steps to validate telemetry services and their components, including checking pod status, 
@@ -26,7 +26,7 @@ To verify that the iDRAC Telemetry, Kafka, LDMS, and VictoriaMetrics pods are ru
 
 The following is the sample output file:
 
-.. image:: ../images/verify_telemetry_pods.png
+.. image:: ../../../../images/verify_telemetry_pods.png
 
 Verify Kubernetes Telemetry Services Attached to Telemetry 
 ----------------------------------------------------------
@@ -46,7 +46,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
 
 The following is the sample output file:
 
-.. image:: ../images/verify_kube_telemetry.png
+.. image:: ../../../../images/verify_kube_telemetry.png
 
 
 Verify iDRAC Telemetry Messages in Kafka
@@ -157,13 +157,13 @@ successfully in a single-mode VictoriaMetrics deployment. For more details, see
 
     kubectl get pods -n telemetry -o wide -l app=victoriametrics
 
-.. image:: ../images/victoria_metrics_pod.png
+.. image:: ../../../../images/victoria_metrics_pod.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry -o wide -l app=victoriametrics
 
-.. image:: ../images/victoria_metrics_service.png
+.. image:: ../../../../images/victoria_metrics_service.png
 
 3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -177,7 +177,7 @@ readings for each hardware component::
 
     {name="PowerEdge_TemperatureReading", FQDD!=""}
 
-.. image:: ../images/victoria_metrics_vmui.png
+.. image:: ../../../../images/victoria_metrics_vmui.png
 
 
 
@@ -193,13 +193,13 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: ../images/victoria_metrics_pod_cluster_mode.png
+.. image:: ../../../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: ../images/victoria_metrics_service_cluster.png
+.. image:: ../../../../images/victoria_metrics_service_cluster.png
 
 3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -212,7 +212,7 @@ For example, the following query displays detailed PowerEdge metrics for each ha
 
     {__name__=~"PowerEdge_.*"}
 
-.. image:: ../images/victoria_metrics_vmui_cluster.png
+.. image:: ../../../../images/victoria_metrics_vmui_cluster.png
     
 
 

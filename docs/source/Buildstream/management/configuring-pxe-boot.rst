@@ -1,9 +1,9 @@
 .. _set-pxe-boot-order:
 
-Step 6: PXE Boot the Nodes Using the PXE Boot Utility
+Step 7: PXE Boot the Nodes Using the PXE Boot Utility
 =====================================================
 
-After successful execution of the BuildStreaM pipeline, use the ``set_pxe_boot.yml`` playbook utility to configure PXE boot for the target nodes. This playbook restarts the nodes and automatically loads the diskless images on the nodes.
+After successful execution of the BuildStreaM deploy pipeline, use the ``set_pxe_boot.yml`` playbook utility to configure PXE boot for the target nodes. This playbook restarts the nodes and automatically loads the diskless images on the nodes.
 
 .. warning::
    The ``set_pxe_boot.yml`` playbook will restart your servers and power them on if they are off. Any unsaved data will be lost.
@@ -24,7 +24,7 @@ Procedure
 
 .. note:: The inventory must contain a ``bmc`` group with at least one BMC IP address. 
 
-For the sample map and inventory files, see :doc:`Sample Files <../OmniaInstallGuide/samplefiles>`.
+For the sample map and inventory files, see :doc:`Sample Files <../../../OmniaInstallGuide/samplefiles>`.
 
 Example inventory::
 
@@ -47,6 +47,6 @@ The playbook will:
 
 Next Steps
 ----------
-(Optional) Initialize telemetry collection for the nodes. See :doc:`buildstream_telemetry` for detailed instructions.
+(Optional) Initialize telemetry collection for the nodes. See :doc:`../monitoring/initializing-telemetry` for detailed instructions.
 
 

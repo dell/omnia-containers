@@ -26,7 +26,7 @@ Each node listed in the mapping file must be assigned with the following values:
 ``FUNCTIONAL_GROUP_NAME``, ``GROUP_NAME``, ``SERVICE_TAG``, ``PARENT_SERVICE_TAG``, ``HOSTNAME``, ``ADMIN_MAC``, 
 ``ADMIN_IP``, ``BMC_MAC``, and ``BMC_IP``.
 
-Refer to the :ref:`Group Attributes <group-attributes-section>` table in :doc:`../OmniaInstallGuide/RHEL_new/composable_roles` to assign the appropriate
+Refer to the :ref:`Group Attributes <group-attributes-section>` table in :doc:`../../../OmniaInstallGuide/RHEL_new/composable_roles` to assign the appropriate
 ``GROUP_NAME`` and the :ref:`Types of Functional Groups <functional-groups-section>` table to
 assign the correct ``FUNCTIONAL_GROUP_NAME`` for each node in the mapping file.
 
@@ -146,7 +146,7 @@ Ensure that the PXE mapping file is correctly formatted and that all required fi
 Next Steps
 -----------
 
-After creating the PXE mapping file, prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. See :doc:`prepare_oim_buildstream`.
+After creating the PXE mapping file, prepare the Omnia Infrastructure Manager by following the instructions in :doc:`preparing-oim-buildstream`.
 
 
 

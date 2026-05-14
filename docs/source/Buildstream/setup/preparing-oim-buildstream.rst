@@ -10,7 +10,7 @@ Prerequisites
 
 Before beginning the BuildStreaM setup:
 
-* Ensure that the Omnia core container is installed with Omnia 2.1.0.0
+* Ensure that the Omnia core container is installed with Omnia 2.2.0.0
 * Administrator access on the Omnia Infrastructure Manager (OIM) node
 * Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
 * 10 GB free disk space for BuildStreaM data and logs

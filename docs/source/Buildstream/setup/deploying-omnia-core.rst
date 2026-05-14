@@ -41,7 +41,7 @@ Deploy the Omnia Core Container from Omnia Artifactory
 To deploy the container images from any Omnia branch, available at `Omnia Artifactory Repository <https://github.com/dell/omnia-artifactory.git>`_, do the following:
 
   
- 1. Clone the Omnia artifacts repository and build the ``omnia_core`` container images. Run the following commands:
+1. Clone the Omnia artifacts repository and build the ``omnia_core`` container images. Run the following commands:
 
     .. code-block:: bash
 
