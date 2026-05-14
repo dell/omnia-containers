@@ -147,7 +147,7 @@
     - name: Execute build_image_x86_64 playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          podman exec -it -w /omnia/build_image_x86_64 {{ container_name }} \
+          podman exec -w /omnia/build_image_x86_64 {{ container_name }} \
             ansible-playbook build_image_x86_64.yml -v
       register: playbook_result
       when: "'EXISTS' in playbook_check.stdout"
