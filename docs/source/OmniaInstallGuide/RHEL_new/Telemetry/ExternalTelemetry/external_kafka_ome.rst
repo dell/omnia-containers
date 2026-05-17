@@ -37,11 +37,11 @@ Steps
       cd /opt/omnia/telemetry/external_kafka/
       openssl pkcs12 -export -out user.pfx -inkey user.key -in user.crt
 
-   .. image:: ../../../images/ome_certificate_pfx_format.png  
+   .. image:: ../../../../images/ome_certificate_pfx_format.png  
 
 3. In OpenManage Enterprise, navigate to **Configuration > Remote Connectivity**, and select **Enable**.
 
-   .. image:: ../../../images/ome_remote_connectivity.png
+   .. image:: ../../../../images/ome_remote_connectivity.png
 
 4. In the Kafka Connectivity wizard, select the **Enable Kafka Connectivity** check box to turn on Kafka integration.
 
@@ -60,22 +60,22 @@ Steps
 9. Under **Client Certificate Configuration**, select the **Enable Client Certificate for mTLS** check box, and upload the client certificate (``user.pfx``) generated in Step 2.  
    Enter the password or passphrase used to generate the certificate, and click **Next**.
 
-   .. image:: ../../../images/ome_kafka_connectivity.png
+   .. image:: ../../../../images/ome_kafka_connectivity.png
 
 10. On the **Data Configuration** page, select the metrics to stream to the Omnia Kubernetes Service cluster, and click **Next**.
 
-   .. image:: ../../../images/ome_data_configuration.png
+   .. image:: ../../../../images/ome_data_configuration.png
 
 11. On the **Group Configuration** page, select the devices and device groups from which metrics should be collected, and click **Next**.
 
-   .. image:: ../../../images/ome_group_configuration.png
+   .. image:: ../../../../images/ome_group_configuration.png
 
 12. Navigate to **Configuration > Remote Connectivity** and verify the following:
 
     - Under **Connectivity**, a green check mark next to **Connected since** indicates successful connectivity between OpenManage Enterprise and the Omnia Service Kubernetes cluster.
     - Under **Transfer status**, green check marks next to each metric indicate that the selected metrics are being successfully transmitted without errors.
 
-   .. image:: ../../../images/ome_connectivity_verification.png
+   .. image:: ../../../../images/ome_connectivity_verification.png
 
 Verify OME Telemetry Data in Kafka
 ---------------------------------------
@@ -123,3 +123,29 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
    * **Message format**: Use ``"format": "json"`` only if producers publish JSON. Otherwise use ``"binary"`` and decode base64 payloads.
    * **Throughput**: Adjust polling interval; bridge returns empty array when no new records.
    * **404/409 errors**: 404 usually means wrong group/instance name; 409 means already subscribed.
+
+Verify OME Telemetry Data in VictoriaMetrics and VictoriaLogs
+----------------------------------------------------------
+To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics and VictoriaLogs using Vector, do the following:
+
+1. Log in to the VictoriaMetrics UI.
+
+2. Navigate to the **Explore** tab.
+
+3. Run the following query to verify OME metrics are being received::
+
+      {__name__=~".*ome.*"}
+
+4. Verify that OME-related metrics are displayed in the results.
+
+5. Log in to the VictoriaLogs UI.
+
+6. Navigate to the **Select** tab.
+
+7. In the query field, run the following query to filter for OME logs::
+
+      {stream=~".*ome.*"}
+
+8. Verify that OME-related logs are displayed in the results.
+
+.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > metrics_enabled: true`` and ``telemetry_bridges > vector_ome > logs_enabled: true``) for data to flow from Kafka to VictoriaMetrics and VictoriaLogs.
