@@ -42,8 +42,20 @@ Prerequisites
 * For operator-provided mode, ensure the external OpenTelemetry Collector endpoint is accessible from the service cluster over TLS.
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
 
-Steps
--------
+**PowerScale Log Collection Prerequisites**
+
+For PowerScale log collection, configure the following settings on the PowerScale cluster:
+
+* **Enable syslog forwarding**: Run ``isi audit syslog modify`` to enable syslog forwarding from PowerScale to Omnia
+
+    .. image:: ../../../images/powerscale_syslog_logs_prereq.png
+
+* **Set vlselect loadbalancer IP**: Configure the vlselect loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery
+
+    .. image:: ../../../images/powerscale_vmselect_logs_prereq.png
+
+Procedure
+----------
 
 1. Specify the following entries in the ``software_config.json``.  For detailed information on updating the ``software_config.json``, see :doc:`../CreateLocalRepo/InputParameters`.
 
@@ -84,12 +96,51 @@ Steps
 5. For Omnia-orchestrated mode, configure the CSM Observability values file:
 
     - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in ``telemetry_config.yml``
-    - Reference: https://github.com/dell/helm-charts/blob/main/charts/karavi-observability/values.yaml
+    - Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
+    - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
+    - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
 
 6. For dual-destination delivery (optional), configure an external observability endpoint:
 
     - Specify the external VictoriaMetrics endpoint in ``telemetry_config.yml``
     - Metrics will be delivered to both the internal time-series database and the external endpoint independently
+
+Health Monitor Metrics
+----------------------
+
+When the CSI PowerScale health monitor is enabled (``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml), Omnia collects the following additional health metrics:
+
+**PV Metrics:**
+
+- ``powerscale_volume_status`` - PV phase (1=Bound, 0=Other) [pv_name, phase]
+- ``powerscale_volume_count`` - Total PowerScale PVs by phase [phase]
+- ``powerscale_volume_capacity_bytes`` - PV capacity in bytes [pv_name]
+- ``powerscale_volume_info`` - PV metadata [pv_name, phase, storage_class, reclaim_policy, access_modes, volume_handle, pvc_name, pvc_namespace]
+- ``powerscale_volume_age_seconds`` - Seconds since PV creation [pv_name]
+
+**PVC Metrics:**
+
+- ``powerscale_pvc_status_phase`` - PVC phase (1=Bound, 0=Other) [pvc_name, pvc_namespace, phase]
+- ``powerscale_pvc_requested_bytes`` - PVC requested storage in bytes [pvc_name, pvc_namespace]
+- ``powerscale_pvc_count`` - Total PowerScale PVCs by phase [phase]
+
+**Health Event Metrics:**
+
+- ``powerscale_volume_health_abnormal`` - Volume condition abnormal (1=abnormal, 0=healthy) [pvc_name, pvc_namespace, pv_name]
+- ``powerscale_volume_abnormal_events_total`` - Total VolumeConditionAbnormal events [pvc_name, pvc_namespace]
+- ``powerscale_node_failure_events_total`` - Total node failure events [node]
+
+**Node Metrics:**
+
+- ``powerscale_node_ready`` - Node Ready condition (1=True, 0=False) [node]
+
+**Storage Class Metrics:**
+
+- ``powerscale_storageclass_info`` - StorageClass metadata [storageclass, provisioner, reclaim_policy, volume_binding_mode, allow_volume_expansion]
+
+**Aggregate Summary:**
+
+- ``powerscale_total_capacity_bytes`` - Total capacity of all PowerScale PVs in bytes
 
 Feature Flags and Deployment Modes
 ------------------------------------

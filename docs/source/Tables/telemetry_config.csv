@@ -133,9 +133,24 @@ powerscale_configurations > ``otel_collector_storage_size``,Conditional Mandator
 * **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
 * **Default value**: ``5Gi``"
 powerscale_configurations > ``csm_observability_values_file_path``,Conditional Mandatory,"* Path to the CSM Observability (Karavi Observability) values.yaml file
-* **Required when**: powerscale_configurations.powerscale_telemetry_support: true
-* **Reference**: https://github.com/dell/helm-charts/blob/main/charts/karavi-observability/values.yaml
-* **Default value**: ``""``"
-powerscale_configurations > ``additional_remote_write_endpoints``,Optional,"* Additional victoria_metrics remote_write endpoints (optional)
-* **Default**: [] (empty — only the primary Omnia victoria_metrics endpoint is used)
-* **Format**: List of endpoint URLs"
+* **Required when**: powerscale_configurations > powerscale_telemetry_support: true
+* **Reference**: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
+* **Default value**: ``""``
+* **Note**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
+* **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml)."
+telemetry_sinks > ``victoria_metrics`` > ``additional_metric_remote_write_endpoints``,Optional,"* Additional remote write endpoints for metrics (optional)
+* **Purpose**: Send metrics to external VictoriaMetrics instances in addition to Omnia-managed VictoriaMetrics
+* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
+* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
+* **Default**: [] (empty — only Omnia VictoriaMetrics receives metrics)
+* **Example**:
+  - url: https://external-metrics-server:8480/insert/0/prometheus/api/v1/write
+    tls_insecure_skip_verify: false"
+telemetry_sinks > ``victoria_logs`` > ``additional_log_write_endpoints``,Optional,"* Additional remote write endpoints for logs (optional)
+* **Purpose**: Send logs to external VictoriaLogs instances in addition to Omnia-managed VictoriaLogs
+* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
+* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
+* **Default**: [] (empty — only Omnia VictoriaLogs receives logs)
+* **Example**:
+  - url: https://external-logs-server:9481/internal/insert
+    tls_insecure_skip_verify: false"
