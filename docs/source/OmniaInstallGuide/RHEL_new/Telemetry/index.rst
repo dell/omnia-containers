@@ -109,3 +109,5 @@ PowerScale Telemetry Data Flows
     service_cluster_telemetry
     ldms_telemetry
     power_scale_telemetry
+    vector_telemetry
+    verify_telemetry

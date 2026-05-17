@@ -3,6 +3,8 @@ Integrate OpenManage Enterprise with Omnia Kafka Pipeline for Secure Telemetry D
 
 This section describes how to configure OpenManage Enterprise to securely stream metrics into the Service Kubernetes clusters using mutual TLS (mTLS).
 
+.. note:: To consume OpenManage Enterprise telemetry from Kafka topics and route to VictoriaMetrics and VictoriaLogs using Vector, see :ref:`telemetry-vector-configuration`.
+
 Prerequisites
 --------------
 * Ensure that the ``pod_external_ip_range`` parameter is set in the ``omnia_config.yml`` file for the Service Kubernetes cluster and it is reachable from the OpenManage Enterprise appliance network.
