@@ -109,7 +109,7 @@
     # =========================================================================
 
     - name: Install squashfs-tools package in omnia_core container
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: podman exec {{ container_name }} dnf install -y squashfs-tools
       register: squashfs_install
       changed_when: squashfs_install.rc == 0
