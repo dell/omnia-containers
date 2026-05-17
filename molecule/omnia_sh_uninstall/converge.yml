@@ -61,6 +61,12 @@
         msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping uninstall"
       when: container_exists.rc != 0
 
+    - name: Make omnia.sh executable
+      ansible.builtin.file:
+        path: "{{ omnia_sh_path }}"
+        mode: '0755'
+      when: container_exists.rc == 0
+
     - name: Run omnia.sh --uninstall with auto-confirm
       ansible.builtin.shell:
         cmd: set -o pipefail && echo "y" | {{ omnia_sh_path }} --uninstall
