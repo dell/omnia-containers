@@ -104,7 +104,7 @@ PowerScale Telemetry Data Flows
 
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     service_cluster_telemetry
     ldms_telemetry
