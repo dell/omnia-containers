@@ -46,11 +46,25 @@ telemetry_sources > ``powerscale`` > ``logs_enabled``,Optional,"* **Type**: Bool
 telemetry_sources > ``powerscale`` > ``collection_targets``,Conditional Mandatory,"* PowerScale uses dedicated vmagent(shared) (no Kafka, no Vector)
 * **Supported values**: ``victoria_metrics``, ``victoria_logs``
 * **Default**: [``victoria_metrics``, ``victoria_logs``]"
+telemetry_sources > ``ufm`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable UFM (NVIDIA UFM InfiniBand Fabric Manager) metrics collection
+* **Collected metrics**: IB port state, transmit/receive data, error counters, fabric topology
+* **Requires**: NVIDIA UFM appliance with Prometheus exporter enabled
+* **Data path**: UFM Prometheus Exporter → vmagent(shared) → victoria_metrics
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``ufm`` > ``logs_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable UFM syslog logs collection
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``ufm`` > ``collection_targets``,Conditional Mandatory,"* UFM uses vmagent(shared) for metrics and VLAgent for logs
+* **Supported values**: ``victoria_metrics``, ``victoria_logs``
+* **Default**: [``victoria_metrics``, ``victoria_logs``]"
 telemetry_bridges > ``vector_ldms`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
 * Enable or disable Vector-LDMS bridge (Kafka-to-victoria_metrics bridge for LDMS metrics)
 * **Purpose**: Consume LDMS metrics from Kafka 'ldms' topic, transform NERSC schema to Prometheus format, and write to victoria_metrics
 * **Data flow**: Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → victoria_metrics
-* **Requires**: telemetry_sources.ldms.metrics_enabled = true
+* **Requires**: telemetry_sources > ldms > metrics_enabled = true
 * **Accepted values**: ``true`` or ``false``
 * **Default value**: ``true``"
 telemetry_bridges > ``vector_ome`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
@@ -66,7 +80,9 @@ telemetry_bridges > ``vector_ome`` > ``logs_enabled``,Optional,"* **Type**: Bool
 * **Default value**: ``true``"
 telemetry_bridges > ``vector_ome`` > ``ome_identifier``,Optional,"* Identifier used by Vector-OME for topic identification and routing
 * Internally used to match topics with the prefix (e.g., ``^ome\\..*$``)
-* **Default**: ``ome``
+* **Type**: String
+* **minLength**: 1
+* **Default value**: ``ome``
 * **Note**: Change only if your OME Kafka topics use a different prefix"
 telemetry_sinks > ``victoria_metrics`` > ``persistence_size``,Conditional Mandatory,"* Storage per vmstorage pod PVC
 * **Important: Total VictoriaMetrics storage depends on deployment mode:**
@@ -77,6 +93,14 @@ telemetry_sinks > ``victoria_metrics`` > ``persistence_size``,Conditional Mandat
 * **Default value**: ``8Gi`` (results in **24Gi total storage** for cluster mode)"
 telemetry_sinks > ``victoria_metrics`` > ``retention_period``,Conditional Mandatory,"* Metric retention period in hours
 * **Default**: 168 (7 days)"
+telemetry_sinks > ``victoria_metrics`` > ``additional_metric_remote_write_endpoints``,Optional,"* Additional remote write endpoints for metrics (optional)
+* **Purpose**: Send metrics to external VictoriaMetrics instances in addition to Omnia-managed VictoriaMetrics
+* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
+* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
+* **Default**: [] (empty — only Omnia VictoriaMetrics receives metrics)
+* **Example**:
+  - url: https://external-metrics-server:8480/insert/0/prometheus/api/v1/write
+    tls_insecure_skip_verify: false"
 telemetry_sinks > ``victoria_logs`` > ``storage_size``,Conditional Mandatory,"* Storage per vlstorage pod PVC
 * **Total storage = storage_size × 3 vlstorage pods**
 * **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
@@ -89,6 +113,14 @@ telemetry_sinks > ``victoria_logs`` > ``retention_period``,Conditional Mandatory
 * **Default**: 168 (7 days)
 * **Note**: Retention is global and applies to all log streams uniformly. Deletion occurs asynchronously during background merge operations.
 .. note:: VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period."
+telemetry_sinks > ``victoria_logs`` > ``additional_log_write_endpoints``,Optional,"* Additional remote write endpoints for logs (optional)
+* **Purpose**: Send logs to external VictoriaLogs instances in addition to Omnia-managed VictoriaLogs
+* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
+* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
+* **Default**: [] (empty — only Omnia VictoriaLogs receives logs)
+* **Example**:
+  - url: https://external-logs-server:9481/internal/insert
+    tls_insecure_skip_verify: false"
 telemetry_sinks > ``kafka`` > ``persistence_size``,Conditional Mandatory,"* Storage per Kafka pod PVC
 * **Total = persistence_size × 6 pods (3 brokers + 3 controllers)**
 * **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
@@ -101,10 +133,12 @@ telemetry_sinks > ``kafka`` > ``log_retention_bytes``,Conditional Mandatory,"* M
 * **Default**: -1 (unlimited)"
 telemetry_sinks > ``kafka`` > ``log_segment_bytes``,Conditional Mandatory,"* Maximum size of Kafka log segments (in bytes)
 * **Default**: 1073741824 (1 GB)"
-telemetry_sinks > ``kafka`` > ``topic_partitions``,Conditional Mandatory,"* Topic partitions per source (auto-created for enabled sources targeting kafka)
-* Only sources with kafka in collection_targets get topics
-* Topic name = source name (e.g., ``idrac``, ``ldms``)
-* **Default partition counts**: ``idrac=1``, ``ldms=2``"
+telemetry_sinks > ``kafka`` > ``topic_partitions``,Conditional Mandatory,"* Topic partitions per source (object format, not array)
+* Format: {topic_name: partition_count}
+* **Required when**: Source has kafka in collection_targets
+* **Allowed topics**: ``idrac``, ``ldms`` only
+* **Default partition counts**: ``idrac=1``, ``ldms=2``
+* **Example**: {idrac: 1, ldms: 2}"
 ldms_configurations > ``agg_port``,Conditional Mandatory,"* Aggregator port on service K8s cluster
 * **Valid range**: 6001-6100
 * **Default**: 6001"
@@ -133,24 +167,34 @@ powerscale_configurations > ``otel_collector_storage_size``,Conditional Mandator
 * **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
 * **Default value**: ``5Gi``"
 powerscale_configurations > ``csm_observability_values_file_path``,Conditional Mandatory,"* Path to the CSM Observability (Karavi Observability) values.yaml file
-* **Required when**: powerscale_configurations > powerscale_telemetry_support: true
+* **Required when**: telemetry_sources > powerscale > metrics_enabled: true
 * **Reference**: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
 * **Default value**: ``""``
 * **Note**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
 * **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml)."
-telemetry_sinks > ``victoria_metrics`` > ``additional_metric_remote_write_endpoints``,Optional,"* Additional remote write endpoints for metrics (optional)
-* **Purpose**: Send metrics to external VictoriaMetrics instances in addition to Omnia-managed VictoriaMetrics
-* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
-* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
-* **Default**: [] (empty — only Omnia VictoriaMetrics receives metrics)
-* **Example**:
-  - url: https://external-metrics-server:8480/insert/0/prometheus/api/v1/write
-    tls_insecure_skip_verify: false"
-telemetry_sinks > ``victoria_logs`` > ``additional_log_write_endpoints``,Optional,"* Additional remote write endpoints for logs (optional)
-* **Purpose**: Send logs to external VictoriaLogs instances in addition to Omnia-managed VictoriaLogs
-* **Format**: List of endpoint objects with 'url' field (must start with http:// or https://)
-* **TLS**: Set 'tls_insecure_skip_verify: true' to skip TLS certificate verification
-* **Default**: [] (empty — only Omnia VictoriaLogs receives logs)
-* **Example**:
-  - url: https://external-logs-server:9481/internal/insert
-    tls_insecure_skip_verify: false"
+ufm_configuration > ``ufm_endpoint``,Conditional Mandatory,"* UFM appliance IP address or hostname
+* **Required when**: telemetry_sources > ufm > metrics_enabled is true
+* **Example**: ``172.20.44.180`` or ``ufm.example.com``
+* **Default value**: ``""``"
+ufm_configuration > ``ufm_metrics_port``,Optional,"* UFM Prometheus exporter port
+* **Default value**: 9001 (UFM default Prometheus port)"
+ufm_configuration > ``scrape_interval``,Optional,"* Prometheus scrape interval for UFM metrics
+* **Accepted values**: Prometheus duration format (e.g., ``15s``, ``30s``, ``1m``)
+* **Default value**: ``30s``"
+ufm_configuration > ``scrape_timeout``,Optional,"* Prometheus scrape timeout (must be <= scrape_interval)
+* **Accepted values**: Prometheus duration format (e.g., ``10s``, ``15s``)
+* **Default value**: ``15s``"
+ufm_configuration > ``tls_mode``,Optional,"* TLS mode for connecting to UFM Prometheus endpoint
+* **Accepted values**: ``self_signed``, ``ca_signed``
+* **self_signed**: Skip TLS verification (insecure_skip_verify=true)
+* **ca_signed**: Use CA certificate for TLS verification
+* **Default value**: ``self_signed``"
+ufm_configuration > ``ufm_ca_cert_path``,Optional,"* Path to CA certificate file for UFM TLS verification
+* **Required when**: tls_mode is ``ca_signed``
+* Must be a valid PEM-format certificate file
+* **Default value**: ``""`` (empty — not used when tls_mode is ``self_signed``)"
+ufm_configuration > ``auth_mode``,Optional,"* Authentication mode for UFM Prometheus endpoint
+* **Accepted values**: ``basic``, ``none``
+* **basic**: Use ufm_username/ufm_password from omnia_config_credentials.yml
+* **none**: No authentication (UFM endpoint is open)
+* **Default value**: ``basic``"

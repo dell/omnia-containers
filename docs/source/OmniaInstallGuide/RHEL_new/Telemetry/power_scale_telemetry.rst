@@ -41,18 +41,15 @@ Prerequisites
 * For Omnia-orchestrated mode, ensure the service Kubernetes cluster has sufficient resources to run CSM Metrics, OpenTelemetry Collector, CSI Driver, and cert-manager.
 * For operator-provided mode, ensure the external OpenTelemetry Collector endpoint is accessible from the service cluster over TLS.
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
+* For PowerScale log collection, configure the following settings on the PowerScale cluster:
 
-**PowerScale Log Collection Prerequisites**
+    * **Enable syslog forwarding**: Run ``isi audit syslog modify`` to enable syslog forwarding from PowerScale to Omnia
 
-For PowerScale log collection, configure the following settings on the PowerScale cluster:
+        .. image:: ../../../images/powerscale_syslog_logs_prereq.png
 
-* **Enable syslog forwarding**: Run ``isi audit syslog modify`` to enable syslog forwarding from PowerScale to Omnia
+    * **Set vlselect loadbalancer IP**: Configure the vlselect loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery
 
-    .. image:: ../../../images/powerscale_syslog_logs_prereq.png
-
-* **Set vlselect loadbalancer IP**: Configure the vlselect loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery
-
-    .. image:: ../../../images/powerscale_vmselect_logs_prereq.png
+        .. image:: ../../../images/powerscale_vmselect_logs_prereq.png
 
 Procedure
 ----------
