@@ -1,5 +1,5 @@
-External Deployment Guide
-=========================
+External Services Telemetry Integrations
+=======================================
 
 This section describes how to integrate external Dell products with Omnia telemetry infrastructure.
 
@@ -12,3 +12,6 @@ These integrations are optional and allow you to extend Omnia's telemetry capabi
 
     external_kafka_ome
     external_victoria_sfm
+    external_kafka
+    external_victoria
+    external_victoria_logs

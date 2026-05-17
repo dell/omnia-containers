@@ -1,8 +1,8 @@
 .. _telemetry-vector-configuration:
 
-================================================
-Configure Deployment Required for Vector Telemetry 
-================================================
+=========================================================================
+Configure Vector Telemetry Pipeline to Route Data to Victoria from Kafka
+=========================================================================
 
 Using Omnia, you can deploy Vector as a high-performance data pipeline tool for collecting, transforming, and routing telemetry data from LDMS and OpenManage Enterprise (OME) sources to VictoriaMetrics and VictoriaLogs. The deployment includes Vector-LDMS and Vector-OME pods as Kafka consumers, vmagent-vector as a dedicated write-buffer for metrics, and vlagent-vector as a log forwarding agent.
 
@@ -44,7 +44,7 @@ Steps
 
    .. note:: Vector telemetry bridges are controlled by feature flags in ``telemetry_config.yml``. Set ``telemetry_bridges > vector_ldms > metrics_enabled`` to enable Vector-LDMS, and ``telemetry_bridges > vector_ome > metrics_enabled`` to enable Vector-OME metrics routing. For Vector-OME logs routing, set ``telemetry_bridges > vector_ome > logs_enabled``.
 
-    .. csv-table:: telemetry_config.yml
+   .. csv-table:: telemetry_config.yml
         :file: ../../../Tables/telemetry_config.csv
         :header-rows: 1
         :keepspace:

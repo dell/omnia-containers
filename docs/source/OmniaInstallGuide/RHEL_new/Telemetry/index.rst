@@ -1,17 +1,32 @@
 Step 8: Configure Telemetry Requirements
 ========================================
 
-Omnia supports the following telemetry collection to monitor and manage your HPC infrastructure. 
+Omnia supports the following telemetry collection to monitor and manage your HPC infrastructure.
+
+**Core Telemetry**
 
 * **iDRAC Telemetry** collects out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and streamed to **Kafka** and **VictoriaMetrics**. The iDRAC logs can be collected and streamed to **VictoriaLogs**.
+  and sent to **Kafka** and **VictoriaMetrics**. The iDRAC logs can be collected and sent to **VictoriaLogs**.
 
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
-  and streamed to **Kafka**. **Vector Telemetry Pipeline** provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data from LDMS and OpenManage Enterprise (OME) sources to VictoriaMetrics and VictoriaLogs.
+  and sent to **Kafka**. To route LDMS telemetry to VictoriaMetrics, enable the Vector Telemetry Pipeline.
 
-* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and streamed to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and sends them to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+
+**Vector Telemetry Pipeline**
+
+The **Vector Telemetry Pipeline** provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data to VictoriaMetrics and VictoriaLogs:
+
+* **Vector-LDMS** routes LDMS metrics from Kafka to VictoriaMetrics
+* **Vector-OpenManage Enterprise** routes OpenManage Enterprise metrics and logs from Kafka to VictoriaMetrics and VictoriaLogs
+
+**External Integrations**
+
+* **OpenManage Enterprise Telemetry** collects metrics and logs from OpenManage Enterprise and sends them to **Kafka**. To route OpenManage Enterprise telemetry to VictoriaMetrics and VictoriaLogs, enable the Vector Telemetry Pipeline. For integration steps, see :doc:`ExternalTelemetry/external_kafka_ome`.
+
+* **SFM Telemetry** collects network telemetry metrics from Smart Fabric Manager and sends them to **VictoriaMetrics**. For integration steps, see :doc:`ExternalTelemetry/external_victoria_sfm`.
 
 
 .. note::
@@ -104,10 +119,11 @@ PowerScale Telemetry Data Flows
 
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 1
+    :includehidden:
 
     service_cluster_telemetry
     ldms_telemetry
     power_scale_telemetry
     vector_telemetry
-    verify_telemetry
+    
