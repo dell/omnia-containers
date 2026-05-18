@@ -78,6 +78,13 @@
         msg: "omnia_branch not defined in omnia_test_config.yml, skipping download"
       when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch == ''
 
+    - name: Create omnia_clone_path directory
+      ansible.builtin.file:
+        path: "{{ omnia_clone_path }}"
+        state: directory
+        mode: '0755'
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch != ''
+
     - name: Download omnia.sh from GitHub (tags)
       ansible.builtin.get_url:
         url: "https://raw.githubusercontent.com/dell/omnia/refs/tags/{{ omnia_branch }}/omnia.sh"
