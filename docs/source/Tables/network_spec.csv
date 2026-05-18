@@ -37,6 +37,35 @@ Mandatory",The dynamic range of IPs to be provisioned on target nodes. **Default
 
 Optional","External DNS server IP addresses for the admin network.
  "
+,"**additional_subnets**
+
+``array of subnet objects``
+
+Optional","Optional field for multi-rack/multi-subnet PXE deployments. Each entry defines a separate subnet that the CoreDHCP server will manage via DHCP relay (giaddr-based routing). Requires coresmd v0.5+ with multi-subnet support. Leave empty array (``[]``) for single-subnet deployments. **Default value**: ``[]``
+
+Each additional subnet entry contains the following parameters:
+
+* **subnet** - The network address of the additional subnet in CIDR format (e.g., ``10.40.1.0/24``)
+* **netmask_bits** - The CIDR prefix length (e.g., ``24``)
+* **router** - The gateway/router IP for this subnet (used as DHCP option 3)
+* **dynamic_range** - The DHCP IP pool range in ``start_ip-end_ip`` format (must fall within the subnet)
+
+Example configuration:
+
+.. code-block:: yaml
+
+   additional_subnets:
+     - subnet: "10.40.1.0"
+       netmask_bits: "24"
+       router: "10.40.1.1"
+       dynamic_range: "10.40.1.100-10.40.1.200"
+     - subnet: "10.40.3.0"
+       netmask_bits: "24"
+       router: "10.40.3.1"
+       dynamic_range: "10.40.3.100-10.40.3.200"
+
+.. important::
+   Requires coresmd v0.5+ with multi-subnet support and DHCP relay configuration on each subnet's gateway/router."
 "ib_network
 
 .. note:: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable.","**Subnet**

@@ -1,0 +1,679 @@
+{
+  "plan_metadata": {
+    "product": "Omnia",
+    "version": "2.2.0",
+    "feature": "multi-subnet-dhcp",
+    "created": "2026-05-18",
+    "owner": "Documentation Team",
+    "status": "draft",
+    "source_files": [
+      {
+        "type": "Requirements",
+        "path": "CY26Q2/requirements/21948-multi-subnet-dhcp.md"
+      },
+      {
+        "type": "BehaviourSpec",
+        "path": "CY26Q2/behaviour_spec/behavior_spec_multi_subnet_dhcp.md"
+      },
+      {
+        "type": "EngineeringSpecification",
+        "path": "CY26Q2/functional_spec/functional-spec-multi-subnet-dhcp.md"
+      },
+      {
+        "type": "HLD",
+        "path": "CY26Q2/engineering_spec/engineering_spec_multi_subnet_dhcp.md"
+      }
+    ]
+  },
+  "topics": [
+    {
+      "id": "multi-subnet-dhcp-concept-overview",
+      "title": "Multi-Subnet DHCP Overview",
+      "topic_type": "Concept",
+      "status": "New Topic",
+      "target_audience": [
+        "Infrastructure/HPC Administrator",
+        "Platform Engineer"
+      ],
+      "rst_file": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-concept-overview.rst",
+      "toctree_entry": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-concept-overview",
+      "source_traceability": [
+        "Requirements - Problem Statement",
+        "Behaviour Spec - Section 5.2 Overview",
+        "Functional Spec - Section 3 Network Architecture Model"
+      ],
+      "customer_workflow_context": "Administrators planning large-scale HPC or AI/ML deployments need to understand how rack-based multi-subnet DHCP configuration works before implementing it. This topic explains the architecture, benefits, and use cases to help them decide if this approach fits their deployment requirements.",
+      "content_requirements": {
+        "prerequisites": [
+          "Basic understanding of IP networking and subnets",
+          "Familiarity with DHCP concepts",
+          "Knowledge of rack-based data center topology"
+        ],
+        "key_content": [
+          "What is multi-subnet DHCP and why it's needed",
+          "Dual-network architecture model (Admin vs OOB/BMC)",
+          "Rack-based subnet allocation benefits",
+          "DHCP relay architecture and giaddr routing",
+          "Use cases: per-rack subnets, routed L3 networks, large-scale deployments",
+          "Comparison with single-subnet approach",
+          "Supported deployment topologies"
+        ],
+        "expected_outcomes": [
+          "Understand the multi-subnet DHCP architecture",
+          "Identify use cases where multi-subnet DHCP is beneficial",
+          "Understand the role of DHCP relay and giaddr",
+          "Know the prerequisites for implementing multi-subnet DHCP"
+        ],
+        "admonitions": [
+          {
+            "type": "note",
+            "content": "Multi-subnet DHCP requires DHCP relay agents configured on each subnet's gateway/router"
+          },
+          {
+            "type": "important",
+            "content": "OOB/BMC network is preconfigured externally and not managed by Omnia's DHCP"
+          }
+        ]
+      },
+      "configuration_artifacts": [
+        {
+          "name": "additional_subnets",
+          "file": "input/network_spec.yml",
+          "values": "array of subnet objects",
+          "default": "[]"
+        },
+        {
+          "name": "admin_subnet",
+          "file": "input/network_spec.yml",
+          "values": "CIDR notation (e.g., 10.40.1.0/24)",
+          "default": "null"
+        },
+        {
+          "name": "admin_gateway",
+          "file": "input/network_spec.yml",
+          "values": "IPv4 address",
+          "default": "null"
+        }
+      ],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-configuration",
+        "Overview/NetworkTopologies/index"
+      ],
+      "build_instructions": {
+        "action": "create_new_file",
+        "sections_to_add": [
+          "What is Multi-Subnet DHCP",
+          "Why Use Multi-Subnet DHCP",
+          "Network Architecture Model",
+          "DHCP Relay Architecture",
+          "Use Cases and Deployment Topologies",
+          "Prerequisites and Requirements"
+        ],
+        "sme_validation_required": true,
+        "sme_validation_reason": "Network architecture details and DHCP relay configuration need SME verification",
+        "ai_review_markers": [
+          "Network architecture diagram",
+          "DHCP relay workflow description",
+          "Subnet allocation examples"
+        ]
+      },
+      "gap_analysis": {
+        "user_workflows_identified": true,
+        "real_world_examples_available": true,
+        "common_mistakes_documented": false,
+        "performance_characteristics_covered": true,
+        "integration_examples_provided": true,
+        "troubleshooting_scenarios_included": false,
+        "prerequisites_listed": true,
+        "security_considerations_addressed": false,
+        "additional_sources_required": []
+      },
+      "confidence": {
+        "level": "High",
+        "score": 0.9,
+        "rationale": "Comprehensive specifications available with clear architecture definitions and use cases"
+      }
+    },
+    {
+      "id": "multi-subnet-dhcp-configuration",
+      "title": "Configuring Multi-Subnet DHCP",
+      "topic_type": "How-To",
+      "status": "New Topic",
+      "target_audience": [
+        "Infrastructure/HPC Administrator"
+      ],
+      "rst_file": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-configuration.rst",
+      "toctree_entry": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-configuration",
+      "source_traceability": [
+        "Behaviour Spec - Section 5.3 Input Configuration",
+        "Functional Spec - Section 4 Input Configuration",
+        "Engineering Spec - Section 4.1 Input Configuration and Schema"
+      ],
+      "customer_workflow_context": "Administrators need step-by-step instructions to configure multi-subnet DHCP in their Omnia deployment. This guide walks through editing network_spec.yml, validating configuration, and deploying the changes.",
+      "content_requirements": {
+        "prerequisites": [
+          "Omnia cluster deployed",
+          "Network switches configured with VLANs and DHCP relay",
+          "Access to edit input/network_spec.yml",
+          "CoreDHCP and coresmd services deployed"
+        ],
+        "key_content": [
+          "Editing network_spec.yml to add additional_subnets",
+          "Configuring rack_networks section with subnet, gateway, VLAN, and pool",
+          "Setting up hostname_config and dhcp_config sections",
+          "Validating configuration using Omnia validation",
+          "Deploying CoreDHCP configuration changes",
+          "Testing DHCP relay and IP assignment",
+          "Example configurations for 2-rack and 10-rack deployments"
+        ],
+        "expected_outcomes": [
+          "Successfully configure additional_subnets in network_spec.yml",
+          "Validate configuration without errors",
+          "Deploy CoreDHCP configuration with subnet-aware directives",
+          "Verify DHCP relay functionality",
+          "Confirm nodes receive IPs from correct subnet pools"
+        ],
+        "admonitions": [
+          {
+            "type": "warning",
+            "content": "Subnets must not overlap with admin network or each other"
+          },
+          {
+            "type": "important",
+            "content": "DHCP pool ranges must be within the subnet boundaries"
+          },
+          {
+            "type": "note",
+            "content": "Leave additional_subnets empty for single-subnet deployments (backward compatible)"
+          }
+        ]
+      },
+      "configuration_artifacts": [
+        {
+          "name": "additional_subnets",
+          "file": "input/network_spec.yml",
+          "values": "array of subnet objects with subnet, netmask_bits, router, dynamic_range",
+          "default": "[]"
+        },
+        {
+          "name": "rack_networks",
+          "file": "input/network_spec.yml",
+          "values": "array of rack objects with rack_id, rack_name, admin_subnet, admin_gateway, admin_vlan, admin_pool_start, admin_pool_end",
+          "default": "null"
+        },
+        {
+          "name": "lease_time_discovery",
+          "file": "input/network_spec.yml",
+          "values": "duration string (e.g., '5m')",
+          "default": "5m"
+        },
+        {
+          "name": "lease_time_provisioning",
+          "file": "input/network_spec.yml",
+          "values": "duration string (e.g., '1h')",
+          "default": "1h"
+        }
+      ],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-concept-overview",
+        "Tables/network_spec",
+        "troubleshootingguide/multi-subnet-dhcp"
+      ],
+      "build_instructions": {
+        "action": "create_new_file",
+        "sections_to_add": [
+          "Prerequisites",
+          "Network Specification File Structure",
+          "Configuring Additional Subnets",
+          "Configuring Rack Networks",
+          "Configuring DHCP Service Parameters",
+          "Validating Configuration",
+          "Deploying Configuration Changes",
+          "Verification and Testing",
+          "Configuration Examples"
+        ],
+        "sme_validation_required": true,
+        "sme_validation_reason": "Configuration parameters and validation rules need SME verification",
+        "ai_review_markers": [
+          "network_spec.yml example",
+          "Validation error messages",
+          "Deployment steps"
+        ]
+      },
+      "gap_analysis": {
+        "user_workflows_identified": true,
+        "real_world_examples_available": true,
+        "common_mistakes_documented": true,
+        "performance_characteristics_covered": false,
+        "integration_examples_provided": true,
+        "troubleshooting_scenarios_included": false,
+        "prerequisites_listed": true,
+        "security_considerations_addressed": false,
+        "additional_sources_required": []
+      },
+      "confidence": {
+        "level": "High",
+        "score": 0.95,
+        "rationale": "Detailed configuration examples and validation rules available in specifications"
+      }
+    },
+    {
+      "id": "multi-subnet-dhcp-troubleshooting",
+      "title": "Troubleshooting Multi-Subnet DHCP",
+      "topic_type": "Troubleshooting",
+      "status": "New Topic",
+      "target_audience": [
+        "Infrastructure/HPC Administrator",
+        "Support Engineer"
+      ],
+      "rst_file": "troubleshootingguide/multi-subnet-dhcp.rst",
+      "toctree_entry": "troubleshootingguide/multi-subnet-dhcp",
+      "source_traceability": [
+        "Behaviour Spec - Section 5.8 Assets/Resources at Risk",
+        "Engineering Spec - Section 4.3 Component Test",
+        "Functional Spec - Section 12 Observability and Logging"
+      ],
+      "customer_workflow_context": "Administrators encountering issues with multi-subnet DHCP need diagnostic procedures and resolution steps. This guide covers common problems and their solutions.",
+      "content_requirements": {
+        "prerequisites": [
+          "Multi-subnet DHCP configured",
+          "Access to OIM server logs",
+          "Network access to DHCP server"
+        ],
+        "key_content": [
+          "DHCP requests not reaching CoreDHCP",
+          "Nodes receiving wrong IP addresses",
+          "Subnet overlap conflicts",
+          "VLAN misconfiguration issues",
+          "Gateway unreachable errors",
+          "DHCP relay configuration problems",
+          "CoreDHCP service startup failures",
+          "Diagnostic procedures using logs and packet captures",
+          "Resolution procedures for each issue type"
+        ],
+        "expected_outcomes": [
+          "Identify root cause of DHCP issues",
+          "Apply appropriate resolution procedures",
+          "Validate fixes using diagnostic tools",
+          "Know when to escalate to support"
+        ],
+        "admonitions": [
+          {
+            "type": "warning",
+            "content": "Always backup configuration before making changes"
+          },
+          {
+            "type": "note",
+            "content": "Check DHCP relay agent configuration before troubleshooting CoreDHCP"
+          }
+        ]
+      },
+      "configuration_artifacts": [],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-configuration",
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-network-architecture"
+      ],
+      "build_instructions": {
+        "action": "create_new_file",
+        "sections_to_add": [
+          "Common Issues and Symptoms",
+          "Diagnostic Procedures",
+          "DHCP Relay Issues",
+          "Subnet Configuration Issues",
+          "CoreDHCP Service Issues",
+          "IP Assignment Problems",
+          "Network Connectivity Issues",
+          "Debug Tools and Commands",
+          "Escalation Path"
+        ],
+        "sme_validation_required": true,
+        "sme_validation_reason": "Troubleshooting procedures need real-world validation",
+        "ai_review_markers": [
+          "Error message examples",
+          "Log file locations",
+          "Diagnostic commands"
+        ]
+      },
+      "gap_analysis": {
+        "user_workflows_identified": true,
+        "real_world_examples_available": false,
+        "common_mistakes_documented": true,
+        "performance_characteristics_covered": false,
+        "integration_examples_provided": false,
+        "troubleshooting_scenarios_included": true,
+        "prerequisites_listed": true,
+        "security_considerations_addressed": false,
+        "additional_sources_required": [
+          {
+            "source_type": "SMEInterview",
+            "reason": "Real-world troubleshooting scenarios needed"
+          }
+        ]
+      },
+      "confidence": {
+        "level": "Medium",
+        "score": 0.7,
+        "rationale": "Specifications list potential issues but lack real-world troubleshooting data"
+      }
+    },
+    {
+      "id": "multi-subnet-dhcp-network-architecture",
+      "title": "Multi-Subnet Network Architecture Guide",
+      "topic_type": "Concept",
+      "status": "New Topic",
+      "target_audience": [
+        "Platform Engineer",
+        "Network Engineer"
+      ],
+      "rst_file": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-network-architecture.rst",
+      "toctree_entry": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-network-architecture",
+      "source_traceability": [
+        "Behaviour Spec - Section 5.2 Overview",
+        "Behaviour Spec - Appendix C Example ToR Configuration",
+        "Functional Spec - Section 3 Network Architecture Model",
+        "Engineering Spec - Section 3 Solution Architecture"
+      ],
+      "customer_workflow_context": "Network engineers and architects need detailed network topology design patterns and ToR switch configuration examples to implement multi-subnet DHCP successfully.",
+      "content_requirements": {
+        "prerequisites": [
+          "Advanced networking knowledge",
+          "Familiarity with switch configuration",
+          "Understanding of VLANs and routing"
+        ],
+        "key_content": [
+          "Dual-network model architecture (Admin + OOB)",
+          "Rack-based subnet allocation strategy",
+          "DHCP relay architecture and giaddr routing",
+          "ToR switch configuration (VLANs, SVIs, DHCP relay)",
+          "Routing and ECMP configuration",
+          "ACL policies for network segmentation",
+          "IP address planning and IPAM considerations",
+          "Network topology design patterns (routed, multi-NIC, hybrid)",
+          "Security considerations and VRF isolation"
+        ],
+        "expected_outcomes": [
+          "Design network topology for multi-subnet DHCP",
+          "Configure ToR switches with DHCP relay",
+          "Plan IP address allocation across racks",
+          "Implement ACL policies for security",
+          "Understand routing and gateway requirements"
+        ],
+        "admonitions": [
+          {
+            "type": "important",
+            "content": "ToR switches must be configured with DHCP relay helper-address pointing to CoreDHCP server"
+          },
+          {
+            "type": "warning",
+            "content": "Ensure routing is configured correctly before enabling DHCP relay"
+          }
+        ]
+      },
+      "configuration_artifacts": [
+        {
+          "name": "admin_vlan",
+          "file": "input/network_spec.yml",
+          "values": "VLAN ID (integer)",
+          "default": "null"
+        },
+        {
+          "name": "admin_gateway",
+          "file": "input/network_spec.yml",
+          "values": "IPv4 address (ToR SVI)",
+          "default": "null"
+        }
+      ],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-concept-overview",
+        "Overview/NetworkTopologies/index"
+      ],
+      "build_instructions": {
+        "action": "create_new_file",
+        "sections_to_add": [
+          "Network Architecture Overview",
+          "Dual-Network Model",
+          "Rack-Based Subnet Allocation",
+          "DHCP Relay Architecture",
+          "Network Topology Design Patterns",
+          "ToR Switch Configuration",
+          "IP Address Planning",
+          "Routing and Gateway Design",
+          "ACL Policies and Security",
+          "Performance Considerations"
+        ],
+        "sme_validation_required": true,
+        "sme_validation_reason": "Network architecture and switch configuration need SME validation",
+        "ai_review_markers": [
+          "ToR switch configuration examples",
+          "Network diagrams",
+          "Routing table examples"
+        ]
+      },
+      "gap_analysis": {
+        "user_workflows_identified": true,
+        "real_world_examples_available": true,
+        "common_mistakes_documented": false,
+        "performance_characteristics_covered": true,
+        "integration_examples_provided": true,
+        "troubleshooting_scenarios_included": false,
+        "prerequisites_listed": true,
+        "security_considerations_addressed": true,
+        "additional_sources_required": []
+      },
+      "confidence": {
+        "level": "High",
+        "score": 0.85,
+        "rationale": "Detailed architecture and ToR configuration examples available in specifications"
+      }
+    },
+    {
+      "id": "network-spec-reference-update",
+      "title": "Network Specification Reference Update",
+      "topic_type": "Reference",
+      "status": "Update Existing Topic",
+      "target_audience": [
+        "Infrastructure/HPC Administrator",
+        "Platform Engineer"
+      ],
+      "rst_file": "Tables/network_spec.csv",
+      "toctree_entry": "Tables/network_spec",
+      "source_traceability": [
+        "Functional Spec - Section 4 Input Configuration",
+        "Engineering Spec - Section 4.1 Input Configuration and Schema",
+        "GitHub Repository - input/network_spec.yml (pub/q2_dev branch)"
+      ],
+      "customer_workflow_context": "Administrators need complete reference documentation for the network_spec.yml file. The additional_subnets field already exists in the codebase (pub/q2_dev) but needs to be documented in the reference table for users.",
+      "content_requirements": {
+        "prerequisites": [],
+        "key_content": [
+          "Add additional_subnets field documentation under admin_network section",
+          "Document subnet parameter (network address in CIDR format)",
+          "Document netmask_bits parameter (CIDR prefix length)",
+          "Document router parameter (gateway/router IP for DHCP option 3)",
+          "Document dynamic_range parameter (DHCP IP pool range in start_ip-end_ip format)",
+          "Include validation rules (ranges must fall within subnet)",
+          "Include example from inline documentation in network_spec.yml",
+          "Document backward compatibility (empty array = single-subnet)",
+          "Note requirement for coresmd v0.5+ with multi-subnet support"
+        ],
+        "expected_outcomes": [
+          "Complete reference for all network_spec.yml parameters including additional_subnets",
+          "Clear documentation of each parameter in additional_subnets array",
+          "Validation rules and constraints documented",
+          "Example configuration from network_spec.yml included"
+        ],
+        "admonitions": [
+          {
+            "type": "note",
+            "content": "additional_subnets is optional - leave empty array for single-subnet deployments"
+          },
+          {
+            "type": "important",
+            "content": "Requires coresmd v0.5+ with multi-subnet support and DHCP relay configuration"
+          }
+        ]
+      },
+      "configuration_artifacts": [
+        {
+          "name": "additional_subnets",
+          "file": "input/network_spec.yml",
+          "values": "array of subnet objects",
+          "default": "[]"
+        },
+        {
+          "name": "subnet",
+          "file": "input/network_spec.yml (additional_subnets array)",
+          "values": "CIDR notation (e.g., '10.40.1.0')",
+          "default": "null"
+        },
+        {
+          "name": "netmask_bits",
+          "file": "input/network_spec.yml (additional_subnets array)",
+          "values": "CIDR prefix length (e.g., '24')",
+          "default": "null"
+        },
+        {
+          "name": "router",
+          "file": "input/network_spec.yml (additional_subnets array)",
+          "values": "IPv4 address (gateway/router IP)",
+          "default": "null"
+        },
+        {
+          "name": "dynamic_range",
+          "file": "input/network_spec.yml (additional_subnets array)",
+          "values": "start_ip-end_ip format (e.g., '10.40.1.100-10.40.1.200')",
+          "default": "null"
+        }
+      ],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp/multi-subnet-dhcp-configuration"
+      ],
+      "build_instructions": {
+        "action": "update_existing_file",
+        "sections_to_add": [
+          "additional_subnets section under admin_network",
+          "Parameters: subnet, netmask_bits, router, dynamic_range",
+          "Validation rules and constraints",
+          "Example configuration from network_spec.yml inline documentation"
+        ],
+        "sme_validation_required": false,
+        "sme_validation_reason": "",
+        "ai_review_markers": []
+      },
+      "gap_analysis": {
+        "user_workflows_identified": false,
+        "real_world_examples_available": true,
+        "common_mistakes_documented": false,
+        "performance_characteristics_covered": false,
+        "integration_examples_provided": false,
+        "troubleshooting_scenarios_included": false,
+        "prerequisites_listed": false,
+        "security_considerations_addressed": false,
+        "additional_sources_required": []
+      },
+      "confidence": {
+        "level": "High",
+        "score": 0.98,
+        "rationale": "Actual implementation file available with inline documentation and examples"
+      }
+    },
+    {
+      "id": "multi-subnet-dhcp-best-practices",
+      "title": "Multi-Subnet DHCP Best Practices",
+      "topic_type": "How-To",
+      "status": "New Topic",
+      "target_audience": [
+        "Infrastructure/HPC Administrator",
+        "Network Engineer"
+      ],
+      "rst_file": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-best-practices.rst",
+      "toctree_entry": "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-best-practices",
+      "source_traceability": [
+        "Behaviour Spec - Section 5.7 Performance",
+        "Behaviour Spec - Section 5.8 Assets/Resources at Risk",
+        "Functional Spec - Section 11 Security Requirements",
+        "Functional Spec - Section 10 Performance Requirements"
+      ],
+      "customer_workflow_context": "Administrators implementing multi-subnet DHCP need operational guidelines and recommendations to ensure reliable, secure, and performant deployments.",
+      "content_requirements": {
+        "prerequisites": [
+          "Multi-subnet DHCP configured",
+          "Basic networking knowledge"
+        ],
+        "key_content": [
+          "Subnet allocation planning strategies",
+          "Rack topology design guidelines",
+          "DHCP pool sizing recommendations",
+          "Security best practices (ACLs, VRF, iDRAC access)",
+          "Performance optimization (broadcast domains, routing)",
+          "Monitoring and observability practices",
+          "Change management and backup procedures",
+          "Capacity planning considerations"
+        ],
+        "expected_outcomes": [
+          "Plan subnet allocation effectively",
+          "Implement security controls",
+          "Optimize performance",
+          "Establish monitoring practices",
+          "Follow change management procedures"
+        ],
+        "admonitions": [
+          {
+            "type": "important",
+            "content": "Always test configuration changes in a staging environment before production"
+          },
+          {
+            "type": "warning",
+            "content": "Document all subnet allocations and maintain IPAM records"
+          }
+        ]
+      },
+      "configuration_artifacts": [],
+      "cross_references": [
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-network-architecture",
+        "OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp-configuration"
+      ],
+      "build_instructions": {
+        "action": "create_new_file",
+        "sections_to_add": [
+          "Planning Best Practices",
+          "Configuration Best Practices",
+          "Operational Best Practices",
+          "Security Best Practices",
+          "Performance Best Practices",
+          "Monitoring and Observability",
+          "Change Management",
+          "Capacity Planning"
+        ],
+        "sme_validation_required": true,
+        "sme_validation_reason": "Best practices need SME validation and real-world experience",
+        "ai_review_markers": [
+          "Recommendation examples",
+          "Performance metrics",
+          "Security guidelines"
+        ]
+      },
+      "gap_analysis": {
+        "user_workflows_identified": true,
+        "real_world_examples_available": false,
+        "common_mistakes_documented": true,
+        "performance_characteristics_covered": true,
+        "integration_examples_provided": false,
+        "troubleshooting_scenarios_included": false,
+        "prerequisites_listed": false,
+        "security_considerations_addressed": true,
+        "additional_sources_required": [
+          {
+            "source_type": "SMEInterview",
+            "reason": "Real-world best practices needed"
+          }
+        ]
+      },
+      "confidence": {
+        "level": "Medium",
+        "score": 0.75,
+        "rationale": "Specifications provide performance and security requirements but lack operational best practices"
+      }
+    }
+  ]
+}
