@@ -13,13 +13,13 @@ OME-based BMC discovery is the recommended method for discovering target nodes. 
 
 To use OME-based discovery:
 
-1. Ensure OpenManage Enterprise (OME) is accessible from the OIM and configured with the target servers.
+1. Ensure OpenManage Enterprise (OME) is accessible from the Omnia Infrastructure Manager (OIM) and configured with the target servers.
 2. Configure the ``discovery_config.yml`` file with OME connection details and discovery parameters.
-3. Execute the ``provision.yml`` playbook with the ``discovery_mechanism=ome`` parameter::
+3. Execute the ``discovery.yml`` playbook with the ``discovery_mechanism=ome`` parameter::
 
     ssh omnia_core
     cd /omnia/discovery
-    ansible-playbook provision.yml -e "discovery_mechanism=ome"
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
 For detailed configuration of ``discovery_config.yml``, see :doc:`provisionparams`.
 
