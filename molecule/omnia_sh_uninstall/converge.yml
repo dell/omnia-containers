@@ -42,7 +42,7 @@
     omnia_clone_path: "{{ omnia_test_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
     omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
-    omnia_version: "{{ omnia_test_config.omnia_version }}"
+    omnia_branch: "{{ omnia_test_config.get('omnia_branch', '') }}"
     container_name: "omnia_core"
 
   tasks:
@@ -68,28 +68,38 @@
       register: omnia_sh_stat
       when: container_exists.rc == 0
 
+    - name: Check if omnia_branch is defined
+      ansible.builtin.debug:
+        msg: "omnia_branch: {{ omnia_branch }}"
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists
+
+    - name: Skip download if omnia_branch not defined
+      ansible.builtin.debug:
+        msg: "omnia_branch not defined in omnia_test_config.yml, skipping download"
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch == ''
+
     - name: Download omnia.sh from GitHub (tags)
       ansible.builtin.get_url:
-        url: "https://raw.githubusercontent.com/dell/omnia/refs/tags/{{ omnia_version }}/omnia.sh"
+        url: "https://raw.githubusercontent.com/dell/omnia/refs/tags/{{ omnia_branch }}/omnia.sh"
         dest: "{{ omnia_sh_path }}"
         mode: '0755'
       register: download_tags
-      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch != ''
       failed_when: false
 
     - name: Download omnia.sh from GitHub (heads) if tags failed
       ansible.builtin.get_url:
-        url: "https://raw.githubusercontent.com/dell/omnia/refs/heads/{{ omnia_version }}/omnia.sh"
+        url: "https://raw.githubusercontent.com/dell/omnia/refs/heads/{{ omnia_branch }}/omnia.sh"
         dest: "{{ omnia_sh_path }}"
         mode: '0755'
       register: download_heads
-      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and download_tags is failed
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch != '' and download_tags is failed
       failed_when: false
 
     - name: Skip uninstall if omnia.sh download failed
       ansible.builtin.debug:
         msg: "Failed to download omnia.sh from both tags and heads, skipping uninstall"
-      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and download_tags is failed and download_heads is failed
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and omnia_branch != '' and download_tags is failed and download_heads is failed
 
     - name: Make omnia.sh executable
       ansible.builtin.file:
