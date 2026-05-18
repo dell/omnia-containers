@@ -42,6 +42,7 @@
     omnia_clone_path: "{{ omnia_test_config.omnia_clone_path | default('/opt/omnia-artifactory') }}"
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
     omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
+    omnia_version: "{{ omnia_test_config.omnia_version }}"
     container_name: "omnia_core"
 
   tasks:
@@ -67,30 +68,48 @@
       register: omnia_sh_stat
       when: container_exists.rc == 0
 
-    - name: Skip uninstall if omnia.sh doesn't exist
-      ansible.builtin.debug:
-        msg: "omnia.sh not found at {{ omnia_sh_path }}, skipping uninstall"
+    - name: Download omnia.sh from GitHub (tags)
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/dell/omnia/refs/tags/{{ omnia_version }}/omnia.sh"
+        dest: "{{ omnia_sh_path }}"
+        mode: '0755'
+      register: download_tags
       when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists
+      failed_when: false
+
+    - name: Download omnia.sh from GitHub (heads) if tags failed
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/dell/omnia/refs/heads/{{ omnia_version }}/omnia.sh"
+        dest: "{{ omnia_sh_path }}"
+        mode: '0755'
+      register: download_heads
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and download_tags is failed
+      failed_when: false
+
+    - name: Skip uninstall if omnia.sh download failed
+      ansible.builtin.debug:
+        msg: "Failed to download omnia.sh from both tags and heads, skipping uninstall"
+      when: container_exists.rc == 0 and not omnia_sh_stat.stat.exists and download_tags is failed and download_heads is failed
 
     - name: Make omnia.sh executable
       ansible.builtin.file:
         path: "{{ omnia_sh_path }}"
         mode: '0755'
-      when: container_exists.rc == 0 and omnia_sh_stat.stat.exists
+      when: container_exists.rc == 0 and (omnia_sh_stat.stat.exists or download_tags is succeeded or download_heads is succeeded)
 
     - name: Run omnia.sh --uninstall with auto-confirm
       ansible.builtin.shell:
         cmd: set -o pipefail && echo "y" | {{ omnia_sh_path }} --uninstall
       register: uninstall_result
-      when: container_exists.rc == 0 and omnia_sh_stat.stat.exists
+      when: container_exists.rc == 0 and (omnia_sh_stat.stat.exists or download_tags is succeeded or download_heads is succeeded)
       changed_when: uninstall_result.rc == 0
 
     - name: Fail if uninstall failed
       ansible.builtin.fail:
         msg: "omnia.sh --uninstall failed: {{ uninstall_result.stderr | default('Unknown error') }}"
-      when: container_exists.rc == 0 and omnia_sh_stat.stat.exists and uninstall_result.rc != 0
+      when: container_exists.rc == 0 and (omnia_sh_stat.stat.exists or download_tags is succeeded or download_heads is succeeded) and uninstall_result.rc != 0
 
     - name: Cleanup completed
       ansible.builtin.debug:
         msg: "omnia.sh --uninstall completed on {{ ansible_host }}"
-      when: container_exists.rc == 0 and omnia_sh_stat.stat.exists
+      when: container_exists.rc == 0 and (omnia_sh_stat.stat.exists or download_tags is succeeded or download_heads is succeeded)
