@@ -33,8 +33,8 @@ Re-provision the Nodes with Modifications
 3. After the images are created, run the ``provision.yml`` playbook. For OME-based discovery, use::
 
     ssh omnia_core
-    cd /omnia/discovery
-    ansible-playbook provision.yml -e "discovery_mechanism=ome"
+    cd /omnia/provision
+    ansible-playbook provision.yml
 
    For more information, see :doc:`../RHEL_new/Provision/installprovisiontool`.
 4. PXE boot the required nodes to be reprovisioned.
