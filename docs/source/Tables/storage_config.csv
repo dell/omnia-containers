@@ -19,6 +19,7 @@
     * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
 * **node_key**—cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies per-node bind mount where source path is constructed using the queried variable value. The variable chosen must be unique per host to ensure isolation between nodes. fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic). Source becomes: <source>/<ds.meta_data.node_key>/<mount_point_stripped_leading_slash>
 * **node_mount_point**—List of bind mount targets. Required when node_key is set. Each target gets: <source>/<node_key_value>/<target_stripped_slash> -> <target>
+* **mount_on_oim**—Boolean flag to mount on OIM (Omnia Image Management). Optional
 * **functional_group_prefix**—List of functional group prefixes. All nodes whose role starts with any prefix get this mount * e.g., [""slurm""] matches slurm_control_node, slurm_node, etc. If omitted (and no group), mount applies to all nodes. Mutually exclusive with groups.
 * **groups**—List of GROUP_NAME values from pxe_mapping_file.csv. Optional. Mutually exclusive with functional_group_prefix. e.g., groups: [""grp1"", ""grp2""] targets only nodes in those groups.
 
@@ -124,3 +125,20 @@ Required    ","PowerVault iSCSI storage configuration. Processed entirely via ru
     size: ""2G""
     maxsize: ""4G""
     functional_group_prefix: [""slurm_node""]"
+"**s3_configurations**
+
+``dict``
+
+ Optional    ","Configures the S3-compatible storage backend for OpenCHAMI image repository.
+
+* **provider**—S3 provider type. Required
+    * ""powerscale"": Use Dell PowerScale as external S3 storage (default)
+    * ""minio"": Use MinIO container deployed locally on OIM
+* **endpoint_url**—S3 endpoint URL. Required when provider is ""powerscale"" (e.g., ""https://10.43.1.11:9021""). Leave empty ("""") when provider is ""minio"" (auto-configured to local MinIO)
+* **s3_access_id**—S3 access ID. Prompted during prepare_oim credential setup. For ""minio"" provider, defaults to ""admin"" and is not prompted. For ""powerscale"" provider, prompted as conditional mandatory.
+* **s3_secret_key**—S3 secret key. Prompted during prepare_oim credential setup.
+
+**Sample**::
+
+  provider: ""powerscale""
+  endpoint_url: """""
