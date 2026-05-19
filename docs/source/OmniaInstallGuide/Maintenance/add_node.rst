@@ -11,14 +11,20 @@ To add a new Slurm node to the cluster, follow these steps:
 **For OME-based BMC discovery:**
 
 1. Ensure the new node is added and configured in OpenManage Enterprise (OME).
-2. Run the ``provision.yml`` playbook with the OME discovery mechanism to discover the new nodes::
+2. Run the ``discovery.yml`` playbook with the OME discovery mechanism to discover the new nodes::
 
     ssh omnia_core
     cd /omnia/discovery
-    ansible-playbook provision.yml -e "discovery_mechanism=ome"
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
-3. PXE boot the newly added nodes.
-4. To enable telemetry collection using iDRAC telemetry service, run the ``telemetry.yml`` playbook. For steps to initiate telemetry collection, see :doc:`../RHEL_new/Telemetry/initialize_and_verify_telemetry`
+3. User needs to update the PXE mapping file path in the ``provision_config.yml``.
+4. User needs to run the ``provision.yml`` playbook.
+
+    cd /omnia/provision
+    ansible-playbook provision.yml 
+
+5. PXE boot the newly added nodes.
+6. To enable telemetry collection using iDRAC telemetry service, run the ``telemetry.yml`` playbook. For steps to initiate telemetry collection, see :doc:`../RHEL_new/Telemetry/initialize_and_verify_telemetry`
 
 **For mapping file discovery:**
 
@@ -43,13 +49,20 @@ To remove a Slurm node from the cluster, follow these steps:
 **For OME-based BMC discovery:**
 
 1. Remove or reassign the node in OpenManage Enterprise (OME).
-2. Run the ``provision.yml`` playbook with the OME discovery mechanism::
+2. Run the ``discovery.yml`` playbook with the OME discovery mechanism::
 
     ssh omnia_core
     cd /omnia/discovery
-    ansible-playbook provision.yml -e "discovery_mechanism=ome"
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
-3. To stop telemetry collection using iDRAC telemetry service from the removed nodes, run the ``telemetry.yml`` playbook.
+3. User needs to update the PXE mapping file path in the ``provision_config.yml``.
+4. User needs to run the ``provision.yml`` playbook.
+
+    cd /omnia/provision
+    ansible-playbook provision.yml 
+
+
+5. To stop telemetry collection using iDRAC telemetry service from the removed nodes, run the ``telemetry.yml`` playbook.
 
 **For mapping file discovery:**
 
