@@ -17,8 +17,8 @@ To add a new Slurm node to the cluster, follow these steps:
     cd /omnia/discovery
     ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
-3. User needs to update the PXE mapping file path in the ``provision_config.yml``.
-4. User needs to run the ``provision.yml`` playbook::
+3. Update the PXE mapping file path in the ``provision_config.yml``.
+4. Run the ``provision.yml`` playbook::
 
     cd /omnia/provision
     ansible-playbook provision.yml 
@@ -55,8 +55,8 @@ To remove a Slurm node from the cluster, follow these steps:
     cd /omnia/discovery
     ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
-3. User needs to update the PXE mapping file path in the ``provision_config.yml``.
-4. User needs to run the ``provision.yml`` playbook::
+3. Update the PXE mapping file path in the ``provision_config.yml``.
+4. Run the ``provision.yml`` playbook::
 
     cd /omnia/provision
     ansible-playbook provision.yml 
