@@ -45,6 +45,12 @@
 #
 dataset: "project_default"
 
+# Sync dataset to omnia_core container
+# Set to true to copy dataset files to /opt/omnia/input/project_default in container
+# Set to false to skip syncing (use existing files in container)
+# Default: false
+sync_dataset_to_core: false
+
 # =============================================================================
 # EXECUTION CONTROL
 # =============================================================================
