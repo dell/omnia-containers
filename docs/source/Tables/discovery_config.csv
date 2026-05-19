@@ -6,6 +6,5 @@
 ``ome_ip``,Conditional Mandatory,"* **Type**: String
 * IP address of the Dell OpenManage Enterprise (OME) instance used for server discovery and inventory collection.
 * **Required when**: ``enable_bmc_discovery`` is set to ``true``.
-* Credentials (``ome_username``, ``ome_password``) are managed separately via ``get_config_credentials``.
 * **Example**: ``""192.168.1.100""``
 * **Default value**: """" (empty string)"
