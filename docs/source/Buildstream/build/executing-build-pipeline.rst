@@ -43,7 +43,7 @@ Procedure
       - **OS version**: ``10.0``, see :ref:`supported OS types and versions <redhat-support-matrix>`.
       - **Package types**: ``rpm``, ``rpm_repo``, ``image``, ``iso``, ``tarball``, ``pip_module``, ``git``, ``manifest``.
 
-5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed.
+5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed. This pipeline can also be executed manually through the GitLab UI. See :ref:`Manual Pipeline Retry After Failure <manual-build-pipeline-retry>` for detailed instructions. 
 
    .. image:: ../../images/buildstream-build-trigger.png
       :alt: BuildStreaM Build Trigger
@@ -56,23 +56,24 @@ Procedure
 .. note:: 
    * Currently, BuildStreaM supports only one catalog file and one pipeline trigger. BuildStreaM pipeline behaviour is controlled by the GitLab CI/CD configuration in your environment.
    * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.   
-   * If the pipeline fails, you can use the manual retry procedure to update input parameters and retry the pipeline.
 
-Manual Pipeline Retry After Failure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _manual-build-pipeline-retry:
 
-If the build pipeline fails, you can update the input parameters in the input files and manually retry the pipeline. 
+Execute Build Pipeline Manually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To manually execute the build pipeline, follow these steps:
 
 Procedure
 ---------
 
-#. Identify the failure reason by reviewing the pipeline logs in GitLab.
+#. Review the pipeline logs in GitLab to check the current status.
 
    a. Navigate to **Build** → **Pipelines**.
    
-   b. Click on the failed pipeline.
+   b. Click on the desired pipeline.
    
-   c. Click on the failed stage to view error logs.
+   c. Click on the stage to view logs.
 
 #. Update the input configuration files in the GitLab repository. 
    
@@ -103,8 +104,8 @@ For troubleshooting common pipeline issues, see :doc:`../troubleshooting/common-
 
 .. _monitor-pipeline-progress:
 
-Monitor Pipeline Progress
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Monitor Build Pipeline Progress
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Monitor the build pipeline progress through the GitLab web interface to track stage execution and identify any issues.
 

@@ -28,45 +28,45 @@ Before executing the deploy pipeline, ensure the following:
 Procedure
 ---------
 
-#. Navigate to the GitLab project URL::
+1. Navigate to the GitLab project URL::
 
     https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
 
-#. Trigger the deploy pipeline by updating the ``pxe_mapping_file.csv`` file in the GitLab repository and committing the changes. 
+2. Trigger the deploy pipeline by updating the ``pxe_mapping_file.csv`` file in the GitLab repository and committing the changes. This pipeline can also be executed manually through the GitLab UI. See :ref:`Manual Pipeline Retry After Failure <manual-deploy-pipeline-retry>` for detailed instructions. 
 
       .. image:: ../../images/gitlab-deploy-trigger.png
          :alt: GitLab Deploy Trigger
 
-.. note:: If the pipeline fails, you can use the manual retry procedure to update input parameters and retry the pipeline.
-
-#. In the deploy pipeline, select the image from the ``select_image`` stage.
+3. In the deploy pipeline, select the image from the ``select_image`` stage and click the "Play" button.
 
       .. image:: ../../images/gitlab-deploy-select-image.png
          :alt: GitLab Deploy Select Image
 
-#. After selecting the image, click the "Play" button to start the pipeline.
+4. After selecting the image, click the "Play" button in the ``deploy`` stage.
 
       .. image:: ../../images/gitlab-deploy-play.png
          :alt: GitLab Deploy Play
 
-#. Monitor the pipeline progress to ensure it completes successfully. See :ref:`Monitor Deploy Pipeline Progress <monitor-deploy-pipeline-progress>` for detailed instructions.
+5. Monitor the pipeline progress to ensure it completes successfully. See :ref:`Monitor Deploy Pipeline Progress <monitor-deploy-pipeline-progress>` for detailed instructions.
 
-Manual Pipeline Retry After Failure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. _manual-deploy-pipeline-retry:
 
-If the deploy pipeline fails, you can update the input parameters in the input files and manually retry the pipeline. Use this procedure when you need to modify configuration parameters after a pipeline failure.
+Execute Deploy Pipeline Manually
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To manually execute the deploy pipeline, follow these steps:
 
 
 Procedure 
 ~~~~~~~~~~
 
-#. Identify the failure reason by reviewing the pipeline logs in GitLab.
+#. Review the pipeline logs in GitLab to check the current status.
 
    a. Navigate to **Build** → **Pipelines**.
    
-   b. Click on the failed pipeline.
+   b. Click on the desired pipeline.
    
-   c. Click on the failed stage to view error logs.
+   c. Click on the stage to view logs.
 
 #. Update the input parameters in the GitLab repository.
 
@@ -98,12 +98,12 @@ Procedure
 .. note::
    When using manual retry, ensure that only the necessary parameters are updated. Unnecessary changes may cause additional pipeline failures.
 
-For troubleshooting common pipeline issues, see :doc:`../troubleshooting/common-pipeline-issues`.
+For information on handling deploy failures with partial node failures, see :ref:`Handling Deploy Failures <handling-deploy-failures>`. 
 
 .. _monitor-deploy-pipeline-progress:
 
 Monitor Deploy Pipeline Progress
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #. Monitor the deploy pipeline progress through the GitLab web interface:
 
@@ -147,3 +147,84 @@ Next Steps
 
 After successful deployment, configure PXE boot for the target nodes to load the deployed images. See :doc:`../management/configuring-pxe-boot`.
 
+
+.. _handling-deploy-failures:
+
+Handling Deploy Failures
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+When the deploy pipeline encounters partial failures (some nodes succeed while others fail), BuildStream provides a `failed_nodes.json` mechanism to enable efficient retry operations.
+
+`failed_nodes.json` is a structured JSON file that tracks which nodes failed during deployment. This mechanism enables you to:
+
+* Track failed nodes with detailed error messages
+* Manually fix specific nodes and remove their entries from the retry list
+* Retry only the failed nodes instead of the entire inventory
+* Maintain accurate state across pipeline runs
+
+**Sample failed_nodes.json Schema**
+
+.. code-block:: json
+
+   {
+     "job_id": "018f3c4b-7b5b-7a9d-b6c4-9f3b4f9b2c10",
+     "stage_name": "restart",
+     "timestamp": "2026-04-10T16:32:15Z",
+     "total_nodes": 5,
+     "failure_count": 2,
+     "failed_nodes": [
+       {
+         "bmc_ip": "172.17.107.44",
+         "hostname": "slurm-node2",
+         "service_tag": "79WWJ93",
+         "status": "failed",
+         "message": "Failed. iDRAC is not ready. Retry again after iDRAC is ready"
+       },
+       {
+         "bmc_ip": "172.17.107.45",
+         "hostname": "slurm-node3",
+         "service_tag": "79WWJ94",
+         "status": "failed",
+         "message": "iDRAC is unreachable. pxe boot might be set. Please check the host reboot status manually"
+       }
+     ]
+   }
+
+Procedure
+----------
+
+1. Download the `failed_nodes.json` artifact from the failed pipeline in GitLab (**Build** → **Pipelines**).
+
+2. Review the failed nodes and error messages in the downloaded file to identify which nodes failed.
+
+3. For each failed node, perform manual troubleshooting and remediation:
+
+   a. Check iDRAC status and ensure it's ready
+   
+   b. Verify network connectivity to the BMC IP
+   
+   c. Check PXE boot configuration
+   
+   d. Manually reboot nodes if necessary
+   
+   e. Resolve any identified configuration issues
+
+4. Verify that the manually fixed nodes are now operational.
+
+5. Edit the `failed_nodes.json` file to remove manually rebooted nodes and keep only entries for nodes that are not provisioned.
+
+6. Upload and commit the edited `failed_nodes.json` file to the GitLab repository.
+
+7. Navigate to **Build** → **Pipelines** in GitLab and click **New Pipeline**.
+
+8. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**, then click **Run Pipeline**.
+
+The pipeline will automatically process only the remaining failed nodes and any new nodes from the PXE mapping file, skipping nodes that already succeeded or were manually fixed.
+
+9. Monitor the pipeline progress and verify that only the remaining failed nodes and new nodes are processed. Check the new `failed_nodes.json` artifact after completion to see if any nodes still failed.
+
+10. Repeat the process if additional nodes fail.
+
+For troubleshooting common pipeline issues, see :doc:`../../../troubleshooting/buildstream/common-pipeline-issues`.
+
+.. _monitor-deploy-pipeline-progress:

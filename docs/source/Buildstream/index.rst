@@ -7,9 +7,9 @@ Omnia BuildStreaM provides a comprehensive automation solution for managing infr
 
 BuildStreaM supports three pipeline types that can be executed through GitLab:
 
-* **Build Pipeline**: Creates diskless images based on catalog specifications (automatically triggered on catalog commit)
-* **Deploy Pipeline**: Deploys built images to target cluster nodes (automatically triggered on PXE mapping file update)
-* **Clean Pipeline**: Removes old Image Groups based on retention policy (manual trigger only)
+* **Build Pipeline**: Creates diskless images based on catalog specifications. This pipeline is automatically triggered when the catalog is committed, but can also be executed manually.
+* **Deploy Pipeline**: Deploys built images to target cluster nodes. This pipeline is automatically triggered when the PXE mapping file is updated, but can also be executed manually.
+* **Clean Pipeline**: Removes old Image Groups based on retention policy. This pipeline can be executed only manually.
 
 BuildStreaM addresses the key challenges in HPC cluster image management:
 

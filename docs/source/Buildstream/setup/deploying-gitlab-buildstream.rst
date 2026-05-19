@@ -7,9 +7,9 @@ Deploy GitLab as the CI/CD automation engine for BuildStream, providing a three-
 
 BuildStream uses a **three-pipeline architecture** in GitLab:
 
-* **Build Pipeline**: Triggered by catalog/config changes, creates images and establishes Job ID to Image Group ID mapping
-* **Deploy Pipeline**: Triggered by PXE mapping changes, deploys images to cluster nodes
-* **Cleanup Pipeline**: Triggered manually, removes old Image Groups based on retention policy
+* **Build Pipeline**: Triggered by catalog/config changes, creates images and establishes Job ID to Image Group ID mapping. This pipeline can also be executed manually.
+* **Deploy Pipeline**: Triggered by PXE mapping changes, deploys images to cluster nodes. This pipeline can also be executed manually.
+* **Cleanup Pipeline**: Triggered manually, removes old Image Groups based on retention policy.
 
 Prerequisites
 -------------
