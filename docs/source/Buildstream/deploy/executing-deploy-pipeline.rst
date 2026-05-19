@@ -32,7 +32,7 @@ Procedure
 
     https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
 
-2. Trigger the deploy pipeline by updating the ``pxe_mapping_file.csv`` file in the GitLab repository and committing the changes. This pipeline can also be executed manually through the GitLab UI. See :ref:`Manual Pipeline Retry After Failure <manual-deploy-pipeline-retry>` for detailed instructions. 
+2. Trigger the deploy pipeline by updating the ``pxe_mapping_file.csv`` file in the GitLab repository and committing the changes. This pipeline can also be executed manually through the GitLab UI. See :ref:`Execute Deploy Pipeline Manually <manual-deploy-pipeline-retry>` for detailed instructions. 
 
       .. image:: ../../images/gitlab-deploy-trigger.png
          :alt: GitLab Deploy Trigger
@@ -42,7 +42,7 @@ Procedure
       .. image:: ../../images/gitlab-deploy-select-image.png
          :alt: GitLab Deploy Select Image
 
-4. After selecting the image, click the "Play" button in the ``deploy`` stage.
+4. To deploy the image, click the "Play" button in the ``deploy`` stage.
 
       .. image:: ../../images/gitlab-deploy-play.png
          :alt: GitLab Deploy Play
@@ -52,7 +52,7 @@ Procedure
 .. _manual-deploy-pipeline-retry:
 
 Execute Deploy Pipeline Manually
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 To manually execute the deploy pipeline, follow these steps:
 
@@ -103,7 +103,7 @@ For information on handling deploy failures with partial node failures, see :ref
 .. _monitor-deploy-pipeline-progress:
 
 Monitor Deploy Pipeline Progress
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------
 
 #. Monitor the deploy pipeline progress through the GitLab web interface:
 
@@ -151,11 +151,11 @@ After successful deployment, configure PXE boot for the target nodes to load the
 .. _handling-deploy-failures:
 
 Handling Deploy Failures
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
-When the deploy pipeline encounters partial failures (some nodes succeed while others fail), BuildStream provides a `failed_nodes.json` mechanism to enable efficient retry operations.
+When the deploy pipeline encounters partial failures (some nodes succeed while others fail), BuildStream provides a ``failed_nodes.json`` mechanism to enable efficient retry operations.
 
-`failed_nodes.json` is a structured JSON file that tracks which nodes failed during deployment. This mechanism enables you to:
+``failed_nodes.json`` is a structured JSON file that tracks which nodes failed during deployment. This file enables you to:
 
 * Track failed nodes with detailed error messages
 * Manually fix specific nodes and remove their entries from the retry list
@@ -191,7 +191,7 @@ When the deploy pipeline encounters partial failures (some nodes succeed while o
    }
 
 Procedure
-----------
+~~~~~~~~~~
 
 1. Download the `failed_nodes.json` artifact from the failed pipeline in GitLab (**Build** → **Pipelines**).
 

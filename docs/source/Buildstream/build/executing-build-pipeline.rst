@@ -43,7 +43,7 @@ Procedure
       - **OS version**: ``10.0``, see :ref:`supported OS types and versions <redhat-support-matrix>`.
       - **Package types**: ``rpm``, ``rpm_repo``, ``image``, ``iso``, ``tarball``, ``pip_module``, ``git``, ``manifest``.
 
-5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed. This pipeline can also be executed manually through the GitLab UI. See :ref:`Manual Pipeline Retry After Failure <manual-build-pipeline-retry>` for detailed instructions. 
+5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed. This pipeline can also be executed manually through the GitLab UI. See :ref:`Execute Build Pipeline Manually <manual-build-pipeline-retry>` for detailed instructions. 
 
    .. image:: ../../images/buildstream-build-trigger.png
       :alt: BuildStreaM Build Trigger
