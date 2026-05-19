@@ -54,3 +54,4 @@ A sample format is shown below:
     * The ADMIN_MAC and BMC_MAC addresses provided in ``pxe_mapping_file.csv`` should refer to the PXE NIC and BMC NIC on the target nodes respectively.
     * IB MAC and IB IP are for nodes with IB NIC connectivity.
     * Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
+    * When using the OME-based discovery mechanism, the PXE mapping will be automatically populated. The user can verify and edit the mapping file if necessary. The file path should be provided in the ``provision_config.yml`` file.
