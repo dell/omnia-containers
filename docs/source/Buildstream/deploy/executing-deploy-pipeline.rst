@@ -225,6 +225,6 @@ The pipeline will automatically process only the remaining failed nodes and any 
 
 10. Repeat the process if additional nodes fail.
 
-For troubleshooting common pipeline issues, see :doc:`../../../troubleshooting/buildstream/common-pipeline-issues`.
+For troubleshooting common pipeline issues, see :doc:`../troubleshooting/common-pipeline-issues`.
 
 .. _monitor-deploy-pipeline-progress:
