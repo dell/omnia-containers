@@ -30,7 +30,7 @@ Re-provision the Nodes with Modifications
 
 1. Update the mapping file (for mapping file discovery) or ensure nodes are configured in OME (for OME-based provisioning), and update ``software_config.json`` as required.
 2. In the event of any modification to the ``software_config.json``, run the ``local_repo.yml`` playbook, and then run the ``build_image_x86_64.yml`` or ``build_image_aarch64.yml`` to build the new images. For more information, see :doc:`../RHEL_new/CreateLocalRepo/RunningLocalRepo`.
-3. After the images are created, run the ``provision.yml`` playbook. For OME-based discovery, use::
+3. After the images are created, run the ``provision.yml`` playbook. For OME-based provisioning, use::
 
     ssh omnia_core
     cd /omnia/provision
