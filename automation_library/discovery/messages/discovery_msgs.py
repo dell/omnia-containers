@@ -29,6 +29,7 @@ TEST_NAMES = {
     "ip_correlation": "Verify IP correlation (ADMIN_IP/IB_IP <-> BMC_IP)",
     "parent_service_tag": "Verify PARENT_SERVICE_TAG rules",
     "ome_functional_groups": "Verify OME custom groups match PXE mapping",
+    "ome_unassigned_devices": "Verify OME devices assigned to static groups",
 }
 
 # =============================================================================
@@ -74,6 +75,12 @@ TEST_LOG_MSGS = {
     # Verification results
     "all_groups_verified": "All {count} functional groups verified successfully",
     "groups_verification_failed": "{failed}/{total} functional groups failed verification",
+
+    # OME unassigned devices
+    "ome_all_devices_count": "Total devices in OME: {count}",
+    "ome_assigned_devices_count": "Devices assigned to static groups: {count}",
+    "ome_unassigned_devices_count": "Devices NOT assigned to any static group: {count}",
+    "ome_unassigned_default_group": "These devices will get default functional group: slurm_node_aarch64",
 }
 
 # =============================================================================

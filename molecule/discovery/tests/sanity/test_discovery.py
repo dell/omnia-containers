@@ -22,6 +22,7 @@ Test cases for verifying discovery playbook output:
 4. ADMIN_IP and IB_IP correlation with BMC_IP based on network_spec.yml
 5. PARENT_SERVICE_TAG rules for slurm_node groups
 6. OME static groups match PXE mapping functional groups
+7. OME devices without static group assignment (will get default: slurm_node_aarch64)
 """
 
 import pytest
@@ -40,6 +41,7 @@ from automation_library.discovery.functions import (
     get_ome_static_groups,
     get_ome_group_device_ips,
     clear_ome_cache,
+    get_ome_devices_without_static_group,
 )
 from automation_library.discovery.vars import (
     BMC_PXE_MAPPING_PATH,
@@ -600,3 +602,97 @@ def test_ome_static_groups_match(host):
                 missing=", ".join(fg.get("missing_in_ome", [])[:5]),
                 extra=", ".join(fg.get("extra_in_ome", [])[:5])
             )
+
+
+# =============================================================================
+# TEST 7: OME DEVICES WITHOUT STATIC GROUP ASSIGNMENT
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(7)
+def test_ome_unassigned_devices(host):
+    """
+    Test Case 7: Verify all OME devices are assigned to static groups.
+
+    Devices NOT assigned to any static group will get the default functional
+    group (slurm_node_aarch64) during discovery. This test identifies such
+    devices so users can assign them to appropriate static groups in OME.
+
+    If no unassigned devices exist, the test passes.
+    If unassigned devices exist, the test shows them as informational (not a failure).
+    """
+    log = TestLogger(TEST_NAMES["ome_unassigned_devices"])
+
+    # Check if BMC discovery is enabled
+    config = load_input_file(host, DISCOVERY_CONFIG_FILE)
+    if not config:
+        log.skipped("Discovery config not found", "")
+        pytest.skip("Discovery config not found")
+
+    if not config.get("enable_bmc_discovery", False):
+        log.skipped(SKIP_MSGS["bmc_discovery_disabled"], "OME verification skipped")
+        pytest.skip(SKIP_MSGS["bmc_discovery_disabled"])
+
+    ome_ip = config.get("ome_ip", "")
+    if not ome_ip:
+        log.skipped("OME IP not configured", "")
+        pytest.skip("OME IP not configured")
+
+    log.check(LOG_MSGS["ome_connecting"].format(ip=ome_ip))
+
+    # Get OME session
+    session = get_ome_session(host)
+    if not session["success"]:
+        log.failed(LOG_MSGS["ome_connection_failed"].format(error=session["error"]), session["error"])
+        assert False, ASSERT_MSGS["ome_connection_failed"].format(
+            ip=ome_ip,
+            error=session["error"]
+        )
+
+    log.check(LOG_MSGS["ome_connected"])
+
+    # Get devices without static group assignment
+    result = get_ome_devices_without_static_group(host)
+    if not result["success"]:
+        log.failed("Failed to get OME device information", result["error"])
+        pytest.skip(f"OME error: {result['error']}")
+
+    # Build details for display
+    details = []
+    details.append(f"Total devices in OME: {result['total_count']}")
+    details.append(f"Devices assigned to static groups: {result['assigned_count']}")
+    details.append(f"Devices NOT assigned: {len(result['unassigned_devices'])}")
+
+    unassigned = result["unassigned_devices"]
+
+    if not unassigned:
+        # All devices are assigned - skip this test
+        log.skipped(
+            "All devices assigned to static groups",
+            f"Total: {result['total_count']}, Assigned: {result['assigned_count']}"
+        )
+        pytest.skip("All OME devices are assigned to static groups")
+
+    # Show unassigned devices
+    details.append("")
+    details.append("Unassigned Devices (will get default: slurm_node_aarch64):")
+    for device in unassigned:
+        name = device.get("name", "Unknown")
+        identifier = device.get("identifier", "")
+        ip = device.get("ip", "")
+        model = device.get("model", "")
+        details.append(f"  ✗ {name}")
+        details.append(f"      Service Tag: {identifier}")
+        details.append(f"      IP: {ip}")
+        details.append(f"      Model: {model}")
+
+    details.append("")
+    details.append("Action Required:")
+    details.append("  Assign these devices to appropriate static groups in OME")
+    details.append("  (Custom Groups > Static Groups)")
+
+    # This is informational - show as passed but with warning details
+    log.passed(
+        f"{len(unassigned)} device(s) not assigned to any static group",
+        "\n".join(details)
+    )

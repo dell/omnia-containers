@@ -30,6 +30,8 @@ from .ome_func import (
     get_ome_session,
     get_ome_static_groups,
     get_ome_group_device_ips,
+    get_ome_all_devices,
+    get_ome_devices_without_static_group,
 )
 
 __all__ = [
@@ -47,4 +49,6 @@ __all__ = [
     "get_ome_session",
     "get_ome_static_groups",
     "get_ome_group_device_ips",
+    "get_ome_all_devices",
+    "get_ome_devices_without_static_group",
 ]

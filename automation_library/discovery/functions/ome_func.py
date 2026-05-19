@@ -333,3 +333,131 @@ def get_ome_group_device_ips(host, group_id: int) -> Dict[str, Any]:
     result["ips"] = sorted(list(set(ips)))
     result["success"] = True
     return result
+
+
+def get_ome_all_devices(host) -> Dict[str, Any]:
+    """
+    Get all devices from OME (servers only, device_type=1000).
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, devices (list of device info), error
+    """
+    result = {
+        "success": False,
+        "devices": [],
+        "error": "",
+    }
+
+    session = get_ome_session(host)
+    if not session["success"]:
+        result["error"] = session["error"]
+        return result
+
+    # Get all devices with type filter for servers (1000)
+    endpoint = "/api/DeviceService/Devices?$filter=Type eq 1000"
+    resp = _ome_api_request(
+        host,
+        session["ome_ip"],
+        endpoint,
+        auth_token=session["token"]
+    )
+
+    if not resp["success"]:
+        result["error"] = f"Failed to get OME devices: {resp['error']}"
+        return result
+
+    devices = resp["response"].get("value", [])
+    for device in devices:
+        device_id = device.get("Id", 0)
+        device_name = device.get("DeviceName", "")
+        identifier = device.get("Identifier", "")
+        model = device.get("Model", "")
+
+        # Get management IP
+        mgmt_ip = ""
+        mgmt_info = device.get("DeviceManagement", [])
+        for mgmt in mgmt_info:
+            ip = mgmt.get("NetworkAddress", "")
+            if ip:
+                mgmt_ip = ip
+                break
+
+        result["devices"].append({
+            "id": device_id,
+            "name": device_name,
+            "identifier": identifier,
+            "model": model,
+            "ip": mgmt_ip,
+        })
+
+    result["success"] = True
+    return result
+
+
+def get_ome_devices_without_static_group(host) -> Dict[str, Any]:
+    """
+    Get devices from OME that are NOT assigned to any static group.
+
+    These devices will get the default functional group (slurm_node_aarch64)
+    during discovery.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, unassigned_devices (list), assigned_count, total_count, error
+    """
+    result = {
+        "success": False,
+        "unassigned_devices": [],
+        "assigned_count": 0,
+        "total_count": 0,
+        "error": "",
+    }
+
+    # Get all devices
+    all_devices_result = get_ome_all_devices(host)
+    if not all_devices_result["success"]:
+        result["error"] = all_devices_result["error"]
+        return result
+
+    all_devices = all_devices_result["devices"]
+    result["total_count"] = len(all_devices)
+
+    # Get all static groups
+    static_groups_result = get_ome_static_groups(host)
+    if not static_groups_result["success"]:
+        result["error"] = static_groups_result["error"]
+        return result
+
+    # Build set of device IDs that are in static groups
+    assigned_device_ids = set()
+    for group in static_groups_result["groups"]:
+        group_devices = get_ome_group_device_ips(host, group["id"])
+        if group_devices["success"]:
+            # We need device IDs, not IPs - let's get them properly
+            session = get_ome_session(host)
+            if session["success"]:
+                endpoint = f"/api/GroupService/Groups({group['id']})/Devices"
+                resp = _ome_api_request(
+                    host,
+                    session["ome_ip"],
+                    endpoint,
+                    auth_token=session["token"]
+                )
+                if resp["success"]:
+                    for device in resp["response"].get("value", []):
+                        assigned_device_ids.add(device.get("Id", 0))
+
+    result["assigned_count"] = len(assigned_device_ids)
+
+    # Find unassigned devices
+    for device in all_devices:
+        if device["id"] not in assigned_device_ids:
+            result["unassigned_devices"].append(device)
+
+    result["success"] = True
+    return result
