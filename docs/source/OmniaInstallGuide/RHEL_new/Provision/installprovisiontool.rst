@@ -1,11 +1,10 @@
-Discover the Cluster Nodes
+Provision the Cluster Nodes
 ============================
 
-The ``provision.yml`` playbook discovers the probable bare-metal cluster nodes using OpenManage Enterprise (OME). This playbook is dependent on inputs from the discovery configuration and the following input files:
+The ``provision.yml`` playbook provisions the probable bare-metal cluster nodes. This playbook is dependent on inputs from the pxe mapping file:
 
 * ``/opt/omnia/input/project_default/provision_config.yml``
 * ``/opt/omnia/input/project_default/network_spec.yml``
-* ``/opt/omnia/input/project_default/discovery_config.yml`` (for OME-based discovery)
 
 .. note:: The first PXE device on target nodes should be the designated active NIC for PXE booting.
 
@@ -15,7 +14,7 @@ The ``provision.yml`` playbook discovers the probable bare-metal cluster nodes u
 Configurations made by the ``provision.yml`` playbook
 ------------------------------------------------------
 
-* Discovers all target servers.
+* Provisions all target servers.
 * Configures the boot script based on the functional groups.
 * Configures the cloud-init based on the functional groups.
 * Deploys iDRAC telemetry service on the service cluster.
@@ -27,20 +26,17 @@ Playbook execution
 
 **Prerequisites**
 
-Before running the ``provision.yml`` playbook with OME-based discovery:
+Before running the ``provision.yml`` playbook:
 
 * Ensure that the images are created for each functional group. To verify that the images are created, run the following command on the OIM::
 
     s3cmd ls -Hr s3://boot-images
 
-* Ensure that OpenManage Enterprise (OME) is accessible from the OIM and configured with the target servers.
-* Ensure that the ``discovery_config.yml`` file is configured with the OME connection details.
-
-To deploy the Omnia provision tool using OME-based BMC discovery, execute the following commands: ::
+To deploy the Omnia provision tool, execute the following commands: ::
 
     ssh omnia_core
-    cd /omnia/discovery
-    ansible-playbook provision.yml -e "discovery_mechanism=ome"
+    cd /omnia/provision
+    ansible-playbook provision.yml
 
 .. note::
 
