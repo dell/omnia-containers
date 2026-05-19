@@ -122,7 +122,7 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
 5. Access the VMUI in a web browser using::
 
-    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+   ``https://<external vmselect loadbalancer IP>:8481/select/0/vmui``
 
 .. image:: ../../../images/verify_umf_telemetry_5.png
 
@@ -155,6 +155,6 @@ View UFM Logs using VictoriaLogs
 
 3. Access the VMUI in a web browser using::
 
-    https://<external vlselect loadbalancer IP>:9471/select/0/vmui
+   ``https://<external vlselect loadbalancer IP>:9471/select/0/vmui``
 
 .. image:: ../../../images/view_umf_telemetry_3.png
