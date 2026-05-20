@@ -980,44 +980,6 @@ The file ``/opt/omnia/.data/upgrade_in_progress.lock`` exists.
 
 3. Rerun the rollback playbook.
 
-Upgrade fails: "The previous upgrade already completed successfully"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-The upgrade aborts because ``upgrade_manifest.yml`` shows ``upgrade_status: completed``.
-
-**Causes**
-
-A previous upgrade completed successfully and the manifest was not cleared.
-
-**Resolution**
-
-To force a new upgrade cycle:
-
-.. code-block:: bash
-
-   ansible-playbook upgrade/upgrade.yml -e force_upgrade=true
-
-Alternatively, archive the manifest manually:
-
-.. code-block:: bash
-
-   mv /opt/omnia/.data/upgrade_manifest.yml /opt/omnia/.data/archive/upgrade_manifest.manual.yml
-
-Rollback fails: "The previous rollback already completed"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-The rollback aborts because ``rollback_manifest.yml`` shows ``rollback_status: completed``.
-
-**Resolution**
-
-.. code-block:: bash
-
-   ansible-playbook rollback/rollback.yml -e force_rollback=true
-
 11.2 Manifest Issues
 ---------------------
 
@@ -1105,90 +1067,7 @@ The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml``
 .. caution::
    Removing the manifest means all component statuses are reset to ``pending``. Previously completed components will be re-executed.
 
-11.3 Tag Dependency Issues
----------------------------
-
-Upgrade fails: "Tag requires dependencies to be completed first"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-Running a selective upgrade (e.g., ``--tags k8s``) fails with a tag dependency error.
-
-**Causes**
-
-The selected tag depends on other components that have not been completed yet. The dependency map is:
-
-.. list-table::
-    :header-rows: 1
-    :widths: 30 70
-
-    * - Tag
-      - Depends On
-    * - ``build_stream``
-      - ``oim``
-    * - ``build_image``
-      - ``oim``
-    * - ``provision``
-      - ``oim``, ``build_image``
-    * - ``k8s``
-      - ``oim``
-    * - ``telemetry``
-      - ``oim``, ``k8s``
-    * - ``slurm``
-      - ``oim``, ``k8s``
-
-**Resolution**
-
-1. Run the dependent components first:
-
-.. code-block:: bash
-
-   ansible-playbook upgrade/upgrade.yml --tags oim
-   ansible-playbook upgrade/upgrade.yml --tags k8s
-
-2. Or run the full upgrade to process all components in order:
-
-.. code-block:: bash
-
-   ansible-playbook upgrade/upgrade.yml
-
-11.4 BuildStream Issues
------------------------
-
-Downstream components skipped unexpectedly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-Components like ``k8s``, ``telemetry``, ``slurm`` show status ``skipped`` even though you expected them to be upgraded.
-
-**Causes**
-
-``enable_build_stream=true`` in ``build_stream_config.yml`` activates the BuildStream terminal gate. When BuildStream is enabled and completes, all downstream components are skipped because the GitLab pipeline manages them instead.
-
-**Resolution**
-
-1. If you want Ansible to manage downstream components, set ``enable_build_stream: false`` in your ``build_stream_config.yml`` and rerun.
-
-2. If BuildStream is intentionally enabled, trigger the GitLab CI/CD pipeline manually to handle the downstream components.
-
-Downstream components skipped during rollback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-Components like ``k8s``, ``telemetry``, ``slurm`` show status ``skipped`` during rollback even though you expected them to be rolled back.
-
-**Causes**
-
-If BuildStream was enabled during the upgrade and downstream components were ``skipped`` (due to the terminal gate), they are also automatically skipped during rollback because they were never upgraded.
-
-**Resolution**
-
-This is expected behavior when BuildStream is enabled. Only ``build_stream`` and ``oim`` are rolled back in this scenario. If you need to roll back downstream components, disable BuildStream (``enable_build_stream: false``) and rerun the upgrade without the terminal gate, then rollback as needed.
-
-11.5 Component-Specific Issues
+11.2 Component-Specific Issues
 ----------------------------
 
 OIM upgrade fails
@@ -1217,7 +1096,7 @@ The ``oim`` component fails during upgrade.
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml --tags oim
+   ansible-playbook upgrade/upgrade.yml
 
 Kubernetes upgrade fails
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1241,7 +1120,7 @@ The ``k8s`` component fails during upgrade.
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml --tags k8s
+   ansible-playbook upgrade/upgrade.yml
 
 Provision upgrade fails
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1270,7 +1149,7 @@ The ``provision`` component fails during Cloud-Init or BSS configuration.
 
    ansible-playbook upgrade/upgrade.yml --tags provision
 
-11.6 General Troubleshooting Steps
+11.3 General Troubleshooting Steps
 ------------------------------------
 
 Check playbook logs
@@ -1330,19 +1209,9 @@ The ``oim_metadata.yml`` file is the source of truth for version information. En
 Expected fields:
 
 * ``omnia_version`` — Currently installed version
-* ``omnia_previous_version`` (or ``previous_omnia_version``) — Previous version
+* ``previous_omnia_version`` — Previous version
 * ``upgrade_backup_dir`` — Path to the backup directory
 
 .. note::
    ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
 
-11.7 Contacting Support
-----------------------
-
-If the issue persists after trying the above steps, gather the following information before contacting support:
-
-1. The full Ansible playbook output (with ``-vvv`` verbosity).
-2. Contents of ``/opt/omnia/.data/upgrade_manifest.yml`` or ``/opt/omnia/.data/rollback_manifest.yml``.
-3. Contents of ``/opt/omnia/.data/oim_metadata.yml``.
-4. List of lock files: ``ls -la /opt/omnia/.data/*.lock``
-5. Omnia version information: ``cat /opt/omnia/.data/oim_metadata.yml``
