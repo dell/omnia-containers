@@ -919,3 +919,272 @@ A local repository for the software has not been configured by the ``local_repo.
 
 1. Re-run the ``local_repo.yml`` playbook with proper inputs to download the software package to the Pulp repository.
 2. Once the local repository has been configured successfully, re-run the failed installation script.
+
+11. Upgrade and Rollback Issues
+================================
+
+11.1 Lock File Issues
+---------------------
+
+Upgrade fails: "A rollback is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The upgrade playbook aborts with the message: *A rollback is currently in progress. Cannot start an upgrade.*
+
+**Causes**
+
+The file ``/opt/omnia/.data/rollback_in_progress.lock`` exists, indicating a rollback is either running or was previously interrupted without cleanup.
+
+**Resolution**
+
+1. Check if a rollback process is actually running:
+
+.. code-block:: bash
+
+   ps aux | grep rollback
+
+2. If no rollback process is active, the lock is stale. Remove it manually:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/rollback_in_progress.lock
+
+3. Rerun the upgrade playbook.
+
+Rollback fails: "An upgrade is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The rollback playbook aborts with the message: *An upgrade is currently in progress. Cannot start a rollback.*
+
+**Causes**
+
+The file ``/opt/omnia/.data/upgrade_in_progress.lock`` exists.
+
+**Resolution**
+
+1. Check if an upgrade process is actually running:
+
+.. code-block:: bash
+
+   ps aux | grep upgrade
+
+2. If no upgrade process is active, remove the stale lock:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/upgrade_in_progress.lock
+
+3. Rerun the rollback playbook.
+
+11.2 Manifest Issues
+---------------------
+
+Manifest shows "partial" status after upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The upgrade completes but ``upgrade_status`` is ``partial`` instead of ``completed``.
+
+**Causes**
+
+One or more components did not reach ``completed`` or ``skipped`` status.
+
+**Resolution**
+
+1. Check which components are not completed:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/upgrade_manifest.yml
+
+2. Review the component status to identify the failed component.
+
+3. Rerun the upgrade with the specific failing tag:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml --tags <component_tag>
+
+4. The playbook will skip already-completed components and only process the pending/failed ones.
+
+Manifest shows "partial" status after rollback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The rollback completes but ``rollback_status`` is ``partial`` instead of ``completed``.
+
+**Causes**
+
+One or more components did not reach ``completed`` or ``skipped`` status.
+
+**Resolution**
+
+1. Check which components are not completed:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/rollback_manifest.yml
+
+2. Review the component status to identify the failed component.
+
+3. Rerun the rollback with the specific failing tag:
+
+.. code-block:: bash
+
+   ansible-playbook rollback/rollback.yml --tags <component_tag>
+
+4. The playbook will skip already-completed components and only process the pending/failed ones.
+
+Manifest file is missing or corrupted
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml`` cannot be parsed.
+
+**Resolution**
+
+1. Check the manifest file for syntax errors:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/upgrade_manifest.yml
+
+2. If corrupted, remove the manifest to start fresh:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/upgrade_manifest.yml
+
+3. Rerun the playbook. A new manifest will be initialized from ``oim_metadata.yml``.
+
+.. caution::
+   Removing the manifest means all component statuses are reset to ``pending``. Previously completed components will be re-executed.
+
+11.2 Component-Specific Issues
+----------------------------
+
+OIM upgrade fails
+~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``oim`` component fails during upgrade.
+
+**Resolution**
+
+1. Check the playbook output for the specific error.
+2. Verify ``oim_metadata.yml`` is populated correctly:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/oim_metadata.yml
+
+3. Ensure the ``omnia_core`` container is running and accessible:
+
+.. code-block:: bash
+
+   podman ps | grep omnia_core
+
+4. After fixing the issue, rerun:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml
+
+Kubernetes upgrade fails
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``k8s`` component fails during upgrade.
+
+**Resolution**
+
+1. Verify cluster health before retrying:
+
+.. code-block:: bash
+
+   kubectl get nodes
+   kubectl get pods -A | grep -v Running
+
+2. Ensure all nodes are reachable and in a ``Ready`` state.
+3. Check for pending pods or stuck resources.
+4. After resolving, rerun:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml
+
+11.3 General Troubleshooting Steps
+------------------------------------
+
+Check playbook logs
+~~~~~~~~~~~~~~~~~~~
+
+Increase Ansible verbosity for detailed output:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml -vvv
+
+Review state files
+~~~~~~~~~~~~~~~~~
+
+All state files are stored in ``/opt/omnia/.data/``:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/.data/
+   cat /opt/omnia/.data/upgrade_manifest.yml
+   cat /opt/omnia/.data/rollback_manifest.yml
+   cat /opt/omnia/.data/oim_metadata.yml
+
+Check archived manifests
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previous manifests are archived for history:
+
+.. code-block:: bash
+
+   ls /opt/omnia/.data/archive/
+
+Reset upgrade/rollback state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To completely reset the upgrade/rollback state and start fresh:
+
+.. caution::
+   This will discard all upgrade/rollback progress. Use only as a last resort.
+
+.. code-block:: bash
+
+   rm -f /opt/omnia/.data/upgrade_manifest.yml
+   rm -f /opt/omnia/.data/rollback_manifest.yml
+   rm -f /opt/omnia/.data/upgrade_in_progress.lock
+   rm -f /opt/omnia/.data/rollback_in_progress.lock
+
+Verify oim_metadata.yml
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``oim_metadata.yml`` file is the source of truth for version information. Ensure it contains:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/oim_metadata.yml
+
+Expected fields:
+
+* ``omnia_version`` — Currently installed version
+* ``previous_omnia_version`` — Previous version
+* ``upgrade_backup_dir`` — Path to the backup directory
+
+.. note::
+   ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
+

@@ -84,6 +84,8 @@ For a better understanding of what Omnia does, check out the following:
     SecurityConfigGuide/index
     Contributing/index
     appendix
+    upgrade
+    rollback
 
 .. |Omnia version| image:: https://img.shields.io/github/v/release/dell/omnia?include_prereleases
 .. |Downloads| image:: https://img.shields.io/github/downloads/dell/omnia/total
