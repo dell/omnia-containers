@@ -1,5 +1,5 @@
-Storage configurations
-========================
+Storage Setup
+==============
 
 .. toctree::
 
