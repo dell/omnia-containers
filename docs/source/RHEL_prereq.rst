@@ -37,6 +37,16 @@ NFS Server for Omnia Infrastructure Manager (OIM)
 * Omnia recommends using an NFS share with at least 200 GB storage for OIM and cluster configuration.
 * Ensure that there is a dedicated mount point for each NFS.
 
+PowerScale S3 Storage
+---------------------
+
+* PowerScale cluster must be deployed within the admin subnet and should be accessible from all cluster nodes.
+* Omnia uses HTTP access only when connecting to PowerScale, using the default port 9020.
+* Ensure both S3 and HTTP services are enabled in the S3 bucket configuration.
+* Ensure that valid S3 Access Key ID and S3 Secret Access Key are provided for authentication when accessing the PowerScale S3 service.
+* S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need S3 Access Key ID and S3 Secret Access Key to access the S3 buckets created using the key.
+* For detailed configuration instructions, see :ref:`PowerScale S3 configuration <powerscale-s3-config>`.
+
 Networking
 ----------
 

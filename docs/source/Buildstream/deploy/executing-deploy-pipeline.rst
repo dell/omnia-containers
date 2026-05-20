@@ -22,8 +22,6 @@ Before executing the deploy pipeline, ensure the following:
 * Target nodes are powered on and accessible via BMC
 * PXE mapping file (``pxe_mapping_file.csv``) is correctly configured with target node information
 * PXE mapping file is present in the GitLab repository ``input/`` folder for automatic triggering
-* GitLab project is accessible and the runner is active
-* BuildStream API server is reachable from the GitLab node
 
 Procedure
 ---------
@@ -62,7 +60,7 @@ Procedure
 
 #. Review the pipeline logs in GitLab to check the current status.
 
-   a. Navigate to **Build** → **Pipelines**.
+   a. Navigate to **Deploy** → **Pipelines**.
    
    b. Click on the desired pipeline.
    
@@ -78,11 +76,11 @@ Procedure
 
 #. Manually trigger the pipeline with the updated parameters.
 
-   a. Navigate to **Build** → **Pipelines**.
+   a. Navigate to **Deploy** → **Pipelines**.
    
    b. Click **New Pipeline**.
    
-   c.  In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**.
+   c. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**.
 
     .. image:: ../../images/gitlab-deploy-manual-config.png
        :alt: GitLab Deploy Manual Configuration
@@ -120,9 +118,9 @@ Monitor Deploy Pipeline Progress
       - |failed| **Red X**: Stage failed (click for error details)
       - |running| **Blue circle**: Stage currently running
 
-.. |success| image:: ../../images/Icons/green_check.png
-.. |failed| image:: ../../images/Icons/red_x.png
-.. |running| image:: ../../images/Icons/blue_circle.png
+      .. |success| image:: ../../images/Icons/green_check.png
+      .. |failed| image:: ../../images/Icons/red_x.png
+      .. |running| image:: ../../images/Icons/blue_circle.png
 
 #. If any stage fails, review the error logs by clicking on the failed job.
 
@@ -142,23 +140,18 @@ After the deploy pipeline completes, verify the deployment:
 
 #. Check the BuildStreaM API for deployment status and image group information.
 
-Next Steps
-----------
-
-After successful deployment, configure PXE boot for the target nodes to load the deployed images. See :doc:`../management/configuring-pxe-boot`.
-
 
 .. _handling-deploy-failures:
 
-Handling Deploy Failures
-------------------------
+Handling Deploy Failures During Restart Stage (PXE Boot)
+--------------------------------------------------------
 
-When the deploy pipeline encounters partial failures (some nodes succeed while others fail), BuildStream provides a ``failed_nodes.json`` mechanism to enable efficient retry operations.
+In the deploy pipeline, when the restart stage encounters partial failures (some nodes PXE booted successfully while others fail), BuildStream provides a ``failed_nodes.json`` mechanism to enable efficient retry operations.
 
-``failed_nodes.json`` is a structured JSON file that tracks which nodes failed during deployment. This file enables you to:
+``failed_nodes.json`` is a structured JSON file that tracks which nodes failed to PXE boot during the restart stage. This file enables you to:
 
 * Track failed nodes with detailed error messages
-* Manually fix specific nodes and remove their entries from the retry list
+* Manually fix the failed nodes and update their entries as successful.
 * Retry only the failed nodes instead of the entire inventory
 * Maintain accurate state across pipeline runs
 

@@ -101,7 +101,7 @@ Add necessary inputs to the ``security_config.yml`` file for the security config
 ``storage_config.yml``
 ----------------------
 
-Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Use the :ref:`storage configuration table <buildstream-tables-storage-configuration>` for guidance when configuring these parameters. For configuring PowerScale as S3 storage, refer to :doc:`../../../OmniaInstallGuide/RHEL_new/Storage/PowerScale_S3`. 
+Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Use the :ref:`storage configuration table <buildstream-tables-storage-configuration>` for guidance when configuring these parameters. For configuring PowerScale as S3 storage, refer to :ref:`PowerScale S3 configuration <powerscale-s3-config>`. 
 
 
 ``telemetry_config.yml``

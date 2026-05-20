@@ -29,7 +29,6 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    setup/deploying-gitlab-buildstream
    build/executing-build-pipeline
    deploy/executing-deploy-pipeline
-   management/configuring-pxe-boot
    monitoring/initializing-telemetry
    monitoring/verifying-telemetry-services
    management/performing-cleanup-operations
