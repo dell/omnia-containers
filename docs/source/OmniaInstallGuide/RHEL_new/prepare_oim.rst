@@ -69,6 +69,19 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStream
    :header-rows: 1
    :keepspace:
 
+4. ``storage_config.yml``
+--------------------------
+
+Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Use the below table as reference while doing so. 
+
+.. csv-table:: storage_config.yml
+   :file: ../../Tables/storage_config.csv
+   :header-rows: 1
+   :keepspace:
+
+.. note::
+   For detailed instructions on configuring PowerScale as S3 storage, see :doc:`../OmniaCluster/BuildingCluster/Storage/PowerScale_S3`.
+
 
 Playbook Execution
 -------------------
