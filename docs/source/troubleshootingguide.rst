@@ -1122,33 +1122,6 @@ The ``k8s`` component fails during upgrade.
 
    ansible-playbook upgrade/upgrade.yml
 
-Provision upgrade fails
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptoms**
-
-The ``provision`` component fails during Cloud-Init or BSS configuration.
-
-**Resolution**
-
-1. Verify the OpenCHAMI service is running:
-
-.. code-block:: bash
-
-   /usr/bin/ochami cloud-init group get config common
-
-2. Ensure the boot image exists:
-
-.. code-block:: bash
-
-   ls /opt/omnia/openchami/images/
-
-3. Rerun:
-
-.. code-block:: bash
-
-   ansible-playbook upgrade/upgrade.yml --tags provision
-
 11.3 General Troubleshooting Steps
 ------------------------------------
 
