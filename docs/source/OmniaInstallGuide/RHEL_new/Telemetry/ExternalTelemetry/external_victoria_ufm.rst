@@ -48,7 +48,7 @@ Make sure the following prerequisites are met:
 * Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 * Ensure the service Kubernetes cluster has sufficient resources to run vmagent (shared instance) and VLAgent.
 * Ensure network connectivity between the service Kubernetes cluster and the NVIDIA UFM appliance.
-* Ensure that the ``telemetry_config.yml`` has the entries specific for UFM Telemetry deployment.
+* Ensure that the ``telemetry_config.yml`` has the entries specific for UFM Telemetry deployment. For more details on configuring ``telemetry_config.yml``, see `Service Cluster Telemetry Configuration <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/OmniaInstallGuide/RHEL_new/Telemetry/service_cluster_telemetry.html#id2>`_.
 
 .. note::
    UFM Telemetry supports independent feature flags for metric collection and log collection. You can enable or disable each independently. For more details, see `Configure Deployment Required for iDRAC Telemetry Service <https://omnia.readthedocs.io/en/latest/OmniaInstallGuide/RHEL_new/Telemetry/service_cluster_telemetry.html>`_.
