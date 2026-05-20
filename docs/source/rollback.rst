@@ -1,4 +1,4 @@
-Rolling Back Omnia
+Rollback Omnia
 ====================
 
 Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade and supports tag-based selective rollback with manifest tracking for idempotent reruns.
