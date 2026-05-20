@@ -1,23 +1,23 @@
 Upgrade Omnia
 ================
 
-Omnia supports only upgrading Omnia core container and migrating the respctive input files.
+Omnia supports only upgrading Omnia core container and migrating the respective input files.
 
 Prerequisites
 --------------
 
-* Ensure Omnia version 2.0.0.0 core container is running (core tag - 1.0).
+* Ensure Omnia version 2.1.0.0 core container is running.
 
-* Omnia 2.1 image must be available in the OIM. If the image is not available, run the following command to download the image. ::
+* Omnia 2.2 image must be available in the OIM. If the image is not available, run the following command to download the image. ::
 
-    ./build_images.sh core core_tag=2.1 omnia_branch=v2.1.0.0-rc2
+    ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0-rc1
 
 For more information about deploying the Omnia core container, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
 Upgrade Steps
 --------------
 
-If the ``omnia.sh`` script from version v2.0.0.0 already exists, either replace it with the newer version or place the new script in a different directory and run it from there.
+If the ``omnia.sh`` script from version v2.1.0.0 already exists, either replace it with the newer version or place the new script in a different directory and run it from there.
 
 1. Download the omnia.sh script using the following commands:
     
@@ -29,7 +29,7 @@ If the ``omnia.sh`` script from version v2.0.0.0 already exists, either replace 
 
         wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
 
-.. note:: Replace ``${OMNIA_VERSION}`` with the target version (for example, ``v2.1.0.0``).
+.. note:: Replace ``${OMNIA_VERSION}`` with the target version (for example, ``v2.2.0.0``).
 
 The following operations can be performed on the Omnia Core Containers: Install, uninstall, version, upgrade, and rollback. ::
 
@@ -45,7 +45,7 @@ The following operations can be performed on the Omnia Core Containers: Install,
 
 For more information on usage instructions, see `Deploy Omnia Core Container <OmniaInstallGuide/RHEL_new/omnia_startup.html>`_.
 
-.. note:: Upgrade is not supported from version v2.1.0.0-rc2 to v2.1.0.0
+.. note:: Upgrade is not supported from version v2.2.0.0-rc1 to v2.2.0.0
         
 2. To perform an upgrade on the Omnia core container, run the following command: ::
     
@@ -72,14 +72,14 @@ After successful completion, the container is swapped and the upgrade is complet
     * Running playbooks other than the ``upgrade_omnia.yml`` before ``./omnia.sh --upgrade`` generates an error with instructions.
 
 
-The input files are migrated from 2.0 to 2.1 format.
+The input files are migrated from 2.1 to 2.2 format.
 
 The system displays guidance after successful migration completes.
 
 If any configuration files are missing from the backup, a warning is generated before reprovisioning is started.
 
 .. note::
-    If you have not run any playbooks in Omnia 2.0, remove the upgrade lock using the following command: ::
+    If you have not run any playbooks in Omnia 2.1, remove the upgrade lock using the following command: ::
 
         rm /opt/omnia/.data/upgrade_in_progress.lock
 
@@ -104,9 +104,9 @@ Prerequisites
 
 Before upgrading your SLURM cluster, ensure the following:
 
-* Omnia core container has been successfully upgraded to version v2.1.0.0
+* Omnia core container has been successfully upgraded to version v2.2.0.0
 * The ``upgrade_omnia.yml`` playbook has been executed
-* All input configuration files have been migrated to the v2.1.0.0 format
+* All input configuration files have been migrated to the v2.2.0.0 format
 * Ensure the NFS storage is accessible and the NFS share paths are correctly configured
 * If SLURM cluster is already deployed and running, ensure it is in a stable state with no active jobs or maintenance operations in progress
 
@@ -214,12 +214,12 @@ Step 5: PXE boot the nodes preferably in the following order
 Adding or Removing SLURM Nodes
 *******************************
 
-With v2.1.0.0, SLURM supports adding new nodes or removing existing nodes by modifying the PXE mapping file. The discovery playbook automatically detects changes and updates the SLURM configuration accordingly. Refer to the `Add New SLURM Nodes <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc2/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#add-new-slurm-nodes>`_ section for more details.
+With v2.2.0.0, SLURM supports adding new nodes or removing existing nodes by modifying the PXE mapping file. The discovery playbook automatically detects changes and updates the SLURM configuration accordingly. Refer to the `Add New SLURM Nodes <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#add-new-slurm-nodes>`_ section for more details.
 
 Backup and restore slurm configuration
 **************************************
 
-With v2.1.0.0, SLURM supports backup, rollback, and cleanup of configuration files using the ``utils/slurm_config_util.yml`` playbook. This utility helps manage SLURM configuration states and recover from configuration issues. Refer to the `Backup and Restore SLURM Configuration <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc2/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#slurm-configuration-utilities>`_ section for more details.
+With v2.2.0.0, SLURM supports backup, rollback, and cleanup of configuration files using the ``utils/slurm_config_util.yml`` playbook. This utility helps manage SLURM configuration states and recover from configuration issues. Refer to the `Backup and Restore SLURM Configuration <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.2.0.0-rc1/OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html#slurm-configuration-utilities>`_ section for more details.
 
 BMC Discovery Configuration
 ---------------------------
