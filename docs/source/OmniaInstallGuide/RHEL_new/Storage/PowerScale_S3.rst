@@ -26,14 +26,14 @@ Enable S3 Service on PowerScale
 
 3. On the **Object Storage (S3)** page, click the **Global Settings** tab.
 
-3. To enable the S3 bucket service, do the following:
+4. To enable the S3 bucket service, do the following:
 
    * Select the **Enable S3 service** checkbox.
    * Select the **Enable S3 HTTP** checkbox.
 
-4. Set the HTTP port for S3 (default: 9020).
+5. Set the HTTP port for S3 (default: 9020).
 
-5. Click **Save** to apply the changes.
+6. Click **Save** to apply the changes.
 
 Obtain S3 Access ID and Secret Key
 ----------------------------------
@@ -43,6 +43,8 @@ Obtain S3 Access ID and Secret Key
 2. Navigate to **Protocol** → **Object storage (S3)**.
 
 3. On the **Object Storage (S3)** page, click the **My Keys** tab.
+
+.. image:: ../../../images/powerscale_s3_my_keys.png
 
 4. On the **Secret key Details** page, click **Create new key**.
 

@@ -19,8 +19,7 @@ Follow the below steps to deploy the Omnia container on RHEL-based platforms:
     Authentication/OpenLDAP
     Telemetry/index
     CreateLocalRepo/index
-    HighAvailability/index
-    Storage/index
+    HighAvailability/index    
     OmniaCluster/BuildingCluster/install_slurm
     build_images
     Provision/index    
@@ -28,5 +27,6 @@ Follow the below steps to deploy the Omnia container on RHEL-based platforms:
     Telemetry/initialize_and_verify_telemetry
     Telemetry/verify_telemetry
     Telemetry/ExternalTelemetry/index
+    Storage/index
 
 
