@@ -7,6 +7,4 @@ Maintenance
     add_node
     reprovision
     cleanup
-    upgrade
-    rollback
     
