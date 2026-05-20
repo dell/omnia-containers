@@ -6,7 +6,7 @@ Omnia provides a rollback mechanism to revert an upgrade and return the cluster 
 .. important::
     * Rollback must be initiated from within the ``omnia_core`` container.
     * Rollback is intended for recovering from a **failed or partial upgrade**. Rolling back a fully completed upgrade is blocked by default and not recommended.
-    * The rollback orchestrator must be invoked from the parent directory containing ``upgrade/``, ``rollback/``, and ``playbooks/`` folders.
+    * The rollback orchestrator must be invoked from the parent directory containing ``rollback/`` folders.
 
 When to Use Rollback
 ---------------------
@@ -112,7 +112,7 @@ The finalization play treats ``skipped`` as a valid terminal state alongside ``c
 Force Rollback
 ~~~~~~~~~~~~~~~
 
-To force a rollback after a successful upgrade or a previously completed rollback: ::
+To force a rollback after a successful upgrade: ::
 
     ansible-playbook rollback/rollback.yml -e force_rollback=true
 

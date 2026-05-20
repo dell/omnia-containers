@@ -1,11 +1,11 @@
-Upgrading Omnia
+Upgrade Omnia
 ================
 
 Omnia supports in-place upgrades from version 2.1.0.0 to 2.2.0.0. The upgrade process is a three-phase workflow: **core container upgrade**, **prepare**, and **execute**. Each component is upgraded in a defined order with lock-based safety and manifest tracking for idempotent reruns.
 
 .. important::
     * Upgrades must be initiated from the OIM host using ``omnia.sh --upgrade`` before entering the ``omnia_core`` container.
-    * The upgrade orchestrator must be invoked from the parent directory containing ``upgrade/``, ``rollback/``, and ``playbooks/`` folders.
+    * The upgrade orchestrator must be invoked from the parent directory containing ``upgrade/`` folders.
     * Ensure a full backup of the OIM node is taken before starting the upgrade.
 
 Supported Upgrade Paths
@@ -98,7 +98,7 @@ The upgrade orchestrator processes components in the following fixed order:
 Pre-Flight Guard Ordering
 --------------------------
 
-The upgrade orchestrator follows strict validate-before-mutate ordering (C-29 constraint):
+The upgrade orchestrator follows strict validate-before-mutate ordering:
 
 1. **Read-only guards execute first** — All validation checks run before any state mutation
 2. **Lock creation occurs only after guards pass** — Prevents orphaned lock files if guards abort
@@ -109,7 +109,7 @@ This ensures that an early abort never leaves the system in a locked state.
 Terminal Cleanup Play
 ---------------------
 
-A guaranteed terminal cleanup play (``tags: always``) runs as the last play in the upgrade playbook (C-30 constraint). This provides defense-in-depth against sub-playbook fatal errors that might skip the finalize play, ensuring the upgrade lock is always removed.
+A guaranteed terminal cleanup play (``tags: always``) runs as the last play in the upgrade playbook. This provides defense-in-depth against sub-playbook fatal errors that might skip the finalize play, ensuring the upgrade lock is always removed.
 
 Upgrade Workflow
 -----------------
@@ -202,13 +202,6 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 
 .. note::
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
-
-Force Rerun
-~~~~~~~~~~~~~
-
-After a successful upgrade, rerunning the upgrade playbook is blocked by default. To force a new upgrade cycle: ::
-
-    ansible-playbook upgrade/upgrade.yml -e force_upgrade=true
 
 Post-Upgrade Verification
 ---------------------------
