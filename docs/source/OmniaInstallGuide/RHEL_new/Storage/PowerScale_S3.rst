@@ -12,7 +12,7 @@ This section describes the end-to-end workflow for configuring PowerScale as S3 
    * Omnia uses HTTP access only when connecting to PowerScale, using the default port 9020.
    * Both S3 and HTTP services are enabled in the S3 bucket configuration.
    * Valid S3 Access Key ID and S3 Secret Access Key for authentication when accessing the PowerScale S3 service.
-   * S3 Access Key ID and S3 Secret Access Key are tightly associated with the bootimage buckets. You need this keys to access the bootimages created using the key.
+   * S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need S3 Access Key ID and S3 Secret Access Key to access the S3 buckets created using the key.
 
 
 Enable S3 Service on PowerScale
@@ -54,7 +54,7 @@ Obtain S3 Access ID and Secret Key
       The S3 access ID and secret key are required during the OIM credential setup process.
 
    .. warning::
-      Ensure to note down the S3 access ID and secret key as they are tightly associated with the bootimage buckets. The cluster nodes cannot access the bootimages without these keys. 
+      Ensure to note down the S3 access ID and secret key as they are tightly associated with the S3 buckets. The cluster nodes cannot access the bootimages without these keys. 
 
 Configure storage_config.yml
 ----------------------------
@@ -67,9 +67,18 @@ Configure storage_config.yml
 
       s3_configurations:
         provider: "powerscale"
-        endpoint_url: "http://<powerscale-host>:9020"
+        endpoint_url: "http://<powerscale-ip>:<port>"
 
-   Replace ``<powerscale-host>`` with the actual PowerScale hostname or IP address.
+   Replace ``<powerscale-ip>`` with the actual PowerScale IP address and ``<port>`` with the S3 port (default: 9020).
+
+  **Sample:**
+   .. code-block:: yaml
+
+      s3_configurations:
+        provider: "powerscale"
+        endpoint_url: "http://192.168.1.100:9020"
+
+   
 
 3. Save the ``storage_config.yml`` file.
 
