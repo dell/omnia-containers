@@ -120,7 +120,7 @@ Enable S3 Service on PowerScale
 
 2. Navigate to **Protocol** → **Object storage (S3)**.
 
-   .. image:: ../../../images/powerscale_s3_enable.png
+   .. image:: ../../images/powerscale_s3_enable.png
 
 3. On the **Object Storage (S3)** page, click the **Global Settings** tab.
 
@@ -142,7 +142,7 @@ Obtain S3 Access ID and Secret Key
 
 3. On the **Object Storage (S3)** page, click the **My Keys** tab.
 
-.. image:: ../../../images/powerscale_s3_my_keys.png
+.. image:: ../../images/powerscale_s3_my_keys.png
 
 4. On the **Secret key Details** page, click **Create new key**.
 
@@ -193,6 +193,3 @@ When running the ``prepare_oim`` playbook, you will be prompted for S3 credentia
       * For ``powerscale`` provider, the ``s3_access_id`` is prompted as a conditional mandatory parameter.
       * The ``s3_secret_key`` is always prompted during credential setup.
 
-   .. image:: ../../../images/prepare_oim_s3_credentials.png
-   
-   .. image:: ../../../images/prepare_oim_access_id.png
