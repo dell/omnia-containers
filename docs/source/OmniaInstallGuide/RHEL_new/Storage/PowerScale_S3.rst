@@ -5,7 +5,7 @@ Configure PowerScale as S3 Storage
 
 PowerScale provides scalable, high-performance object storage for the OpenCHAMI image repository. Using PowerScale as S3-compatible storage enables efficient storage and retrieval of boot images across the cluster, with support for HTTP access and robust authentication mechanisms.
 
-This section describes the end-to-end workflow for configuring PowerScale as S3 storage, including enabling the S3 service on PowerScale, obtaining credentials, configuring the storage_config.yml file, and setting up credentials during the prepare_oim playbook execution.
+This section describes the end-to-end workflow for configuring PowerScale as S3 storage, including enabling the S3 service on PowerScale, obtaining credentials, configuring the ``storage_config.yml`` file, and setting up credentials during the ``prepare_oim`` playbook execution.
 
 .. note::
    * PowerScale cluster must be deployed within the admin subnet and should be accessible from all cluster nodes.
@@ -24,7 +24,7 @@ Enable S3 Service on PowerScale
 
    .. image:: powerscale_s3_enable.png
 
-3. On the **Object Storage (S3)** page, click the *Global Settings* tab.
+3. On the **Object Storage (S3)** page, click the **Global Settings** tab.
 
 3. To enable the S3 bucket service, do the following:
 
@@ -42,7 +42,7 @@ Obtain S3 Access ID and Secret Key
 
 2. Navigate to **Protocol** → **Object storage (S3)**.
 
-3. On the **Object Storage (S3)** page, click the *My Keys* tab.
+3. On the **Object Storage (S3)** page, click the **My Keys** tab.
 
 4. On the **Secret key Details** page, click **Create new key**.
 
@@ -54,14 +54,12 @@ Obtain S3 Access ID and Secret Key
    .. warning::
       Ensure to note down the S3 access ID and secret key as they are tightly associated with the bootimage buckets. The cluster nodes cannot access the bootimages without these keys. 
 
-      
-
 Configure storage_config.yml
 ----------------------------
 
-1. Open the ``storage_config.yml`` file available at ``/opt/omnia/input/project_default.
+1. Open the ``storage_config.yml`` file available at ``/opt/omnia/input/project_default``.
 
-2. Add the ``s3_configurations`` section with the following parameters:
+2. Update the ``s3_configurations`` section with the following parameters. For detailed instructions on updating the ``storage_config.yml`` file, refer to :doc:`../../../prepare_oim`. 
 
    .. code-block:: yaml
 
@@ -99,7 +97,7 @@ To verify that the S3 connection is working after running the ``prepare_oim.yml`
 
      s3cmd ls
 
-2. Verify that the command lists the S3 buckets created for OpenCHAMI.
+2. Verify that the command lists the S3 buckets created for OpenCHAMI bootimages.
 
 .. image:: powerscale_s3_verify.png
 

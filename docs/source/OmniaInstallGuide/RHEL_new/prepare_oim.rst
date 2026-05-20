@@ -26,7 +26,7 @@ The ``prepare_oim.yml`` playbook is dependent on the inputs provided to the foll
 1. ``network_spec.yml``
 ------------------------
 
-Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the below table as reference while doing so:
+Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Refer to the table below for the required fields:
 
 .. csv-table:: network_spec.yml
    :file: ../../Tables/network_spec.csv
@@ -52,7 +52,7 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
 2. ``provision_config.yml``
 -------------------------------
 
-Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Use the below table as reference while doing so:
+Add necessary inputs to the ``provision_config.yml`` file for the provisioning of the cluster. Refer to the table below for the required fields:
 
 .. csv-table:: provision_config.yml
    :file: ../../Tables/Provision_config.csv
@@ -62,7 +62,7 @@ Add necessary inputs to the ``provision_config.yml`` file for the provisioning o
 3. ``build_stream_config.yml``
 -------------------------------
 
-Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Use the below table as reference while doing so:
+Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStreamMpipeline. Refer to the table below for the required fields:
 
 .. csv-table:: build_stream_config.yml
    :file: ../../Tables/build_stream_config.csv
@@ -72,15 +72,15 @@ Add necessary inputs to the ``build_stream_config.yml`` file for the BuildStream
 4. ``storage_config.yml``
 --------------------------
 
-Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Use the below table as reference while doing so. 
+Add necessary inputs to the ``storage_config.yml`` file for the storage configuration. Refer to the table below for the required fields:
+
+.. note::
+   For detailed instructions on configuring PowerScale as S3 storage, see :ref:`PowerScale S3 configuration <powerscale-s3-config>`.
 
 .. csv-table:: storage_config.yml
    :file: ../../Tables/storage_config.csv
    :header-rows: 1
    :keepspace:
-
-.. note::
-   For detailed instructions on configuring PowerScale as S3 storage, see :doc:`../OmniaCluster/BuildingCluster/Storage/PowerScale_S3`.
 
 
 Playbook Execution
