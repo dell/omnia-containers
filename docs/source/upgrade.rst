@@ -95,39 +95,6 @@ The upgrade orchestrator processes components in the following fixed order:
       - ``slurm``
       - Slurm cluster upgrade
 
-Tag Dependencies
------------------
-
-The upgrade orchestrator enforces the following tag dependencies automatically:
-
-.. list-table::
-    :header-rows: 1
-    :widths: 20 30 50
-
-    * - Component Tag
-      - Depends On
-      - Rationale
-    * - ``build_stream``
-      - ``oim``
-      - Requires BuildStream container at target version
-    * - ``build_image``
-      - ``oim``
-      - Requires BuildStream container at target version
-    * - ``provision``
-      - ``oim``, ``build_image``
-      - Requires OpenCHAMI and built images
-    * - ``k8s``
-      - ``oim``
-      - Requires OpenCHAMI services
-    * - ``telemetry``
-      - ``oim``, ``k8s``
-      - Requires OpenCHAMI and Kubernetes cluster
-    * - ``slurm``
-      - ``oim``, ``k8s``
-      - Requires OpenCHAMI and Kubernetes cluster
-
-If a dependency is not met, the upgrade will fail with a descriptive error message.
-
 Pre-Flight Guard Ordering
 --------------------------
 
