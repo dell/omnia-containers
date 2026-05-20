@@ -186,38 +186,47 @@ In the deploy pipeline, when the restart stage encounters partial failures (some
 Procedure
 ~~~~~~~~~~
 
-1. Download the `failed_nodes.json` artifact from the failed pipeline in GitLab (**Build** → **Pipelines**).
+1. During the first run, the restart stage attempts to PXE boot all nodes automatically.
 
-2. Review the failed nodes and error messages in the downloaded file to identify which nodes failed.
+2. If all nodes succeed, the stage is marked successful and proceeds to the validation stage.
 
-3. For each failed node, perform manual troubleshooting and remediation:
+3. In case of partial failure, only failed nodes are recorded in ``failed_nodes.json`` in a directory called ``miscellaneous`` in GitLab. The file contains failed node details along with corresponding error messages.
 
-   a. Check iDRAC status and ensure it's ready
+.. image:: ../../images/buildstream_restart_failed_nodes_json.png
+   :alt: failed_nodes.json example
+
+4. Analyze failures and perform corrective actions:
+
+   * Check iDRAC readiness
+   * Verify BMC network connectivity
+   * Validate PXE boot configuration
+
+5. After resolving issues, retry the restart stage for failed nodes.
+
+6. If automated retry is not feasible (for example, VM or manual dependency), manually PXE boot the affected nodes.
+
+7. After manual boot of the nodes, update the node status as ``success`` in ``failed_nodes.json``. Updated nodes are excluded from further PXE attempts by the pipeline/API and are automatically added to the booted nodes list.
+
+.. image:: ../../images/buildstream_restart_updated_failed_nodes_json.png
+   :alt: updated failed_nodes.json example
+
+The restart stage completes successfully only when all nodes are successful (automated or manual). Upon completion, the workflow proceeds to the validation stage.
+
+.. image:: ../../images/buildstream_restart_stage_success.png
+   :alt: restart stage success example
    
-   b. Verify network connectivity to the BMC IP
-   
-   c. Check PXE boot configuration
-   
-   d. Manually reboot nodes if necessary
-   
-   e. Resolve any identified configuration issues
 
-4. Verify that the manually fixed nodes are now operational.
+.. _add_node_scenario:
 
-5. Edit the `failed_nodes.json` file to remove manually rebooted nodes and keep only entries for nodes that are not provisioned.
+Adding New Nodes to the Cluster
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-6. Upload and commit the edited `failed_nodes.json` file to the GitLab repository.
+This procedure describes how to deploy images on the new nodes without affecting previously provisioned nodes.
 
-7. Navigate to **Build** → **Pipelines** in GitLab and click **New Pipeline**.
+1. Update the ``pxe_mapping`` file with the details of the new nodes to be added in GitLab.
 
-8. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**, then click **Run Pipeline**.
+2. Run the deploy pipeline by selecting the image required.
 
-The pipeline will automatically process only the remaining failed nodes and any new nodes from the PXE mapping file, skipping nodes that already succeeded or were manually fixed.
-
-9. Monitor the pipeline progress and verify that only the remaining failed nodes and new nodes are processed. Check the new `failed_nodes.json` artifact after completion to see if any nodes still failed.
-
-10. Repeat the process if additional nodes fail.
+The system will PXE boot only the newly added nodes, without impacting previously successful nodes.
 
 For troubleshooting common pipeline issues, see :doc:`../troubleshooting/common-pipeline-issues`.
-
-.. _monitor-deploy-pipeline-progress:
