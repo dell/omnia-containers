@@ -83,18 +83,6 @@ Add necessary inputs to the ``storage_config.yml`` file for the storage configur
    :keepspace:
 
 
-Playbook Execution
--------------------
-
-After you have filled in the input files as mentioned above, execute the following commands to trigger the playbook: ::
-
-    ssh omnia_core
-    cd /omnia/prepare_oim
-    ansible-playbook prepare_oim.yml
-
-.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
-
-
 .. _powerscale-s3-config:
 
 Configure PowerScale as S3 Storage
@@ -193,3 +181,13 @@ When running the ``prepare_oim`` playbook, you will be prompted for S3 credentia
       * For ``powerscale`` provider, the ``s3_access_id`` is prompted as a conditional mandatory parameter.
       * The ``s3_secret_key`` is always prompted during credential setup.
 
+Playbook Execution
+-------------------
+
+After you have filled in the input files as mentioned above, execute the following commands to trigger the playbook: ::
+
+    ssh omnia_core
+    cd /omnia/prepare_oim
+    ansible-playbook prepare_oim.yml
+
+.. note:: After ``prepare_oim.yml`` execution, ``ssh omnia_core`` may fail if you switch from a non-root to root user using ``sudo`` command. To avoid this, log in directly as a ``root`` user before executing the playbook or follow the steps mentioned `here <../../Troubleshooting/KnownIssues/Common/Login.html>`_.
