@@ -89,3 +89,49 @@ Omnia provides a one-shot log collection playbook for gathering cluster logs fro
 
 * PXE mapping file must exist at ``/opt/omnia/input/project_default/pxe_mapping_file.csv``
 * Nodes must be reachable from OIM
+
+
+BMC Discovery via Dell OpenManage Enterprise
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia introduces automated BMC (Baseboard Management Controller) discovery via Dell OpenManage Enterprise (OME). This feature enables large-scale server discovery and automatic PXE mapping file generation, which is particularly useful for deployments with thousands of nodes.
+
+**Key Features**
+
+- Automated server inventory collection from OME REST API
+- Support for paginated API queries to handle large-scale deployments (100 servers per page)
+- Automatic extraction of service tags, iDRAC details, NIC MACs, and group membership
+- Scalable Unit (SU) extraction from iDRAC hostnames for logical grouping
+- Timestamped PXE mapping file generation for version control and audit trails
+- IP address derivation from BMC IPs using configured subnets
+- OME group mapping to functional groups for role-based provisioning
+
+**Configuration Requirements**
+
+- Dell OpenManage Enterprise (OME) appliance must be operational and have discovered target servers
+- ``input/discovery_config.yml`` - OME IP configuration
+- ``input/network_spec.yml`` - Network configuration for admin and InfiniBand subnets
+- OME credentials stored in Ansible Vault (``omnia_config_credentials.yml``)
+- Run ``prepare_oim`` to set up OME credentials
+
+**Usage**
+
+To perform BMC discovery using OME:
+
+::
+
+    ansible-playbook discovery/discovery.yml -e "discovery_mechanism=ome"
+
+This generates a timestamped PXE mapping file: ``bmc_pxe_mapping_file_<timestamp>.csv``
+
+**Post-Discovery Workflow**
+
+1. Review the generated timestamped CSV file
+2. Adjust functional groups, group names, and hostnames as needed
+3. Copy or rename the desired timestamped file to ``pxe_mapping_file.csv``
+4. Proceed with provisioning
+
+For more details, see `BMC Discovery Configuration <OmniaInstallGuide/Maintenance/upgrade.html#bmc-discovery-configuration>`_ and `BMC Discovery Rollback Considerations <OmniaInstallGuide/Maintenance/rollback.html#bmc-discovery-rollback-considerations>`_.
+
+.. note::
+    Magellan-based discovery is planned for a future release. Currently, only OME-based discovery is supported.

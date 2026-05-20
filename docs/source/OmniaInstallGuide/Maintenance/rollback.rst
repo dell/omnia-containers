@@ -3,6 +3,9 @@ Rollback Omnia
 
 This section describes how to rollback to a previous version of Omnia core container.
 
+.. note::
+    Rollback is supported from Omnia 2.2.0.0 to 2.1.0.0. Ensure you have a valid backup of the 2.1.0.0 configuration before proceeding.
+
 Rollback to the previous version
 --------------------------------
 
