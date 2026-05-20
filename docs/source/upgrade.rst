@@ -261,3 +261,5 @@ After the upgrade completes, verify the following:
     * Telemetry: Verify metrics are being collected
 
 5. If BuildStream is enabled, trigger the GitLab pipeline for downstream components.
+
+For troubleshooting upgrade issues, see `Upgrade and Rollback Troubleshooting <troubleshootingguide.html>`_.

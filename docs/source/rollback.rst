@@ -176,3 +176,5 @@ After the rollback completes, verify the following:
 5. Confirm the ``upgrade_manifest.yml`` has been archived: ::
 
     ls /opt/omnia/.data/archive/
+
+For troubleshooting rollback issues, see `Upgrade and Rollback Troubleshooting <troubleshootingguide.html>`_.
