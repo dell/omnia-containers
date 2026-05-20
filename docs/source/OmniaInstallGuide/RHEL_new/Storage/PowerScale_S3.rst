@@ -22,7 +22,7 @@ Enable S3 Service on PowerScale
 
 2. Navigate to **Protocol** → **Object storage (S3)**.
 
-   .. image:: powerscale_s3_enable.png
+   .. image:: ../../../images/powerscale_s3_enable.png
 
 3. On the **Object Storage (S3)** page, click the **Global Settings** tab.
 
@@ -59,7 +59,7 @@ Configure storage_config.yml
 
 1. Open the ``storage_config.yml`` file available at ``/opt/omnia/input/project_default``.
 
-2. Update the ``s3_configurations`` section with the following parameters. For detailed instructions on updating the ``storage_config.yml`` file, refer to :doc:`../../../prepare_oim`. 
+2. Update the ``s3_configurations`` section with the following parameters. For detailed instructions on updating the ``storage_config.yml`` file, refer to :doc:`../prepare_oim`. 
 
    .. code-block:: yaml
 
@@ -76,7 +76,7 @@ Configure Credentials During Prepare OIM
 
 When running the ``prepare_oim`` playbook, you will be prompted for S3 credentials:
 
-1. Run the ``prepare_oim.yml`` playbook as described in :doc:`../../../prepare_oim`.   
+1. Run the ``prepare_oim.yml`` playbook as described in :doc:`../prepare_oim`.   
 
 2. When prompted, enter the S3 access ID and secret key obtained from PowerScale.
 
@@ -84,9 +84,9 @@ When running the ``prepare_oim`` playbook, you will be prompted for S3 credentia
       * For ``powerscale`` provider, the ``s3_access_id`` is prompted as a conditional mandatory parameter.
       * The ``s3_secret_key`` is always prompted during credential setup.
 
-   .. image:: prepare_oim_s3_credentials.png
+   .. image:: ../../../images/prepare_oim_s3_credentials.png
    
-   .. image:: prepare_oim_access_id.png
+   .. image:: ../../../images/prepare_oim_access_id.png
 
 Verify S3 Connection
 --------------------
@@ -99,6 +99,6 @@ To verify that the S3 connection is working after running the ``prepare_oim.yml`
 
 2. Verify that the command lists the S3 buckets created for OpenCHAMI bootimages.
 
-.. image:: powerscale_s3_verify.png
+.. image:: ../../../images/powerscale_s3_verify.png
 
 
