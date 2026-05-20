@@ -146,7 +146,7 @@ Obtain S3 Access ID and Secret Key
 
 4. On the **Secret key Details** page, click **Create new key**.
 
-5. Note the **Access ID** and **Secret Key** for the S3 user.
+5. Ensure to note the **Access ID** and **Secret Key**.
 
    .. warning::
       The S3 access ID and secret key are required during the OIM credential setup process.
