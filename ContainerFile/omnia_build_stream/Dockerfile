@@ -48,17 +48,23 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
 #   GHSA-cq8v-f236-94qc (rand crate)
 #   GHSA-965h-392x-2mh5 (rustls-webpki)
 #   GHSA-xgp8-3hg3-c2mh (rustls-webpki)
+#   GHSA-fp55-jw48-c537 (astral-tokio-tar)
+#   GHSA-xx64-wwv2-hcqq (astral-tokio-tar)
+#   GHSA-vfvv-c25p-m7mm (rkyv)
+#   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
 #
 # Install LATEST uv via official installer to get the
 # newest binary with updated Rust dependencies.
 # We do NOT install uv via pip (pip-installed uv==0.9.13
 # and 0.11.6 still contain older cargo crates).
+# Force latest version with cache busting.
 # -------------------------------------------------------
 RUN curl -LsSf https://astral.sh/uv/install.sh | \
-    env INSTALLER_NO_MODIFY_PATH=1 sh && \
+    env INSTALLER_NO_MODIFY_PATH=1 UV_INSTALL_VERSION=latest sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv && \
     mv /root/.local/bin/uvx /usr/local/bin/uvx && \
-    uv --version
+    uv --version && \
+    uv self update || true
 
 # -------------------------------------------------------
 # Prevent uv from downloading its own managed Python
