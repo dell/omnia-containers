@@ -16,6 +16,11 @@ telemetry_sources > ``idrac`` > ``collection_targets``,Mandatory,"* Collection t
 * **Supported values**: ``victoria_metrics``, ``kafka``
 * **Multiple targets**: Can specify both [``victoria_metrics``, ``kafka``]
 * **Default**: [``victoria_metrics``, ``kafka``]"
+idrac_telemetry_configurations > ``mysqldb_storage``,Conditional Mandatory,"* MySQL database storage for iDRAC telemetry
+* **Purpose**: Storage configuration for iDRAC telemetry MySQL database
+* **Accepted values**: Must be specified in the form of ``X[Ki|Mi|Gi|Ti|Pi|Ei]``
+* **Default value**: ``1Gi``
+* **Required when**: telemetry_sources > idrac > metrics_enabled is true"
 telemetry_sources > ``ldms`` > ``metrics_enabled``,Mandatory,"* **Type**: Boolean
 * Enable or disable LDMS metrics collection from compute nodes
 * **Collected metrics**: CPU, memory, network, disk metrics

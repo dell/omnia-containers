@@ -3,27 +3,6 @@ Verify PowerScale Telemetry Flow
 
 This section outlines the steps to verify PowerScale telemetry data in VictoriaMetrics.
 
-Enable and Disable PowerScale Telemetry
---------------------------------------
-
-You can enable or disable PowerScale telemetry using the following commands:
-
-**To enable PowerScale telemetry:**
-
-.. code-block:: bash
-
-   ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
-
-**To disable PowerScale telemetry:**
-
-.. code-block:: bash
-
-   ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
-
-.. note::
-   * Set ``powerscale.metrics_enabled`` to ``true`` or ``false`` in the configuration before executing the command.
-   * The ``powerscale`` tag is mandatory to perform the action.
-   * To disable PowerScale logs, remove the IP from the command and set ``enabled`` to ``no``.
 
 View Collected PowerScale Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 ------------------------------------------------------------------------------------------------

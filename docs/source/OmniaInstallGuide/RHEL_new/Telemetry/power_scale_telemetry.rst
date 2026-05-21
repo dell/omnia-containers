@@ -43,7 +43,25 @@ Prerequisites
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
 * For PowerScale log collection, configure the following settings on the PowerScale cluster:
 
-    * **Enable syslog forwarding**: Run ``isi audit syslog modify`` to enable syslog forwarding from PowerScale to Omnia
+    * **Enable syslog forwarding**: To enable syslog forwarding from PowerScale to Omnia, run the following command::
+
+        .. code-block:: bash
+
+            isi audit setting modify --syslog-forwarding-enabled true
+
+        To disable syslog forwarding, run the following command::
+
+            .. code-block:: bash
+
+                isi audit setting modify --syslog-forwarding-enabled false
+
+            To completely disable syslog forwarding and clear syslog servers, run the following commands::
+
+                .. code-block:: bash
+
+                    isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
+                    isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
+                    isi audit settings global modify --clear-protocol-syslog-servers
 
         .. image:: ../../../images/powerscale_syslog_logs_prereq.png
 
@@ -187,3 +205,46 @@ Performance Requirements
 - Syslog events arrive in the log database with less than 1-minute end-to-end latency under nominal load
 - OpenTelemetry Collector endpoint availability exceeds 98% over a 24-hour period
 - Scrape interval is configurable between 30 and 60 seconds
+
+
+Enable and Disable PowerScale Telemetry
+--------------------------------------
+
+You can enable or disable PowerScale telemetry using the following commands:
+
+**To disable PowerScale telemetry:**
+
+.. code-block:: bash
+
+   ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
+
+**After disabling PowerScale telemetry, to enable PowerScale telemetry again:**
+
+.. code-block:: bash
+
+   ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
+
+
+.. note::
+   * Set ``powerscale.metrics_enabled`` to ``true`` or ``false`` in the ``telemetry_config.yml`` file.
+   * The ``powerscale`` tag is mandatory to perform the action.
+
+Enable and Disable PowerScale Logs
+-----------------------------------
+
+You can enable or disable PowerScale logs using the following commands:
+
+**To disable PowerScale logs:**
+
+.. code-block:: bash
+
+   ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
+
+**After disabling PowerScale logs, to enable PowerScale logs again:**
+
+.. code-block:: bash
+
+   ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
+
+.. note::
+   To disable PowerScale logs, remove the IP from the command and set ``enabled`` to ``no``.
