@@ -126,4 +126,5 @@ PowerScale Telemetry Data Flows
     ldms_telemetry
     power_scale_telemetry
     vector_telemetry
+    telemetry_storage_configuration
     
