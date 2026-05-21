@@ -67,7 +67,23 @@ The UFM Prometheus exporter must be enabled and accessible from the service clus
 
 **For UFM log collection, configure the following settings on the UFM appliance:**
 
-* **Enable syslog forwarding**: Configure UFM to send syslog messages to the VLAgent LoadBalancer IP. Modify the ``[Logging]`` section in ``/opt/ufm/conf/gv.cfg``::
+**Enable syslog forwarding using the UFM Web UI:**
+
+Configure using the UFM Web UI to send syslog messages to the VLAgent LoadBalancer IP:
+
+1. From the left navigation menu, select **Settings → Data Streaming**
+2. Select **System log** and complete the fields:
+   - **Destination**: Enter the VLAgent LoadBalancer IP address
+   - **Syslog Port**: Enter 514 (default)
+   - **System logs Level**: Select syslog level from the dropdown based on your requirements
+   - **Streaming Data**: Select UFM logs
+3. Click **Save**
+
+.. image:: ../../../../images/ufm_syslog_web_ui.png
+
+**Enable syslog forwarding using the UFM CLI:**
+
+Configure using the UFM CLI to send syslog messages to the VLAgent LoadBalancer IP. Modify the ``[Logging]`` section in ``/opt/ufm/conf/gv.cfg``::
 
     [Logging]
     syslog = true
