@@ -43,21 +43,21 @@ Prerequisites
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
 * For PowerScale log collection, configure the following settings on the PowerScale cluster:
 
-    * **Enable syslog forwarding**: To enable syslog forwarding from PowerScale to Omnia, run the following command::
+    * Enable syslog forwarding from PowerScale to Omnia using the following command::
 
         .. code-block:: bash
 
             isi audit setting modify --syslog-forwarding-enabled true
 
-        To disable syslog forwarding, run the following command::
+    * To disable syslog forwarding, run the following command::
 
-            .. code-block:: bash
+        .. code-block:: bash
 
-                isi audit setting modify --syslog-forwarding-enabled false
+            isi audit setting modify --syslog-forwarding-enabled false
 
-            To completely disable syslog forwarding and clear syslog servers, run the following commands::
+    * To completely disable syslog forwarding and clear syslog servers, run the following commands::
 
-                .. code-block:: bash
+        .. code-block:: bash
 
                     isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
                     isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
