@@ -48,44 +48,72 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=26.0" \
 #   GHSA-cq8v-f236-94qc (rand crate)
 #   GHSA-965h-392x-2mh5 (rustls-webpki)
 #   GHSA-xgp8-3hg3-c2mh (rustls-webpki)
+#   GHSA-fp55-jw48-c537 (astral-tokio-tar)
+#   GHSA-xx64-wwv2-hcqq (astral-tokio-tar)
+#   GHSA-vfvv-c25p-m7mm (rkyv)
+#   GHSA-82j2-j2ch-gfr8 (rustls-webpki)
 #
-# Install LATEST uv via official installer to get the
-# newest binary with updated Rust dependencies.
-# We do NOT install uv via pip (pip-installed uv==0.9.13
-# and 0.11.6 still contain older cargo crates).
+# WHY pin to 0.11.15?
+#   Using "latest" breaks build reproducibility — the same
+#   Dockerfile could produce different results on different
+#   days. Pinning ensures auditable, deterministic builds.
+#   Ref: https://docs.astral.sh/uv/guides/integration/docker/
 # -------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/install.sh | \
-    env INSTALLER_NO_MODIFY_PATH=1 sh && \
-    mv /root/.local/bin/uv /usr/local/bin/uv && \
-    mv /root/.local/bin/uvx /usr/local/bin/uvx && \
+RUN curl -LsSf https://astral.sh/uv/0.11.15/install.sh | \
+    env UV_INSTALL_DIR=/usr/local/bin UV_NO_MODIFY_PATH=1 sh && \
     uv --version
 
-# -------------------------------------------------------
-# Prevent uv from downloading its own managed Python
-# (managed cpython bundles vulnerable pip 25.3 internally)
-# Force uv to use Fedora's system Python 3.13 instead
-# -------------------------------------------------------
+# =======================================================
+# PYTHON ENVIRONMENT CONFIGURATION
+#
+# UV_PYTHON_DOWNLOADS=never
+#   Prevents uv from downloading its own managed CPython.
+#   Forces uv to use Fedora's system Python 3.13 instead.
+#   (Managed CPython bundles vulnerable pip 25.3 internally)
+#
+# UV_SYSTEM_PYTHON=1
+#   Allows uv pip commands (uv pip install, uv pip compile)
+#   to target the system Python at /usr/bin/python3.
+#   Without this, uv pip refuses to modify non-venv Python.
+#
+#   NOTE: This does NOT affect project-mode commands
+#   (uv sync, uv run, uv add) — those ALWAYS create a
+#   .venv regardless of this setting. That is why we use
+#   "uv pip install --system" instead of "uv sync" here.
+# =======================================================
 ENV UV_PYTHON_DOWNLOADS=never
 ENV UV_SYSTEM_PYTHON=1
 
-# Copy project configuration files
-# NOTE: Ensure pyproject.toml has:
-#   requires-python = ">=3.12"
-# and does NOT have "uv>=11.0.7" in [project].dependencies
-# (uv is a build tool, not a runtime dependency)
+# =======================================================
+# DEPENDENCIES: Install production packages from committed
+# and audited lock file into system Python.
+#
+# Copy pyproject.toml + uv.lock BEFORE source code so Docker
+# caches the dependency layer. Only a change to these files
+# triggers a re-install; source code changes skip this step.
+#
+# uv export --locked
+#   Reads uv.lock, verifies it matches pyproject.toml, and
+#   exports exact pinned versions to requirements.txt.
+#   FAILS if uv.lock is out of sync — this is the safety gate.
+#
+# uv pip install --system
+#   Installs into system Python (/usr/lib/python3.13/...) so
+#   the ENTRYPOINT command (/usr/bin/python3 -m uvicorn) can
+#   find all packages including uvicorn.
+#
+# NOTE: Do NOT use "uv sync --locked" here — it installs into
+# a .venv/ which the system Python cannot access at runtime.
+# =======================================================
 COPY pyproject.toml uv.lock ./
-
-# -------------------------------------------------------
-# Regenerate lockfile inside the build to match Python 3.13
-# then install production dependencies into system Python
-# -------------------------------------------------------
-RUN uv lock --upgrade && \
-    uv pip install --system -r <(uv pip compile pyproject.toml)
+RUN uv export --locked --no-hashes -o requirements.txt && \
+    uv pip install --system -r requirements.txt
 
 # Optionally install dev dependencies
 ARG BUILD_ENV=production
 RUN if [ "$BUILD_ENV" = "development" ]; then \
-      uv pip install --system -r <(uv pip compile pyproject.toml --extra dev); \
+      uv export --locked --no-hashes --extra dev -o requirements-dev.txt && \
+      uv pip install --system -r requirements-dev.txt; \
     fi
 
 # -----------------------------
