@@ -16,7 +16,7 @@ Procedure
 2. Review the default settings and adjust the values based on your cluster size and expected telemetry data volume. The following table describes all configurable parameters in ``telemetry_storage_config.yml``:
 
 .. csv-table:: telemetry_storage_config.yml
-   :file: ../../Tables/telemetry_storage_config.csv
+   :file: ../../../Tables/telemetry_storage_config.csv
    :header-rows: 1
    :keepspace:
 
