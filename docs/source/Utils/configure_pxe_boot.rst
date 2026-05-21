@@ -3,7 +3,7 @@
 Configure PXE Boot
 ==================
 
-When PXE boot order is set on a node in Omnia, the node automatically retrieves and boots into the diskless image provided by the Omnia Infrastructure Manager (OIM). To configure PXE boot for nodes after they are discovered with the ``discovery.yml`` playbook, do the following:
+When PXE boot order is set on a node in Omnia, the node automatically retrieves and boots into the diskless image provided by the Omnia Infrastructure Manager (OIM). To configure PXE boot for nodes after they are discovered with the ``provision.yml`` playbook, do the following:
 
 .. warning::
    This playbook will restart your servers and power them on if they are off. Any unsaved data will be lost.

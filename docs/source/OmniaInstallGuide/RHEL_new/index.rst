@@ -4,7 +4,8 @@ Deploy Omnia on RHEL Platforms
 Follow the below steps to deploy the Omnia container on RHEL-based platforms:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
+    :includehidden:
 
     RHELSpace
     Minimum_cluster_node_requirements
@@ -18,15 +19,14 @@ Follow the below steps to deploy the Omnia container on RHEL-based platforms:
     Authentication/OpenLDAP
     Telemetry/index
     CreateLocalRepo/index
-    HighAvailability/index
+    HighAvailability/index    
     OmniaCluster/BuildingCluster/install_slurm
     build_images
     Provision/index    
     verify_slurm_kub
     Telemetry/initialize_and_verify_telemetry
     Telemetry/verify_telemetry
-    Telemetry/external_kafka
-    Telemetry/external_victoria
-    Telemetry/external_victoria_logs
+    Telemetry/ExternalTelemetry/index
+    Storage/index
 
 

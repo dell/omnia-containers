@@ -1,7 +1,7 @@
 Update the Input Parameters for Discovering the Nodes
 ========================================================
 
-Specify the required parameters in the following input files: 
+Specify the required parameters in the following input files:
 
  * ``/opt/omnia/input/project_default/provision_config.yml``
  * ``/opt/omnia/input/project_default/omnia_config_credentials.yml``
@@ -9,6 +9,7 @@ Specify the required parameters in the following input files:
  * ``/opt/omnia/input/project_default/storage_config.yml``
  * ``/opt/omnia/input/project_default/omnia_config.yml``
  * ``/opt/omnia/input/project_default/telemetry_config.yml``
+ * ``/opt/omnia/input/project_default/discovery_config.yml`` (for OME-based discovery)
 
 .. caution:: Do not remove or comment any lines in the above mentioned ``.yml`` files.
 
@@ -21,7 +22,7 @@ Specify the required parameters in the following input files:
 
 .. note::
 
-    The ``/opt/omnia/input/project_default/omnia_config_credentials.yml`` file is encrypted on the first execution of the ``discovery.yml`` or ``local_repo.yml`` playbooks.
+    The ``/opt/omnia/input/project_default/omnia_config_credentials.yml`` file is encrypted on the first execution of the ``provision.yml`` or ``local_repo.yml`` playbooks.
 
       * To view the encrypted parameters: ::
 
@@ -83,11 +84,21 @@ The following table lists the parameters that must be configured in ``omnia_conf
    :keepspace:
 
 
+.. csv-table:: discovery_config.yml
+   :file: ../../../Tables/discovery_config.csv
+   :header-rows: 1
+   :keepspace:
+
+
+.. note:: The ``discovery_config.yml`` file is required for OME-based BMC discovery. It contains the OpenManage Enterprise connection details and discovery parameters.
+
+
 .. caution::
     * All provided network ranges and NIC IP addresses should be distinct with no overlap in the ``/opt/omnia/input/project_default/network_spec.yml``.
     * Ensure that all the iDRACs are reachable from the OIM.
+    * For OME-based discovery, ensure that OME can access the BMC/iDRAC interfaces of all target servers.
 
-A sample of the ``/opt/omnia/input/project_default/network_spec.yml`` where nodes are discovered using a mapping file is provided below: ::
+A sample of the ``/opt/omnia/input/project_default/network_spec.yml`` is provided below. This configuration is used for both OME-based discovery and mapping file discovery: ::
 
     
    Networks:

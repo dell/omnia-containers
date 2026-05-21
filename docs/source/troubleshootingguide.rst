@@ -119,7 +119,7 @@ IP address conflict with old node.
 
 - Ensure old node is powered off/disconnected
 - Verify IP address is unused
-- Re-run ``discovery.yml``
+- Re-run ``provision.yml``
 
 2.2 PXE Boot Timeout (TFTP/Service Timeout)
 --------------------------------------------
@@ -443,15 +443,201 @@ Nodes booted before controller.
    sudo systemctl status ldmsd.sampler.service
    /opt/ovis-ldms/sbin/ldms_ls ...
 
-.. image:: images/troubleshoot_ldms_1.png
+6.5 NVIDIA GPU, CUDA, and DCGM Issues
+--------------------------------------
 
-.. image:: images/troubleshoot_ldms_2.png
+``nvidia-smi`` Not Found or Driver Not Communicating
 
-.. image:: images/troubleshoot_ldms_3.png
+**Symptom**
 
-.. image:: images/troubleshoot_ldms_4.png
+``nvidia-smi: command not found`` or ``nvidia-smi`` exits with a non-zero return code
 
-.. image:: images/troubleshoot_ldms_5.png
+**Probable cause**
+
+NVIDIA driver installation failed during provisioning, or GPU hardware is absent on this node
+
+**Resolution**
+
+Verify GPU hardware is present on the node. If confirmed present, re-install the driver: ::
+
+    dnf install -y cuda-drivers
+
+Review ``/var/log/nvidia_install.log`` for error details.
+
+CUDA Toolkit Not Available on Node (``nvcc`` Not Found)
+
+**Symptom**
+
+``nvcc: command not found`` or ``/usr/local/cuda`` is empty
+
+**Probable cause 1**
+
+Toolkit installation did not complete on the designated installer node due to a repository or NFS error
+
+**Probable cause 2**
+
+NFS mount for the CUDA toolkit was not established at provisioning time
+
+**Resolution**
+
+Verify the NFS mount at ``/usr/local/cuda`` is present: ::
+
+    mount | grep cuda
+
+If absent, re-mount manually. If the toolkit is not installed on the NFS share, review ``/var/log/cuda_toolkit_install.log`` on the installer node.
+
+CUDA Toolkit NFS Mount Failed
+
+**Symptom**
+
+``/usr/local/cuda`` is empty or not mounted after provisioning
+
+**Probable cause**
+
+NFS server was unreachable at provisioning time, or the NFS export is not configured with ``no_root_squash``
+
+**Resolution**
+
+Verify NFS server reachability from the node. Verify the NFS export includes ``no_root_squash``. Re-mount manually: ::
+
+    mount -t nfs <NFS_SERVER>:<path>/hpc_tools/cuda /usr/local/cuda
+
+Verify the ``fstab`` entry is present for persistence.
+
+``nvidia-dcgm`` Service Inactive or Failed
+
+**Symptom**
+
+``systemctl status nvidia-dcgm`` shows ``inactive`` or ``failed`` state
+
+**Probable cause 1**
+
+DCGM package installation failed due to an unavailable repository or a CUDA version mismatch
+
+**Probable cause 2**
+
+The NVIDIA driver was not functional at the time DCGM attempted to start
+
+**Resolution**
+
+Verify driver is functional: ``nvidia-smi``. Identify the installed CUDA version: ``nvidia-smi | grep "CUDA Version"``. Re-install the matching DCGM package and restart the service. Review ``/var/log/dcgm_setup.log`` for errors.
+
+DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
+
+**Symptom**
+
+``nvidia-dcgm`` service is not present on Slurm node, and ``/var/log/dcgm_setup.log`` is missing
+
+**Probable cause**
+
+``dcgm.metrics_enabled`` is set to ``false`` under ``telemetry_sources`` in ``telemetry_config.yml``, so Omnia intentionally skips DCGM installation during Slurm node cloud-init
+
+**Resolution**
+
+Set ``dcgm.metrics_enabled: true`` under ``telemetry_sources`` in ``input/telemetry_config.yml``, re-run provisioning for affected Slurm nodes, then validate with ``systemctl status nvidia-dcgm`` and ``dcgmi discovery -l``
+
+DCGM Package Version Mismatch
+
+**Symptom**
+
+DCGM package installation fails with ``No match for argument`` or ``No packages found``
+
+**Probable cause**
+
+The CUDA major version on the node does not have a matching ``datacenter-gpu-manager-4-cuda<N>`` package available in the configured local repository
+
+**Resolution**
+
+Verify the CUDA version: ``nvidia-smi | grep "CUDA Version"``. Confirm the corresponding DCGM package is present in the local Pulp repository. Update ``local_repo_config.yml`` to include the correct DCGM package version and re-run ``local_repo.yml``.
+
+``nvidia-peermem`` Not Loading
+
+**Symptom**
+
+``lsmod`` does not show ``nvidia_peermem``; workloads requiring GPUDirect RDMA fail to initialize
+
+**Probable cause 1**
+
+Kernel headers were not available at provisioning time, causing the DKMS build to fail
+
+**Probable cause 2**
+
+Base NVIDIA kernel modules were not loaded prior to ``nvidia-peermem`` load attempt
+
+**Resolution**
+
+Verify kernel headers: ::
+
+    ls /lib/modules/$(uname -r)/build
+
+Install if missing: ::
+
+    dnf install -y kernel-devel-$(uname -r)
+
+Load the module: ::
+
+    modprobe nvidia-peermem
+
+Review ``/var/log/nvidia_peermem_install.log`` for details.
+
+.. note:: If RDMA is not required for any workload on this node, this warning is non-blocking.
+
+6.6 Benchmark assets missing on Slurm nodes
+-------------------------------------------
+
+**Symptom**
+
+- Benchmark tool directories are missing or incomplete under ``/hpc_tools``.
+- Expected benchmark artifacts are not visible on login/compiler/compute nodes.
+
+**Possible causes**
+
+- Shared NFS path (``/hpc_tools``) is not mounted or not accessible.
+- ``pull_benchmarks.sh`` or ``benchmark_tools.list`` is missing under ``/hpc_tools/scripts``.
+- Pulp mirror endpoint is unreachable from the node.
+- Required benchmark content is not available in local repository/Pulp.
+- Tool directory already exists and contains files (script skips re-download by design).
+- Architecture mismatch (for example, ``msr-safe`` on ``aarch64``, which is skipped by design).
+
+**Resolution**
+
+1. Verify NFS and scripts path:
+
+.. code-block:: bash
+
+   ls -ld /hpc_tools
+   ls -l /hpc_tools/scripts
+
+Expected files:
+
+- ``/hpc_tools/scripts/pull_benchmarks.sh``
+- ``/hpc_tools/scripts/benchmark_tools.list``
+
+2. Run runtime staging script and review output:
+
+.. code-block:: bash
+
+   /hpc_tools/scripts/pull_benchmarks.sh
+
+3. Review runtime log:
+
+.. code-block:: bash
+
+   tail -n 200 /var/log/pull_benchmarks.log
+
+4. Validate staged benchmark directories:
+
+.. code-block:: bash
+
+   ls -l /hpc_tools
+   ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi /hpc_tools/geopm /hpc_tools/sionlib
+
+.. note:: ``msr-safe`` is expected only on ``x86_64``.
+
+5. If a tool was skipped as already present:
+
+- Remove that tool directory only if refresh is required.
+- Re-run ``/hpc_tools/scripts/pull_benchmarks.sh``.
 
 7. Telemetry Issues
 ===================
@@ -544,7 +730,7 @@ Stale SSH key.
 
    export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
 
-9.3 discovery.yml Fails - prepare_oim Needs to be Executed
+9.3 provision.yml Fails - prepare_oim Needs to be Executed
 ----------------------------------------------------------
 
 **Cause**
@@ -733,3 +919,272 @@ A local repository for the software has not been configured by the ``local_repo.
 
 1. Re-run the ``local_repo.yml`` playbook with proper inputs to download the software package to the Pulp repository.
 2. Once the local repository has been configured successfully, re-run the failed installation script.
+
+11. Upgrade and Rollback Issues
+================================
+
+11.1 Lock File Issues
+---------------------
+
+Upgrade fails: "A rollback is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The upgrade playbook aborts with the message: *A rollback is currently in progress. Cannot start an upgrade.*
+
+**Causes**
+
+The file ``/opt/omnia/.data/rollback_in_progress.lock`` exists, indicating a rollback is either running or was previously interrupted without cleanup.
+
+**Resolution**
+
+1. Check if a rollback process is actually running:
+
+.. code-block:: bash
+
+   ps aux | grep rollback
+
+2. If no rollback process is active, the lock is stale. Remove it manually:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/rollback_in_progress.lock
+
+3. Rerun the upgrade playbook.
+
+Rollback fails: "An upgrade is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The rollback playbook aborts with the message: *An upgrade is currently in progress. Cannot start a rollback.*
+
+**Causes**
+
+The file ``/opt/omnia/.data/upgrade_in_progress.lock`` exists.
+
+**Resolution**
+
+1. Check if an upgrade process is actually running:
+
+.. code-block:: bash
+
+   ps aux | grep upgrade
+
+2. If no upgrade process is active, remove the stale lock:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/upgrade_in_progress.lock
+
+3. Rerun the rollback playbook.
+
+11.2 Manifest Issues
+---------------------
+
+Manifest shows "partial" status after upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The upgrade completes but ``upgrade_status`` is ``partial`` instead of ``completed``.
+
+**Causes**
+
+One or more components did not reach ``completed`` or ``skipped`` status.
+
+**Resolution**
+
+1. Check which components are not completed:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/upgrade_manifest.yml
+
+2. Review the component status to identify the failed component.
+
+3. Rerun the upgrade with the specific failing tag:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml --tags <component_tag>
+
+4. The playbook will skip already-completed components and only process the pending/failed ones.
+
+Manifest shows "partial" status after rollback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The rollback completes but ``rollback_status`` is ``partial`` instead of ``completed``.
+
+**Causes**
+
+One or more components did not reach ``completed`` or ``skipped`` status.
+
+**Resolution**
+
+1. Check which components are not completed:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/rollback_manifest.yml
+
+2. Review the component status to identify the failed component.
+
+3. Rerun the rollback with the specific failing tag:
+
+.. code-block:: bash
+
+   ansible-playbook rollback/rollback.yml --tags <component_tag>
+
+4. The playbook will skip already-completed components and only process the pending/failed ones.
+
+Manifest file is missing or corrupted
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml`` cannot be parsed.
+
+**Resolution**
+
+1. Check the manifest file for syntax errors:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/upgrade_manifest.yml
+
+2. If corrupted, remove the manifest to start fresh:
+
+.. code-block:: bash
+
+   rm /opt/omnia/.data/upgrade_manifest.yml
+
+3. Rerun the playbook. A new manifest will be initialized from ``oim_metadata.yml``.
+
+.. caution::
+   Removing the manifest means all component statuses are reset to ``pending``. Previously completed components will be re-executed.
+
+11.2 Component-Specific Issues
+----------------------------
+
+OIM upgrade fails
+~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``oim`` component fails during upgrade.
+
+**Resolution**
+
+1. Check the playbook output for the specific error.
+2. Verify ``oim_metadata.yml`` is populated correctly:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/oim_metadata.yml
+
+3. Ensure the ``omnia_core`` container is running and accessible:
+
+.. code-block:: bash
+
+   podman ps | grep omnia_core
+
+4. After fixing the issue, rerun:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml
+
+Kubernetes upgrade fails
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``k8s`` component fails during upgrade.
+
+**Resolution**
+
+1. Verify cluster health before retrying:
+
+.. code-block:: bash
+
+   kubectl get nodes
+   kubectl get pods -A | grep -v Running
+
+2. Ensure all nodes are reachable and in a ``Ready`` state.
+3. Check for pending pods or stuck resources.
+4. After resolving, rerun:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml
+
+11.3 General Troubleshooting Steps
+------------------------------------
+
+Check playbook logs
+~~~~~~~~~~~~~~~~~~~
+
+Increase Ansible verbosity for detailed output:
+
+.. code-block:: bash
+
+   ansible-playbook upgrade/upgrade.yml -vvv
+
+Review state files
+~~~~~~~~~~~~~~~~~
+
+All state files are stored in ``/opt/omnia/.data/``:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/.data/
+   cat /opt/omnia/.data/upgrade_manifest.yml
+   cat /opt/omnia/.data/rollback_manifest.yml
+   cat /opt/omnia/.data/oim_metadata.yml
+
+Check archived manifests
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Previous manifests are archived for history:
+
+.. code-block:: bash
+
+   ls /opt/omnia/.data/archive/
+
+Reset upgrade/rollback state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To completely reset the upgrade/rollback state and start fresh:
+
+.. caution::
+   This will discard all upgrade/rollback progress. Use only as a last resort.
+
+.. code-block:: bash
+
+   rm -f /opt/omnia/.data/upgrade_manifest.yml
+   rm -f /opt/omnia/.data/rollback_manifest.yml
+   rm -f /opt/omnia/.data/upgrade_in_progress.lock
+   rm -f /opt/omnia/.data/rollback_in_progress.lock
+
+Verify oim_metadata.yml
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``oim_metadata.yml`` file is the source of truth for version information. Ensure it contains:
+
+.. code-block:: bash
+
+   cat /opt/omnia/.data/oim_metadata.yml
+
+Expected fields:
+
+* ``omnia_version`` — Currently installed version
+* ``previous_omnia_version`` — Previous version
+* ``upgrade_backup_dir`` — Path to the backup directory
+
+.. note::
+   ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
+

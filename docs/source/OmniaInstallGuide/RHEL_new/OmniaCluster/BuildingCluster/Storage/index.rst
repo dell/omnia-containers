@@ -1,6 +1,0 @@
-Storage configurations
-========================
-
-.. toctree::
-
-    NFS

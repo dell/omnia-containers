@@ -23,7 +23,7 @@ PowerScale SmartConnect [Optional]
     
     Example: dns: ["10.x.x.x", "11.x.x.x"]
 
-* If you did not specify the upstream DNS server during the provisioning process and wish to utilize PowerScale SmartConnect afterwards, first add the upstream DNS server IP to the ``DNS`` entry in ``/opt/omnia/input/project_default/network_spec.yml``  and then run the ``discovery.yml`` playbook again.
+* If you did not specify the upstream DNS server during the provisioning process and wish to utilize PowerScale SmartConnect afterwards, first add the upstream DNS server IP to the ``DNS`` entry in ``/opt/omnia/input/project_default/network_spec.yml``  and then run the ``provision.yml`` playbook again.
 
 Prerequisites
 --------------
@@ -142,20 +142,20 @@ Steps
 
 3. Add the filepath of the ``secret.yaml`` and ``values.yaml`` file to the ``csi_powerscale_driver_secret_file_path`` and ``csi_powerscale_driver_values_file_path`` variables respectively, present in the ``/opt/omnia/input/project_default/omnia_config.yml`` file.
 
-4. Execute the ``discovery.yml`` playbook to install the PowerScale CSI driver on the ``service_k8s_clusters``. See `High Availability <../RHEL_new/HighAvailability/index.html>`_.  To check the prerequisites for ``discovery.yml``, see `Discovery <../RHEL_new/Provision/index.html>`_ and `Prerequisites <../RHEL_new/Provision/provisionprereqs.html>`_
+4. Execute the ``provision.yml`` playbook to install the PowerScale CSI driver on the ``service_k8s_clusters``. For OME-based discovery, use the ``discovery_mechanism=ome`` parameter. See `High Availability <../RHEL_new/HighAvailability/index.html>`_.  To check the prerequisites for ``provision.yml``, see `Discovery <../RHEL_new/Provision/index.html>`_ and `Prerequisites <../RHEL_new/Provision/provisionprereqs.html>`_
 
   .. dropdown:: Service Kubernetes cluster
 
     ::
 
       cd discovery
-      ansible-playbook discovery.yml
+      ansible-playbook provision.yml -e "discovery_mechanism=ome"
 
 
 Expected Results
 ------------------
 
-* After the successful execution of the ``discovery.yml`` playbook, the PowerScale CSI driver is deployed in the isilon namespace.
+* After the successful execution of the ``provision.yml`` playbook, the PowerScale CSI driver is deployed in the isilon namespace.
 * Along with PowerScale driver installation a storage class named **ps01** is also created. The details of the storage class are as follows: ::
 
         apiVersion: storage.k8s.io/v1

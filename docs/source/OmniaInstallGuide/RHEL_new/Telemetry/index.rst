@@ -1,25 +1,37 @@
 Step 8: Configure Telemetry Requirements
 ========================================
 
-Omnia enables telemetry collection using both iDRAC Telemetry and LDMS
-(Lightweight Distributed Metric Service) in HPC environments. This design ensures that
-telemetry components are dynamically provisioned with stateless provisioning tool, 
-providing flexible deployment and simplified lifecycle management.
+Omnia supports the following telemetry collection to monitor and manage your HPC infrastructure.
 
-* **iDRAC Telemetry** provides out-of-band system metrics from Dell servers, including
+**Core Telemetry**
+
+* **iDRAC Telemetry** collects out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and streamed to **Kafka** or **VictoriaMetrics**, depending on the deployment needs. When **VictoriaMetrics** is selected,
-  **VictoriaLogs** is deployed alongside it for centralized log management.
+  and sent to **Kafka** and **VictoriaMetrics**. The iDRAC logs can be collected and sent to **VictoriaLogs**.
 
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
-  and streamed to **Kafka**.
+  and sent to **Kafka**. To route LDMS telemetry to VictoriaMetrics, enable the Vector Telemetry Pipeline.
 
+* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and sends them to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+
+**Vector Telemetry Pipeline**
+
+The **Vector Telemetry Pipeline** provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data to VictoriaMetrics and VictoriaLogs:
+
+* **Vector-LDMS** routes LDMS metrics from Kafka to VictoriaMetrics
+* **Vector-OpenManage Enterprise** routes OpenManage Enterprise metrics and logs from Kafka to VictoriaMetrics and VictoriaLogs
+
+**External Integrations**
+
+* **OpenManage Enterprise Telemetry** collects metrics and logs from OpenManage Enterprise and sends them to **Kafka**. To route OpenManage Enterprise telemetry to VictoriaMetrics and VictoriaLogs, enable the Vector Telemetry Pipeline. For integration steps, see :doc:`ExternalTelemetry/external_kafka_ome`.
+
+* **SFM Telemetry** collects network telemetry metrics from Smart Fabric Manager and sends them to **VictoriaMetrics**. For integration steps, see :doc:`ExternalTelemetry/external_victoria_sfm`.
 
 
 .. note::
 
-   Ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file when ``idrac_telemetry_support`` is set to ``true`` in the ``telemetry_config.yml`` file.
+   To enable any telemetry and log collections (iDRAC telemetry, LDMS, PowerScale telemetry, or PowerScale logs), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and ``idrac_telemetry_support`` is set to ``true`` in the ``telemetry_config.yml`` file.
 
 
 Omnia Telemetry Architecture
@@ -53,6 +65,14 @@ Hosts telemetry collection and storage services:
 - **Victoria Metrics** – Time-series database for metric storage
 - **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
 - **VLAgent** – Platform-managed log collection agent that receives logs from external sources
+- **csm-metrics** – Collects PowerScale metrics
+- **otel-collector** – Forwards metrics to Victoria Metrics and Victoria Logs
+- **CSI Driver for Dell PowerScale:** – Driver required for communication between PowerScale and service Kubernetes nodes
+- **Vector** – High-performance data pipeline tool for collecting, transforming, and routing logs and metrics
+- **Vector-LDMS** – Kafka consumer for LDMS metrics, routes to VictoriaMetrics via vmagent-vector
+- **Vector-OME** – Kafka consumer for OME telemetry, routes metrics to VictoriaMetrics and logs to VictoriaLogs
+- **vmagent-vector** – Dedicated vmagent instance as a write-buffer between Vector pods and vminsert
+- **vlagent-vector** – Dedicated VictoriaLogs forwarding agent for log/event data from Vector pods
 
 
 **Slurm Cluster**
@@ -62,6 +82,7 @@ Each slurm compute node runs:
 - **LDMS Sampler** – Collects OS metrics (CPU, memory, network, and I/O)
 - **iDRAC** – Provides hardware health data (temperature, power, and fans)
 
+
 iDRAC and LDMS Telemetry Data Flows
 ------------------------------------
 
@@ -69,7 +90,7 @@ iDRAC and LDMS Telemetry Data Flows
 
 ::
 
-   Slurm Compute Nodes (LDMS Sampler) → LDMS Aggregator → LDMS Store → Kafka
+   Slurm Compute Nodes (LDMS Sampler) → LDMS Aggregator → LDMS Store → Kafka 
 
 **iDRAC Flow (Hardware Metrics)**
 
@@ -77,9 +98,32 @@ iDRAC and LDMS Telemetry Data Flows
 
    iDRAC (BMC) → iDRAC Collector → Kafka
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
+   iDRAC (BMC) → iDRAC Collector → VLAgent → Victoria Logs
+
+Vector Telemetry Data Flows
+-----------------------------
+
+::
+
+   LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → vminsert → VictoriaMetrics
+   OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
+   OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
+
+PowerScale Telemetry Data Flows
+------------------------------------
+
+::
+
+   PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metric
+   PowerScale Nodes forwards syslog →  vlagent → Victoria Logs
+
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
+    :includehidden:
 
     service_cluster_telemetry
     ldms_telemetry
+    power_scale_telemetry
+    vector_telemetry
+    

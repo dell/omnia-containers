@@ -1,0 +1,12 @@
+Metric Name,Description,Unit
+ib_port_state,"InfiniBand port operational state (1=down, 2=init, 3=armed, 4=active)",state
+ib_port_xmit_data,Transmitted data per port,bytes
+ib_port_rcv_data,Received data per port,bytes
+ib_port_xmit_pkts,Transmitted packets per port,packets
+ib_port_rcv_pkts,Received packets per port,packets
+ib_port_symbol_error,Symbol error count per port,count
+ib_port_link_error_recovery,Link error recovery count per port,count
+ib_port_link_downed,Link downed count per port,count
+ib_port_rcv_errors,Received errors per port,count
+ib_port_vl15_dropped,VL15 dropped packets per port,packets
+ib_excessive_buffer_overrun_errors,Excessive buffer overrun error count per port,count

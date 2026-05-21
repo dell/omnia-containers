@@ -13,6 +13,8 @@ LDMS collects system metrics such as CPU, memory, network, I/O, and Slurm job st
 
 For more details on LDMS, see `Lightweight Distributed Metric Service <https://github.com/ovis-hpc/ldms>`_
 
+.. note:: To consume LDMS metrics from the Kafka 'ldms' topic, transform to Prometheus format, and write to VictoriaMetrics, see :ref:`telemetry-vector-configuration`.
+
 
 During deployment, Omnia attaches LDMS aggregator and store pods to the admin network. This configuration improves throughput between Slurm nodes and the Kubernetes cluster.
 
@@ -32,7 +34,7 @@ The following LDMS plugins are supported in Omnia:
 Prerequisites
 ---------------
 
-* Ensure that the ``discovery.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
+* Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 
 Steps
 -------

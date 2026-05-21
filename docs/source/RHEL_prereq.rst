@@ -37,6 +37,16 @@ NFS Server for Omnia Infrastructure Manager (OIM)
 * Omnia recommends using an NFS share with at least 200 GB storage for OIM and cluster configuration.
 * Ensure that there is a dedicated mount point for each NFS.
 
+PowerScale S3 Storage
+---------------------
+
+* PowerScale cluster must be deployed within the admin subnet and should be accessible from all cluster nodes.
+* Omnia uses HTTP access only when connecting to PowerScale, using the default port 9020.
+* Ensure both S3 and HTTP services are enabled in the S3 bucket configuration.
+* Ensure that valid S3 Access Key ID and S3 Secret Access Key are provided for authentication when accessing the PowerScale S3 service.
+* S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need S3 Access Key ID and S3 Secret Access Key to access the S3 buckets created using the key.
+* For detailed configuration instructions, see :ref:`PowerScale S3 configuration <powerscale-s3-config>`.
+
 Networking
 ----------
 
@@ -171,6 +181,56 @@ Slurm
   Run ``ansible-playbook local_repo/local_repo.yml``.
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.
 * After Slurm RPMS are generated, change the rpms in corresponding role accordingly if the rpm names are not matching with rpms in ``input/config/x86_64/rhel/10.0/slurm_custom.json``.
+
+HPC Benchmark Image Layer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Omnia supports an HPC Benchmark Image Layer for Slurm deployments.
+- This capability is runtime script-driven:
+  - Provisioning deploys ``pull_benchmarks.sh`` and ``benchmark_tools.list`` to ``/hpc_tools/scripts``.
+  - Runtime staging is executed via ``/hpc_tools/scripts/pull_benchmarks.sh``.
+- Benchmark artifacts are pulled from the local Pulp mirror path to ``/hpc_tools/<tool>/``.
+- The feature is staging-only; Omnia does not compile or execute benchmark workloads.
+- Ensure Slurm shared storage (``/hpc_tools``) is available and local repository content is prepared before runtime staging.
+
+**Operational notes**
+
+- ``msr-safe`` is ``x86_64`` only and is automatically skipped on ``aarch64``.
+- If a destination directory already contains files, the tool is skipped to prevent overwrite.
+- Runtime summary and per-tool outcomes are logged at:
+
+.. code-block:: bash
+
+   /var/log/pull_benchmarks.log
+
+CUDA and DCGM Prerequisites for Slurm GPU Nodes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following prerequisites must be satisfied before deploying Omnia on Slurm clusters where
+GPU-capable nodes are present. These apply in addition to general Slurm prerequisites.
+
+Repository Requirements
+
+- CUDA repository: Must be reachable from Slurm compute nodes. The CUDA repository must be accessible through the local Pulp repository configured during ``local_repo.yml`` execution.
+- DCGM repository: ``datacenter-gpu-manager-4-cuda<N>`` must be available in the configured local repository. For CUDA 12+, ``datacenter-gpu-manager-4-multinode-cuda<N>`` must also be available.
+- DKMS and kernel headers: Required only for ``nvidia-peermem``. The ``kernel-devel`` package for the running kernel must be present in the local repository. Verify kernel headers exist at ``/lib/modules/$(uname -r)/build`` prior to provisioning.
+
+NFS Requirements
+
+- The shared NFS path configured for Slurm HPC tools must be reachable from all Slurm compute
+  nodes and all login/compiler nodes at provisioning time.
+- Minimum recommended space for the ``hpc_tools/cuda`` NFS path is **30 GB**.
+- The NFS share must be exported with ``no_root_squash``.
+
+Hardware Requirements
+
+- NVIDIA GPU hardware: Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped at runtime.
+- Kernel headers: Required only for ``nvidia-peermem`` DKMS build.
+- DKMS: Must be installed on nodes where ``nvidia-peermem`` is required.
+
+.. note:: If repositories are not reachable or the NFS path is unavailable at provisioning time,
+   GPU setup will fail on affected nodes and the DCGM service will not be started. Refer to the
+   Manual Recovery section for remediation steps.
 
 BuildStreaM
 ------------

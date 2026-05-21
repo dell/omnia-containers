@@ -1,5 +1,5 @@
-Step 6: Verify the Status of Omnia Core Container Services
-===========================================================
+Step 6: Verify Readiness of OIM
+================================
 
 After successfully running the ``prepare.oim.yml``, you can verify if the ``omnia.target`` and
 its dependent services are running correctly.
@@ -58,6 +58,22 @@ its dependent services are running correctly.
    .. note::  The ``omnia_auth.service`` runs only when OpenLDAP is specified in the ``/opt/omnia/input/project_default/software_config.json``.
    .. note::  The ``omnia_build_stream.service`` and ``omnia_postgres.service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
     
+
+Verify PowerScale S3 Connection
+-------------------------------
+
+If you are using PowerScale as your S3 storage, verify the following after running the ``prepare_oim.yml`` playbook:
+
+1. To verify if the S3 buckets are created, run the following command::
+
+       s3cmd ls
+
+2. To view the list of images present in the S3bucket, run the following command::
+
+       s3cmd ls s3://<bucket-name>/
+
+For the instructions on configuring PowerScale as S3 storage, see :ref:`PowerScale S3 configuration <powerscale-s3-config>`.
+
 
 View Usage Instructions for OpenCHAMI Containers
 --------------------------------------------------

@@ -1,43 +1,86 @@
 ﻿Variables,Details
-"**nfs_client_params**
+"**mounts**
 
-     ``List (dict)``
+``List (dict)``
 
-     Required    ","* This is a list of dictionaries.
-* nfs_name—Provide the name of the NFS share which is referred by slurm and service kubernetes. 
-* server_ip—Provide the IP or hostname of the NFS server which is accessible to all the diskful and diskless nodes. 
-* server_share_path—Provide the full path of the directory in the NFS Server. 
-* client_share_path—Provide the full path where nfs server contents needs to be mounted. 
-* client_mount_options—Provide the mount options as a comma-separated value. **Possible values are**: ``nosuid``, ``rw``, ``sync``, ``hard``, ``intr``
+ Required    ","Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
 
+* **name**—Unique identifier for this mount entry. Required
+* **source**—Device or network path (e.g. 192.168.1.100:/share, /dev/sdc, UUID=xxx). Required
+* **mount_point**—Mount point path (e.g. /mnt, /opt/data). Required
+* **fs_type**—Filesystem type (e.g. ext4, xfs, nfs, nfs4, cifs, auto). Optional. If specified, takes PRIORITY over mount_params profile
+* **mnt_opts**—Mount options (e.g. defaults,noexec,nofail). Optional. If specified, takes PRIORITY over mount_params profile
+* **dump_freq**—Dump frequency (usually ""0""). Optional. If specified, takes PRIORITY over mount_params profile
+* **fsck_pass**—Fsck pass number (usually ""0"" or ""2""). Optional. If specified, takes PRIORITY over mount_params profile
+* **mount_params**—Name of a profile in mount_params section. Optional. Used ONLY for fields not explicitly specified in the mount entry
+* **permissions**—Directory ownership and mode for the mount point. Optional
+    * **owner**: User owner (name or numeric UID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+    * **group**: Group owner (name or numeric GID, e.g., ""root"", ""slurm"", ""1001""). Default: ""root""
+    * **mode**: Octal permission string (e.g., ""0755"", ""1777""). Default: ""0755""
+* **node_key**—cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies per-node bind mount where source path is constructed using the queried variable value. The variable chosen must be unique per host to ensure isolation between nodes. fs_type forced to ""none"", mnt_opts forced to ""bind"" (automatic). Source becomes: <source>/<ds.meta_data.node_key>/<mount_point_stripped_leading_slash>
+* **node_mount_point**—List of bind mount targets. Required when node_key is set. Each target gets: <source>/<node_key_value>/<target_stripped_slash> -> <target>
+* **mount_on_oim**—Boolean flag to mount on OIM (Omnia Image Management). Optional
+* **functional_group_prefix**—List of functional group prefixes. All nodes whose role starts with any prefix get this mount * e.g., [""slurm""] matches slurm_control_node, slurm_node, etc. If omitted (and no group), mount applies to all nodes. Mutually exclusive with groups.
+* **groups**—List of GROUP_NAME values from pxe_mapping_file.csv. Optional. Mutually exclusive with functional_group_prefix. e.g., groups: [""grp1"", ""grp2""] targets only nodes in those groups.
 
 **Sample**::
 
-        nfs_client_params:
-        - server_ip: ""172.16.107.168"" # Provide the IP of the NFS server
-          server_share_path: ""/mnt/share/omnia"" # Provide server share path of the NFS Server
-          client_share_path: /share_omnia
-          client_mount_options: ""nosuid,rw,sync,hard,intr""
-          nfs_name: nfs_slurm
- 
-        - server_ip: ""172.16.107.121"" # Provide the IP of the NFS server
-          server_share_path: ""/mnt/share/omnia_k8s"" # Provide server share path of the NFS Server
-          client_share_path: /share_omnia_k8s
-          client_mount_options: ""nosuid,rw,sync,hard,intr""
-          nfs_name: nfs_k8s"
-"**powervault_config**
+  - name: ""nfs_slurm""
+    source: ""172.16.107.168:/mnt/share/omnia""
+    mount_point: ""/share_omnia""
+    fs_type: ""nfs""
+    mnt_opts: ""nosuid,rw,sync,hard,intr""
+    mount_on_oim: true
+    functional_group_prefix: [""slurm"", ""login""]
 
-     ``dict``
+  - name: ""nfs_k8s""
+    source: ""172.16.107.121:/mnt/share/omnia_k8s""
+    mount_point: ""/opt/omnia/k8s_mount""
+    fs_type: ""nfs""
+    mnt_opts: ""nosuid,rw,sync,hard,intr""
+    mount_on_oim: true
+    functional_group_prefix: [""service_kube""]"
+"**mount_params**
 
-     Optional  ","* The PowerVault storage integration provides persistent external storage for critical Slurm components, ensuring high availability and data durability across node reboots or reimaging.
+``dict``
 
-    * Slurm State Save Location (``StateSaveLocation``): Preserves Slurm controller state, job checkpoints, and scheduler data, enabling seamless recovery after controller restarts.
-    * Slurm Database Storage (``/var/lib/mysql``): Houses the SlurmDBD (Slurm Database Daemon) MySQL/MariaDB data, maintaining job accounting records, user associations, and cluster usage history.
+ Optional    ","Named default profiles for mount configurations. Apart from fs_type, mnt_opts, dump_freq, fsck_pass, additional custom fields can be defined and used in mount templates (e.g., vast_nfs_ip).""
 
-* ip—A list of PowerVault iscsi target IP addresses used for iSCSI target discovery.
-* port—Defines the TCP port for the iSCSI target service. This is an optional parameter and if not provided, the default value is 3260.
-* iscsi_initiator—Specifies the ``InitiatorName`` used by the host when connecting to the iSCSI target.
-* volume_id—This is the unique WWN/serial-identifier for the specific volume that should be used for persistent storage.
+* **nfs_default**—Default NFS mount with standard NFS4.1 with high-performance options
+    * **fs_type**: ""nfs""
+    * **mnt_opts**: ""nosuid,rw,sync,hard,intr""
+    * **dump_freq**: ""0""
+    * **fsck_pass**: ""0""
+* **vast_nfs**—VAST NFS storage with standard configuration
+    * **fs_type**: ""nfs""
+    * **mnt_opts**: ""nosuid,rw,sync,hard,intr""
+* **vast_rdma**—VAST NFS with RDMA configuration
+    * **fs_type**: ""nfs""
+    * **mnt_opts**: ""proto=rdma,port=20049,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard,intr,localaddr=192.168.0.23""
+"
+"**powervault_config:**
+
+``List (dict)``
+
+Required    ","PowerVault iSCSI storage configuration. Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts.
+
+* **Mandatory parameters:**
+   * **name**—Unique identifier for this powervault entry. Required
+   * **ip**—List of PowerVault controller IPv4 addresses for iSCSI target discovery. Required
+   * **iscsi_initiator**—InitiatorName IQN for the host. Required
+   * **volume_id**—WWN/identifier for the volume (used for multipath device matching). Required
+   * **mount_point**—Where the discovered device gets mounted. Required
+
+* **Optional parameters:**
+   * **port**—TCP port for iSCSI target service. Default: 3260
+   * **mount_params**—Named profile for fs_type/mnt_opts (read by the runcmd script). Optional
+   * **node_key**—ds.meta_data key for per-node bind mounts (e.g., ""local_hostname"", ""ds.meta_data.instance_data.local_ipv4""). When present, implies bind mount: <mount_point>/<node_key_value>/<subdir> -> <target>.
+   * **node_mount_point**—List of bind mount targets. Required when node_key is set Pattern: <mount_point>/<node_key_value>/<target_stripped_leading_slash> -> <target>
+   * **functional_group_prefix**—List of functional group prefixes for node targeting. Mutually exclusive with group.
+   * **permissions**—Directory ownership and mode for the mount point. Optional
+    * **owner**: User owner (name or UID). Default: ""root""
+    * **group**: Group owner (name or GID). Default: ""root""
+    * **mode**: Octal permission string (e.g., ""0644""). Default: ""0644""
 
 .. note:: 
     * Powervault storage is not replacement for the NFS storage used by slurm cluster.
@@ -46,7 +89,56 @@
 **Sample**::
 
     powervault_config:
-        ip: - 172.1.2.3
+      - name: powervault1
+        ip:
+          - 172.1.2.3
         port: 3260
         iscsi_initiator: iqn.2025-01.com.dell:scontrol-node
-        volume_id: 00c0ff4343f1f1f1001c8c4e6901000000"
+        volume_id: 00c0ff4343f1f1f1001c8c4e6901000000
+        mount_point: ""/mnt/slurm""
+        mount_params: ""powervault_iscsi""
+        node_key: ""local_hostname""
+        node_mount_point:
+          - ""/var/lib/mysql""
+          - ""/var/spool/slurm""
+        functional_group_prefix: [""slurm_control_node""]
+        permissions:
+          owner: ""slurm""
+          group: ""slurm""
+          mode: ""0750"""
+"**swap**
+
+``List (dict)``
+
+ Optional    ","Swap file configuration (list of swap configurations).
+
+* **name**—Unique identifier. Required
+* **filename**—Path to the swap file (e.g., /swapfile). Required
+* **size**—Size in bytes, 'auto', or human-readable (e.g., ""2G"", ""512M""). Required
+* **maxsize**—Max size (used with size: auto). Optional
+* **functional_group_prefix**—List of functional group prefixes.
+
+**Sample**::
+
+  - name: ""compute_swap""
+    filename: ""/swapfile""
+    size: ""2G""
+    maxsize: ""4G""
+    functional_group_prefix: [""slurm_node""]"
+"**s3_configurations**
+
+``dict``
+
+ Optional    ","Configures the S3-compatible storage backend for OpenCHAMI image repository.
+
+* **provider**—S3 provider type. Required
+    * ``powerscale``: Use Dell PowerScale as external S3 storage (default)
+    * ``minio``: Use MinIO container deployed locally on OIM
+* **endpoint_url**—S3 endpoint URL. Required when provider is ``powerscale`` (For ""https://10.43.1.11:9021""). Leave empty ("""") when provider is ``minio`` (auto-configured to local MinIO)
+* **s3_access_id**—S3 access ID. Prompted during prepare_oim credential setup. For ``minio`` provider, defaults to ""admin"" and is not prompted. For ``powerscale`` provider, prompted as conditional mandatory.
+* **s3_secret_key**—S3 secret key. Prompted during prepare_oim credential setup.
+
+**Sample**::
+
+  provider: ""powerscale""
+  endpoint_url: ""http://192.168.1.100:9020"""
