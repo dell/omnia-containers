@@ -110,7 +110,7 @@ Vector Telemetry Data Flows
    OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
 
 PowerScale Telemetry Data Flows
-------------------------------------
+--------------------------------
 
 ::
 
