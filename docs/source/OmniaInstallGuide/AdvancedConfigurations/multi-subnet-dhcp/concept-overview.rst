@@ -134,16 +134,13 @@ Organizations with security or operational policies that require network segment
 Prerequisites
 ------------
 
-To implement Multi-Subnet DHCP, the following must be in place:
+Before configuring multi-subnet DHCP:
 
-**Network Infrastructure**
-- DHCP relay agents configured on each subnet's gateway/router
-- Proper routing between OIM and all rack subnets
-- ToR switches configured with appropriate VLANs and SVIs
-- Each rack subnet has a unique, non-overlapping CIDR
-
-.. note::
-   Multi-Subnet DHCP requires DHCP relay agents on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreDHCP server.
+- OS is provisioned on the OIM server and IP address is configured
+- Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM Server's Admin/PXE Network IP
+- Access to edit ``input/network_spec.yml`` on the OIM node
+- Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
+- DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
 
 Limitations
 -----------
