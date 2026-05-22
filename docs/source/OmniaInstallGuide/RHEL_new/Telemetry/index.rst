@@ -7,17 +7,21 @@ Omnia supports the following telemetry collection to monitor and manage your HPC
 
 * **iDRAC Telemetry** collects out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and sent to **Kafka** and **VictoriaMetrics**. The iDRAC logs can be collected and sent to **VictoriaLogs**.
-
+  and sent to Kafka and VictoriaMetrics. The iDRAC logs can be collected and sent to VictoriaLogs. 
+  
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
-  and sent to **Kafka**. To route LDMS telemetry to VictoriaMetrics, enable the Vector Telemetry Pipeline.
+  and sent to Kafka. To route LDMS telemetry to VictoriaMetrics, enable the Vector Telemetry Pipeline.
 
-* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and sends them to **VictoriaMetrics** and **VictoriaLogs**, respectively.
+* **PowerScale Telemetry** collects the PowerScale Telemetry data and logs and sends them to VictoriaMetrics and VictoriaLogs.
+
+* **DCGM Telemetry** collects NVIDIA GPU metrics including temperature, utilization, memory, ECC errors, and power from compute nodes. The DCGM Telemetry data can be collected and sent to Kafka and VictoriaMetrics.
+
+* **UFM Telemetry** collects NVIDIA UFM InfiniBand Fabric Manager metrics and syslog logs, including IB port state, transmit/receive data, error counters, and fabric topology. The UFM Telemetry data and logs can be collected and sent to VictoriaMetrics and VictoriaLogs, respectively.
 
 **Vector Telemetry Pipeline**
 
-The **Vector Telemetry Pipeline** provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data to VictoriaMetrics and VictoriaLogs:
+The Vector Telemetry Pipeline provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data to VictoriaMetrics and VictoriaLogs:
 
 * **Vector-LDMS** routes LDMS metrics from Kafka to VictoriaMetrics
 * **Vector-OpenManage Enterprise** routes OpenManage Enterprise metrics and logs from Kafka to VictoriaMetrics and VictoriaLogs
@@ -37,7 +41,7 @@ The **Vector Telemetry Pipeline** provides Kafka-to-Victoria ingestion using Vec
 Omnia Telemetry Architecture
 -----------------------------
 
-Omnia collects telemetry data from HPC cluster nodes using: **LDMS** for OS-level metrics and **iDRAC** for hardware telemetry.
+Omnia collects telemetry data from HPC cluster nodes using: LDMS for OS-level metrics and iDRAC for hardware telemetry.
 
 The following diagram illustrates the telemetry services that can be deployed using Omnia and the data flow between the components.
 
@@ -106,8 +110,15 @@ Vector Telemetry Data Flows
 ::
 
    LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → vminsert → VictoriaMetrics
-   OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
-   OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
+   OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
+   OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
+
+.. note::
+   To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command::
+
+   .. code-block:: bash
+
+       curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
 
 PowerScale Telemetry Data Flows
 --------------------------------
