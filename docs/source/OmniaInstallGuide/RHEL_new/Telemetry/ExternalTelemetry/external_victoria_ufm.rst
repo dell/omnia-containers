@@ -73,12 +73,12 @@ Configure using the UFM Web UI to send syslog messages to the VLAgent LoadBalanc
 
 1. From the left navigation menu, select **Settings → Data Streaming**
 2. Select **System log** and complete the fields:
-  
+
    * **Destination**: Enter the VLAgent LoadBalancer IP address
    * **Syslog Port**: Enter 514 (default)
    * **System logs Level**: Select syslog level from the dropdown based on your requirements
    * **Streaming Data**: Select UFM logs
-   
+
 3. Click **Save**
 
 **Enable syslog forwarding using the UFM CLI:**
