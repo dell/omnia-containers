@@ -3,10 +3,10 @@
 
 ``string``
 
-Optional","* Enter the path where user has placed the PXE mapping CSV file that contains the node details for provisioning. 
-* The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP 
+Optional","* Enter the path where user has placed the PXE mapping CSV file that contains the node details for provisioning.
+* The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP
 * This variable is required to discover nodes using a mapping file.
-* The headers of the ``.csv`` file are are FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP 
+* The headers of the ``.csv`` file are are FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP
 * A sample file is provided here: ``/omnia/examples/pxe_mapping_file.csv``"
 "**timezone**
 
