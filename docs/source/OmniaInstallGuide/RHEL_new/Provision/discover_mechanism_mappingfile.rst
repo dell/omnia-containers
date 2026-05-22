@@ -11,6 +11,16 @@ OME-based BMC Discovery
 
 OME-based BMC discovery is the recommended method for discovering target nodes. This mechanism leverages OpenManage Enterprise to automatically discover servers through their BMC/iDRAC interfaces, reducing manual configuration effort.
 
+**Prerequisites**
+
+Before initiating OME-based BMC discovery, ensure the following:
+
+- OpenManage Enterprise is already installed and configured
+- All iDRAC IPs for all the servers are preconfigured
+- OME has already discovered the devices
+- Functional Groups are created in OME
+- Server location is already specified in iDRAC Hostname
+
 To use OME-based discovery:
 
 1. Ensure OpenManage Enterprise (OME) is accessible from the Omnia Infrastructure Manager (OIM) and configured with the target servers.
@@ -47,11 +57,11 @@ A sample format is shown below:
 
 .. note::
     * The header fields mentioned above are case sensitive.
-    * The IP address provided in the mapping file are not validated by Omnia. Ensure that the correct IP addresses are provided. Incorrect IP address can cause unexpected failures.
+    * The IP addresses provided in the mapping file are not validated by Omnia. Ensure that the correct IP addresses are provided. Incorrect IP addresses can cause unexpected failures.
     * The service tags provided in the mapping file are not validated by Omnia. Ensure that correct service tags are provided. Incorrect service tags can cause unexpected failures.
     * The hostnames provided should not contain the domain name of the nodes.
     * The PARENT_SERVICE_TAG is required only for slurm nodes.
     * The ADMIN_MAC and BMC_MAC addresses provided in ``pxe_mapping_file.csv`` should refer to the PXE NIC and BMC NIC on the target nodes respectively.
-    * IB NIC NAME and IB IP are for nodes with IB NIC connectivity. The IB NIC NAME should specify the Active IB Port (e.g., "InfiniBand.Slot.7-1").
+    * IB_NIC_NAME and IB_IP are for nodes with IB NIC connectivity. The IB_NIC_NAME should specify the Active IB Port (e.g., "InfiniBand.Slot.7-1").
     * Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
     * When using the OME-based discovery mechanism, the PXE mapping will be automatically populated. The user can verify and edit the mapping file if necessary. The file path should be provided in the ``provision_config.yml`` file.
