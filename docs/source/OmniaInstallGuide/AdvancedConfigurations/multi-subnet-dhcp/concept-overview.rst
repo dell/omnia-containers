@@ -142,11 +142,6 @@ To implement Multi-Subnet DHCP, the following must be in place:
 - ToR switches configured with appropriate VLANs and SVIs
 - Each rack subnet has a unique, non-overlapping CIDR
 
-**Configuration**
-- ``input/network_spec.yml`` file accessible for editing
-- Network topology documented (rack IDs, subnet allocations, gateway IPs)
-- DHCP pool ranges planned and validated to avoid conflicts
-
 .. note::
    Multi-Subnet DHCP requires DHCP relay agents on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreDHCP server.
 
@@ -160,14 +155,3 @@ Multi-Subnet DHCP has the following limitations:
 - **BMC Subnet Management**: BMC IPs are managed separately through the OOB/BMC network and are not part of the multi-subnet DHCP configuration.
 - **Dynamic Subnet Discovery**: Subnets must be explicitly configured in ``network_spec.yml``. Automatic subnet discovery is not supported.
 - **Per-Subnet Hostname Patterns**: While coresmd supports per-subnet hostname patterns via ``rule=subnet:`` directives, Omnia templates do not currently wire this functionality. All racks share the same hostname pattern.
-
-Next Steps
-----------
-
-For configuration instructions, see :doc:`how-to-configuration`.
-
-For network architecture design guidance, see :doc:`concept-network-architecture`.
-
-For troubleshooting assistance, see :doc:`../../troubleshootingguide/multi-subnet-dhcp`.
-
-For parameter reference, see :doc:`../../Tables/network_spec`.
