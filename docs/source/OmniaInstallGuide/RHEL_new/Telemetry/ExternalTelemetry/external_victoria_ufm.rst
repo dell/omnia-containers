@@ -79,8 +79,6 @@ Configure using the UFM Web UI to send syslog messages to the VLAgent LoadBalanc
    - **Streaming Data**: Select UFM logs
 3. Click **Save**
 
-.. image:: ../../../../images/ufm_syslog_web_ui.png
-
 **Enable syslog forwarding using the UFM CLI:**
 
 Configure using the UFM CLI to send syslog messages to the VLAgent LoadBalancer IP. Modify the ``[Logging]`` section in ``/opt/ufm/conf/gv.cfg``::
