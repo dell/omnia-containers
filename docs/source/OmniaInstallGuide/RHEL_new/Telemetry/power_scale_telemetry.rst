@@ -56,18 +56,18 @@ Prerequisites
 
        .. code-block:: bash
 
-           isi audit setting modify --syslog-forwarding-enabled false
+          isi audit setting modify --syslog-forwarding-enabled false
 
-       To completely disable syslog forwarding and clear syslog servers, run the following commands::
+       To completely disable syslog forwarding and clear syslog servers, run the following command::
 
        .. code-block:: bash
 
-           isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
-           isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
-           isi audit settings global modify --clear-protocol-syslog-servers
+          isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
+          isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
+          isi audit settings global modify --clear-protocol-syslog-serverss
 
    
-    * Configure the vlagen loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery.
+    * Configure the vlagent loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery.
 
         .. image:: ../../../images/powerscale_vmselect_logs_prereq.png
 
