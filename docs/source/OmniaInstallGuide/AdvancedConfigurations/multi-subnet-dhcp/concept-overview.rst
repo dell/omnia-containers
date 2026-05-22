@@ -110,6 +110,38 @@ Multi-subnet DHCP configuration is specified in the ``input/network_spec.yml`` f
            netmask_bits: "24"
            router: "10.40.3.1"
            dynamic_range: "10.40.3.100-10.40.3.200"
+         - subnet: "10.40.5.0"
+           netmask_bits: "24"
+           router: "10.40.5.1"
+           dynamic_range: "10.40.5.100-10.40.5.200"
+         - subnet: "10.40.7.0"
+           netmask_bits: "24"
+           router: "10.40.7.1"
+           dynamic_range: "10.40.7.100-10.40.7.200"
+         - subnet: "10.40.9.0"
+           netmask_bits: "24"
+           router: "10.40.9.1"
+           dynamic_range: "10.40.9.100-10.40.9.200"
+         - subnet: "10.40.11.0"
+           netmask_bits: "24"
+           router: "10.40.11.1"
+           dynamic_range: "10.40.11.100-10.40.11.200"
+         - subnet: "10.40.13.0"
+           netmask_bits: "24"
+           router: "10.40.13.1"
+           dynamic_range: "10.40.13.100-10.40.13.200"
+         - subnet: "10.40.15.0"
+           netmask_bits: "24"
+           router: "10.40.15.1"
+           dynamic_range: "10.40.15.100-10.40.15.200"
+         - subnet: "10.40.17.0"
+           netmask_bits: "24"
+           router: "10.40.17.1"
+           dynamic_range: "10.40.17.100-10.40.17.200"
+         - subnet: "10.40.19.0"
+           netmask_bits: "24"
+           router: "10.40.19.1"
+           dynamic_range: "10.40.19.100-10.40.19.200"
 
 Use Cases
 ---------
@@ -141,6 +173,15 @@ Before configuring multi-subnet DHCP:
 - Access to edit ``input/network_spec.yml`` on the OIM node
 - Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
 - DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
+
+Verification
+------------
+
+After configuring multi-subnet DHCP, verify the following:
+
+- Verify that CoreSMD has registered the additional subnets. Expected output should show ``subnet=`` directives for each additional subnet::
+
+    podman logs coredhcp | grep "subnet="
 
 Limitations
 -----------
