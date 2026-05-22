@@ -51,6 +51,7 @@ Prerequisites
 
     .. image:: ../../../images/powerscale_syslog_logs_prereq.png
 
+
     .. note::
        To disable syslog forwarding, run the following command::
  
