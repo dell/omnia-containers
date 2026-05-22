@@ -49,7 +49,7 @@ Prerequisites
 
             isi audit setting modify --syslog-forwarding-enabled true
 
-    .. image:: ../../../images/powerscale_syslog_logs_prereq.png
+      .. image:: ../../../images/powerscale_syslog_logs_prereq.png
 
 
 
