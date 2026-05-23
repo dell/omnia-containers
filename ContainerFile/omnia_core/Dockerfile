@@ -19,31 +19,41 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
 
-# Create persistent project with patched golang.org/x/crypto@v0.52.0 and golang.org/x/net@v0.46.0
-# Scanners detect this from go.mod/go.sum files and module cache
+# Create persistent project with patched golang.org/x/crypto@v0.52.0 and golang.org/x/net@v0.54.0
+# IMPORTANT: x/net must be v0.54.0+ to avoid Go module resolver downgrading x/crypto.
+# Scanners detect this from go.mod/go.sum files and module cache.
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
+    go get golang.org/x/net@v0.54.0 && \
     go get golang.org/x/crypto@v0.52.0 && \
-    go get golang.org/x/net@v0.46.0 && \
+    go mod edit -require=golang.org/x/crypto@v0.52.0 && \
+    go mod edit -require=golang.org/x/net@v0.54.0 && \
     printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
-    go build -o crypto-patch . && \
-    echo "Patched crypto version:" && \
+    go mod tidy && \
+    echo "=== Verifying resolved versions ===" && \
     go list -m golang.org/x/crypto && \
-    echo "Patched net version:" && \
     go list -m golang.org/x/net && \
+    go list -m golang.org/x/crypto | grep -q "v0.52.0" || (echo "FATAL: x/crypto downgraded below v0.52.0 — CVE-2025-58181 and CVE-2025-47914 NOT fixed" && exit 1) && \
+    go list -m golang.org/x/net | grep -q "v0.54.0" || (echo "FATAL: x/net is not v0.54.0" && exit 1) && \
+    go build -o crypto-patch . && \
     echo "Crypto-patch built with Go $(go version)" && \
     cd / && \
     chmod -R 755 /opt/go-crypto-patch && \
     chmod -R 777 /go
 
-# Build Git LFS from source with patched Go 1.25.10, golang.org/x/crypto 0.52.0, and golang.org/x/net@v0.46.0
+# Build Git LFS from source with patched Go 1.25.10, golang.org/x/crypto@v0.52.0, and golang.org/x/net@v0.54.0
 RUN git clone https://github.com/git-lfs/git-lfs.git /tmp/git-lfs && \
     cd /tmp/git-lfs && \
     git checkout v3.7.1 && \
     go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.52.0 && \
-    go mod edit -replace golang.org/x/net=golang.org/x/net@v0.46.0 && \
+    go mod edit -replace golang.org/x/net=golang.org/x/net@v0.54.0 && \
     go mod tidy && \
+    echo "=== Git LFS: Verifying resolved module versions ===" && \
+    go list -m golang.org/x/crypto && \
+    go list -m golang.org/x/net && \
+    go list -m golang.org/x/crypto | grep -q "v0.52.0" || (echo "FATAL: git-lfs x/crypto downgraded below v0.52.0 — CVE-2025-58181 and CVE-2025-47914 NOT fixed" && exit 1) && \
+    go list -m golang.org/x/net | grep -q "v0.54.0" || (echo "FATAL: git-lfs x/net is not v0.54.0" && exit 1) && \
     go build -o /usr/local/bin/git-lfs . && \
     git lfs install && \
     cd / && rm -rf /tmp/git-lfs
@@ -58,9 +68,10 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 RUN python3 --version
 
 # Upgrade pip to fix CVE-2025-8869 and CVE-2025-68121 (system pip vulnerability)
-RUN python3 -m pip install --upgrade pip==26.0 --target /usr/lib/python3.12/site-packages --force-reinstall && \
-    rm -rf /usr/lib/python3.12/site-packages/pip-23.3.2* && \
-    find /usr/lib/python3.12/site-packages -name "*pip-23.3.2*" -exec rm -rf {} + 2>/dev/null || true
+# Use dynamic site-packages detection (Fedora 42 ships Python 3.13)
+RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
+    python3 -m pip install --upgrade pip==26.0 --target "$SITE_PKGS" --force-reinstall && \
+    find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
 RUN pip3 install uv==0.9.13
@@ -147,10 +158,10 @@ LABEL security.go.version="1.25.10" \
       security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-32283-fixed,CVE-2026-42501-fixed,CVE-2026-33811-fixed" \
       security.golang.crypto.version="0.52.0" \
       security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
-      security.golang.net.version="0.46.0" \
+      security.golang.net.version="0.54.0" \
       security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
       security.git-lfs.version="3.7.1-patched" \
-      security.git-lfs.note="Built from source with Go 1.25.10, golang.org/x/crypto 0.52.0, and golang.org/x/net 0.46.0" \
+      security.git-lfs.note="Built from source with Go 1.25.10, golang.org/x/crypto v0.52.0, and golang.org/x/net v0.54.0; build-time verified" \
       security.urllib3.version="2.7.0" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed,GHSA-2xpw-w6gg-jr37-fixed,GHSA-gm62-xv2j-4w53-fixed" \
       security.pyasn1.version="0.6.3" \
