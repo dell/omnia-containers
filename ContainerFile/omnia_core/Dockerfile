@@ -1,10 +1,10 @@
-# Use Fedora 40 as the base image
-FROM fedora:40
+# Use Fedora 42 as the base image
+FROM fedora:42
 
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Update the system and install Python 3.12 with security updates
+# Update the system and install Python 3.13 (Fedora 42 default; ansible-core 2.20 requires 3.12+)
 RUN dnf -y update && \
     dnf -y install python3 python3-pip git openssh-server sshpass \
     iproute systemd passwd openssl jq createrepo yum-utils \
@@ -12,20 +12,20 @@ RUN dnf -y update && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
-RUN curl -LO https://go.dev/dl/go1.25.8.linux-amd64.tar.gz && \
-    tar -C /usr/local -xzf go1.25.8.linux-amd64.tar.gz && \
-    rm go1.25.8.linux-amd64.tar.gz
+RUN curl -LO https://go.dev/dl/go1.25.10.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.25.10.linux-amd64.tar.gz && \
+    rm go1.25.10.linux-amd64.tar.gz
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/go"
 ENV GOCACHE="/go/cache"
 
-# Create persistent project with patched golang.org/x/crypto@v0.45.0 and golang.org/x/net@latest
+# Create persistent project with patched golang.org/x/crypto@v0.52.0 and golang.org/x/net@v0.46.0
 # Scanners detect this from go.mod/go.sum files and module cache
 RUN mkdir -p /opt/go-crypto-patch && \
     cd /opt/go-crypto-patch && \
     go mod init crypto-patch && \
-    go get golang.org/x/crypto@v0.45.0 && \
-    go get golang.org/x/net@latest && \
+    go get golang.org/x/crypto@v0.52.0 && \
+    go get golang.org/x/net@v0.46.0 && \
     printf 'package main\nimport _ "golang.org/x/crypto/ssh"\nimport _ "golang.org/x/net/html"\nfunc main() {}\n' > main.go && \
     go build -o crypto-patch . && \
     echo "Patched crypto version:" && \
@@ -37,12 +37,12 @@ RUN mkdir -p /opt/go-crypto-patch && \
     chmod -R 755 /opt/go-crypto-patch && \
     chmod -R 777 /go
 
-# Build Git LFS from source with patched Go 1.25.7, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest
+# Build Git LFS from source with patched Go 1.25.10, golang.org/x/crypto 0.52.0, and golang.org/x/net@v0.46.0
 RUN git clone https://github.com/git-lfs/git-lfs.git /tmp/git-lfs && \
     cd /tmp/git-lfs && \
     git checkout v3.7.1 && \
-    go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.45.0 && \
-    go mod edit -replace golang.org/x/net=golang.org/x/net@latest && \
+    go mod edit -replace golang.org/x/crypto=golang.org/x/crypto@v0.52.0 && \
+    go mod edit -replace golang.org/x/net=golang.org/x/net@v0.46.0 && \
     go mod tidy && \
     go build -o /usr/local/bin/git-lfs . && \
     git lfs install && \
@@ -115,8 +115,7 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 3.10.2" >> /tmp/omnia_core/galaxy_requirements.yml  && \
     echo "  - name: kubernetes.core" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 5.2.0" >> /tmp/omnia_core/galaxy_requirements.yml  && \
-    echo "  - name: community.kubernetes" >> /tmp/omnia_core/galaxy_requirements.yml && \
-    echo "    version: 2.0.1" >> /tmp/omnia_core/galaxy_requirements.yml
+    echo "  # community.kubernetes removed — deprecated, use kubernetes.core instead" >> /tmp/omnia_core/galaxy_requirements.yml
 
 # Install ansible-galaxy collections from galaxy_requirements.yml
 # Note: ansible-core is installed via pyproject.toml
@@ -144,30 +143,30 @@ COPY cert-copy.sh /cert-copy.sh
 RUN chmod +x /cert-copy.sh
 
 # Document security patches applied
-LABEL security.go.version="1.25.8" \
-      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2025-68121-fixed" \
-      security.golang.crypto.version="0.45.0" \
-      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed,CVE-2025-68121-fixed" \
-      security.golang.net.version="latest" \
+LABEL security.go.version="1.25.10" \
+      security.go.cves="CVE-2025-61729-fixed,CVE-2025-61727-fixed,CVE-2026-32282-fixed,CVE-2026-32288-fixed,CVE-2026-32283-fixed,CVE-2026-42501-fixed,CVE-2026-33811-fixed" \
+      security.golang.crypto.version="0.52.0" \
+      security.golang.crypto.cves="CVE-2025-47913-fixed,CVE-2025-58181-fixed,CVE-2025-47914-fixed" \
+      security.golang.net.version="0.46.0" \
       security.golang.net.cves="CVE-2025-47911-fixed,CVE-2025-58190-fixed" \
       security.git-lfs.version="3.7.1-patched" \
-      security.git-lfs.note="Built from source with Go 1.25.8, golang.org/x/crypto 0.45.0, and golang.org/x/net@latest" \
+      security.git-lfs.note="Built from source with Go 1.25.10, golang.org/x/crypto 0.52.0, and golang.org/x/net 0.46.0" \
       security.urllib3.version="2.7.0" \
       security.urllib3.cves="CVE-2026-21441-fixed,CVE-2025-66471-fixed,CVE-2025-66418-fixed,GHSA-2xpw-w6gg-jr37-fixed,GHSA-gm62-xv2j-4w53-fixed" \
       security.pyasn1.version="0.6.3" \
       security.pyasn1.cves="CVE-2026-23490-fixed,CVE-2026-30922-fixed,GHSA-63vm-454h-vhhq-fixed,GHSA-jr27-m4p2-rc6r-fixed" \
       security.filelock.version="3.20.3" \
-      security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed,CVE-2025-68121-fixed" \
+      security.filelock.cves="CVE-2025-68146-fixed,CVE-2026-22701-fixed" \
       security.cryptography.version="48.0.0" \
-      security.cryptography.cves="CVE-2025-68121-fixed,CVE-2026-26007-fixed,GHSA-r6ph-v2qm-q3c2-fixed" \
+      security.cryptography.cves="CVE-2026-26007-fixed,GHSA-r6ph-v2qm-q3c2-fixed" \
       security.gitpython.version="3.1.50" \
       security.gitpython.cves="GHSA-x2qx-6953-8485-fixed,GHSA-rpm5-65cw-6hj4-fixed" \
       security.pip.version="26.0" \
       security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
-      security.ansible.version="2.16.14" \
-      security.ansible.note="Pinned to stable Ansible 2.16.14 for compatibility and security"
+      security.ansible.version="2.20.1" \
+      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.1 (supported through ~May 2027)"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
