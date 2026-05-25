@@ -61,6 +61,8 @@ POSTGRES_EXPECTED_TABLES: List[str] = [
     "artifact_metadata",
     "audit_events",
     "idempotency_keys",
+    "image_groups",
+    "images",
     "job_stages",
     "jobs",
 ]
