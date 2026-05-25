@@ -5,6 +5,8 @@ Retry Pipeline Operations
 
 You can retry the pipeline if there are failures in the stages. Before retrying, identify and resolve the issue that caused the failure.
 
+.. note:: Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+
 Prerequisites
 ------------
 

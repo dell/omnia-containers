@@ -14,6 +14,8 @@ The BuildStream build pipeline automates the creation of diskless images based o
 
 The build pipeline is automatically triggered when you update the ``catalog_rhel.json`` file in the GitLab repository, or can be manually initiated through the GitLab interface.
 
+.. note:: Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+
 Prerequisites
 -------------
 
