@@ -21,6 +21,7 @@ Contains constants for discovery verification.
 from automation_library.core import (
     INPUT_BASE_PATH,
     BMC_PXE_MAPPING_FILE_PREFIX,
+    NETWORK_SPEC_FILE,
     OMNIA_SUPPORTED_FUNCTIONAL_GROUPS,
     PXE_MAPPING_REQUIRED_COLUMNS,
     SLURM_NODE_FUNCTIONAL_GROUP,
@@ -72,9 +73,3 @@ OME_GROUP_DEVICES_ENDPOINT = "/api/GroupService/Groups({group_id})/Devices"
 
 # OME group types - TypeId 3000 = Custom/Static groups (user-created)
 OME_CUSTOM_GROUP_TYPE = 3000
-
-# =============================================================================
-# NETWORK SPEC FILE
-# =============================================================================
-
-NETWORK_SPEC_FILE = "network_spec.yml"

@@ -39,6 +39,10 @@ from .functions import (
     get_ome_session,
     get_ome_static_groups,
     get_ome_group_device_ips,
+    get_ome_all_devices,
+    get_ome_device_inventory,
+    get_ome_device_details_by_service_tag,
+    get_ome_devices_without_static_group,
 )
 
 from .vars import (
@@ -78,6 +82,10 @@ __all__ = [
     "get_ome_session",
     "get_ome_static_groups",
     "get_ome_group_device_ips",
+    "get_ome_all_devices",
+    "get_ome_device_inventory",
+    "get_ome_device_details_by_service_tag",
+    "get_ome_devices_without_static_group",
     # Variables
     "BMC_PXE_MAPPING_PATH",
     "BMC_PXE_MAPPING_PREFIX",
