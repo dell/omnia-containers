@@ -193,10 +193,8 @@ _PXE_COLUMN_MAP = {
     "ADMIN_IP": "admin_ip",
     "BMC_MAC": "bmc_mac",
     "BMC_IP": "bmc_ip",
-    "IB_MAC": "ib_mac",
+    "IB_NIC_NAME": "ib_nic_name",
     "IB_IP": "ib_ip",
-    "GPU_VENDOR": "gpu_vendor",
-    "GPU_TYPE": "gpu_type",
 }
 
 
