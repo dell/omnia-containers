@@ -18,6 +18,7 @@ Discovery Module - OME (OpenManage Enterprise) Functions.
 Functions for connecting to OME and retrieving static groups under Custom Groups.
 """
 
+import base64
 import json
 from typing import Dict, Any, List
 
@@ -82,6 +83,7 @@ def _ome_api_request(
     url = f"https://{ome_ip}{endpoint}"
 
     # Build curl command with headers output
+    # Use single quotes for URL to prevent shell interpretation of $ in OData queries
     curl_parts = [
         "curl", "-s", "-k",
         "-D", "/tmp/ome_headers.txt",
@@ -93,12 +95,22 @@ def _ome_api_request(
     if auth_token:
         curl_parts.append(f"-H 'X-Auth-Token: {auth_token}'")
 
-    if method == "POST" and data:
-        curl_parts.append("-H 'Content-Type: application/json'")
-        curl_parts.append(f"-d '{json.dumps(data)}'")
-
+    # Use single quotes for URL to prevent $ interpretation in OData filters
     curl_parts.append(f"'{url}'")
-    cmd_str = " ".join(curl_parts)
+
+    if method == "POST" and data:
+        curl_parts.insert(3, "-H 'Content-Type: application/json'")
+        # Write JSON to temp file to avoid shell escaping issues
+        json_data = json.dumps(data)
+        b64_data = base64.b64encode(json_data.encode()).decode()
+        # Use bash -c with base64 decode for POST data
+        curl_cmd = " ".join(curl_parts)
+        cmd_str = (
+            f"bash -c \"echo '{b64_data}' | base64 -d > /tmp/ome_post.json "
+            f"&& {curl_cmd} -d @/tmp/ome_post.json\""
+        )
+    else:
+        cmd_str = " ".join(curl_parts)
 
     cmd = run_in_container(host, cmd_str)
     if cmd.rc != 0:
@@ -185,8 +197,12 @@ def get_ome_session(host) -> Dict[str, Any]:
     result["ome_ip"] = ome_ip
 
     # Get credentials using existing core function
-    username = get_credential_value(host, OMNIA_CREDENTIALS_PATH, OMNIA_CREDENTIALS_KEY_PATH, "ome_username")
-    password = get_credential_value(host, OMNIA_CREDENTIALS_PATH, OMNIA_CREDENTIALS_KEY_PATH, "ome_password")
+    username = get_credential_value(
+        host, OMNIA_CREDENTIALS_PATH, OMNIA_CREDENTIALS_KEY_PATH, "ome_username"
+    )
+    password = get_credential_value(
+        host, OMNIA_CREDENTIALS_PATH, OMNIA_CREDENTIALS_KEY_PATH, "ome_password"
+    )
 
     if not username or not password:
         result["error"] = "OME credentials not found"
@@ -357,7 +373,8 @@ def get_ome_all_devices(host) -> Dict[str, Any]:
         return result
 
     # Get all devices with type filter for servers (1000)
-    endpoint = "/api/DeviceService/Devices?$filter=Type eq 1000"
+    # URL-encode $filter and spaces to avoid shell interpretation
+    endpoint = "/api/DeviceService/Devices?%24filter=Type%20eq%201000"
     resp = _ome_api_request(
         host,
         session["ome_ip"],
@@ -392,6 +409,162 @@ def get_ome_all_devices(host) -> Dict[str, Any]:
             "model": model,
             "ip": mgmt_ip,
         })
+
+    result["success"] = True
+    return result
+
+
+def get_ome_device_inventory(
+    host, device_id: int, inventory_type: str = "serverNetworkInterfaces"
+) -> Dict[str, Any]:
+    """
+    Get device inventory details from OME.
+
+    Args:
+        host: Testinfra host object
+        device_id: OME device ID
+        inventory_type: Type of inventory (serverNetworkInterfaces, deviceNics, etc.)
+
+    Returns:
+        Dict with success, inventory (list), error
+    """
+    result = {
+        "success": False,
+        "inventory": [],
+        "error": "",
+    }
+
+    session = get_ome_session(host)
+    if not session["success"]:
+        result["error"] = session["error"]
+        return result
+
+    # URL-encode single quotes in inventory type parameter
+    endpoint = f"/api/DeviceService/Devices({device_id})/InventoryDetails(%27{inventory_type}%27)"
+    resp = _ome_api_request(
+        host,
+        session["ome_ip"],
+        endpoint,
+        auth_token=session["token"]
+    )
+
+    if not resp["success"]:
+        result["error"] = f"Failed to get device inventory: {resp['error']}"
+        return result
+
+    result["inventory"] = resp["response"].get("InventoryInfo", [])
+    result["success"] = True
+    return result
+
+
+def get_ome_device_details_by_service_tag(host, service_tag: str) -> Dict[str, Any]:
+    """
+    Get detailed device info from OME by service tag.
+
+    Returns first_nic_mac (first active non-iDRAC NIC) and ib_nic_name.
+
+    Args:
+        host: Testinfra host object
+        service_tag: Device service tag
+
+    Returns:
+        Dict with success, device_id, first_nic_mac, first_nic_name, ib_nic_name, error
+    """
+    result = {
+        "success": False,
+        "device_id": 0,
+        "first_nic_mac": "",
+        "first_nic_name": "",
+        "ib_nic_name": "",
+        "error": "",
+    }
+
+    session = get_ome_session(host)
+    if not session["success"]:
+        result["error"] = session["error"]
+        return result
+
+    # Find device by service tag (URL-encode $filter, spaces, and quotes)
+    endpoint = f"/api/DeviceService/Devices?%24filter=Identifier%20eq%20%27{service_tag}%27"
+    resp = _ome_api_request(
+        host,
+        session["ome_ip"],
+        endpoint,
+        auth_token=session["token"]
+    )
+
+    if not resp["success"]:
+        result["error"] = f"Failed to find device: {resp['error']}"
+        return result
+
+    devices = resp["response"].get("value", [])
+    if not devices:
+        result["error"] = f"Device with service tag '{service_tag}' not found in OME"
+        return result
+
+    device = devices[0]
+    device_id = device.get("Id", 0)
+    result["device_id"] = device_id
+
+    # Get NIC inventory
+    nic_result = get_ome_device_inventory(host, device_id, "serverNetworkInterfaces")
+    if not nic_result["success"]:
+        result["error"] = nic_result["error"]
+        return result
+
+    nic_info_list = nic_result["inventory"]
+
+    # Find first non-iDRAC NIC with LinkStatus "Up"; fall back to first non-iDRAC NIC
+    fallback_nic_name = ""
+    fallback_nic_mac = ""
+
+    for nic in nic_info_list:
+        nic_id = nic.get("NicId", "")
+        if "iDRAC" in nic_id.upper():
+            continue
+
+        ports = nic.get("Ports", [])
+        for port in ports:
+            partitions = port.get("Partitions", [])
+            if not partitions:
+                continue
+            mac = partitions[0].get("CurrentMacAddress", "")
+            if not mac:
+                continue
+
+            # Remember first non-iDRAC NIC as fallback
+            if not fallback_nic_mac:
+                fallback_nic_name = nic_id
+                fallback_nic_mac = mac
+
+            # Prefer port with LinkStatus "Up"
+            link_status = (port.get("LinkStatus") or "").strip()
+            if link_status.upper() == "UP":
+                result["first_nic_name"] = nic_id
+                result["first_nic_mac"] = mac
+                break
+
+        if result["first_nic_mac"]:
+            break
+
+    # Use fallback if no NIC with link up was found
+    if not result["first_nic_mac"] and fallback_nic_mac:
+        result["first_nic_name"] = fallback_nic_name
+        result["first_nic_mac"] = fallback_nic_mac
+
+    # Get InfiniBand NIC: FQDD contains "InfiniBand" and LinkStatus is Up
+    for nic in nic_info_list:
+        nic_id = nic.get("NicId", "")
+        if "infiniband" not in nic_id.lower():
+            continue
+        for port in nic.get("Ports", []):
+            link_status = (port.get("LinkStatus") or "").strip()
+            if link_status.upper() == "UP":
+                port_id = port.get("PortId", "")
+                result["ib_nic_name"] = port_id if port_id else nic_id
+                break
+        if result["ib_nic_name"]:
+            break
 
     result["success"] = True
     return result

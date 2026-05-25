@@ -23,6 +23,8 @@ Test cases for verifying discovery playbook output:
 5. PARENT_SERVICE_TAG rules for slurm_node groups
 6. OME static groups match PXE mapping functional groups
 7. OME devices without static group assignment (will get default: slurm_node_aarch64)
+8. ADMIN_MAC matches OME first active non-iDRAC NIC
+9. IB_NIC_NAME matches OME first active InfiniBand NIC
 """
 
 import pytest
@@ -42,6 +44,7 @@ from automation_library.discovery.functions import (
     get_ome_group_device_ips,
     clear_ome_cache,
     get_ome_devices_without_static_group,
+    get_ome_device_details_by_service_tag,
 )
 from automation_library.discovery.vars import (
     BMC_PXE_MAPPING_PATH,
@@ -694,5 +697,300 @@ def test_ome_unassigned_devices(host):
     # This is informational - show as passed but with warning details
     log.passed(
         f"{len(unassigned)} device(s) not assigned to any static group",
+        "\n".join(details)
+    )
+
+
+# =============================================================================
+# TEST 8: ADMIN_MAC VALIDATION (PXE vs OME)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(8)
+def test_admin_mac_validation(host):
+    """
+    Test Case 8: Verify ADMIN_MAC matches OME first active non-iDRAC NIC.
+
+    For each device in PXE mapping:
+    1. Get the SERVICE_TAG
+    2. Query OME for the device's NIC inventory
+    3. Find first active non-iDRAC NIC MAC
+    4. Compare with ADMIN_MAC in PXE mapping
+    """
+    log = TestLogger(TEST_NAMES["admin_mac_validation"])
+
+    # Check if BMC discovery is enabled
+    config = load_input_file(host, DISCOVERY_CONFIG_FILE)
+    if not config:
+        log.skipped("Discovery config not found", "")
+        pytest.skip("Discovery config not found")
+
+    if not config.get("enable_bmc_discovery", False):
+        log.skipped(SKIP_MSGS["bmc_discovery_disabled"], "OME verification skipped")
+        pytest.skip(SKIP_MSGS["bmc_discovery_disabled"])
+
+    ome_ip = config.get("ome_ip", "")
+    if not ome_ip:
+        log.skipped("OME IP not configured", "")
+        pytest.skip("OME IP not configured")
+
+    # Get PXE mapping data
+    rows, err = _get_pxe_mapping_data(host)
+    if err:
+        log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], err)
+        pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
+
+    if not rows:
+        log.skipped(SKIP_MSGS["no_rows_in_mapping"], "")
+        pytest.skip(SKIP_MSGS["no_rows_in_mapping"])
+
+    log.check(LOG_MSGS["ome_connecting"].format(ip=ome_ip))
+
+    # Get OME session
+    session = get_ome_session(host)
+    if not session["success"]:
+        log.failed(LOG_MSGS["ome_connection_failed"].format(error=session["error"]), session["error"])
+        assert False, ASSERT_MSGS["ome_connection_failed"].format(
+            ip=ome_ip,
+            error=session["error"]
+        )
+
+    log.check(LOG_MSGS["ome_connected"])
+
+    # Validate ADMIN_MAC for each device
+    matched = []
+    mismatched = []
+    errors = []
+    details = []
+
+    for row in rows:
+        service_tag = row.get("SERVICE_TAG", "")
+        pxe_admin_mac = row.get("ADMIN_MAC", "").upper()
+        hostname = row.get("HOSTNAME", "")
+        fg = row.get("FUNCTIONAL_GROUP_NAME", "")
+
+        if not service_tag:
+            errors.append({"hostname": hostname, "reason": "No SERVICE_TAG"})
+            continue
+
+        # Get device details from OME
+        ome_result = get_ome_device_details_by_service_tag(host, service_tag)
+        if not ome_result["success"]:
+            errors.append({"hostname": hostname, "service_tag": service_tag, "reason": ome_result["error"]})
+            continue
+
+        ome_mac = ome_result.get("first_nic_mac", "").upper()
+
+        if pxe_admin_mac == ome_mac:
+            matched.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "mac": pxe_admin_mac,
+                "fg": fg,
+            })
+        else:
+            mismatched.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "pxe_mac": pxe_admin_mac,
+                "ome_mac": ome_mac,
+                "fg": fg,
+            })
+
+    # Build details for display
+    grouped = _group_rows_by_functional_group(rows)
+    for fg_name in sorted(grouped.keys()):
+        details.append(f"[{fg_name}]")
+        fg_rows = grouped[fg_name]
+        for row in fg_rows:
+            hostname = row.get("HOSTNAME", "")
+            service_tag = row.get("SERVICE_TAG", "")
+            pxe_mac = row.get("ADMIN_MAC", "").upper()
+
+            # Check if matched or mismatched
+            is_matched = any(m["hostname"] == hostname for m in matched)
+            is_mismatched = any(m["hostname"] == hostname for m in mismatched)
+
+            if is_matched:
+                details.append(f"  ✓ {hostname} ({service_tag})")
+                details.append(f"      ADMIN_MAC: {pxe_mac}")
+            elif is_mismatched:
+                mismatch = next(m for m in mismatched if m["hostname"] == hostname)
+                details.append(f"  ✗ {hostname} ({service_tag})")
+                details.append(f"      PXE ADMIN_MAC: {mismatch['pxe_mac']}")
+                details.append(f"      OME First NIC: {mismatch['ome_mac']}")
+            else:
+                details.append(f"  ? {hostname} ({service_tag})")
+                details.append(f"      ADMIN_MAC: {pxe_mac} (could not verify)")
+
+    if mismatched:
+        details.append("")
+        details.append(f"Mismatched ({len(mismatched)}):")
+        for m in mismatched:
+            details.append(f"  ✗ {m['hostname']}: PXE={m['pxe_mac']}, OME={m['ome_mac']}")
+
+        log.failed(
+            f"{len(mismatched)}/{len(rows)} ADMIN_MAC mismatches found",
+            "\n".join(details)
+        )
+        assert False, (
+            f"ADMIN_MAC validation failed.\n"
+            f"Mismatched: {len(mismatched)}/{len(rows)}\n"
+            f"Example: {mismatched[0]['hostname']} - PXE: {mismatched[0]['pxe_mac']}, OME: {mismatched[0]['ome_mac']}"
+        )
+
+    log.passed(
+        f"All {len(matched)} ADMIN_MAC values match OME",
+        "\n".join(details)
+    )
+
+
+# =============================================================================
+# TEST 9: IB_NIC_NAME VALIDATION (PXE vs OME)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(9)
+def test_ib_nic_name_validation(host):
+    """
+    Test Case 9: Verify IB_NIC_NAME matches OME first active InfiniBand NIC.
+
+    For each device in PXE mapping that has IB_NIC_NAME:
+    1. Get the SERVICE_TAG
+    2. Query OME for the device's NIC inventory
+    3. Find first active InfiniBand NIC name
+    4. Compare with IB_NIC_NAME in PXE mapping
+    """
+    log = TestLogger(TEST_NAMES["ib_nic_name_validation"])
+
+    # Check if BMC discovery is enabled
+    config = load_input_file(host, DISCOVERY_CONFIG_FILE)
+    if not config:
+        log.skipped("Discovery config not found", "")
+        pytest.skip("Discovery config not found")
+
+    if not config.get("enable_bmc_discovery", False):
+        log.skipped(SKIP_MSGS["bmc_discovery_disabled"], "OME verification skipped")
+        pytest.skip(SKIP_MSGS["bmc_discovery_disabled"])
+
+    ome_ip = config.get("ome_ip", "")
+    if not ome_ip:
+        log.skipped("OME IP not configured", "")
+        pytest.skip("OME IP not configured")
+
+    # Get PXE mapping data
+    rows, err = _get_pxe_mapping_data(host)
+    if err:
+        log.skipped(SKIP_MSGS["no_bmc_pxe_mapping"], err)
+        pytest.skip(SKIP_MSGS["no_bmc_pxe_mapping"])
+
+    if not rows:
+        log.skipped(SKIP_MSGS["no_rows_in_mapping"], "")
+        pytest.skip(SKIP_MSGS["no_rows_in_mapping"])
+
+    # Filter rows that have IB_NIC_NAME
+    ib_rows = [r for r in rows if r.get("IB_NIC_NAME", "").strip()]
+    if not ib_rows:
+        log.skipped("No devices with IB_NIC_NAME in PXE mapping", "IB validation skipped")
+        pytest.skip("No devices with IB_NIC_NAME in PXE mapping")
+
+    log.check(LOG_MSGS["ome_connecting"].format(ip=ome_ip))
+
+    # Get OME session
+    session = get_ome_session(host)
+    if not session["success"]:
+        log.failed(LOG_MSGS["ome_connection_failed"].format(error=session["error"]), session["error"])
+        assert False, ASSERT_MSGS["ome_connection_failed"].format(
+            ip=ome_ip,
+            error=session["error"]
+        )
+
+    log.check(LOG_MSGS["ome_connected"])
+    log.check(f"Validating IB_NIC_NAME for {len(ib_rows)} devices with InfiniBand")
+
+    # Validate IB_NIC_NAME for each device
+    matched = []
+    mismatched = []
+    errors = []
+    details = []
+
+    for row in ib_rows:
+        service_tag = row.get("SERVICE_TAG", "")
+        pxe_ib_nic = row.get("IB_NIC_NAME", "").strip()
+        hostname = row.get("HOSTNAME", "")
+        fg = row.get("FUNCTIONAL_GROUP_NAME", "")
+
+        if not service_tag:
+            errors.append({"hostname": hostname, "reason": "No SERVICE_TAG"})
+            continue
+
+        # Get device details from OME
+        ome_result = get_ome_device_details_by_service_tag(host, service_tag)
+        if not ome_result["success"]:
+            errors.append({"hostname": hostname, "service_tag": service_tag, "reason": ome_result["error"]})
+            continue
+
+        ome_ib_nic = ome_result.get("ib_nic_name", "").strip()
+
+        if pxe_ib_nic == ome_ib_nic:
+            matched.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "ib_nic": pxe_ib_nic,
+                "fg": fg,
+            })
+        else:
+            mismatched.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "pxe_ib_nic": pxe_ib_nic,
+                "ome_ib_nic": ome_ib_nic,
+                "fg": fg,
+            })
+
+    # Build details for display
+    grouped = _group_rows_by_functional_group(ib_rows)
+    for fg_name in sorted(grouped.keys()):
+        details.append(f"[{fg_name}]")
+        fg_rows = grouped[fg_name]
+        for row in fg_rows:
+            hostname = row.get("HOSTNAME", "")
+            service_tag = row.get("SERVICE_TAG", "")
+            pxe_ib_nic = row.get("IB_NIC_NAME", "").strip()
+
+            # Check if matched or mismatched
+            is_matched = any(m["hostname"] == hostname for m in matched)
+            is_mismatched = any(m["hostname"] == hostname for m in mismatched)
+
+            if is_matched:
+                details.append(f"  ✓ {hostname} ({service_tag})")
+                details.append(f"      IB_NIC_NAME: {pxe_ib_nic}")
+            elif is_mismatched:
+                mismatch = next(m for m in mismatched if m["hostname"] == hostname)
+                details.append(f"  ✗ {hostname} ({service_tag})")
+                details.append(f"      PXE IB_NIC_NAME: {mismatch['pxe_ib_nic']}")
+                details.append(f"      OME IB NIC:      {mismatch['ome_ib_nic'] or '(none found)'}")
+            else:
+                details.append(f"  ? {hostname} ({service_tag})")
+                details.append(f"      IB_NIC_NAME: {pxe_ib_nic} (could not verify)")
+
+    if mismatched:
+        details.append("")
+        details.append(f"Mismatched ({len(mismatched)}):")
+        for m in mismatched:
+            details.append(f"  ✗ {m['hostname']}: PXE={m['pxe_ib_nic']}, OME={m['ome_ib_nic'] or '(none)'}")
+
+        log.failed(
+            f"{len(mismatched)}/{len(ib_rows)} IB_NIC_NAME mismatches found",
+            "\n".join(details)
+        )
+        assert False, (
+            f"IB_NIC_NAME validation failed.\n"
+            f"Mismatched: {len(mismatched)}/{len(ib_rows)}\n"
+            f"Example: {mismatched[0]['hostname']} - PXE: {mismatched[0]['pxe_ib_nic']}, OME: {mismatched[0]['ome_ib_nic'] or '(none)'}"
+        )
+
+    log.passed(
+        f"All {len(matched)} IB_NIC_NAME values match OME",
         "\n".join(details)
     )

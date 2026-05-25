@@ -30,6 +30,8 @@ TEST_NAMES = {
     "parent_service_tag": "Verify PARENT_SERVICE_TAG rules",
     "ome_functional_groups": "Verify OME custom groups match PXE mapping",
     "ome_unassigned_devices": "Verify OME devices assigned to static groups",
+    "admin_mac_validation": "Verify ADMIN_MAC matches OME first active non-iDRAC NIC",
+    "ib_nic_name_validation": "Verify IB_NIC_NAME matches OME first active InfiniBand NIC",
 }
 
 # =============================================================================

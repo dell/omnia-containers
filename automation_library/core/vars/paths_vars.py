@@ -158,8 +158,6 @@ PXE_MAPPING_REQUIRED_COLUMNS = [
     "ADMIN_IP",
     "BMC_MAC",
     "BMC_IP",
-    "IB_MAC",
+    "IB_NIC_NAME",
     "IB_IP",
-    "GPU_VENDOR",
-    "GPU_TYPE",
 ]
