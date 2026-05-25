@@ -491,10 +491,35 @@ def test_ome_static_groups_match(host):
     verified = []
     failed = []
     missing = []
+    default_groups = []  # Groups that are default (unassigned devices)
     group_details = {}
+
+    # Get unassigned devices to identify default groups
+    unassigned_result = get_ome_devices_without_static_group(host)
+    unassigned_bmc_ips = set()
+    if unassigned_result["success"]:
+        for dev in unassigned_result.get("unassigned_devices", []):
+            if dev.get("ip"):
+                unassigned_bmc_ips.add(dev["ip"])
 
     for fg_name in sorted(pxe_groups):
         if fg_name not in ome_group_map:
+            # Check if this is a default group (slurm_node_aarch64)
+            # by verifying its BMC IPs are in unassigned devices
+            pxe_ips_result = get_pxe_mapping_bmc_ips_by_group(host, fg_name)
+            if pxe_ips_result["success"]:
+                pxe_ips = set(pxe_ips_result["ips"])
+                # If all PXE IPs for this group are in unassigned devices, it's a default group
+                if pxe_ips and pxe_ips.issubset(unassigned_bmc_ips):
+                    default_groups.append(fg_name)
+                    group_details[fg_name] = {
+                        "matched": sorted(list(pxe_ips)),
+                        "missing_in_ome": [],
+                        "extra_in_ome": [],
+                        "is_default": True,
+                    }
+                    verified.append(fg_name)
+                    continue
             missing.append(fg_name)
             continue
 
@@ -540,20 +565,25 @@ def test_ome_static_groups_match(host):
 
     # Build details for display
     ome_details = []
-    
+
     # Display results by functional group with IPs
     for fg_name in sorted(pxe_groups):
         ome_details.append(f"[{fg_name}]")
 
         if fg_name in missing:
-            ome_details.append(f"  ✗ Group not found in OME Static Groups")
+            ome_details.append("  ✗ Group not found in OME Static Groups")
             continue
 
         if fg_name not in group_details:
-            ome_details.append(f"  ✗ Error retrieving IPs")
+            ome_details.append("  ✗ Error retrieving IPs")
             continue
 
         details = group_details[fg_name]
+
+        # Check if this is a default group (unassigned devices)
+        is_default = details.get("is_default", False)
+        if is_default:
+            ome_details.append("  (Default group - devices not in any OME static group)")
 
         # Show matched IPs
         for ip in details["matched"]:
@@ -572,7 +602,8 @@ def test_ome_static_groups_match(host):
     if verified:
         ome_details.append(f"Verified Groups ({len(verified)}):")
         for fg in verified:
-            ome_details.append(f"  ✓ {fg}")
+            suffix = " (default)" if fg in default_groups else ""
+            ome_details.append(f"  ✓ {fg}{suffix}")
 
     if missing:
         ome_details.append(f"Missing in OME ({len(missing)}):")
@@ -660,43 +691,85 @@ def test_ome_unassigned_devices(host):
         log.failed("Failed to get OME device information", result["error"])
         pytest.skip(f"OME error: {result['error']}")
 
+    unassigned = result["unassigned_devices"]
+    unassigned_bmc_ips = {d.get("ip", "") for d in unassigned if d.get("ip")}
+
+    # Get PXE mapping data for slurm_node_aarch64 (default group)
+    default_group = "slurm_node_aarch64"
+    pxe_default_ips_result = get_pxe_mapping_bmc_ips_by_group(host, default_group)
+    pxe_default_ips = set()
+    if pxe_default_ips_result["success"]:
+        pxe_default_ips = set(pxe_default_ips_result["ips"])
+
     # Build details for display
     details = []
     details.append(f"Total devices in OME: {result['total_count']}")
     details.append(f"Devices assigned to static groups: {result['assigned_count']}")
-    details.append(f"Devices NOT assigned: {len(result['unassigned_devices'])}")
+    details.append(f"Devices NOT assigned (unassigned): {len(unassigned)}")
+    details.append(f"PXE entries in {default_group}: {len(pxe_default_ips)}")
 
-    unassigned = result["unassigned_devices"]
-
-    if not unassigned:
-        # All devices are assigned - skip this test
+    if not unassigned and not pxe_default_ips:
+        # All devices are assigned and no default group entries
         log.skipped(
             "All devices assigned to static groups",
             f"Total: {result['total_count']}, Assigned: {result['assigned_count']}"
         )
         pytest.skip("All OME devices are assigned to static groups")
 
-    # Show unassigned devices
+    # Compare unassigned OME devices with PXE default group entries
+    matched_ips = unassigned_bmc_ips & pxe_default_ips
+    missing_in_pxe = unassigned_bmc_ips - pxe_default_ips  # In OME unassigned but not in PXE
+    missing_in_ome = pxe_default_ips - unassigned_bmc_ips  # In PXE default but not unassigned in OME
+
     details.append("")
-    details.append("Unassigned Devices (will get default: slurm_node_aarch64):")
+    details.append(f"Unassigned Devices (expected in {default_group}):")
+
     for device in unassigned:
         name = device.get("name", "Unknown")
         identifier = device.get("identifier", "")
         ip = device.get("ip", "")
         model = device.get("model", "")
-        details.append(f"  ✗ {name}")
-        details.append(f"      Service Tag: {identifier}")
-        details.append(f"      IP: {ip}")
-        details.append(f"      Model: {model}")
 
-    details.append("")
-    details.append("Action Required:")
-    details.append("  Assign these devices to appropriate static groups in OME")
-    details.append("  (Custom Groups > Static Groups)")
+        if ip in matched_ips:
+            details.append(f"  ✓ {name} ({identifier})")
+            details.append(f"      BMC_IP: {ip}")
+            details.append(f"      Model: {model}")
+        else:
+            details.append(f"  ✗ {name} ({identifier})")
+            details.append(f"      BMC_IP: {ip} (NOT in PXE {default_group})")
+            details.append(f"      Model: {model}")
 
-    # This is informational - show as passed but with warning details
+    # Show PXE entries not found in OME unassigned
+    if missing_in_ome:
+        details.append("")
+        details.append(f"PXE {default_group} entries NOT in OME unassigned:")
+        for ip in sorted(missing_in_ome):
+            details.append(f"  ✗ {ip}")
+
+    # Determine pass/fail
+    if missing_in_pxe or missing_in_ome:
+        details.append("")
+        details.append("Summary:")
+        details.append(f"  Matched: {len(matched_ips)}")
+        if missing_in_pxe:
+            details.append(f"  OME unassigned but NOT in PXE: {len(missing_in_pxe)}")
+        if missing_in_ome:
+            details.append(f"  PXE {default_group} but NOT unassigned in OME: {len(missing_in_ome)}")
+
+        log.failed(
+            f"Unassigned devices mismatch with PXE {default_group}",
+            "\n".join(details)
+        )
+        assert False, (
+            f"Unassigned OME devices do not match PXE {default_group} entries.\n"
+            f"OME unassigned: {len(unassigned_bmc_ips)}, "
+            f"PXE {default_group}: {len(pxe_default_ips)}, "
+            f"Matched: {len(matched_ips)}"
+        )
+
+    # All matched
     log.passed(
-        f"{len(unassigned)} device(s) not assigned to any static group",
+        f"All {len(matched_ips)} unassigned devices match PXE {default_group}",
         "\n".join(details)
     )
 
@@ -911,6 +984,7 @@ def test_ib_nic_name_validation(host):
     # Validate IB_NIC_NAME for each device
     matched = []
     mismatched = []
+    ib_down_errors = []  # IB NIC is DOWN in OME but present in PXE
     errors = []
     details = []
 
@@ -927,16 +1001,34 @@ def test_ib_nic_name_validation(host):
         # Get device details from OME
         ome_result = get_ome_device_details_by_service_tag(host, service_tag)
         if not ome_result["success"]:
-            errors.append({"hostname": hostname, "service_tag": service_tag, "reason": ome_result["error"]})
+            errors.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "reason": ome_result["error"]
+            })
             continue
 
         ome_ib_nic = ome_result.get("ib_nic_name", "").strip()
+        ib_status = ome_result.get("ib_nic_status", "")
+        ib_exists = ome_result.get("ib_nic_exists", False)
+
+        # Check if IB NIC is DOWN in OME but present in PXE
+        if pxe_ib_nic and ib_exists and ib_status == "Down":
+            ib_down_errors.append({
+                "hostname": hostname,
+                "service_tag": service_tag,
+                "pxe_ib_nic": pxe_ib_nic,
+                "ome_status": "Down",
+                "fg": fg,
+            })
+            continue
 
         if pxe_ib_nic == ome_ib_nic:
             matched.append({
                 "hostname": hostname,
                 "service_tag": service_tag,
                 "ib_nic": pxe_ib_nic,
+                "ib_status": ib_status,
                 "fg": fg,
             })
         else:
@@ -945,6 +1037,7 @@ def test_ib_nic_name_validation(host):
                 "service_tag": service_tag,
                 "pxe_ib_nic": pxe_ib_nic,
                 "ome_ib_nic": ome_ib_nic,
+                "ome_status": ib_status,
                 "fg": fg,
             })
 
@@ -958,36 +1051,65 @@ def test_ib_nic_name_validation(host):
             service_tag = row.get("SERVICE_TAG", "")
             pxe_ib_nic = row.get("IB_NIC_NAME", "").strip()
 
-            # Check if matched or mismatched
+            # Check if matched, mismatched, or IB DOWN
             is_matched = any(m["hostname"] == hostname for m in matched)
             is_mismatched = any(m["hostname"] == hostname for m in mismatched)
+            is_ib_down = any(m["hostname"] == hostname for m in ib_down_errors)
 
             if is_matched:
                 details.append(f"  ✓ {hostname} ({service_tag})")
-                details.append(f"      IB_NIC_NAME: {pxe_ib_nic}")
+                details.append(f"      IB_NIC_NAME: {pxe_ib_nic} (Up)")
+            elif is_ib_down:
+                details.append(f"  ✗ {hostname} ({service_tag})")
+                details.append(f"      IB_NIC_NAME: {pxe_ib_nic} (DOWN in OME)")
             elif is_mismatched:
                 mismatch = next(m for m in mismatched if m["hostname"] == hostname)
                 details.append(f"  ✗ {hostname} ({service_tag})")
                 details.append(f"      PXE IB_NIC_NAME: {mismatch['pxe_ib_nic']}")
-                details.append(f"      OME IB NIC:      {mismatch['ome_ib_nic'] or '(none found)'}")
+                ome_nic = mismatch['ome_ib_nic'] or '(none found)'
+                details.append(f"      OME IB NIC:      {ome_nic}")
             else:
                 details.append(f"  ? {hostname} ({service_tag})")
                 details.append(f"      IB_NIC_NAME: {pxe_ib_nic} (could not verify)")
+
+    # Show IB DOWN errors
+    if ib_down_errors:
+        details.append("")
+        details.append(f"IB NIC DOWN in OME ({len(ib_down_errors)}):")
+        for m in ib_down_errors:
+            details.append(f"  ✗ {m['hostname']}: {m['pxe_ib_nic']} is DOWN")
 
     if mismatched:
         details.append("")
         details.append(f"Mismatched ({len(mismatched)}):")
         for m in mismatched:
-            details.append(f"  ✗ {m['hostname']}: PXE={m['pxe_ib_nic']}, OME={m['ome_ib_nic'] or '(none)'}")
+            ome_nic = m['ome_ib_nic'] or '(none)'
+            details.append(f"  ✗ {m['hostname']}: PXE={m['pxe_ib_nic']}, OME={ome_nic}")
 
+    # Fail if IB DOWN or mismatched
+    if ib_down_errors:
+        log.failed(
+            f"{len(ib_down_errors)} IB NIC(s) DOWN in OME but present in PXE",
+            "\n".join(details)
+        )
+        assert False, (
+            f"IB_NIC_NAME validation failed - IB NIC is DOWN in OME.\n"
+            f"DOWN: {len(ib_down_errors)}/{len(ib_rows)}\n"
+            f"Example: {ib_down_errors[0]['hostname']} - "
+            f"{ib_down_errors[0]['pxe_ib_nic']} is DOWN"
+        )
+
+    if mismatched:
         log.failed(
             f"{len(mismatched)}/{len(ib_rows)} IB_NIC_NAME mismatches found",
             "\n".join(details)
         )
+        ome_nic = mismatched[0]['ome_ib_nic'] or '(none)'
         assert False, (
             f"IB_NIC_NAME validation failed.\n"
             f"Mismatched: {len(mismatched)}/{len(ib_rows)}\n"
-            f"Example: {mismatched[0]['hostname']} - PXE: {mismatched[0]['pxe_ib_nic']}, OME: {mismatched[0]['ome_ib_nic'] or '(none)'}"
+            f"Example: {mismatched[0]['hostname']} - "
+            f"PXE: {mismatched[0]['pxe_ib_nic']}, OME: {ome_nic}"
         )
 
     log.passed(

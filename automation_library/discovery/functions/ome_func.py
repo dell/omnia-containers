@@ -468,7 +468,8 @@ def get_ome_device_details_by_service_tag(host, service_tag: str) -> Dict[str, A
         service_tag: Device service tag
 
     Returns:
-        Dict with success, device_id, first_nic_mac, first_nic_name, ib_nic_name, error
+        Dict with success, device_id, first_nic_mac, first_nic_name,
+        ib_nic_name, ib_nic_status, ib_nic_exists, error
     """
     result = {
         "success": False,
@@ -476,6 +477,8 @@ def get_ome_device_details_by_service_tag(host, service_tag: str) -> Dict[str, A
         "first_nic_mac": "",
         "first_nic_name": "",
         "ib_nic_name": "",
+        "ib_nic_status": "",  # "Up", "Down", or "" if no IB NIC
+        "ib_nic_exists": False,  # True if any IB NIC found (regardless of status)
         "error": "",
     }
 
@@ -552,19 +555,35 @@ def get_ome_device_details_by_service_tag(host, service_tag: str) -> Dict[str, A
         result["first_nic_name"] = fallback_nic_name
         result["first_nic_mac"] = fallback_nic_mac
 
-    # Get InfiniBand NIC: FQDD contains "InfiniBand" and LinkStatus is Up
+    # Get InfiniBand NIC: FQDD contains "InfiniBand"
+    # Track both UP and DOWN status for validation
+    ib_nic_found = False
+    ib_nic_down_name = ""
     for nic in nic_info_list:
         nic_id = nic.get("NicId", "")
         if "infiniband" not in nic_id.lower():
             continue
+        ib_nic_found = True
+        result["ib_nic_exists"] = True
         for port in nic.get("Ports", []):
             link_status = (port.get("LinkStatus") or "").strip()
+            port_id = port.get("PortId", "")
+            nic_name = port_id if port_id else nic_id
+
             if link_status.upper() == "UP":
-                port_id = port.get("PortId", "")
-                result["ib_nic_name"] = port_id if port_id else nic_id
+                result["ib_nic_name"] = nic_name
+                result["ib_nic_status"] = "Up"
                 break
+            elif link_status.upper() == "DOWN" and not ib_nic_down_name:
+                # Remember first DOWN IB NIC
+                ib_nic_down_name = nic_name
+
         if result["ib_nic_name"]:
             break
+
+    # If no UP IB NIC found but DOWN exists, record it
+    if not result["ib_nic_name"] and ib_nic_down_name:
+        result["ib_nic_status"] = "Down"
 
     result["success"] = True
     return result
