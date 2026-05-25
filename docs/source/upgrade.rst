@@ -203,6 +203,92 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 .. note::
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
 
+Slurm Upgrade Details
+----------------------
+
+The Slurm component upgrade is a critical step that involves rebooting all Slurm and login nodes to apply cloud-init and BSS configuration updates. This section details the pre-upgrade warnings, validation steps, and node status monitoring.
+
+Pre-Upgrade Warnings
+~~~~~~~~~~~~~~~~~~~~
+
+1. **NODE REBOOT** — All Slurm/login nodes will reboot. Ensure no critical jobs are running.
+
+2. **PXE MAPPING** — Do not modify Slurm node entries in the PXE mapping file until upgrade completes.
+
+3. **NFS MOUNTS** — Omnia 2.1 mount points are preserved. Do not modify during upgrade.
+
+4. **POST-UPGRADE** — Rollback is NOT recommended once all nodes boot with cloud-init complete.
+
+Slurm Upgrade Workflow
+~~~~~~~~~~~~~~~~~~~~~~
+
+The Slurm upgrade follows these phases:
+
+**Phase 1: Cloud-Init and BSS Update**
+
+* Updates cloud-init and BSS configurations for each functional group (``slurm_control_node_x86_64``, ``slurm_node_*``, ``login_*``)
+* Applies the ``update_cloud_init_bss`` utility role to render new configurations
+
+**Phase 2: Simultaneous Node Reboot**
+
+All Slurm and login nodes reboot simultaneously to minimize cluster downtime. The upgrade orchestrator:
+
+* Initiates reboot commands in parallel across all nodes
+* Monitors reboot progress with a 600-second timeout per node
+* Waits for SSH connectivity to restore on all nodes (up to 60 seconds per node)
+* Validates Slurm services are responding after reboot
+
+For each Slurm/login node, the upgrade performs the following checks in sequence:
+
+1. **SSH Connectivity Check** — Verifies the node is reachable before proceeding
+
+2. **Reboot** — Initiates node reboot with a 600-second timeout
+
+3. **Wait for SSH** — Waits up to 60 seconds for SSH to become available after reboot
+
+4. **Slurm Service Validation** — Runs ``sinfo`` command with 5 retries (15-second delay between retries) to confirm Slurm services are responding
+
+.. warning::
+   Simultaneous reboot of all Slurm nodes will cause temporary cluster unavailability. Plan the upgrade during a maintenance window when no critical jobs are running.
+
+**Phase 3: Node Status Reporting**
+
+After all nodes complete rebooting, the playbook generates a comprehensive status report:
+
+* **Successful Nodes** — Nodes that completed reboot, SSH is active, and ``sinfo`` is responding
+* **Unreachable Nodes** — Nodes that failed SSH connectivity checks before reboot
+* **Reboot Failed Nodes** — Nodes where the reboot command failed
+* **SSH Failures** — Nodes that did not reconnect after reboot
+* **Sinfo Failures** — Nodes where Slurm services did not respond
+
+Troubleshooting Guidance
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The playbook provides automated remediation guidance for each failure category:
+
+**Unreachable Nodes**
+
+* Check network connectivity: ``ping <hostname>``
+* Verify firewall rules and SSH port (22) accessibility
+* Manually power cycle if necessary
+* Re-run upgrade playbook after fixing connectivity
+
+**Reboot Failures**
+
+* SSH into node and check: ``journalctl -xe``
+* Manually reboot: ``shutdown -r now``
+
+**SSH Connectivity Issues**
+
+* Verify SSH service is running: ``systemctl status sshd``
+
+**Slurm Service Failures**
+
+* Check Slurm daemon status: ``systemctl status <slurm_service>``
+* Review Slurm logs: ``journalctl -u <slurm_service> -n 100``
+* Restart Slurm daemon: ``systemctl restart <slurm_service>``
+* Verify Slurm config: ``sinfo -R``
+
 Post-Upgrade Verification
 ---------------------------
 

@@ -116,6 +116,64 @@ To force a rollback after a successful upgrade: ::
 
     ansible-playbook rollback/rollback.yml -e force_rollback=true
 
+Slurm Rollback Details
+-----------------------
+
+The Slurm rollback restores BSS and cloud-init configurations from the 2.1.0 backup and reboots all Slurm and login nodes to apply them.
+
+Pre-Rollback Warnings
+~~~~~~~~~~~~~~~~~~~~~
+
+Before the Slurm rollback begins, the playbook displays the following warnings:
+
+1. **NODE REBOOT** — All Slurm/login nodes will reboot.
+
+2. **NFS MOUNTS** — Omnia 2.1 mount points are preserved. Do not modify during rollback.
+
+3. **ROLLBACK SCOPE** — New NFS mounts (e.g., VAST) added during upgrade will NOT be retained on rollback.
+
+Slurm Rollback Workflow
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Phase 1: Cloud-Init and BSS Restoration**
+
+* Reads ``software_config.json`` from the backup directory to verify Slurm was configured in 2.1
+* Reads ``provision_config.yml`` and PXE mapping file from the backup directory to identify Slurm and login nodes
+* Restores cloud-init and BSS configurations for each functional group from the backed-up OpenCHAMI workdir
+* Applies the ``update_cloud_init_bss`` utility role to push restored configurations
+
+**Phase 2: Simultaneous Node Reboot**
+
+All Slurm and login nodes reboot simultaneously to minimize cluster downtime. The rollback orchestrator:
+
+* Initiates reboot commands in parallel across all nodes
+* Monitors reboot progress with a 600-second timeout per node
+* Waits for SSH connectivity to restore on all nodes (up to 60 seconds per node)
+* Validates Slurm services are responding after reboot
+
+For each Slurm/login node, the rollback performs the following checks in sequence:
+
+1. **SSH Connectivity Check** — Verifies each node is reachable before proceeding
+
+2. **Reboot** — Initiates node reboot with a 600-second timeout
+
+3. **Wait for SSH** — Waits up to 60 seconds for SSH to become available
+
+4. **Slurm Service Validation** — Runs ``sinfo`` with 5 retries (15-second delay) to confirm Slurm services are responding
+
+.. warning::
+   Simultaneous reboot of all Slurm nodes will cause temporary cluster unavailability. Plan the rollback during a maintenance window when no critical jobs are running.
+
+**Phase 3: Node Status Reporting**
+
+After all nodes complete rebooting, the playbook generates a comprehensive status report:
+
+* **Successful Nodes** — Nodes that completed reboot, SSH is active, and ``sinfo`` is responding
+* **Unreachable Nodes** — Nodes that failed SSH connectivity checks before reboot
+* **Reboot Failed Nodes** — Nodes where the reboot command failed
+* **SSH Failures** — Nodes that did not reconnect after reboot
+* **Sinfo Failures** — Nodes where Slurm services did not respond
+
 Post-Rollback
 ~~~~~~~~~~~~~~
 
