@@ -50,7 +50,8 @@ OPENCHAMI_CONTAINERS: List[str] = [
     "opaal",
     "cloud-init-server",
     "haproxy",
-    "coresmd",
+    "coresmd-coredhcp",
+    "coresmd-coredns",
 ]
 
 # Core container (prerequisite - deployed by omnia.sh --install)
@@ -81,7 +82,8 @@ OPENCHAMI_TARGET_SERVICES: List[str] = [
     "bss-init.service",
     "bss.service",
     "cloud-init-server.service",
-    "coresmd.service",
+    "coresmd-coredhcp.service",
+    "coresmd-coredns.service",
     "haproxy.service",
     "hydra-gen-jwks.service",
     "hydra-migrate.service",
@@ -91,6 +93,7 @@ OPENCHAMI_TARGET_SERVICES: List[str] = [
     "openchami-cert-trust.service",
     "postgres.service",
     "smd.service",
+    "smd-init.service",
     "step-ca.service",
 ]
 
