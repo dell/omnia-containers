@@ -23,7 +23,11 @@
     name: omnia_test_config
   no_log: true
 
-- name: Add OIM server to inventory dynamically
+- name: Determine execution mode (local vs remote)
+  ansible.builtin.set_fact:
+    _oim_local_mode: "{{ (omnia_test_config.oim_server_ip | default('') | trim) in ['', 'localhost', '127.0.0.1'] }}"
+
+- name: Add OIM server to inventory (remote mode)
   ansible.builtin.add_host:
     name: oim_server
     groups: oim
@@ -34,7 +38,18 @@
     ansible_connection: ssh
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
   no_log: true
+  when: not _oim_local_mode
+
+- name: Add OIM server to inventory (local mode)
+  ansible.builtin.add_host:
+    name: oim_server
+    groups: oim
+    ansible_host: localhost
+    ansible_connection: local
+  when: _oim_local_mode
 
 - name: Display target server
   ansible.builtin.debug:
-    msg: "Target OIM server: {{ omnia_test_config.oim_server_ip }}"
+    msg: >-
+      Target OIM server: {{ 'localhost (local mode)' if _oim_local_mode
+      else omnia_test_config.oim_server_ip ~ ' (remote via SSH)' }}

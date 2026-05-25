@@ -62,18 +62,25 @@ skip_on_failure: false
 # =============================================================================
 # TARGET OIM SERVER
 # =============================================================================
-# Remote OIM server where all operations will be executed via SSH
+# Remote OIM server where all operations will be executed via SSH.
+#
+# LOCAL MODE: If you are running this automation directly on the OIM server,
+# leave oim_server_ip empty (or set to "localhost" / "127.0.0.1").
+# In local mode, SSH credentials are NOT required — all commands run locally.
+#
+# REMOTE MODE: If you are running from a different machine, set oim_server_ip
+# to the OIM's IP address and provide SSH credentials below.
 
-# OIM server IP address (REQUIRED)
+# OIM server IP address (leave empty for local mode — running on OIM itself)
 oim_server_ip: ""
 
-# SSH username for remote OIM server (default: root)
+# SSH username for remote OIM server (only needed for remote mode)
 oim_ssh_user: ""
 
-# SSH password for remote OIM server (REQUIRED)
+# SSH password for remote OIM server (only needed for remote mode)
 oim_ssh_password: ""
 
-# SSH port (default: 22)
+# SSH port (default: 22, only needed for remote mode)
 oim_ssh_port: 22
 
 # =============================================================================
