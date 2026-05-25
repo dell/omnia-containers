@@ -29,26 +29,18 @@ This removes all SSH entries for that IP from your ``local ~/.ssh/known_hosts`` 
 
 * Check if OpenCHAMI target dependencies are satisfied using the following command::
 
-  .. code-block:: bash
-
-     systemctl list-dependencies openchami.target
+      systemctl list-dependencies openchami.target
 
 * If certificate expiry issues occur, restart acme-deploy service using the following command::
 
-  .. code-block:: bash
-
-     systemctl restart acme-deploy
+      systemctl restart acme-deploy
 
 * If any other service under OpenCHAMI target failed, restart it using the following command::
 
-  .. code-block:: bash
-
-     systemctl restart <service_name>
+      systemctl restart <service_name>
 
 * Wait for OpenCHAMI target and all its dependencies to be active using the following command::
 
-  .. code-block:: bash
-
-     systemctl is-active openchami.target
+      systemctl is-active openchami.target
 
 
