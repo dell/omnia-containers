@@ -7,7 +7,7 @@ Omnia supports the following telemetry collection to monitor and manage your HPC
 
 * **iDRAC Telemetry** collects out-of-band system metrics from Dell servers, including
   power, thermal, and hardware health information. The iDRAC Telemetry data can be collected
-  and sent to Kafka and VictoriaMetrics. The iDRAC logs can be collected and sent to VictoriaLogs. 
+  and sent to Kafka and VictoriaMetrics. 
   
 * **LDMS Telemetry** collects in-band performance metrics such as CPU, memory,
   network, and I/O statistics from compute nodes. The LDMS Telemetry data can be collected
@@ -35,7 +35,7 @@ The Vector Telemetry Pipeline provides Kafka-to-Victoria ingestion using Vector 
 
 .. note::
 
-   To enable any telemetry and log collections (iDRAC telemetry, LDMS, PowerScale telemetry, or PowerScale logs), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and ``idrac_telemetry_support`` is set to ``true`` in the ``telemetry_config.yml`` file.
+   To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, or Vector), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and the corresponding telemetry source fields are set to ``true`` in the ``telemetry_config.yml`` file. For example, set ``telemetry_sources > idrac > metrics_enabled = true`` to enable iDRAC telemetry, or ``telemetry_sources > powerscale > metrics_enabled = true`` to enable PowerScale telemetry.
 
 
 Omnia Telemetry Architecture
@@ -67,9 +67,15 @@ Hosts telemetry collection and storage services:
 - **Kafka Broker** – Streams telemetry data
 - **VMAgent** – Forwards metrics to Victoria Metrics
 - **Victoria Metrics** – Time-series database for metric storage
+- **vmstorage-victoria-cluster** – Storage backend for VictoriaMetrics cluster
+- **vminsert-victoria-cluster** – Ingestion component for VictoriaMetrics cluster
 - **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
+- **vlstorage-victoria-logs-cluster** – Storage backend for VictoriaLogs cluster
+- **vlinsert-victoria-logs-cluster** – Ingestion component for VictoriaLogs cluster
 - **VLAgent** – Platform-managed log collection agent that receives logs from external sources
+- **karavi-metrics-powerscale** – Collects PowerScale metrics via Karavi Observability
 - **csm-metrics** – Collects PowerScale metrics
+- **csi-volume-exporter** – Exports CSI volume metrics
 - **otel-collector** – Forwards metrics to Victoria Metrics and Victoria Logs
 - **CSI Driver for Dell PowerScale:** – Driver required for communication between PowerScale and service Kubernetes nodes
 - **Vector** – High-performance data pipeline tool for collecting, transforming, and routing logs and metrics
@@ -102,7 +108,6 @@ iDRAC and LDMS Telemetry Data Flows
 
    iDRAC (BMC) → iDRAC Collector → Kafka
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
-   iDRAC (BMC) → iDRAC Collector → VLAgent → Victoria Logs
 
 Vector Telemetry Data Flows
 -----------------------------

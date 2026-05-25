@@ -42,3 +42,41 @@ For example, the following query displays detailed PowerScale metrics for each h
     {__name__=~"powerscale"}
 
 .. image:: ../../../images/powerscale_metrics_vmui_cluster.png
+
+View Collected PowerScale Logs using VictoriaLogs UI - Cluster Mode Deployment
+-------------------------------------------------------------------------------
+
+After applying the ``telemetry.yml`` configuration using the VictoriaLogs deployment mode as ``cluster``, 
+use the VictoriaLogs UI to validate that PowerScale log data is being collected and stored 
+successfully in a cluster mode VictoriaLogs deployment.
+
+1. Run the following command to verify that the VictoriaLogs pods are running::
+
+    kubectl get pods -n telemetry -o wide | grep vl
+
+.. image:: ../../../images/victoria_logs_pod_cluster_mode.png
+
+2. Run the following command to verify that the VictoriaLogs service is running::
+
+    kubectl get service -n telemetry -o wide | grep vl
+
+.. image:: ../../../images/victoria_logs_service_cluster.png
+
+3. Run the following command to verify if OTEL collector is receiving log data::
+
+    kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i log
+
+.. image:: ../../../images/otel_collector_pod_logs_cluster.png
+
+4. Note the **External IP** and **port number** of the VictoriaLogs service. The external IP and port number will be used to access the VictoriaLogs UI.
+
+5. Access the VictoriaLogs UI in a web browser using::
+
+    https://<external vlselect loadbalancer IP>:9481/select/0/vmui
+
+6. Filter and view PowerScale logs using queries in VictoriaLogs UI.
+For example, the following query displays PowerScale logs::
+
+    {job="powerscale"}
+
+.. image:: ../../../images/powerscale_logs_vlui_cluster.png
