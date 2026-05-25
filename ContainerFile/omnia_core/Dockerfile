@@ -140,7 +140,7 @@ RUN dnf -y autoremove && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
 # Git clone omnia repository
-RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
+RUN git clone https://github.com/abhishek-sa1/omnia.git -b ${OMNIA_VERSION}
 
 # Copy the entrypoint script to / and make it executable
 COPY entrypoint.sh /entrypoint.sh
