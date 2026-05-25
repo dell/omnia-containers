@@ -203,8 +203,8 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 .. note::
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
 
-Slurm Upgrade Details
-----------------------
+Slurm Upgrade
+-------------
 
 The Slurm component upgrade is a critical step that involves rebooting all Slurm and login nodes to apply cloud-init and BSS configuration updates. This section details the pre-upgrade warnings, validation steps, and node status monitoring.
 

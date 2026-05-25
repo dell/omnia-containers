@@ -116,8 +116,8 @@ To force a rollback after a successful upgrade: ::
 
     ansible-playbook rollback/rollback.yml -e force_rollback=true
 
-Slurm Rollback Details
------------------------
+Slurm Rollback
+--------------
 
 The Slurm rollback restores BSS and cloud-init configurations from the 2.1.0 backup and reboots all Slurm and login nodes to apply them.
 
