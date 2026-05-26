@@ -153,8 +153,6 @@ View VAST Logs using VictoriaLogs
 
     .. image:: ../../../../images/view_vast_logs_1.png
 
-    .. image:: ../../../../images/view_vast_logs_2.png
-
 2. Retrieve the external IP and port of the vlselect service::
 
     kubectl get svc -n telemetry | grep vlselect
