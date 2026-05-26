@@ -136,7 +136,7 @@ PowerScale Telemetry Data Flows
 
 .. toctree::
     :maxdepth: 1
-    :includehidden:
+    :caption: Telemetry Configuration Topics
 
     service_cluster_telemetry
     ldms_telemetry
