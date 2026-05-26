@@ -16,6 +16,14 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
     kubectl get pods -n telemetry -o wide | grep vm
 
+.. note::
+   The karavi-metrics-powerscale pod may go into crashloopback state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale, run the following command::
+
+      isi http settings view
+
+   If Basic authentication is enabled, update the authentication type in the CSM Observability values.yaml file to use session-based authentication. For details on configuring the CSM Observability values file, see :doc:`power_scale_telemetry`.
+
+
 .. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
@@ -80,3 +88,5 @@ For example, the following query displays PowerScale logs::
     {job="powerscale"}
 
 .. image:: ../../../images/powerscale_logs_vlui_cluster.png
+
+
