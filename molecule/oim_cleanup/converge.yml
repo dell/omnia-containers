@@ -61,6 +61,7 @@
     - name: Run oim_cleanup.yml inside omnia_core container (non-interactive)
       ansible.builtin.shell:
         cmd: |
+          set -o pipefail
           printf "YES\nYES\n" | podman exec -i -w /omnia/utils {{ container_name }} \
             ansible-playbook oim_cleanup.yml -v
       register: cleanup_result
