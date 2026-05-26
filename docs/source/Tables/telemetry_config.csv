@@ -189,7 +189,8 @@ powerscale_configurations > ``csm_observability_values_file_path``,Conditional M
 * **Required when**: telemetry_sources > powerscale > metrics_enabled: true
 * **Reference**: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
 * **Default value**: ``""``
-.. note:: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
+.. note:: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. Set the following parameters to false: karaviMetricsPowerflex.enabled=false, karaviMetricsPowerstore.enabled=false, karaviMetricsPowerscale.authorization.enabled=false, karaviMetricsPowermax.enabled=false.
+.. note:: Update the ``isiAuthType`` in the values.yaml file based on the current auth type setting. To check the current auth type setting, use the command ``isi http settings view``.
 .. note:: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml)."
 ufm_configuration > ``ufm_endpoint``,Conditional Mandatory,"* UFM appliance IP address or hostname
 * **Required when**: telemetry_sources > ufm > metrics_enabled is true
