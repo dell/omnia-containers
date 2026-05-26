@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Discovery Output Verification Test Cases.
+Provision Output Verification Test Cases.
 
-Verifies discovery playbook output artifacts inside omnia_core container:
+Verifies provision playbook output artifacts inside omnia_core container:
 1. Nodes.yaml generated from mapping input
 2. BSS boot templates created per functional group
 3. Cloud-init templates created per functional group
@@ -25,11 +25,11 @@ These run as the FIRST tests (order 6-8) after SSH tests, before Slurm tests.
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.discovery.functions import (
+from automation_library.provision.functions import (
     verify_bss_templates_created,
     verify_cloudinit_templates_created,
 )
-from automation_library.discovery.messages import (
+from automation_library.provision.messages import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG_MSGS,
     TEST_ASSERT_MSGS as ASSERT_MSGS,

@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Discovery Module - Common Variables.
+Provision Module - Common Variables.
 
-SSH options and common constants used across discovery tests.
+SSH options and common constants used across provision tests.
 """
 
 from automation_library.core import (
@@ -45,10 +45,10 @@ CONTAINER_NAME = _CORE_CONTAINER
 # =============================================================================
 
 # Number of retries for unreachable nodes in subsequent tests
-DISCOVERY_REACHABILITY_RETRY = 2
+PROVISION_REACHABILITY_RETRY = 2
 
 # Seconds between reachability retry attempts
-DISCOVERY_REACHABILITY_INTERVAL = 5
+PROVISION_REACHABILITY_INTERVAL = 5
 
 # =============================================================================
 # CLOUD-INIT RETRY CONFIGURATION
@@ -76,7 +76,7 @@ CLOUDINIT_RETRY_STATUSES = ["running", "not started"]
 IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"
 
 # =============================================================================
-# OPENCHAMI WORKDIR PATHS (discovery output artifacts inside omnia_core)
+# OPENCHAMI WORKDIR PATHS (provision output artifacts inside omnia_core)
 # =============================================================================
 
 OPENCHAMI_WORKDIR = f"{_OIM_SHARED_PATH}/openchami/workdir"

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Discovery - Node Package Verification Test Cases.
+Provision - Node Package Verification Test Cases.
 
 Runs AFTER cloud-init test (order=2) to verify all required packages
 are installed on every provisioned node.
@@ -42,12 +42,12 @@ from automation_library.core import (
     STAGE_VALIDATE_IMAGE,
 )
 from molecule.conftest import build_stream_job_state
-from automation_library.discovery.functions import (
+from automation_library.provision.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
     verify_node_packages,
 )
-from automation_library.discovery.messages import (
+from automation_library.provision.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS,
     SKIP_MSGS,
 )
@@ -56,6 +56,7 @@ from automation_library.discovery.messages import (
 # =============================================================================
 # 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
 # =============================================================================
+
 @pytest.mark.sanity
 @pytest.mark.order(0)
 def test_build_stream_job_stage(host):

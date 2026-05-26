@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Discovery SSH Verification Test Cases.
+Provision SSH Verification Test Cases.
 
 Runs AFTER test_cloudinit.py (order 2-5).
 Test cases for verifying passwordless SSH connectivity:
@@ -31,15 +31,15 @@ from automation_library.core import (
     TestLogger,
     check_nodes_reachability,
 )
-from automation_library.discovery.functions import (
+from automation_library.provision.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
     verify_ssh_from_core,
     verify_ssh_from_oim,
 )
-from automation_library.discovery.vars import (
-    DISCOVERY_REACHABILITY_RETRY,
-    DISCOVERY_REACHABILITY_INTERVAL,
+from automation_library.provision.vars import (
+    PROVISION_REACHABILITY_RETRY,
+    PROVISION_REACHABILITY_INTERVAL,
 )
 
 
@@ -85,8 +85,8 @@ def test_ssh_from_oim_via_admin_ip(host):
     # Check reachability (uses cache, 2 retries for unreachable)
     reach = check_nodes_reachability(
         host, all_nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     # Build details grouped by functional group
@@ -96,7 +96,7 @@ def test_ssh_from_oim_via_admin_ip(host):
     # Report unreachable nodes first
     if reach["unreachable"]:
         unreachable_count = len(reach['unreachable'])
-        retry_count = DISCOVERY_REACHABILITY_RETRY
+        retry_count = PROVISION_REACHABILITY_RETRY
         details_lines.append(
             f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
@@ -164,8 +164,8 @@ def test_ssh_from_oim_via_hostname(host):
 
     reach = check_nodes_reachability(
         host, all_nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     grouped = _group_nodes_by_functional_group(all_nodes)
@@ -173,7 +173,7 @@ def test_ssh_from_oim_via_hostname(host):
 
     if reach["unreachable"]:
         unreachable_count = len(reach['unreachable'])
-        retry_count = DISCOVERY_REACHABILITY_RETRY
+        retry_count = PROVISION_REACHABILITY_RETRY
         details_lines.append(
             f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
@@ -243,8 +243,8 @@ def test_ssh_from_core_via_admin_ip(host):
 
     reach = check_nodes_reachability(
         host, all_nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     grouped = _group_nodes_by_functional_group(all_nodes)
@@ -252,7 +252,7 @@ def test_ssh_from_core_via_admin_ip(host):
 
     if reach["unreachable"]:
         unreachable_count = len(reach['unreachable'])
-        retry_count = DISCOVERY_REACHABILITY_RETRY
+        retry_count = PROVISION_REACHABILITY_RETRY
         details_lines.append(
             f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )
@@ -318,8 +318,8 @@ def test_ssh_from_core_via_hostname(host):
 
     reach = check_nodes_reachability(
         host, all_nodes,
-        retry_limit=DISCOVERY_REACHABILITY_RETRY,
-        retry_interval=DISCOVERY_REACHABILITY_INTERVAL
+        retry_limit=PROVISION_REACHABILITY_RETRY,
+        retry_interval=PROVISION_REACHABILITY_INTERVAL
     )
 
     grouped = _group_nodes_by_functional_group(all_nodes)
@@ -327,7 +327,7 @@ def test_ssh_from_core_via_hostname(host):
 
     if reach["unreachable"]:
         unreachable_count = len(reach['unreachable'])
-        retry_count = DISCOVERY_REACHABILITY_RETRY
+        retry_count = PROVISION_REACHABILITY_RETRY
         details_lines.append(
             f"Unreachable nodes ({unreachable_count}) - after {retry_count} retries:"
         )

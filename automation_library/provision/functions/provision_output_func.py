@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Discovery Module - Discovery Output Verification Functions.
+Provision Module - Provision Output Verification Functions.
 
-Functions for verifying discovery playbook output artifacts:
+Functions for verifying provision playbook output artifacts:
 - nodes.yaml generation
 - BSS boot templates per functional group
 - Cloud-init templates per functional group

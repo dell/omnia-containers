@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Discovery K8s Verification Test Cases.
+Provision K8s Verification Test Cases.
 
 Test cases for verifying K8s cluster matches PXE mapping:
 1. Verify K8s nodes from PXE mapping are Ready
@@ -23,7 +23,7 @@ Test cases for verifying K8s cluster matches PXE mapping:
 
 import pytest
 from automation_library.core import TestLogger
-from automation_library.discovery.functions import (
+from automation_library.provision.functions import (
     get_k8s_nodes,
     verify_k8s_nodes_ready,
     verify_k8s_telemetry_pods,

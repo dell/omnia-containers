@@ -13,9 +13,9 @@
 # limitations under the License.
 
 """
-Discovery Cloud-Init Verification Test Cases.
+Provision Cloud-Init Verification Test Cases.
 
-This is the FIRST test in discovery - verifies:
+This is the FIRST test in provision - verifies:
 1. Node connectivity (ping + SSH) with retries
 2. Cloud-init status on reachable nodes
 
@@ -29,7 +29,7 @@ from automation_library.core import (
     verify_nodes_connectivity,
     verify_cloudinit_status,
 )
-from automation_library.discovery.functions import (
+from automation_library.provision.functions import (
     get_all_slurm_nodes,
     get_k8s_nodes,
 )

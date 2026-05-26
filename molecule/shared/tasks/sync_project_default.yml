@@ -17,6 +17,10 @@
 # credential files using the same mechanism as Omnia playbooks
 # =============================================================================
 
+- name: Check if sync_dataset_to_core is enabled
+  ansible.builtin.set_fact:
+    sync_enabled: "{{ omnia_test_config.sync_dataset_to_core | default(false) | bool }}"
+
 - name: Set project_default paths
   ansible.builtin.set_fact:
     project_default_src: "{{ project_dir }}/datasets/{{ omnia_test_config.dataset | default('project_default') }}"
@@ -34,6 +38,12 @@
       root@{{ ansible_host }}:{{ project_default_dest }}/
   delegate_to: localhost
   changed_when: true
+  when: sync_enabled
+
+- name: Skip sync message
+  ansible.builtin.debug:
+    msg: "Skipping dataset sync (sync_dataset_to_core: false)"
+  when: not sync_enabled
 
 # =============================================================================
 # CREATE VAULT KEY AND ENCRYPT CREDENTIALS (same as Omnia mechanism)
