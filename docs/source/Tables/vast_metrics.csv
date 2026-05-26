@@ -1,0 +1,14 @@
+Metric Name,Description,Unit
+vast_volume_read_throughput,Read throughput per volume,bytes/sec
+vast_volume_write_throughput,Write throughput per volume,bytes/sec
+vast_volume_read_iops,Read IOPS per volume,operations/sec
+vast_volume_write_iops,Write IOPS per volume,operations/sec
+vast_volume_read_latency,Read latency per volume,milliseconds
+vast_volume_write_latency,Write latency per volume,milliseconds
+vast_capacity_total,Total storage capacity,bytes
+vast_capacity_used,Used storage capacity,bytes
+vast_capacity_available,Available storage capacity,bytes
+vast_volume_state,Volume operational state,state
+vast_device_health,Device health status,state
+vast_cluster_node_status,Cluster node status,state
+vast_alarm_count,Active alarm count by severity,count

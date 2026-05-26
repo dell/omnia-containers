@@ -65,6 +65,20 @@ telemetry_sources > ``ufm`` > ``logs_enabled``,Optional,"* **Type**: Boolean
 telemetry_sources > ``ufm`` > ``collection_targets``,Conditional Mandatory,"* UFM uses vmagent(shared) for metrics and VLAgent for logs
 * **Supported values**: ``victoria_metrics``, ``victoria_logs``
 * **Default**: [``victoria_metrics``, ``victoria_logs``]"
+telemetry_sources > ``vast`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable VAST (Data Storage) metrics collection
+* **Collected metrics**: IB port state, transmit/receive data, error counters, fabric topology
+* **Requires**: VAST appliance with Prometheus exporter enabled
+* **Data path**: Prometheus Exporter → vmagent(shared) → victoria_metrics
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``vast`` > ``logs_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable VAST syslog logs collection
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``vast`` > ``collection_targets``,Conditional Mandatory,"* VAST uses vmagent(shared) for metrics and VLAgent for logs
+* **Supported values**: ``victoria_metrics``, ``victoria_logs``
+* **Default**: [``victoria_metrics``, ``victoria_logs``]"
 telemetry_bridges > ``vector_ldms`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
 * Enable or disable Vector-LDMS bridge (Kafka-to-victoria_metrics bridge for LDMS metrics)
 * **Purpose**: Consume LDMS metrics from Kafka 'ldms' topic, transform NERSC schema to Prometheus format, and write to victoria_metrics
@@ -202,4 +216,30 @@ ufm_configuration > ``auth_mode``,Optional,"* Authentication mode for UFM Promet
 * **Accepted values**: ``basic``, ``none``
 * **basic**: Use ufm_username/ufm_password from omnia_config_credentials.yml
 * **none**: No authentication (UFM endpoint is open)
+* **Default value**: ``basic``"
+vast_configuration > ``vast_endpoint``,Conditional Mandatory,"* VAST appliance IP address or hostname
+* **Required when**: telemetry_sources > vast > metrics_enabled is true
+* **Example**: ``172.20.44.180`` or ``vast.example.com``
+* **Default value**: ``""``"
+vast_configuration > ``vast_metrics_port``,Optional,"* VAST Prometheus exporter port
+* **Default value**: 9001 (VAST default Prometheus port)"
+vast_configuration > ``scrape_interval``,Optional,"* Prometheus scrape interval for VAST metrics
+* **Accepted values**: Prometheus duration format (e.g., ``15s``, ``30s``, ``1m``)
+* **Default value**: ``30s``"
+vast_configuration > ``scrape_timeout``,Optional,"* Prometheus scrape timeout (must be <= scrape_interval)
+* **Accepted values**: Prometheus duration format (e.g., ``10s``, ``15s``)
+* **Default value**: ``15s``"
+vast_configuration > ``tls_mode``,Optional,"* TLS mode for connecting to VAST Prometheus endpoint
+* **Accepted values**: ``self_signed``, ``ca_signed``
+* **self_signed**: Skip TLS verification (insecure_skip_verify=true)
+* **ca_signed**: Use CA certificate for TLS verification
+* **Default value**: ``self_signed``"
+vast_configuration > ``vast_ca_cert_path``,Optional,"* Path to CA certificate file for VAST TLS verification
+* **Required when**: tls_mode is ``ca_signed``
+* Must be a valid PEM-format certificate file
+* **Default value**: ``""`` (empty — not used when tls_mode is ``self_signed``)"
+vast_configuration > ``auth_mode``,Optional,"* Authentication mode for VAST Prometheus endpoint
+* **Accepted values**: ``basic``, ``none``
+* **basic**: Use vast_username/vast_password from omnia_config_credentials.yml
+* **none**: No authentication (VAST endpoint is open)
 * **Default value**: ``basic``"
