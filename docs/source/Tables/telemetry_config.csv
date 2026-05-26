@@ -65,6 +65,20 @@ telemetry_sources > ``ufm`` > ``logs_enabled``,Optional,"* **Type**: Boolean
 telemetry_sources > ``ufm`` > ``collection_targets``,Conditional Mandatory,"* UFM uses vmagent(shared) for metrics and VLAgent for logs
 * **Supported values**: ``victoria_metrics``, ``victoria_logs``
 * **Default**: [``victoria_metrics``, ``victoria_logs``]"
+telemetry_sources > ``vast`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable VAST (Data Storage) metrics collection
+* **Collected metrics**: IB port state, transmit/receive data, error counters, fabric topology
+* **Requires**: VAST appliance with Prometheus exporter enabled
+* **Data path**: Prometheus Exporter → vmagent(shared) → victoria_metrics
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``vast`` > ``logs_enabled``,Optional,"* **Type**: Boolean
+* Enable or disable VAST syslog logs collection
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``"
+telemetry_sources > ``vast`` > ``collection_targets``,Conditional Mandatory,"* VAST uses vmagent(shared) for metrics and VLAgent for logs
+* **Supported values**: ``victoria_metrics``, ``victoria_logs``
+* **Default**: [``victoria_metrics``, ``victoria_logs``]"
 telemetry_bridges > ``vector_ldms`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
 * Enable or disable Vector-LDMS bridge (Kafka-to-victoria_metrics bridge for LDMS metrics)
 * **Purpose**: Consume LDMS metrics from Kafka 'ldms' topic, transform NERSC schema to Prometheus format, and write to victoria_metrics
@@ -203,20 +217,6 @@ ufm_configuration > ``auth_mode``,Optional,"* Authentication mode for UFM Promet
 * **basic**: Use ufm_username/ufm_password from omnia_config_credentials.yml
 * **none**: No authentication (UFM endpoint is open)
 * **Default value**: ``basic``"
-telemetry_sources > ``vast`` > ``metrics_enabled``,Optional,"* **Type**: Boolean
-* Enable or disable VAST (Data Storage) metrics collection
-* **Collected metrics**: IB port state, transmit/receive data, error counters, fabric topology
-* **Requires**: VAST appliance with Prometheus exporter enabled
-* **Data path**: Prometheus Exporter → vmagent(shared) → victoria_metrics
-* **Accepted values**: ``true`` or ``false``
-* **Default value**: ``false``"
-telemetry_sources > ``vast`` > ``logs_enabled``,Optional,"* **Type**: Boolean
-* Enable or disable VAST syslog logs collection
-* **Accepted values**: ``true`` or ``false``
-* **Default value**: ``false``"
-telemetry_sources > ``vast`` > ``collection_targets``,Conditional Mandatory,"* VAST uses vmagent(shared) for metrics and VLAgent for logs
-* **Supported values**: ``victoria_metrics``, ``victoria_logs``
-* **Default**: [``victoria_metrics``, ``victoria_logs``]"
 vast_configuration > ``vast_endpoint``,Conditional Mandatory,"* VAST appliance IP address or hostname
 * **Required when**: telemetry_sources > vast > metrics_enabled is true
 * **Example**: ``172.20.44.180`` or ``vast.example.com``
