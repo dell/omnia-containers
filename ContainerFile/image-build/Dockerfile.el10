@@ -1,7 +1,7 @@
 FROM docker.io/library/almalinux:10.0
 
-ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.25.8
+ARG BUILDAH_VERSION=1.43.1
+ARG GO_VERSION=1.25.10
 
 RUN dnf clean all && \
     dnf update -y --releasever=10.0 --nogpgcheck && \
@@ -46,6 +46,11 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     go get github.com/sigstore/fulcio@v1.8.5 && \
     go get golang.org/x/crypto@v0.45.0 && \
     go get github.com/containernetworking/plugins@v1.9.0 && \
+    go get golang.org/x/net@v0.55.0 && \
+    go get golang.org/x/sys@v0.44.0 && \
+    go get github.com/go-jose/go-jose/v4@v4.1.4 && \
+    go get go.opentelemetry.io/otel@v1.41.0 && \
+    go get github.com/moby/buildkit@v0.28.1 && \
     go mod tidy && \
     go get github.com/sigstore/fulcio@v1.8.5 && \
     go get github.com/sigstore/sigstore@v1.10.4 && \
