@@ -1,6 +1,6 @@
 ========================================================
 Configure Deployment Required for PowerScale Telemetry
-======================================================
+========================================================
 
 Using Omnia, you can deploy PowerScale Telemetry to collect storage performance metrics and logs from Dell PowerScale storage nodes. The deployment includes configuring PowerScale Telemetry components on the service Kubernetes cluster, integrating with Dell CSM Metrics for PowerScale with an OpenTelemetry Collector, and ingesting logs via the syslog pipeline.
 
