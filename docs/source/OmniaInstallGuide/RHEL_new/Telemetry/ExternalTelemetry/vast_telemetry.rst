@@ -44,13 +44,13 @@ Prerequisites
 
 Make sure the following prerequisites are met:
 
-- Ensure that the ``telemetry_config.yml`` has the entries specific for VAST Telemetry deployment enabled. For more details on configuring ``telemetry_config.yml``, see :doc:`OmniaInstallGuide/RHEL_new/Telemetry/service_cluster_telemetry`.
+- Ensure that the ``telemetry_config.yml`` has the entries specific for VAST Telemetry deployment enabled. For more details on configuring ``telemetry_config.yml``, see :doc:`../service_cluster_telemetry`.
 - Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 - Ensure the service Kubernetes cluster has sufficient resources to run vmagent (shared instance) and VLAgent.
 - Ensure network connectivity between the service Kubernetes cluster and the VAST Storage appliance.
 
 .. note::
-   VAST Telemetry supports independent feature flags for metric collection and log collection. You can enable or disable each independently. For more details, see :doc:`OmniaInstallGuide/RHEL_new/Telemetry/service_cluster_telemetry`.
+   VAST Telemetry supports independent feature flags for metric collection and log collection. You can enable or disable each independently. For more details, see :doc:`../service_cluster_telemetry`.
 
 For VAST Metrics Collection
 ----------------------------
@@ -68,7 +68,7 @@ The VAST Prometheus exporter must be enabled and accessible from the service clu
     https://<vast_ip>:443/api/prometheusmetrics/devices
     https://<vast_ip>:443/api/prometheusmetrics/alarms
 
-.. image:: images/vast_telemetry_1.png
+.. image:: ../../../../images/vast_telemetry_1.png
 
 - **Configure SSL certificates (optional):** If using CA-signed TLS, set up SSL and CA certificates in VAST. For detailed steps, see `VAST Data Documentation - Security Configuration <https://docs.vastdata.com/>`_.
 
@@ -89,7 +89,7 @@ Configure the following settings on the VAST appliance:
 
   3. Click **Save**
 
-.. image:: images/vast_telemetry_2.png
+.. image:: ../../../../images/vast_telemetry_2.png
 
 For detailed information on VAST syslog configuration parameters, see `VAST Data Documentation - Default Notification Actions <https://docs.vastdata.com/>`_.
 
@@ -97,7 +97,7 @@ For detailed information on VAST syslog configuration parameters, see `VAST Data
 
     kubectl get svc -n telemetry | grep vlagent
 
-.. image:: images/vast_telemetry_3.png
+.. image:: ../../../../images/vast_telemetry_3.png
 
 Verify VAST Telemetry Flow
 ---------------------------
@@ -113,26 +113,26 @@ After applying the ``telemetry.yml`` configuration using the VictoriaMetrics dep
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: images/vast_telemetry_4.png
+.. image:: ../../../../images/vast_telemetry_4.png
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: images/vast_telemetry_5.png
+.. image:: ../../../../images/vast_telemetry_5.png
 
 3. Run the following command to verify VMagent logs for VAST scraping to view recent logs::
 
     VMAGENT_POD=$(kubectl get pods -n telemetry -l app.kubernetes.io/name=vmagent -o jsonpath='{.items[0].metadata.name}')
     kubectl logs $VMAGENT_POD -n telemetry -c vmagent --tail=10
 
-.. image:: images/vast_telemetry_6.png
+.. image:: ../../../../images/vast_telemetry_6.png
 
 4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI)::
 
     kubectl get svc -n telemetry | grep vmselect
 
-.. image:: images/vast_telemetry_7.png
+.. image:: ../../../../images/vast_telemetry_7.png
 
 5. Access the VMUI in a web browser using::
 
@@ -142,7 +142,7 @@ Key VAST Metrics
 ----------------
 
 .. csv-table:: Key VAST Metrics
-   :file: Tables/vast_metrics.csv
+   :file: ../../../../Tables/vast_metrics.csv
    :header-rows: 1
    :widths: 40, 40, 20
    :keepspace:
@@ -154,16 +154,16 @@ View VAST Logs using VictoriaLogs
 
     kubectl get svc -n telemetry | grep -E "(vlagent|victoria-logs)"
 
-.. image:: images/view_vast_logs_1.png
+.. image:: ../../../../images/view_vast_logs_1.png
 
 2. Retrieve the external IP and port of the vlselect service::
 
     kubectl get svc -n telemetry | grep vlselect
 
-.. image:: images/view_vast_logs_2.png
+.. image:: ../../../../images/view_vast_logs_2.png
 
 3. Access the VictoriaLogs UI in a web browser using::
 
     https://<external vlselect loadbalancer IP>:9471/select/vmui
 
-.. image:: images/view_vast_logs_3.png
+.. image:: ../../../../images/view_vast_logs_3.png
