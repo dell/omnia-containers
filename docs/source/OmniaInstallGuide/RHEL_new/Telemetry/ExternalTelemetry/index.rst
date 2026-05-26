@@ -13,6 +13,7 @@ These integrations are optional and allow you to extend Omnia's telemetry capabi
     external_kafka_ome
     external_victoria_sfm
     external_victoria_ufm
+    vast_telemetry
     external_kafka
     external_victoria
     external_victoria_logs
