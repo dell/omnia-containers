@@ -78,8 +78,8 @@ Procedure
 
     .. code-block:: json
 
-        {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
-        {"name": "csi_driver_powerscale", "arch": ["x86_64"]}
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "version": "2.16.0", "arch": ["x86_64"]}
 
 2. Configure the ``omnia_config.yml``:
 
@@ -103,17 +103,20 @@ Procedure
     - **powerscale_telemetry_support:** Enable or disable PowerScale Telemetry (``true`` or ``false``)
     - **powerscale_metrics_enabled:** Enable or disable PowerScale metric collection (``true`` or ``false``)
     - **powerscale_logs_enabled:** Enable or disable PowerScale log collection (``true`` or ``false``)
-    - **powerscale_cluster_address:** PowerScale cluster address
-    - **powerscale_credentials:** PowerScale credentials for CSM Metrics access
-    - **deployment_mode:** Select deployment mode (``omnia-orchestrated`` or ``operator-provided``)
-    - **external_otel_endpoint:** (Optional) External OpenTelemetry Collector endpoint URL for operator-provided mode
 
-5. For Omnia-orchestrated mode, configure the CSM Observability values file:
+5. Configure the CSM Observability values file:
 
     - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in ``telemetry_config.yml``
     - Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
     - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
     - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
+
+    .. note::
+       The karavi-metrics-powerscale pod may go into crashloopback state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale, run the following command::
+
+          isi http settings view
+
+       If Basic authentication is enabled, update the authentication type in the CSM Observability ``values.yaml`` file to use session-based authentication.
 
 6. For dual-destination delivery (optional), configure an external observability endpoint:
 
@@ -156,21 +159,6 @@ When the CSI PowerScale health monitor is enabled (``controller > healthMonitor 
 **Aggregate Summary:**
 
 - ``powerscale_total_capacity_bytes`` - Total capacity of all PowerScale PVs in bytes
-
-Feature Flags and Deployment Modes
-------------------------------------
-
-**Independent Feature Flags**
-
-You can independently enable or disable PowerScale metric collection and PowerScale log collection. Disabling one flag does not affect the other.
-
-**Deployment Mode Selection**
-
-Select one of two deployment modes in ``telemetry_config.yml``:
-
-*Omnia-orchestrated:* Omnia deploys CSM Metrics, the OpenTelemetry Collector, the CSI Driver for Dell PowerScale, and cert-manager on the service cluster. This mode requires CSI Driver for Dell PowerScale and cert-manager to be installed on the service Kubernetes cluster.
-
-*Operator-provided endpoint:* The operator provides the Prometheus endpoint URL of an externally managed OpenTelemetry Collector. Omnia configures vmagent to scrape that endpoint without deploying CSM Metrics or OTel Collector pods.
 
 TLS and Authentication
 ---------------------
