@@ -111,6 +111,13 @@ Procedure
     - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
     - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
 
+.. note::
+   The karavi-metrics-powerscale pod may go into crashloopback state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale, run the following command::
+
+      isi http settings view
+
+   If Basic authentication is enabled, update the authentication type in the CSM Observability values.yaml file to use session-based authentication. 
+
 6. For dual-destination delivery (optional), configure an external observability endpoint:
 
     - Specify the external VictoriaMetrics endpoint in ``telemetry_config.yml``
