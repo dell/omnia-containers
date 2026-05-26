@@ -38,8 +38,6 @@ Prerequisites
 ---------------
 
 * Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
-* Set ``telemetry_sources > powerscale > metrics_enabled = true`` in the ``telemetry_config.yml`` file to enable PowerScale metrics collection.
-* Set ``telemetry_sources > powerscale > logs_enabled = true`` in the ``telemetry_config.yml`` file to enable PowerScale logs collection.
 * For Omnia-orchestrated mode, ensure the service Kubernetes cluster has sufficient resources to run CSM Metrics, OpenTelemetry Collector, CSI Driver, and cert-manager.
 * For operator-provided mode, ensure the external OpenTelemetry Collector endpoint is accessible from the service cluster over TLS.
 * Ensure network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
@@ -100,16 +98,15 @@ Procedure
 
 4. Configure PowerScale-specific parameters in ``telemetry_config.yml``:
 
-    - **powerscale_telemetry_support:** Enable or disable PowerScale Telemetry (``true`` or ``false``)
-    - **powerscale_metrics_enabled:** Enable or disable PowerScale metric collection (``true`` or ``false``)
-    - **powerscale_logs_enabled:** Enable or disable PowerScale log collection (``true`` or ``false``)
+    - **telemetry_sources > powerscale > metrics_enabled:** Enable or disable PowerScale metric collection (``true`` or ``false``)
+    - **telemetry_sources > powerscale > logs_enabled:** Enable or disable PowerScale log collection (``true`` or ``false``)
 
 5. Configure the CSM Observability values file:
 
     - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in ``telemetry_config.yml``
     - Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
-    - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale > enabled: true``. All other parameters should be set to ``false``.
-    - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor > enabled: true`` and ``node > healthMonitor > enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
+    - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale -> enabled: true``. Set the following parameters to false: ``karaviMetricsPowerflex -> enabled=false``, ``karaviMetricsPowerstore -> enabled=false``, ``karaviMetricsPowerscale.authorization -> enabled=false``, ``karaviMetricsPowermax -> enabled=false``.
+    - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor -> enabled: true`` and ``node > healthMonitor -> enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
 
 .. note::
    The karavi-metrics-powerscale pod may go into crashloopback state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale, run the following command::
@@ -222,17 +219,21 @@ Enable and Disable PowerScale Logs
 
 You can enable or disable PowerScale logs using the following commands:
 
-**To disable PowerScale logs:**
+* To disable PowerScale logs, run the following commands:
 
 .. code-block:: bash
 
-   ansible-playbook telemetry/telemetry_disable.yml --tags powerscale
+   isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
+   isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
+   isi audit settings global modify --clear-protocol-syslog-servers
+   isi audit setting modify --syslog-forwarding-enabled false
 
-**After disabling PowerScale logs, to enable PowerScale logs again:**
+* After disabling PowerScale logs, to enable PowerScale logs again, run the following commands:
 
 .. code-block:: bash
 
-   ansible-playbook telemetry/telemetry_enable.yml --tags powerscale
+   isi audit setting modify --syslog-forwarding-enabled true
+   isi audit settings global modify --config-syslog-enabled=1 --config-syslog-servers=<vlagent loadbalancer ip>:514 --config-syslog-tls-enabled=0
+   isi audit settings global modify --protocol-syslog-servers=<vlagent loadbalancer ip>:514 --protocol-syslog-tls-enabled=0
+   isi audit settings global modify --system-syslog-enabled=1 --system-syslog-servers=<vlagent loadbalancer ip>:514 --system-syslog-tls-enabled=0
 
-.. note::
-   To disable PowerScale logs, remove the IP from the command and set ``enabled`` to ``no``.
