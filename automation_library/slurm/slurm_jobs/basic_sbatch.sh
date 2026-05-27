@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=omnia_test_sbatch
 #SBATCH --nodes={{SLURM_NUM_NODES}}
-#SBATCH --output={{OUTPUT_PATH}}/omnia_test_sbatch_%j.out
-#SBATCH --error={{OUTPUT_PATH}}/omnia_test_sbatch_%j.out
+#SBATCH --output=/scratch/%u/results/omnia_test_sbatch_%j.out
+#SBATCH --error=/scratch/%u/results/omnia_test_sbatch_%j.err
 #SBATCH --time=00:05:00
 
 # Basic sbatch job for OMNIA Slurm test automation.

@@ -47,6 +47,17 @@ This module contains test cases to verify the health and status of a Slurm clust
   TC41 - PAM support: ldapuser job from control node
   TC42 - PAM support: ldapuser job from login_compiler node
   TC43 - OpenMPI job from ldapuser on login_compiler node
+  TC44 - GPU Hello World job from ldapuser on login_compiler node
+  TC45 - GPU Memory Stress Test job from ldapuser on login_compiler node
+
+InfiniBand Tests (pre-check: IB_NIC_NAME and IB_IP present in PXE mapping)
+  TC46 - IB Hardware & Link Verification (ibstat, ibstatus, ibv_devinfo, ibv_devices)
+  TC47 - DOCA-OFED / MLNX_OFED installation on IB nodes
+  TC48 - IB IP correctly assigned to IB interface
+  TC49 - IB interface MTU verification (>= 2044 IPoIB standard)
+  TC50 - IB subnet mask matches network_spec.yml ib_network
+  TC51 - IB IP is within correct ib_network subnet
+  TC52 - IB ping test between all IB-configured node pairs
 """
 
 import os
@@ -83,6 +94,18 @@ from automation_library.slurm.functions.slurm_func import (
     verify_passwordless_ssh,
     verify_root_sbatch_from_multiple_login_nodes,
 )
+from automation_library.slurm.functions.slurm_ib_func import (
+    get_ib_nodes,
+    verify_ib_hardware_and_link,
+    verify_doca_ofed_installed,
+    verify_ib_ip_assigned,
+    verify_ib_mtu,
+    verify_ib_subnet_mask,
+    verify_ib_ip_in_subnet,
+    verify_ib_ping,
+    verify_ib_bandwidth,
+    verify_ib_latency,
+)
 from automation_library.slurm.functions.slurm_ldap_func import (
     verify_ldapuser_login,
     verify_ldapuser_blocked_on_slurm_nodes,
@@ -99,6 +122,8 @@ from automation_library.slurm.functions.slurm_ldap_func import (
     verify_invalid_ldap_username,
     verify_invalid_ldap_password,
     set_ldapuser_home_permissions,
+    verify_gpu_hello_job,
+    verify_gpu_mem_stress_job,
 )
 
 # =============================================================================
@@ -1322,4 +1347,304 @@ def test_openmpi_job(host):
     else:
         log.failed(result["message"])
 
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC44: GPU Hello World job from ldapuser on login_compiler node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(44)
+def test_gpu_hello_job(host):
+    """TC44: Test submitting a GPU hello world job as ldapuser from login_compiler node.
+
+    Submits a job that compiles and runs a simple CUDA program to detect GPUs
+    and execute a basic kernel, then verifies the expected output.
+    Skips if no GPU nodes are found in the cluster.
+    """
+    _skip_if_no_openldap(host)
+    _ensure_ldap_prereq(host)
+    log = TestLogger("Verify GPU hello world job from ldapuser on login_compiler node")
+    log.check("Submitting GPU hello world job as ldapuser")
+
+    result = verify_gpu_hello_job(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("job_state"):
+        log.check(f"Job state: {result['job_state']}")
+    if result.get("job_output"):
+        log.check(f"Job output:\n{result['job_output']}")
+
+    output_status = "VERIFIED" if result.get("output_verified") else "FAILED"
+    log.check(f"Output verification: {output_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC45: GPU Memory Stress Test job from ldapuser on login_compiler node
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(45)
+def test_gpu_mem_stress_job(host):
+    """TC45: Test submitting a GPU memory stress test job as ldapuser from login_compiler node.
+
+    Submits a job that allocates GPU memory and runs sustained compute workload
+    across multiple GPU nodes, then verifies the expected output.
+    Skips if no GPU nodes are found in the cluster.
+    """
+    _skip_if_no_openldap(host)
+    _ensure_ldap_prereq(host)
+    log = TestLogger("Verify GPU memory stress test job from ldapuser on login_compiler node")
+    log.check("Submitting GPU memory stress test job as ldapuser")
+
+    result = verify_gpu_mem_stress_job(host)
+
+    if result.get("skipped"):
+        log.check(result["message"])
+        pytest.skip(result["message"])
+        return
+
+    if result.get("submit_node"):
+        log.check(f"Submit node: {result['submit_node']}")
+    if result.get("job_id"):
+        log.check(f"Job ID: {result['job_id']}")
+    if result.get("job_state"):
+        log.check(f"Job state: {result['job_state']}")
+    if result.get("job_output"):
+        log.check(f"Job output:\n{result['job_output']}")
+
+    output_status = "VERIFIED" if result.get("output_verified") else "FAILED"
+    log.check(f"Output verification: {output_status}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# INFINIBAND TESTS (TC46 – TC54)
+# Pre-check: IB_NIC_NAME and IB_IP must be populated for at least one
+# Slurm cluster node in the PXE mapping file.
+# =============================================================================
+
+def _skip_if_no_ib(host):
+    """Skip the current test if no IB-configured nodes are found."""
+    if not get_ib_nodes(host):
+        pytest.skip("No IB-configured nodes (IB_NIC_NAME + IB_IP) found in PXE mapping")
+
+
+def _log_ib_per_node(log, per_node: list):
+    """Log per-node IB check results."""
+    for n in per_node:
+        hostname = n.get("hostname", n.get("node_ip", "unknown"))
+        for key, val in n.get("checks", {}).items():
+            if isinstance(val, dict):
+                log.check(f"  [{hostname}] {key}: rc={val.get('rc','?')} output={str(val.get('output',''))[:120]}")
+            else:
+                log.check(f"  [{hostname}] {key}: {val}")
+        for field in ("status", "mtu_status", "interface"):
+            if field in n:
+                log.check(f"  [{hostname}] {field}: {n[field]}")
+        log.check(f"  [{hostname}] => {'PASS' if n.get('success') else 'FAIL'}")
+
+
+# =============================================================================
+# TC46 – IB Hardware & Link Verification
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(46)
+def test_ib_hardware_and_link(host):
+    """TC46: Verify IB hardware and link state on all IB-configured nodes.
+
+    Runs ibstat, ibstatus, ibv_devinfo, ibv_devices and verifies port is Active.
+    Skips if no IB-configured nodes found in PXE mapping.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC46: IB Hardware & Link Verification")
+    result = verify_ib_hardware_and_link(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    _log_ib_per_node(log, result.get("per_node", []))
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC47 – DOCA-OFED Installation
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(47)
+def test_doca_ofed_installed(host):
+    """TC47: Verify DOCA-OFED (or MLNX_OFED) is installed on IB nodes.
+
+    Checks ofed_info -s version, OFED RPMs, and ib_uverbs kernel module.
+    Skips if no IB-configured nodes found in PXE mapping.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC47: DOCA-OFED Installation")
+    result = verify_doca_ofed_installed(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    _log_ib_per_node(log, result.get("per_node", []))
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC48 – IB IP Assignment
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(48)
+def test_ib_ip_assigned(host):
+    """TC48: Verify the IB IP from PXE mapping is assigned to the IB
+    interface on each IB-configured node.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC48: IB IP Assignment")
+    result = verify_ib_ip_assigned(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    for n in result.get("per_node", []):
+        log.check(f"  [{n.get('hostname')}] IB IP: {n.get('ib_ip')} - {n.get('status')}")
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC49 – IB Interface MTU
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(49)
+def test_ib_mtu(host):
+    """TC49: Verify IB interface MTU >= 2044 (IPoIB standard).
+
+    Checks 'ip link show <ib_iface>' and validates MTU value.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC49: IB Interface MTU Verification")
+    result = verify_ib_mtu(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    _log_ib_per_node(log, result.get("per_node", []))
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC50 – IB Subnet Mask from network_spec.yml
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(50)
+def test_ib_subnet_mask(host):
+    """TC50: Verify the IB interface subnet mask matches ib_network.netmask_bits
+    from network_spec.yml on every IB-configured node.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC50: IB Subnet Mask vs network_spec.yml")
+    result = verify_ib_subnet_mask(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    if result.get("subnet_info"):
+        si = result["subnet_info"]
+        log.check(f"Expected: {si['subnet']}/{si['netmask_bits']} (from network_spec.yml)")
+    for n in result.get("per_node", []):
+        log.check(f"  [{n.get('hostname')}] {n.get('status')}")
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC51 – IB IP in Correct Subnet
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(51)
+def test_ib_ip_in_subnet(host):
+    """TC51: Verify each node's IB_IP (from PXE mapping) falls within the
+    ib_network subnet defined in network_spec.yml.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC51: IB IP Subnet Membership")
+    result = verify_ib_ip_in_subnet(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    for n in result.get("per_node", []):
+        log.check(f"  [{n.get('hostname')}] {n.get('status')}")
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC52 – IB Ping
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(52)
+def test_ib_ping(host):
+    """TC52: Verify IPoIB connectivity by pinging each node's IB IP from
+    every other IB-configured node.  Requires >= 2 IB nodes.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC52: IB Ping Test")
+    result = verify_ib_ping(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    for r in result.get("per_node", []):
+        status = "PASS" if r["success"] else "FAIL"
+        log.check(f"  {r.get('src')} -> {r.get('dst')} ({r.get('dst_ib_ip')}): {status}")
+        if not r["success"]:
+            log.check(f"    {r.get('output', '')[:200]}")
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
     assert result["success"], result["message"]

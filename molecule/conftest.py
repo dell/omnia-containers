@@ -94,6 +94,22 @@ _x86_64_login_compiler_ips: list = []
 _x86_64_login_compiler_collection_error: str = None
 
 
+# =============================================================================
+# VAST STORAGE NODE PARAMETRIZATION STATE
+# =============================================================================
+# Module-level state for VAST storage node discovery and parametrization.
+# Used by vast_storage scenario to parametrize tests across storage nodes.
+#
+# Only active when running vast_storage scenario tests.
+# =============================================================================
+_vast_compute_node_ips: list = []
+_vast_compute_collection_error: str = None
+_vast_controller_node_ips: list = []
+_vast_controller_collection_error: str = None
+_vast_login_node_ips: list = []
+_vast_login_collection_error: str = None
+
+
 class _TeeStream:
     def __init__(self, primary, buffer):
         self._primary = primary
@@ -137,6 +153,9 @@ def pytest_configure(config):
 
     # HPC benchmarks node collection - only for hpc_benchmarks scenario
     _collect_hpc_benchmark_nodes(config)
+    
+    # VAST storage node collection - only for vast_storage scenario
+    _collect_vast_storage_nodes(config)
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -230,6 +249,47 @@ def _collect_hpc_benchmark_nodes(config):
         _x86_64_node_ips = []
         _aarch64_node_ips = []
         _x86_64_login_compiler_ips = []
+
+
+def _collect_vast_storage_nodes(config):
+    """Collect VAST storage nodes for parametrization."""
+    global _vast_compute_node_ips, _vast_controller_node_ips, _vast_login_node_ips
+    global _vast_compute_collection_error, _vast_controller_collection_error, _vast_login_collection_error
+    
+    # Only run for vast_storage scenario
+    if config.args:
+        path = config.args[0] if config.args else ""
+        if "vast_storage" not in path:
+            return
+    
+    try:
+        from automation_library.vast_storage import (
+            get_compute_nodes,
+            get_controller_nodes,
+            get_login_nodes,
+        )
+        
+        host = get_testinfra_host()
+        
+        # Collect compute nodes
+        compute_nodes = get_compute_nodes(host)
+        _vast_compute_node_ips = compute_nodes if compute_nodes else []
+        
+        # Collect controller nodes
+        controller_nodes = get_controller_nodes(host)
+        _vast_controller_node_ips = controller_nodes if controller_nodes else []
+        
+        # Collect login nodes
+        login_nodes = get_login_nodes(host)
+        _vast_login_node_ips = login_nodes if login_nodes else []
+        
+    except Exception as e:
+        _vast_compute_collection_error = f"Compute node collection failed: {e}"
+        _vast_controller_collection_error = f"Controller node collection failed: {e}"
+        _vast_login_collection_error = f"Login node collection failed: {e}"
+        _vast_compute_node_ips = []
+        _vast_controller_node_ips = []
+        _vast_login_node_ips = []
 
 
 def pytest_generate_tests(metafunc):
