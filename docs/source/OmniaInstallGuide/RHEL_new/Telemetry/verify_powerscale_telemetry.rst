@@ -24,12 +24,6 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
-3. Run the following command to verify if OTEL collector is receiving telemetry data::
-
-    kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i metric
-
-.. image:: ../../../images/otel_collector_pod_cluster.png
-
 4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
 5. Access the VMUI in a web browser using::
@@ -62,17 +56,11 @@ successfully in a cluster mode VictoriaLogs deployment.
 
 .. image:: ../../../images/victoria_logs_service_cluster.png
 
-3. Run the following command to verify if OTEL collector is receiving log data::
-
-    kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i log
-
-.. image:: ../../../images/otel_collector_pod_logs_cluster.png
-
 4. Note the **External IP** and **port number** of the VictoriaLogs service. The external IP and port number will be used to access the VictoriaLogs UI.
 
 5. Access the VictoriaLogs UI in a web browser using::
 
-    https://<external vlselect loadbalancer IP>:9481/select/0/vmui
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 6. Filter and view PowerScale logs using queries in VictoriaLogs UI.
 For example, the following query displays PowerScale logs::
