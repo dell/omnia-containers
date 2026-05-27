@@ -1,7 +1,9 @@
-﻿Variables,Status,Details
+﻿Variables,Details
 "**mounts**
 
-``List (dict)``",Mandatory,"Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
+``List (dict)``
+
+Mandatory","Configure mount points compatible with cloud-init mounts module. Source must be known at boot time (NFS paths, UUIDs, local devices). For runtime-discovered sources (iSCSI/multipath), use powervault_config section.
 
 **Mandatory Fields:**
 
@@ -29,7 +31,7 @@
 
 **Node Targeting (exactly ONE is required - mutually exclusive):**
 
-* **functional_group_prefix**—List of oChaMI functional group name prefixes. All nodes whose group name starts with any listed prefix receive this mount. Example: [""slurm""] matches slurm_control_node, slurm_node, etc. MUTUALLY EXCLUSIVE with groups
+* **functional_group_prefix**—List of functional group name prefixes. All nodes whose group name starts with any listed prefix receive this mount. Example: [""slurm""] matches slurm_control_node, slurm_node, etc. MUTUALLY EXCLUSIVE with groups
 * **groups**—List of GROUP_NAME values from pxe_mapping_file.csv. Only nodes assigned to the listed PXE groups receive this mount. Example: [""grp1"", ""grp2""] targets only nodes in those groups. MUTUALLY EXCLUSIVE with functional_group_prefix
 
 **Sample**::
@@ -51,7 +53,9 @@
     functional_group_prefix: [""service_kube""]"
 "**mount_params**
 
-``dict``",Optional,"Named default profiles for mount configurations. Profiles are referenced by name from mount entries via the mount_params field.
+``dict``
+
+Optional","Named default profiles for mount configurations. Profiles are referenced by name from mount entries via the mount_params field.
 
 **Mandatory Profile Fields:**
 
@@ -79,7 +83,9 @@
 "
 "**powervault_config**
 
-``List (dict)``",Optional,"PowerVault iSCSI storage configuration. Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts. NOTE: The groups field is NOT supported for powervault_config entries. Only functional_group_prefix is available for node targeting.
+``List (dict)``
+
+Optional","PowerVault iSCSI storage configuration. Processed entirely via runcmd script (setup_iscsi_storage.sh). The device path (/dev/mapper/XXX) is only known after iSCSI login + multipath scan, so powervault mounts CANNOT use the cloud-init mounts module. The runcmd script handles: iscsid enable, initiator name, discovery, login, multipathd, volume_id matching, partitioning, formatting, mount, and bind mounts. NOTE: The groups field is NOT supported for powervault_config entries. Only functional_group_prefix is available for node targeting.
 
 **Mandatory Fields:**
 
@@ -132,7 +138,9 @@
           mode: ""0750"""
 "**swap**
 
-``List (dict)``",Optional,"Swap file configuration for cluster nodes. Swap files are created and enabled during node provisioning. NOTE: The groups field is NOT supported for swap entries. Only functional_group_prefix is available for node targeting.
+``List (dict)``
+
+Optional","Swap file configuration for cluster nodes. Swap files are created and enabled during node provisioning. NOTE: The groups field is NOT supported for swap entries. Only functional_group_prefix is available for node targeting.
 
 **Mandatory Fields:**
 
