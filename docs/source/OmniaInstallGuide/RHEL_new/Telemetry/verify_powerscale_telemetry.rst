@@ -63,9 +63,7 @@ successfully in a cluster mode VictoriaLogs deployment.
     https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 6. Filter and view PowerScale logs using queries in VictoriaLogs UI.
-For example, the following query displays PowerScale logs::
-
-    {job="powerscale"}
+For example, use the ``*`` query to display all logs.
 
 .. image:: ../../../images/powerscale_logs_vlui_cluster.png
 
