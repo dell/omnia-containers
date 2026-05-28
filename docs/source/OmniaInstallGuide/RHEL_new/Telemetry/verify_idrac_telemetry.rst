@@ -79,29 +79,3 @@ For example, the following query displays detailed PowerEdge metrics for each ha
     {__name__=~"PowerEdge_.*"}
 
 .. image:: ../../../images/victoria_metrics_vmui_cluster.png
-
-View Collected Logs using VictoriaLogs Query Interface
------------------------------------------------------
-
-After applying the ``telemetry.yml`` configuration with ``idrac_telemetry_collection_type`` set to ``victoria``,
-you can access the VictoriaLogs query interface to validate that log data is being collected and stored
-successfully.
-
-1. Run the following command to verify that the VictoriaLogs vlselect pod is running::
-
-    kubectl get pods -n telemetry -o wide | grep vlselect
-
-2. Run the following command to verify that the VictoriaLogs vlselect service is running::
-
-    kubectl get service -n telemetry -o wide | grep vlselect
-
-3. Note the **External IP** and **port number** of the VictoriaLogs vlselect service. The external IP and port number will be used to access the VictoriaLogs query interface.
-
-4. Access the VictoriaLogs query interface in a web browser using::
-
-    https://<external vlselect loadbalancer IP>:9471/select/vmui
-
-5. Filter and view logs using LogsQL queries in the query interface.
-For example, the following query displays recent log entries::
-
-    * | sort by time desc
