@@ -142,7 +142,7 @@ Procedure
    d. Add a description for the group.
    e. Click **Finish**
    
-   Repeat this process for each functional group type you plan to use in your Omnia deployment.
+   Repeat this process for each functional group type you plan to use in your Omnia deployment. For 
 
 3. After creating the static groups for each functional group type, add the discovered nodes to the corresponding static groups. To add the devices to the static groups:
 
@@ -153,7 +153,12 @@ Procedure
    
    Repeat this process for all functional groups, ensuring each server is assigned to the correct static group based on its intended role in the Omnia cluster.
 
-4. After creating the static groups in OME, configure the ``discovery_config.yml`` file with OME connection details and discovery parameters. For detailed configuration of ``discovery_config.yml``, see the :ref:`provision-params` section.
+4. After creating the static groups in OME, configure the ``discovery_config.yml`` file with OME connection details and discovery parameters. The following table lists the parameters for ``discovery_config.yml``:
+
+.. csv-table:: discovery_config.yml
+   :file: ../../Tables/discovery_config.csv
+   :header-rows: 1
+   :keepspace:
 
 5. Execute the ``discovery.yml`` playbook with the ``discovery_mechanism=ome`` parameter to generate the PXE mapping file automatically::
 

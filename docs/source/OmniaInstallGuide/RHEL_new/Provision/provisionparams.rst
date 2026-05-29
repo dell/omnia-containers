@@ -1,3 +1,5 @@
+.. _provision-params:
+
 Update the Input Parameters for Discovery/Provision the Nodes
 ============================================================
 
@@ -83,6 +85,8 @@ The following table lists the parameters that must be configured in ``omnia_conf
    :header-rows: 1
    :keepspace:
 
+
+.. _discovery-config-table:
 
 .. csv-table:: discovery_config.yml
    :file: ../../../Tables/discovery_config.csv
