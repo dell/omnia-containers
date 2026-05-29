@@ -24,9 +24,11 @@ Create Mapping File
 
 Omnia supports two methods for discovering target nodes and creating PXE mapping files:
 
-* **Manual PXE file Mapping**: Manually collect PXE NIC information of the nodes to be provisioned and manually define them in the **pxe_mapping_file.csv** file to be used by Omnia.
-* **OME-based BMC PXE file Generation** (Recommended): Use OpenManage Enterprise (OME) to discover the Omnia cluster nodes and generate the PXE mapping file using the ``discovery.yml`` playbook.
+* **Manual PXE file Mapping**: Manually collect PXE NIC information of the nodes to be provisioned and manually define them in the **pxe_mapping_file.csv** file to be used by Omnia. See :ref:`manual_pxe_mapping` for detailed instructions.
+* **OME-based BMC PXE file Generation** (Recommended): Use OpenManage Enterprise (OME) to discover the Omnia cluster nodes and generate the PXE mapping file using the ``discovery.yml`` playbook. See :ref:`ome_pxe_generation` for detailed instructions.
 
+
+.. _manual_pxe_mapping:
 
 Create PXE File Manually
 ------------------------
@@ -89,6 +91,8 @@ The following is the sample format of a mapping file for x86_64 and aarch64 clus
     
     **Additional Packages Support**: Administrators can optionally include additional packages by creating ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``. For detailed instructions on configuring additional packages, see :ref:`adding_additional_packages`. When present, these packages are included in the Minimal OS images alongside the base and LDMS packages. If the file is absent or empty, images build successfully with the standard Minimal OS package set only.
 
+
+.. _ome_pxe_generation:
 
 Create PXE File Using OME
 -------------------------
@@ -173,7 +177,7 @@ Nodes that are located in the same place or similar hardware can be grouped toge
    :header-rows: 1
    :keepspace:
 
-.. _functional-groups-section:
+.. _functional-groups:
 
 Functional Groups
 ------------------------
