@@ -63,7 +63,7 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
 2. Run the following command to verify that the VictoriaMetrics service is running::
 
-    kubectl get service -n telemetry -o wide | grep vm
+    kubectl get service -n telemetry | grep vm
 
 .. image:: ../../../images/victoria_metrics_service_cluster.png
 
