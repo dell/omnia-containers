@@ -122,7 +122,7 @@ Procedure
 
 1. In OpenManage Enterprise, discover the cluster nodes that you want to provision with Omnia. For more information on discovering devices in OME, see the `OpenManage Enterprise User Guide <https://dl.dell.com/content/manual4/en/openmanage-enterprise-user-guide-en>`_.
 
-2. After discovering the nodes, create static groups for each Omnia functional group type supported in Omnia. For more on groups and functional group support in Omnia, see :ref:`group-attributes-section` and :ref:`functional-groups`.
+2. After discovering the nodes, create static groups for each Omnia functional group type supported in Omnia. For more information on groups and functional group support in Omnia, see :ref:`group-attributes-section` and :ref:`functional-groups`.
 
    - ``slurm_control_node_x86_64``
    - ``slurm_node_x86_64``
