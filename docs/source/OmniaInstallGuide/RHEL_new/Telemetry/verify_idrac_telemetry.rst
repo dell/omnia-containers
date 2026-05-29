@@ -74,8 +74,8 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
 
 5. Filter and view telemetry metrics using queries in VMUI.
-For example, the following query displays detailed PowerEdge metrics for each hardware component::
+For example, the following "*" query displays all available metrics:
 
-    {__name__=~"PowerEdge_.*"}
+    
 
 .. image:: ../../../images/victoria_metrics_vmui_cluster.png
