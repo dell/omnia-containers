@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "[>>] configure"
-CFLAGS="-ggdb3 -O0" \
+CFLAGS="-std=gnu17 -ggdb3 -O0" \
 CYTHON=cython3 \
 ./configure \
  --prefix="/opt/ovis-ldms" \

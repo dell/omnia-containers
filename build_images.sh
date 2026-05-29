@@ -107,16 +107,16 @@ build_ubuntu_ldms() {
     
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu24.04 .
+        podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu26.04 .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
         if [ "$BUILD_ACTION" = "load" ]; then
-            docker buildx build --no-cache -t ubuntu-ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --load .
+            docker buildx build --no-cache -t ubuntu-ldms:${UBUNTU_LDMS_TAG} --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --load .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu24.04 --platform linux/amd64 --provenance=true --sbom=true --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}" --file Dockerfile.bld_n_run.ubuntu26.04 --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}"
         else
@@ -528,7 +528,7 @@ OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 CORE_TAG="2.2"
 AUTH_TAG="1.0"
 PCS_TAG="1.0"
-UBUNTU_LDMS_TAG="1.0"
+UBUNTU_LDMS_TAG="1.1"
 KAFKAPUMP_TAG="1.2"
 VICTORIAPUMP_TAG="1.2"
 TELEMETRY_RECEIVER_TAG="1.2"
