@@ -131,6 +131,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
     config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
     config.addinivalue_line("markers", "build_stream: marks tests as build stream related tests (pipeline validation)")
+    config.addinivalue_line("markers", "deploy: marks tests as deploy pipeline tests")
+    config.addinivalue_line("markers", "stress: marks tests as stress/load tests (e.g., repeated pipeline runs)")
+    config.addinivalue_line("markers", "build: marks tests as build pipeline tests")
 
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)

@@ -1,0 +1,191 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Build Stream Automation Module.
+
+This module provides functions for build_stream pipeline automation:
+- API health checks
+- Database verification
+- GitLab pipeline triggering and monitoring
+- Stage-by-stage verification
+"""
+
+from .functions import (
+    # Shared functions
+    get_build_stream_config,
+    get_build_stream_host_ip,
+    get_build_stream_port,
+    get_gitlab_host,
+    get_gitlab_https_port,
+    get_gitlab_project_name,
+    get_gitlab_default_branch,
+    get_postgres_user,
+    ssh_to_gitlab,
+    clear_cache,
+    skip_if_build_stream_not_enabled,
+    # API functions
+    check_build_stream_health,
+    get_catalog_roles,
+    get_stage_log_path,
+    verify_registry_images,
+    verify_s3_boot_images,
+    # Database functions
+    verify_postgres_tables,
+    get_job_by_id,
+    get_latest_job,
+    get_job_stages,
+    get_stage_state,
+    verify_stage_completed,
+    get_images_for_job,
+    get_image_groups_for_job,
+    get_all_image_groups,
+    # GitLab functions
+    verify_gitlab_server_running,
+    verify_gitlab_runner_running,
+    get_gitlab_root_token,
+    list_pipelines,
+    get_pipeline_status,
+    get_pipeline_jobs,
+    upload_catalog_file,
+    commit_pxe_mapping_file,
+    wait_for_pipeline_triggered,
+    # Pipeline functions
+    trigger_build_pipeline,
+    trigger_deploy_pipeline,
+    select_image_for_deploy,
+    trigger_cleanup_pipeline,
+    select_image_for_cleanup,
+    wait_for_cleanup_completion,
+    wait_for_stage_completion,
+    monitor_pipeline_stages,
+    get_pipeline_stage_status,
+)
+
+from .vars import (
+    BUILD_STREAM_HEALTH_PATH,
+    BUILD_STREAM_HOST_IP_KEY,
+    BUILD_STREAM_PORT_KEY,
+    BUILD_PIPELINE_CORE_STAGES,
+    BUILD_IMAGE_STAGE_PREFIX,
+    BUILD_PIPELINE_STAGES,
+    DEPLOY_PIPELINE_STAGES,
+    CLEANUP_PIPELINE_STAGES,
+    REGISTRY_PORT,
+    REGISTRY_CATALOG_PATH,
+    REGISTRY_IMAGE_PREFIX,
+    S3_BOOT_IMAGES_BUCKET,
+    S3_EFI_IMAGES_PREFIX,
+    BOOT_IMAGE_ARTIFACTS_PER_ROLE,
+    STRESS_BUILD_PIPELINE_COUNT,
+    STAGE_STATE_PENDING,
+    STAGE_STATE_RUNNING,
+    STAGE_STATE_COMPLETED,
+    STAGE_STATE_FAILED,
+    STAGE_POLL_INTERVAL,
+    STAGE_POLL_TIMEOUT,
+    PIPELINE_POLL_INTERVAL,
+    PIPELINE_POLL_TIMEOUT,
+)
+
+from .messages import (
+    TEST_NAMES,
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+    SKIP_MSGS,
+    PIPELINE_MSGS,
+    STAGE_POLL_MSGS,
+)
+
+__all__ = [
+    # Shared functions
+    "get_build_stream_config",
+    "get_build_stream_host_ip",
+    "get_build_stream_port",
+    "get_gitlab_host",
+    "get_gitlab_https_port",
+    "get_gitlab_project_name",
+    "get_gitlab_default_branch",
+    "get_postgres_user",
+    "ssh_to_gitlab",
+    "clear_cache",
+    "skip_if_build_stream_not_enabled",
+    # API functions
+    "check_build_stream_health",
+    "get_catalog_roles",
+    "get_stage_log_path",
+    "verify_registry_images",
+    "verify_s3_boot_images",
+    # Database functions
+    "verify_postgres_tables",
+    "get_job_by_id",
+    "get_latest_job",
+    "get_job_stages",
+    "get_stage_state",
+    "verify_stage_completed",
+    "get_images_for_job",
+    "get_image_groups_for_job",
+    "get_all_image_groups",
+    # GitLab functions
+    "verify_gitlab_server_running",
+    "verify_gitlab_runner_running",
+    "get_gitlab_root_token",
+    "list_pipelines",
+    "get_pipeline_status",
+    "get_pipeline_jobs",
+    "upload_catalog_file",
+    "commit_pxe_mapping_file",
+    "wait_for_pipeline_triggered",
+    # Pipeline functions
+    "trigger_build_pipeline",
+    "trigger_deploy_pipeline",
+    "select_image_for_deploy",
+    "trigger_cleanup_pipeline",
+    "select_image_for_cleanup",
+    "wait_for_cleanup_completion",
+    "wait_for_stage_completion",
+    "monitor_pipeline_stages",
+    "get_pipeline_stage_status",
+    # Variables
+    "BUILD_STREAM_HEALTH_PATH",
+    "BUILD_STREAM_HOST_IP_KEY",
+    "BUILD_STREAM_PORT_KEY",
+    "BUILD_PIPELINE_CORE_STAGES",
+    "BUILD_IMAGE_STAGE_PREFIX",
+    "BUILD_PIPELINE_STAGES",
+    "DEPLOY_PIPELINE_STAGES",
+    "CLEANUP_PIPELINE_STAGES",
+    "REGISTRY_PORT",
+    "REGISTRY_CATALOG_PATH",
+    "REGISTRY_IMAGE_PREFIX",
+    "S3_BOOT_IMAGES_BUCKET",
+    "S3_EFI_IMAGES_PREFIX",
+    "BOOT_IMAGE_ARTIFACTS_PER_ROLE",
+    "STRESS_BUILD_PIPELINE_COUNT",
+    "STAGE_STATE_PENDING",
+    "STAGE_STATE_RUNNING",
+    "STAGE_STATE_COMPLETED",
+    "STAGE_STATE_FAILED",
+    "STAGE_POLL_INTERVAL",
+    "STAGE_POLL_TIMEOUT",
+    "PIPELINE_POLL_INTERVAL",
+    "PIPELINE_POLL_TIMEOUT",
+    # Messages
+    "TEST_NAMES",
+    "TEST_LOG_MSGS",
+    "TEST_ASSERT_MSGS",
+    "SKIP_MSGS",
+    "PIPELINE_MSGS",
+    "STAGE_POLL_MSGS",
+]
