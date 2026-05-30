@@ -31,6 +31,7 @@ Before starting the upgrade, ensure the following prerequisites are met:
 5. No other upgrade or rollback is currently in progress.
 6. ``oim_metadata.yml`` at ``/opt/omnia/.data/oim_metadata.yml`` contains the correct current version information.
 7. The target Omnia 2.2.0.0 core container image (``omnia_core:2.2``) is available locally on the OIM host. If it is not already available, build it as described in :ref:`build-core-container`.
+8. **aarch64 clusters only:** If the PXE mapping file contains aarch64 functional groups, an inventory file with an ``[admin_aarch64]`` group is required. This group must contain exactly one ARM admin node. See :ref:`aarch64-inventory` for details.
 
 .. _build-core-container:
 
@@ -98,7 +99,7 @@ The upgrade orchestrator processes components in the following fixed order:
       - Omnia Infrastructure Manager (includes OpenCHAMI)
     * - 2
       - ``build_stream``
-      - BuildStream enablement / upgrade (terminal gate)
+      - BuildStreaM enablement / upgrade (terminal gate)
     * - 3
       - ``local_repo``
       - Local repository staging
@@ -123,7 +124,7 @@ Safety Mechanisms
 
 The upgrade is designed to be safe to rerun and to fail cleanly:
 
-* **Validation before changes** — All pre-flight checks (version, locks, existing upgrade state) run before any change is made to the cluster. If a check fails, the upgrade stops without leaving the system in a locked state.
+* **Validation before changes** — All validation checks (version, locks, existing upgrade state) run before any change is made to the cluster. If a check fails, the upgrade stops without leaving the system in a locked state.
 * **Automatic lock cleanup** — If a component fails partway, the upgrade lock is still released at the end of the run so you can investigate and rerun without manually clearing locks.
 * **Idempotent reruns** — Already-completed components are skipped automatically when you rerun the upgrade, so only pending or failed components are processed.
 
@@ -156,6 +157,24 @@ Run the full upgrade: ::
     cd /omnia/upgrade
     ansible-playbook upgrade.yml
 
+.. _aarch64-inventory:
+
+**aarch64 clusters:** If your PXE mapping file contains aarch64 functional groups (e.g., ``slurm_node_aarch64``), you must pass an inventory file with the ``[admin_aarch64]`` group: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml -i <inventory_file>
+
+The inventory file must define exactly one ARM admin node under the ``[admin_aarch64]`` group. Example inventory: ::
+
+    [admin_aarch64]
+    <arm_admin_node_ip_or_hostname>
+
+.. note::
+    - The ``[admin_aarch64]`` group must contain exactly one host. Multiple hosts or an empty group will cause the upgrade to fail.
+    - The ARM admin node must be accessible via SSH from the OIM host.
+    - NFS must be configured on the OIM for aarch64 image building to work.
+    - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE mapping file), the ``-i`` option is not required.
+
 Lock Management
 ~~~~~~~~~~~~~~~~
 
@@ -180,23 +199,23 @@ The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This 
 
 On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
 
-BuildStream Terminal Gate
+BuildStreaM Terminal Gate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStream terminal gate activates. The upgrade playbook determines the BuildStream path based on the state in 2.1:
+When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
 
-**PATH A: BuildStream was ENABLED in 2.1 (upgrade path)**
+**PATH A: BuildStreaM was ENABLED in 2.1 (upgrade path)**
 
-* Upgrade BuildStream container image (quadlet update)
+* Upgrade BuildStreaM container image (quadlet update)
 * PostgreSQL data migration (pg_dump → restore to new schema)
 * Update GitLab configuration (URLs, runner tokens, registry)
-* Validate BuildStream container + GitLab healthy
+* Validate BuildStreaM container + GitLab healthy
 
-**PATH B: BuildStream was DISABLED in 2.1, ENABLED in 2.2 (fresh install)**
+**PATH B: BuildStreaM was DISABLED in 2.1, ENABLED in 2.2 (fresh install)**
 
 * NFS share cleanup: remove stale K8s and Slurm NFS share data
 * Fresh install: PostgreSQL container (new instance)
-* Fresh install: BuildStream container
+* Fresh install: BuildStreaM container
 * Fresh install: GitLab container + runner registration
 * Validate all three containers healthy
 
@@ -220,88 +239,26 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 Slurm Upgrade
 -------------
 
-The Slurm component upgrade is a critical step that involves rebooting all Slurm and login nodes to apply cloud-init and BSS configuration updates. This section details the pre-upgrade warnings, validation steps, and node status monitoring.
-
-Pre-Upgrade Warnings
-~~~~~~~~~~~~~~~~~~~~
-
-1. **NODE REBOOT** — All Slurm/login nodes will reboot. Ensure no critical jobs are running.
-
-2. **PXE MAPPING** — Do not modify Slurm node entries in the PXE mapping file until upgrade completes.
-
-3. **NFS MOUNTS** — Omnia 2.1 mount points are preserved. Do not modify during upgrade.
-
-4. **POST-UPGRADE** — Rollback is NOT recommended once all nodes boot with cloud-init complete.
-
-Slurm Upgrade Workflow
-~~~~~~~~~~~~~~~~~~~~~~
-
-The Slurm upgrade follows these phases:
-
-**Phase 1: Cloud-Init and BSS Update**
-
-* Updates cloud-init and BSS configurations for each functional group (``slurm_control_node_x86_64``, ``slurm_node_*``, ``login_*``)
-* Applies the ``update_cloud_init_bss`` utility role to render new configurations
-
-**Phase 2: Simultaneous Node Reboot**
-
-All Slurm and login nodes reboot simultaneously to minimize cluster downtime. The upgrade orchestrator:
-
-* Initiates reboot commands in parallel across all nodes
-* Monitors reboot progress with a 600-second timeout per node
-* Waits for SSH connectivity to restore on all nodes (up to 60 seconds per node)
-* Validates Slurm services are responding after reboot
-
-For each Slurm/login node, the upgrade performs the following checks in sequence:
-
-1. **SSH Connectivity Check** — Verifies the node is reachable before proceeding
-
-2. **Reboot** — Initiates node reboot with a 600-second timeout
-
-3. **Wait for SSH** — Waits up to 60 seconds for SSH to become available after reboot
-
-4. **Slurm Service Validation** — Runs ``sinfo`` command with 5 retries (15-second delay between retries) to confirm Slurm services are responding
+The Slurm upgrade updates cloud-init and BSS configurations and reboots all Slurm and login nodes to apply them.
 
 .. warning::
-   Simultaneous reboot of all Slurm nodes will cause temporary cluster unavailability. Plan the upgrade during a maintenance window when no critical jobs are running.
+   - All Slurm and login nodes reboot simultaneously. Ensure no critical jobs are running.
+   - Do not modify Slurm node entries in the PXE mapping file until upgrade completes.
+   - Omnia 2.1 NFS mount points are preserved. Do not modify during upgrade.
 
-**Phase 3: Node Status Reporting**
+The upgrade performs the following steps:
 
-After all nodes complete rebooting, the playbook generates a comprehensive status report:
+1. Updates cloud-init and BSS configurations for each Slurm functional group (``slurm_control_node``, ``slurm_node``, ``login``).
+2. Reboots all Slurm and login nodes simultaneously with a 600-second timeout per node.
+3. Waits for SSH connectivity to restore on each node (up to 60 seconds).
+4. Validates Slurm services using ``sinfo`` with retries on each node.
+5. Generates a node status report with the following categories:
 
-* **Successful Nodes** — Nodes that completed reboot, SSH is active, and ``sinfo`` is responding
-* **Unreachable Nodes** — Nodes that failed SSH connectivity checks before reboot
-* **Reboot Failed Nodes** — Nodes where the reboot command failed
-* **SSH Failures** — Nodes that did not reconnect after reboot
-* **Sinfo Failures** — Nodes where Slurm services did not respond
-
-Troubleshooting Guidance
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-The playbook provides automated remediation guidance for each failure category:
-
-**Unreachable Nodes**
-
-* Check network connectivity: ``ping <hostname>``
-* Verify firewall rules and SSH port (22) accessibility
-* Manually power cycle if necessary
-* Re-run upgrade playbook after fixing connectivity
-
-**Reboot Failures**
-
-* SSH into node and check: ``journalctl -xe``
-* Manually reboot: ``shutdown -r now``
-
-**SSH Connectivity Issues**
-
-* Verify SSH service is running: ``systemctl status sshd``
-
-**Slurm Service Failures**
-
-* Check Slurm daemon status: ``systemctl status <slurm_service>``
-* Review Slurm logs: ``journalctl -u <slurm_service> -n 100``
-* Restart Slurm daemon: ``systemctl restart <slurm_service>``
-* Verify Slurm config: ``sinfo -R``
+   * **Successful** — Reboot complete, SSH active, ``sinfo`` responding
+   * **Unreachable** — Node was not reachable before reboot
+   * **Reboot Failed** — Reboot command failed
+   * **SSH Failure** — Node did not reconnect after reboot
+   * **Sinfo Failure** — Slurm services did not respond after reboot
 
 Post-Upgrade Verification
 ---------------------------
@@ -320,6 +277,6 @@ After the upgrade completes, verify the following:
     * Slurm cluster: ``sinfo``
     * Telemetry: Verify metrics are being collected
 
-5. If BuildStream is enabled, trigger the GitLab pipeline for downstream components.
+5. If BuildStreaM is enabled, trigger the GitLab pipeline for downstream components.
 
 For troubleshooting upgrade issues, see `Upgrade and Rollback Troubleshooting <troubleshootingguide.html>`_.

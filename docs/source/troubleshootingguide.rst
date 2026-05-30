@@ -1122,6 +1122,34 @@ The ``k8s`` component fails during upgrade.
    cd /omnia/upgrade
    ansible-playbook upgrade.yml
 
+Build image fails for aarch64 — missing inventory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``build_image`` component fails with: *"aarch64 functional groups detected in pxe_mapping_file but no hosts found in 'admin_aarch64' inventory group"* or *"The inventory group 'admin_aarch64' does not exist or has no hosts."*
+
+**Cause**
+
+The PXE mapping file contains aarch64 functional groups, but the upgrade was run without an inventory file containing the ``[admin_aarch64]`` group.
+
+**Resolution**
+
+1. Create an inventory file with the ``[admin_aarch64]`` group containing exactly one ARM admin node: ::
+
+    [admin_aarch64]
+    <arm_admin_node_ip>
+
+2. Re-run the upgrade with the inventory file:
+
+.. code-block:: bash
+
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml -i <inventory_file>
+
+.. note::
+   The ``[admin_aarch64]`` group must have exactly one host. NFS must be configured on the OIM for aarch64 image building.
+
 Target core container image is missing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
