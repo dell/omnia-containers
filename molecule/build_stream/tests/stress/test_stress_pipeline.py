@@ -13,14 +13,13 @@
 # limitations under the License.
 
 """
-Build Stream - Comprehensive Stress Test Suite.
+Build Stream - Stress Test Suite (Cleanup and Edge Cases).
 
-Test Cases (run in order):
-  1. test_stress_build_to_50: Build images until 50 exist (skip if already 50)
-  2. test_stress_build_51st_fails: Try to create 51st image, verify it fails
-  3. test_stress_delete_and_rebuild: Delete 1 image, create 1 new, verify success
-  4. test_stress_build_fails_at_50: Try to create another (should fail - back to 50)
-  5. test_stress_cleanup_all: Delete all images, verify DB=CLEANED, S3/registry empty
+Test Cases (run in order, after test_stress_build_pipeline.py):
+  1. test_stress_build_51st_fails: Try to create 51st image, verify it fails
+  2. test_stress_delete_and_rebuild: Delete 1 image, create 1 new, verify success
+  3. test_stress_build_fails_at_50: Try to create another (should fail - back to 50)
+  4. test_stress_cleanup_all: Delete all images, verify DB=CLEANED, S3/registry empty
 
 IMPORTANT:
   - Tests stop on first failure (no point continuing if build/cleanup fails)
@@ -455,82 +454,7 @@ def _run_single_cleanup(host, image_group: Dict[str, Any], log_callback=None) ->
 
 
 # =============================================================================
-# TEST 1: BUILD TO 50 IMAGES
-# =============================================================================
-
-@pytest.mark.stress
-@pytest.mark.build_stream
-@pytest.mark.order(100)
-def test_stress_build_to_50(host):
-    """
-    Test 1: Build images until 50 exist.
-
-    If already 50 images, skip this test.
-    Stops on first build failure.
-    """
-    log = TestLogger("Stress Build to 50")
-
-    if not is_build_stream_enabled(host):
-        log.skipped("Build stream not enabled", "Test skipped")
-        pytest.skip("Build stream not enabled")
-
-    current_count = _get_built_image_count(host)
-    _stress_state["initial_built_count"] = current_count
-    max_images = _stress_state["max_images"]
-
-    log.check(f"Current BUILT image count: {current_count}, Target: {max_images}")
-
-    if current_count >= max_images:
-        log.passed(
-            f"Already have {current_count} BUILT images (max: {max_images})",
-            "Skipping build - already at capacity"
-        )
-        return
-
-    builds_needed = max_images - current_count
-    print("\n" + "#" * 70, flush=True)
-    print(f"# STRESS BUILD: Need to build {builds_needed} more images", flush=True)
-    print(f"# Current: {current_count}, Target: {max_images}", flush=True)
-    print(f"# Started at: {datetime.now().isoformat()}", flush=True)
-    print("#" * 70 + "\n", flush=True)
-
-    passed = 0
-    failed = 0
-
-    for i in range(builds_needed):
-        print(f"\n{'=' * 50}", flush=True)
-        print(f"BUILD {i + 1}/{builds_needed}", flush=True)
-        print(f"{'=' * 50}\n", flush=True)
-
-        def _log_callback(msg):
-            print(f"    │ {msg}", flush=True)
-            sys.stdout.flush()
-
-        build_result = _run_single_build(host, log_callback=_log_callback)
-
-        if build_result["success"]:
-            passed += 1
-            _stress_state["last_build_job_id"] = build_result["job_id"]
-            print(f"\n✓ Build {i + 1}/{builds_needed} PASSED\n", flush=True)
-        else:
-            failed += 1
-            print(f"\n✗ Build {i + 1}/{builds_needed} FAILED: {build_result['error']}\n", flush=True)
-            # Stop on first failure
-            log.failed(
-                f"Build failed at iteration {i + 1}/{builds_needed}",
-                f"Error: {build_result['error']}"
-            )
-            pytest.fail(f"Build failed: {build_result['error']}")
-
-    final_count = _get_built_image_count(host)
-    log.passed(
-        f"Built {passed} images successfully",
-        f"Final count: {final_count} BUILT images"
-    )
-
-
-# =============================================================================
-# TEST 2: 51ST IMAGE SHOULD FAIL
+# TEST 1: 51ST IMAGE SHOULD FAIL
 # =============================================================================
 
 @pytest.mark.stress
@@ -538,9 +462,10 @@ def test_stress_build_to_50(host):
 @pytest.mark.order(101)
 def test_stress_build_51st_fails(host):
     """
-    Test 2: Try to create 51st image, verify it fails as expected.
+    Test 1: Try to create 51st image, verify it fails as expected.
 
     This test expects the build to fail because we're at max capacity.
+    Requires test_stress_build_pipeline.py to have run first.
     """
     log = TestLogger("Stress Build 51st Fails")
 
@@ -587,7 +512,7 @@ def test_stress_build_51st_fails(host):
 
 
 # =============================================================================
-# TEST 3: DELETE 1 AND REBUILD
+# TEST 2: DELETE 1 AND REBUILD
 # =============================================================================
 
 @pytest.mark.stress
@@ -595,7 +520,7 @@ def test_stress_build_51st_fails(host):
 @pytest.mark.order(102)
 def test_stress_delete_and_rebuild(host):
     """
-    Test 3: Delete 1 image, create 1 new image, verify success.
+    Test 2: Delete 1 image, create 1 new image, verify success.
 
     This tests that after deleting an image, we can build a new one.
     """
@@ -657,7 +582,7 @@ def test_stress_delete_and_rebuild(host):
 
 
 # =============================================================================
-# TEST 4: BUILD FAILS AT 50 AGAIN
+# TEST 3: BUILD FAILS AT 50 AGAIN
 # =============================================================================
 
 @pytest.mark.stress
@@ -665,9 +590,9 @@ def test_stress_delete_and_rebuild(host):
 @pytest.mark.order(103)
 def test_stress_build_fails_at_50_again(host):
     """
-    Test 4: Try to create another image (should fail - back to 50).
+    Test 3: Try to create another image (should fail - back to 50).
 
-    After test 3, we should be back at max capacity.
+    After test 2, we should be back at max capacity.
     """
     log = TestLogger("Stress Build Fails at 50 Again")
 
@@ -711,7 +636,7 @@ def test_stress_build_fails_at_50_again(host):
 
 
 # =============================================================================
-# TEST 5: CLEANUP ALL IMAGES
+# TEST 4: CLEANUP ALL IMAGES
 # =============================================================================
 
 @pytest.mark.stress
@@ -720,7 +645,7 @@ def test_stress_build_fails_at_50_again(host):
 @pytest.mark.order(104)
 def test_stress_cleanup_all(host):
     """
-    Test 5: Delete all images, verify DB=CLEANED, S3/registry empty.
+    Test 4: Delete all images, verify DB=CLEANED, S3/registry empty.
 
     Stops on first cleanup failure.
     """
