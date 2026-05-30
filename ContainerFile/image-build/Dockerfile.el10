@@ -1,10 +1,10 @@
 FROM docker.io/library/almalinux:10.0
 
-ARG BUILDAH_VERSION=1.43.1
+ARG BUILDAH_VERSION=1.44.0
 ARG GO_VERSION=1.25.10
 
 RUN dnf clean all && \
-    dnf update -y --releasever=10.0 --nogpgcheck && \
+    dnf update -y --nogpgcheck && \
     dnf install -y dnf-plugins-core epel-release && \
     dnf config-manager -y --set-enabled crb && \
     dnf clean all
@@ -41,19 +41,12 @@ RUN ARCH=$(uname -m) && \
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
+# Build buildah v1.44.0 with patched golang.org/x/net
 RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
     cd /tmp/buildah && \
-    go get github.com/sigstore/fulcio@v1.8.5 && \
-    go get golang.org/x/crypto@v0.45.0 && \
-    go get github.com/containernetworking/plugins@v1.9.0 && \
-    go get golang.org/x/net@v0.55.0 && \
-    go get golang.org/x/sys@v0.44.0 && \
-    go get github.com/go-jose/go-jose/v4@v4.1.4 && \
-    go get go.opentelemetry.io/otel@v1.41.0 && \
-    go get github.com/moby/buildkit@v0.28.1 && \
+    rm -rf vendor && \
+    go mod edit -require golang.org/x/net@v0.55.0 && \
     go mod tidy && \
-    go get github.com/sigstore/fulcio@v1.8.5 && \
-    go get github.com/sigstore/sigstore@v1.10.4 && \
     go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
@@ -66,7 +59,10 @@ RUN dnf install -y \
         containers-common \
         crun \
         slirp4netns \
-        fuse-overlayfs
+        fuse-overlayfs && \
+    dnf update -y --security && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
 
 COPY requirements.txt /
 RUN python3.12 -m ensurepip && \
