@@ -1,7 +1,7 @@
 Rollback Omnia
 ====================
 
-Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade and supports tag-based selective rollback with manifest tracking for idempotent reruns.
+Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade, with manifest tracking for idempotent reruns.
 
 .. important::
     * Rollback must be initiated from within the ``omnia_core`` container.
@@ -30,7 +30,7 @@ Rollback processes components in **reverse order** of the upgrade:
     :widths: 10 30 60
 
     * - Order
-      - Component Tag
+      - Component
       - Description
     * - 1
       - ``slurm``
@@ -42,14 +42,14 @@ Rollback processes components in **reverse order** of the upgrade:
       - ``k8s``
       - Rollback Kubernetes cluster
     * - 4
-      - ``provision``
-      - Rollback Cloud-Init and BSS configuration
-    * - 5
       - ``build_stream``
       - Rollback BuildStream upgrade / enablement
-    * - 6
+    * - 5
       - ``oim``
       - Rollback OIM (includes OpenCHAMI) — rolled back last
+
+.. note::
+    There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
 
 Rollback Workflow
 ------------------
@@ -63,8 +63,8 @@ Running the Rollback
 
 2. Run the rollback playbook: ::
 
-    cd /omnia
-    ansible-playbook rollback/rollback.yml
+    cd /omnia/rollback
+    ansible-playbook rollback.yml
 
 Pre-flight Guards
 ~~~~~~~~~~~~~~~~~~
@@ -103,18 +103,17 @@ On rerun, already-completed components are automatically skipped.
 BuildStream Terminal Gate (Rollback)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If BuildStream was enabled during the upgrade and the upgrade manifest shows that downstream components (``slurm``, ``telemetry``, ``k8s``, ``provision``) were ``skipped`` during upgrade (due to the terminal gate), the same components are **automatically skipped during rollback** — they were never upgraded, so there is nothing to roll back.
+If BuildStream was enabled during the upgrade, the downstream components (``slurm``, ``telemetry``, ``k8s``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
-Each rollback sub-flow immediately writes ``component_status: skipped`` to ``rollback_manifest.yml`` before invoking ``end_play``. Only ``build_stream`` and ``oim`` are actually rolled back in this scenario.
-
-The finalization play treats ``skipped`` as a valid terminal state alongside ``completed`` when determining ``rollback_status``.
+Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
 
 Force Rollback
 ~~~~~~~~~~~~~~~
 
 To force a rollback after a successful upgrade: ::
 
-    ansible-playbook rollback/rollback.yml -e force_rollback=true
+    cd /omnia/rollback
+    ansible-playbook rollback.yml -e force_rollback=true
 
 Slurm Rollback
 --------------

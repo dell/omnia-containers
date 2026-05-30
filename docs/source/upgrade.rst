@@ -25,12 +25,35 @@ Prerequisites
 Before starting the upgrade, ensure the following prerequisites are met:
 
 1. The OIM node is running and accessible.
-2. The ``omnia_core`` container is running.
+2. The ``omnia_core`` container is running and the cluster is currently on Omnia 2.1.0.0.
 3. All compute nodes are in a healthy state.
-4. A backup of critical data has been taken (NFS shares, credentials, configuration files).
+4. A full backup of the OIM node and critical data has been taken (NFS shares, credentials, and configuration files).
 5. No other upgrade or rollback is currently in progress.
-6. ``oim_metadata.yml`` at ``/opt/omnia/.data/oim_metadata.yml`` is populated with the correct version information.
-7. Target container image (``omnia_core:2.2``) is available locally on the OIM host.
+6. ``oim_metadata.yml`` at ``/opt/omnia/.data/oim_metadata.yml`` contains the correct current version information.
+7. The target Omnia 2.2.0.0 core container image (``omnia_core:2.2``) is available locally on the OIM host. If it is not already available, build it as described in :ref:`build-core-container`.
+
+.. _build-core-container:
+
+Build the Omnia 2.2.0.0 Core Container Image
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The upgrade swaps the running ``omnia_core`` container to the 2.2.0.0 image. This image must be present on the OIM host before you run ``omnia.sh --upgrade``. To build it:
+
+1. On the OIM host, clone the Omnia artifactory repository on the ``omnia-container-v2.2.0.0`` branch: ::
+
+    git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-artifactory.git
+
+2. Build the core container image using the build script provided in the repository: ::
+
+    cd omnia-artifactory
+    ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+
+3. Confirm the image is available locally before proceeding: ::
+
+    podman images | grep omnia_core
+
+.. note::
+    Ensure the OIM host has stable internet connectivity and sufficient disk space while building the container image.
 
 Upgrade Workflow
 -----------------
@@ -68,7 +91,7 @@ The upgrade orchestrator processes components in the following fixed order:
     :widths: 10 30 60
 
     * - Order
-      - Component Tag
+      - Component
       - Description
     * - 1
       - ``oim``
@@ -95,24 +118,14 @@ The upgrade orchestrator processes components in the following fixed order:
       - ``slurm``
       - Slurm cluster upgrade
 
-Pre-Flight Guard Ordering
---------------------------
+Safety Mechanisms
+------------------
 
-The upgrade orchestrator follows strict validate-before-mutate ordering:
+The upgrade is designed to be safe to rerun and to fail cleanly:
 
-1. **Read-only guards execute first** — All validation checks run before any state mutation
-2. **Lock creation occurs only after guards pass** — Prevents orphaned lock files if guards abort
-3. **Manifest initialization** — Only after all guards have passed
-
-This ensures that an early abort never leaves the system in a locked state.
-
-Terminal Cleanup Play
----------------------
-
-A guaranteed terminal cleanup play (``tags: always``) runs as the last play in the upgrade playbook. This provides defense-in-depth against sub-playbook fatal errors that might skip the finalize play, ensuring the upgrade lock is always removed.
-
-Upgrade Workflow
------------------
+* **Validation before changes** — All pre-flight checks (version, locks, existing upgrade state) run before any change is made to the cluster. If a check fails, the upgrade stops without leaving the system in a locked state.
+* **Automatic lock cleanup** — If a component fails partway, the upgrade lock is still released at the end of the run so you can investigate and rerun without manually clearing locks.
+* **Idempotent reruns** — Already-completed components are skipped automatically when you rerun the upgrade, so only pending or failed components are processed.
 
 Phase 1: Prepare Upgrade
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,8 +138,8 @@ The ``prepare_upgrade.yml`` playbook transforms input files from the source vers
 
 2. Run the prepare upgrade playbook: ::
 
-    cd /omnia
-    ansible-playbook upgrade/prepare_upgrade.yml
+    cd /omnia/upgrade
+    ansible-playbook prepare_upgrade.yml
 
 3. Review the output summary. The playbook identifies:
 
@@ -140,7 +153,8 @@ Phase 2: Execute Upgrade
 
 Run the full upgrade: ::
 
-    ansible-playbook upgrade/upgrade.yml
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
 
 Lock Management
 ~~~~~~~~~~~~~~~~
