@@ -2,7 +2,7 @@
 name = "omnia_core"
 version = "0.1.0"
 description = "Python environment for the Omnia Core container."
-requires-python = ">= 3.11"
+requires-python = ">= 3.12"
 dependencies = [
     "psycopg2-binary==2.9.11",
     "requests==2.32.5",
@@ -18,18 +18,18 @@ dependencies = [
     "omsdk==1.2.518",
     "pysnmp==7.1.22",
     "kubernetes==32.0.1",
-    "cryptography==46.0.5",
+    "cryptography==48.0.0",
     "logger==1.4",
     "prettytable==3.14.0",
     "toml==0.10.2",
     "http_client==0.1.22",
-    "gitPython==3.1.45",
+    "gitPython==3.1.50",
     "ansible-lint==25.6.1",
     "jmespath==1.0.1",
-    "urllib3==2.6.3",
-    "pyasn1==0.6.2",
+    "urllib3==2.7.0",
+    "pyasn1==0.6.3",
     "filelock==3.20.3",
     "wheel==0.46.2",
-    "ansible-core==2.16.14"
+    "ansible-core==2.20.1",
+    "jaraco.context>=6.1.0"
 ]
-

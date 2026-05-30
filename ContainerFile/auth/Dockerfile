@@ -1,6 +1,9 @@
-FROM fedora:40
+FROM fedora:42
 
-RUN dnf -y install openldap-servers openldap-clients && dnf clean all
+# Update system packages to fix CVEs: openssl, libssh, curl, libxml2, systemd, vim, etc.
+RUN dnf -y update && \
+    dnf -y install openldap-servers openldap-clients && \
+    dnf clean all
 
 
 RUN mkdir -p /var/lib/openldap/openldap-data && \
