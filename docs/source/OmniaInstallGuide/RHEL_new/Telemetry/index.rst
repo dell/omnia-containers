@@ -108,6 +108,25 @@ iDRAC and LDMS Telemetry Data Flows
 
    iDRAC (BMC) → iDRAC Collector → Kafka
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
+   iDRAC (BMC) → iDRAC Collector → VLAgent → Victoria Logs
+
+Vector Telemetry Data Flows
+-----------------------------
+
+::
+
+   LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → vminsert → VictoriaMetrics
+   OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
+   OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
+
+PowerScale Telemetry Data Flows
+------------------------------------
+
+::
+
+   PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metric
+   PowerScale Nodes forwards syslog →  vlagent → Victoria Logs
+
 
 Vector Telemetry Data Flows
 -----------------------------

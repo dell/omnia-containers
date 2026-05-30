@@ -268,6 +268,56 @@ Hardware Requirements
    GPU setup will fail on affected nodes and the DCGM service will not be started. Refer to the
    Manual Recovery section for remediation steps.
 
+HPC Benchmark Image Layer
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Omnia supports an HPC Benchmark Image Layer for Slurm deployments.
+- This capability is runtime script-driven:
+  - Provisioning deploys ``pull_benchmarks.sh`` and ``benchmark_tools.list`` to ``/hpc_tools/scripts``.
+  - Runtime staging is executed via ``/hpc_tools/scripts/pull_benchmarks.sh``.
+- Benchmark artifacts are pulled from the local Pulp mirror path to ``/hpc_tools/<tool>/``.
+- The feature is staging-only; Omnia does not compile or execute benchmark workloads.
+- Ensure Slurm shared storage (``/hpc_tools``) is available and local repository content is prepared before runtime staging.
+
+**Operational notes**
+
+- ``msr-safe`` is ``x86_64`` only and is automatically skipped on ``aarch64``.
+- If a destination directory already contains files, the tool is skipped to prevent overwrite.
+- Runtime summary and per-tool outcomes are logged at:
+
+.. code-block:: bash
+
+   /var/log/pull_benchmarks.log
+
+CUDA and DCGM Prerequisites for Slurm GPU Nodes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The following prerequisites must be satisfied before deploying Omnia on Slurm clusters where
+GPU-capable nodes are present. These apply in addition to general Slurm prerequisites.
+
+Repository Requirements
+
+- CUDA repository: Must be reachable from Slurm compute nodes. The CUDA repository must be accessible through the local Pulp repository configured during ``local_repo.yml`` execution.
+- DCGM repository: ``datacenter-gpu-manager-4-cuda<N>`` must be available in the configured local repository. For CUDA 12+, ``datacenter-gpu-manager-4-multinode-cuda<N>`` must also be available.
+- DKMS and kernel headers: Required only for ``nvidia-peermem``. The ``kernel-devel`` package for the running kernel must be present in the local repository. Verify kernel headers exist at ``/lib/modules/$(uname -r)/build`` prior to provisioning.
+
+NFS Requirements
+
+- The shared NFS path configured for Slurm HPC tools must be reachable from all Slurm compute
+  nodes and all login/compiler nodes at provisioning time.
+- Minimum recommended space for the ``hpc_tools/cuda`` NFS path is **30 GB**.
+- The NFS share must be exported with ``no_root_squash``.
+
+Hardware Requirements
+
+- NVIDIA GPU hardware: Must be present on any Slurm node intended for GPU workloads. Nodes without GPU hardware are automatically skipped at runtime.
+- Kernel headers: Required only for ``nvidia-peermem`` DKMS build.
+- DKMS: Must be installed on nodes where ``nvidia-peermem`` is required.
+
+.. note:: If repositories are not reachable or the NFS path is unavailable at provisioning time,
+   GPU setup will fail on affected nodes and the DCGM service will not be started. Refer to the
+   Manual Recovery section for remediation steps.
+
 BuildStreaM
 ------------
 * A dedicated node is required for BuildStreaM GitLab deployment.
