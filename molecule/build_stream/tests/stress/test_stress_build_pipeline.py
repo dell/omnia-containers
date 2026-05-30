@@ -260,10 +260,10 @@ def _run_single_iteration(
     # =========================================================================
     _log("Step 2/8: Triggering build pipeline...")
 
+    # Note: allow_pipeline_cancel is read from omnia_test_config.yml internally
     trigger_result = trigger_build_pipeline(
         host,
         log_callback=_log,
-        allow_pipeline_cancel=False,
     )
 
     if not trigger_result["success"]:
