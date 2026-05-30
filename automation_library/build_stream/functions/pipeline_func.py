@@ -38,7 +38,7 @@ from .db_func import (
     get_stage_state,
     get_all_image_groups,
 )
-from .shared_func import get_allow_pipeline_cancel, get_cleanup_image_identifier
+from .shared_func import get_allow_pipeline_cancel, get_image_identifier
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
@@ -235,7 +235,7 @@ def trigger_build_pipeline(host, log_callback=None) -> Dict[str, Any]:
 
 def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
     """
-    Trigger a deploy pipeline by committing the PXE mapping file.
+    Trigger a deploy pipeline using PIPELINE_TYPE=deploy variable.
 
     Checks for running AND pending pipelines first. If allow_pipeline_cancel
     is true in omnia_test_config.yml, auto-cancels them. Otherwise asks user
@@ -248,8 +248,6 @@ def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
     Returns:
         Dict with 'success', 'pipeline_id', 'job_id', 'details', 'error'.
     """
-    from .gitlab_func import commit_pxe_mapping_file
-
     result = {
         "success": False,
         "pipeline_id": 0,
@@ -318,27 +316,20 @@ def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
     if old_job_id:
         _log(f"Current latest job: {old_job_id[:8]}... (state: {old_job_state})")
 
-    _log("Committing PXE mapping file to GitLab...")
-    commit_result = commit_pxe_mapping_file(host)
-    if not commit_result["success"]:
-        result["error"] = f"Failed to commit PXE mapping: {commit_result['error']}"
-        return result
-    _log("PXE mapping file committed successfully")
-
-    _log(PIPELINE_MSGS["waiting_pipeline"])
-    wait_result = wait_for_pipeline_triggered(host, initial_pipeline_id, log_callback=_log)
-    if not wait_result["success"]:
-        result["error"] = wait_result["error"]
+    _log("Triggering deploy pipeline with PIPELINE_TYPE=deploy...")
+    trigger_result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "deploy"})
+    if not trigger_result["success"]:
+        result["error"] = f"Failed to trigger deploy pipeline: {trigger_result['error']}"
         return result
 
-    result["pipeline_id"] = wait_result["pipeline_id"]
+    result["pipeline_id"] = trigger_result["pipeline_id"]
     _log(PIPELINE_MSGS["pipeline_triggered"].format(
-        id=wait_result['pipeline_id'], status=wait_result['status']
+        id=trigger_result['pipeline_id'], status=trigger_result['status']
     ))
 
     result["details"] = (
-        f"Deploy pipeline {wait_result['pipeline_id']} triggered "
-        f"(status: {wait_result['status']}, elapsed: {wait_result['elapsed']}s)"
+        f"Deploy pipeline {trigger_result['pipeline_id']} triggered "
+        f"(status: {trigger_result['status']})"
     )
 
     result["job_id"] = old_job_id if old_job_id else ""
@@ -348,10 +339,13 @@ def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
 
 def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[str, Any]:
     """
-    Auto-select the latest BUILT image group for deployment.
+    Select an image group for deployment.
+
+    If image_identifier is set in omnia_test_config.yml, uses that.
+    Otherwise, auto-selects the latest BUILT image group.
 
     The deploy pipeline creates manual selection jobs for each image group.
-    This function finds the latest BUILT image group and plays its selection job.
+    This function finds the target image group and plays its selection job.
 
     Args:
         host: Testinfra host object
@@ -375,20 +369,27 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
             print(f"    │ {msg}", flush=True)
         sys.stdout.flush()
 
-    _log("Getting latest BUILT image group from database...")
-    ig_result = get_all_image_groups(host)
-    if not ig_result["success"]:
-        result["error"] = f"Failed to get image groups: {ig_result['error']}"
-        return result
+    # Check if specific image identifier is configured
+    configured_id = get_image_identifier(host)
+    if configured_id:
+        _log(f"Using configured image_identifier: {configured_id}")
+        image_group_id = configured_id
+    else:
+        _log("Getting latest BUILT image group from database...")
+        ig_result = get_all_image_groups(host)
+        if not ig_result["success"]:
+            result["error"] = f"Failed to get image groups: {ig_result['error']}"
+            return result
 
-    built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-    if not built_groups:
-        result["error"] = "No BUILT image groups found. Run build pipeline first."
-        return result
+        built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
+        if not built_groups:
+            result["error"] = "No BUILT image groups found. Run build pipeline first."
+            return result
 
-    latest_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-    image_group_id = latest_group.get("id", "")
-    _log(f"Latest BUILT image group: {image_group_id}")
+        latest_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        image_group_id = latest_group.get("id", "")
+        _log(f"Auto-selected latest BUILT image group: {image_group_id}")
+
     result["image_group_id"] = image_group_id
 
     _log(f"Getting child pipeline from parent pipeline #{pipeline_id}...")
@@ -428,7 +429,10 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
         return result
 
     target_job = None
+    available_jobs = [j.get('name') for j in jobs_result['jobs']]
     _log(f"Looking for job matching image group: {image_group_id}")
+    _log(f"Available selection jobs: {available_jobs}")
+
     for job in jobs_result["jobs"]:
         job_name = job.get("name", "")
         if job_name == image_group_id:
@@ -437,11 +441,20 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
             break
 
     if not target_job:
-        _log(f"Available selection jobs: {[j.get('name') for j in jobs_result['jobs']]}")
+        # If configured image_identifier was specified but not found, fail with clear error
+        if configured_id:
+            result["error"] = (
+                f"Configured image_identifier '{configured_id}' not found in pipeline. "
+                f"Available image groups: {available_jobs}"
+            )
+            _log(f"ERROR: {result['error']}")
+            return result
+
+        # Auto-select: use first manual job
         for job in jobs_result["jobs"]:
             if job.get("status") == "manual":
                 target_job = job
-                _log(f"Using first manual job: {job.get('name')}")
+                _log(f"Auto-selecting first manual job: {job.get('name')}")
                 break
         if not target_job:
             target_job = jobs_result["jobs"][0]
@@ -604,9 +617,9 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
         sys.stdout.flush()
 
     # Check if specific image identifier is configured
-    configured_id = get_cleanup_image_identifier(host)
+    configured_id = get_image_identifier(host)
     if configured_id:
-        _log(f"Using configured cleanup_image_identifier: {configured_id}")
+        _log(f"Using configured image_identifier: {configured_id}")
         image_group_id = configured_id
     else:
         _log("Getting latest BUILT image group from database...")
@@ -665,7 +678,10 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
         return result
 
     target_job = None
+    available_jobs = [j.get('name') for j in jobs_result['jobs']]
     _log(f"Looking for job matching image group: {image_group_id}")
+    _log(f"Available selection jobs: {available_jobs}")
+
     for job in jobs_result["jobs"]:
         job_name = job.get("name", "")
         if job_name == image_group_id:
@@ -674,11 +690,20 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
             break
 
     if not target_job:
-        _log(f"Available selection jobs: {[j.get('name') for j in jobs_result['jobs']]}")
+        # If configured image_identifier was specified but not found, fail with clear error
+        if configured_id:
+            result["error"] = (
+                f"Configured image_identifier '{configured_id}' not found in pipeline. "
+                f"Available image groups: {available_jobs}"
+            )
+            _log(f"ERROR: {result['error']}")
+            return result
+
+        # Auto-select: use first manual job
         for job in jobs_result["jobs"]:
             if job.get("status") == "manual":
                 target_job = job
-                _log(f"Using first manual job: {job.get('name')}")
+                _log(f"Auto-selecting first manual job: {job.get('name')}")
                 break
         if not target_job:
             target_job = jobs_result["jobs"][0]

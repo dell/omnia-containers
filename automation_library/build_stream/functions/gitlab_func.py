@@ -737,11 +737,22 @@ def commit_pxe_mapping_file(host) -> Dict[str, Any]:
 
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Swap the last two columns of each row to trigger a file change
+    # This avoids adding comments which are not supported in CSV
     lines = current_content.strip().split('\n')
-    if lines and lines[-1].startswith('# Automation trigger:'):
-        lines = lines[:-1]
-    lines.append(f'# Automation trigger: {timestamp}')
-    modified_content = '\n'.join(lines) + '\n'
+    modified_lines = []
+    for line in lines:
+        if line.strip() and not line.strip().startswith('#'):
+            cols = line.split(',')
+            if len(cols) >= 2:
+                # Swap last two columns
+                cols[-1], cols[-2] = cols[-2], cols[-1]
+                modified_lines.append(','.join(cols))
+            else:
+                modified_lines.append(line)
+        else:
+            modified_lines.append(line)
+    modified_content = '\n'.join(modified_lines) + '\n'
 
     modified_content_b64 = base64.b64encode(modified_content.encode('utf-8')).decode('utf-8')
 

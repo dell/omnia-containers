@@ -165,12 +165,13 @@ def get_allow_pipeline_cancel(host) -> bool:
         return False
 
 
-def get_cleanup_image_identifier(host) -> str:
+def get_image_identifier(host) -> str:
     """
-    Get cleanup_image_identifier from omnia_test_config.yml.
+    Get image_identifier from omnia_test_config.yml.
 
-    If set, cleanup tests will delete this specific image group.
-    If empty, cleanup tests will auto-select the latest BUILT image group.
+    Used by BOTH deploy and cleanup pipelines to select which image group to use.
+    If set, automation will use this specific image group.
+    If empty, automation will auto-select the latest BUILT image group.
 
     Returns:
         Image group identifier string, or empty string for auto-select.
@@ -186,7 +187,7 @@ def get_cleanup_image_identifier(host) -> str:
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f) or {}
-        return config.get("cleanup_image_identifier", "") or ""
+        return config.get("image_identifier", "") or ""
     except Exception:
         return ""
 

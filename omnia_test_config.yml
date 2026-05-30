@@ -298,18 +298,22 @@ build_stream_job_id: ""
 allow_pipeline_cancel: false
 
 # =============================================================================
-# BUILD STREAM CLEANUP CONFIGURATION
+# BUILD STREAM IMAGE SELECTION
 # =============================================================================
-# Specify which image group to clean up in cleanup pipeline tests.
+# Specify which image group to use for deploy/cleanup pipeline tests.
 #
 # The image group identifier (e.g., "image-build-20260530-061909") is the
 # unique ID assigned to each build. You can find it in:
 #   - Database: SELECT id FROM image_groups WHERE status = 'BUILT';
-#   - GitLab: Cleanup pipeline shows available image groups as manual jobs
+#   - GitLab: Deploy/Cleanup pipelines show available image groups as manual jobs
 #
-# If set, the cleanup test will delete THIS specific image group.
-# If empty, the cleanup test will auto-select the LATEST BUILT image group.
+# This is used by BOTH deploy and cleanup pipelines:
+#   - Deploy: Selects this image group for deployment
+#   - Cleanup: Deletes this image group from registry and S3
+#
+# If set, the automation will use THIS specific image group.
+# If empty, the automation will auto-select the LATEST BUILT image group.
 #
 # Format: Image group identifier string (e.g., "image-build-20260530-061909")
 # Leave empty ("") to auto-select latest BUILT image group (default).
-cleanup_image_identifier: ""
+image_identifier: ""
