@@ -27,6 +27,7 @@ from .shared_func import (
     clear_cache,
     skip_if_build_stream_not_enabled,
     get_allow_pipeline_cancel,
+    get_cleanup_image_identifier,
 )
 
 from .api_func import (

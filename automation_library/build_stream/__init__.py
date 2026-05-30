@@ -35,6 +35,7 @@ from .functions import (
     ssh_to_gitlab,
     clear_cache,
     skip_if_build_stream_not_enabled,
+    get_cleanup_image_identifier,
     # API functions
     check_build_stream_health,
     get_catalog_roles,

@@ -38,7 +38,7 @@ from .db_func import (
     get_stage_state,
     get_all_image_groups,
 )
-from .shared_func import get_allow_pipeline_cancel
+from .shared_func import get_allow_pipeline_cancel, get_cleanup_image_identifier
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
@@ -573,10 +573,13 @@ def trigger_cleanup_pipeline(host, log_callback=None) -> Dict[str, Any]:
 
 def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[str, Any]:
     """
-    Auto-select the latest BUILT image group for cleanup.
+    Select an image group for cleanup.
+
+    If cleanup_image_identifier is set in omnia_test_config.yml, uses that.
+    Otherwise, auto-selects the latest BUILT image group.
 
     The cleanup pipeline creates manual selection jobs for each image group.
-    This function finds the latest BUILT image group and plays its selection job.
+    This function finds the target image group and plays its selection job.
 
     Args:
         host: Testinfra host object
@@ -600,20 +603,29 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
             print(f"    │ {msg}", flush=True)
         sys.stdout.flush()
 
-    _log("Getting latest BUILT image group from database...")
-    ig_result = get_all_image_groups(host)
-    if not ig_result["success"]:
-        result["error"] = f"Failed to get image groups: {ig_result['error']}"
-        return result
+    # Check if specific image identifier is configured
+    configured_id = get_cleanup_image_identifier(host)
+    if configured_id:
+        _log(f"Using configured cleanup_image_identifier: {configured_id}")
+        image_group_id = configured_id
+    else:
+        _log("Getting latest BUILT image group from database...")
+        ig_result = get_all_image_groups(host)
+        if not ig_result["success"]:
+            result["error"] = f"Failed to get image groups: {ig_result['error']}"
+            return result
 
-    built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-    if not built_groups:
-        result["error"] = "No BUILT image groups found. Nothing to clean."
-        return result
+        built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
+        if not built_groups:
+            result["error"] = "No BUILT image groups found. Nothing to clean."
+            return result
 
-    latest_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-    image_group_id = latest_group.get("id", "")
-    _log(f"Latest BUILT image group: {image_group_id}")
+        latest_group = sorted(
+            built_groups, key=lambda x: x.get("created_at", ""), reverse=True
+        )[0]
+        image_group_id = latest_group.get("id", "")
+        _log(f"Auto-selected latest BUILT image group: {image_group_id}")
+
     result["image_group_id"] = image_group_id
 
     _log(f"Getting child pipeline from parent pipeline #{pipeline_id}...")

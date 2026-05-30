@@ -16,35 +16,31 @@
 Build Stream - Stress Test for Build Pipeline.
 
 Runs the FULL build pipeline N times (default 50), with ALL validations:
-  1. Trigger pipeline (upload catalog to GitLab)
-  2. Wait for new job_id in database
-  3. Monitor ALL stages until completion (upload, parse-catalog, generate-input-files,
-     create-local-repository, build-image-x86_64, [build-image-aarch64 if applicable])
-  4. Verify image_groups created in DB with status BUILT
-  5. Verify images table has entries for each role
-  6. Verify registry images exist (regctl repo ls hostname:5000)
-  7. Verify S3 boot images exist (3 per role: 1 rootfs + 2 EFI files)
+  1. Wait for any running pipeline to complete (intelligent waiting)
+  2. Trigger new pipeline (upload catalog to GitLab)
+  3. Wait for new job_id in database
+  4. Monitor ALL stages until completion
+  5. Verify image_groups created in DB with status BUILT
+  6. Verify images table has entries for each role
+  7. Verify registry images exist (regctl)
+  8. Verify S3 boot images exist (3 per role)
 
-Each iteration is INDEPENDENT - new catalog upload, new job_id, full validation.
+IMPORTANT: This test does NOT auto-cancel pipelines.
+  - First iteration: If pipeline running, prompts user to cancel and re-run
+  - Subsequent iterations: Waits for GitLab pipeline to complete before next
 
 Configuration:
   - Default count: STRESS_BUILD_PIPELINE_COUNT (50) from build_stream_vars.py
   - Override via environment variable: BUILD_STRESS_COUNT=10
 
 Usage:
-  # Run with default 50 iterations
   pytest molecule/build_stream/tests/stress/ -m stress -v
-
-  # Run with custom count
   BUILD_STRESS_COUNT=5 pytest molecule/build_stream/tests/stress/ -m stress -v
-
-Markers:
-  - stress: Stress/load tests (separate from sanity)
-  - build_stream: Build stream module tests
 """
 
 import os
 import sys
+import time
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -60,7 +56,10 @@ from automation_library.build_stream import (
     get_images_for_job,
     verify_registry_images,
     verify_s3_boot_images,
+    list_pipelines,
+    get_pipeline_status,
     BUILD_IMAGE_STAGE_PREFIX,
+    BUILD_PIPELINE_CORE_STAGES,
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
     STRESS_BUILD_PIPELINE_COUNT,
@@ -72,8 +71,103 @@ from automation_library.build_stream import (
 # =============================================================================
 
 def _get_stress_count() -> int:
-    """Get the number of stress iterations from env or default (50)."""
+    """Get the number of stress iterations from env or default."""
     return int(os.environ.get("BUILD_STRESS_COUNT", STRESS_BUILD_PIPELINE_COUNT))
+
+
+# =============================================================================
+# HELPER: WAIT FOR GITLAB PIPELINE COMPLETION
+# =============================================================================
+
+def _wait_for_gitlab_pipeline_completion(
+    host,
+    pipeline_id: int,
+    log_callback=None,
+    timeout: int = 7200
+) -> bool:
+    """
+    Wait for a specific GitLab pipeline to complete.
+
+    Args:
+        host: Testinfra host object
+        pipeline_id: GitLab pipeline ID to wait for
+        log_callback: Optional logging callback
+        timeout: Max wait time in seconds (default 2 hours)
+
+    Returns:
+        True if pipeline completed (success or failed), False if timeout
+    """
+    def _log(msg):
+        if log_callback:
+            log_callback(msg)
+        else:
+            print(f"    │ {msg}", flush=True)
+
+    start_time = time.time()
+    poll_interval = 30
+    completed_statuses = ("success", "failed", "canceled", "skipped")
+
+    while time.time() - start_time < timeout:
+        result = get_pipeline_status(host, pipeline_id)
+        if not result["success"]:
+            _log(f"Warning: Failed to get pipeline status: {result['error']}")
+            time.sleep(poll_interval)
+            continue
+
+        status = result.get("status", "unknown")
+        if status in completed_statuses:
+            _log(f"Pipeline #{pipeline_id} completed with status: {status}")
+            return True
+
+        elapsed = int(time.time() - start_time)
+        _log(f"[{elapsed}s] Pipeline #{pipeline_id} status: {status}, waiting...")
+        time.sleep(poll_interval)
+
+    return False
+
+
+def _wait_for_all_pipelines_complete(host, log_callback=None, timeout: int = 7200) -> bool:
+    """
+    Wait for all running/pending pipelines to complete.
+
+    Args:
+        host: Testinfra host object
+        log_callback: Optional logging callback
+        timeout: Max wait time in seconds (default 2 hours)
+
+    Returns:
+        True if no running pipelines, False if timeout
+    """
+    def _log(msg):
+        if log_callback:
+            log_callback(msg)
+        else:
+            print(f"    │ {msg}", flush=True)
+
+    start_time = time.time()
+    poll_interval = 30
+
+    while time.time() - start_time < timeout:
+        result = list_pipelines(host, per_page=5)
+        if not result["success"]:
+            _log(f"Warning: Failed to list pipelines: {result['error']}")
+            time.sleep(poll_interval)
+            continue
+
+        running = [
+            p for p in result["pipelines"]
+            if p.get("status") in ("running", "pending", "created", "waiting_for_resource")
+        ]
+
+        if not running:
+            return True
+
+        elapsed = int(time.time() - start_time)
+        pipeline_ids = [str(p["id"]) for p in running]
+        _log(f"[{elapsed}s] Waiting for pipeline(s) {', '.join(pipeline_ids)} to complete...")
+        time.sleep(poll_interval)
+
+    return False
 
 
 # =============================================================================
@@ -113,23 +207,20 @@ def _create_iteration_result(iteration: int) -> Dict[str, Any]:
 # SINGLE ITERATION - FULL PIPELINE WITH ALL VALIDATIONS
 # =============================================================================
 
-def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
+def _run_single_iteration(
+    host,
+    iteration: int,
+    total: int,
+    is_first: bool = False
+) -> Dict[str, Any]:
     """
     Run a single complete build pipeline iteration with ALL validations.
-
-    This replicates the EXACT same checks as the sanity test_build_pipeline.py:
-      1. Trigger pipeline (with auto-cancel for stress test)
-      2. Monitor core stages, then fetch catalog info, then build-image stages
-      3. Verify DB image_groups
-      4. Verify DB images (and extract roles from DB if catalog API failed)
-      5. Verify registry images
-      6. Verify S3 boot images
-      7. Wait for GitLab pipeline to finish before returning
 
     Args:
         host: Testinfra host object
         iteration: Current iteration number (1-based)
         total: Total number of iterations
+        is_first: True if this is the first iteration
 
     Returns:
         Dict with all validation results for this iteration
@@ -147,15 +238,32 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     _log("=" * 50)
 
     # =========================================================================
-    # STEP 1: TRIGGER BUILD PIPELINE (with auto-cancel for stress test)
+    # STEP 1: WAIT FOR ANY RUNNING PIPELINES TO COMPLETE
     # =========================================================================
-    _log("Step 1/7: Triggering build pipeline...")
+    if is_first:
+        _log("Step 1/8: First iteration - checking for running pipelines...")
+    else:
+        _log("Step 1/8: Waiting for previous pipeline to complete...")
+        if not _wait_for_all_pipelines_complete(host, log_callback=_log, timeout=7200):
+            result["error"] = "Timeout waiting for previous pipeline to complete"
+            result["end_time"] = datetime.now().isoformat()
+            result["elapsed_seconds"] = int(
+                (datetime.fromisoformat(result["end_time"])
+                 - datetime.fromisoformat(result["start_time"])).total_seconds()
+            )
+            _log(f"FAILED: {result['error']}")
+            return result
+        _log("All pipelines completed, proceeding...")
 
-    # For stress test, we MUST auto-cancel any running pipelines
+    # =========================================================================
+    # STEP 2: TRIGGER BUILD PIPELINE
+    # =========================================================================
+    _log("Step 2/8: Triggering build pipeline...")
+
     trigger_result = trigger_build_pipeline(
         host,
         log_callback=_log,
-        allow_pipeline_cancel=True,  # Auto-cancel for stress test
+        allow_pipeline_cancel=False,
     )
 
     if not trigger_result["success"]:
@@ -176,11 +284,11 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     _log(f"Pipeline #{pipeline_id} triggered, Job ID: {job_id}")
 
     # =========================================================================
-    # STEP 2: MONITOR CORE STAGES (upload, parse-catalog, generate, create-repo)
+    # STEP 3: MONITOR CORE STAGES
     # =========================================================================
-    _log("Step 2/7: Monitoring core pipeline stages...")
+    _log("Step 3/8: Monitoring core pipeline stages...")
 
-    core_stages = ["upload", "parse-catalog", "generate-input-files", "create-local-repository"]
+    core_stages = list(BUILD_PIPELINE_CORE_STAGES)
     _log(f"Core stages: {core_stages}")
 
     all_stages_passed = True
@@ -212,8 +320,6 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
             log_path = get_stage_log_path(host, job_id, stage_name)
             if log_path:
                 _log(f"    Log file: {log_path}")
-
-            _log("Stopping iteration due to stage failure")
             break
 
     if not all_stages_passed:
@@ -226,9 +332,9 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         return result
 
     # =========================================================================
-    # STEP 3: GET CATALOG INFO (NOW that parse-catalog is done)
+    # STEP 4: GET CATALOG INFO (after parse-catalog completes)
     # =========================================================================
-    _log("Step 3/7: Getting catalog information...")
+    _log("Step 4/8: Getting catalog information...")
 
     roles_result = get_catalog_roles(host, job_id)
     if roles_result["success"]:
@@ -237,8 +343,7 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         result["catalog_image_key"] = roles_result.get("image_key", "")
         _log(
             f"Catalog: {len(result['catalog_roles'])} roles, "
-            f"architectures: {result['catalog_architectures']}, "
-            f"image_key: {result['catalog_image_key'][:30] if result['catalog_image_key'] else 'N/A'}..."
+            f"architectures: {result['catalog_architectures']}"
         )
     else:
         _log(f"Warning: Could not get catalog info: {roles_result.get('error', 'Unknown')}")
@@ -247,11 +352,14 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         result["catalog_image_key"] = ""
 
     # =========================================================================
-    # STEP 4: MONITOR BUILD-IMAGE STAGES
+    # STEP 5: MONITOR BUILD-IMAGE STAGES
     # =========================================================================
-    _log("Step 4/7: Monitoring build-image stages...")
+    _log("Step 5/8: Monitoring build-image stages...")
 
-    build_stages = [f"{BUILD_IMAGE_STAGE_PREFIX}{arch}" for arch in result["catalog_architectures"]]
+    build_stages = [
+        f"{BUILD_IMAGE_STAGE_PREFIX}{arch}"
+        for arch in result["catalog_architectures"]
+    ]
     _log(f"Build stages: {build_stages}")
 
     for stage_name in build_stages:
@@ -282,8 +390,6 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
             log_path = get_stage_log_path(host, job_id, stage_name)
             if log_path:
                 _log(f"    Log file: {log_path}")
-
-            _log("Stopping iteration due to stage failure")
             break
 
     if not all_stages_passed:
@@ -298,57 +404,57 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     _log("All stages completed successfully")
 
     # =========================================================================
-    # STEP 5: VERIFY DB IMAGE_GROUPS
+    # STEP 6: VERIFY DATABASE (image_groups and images)
     # =========================================================================
-    _log("Step 5/7: Verifying image_groups in database...")
+    _log("Step 6/8: Verifying database records...")
 
+    # Verify image_groups
     ig_result = get_image_groups_for_job(host, job_id)
     if ig_result["success"] and ig_result["image_groups"]:
         built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
         if built_groups:
             result["db_image_group_ok"] = True
-            _log(f"✓ Found {len(built_groups)} image group(s) with BUILT status")
+            _log(f"  ✓ Found {len(built_groups)} image group(s) with BUILT status")
         else:
-            _log(f"✗ No image groups with BUILT status (found: {ig_result['image_groups']})")
+            _log("  ✗ No image groups with BUILT status")
     else:
-        _log(f"✗ Failed to get image groups: {ig_result.get('error', 'No groups found')}")
+        _log(f"  ✗ Failed to get image groups: {ig_result.get('error', 'No groups')}")
 
-    # =========================================================================
-    # STEP 6: VERIFY DB IMAGES (and extract roles if catalog_roles is empty)
-    # =========================================================================
-    _log("Step 6/7: Verifying images in database...")
-
+    # Verify images and extract roles if catalog API failed
     images_result = get_images_for_job(host, job_id)
     if images_result["success"] and images_result["images"]:
         result["db_images_count"] = len(images_result["images"])
 
-        # CRITICAL: If catalog_roles is empty, extract roles from DB images
+        # CRITICAL: Extract roles from DB if catalog_roles is empty
         if not result["catalog_roles"]:
-            db_roles = [img.get("role") for img in images_result["images"] if img.get("role")]
+            db_roles = [
+                img.get("role") for img in images_result["images"]
+                if img.get("role")
+            ]
             if db_roles:
-                result["catalog_roles"] = list(set(db_roles))  # Unique roles
-                _log(f"Extracted {len(result['catalog_roles'])} roles from DB: {result['catalog_roles']}")
+                result["catalog_roles"] = list(set(db_roles))
+                _log(f"  Extracted {len(result['catalog_roles'])} roles from DB: {result['catalog_roles']}")
 
-        expected_count = len(result["catalog_roles"]) if result["catalog_roles"] else 1
-        if result["db_images_count"] >= expected_count:
+        expected = len(result["catalog_roles"]) if result["catalog_roles"] else 1
+        if result["db_images_count"] >= expected:
             result["db_images_ok"] = True
-            _log(f"✓ Found {result['db_images_count']} images in DB (expected >= {expected_count})")
+            _log(f"  ✓ Found {result['db_images_count']} images in DB")
         else:
-            _log(
-                f"✗ Only {result['db_images_count']} images in DB "
-                f"(expected >= {expected_count})"
-            )
+            _log(f"  ✗ Only {result['db_images_count']} images (expected >= {expected})")
     else:
-        _log(f"✗ Failed to get images: {images_result.get('error', 'No images found')}")
+        _log(f"  ✗ Failed to get images: {images_result.get('error', 'No images')}")
 
     # =========================================================================
     # STEP 7: VERIFY REGISTRY AND S3 IMAGES
     # =========================================================================
-    _log("Step 7/7: Verifying registry and S3 images...")
+    _log("Step 7/8: Verifying registry and S3 images...")
 
     if result["catalog_roles"]:
+        _log(f"  Verifying for roles: {result['catalog_roles']}")
+        _log(f"  Using full job_id: {job_id}")
+
         # Registry verification
-        _log("  Checking registry images (regctl)...")
+        _log("  Checking registry images...")
         reg_result = verify_registry_images(
             host, job_id, result["catalog_roles"], result["catalog_image_key"]
         )
@@ -357,17 +463,13 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
 
         if reg_result["success"]:
             result["registry_ok"] = True
-            _log(
-                f"  ✓ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
-                f"roles found"
-            )
+            _log(f"  ✓ Registry: {result['registry_found']}/{len(result['catalog_roles'])} roles found")
             for item in reg_result.get("found", []):
-                _log(f"      ✓ {item['role']} → {item['repo']}")
+                _log(f"      ✓ {item['role']}")
         else:
-            _log(
-                f"  ✗ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
-                f"roles found, missing: {reg_result.get('missing', [])}"
-            )
+            _log(f"  ✗ Registry: {result['registry_found']}/{len(result['catalog_roles'])} roles found")
+            for m in reg_result.get("missing", []):
+                _log(f"      ✗ Missing: {m}")
 
         # S3 verification
         _log("  Checking S3 boot images...")
@@ -380,30 +482,25 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
 
         if s3_result["success"]:
             result["s3_ok"] = True
-            _log(
-                f"  ✓ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
-                f"roles complete (3 files each)"
-            )
+            _log(f"  ✓ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} roles complete")
             for item in s3_result.get("found_roles", []):
-                _log(
-                    f"      ✓ {item['role']}: rootfs={item['rootfs']}, "
-                    f"efi={item['efi_files']}"
-                )
+                _log(f"      ✓ {item['role']}: rootfs={item['rootfs']}, efi={item['efi_files']}")
         else:
-            _log(
-                f"  ✗ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
-                f"roles complete"
-            )
-            for item in s3_result.get("missing_roles", []):
-                _log(
-                    f"      ✗ {item['role']}: rootfs={item['rootfs']}, "
-                    f"efi={item['efi_files']} (expected 1 rootfs + 2 EFI)"
-                )
+            _log(f"  ✗ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} roles complete")
+            for m in s3_result.get("missing_roles", []):
+                _log(f"      ✗ {m['role']}: rootfs={m['rootfs']}, efi={m['efi_files']}")
     else:
-        _log("⚠ No roles available - cannot verify registry/S3")
-        # Mark as failed since we couldn't verify
+        _log("  ⚠ No roles available - cannot verify registry/S3")
         result["registry_ok"] = False
         result["s3_ok"] = False
+
+    # =========================================================================
+    # STEP 8: WAIT FOR GITLAB PIPELINE TO FULLY COMPLETE
+    # =========================================================================
+    _log("Step 8/8: Waiting for GitLab pipeline to fully complete...")
+
+    if not _wait_for_gitlab_pipeline_completion(host, pipeline_id, log_callback=_log, timeout=300):
+        _log("Warning: Timeout waiting for GitLab pipeline, but DB stages completed")
 
     # =========================================================================
     # FINAL RESULT
@@ -457,17 +554,19 @@ def test_stress_build_pipeline(host):
     """
     Stress test: Run build pipeline N times with FULL validation each time.
 
-    Each iteration performs:
-      1. Trigger new pipeline (new catalog upload, new job_id)
-      2. Monitor all stages until completion
-      3. Verify DB image_groups (status = BUILT)
-      4. Verify DB images (one per role)
-      5. Verify registry images (regctl repo ls hostname:5000)
-      6. Verify S3 boot images (3 per role: 1 rootfs + 2 EFI)
+    Each iteration:
+      1. Wait for any running pipelines to complete
+      2. Trigger new pipeline
+      3. Monitor all stages
+      4. Get catalog info (roles, architectures)
+      5. Monitor build-image stages
+      6. Verify DB (image_groups, images) and extract roles from DB
+      7. Verify registry and S3 images using full job_id
+      8. Wait for GitLab pipeline to fully complete
 
-    Configuration:
-      - Default: 50 iterations (STRESS_BUILD_PIPELINE_COUNT)
-      - Override: BUILD_STRESS_COUNT environment variable
+    IMPORTANT: Does NOT auto-cancel pipelines.
+      - First iteration prompts user if pipeline running
+      - Subsequent iterations wait for completion
     """
     log = TestLogger("Stress Build Pipeline")
 
@@ -480,7 +579,7 @@ def test_stress_build_pipeline(host):
 
     print("\n" + "#" * 70, flush=True)
     print(f"# BUILD STREAM STRESS TEST - {count} ITERATIONS", flush=True)
-    print("# Each iteration: trigger -> stages -> DB checks -> registry -> S3", flush=True)
+    print("# Each iteration: trigger -> stages -> DB -> registry -> S3", flush=True)
     print(f"# Started at: {datetime.now().isoformat()}", flush=True)
     print("#" * 70 + "\n", flush=True)
 
@@ -490,7 +589,10 @@ def test_stress_build_pipeline(host):
     total_elapsed = 0
 
     for i in range(1, count + 1):
-        iteration_result = _run_single_iteration(host, i, count)
+        iteration_result = _run_single_iteration(
+            host, i, count,
+            is_first=(i == 1)
+        )
         results.append(iteration_result)
         total_elapsed += iteration_result["elapsed_seconds"]
 
@@ -499,8 +601,11 @@ def test_stress_build_pipeline(host):
         else:
             failed += 1
 
-        print(f"\n    Progress: {i}/{count} complete, {passed} passed, {failed} failed\n",
-              flush=True)
+        print(
+            f"\n    Progress: {i}/{count} complete, "
+            f"{passed} passed, {failed} failed\n",
+            flush=True
+        )
 
     # =========================================================================
     # FINAL SUMMARY
@@ -508,7 +613,11 @@ def test_stress_build_pipeline(host):
     print("\n" + "#" * 70, flush=True)
     print("# STRESS TEST COMPLETE", flush=True)
     print(f"# Total: {count}, Passed: {passed}, Failed: {failed}", flush=True)
-    print(f"# Total time: {total_elapsed}s ({total_elapsed // 60}m {total_elapsed % 60}s)", flush=True)
+    print(
+        f"# Total time: {total_elapsed}s "
+        f"({total_elapsed // 60}m {total_elapsed % 60}s)",
+        flush=True
+    )
     print(f"# Finished at: {datetime.now().isoformat()}", flush=True)
     print("#" * 70 + "\n", flush=True)
 
