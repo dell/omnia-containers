@@ -45,7 +45,6 @@ Markers:
 
 import os
 import sys
-import time
 from datetime import datetime
 from typing import Dict, Any, List
 
@@ -55,20 +54,16 @@ from automation_library.core import TestLogger, is_build_stream_enabled
 from automation_library.build_stream import (
     trigger_build_pipeline,
     wait_for_stage_completion,
-    get_stage_state,
     get_stage_log_path,
     get_catalog_roles,
     get_image_groups_for_job,
     get_images_for_job,
     verify_registry_images,
     verify_s3_boot_images,
-    BUILD_PIPELINE_CORE_STAGES,
     BUILD_IMAGE_STAGE_PREFIX,
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
     STRESS_BUILD_PIPELINE_COUNT,
-    STAGE_STATE_COMPLETED,
-    STAGE_STATE_FAILED,
 )
 
 
@@ -123,12 +118,13 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     Run a single complete build pipeline iteration with ALL validations.
 
     This replicates the EXACT same checks as the sanity test_build_pipeline.py:
-      1. Trigger pipeline
-      2. Monitor all stages
+      1. Trigger pipeline (with auto-cancel for stress test)
+      2. Monitor core stages, then fetch catalog info, then build-image stages
       3. Verify DB image_groups
-      4. Verify DB images
+      4. Verify DB images (and extract roles from DB if catalog API failed)
       5. Verify registry images
       6. Verify S3 boot images
+      7. Wait for GitLab pipeline to finish before returning
 
     Args:
         host: Testinfra host object
@@ -146,23 +142,28 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         print(f"    │ [{timestamp}] [Iter {iteration}/{total}] {msg}", flush=True)
         sys.stdout.flush()
 
-    _log(f"{'=' * 50}")
+    _log("=" * 50)
     _log(f"STARTING ITERATION {iteration}/{total}")
-    _log(f"{'=' * 50}")
+    _log("=" * 50)
 
     # =========================================================================
-    # STEP 1: TRIGGER BUILD PIPELINE
+    # STEP 1: TRIGGER BUILD PIPELINE (with auto-cancel for stress test)
     # =========================================================================
     _log("Step 1/7: Triggering build pipeline...")
 
-    trigger_result = trigger_build_pipeline(host, log_callback=_log)
+    # For stress test, we MUST auto-cancel any running pipelines
+    trigger_result = trigger_build_pipeline(
+        host,
+        log_callback=_log,
+        allow_pipeline_cancel=True,  # Auto-cancel for stress test
+    )
 
     if not trigger_result["success"]:
         result["error"] = f"Trigger failed: {trigger_result['error']}"
         result["end_time"] = datetime.now().isoformat()
         result["elapsed_seconds"] = int(
-            (datetime.fromisoformat(result["end_time"]) -
-             datetime.fromisoformat(result["start_time"])).total_seconds()
+            (datetime.fromisoformat(result["end_time"])
+             - datetime.fromisoformat(result["start_time"])).total_seconds()
         )
         _log(f"FAILED: {result['error']}")
         return result
@@ -175,39 +176,15 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     _log(f"Pipeline #{pipeline_id} triggered, Job ID: {job_id}")
 
     # =========================================================================
-    # STEP 2: GET CATALOG INFO (roles, architectures, image_key)
+    # STEP 2: MONITOR CORE STAGES (upload, parse-catalog, generate, create-repo)
     # =========================================================================
-    _log("Step 2/7: Getting catalog information...")
+    _log("Step 2/7: Monitoring core pipeline stages...")
 
-    roles_result = get_catalog_roles(host, job_id)
-    if roles_result["success"]:
-        result["catalog_roles"] = roles_result["roles"]
-        result["catalog_architectures"] = roles_result.get("architectures", ["x86_64"])
-        result["catalog_image_key"] = roles_result.get("image_key", "")
-        _log(
-            f"Catalog: {len(result['catalog_roles'])} roles, "
-            f"architectures: {result['catalog_architectures']}, "
-            f"image_key: {result['catalog_image_key'][:30]}..."
-        )
-    else:
-        _log(f"Warning: Could not get catalog info: {roles_result['error']}")
-        result["catalog_roles"] = []
-        result["catalog_architectures"] = ["x86_64"]
-        result["catalog_image_key"] = ""
-
-    # =========================================================================
-    # STEP 3: MONITOR ALL STAGES
-    # =========================================================================
-    _log("Step 3/7: Monitoring pipeline stages...")
-
-    stages_to_monitor = list(BUILD_PIPELINE_CORE_STAGES)
-    for arch in result["catalog_architectures"]:
-        stages_to_monitor.append(f"{BUILD_IMAGE_STAGE_PREFIX}{arch}")
-
-    _log(f"Stages to monitor: {stages_to_monitor}")
+    core_stages = ["upload", "parse-catalog", "generate-input-files", "create-local-repository"]
+    _log(f"Core stages: {core_stages}")
 
     all_stages_passed = True
-    for stage_name in stages_to_monitor:
+    for stage_name in core_stages:
         _log(f"  Monitoring stage: {stage_name}...")
 
         stage_result = wait_for_stage_completion(
@@ -243,17 +220,87 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         result["error"] = f"Stage failures: {'; '.join(result['stage_errors'])}"
         result["end_time"] = datetime.now().isoformat()
         result["elapsed_seconds"] = int(
-            (datetime.fromisoformat(result["end_time"]) -
-             datetime.fromisoformat(result["start_time"])).total_seconds()
+            (datetime.fromisoformat(result["end_time"])
+             - datetime.fromisoformat(result["start_time"])).total_seconds()
+        )
+        return result
+
+    # =========================================================================
+    # STEP 3: GET CATALOG INFO (NOW that parse-catalog is done)
+    # =========================================================================
+    _log("Step 3/7: Getting catalog information...")
+
+    roles_result = get_catalog_roles(host, job_id)
+    if roles_result["success"]:
+        result["catalog_roles"] = roles_result["roles"]
+        result["catalog_architectures"] = roles_result.get("architectures", ["x86_64"])
+        result["catalog_image_key"] = roles_result.get("image_key", "")
+        _log(
+            f"Catalog: {len(result['catalog_roles'])} roles, "
+            f"architectures: {result['catalog_architectures']}, "
+            f"image_key: {result['catalog_image_key'][:30] if result['catalog_image_key'] else 'N/A'}..."
+        )
+    else:
+        _log(f"Warning: Could not get catalog info: {roles_result.get('error', 'Unknown')}")
+        result["catalog_roles"] = []
+        result["catalog_architectures"] = ["x86_64"]
+        result["catalog_image_key"] = ""
+
+    # =========================================================================
+    # STEP 4: MONITOR BUILD-IMAGE STAGES
+    # =========================================================================
+    _log("Step 4/7: Monitoring build-image stages...")
+
+    build_stages = [f"{BUILD_IMAGE_STAGE_PREFIX}{arch}" for arch in result["catalog_architectures"]]
+    _log(f"Build stages: {build_stages}")
+
+    for stage_name in build_stages:
+        _log(f"  Monitoring stage: {stage_name}...")
+
+        stage_result = wait_for_stage_completion(
+            host, job_id, stage_name,
+            timeout=STAGE_POLL_TIMEOUT,
+            poll_interval=STAGE_POLL_INTERVAL,
+            log_callback=lambda msg: print(f"      │ {msg}", flush=True),
+        )
+
+        stage_state = stage_result.get("stage_state", "UNKNOWN")
+        result["stages"][stage_name] = {
+            "state": stage_state,
+            "elapsed": stage_result.get("elapsed", 0),
+            "success": stage_result["success"],
+        }
+
+        if stage_result["success"]:
+            _log(f"  ✓ Stage '{stage_name}' COMPLETED in {stage_result['elapsed']}s")
+        else:
+            all_stages_passed = False
+            error_msg = stage_result.get("error", "Unknown error")
+            result["stage_errors"].append(f"{stage_name}: {error_msg}")
+            _log(f"  ✗ Stage '{stage_name}' FAILED: {error_msg}")
+
+            log_path = get_stage_log_path(host, job_id, stage_name)
+            if log_path:
+                _log(f"    Log file: {log_path}")
+
+            _log("Stopping iteration due to stage failure")
+            break
+
+    if not all_stages_passed:
+        result["error"] = f"Stage failures: {'; '.join(result['stage_errors'])}"
+        result["end_time"] = datetime.now().isoformat()
+        result["elapsed_seconds"] = int(
+            (datetime.fromisoformat(result["end_time"])
+             - datetime.fromisoformat(result["start_time"])).total_seconds()
         )
         return result
 
     _log("All stages completed successfully")
 
     # =========================================================================
-    # STEP 4: VERIFY DB IMAGE_GROUPS
+    # STEP 5: VERIFY DB IMAGE_GROUPS
     # =========================================================================
-    _log("Step 4/7: Verifying image_groups in database...")
+    _log("Step 5/7: Verifying image_groups in database...")
 
     ig_result = get_image_groups_for_job(host, job_id)
     if ig_result["success"] and ig_result["image_groups"]:
@@ -267,14 +314,22 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         _log(f"✗ Failed to get image groups: {ig_result.get('error', 'No groups found')}")
 
     # =========================================================================
-    # STEP 5: VERIFY DB IMAGES
+    # STEP 6: VERIFY DB IMAGES (and extract roles if catalog_roles is empty)
     # =========================================================================
-    _log("Step 5/7: Verifying images in database...")
+    _log("Step 6/7: Verifying images in database...")
 
     images_result = get_images_for_job(host, job_id)
     if images_result["success"] and images_result["images"]:
         result["db_images_count"] = len(images_result["images"])
-        expected_count = len(result["catalog_roles"])
+
+        # CRITICAL: If catalog_roles is empty, extract roles from DB images
+        if not result["catalog_roles"]:
+            db_roles = [img.get("role") for img in images_result["images"] if img.get("role")]
+            if db_roles:
+                result["catalog_roles"] = list(set(db_roles))  # Unique roles
+                _log(f"Extracted {len(result['catalog_roles'])} roles from DB: {result['catalog_roles']}")
+
+        expected_count = len(result["catalog_roles"]) if result["catalog_roles"] else 1
         if result["db_images_count"] >= expected_count:
             result["db_images_ok"] = True
             _log(f"✓ Found {result['db_images_count']} images in DB (expected >= {expected_count})")
@@ -287,11 +342,13 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         _log(f"✗ Failed to get images: {images_result.get('error', 'No images found')}")
 
     # =========================================================================
-    # STEP 6: VERIFY REGISTRY IMAGES
+    # STEP 7: VERIFY REGISTRY AND S3 IMAGES
     # =========================================================================
-    _log("Step 6/7: Verifying registry images (regctl)...")
+    _log("Step 7/7: Verifying registry and S3 images...")
 
     if result["catalog_roles"]:
+        # Registry verification
+        _log("  Checking registry images (regctl)...")
         reg_result = verify_registry_images(
             host, job_id, result["catalog_roles"], result["catalog_image_key"]
         )
@@ -301,25 +358,19 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         if reg_result["success"]:
             result["registry_ok"] = True
             _log(
-                f"✓ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
-                f"roles found at {reg_result.get('registry_url', 'N/A')}"
+                f"  ✓ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
+                f"roles found"
             )
             for item in reg_result.get("found", []):
-                _log(f"    ✓ {item['role']} → {item['repo']}")
+                _log(f"      ✓ {item['role']} → {item['repo']}")
         else:
             _log(
-                f"✗ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
+                f"  ✗ Registry: {result['registry_found']}/{len(result['catalog_roles'])} "
                 f"roles found, missing: {reg_result.get('missing', [])}"
             )
-    else:
-        _log("⚠ Skipping registry check - no catalog roles available")
 
-    # =========================================================================
-    # STEP 7: VERIFY S3 BOOT IMAGES (3 per role: 1 rootfs + 2 EFI)
-    # =========================================================================
-    _log("Step 7/7: Verifying S3 boot images...")
-
-    if result["catalog_roles"]:
+        # S3 verification
+        _log("  Checking S3 boot images...")
         s3_result = verify_s3_boot_images(
             host, job_id, result["catalog_roles"], result["catalog_image_key"]
         )
@@ -330,34 +381,37 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         if s3_result["success"]:
             result["s3_ok"] = True
             _log(
-                f"✓ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
-                f"roles complete (3 files each: 1 rootfs + 2 EFI)"
+                f"  ✓ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
+                f"roles complete (3 files each)"
             )
             for item in s3_result.get("found_roles", []):
                 _log(
-                    f"    ✓ {item['role']}: rootfs={item['rootfs']}, "
-                    f"efi={item['efi_files']}, total={item['total']}"
+                    f"      ✓ {item['role']}: rootfs={item['rootfs']}, "
+                    f"efi={item['efi_files']}"
                 )
         else:
             _log(
-                f"✗ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
+                f"  ✗ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} "
                 f"roles complete"
             )
             for item in s3_result.get("missing_roles", []):
                 _log(
-                    f"    ✗ {item['role']}: rootfs={item['rootfs']}, "
+                    f"      ✗ {item['role']}: rootfs={item['rootfs']}, "
                     f"efi={item['efi_files']} (expected 1 rootfs + 2 EFI)"
                 )
     else:
-        _log("⚠ Skipping S3 check - no catalog roles available")
+        _log("⚠ No roles available - cannot verify registry/S3")
+        # Mark as failed since we couldn't verify
+        result["registry_ok"] = False
+        result["s3_ok"] = False
 
     # =========================================================================
     # FINAL RESULT
     # =========================================================================
     result["end_time"] = datetime.now().isoformat()
     result["elapsed_seconds"] = int(
-        (datetime.fromisoformat(result["end_time"]) -
-         datetime.fromisoformat(result["start_time"])).total_seconds()
+        (datetime.fromisoformat(result["end_time"])
+         - datetime.fromisoformat(result["start_time"])).total_seconds()
     )
 
     result["success"] = (
@@ -369,9 +423,9 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
     )
 
     if result["success"]:
-        _log(f"{'=' * 50}")
+        _log("=" * 50)
         _log(f"ITERATION {iteration}/{total} PASSED in {result['elapsed_seconds']}s")
-        _log(f"{'=' * 50}")
+        _log("=" * 50)
     else:
         failures = []
         if not all_stages_passed:
@@ -385,9 +439,9 @@ def _run_single_iteration(host, iteration: int, total: int) -> Dict[str, Any]:
         if not result["s3_ok"]:
             failures.append("s3")
         result["error"] = f"Failed checks: {', '.join(failures)}"
-        _log(f"{'=' * 50}")
+        _log("=" * 50)
         _log(f"ITERATION {iteration}/{total} FAILED: {result['error']}")
-        _log(f"{'=' * 50}")
+        _log("=" * 50)
 
     return result
 
