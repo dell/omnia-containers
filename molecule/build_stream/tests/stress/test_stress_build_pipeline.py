@@ -465,9 +465,11 @@ def _run_single_iteration(
             result["registry_ok"] = True
             _log(f"  ✓ Registry: {result['registry_found']}/{len(result['catalog_roles'])} roles found")
             for item in reg_result.get("found", []):
-                _log(f"      ✓ {item['role']}")
+                _log(f"      ✓ {item['role']}: {item.get('repo', 'N/A')}")
         else:
             _log(f"  ✗ Registry: {result['registry_found']}/{len(result['catalog_roles'])} roles found")
+            for item in reg_result.get("found", []):
+                _log(f"      ✓ {item['role']}: {item.get('repo', 'N/A')}")
             for m in reg_result.get("missing", []):
                 _log(f"      ✗ Missing: {m}")
 
@@ -485,8 +487,14 @@ def _run_single_iteration(
             _log(f"  ✓ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} roles complete")
             for item in s3_result.get("found_roles", []):
                 _log(f"      ✓ {item['role']}: rootfs={item['rootfs']}, efi={item['efi_files']}")
+                for rf in item.get("rootfs_files", []):
+                    _log(f"          {rf}")
+                for ef in item.get("efi_file_paths", []):
+                    _log(f"          {ef}")
         else:
             _log(f"  ✗ S3: {result['s3_found_roles']}/{len(result['catalog_roles'])} roles complete")
+            for item in s3_result.get("found_roles", []):
+                _log(f"      ✓ {item['role']}: rootfs={item['rootfs']}, efi={item['efi_files']}")
             for m in s3_result.get("missing_roles", []):
                 _log(f"      ✗ {m['role']}: rootfs={m['rootfs']}, efi={m['efi_files']}")
     else:

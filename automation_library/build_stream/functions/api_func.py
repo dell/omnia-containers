@@ -442,7 +442,9 @@ def verify_s3_boot_images(
         role_info = {
             "role": role,
             "rootfs": len(rootfs_files),
+            "rootfs_files": rootfs_files[:3],  # Include up to 3 file paths
             "efi_files": len(efi_files),
+            "efi_file_paths": efi_files[:3],  # Include up to 3 file paths
             "total": total_for_role,
         }
 
