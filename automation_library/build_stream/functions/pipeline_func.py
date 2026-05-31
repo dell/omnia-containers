@@ -415,25 +415,28 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
         result["error"] = f"Failed to get image groups: {ig_result['error']}"
         return result
 
-    built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-    if not built_groups:
-        result["error"] = "No BUILT image groups found. Run build pipeline first."
+    # Accept any image group that is not CLEANED (BUILT, DEPLOY_FAILED, etc.)
+    deployable_groups = [g for g in ig_result["image_groups"] if g["status"] != "CLEANED"]
+    if not deployable_groups:
+        result["error"] = "No deployable image groups found. Run build pipeline first."
         return result
 
     if configured_id:
         _log(f"Using configured image_identifier: {configured_id}")
         # Find the configured image group
-        for g in built_groups:
+        for g in deployable_groups:
             if g.get("id") == configured_id:
                 target_group = g
                 break
         if not target_group:
-            result["error"] = f"Configured image_identifier '{configured_id}' not found in BUILT groups"
+            result["error"] = f"Configured image_identifier '{configured_id}' not found in deployable groups"
             return result
     else:
-        # Auto-select latest BUILT image group
-        target_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-        _log(f"Auto-selected latest BUILT image group: {target_group.get('id')}")
+        # Auto-select latest deployable image group (prefer BUILT, then any)
+        built_groups = [g for g in deployable_groups if g["status"] == "BUILT"]
+        candidates = built_groups if built_groups else deployable_groups
+        target_group = sorted(candidates, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        _log(f"Auto-selected image group: {target_group.get('id')} (status: {target_group.get('status')})")
 
     image_group_id = target_group.get("id", "")
     job_id = target_group.get("job_id", "")
@@ -514,7 +517,7 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
             # Update result with the actually selected image group and its job_id
             result["image_group_id"] = selected_image_group
             # Find the job_id for this image group from the database
-            for g in built_groups:
+            for g in deployable_groups:
                 if g.get("id") == selected_image_group:
                     result["job_id"] = g.get("job_id", "")
                     _log(f"Updated Job ID: {result['job_id'][:8]}...")

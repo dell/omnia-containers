@@ -883,11 +883,11 @@ def test_manual_build_pipeline_result(host):
 # =============================================================================
 
 def _check_build_succeeded(host) -> bool:
-    """Check if build pipeline succeeded by looking for BUILT image groups."""
+    """Check if deployable image groups exist (any status except CLEANED)."""
     result = get_all_image_groups(host)
     if result["success"] and result["image_groups"]:
-        built_groups = [g for g in result["image_groups"] if g["status"] == "BUILT"]
-        return len(built_groups) > 0
+        deployable = [g for g in result["image_groups"] if g["status"] != "CLEANED"]
+        return len(deployable) > 0
     return False
 
 
