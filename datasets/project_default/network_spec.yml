@@ -26,10 +26,10 @@
 #     Optional — can be omitted if iDRAC telemetry for the OIM server is not required.
 # - 'dynamic_range': The range of dynamic IP addresses available on the admin network.
 # - 'dns': The list of external DNS server IP address for the admin network.
-# - 'ntp_servers': The list of NTP servers for the admin network. Each NTP server entry should include: 
+# - 'ntp_servers': The list of NTP servers for the admin network. Each NTP server entry should include:
 #     - 'address': The IP address or hostname of the NTP server.
 #     - 'type': The type of NTP entry, either 'server' or 'pool'.
-#     Example:  
+#     Example:
 #     ntp_servers:
 #       - { address: "172.16.10.80", type: "server" }
 
@@ -63,18 +63,18 @@
 
 
 Networks:
-- admin_network:
-    oim_nic_name: "eno1"
-    subnet: "172.16.0.0"
-    netmask_bits: "24"
-    primary_oim_admin_ip: "172.16.107.254"
-    primary_oim_bmc_ip: ""
-    dynamic_range: "172.16.107.201-172.16.107.250"
-    dns: []
-    ntp_servers: []
-    additional_subnets: []
+  - admin_network:
+      oim_nic_name: "eno1"
+      subnet: "172.16.0.0"
+      netmask_bits: "24"
+      primary_oim_admin_ip: "172.16.107.254"
+      primary_oim_bmc_ip: ""
+      dynamic_range: "172.16.107.201-172.16.107.250"
+      dns: []
+      ntp_servers: []
+      additional_subnets: []
 
-- ib_network:
-    subnet: "192.168.0.0"
-    netmask_bits: "24"
-    dns: []
+  - ib_network:
+      subnet: "192.168.0.0"
+      netmask_bits: "24"
+      dns: []

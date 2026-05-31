@@ -514,7 +514,7 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
             target_job = manual_jobs_sorted[0]
             selected_image_group = target_job.get("name", "")
             _log(f"Auto-selecting most recent available: {selected_image_group}")
-            
+
             # Update result with the actually selected image group and its job_id
             result["image_group_id"] = selected_image_group
             # Find the job_id for this image group from the database

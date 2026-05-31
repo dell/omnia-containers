@@ -44,7 +44,7 @@
 #
 # Node-specific bind mounts (node_key and node_mount_point are paired):
 #   - node_key:         Per-node subdirectory isolation variable. Optional
-#                       Allowed values: 
+#                       Allowed values:
 #                           - "local_hostname" - hostname of the node
 #                           - "local_ipv4" - IPv4 address of the node
 #                           - "instance_id" - instance ID of the node from cloud-init
@@ -73,7 +73,7 @@
 #
 
 # Example: static mount with all explicit params (no profile)
-#         which will be mounted on functional groups 
+#         which will be mounted on functional groups
 #         slurm_control_node_x86_64, slurm_node_x86_64, slurm_login_x86_64
 # mounts:
 # Example: static mount using profile

@@ -37,7 +37,7 @@ Usage:
 import sys
 import time
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 import pytest
 
@@ -57,7 +57,6 @@ from automation_library.build_stream import (
     verify_s3_boot_images,
     list_pipelines,
     get_pipeline_status,
-    get_image_identifier,
     BUILD_IMAGE_STAGE_PREFIX,
     BUILD_PIPELINE_CORE_STAGES,
     STAGE_POLL_INTERVAL,

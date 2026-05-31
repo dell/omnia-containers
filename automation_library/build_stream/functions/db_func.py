@@ -19,9 +19,9 @@ Functions for querying build_stream_db in omnia_postgres container.
 All runtime values are read from config files via core module functions.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
-from automation_library.core import exec_psql_query, query_db_row
+from automation_library.core import exec_psql_query
 from automation_library.core import POSTGRES_CONTAINER, POSTGRES_DB
 
 from .shared_func import get_postgres_user

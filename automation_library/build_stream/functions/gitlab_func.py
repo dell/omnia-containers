@@ -22,7 +22,7 @@ All runtime values are read from config files via core module functions.
 import json
 import time
 import base64
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 from automation_library.core import run_on_oim
 
