@@ -1004,13 +1004,12 @@ One or more components did not reach ``completed`` or ``skipped`` status.
 
 2. Review the component status to identify the failed component.
 
-3. Rerun the upgrade with the specific failing tag:
+3. After fixing the issue, rerun the full upgrade. Already-completed components are skipped automatically:
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml --tags <component_tag>
-
-4. The playbook will skip already-completed components and only process the pending/failed ones.
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml
 
 Manifest shows "partial" status after rollback
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1033,13 +1032,12 @@ One or more components did not reach ``completed`` or ``skipped`` status.
 
 2. Review the component status to identify the failed component.
 
-3. Rerun the rollback with the specific failing tag:
+3. After fixing the issue, rerun the full rollback. Already-completed components are skipped automatically:
 
 .. code-block:: bash
 
-   ansible-playbook rollback/rollback.yml --tags <component_tag>
-
-4. The playbook will skip already-completed components and only process the pending/failed ones.
+   cd /omnia/rollback
+   ansible-playbook rollback.yml
 
 Manifest file is missing or corrupted
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1067,7 +1065,7 @@ The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml``
 .. caution::
    Removing the manifest means all component statuses are reset to ``pending``. Previously completed components will be re-executed.
 
-11.2 Component-Specific Issues
+11.3 Component-Specific Issues
 ----------------------------
 
 OIM upgrade fails
@@ -1096,7 +1094,8 @@ The ``oim`` component fails during upgrade.
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml
 
 Kubernetes upgrade fails
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1120,9 +1119,122 @@ The ``k8s`` component fails during upgrade.
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml
 
-11.3 General Troubleshooting Steps
+Build image fails for aarch64 — missing inventory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``build_image`` component fails with: *"aarch64 functional groups detected in pxe_mapping_file but no hosts found in 'admin_aarch64' inventory group"* or *"The inventory group 'admin_aarch64' does not exist or has no hosts."*
+
+**Cause**
+
+The PXE mapping file contains aarch64 functional groups, but the upgrade was run without an inventory file containing the ``[admin_aarch64]`` group.
+
+**Resolution**
+
+1. Create an inventory file with the ``[admin_aarch64]`` group containing exactly one ARM admin node: ::
+
+    [admin_aarch64]
+    <arm_admin_node_ip>
+
+2. Re-run the upgrade with the inventory file:
+
+.. code-block:: bash
+
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml -i <inventory_file>
+
+.. note::
+   The ``[admin_aarch64]`` group must have exactly one host. NFS must be configured on the OIM for aarch64 image building.
+
+Target core container image is missing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+``omnia.sh --upgrade`` or ``omnia.sh --rollback`` aborts reporting that the required ``omnia_core`` image is not available locally.
+
+**Cause**
+
+The container image for the target version has not been built on the OIM host.
+
+**Resolution**
+
+1. Confirm which image tags are available:
+
+.. code-block:: bash
+
+   podman images | grep omnia_core
+
+2. If the required image is missing, build it on the OIM host (see *Build the Omnia 2.2.0.0 Core Container Image* in the Upgrade guide):
+
+.. code-block:: bash
+
+   git clone -b omnia-container-v2.2.0.0 https://github.com/dell/omnia-artifactory.git
+   cd omnia-artifactory
+   ./build_images.sh core core_tag=2.2 omnia_branch=v2.2.0.0
+
+3. Re-run the ``omnia.sh`` command.
+
+Kubernetes rollback fails
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The ``k8s`` component fails during rollback.
+
+**Resolution**
+
+1. Verify the control plane is reachable:
+
+.. code-block:: bash
+
+   kubectl get nodes
+
+2. Confirm the backup directory referenced in ``rollback_manifest.yml`` exists and is accessible.
+3. After resolving, rerun the full rollback. Already-completed components are skipped automatically:
+
+.. code-block:: bash
+
+   cd /omnia/rollback
+   ansible-playbook rollback.yml
+
+Slurm or login nodes do not recover after rollback reboot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptoms**
+
+The rollback summary reports one or more Slurm/login nodes as unreachable, reboot-failed, or ``sinfo`` not responding.
+
+**Cause**
+
+A node did not boot back with the restored 2.1 configuration, or Slurm services did not start after reboot.
+
+**Resolution**
+
+1. Review the node status report printed at the end of the Slurm rollback.
+2. For unreachable nodes, verify power and network connectivity.
+3. For ``sinfo`` failures, check the Slurm service on the node and reconfigure:
+
+.. code-block:: bash
+
+   systemctl restart slurmd
+   scontrol reconfigure
+
+4. Re-run the full rollback. Nodes that already rebooted successfully are not rebooted again:
+
+.. code-block:: bash
+
+   cd /omnia/rollback
+   ansible-playbook rollback.yml
+
+.. note::
+   There is no standalone ``provision`` rollback. Cloud-Init and BSS boot configuration is restored within the Slurm and Kubernetes rollbacks. If a node's boot configuration appears incorrect after rollback, rerun the rollback for the corresponding component (``slurm`` or ``k8s``).
+
+11.4 General Troubleshooting Steps
 ------------------------------------
 
 Check playbook logs
@@ -1132,7 +1244,8 @@ Increase Ansible verbosity for detailed output:
 
 .. code-block:: bash
 
-   ansible-playbook upgrade/upgrade.yml -vvv
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml -vvv
 
 Review state files
 ~~~~~~~~~~~~~~~~~

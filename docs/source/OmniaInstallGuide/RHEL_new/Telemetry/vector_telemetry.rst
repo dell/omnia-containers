@@ -53,14 +53,14 @@ Steps
 
 4. For Vector-OME, ensure that OME is configured externally and producing to Kafka `ome.*` topics via the external mTLS listener (port 9094). Run the ``external_kafka_connect_details.yml`` playbook to configure OME connectivity.
 
-5. Run the ``telemetry.yml`` playbook to deploy Vector components::
+5. Run the ``provision.yml`` playbook to deploy Vector components::
 
     cd /opt/omnia/telemetry
-    ansible-playbook telemetry.yml
+    ansible-playbook provision.yml
 
 The playbook deploys the following components based on the configured feature flags:
 
-- **vmagent-vector:** Dedicated vmagent instance as a write-buffer (deployed when any Vector pipeline is enabled)
+- **vmagent-vector:** Dedicated vmagent instance as a write-buffer (deployed when ``vectro_ome_metrics_enabled`` or ``vector_ldms_metrics_enabled`` is set to ``true``)
 - **Vector-LDMS:** Kafka consumer for LDMS metrics (deployed when ``telemetry_bridges > vector_ldms > metrics_enabled = true``)
 - **Vector-OME:** Kafka consumer for OME telemetry (deployed when ``telemetry_bridges > vector_ome > metrics_enabled = true`` or ``telemetry_bridges > vector_ome > logs_enabled = true``)
 - **vlagent-vector:** VictoriaLogs forwarding agent for logs (deployed when ``telemetry_bridges > vector_ome > logs_enabled = true``)

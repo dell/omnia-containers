@@ -12,7 +12,8 @@ Prerequisites
 * External access to Kafka is available through the following LoadBalancer ports:
 
   * ``9094`` for ingesting and querying data.
-
+* Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
+* 
 Steps
 -----
 
@@ -79,7 +80,10 @@ Steps
 
 Verify OME Telemetry Data in Kafka
 ---------------------------------------
+
 To verify that OME telemetry data is being successfully published to the OME Kafka topics, do the following:
+
+.. note:: Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
 
 1. Log in to Service Kubernetes Control plane.
 

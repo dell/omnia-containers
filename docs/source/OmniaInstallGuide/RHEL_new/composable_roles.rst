@@ -21,6 +21,18 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
 
 Create Mapping File
 -----------------------
+
+Omnia supports two methods for discovering target nodes and creating PXE mapping files:
+
+* **Manual PXE file Mapping**: Manually collect PXE NIC information of the nodes to be provisioned and manually define them in the **pxe_mapping_file.csv** file to be used by Omnia. See :ref:`manual_pxe_mapping` for detailed instructions.
+* **OME-based BMC PXE file Generation** (Recommended): Use OpenManage Enterprise (OME) to discover the Omnia cluster nodes and generate the PXE mapping file using the ``discovery.yml`` playbook. See :ref:`ome_pxe_generation` for detailed instructions.
+
+
+.. _manual_pxe_mapping:
+
+Create PXE File Manually
+------------------------
+
 Manually collect PXE NIC information of the nodes to be provisioned and manually define them to Omnia using the **pxe_mapping_file.csv** file. Provide the file path to the ``pxe_mapping_file_path`` variable in ``/opt/omnia/input/project_default/provision_config.yml``.
 Each node listed in the mapping file must be assigned with the following values: 
 ``FUNCTIONAL_GROUP_NAME``, ``GROUP_NAME``, ``SERVICE_TAG``, ``PARENT_SERVICE_TAG``, ``HOSTNAME``, ``ADMIN_MAC``, 
@@ -79,6 +91,84 @@ The following is the sample format of a mapping file for x86_64 and aarch64 clus
     
     **Additional Packages Support**: Administrators can optionally include additional packages by creating ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``. For detailed instructions on configuring additional packages, see :ref:`adding_additional_packages`. When present, these packages are included in the Minimal OS images alongside the base and LDMS packages. If the file is absent or empty, images build successfully with the standard Minimal OS package set only.
 
+
+.. _ome_pxe_generation:
+
+Create PXE File Using OME
+-------------------------
+
+OME-based BMC discovery is the recommended method for discovering target nodes. This mechanism leverages OpenManage Enterprise to automatically discover servers through their BMC/iDRAC interfaces, reducing manual configuration effort.
+
+.. note::
+   In Dell Omnia deployments integrated with OpenManage Enterprise (OME), server identification and mapping during PXE boot rely on information retrieved from OME and iDRAC inventory. Depending on the DNS environment, the DnsName value may match the intended iDRAC hostname, or may return a reverse DNS name (e.g., pool‑<IP‑based>), which may not align with naming conventions required for cluster configuration. Due to differences between iDRAC configuration and OME‑reported hostnames, users must explicitly define GROUP_NAME and PARENT_SERVICE_TAG in the pxe_mapping_file to ensure accurate PXE provisioning and cluster setup in Omnia.
+
+**Prerequisites**
+
+Before proceeding with OME discovery, ensure the following:
+
+- OpenManage Enterprise is installed and accessible
+- All target servers have iDRAC configured with network connectivity
+- OME has discovered the devices (servers are visible in OME inventory)
+- You have administrative access to OME
+- Ensure that servers have the correct NIC order and configuration to match your intended IP assignment scheme. When Omnia performs OME-based discovery, it uses the following NIC selection logic:
+  
+  - **Admin IP**: The first discoverable NIC (typically the first Ethernet interface) will be used to generate the admin IP address in the PXE mapping file
+  - **InfiniBand IP**: The first discoverable InfiniBand NIC will be used to generate the InfiniBand IP address in the PXE mapping file
+  
+  You must verify NIC ordering in the server BIOS or iDRAC settings before discovery.
+
+Procedure
+----------
+
+1. In OpenManage Enterprise, discover the cluster nodes that you want to provision with Omnia. For more information on discovering devices in OME, see the `OpenManage Enterprise User Guide <https://dl.dell.com/content/manual4/en/openmanage-enterprise-user-guide-en>`_.
+
+2. After discovering the nodes, create static groups for each Omnia functional group type supported in Omnia. For more information on groups and functional group support in Omnia, see :ref:`group-attributes-section` and :ref:`functional-groups`.
+
+   - ``slurm_control_node_x86_64``
+   - ``slurm_node_x86_64``
+   - ``login_compiler_node_x86_64``
+   - ``service_kube_control_plane_x86_64``
+   - ``service_kube_node_x86_64``
+   - ``slurm_node_aarch64``
+   - ``login_node_aarch64``
+   - ``login_compiler_node_aarch64``
+   - ``os_aarch64``
+
+   To create static groups in OME:
+   
+   a. In the left navigation menu, navigate to **CUSTOM GROUPS** > **Static Groups**
+   b. Click the ellipsis (...) next to **Static Groups** and select **Create Group**
+   c. Provide the group name exactly matching the functional group name
+   d. Add a description for the group.
+   e. Click **Finish**
+   
+   Repeat this process for each functional group type you plan to use in your Omnia deployment. For 
+
+3. After creating the static groups for each functional group type, add the discovered nodes to the corresponding static groups. To add the devices to the static groups:
+
+   a. Select the static functional group from the list.
+   b. Click **Add Devices**.
+   c. In the **Add Devices to Group <static group name>** dialog box, select the servers that belong to a specific functional group.
+   d. Click **Finish**
+   
+   Repeat this process for all functional groups, ensuring each server is assigned to the correct static group based on its intended role in the Omnia cluster.
+
+4. After creating the static groups in OME, configure the ``discovery_config.yml`` file with OME connection details and discovery parameters. The following table lists the parameters for ``discovery_config.yml``:
+
+.. csv-table:: discovery_config.yml
+   :file: ../../Tables/discovery_config.csv
+   :header-rows: 1
+   :keepspace:
+
+5. Execute the ``discovery.yml`` playbook with the ``discovery_mechanism=ome`` parameter to generate the PXE mapping file automatically::
+
+    ssh omnia_core
+    cd /omnia/discovery
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+
+The playbook will automatically populate the **pxe_mapping_file.csv** in the ``/opt/omnia/input/project_default/`` directory with the discovered nodes from OME. The user can verify and edit the mapping file if necessary.
+
+
 .. _group-attributes-section:
 
 Groups
@@ -92,7 +182,7 @@ Nodes that are located in the same place or similar hardware can be grouped toge
    :header-rows: 1
    :keepspace:
 
-.. _functional-groups-section:
+.. _functional-groups:
 
 Functional Groups
 ------------------------
@@ -148,6 +238,9 @@ The following table lists the functional groups along with the recommended softw
 
 .. note::
     The ``os_x86_64`` and ``os_aarch64`` functional groups support optional additional packages via ``additional_packages.json`` files. Create these files in ``input/config/{arch}/rhel/10.0/`` to include custom packages like ``podman``, diagnostic tools, or monitoring agents. If no additional packages are needed, the images build successfully with the standard package.
+
+
+
 
    
 

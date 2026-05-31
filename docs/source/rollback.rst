@@ -1,7 +1,7 @@
 Rollback Omnia
 ====================
 
-Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade and supports tag-based selective rollback with manifest tracking for idempotent reruns.
+Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade, with manifest tracking for idempotent reruns.
 
 .. important::
     * Rollback must be initiated from within the ``omnia_core`` container.
@@ -30,26 +30,27 @@ Rollback processes components in **reverse order** of the upgrade:
     :widths: 10 30 60
 
     * - Order
-      - Component Tag
+      - Component
       - Description
     * - 1
       - ``slurm``
       - Rollback Slurm cluster (rolled back first)
     * - 2
-      - ``telemetry``
-      - Rollback Telemetry components
-    * - 3
       - ``k8s``
-      - Rollback Kubernetes cluster
+      - Rollback Kubernetes cluster (restores telemetry pods)
+    * - 3
+      - ``telemetry``
+      - Validate telemetry stack (pods restored by K8s rollback)
     * - 4
-      - ``provision``
-      - Rollback Cloud-Init and BSS configuration
-    * - 5
       - ``build_stream``
-      - Rollback BuildStream upgrade / enablement
-    * - 6
+      - Rollback BuildStreaM upgrade / enablement
+    * - 5
       - ``oim``
       - Rollback OIM (includes OpenCHAMI) — rolled back last
+
+.. note::
+    - There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
+    - The Kubernetes rollback restores all telemetry pods (VictoriaMetrics, Kafka, etc.) as part of the K8s cluster restoration. The ``telemetry`` rollback component validates that the telemetry stack is healthy after the K8s rollback completes.
 
 Rollback Workflow
 ------------------
@@ -63,13 +64,13 @@ Running the Rollback
 
 2. Run the rollback playbook: ::
 
-    cd /omnia
-    ansible-playbook rollback/rollback.yml
+    cd /omnia/rollback
+    ansible-playbook rollback.yml
 
-Pre-flight Guards
+Validation Checks
 ~~~~~~~~~~~~~~~~~~
 
-The rollback orchestrator performs the following read-only checks before any state mutation:
+The rollback orchestrator performs the following validation checks before making any changes:
 
 1. **Upgrade lock check** — If ``/opt/omnia/.data/upgrade_in_progress.lock`` exists, the rollback aborts. An upgrade must complete (or the lock must be manually removed) before rollback can proceed.
 
@@ -100,21 +101,82 @@ Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 
 On rerun, already-completed components are automatically skipped.
 
-BuildStream Terminal Gate (Rollback)
+BuildStreaM Terminal Gate (Rollback)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If BuildStream was enabled during the upgrade and the upgrade manifest shows that downstream components (``slurm``, ``telemetry``, ``k8s``, ``provision``) were ``skipped`` during upgrade (due to the terminal gate), the same components are **automatically skipped during rollback** — they were never upgraded, so there is nothing to roll back.
+If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``telemetry``, ``k8s``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
-Each rollback sub-flow immediately writes ``component_status: skipped`` to ``rollback_manifest.yml`` before invoking ``end_play``. Only ``build_stream`` and ``oim`` are actually rolled back in this scenario.
-
-The finalization play treats ``skipped`` as a valid terminal state alongside ``completed`` when determining ``rollback_status``.
+Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
 
 Force Rollback
 ~~~~~~~~~~~~~~~
 
 To force a rollback after a successful upgrade: ::
 
-    ansible-playbook rollback/rollback.yml -e force_rollback=true
+    cd /omnia/rollback
+    ansible-playbook rollback.yml -e force_rollback=true
+
+BuildStreaM Rollback
+---------------------
+
+The BuildStreaM rollback path is automatically determined from metadata stored during the upgrade:
+
+**Restore Path** (BuildStreaM was enabled in 2.1)
+
+1. Validates backup files (quadlets, database dump) exist in the backup directory.
+2. Runs Alembic database migration downgrade (from 2.2 schema back to 2.1 schema) while the 2.2 container is still running.
+3. Stops BuildStreaM and PostgreSQL services.
+4. Restores 2.1 quadlets, configuration files, and source directories from backup.
+5. Restarts services in dependency order (PostgreSQL first, then BuildStreaM).
+6. Reverts the GitLab upgrade commit via API and restores GitLab configuration (``gitlab.rb``, ``gitlab-secrets.json``) from backup.
+7. Validates BuildStreaM API health, PostgreSQL connectivity, and GitLab readiness.
+
+**Uninstall Path** (BuildStreaM was newly enabled during upgrade)
+
+1. Stops and removes BuildStreaM and PostgreSQL containers and quadlets.
+2. Removes all BuildStreaM NFS directories, watcher service, and automation framework.
+3. Uninstalls GitLab packages and removes configuration directories from the GitLab host.
+4. Sets ``enable_build_stream: false`` in ``build_stream_config.yml``.
+5. Validates that containers, quadlets, and GitLab packages are fully removed.
+
+.. note::
+    If BuildStreaM was never upgraded (upgrade metadata file does not exist), the component is automatically marked as ``skipped``.
+
+Kubernetes Rollback
+--------------------
+
+The Kubernetes rollback restores the K8s cluster to its pre-upgrade state. It also restores all telemetry pods (VictoriaMetrics, Kafka, etc.) as part of the cluster restoration.
+
+1. Reads ``software_config.json`` from the backup directory to verify K8s was configured in 2.1.
+2. Restores cloud-init and BSS configurations for each K8s functional group from backup.
+3. Reboots K8s nodes to apply restored configurations.
+4. Validates node readiness (``kubectl get nodes``) and pod health after reboot.
+5. Restores telemetry pods as part of the K8s cluster state — the ``telemetry`` component validates their health after this step.
+
+.. warning::
+   K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
+
+Slurm Rollback
+--------------
+
+The Slurm rollback restores cloud-init and BSS configurations from the 2.1 backup and reboots all Slurm and login nodes.
+
+.. warning::
+   - All Slurm and login nodes reboot simultaneously. Ensure no critical jobs are running.
+   - Omnia 2.1 NFS mount points are preserved. New NFS mounts (e.g., VAST) added during upgrade are not retained.
+
+1. Reads ``software_config.json`` and PXE mapping file from the backup directory to identify Slurm and login nodes.
+2. Restores cloud-init and BSS configurations for each Slurm functional group from backup.
+3. Reboots all Slurm and login nodes simultaneously with a 600-second timeout per node.
+4. Waits for SSH connectivity to restore on each node (up to 60 seconds).
+5. Validates Slurm services using ``sinfo`` with retries on each node.
+6. Generates a node status report with the following categories:
+
+   * **Successful** — Reboot complete, SSH active, ``sinfo`` responding
+   * **Unreachable** — Node was not reachable before reboot
+   * **Reboot Failed** — Reboot command failed
+   * **SSH Failure** — Node did not reconnect after reboot
+   * **Sinfo Failure** — Slurm services did not respond after reboot
 
 Post-Rollback
 ~~~~~~~~~~~~~~
@@ -125,36 +187,19 @@ After rollback completes:
 
 2. The rollback summary displays the final component statuses.
 
-3. Complete the core container rollback by running on the OIM host: ::
+3. Complete the core container rollback by running on the OIM host (outside the container): ::
 
     sudo ./omnia.sh --rollback
 
-The ``omnia.sh --rollback`` command performs the following:
+   The ``omnia.sh --rollback`` command performs the following:
 
-* Validates root privileges
-* Reads ``oim_metadata.yml`` to get ``upgrade_backup_dir`` and ``omnia_previous_version``
-* Aborts if ``omnia_version`` equals ``omnia_previous_version`` (already rolled back)
-* Derives rollback target from ``omnia_previous_version``
-* Validates target image (``omnia_core:<old_tag>``) exists locally
-* Validates backup directory exists and contains required files
-* Validates backup metadata version matches expected
-* Requests user confirmation
-* Same-tag rollback → restart only
-* Different-tag rollback:
-    * Stops current container (30s graceful)
-    * Updates quadlet ``Image=`` to old tag
-    * Runs ``systemctl daemon-reload``
-    * Starts old container
-    * Waits for healthy (60s)
-* Validates backup directory structure
-* Restores files from backup
-* Restores ``omnia_version`` in ``oim_metadata.yml`` from backup
-* Finalizes ``rollback_manifest.yml`` (``rollback_status: completed``)
-* Verifies restored version matches expected
-* Logs rollback completion
-
-.. note::
-    ``omnia.sh --rollback`` does not touch ``upgrade_manifest.yml`` — archival is handled by ``rollback.yml`` finalize to prevent duplicate archival operations.
+   * Reads ``oim_metadata.yml`` to determine the previous version and backup directory
+   * Validates the target container image (``omnia_core:<previous_tag>``) is available locally
+   * Validates the backup directory exists and contains required files
+   * Requests user confirmation before proceeding
+   * Stops the current ``omnia_core`` container and swaps it to the previous version image
+   * Restores input files, configuration, and metadata from the backup directory
+   * Finalizes the ``rollback_manifest.yml`` with ``rollback_status: completed``
 
 Post-Rollback Verification
 ----------------------------

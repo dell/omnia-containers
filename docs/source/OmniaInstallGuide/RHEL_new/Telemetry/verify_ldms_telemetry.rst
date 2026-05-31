@@ -64,6 +64,10 @@ To verify that LDMS telemetry data is being successfully consumed from Kafka by 
 
     {__name__=~"ldms_.*"}
 
+
+.. image:: ../../../images/victoria_metrics_ldms_ui_login.png
+   
+
 Verify Kafka TLS Connectivity
 -----------------------------
 

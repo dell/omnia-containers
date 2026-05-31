@@ -6,7 +6,7 @@ Configuring Mounts
 The storage configuration in Omnia allows you to configure various storage mounts, PowerVault iSCSI volumes, and swap space for cluster nodes. This configuration is defined in the ``/opt/omnia/input/project_default/storage_config.yml`` file.
 
 .. csv-table:: storage_config.yml parameters
-   :file: ../Tables/storage_config.csv
+   :file: ../Tables/config_mounts.csv
    :header-rows: 1
    :keepspace:
 
@@ -28,35 +28,70 @@ The ``storage_config.yml`` file contains the following main sections:
 
 mounts
 ------
-
-The ``mounts`` section defines cloud-init compatible mount configurations. Each mount entry specifies a source device or network path, mount point, and optional filesystem parameters.
-
-.. note::
-     Cloud-init mounts require the source to be available at boot time.
-     Runtime-discovered devices (iSCSI, multipath) must be configured using powervault_config.
-     When node_key is set, bind mount behavior is automatically enforced.
-     functional_group_prefix and groups are mutually exclusive.
-
+ 
+The ``mounts`` section, each mount entry specifies a source device or network path, mount point, and optional filesystem parameters.
+ 
 The following parameters are supported for each mount:
-
-* **name** (required) - Unique identifier for this mount entry
-* **source** (required) - Device name or network path (e.g., 192.168.1.100:/export/share, /dev/sdc, UUID=xxx)
-* **mount_point** (required) - Mount point path
+ 
+**Mandatory Fields:**
+ 
+* **name** - Unique identifier for this mount entry
+  * Pattern: [a-zA-Z0-9_-], length 1-64
+* **source** - Device name or network path
+  * Examples: 192.168.1.100:/export/share, /dev/sdc, UUID=xxx
+* **mount_point** - Absolute path for the mount point
+  * Pattern: /path/to/dir
+ 
+**Optional Fields:**
+ 
 * **fs_type** - Filesystem type (overrides mount_params profile when specified)
-* **mnt_opts** - Mount options (overrides mount_params profile when specified)
-* **dump_freq** - Dump frequency (overrides mount_params profile when specified)
-* **fsck_pass** - Fsck pass number (overrides mount_params profile when specified)
+  * Default: "auto"
+  * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
+* **mnt_opts** - Mount options string (e.g., "defaults,noexec,nofail")
+  * If specified, takes PRIORITY over mount_params profile
+* **dump_freq** - Dump frequency
+  * Default: "0"
+  * Choices: "0", "1", "2"
+* **fsck_pass** - Fsck pass number
+  * Default: "0"
+  * Choices: "0" through "9"
 * **mount_params** - Name of the mount_params profile to use for unspecified fields
-* **mount_on_oim** - Whether to mount this filesystem on the OIM node (default: false)
-* **node_key** - cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., local_hostname, ds.meta_data.instance_data.local_ipv4, instance_id). The variable chosen must be unique per host to ensure isolation between nodes. 
-* **node_mount_point** - List of bind mount target paths (required when node_key is set)
-* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this mount to (mutually exclusive with groups)
-* **groups** - List of GROUP_NAME values from pxe_mapping_file.csv (mutually exclusive with functional_group_prefix)
-* **permissions** - Directory ownership and mode applied to mount_point after mount
-  * **owner** - User owner of the mount point (default: root)
-  * **group** - Group owner of the mount point (default: root)
-  * **mode** - Octal permission mode (e.g., 0755, 1777, default: 0755)
-
+* **mount_on_oim** - Whether to mount this filesystem on the OIM node
+  * Default: false
+  * Ensure storage is network-accessible from OIM before enabling
+ 
+**Node-Specific Bind Mounts (paired parameters):**
+ 
+* **node_key** - Per-node subdirectory isolation variable
+  * Choices: "local_hostname", "local_ipv4", "instance_id"
+  * Default: "local_hostname"
+  * When set, node_mount_point is MANDATORY
+  * Generates bind mounts: <mount_point>/<node_key_value>/<target> -> <target>
+* **node_mount_point** - List of bind mount target paths
+  * Mandatory when node_key is set
+  * Minimum 1 entry, values must be unique absolute paths
+ 
+**Node Targeting (exactly ONE is required - mutually exclusive):**
+ 
+* **functional_group_prefix** - List of oChaMI functional group name prefixes
+  * All nodes whose group name starts with any listed prefix receive this mount
+  * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
+  * MUTUALLY EXCLUSIVE with groups
+* **groups** - List of GROUP_NAME values from pxe_mapping_file.csv
+  * Only nodes assigned to the listed PXE groups receive this mount
+  * Example: ["grp1", "grp2"] targets only nodes in those groups
+  * MUTUALLY EXCLUSIVE with functional_group_prefix
+ 
+**Permissions (optional sub-object):**
+ 
+* **permissions.owner** - User owner of the mount point
+  * Default: "root"
+* **permissions.group** - Group owner of the mount point
+  * Default: "root"
+* **permissions.mode** - Octal permission string (3-4 digits)
+  * Default: "0755"
+  * Examples: "0755", "1777"
+ 
 .. note::
 When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
 
@@ -86,18 +121,8 @@ Example mounts configuration::
         source: "172.16.0.201:/home"
         mount_point: "/home"
         mount_params: "vast_nfs"
+        mount_on_oim: true
         functional_group_prefix: ["slurm"]
-
-      # Per-node bind mount from shared scratch
-      - name: "scratch_isolation"
-        source: "172.16.0.201:/mnt/scratch"
-        mount_point: "/mounted/scratch"
-		fs_type: nfs
-        node_key: "local_hostname"
-        node_mount_point:
-          - "/scratch"
-          - "/tmp"
-        groups: ["grp1"]
 
 mount_params
 ------------

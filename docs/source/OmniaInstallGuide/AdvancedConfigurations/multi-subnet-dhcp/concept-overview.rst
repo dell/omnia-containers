@@ -18,7 +18,7 @@ Why Use Multi-Subnet DHCP
 Multi-Subnet DHCP addresses key challenges in large-scale HPC and AI/ML deployments:
 
 **Rack Identification**
-Admin IP addresses directly indicate rack location. For example, IP ``10.40.3.150`` immediately identifies the server as being in Rack 2 (subnet ``10.40.3.0/24``). This simplifies troubleshooting, maintenance, and physical asset management.
+Admin IP addresses directly indicate rack location. For example, IP ``10.40.3.150`` immediately identifies the server as being in Rack 3 (subnet ``10.40.3.0/24``). This simplifies troubleshooting, maintenance, and physical asset management.
 
 **Failure Isolation**
 Network issues are contained to individual racks. If Rack 2 experiences a network problem, Racks 1 and 3 remain unaffected. This improves cluster reliability and reduces the blast radius of failures.
@@ -41,10 +41,10 @@ Dual-Network Architecture
 Omnia uses a dual-network model for multi-subnet deployments:
 
 **Admin (PXE) Network**
-- Managed by Omnia's CoreDHCP service
+- Managed by Omnia's CoreSMD service
 - Used for PXE boot, OS provisioning, and host communication
 - Configured with per-rack /24 subnets
-- Each subnet has its own DHCP pool managed by CoreDHCP
+- Each subnet has its own DHCP pool managed by CoreSMD
 
 **OOB/BMC Network**
 - Preconfigured externally by the site network team
@@ -69,29 +69,10 @@ The DHCP relay architecture enables CoreDHCP to serve multiple subnets from a si
 
 5. **Response Routing**: The DHCP response is sent back to the relay agent, which delivers it to the requesting node
 
+.. note::
+   In this example, ``10.40.0.0`` is the subnet for the Admin/PXE network. The subnet ``10.40.3.0`` represents the Rack Subnet, where ``10.40.3.1-254`` are the server IP addresses present in the 3rd Rack. The 3rd octet specifies the rack number, while the 4th octet identifies the actual node.
+
 This architecture allows a single CoreDHCP instance to manage IP assignment across dozens or hundreds of subnets without requiring multiple DHCP servers.
-
-CoreDHCP and coresmd Integration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Omnia uses CoreDHCP with the coresmd plugin for multi-subnet support:
-
-**CoreDHCP**
-- Plugin-based DHCP server
-- Manages IP address allocation across multiple subnets
-- Uses ``subnet=`` directives to register subnets for giaddr-based routing
-- Uses ``subnet_pool=`` directives to define per-subnet IP allocation pools
-
-**coresmd Plugin**
-- Integrates with OpenCHAMI SMD for hostname assignment and IP management
-- Filters SMD IP results by subnet membership based on giaddr
-- Provides deterministic IP assignment for known MAC addresses
-- Returns subnet-specific router and netmask in DHCP responses
-
-**bootloop Plugin**
-- Provides temporary IP allocation from DHCP pools during node discovery
-- Assigns short leases to unknown MAC addresses (bootloop behavior)
-- Uses per-subnet pools to ensure temporary IPs come from the correct subnet
 
 Configuration Model
 ~~~~~~~~~~~~~~~~~~~
@@ -129,28 +110,38 @@ Multi-subnet DHCP configuration is specified in the ``input/network_spec.yml`` f
            netmask_bits: "24"
            router: "10.40.3.1"
            dynamic_range: "10.40.3.100-10.40.3.200"
-
-Supported Deployment Topologies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Multi-Subnet DHCP supports several network topology patterns:
-
-**Routed + DHCP Relay**
-- Each rack is on a routed L3 management network
-- ToR switches configured with DHCP relay helper-address
-- Most common for large-scale deployments
-- Requires proper routing between OIM and all rack subnets
-
-**Multi-NIC**
-- OIM has multiple NICs connected to different subnets
-- Direct Layer-2 connectivity to each subnet
-- No DHCP relay required
-- Used when physical network design allows direct connectivity
-
-**Hybrid**
-- Combination of routed and direct connections
-- Some racks use DHCP relay, others use direct connectivity
-- Provides flexibility for complex network environments
+         - subnet: "10.40.5.0"
+           netmask_bits: "24"
+           router: "10.40.5.1"
+           dynamic_range: "10.40.5.100-10.40.5.200"
+         - subnet: "10.40.7.0"
+           netmask_bits: "24"
+           router: "10.40.7.1"
+           dynamic_range: "10.40.7.100-10.40.7.200"
+         - subnet: "10.40.9.0"
+           netmask_bits: "24"
+           router: "10.40.9.1"
+           dynamic_range: "10.40.9.100-10.40.9.200"
+         - subnet: "10.40.11.0"
+           netmask_bits: "24"
+           router: "10.40.11.1"
+           dynamic_range: "10.40.11.100-10.40.11.200"
+         - subnet: "10.40.13.0"
+           netmask_bits: "24"
+           router: "10.40.13.1"
+           dynamic_range: "10.40.13.100-10.40.13.200"
+         - subnet: "10.40.15.0"
+           netmask_bits: "24"
+           router: "10.40.15.1"
+           dynamic_range: "10.40.15.100-10.40.15.200"
+         - subnet: "10.40.17.0"
+           netmask_bits: "24"
+           router: "10.40.17.1"
+           dynamic_range: "10.40.17.100-10.40.17.200"
+         - subnet: "10.40.19.0"
+           netmask_bits: "24"
+           router: "10.40.19.1"
+           dynamic_range: "10.40.19.100-10.40.19.200"
 
 Use Cases
 ---------
@@ -175,27 +166,22 @@ Organizations with security or operational policies that require network segment
 Prerequisites
 ------------
 
-To implement Multi-Subnet DHCP, the following must be in place:
+Before configuring multi-subnet DHCP:
 
-**Network Infrastructure**
-- DHCP relay agents configured on each subnet's gateway/router
-- Proper routing between OIM and all rack subnets
-- ToR switches configured with appropriate VLANs and SVIs
-- Each rack subnet has a unique, non-overlapping CIDR
+- OS is provisioned on the OIM server and IP address is configured
+- Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM Server's Admin/PXE Network IP
+- Access to edit ``input/network_spec.yml`` on the OIM node
+- Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
+- DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
 
-**Omnia Components**
-- Omnia cluster deployed and operational
-- CoreDHCP and coresmd services deployed (coresmd v0.5+ required for multi-subnet support)
-- OpenCHAMI services (SMD, BSS, cloud-init) deployed and configured
-- SMD contains authoritative MAC/interface data per node
+Verification
+------------
 
-**Configuration**
-- ``input/network_spec.yml`` file accessible for editing
-- Network topology documented (rack IDs, subnet allocations, gateway IPs)
-- DHCP pool ranges planned and validated to avoid conflicts
+After configuring multi-subnet DHCP, verify the following:
 
-.. note::
-   Multi-Subnet DHCP requires DHCP relay agents on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreDHCP server.
+- Verify that CoreSMD has registered the additional subnets. Expected output should show ``subnet=`` directives for each additional subnet::
+
+    podman logs coredhcp | grep "subnet="
 
 Limitations
 -----------
@@ -207,14 +193,3 @@ Multi-Subnet DHCP has the following limitations:
 - **BMC Subnet Management**: BMC IPs are managed separately through the OOB/BMC network and are not part of the multi-subnet DHCP configuration.
 - **Dynamic Subnet Discovery**: Subnets must be explicitly configured in ``network_spec.yml``. Automatic subnet discovery is not supported.
 - **Per-Subnet Hostname Patterns**: While coresmd supports per-subnet hostname patterns via ``rule=subnet:`` directives, Omnia templates do not currently wire this functionality. All racks share the same hostname pattern.
-
-Next Steps
-----------
-
-For configuration instructions, see :doc:`how-to-configuration`.
-
-For network architecture design guidance, see :doc:`concept-network-architecture`.
-
-For troubleshooting assistance, see :doc:`../../troubleshootingguide/multi-subnet-dhcp`.
-
-For parameter reference, see :doc:`../../Tables/network_spec`.

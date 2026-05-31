@@ -67,16 +67,32 @@ The UFM Prometheus exporter must be enabled and accessible from the service clus
 
 **For UFM log collection, configure the following settings on the UFM appliance:**
 
-* **Enable syslog forwarding**: Configure UFM to send syslog messages to the VLAgent LoadBalancer IP. Modify the ``[Logging]`` section in ``/opt/ufm/conf/gv.cfg``::
+* **Enable syslog forwarding using the UFM Web UI:**
 
-    [Logging]
-    syslog = true
-    syslog_addr = <external vlagent loadbalancer IP>:514
-    ufm_syslog = true
-    event_syslog = true
-    syslog_level = WARNING
+    Configure using the UFM Web UI to send syslog messages to the VLAgent LoadBalancer IP:
 
-  For detailed information on UFM syslog configuration parameters, see `NVIDIA UFM Enterprise User Manual - Configuring Syslog <https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations#src-4813172567_OptionalConfigurations-ConfiguringSyslog>`_.
+    1. From the left navigation menu, select **Settings → Data Streaming**
+    2. Select **System log** and complete the fields:
+
+       * **Destination**: Enter the VLAgent LoadBalancer IP address
+       * **Syslog Port**: Enter 514 (default)
+       * **System logs Level**: Select syslog level from the dropdown based on your requirements
+       * **Streaming Data**: Select UFM logs
+
+    3. Click **Save**
+
+* **Enable syslog forwarding using the UFM CLI:**
+
+    Configure using the UFM CLI to send syslog messages to the VLAgent LoadBalancer IP. Modify the ``[Logging]`` section in ``/opt/ufm/conf/gv.cfg``::
+
+      [Logging]
+      syslog = true
+      syslog_addr = <external vlagent loadbalancer IP>:514
+      ufm_syslog = true
+      event_syslog = true
+      syslog_level = WARNING
+
+    For detailed information on UFM syslog configuration parameters, see `NVIDIA UFM Enterprise User Manual - Configuring Syslog <https://docs.nvidia.com/networking/display/ufmenterpriseumv6242/optional-configurations#src-4813172567_OptionalConfigurations-ConfiguringSyslog>`_.
 
 * **Set VLAgent LoadBalancer IP**: Configure the VLAgent LoadBalancer IP address for syslog delivery. Retrieve the VLAgent external IP from the service Kubernetes cluster::
 
@@ -122,7 +138,7 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
 5. Access the VMUI in a web browser using::
 
-   ``https://<external vmselect loadbalancer IP>:8481/select/0/vmui``
+   ``https://<external vmselect loadbalancer IP>:8481/select/vmui``
 
 .. image:: ../../../../images/verify_umf_telemetry_5.png
 

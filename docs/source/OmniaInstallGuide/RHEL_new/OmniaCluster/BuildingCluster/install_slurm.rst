@@ -4,7 +4,7 @@ Step 11: Set up Slurm on nodes
 **Prerequisites**
 
 * Provide the repository with slurm v25.X rpms.
-.. note:: If any Slurm nodes (Slurm controller, compute nodes, login nodes, or login/compile nodes) have an InfiniBand interface and ``ib_network`` details are defined in network_spec.yml (`Update the Input Parameters for Discovering the Nodes <../../Provision/provisionparams.html>`_), the Slurm user repository must be built (See `Repository prerequisites <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc1/RHEL_prereq.html#repository>`_) without UCX and openmpi support.
+.. note:: If any Slurm nodes (Slurm controller, compute nodes, login nodes, or login/compile nodes) have an InfiniBand interface and ``ib_network`` details are defined in network_spec.yml (`Update the Input Parameters for Discovery/Provision the Nodes <../../Provision/provisionparams.html>`_), the Slurm user repository must be built (See `Repository prerequisites <https://omnia-devel.readthedocs.io/en/omnia-docs-v2.1.0.0-rc1/RHEL_prereq.html#repository>`_) without UCX and openmpi support.
         Specifically: 
 
         * The Slurm user repository **must NOT include** the following packages: ucx, ucx-devel, openmpi, openmpi-devel.

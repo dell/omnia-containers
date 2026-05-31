@@ -10,7 +10,7 @@ Omnia Deployment Guide
 * `Sample Files <samplefiles.html>`_
 
 
-.. image:: ../images/Omnia_Flow_v2.1.0.0.jpg
+.. image:: ../images/Omnia_Flow_v2.2.0.0.jpg
     :width: 800pt
 
 

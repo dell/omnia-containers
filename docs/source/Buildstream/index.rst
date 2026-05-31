@@ -11,6 +11,10 @@ BuildStreaM supports three pipeline types that can be executed through GitLab:
 * **Deploy Pipeline**: Deploys built images to target cluster nodes. This pipeline is automatically triggered when the PXE mapping file is updated, but can also be executed manually.
 * **Clean Pipeline**: Removes old Image Groups based on retention policy. This pipeline can be executed only manually.
 
+.. note:: Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+
+.. note:: BuildStreaM does not support execution of multiple pipelines in parallel or concurrently. Only one pipeline can be executed at a time. Attempting to run multiple pipelines simultaneously may result in unexpected behavior or failures.
+
 BuildStreaM addresses the key challenges in HPC cluster image management:
 
 * **Automation**: Eliminates manual build and deployment processes

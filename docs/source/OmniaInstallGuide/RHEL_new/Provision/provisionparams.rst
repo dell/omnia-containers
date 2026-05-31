@@ -1,5 +1,7 @@
-Update the Input Parameters for Discovering the Nodes
-========================================================
+.. _provision-params:
+
+Update the Input Parameters for Discovery/Provision the Nodes
+============================================================
 
 Specify the required parameters in the following input files:
 
@@ -83,6 +85,8 @@ The following table lists the parameters that must be configured in ``omnia_conf
    :header-rows: 1
    :keepspace:
 
+
+.. _discovery-config-table:
 
 .. csv-table:: discovery_config.yml
    :file: ../../../Tables/discovery_config.csv
