@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,19 +12,23 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 ---
+
 # ***********************************************************************
 # DO NOT REMOVE OR COMMENT OUT ANY LINES IN THIS FILE.
 # SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
 # ***********************************************************************
 
-# ***********************************************************************
-# High Availability (HA) Configuration for Kubernetes (K8s) Service Node(List)
-# - cluster_name is required field it should match one of the values defined in omnia_config.yml where deployment is set to true.
-# - enable_k8s_ha: <Mandatory> Indicates whether to enable HA for the Kubernetes (K8s) service node. Set to 'true' to enable, 'false' to disable.
-# - virtual_ip_address: <Mandatory> The virtual IP address for the K8s service node setup.
-# ***********************************************************************
+#### BMC Discovery
+# Set to true to enable BMC discovery via OME.
+# When false, OME credentials will not be prompted during prepare_oim.
+enable_bmc_discovery: false
 
-service_k8s_cluster_ha:
-  - cluster_name: service_cluster
-    enable_k8s_ha: true
-    virtual_ip_address: "172.16.107.1"
+# IP address of the Dell OpenManage Enterprise (OME) instance used for
+# server discovery and inventory collection.
+# Credentials (ome_username, ome_password) are managed separately via
+# get_config_credentials.
+# Example: "192.168.1.100"
+ome_ip: ""
+
+#### Magellan Discovery
+# Reserved for future Magellan discovery configuration parameters.
