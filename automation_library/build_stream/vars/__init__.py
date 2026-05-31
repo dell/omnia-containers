@@ -62,6 +62,7 @@ from .build_stream_vars import (
     GITLAB_API_VERSION,
     GITLAB_ROOT_TOKEN_FILE,
     CATALOG_FILE_PATH,
+    CATALOG_LOCAL_FILENAME,
     PXE_MAPPING_FILE_PATH,
     # GitLab CI/CD variable keys
     BSM_CLIENT_ID_KEY,

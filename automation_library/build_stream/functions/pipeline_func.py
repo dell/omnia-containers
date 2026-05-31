@@ -49,6 +49,7 @@ from ..vars.build_stream_vars import (
     STAGE_STATE_FAILED,
     STAGE_STATE_RUNNING,
     STAGE_STATE_PENDING,
+    CATALOG_LOCAL_FILENAME,
 )
 from ..messages.build_stream_msgs import (
     PIPELINE_MSGS,
@@ -74,7 +75,7 @@ def get_catalog_content() -> str:
         os.path.dirname(os.path.dirname(__file__)),
         "catalogs"
     )
-    catalog_file = os.path.join(catalog_dir, "slurm_only_x86_64_catalog.json")
+    catalog_file = os.path.join(catalog_dir, CATALOG_LOCAL_FILENAME)
 
     if not os.path.exists(catalog_file):
         return ""
