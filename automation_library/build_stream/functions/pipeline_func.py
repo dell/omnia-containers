@@ -538,6 +538,32 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
     else:
         _log(f"Job already in status: {job_status}")
 
+    # Wait for the selection job to complete before returning
+    # This ensures the downstream pipeline (deploy/restart/validate) is created
+    _log("Waiting for selection job to complete...")
+    select_wait = 120  # 2 minutes
+    select_poll = 5
+    select_start = time.time()
+    while time.time() - select_start < select_wait:
+        jobs_check = get_pipeline_jobs_by_stage(host, target_pipeline_id, stage="select_image")
+        if jobs_check["success"]:
+            for j in jobs_check["jobs"]:
+                if j.get("id") == gitlab_job_id:
+                    status = j.get("status", "")
+                    if status in ("success", "failed", "canceled"):
+                        _log(f"Selection job finished: {status}")
+                        if status != "success":
+                            result["error"] = f"Selection job {status}"
+                            return result
+                        break
+            else:
+                time.sleep(select_poll)
+                continue
+            break  # Job completed successfully
+        elapsed = int(time.time() - select_start)
+        _log(f"[{elapsed}s] Selection job still running...")
+        time.sleep(select_poll)
+
     result["gitlab_job_id"] = gitlab_job_id
     result["success"] = True
     return result
@@ -576,55 +602,45 @@ def play_trigger_job(host, pipeline_id: int, stage_name: str = "trigger_deploy",
 
     _log(f"Looking for '{stage_name}' job in pipeline #{pipeline_id}...")
 
-    # Build list of pipelines to check: parent -> child -> grandchild
-    pipelines_to_check = [pipeline_id]
+    def _collect_pipelines(root_id):
+        """Walk pipeline bridges to collect all pipeline IDs (up to 5 levels)."""
+        pids = [root_id]
+        current = root_id
+        for depth in range(5):
+            child_result = get_child_pipeline_id(host, current)
+            if child_result["success"] and child_result["child_pipeline_id"]:
+                child_id = child_result["child_pipeline_id"]
+                if child_id not in pids:
+                    pids.append(child_id)
+                    _log(f"Found pipeline level {depth + 1}: #{child_id}")
+                    current = child_id
+                else:
+                    break
+            else:
+                break
+        return pids
 
-    # Get child pipeline
-    child_result = get_child_pipeline_id(host, pipeline_id)
-    if child_result["success"] and child_result["child_pipeline_id"]:
-        child_id = child_result["child_pipeline_id"]
-        pipelines_to_check.append(child_id)
-        _log(f"Found child pipeline: #{child_id}")
+    def _find_stage_job(root_id, stage):
+        """Search all pipeline levels for a job in the given stage."""
+        pids = _collect_pipelines(root_id)
+        for pid in pids:
+            jr = get_pipeline_jobs_by_stage(host, pid, stage=stage)
+            if jr["success"] and jr["jobs"]:
+                _log(f"Found '{stage}' job in pipeline #{pid}")
+                return jr
+        return {"success": False, "jobs": []}
 
-        # Get grandchild pipeline
-        grandchild_result = get_child_pipeline_id(host, child_id)
-        if grandchild_result["success"] and grandchild_result["child_pipeline_id"]:
-            grandchild_id = grandchild_result["child_pipeline_id"]
-            pipelines_to_check.append(grandchild_id)
-            _log(f"Found grandchild pipeline: #{grandchild_id}")
-
-    # Check all pipelines for the trigger job
-    jobs_result = {"success": False, "jobs": []}
-    for pid in pipelines_to_check:
-        jobs_result = get_pipeline_jobs_by_stage(host, pid, stage=stage_name)
-        if jobs_result["success"] and jobs_result["jobs"]:
-            _log(f"Found '{stage_name}' job in pipeline #{pid}")
-            break
+    jobs_result = _find_stage_job(pipeline_id, stage_name)
 
     if not jobs_result["success"] or not jobs_result["jobs"]:
         # Wait for the job to appear (it may take time after image selection)
         _log(f"Waiting for '{stage_name}' job to appear...")
-        max_wait = 120
+        max_wait = 180
         poll_interval = 10
         start_time = time.time()
 
         while time.time() - start_time < max_wait:
-            # Refresh pipeline list and check all
-            pipelines_to_check = [pipeline_id]
-            child_result = get_child_pipeline_id(host, pipeline_id)
-            if child_result["success"] and child_result["child_pipeline_id"]:
-                child_id = child_result["child_pipeline_id"]
-                pipelines_to_check.append(child_id)
-                grandchild_result = get_child_pipeline_id(host, child_id)
-                if grandchild_result["success"] and grandchild_result["child_pipeline_id"]:
-                    pipelines_to_check.append(grandchild_result["child_pipeline_id"])
-
-            for pid in pipelines_to_check:
-                jobs_result = get_pipeline_jobs_by_stage(host, pid, stage=stage_name)
-                if jobs_result["success"] and jobs_result["jobs"]:
-                    _log(f"Found '{stage_name}' job in pipeline #{pid}")
-                    break
-
+            jobs_result = _find_stage_job(pipeline_id, stage_name)
             if jobs_result["success"] and jobs_result["jobs"]:
                 break
 
@@ -632,7 +648,7 @@ def play_trigger_job(host, pipeline_id: int, stage_name: str = "trigger_deploy",
             _log(f"[{elapsed}s] Waiting for {stage_name} job...")
             time.sleep(poll_interval)
         else:
-            result["error"] = f"Timeout waiting for '{stage_name}' job (2 min)"
+            result["error"] = f"Timeout waiting for '{stage_name}' job (3 min)"
             return result
 
     # Find the trigger job
