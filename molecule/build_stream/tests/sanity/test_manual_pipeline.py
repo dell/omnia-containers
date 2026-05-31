@@ -36,6 +36,7 @@ import pytest
 from automation_library.core import TestLogger, is_build_stream_enabled
 from automation_library.build_stream import (
     trigger_pipeline_with_variables,
+    trigger_deploy_pipeline,
     select_image_for_deploy,
     wait_for_stage_completion,
     get_stage_state,
@@ -895,7 +896,6 @@ def _check_build_succeeded(host) -> bool:
 def test_manual_trigger_deploy_pipeline(host):
     """Trigger deploy pipeline using PIPELINE_TYPE=deploy variable."""
     import sys
-    import time
     log = TestLogger("Manual Trigger Deploy Pipeline")
 
     if not is_build_stream_enabled(host):
@@ -915,54 +915,32 @@ def test_manual_trigger_deploy_pipeline(host):
         print(f"    │ {msg}", flush=True)
         sys.stdout.flush()
 
-    old_job = get_latest_job(host)
-    old_job_id = old_job.get("job_id", "") if old_job["success"] else ""
+    # Use trigger_deploy_pipeline with use_pxe_commit=False for manual trigger
+    result = trigger_deploy_pipeline(host, log_callback=_log_callback, use_pxe_commit=False)
 
-    _log_callback("Triggering pipeline with PIPELINE_TYPE=deploy...")
-    result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "deploy"})
+    if result["success"]:
+        _deploy_state["triggered"] = True
+        _deploy_state["pipeline_id"] = result["pipeline_id"]
+        _deploy_state["job_id"] = result["job_id"]
 
-    if not result["success"]:
+        _log_callback("Auto-selecting image group for deployment...")
+        select_result = select_image_for_deploy(host, result["pipeline_id"], log_callback=_log_callback)
+        if select_result["success"]:
+            _log_callback(f"Image group selected: {select_result['image_group_id']}")
+        else:
+            _log_callback(f"⚠ Image selection failed: {select_result['error']}")
+            _log_callback("Deploy stages may require manual image selection in GitLab")
+
+        log.passed(
+            f"Deploy pipeline {result['pipeline_id']} triggered",
+            result["details"]
+        )
+    else:
         log.failed(
             f"Failed to trigger deploy pipeline: {result['error']}",
-            "Check GitLab API access"
+            result.get("details", "")
         )
-        pytest.fail(f"Trigger failed: {result['error']}")
-
-    _deploy_state["pipeline_id"] = result["pipeline_id"]
-    _log_callback(f"Pipeline #{result['pipeline_id']} triggered (status: {result['status']})")
-
-    _log_callback("Waiting for new job in database...")
-    max_wait = 120
-    start_time = time.time()
-    new_job_id = None
-
-    while time.time() - start_time < max_wait:
-        job_result = get_latest_job(host)
-        if job_result["success"]:
-            current_job_id = job_result.get("job_id", "")
-            if current_job_id and current_job_id != old_job_id:
-                new_job_id = current_job_id
-                _log_callback(f"New job detected: {new_job_id[:8]}...")
-                break
-        time.sleep(5)
-
-    if new_job_id:
-        _deploy_state["job_id"] = new_job_id
-
-    _deploy_state["triggered"] = True
-
-    _log_callback("Auto-selecting image group for deployment...")
-    select_result = select_image_for_deploy(host, result["pipeline_id"], log_callback=_log_callback)
-    if select_result["success"]:
-        _log_callback(f"Image group selected: {select_result['image_group_id']}")
-    else:
-        _log_callback(f"⚠ Image selection failed: {select_result['error']}")
-        _log_callback("Deploy stages may require manual image selection in GitLab")
-
-    log.passed(
-        f"Deploy pipeline #{result['pipeline_id']} triggered successfully",
-        f"Status: {result['status']}"
-    )
+        pytest.fail(f"Failed to trigger deploy pipeline: {result['error']}")
 
 
 @pytest.mark.sanity

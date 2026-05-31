@@ -91,7 +91,7 @@ IMAGE_GROUP_STATUS_CLEANED: str = "CLEANED"
 
 REGISTRY_PORT: int = 5000
 REGISTRY_CATALOG_PATH: str = "/v2/_catalog"
-REGISTRY_IMAGE_PREFIX: str = "rangerx/rhel-"
+REGISTRY_IMAGE_PREFIX: str = "rhel-"  # Role prefix in registry (hostname added dynamically)
 
 S3_BOOT_IMAGES_BUCKET: str = "s3://boot-images/"
 S3_EFI_IMAGES_PREFIX: str = "s3://boot-images/efi-images/"

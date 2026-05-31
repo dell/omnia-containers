@@ -26,6 +26,7 @@ from typing import Dict, Any, List
 from .gitlab_func import (
     list_pipelines,
     upload_catalog_file,
+    commit_pxe_mapping_file,
     wait_for_pipeline_triggered,
     cancel_pipeline,
     get_child_pipeline_id,
@@ -42,6 +43,8 @@ from .shared_func import get_allow_pipeline_cancel, get_image_identifier
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
+    PIPELINE_POLL_INTERVAL,
+    PIPELINE_POLL_TIMEOUT,
     STAGE_STATE_COMPLETED,
     STAGE_STATE_FAILED,
     STAGE_STATE_RUNNING,
@@ -233,9 +236,13 @@ def trigger_build_pipeline(host, log_callback=None) -> Dict[str, Any]:
     return result
 
 
-def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
+def trigger_deploy_pipeline(host, log_callback=None, use_pxe_commit: bool = True) -> Dict[str, Any]:
     """
-    Trigger a deploy pipeline using PIPELINE_TYPE=deploy variable.
+    Trigger a deploy pipeline.
+
+    Two trigger methods:
+    - use_pxe_commit=True (default): Commit PXE mapping file to auto-trigger
+    - use_pxe_commit=False: Use PIPELINE_TYPE=deploy variable (manual trigger)
 
     Checks for running AND pending pipelines first. If allow_pipeline_cancel
     is true in omnia_test_config.yml, auto-cancels them. Otherwise asks user
@@ -244,6 +251,7 @@ def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
     Args:
         host: Testinfra host object
         log_callback: Optional callback function for logging
+        use_pxe_commit: If True, commit PXE file to auto-trigger. If False, use variable.
 
     Returns:
         Dict with 'success', 'pipeline_id', 'job_id', 'details', 'error'.
@@ -316,21 +324,48 @@ def trigger_deploy_pipeline(host, log_callback=None) -> Dict[str, Any]:
     if old_job_id:
         _log(f"Current latest job: {old_job_id[:8]}... (state: {old_job_state})")
 
-    _log("Triggering deploy pipeline with PIPELINE_TYPE=deploy...")
-    trigger_result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "deploy"})
-    if not trigger_result["success"]:
-        result["error"] = f"Failed to trigger deploy pipeline: {trigger_result['error']}"
-        return result
+    if use_pxe_commit:
+        _log("Committing PXE mapping file to auto-trigger deploy pipeline...")
+        commit_result = commit_pxe_mapping_file(host)
+        if not commit_result["success"]:
+            result["error"] = f"Failed to commit PXE mapping file: {commit_result['error']}"
+            return result
+        _log(f"PXE mapping file committed: {commit_result.get('commit_sha', 'N/A')[:8]}...")
 
-    result["pipeline_id"] = trigger_result["pipeline_id"]
-    _log(PIPELINE_MSGS["pipeline_triggered"].format(
-        id=trigger_result['pipeline_id'], status=trigger_result['status']
-    ))
+        _log("Waiting for deploy pipeline to be triggered...")
+        wait_result = wait_for_pipeline_triggered(
+            host, initial_pipeline_id,
+            timeout=PIPELINE_POLL_TIMEOUT,
+            poll_interval=PIPELINE_POLL_INTERVAL,
+            log_callback=log_callback
+        )
+        if not wait_result["success"]:
+            result["error"] = f"Pipeline not triggered: {wait_result['error']}"
+            return result
 
-    result["details"] = (
-        f"Deploy pipeline {trigger_result['pipeline_id']} triggered "
-        f"(status: {trigger_result['status']})"
-    )
+        result["pipeline_id"] = wait_result["pipeline_id"]
+        _log(PIPELINE_MSGS["pipeline_triggered"].format(
+            id=wait_result['pipeline_id'], status=wait_result['status']
+        ))
+        result["details"] = (
+            f"Deploy pipeline {wait_result['pipeline_id']} auto-triggered via PXE commit "
+            f"(status: {wait_result['status']})"
+        )
+    else:
+        _log("Triggering deploy pipeline with PIPELINE_TYPE=deploy...")
+        trigger_result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "deploy"})
+        if not trigger_result["success"]:
+            result["error"] = f"Failed to trigger deploy pipeline: {trigger_result['error']}"
+            return result
+
+        result["pipeline_id"] = trigger_result["pipeline_id"]
+        _log(PIPELINE_MSGS["pipeline_triggered"].format(
+            id=trigger_result['pipeline_id'], status=trigger_result['status']
+        ))
+        result["details"] = (
+            f"Deploy pipeline {trigger_result['pipeline_id']} triggered via PIPELINE_TYPE "
+            f"(status: {trigger_result['status']})"
+        )
 
     result["job_id"] = old_job_id if old_job_id else ""
     result["success"] = True
