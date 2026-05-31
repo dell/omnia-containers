@@ -62,6 +62,7 @@ from .functions import (
     upload_catalog_file,
     commit_pxe_mapping_file,
     wait_for_pipeline_triggered,
+    trigger_pipeline_with_variables,
     # Pipeline functions
     trigger_build_pipeline,
     trigger_deploy_pipeline,
@@ -168,6 +169,7 @@ __all__ = [
     "upload_catalog_file",
     "commit_pxe_mapping_file",
     "wait_for_pipeline_triggered",
+    "trigger_pipeline_with_variables",
     # Pipeline functions
     "trigger_build_pipeline",
     "trigger_deploy_pipeline",
