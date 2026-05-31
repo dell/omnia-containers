@@ -31,7 +31,7 @@ Configuration (omnia_test_config.yml):
   - allow_pipeline_cancel: Auto-cancel running pipelines (true/false)
 
 Usage:
-  pytest molecule/build_stream/tests/stress/test_stress_pipeline.py -v --tb=short
+  pytest molecule/build_stream/tests/stress/test_stress_cleanup_and_rebuild.py -v --tb=short
 """
 
 import sys
@@ -458,7 +458,6 @@ def _run_single_cleanup(host, image_group: Dict[str, Any], log_callback=None) ->
 # =============================================================================
 
 @pytest.mark.stress
-@pytest.mark.build_stream
 @pytest.mark.order(101)
 def test_stress_build_51st_fails(host):
     """
@@ -516,7 +515,6 @@ def test_stress_build_51st_fails(host):
 # =============================================================================
 
 @pytest.mark.stress
-@pytest.mark.build_stream
 @pytest.mark.order(102)
 def test_stress_delete_and_rebuild(host):
     """
@@ -586,7 +584,6 @@ def test_stress_delete_and_rebuild(host):
 # =============================================================================
 
 @pytest.mark.stress
-@pytest.mark.build_stream
 @pytest.mark.order(103)
 def test_stress_build_fails_at_50_again(host):
     """
@@ -640,8 +637,6 @@ def test_stress_build_fails_at_50_again(host):
 # =============================================================================
 
 @pytest.mark.stress
-@pytest.mark.build_stream
-@pytest.mark.cleanup
 @pytest.mark.order(104)
 def test_stress_cleanup_all(host):
     """

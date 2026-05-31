@@ -13,29 +13,28 @@
 # limitations under the License.
 
 """
-Build Stream - Manual Pipeline Trigger Tests (Build + Deploy).
+Build Stream - Auto-Trigger Pipeline Tests (Build + Deploy).
 
-Tests for manually triggering pipelines via PIPELINE_TYPE variable:
-  - Build: PIPELINE_TYPE=build
-  - Deploy: PIPELINE_TYPE=deploy
+Tests for auto-triggering pipelines via file commits:
+  - Build: Upload catalog file to GitLab (triggers build pipeline)
+  - Deploy: Swap PXE mapping file columns (triggers deploy pipeline)
 
-Same test structure as auto-trigger tests but uses API variable trigger.
-
-Test Order (after test_cleanup_pipeline.py):
-  - Order 60-77: Build pipeline (manual trigger via PIPELINE_TYPE=build)
-  - Order 80-84: Deploy pipeline (manual trigger via PIPELINE_TYPE=deploy)
+Test Order (after test_build_stream_checks.py):
+  - Order 10-27: Build pipeline (auto-trigger via catalog commit)
+  - Order 30-34: Deploy pipeline (auto-trigger via PXE file swap)
 
 Markers:
     - sanity: Basic sanity tests
-    - build_manual: Build pipeline manual trigger tests
-    - deploy_manual: Deploy pipeline manual trigger tests
+    - build_auto: Build pipeline auto-trigger tests
+    - deploy_auto: Deploy pipeline auto-trigger tests
 """
 
 import pytest
 
 from automation_library.core import TestLogger, is_build_stream_enabled
 from automation_library.build_stream import (
-    trigger_pipeline_with_variables,
+    trigger_build_pipeline,
+    trigger_deploy_pipeline,
     select_image_for_deploy,
     wait_for_stage_completion,
     get_stage_state,
@@ -423,169 +422,144 @@ def _run_deploy_stage_db_verify(host, stage_name: str):
 
 
 # =============================================================================
-# BUILD PIPELINE TESTS (Order 60-77) - MANUAL TRIGGER
+# BUILD PIPELINE TESTS (Order 10-27)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(60)
-def test_manual_trigger_build_pipeline(host):
-    """Test: Trigger build pipeline using PIPELINE_TYPE=build variable."""
+@pytest.mark.build_auto
+@pytest.mark.order(10)
+def test_trigger_build_pipeline(host):
+    """Test: Upload catalog file to GitLab and trigger build pipeline."""
     import sys
-    import time
-    log = TestLogger("Manual Trigger Build Pipeline")
+    log = TestLogger(TEST_NAMES["catalog_upload"])
 
     if not is_build_stream_enabled(host):
         log.skipped(SKIP_MSGS["build_stream_disabled"], "Test skipped")
         pytest.skip(SKIP_MSGS["build_stream_disabled"])
 
-    log.check("Triggering build pipeline with PIPELINE_TYPE=build")
+    log.check("Uploading catalog to GitLab to trigger build pipeline")
 
     def _log_callback(msg):
         print(f"    │ {msg}", flush=True)
         sys.stdout.flush()
 
-    old_job = get_latest_job(host)
-    old_job_id = old_job.get("job_id", "") if old_job["success"] else ""
+    result = trigger_build_pipeline(host, log_callback=_log_callback)
 
-    _log_callback("Triggering pipeline with PIPELINE_TYPE=build...")
-    result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "build"})
+    if result["success"]:
+        _build_state["triggered"] = True
+        _build_state["pipeline_id"] = result["pipeline_id"]
+        _build_state["job_id"] = result["job_id"]
 
-    if not result["success"]:
+        roles_result = get_catalog_roles(host, result["job_id"])
+        if roles_result["success"]:
+            _build_state["catalog_roles"] = roles_result["roles"]
+            _build_state["catalog_architectures"] = roles_result["architectures"]
+            _build_state["catalog_image_key"] = roles_result["image_key"]
+            _log_callback(
+                f"Catalog: {len(roles_result['roles'])} roles, "
+                f"architectures: {roles_result['architectures']}, "
+                f"image_key: {roles_result['image_key']}"
+            )
+
+        log.passed(
+            TEST_LOG_MSGS["catalog_upload_ok"].format(
+                pipeline_id=result["pipeline_id"],
+                job_id=result["job_id"]
+            ),
+            result["details"]
+        )
+    else:
         log.failed(
-            f"Failed to trigger build pipeline: {result['error']}",
-            "Check GitLab API access"
+            TEST_LOG_MSGS["catalog_upload_fail"].format(error=result["error"]),
+            result.get("details", "")
         )
-        pytest.fail(f"Trigger failed: {result['error']}")
-
-    _build_state["pipeline_id"] = result["pipeline_id"]
-    _log_callback(f"Pipeline #{result['pipeline_id']} triggered (status: {result['status']})")
-
-    _log_callback("Waiting for new job in database...")
-    max_wait = 120
-    start_time = time.time()
-    new_job_id = None
-
-    while time.time() - start_time < max_wait:
-        job_result = get_latest_job(host)
-        if job_result["success"]:
-            current_job_id = job_result.get("job_id", "")
-            if current_job_id and current_job_id != old_job_id:
-                new_job_id = current_job_id
-                _log_callback(f"New job detected: {new_job_id[:8]}...")
-                break
-        time.sleep(5)
-
-    if not new_job_id:
-        log.failed(
-            "No new job appeared in database",
-            f"Pipeline #{result['pipeline_id']} may have failed to start"
-        )
-        pytest.fail("No new job in database")
-
-    _build_state["triggered"] = True
-    _build_state["job_id"] = new_job_id
-
-    roles_result = get_catalog_roles(host, new_job_id)
-    if roles_result["success"]:
-        _build_state["catalog_roles"] = roles_result["roles"]
-        _build_state["catalog_architectures"] = roles_result["architectures"]
-        _build_state["catalog_image_key"] = roles_result["image_key"]
-        _log_callback(
-            f"Catalog: {len(roles_result['roles'])} roles, "
-            f"architectures: {roles_result['architectures']}"
-        )
-
-    log.passed(
-        f"Build pipeline #{result['pipeline_id']} triggered successfully",
-        f"Job ID: {new_job_id}"
-    )
+        pytest.fail(TEST_ASSERT_MSGS["catalog_upload_failed"].format(error=result["error"]))
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(61)
-def test_manual_build_stage_upload_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(11)
+def test_build_stage_upload_monitor(host):
     """Monitor 'upload' stage until completion."""
     _run_build_stage_monitor(host, "upload")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(62)
-def test_manual_build_stage_upload_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(12)
+def test_build_stage_upload_db_verify(host):
     """Verify 'upload' stage status in database."""
     _run_build_stage_db_verify(host, "upload")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(63)
-def test_manual_build_stage_parse_catalog_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(13)
+def test_build_stage_parse_catalog_monitor(host):
     """Monitor 'parse-catalog' stage until completion."""
     _run_build_stage_monitor(host, "parse-catalog")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(64)
-def test_manual_build_stage_parse_catalog_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(14)
+def test_build_stage_parse_catalog_db_verify(host):
     """Verify 'parse-catalog' stage status in database."""
     _run_build_stage_db_verify(host, "parse-catalog")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(65)
-def test_manual_build_stage_generate_input_files_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(15)
+def test_build_stage_generate_input_files_monitor(host):
     """Monitor 'generate-input-files' stage until completion."""
     _run_build_stage_monitor(host, "generate-input-files")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(66)
-def test_manual_build_stage_generate_input_files_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(16)
+def test_build_stage_generate_input_files_db_verify(host):
     """Verify 'generate-input-files' stage status in database."""
     _run_build_stage_db_verify(host, "generate-input-files")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(67)
-def test_manual_build_stage_create_local_repository_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(17)
+def test_build_stage_create_local_repository_monitor(host):
     """Monitor 'create-local-repository' stage until completion."""
     _run_build_stage_monitor(host, "create-local-repository")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(68)
-def test_manual_build_stage_create_local_repository_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(18)
+def test_build_stage_create_local_repository_db_verify(host):
     """Verify 'create-local-repository' stage status in database."""
     _run_build_stage_db_verify(host, "create-local-repository")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(69)
-def test_manual_build_stage_build_image_x86_64_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(19)
+def test_build_stage_build_image_x86_64_monitor(host):
     """Monitor 'build-image-x86_64' stage until completion."""
     _run_build_stage_monitor(host, "build-image-x86_64")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(70)
-def test_manual_build_stage_build_image_x86_64_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(20)
+def test_build_stage_build_image_x86_64_db_verify(host):
     """Verify 'build-image-x86_64' stage status in database."""
     _run_build_stage_db_verify(host, "build-image-x86_64")
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(71)
-def test_manual_build_stage_build_image_aarch64_monitor(host):
+@pytest.mark.build_auto
+@pytest.mark.order(21)
+def test_build_stage_build_image_aarch64_monitor(host):
     """Monitor 'build-image-aarch64' stage (skipped if not in catalog)."""
     if "aarch64" not in _build_state.get("catalog_architectures", []):
         log = TestLogger(TEST_NAMES["stage_monitor"].format(stage="build-image-aarch64"))
@@ -598,9 +572,9 @@ def test_manual_build_stage_build_image_aarch64_monitor(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(72)
-def test_manual_build_stage_build_image_aarch64_db_verify(host):
+@pytest.mark.build_auto
+@pytest.mark.order(22)
+def test_build_stage_build_image_aarch64_db_verify(host):
     """Verify 'build-image-aarch64' stage in database (skipped if not in catalog)."""
     if "aarch64" not in _build_state.get("catalog_architectures", []):
         log = TestLogger(TEST_NAMES["stage_db_verify"].format(stage="build-image-aarch64"))
@@ -613,9 +587,9 @@ def test_manual_build_stage_build_image_aarch64_db_verify(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(73)
-def test_manual_build_image_groups_created(host):
+@pytest.mark.build_auto
+@pytest.mark.order(23)
+def test_build_image_groups_created(host):
     """Verify image groups were created for the job."""
     log = TestLogger(TEST_NAMES["image_groups_created"])
 
@@ -655,9 +629,9 @@ def test_manual_build_image_groups_created(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(74)
-def test_manual_build_images_created(host):
+@pytest.mark.build_auto
+@pytest.mark.order(24)
+def test_build_images_created(host):
     """Verify images were created for the job."""
     log = TestLogger(TEST_NAMES["images_created"])
 
@@ -699,9 +673,9 @@ def test_manual_build_images_created(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(75)
-def test_manual_build_registry_images(host):
+@pytest.mark.build_auto
+@pytest.mark.order(25)
+def test_build_registry_images(host):
     """Verify container images exist in registry for all roles."""
     log = TestLogger(TEST_NAMES["registry_images"])
 
@@ -756,9 +730,9 @@ def test_manual_build_registry_images(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(76)
-def test_manual_build_s3_boot_images(host):
+@pytest.mark.build_auto
+@pytest.mark.order(26)
+def test_build_s3_boot_images(host):
     """Verify S3 boot images (rootfs + EFI) exist for all roles."""
     log = TestLogger(TEST_NAMES["s3_boot_images"])
 
@@ -820,9 +794,9 @@ def test_manual_build_s3_boot_images(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.build_manual
-@pytest.mark.order(77)
-def test_manual_build_pipeline_result(host):
+@pytest.mark.build_auto
+@pytest.mark.order(27)
+def test_build_pipeline_result(host):
     """Summarize build pipeline result."""
     log = TestLogger(TEST_NAMES["build_pipeline_result"])
 
@@ -877,7 +851,7 @@ def test_manual_build_pipeline_result(host):
 
 
 # =============================================================================
-# DEPLOY PIPELINE TESTS (Order 80-84) - MANUAL TRIGGER
+# DEPLOY PIPELINE TESTS (Order 30-34)
 # =============================================================================
 
 def _check_build_succeeded(host) -> bool:
@@ -890,13 +864,12 @@ def _check_build_succeeded(host) -> bool:
 
 
 @pytest.mark.sanity
-@pytest.mark.deploy_manual
-@pytest.mark.order(80)
-def test_manual_trigger_deploy_pipeline(host):
-    """Trigger deploy pipeline using PIPELINE_TYPE=deploy variable."""
+@pytest.mark.deploy_auto
+@pytest.mark.order(30)
+def test_trigger_deploy_pipeline(host):
+    """Trigger deploy pipeline by committing PXE mapping file."""
     import sys
-    import time
-    log = TestLogger("Manual Trigger Deploy Pipeline")
+    log = TestLogger("Trigger Deploy Pipeline")
 
     if not is_build_stream_enabled(host):
         log.skipped(SKIP_MSGS["build_stream_disabled"], "Test skipped")
@@ -909,89 +882,66 @@ def test_manual_trigger_deploy_pipeline(host):
         )
         pytest.skip(SKIP_MSGS["build_failed"])
 
-    log.check("Triggering deploy pipeline with PIPELINE_TYPE=deploy")
+    log.check("Committing PXE mapping file to trigger deploy pipeline")
 
     def _log_callback(msg):
         print(f"    │ {msg}", flush=True)
         sys.stdout.flush()
 
-    old_job = get_latest_job(host)
-    old_job_id = old_job.get("job_id", "") if old_job["success"] else ""
+    result = trigger_deploy_pipeline(host, log_callback=_log_callback)
 
-    _log_callback("Triggering pipeline with PIPELINE_TYPE=deploy...")
-    result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "deploy"})
+    if result["success"]:
+        _deploy_state["triggered"] = True
+        _deploy_state["pipeline_id"] = result["pipeline_id"]
+        _deploy_state["job_id"] = result["job_id"]
 
-    if not result["success"]:
+        _log_callback("Auto-selecting image group for deployment...")
+        select_result = select_image_for_deploy(host, result["pipeline_id"], log_callback=_log_callback)
+        if select_result["success"]:
+            _log_callback(f"Image group selected: {select_result['image_group_id']}")
+        else:
+            _log_callback(f"⚠ Image selection failed: {select_result['error']}")
+            _log_callback("Deploy stages may require manual image selection in GitLab")
+
+        log.passed(
+            f"Deploy pipeline {result['pipeline_id']} triggered",
+            result["details"]
+        )
+    else:
         log.failed(
             f"Failed to trigger deploy pipeline: {result['error']}",
-            "Check GitLab API access"
+            result.get("details", "")
         )
-        pytest.fail(f"Trigger failed: {result['error']}")
-
-    _deploy_state["pipeline_id"] = result["pipeline_id"]
-    _log_callback(f"Pipeline #{result['pipeline_id']} triggered (status: {result['status']})")
-
-    _log_callback("Waiting for new job in database...")
-    max_wait = 120
-    start_time = time.time()
-    new_job_id = None
-
-    while time.time() - start_time < max_wait:
-        job_result = get_latest_job(host)
-        if job_result["success"]:
-            current_job_id = job_result.get("job_id", "")
-            if current_job_id and current_job_id != old_job_id:
-                new_job_id = current_job_id
-                _log_callback(f"New job detected: {new_job_id[:8]}...")
-                break
-        time.sleep(5)
-
-    if new_job_id:
-        _deploy_state["job_id"] = new_job_id
-
-    _deploy_state["triggered"] = True
-
-    _log_callback("Auto-selecting image group for deployment...")
-    select_result = select_image_for_deploy(host, result["pipeline_id"], log_callback=_log_callback)
-    if select_result["success"]:
-        _log_callback(f"Image group selected: {select_result['image_group_id']}")
-    else:
-        _log_callback(f"⚠ Image selection failed: {select_result['error']}")
-        _log_callback("Deploy stages may require manual image selection in GitLab")
-
-    log.passed(
-        f"Deploy pipeline #{result['pipeline_id']} triggered successfully",
-        f"Status: {result['status']}"
-    )
+        pytest.fail(f"Failed to trigger deploy pipeline: {result['error']}")
 
 
 @pytest.mark.sanity
-@pytest.mark.deploy_manual
-@pytest.mark.order(81)
-def test_manual_deploy_stage_deploy_monitor(host):
+@pytest.mark.deploy_auto
+@pytest.mark.order(31)
+def test_deploy_stage_deploy_monitor(host):
     """Monitor 'deploy' stage until completion."""
     _run_deploy_stage_monitor(host, "deploy")
 
 
 @pytest.mark.sanity
-@pytest.mark.deploy_manual
-@pytest.mark.order(82)
-def test_manual_deploy_stage_deploy_db_verify(host):
+@pytest.mark.deploy_auto
+@pytest.mark.order(32)
+def test_deploy_stage_deploy_db_verify(host):
     """Verify 'deploy' stage status in database."""
     _run_deploy_stage_db_verify(host, "deploy")
 
 
 @pytest.mark.sanity
-@pytest.mark.deploy_manual
-@pytest.mark.order(83)
-def test_manual_deploy_stage_restart_monitor(host):
+@pytest.mark.deploy_auto
+@pytest.mark.order(33)
+def test_deploy_stage_restart_monitor(host):
     """Monitor 'restart' stage until completion."""
     _run_deploy_stage_monitor(host, "restart")
 
 
 @pytest.mark.sanity
-@pytest.mark.deploy_manual
-@pytest.mark.order(84)
-def test_manual_deploy_stage_restart_db_verify(host):
+@pytest.mark.deploy_auto
+@pytest.mark.order(34)
+def test_deploy_stage_restart_db_verify(host):
     """Verify 'restart' stage status in database."""
     _run_deploy_stage_db_verify(host, "restart")

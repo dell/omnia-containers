@@ -556,7 +556,6 @@ def _run_single_iteration(
 # =============================================================================
 
 @pytest.mark.stress
-@pytest.mark.build_stream
 @pytest.mark.order(100)
 def test_stress_build_pipeline(host):
     """

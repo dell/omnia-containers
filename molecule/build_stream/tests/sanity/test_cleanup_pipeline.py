@@ -24,8 +24,7 @@ Test cases for cleanup pipeline automation:
 
 Markers:
     - sanity: Basic sanity tests
-    - build_stream: Build stream module tests
-    - cleanup: Cleanup pipeline specific tests
+    - cleanup_manual: Cleanup pipeline tests (manual trigger only)
 """
 
 import pytest
@@ -78,8 +77,7 @@ def _skip_if_not_completed(log):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
-@pytest.mark.cleanup
+@pytest.mark.cleanup_manual
 @pytest.mark.order(50)
 def test_image_groups_for_cleanup(host):
     """
@@ -153,8 +151,7 @@ def test_image_groups_for_cleanup(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
-@pytest.mark.cleanup
+@pytest.mark.cleanup_manual
 @pytest.mark.order(51)
 def test_trigger_cleanup_pipeline(host):
     """
@@ -230,8 +227,7 @@ def test_trigger_cleanup_pipeline(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
-@pytest.mark.cleanup
+@pytest.mark.cleanup_manual
 @pytest.mark.order(52)
 def test_image_groups_cleaned(host):
     """Test 3: Verify image groups have CLEANED status after cleanup."""
@@ -284,8 +280,7 @@ def test_image_groups_cleaned(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
-@pytest.mark.cleanup
+@pytest.mark.cleanup_manual
 @pytest.mark.order(53)
 def test_s3_images_deleted(host):
     """
@@ -376,8 +371,7 @@ def test_s3_images_deleted(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
-@pytest.mark.cleanup
+@pytest.mark.cleanup_manual
 @pytest.mark.order(54)
 def test_registry_images_deleted(host):
     """

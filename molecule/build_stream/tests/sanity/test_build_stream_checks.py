@@ -45,7 +45,6 @@ from automation_library.build_stream import (
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(1)
 def test_build_stream_enabled(host):
     """
@@ -73,7 +72,6 @@ def test_build_stream_enabled(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(2)
 def test_build_stream_health(host):
     """
@@ -106,7 +104,6 @@ def test_build_stream_health(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(3)
 def test_postgres_tables(host):
     """
@@ -139,7 +136,6 @@ def test_postgres_tables(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(4)
 def test_gitlab_server_running(host):
     """
@@ -172,7 +168,6 @@ def test_gitlab_server_running(host):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.build_stream
 @pytest.mark.order(5)
 def test_gitlab_runner_running(host):
     """
