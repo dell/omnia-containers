@@ -352,10 +352,11 @@ def verify_registry_images(
     result["all_repos"] = repos
 
     for role in roles:
-        expected_pattern = f"{REGISTRY_IMAGE_PREFIX}{role}_omnia_"
+        # Match pattern like: rhel-{role}_omnia_ or rangerx/rhel-{role}_omnia_
+        role_pattern = f"{REGISTRY_IMAGE_PREFIX}{role}"
         matched = [
             r for r in repos
-            if r.startswith(expected_pattern) and job_id in r
+            if role_pattern in r and job_id in r
         ]
         if matched:
             result["found"].append({

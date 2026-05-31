@@ -723,9 +723,24 @@ def test_build_registry_images(host):
         missing = result.get("missing", [])
         if missing:
             error_msg = f"Missing roles: {', '.join(missing)}"
+        # Show debug info: registry URL, all repos, and expected pattern
+        all_repos = result.get("all_repos", [])
+        debug_lines = [
+            error_msg,
+            f"Registry: {result.get('registry_url', 'N/A')}",
+            f"Total repos in registry: {len(all_repos)}",
+        ]
+        if all_repos:
+            debug_lines.append("All repos:")
+            for repo in all_repos[:20]:
+                debug_lines.append(f"    {repo}")
+            if len(all_repos) > 20:
+                debug_lines.append(f"    ... and {len(all_repos) - 20} more")
+        else:
+            debug_lines.append("Registry is empty (no repos found)")
         log.failed(
             TEST_LOG_MSGS["registry_fail"].format(count=len(missing), missing=missing),
-            error_msg
+            "\n".join(debug_lines)
         )
         pytest.fail(TEST_ASSERT_MSGS["registry_images_failed"].format(error=error_msg))
 
@@ -772,6 +787,10 @@ def test_build_s3_boot_images(host):
                 f"  ✓ {item['role']} (rootfs: {item['rootfs']}, "
                 f"efi: {item['efi_files']}, total: {item['total']})"
             )
+            for rf in item.get("rootfs_files", []):
+                details_lines.append(f"      rootfs: {rf}")
+            for ef in item.get("efi_file_paths", []):
+                details_lines.append(f"      efi:    {ef}")
         log.passed(
             TEST_LOG_MSGS["s3_ok"].format(count=len(roles)),
             "\n".join(details_lines)
