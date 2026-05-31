@@ -36,6 +36,7 @@ from automation_library.build_stream import (
     trigger_build_pipeline,
     trigger_deploy_pipeline,
     select_image_for_deploy,
+    play_deploy_stage_job,
     wait_for_stage_completion,
     get_stage_state,
     get_stage_log_path,
@@ -899,6 +900,20 @@ def test_trigger_deploy_pipeline(host):
         select_result = select_image_for_deploy(host, result["pipeline_id"], log_callback=_log_callback)
         if select_result["success"]:
             _log_callback(f"Image group selected: {select_result['image_group_id']}")
+
+            # Update job_id from the selected image group (tied to build)
+            if select_result.get("job_id"):
+                _deploy_state["job_id"] = select_result["job_id"]
+                _log_callback(f"Using job ID from image group: {select_result['job_id'][:8]}...")
+
+            # After selecting image, play the deploy stage job (it's manual)
+            _log_callback("Playing deploy stage job...")
+            deploy_result = play_deploy_stage_job(host, result["pipeline_id"], log_callback=_log_callback)
+            if deploy_result["success"]:
+                _log_callback("Deploy stage started successfully")
+            else:
+                _log_callback(f"⚠ Failed to start deploy stage: {deploy_result['error']}")
+                _log_callback("You may need to manually play 'deploy' job in GitLab")
         else:
             _log_callback(f"⚠ Image selection failed: {select_result['error']}")
             _log_callback("Deploy stages may require manual image selection in GitLab")

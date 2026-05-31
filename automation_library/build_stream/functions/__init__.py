@@ -65,12 +65,17 @@ from .gitlab_func import (
     upload_catalog_file,
     commit_pxe_mapping_file,
     wait_for_pipeline_triggered,
+    get_gitlab_file,
+    commit_gitlab_file,
 )
 
 from .pipeline_func import (
     trigger_build_pipeline,
     trigger_deploy_pipeline,
     select_image_for_deploy,
+    play_trigger_job,
+    play_deploy_stage_job,
+    play_cleanup_stage_job,
     trigger_cleanup_pipeline,
     select_image_for_cleanup,
     wait_for_cleanup_completion,

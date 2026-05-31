@@ -858,3 +858,163 @@ def wait_for_pipeline_triggered(
     result["elapsed"] = int(time.time() - start_time)
     result["error"] = f"No new pipeline triggered within {timeout} seconds"
     return result
+
+
+def get_gitlab_file(host, file_path: str) -> Dict[str, Any]:
+    """
+    Read a file from the GitLab repository.
+
+    Args:
+        host: Testinfra host object
+        file_path: Path to file in repository (e.g., '.gitlab-ci.yml')
+
+    Returns:
+        Dict with 'success', 'content', 'error'.
+    """
+    result = {
+        "success": False,
+        "content": "",
+        "error": "",
+    }
+
+    token_result = get_gitlab_root_token(host)
+    if not token_result["success"]:
+        result["error"] = f"Failed to get GitLab token: {token_result['error']}"
+        return result
+
+    gitlab_host = get_gitlab_host(host)
+    gitlab_port = get_gitlab_https_port(host)
+    project_name = get_gitlab_project_name(host)
+    branch = get_gitlab_default_branch(host)
+
+    if not gitlab_host or not project_name:
+        result["error"] = "GitLab host or project not configured"
+        return result
+
+    # URL-encode the file path
+    encoded_path = file_path.replace("/", "%2F").replace(".", "%2E")
+
+    url = (
+        f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
+        f"/projects/root%2F{project_name}/repository/files/{encoded_path}"
+        f"?ref={branch}"
+    )
+
+    cmd = run_on_oim(
+        host,
+        f"curl -sk '{url}' --header 'PRIVATE-TOKEN: {token_result['token']}'"
+    )
+
+    if cmd.rc != 0:
+        result["error"] = f"Failed to get file: {cmd.stderr}"
+        return result
+
+    try:
+        response = json.loads(cmd.stdout.strip())
+        if "content" not in response:
+            result["error"] = f"File not found: {response.get('message', '')}"
+            return result
+        content_b64 = response["content"]
+    except json.JSONDecodeError:
+        result["error"] = f"Invalid JSON response: {cmd.stdout[:200]}"
+        return result
+
+    try:
+        result["content"] = base64.b64decode(content_b64).decode('utf-8')
+        result["success"] = True
+    except Exception as e:
+        result["error"] = f"Failed to decode file: {e}"
+
+    return result
+
+
+def commit_gitlab_file(host, file_path: str, content: str, commit_message: str) -> Dict[str, Any]:
+    """
+    Commit a file to the GitLab repository.
+
+    Args:
+        host: Testinfra host object
+        file_path: Path to file in repository (e.g., '.gitlab-ci.yml')
+        content: File content to commit
+        commit_message: Commit message
+
+    Returns:
+        Dict with 'success', 'commit_sha', 'error'.
+    """
+    result = {
+        "success": False,
+        "commit_sha": "",
+        "error": "",
+    }
+
+    token_result = get_gitlab_root_token(host)
+    if not token_result["success"]:
+        result["error"] = f"Failed to get GitLab token: {token_result['error']}"
+        return result
+
+    gitlab_host = get_gitlab_host(host)
+    gitlab_port = get_gitlab_https_port(host)
+    project_name = get_gitlab_project_name(host)
+    branch = get_gitlab_default_branch(host)
+
+    if not gitlab_host or not project_name:
+        result["error"] = "GitLab host or project not configured"
+        return result
+
+    # URL-encode the file path
+    encoded_path = file_path.replace("/", "%2F").replace(".", "%2E")
+
+    url = (
+        f"https://{gitlab_host}:{gitlab_port}/api/{GITLAB_API_VERSION}"
+        f"/projects/root%2F{project_name}/repository/files/{encoded_path}"
+    )
+
+    # Base64 encode the content
+    content_b64 = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+    # Create JSON payload
+    payload = {
+        "branch": branch,
+        "content": content_b64,
+        "commit_message": commit_message,
+        "encoding": "base64"
+    }
+
+    # Write payload to temp file
+    payload_file = "/tmp/gitlab_commit_payload.json"
+    cmd = run_on_oim(
+        host,
+        f"cat > {payload_file} << 'EOF'\n{json.dumps(payload)}\nEOF"
+    )
+
+    if cmd.rc != 0:
+        result["error"] = f"Failed to write payload file: {cmd.stderr}"
+        return result
+
+    # Make the API call to update the file
+    cmd = run_on_oim(
+        host,
+        f"curl -sk -X PUT '{url}' "
+        f"--header 'PRIVATE-TOKEN: {token_result['token']}' "
+        f"--header 'Content-Type: application/json' "
+        f"--data @{payload_file}"
+    )
+
+    # Clean up temp file
+    run_on_oim(host, f"rm -f {payload_file}")
+
+    if cmd.rc != 0:
+        result["error"] = f"Failed to commit file: {cmd.stderr}"
+        return result
+
+    try:
+        response = json.loads(cmd.stdout.strip())
+        if "id" in response:
+            result["commit_sha"] = response.get("id", "")
+            result["success"] = True
+        else:
+            result["error"] = f"Commit failed: {response.get('message', cmd.stdout[:200])}"
+    except json.JSONDecodeError:
+        result["error"] = f"Invalid JSON response: {cmd.stdout[:200]}"
+
+    return result

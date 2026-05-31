@@ -388,11 +388,12 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
         log_callback: Optional callback function for logging
 
     Returns:
-        Dict with 'success', 'image_group_id', 'job_id', 'error'.
+        Dict with 'success', 'image_group_id', 'job_id', 'gitlab_job_id', 'error'.
     """
     result = {
         "success": False,
         "image_group_id": "",
+        "job_id": "",  # Build Stream job_id from database (tied to image group)
         "gitlab_job_id": 0,
         "error": "",
     }
@@ -406,26 +407,39 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
 
     # Check if specific image identifier is configured
     configured_id = get_image_identifier(host)
+    target_group = None
+
+    _log("Getting image groups from database...")
+    ig_result = get_all_image_groups(host)
+    if not ig_result["success"]:
+        result["error"] = f"Failed to get image groups: {ig_result['error']}"
+        return result
+
+    built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
+    if not built_groups:
+        result["error"] = "No BUILT image groups found. Run build pipeline first."
+        return result
+
     if configured_id:
         _log(f"Using configured image_identifier: {configured_id}")
-        image_group_id = configured_id
+        # Find the configured image group
+        for g in built_groups:
+            if g.get("id") == configured_id:
+                target_group = g
+                break
+        if not target_group:
+            result["error"] = f"Configured image_identifier '{configured_id}' not found in BUILT groups"
+            return result
     else:
-        _log("Getting latest BUILT image group from database...")
-        ig_result = get_all_image_groups(host)
-        if not ig_result["success"]:
-            result["error"] = f"Failed to get image groups: {ig_result['error']}"
-            return result
+        # Auto-select latest BUILT image group
+        target_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        _log(f"Auto-selected latest BUILT image group: {target_group.get('id')}")
 
-        built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-        if not built_groups:
-            result["error"] = "No BUILT image groups found. Run build pipeline first."
-            return result
-
-        latest_group = sorted(built_groups, key=lambda x: x.get("created_at", ""), reverse=True)[0]
-        image_group_id = latest_group.get("id", "")
-        _log(f"Auto-selected latest BUILT image group: {image_group_id}")
-
+    image_group_id = target_group.get("id", "")
+    job_id = target_group.get("job_id", "")
     result["image_group_id"] = image_group_id
+    result["job_id"] = job_id
+    _log(f"Image group: {image_group_id}, Job ID: {job_id[:8]}...")
 
     _log(f"Getting child pipeline from parent pipeline #{pipeline_id}...")
     child_result = get_child_pipeline_id(host, pipeline_id)
@@ -466,7 +480,7 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
     target_job = None
     available_jobs = [j.get('name') for j in jobs_result['jobs']]
     _log(f"Looking for job matching image group: {image_group_id}")
-    _log(f"Available selection jobs: {available_jobs}")
+    _log(f"Available selection jobs ({len(available_jobs)}): {available_jobs[:5]}{'...' if len(available_jobs) > 5 else ''}")
 
     for job in jobs_result["jobs"]:
         job_name = job.get("name", "")
@@ -485,13 +499,27 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
             _log(f"ERROR: {result['error']}")
             return result
 
-        # Auto-select: use first manual job
-        for job in jobs_result["jobs"]:
-            if job.get("status") == "manual":
-                target_job = job
-                _log(f"Auto-selecting first manual job: {job.get('name')}")
-                break
-        if not target_job:
+        # Auto-select: target image group not in available jobs
+        # This happens when pipeline was generated before the latest build
+        # Select the most recent available image group from the pipeline
+        _log(f"Target '{image_group_id}' not in available jobs, selecting from available...")
+        manual_jobs = [j for j in jobs_result["jobs"] if j.get("status") == "manual"]
+        if manual_jobs:
+            # Sort by job name (image-build-YYYYMMDD-HHMMSS format) descending
+            manual_jobs_sorted = sorted(manual_jobs, key=lambda x: x.get("name", ""), reverse=True)
+            target_job = manual_jobs_sorted[0]
+            selected_image_group = target_job.get("name", "")
+            _log(f"Auto-selecting most recent available: {selected_image_group}")
+            
+            # Update result with the actually selected image group and its job_id
+            result["image_group_id"] = selected_image_group
+            # Find the job_id for this image group from the database
+            for g in built_groups:
+                if g.get("id") == selected_image_group:
+                    result["job_id"] = g.get("job_id", "")
+                    _log(f"Updated Job ID: {result['job_id'][:8]}...")
+                    break
+        elif jobs_result["jobs"]:
             target_job = jobs_result["jobs"][0]
             _log(f"Using first available job: {target_job.get('name')}")
 
@@ -513,6 +541,154 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
     result["gitlab_job_id"] = gitlab_job_id
     result["success"] = True
     return result
+
+
+def play_trigger_job(host, pipeline_id: int, stage_name: str = "trigger_deploy", log_callback=None) -> Dict[str, Any]:
+    """
+    Play a manual trigger job to start pipeline stages.
+
+    After selecting an image group, pipelines have a manual trigger job
+    that must be played to start the actual stages:
+    - Deploy: 'trigger_deploy' → starts deploy → restart → validate
+    - Cleanup: 'trigger_cleanup' → starts cleanup stage
+
+    Args:
+        host: Testinfra host object
+        pipeline_id: Parent pipeline ID (or child pipeline)
+        stage_name: Name of the trigger stage (default: 'trigger_deploy')
+        log_callback: Optional callback function for logging
+
+    Returns:
+        Dict with 'success', 'job_id', 'error'.
+    """
+    result = {
+        "success": False,
+        "job_id": 0,
+        "error": "",
+    }
+
+    def _log(msg):
+        if log_callback:
+            log_callback(msg)
+        else:
+            print(f"    │ {msg}", flush=True)
+        sys.stdout.flush()
+
+    _log(f"Looking for '{stage_name}' job in pipeline #{pipeline_id}...")
+
+    # Build list of pipelines to check: parent -> child -> grandchild
+    pipelines_to_check = [pipeline_id]
+
+    # Get child pipeline
+    child_result = get_child_pipeline_id(host, pipeline_id)
+    if child_result["success"] and child_result["child_pipeline_id"]:
+        child_id = child_result["child_pipeline_id"]
+        pipelines_to_check.append(child_id)
+        _log(f"Found child pipeline: #{child_id}")
+
+        # Get grandchild pipeline
+        grandchild_result = get_child_pipeline_id(host, child_id)
+        if grandchild_result["success"] and grandchild_result["child_pipeline_id"]:
+            grandchild_id = grandchild_result["child_pipeline_id"]
+            pipelines_to_check.append(grandchild_id)
+            _log(f"Found grandchild pipeline: #{grandchild_id}")
+
+    # Check all pipelines for the trigger job
+    jobs_result = {"success": False, "jobs": []}
+    for pid in pipelines_to_check:
+        jobs_result = get_pipeline_jobs_by_stage(host, pid, stage=stage_name)
+        if jobs_result["success"] and jobs_result["jobs"]:
+            _log(f"Found '{stage_name}' job in pipeline #{pid}")
+            break
+
+    if not jobs_result["success"] or not jobs_result["jobs"]:
+        # Wait for the job to appear (it may take time after image selection)
+        _log(f"Waiting for '{stage_name}' job to appear...")
+        max_wait = 120
+        poll_interval = 10
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            # Refresh pipeline list and check all
+            pipelines_to_check = [pipeline_id]
+            child_result = get_child_pipeline_id(host, pipeline_id)
+            if child_result["success"] and child_result["child_pipeline_id"]:
+                child_id = child_result["child_pipeline_id"]
+                pipelines_to_check.append(child_id)
+                grandchild_result = get_child_pipeline_id(host, child_id)
+                if grandchild_result["success"] and grandchild_result["child_pipeline_id"]:
+                    pipelines_to_check.append(grandchild_result["child_pipeline_id"])
+
+            for pid in pipelines_to_check:
+                jobs_result = get_pipeline_jobs_by_stage(host, pid, stage=stage_name)
+                if jobs_result["success"] and jobs_result["jobs"]:
+                    _log(f"Found '{stage_name}' job in pipeline #{pid}")
+                    break
+
+            if jobs_result["success"] and jobs_result["jobs"]:
+                break
+
+            elapsed = int(time.time() - start_time)
+            _log(f"[{elapsed}s] Waiting for {stage_name} job...")
+            time.sleep(poll_interval)
+        else:
+            result["error"] = f"Timeout waiting for '{stage_name}' job (2 min)"
+            return result
+
+    # Find the trigger job
+    target_job = None
+    for job in jobs_result["jobs"]:
+        job_name = job.get("name", "")
+        if stage_name in job_name.lower() or job_name == stage_name:
+            target_job = job
+            break
+
+    if not target_job and jobs_result["jobs"]:
+        target_job = jobs_result["jobs"][0]
+
+    if not target_job:
+        result["error"] = f"No '{stage_name}' job found"
+        return result
+
+    gitlab_job_id = target_job.get("id")
+    job_name = target_job.get("name", "")
+    job_status = target_job.get("status", "")
+
+    _log(f"Found {stage_name} job: {job_name} (ID: {gitlab_job_id}, status: {job_status})")
+
+    if job_status == "manual":
+        _log(f"Playing {stage_name} job...")
+        play_result = play_manual_job(host, gitlab_job_id)
+        if not play_result["success"]:
+            result["error"] = f"Failed to play job: {play_result['error']}"
+            return result
+        _log(f"{stage_name} job started: {play_result['status']}")
+    else:
+        _log(f"Job already in status: {job_status}")
+
+    result["job_id"] = gitlab_job_id
+    result["success"] = True
+    return result
+
+
+def play_deploy_stage_job(host, pipeline_id: int, log_callback=None) -> Dict[str, Any]:
+    """
+    Play the 'deploy' manual job to start deployment.
+
+    After selecting an image group, the deploy stage job must be played manually.
+    This function finds and plays the deploy job in the grandchild pipeline.
+    """
+    return play_trigger_job(host, pipeline_id, stage_name="deploy", log_callback=log_callback)
+
+
+def play_cleanup_stage_job(host, pipeline_id: int, log_callback=None) -> Dict[str, Any]:
+    """
+    Play the 'cleanup' manual job to start cleanup.
+
+    After selecting an image group, the cleanup stage job must be played manually.
+    This function finds and plays the cleanup job in the grandchild pipeline.
+    """
+    return play_trigger_job(host, pipeline_id, stage_name="cleanup", log_callback=log_callback)
 
 
 def trigger_cleanup_pipeline(host, log_callback=None) -> Dict[str, Any]:

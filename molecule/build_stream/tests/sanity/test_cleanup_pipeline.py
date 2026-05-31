@@ -33,6 +33,7 @@ from automation_library.core import TestLogger, is_build_stream_enabled
 from automation_library.build_stream import (
     trigger_cleanup_pipeline,
     select_image_for_cleanup,
+    play_cleanup_stage_job,
     wait_for_cleanup_completion,
     get_catalog_roles,
     get_image_groups_for_job,
@@ -199,6 +200,15 @@ def test_trigger_cleanup_pipeline(host):
     if select_result["success"]:
         _cleanup_state["image_group_id"] = select_result["image_group_id"]
         _log_callback(f"Image group selected: {select_result['image_group_id']}")
+
+        # After selecting image, play the cleanup stage job (it's manual)
+        _log_callback("Playing cleanup stage job...")
+        cleanup_job_result = play_cleanup_stage_job(host, result["pipeline_id"], log_callback=_log_callback)
+        if cleanup_job_result["success"]:
+            _log_callback("Cleanup stage started successfully")
+        else:
+            _log_callback(f"⚠ Failed to start cleanup stage: {cleanup_job_result['error']}")
+            _log_callback("You may need to manually play 'cleanup' job in GitLab")
 
         _log_callback("Waiting for cleanup to complete and DB to update...")
         cleanup_result = wait_for_cleanup_completion(
