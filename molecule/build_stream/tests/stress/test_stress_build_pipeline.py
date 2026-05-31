@@ -300,7 +300,7 @@ def _run_single_iteration(
             host, job_id, stage_name,
             timeout=STAGE_POLL_TIMEOUT,
             poll_interval=STAGE_POLL_INTERVAL,
-            log_callback=lambda msg: print(f"      │ {msg}", flush=True),
+            log_callback=_log,
         )
 
         stage_state = stage_result.get("stage_state", "UNKNOWN")
@@ -370,7 +370,7 @@ def _run_single_iteration(
             host, job_id, stage_name,
             timeout=STAGE_POLL_TIMEOUT,
             poll_interval=STAGE_POLL_INTERVAL,
-            log_callback=lambda msg: print(f"      │ {msg}", flush=True),
+            log_callback=_log,
         )
 
         stage_state = stage_result.get("stage_state", "UNKNOWN")

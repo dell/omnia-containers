@@ -784,18 +784,18 @@ def trigger_cleanup_pipeline(host, log_callback=None) -> Dict[str, Any]:
     initial_id = pipelines_before["pipelines"][0].get("id", 0) if pipelines_before["pipelines"] else 0
     _log(PIPELINE_MSGS["no_running_pipelines"].format(id=initial_id))
 
-    _log("Checking for BUILT image groups to clean...")
+    _log("Checking for cleanable image groups...")
     ig_result = get_all_image_groups(host)
     if not ig_result["success"]:
         result["error"] = f"Failed to get image groups: {ig_result['error']}"
         return result
 
-    built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-    if not built_groups:
-        result["error"] = "No BUILT image groups found. Nothing to clean."
+    cleanable_groups = [g for g in ig_result["image_groups"] if g["status"] != "CLEANED"]
+    if not cleanable_groups:
+        result["error"] = "No cleanable image groups found. Nothing to clean."
         return result
 
-    _log(f"Found {len(built_groups)} BUILT image group(s) to clean")
+    _log(f"Found {len(cleanable_groups)} cleanable image group(s)")
 
     _log("Triggering cleanup pipeline with PIPELINE_TYPE=cleanup...")
     trigger_result = trigger_pipeline_with_variables(host, {"PIPELINE_TYPE": "cleanup"})
@@ -819,8 +819,8 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
     """
     Select an image group for cleanup.
 
-    If cleanup_image_identifier is set in omnia_test_config.yml, uses that.
-    Otherwise, auto-selects the latest BUILT image group.
+    If image_identifier is set in omnia_test_config.yml, uses that.
+    Otherwise, auto-selects the latest cleanable image group (prefer BUILT).
 
     The cleanup pipeline creates manual selection jobs for each image group.
     This function finds the target image group and plays its selection job.
@@ -831,11 +831,12 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
         log_callback: Optional callback function for logging
 
     Returns:
-        Dict with 'success', 'image_group_id', 'gitlab_job_id', 'error'.
+        Dict with 'success', 'image_group_id', 'job_id', 'gitlab_job_id', 'error'.
     """
     result = {
         "success": False,
         "image_group_id": "",
+        "job_id": "",
         "gitlab_job_id": 0,
         "error": "",
     }
@@ -849,28 +850,41 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
 
     # Check if specific image identifier is configured
     configured_id = get_image_identifier(host)
+    target_group = None
+
+    _log("Getting image groups from database...")
+    ig_result = get_all_image_groups(host)
+    if not ig_result["success"]:
+        result["error"] = f"Failed to get image groups: {ig_result['error']}"
+        return result
+
+    # Accept any image group that is not CLEANED
+    cleanable_groups = [g for g in ig_result["image_groups"] if g["status"] != "CLEANED"]
+    if not cleanable_groups:
+        result["error"] = "No cleanable image groups found. Nothing to clean."
+        return result
+
     if configured_id:
         _log(f"Using configured image_identifier: {configured_id}")
-        image_group_id = configured_id
+        for g in cleanable_groups:
+            if g.get("id") == configured_id:
+                target_group = g
+                break
+        if not target_group:
+            result["error"] = f"Configured image_identifier '{configured_id}' not found in cleanable groups"
+            return result
     else:
-        _log("Getting latest BUILT image group from database...")
-        ig_result = get_all_image_groups(host)
-        if not ig_result["success"]:
-            result["error"] = f"Failed to get image groups: {ig_result['error']}"
-            return result
+        # Auto-select latest cleanable image group (prefer BUILT, then any)
+        built_groups = [g for g in cleanable_groups if g["status"] == "BUILT"]
+        candidates = built_groups if built_groups else cleanable_groups
+        target_group = sorted(candidates, key=lambda x: x.get("created_at", ""), reverse=True)[0]
+        _log(f"Auto-selected image group: {target_group.get('id')} (status: {target_group.get('status')})")
 
-        built_groups = [g for g in ig_result["image_groups"] if g["status"] == "BUILT"]
-        if not built_groups:
-            result["error"] = "No BUILT image groups found. Nothing to clean."
-            return result
-
-        latest_group = sorted(
-            built_groups, key=lambda x: x.get("created_at", ""), reverse=True
-        )[0]
-        image_group_id = latest_group.get("id", "")
-        _log(f"Auto-selected latest BUILT image group: {image_group_id}")
-
+    image_group_id = target_group.get("id", "")
+    job_id = target_group.get("job_id", "")
     result["image_group_id"] = image_group_id
+    result["job_id"] = job_id
+    _log(f"Image group: {image_group_id}, Job ID: {job_id[:8]}...")
 
     _log(f"Getting child pipeline from parent pipeline #{pipeline_id}...")
     child_result = get_child_pipeline_id(host, pipeline_id)
@@ -954,6 +968,31 @@ def select_image_for_cleanup(host, pipeline_id: int, log_callback=None) -> Dict[
         _log(f"Selection job triggered: {play_result['status']}")
     else:
         _log(f"Job already in status: {job_status}")
+
+    # Wait for the selection job to complete before returning
+    _log("Waiting for selection job to complete...")
+    select_wait = 120  # 2 minutes
+    select_poll = 5
+    select_start = time.time()
+    while time.time() - select_start < select_wait:
+        jobs_check = get_pipeline_jobs_by_stage(host, target_pipeline_id, stage="select_image")
+        if jobs_check["success"]:
+            for j in jobs_check["jobs"]:
+                if j.get("id") == gitlab_job_id:
+                    status = j.get("status", "")
+                    if status in ("success", "failed", "canceled"):
+                        _log(f"Selection job finished: {status}")
+                        if status != "success":
+                            result["error"] = f"Selection job {status}"
+                            return result
+                        break
+            else:
+                time.sleep(select_poll)
+                continue
+            break  # Job completed successfully
+        elapsed = int(time.time() - select_start)
+        _log(f"[{elapsed}s] Selection job still running...")
+        time.sleep(select_poll)
 
     result["gitlab_job_id"] = gitlab_job_id
     result["success"] = True

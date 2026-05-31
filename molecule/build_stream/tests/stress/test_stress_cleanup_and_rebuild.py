@@ -222,7 +222,7 @@ def _run_single_build(host, log_callback=None) -> Dict[str, Any]:
             host, trigger_result["job_id"], stage_name,
             timeout=STAGE_POLL_TIMEOUT,
             poll_interval=STAGE_POLL_INTERVAL,
-            log_callback=lambda msg: print(f"      │ {msg}", flush=True),
+            log_callback=_log,
         )
         if not stage_result["success"]:
             result["error"] = f"Stage '{stage_name}' failed: {stage_result.get('error', 'Unknown')}"
@@ -248,7 +248,7 @@ def _run_single_build(host, log_callback=None) -> Dict[str, Any]:
             host, trigger_result["job_id"], stage_name,
             timeout=STAGE_POLL_TIMEOUT,
             poll_interval=STAGE_POLL_INTERVAL,
-            log_callback=lambda msg: print(f"      │ {msg}", flush=True),
+            log_callback=_log,
         )
         if not stage_result["success"]:
             result["error"] = f"Stage '{stage_name}' failed: {stage_result.get('error', 'Unknown')}"

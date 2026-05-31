@@ -119,6 +119,7 @@ from .vars import (
     GITLAB_API_VERSION,
     GITLAB_ROOT_TOKEN_FILE,
     CATALOG_FILE_PATH,
+    CATALOG_LOCAL_FILENAME,
     PXE_MAPPING_FILE_PATH,
     PIPELINE_TYPE_KEY,
     PIPELINE_TYPE_BUILD,
@@ -148,6 +149,7 @@ __all__ = [
     "ssh_to_gitlab",
     "clear_cache",
     "skip_if_build_stream_not_enabled",
+    "get_image_identifier",
     # API functions
     "check_build_stream_health",
     "get_catalog_roles",
@@ -229,6 +231,7 @@ __all__ = [
     "GITLAB_API_VERSION",
     "GITLAB_ROOT_TOKEN_FILE",
     "CATALOG_FILE_PATH",
+    "CATALOG_LOCAL_FILENAME",
     "PXE_MAPPING_FILE_PATH",
     "PIPELINE_TYPE_KEY",
     "PIPELINE_TYPE_BUILD",
