@@ -25,20 +25,7 @@ from automation_library.core import exec_psql_query, query_db_row
 from automation_library.core import POSTGRES_CONTAINER, POSTGRES_DB
 
 from .shared_func import get_postgres_user
-from ..vars.build_stream_vars import STAGE_STATE_COMPLETED
-
-
-# Expected tables in build_stream_db
-EXPECTED_TABLES: List[str] = [
-    "alembic_version",
-    "artifact_metadata",
-    "audit_events",
-    "idempotency_keys",
-    "image_groups",
-    "images",
-    "job_stages",
-    "jobs",
-]
+from ..vars.build_stream_vars import STAGE_STATE_COMPLETED, EXPECTED_TABLES
 
 
 def verify_postgres_tables(host) -> Dict[str, Any]:

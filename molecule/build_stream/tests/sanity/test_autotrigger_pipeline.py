@@ -945,3 +945,19 @@ def test_deploy_stage_restart_monitor(host):
 def test_deploy_stage_restart_db_verify(host):
     """Verify 'restart' stage status in database."""
     _run_deploy_stage_db_verify(host, "restart")
+
+
+@pytest.mark.sanity
+@pytest.mark.deploy_auto
+@pytest.mark.order(35)
+def test_deploy_stage_validate_monitor(host):
+    """Monitor 'validate' stage until completion."""
+    _run_deploy_stage_monitor(host, "validate")
+
+
+@pytest.mark.sanity
+@pytest.mark.deploy_auto
+@pytest.mark.order(36)
+def test_deploy_stage_validate_db_verify(host):
+    """Verify 'validate' stage status in database."""
+    _run_deploy_stage_db_verify(host, "validate")

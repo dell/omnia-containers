@@ -63,6 +63,7 @@ from automation_library.build_stream import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
     STRESS_BUILD_PIPELINE_COUNT,
+    STRESS_STOP_ON_FIRST_FAILURE,
 )
 
 
@@ -613,6 +614,14 @@ def test_stress_build_pipeline(host):
             f"{passed} passed, {failed} failed\n",
             flush=True
         )
+
+        if not iteration_result["success"] and STRESS_STOP_ON_FIRST_FAILURE:
+            print(
+                f"\n    ⚠ STOPPING: Iteration {i} failed and "
+                "STRESS_STOP_ON_FIRST_FAILURE is enabled.\n",
+                flush=True
+            )
+            break
 
     # =========================================================================
     # FINAL SUMMARY

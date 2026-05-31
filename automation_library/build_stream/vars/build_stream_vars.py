@@ -17,6 +17,9 @@ Build Stream Variables - Constants for build_stream automation.
 
 All runtime values (port, host_ip, credentials) are read dynamically from
 config files via core module functions — nothing is hardcoded here.
+
+For module-specific messages, see:
+- build_stream_msgs.py - Test names, log messages, assert messages
 """
 
 from typing import List
@@ -29,6 +32,8 @@ from typing import List
 BUILD_STREAM_HOST_IP_KEY: str = "build_stream_host_ip"
 BUILD_STREAM_PORT_KEY: str = "build_stream_port"
 BUILD_STREAM_HEALTH_PATH: str = "/health"
+BUILD_STREAM_API_VERSION: str = "v1"
+BUILD_STREAM_AUTH_TOKEN_PATH: str = "/api/v1/auth/token"
 
 # =============================================================================
 # PIPELINE STAGES (from GitLab CI/CD)
@@ -55,11 +60,30 @@ BUILD_PIPELINE_STAGES: List[str] = [
 DEPLOY_PIPELINE_STAGES: List[str] = [
     "deploy",
     "restart",
+    "validate",
 ]
 
 CLEANUP_PIPELINE_STAGES: List[str] = [
     "cleanup",
 ]
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+
+EXPECTED_TABLES: List[str] = [
+    "alembic_version",
+    "artifact_metadata",
+    "audit_events",
+    "idempotency_keys",
+    "image_groups",
+    "images",
+    "job_stages",
+    "jobs",
+]
+
+IMAGE_GROUP_STATUS_BUILT: str = "BUILT"
+IMAGE_GROUP_STATUS_CLEANED: str = "CLEANED"
 
 # =============================================================================
 # REGISTRY AND S3 CONFIGURATION
@@ -78,6 +102,7 @@ BOOT_IMAGE_ARTIFACTS_PER_ROLE: int = 3  # initramfs, vmlinuz, boot image
 # =============================================================================
 
 STRESS_BUILD_PIPELINE_COUNT: int = 50  # Number of build pipeline runs for stress test
+STRESS_STOP_ON_FIRST_FAILURE: bool = True  # Stop stress test on first failure
 
 # =============================================================================
 # JOB STATES (from build_stream_db.jobs)
@@ -105,6 +130,8 @@ STAGE_POLL_INTERVAL: int = 30  # seconds between stage status checks
 STAGE_POLL_TIMEOUT: int = 10800  # 3 hours max wait per stage (build stages can take 2+ hours)
 PIPELINE_POLL_INTERVAL: int = 5  # seconds between pipeline status checks
 PIPELINE_POLL_TIMEOUT: int = 180  # 3 minutes to detect pipeline start
+JOB_WAIT_TIMEOUT: int = 120  # seconds to wait for new job in database
+CLEANUP_WAIT_TIMEOUT: int = 300  # seconds to wait for cleanup completion
 
 # =============================================================================
 # GITLAB API CONFIGURATION
@@ -113,3 +140,15 @@ PIPELINE_POLL_TIMEOUT: int = 180  # 3 minutes to detect pipeline start
 GITLAB_API_VERSION: str = "v4"
 GITLAB_ROOT_TOKEN_FILE: str = "/root/.gitlab_root_token"
 CATALOG_FILE_PATH: str = "catalog_rhel.json"
+PXE_MAPPING_FILE_PATH: str = "input/pxe_mapping_file.csv"
+
+# =============================================================================
+# GITLAB CI/CD VARIABLE KEYS
+# =============================================================================
+
+BSM_CLIENT_ID_KEY: str = "BSM_CLIENT_ID"
+BSM_CLIENT_SECRET_KEY: str = "BSM_CLIENT_SECRET"
+PIPELINE_TYPE_KEY: str = "PIPELINE_TYPE"
+PIPELINE_TYPE_BUILD: str = "build"
+PIPELINE_TYPE_DEPLOY: str = "deploy"
+PIPELINE_TYPE_CLEANUP: str = "cleanup"
