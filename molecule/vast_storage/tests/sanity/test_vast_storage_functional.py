@@ -54,10 +54,6 @@ if _PROJECT_ROOT not in sys.path:
 from automation_library.core import (
     TestLogger,
     run_in_container,
-    run_on_remote_node,
-    load_omnia_test_config,
-    get_nodes_info,
-    get_functional_groups_from_pxe_mapping,
     is_software_enabled,
 )
 from automation_library.core import STORAGE_CONFIG_PATH
@@ -69,7 +65,6 @@ from automation_library.slurm.functions.slurm_func import (
     get_login_compiler_nodes,
 )
 from automation_library.slurm.functions.slurm_ldap_func import (
-    _get_ldap_credentials,
     _get_all_ldap_credentials,
     _run_as_ldapuser,
 )

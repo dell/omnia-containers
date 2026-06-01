@@ -18,14 +18,14 @@ VAST Storage automation verification functions.
 Spec: TSPEC-STOR-2026-001 v1.0.0
 """
 
+import json
 import re
 import time
-import yaml
-import json
-from typing import Dict, List, Tuple, Optional, Any
-from pathlib import Path
+from typing import List, Tuple
 
-from automation_library.core import TestLogger, get_test_output
+import yaml
+
+from automation_library.core import TestLogger
 from ..vars import (
     COMPUTE_NODE_FUNCTIONAL_GROUP,
     CONTROLLER_NODE_FUNCTIONAL_GROUP,
@@ -45,7 +45,6 @@ from ..vars import (
     POWERSCALE_MOUNT_POINTS,
     VAST_KERNEL_MODULE,
     VAST_CTL_COMMAND,
-    RDMA_LATENCY_TARGET_US,
     MOUNT_RETRY_COUNT,
 )
 from ..messages import TEST_LOG_MSGS, TEST_ASSERT_MSGS, ERROR_MESSAGES
