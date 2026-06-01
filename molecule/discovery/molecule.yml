@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
 # =============================================================================
 #
 # This module runs discovery.yml playbook inside omnia_core container
-# and verifies the discovery deployment was successful.
+# and verifies the BMC discovery via OME was successful.
 #
 # PREREQUISITES:
 # --------------
 #   - omnia_core container running (omnia.sh --install completed)
 #   - prepare_oim.yml completed
-#   - pxe_mapping_file.csv configured with nodes
+#   - discovery_config.yml configured with OME IP
+#   - OME credentials in omnia_config_credentials.yml
 #
 # USAGE:
 # ------
@@ -33,6 +34,7 @@
 #
 # Configuration:
 #   - omnia_test_config.yml: OIM server connection settings
+#   - discovery_config.yml: OME IP and enable_bmc_discovery flag
 #
 # =============================================================================
 

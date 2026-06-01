@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,30 +14,17 @@
 
 ---
 # =============================================================================
-# Molecule Create - Setup inventory and verify connectivity
+# Molecule Create - Setup dynamic inventory for discovery testing
 # =============================================================================
 
-- name: Create - Setup OIM server inventory
+- name: Create - Load configuration and setup inventory
   hosts: localhost
   connection: local
   gather_facts: false
 
   vars:
-    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
 
   tasks:
     - name: Setup dynamic inventory
       ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
-
-    - name: Wait for SSH to be available on OIM server
-      ansible.builtin.wait_for:
-        host: "{{ omnia_test_config.oim_server_ip }}"
-        port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
-        timeout: 30
-      when: not _oim_local_mode
-
-    - name: OIM server ready
-      ansible.builtin.debug:
-        msg: >-
-          OIM server: {{ 'localhost (local mode)' if _oim_local_mode
-          else omnia_test_config.oim_server_ip ~ ' (reachable via SSH)' }}
