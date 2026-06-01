@@ -597,7 +597,7 @@ def test_ldms_sampler_plugins(host):
 # LDAP TESTS (if enabled in software_config.json)
 # =============================================================================
 
-@pytest.mark.sanitytest
+@pytest.mark.sanity
 @pytest.mark.order(16)
 def test_ldap_slapd_configuration(host):
     """
@@ -628,7 +628,7 @@ def test_ldap_slapd_configuration(host):
         assert False, f"LDAP test failed: {result['error']}"
 
 
-@pytest.mark.sanitytest
+@pytest.mark.sanity
 @pytest.mark.order(17)
 def test_ldap_user_login_from_oim(host):
     """
