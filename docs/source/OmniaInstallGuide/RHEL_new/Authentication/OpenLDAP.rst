@@ -70,14 +70,14 @@ Perform the following steps to configure OpenLDAP as a proxy server on the omnia
         database        meta
         suffix          "dc=phantom,dc=test"
         rootdn          cn=admin,dc=phantom,dc=test
-        rootpw          Dell1234
+        rootpw          Omnia123
 
         uri             "ldap://10.5.0.104:389/dc=phantom,dc=test"
         suffixmassage   "dc=phantom,dc=test" "dc=perf,dc=test"
         idassert-bind
          bindmethod=simple
          binddn="cn=admin,dc=perf,dc=test"
-         credentials="Dell1234"
+         credentials="Omnia123"
          flags=override
          mode=none
         TLSCACertificateFile    /etc/openldap/certs/ldapserver.crt
