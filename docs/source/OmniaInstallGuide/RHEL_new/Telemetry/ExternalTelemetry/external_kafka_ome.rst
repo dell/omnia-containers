@@ -137,7 +137,9 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 2. Navigate to the **Explore** tab.
 
-3. Run the following queries to verify OME metrics are being received::
+3. Run the following queries to verify OME metrics are being received:
+
+  .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
            
    * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
 
@@ -148,7 +150,6 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
       .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
 
-   .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
 
 4. Verify that OME-related metrics are displayed in the results.
 
@@ -172,3 +173,4 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 4. Verify that OME-related logs are displayed in the results.
 
 .. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > logs_enabled: true``) for logs data to flow from Kafka to VictoriaLogs.
+
