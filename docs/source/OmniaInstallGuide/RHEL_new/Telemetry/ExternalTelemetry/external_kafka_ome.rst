@@ -138,18 +138,17 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 2. Navigate to the **Explore** tab.
 
 3. Run the following queries to verify OME metrics are being received::
-
-   .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
-
-            
-      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
+           
+   * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
 
       .. image:: ../../../../images/external_kafka_ome_metrics_health.png
 
       
-      * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
+   * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
 
       .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
+
+   .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
 
 4. Verify that OME-related metrics are displayed in the results.
 
@@ -166,7 +165,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 3. In the query field, run the following query to filter for OME logs::
 
-   ``_msg_topic:ome.auditlogs``: This query fetches audit logs from OME
+   * ``_msg_topic:ome.auditlogs``: This query fetches audit logs from OME.
    
    .. image:: ../../../../images/external_kafka_ome_logs_audit.png
 
