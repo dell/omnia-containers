@@ -153,7 +153,7 @@ Procedure
    
    Repeat this process for all functional groups, ensuring each server is assigned to the correct static group based on its intended role in the Omnia cluster.
 
-.. note:: If custom static groups are not created in OME, all discovered nodes in the PXE mapping file will be considered as ``slurm_node_aarch64`` by default.
+.. note:: When you run the discovery.yml playbook, devices that are not assigned to any Omnia-supported custom static group will be considered as ``slurm_node_aarch64`` in the auto-generated PXE mapping file.
 
 4. After creating the static groups in OME, configure the ``discovery_config.yml`` file with OME connection details and discovery parameters. The following table lists the parameters for ``discovery_config.yml``:
 
@@ -168,7 +168,7 @@ Procedure
     cd /omnia/discovery
     ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
-The playbook will automatically populate the **pxe_mapping_file.csv** in the ``/opt/omnia/input/project_default/`` directory with the discovered nodes from OME. The user can verify and edit the mapping file if necessary.
+The ``discovery.yml`` file will automatically create the PXE mapping file in the ``/opt/omnia/input/project_default/`` directory. For example **bmc_pxe_mapping_file_<timestamp>.csv** with the discovered nodes from OME. The user can verify and edit the mapping file if necessary.
 
 
 .. _group-attributes-section:
