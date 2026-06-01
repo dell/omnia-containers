@@ -1776,7 +1776,7 @@ def verify_gpu_hello_job(host) -> Dict[str, Any]:
     gpu_check = _check_gpu_nodes(host)
     if not gpu_check.get("has_gpu_nodes"):
         return {"success": True, "skipped": True,
-                "message": f"No GPU nodes found in cluster, skipping GPU test",
+                "message": "No GPU nodes found in cluster, skipping GPU test",
                 "job_id": "", "job_state": "", "job_output": "",
                 "submit_node": "", "output_verified": False, "error": ""}
 
@@ -1945,7 +1945,7 @@ def verify_gpu_mem_stress_job(host) -> Dict[str, Any]:
     gpu_check = _check_gpu_nodes(host)
     if not gpu_check.get("has_gpu_nodes"):
         return {"success": True, "skipped": True,
-                "message": f"No GPU nodes found in cluster, skipping GPU memory stress test",
+                "message": "No GPU nodes found in cluster, skipping GPU memory stress test",
                 "job_id": "", "job_state": "", "job_output": "",
                 "submit_node": "", "output_verified": False, "error": ""}
 

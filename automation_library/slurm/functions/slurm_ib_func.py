@@ -390,7 +390,6 @@ def verify_ib_mtu(host) -> Dict[str, Any]:
         if iface:
             cmd = _safe_run_on_remote_node(host, f"ip link show {iface}", node_ip)
             result["ip_link_output"] = cmd.stdout.strip()
-            import re
             match = re.search(r"mtu\s+(\d+)", cmd.stdout)
             if match:
                 mtu = int(match.group(1))

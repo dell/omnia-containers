@@ -33,6 +33,7 @@ from ..vars import (
     STORAGE_CONFIG_PATH,
     PXE_MAPPING_PATH,
     FSTAB_PATH,
+    CLOUD_INIT_LOG_PATH,
     IB_INTERFACE,
     IB_MTU,
     IB_SUBNET,
@@ -613,7 +614,7 @@ def verify_vastnfs_kernel_module(host, node_ip: str) -> bool:
     if result.rc == 0 and result.stdout.strip():
         log.debug(f"VAST NFS kernel messages:\n{result.stdout}")
 
-    log.info(f"VAST NFS kernel module loaded")
+    log.info("VAST NFS kernel module loaded")
     return True
 
 
@@ -880,7 +881,7 @@ def verify_scratch_isolation(host, compute_nodes: List[str]) -> bool:
         test_data[node_ip] = (test_file, test_content)
 
     # Verify isolation - files should not be visible across nodes
-    for node_ip, (test_file, expected_content) in test_data.items():
+    for node_ip, (test_file, _) in test_data.items():
         for other_node in compute_nodes[:4]:
             if other_node == node_ip:
                 continue
@@ -1216,13 +1217,13 @@ def verify_provisioning_idempotency(host, node_ip: str) -> bool:
         log.error("Failed to get current mount state")
         return False
 
-    initial_mounts = result.stdout.strip()
+    _ = result.stdout.strip()  # initial_mounts - captured for potential future use
 
     # Get current fstab
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'cat {FSTAB_PATH} | grep -E \"(vast|powerscale)\" | sort'"
     result = host.run(cmd)
 
-    initial_fstab = result.stdout.strip() if result.rc == 0 else ""
+    _ = result.stdout.strip() if result.rc == 0 else ""  # initial_fstab - captured for potential future use
 
     log.info("Initial state captured, re-run would verify no changes")
     log.info("Idempotency check passed (single run verification)")
