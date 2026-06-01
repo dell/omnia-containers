@@ -103,11 +103,8 @@ from automation_library.slurm.functions.slurm_ib_func import (
     verify_ib_subnet_mask,
     verify_ib_ip_in_subnet,
     verify_ib_ping,
-    verify_ib_bandwidth,
-    verify_ib_latency,
 )
 from automation_library.slurm.functions.slurm_ldap_func import (
-    verify_ldapuser_login,
     verify_ldapuser_blocked_on_slurm_nodes,
     verify_pam_from_login_node,
     verify_pam_from_login_compiler_node,

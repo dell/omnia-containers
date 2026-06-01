@@ -131,7 +131,7 @@ from .messages import (
 __all__ = [
     # Node functions
     "get_compute_nodes",
-    "get_controller_nodes", 
+    "get_controller_nodes",
     "get_login_nodes",
     "get_all_accessible_nodes",
     # Configuration

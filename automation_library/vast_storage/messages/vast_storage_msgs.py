@@ -73,7 +73,7 @@ TEST_NAMES = {
     "tc_085_swap_configuration": "TC-085: Swap Space Configuration",
     "tc_086_vast_enabled_flag": "TC-086: VAST Enabled Flag",
     "tc_087_duplicate_mount_validation": "TC-087: Duplicate Mount Path Validation",
-    
+
     # Negative/Error Tests
     "tc_010_scratch_isolation_failure": "TC-010: Scratch Isolation Failure Handling",
     "tc_024_invalid_yaml": "TC-024: Invalid YAML Handling",
@@ -84,16 +84,16 @@ TEST_NAMES = {
     "tc_071_misconfigured_client": "TC-071: Misconfigured Client Boot Failure",
     "tc_072_powerscale_timeout": "TC-072: PowerScale Mount Timeout",
     "tc_073_ib_ip_correlation": "TC-073: IB_IP Correlation Validation",
-    
+
     # Performance Tests
     "tc_027_rdma_latency": "TC-027: RDMA Latency Performance",
     "tc_076_aggregate_throughput": "TC-076: Aggregate Throughput",
     "tc_077_iops_performance": "TC-077: IOPS Performance",
-    
+
     # Idempotency Tests
     "tc_074_provisioning_idempotency": "TC-074: Provisioning Idempotency",
     "tc_075_mount_state_idempotency": "TC-075: Mount State Idempotency",
-    
+
     # Compatibility Tests
     "tc_084_rhel_compatibility": "TC-084: RHEL Kernel Compatibility",
 }
@@ -107,7 +107,7 @@ TEST_LOG_MSGS = {
     "setup_complete": "Test setup completed successfully",
     "teardown_start": "Starting test teardown",
     "teardown_complete": "Test teardown completed",
-    
+
     # Verification messages
     "verifying_config": "Verifying storage configuration: {config_file}",
     "checking_mount": "Checking mount point: {mount_point}",
@@ -117,26 +117,26 @@ TEST_LOG_MSGS = {
     "validating_dns": "Validating DNS resolution for {fqdn}",
     "checking_service": "Checking service status: {service}",
     "measuring_performance": "Measuring {metric} performance",
-    
+
     # Node operations
     "collecting_nodes": "Collecting nodes with functional group: {group}",
     "connecting_node": "Connecting to node: {node_ip}",
     "executing_command": "Executing command on {node}: {command}",
     "node_accessible": "Node {node_ip} is accessible",
     "node_inaccessible": "Node {node_ip} is not accessible: {error}",
-    
+
     # Mount operations
     "mount_attempt": "Attempting to mount {backend} at {mount_point}",
     "mount_success": "Successfully mounted {mount_point}",
     "mount_failed": "Failed to mount {mount_point}: {error}",
     "unmount_attempt": "Attempting to unmount {mount_point}",
     "unmount_success": "Successfully unmounted {mount_point}",
-    
+
     # Performance measurements
     "latency_measured": "Measured latency: {avg_us} µs (avg), {p99_us} µs (p99)",
     "throughput_measured": "Measured throughput: {throughput_gb} GB/s",
     "iops_measured": "Measured IOPS: {iops}",
-    
+
     # Error handling
     "error_detected": "Error detected: {error}",
     "retry_attempt": "Retry attempt {attempt}/{max_attempts}",
@@ -154,14 +154,14 @@ TEST_ASSERT_MSGS = {
     "backend_disabled": "{backend} should be disabled for {role}",
     "config_valid": "Storage configuration should be valid YAML",
     "config_section_present": "Configuration section '{section}' should be present",
-    
+
     # Network assertions
     "ib_interface_configured": "IB interface {interface} should be configured",
     "ib_mtu_correct": "IB MTU should be {expected_mtu}, got {actual_mtu}",
     "ib_ip_assigned": "IB interface should have IP in subnet {subnet}",
     "ib_link_active": "IB link should be active",
     "port_reachable": "Port {port} should be reachable on {host}",
-    
+
     # Mount assertions
     "mount_exists": "Mount point {mount_point} should exist",
     "mount_active": "Mount {mount_point} should be active",
@@ -169,38 +169,38 @@ TEST_ASSERT_MSGS = {
     "mount_protocol": "Mount should use protocol: {protocol}",
     "fstab_entry": "fstab should contain entry for {mount_point}",
     "systemd_unit_active": "Systemd mount unit {unit} should be active",
-    
+
     # Module/Service assertions
     "module_loaded": "Kernel module {module} should be loaded",
     "rpm_installed": "RPM package {package} should be installed",
     "service_running": "Service {service} should be running",
     "command_available": "Command {command} should be available",
-    
+
     # Permission assertions
     "file_ownership": "File {path} should be owned by {user}:{group}",
     "file_permissions": "File {path} should have permissions {mode}",
     "write_access": "User {user} should have write access to {path}",
     "no_write_access": "User {user} should not have write access to {path}",
-    
+
     # Isolation assertions
     "scratch_isolated": "Scratch directory should be isolated per node",
     "tmp_isolated": "/tmp should be isolated per node",
     "no_data_leakage": "No data leakage between nodes",
-    
+
     # Performance assertions
     "latency_within_target": "Latency {actual} µs should be <= {target} µs",
     "throughput_meets_target": "Throughput {actual} GB/s should be >= {target} GB/s",
     "iops_meets_target": "IOPS {actual} should be >= {target}",
     "boot_time_acceptable": "Boot time increase {percent}% should be <= {tolerance}%",
-    
+
     # DNS assertions
     "dns_resolves": "FQDN {fqdn} should resolve to IB subnet",
     "dns_ip_range": "Resolved IP {ip} should be in range {subnet}",
-    
+
     # Idempotency assertions
     "state_unchanged": "System state should be unchanged after re-run",
     "mounts_consistent": "Mount state should be consistent across reboots",
-    
+
     # Error handling assertions
     "error_logged": "Error should be logged in {log_file}",
     "recovery_successful": "Recovery from {error} should be successful",

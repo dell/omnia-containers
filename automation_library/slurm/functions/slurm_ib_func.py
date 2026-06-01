@@ -41,9 +41,6 @@ import time
 from typing import Any, Dict, List
 
 from automation_library.core import (
-    get_nodes_info,
-    get_functional_groups_from_pxe_mapping,
-    run_in_container,
     SSH_OPTS,
     OMNIA_CORE_CONTAINER,
 )
