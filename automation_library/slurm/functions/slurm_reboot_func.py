@@ -163,7 +163,7 @@ def _reboot_all_nodes_parallel(host, nodes: List[Dict[str, Any]]) -> List[Dict[s
             "initiated": reboot_result["success"],
             "error": reboot_result.get("error", ""),
         })
-    
+
     return results
 
 
