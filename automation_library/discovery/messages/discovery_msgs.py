@@ -13,239 +13,128 @@
 # limitations under the License.
 
 """
-Discovery Module - Messages.
+Discovery Module Messages.
 
-Test names, log messages, and assertion messages for discovery tests.
+User-facing messages for discovery verification tests.
 """
-
-from typing import Dict
 
 # =============================================================================
 # TEST NAMES
 # =============================================================================
 
-TEST_NAMES: Dict[str, str] = {
-    # Build stream job stage (first test)
-    "build_stream_job_stage": (
-        "Verify build_stream pipeline stage '{stage}' completed successfully"
-    ),
-    # Common tests
-    "nodes_booted": "Verify all cluster nodes are booted",
-    "passwordless_ssh": "Verify passwordless SSH to all nodes",
-    "hostname_sync": "Verify hostnames match PXE mapping",
-
-    # Slurm tests
-    "slurm_services": "Verify Slurm services running on all nodes",
-    "cross_node_ssh": "Verify passwordless SSH across Slurm nodes",
-    "sinfo_nodes": "Verify sinfo shows all compute nodes",
-    "openmpi_installed": "Verify OpenMPI installation",
-    "ucx_installed": "Verify UCX installation",
-
-    # Discovery output verification tests
-    "bss_templates_created": "Verify BSS templates created per functional group",
-    "cloudinit_templates_created": "Verify cloud-init templates created per functional group",
-
-    # K8s tests
-    "k8s_nodes_ready": "Verify all K8s nodes are Ready",
-
-    # Package verification tests
-    "node_packages": "Verify all required packages installed on all nodes",
-
-    # PAM session termination
-    "pam_session_termination": "Verify PAM slurm_adopt session termination behavior",
+TEST_NAMES = {
+    "bmc_pxe_mapping_created": "Verify BMC PXE mapping file created with timestamp",
+    "pxe_mapping_columns": "Verify PXE mapping file has required columns",
+    "functional_groups_supported": "Verify all functional groups are Omnia-supported",
+    "ip_correlation": "Verify IP correlation (ADMIN_IP/IB_IP <-> BMC_IP)",
+    "parent_service_tag": "Verify PARENT_SERVICE_TAG rules",
+    "ome_functional_groups": "Verify OME custom groups match PXE mapping",
+    "ome_unassigned_devices": "Verify OME devices assigned to static groups",
+    "admin_mac_validation": "Verify ADMIN_MAC matches OME first active non-iDRAC NIC",
+    "ib_nic_name_validation": "Verify IB_NIC_NAME matches OME first active InfiniBand NIC",
 }
 
 # =============================================================================
 # LOG MESSAGES
 # =============================================================================
 
-TEST_LOG_MSGS: Dict[str, str] = {
-    # Build stream job stage
-    "build_stream_disabled_skip": (
-        "build_stream is DISABLED — skipping job stage validation"
-    ),
-    "build_stream_job_checking": (
-        "Checking build_stream stage '{stage}' (source: {source})"
-    ),
-    "build_stream_job_ok": (
-        "Stage '{stage}' COMPLETED — job UUID: {job_id} (source: {source})"
-    ),
-    "build_stream_job_failed": (
-        "Stage '{stage}' is '{state}' — expected COMPLETED (job: {job_id})"
-    ),
-    # Common
-    "nodes_booted_ok": "All {count} nodes are booted and reachable",
-    "nodes_booted_fail": "{failed}/{total} nodes not reachable",
-    "ssh_ok": "Passwordless SSH working to all {count} nodes",
-    "ssh_fail": "SSH failed for {failed} nodes",
-    "hostname_ok": "All hostnames match PXE mapping",
-    "hostname_fail": "{count} hostnames do not match",
+TEST_LOG_MSGS = {
+    # BMC PXE mapping
+    "bmc_pxe_mapping_found": "Found BMC PXE mapping file: {filename} (timestamp: {timestamp})",
+    "bmc_pxe_mapping_not_found": "No BMC PXE mapping file found with timestamp",
+    "bmc_pxe_mapping_rows": "BMC PXE mapping contains {count} rows",
 
-    # Slurm
-    "services_ok": "All services running on {node_type} nodes",
-    "services_fail": "Services not running: {details}",
-    "cross_ssh_ok": "Cross-node SSH working for all {count} pairs",
-    "cross_ssh_fail": "Cross-node SSH failed for {count} pairs",
-    "sinfo_ok": "sinfo shows all {count} compute nodes",
-    "sinfo_fail": "sinfo missing {count} nodes",
-    "openmpi_ok": "OpenMPI installed: {version}",
-    "openmpi_fail": "OpenMPI not found",
-    "ucx_ok": "UCX installed: {version}",
-    "ucx_fail": "UCX not found",
+    # Column validation
+    "columns_valid": "All {count} required columns present",
+    "columns_missing": "Missing columns: {columns}",
+    "columns_extra": "Extra columns found: {columns}",
 
-    # Discovery output verification
-    "bss_templates_ok": "BSS templates generated for all {count} functional groups",
-    "bss_templates_fail": "BSS templates missing for {missing} functional groups",
-    "cloudinit_templates_ok": "Cloud-init templates generated for all {count} functional groups",
-    "cloudinit_templates_fail": "Cloud-init templates missing for {missing} functional groups",
+    # Functional groups
+    "groups_valid": "All {count} functional groups are Omnia-supported",
+    "groups_unsupported": "Unsupported functional groups: {groups}",
+    "groups_found": "Found functional groups: {groups}",
 
-    # K8s
-    "k8s_nodes_ok": "All {count} K8s nodes are Ready",
-    "k8s_nodes_fail": "{not_ready} nodes not Ready",
+    # IP correlation
+    "ip_correlation_valid": "All {count} rows have valid IP correlation",
+    "ip_correlation_invalid": "{count} rows have IP correlation issues",
 
-    # Package verification
-    "packages_ok": "All required packages installed on all {count} nodes",
-    "packages_fail": "{failed}/{total} nodes have missing packages",
+    # Parent service tag
+    "parent_tag_valid": "All {count} rows have valid PARENT_SERVICE_TAG",
+    "parent_tag_invalid": "{count} rows have PARENT_SERVICE_TAG issues",
 
-    # PAM session termination
-    "pam_session_ok": "PAM adoption and auto-logout verified",
-    "pam_session_fail": "PAM session termination not working",
+    # OME connection
+    "ome_connecting": "Connecting to OME at {ip}",
+    "ome_connected": "Successfully connected to OME",
+    "ome_connection_failed": "Failed to connect to OME: {error}",
+
+    # OME groups
+    "ome_groups_found": "Found {count} custom groups in OME",
+    "ome_group_checking": "Checking OME group: {name}",
+    "ome_group_not_found": "Functional group '{name}' not found in OME custom groups",
+    "ome_group_match": "Group '{name}' matches: {matched}/{total} IPs",
+    "ome_group_mismatch": "Group '{name}' IP mismatch - PXE: {pxe_count}, OME: {ome_count}",
+
+    # Verification results
+    "all_groups_verified": "All {count} functional groups verified successfully",
+    "groups_verification_failed": "{failed}/{total} functional groups failed verification",
+
+    # OME unassigned devices
+    "ome_all_devices_count": "Total devices in OME: {count}",
+    "ome_assigned_devices_count": "Devices assigned to static groups: {count}",
+    "ome_unassigned_devices_count": "Devices NOT assigned to any static group: {count}",
+    "ome_unassigned_default_group": "These devices will get default functional group: slurm_node_aarch64",
 }
 
 # =============================================================================
 # ASSERTION MESSAGES
 # =============================================================================
 
-TEST_ASSERT_MSGS: Dict[str, str] = {
-    "nodes_not_booted": (
-        "Not all nodes are booted.\n"
-        "Failed: {failed_nodes}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check node power status via BMC\n"
-        "  2. Verify network connectivity\n"
-        "  3. Check PXE mapping admin IPs"
+TEST_ASSERT_MSGS = {
+    "bmc_pxe_mapping_not_created": (
+        "BMC PXE mapping file with timestamp not found.\n"
+        "Expected: bmc_pxe_mapping_file_<timestamp>.csv in {path}\n"
+        "Discovery playbook may not have run successfully."
     ),
-
-    "ssh_failed": (
-        "Passwordless SSH failed.\n"
-        "Failed: {failed_nodes}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Re-run discovery.yml to setup SSH keys\n"
-        "  2. Check SSH service on nodes\n"
-        "  3. Verify firewall allows SSH"
+    "columns_missing": (
+        "PXE mapping file missing required columns.\n"
+        "Missing: {missing}\n"
+        "Present: {present}\n"
+        "Discovery playbook may have generated incomplete output."
     ),
-
-    "hostname_mismatch": (
-        "Hostnames do not match PXE mapping.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Update PXE mapping or node hostnames\n"
-        "  2. Re-run discovery.yml"
+    "unsupported_functional_groups": (
+        "PXE mapping contains unsupported functional groups.\n"
+        "Unsupported: {unsupported}\n"
+        "Supported groups: {supported}\n"
+        "Check discovery configuration or OME group names."
     ),
-
-    "services_failed": (
-        "Services not running.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check service status: systemctl status <service>\n"
-        "  2. Check logs: journalctl -u <service>\n"
-        "  3. Re-run discovery.yml"
+    "ip_correlation_failed": (
+        "IP correlation validation failed.\n"
+        "Invalid rows: {count}\n"
+        "Example: {example}\n"
+        "ADMIN_IP should be admin_subnet[0:2] + bmc_ip[2:4]"
     ),
-
-    "cross_ssh_failed": (
-        "Cross-node SSH failed.\n"
-        "Failed pairs: {details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Verify SSH keys on all nodes\n"
-        "  2. Re-run discovery.yml"
+    "parent_service_tag_failed": (
+        "PARENT_SERVICE_TAG validation failed.\n"
+        "Invalid rows: {count}\n"
+        "Example: {example}\n"
+        "Only slurm_node groups should have PARENT_SERVICE_TAG referencing service_kube_node."
     ),
-
-    "sinfo_failed": (
-        "sinfo missing nodes.\n"
-        "Expected: {expected}\n"
-        "Missing: {missing}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check slurmd on missing nodes\n"
-        "  2. Check slurm.conf NodeName entries"
+    "ome_connection_failed": (
+        "Failed to connect to OME at {ip}.\n"
+        "Error: {error}\n"
+        "Check OME IP and credentials in discovery_config.yml and omnia_config_credentials.yml"
     ),
-
-    "openmpi_failed": (
-        "OpenMPI not installed.\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check NFS mount on login_compiler nodes\n"
-        "  2. Run install_openmpi.sh manually"
+    "ome_group_not_found": (
+        "Functional group '{name}' not found in OME custom groups.\n"
+        "Available OME groups: {available}\n"
+        "Ensure the group exists in OME under Custom Groups."
     ),
-
-    "ucx_failed": (
-        "UCX not installed.\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check NFS mount on login_compiler nodes\n"
-        "  2. Run install_ucx.sh manually"
-    ),
-
-    "k8s_nodes_failed": (
-        "K8s nodes not Ready.\n"
-        "Not Ready: {not_ready}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check kubelet: systemctl status kubelet\n"
-        "  2. Check node conditions: kubectl describe node <name>"
-    ),
-
-    "packages_failed": (
-        "Required packages missing on nodes.\n"
-        "Failed nodes: {failed_nodes}\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check functional_groups_config.yml: "
-        "podman exec omnia_core cat /opt/omnia/.data/functional_groups_config.yml\n"
-        "  2. Verify package installation on node: ssh root@<node> rpm -qa | grep <pkg>\n"
-        "  3. Re-run discovery/provision playbook to reinstall packages\n"
-        "  4. Check package availability in local_repo"
-    ),
-
-    "bss_templates_failed": (
-        "BSS templates not created for all functional groups.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Re-run discovery.yml\n"
-        "  2. Check BSS boot directory inside container\n"
-        "  3. Verify PXE mapping functional groups"
-    ),
-
-    "cloudinit_templates_failed": (
-        "Cloud-init templates not created for all functional groups.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Re-run discovery.yml\n"
-        "  2. Check cloud-init template directory inside container\n"
-        "  3. Verify PXE mapping functional groups"
-    ),
-
-    "pam_session_failed": (
-        "PAM slurm_adopt session termination not working.\n"
-        "{details}\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check pam_slurm_adopt configuration on compute nodes\n"
-        "  2. Verify slurmctld and slurmd are running\n"
-        "  3. Check /etc/pam.d/sshd on compute nodes"
-    ),
-
-    "build_stream_job_stage_failed": (
-        "BUILD STREAM STAGE VALIDATION FAILED\n"
-        "Stage   : {stage}\n"
-        "Job ID  : {job_id}\n"
-        "Status  : {state}\n"
-        "Expected: COMPLETED\n\n"
-        "WHAT HAPPENED:\n"
-        "  The build_stream pipeline stage did not complete successfully.\n"
-        "  Discovery verification depends on the pipeline completing first.\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check build_stream API logs on the OIM server\n"
-        "  2. Query DB: podman exec omnia_postgres psql -U omnia -d build_stream_db\n"
-        "            -c \"SELECT * FROM job_stages WHERE job_id = '{job_id}';\"\n"
-        "  3. If FAILED, re-trigger the build_stream pipeline\n"
-        "  4. If still RUNNING, wait for it to complete\n"
-        "  5. To override: set build_stream_job_id in omnia_test_config.yml"
+    "ome_group_ip_mismatch": (
+        "IP mismatch for functional group '{name}'.\n"
+        "PXE mapping BMC IPs: {pxe_ips}\n"
+        "OME group device IPs: {ome_ips}\n"
+        "Missing in OME: {missing}\n"
+        "Extra in OME: {extra}"
     ),
 }
 
@@ -253,14 +142,9 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
 # SKIP MESSAGES
 # =============================================================================
 
-SKIP_MSGS: Dict[str, str] = {
-    "openmpi_not_enabled": "OpenMPI is not enabled in software_config.json",
-    "ucx_not_enabled": "UCX is not enabled in software_config.json",
-    "openldap_not_enabled": "OpenLDAP is not enabled in software_config.json",
-    "ldms_not_enabled": "LDMS is not enabled in software_config.json",
-    "no_nodes_for_packages": "No nodes found in PXE mapping for package verification",
-    "no_slurm_nodes": "No Slurm nodes found in PXE mapping",
-    "no_k8s_nodes": "No K8s nodes found in PXE mapping",
-    "skip_detail_not_enabled": "Test skipped - {software} not enabled",
-    "skip_detail_no_nodes": "Test skipped - no {node_type} nodes",
+SKIP_MSGS = {
+    "bmc_discovery_disabled": "BMC discovery not enabled (enable_bmc_discovery: false)",
+    "no_bmc_pxe_mapping": "No BMC PXE mapping file found",
+    "no_rows_in_mapping": "PXE mapping file has no data rows",
+    "ome_credentials_missing": "OME credentials not found in omnia_config_credentials.yml",
 }

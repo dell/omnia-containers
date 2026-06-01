@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Discovery Module Messages."""
+"""Provision Messages Module."""
 
-from .discovery_msgs import (
+from .provision_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,

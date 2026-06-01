@@ -237,7 +237,7 @@ def verify_postgres_db_tables(host) -> Dict[str, Any]:
     missing_tables = [t for t in POSTGRES_EXPECTED_TABLES if t not in found_tables]
     extra_tables = [t for t in found_tables if t not in POSTGRES_EXPECTED_TABLES]
 
-    success = len(missing_tables) == 0
+    success = len(missing_tables) == 0 and len(extra_tables) == 0
     details_lines = [
         f"Database: {POSTGRES_DB_NAME} | Container: {POSTGRES_CONTAINER_NAME}",
         f"Tables: {len(found_tables)} found, {len(POSTGRES_EXPECTED_TABLES)} expected",
@@ -248,15 +248,19 @@ def verify_postgres_db_tables(host) -> Dict[str, Any]:
     if extra_tables:
         details_lines.append(f"  Extra: {', '.join(extra_tables)}")
 
+    error_parts = []
+    if missing_tables:
+        error_parts.append(f"Missing: {', '.join(missing_tables)}")
+    if extra_tables:
+        error_parts.append(f"Extra: {', '.join(extra_tables)}")
+
     return {
         "success": success,
-        "status": "ok" if success else "missing_tables",
+        "status": "ok" if success else "table_mismatch",
         "skipped": False,
         "found_tables": found_tables,
         "missing_tables": missing_tables,
+        "extra_tables": extra_tables,
         "details": "\n".join(details_lines),
-        "error": (
-            f"Missing tables in {POSTGRES_DB_NAME}: {', '.join(missing_tables)}"
-            if missing_tables else None
-        ),
+        "error": f"{POSTGRES_DB_NAME}: {'; '.join(error_parts)}" if error_parts else None,
     }

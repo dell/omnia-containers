@@ -20,7 +20,7 @@ job tracking in the omnia_postgres database.
 
 All logic for resolving a job UUID (from user override or latest DB row)
 and validating a stage completion lives here so that build_image, local_repo,
-discovery, and any future module can share one implementation.
+provision, and any future module can share one implementation.
 
 Public API
 ----------

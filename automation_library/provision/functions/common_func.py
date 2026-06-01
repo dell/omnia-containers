@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Discovery Module - Common Functions.
+Provision Module - Common Functions.
 
 Functions for SSH verification and node retrieval used across all tests.
 """

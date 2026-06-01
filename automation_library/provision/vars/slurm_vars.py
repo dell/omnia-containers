@@ -13,11 +13,11 @@
 # limitations under the License.
 
 """
-Discovery Module - Slurm Variables.
+Provision Module - Slurm Variables.
 
 Services and paths for Slurm cluster verification.
 Based on cloud-init templates in:
-/omnia/discovery/roles/configure_ochami/templates/cloud_init/
+/omnia/provision/roles/configure_ochami/templates/cloud_init/
 """
 
 # =============================================================================

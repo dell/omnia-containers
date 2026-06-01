@@ -58,10 +58,11 @@
         msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping oim_cleanup"
       when: container_exists.rc != 0
 
-    - name: Run oim_cleanup.yml inside omnia_core container
+    - name: Run oim_cleanup.yml inside omnia_core container (non-interactive)
       ansible.builtin.shell:
         cmd: |
-          podman exec -it -w /omnia/utils {{ container_name }} \
+          set -o pipefail
+          printf "YES\nYES\n" | podman exec -i -w /omnia/utils {{ container_name }} \
             ansible-playbook oim_cleanup.yml -v
       register: cleanup_result
       when: container_exists.rc == 0

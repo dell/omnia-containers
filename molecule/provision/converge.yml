@@ -1,0 +1,357 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - Run provision.yml inside omnia_core container
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+
+
+- name: Converge - Run provision prerequisite checks and playbook
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    container_name: "omnia_core"
+    provision_playbook: "/omnia/provision/provision.yml"
+    provision_config_path: "/opt/omnia/input/project_default/provision_config.yml"
+    build_stream_config_path: "/opt/omnia/input/project_default/build_stream_config.yml"
+    converge_scenario: "provision"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "Running provision on OIM server: {{ ansible_host }}"
+
+    # =========================================================================
+    # GUARD: ABORT IF BUILD_STREAM IS ENABLED
+    # =========================================================================
+
+    # =========================================================================
+    # PREREQUISITE CHECKS
+    # =========================================================================
+    - name: Check if omnia_core container is running
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman ps --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "^{{ container_name }}$" && echo "RUNNING" || echo "NOT_RUNNING"
+        executable: /bin/bash
+      register: container_check
+      changed_when: false
+
+    - name: Fail if omnia_core container not running
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    OMNIA_CORE CONTAINER NOT RUNNING                          ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ HOW TO FIX:                                                                  ║
+          ║   1. Run: omnia.sh --install                                                 ║
+          ║   2. Or check: podman ps -a | grep omnia_core                                ║
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: "'NOT_RUNNING' in container_check.stdout"
+
+    # =========================================================================
+    # SYNC PROJECT_DEFAULT INTO CONTAINER
+    # =========================================================================
+    - name: Ensure project_dir for sync
+      ansible.builtin.set_fact:
+        project_dir: "{{ project_dir | default(playbook_dir + '/../..') }}"
+
+    - name: Sync project_default to container
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+    - name: Guard - abort converge if build_stream is enabled
+      ansible.builtin.include_tasks: ../shared/tasks/check_build_stream.yml
+
+    - name: Read provision_config.yml to get pxe_mapping_file_path
+      ansible.builtin.command:
+        cmd: podman exec {{ container_name }} cat {{ provision_config_path }}
+      register: provision_config_content
+      changed_when: false
+
+    - name: Extract pxe_mapping_file_path from provision_config.yml
+      ansible.builtin.set_fact:
+        pxe_mapping_file_path: >-
+          {{ provision_config_content.stdout |
+             regex_search('pxe_mapping_file_path:\s*["\']?([^"\'#\n]+)["\']?', '\1') |
+             first | default('') | trim }}
+
+    - name: Display extracted pxe_mapping_file_path
+      ansible.builtin.debug:
+        msg: "PXE mapping file path from provision_config.yml: {{ pxe_mapping_file_path | default('NOT FOUND') }}"
+
+    - name: Check if PXE mapping file exists
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: pxe_mapping_check
+      changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
+
+    - name: Display PXE mapping check result
+      ansible.builtin.debug:
+        msg: "PXE mapping file: {{ pxe_mapping_check.stdout | default('SKIPPED - path not found') }}"
+
+    # =========================================================================
+    # PREREQUISITE SUMMARY
+    # =========================================================================
+    - name: Display prerequisite check summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          PROVISION PREREQUISITE CHECK SUMMARY
+          ============================================
+          omnia_core container:    {{ container_check.stdout }}
+          pxe_mapping_file.csv:    {{ pxe_mapping_check.stdout | default('NOT FOUND') }}
+          ============================================
+
+    # =========================================================================
+    # RUN PROVISION PLAYBOOK
+    # =========================================================================
+    - name: Check if provision playbook exists in container
+      ansible.builtin.shell:
+        cmd: podman exec {{ container_name }} test -f {{ provision_playbook }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: playbook_check
+      changed_when: false
+
+    - name: Display playbook check result
+      ansible.builtin.debug:
+        msg: "provision.yml playbook ({{ provision_playbook }}): {{ playbook_check.stdout }}"
+
+    - name: Execute provision playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia {{ container_name }} \
+            ansible-playbook provision/provision.yml -v
+      register: playbook_result
+      when: "'EXISTS' in playbook_check.stdout"
+      changed_when: playbook_result.rc == 0
+      failed_when: false
+
+    - name: Display playbook execution result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          PROVISION PLAYBOOK EXECUTION COMPLETE
+          ============================================
+          Return Code: {{ playbook_result.rc | default('N/A') }}
+          ============================================
+      when: playbook_result is defined
+
+    - name: Fail if playbook execution failed
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                    PROVISION PLAYBOOK EXECUTION FAILED                       ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Exit Code: {{ playbook_result.rc }}
+          ║
+          ║ WHAT HAPPENED:
+          ║   The provision.yml playbook failed during execution inside omnia_core.
+          ║
+          ║ HOW TO DEBUG:
+          ║   1. SSH to OIM server: ssh root@{{ ansible_host }}
+          ║   2. Enter container: podman exec -it omnia_core bash
+          ║   3. Check logs: cat /opt/omnia/log/omnia.log
+          ║   4. Check OpenCHAMI: ochami smd component get
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: playbook_result is defined and playbook_result.rc is defined and playbook_result.rc != 0
+
+    - name: Fail if playbook not found
+      ansible.builtin.fail:
+        msg: "provision playbook not found at {{ provision_playbook }}"
+      when: "'NOT_FOUND' in playbook_check.stdout"
+
+    # =========================================================================
+    # POST-PROVISION: VERIFY PXE MAPPING FILE EXISTS
+    # =========================================================================
+
+    - name: Verify PXE mapping file exists after provision
+      ansible.builtin.shell:
+        cmd: >
+          podman exec {{ container_name }}
+          test -f {{ pxe_mapping_file_path }} && echo "EXISTS" || echo "NOT_FOUND"
+      register: post_pxe_mapping_check
+      changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
+
+    - name: Fail if PXE mapping file not found after provision
+      ansible.builtin.fail:
+        msg: |
+          ╔══════════════════════════════════════════════════════════════════════════════╗
+          ║                  PXE MAPPING FILE NOT FOUND AFTER PROVISION                  ║
+          ╠══════════════════════════════════════════════════════════════════════════════╣
+          ║ Expected: {{ pxe_mapping_file_path }}                                        ║
+          ║                                                                              ║
+          ║ HOW TO FIX:                                                                  ║
+          ║   1. Verify pxe_mapping_file_path in provision_config.yml                    ║
+          ║   2. Re-run provision.yml                                                    ║
+          ╚══════════════════════════════════════════════════════════════════════════════╝
+      when: >
+        post_pxe_mapping_check is defined and
+        'NOT_FOUND' in (post_pxe_mapping_check.stdout | default(''))
+
+    - name: Display PXE mapping file verification
+      ansible.builtin.debug:
+        msg: "✓ PXE mapping file exists: {{ pxe_mapping_file_path }}"
+      when: >
+        post_pxe_mapping_check is defined and
+        'EXISTS' in (post_pxe_mapping_check.stdout | default(''))
+
+    # =========================================================================
+    # POST-PROVISION: CREATE BMC INVENTORY FROM PXE MAPPING
+    # =========================================================================
+
+    - name: Read BMC IPs from PXE mapping file
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec {{ container_name }} bash -c '
+            PXE_FILE="{{ pxe_mapping_file_path }}"
+            # Get header line and find BMC_IP column index
+            HEADER=$(head -1 "$PXE_FILE")
+            BMC_COL=$(echo "$HEADER" | tr "," "\n" | grep -n "BMC_IP" | cut -d: -f1)
+            if [ -z "$BMC_COL" ]; then
+              echo "ERROR: BMC_IP column not found in PXE mapping"
+              exit 1
+            fi
+            # Extract BMC IPs from data rows (skip header)
+            tail -n +2 "$PXE_FILE" | cut -d"," -f"$BMC_COL" | grep -v "^$" | sort -u
+          '
+        executable: /bin/bash
+      register: bmc_ips_result
+      changed_when: false
+      when: pxe_mapping_file_path | default('') | length > 0
+
+    - name: Display extracted BMC IPs
+      ansible.builtin.debug:
+        msg: "BMC IPs from PXE mapping: {{ bmc_ips_result.stdout_lines | default([]) }}"
+      when: bmc_ips_result is defined and bmc_ips_result.stdout_lines is defined
+
+    - name: Create BMC inventory file with [bmc] inside core container
+      ansible.builtin.shell:
+        cmd: |
+          set -o pipefail
+          podman exec {{ container_name }} bash -c '
+            INVENTORY_DIR="/omnia/utils"
+            mkdir -p "$INVENTORY_DIR"
+            INVENTORY_FILE="$INVENTORY_DIR/bmc_inventory"
+            echo "[bmc]" > "$INVENTORY_FILE"
+            {% for ip in bmc_ips_result.stdout_lines %}
+            echo "{{ ip }}" >> "$INVENTORY_FILE"
+            {% endfor %}
+            echo "BMC inventory created at $INVENTORY_FILE"
+            cat "$INVENTORY_FILE"
+          '
+        executable: /bin/bash
+      register: bmc_inventory_result
+      changed_when: true
+      when:
+        - bmc_ips_result is defined
+        - bmc_ips_result.stdout_lines is defined
+        - bmc_ips_result.stdout_lines | length > 0
+
+    - name: Display BMC inventory creation result
+      ansible.builtin.debug:
+        msg: "{{ bmc_inventory_result.stdout | default('BMC inventory not created') }}"
+      when: bmc_inventory_result is defined
+
+    # =========================================================================
+    # POST-PROVISION: EXECUTE SET PXE BOOT PLAYBOOK
+    # =========================================================================
+
+    - name: Check if set_pxe_boot playbook exists in container
+      ansible.builtin.shell:  # noqa: risky-shell-pipe
+        cmd: >
+          podman exec {{ container_name }}
+          bash -o pipefail -c
+          'ls /omnia/utils/set_pxe_boot.yml /omnia/provision/set_pxe_boot.yml 2>/dev/null | head -1'
+      register: pxe_boot_playbook_check
+      changed_when: false
+
+    - name: Set PXE boot playbook path
+      ansible.builtin.set_fact:
+        pxe_boot_playbook: "{{ pxe_boot_playbook_check.stdout | trim }}"
+      when: pxe_boot_playbook_check.stdout | default('') | trim | length > 0
+
+    - name: Execute set PXE boot playbook in omnia_core container
+      ansible.builtin.shell:
+        cmd: |
+          podman exec -w /omnia {{ container_name }} \
+            ansible-playbook {{ pxe_boot_playbook }} -i /omnia/utils/bmc_inventory -v
+      register: pxe_boot_result
+      when: pxe_boot_playbook is defined and pxe_boot_playbook | length > 0
+      changed_when: pxe_boot_result.rc == 0
+      failed_when: false
+
+    - name: Display set PXE boot result
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          SET PXE BOOT PLAYBOOK RESULT
+          ============================================
+          Return Code: {{ pxe_boot_result.rc | default('N/A') }}
+          ============================================
+      when: pxe_boot_result is defined
+
+    - name: Warn if set PXE boot playbook failed
+      ansible.builtin.debug:
+        msg: "⚠ set_pxe_boot playbook returned rc={{ pxe_boot_result.rc }} - check logs"
+      when: pxe_boot_result is defined and pxe_boot_result.rc is defined and pxe_boot_result.rc != 0
+
+    - name: Warn if set PXE boot playbook not found
+      ansible.builtin.debug:
+        msg: "⚠ set_pxe_boot playbook not found in container (checked /omnia/utils/ and /omnia/provision/)"
+      when: pxe_boot_playbook is not defined or pxe_boot_playbook | length == 0
+
+    - name: Compute converge summary facts
+      ansible.builtin.set_fact:
+        _bmc_status: "{{ 'Created' if bmc_inventory_result is defined and bmc_inventory_result.rc == 0 else 'Skipped' }}"
+        _pxe_status: >-
+          {{ 'Executed (rc=' + (pxe_boot_result.rc | string) + ')'
+          if pxe_boot_result is defined and pxe_boot_result.rc is defined
+          else 'Skipped' }}
+
+    - name: Provision converge complete
+      ansible.builtin.debug:
+        msg: |
+          ============================================
+          PROVISION CONVERGE COMPLETE!
+          ============================================
+          - omnia_core container: Running
+          - Prerequisites: Checked
+          - provision.yml playbook: Executed successfully
+          - PXE mapping file: Verified
+          - BMC inventory: {{ _bmc_status }}
+          - Set PXE boot: {{ _pxe_status }}
+          - Ready for pytest verification
+          ============================================
