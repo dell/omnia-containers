@@ -144,12 +144,12 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
             
       * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
 
-      .. image:: ../../../../images/images/telemetry/external_kafka_ome_metrics_health.png
+      .. image:: ../../../../images/external_kafka_ome_metrics_health.png
 
       
       * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
 
-      .. image:: ../../../../images/images/telemetry/external_kafka_ome_metrics_inventory.png
+      .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
 
 4. Verify that OME-related metrics are displayed in the results.
 
@@ -168,7 +168,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
    ``_msg_topic:ome.auditlogs``: This query fetches audit logs from OME
    
-   .. image:: ../../../../images/telemetry/external_kafka_ome_logs_audit.png
+   .. image:: ../../../../images/external_kafka_ome_logs_audit.png
 
 4. Verify that OME-related logs are displayed in the results.
 
