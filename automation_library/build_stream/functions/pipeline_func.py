@@ -39,6 +39,7 @@ from .db_func import (
     get_stage_state,
     get_all_image_groups,
 )
+from .api_func import get_stage_log_path
 from .shared_func import get_allow_pipeline_cancel, get_image_identifier
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
@@ -1158,6 +1159,11 @@ def wait_for_stage_completion(
             _log(STAGE_POLL_MSGS["stage_failed"].format(time=time_str, stage=stage_name))
             if error_code:
                 _log(STAGE_POLL_MSGS["stage_error"].format(error=error_code))
+
+            # Get and display log file path for failed stage
+            log_path = get_stage_log_path(host, job_id, stage_name)
+            if log_path:
+                _log(f"Log file: {log_path}")
             return result
 
         if current_state in (STAGE_STATE_RUNNING, "IN_PROGRESS", STAGE_STATE_PENDING):
