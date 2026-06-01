@@ -140,7 +140,7 @@ _poweroff_state = {
 def _is_service_k8s_enabled(host) -> bool:
     """
     Check if service_k8s is enabled in software_config.json.
-    
+
     Checks the softwares list for service_k8s entry.
     """
     from automation_library.core import get_input_value, SOFTWARE_CONFIG_FILE
@@ -239,7 +239,7 @@ def test_pods_reschedule_after_node_poweroff(host):
     # Get worker nodes
     log.check("Getting K8s worker nodes")
     workers = get_k8s_worker_nodes(host, admin_ip)
-    
+
     # Display worker nodes with hostname and IP
     log.check(f"Found {len(workers)} worker nodes:")
     for w in workers:
@@ -248,16 +248,16 @@ def test_pods_reschedule_after_node_poweroff(host):
     # Select target node (node with most pods)
     log.check("Selecting target node for poweroff (node with most telemetry pods)")
     selection = select_target_node_for_poweroff(host, admin_ip, workers)
-    
+
     target_worker = selection["selected"]
     target_hostname = target_worker["hostname"]
     target_ip = target_worker["ip"]
-    
+
     # Display pod distribution across nodes
     log.check("Pod distribution across worker nodes:")
     for hostname, info in selection["pod_counts"].items():
         log.check(f"  {hostname}: {info['count']} pods")
-    
+
     log.check(f"Selected: {target_hostname} ({target_ip}) - {selection['reason']}")
 
     _poweroff_state["node_name"] = target_hostname
@@ -298,7 +298,7 @@ def test_pods_reschedule_after_node_poweroff(host):
     # Wait for node to go down
     log.check(f"Waiting for node {target_hostname} to go down (max {NODE_POWEROFF_WAIT_SECONDS}s)")
     node_down = wait_for_node_down(host, admin_ip, target_hostname, NODE_POWEROFF_WAIT_SECONDS)
-    
+
     if node_down["success"]:
         log.check(f"Node {target_hostname} is now {node_down['status']} (took {node_down['elapsed_seconds']}s)")
     else:

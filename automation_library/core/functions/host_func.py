@@ -68,7 +68,7 @@ def _is_local_ip(ip: str) -> bool:
 def is_local_execution() -> bool:
     """
     Determine if tests should run locally (on the OIM itself).
-    
+
     Returns True when:
     - oim_server_ip is empty/not set (implies running on the OIM)
     - oim_server_ip matches a local IP address

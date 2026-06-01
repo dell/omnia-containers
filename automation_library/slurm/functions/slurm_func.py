@@ -238,8 +238,8 @@ def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
 
     # Read slurm.conf and extract NodeName entries
     slurm_conf_cmd = _safe_run_on_remote_node(
-        host, 
-        "grep '^NodeName=' /etc/slurm/slurm.conf 2>/dev/null", 
+        host,
+        "grep '^NodeName=' /etc/slurm/slurm.conf 2>/dev/null",
         control_ip
     )
 
@@ -260,12 +260,12 @@ def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        
+
         # Extract NodeName value (e.g., "NodeName=snode1" or "NodeName=DEFAULT")
         if line.startswith("NodeName="):
             node_part = line.split()[0]
             node_name = node_part.split("=", 1)[1]
-            
+
             # Skip DEFAULT and other special entries
             if node_name.upper() != "DEFAULT":
                 slurm_nodes.add(node_name)

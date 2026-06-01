@@ -154,13 +154,13 @@ def test_script_downloads_images_only_from_pulp(host):
     details = result.get("details", {})
     log.check(f"  Pulp reference in log: {details.get('has_pulp_ref', False)}")
     log.check(f"  External fallback detected: {details.get('has_external_fallback', False)}")
-    
+
     if details.get('external_urls'):
         log.check(f"  External URLs found: {', '.join(details['external_urls'][:3])}")
-    
+
     if details.get('sif_count'):
         log.check(f"  SIF files verified: {details['sif_count']}")
-    
+
     if details.get('log_snippet') and not result["success"]:
         log.check(f"  Log snippet (last 300 chars):\n{details['log_snippet'][-300:]}")
 

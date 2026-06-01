@@ -173,7 +173,7 @@ def test_cloud_init_after_reboot(host):
 @pytest.mark.order(47)
 def test_cloud_init_login_compiler_after_reboot(host):
     """TC47: Verify cloud-init completes successfully on login_compiler nodes after reboot.
-    
+
     This test runs separately from TC46 because login_compiler nodes take longer
     to complete cloud-init (up to 40 minutes).
     """

@@ -842,19 +842,19 @@ def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
     for pkg in X86_64_BENCHMARK_PACKAGES:
         tool_dir = TOOL_TO_DIR.get(pkg, pkg)
         names = {pkg.lower(), tool_dir.lower()}
-        
+
         # Find lines mentioning this tool
         tool_lines = [
             line for line in lines
             if any(n in line.lower() for n in names)
         ]
-        
+
         if not tool_lines:
             missing.append(pkg)
             continue
-        
+
         tool_text = " ".join(tool_lines).lower()
-        
+
         # Check for [SUCCESS] marker (downloaded)
         if "[success]" in tool_text or "staged at" in tool_text:
             downloaded.append(pkg)
@@ -880,7 +880,7 @@ def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
             break
 
     summary_text = "\n".join(summary_section)
-    
+
     # Extract counts from summary
     import re
     total_match = re.search(r"Total tools processed:\s*(\d+)", summary_text)
@@ -889,10 +889,10 @@ def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
     failed_match = re.search(r"Failed:\s*(\d+)", summary_text)
 
     errors = []
-    
+
     if failed:
         errors.append(f"Tools failed: {failed}")
-    
+
     if missing:
         errors.append(
             f"Tools missing from script report: {missing} "
@@ -905,7 +905,7 @@ def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
             f"Summary count mismatch: Successful={success_match.group(1)} "
             f"but parsed {len(downloaded)} downloaded tools"
         )
-    
+
     if skipped_match and int(skipped_match.group(1)) != len(skipped):
         errors.append(
             f"Summary count mismatch: Skipped={skipped_match.group(1)} "

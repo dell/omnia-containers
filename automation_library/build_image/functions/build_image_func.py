@@ -495,13 +495,13 @@ def _match_s3_images_for_group(
                 continue
             found = True
             group_result["found_images"].append(img_type)
-            
+
             # Extract meaningful directory name (rhel-<fg>_<UUID>-image-build) from full path
             # From: s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build/file
             # To: rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build
             path_parts = path.split('/')
             display_path = next((part for part in path_parts if part.startswith('rhel-') and '-image-build' in part), info["filename"])
-            
+
             group_result["image_details"].append({
                 "type": img_type,
                 "filename": info["filename"],

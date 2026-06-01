@@ -70,7 +70,7 @@ def test_build_stream_job_stage(host):
     """
     stage = STAGE_VALIDATE_IMAGE
     log = TestLogger(TEST_NAMES["build_stream_job_stage"].format(stage=stage))
-    
+
     if not is_build_stream_enabled(host):
         log.skipped("Build stream is disabled in software_config.json", "Test skipped - build stream not enabled")
         pytest.skip(LOG_MSGS["build_stream_disabled_skip"])

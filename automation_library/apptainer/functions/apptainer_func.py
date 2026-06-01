@@ -460,7 +460,7 @@ def verify_download_script_reads_image_list(host) -> Dict[str, Any]:
 
 def verify_download_images_only_from_pulp(host) -> Dict[str, Any]:
     """TC3: Verify actual download happened from Pulp by inspecting download log.
-    
+
     This test must run AFTER TC_DL (download test) to verify the log.
     It checks that the download log contains Pulp server references and
     does NOT contain external registry URLs (docker.io, nvcr.io, etc.).
@@ -1166,7 +1166,7 @@ def verify_submit_apptainer_job_as_ldap_user(host) -> Dict[str, Any]:
         submit = host.run(submit_cmd)
     except RuntimeError as exc:
         submit = _FakeResult(255, "", f"SSH failed: {exc}")
-    
+
     # Cleanup script
     cleanup_cmd = (
         f"sshpass -p '{ldap_pass}' ssh -o StrictHostKeyChecking=no "
@@ -1596,7 +1596,7 @@ def verify_gpu_memory_allocation_in_container(host) -> Dict[str, Any]:
 
 def verify_infiniband_accessible_in_container(host) -> Dict[str, Any]:
     """TC24: Verify InfiniBand hardware is accessible inside the Apptainer container.
-    
+
     Checks for actual IB hardware using ibstat, not just /dev/infiniband/ software interfaces.
     """
     nodes = get_slurm_nodes(host)
