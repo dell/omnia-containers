@@ -320,7 +320,7 @@ def test_cuda_login_compiler_install(host, login_compiler_ip):
     TC-F08: Verify CUDA toolkit is accessible on login_compiler node but
     CUDA driver (nvidia-smi) is NOT installed there.
     Maps to: BL-002
-    
+
     This test is parametrized to run on ALL login_compiler nodes.
     """
     log = TestLogger(TEST_NAMES["cuda_login_compiler"])

@@ -174,7 +174,7 @@ def get_gpu_nodes(host) -> List[Dict[str, Any]]:
         discovery_cmd = _ssh(host, admin_ip, "dcgmi discovery -l 2>/dev/null")
         if discovery_cmd.rc == 0:
             gpu_count = _parse_gpu_count(discovery_cmd.stdout)
-        
+
         # Fallback: count GPUs from nvidia-smi -L output if dcgmi failed
         if gpu_count == 0 and gpu_check.stdout.strip():
             gpu_count = len([line for line in gpu_check.stdout.splitlines() if line.strip()])

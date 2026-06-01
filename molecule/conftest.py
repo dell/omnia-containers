@@ -94,6 +94,22 @@ _x86_64_login_compiler_ips: list = []
 _x86_64_login_compiler_collection_error: str = None
 
 
+# =============================================================================
+# VAST STORAGE NODE PARAMETRIZATION STATE
+# =============================================================================
+# Module-level state for VAST storage node discovery and parametrization.
+# Used by vast_storage scenario to parametrize tests across storage nodes.
+#
+# Only active when running vast_storage scenario tests.
+# =============================================================================
+_vast_compute_node_ips: list = []
+_vast_compute_collection_error: str = None
+_vast_controller_node_ips: list = []
+_vast_controller_collection_error: str = None
+_vast_login_node_ips: list = []
+_vast_login_collection_error: str = None
+
+
 class _TeeStream:
     def __init__(self, primary, buffer):
         self._primary = primary
@@ -138,6 +154,9 @@ def pytest_configure(config):
     # HPC benchmarks node collection - only for hpc_benchmarks scenario
     _collect_hpc_benchmark_nodes(config)
 
+    # VAST storage node collection - only for vast_storage scenario
+    _collect_vast_storage_nodes(config)
+
 
 def pytest_collection_modifyitems(session, config, items):
     """
@@ -176,11 +195,11 @@ def _collect_dcgm_gpu_nodes(config):
         from automation_library.dcgm.messages import TEST_ASSERT_MSGS as ASSERT
 
         host = get_testinfra_host()
-        
+
         # Collect GPU nodes
         nodes = get_gpu_nodes(host)
         _gpu_node_ips = [node["admin_ip"] for node in nodes] if nodes else []
-        
+
         # Collect login_compiler nodes
         lc_nodes = get_login_compiler_nodes(host)
         _login_compiler_ips = [node["admin_ip"] for node in lc_nodes] if lc_nodes else []
@@ -232,6 +251,47 @@ def _collect_hpc_benchmark_nodes(config):
         _x86_64_login_compiler_ips = []
 
 
+def _collect_vast_storage_nodes(config):
+    """Collect VAST storage nodes for parametrization."""
+    global _vast_compute_node_ips, _vast_controller_node_ips, _vast_login_node_ips
+    global _vast_compute_collection_error, _vast_controller_collection_error, _vast_login_collection_error
+
+    # Only run for vast_storage scenario
+    if config.args:
+        path = config.args[0] if config.args else ""
+        if "vast_storage" not in path:
+            return
+
+    try:
+        from automation_library.vast_storage import (
+            get_compute_nodes,
+            get_controller_nodes,
+            get_login_nodes,
+        )
+
+        host = get_testinfra_host()
+
+        # Collect compute nodes
+        compute_nodes = get_compute_nodes(host)
+        _vast_compute_node_ips = compute_nodes if compute_nodes else []
+
+        # Collect controller nodes
+        controller_nodes = get_controller_nodes(host)
+        _vast_controller_node_ips = controller_nodes if controller_nodes else []
+
+        # Collect login nodes
+        login_nodes = get_login_nodes(host)
+        _vast_login_node_ips = login_nodes if login_nodes else []
+
+    except Exception as e:
+        _vast_compute_collection_error = f"Compute node collection failed: {e}"
+        _vast_controller_collection_error = f"Controller node collection failed: {e}"
+        _vast_login_collection_error = f"Login node collection failed: {e}"
+        _vast_compute_node_ips = []
+        _vast_controller_node_ips = []
+        _vast_login_node_ips = []
+
+
 def pytest_generate_tests(metafunc):
     """Parametrize tests with node IP fixtures for DCGM and HPC benchmarks scenarios."""
     # Parametrize gpu_node_ip
@@ -249,7 +309,7 @@ def pytest_generate_tests(metafunc):
                 _gpu_node_ips,
                 ids=_gpu_node_ips,
             )
-    
+
     # Parametrize login_compiler_ip
     if "login_compiler_ip" in metafunc.fixturenames:
         if not _login_compiler_ips:
@@ -526,7 +586,7 @@ def _require_build_stream_job(host, request):
         # Put detailed error in log.skipped details (with proper line breaks)
         short_skip_reason = job_state
         detailed_error = f"build_stream job is {job_state} — skipping test.\nFix: {error}"
-        
+
         log.skipped(
             f"Skipped due to build_stream job failure (job_id: {job_id})",
             detailed_error

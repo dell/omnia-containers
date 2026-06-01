@@ -254,10 +254,10 @@ class OIMOperations:
 
     def _run_local_command(self, command):
         """Run a command locally via subprocess and return the output.
-        
+
         Args:
             command (str): The shell command to run locally.
-        
+
         Returns:
             str: The command output.
 
@@ -279,7 +279,7 @@ class OIMOperations:
 
     def _run_ssh_command(self, command):
         """Run a command on the OIM server and return the output.
-        
+
         In local mode, runs via subprocess. In remote mode, runs via SSH.
 
         Args:
@@ -1375,7 +1375,7 @@ class OIMOperations:
         all_passed = True
         failures = []
         reachable_count = 0
-        
+
         for node_name, is_correct, actual_version, error in results:
             if error:
                 # Check if it's an SSH/connectivity error (unreachable node)
@@ -1395,7 +1395,7 @@ class OIMOperations:
 
         if reachable_count == 0:
             return False, "All control plane nodes are unreachable", results
-            
+
         if all_passed:
             return True, f"kubectl client version matches expected version {expected_version} on all reachable control planes", results
         return False, "\n".join(failures) if failures else "kubectl version check failed", results
@@ -2879,7 +2879,7 @@ class OIMOperations:
                 details.append(f"{hostname}: kubeadm version failed ({ka_err})")
                 failures.append(hostname)
                 continue
-            
+
             reachable_count += 1
             kubeadm_ver = (ka_out or "").strip()
 

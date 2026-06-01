@@ -386,7 +386,7 @@ def get_nfs_client_mount_path(host, nfs_name: str = None) -> str:
             filter_key="nfs_name" if nfs_name else None,
             filter_value=nfs_name,
             return_key="client_share_path",
-            fallback_keys=["client_mount_path"]
+            fallback_keys=["client_mount_path", "mount_point"]
         )
         if result:
             return result

@@ -282,7 +282,7 @@ def test_per_tool_staging_report(host, x86_64_node_ip):
     - Already-present tools → SKIPPED with [WARN] marker
     - Missing/deleted tools → DOWNLOADED with [SUCCESS] marker
     - Summary counts (Successful/Skipped/Failed) match individual results
-    
+
     Test scenario: After initial staging, if a tool directory is deleted and
     script re-run, that tool should be downloaded while others are skipped.
 
@@ -590,7 +590,7 @@ def test_openmpi_unaffected(host, x86_64_login_compiler_ip):
     """
     TC-RT04: Run benchmark staging; verify mpirun --version and OpenMPI/UCX
     library paths and environment variables unchanged on login/compiler node.
-    
+
     Note: mpirun is only available on login/compiler nodes, not compute nodes.
 
     Acceptance criteria: AC-6.3.4

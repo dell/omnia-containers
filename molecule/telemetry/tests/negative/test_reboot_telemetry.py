@@ -146,7 +146,7 @@ _reboot_state = {
 def _is_service_k8s_enabled(host) -> bool:
     """
     Check if service_k8s is enabled in software_config.json.
-    
+
     Checks the softwares list for service_k8s entry.
     """
     from automation_library.core import get_input_value, SOFTWARE_CONFIG_FILE
@@ -163,7 +163,7 @@ def _check_prerequisites(host, log):
     """
     Check prerequisites for all reboot tests.
     Returns (can_proceed, admin_ip, skip_reason).
-    
+
     For reboot test, we only need at least 1 Ready worker node.
     """
     # Check if service_k8s is enabled in softwares list
@@ -248,7 +248,7 @@ def test_telemetry_after_node_reboot(host):
     # Get worker nodes
     log.check("Getting K8s worker nodes")
     workers = get_k8s_worker_nodes(host, admin_ip)
-    
+
     # Display worker nodes with hostname and IP
     log.check(f"Found {len(workers)} worker nodes:")
     for w in workers:
@@ -261,16 +261,16 @@ def test_telemetry_after_node_reboot(host):
     # Select target node from Ready workers only (node with most pods)
     log.check("Selecting target node for reboot (Ready node with most telemetry pods)")
     selection = select_target_node_for_poweroff(host, admin_ip, ready_workers)
-    
+
     target_worker = selection["selected"]
     target_hostname = target_worker["hostname"]
     target_ip = target_worker["ip"]
-    
+
     # Display pod distribution across nodes
     log.check("Pod distribution across worker nodes:")
     for hostname, info in selection["pod_counts"].items():
         log.check(f"  {hostname}: {info['count']} pods")
-    
+
     log.check(f"Selected: {target_hostname} ({target_ip}) - {selection['reason']}")
 
     _reboot_state["node_name"] = target_hostname
@@ -296,7 +296,7 @@ def test_telemetry_after_node_reboot(host):
     # Wait for node to go down
     log.check(f"Waiting for node {target_hostname} to go down")
     time.sleep(NODE_REBOOT_WAIT_SECONDS)
-    
+
     node_down = wait_for_node_down(host, admin_ip, target_hostname, timeout_seconds=60)
     if node_down["success"]:
         log.check(f"Node {target_hostname} is now {node_down['status']} (took {node_down['elapsed_seconds']}s)")
@@ -306,19 +306,19 @@ def test_telemetry_after_node_reboot(host):
     # Wait for node to come back online
     log.check(f"Waiting for node {target_hostname} to come back online (max {NODE_ONLINE_TIMEOUT_SECONDS}s)")
     online_result = wait_for_node_online(host, admin_ip, target_ip, NODE_ONLINE_TIMEOUT_SECONDS)
-    
+
     if not online_result["success"]:
         _reboot_state["reboot_skipped"] = True
         _reboot_state["skip_reason"] = f"Node did not come online: {online_result.get('error')}"
         log.failed(f"Node {target_hostname} did not come back online", online_result.get("error", ""))
         assert False, f"Node did not come online: {online_result.get('error')}"
-    
+
     log.check(f"Node {target_hostname} is online (ping: {online_result['ping_ok']}, ssh: {online_result['ssh_ok']}, took {online_result['elapsed_seconds']}s)")
 
     # Wait for cloud-init to complete
     log.check(f"Waiting for cloud-init to complete on {target_hostname}")
     cloudinit_result = wait_for_cloudinit_done(host, admin_ip, target_ip, target_hostname)
-    
+
     if cloudinit_result["success"]:
         log.check(f"Cloud-init completed: {cloudinit_result['status']} (took {cloudinit_result['elapsed_seconds']}s)")
     else:
@@ -327,13 +327,13 @@ def test_telemetry_after_node_reboot(host):
     # Wait for node to rejoin K8s cluster
     log.check(f"Waiting for node {target_hostname} to rejoin K8s cluster")
     rejoin_result = wait_for_node_rejoin_cluster(host, admin_ip, target_hostname, timeout_seconds=120)
-    
+
     if not rejoin_result["success"]:
         _reboot_state["reboot_skipped"] = True
         _reboot_state["skip_reason"] = f"Node did not rejoin cluster: {rejoin_result.get('error')}"
         log.failed(f"Node {target_hostname} did not rejoin cluster", rejoin_result.get("error", ""))
         assert False, f"Node did not rejoin cluster: {rejoin_result.get('error')}"
-    
+
     log.check(f"Node {target_hostname} rejoined cluster with status: {rejoin_result['status']} (took {rejoin_result['elapsed_seconds']}s)")
 
     _reboot_state["reboot_done"] = True

@@ -30,13 +30,13 @@ from .validation import validate_os, check_podman
 
 __all__ = [
     "run_all_prereq_checks",
-    "configure_hostname", 
+    "configure_hostname",
     "check_ipmi_tool",
     "install_ipmi_tool",
     "get_hardware_inventory",
     "validate_hardware",
     "validate_network_interfaces",
-    "configure_pxe_nic", 
+    "configure_pxe_nic",
     "check_internet",
     "check_pxe_is_public_interface",
     "check_nfs_reachable",
