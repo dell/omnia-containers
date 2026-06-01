@@ -66,17 +66,17 @@ def get_compute_nodes(host) -> List[str]:
         List of compute node IPs
     """
     log = TestLogger("get_compute_nodes")
-    log.info(TEST_LOG_MSGS["collecting_nodes"].format(group=COMPUTE_NODE_FUNCTIONAL_GROUP))
+    log.check(TEST_LOG_MSGS["collecting_nodes"].format(group=COMPUTE_NODE_FUNCTIONAL_GROUP))
 
     cmd = f"grep -A 100 '{COMPUTE_NODE_FUNCTIONAL_GROUP}:' /omnia/inventory/ansible_inventory.yml | grep -E '^\\s+[0-9]+\\.' | awk '{{print $1}}' | cut -d: -f1"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning(f"Failed to get compute nodes: {result.stderr}")
+        log.check(f"Failed to get compute nodes: {result.stderr}")
         return []
 
     nodes = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
-    log.info(f"Found {len(nodes)} compute nodes")
+    log.check(f"Found {len(nodes)} compute nodes")
     return nodes
 
 
@@ -91,17 +91,17 @@ def get_controller_nodes(host) -> List[str]:
         List of controller node IPs
     """
     log = TestLogger("get_controller_nodes")
-    log.info(TEST_LOG_MSGS["collecting_nodes"].format(group=CONTROLLER_NODE_FUNCTIONAL_GROUP))
+    log.check(TEST_LOG_MSGS["collecting_nodes"].format(group=CONTROLLER_NODE_FUNCTIONAL_GROUP))
 
     cmd = f"grep -A 100 '{CONTROLLER_NODE_FUNCTIONAL_GROUP}:' /omnia/inventory/ansible_inventory.yml | grep -E '^\\s+[0-9]+\\.' | awk '{{print $1}}' | cut -d: -f1"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning(f"Failed to get controller nodes: {result.stderr}")
+        log.check(f"Failed to get controller nodes: {result.stderr}")
         return []
 
     nodes = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
-    log.info(f"Found {len(nodes)} controller nodes")
+    log.check(f"Found {len(nodes)} controller nodes")
     return nodes
 
 
@@ -116,17 +116,17 @@ def get_login_nodes(host) -> List[str]:
         List of login node IPs
     """
     log = TestLogger("get_login_nodes")
-    log.info(TEST_LOG_MSGS["collecting_nodes"].format(group=LOGIN_NODE_FUNCTIONAL_GROUP))
+    log.check(TEST_LOG_MSGS["collecting_nodes"].format(group=LOGIN_NODE_FUNCTIONAL_GROUP))
 
     cmd = f"grep -A 100 '{LOGIN_NODE_FUNCTIONAL_GROUP}:' /omnia/inventory/ansible_inventory.yml | grep -E '^\\s+[0-9]+\\.' | awk '{{print $1}}' | cut -d: -f1"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning(f"Failed to get login nodes: {result.stderr}")
+        log.check(f"Failed to get login nodes: {result.stderr}")
         return []
 
     nodes = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
-    log.info(f"Found {len(nodes)} login nodes")
+    log.check(f"Found {len(nodes)} login nodes")
     return nodes
 
 
@@ -150,13 +150,13 @@ def get_all_accessible_nodes(host, nodes: List[str]) -> List[str]:
 
         if result.rc == 0 and result.stdout.strip() == "ok":
             accessible.append(node_ip)
-            log.debug(TEST_LOG_MSGS["node_accessible"].format(node_ip=node_ip))
+            log.check(TEST_LOG_MSGS["node_accessible"].format(node_ip=node_ip))
         else:
-            log.warning(TEST_LOG_MSGS["node_inaccessible"].format(
+            log.check(TEST_LOG_MSGS["node_inaccessible"].format(
                 node_ip=node_ip, error="SSH connection failed"
             ))
 
-    log.info(TEST_LOG_MSGS["all_nodes_accessible"].format(count=len(accessible)))
+    log.check(TEST_LOG_MSGS["all_nodes_accessible"].format(count=len(accessible)))
     return accessible
 
 
@@ -171,11 +171,11 @@ def verify_storage_config_parsing(host) -> bool:
     TC-011: Parse storage_config.yaml
     """
     log = TestLogger("verify_storage_config_parsing")
-    log.info(TEST_LOG_MSGS["verifying_config"].format(config_file=STORAGE_CONFIG_PATH))
+    log.check(TEST_LOG_MSGS["verifying_config"].format(config_file=STORAGE_CONFIG_PATH))
 
     # Check file exists
     if not host.file(STORAGE_CONFIG_PATH).exists:
-        log.error(ERROR_MESSAGES["missing_config"].format(config=STORAGE_CONFIG_PATH))
+        log.failed(ERROR_MESSAGES["missing_config"].format(config=STORAGE_CONFIG_PATH))
         return False
 
     # Try to parse YAML
@@ -183,10 +183,10 @@ def verify_storage_config_parsing(host) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(ERROR_MESSAGES["yaml_parse_error"].format(error=result.stderr))
+        log.failed(ERROR_MESSAGES["yaml_parse_error"].format(error=result.stderr))
         return False
 
-    log.info("Storage configuration is valid YAML")
+    log.check("Storage configuration is valid YAML")
     return True
 
 
@@ -203,13 +203,13 @@ def verify_single_backend_active(host) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Failed to read storage config: {result.stderr}")
+        log.failed(f"Failed to read storage config: {result.stderr}")
         return False
 
     try:
         config = yaml.safe_load(result.stdout)
     except yaml.YAMLError as e:
-        log.error(ERROR_MESSAGES["yaml_parse_error"].format(error=str(e)))
+        log.failed(ERROR_MESSAGES["yaml_parse_error"].format(error=str(e)))
         return False
 
     # Check enabled backends
@@ -222,15 +222,15 @@ def verify_single_backend_active(host) -> bool:
         enabled_backends.append('nfs')
 
     if len(enabled_backends) > 1:
-        log.error(f"Multiple backends enabled: {enabled_backends}")
-        log.error(TEST_ASSERT_MSGS["single_backend"])
+        log.failed(f"Multiple backends enabled: {enabled_backends}")
+        log.failed(TEST_ASSERT_MSGS["single_backend"])
         return False
 
     if len(enabled_backends) == 0:
-        log.warning("No storage backend is enabled")
+        log.check("No storage backend is enabled")
         return False
 
-    log.info(f"Single backend active: {enabled_backends[0]}")
+    log.check(f"Single backend active: {enabled_backends[0]}")
     return True
 
 
@@ -252,31 +252,31 @@ def verify_backend_role_assignment(host, node_ip: str, role: str) -> bool:
     if role == "compute":
         # Compute should have VAST and PowerScale
         if "vast" not in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_enabled"].format(backend="VAST", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_enabled"].format(backend="VAST", role=role))
             return False
         if "powervault" in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_disabled"].format(backend="PowerVault", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_disabled"].format(backend="PowerVault", role=role))
             return False
 
     elif role == "controller":
         # Controller should have PowerScale and PowerVault, no VAST
         if "vast" in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_disabled"].format(backend="VAST", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_disabled"].format(backend="VAST", role=role))
             return False
         if "powerscale" not in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_enabled"].format(backend="PowerScale", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_enabled"].format(backend="PowerScale", role=role))
             return False
 
     elif role == "login":
         # Login should have VAST and PowerScale
         if "vast" not in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_enabled"].format(backend="VAST", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_enabled"].format(backend="VAST", role=role))
             return False
         if "powervault" in mounts.lower():
-            log.error(TEST_ASSERT_MSGS["backend_disabled"].format(backend="PowerVault", role=role))
+            log.failed(TEST_ASSERT_MSGS["backend_disabled"].format(backend="PowerVault", role=role))
             return False
 
-    log.info(f"Backend assignment correct for {role} node")
+    log.check(f"Backend assignment correct for {role} node")
     return True
 
 
@@ -293,7 +293,7 @@ def verify_mount_options(host, node_ip: str, mount_point: str, backend: str) -> 
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Mount point {mount_point} not found")
+        log.failed(f"Mount point {mount_point} not found")
         return False
 
     mount_line = result.stdout.strip()
@@ -304,7 +304,7 @@ def verify_mount_options(host, node_ip: str, mount_point: str, backend: str) -> 
     elif backend == "powerscale":
         expected_options = POWERSCALE_MOUNT_OPTIONS
     else:
-        log.error(f"Unknown backend: {backend}")
+        log.failed(f"Unknown backend: {backend}")
         return False
 
     # Verify key options
@@ -312,16 +312,16 @@ def verify_mount_options(host, node_ip: str, mount_point: str, backend: str) -> 
         if value is None:
             # Option should just be present
             if option not in mount_line:
-                log.error(f"Missing mount option: {option}")
+                log.failed(f"Missing mount option: {option}")
                 return False
         else:
             # Option should have specific value
             pattern = f"{option}={value}"
             if pattern not in mount_line:
-                log.error(f"Mount option mismatch: expected {pattern}")
+                log.failed(f"Mount option mismatch: expected {pattern}")
                 return False
 
-    log.info(f"Mount options verified for {mount_point}")
+    log.check(f"Mount options verified for {mount_point}")
     return True
 
 
@@ -337,7 +337,7 @@ def verify_fstab_generation(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Failed to read fstab: {result.stderr}")
+        log.failed(f"Failed to read fstab: {result.stderr}")
         return False
 
     fstab_content = result.stdout
@@ -349,15 +349,15 @@ def verify_fstab_generation(host, node_ip: str) -> bool:
     if is_compute_or_login:
         for mount_point in VAST_MOUNT_POINTS:
             if mount_point not in fstab_content:
-                log.error(TEST_ASSERT_MSGS["fstab_entry"].format(mount_point=mount_point))
+                log.failed(TEST_ASSERT_MSGS["fstab_entry"].format(mount_point=mount_point))
                 return False
 
     # Check for PowerScale entries (all nodes)
     for mount_point in POWERSCALE_MOUNT_POINTS:
         if mount_point not in fstab_content:
-            log.warning(f"PowerScale mount point {mount_point} not in fstab")
+            log.check(f"PowerScale mount point {mount_point} not in fstab")
 
-    log.info("fstab entries verified")
+    log.check("fstab entries verified")
     return True
 
 
@@ -372,14 +372,14 @@ def verify_ib_interface_config(host, node_ip: str) -> bool:
     TC-013: IB Network Configuration
     """
     log = TestLogger("verify_ib_interface_config")
-    log.info(TEST_LOG_MSGS["validating_network"].format(interface=IB_INTERFACE))
+    log.check(TEST_LOG_MSGS["validating_network"].format(interface=IB_INTERFACE))
 
     # Check interface exists
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'ip link show {IB_INTERFACE}'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"IB interface {IB_INTERFACE} not found")
+        log.failed(f"IB interface {IB_INTERFACE} not found")
         return False
 
     # Check IP assignment
@@ -387,23 +387,23 @@ def verify_ib_interface_config(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"No IP assigned to {IB_INTERFACE}")
+        log.failed(f"No IP assigned to {IB_INTERFACE}")
         return False
 
     # Extract IP
     ip_match = re.search(r'inet\s+(\d+\.\d+\.\d+\.\d+)', result.stdout)
     if not ip_match:
-        log.error("Failed to extract IP address")
+        log.failed("Failed to extract IP address")
         return False
 
     ib_ip = ip_match.group(1)
 
     # Verify IP is in IB subnet
     if not ib_ip.startswith("192.168."):
-        log.error(TEST_ASSERT_MSGS["ib_ip_assigned"].format(subnet=IB_SUBNET))
+        log.failed(TEST_ASSERT_MSGS["ib_ip_assigned"].format(subnet=IB_SUBNET))
         return False
 
-    log.info(f"IB interface configured with IP: {ib_ip}")
+    log.check(f"IB interface configured with IP: {ib_ip}")
     return True
 
 
@@ -419,24 +419,24 @@ def verify_ib_mtu(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Failed to get MTU for {IB_INTERFACE}")
+        log.failed(f"Failed to get MTU for {IB_INTERFACE}")
         return False
 
     # Extract MTU value
     mtu_match = re.search(r'mtu\s+(\d+)', result.stdout)
     if not mtu_match:
-        log.error("Failed to extract MTU value")
+        log.failed("Failed to extract MTU value")
         return False
 
     actual_mtu = int(mtu_match.group(1))
 
     if actual_mtu != IB_MTU:
-        log.error(TEST_ASSERT_MSGS["ib_mtu_correct"].format(
+        log.failed(TEST_ASSERT_MSGS["ib_mtu_correct"].format(
             expected_mtu=IB_MTU, actual_mtu=actual_mtu
         ))
         return False
 
-    log.info(f"IB MTU verified: {actual_mtu}")
+    log.check(f"IB MTU verified: {actual_mtu}")
     return True
 
 
@@ -457,14 +457,14 @@ def verify_ib_link_status(host, node_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.error(ERROR_MESSAGES["ib_link_down"].format(interface=IB_INTERFACE))
+            log.failed(ERROR_MESSAGES["ib_link_down"].format(interface=IB_INTERFACE))
             return False
     else:
         if "Active" not in result.stdout:
-            log.error(TEST_ASSERT_MSGS["ib_link_active"])
+            log.failed(TEST_ASSERT_MSGS["ib_link_active"])
             return False
 
-    log.info("IB link is active")
+    log.check("IB link is active")
     return True
 
 
@@ -475,14 +475,14 @@ def verify_rdma_connectivity(host, node_ip: str, target_ip: str) -> bool:
     TC-016: VAST RDMA Mount
     """
     log = TestLogger("verify_rdma_connectivity")
-    log.info(TEST_LOG_MSGS["testing_rdma"].format(host=target_ip, port=VAST_RDMA_PORT))
+    log.check(TEST_LOG_MSGS["testing_rdma"].format(host=target_ip, port=VAST_RDMA_PORT))
 
     # Check RDMA modules loaded
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'lsmod | grep -E \"mlx5_ib|ib_core|rdma_cm\"'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(ERROR_MESSAGES["module_not_loaded"].format(module="RDMA modules"))
+        log.failed(ERROR_MESSAGES["module_not_loaded"].format(module="RDMA modules"))
         return False
 
     # Test RDMA connectivity (using rping if available)
@@ -495,10 +495,10 @@ def verify_rdma_connectivity(host, node_ip: str, target_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.error(ERROR_MESSAGES["rdma_connection_failed"].format(error=result.stderr))
+            log.failed(ERROR_MESSAGES["rdma_connection_failed"].format(error=result.stderr))
             return False
 
-    log.info("RDMA connectivity verified")
+    log.check("RDMA connectivity verified")
     return True
 
 
@@ -509,7 +509,7 @@ def verify_dns_resolution(host, node_ip: str) -> bool:
     TC-049: VAST DNS Resolution
     """
     log = TestLogger("verify_dns_resolution")
-    log.info(TEST_LOG_MSGS["validating_dns"].format(fqdn=VAST_FQDN))
+    log.check(TEST_LOG_MSGS["validating_dns"].format(fqdn=VAST_FQDN))
 
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'nslookup {VAST_FQDN} {IB_DNS_SERVER} 2>&1'"
     result = host.run(cmd)
@@ -520,7 +520,7 @@ def verify_dns_resolution(host, node_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.error(ERROR_MESSAGES["dns_resolution_failed"].format(
+            log.failed(ERROR_MESSAGES["dns_resolution_failed"].format(
                 fqdn=VAST_FQDN, error=result.stderr
             ))
             return False
@@ -530,12 +530,12 @@ def verify_dns_resolution(host, node_ip: str) -> bool:
     valid_ips = [ip for ip in ip_matches if ip.startswith("192.168.")]
 
     if not valid_ips:
-        log.error(TEST_ASSERT_MSGS["dns_ip_range"].format(
+        log.failed(TEST_ASSERT_MSGS["dns_ip_range"].format(
             ip="none", subnet=IB_SUBNET
         ))
         return False
 
-    log.info(f"DNS resolved to IB IPs: {valid_ips}")
+    log.check(f"DNS resolved to IB IPs: {valid_ips}")
     return True
 
 
@@ -551,10 +551,10 @@ def verify_port_reachability(host, node_ip: str, target: str, port: int) -> bool
     result = host.run(cmd)
 
     if result.rc != 0 or "succeeded" not in result.stdout.lower():
-        log.error(ERROR_MESSAGES["port_unreachable"].format(port=port, host=target))
+        log.failed(ERROR_MESSAGES["port_unreachable"].format(port=port, host=target))
         return False
 
-    log.info(f"Port {port} reachable on {target}")
+    log.check(f"Port {port} reachable on {target}")
     return True
 
 
@@ -575,18 +575,18 @@ def verify_vastnfs_client_install(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or not result.stdout.strip():
-        log.error(ERROR_MESSAGES["rpm_not_installed"].format(package="vastnfs"))
+        log.failed(ERROR_MESSAGES["rpm_not_installed"].format(package="vastnfs"))
         return False
 
     vastnfs_version = result.stdout.strip()
-    log.info(f"VAST NFS client installed: {vastnfs_version}")
+    log.check(f"VAST NFS client installed: {vastnfs_version}")
 
     # Check vastnfs-ctl command available
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'which {VAST_CTL_COMMAND}'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Command {VAST_CTL_COMMAND} not found")
+        log.failed(f"Command {VAST_CTL_COMMAND} not found")
         return False
 
     return True
@@ -604,7 +604,7 @@ def verify_vastnfs_kernel_module(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(ERROR_MESSAGES["module_not_loaded"].format(module=VAST_KERNEL_MODULE))
+        log.failed(ERROR_MESSAGES["module_not_loaded"].format(module=VAST_KERNEL_MODULE))
         return False
 
     # Check dmesg for module messages
@@ -612,9 +612,9 @@ def verify_vastnfs_kernel_module(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc == 0 and result.stdout.strip():
-        log.debug(f"VAST NFS kernel messages:\n{result.stdout}")
+        log.check(f"VAST NFS kernel messages:\n{result.stdout}")
 
-    log.info("VAST NFS kernel module loaded")
+    log.check("VAST NFS kernel module loaded")
     return True
 
 
@@ -632,7 +632,7 @@ def verify_vast_rdma_mount(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Mount point {mount_point} not mounted")
+        log.failed(f"Mount point {mount_point} not mounted")
         return False
 
     # Verify RDMA protocol
@@ -640,7 +640,7 @@ def verify_vast_rdma_mount(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("nfsstat command failed, checking /proc/mounts")
+        log.check("nfsstat command failed, checking /proc/mounts")
         cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'cat /proc/mounts | grep {mount_point}'"
         result = host.run(cmd)
 
@@ -648,14 +648,14 @@ def verify_vast_rdma_mount(host, node_ip: str, mount_point: str) -> bool:
 
     # Verify RDMA protocol and port
     if "proto=rdma" not in mount_info:
-        log.error(TEST_ASSERT_MSGS["mount_protocol"].format(protocol="RDMA"))
+        log.failed(TEST_ASSERT_MSGS["mount_protocol"].format(protocol="RDMA"))
         return False
 
     if f"port={VAST_RDMA_PORT}" not in mount_info:
-        log.error(f"VAST mount not using port {VAST_RDMA_PORT}")
+        log.failed(f"VAST mount not using port {VAST_RDMA_PORT}")
         return False
 
-    log.info(f"VAST mounted via RDMA on {mount_point}")
+    log.check(f"VAST mounted via RDMA on {mount_point}")
     return True
 
 
@@ -671,18 +671,18 @@ def verify_vastnfs_ctl_status(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"vastnfs-ctl status failed: {result.stderr}")
+        log.failed(f"vastnfs-ctl status failed: {result.stderr}")
         return False
 
     status_output = result.stdout
 
     # Check for expected status indicators
     if "active" not in status_output.lower() and "mounted" not in status_output.lower():
-        log.error("VAST NFS status does not show active mounts")
+        log.failed("VAST NFS status does not show active mounts")
         return False
 
-    log.info("vastnfs-ctl status verified")
-    log.debug(f"Status output:\n{status_output}")
+    log.check("vastnfs-ctl status verified")
+    log.check(f"Status output:\n{status_output}")
     return True
 
 
@@ -700,7 +700,7 @@ def verify_vast_compute_only(host, controller_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc == 0:
-        log.error("VAST entries found in controller fstab")
+        log.failed("VAST entries found in controller fstab")
         return False
 
     # Check no VAST mounts
@@ -708,10 +708,10 @@ def verify_vast_compute_only(host, controller_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc == 0:
-        log.error("VAST mounts found on controller")
+        log.failed("VAST mounts found on controller")
         return False
 
-    log.info("Verified VAST not mounted on controller")
+    log.check("Verified VAST not mounted on controller")
     return True
 
 
@@ -731,10 +731,10 @@ def verify_mount_point_exists(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "exists":
-        log.error(TEST_ASSERT_MSGS["mount_exists"].format(mount_point=mount_point))
+        log.failed(TEST_ASSERT_MSGS["mount_exists"].format(mount_point=mount_point))
         return False
 
-    log.info(f"Mount point {mount_point} exists")
+    log.check(f"Mount point {mount_point} exists")
     return True
 
 
@@ -751,7 +751,7 @@ def verify_mount_active(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "mounted":
-        log.error(TEST_ASSERT_MSGS["mount_active"].format(mount_point=mount_point))
+        log.failed(TEST_ASSERT_MSGS["mount_active"].format(mount_point=mount_point))
         return False
 
     # Test write access
@@ -760,9 +760,9 @@ def verify_mount_active(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "writable":
-        log.warning(f"Mount {mount_point} is not writable")
+        log.check(f"Mount {mount_point} is not writable")
 
-    log.info(f"Mount {mount_point} is active")
+    log.check(f"Mount {mount_point} is active")
     return True
 
 
@@ -779,7 +779,7 @@ def verify_systemd_mount_units(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("No systemd mount units found for storage backends")
+        log.check("No systemd mount units found for storage backends")
         return True  # Not all systems use systemd mount units
 
     mount_units = result.stdout.strip().split('\n')
@@ -796,10 +796,10 @@ def verify_systemd_mount_units(host, node_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.stdout.strip() != "active":
-            log.error(TEST_ASSERT_MSGS["systemd_unit_active"].format(unit=unit_name))
+            log.failed(TEST_ASSERT_MSGS["systemd_unit_active"].format(unit=unit_name))
             return False
 
-    log.info("All systemd mount units are active")
+    log.check("All systemd mount units are active")
     return True
 
 
@@ -818,31 +818,31 @@ def verify_mount_permissions(host, node_ip: str, mount_point: str,
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Failed to get stats for {mount_point}")
+        log.failed(f"Failed to get stats for {mount_point}")
         return False
 
     actual_user, actual_group, actual_mode = result.stdout.strip().split(':')
 
     # Verify if specific permissions expected
     if user and actual_user != user:
-        log.error(TEST_ASSERT_MSGS["file_ownership"].format(
+        log.failed(TEST_ASSERT_MSGS["file_ownership"].format(
             path=mount_point, user=user, group=group
         ))
         return False
 
     if group and actual_group != group:
-        log.error(TEST_ASSERT_MSGS["file_ownership"].format(
+        log.failed(TEST_ASSERT_MSGS["file_ownership"].format(
             path=mount_point, user=user, group=group
         ))
         return False
 
     if mode and actual_mode != mode:
-        log.error(TEST_ASSERT_MSGS["file_permissions"].format(
+        log.failed(TEST_ASSERT_MSGS["file_permissions"].format(
             path=mount_point, mode=mode
         ))
         return False
 
-    log.info(f"Permissions verified for {mount_point}: {actual_user}:{actual_group}:{actual_mode}")
+    log.check(f"Permissions verified for {mount_point}: {actual_user}:{actual_group}:{actual_mode}")
     return True
 
 
@@ -860,7 +860,7 @@ def verify_scratch_isolation(host, compute_nodes: List[str]) -> bool:
     log = TestLogger("verify_scratch_isolation")
 
     if len(compute_nodes) < 2:
-        log.warning("Need at least 2 compute nodes to test isolation")
+        log.check("Need at least 2 compute nodes to test isolation")
         return True
 
     test_data = {}
@@ -875,7 +875,7 @@ def verify_scratch_isolation(host, compute_nodes: List[str]) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.error(f"Failed to write test file on {node_ip}")
+            log.failed(f"Failed to write test file on {node_ip}")
             return False
 
         test_data[node_ip] = (test_file, test_content)
@@ -890,8 +890,8 @@ def verify_scratch_isolation(host, compute_nodes: List[str]) -> bool:
             result = host.run(cmd)
 
             if result.rc == 0:
-                log.error(TEST_ASSERT_MSGS["scratch_isolated"])
-                log.error(f"File from {node_ip} visible on {other_node}")
+                log.failed(TEST_ASSERT_MSGS["scratch_isolated"])
+                log.failed(f"File from {node_ip} visible on {other_node}")
                 return False
 
     # Cleanup
@@ -899,7 +899,7 @@ def verify_scratch_isolation(host, compute_nodes: List[str]) -> bool:
         cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'rm -f {test_file}'"
         host.run(cmd)
 
-    log.info("Scratch isolation verified across nodes")
+    log.check("Scratch isolation verified across nodes")
     return True
 
 
@@ -916,7 +916,7 @@ def verify_tmp_bind_mount(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get hostname")
+        log.failed("Failed to get hostname")
         return False
 
     hostname = result.stdout.strip()
@@ -926,14 +926,14 @@ def verify_tmp_bind_mount(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to check /tmp mount")
+        log.failed("Failed to check /tmp mount")
         return False
 
     df_output = result.stdout.strip()
 
     # Verify it's from scratch
     if "scratch" not in df_output and "vast" not in df_output.lower():
-        log.error("/tmp not backed by scratch/VAST filesystem")
+        log.failed("/tmp not backed by scratch/VAST filesystem")
         return False
 
     # Check bind mount
@@ -943,10 +943,10 @@ def verify_tmp_bind_mount(host, node_ip: str) -> bool:
     if result.rc == 0:
         mount_info = result.stdout
         if f"/scratch/{hostname}/tmp" in mount_info or "bind" in mount_info:
-            log.info(f"/tmp is bind-mounted from /scratch/{hostname}/tmp")
+            log.check(f"/tmp is bind-mounted from /scratch/{hostname}/tmp")
             return True
 
-    log.warning("/tmp bind mount not clearly identified")
+    log.check("/tmp bind mount not clearly identified")
     return True
 
 
@@ -963,7 +963,7 @@ def verify_hostname_scratch_dir(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get hostname")
+        log.failed("Failed to get hostname")
         return False
 
     hostname = result.stdout.strip()
@@ -974,7 +974,7 @@ def verify_hostname_scratch_dir(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "exists":
-        log.error(f"Hostname scratch directory {scratch_dir} does not exist")
+        log.failed(f"Hostname scratch directory {scratch_dir} does not exist")
         return False
 
     # Verify it's writable
@@ -983,10 +983,10 @@ def verify_hostname_scratch_dir(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "writable":
-        log.error(f"Hostname scratch directory {scratch_dir} is not writable")
+        log.failed(f"Hostname scratch directory {scratch_dir} is not writable")
         return False
 
-    log.info(f"Hostname scratch directory {scratch_dir} verified")
+    log.check(f"Hostname scratch directory {scratch_dir} verified")
     return True
 
 
@@ -1002,7 +1002,7 @@ def measure_rdma_latency(host, node_ip: str, target_ip: str) -> Tuple[float, flo
     Returns: (average_latency_us, p99_latency_us)
     """
     log = TestLogger("measure_rdma_latency")
-    log.info(TEST_LOG_MSGS["measuring_performance"].format(metric="RDMA latency"))
+    log.check(TEST_LOG_MSGS["measuring_performance"].format(metric="RDMA latency"))
 
     # Use ib_write_lat or similar tool if available
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'which ib_write_lat'"
@@ -1024,7 +1024,7 @@ def measure_rdma_latency(host, node_ip: str, target_ip: str) -> Tuple[float, flo
                         avg_latency = float(match.group(1))
                         p99_latency = avg_latency * 1.5  # Estimate
 
-                        log.info(TEST_LOG_MSGS["latency_measured"].format(
+                        log.check(TEST_LOG_MSGS["latency_measured"].format(
                             avg_us=avg_latency, p99_us=p99_latency
                         ))
                         return (avg_latency, p99_latency)
@@ -1042,12 +1042,12 @@ def measure_rdma_latency(host, node_ip: str, target_ip: str) -> Tuple[float, flo
             avg_us = avg_ms * 1000
             p99_us = max_ms * 1000
 
-            log.info(TEST_LOG_MSGS["latency_measured"].format(
+            log.check(TEST_LOG_MSGS["latency_measured"].format(
                 avg_us=avg_us, p99_us=p99_us
             ))
             return (avg_us, p99_us)
 
-    log.warning("Could not measure RDMA latency accurately")
+    log.check("Could not measure RDMA latency accurately")
     return (0.0, 0.0)
 
 
@@ -1059,7 +1059,7 @@ def measure_throughput(host, node_ip: str, mount_point: str) -> float:
     Returns: throughput in GB/s
     """
     log = TestLogger("measure_throughput")
-    log.info(TEST_LOG_MSGS["measuring_performance"].format(metric="throughput"))
+    log.check(TEST_LOG_MSGS["measuring_performance"].format(metric="throughput"))
 
     test_file = f"{mount_point}/throughput_test_{int(time.time())}"
 
@@ -1087,7 +1087,7 @@ def measure_throughput(host, node_ip: str, mount_point: str) -> float:
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'rm -f {test_file}'"
     host.run(cmd)
 
-    log.info(TEST_LOG_MSGS["throughput_measured"].format(throughput_gb=throughput_gb))
+    log.check(TEST_LOG_MSGS["throughput_measured"].format(throughput_gb=throughput_gb))
     return throughput_gb
 
 
@@ -1099,7 +1099,7 @@ def measure_iops(host, node_ip: str, mount_point: str) -> int:
     Returns: IOPS count
     """
     log = TestLogger("measure_iops")
-    log.info(TEST_LOG_MSGS["measuring_performance"].format(metric="IOPS"))
+    log.check(TEST_LOG_MSGS["measuring_performance"].format(metric="IOPS"))
 
     # Check if fio is available
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'which fio'"
@@ -1130,13 +1130,13 @@ def measure_iops(host, node_ip: str, mount_point: str) -> int:
                 cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'rm -f {test_file}'"
                 host.run(cmd)
 
-                log.info(TEST_LOG_MSGS["iops_measured"].format(iops=iops))
+                log.check(TEST_LOG_MSGS["iops_measured"].format(iops=iops))
                 return iops
             except (json.JSONDecodeError, KeyError):
-                log.warning("Failed to parse fio output")
+                log.check("Failed to parse fio output")
 
     # Fallback: estimate based on simple I/O test
-    log.warning("fio not available, using estimation")
+    log.check("fio not available, using estimation")
     return 100000  # Conservative estimate
 
 
@@ -1157,17 +1157,17 @@ def verify_stale_handle_recovery(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc == 0 and result.stdout.strip():
-        log.info("Found STALE handle errors in logs")
+        log.check("Found STALE handle errors in logs")
 
         # Check if mount was recovered
         cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'mountpoint -q {mount_point} && echo recovered'"
         result = host.run(cmd)
 
         if result.rc != 0 or result.stdout.strip() != "recovered":
-            log.error(TEST_ASSERT_MSGS["recovery_successful"].format(error="STALE handle"))
+            log.failed(TEST_ASSERT_MSGS["recovery_successful"].format(error="STALE handle"))
             return False
 
-    log.info("STALE handle recovery mechanism verified")
+    log.check("STALE handle recovery mechanism verified")
     return True
 
 
@@ -1185,15 +1185,15 @@ def verify_mount_retry_logic(host, node_ip: str) -> bool:
 
     if result.rc == 0 and result.stdout.strip():
         retry_logs = result.stdout.strip().split('\n')
-        log.info(f"Found {len(retry_logs)} mount retry attempts in logs")
+        log.check(f"Found {len(retry_logs)} mount retry attempts in logs")
 
         # Verify retry pattern matches expected delays
         # This is a simplified check - actual implementation may vary
         if len(retry_logs) >= MOUNT_RETRY_COUNT:
-            log.info("Mount retry logic verified")
+            log.check("Mount retry logic verified")
             return True
 
-    log.info("No mount retries needed (mounts successful on first attempt)")
+    log.check("No mount retries needed (mounts successful on first attempt)")
     return True
 
 
@@ -1214,7 +1214,7 @@ def verify_provisioning_idempotency(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get current mount state")
+        log.failed("Failed to get current mount state")
         return False
 
     _ = result.stdout.strip()  # initial_mounts - captured for potential future use
@@ -1225,8 +1225,8 @@ def verify_provisioning_idempotency(host, node_ip: str) -> bool:
 
     _ = result.stdout.strip() if result.rc == 0 else ""  # initial_fstab - captured for potential future use
 
-    log.info("Initial state captured, re-run would verify no changes")
-    log.info("Idempotency check passed (single run verification)")
+    log.check("Initial state captured, re-run would verify no changes")
+    log.check("Idempotency check passed (single run verification)")
     return True
 
 
@@ -1243,7 +1243,7 @@ def verify_mount_state_consistency(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get mount points")
+        log.failed("Failed to get mount points")
         return False
 
     mount_points = result.stdout.strip().split('\n')
@@ -1263,10 +1263,10 @@ def verify_mount_state_consistency(host, node_ip: str) -> bool:
         systemd_result = host.run(cmd)
 
         if fstab_result.rc != 0 and systemd_result.rc != 0:
-            log.error(f"Mount {mount_point} not persistent (no fstab or systemd unit)")
+            log.failed(f"Mount {mount_point} not persistent (no fstab or systemd unit)")
             return False
 
-    log.info("Mount state consistency verified")
+    log.check("Mount state consistency verified")
     return True
 
 
@@ -1287,7 +1287,7 @@ def verify_powerscale_mounts(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("No PowerScale mounts found")
+        log.check("No PowerScale mounts found")
         return False
 
     powerscale_mounts = result.stdout.strip().split('\n')
@@ -1303,10 +1303,10 @@ def verify_powerscale_mounts(host, node_ip: str) -> bool:
             result = host.run(cmd)
 
             if result.rc != 0 or result.stdout.strip() != "accessible":
-                log.error(f"PowerScale mount {mount_point} is not accessible")
+                log.failed(f"PowerScale mount {mount_point} is not accessible")
                 return False
 
-    log.info("PowerScale mounts verified")
+    log.check("PowerScale mounts verified")
     return True
 
 
@@ -1323,7 +1323,7 @@ def verify_powervault_iscsi(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.info("Not a controller node, skipping PowerVault check")
+        log.check("Not a controller node, skipping PowerVault check")
         return True
 
     # Check iSCSI sessions
@@ -1331,7 +1331,7 @@ def verify_powervault_iscsi(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("No iSCSI sessions found on controller")
+        log.failed("No iSCSI sessions found on controller")
         return False
 
     # Check for PowerVault block devices
@@ -1344,10 +1344,10 @@ def verify_powervault_iscsi(host, node_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.error("PowerVault mounts not found for MySQL/Slurm")
+            log.failed("PowerVault mounts not found for MySQL/Slurm")
             return False
 
-    log.info("PowerVault iSCSI mounts verified")
+    log.check("PowerVault iSCSI mounts verified")
     return True
 
 
@@ -1367,10 +1367,10 @@ def verify_powerscale_fallback(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("PowerScale not configured")
+        log.check("PowerScale not configured")
         return True
 
-    log.info("PowerScale fallback configuration verified")
+    log.check("PowerScale fallback configuration verified")
     return True
 
 
@@ -1387,18 +1387,18 @@ def verify_swap_configuration(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or not result.stdout.strip():
-        log.info("No swap configured")
+        log.check("No swap configured")
         return True
 
     swap_info = result.stdout.strip()
-    log.info(f"Swap configuration:\n{swap_info}")
+    log.check(f"Swap configuration:\n{swap_info}")
 
     # Verify swap persists (in fstab)
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'grep swap {FSTAB_PATH}'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("Swap not in fstab (may not persist across reboots)")
+        log.check("Swap not in fstab (may not persist across reboots)")
 
     return True
 
@@ -1421,7 +1421,7 @@ def verify_slurm_state_persistence(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.info("Not a Slurm controller, skipping")
+        log.check("Not a Slurm controller, skipping")
         return True
 
     # Check Slurm state directory
@@ -1429,7 +1429,7 @@ def verify_slurm_state_persistence(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Slurm state directory not accessible")
+        log.failed("Slurm state directory not accessible")
         return False
 
     # Check accounting database
@@ -1437,16 +1437,16 @@ def verify_slurm_state_persistence(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("No job history available")
+        log.check("No job history available")
     else:
-        log.info("Slurm job history is accessible")
+        log.check("Slurm job history is accessible")
 
     # Check log persistence
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'ls -la /var/log/slurm/'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("Slurm log directory not found")
+        log.check("Slurm log directory not found")
 
     return True
 
@@ -1469,7 +1469,7 @@ def verify_slurm_storage_paths(host, node_ip: str) -> bool:
         result = host.run(cmd)
 
         if result.rc != 0:
-            log.warning("HOME directory not on shared storage")
+            log.check("HOME directory not on shared storage")
 
     return True
 
@@ -1487,7 +1487,7 @@ def verify_job_logs_persistence(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.info("No Slurm logs found")
+        log.check("No Slurm logs found")
         return True
 
     log_files = result.stdout.strip().split('\n')
@@ -1503,10 +1503,10 @@ def verify_job_logs_persistence(host, node_ip: str) -> bool:
         if result.rc == 0:
             df_output = result.stdout.strip()
             if "tmpfs" in df_output:
-                log.error(f"Log file {log_file} is on tmpfs (not persistent)")
+                log.failed(f"Log file {log_file} is on tmpfs (not persistent)")
                 return False
 
-    log.info("Slurm logs are on persistent storage")
+    log.check("Slurm logs are on persistent storage")
     return True
 
 
@@ -1519,7 +1519,7 @@ def verify_mpi_checkpoint(host, compute_nodes: List[str]) -> bool:
     log = TestLogger("verify_mpi_checkpoint")
 
     if len(compute_nodes) < 2:
-        log.warning("Need at least 2 compute nodes for MPI test")
+        log.check("Need at least 2 compute nodes for MPI test")
         return True
 
     # This would require an actual MPI job submission
@@ -1532,7 +1532,7 @@ def verify_mpi_checkpoint(host, compute_nodes: List[str]) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.info("MPI not installed, skipping checkpoint test")
+        log.check("MPI not installed, skipping checkpoint test")
         return True
 
     # Verify scratch is available for checkpoints
@@ -1540,10 +1540,10 @@ def verify_mpi_checkpoint(host, compute_nodes: List[str]) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("Scratch not on VAST storage")
+        log.check("Scratch not on VAST storage")
         return False
 
-    log.info("MPI checkpoint capability verified")
+    log.check("MPI checkpoint capability verified")
     return True
 
 
@@ -1567,10 +1567,10 @@ def verify_add_compute_node(host) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("No provisioning playbooks found")
+        log.check("No provisioning playbooks found")
         return False
 
-    log.info("Node addition capability verified")
+    log.check("Node addition capability verified")
     return True
 
 
@@ -1590,10 +1590,10 @@ def verify_remove_compute_node(host) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning("No cleanup playbooks found")
+        log.check("No cleanup playbooks found")
         return True  # Not all deployments have cleanup playbooks
 
-    log.info("Node removal capability verified")
+    log.check("Node removal capability verified")
     return True
 
 
@@ -1614,22 +1614,22 @@ def verify_rhel_compatibility(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to determine OS version")
+        log.failed("Failed to determine OS version")
         return False
 
     os_info = result.stdout.strip()
-    log.info(f"OS Info: {os_info}")
+    log.check(f"OS Info: {os_info}")
 
     # Check kernel version
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'uname -r'"
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get kernel version")
+        log.failed("Failed to get kernel version")
         return False
 
     kernel_version = result.stdout.strip()
-    log.info(f"Kernel version: {kernel_version}")
+    log.check(f"Kernel version: {kernel_version}")
 
     # Verify VAST module compatibility
     cmd = f"ssh -o StrictHostKeyChecking=no {node_ip} 'modinfo vastnfs 2>/dev/null | grep -E \"^version|^vermagic\"'"
@@ -1637,7 +1637,7 @@ def verify_rhel_compatibility(host, node_ip: str) -> bool:
 
     if result.rc == 0:
         module_info = result.stdout.strip()
-        log.info(f"VAST module info: {module_info}")
+        log.check(f"VAST module info: {module_info}")
 
     return True
 
@@ -1651,7 +1651,7 @@ def verify_job_output_consistency(host, compute_nodes: List[str]) -> bool:
     log = TestLogger("verify_job_output_consistency")
 
     if not compute_nodes:
-        log.warning("No compute nodes available")
+        log.check("No compute nodes available")
         return True
 
     node_ip = compute_nodes[0]
@@ -1672,7 +1672,7 @@ df -h /home
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to create test script")
+        log.failed("Failed to create test script")
         return False
 
     # Make executable
@@ -1684,7 +1684,7 @@ df -h /home
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Test script execution failed")
+        log.failed("Test script execution failed")
         return False
 
     output = result.stdout.strip()
@@ -1695,10 +1695,10 @@ df -h /home
 
     # Verify output contains expected elements
     if "Test output" not in output:
-        log.error("Job output inconsistent")
+        log.failed("Job output inconsistent")
         return False
 
-    log.info("Job output consistency verified")
+    log.check("Job output consistency verified")
     return True
 
 
@@ -1719,7 +1719,7 @@ def verify_mount_accessibility(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "readable":
-        log.error(f"Mount point {mount_point} is not readable")
+        log.failed(f"Mount point {mount_point} is not readable")
         return False
 
     # Test write access
@@ -1728,10 +1728,10 @@ def verify_mount_accessibility(host, node_ip: str, mount_point: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0 or result.stdout.strip() != "writable":
-        log.warning(f"Mount point {mount_point} is not writable")
+        log.check(f"Mount point {mount_point} is not writable")
         # Not necessarily an error - some mounts may be read-only
 
-    log.info(f"Mount point {mount_point} is accessible")
+    log.check(f"Mount point {mount_point} is accessible")
     return True
 
 
@@ -1753,16 +1753,16 @@ def verify_mount_protocol(host, node_ip: str, mount_point: str, expected_protoco
         result = host.run(cmd)
 
     if result.rc != 0:
-        log.error(f"Could not determine protocol for {mount_point}")
+        log.failed(f"Could not determine protocol for {mount_point}")
         return False
 
     mount_info = result.stdout.strip()
 
     if f"proto={expected_protocol}" not in mount_info:
-        log.error(f"Mount {mount_point} not using protocol {expected_protocol}")
+        log.failed(f"Mount {mount_point} not using protocol {expected_protocol}")
         return False
 
-    log.info(f"Mount {mount_point} using protocol {expected_protocol}")
+    log.check(f"Mount {mount_point} using protocol {expected_protocol}")
     return True
 
 
@@ -1780,7 +1780,7 @@ def verify_ib_ip_assignment(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.error("Failed to get hostname")
+        log.failed("Failed to get hostname")
         return False
 
     hostname = result.stdout.strip()
@@ -1790,7 +1790,7 @@ def verify_ib_ip_assignment(host, node_ip: str) -> bool:
     result = host.run(cmd)
 
     if result.rc != 0:
-        log.warning(f"Host {hostname} not found in pxe_mapping.csv")
+        log.check(f"Host {hostname} not found in pxe_mapping.csv")
         return True
 
     pxe_entry = result.stdout.strip()
@@ -1803,7 +1803,7 @@ def verify_ib_ip_assignment(host, node_ip: str) -> bool:
         if ib_ip_configured:
             # Verify IP is in IB subnet
             if not ib_ip_configured.startswith("192.168."):
-                log.error(f"IB_IP {ib_ip_configured} not in IB subnet")
+                log.failed(f"IB_IP {ib_ip_configured} not in IB subnet")
                 return False
 
             # Verify this IP is actually assigned
@@ -1811,7 +1811,7 @@ def verify_ib_ip_assignment(host, node_ip: str) -> bool:
             result = host.run(cmd)
 
             if result.rc != 0:
-                log.error(f"Configured IB_IP {ib_ip_configured} not assigned to interface")
+                log.failed(f"Configured IB_IP {ib_ip_configured} not assigned to interface")
                 return False
         else:
             # IB_IP empty - verify no IB interface configured
@@ -1819,10 +1819,10 @@ def verify_ib_ip_assignment(host, node_ip: str) -> bool:
             result = host.run(cmd)
 
             if result.rc == 0:
-                log.error("IB interface configured despite empty IB_IP in pxe_mapping")
+                log.failed("IB interface configured despite empty IB_IP in pxe_mapping")
                 return False
 
-    log.info("IB IP assignment verified")
+    log.check("IB IP assignment verified")
     return True
 
 
@@ -1843,7 +1843,7 @@ def measure_boot_time(host, node_ip: str) -> float:
         match = re.search(r'= ([\d.]+)s', result.stdout)
         if match:
             boot_time = float(match.group(1))
-            log.info(f"Boot time: {boot_time} seconds")
+            log.check(f"Boot time: {boot_time} seconds")
             return boot_time
 
     # Fallback: check uptime
@@ -1851,7 +1851,7 @@ def measure_boot_time(host, node_ip: str) -> float:
     result = host.run(cmd)
 
     if result.rc == 0:
-        log.info(f"System up since: {result.stdout.strip()}")
+        log.check(f"System up since: {result.stdout.strip()}")
 
     return 0.0
 
@@ -1881,8 +1881,8 @@ def verify_error_logging(host, node_ip: str) -> bool:
             result = host.run(cmd)
 
             if result.rc == 0 and result.stdout.strip():
-                log.info(f"Found storage errors in {log_file}:")
-                log.debug(result.stdout.strip())
+                log.check(f"Found storage errors in {log_file}:")
+                log.check(result.stdout.strip())
 
-    log.info("Error logging verification complete")
+    log.check("Error logging verification complete")
     return True

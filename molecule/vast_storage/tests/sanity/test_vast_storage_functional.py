@@ -38,19 +38,11 @@ Test Cases:
   TC-017  test_login_node_mounts          - login/compiler node mount table (PS + VAST)
 """
 
-import os
-import sys
 import time
+from typing import Dict, Any, Optional
+
 import yaml
 import pytest
-from typing import Dict, List, Optional, Any
-
-_PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../.."),
-)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
 from automation_library.core import (
     TestLogger,
     run_in_container,
@@ -59,7 +51,6 @@ from automation_library.core import (
 from automation_library.core import STORAGE_CONFIG_PATH
 from automation_library.slurm.functions.slurm_func import (
     _safe_run_on_remote_node,
-    get_slurm_control_nodes,
     get_slurm_nodes,
     get_login_nodes,
     get_login_compiler_nodes,
@@ -100,53 +91,9 @@ def _skip_if_no_vast(host):
         pytest.skip("vast_storage not configured in storage_config.yml")
 
 
-def _first_ip(nodes: List[Dict]) -> Optional[str]:
+def _first_ip(nodes):
     """Return admin_ip of the first node in a list, or None."""
     return nodes[0].get("admin_ip") if nodes else None
-
-
-# =============================================================================
-# FIXTURES
-# =============================================================================
-
-@pytest.fixture(scope="module")
-def vast_config(host):
-    entry = _get_vast_mount_entry(host)
-    if entry is None:
-        pytest.skip("vast_storage not configured in storage_config.yml")
-    return entry
-
-
-@pytest.fixture(scope="module")
-def compute_node_ip(host):
-    nodes = get_slurm_nodes(host)
-    if not nodes:
-        pytest.skip("No slurm compute nodes found in PXE mapping")
-    return _first_ip(nodes)
-
-
-@pytest.fixture(scope="module")
-def control_node_ip(host):
-    nodes = get_slurm_control_nodes(host)
-    if not nodes:
-        pytest.skip("No slurm control nodes found in PXE mapping")
-    return _first_ip(nodes)
-
-
-@pytest.fixture(scope="module")
-def login_compiler_node_ip(host):
-    nodes = get_login_compiler_nodes(host)
-    if not nodes:
-        pytest.skip("No login_compiler nodes found in PXE mapping")
-    return _first_ip(nodes)
-
-
-@pytest.fixture(scope="module")
-def login_node_ip(host):
-    nodes = get_login_nodes(host)
-    if not nodes:
-        pytest.skip("No login nodes found in PXE mapping")
-    return _first_ip(nodes)
 
 
 # =============================================================================
@@ -155,7 +102,7 @@ def login_node_ip(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
-def test_vastnfs_installation(host, compute_node_ip, vast_config):
+def test_vastnfs_installation(host, compute_node_ip):
     """
     TC-001: Verify VAST NFS client is installed successfully.
     Checks vastnfs-ctl status for version, kernel modules, and services.
@@ -231,7 +178,7 @@ def test_vast_mount_points(host, compute_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
-def test_scratch_hostname_isolation(host, vast_config):
+def test_scratch_hostname_isolation(host):
     """
     TC-003: Verify /scratch/<hostname>/ exists for every slurm compute node
     and every login/login_compiler node. A file written to /scratch/nodeA/
@@ -309,7 +256,7 @@ def test_mount_options_verification(host, compute_node_ip, vast_config):
         pytest.skip("No VAST mount entries found in /proc/mounts")
 
     mount_opts = " ".join(vast_lines)
-    log.check(f"VAST mount lines:\n" + "\n".join(vast_lines))
+    log.check("VAST mount lines:\n" + "\n".join(vast_lines))
 
     # Required options
     assert "proto=rdma" in mount_opts, "Required option proto=rdma not found"
@@ -331,7 +278,7 @@ def test_mount_options_verification(host, compute_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
-def test_ldapuser_scratch_directory(host, login_compiler_node_ip, vast_config):
+def test_ldapuser_scratch_directory(host, login_compiler_node_ip):
     """
     TC-005: Login as LDAP users on login_compiler nodes and verify
     /scratch/<ldapuser>/ directories are created.
@@ -377,7 +324,7 @@ def test_ldapuser_scratch_directory(host, login_compiler_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(6)
-def test_ldapuser_subdirectories(host, login_compiler_node_ip, vast_config):
+def test_ldapuser_subdirectories(host, login_compiler_node_ip):
     """
     TC-006: Verify data/, jobs/, results/, tmp/ directories exist inside
     /scratch/<ldapuser>/.
@@ -425,7 +372,7 @@ def test_ldapuser_subdirectories(host, login_compiler_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(7)
-def test_ldapuser_permissions(host, login_compiler_node_ip, vast_config):
+def test_ldapuser_permissions(host, login_compiler_node_ip):
     """
     TC-007: One LDAP user must not be able to access another LDAP user's
     /scratch/<other_user>/ directory.
@@ -468,7 +415,7 @@ def test_ldapuser_permissions(host, login_compiler_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_scratch_isolation(host, compute_node_ip, vast_config):
+def test_scratch_isolation(host, compute_node_ip):
     """
     TC-008: Files written to /scratch/dirA/ are absent from /scratch/dirB/.
     All scratch subdirectories have isolated space.
@@ -543,7 +490,7 @@ def test_control_node_no_vast(host, control_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
-def test_vastnfs_rpm_and_module(host, compute_node_ip, vast_config):
+def test_vastnfs_rpm_and_module(host, compute_node_ip):
     """
     TC-010: Verify vastnfs RPM is installed from Pulp repository,
     kernel module is loaded, and vastnfs service is active.
@@ -636,7 +583,7 @@ def test_fstab_entries(host, compute_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(12)
-def test_vast_rdma_mount(host, compute_node_ip, vast_config):
+def test_vast_rdma_mount(host, compute_node_ip):
     """
     TC-012: Verify VAST storage is mounted via RDMA; nfsstat -m confirms RDMA
     transport and port 20049; write 1 GB + read + checksum verify.
@@ -744,7 +691,7 @@ def test_vast_qss_mounts(host, compute_node_ip, control_node_ip, vast_config):
 
 @pytest.mark.sanity
 @pytest.mark.order(14)
-def test_slurm_logs_persistence(host, control_node_ip, vast_config):
+def test_slurm_logs_persistence(host, control_node_ip):
     """
     TC-014: Verify Slurm logs are on persistent storage; sacct -l returns
     complete job records.

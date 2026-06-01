@@ -30,9 +30,6 @@ import re
 import time
 from typing import Dict, Any, List, Tuple
 
-from automation_library.core import (
-    run_on_remote_node,
-)
 from automation_library.slurm.vars.slurm_vars import (
     SLURMCTLD_SERVICE,
     SLURMD_SERVICE,
@@ -47,7 +44,6 @@ from automation_library.slurm.vars.slurm_vars import (
     NODE_IDLE_WAIT_POLL_INTERVAL,
     SACCT_POLL_INTERVAL,
     SACCT_TIMEOUT,
-    SSH_TIMEOUT,
 )
 from automation_library.slurm.messages.slurm_msgs import (
     ERROR_NO_SLURM_CONTROL_NODES,
@@ -88,6 +84,7 @@ from .slurm_func import (
     get_slurm_nodes,
     get_login_nodes,
     get_login_compiler_nodes,
+    get_slurm_node_count,
 )
 from .slurm_ldap_func import (
     _get_ldap_credentials,

@@ -643,37 +643,38 @@ def _run_perftest(
         f"ssh {SSH_OPTS} -o UserKnownHostsFile=/dev/null "
         f'root@{server_admin_ip} "{escaped}" 2>/dev/null'
     )
-    srv_proc = subprocess.Popen(
+    with subprocess.Popen(
         srv_shell_cmd, shell=True,
         stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
+    ) as srv_proc:
+        # Give server time to start listening
+        time.sleep(_IB_SERVER_WAIT + 2)
 
-    # Give server time to start listening
-    time.sleep(_IB_SERVER_WAIT + 2)
+        # Run client via testinfra (main thread, no concurrency issues)
+        cmd = _safe_run_on_remote_node(
+            host,
+            f"{test} {client_dev_arg} {server_ib_ip} 2>&1",
+            client_admin_ip,
+        )
 
-    # Run client via testinfra (main thread, no concurrency issues)
-    cmd = _safe_run_on_remote_node(
-        host,
-        f"{test} {client_dev_arg} {server_ib_ip} 2>&1",
-        client_admin_ip,
-    )
-
-    # Cleanup
-    _safe_run_on_remote_node(host, f"pkill -f {test} 2>/dev/null", server_admin_ip)
-    try:
-        srv_proc.terminate()
-    except Exception:
-        pass
-    srv_out, srv_err = b"", b""
-    try:
-        srv_out, srv_err = srv_proc.communicate(timeout=5)
-    except Exception:
-        pass
+        # Cleanup
+        _safe_run_on_remote_node(host, f"pkill -f {test} 2>/dev/null", server_admin_ip)
+        try:
+            srv_proc.terminate()
+        except OSError:
+            pass
+        srv_out, srv_err = b"", b""
+        try:
+            srv_out, srv_err = srv_proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            srv_proc.kill()
+            srv_out, srv_err = srv_proc.communicate()
+        srv_rc = srv_proc.returncode if srv_proc.returncode is not None else -1
 
     return {
         "cmd": cmd,
         "server_proc": "",
-        "server_rc": srv_proc.returncode if srv_proc.returncode is not None else -1,
+        "server_rc": srv_rc,
         "server_stdout": srv_out.decode(errors="replace").strip()[:300],
         "server_stderr": srv_err.decode(errors="replace").strip()[:300],
     }

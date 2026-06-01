@@ -33,16 +33,6 @@ All node types (control, compute, login, login_compiler) are rebooted simultaneo
   TC57 - Verify LDAP user OpenMPI job after reboot
 """
 
-import os
-import sys
-
-# Add the project root to the Python path
-_PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../../.."),
-)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
 import pytest
 from automation_library.core import TestLogger
 from automation_library.slurm.functions.slurm_reboot_func import (
@@ -58,7 +48,12 @@ from automation_library.slurm.functions.slurm_reboot_func import (
     verify_ldap_login_after_reboot,
     verify_ldap_sbatch_after_reboot,
 )
-from automation_library.slurm.functions.slurm_func import verify_sbatch_job
+from automation_library.slurm.functions.slurm_func import (
+    verify_sbatch_job,
+    get_slurm_control_nodes,
+    get_slurm_nodes,
+    get_login_compiler_nodes,
+)
 from automation_library.slurm.functions.slurm_ldap_func import verify_openmpi_job
 
 # =============================================================================
@@ -141,11 +136,6 @@ def test_cloud_init_after_reboot(host):
     log = TestLogger("Verify cloud-init after reboot")
     log.check("Checking cloud-init status on control and compute nodes")
 
-    from automation_library.slurm.functions.slurm_func import (
-        get_slurm_control_nodes,
-        get_slurm_nodes,
-    )
-
     control_nodes = get_slurm_control_nodes(host)
     slurm_nodes = get_slurm_nodes(host)
     all_nodes = control_nodes + slurm_nodes
@@ -179,8 +169,6 @@ def test_cloud_init_login_compiler_after_reboot(host):
     """
     log = TestLogger("Verify cloud-init on login_compiler nodes after reboot")
     log.check("Checking cloud-init status on login_compiler nodes (longer timeout)")
-
-    from automation_library.slurm.functions.slurm_func import get_login_compiler_nodes
 
     login_compiler_nodes = get_login_compiler_nodes(host)
 

@@ -30,7 +30,6 @@ from automation_library.core import (
     get_nodes_info,
     get_functional_groups_from_pxe_mapping,
     run_on_remote_node,
-    run_in_container,
 )
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
@@ -1578,11 +1577,11 @@ def _get_nodes_by_type(host, node_type: str) -> List[Dict[str, str]]:
     """Return nodes for a given node type string."""
     if node_type == "slurm_control_node":
         return get_slurm_control_nodes(host)
-    elif node_type == "slurm_node":
+    if node_type == "slurm_node":
         return get_slurm_nodes(host)
-    elif node_type == "login_node":
+    if node_type == "login_node":
         return get_login_nodes(host)
-    elif node_type == "login_compiler_node":
+    if node_type == "login_compiler_node":
         return get_login_compiler_nodes(host)
     return []
 

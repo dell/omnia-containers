@@ -247,7 +247,7 @@ def _run_as_ldapuser(host, target_ip: str, ldap_user: str,
         }
 
 
-def _setup_ldap_user(host) -> Dict[str, Any]:
+def _setup_ldap_user(_host) -> Dict[str, Any]:
     """Common setup: validate credentials for LDAP user login testing.
 
     Returns:
@@ -267,7 +267,7 @@ def _setup_ldap_user(host) -> Dict[str, Any]:
     }
 
 
-def _setup_all_ldap_users(host) -> Dict[str, Any]:
+def _setup_all_ldap_users(_host) -> Dict[str, Any]:
     """Common setup: validate ALL LDAP credentials for multi-user testing.
 
     Returns:
@@ -939,7 +939,7 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
                 "output_verified": False, "error": setup["error"]}
 
     ldap_user = setup["ldap_user"]
-    ldap_password = setup["ldap_password"]
+    _ldap_password = setup["ldap_password"]
 
     login_compiler_nodes = get_login_compiler_nodes(host)
     if not login_compiler_nodes:

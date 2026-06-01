@@ -60,16 +60,6 @@ InfiniBand Tests (pre-check: IB_NIC_NAME and IB_IP present in PXE mapping)
   TC52 - IB ping test between all IB-configured node pairs
 """
 
-import os
-import sys
-
-# Add the project root to the Python path
-_PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../.."),
-)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
 import pytest
 from automation_library.core import TestLogger
 from automation_library.core import is_software_enabled
@@ -884,7 +874,7 @@ def test_job_queuing(host):
 # the first LDAP test to ensure /home/<ldapuser> is writable on all nodes.
 # =============================================================================
 
-_ldap_prereq_done = False
+_LDAP_STATE = {"prereq_done": False}
 
 
 def _skip_if_no_openldap(host):
@@ -900,10 +890,9 @@ def _ensure_ldap_prereq(host):
     once per test session to ensure /home/<ldapuser> has write+execute permissions
     on all cluster nodes before LDAP job submission tests begin.
     """
-    global _ldap_prereq_done
-    if not _ldap_prereq_done:
+    if not _LDAP_STATE["prereq_done"]:
         set_ldapuser_home_permissions(host)
-        _ldap_prereq_done = True
+        _LDAP_STATE["prereq_done"] = True
 
 
 # =============================================================================
