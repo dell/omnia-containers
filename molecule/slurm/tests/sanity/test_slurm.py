@@ -900,6 +900,7 @@ def _ensure_ldap_prereq(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(32)
 def test_ldapuser_login_on_control_nodes(host):
     """TC31: Test that all LDAP users can SSH login to slurm control nodes."""
@@ -940,6 +941,7 @@ def test_ldapuser_login_on_control_nodes(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(33)
 def test_ldapuser_login_on_login_nodes(host):
     """TC32: Test that all LDAP users can SSH login to login nodes."""
@@ -979,6 +981,7 @@ def test_ldapuser_login_on_login_nodes(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(34)
 def test_ldapuser_login_on_login_compiler_nodes(host):
     """TC33: Test that all LDAP users can SSH login to login compiler nodes."""
@@ -1018,6 +1021,7 @@ def test_ldapuser_login_on_login_compiler_nodes(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(35)
 def test_ldapuser_blocked_on_slurm_nodes(host):
     """TC34: Test that all LDAP users login is blocked on slurm nodes when no jobs are running."""
@@ -1050,6 +1054,7 @@ def test_ldapuser_blocked_on_slurm_nodes(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(36)
 def test_invalid_ldap_username(host):
     """TC35: Test that an invalid (random) LDAP username is denied login on all nodes."""
@@ -1083,6 +1088,7 @@ def test_invalid_ldap_username(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(37)
 def test_invalid_ldap_password(host):
     """TC36: Test that all valid LDAP usernames with invalid (random) passwords are denied login."""
@@ -1119,6 +1125,7 @@ def test_invalid_ldap_password(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(38)
 def test_ldap_sbatch_from_login_nodes(host):
     """TC37: Test submitting a single sbatch job as ldapuser from each login/login_compiler node."""
@@ -1147,6 +1154,7 @@ def test_ldap_sbatch_from_login_nodes(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(39)
 def test_ldap_multi_sbatch_from_login_node(host):
     """TC38: Test submitting multiple sbatch jobs as ldapuser from a login node."""
@@ -1175,6 +1183,7 @@ def test_ldap_multi_sbatch_from_login_node(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(40)
 def test_pam_support_from_login_node(host):
     """TC39: Test PAM support: submit sleep job as ldapuser from login node.
@@ -1219,6 +1228,7 @@ def test_pam_support_from_login_node(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(41)
 def test_pam_support_from_control_node(host):
     """TC40: Test PAM support: submit sleep job as ldapuser from slurm control node.
@@ -1257,6 +1267,7 @@ def test_pam_support_from_control_node(host):
 # =============================================================================
 
 @pytest.mark.sanity
+@pytest.mark.ldap
 @pytest.mark.order(42)
 def test_pam_support_from_login_compiler_node(host):
     """TC41: Test PAM support: submit sleep job as ldapuser from login_compiler node.

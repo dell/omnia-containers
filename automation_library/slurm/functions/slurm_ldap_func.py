@@ -23,6 +23,7 @@ import base64
 import os
 import random
 import re
+import shlex
 import string
 import time
 from typing import Dict, Any, List
@@ -99,6 +100,19 @@ from .slurm_func import (
 # =============================================================================
 # LDAP CREDENTIAL & SSH HELPERS
 # =============================================================================
+
+class _FakeSshResult:
+    """Minimal result returned when host.run() raises RuntimeError (SSH exit 255).
+
+    testinfra raises RuntimeError instead of returning a result object when SSH
+    exits with code 255 (PAM deny, authentication failure, connection refused).
+    This shim lets callers treat all SSH outcomes uniformly.
+    """
+    def __init__(self, rc: int, stdout: str, stderr: str) -> None:
+        self.rc = rc
+        self.stdout = stdout
+        self.stderr = stderr
+
 
 def _get_ldap_credentials() -> Dict[str, str]:
     """Read LDAP credentials from omnia_test_config.yml.
@@ -182,69 +196,75 @@ def _get_all_ldap_credentials() -> Dict[str, Any]:
     return {"users": [], "error": LDAP_CREDS_MISSING}
 
 
+def _run_ldap_ssh_on_host(host, target_ip: str, ldap_user: str,
+                           ldap_password: str, command: str):
+    """Execute an SSH command as ldapuser on a target node via OIM.
+
+    Uses SSH_ASKPASS to supply the password — requires only standard Unix
+    tools (ssh, sh, base64, mktemp) with no sshpass or paramiko on OIM.
+    Runs via host.run() so the connection originates from OIM (correct
+    network path to cluster nodes).
+
+    Returns the host.run() result object (.rc, .stdout, .stderr).
+    """
+    b64_pass = base64.b64encode(ldap_password.encode()).decode()
+    # askpass script: decodes b64 password, prints without trailing newline
+    askpass = f"#!/bin/sh\nprintf '%s' \"$(echo {b64_pass}|base64 -d)\"\n"
+    askpass_b64 = base64.b64encode(askpass.encode()).decode()
+
+    run_cmd = (
+        f"ASKP=$(mktemp /tmp/.ap.XXXXXX) && "
+        f"echo {askpass_b64}|base64 -d>$ASKP && chmod 700 $ASKP && "
+        f"SSH_ASKPASS=$ASKP SSH_ASKPASS_REQUIRE=force DISPLAY=:0 "
+        f"setsid ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+        f"-o ConnectTimeout={SSH_TIMEOUT} "
+        f"{ldap_user}@{target_ip} {shlex.quote(command)}; "
+        f"RC=$?; rm -f $ASKP; exit $RC"
+    )
+    try:
+        return host.run(run_cmd)
+    except RuntimeError as exc:
+        # testinfra raises RuntimeError when SSH exits 255 (PAM deny, auth
+        # failure, connection refused). Convert to _FakeSshResult so callers
+        # can evaluate login_success / blocked state without crashing.
+        return _FakeSshResult(rc=255, stdout="", stderr=str(exc))
+
+
 def _ldap_ssh_login(host, target_ip: str, ldap_user: str,
                     ldap_password: str) -> Dict[str, Any]:
-    """Test SSH login to a node as ldapuser using sshpass from OIM.
+    """Test SSH login to a node as ldapuser via OIM using SSH_ASKPASS.
 
     Runs 'whoami' on the target node to verify the logged-in identity.
 
     Returns:
         Dict with login_success, whoami_output, output, error.
     """
-    ssh_cmd = (
-        f"sshpass -p '{ldap_password}' ssh "
-        f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-        f"-o ConnectTimeout={SSH_TIMEOUT} "
-        f"{ldap_user}@{target_ip} 'whoami'"
-    )
-    try:
-        cmd = host.run(ssh_cmd)
-        whoami_output = cmd.stdout.strip()
-        login_ok = cmd.rc == 0 and whoami_output == ldap_user
-        return {
-            "login_success": login_ok,
-            "whoami_output": whoami_output,
-            "output": whoami_output,
-            "rc": cmd.rc,
-            "error": cmd.stderr.strip() if not login_ok else "",
-        }
-    except RuntimeError as exc:
-        return {
-            "login_success": False,
-            "whoami_output": "",
-            "output": "",
-            "error": f"SSH connection failed: {exc}",
-        }
+    cmd = _run_ldap_ssh_on_host(host, target_ip, ldap_user, ldap_password, "whoami")
+    whoami_output = cmd.stdout.strip()
+    login_ok = cmd.rc == 0 and whoami_output == ldap_user
+    return {
+        "login_success": login_ok,
+        "whoami_output": whoami_output,
+        "output": whoami_output,
+        "rc": cmd.rc,
+        "error": "" if login_ok else cmd.stderr.strip(),
+    }
 
 
 def _run_as_ldapuser(host, target_ip: str, ldap_user: str,
                      ldap_password: str, command: str) -> Dict[str, Any]:
-    """Run a command as ldapuser on a target node via sshpass from OIM.
+    """Run a command as ldapuser on a target node via OIM using SSH_ASKPASS.
 
     Returns:
         Dict with success, rc, stdout, stderr.
     """
-    ssh_cmd = (
-        f"sshpass -p '{ldap_password}' ssh "
-        f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-        f"-o ConnectTimeout={SSH_TIMEOUT} "
-        f"{ldap_user}@{target_ip} '{command}'"
-    )
-    try:
-        cmd = host.run(ssh_cmd)
-        return {
-            "success": cmd.rc == 0,
-            "rc": cmd.rc,
-            "stdout": cmd.stdout.strip(),
-            "stderr": cmd.stderr.strip(),
-        }
-    except RuntimeError as exc:
-        return {
-            "success": False,
-            "rc": 255,
-            "stdout": "",
-            "stderr": f"SSH connection failed: {exc}",
-        }
+    cmd = _run_ldap_ssh_on_host(host, target_ip, ldap_user, ldap_password, command)
+    return {
+        "success": cmd.rc == 0,
+        "rc": cmd.rc,
+        "stdout": cmd.stdout.strip(),
+        "stderr": cmd.stderr.strip(),
+    }
 
 
 def _setup_ldap_user(_host) -> Dict[str, Any]:
@@ -664,7 +684,7 @@ def _verify_pam_support(host, submit_node_ip: str,
     """Core PAM verification logic used by both login-node and control-node tests.
 
     1. Transfer sleep job to submit_node (as root).
-    2. Submit job as ldapuser from submit_node via sshpass.
+    2. Submit job as ldapuser from submit_node via paramiko.
     3. Wait for RUNNING state.
     4. Verify ldapuser CAN login to allocated slurm nodes.
     5. Wait for job to complete.

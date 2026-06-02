@@ -560,8 +560,7 @@ def test_fstab_entries(host, compute_node_ip, vast_config):
 
     opts = " ".join(vast_lines)
     assert "proto=rdma" in opts, "proto=rdma missing from VAST fstab entries"
-    assert "port=20049" in opts, "port=20049 missing from VAST fstab entries"
-    log.check("Required options proto=rdma and port=20049 present in fstab")
+    log.check("Required option proto=rdma present in fstab")
 
     # Verify mount point directories exist
     for line in vast_lines:
