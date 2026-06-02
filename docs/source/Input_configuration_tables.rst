@@ -29,7 +29,7 @@ Local Repository Configuration
 ------------------------------
 
 .. csv-table:: local_repo_config.yml
-   :file: Tables/local_repo_config.csv
+   :file: Tables/local_repo_config_rhel.csv
    :header-rows: 1
    :keepspace:
 
