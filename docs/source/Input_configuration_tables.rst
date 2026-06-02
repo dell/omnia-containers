@@ -1,7 +1,7 @@
-BuildStreaM Configuration Tables
-==================================
+Omnia Configuration Tables
+=========================
 
-This section contains the configuration tables referenced throughout the BuildStreaM documentation.
+This section contains the configuration tables referenced throughout the Omnia documentation.
 
 .. _buildstream-tables-buildstream-configuration:
 
@@ -9,7 +9,7 @@ BuildStreaM Configuration
 --------------------------
 
 .. csv-table:: build_stream_config.yml
-   :file: ../../Tables/build_stream_config.csv
+   :file: ../Tables/build_stream_config.csv
    :header-rows: 1
    :keepspace:
 
@@ -19,28 +19,28 @@ High Availability Configuration
 -------------------------------
 
 .. csv-table:: high_availability_config.yml
-   :file: ../../Tables/service_k8s_high_availability.csv
+   :file: ../Tables/service_k8s_high_availability.csv
    :header-rows: 1
    :keepspace:
 
-.. _buildstream-tables-local-repository-configuration:
+.. _omnia-tables-local-repository-configuration:
 
 Local Repository Configuration
 ------------------------------
 
 .. csv-table:: local_repo_config.yml
-   :file: ../../Tables/local_repo_config.csv
+   :file: ../Tables/local_repo_config.csv
    :header-rows: 1
    :keepspace:
 
 
-.. _buildstream-tables-network-configuration:
+.. _omnia-tables-network-configuration:
 
 Network Configuration
 ---------------------
 
 .. csv-table:: network_spec.yml
-   :file: ../../Tables/network_spec.csv
+   :file: ../Tables/network_spec.csv
    :header-rows: 1
    :keepspace:
 
@@ -50,7 +50,7 @@ Omnia Configuration
 -------------------
 
 .. csv-table:: omnia_config.yml
-   :file: ../../Tables/omnia_config_service_cluster.csv
+   :file: ../Tables/omnia_config_service_cluster.csv
    :header-rows: 1
    :keepspace:
 
@@ -61,7 +61,7 @@ Provisioning Configuration
 --------------------------
 
 .. csv-table:: provision_config.yml
-   :file: ../../Tables/Provision_config.csv
+   :file: ../Tables/Provision_config.csv
    :header-rows: 1
    :keepspace:
 
@@ -72,7 +72,7 @@ Security Configuration
 ----------------------
 
 .. csv-table:: security_config.yml
-   :file: ../../Tables/security_config.csv
+   :file: ../Tables/security_config.csv
    :header-rows: 1
    :keepspace:
 
@@ -83,7 +83,7 @@ Storage Configuration
 ---------------------
 
 .. csv-table:: storage_config.yml
-   :file: ../../Tables/storage_config.csv
+   :file: ../Tables/storage_config.csv
    :header-rows: 1
    :keepspace:
 
@@ -94,7 +94,7 @@ Telemetry Configuration
 -----------------------
 
 .. csv-table:: telemetry_config.yml
-   :file: ../../Tables/telemetry_config.csv
+   :file: ../Tables/telemetry_config.csv
    :header-rows: 1
    :keepspace:
 
@@ -105,6 +105,6 @@ GitLab Configuration
 --------------------
 
 .. csv-table:: gitlab_config.yml
-   :file: ../../Tables/build_stream_gitlab_config.csv
+   :file: ../Tables/build_stream_gitlab_config.csv
    :header-rows: 1
    :keepspace:

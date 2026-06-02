@@ -76,6 +76,7 @@ For a better understanding of what Omnia does, check out the following:
     OmniaInstallGuide/index
     OmniaInstallGuide/ExternalDeploymentGuide/Index
     Buildstream/index
+    Input_configuration_tables
     Utils/index
     Logging/index
     troubleshootingguide

@@ -59,12 +59,12 @@ Add necessary inputs to the ``high_availability_config.yml`` file for the high a
 ``local_repo_config.yml``
 -------------------------
 
-Add necessary inputs to the ``local_repo_config.yml`` file for the local repository configuration. Use the :ref:`local repository configuration table <buildstream-tables-local-repository-configuration>` for guidance when configuring these parameters.
+Add necessary inputs to the ``local_repo_config.yml`` file for the local repository configuration. Use the :ref:`local repository configuration table <omnia-tables-local-repository-configuration>` for guidance when configuring these parameters.
 
 
 ``network_spec.yml``
 ---------------------
-Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the :ref:`network configuration table <buildstream-tables-network-configuration>` for guidance when configuring these parameters.
+Add necessary inputs to the ``network_spec.yml`` file to configure the network on which the cluster will operate. Use the :ref:`network configuration table <omnia-tables-network-configuration>` for guidance when configuring these parameters.
 
 .. caution::
     * All provided network ranges and NIC IP addresses should be distinct with no overlap.
