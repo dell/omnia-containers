@@ -37,7 +37,7 @@ To build your own custom workflows, you can use the BuildStreaM REST API. The Bu
    monitoring/verifying-telemetry-services
    management/performing-cleanup-operations
    management/retrying-pipelines
-   reference/configuration-tables
+   ../Input_configuration_tables
    troubleshooting/common-pipeline-issues
    
 
