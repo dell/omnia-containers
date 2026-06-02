@@ -1,24 +1,24 @@
 Network Name,Parameters for the network,Parameter details
-"``admin_network``","**oim_nic_name**
+``admin_network``,"**oim_nic_name**
 
 ``string``
 
-Mandatory",The name of the interface on the OIM server associated with the admin network. **Default value**: ``eno1``"
+Mandatory","The name of the interface on the OIM server associated with the admin network. **Default value**: ``eno1``"""
 ,"**subnet**
 
 ``IP address``
 
-Mandatory",The subnet address for the admin network. **Default value**: ``172.16.0.0``"
+Mandatory","The subnet address for the admin network. **Default value**: ``172.16.0.0``"""
 ,"**netmask_bits**
 
 ``integer``
 
-Mandatory",The number of bits in the subnet mask. **Default value**: ``24``"
+Mandatory","The number of bits in the subnet mask. **Default value**: ``24``"""
 ,"**primary_oim_admin_ip**
 
 ``IP address``
 
-Mandatory",The admin IP address of the OIM server which is configured. **Default value**: ``172.16.107.254``"
+Mandatory","The admin IP address of the OIM server which is configured. **Default value**: ``172.16.107.254``"""
 ,"**primary_oim_bmc_ip**
 
 ``IP address``
@@ -28,18 +28,18 @@ Optional","The iDRAC IP address of the OIM server. Mandatory only if idrac_telem
 
 ``IP address range``
 
-Mandatory",The range of dynamic IP addresses available on the admin network. **Default value**: ``172.16.107.201-172.16.107.250``"
+Mandatory","The range of dynamic IP addresses available on the admin network. **Default value**: ``172.16.107.201-172.16.107.250``"""
 ,"**dns**
 
 ``array of IP addresses``
 
-Optional","The list of external DNS server IP addresses for the admin network. **Default value**: ``[]``"
+Optional",The list of external DNS server IP addresses for the admin network. **Default value**: ``[]``
 ,"**ntp_servers**
 
 ``array of NTP server objects``
 
-Optional","The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool). **Default value**: ``[]``"
-,"**additional_subnets**
+Optional",The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool). **Default value**: ``[]``
+``additional_subnets``,"
 
 ``array of subnet objects``
 
@@ -53,18 +53,18 @@ Each additional subnet entry contains the following parameters:
 * dynamic_range - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
 See documentation for example configuration."
-"ib_network","**subnet**
+``ib_network``,"**subnet**
 
 ``IP address``
 
-Mandatory","The subnet of the IB network. **Default value**: ``192.168.0.0``"
+Mandatory",The subnet of the IB network. **Default value**: ``192.168.0.0``
 ,"**netmask_bits**
 
 ``integer``
 
-Mandatory","The number of bits in the subnet mask. This value must be same as the admin_network netmask_bits. **Default value**: ``24``"
+Mandatory",The number of bits in the subnet mask. This value must be same as the admin_network netmask_bits. **Default value**: ``24``
 ,"**dns**
 
 ``array of IP addresses``
 
-Optional","External DNS server IP addresses for the InfiniBand network. **Default value**: ``[]``"
+Optional",External DNS server IP addresses for the InfiniBand network. **Default value**: ``[]``
