@@ -258,3 +258,25 @@ PXE_CLUSTER_VERIFY_NO_NODES = "No nodes found in PXE mapping"
 PXE_CLUSTER_VERIFY_NO_SLURM_NODES = "No nodes found in Slurm cluster"
 PXE_CLUSTER_VERIFY_MISSING_NODES = "Missing nodes in Slurm cluster: {missing_nodes}"
 PXE_CLUSTER_VERIFY_EXTRA_NODES = "Extra nodes in Slurm cluster (not in PXE): {extra_nodes}"
+
+# =============================================================================
+# UCX IB-Only Transport Test Messages
+# =============================================================================
+UCX_IB_PASSED = "UCX IB-only transport verified: RDMA used for inter-node MPI communication"
+UCX_IB_FAILED = "UCX IB-only transport verification failed: {error}"
+UCX_IB_NO_NODES = "Need at least 2 IB-configured slurm compute nodes (IB_NIC_NAME + IB_IP) for UCX test"
+UCX_IB_COMPILE_FAILED = "MPI ping-pong compile step failed (mpicc returned error)"
+UCX_IB_RANKS_MISSING = "Not all MPI ranks completed (expected [Rank 0] and [Rank 1] in output)"
+UCX_IB_TRANSPORT_TCP = "UCX selected TCP transport for inter-node communication (IB RDMA not enforced)"
+UCX_IB_TRANSPORT_OK = "UCX confirmed IB/RDMA transport (rc_mlx5/dc_mlx5) for inter-node communication"
+UCX_IB_COUNTER_NO_INCREASE = "IB port_xmit_data counters did not increase (no IB traffic detected)"
+UCX_IB_COUNTER_OK = "IB port_xmit_data counters increased (IB traffic confirmed on hardware)"
+UCX_IB_BW_LOW = "Large-message bandwidth ({bw:.2f} GB/s) below {threshold} GB/s RDMA threshold"
+UCX_IB_BW_OK = "RDMA bandwidth confirmed: {bw:.2f} GB/s for {msg_size}B messages"
+UCX_IB_JOB_FAILED = "UCX IB job did not complete successfully (final state: {state})"
+UCX_IB_OUTPUT_UNREADABLE = "Could not read UCX IB job output from {path}"
+
+UCX_INSTALLED_PASSED = "UCX is installed and functional on all login_compiler nodes"
+UCX_INSTALLED_FAILED = "UCX not found or non-functional on some login_compiler nodes: {nodes}"
+UCX_NO_LOGIN_COMPILER = "No login_compiler nodes found; skipping UCX installation check"
+UCX_NO_SUBMIT_NODE = "No login_compiler node available to submit UCX job; cannot proceed"

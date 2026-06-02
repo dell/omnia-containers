@@ -34,7 +34,9 @@ verify_ib_bandwidth(host)           -> Dict   (TC53)
 verify_ib_latency(host)             -> Dict   (TC54)
 """
 
+import base64
 import ipaddress
+import os
 import re
 import subprocess
 import time
@@ -43,19 +45,46 @@ from typing import Any, Dict, List
 from automation_library.core import (
     SSH_OPTS,
     OMNIA_CORE_CONTAINER,
+    run_in_container,
 )
 from automation_library.core.functions.load_inputs_func import load_input_file
 from automation_library.slurm.functions.slurm_func import (
     _safe_run_on_remote_node,
+    get_slurm_control_nodes,
     get_slurm_nodes,
     get_login_nodes,
     get_login_compiler_nodes,
+)
+from automation_library.slurm.vars.slurm_vars import (
+    UCX_MPI_PATH,
+    UCX_MPI_LIB_PATH,
+    UCX_JOB_TIMEOUT,
+    UCX_JOB_POLL_INTERVAL,
+    UCX_IB_BW_THRESHOLD_GBS,
+    UCX_IB_LARGE_MSG_BYTES,
+)
+from automation_library.slurm.messages.slurm_msgs import (
+    UCX_IB_PASSED,
+    UCX_IB_FAILED,
+    UCX_IB_NO_NODES,
+    UCX_IB_COMPILE_FAILED,
+    UCX_IB_RANKS_MISSING,
+    UCX_IB_TRANSPORT_TCP,
+    UCX_IB_COUNTER_NO_INCREASE,
+    UCX_IB_BW_LOW,
+    UCX_IB_JOB_FAILED,
+    UCX_IB_OUTPUT_UNREADABLE,
+    UCX_INSTALLED_PASSED,
+    UCX_INSTALLED_FAILED,
+    UCX_NO_LOGIN_COMPILER,
+    UCX_NO_SUBMIT_NODE,
 )
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
+_UCX_SCRIPT_REMOTE_PATH = "/scratch/omnia_verify_ib_only.sh"
 _IB_BW_DURATION = 10          # seconds for bandwidth test
 _IB_BW_PORT = 18515           # perftest default port
 _IB_SERVER_WAIT = 3           # seconds to wait before starting client
@@ -853,4 +882,455 @@ def verify_ib_latency(host) -> Dict[str, Any]:
         "client_dev": client_node["ib_dev"],
         "results": results,
         "error": "",
+    }
+
+
+# ---------------------------------------------------------------------------
+# UCX helpers
+# ---------------------------------------------------------------------------
+
+def _ucx_transfer_script(
+    host,
+    node_ip: str,
+    local_path: str,
+    remote_path: str,
+    replacements: Dict[str, str],
+) -> Dict[str, Any]:
+    """Read a local script, apply template replacements, and base64-transfer it."""
+    with open(local_path, "r", encoding="utf-8") as fh:
+        content = fh.read()
+    for placeholder, value in replacements.items():
+        content = content.replace(placeholder, value)
+    encoded = base64.b64encode(content.encode()).decode()
+    cmd = _safe_run_on_remote_node(
+        host,
+        f"echo {encoded} | base64 -d > {remote_path} && chmod a+rx {remote_path}",
+        node_ip,
+    )
+    if cmd.rc != 0:
+        return {"success": False, "error": cmd.stderr.strip() or "transfer failed"}
+    return {"success": True, "error": ""}
+
+
+def _ucx_poll_job_state(
+    host, control_ip: str, job_id: str,
+    target_state: str, timeout: int, poll_interval: int,
+) -> str:
+    """Poll sacct/squeue until job reaches target_state or a terminal state."""
+    start = time.time()
+    observed = ""
+    while time.time() - start < timeout:
+        time.sleep(poll_interval)
+        if target_state == "RUNNING":
+            cmd = _safe_run_on_remote_node(
+                host, f"squeue -j {job_id} -h -o '%T' 2>/dev/null", control_ip,
+            )
+            observed = cmd.stdout.strip() if cmd.rc == 0 else ""
+        else:
+            cmd = _safe_run_on_remote_node(
+                host,
+                f"sacct -j {job_id} --format=JobID,State -n -P 2>/dev/null",
+                control_ip,
+            )
+            if cmd.rc == 0:
+                for line in cmd.stdout.strip().split("\n"):
+                    parts = line.strip().split("|")
+                    if len(parts) >= 2 and parts[0] == job_id:
+                        observed = parts[1].strip()
+                        break
+        if observed == target_state:
+            return observed
+        if observed in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL"):
+            return observed
+    return observed
+
+
+def _parse_ucx_job_output(output: str) -> Dict[str, Any]:
+    """Parse verify_ib_only job output and extract verification results.
+
+    Checks:
+      - compile_ok   : "Compile: PASS" present
+      - ranks_ok     : "[Rank 0]" and "[Rank 1]" both present
+      - transport_ib : rc_mlx5 / dc_mlx5 / ud_mlx5 / mlx5_ / rc_verbs detected
+      - transport_tcp_found : tcp mentioned in inter-node UCX selection (bad)
+      - counter_increase : at least one node's port_xmit_data value rose
+      - bw_ok        : large-message bandwidth >= UCX_IB_BW_THRESHOLD_GBS
+    """
+    results: Dict[str, Any] = {
+        "compile_ok": False,
+        "ranks_ok": False,
+        "transport_ib": False,
+        "transport_tcp_found": False,
+        "counter_increase": False,
+        "bw_ok": False,
+        "bw_large_msg_gbs": 0.0,
+        "counter_detail": "",
+        "transport_detail": "",
+    }
+
+    results["compile_ok"] = "Compile: PASS" in output
+    results["ranks_ok"] = ("[Rank 0]" in output and "[Rank 1]" in output)
+
+    ib_patterns = [
+        r"rc_mlx5", r"dc_mlx5", r"ud_mlx5",
+        r"mlx5_\d", r"rc_verbs", r"ud_verbs",
+        r"transport.*\bib\b", r"\bib\b.*transport",
+    ]
+    for pat in ib_patterns:
+        if re.search(pat, output, re.IGNORECASE):
+            results["transport_ib"] = True
+            results["transport_detail"] = f"IB transport detected ({pat})"
+            break
+
+    tcp_patterns = [r"WIRE.*inter.*cfg.*tcp", r"inter.*cfg.*tcp", r"tcp.*inter.node.*selected"]
+    for pat in tcp_patterns:
+        if re.search(pat, output, re.IGNORECASE):
+            results["transport_tcp_found"] = True
+            break
+
+    before_vals: Dict[str, int] = {}
+    after_vals: Dict[str, int] = {}
+    in_before = False
+    in_after = False
+    ctr_re = re.compile(r"\[([^\]]+)\].*xmit_data=(\d+)")
+    for line in output.splitlines():
+        if "IB COUNTERS BEFORE" in line:
+            in_before, in_after = True, False
+            continue
+        if "IB COUNTERS AFTER" in line:
+            in_before, in_after = False, True
+            continue
+        if "=== RUN:" in line:
+            in_before = False
+        m = ctr_re.search(line)
+        if m:
+            node_name, val = m.group(1), int(m.group(2))
+            if in_before:
+                before_vals.setdefault(node_name, val)
+            elif in_after:
+                after_vals[node_name] = val
+
+    increases = [
+        f"{n}: {before_vals[n]} -> {after_vals.get(n, before_vals[n])}"
+        for n in before_vals
+        if after_vals.get(n, before_vals[n]) > before_vals[n]
+    ]
+    results["counter_increase"] = len(increases) > 0
+    results["counter_detail"] = (
+        "; ".join(increases) if increases else "No counter increase detected"
+    )
+
+    bw_re = re.compile(r"msg=\s*(\d+)\s*B.*bw=\s*([\d.]+)\s*GB/s")
+    large_msg_bw = 0.0
+    for line in output.splitlines():
+        m = bw_re.search(line)
+        if m and int(m.group(1)) >= UCX_IB_LARGE_MSG_BYTES:
+            bw = float(m.group(2))
+            if bw > large_msg_bw:
+                large_msg_bw = bw
+    results["bw_large_msg_gbs"] = large_msg_bw
+    results["bw_ok"] = large_msg_bw >= UCX_IB_BW_THRESHOLD_GBS
+
+    return results
+
+
+# ---------------------------------------------------------------------------
+# TC56 – UCX installation check on login_compiler nodes
+# ---------------------------------------------------------------------------
+
+def verify_ucx_installed(host) -> Dict[str, Any]:
+    """TC56: Verify UCX is installed and functional on login_compiler and login nodes.
+
+    Checks login_compiler nodes first; if none are registered, falls back to
+    login nodes.  Does NOT require IB hardware — this is a software presence
+    check that runs on any cluster that has at least one login-type node.
+
+    Distinguishes between two skip scenarios:
+      - omnia_core container is not running (infrastructure issue)
+      - No login-type nodes registered in PXE mapping (expected in minimal clusters)
+
+    Returns:
+        Dict with success, message, per_node (list of per-node results), error.
+    """
+    login_compiler = get_login_compiler_nodes(host)
+    login = get_login_nodes(host)
+
+    candidates = (
+        [{**n, "_node_type": "login_compiler_node"} for n in login_compiler]
+        + [{**n, "_node_type": "login_node"} for n in login]
+    )
+
+    if not candidates:
+        probe = run_in_container(host, "echo ok")
+        if probe.rc != 0:
+            skip_msg = (
+                f"omnia_core container is not running (probe rc={probe.rc}). "
+                "Start the container and re-run the test suite."
+            )
+            return {
+                "success": False, "skipped": True,
+                "message": skip_msg, "per_node": [], "error": skip_msg,
+            }
+        return {
+            "success": False, "skipped": True,
+            "message": UCX_NO_LOGIN_COMPILER,
+            "per_node": [], "error": UCX_NO_LOGIN_COMPILER,
+        }
+
+    per_node = []
+    overall_ok = True
+
+    for node in candidates:
+        hostname = node.get("hostname", "unknown")
+        admin_ip = node.get("admin_ip", "")
+        node_type = node.get("_node_type", "unknown")
+        if not admin_ip:
+            per_node.append({
+                "hostname": hostname, "node_type": node_type,
+                "success": False, "ucx_version": "", "transports": [],
+                "error": "No admin IP",
+            })
+            overall_ok = False
+            continue
+
+        version_cmd = _safe_run_on_remote_node(
+            host, "ucx_info -v 2>&1", admin_ip,
+        )
+        ucx_found = version_cmd.rc == 0 and bool(version_cmd.stdout.strip())
+        ucx_version = ""
+        if ucx_found:
+            for line in version_cmd.stdout.splitlines():
+                if "version" in line.lower() or "ucx" in line.lower():
+                    ucx_version = line.strip()[:120]
+                    break
+
+        transports_cmd = _safe_run_on_remote_node(
+            host,
+            "ucx_info -d 2>&1 | grep -E '^Transport:' | awk '{print $2}'",
+            admin_ip,
+        )
+        transports = [
+            t.strip() for t in transports_cmd.stdout.splitlines()
+            if t.strip()
+        ] if transports_cmd.rc == 0 else []
+
+        node_ok = ucx_found
+        per_node.append({
+            "hostname": hostname,
+            "node_type": node_type,
+            "success": node_ok,
+            "ucx_version": ucx_version,
+            "transports": transports,
+            "error": "" if node_ok else "ucx_info not found or returned non-zero exit",
+        })
+        if not node_ok:
+            overall_ok = False
+
+    failed_nodes = [n["hostname"] for n in per_node if not n["success"]]
+    return {
+        "success": overall_ok,
+        "message": (
+            UCX_INSTALLED_PASSED if overall_ok
+            else UCX_INSTALLED_FAILED.format(nodes=", ".join(failed_nodes))
+        ),
+        "per_node": per_node,
+        "error": "" if overall_ok else UCX_INSTALLED_FAILED.format(nodes=", ".join(failed_nodes)),
+    }
+
+
+# ---------------------------------------------------------------------------
+# TC55 – UCX IB-only transport verification
+# ---------------------------------------------------------------------------
+
+def verify_ucx_ib_only(host) -> Dict[str, Any]:
+    """TC55: Submit an MPI ping-pong job with UCX_TLS=ib,sm,self and verify
+    that inter-node communication uses InfiniBand RDMA exclusively.
+
+    Verification steps:
+      1. Transfer & submit verify_ib_only.sh (root, from control node).
+      2. Wait for COMPLETED.
+      3. Read job output from /scratch/root/results/verify_ib_only_<jobid>.out.
+      4. Assert: compile PASS, both MPI ranks ran, UCX selected IB transport
+         (rc_mlx5/dc_mlx5), IB hardware counters (port_xmit_data) increased,
+         and large-message bandwidth exceeds UCX_IB_BW_THRESHOLD_GBS.
+
+    Skips if fewer than 2 IB-configured slurm compute nodes exist.
+
+    Returns:
+        Dict with success, message, job_id, nodes, steps, job_output_snippet,
+        parsed verification details, and error.
+    """
+    ib_compute = [
+        n for n in get_slurm_nodes(host)
+        if n.get("ib_nic_name", "").strip() and n.get("ib_ip", "").strip()
+    ]
+    if len(ib_compute) < 2:
+        return {
+            "success": False,
+            "skipped": True,
+            "message": UCX_IB_NO_NODES,
+            "steps": [],
+            "error": UCX_IB_NO_NODES,
+        }
+
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {
+            "success": False,
+            "message": "No slurm control nodes found",
+            "steps": [],
+            "error": "No slurm control nodes",
+        }
+    control_ip = control_nodes[0].get("admin_ip", "")
+
+    login_compiler_nodes = get_login_compiler_nodes(host)
+    if not login_compiler_nodes:
+        return {
+            "success": False,
+            "message": UCX_NO_SUBMIT_NODE,
+            "steps": [],
+            "error": UCX_NO_SUBMIT_NODE,
+        }
+    submit_node = login_compiler_nodes[0]
+    submit_ip = submit_node.get("admin_ip", "")
+    submit_hostname = submit_node.get("hostname", "unknown")
+
+    node1_hostname = ib_compute[0].get("hostname", "")
+    node2_hostname = ib_compute[1].get("hostname", "")
+    nodes_arg = f"{node1_hostname},{node2_hostname}"
+
+    steps: list = []
+
+    _safe_run_on_remote_node(
+        host,
+        "mkdir -p /scratch/root/results && chmod 755 /scratch/root /scratch/root/results",
+        submit_ip,
+    )
+
+    jobs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "slurm_jobs",
+    )
+    xfer = _ucx_transfer_script(
+        host, submit_ip,
+        os.path.join(jobs_dir, "verify_ib_only.sh"),
+        _UCX_SCRIPT_REMOTE_PATH,
+        {
+            "{{NODES}}": nodes_arg,
+            "{{MPI_PATH}}": UCX_MPI_PATH,
+            "{{MPI_LIB_PATH}}": UCX_MPI_LIB_PATH,
+        },
+    )
+    if not xfer["success"]:
+        return {
+            "success": False,
+            "message": f"Script transfer failed: {xfer['error']}",
+            "steps": steps,
+            "error": xfer["error"],
+        }
+    steps.append({
+        "step": "transfer_script", "success": True,
+        "nodes": nodes_arg, "submit_node": submit_hostname,
+    })
+
+    submit_cmd = _safe_run_on_remote_node(
+        host, f"sbatch {_UCX_SCRIPT_REMOTE_PATH}", submit_ip,
+    )
+    if submit_cmd.rc != 0 or "Submitted batch job" not in submit_cmd.stdout:
+        _safe_run_on_remote_node(host, f"rm -f {_UCX_SCRIPT_REMOTE_PATH}", submit_ip)
+        err = submit_cmd.stderr.strip() or submit_cmd.stdout.strip()
+        return {
+            "success": False,
+            "message": f"Job submission failed: {err}",
+            "steps": steps,
+            "error": err,
+        }
+
+    match = re.search(r"Submitted batch job (\d+)", submit_cmd.stdout)
+    job_id = match.group(1)
+    steps.append({"step": "submit_job", "success": True, "job_id": job_id})
+
+    state = _ucx_poll_job_state(
+        host, control_ip, job_id,
+        "COMPLETED", UCX_JOB_TIMEOUT, UCX_JOB_POLL_INTERVAL,
+    )
+    steps.append({"step": "wait_complete", "success": state == "COMPLETED", "state": state})
+
+    if state != "COMPLETED":
+        _safe_run_on_remote_node(host, f"rm -f {_UCX_SCRIPT_REMOTE_PATH}", submit_ip)
+        return {
+            "success": False,
+            "message": UCX_IB_JOB_FAILED.format(state=state),
+            "job_id": job_id,
+            "nodes": nodes_arg,
+            "steps": steps,
+            "error": f"Job ended in state: {state}",
+        }
+
+    output_path = f"/scratch/root/results/verify_ib_only_{job_id}.out"
+    cat_cmd = _safe_run_on_remote_node(
+        host, f"cat {output_path} 2>/dev/null", submit_ip,
+    )
+    job_output = cat_cmd.stdout if (cat_cmd.rc == 0 and cat_cmd.stdout.strip()) else ""
+
+    if not job_output:
+        _safe_run_on_remote_node(host, f"rm -f {_UCX_SCRIPT_REMOTE_PATH}", submit_ip)
+        return {
+            "success": False,
+            "message": UCX_IB_OUTPUT_UNREADABLE.format(path=output_path),
+            "job_id": job_id,
+            "nodes": nodes_arg,
+            "steps": steps,
+            "error": f"Empty or missing output file: {output_path}",
+        }
+    steps.append({"step": "read_output", "success": True, "output_path": output_path})
+
+    parsed = _parse_ucx_job_output(job_output)
+
+    failures = []
+    if not parsed["compile_ok"]:
+        failures.append(UCX_IB_COMPILE_FAILED)
+    if not parsed["ranks_ok"]:
+        failures.append(UCX_IB_RANKS_MISSING)
+    if parsed["transport_tcp_found"]:
+        failures.append(UCX_IB_TRANSPORT_TCP)
+    if not parsed["transport_ib"]:
+        failures.append("UCX IB/RDMA transport not detected in job output")
+    if not parsed["counter_increase"]:
+        failures.append(UCX_IB_COUNTER_NO_INCREASE)
+    if not parsed["bw_ok"]:
+        failures.append(UCX_IB_BW_LOW.format(
+            bw=parsed["bw_large_msg_gbs"],
+            threshold=UCX_IB_BW_THRESHOLD_GBS,
+        ))
+
+    steps.append({
+        "step": "verify_output",
+        "success": len(failures) == 0,
+        "compile_ok": parsed["compile_ok"],
+        "ranks_ok": parsed["ranks_ok"],
+        "transport_ib": parsed["transport_ib"],
+        "transport_tcp_found": parsed["transport_tcp_found"],
+        "transport_detail": parsed["transport_detail"],
+        "counter_increase": parsed["counter_increase"],
+        "counter_detail": parsed["counter_detail"],
+        "bw_ok": parsed["bw_ok"],
+        "bw_gbs": parsed["bw_large_msg_gbs"],
+        "failures": failures,
+    })
+
+    _safe_run_on_remote_node(host, f"rm -f {_UCX_SCRIPT_REMOTE_PATH}", submit_ip)
+
+    all_ok = len(failures) == 0
+    return {
+        "success": all_ok,
+        "message": (
+            UCX_IB_PASSED if all_ok
+            else UCX_IB_FAILED.format(error="; ".join(failures))
+        ),
+        "job_id": job_id,
+        "nodes": nodes_arg,
+        "steps": steps,
+        "job_output_snippet": job_output[-1200:],
+        "error": "" if all_ok else "; ".join(failures),
     }

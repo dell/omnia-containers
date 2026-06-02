@@ -58,6 +58,8 @@ InfiniBand Tests (pre-check: IB_NIC_NAME and IB_IP present in PXE mapping)
   TC50 - IB subnet mask matches network_spec.yml ib_network
   TC51 - IB IP is within correct ib_network subnet
   TC52 - IB ping test between all IB-configured node pairs
+  TC55 - UCX IB-only transport: MPI ping-pong with UCX_TLS=ib,sm,self, verify RDMA
+  TC56 - UCX installation check on login_compiler nodes (ucx_info -v + available transports)
 """
 
 import pytest
@@ -93,6 +95,8 @@ from automation_library.slurm.functions.slurm_ib_func import (
     verify_ib_subnet_mask,
     verify_ib_ip_in_subnet,
     verify_ib_ping,
+    verify_ucx_installed,
+    verify_ucx_ib_only,
 )
 from automation_library.slurm.functions.slurm_ldap_func import (
     verify_ldapuser_blocked_on_slurm_nodes,
@@ -1644,4 +1648,110 @@ def test_ib_ping(host):
         log.passed(result["message"])
     else:
         log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC56 – UCX Installation Check (login_compiler nodes)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(56)
+def test_ucx_installed_on_login_compiler(host):
+    """TC56: Verify UCX is installed and functional on login_compiler/login nodes.
+
+    Checks login_compiler nodes first; falls back to login nodes if none exist.
+    Runs 'ucx_info -v' (version check) and 'ucx_info -d' (transport listing).
+    Does NOT require IB hardware — pure software presence check.
+
+    Skip conditions:
+      - omnia_core container not running  (infrastructure issue, shown in skip msg)
+      - No login_compiler or login nodes in PXE mapping (expected in minimal clusters)
+    """
+    log = TestLogger("TC56: UCX Installation Check (login_compiler/login nodes)")
+    result = verify_ucx_installed(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+    for n in result.get("per_node", []):
+        status = "PASS" if n["success"] else "FAIL"
+        node_label = f"{n['hostname']} [{n.get('node_type', '?')}]"
+        log.check(f"  {node_label}: {status}")
+        if n["success"]:
+            log.check(f"    version   : {n.get('ucx_version', 'N/A')}")
+            if n.get("transports"):
+                log.check(f"    transports: {', '.join(n['transports'])}")
+        else:
+            log.check(f"    ERROR: {n.get('error', '')}")
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+    assert result["success"], result["message"]
+
+
+# =============================================================================
+# TC55 – UCX IB-Only Transport Verification
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.sanityib
+@pytest.mark.order(55)
+def test_ucx_ib_only_transport(host):
+    """TC55: Submit an MPI ping-pong job with UCX_TLS=ib,sm,self and verify
+    that inter-node communication uses InfiniBand RDMA exclusively.
+
+    Verifies:
+      - MPI ping-pong compiles successfully (mpicc).
+      - Both MPI ranks (Rank 0 and Rank 1) ran on separate nodes.
+      - UCX selected an IB/RDMA transport (rc_mlx5, dc_mlx5, etc.), NOT tcp.
+      - IB hardware counters (port_xmit_data) increased, confirming physical IB traffic.
+      - Large-message bandwidth exceeds the RDMA threshold (>= 5 GB/s).
+
+    Skips if fewer than 2 IB-configured slurm compute nodes exist in PXE mapping.
+    """
+    _skip_if_no_ib(host)
+    log = TestLogger("TC55: UCX IB-Only Transport Verification")
+    result = verify_ucx_ib_only(host)
+    if result.get("skipped"):
+        pytest.skip(result["message"])
+
+    log.check(f"  Nodes under test : {result.get('nodes', 'unknown')}")
+    log.check(f"  Job ID           : {result.get('job_id', 'N/A')}")
+
+    for step in result.get("steps", []):
+        step_name = step.get("step", "?")
+        step_ok = step.get("success", False)
+        status = "PASS" if step_ok else "FAIL"
+
+        if step_name == "transfer_script":
+            log.check(f"  [transfer_script] nodes={step.get('nodes')} -> {status}")
+        elif step_name == "submit_job":
+            log.check(f"  [submit_job] job_id={step.get('job_id')} -> {status}")
+        elif step_name == "wait_complete":
+            log.check(f"  [wait_complete] state={step.get('state')} -> {status}")
+        elif step_name == "read_output":
+            log.check(f"  [read_output] path={step.get('output_path')} -> {status}")
+        elif step_name == "verify_output":
+            log.check(f"  [compile]          {'PASS' if step.get('compile_ok') else 'FAIL'}")
+            log.check(f"  [ranks_ran]        {'PASS' if step.get('ranks_ok') else 'FAIL'}")
+            log.check(f"  [transport_ib]     {'PASS' if step.get('transport_ib') else 'FAIL'}"
+                      f"  {step.get('transport_detail', '')}")
+            log.check(f"  [tcp_not_used]     {'PASS' if not step.get('transport_tcp_found') else 'FAIL'}")
+            log.check(f"  [counter_increase] {'PASS' if step.get('counter_increase') else 'FAIL'}"
+                      f"  {step.get('counter_detail', '')}")
+            log.check(f"  [bw_rdma]          {'PASS' if step.get('bw_ok') else 'FAIL'}"
+                      f"  {step.get('bw_gbs', 0.0):.2f} GB/s")
+            if not step_ok:
+                for failure in step.get("failures", []):
+                    log.check(f"    FAILURE: {failure}")
+
+    if result["success"]:
+        log.passed(result["message"])
+    else:
+        log.failed(result["message"])
+        if result.get("job_output_snippet"):
+            log.check("  --- job output (last 1200 chars) ---")
+            for line in result["job_output_snippet"].splitlines()[-30:]:
+                log.check(f"  {line}")
     assert result["success"], result["message"]
