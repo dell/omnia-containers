@@ -37,10 +37,16 @@ The following parameters are supported for each mount:
  
 * **name** - Unique identifier for this mount entry
   * Pattern: [a-zA-Z0-9_-], length 1-64
-* **source** - Device name or network path
-  * Examples: 192.168.1.100:/export/share, /dev/sdc, UUID=xxx
-* **mount_point** - Absolute path for the mount point
-  * Pattern: /path/to/dir
+* **source** - Device or network path. Mandatory
+  * For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
+  * For local: /dev/sdc, UUID=xxx, LABEL=xxx
+  * For CIFS: //server/share
+  * Note: NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
+* **mount_point** - Absolute path for the mount point. Mandatory
+  * Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
+  * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
+  * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
+  * Note: Path must be unique across all mount entries
  
 **Optional Fields:**
  
@@ -116,13 +122,14 @@ Example mounts configuration::
         mount_on_oim: true
         functional_group_prefix: ["service_kube"]
 
-      # VAST NFS home directories using mount_params profile
-      - name: "vast_home"
-        source: "172.16.0.201:/home"
-        mount_point: "/home"
-        mount_params: "vast_nfs"
+      # This storage is critical for the Slurm cluster and must be accessible from OIM.
+      # Configuration: The slurm_cluster section in omnia_config.yml should reference this storage via 'vast_storage_name'.
+      - name: "vast_storage"
+        source: "172.16.107.77:/share/vast"
+        mount_point: "/mnt/vast"
+        mount_params: "vast_rdma"
         mount_on_oim: true
-        functional_group_prefix: ["slurm"]
+        functional_group_prefix: ["slurm_node", "login"]
 
 mount_params
 ------------
@@ -146,10 +153,17 @@ Example mount_params configuration::
         dump_freq: "0"
         fsck_pass: "0"
 
-      # VAST NFS storage - standard configuration
-      vast_nfs:
+      # VAST NFS storage - RDMA configuration
+      vast_rdma:
         fs_type: "nfs"
         mnt_opts: "proto=rdma,hard,intr,noatime,nconnect=16,rsize=1048576,wsize=1048576"
+        dump_freq: "0"
+        fsck_pass: "0"
+
+      # VAST NFS storage with standard configuration
+      vast_nfs:
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard"
         dump_freq: "0"
         fsck_pass: "0"
 
@@ -182,7 +196,7 @@ The following parameters are supported for each PowerVault configuration:
 * **dump_freq** - Dump frequency (overrides mount_params profile when specified)
 * **fsck_pass** - Fsck pass number (overrides mount_params profile when specified)
 * **mount_params** - Named profile for fs_type/mnt_opts (read by the runcmd script)
-* **node_key** - cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., local_hostname, ds.meta_data.instance_data.local_ipv4, instance_id). The variable chosen must be unique per host to ensure isolation between nodes
+* **node_key** - Per-node subdirectory isolation variable. (e.g., "local_hostname", "local_ipv4", "instance_id"). The variable chosen must be unique per host to ensure isolation between nodes
 * **node_mount_point** - List of bind mount target paths (required when node_key is set)
 * **functional_group_prefix** - List of functional group prefixes for node targeting
 * **permissions** - Directory ownership and mode applied to mount_point after mount
@@ -266,7 +280,6 @@ The following is a complete example of a ``storage_config.yml`` file::
         mnt_opts: "proto=rdma,hard,intr,noatime,nconnect=16,rsize=1048576,wsize=1048576"
         dump_freq: "0"
         fsck_pass: "0"
-        vast_nfs_ip: "192.168.1.100"
 
       powervault_iscsi:
         fs_type: "xfs"
@@ -284,11 +297,23 @@ The following is a complete example of a ``storage_config.yml`` file::
         mount_on_oim: true
         functional_group_prefix: ["slurm", "login"]
 
-      - name: "vast_home"
-        source: "172.16.0.202:/home"
-        mount_point: "/home"
-        mount_params: "vast_nfs"
-        functional_group_prefix: ["slurm"]
+      # NFS mount for Kubernetes
+      - name: "nfs_k8s"
+        source: "172.16.0.254:/mnt/share/omnia_k8s"
+        mount_point: "/opt/omnia/k8s_mount"
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard,intr"
+        mount_on_oim: true
+        functional_group_prefix: ["service_kube"]
+
+      # This storage is critical for the Slurm cluster and must be accessible from OIM.
+      # Configuration: The slurm_cluster section in omnia_config.yml should reference this storage via 'vast_storage_name'.
+      - name: "vast_storage"
+        source: "172.16.107.77:/share/vast"
+        mount_point: "/mnt/vast"
+        mount_params: "vast_rdma"
+        mount_on_oim: true
+        functional_group_prefix: ["slurm_node", "login"]
 
     # PowerVault configurations
     powervault_config:
