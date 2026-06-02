@@ -36,21 +36,18 @@ Rollback processes components in **reverse order** of the upgrade:
       - ``slurm``
       - Rollback Slurm cluster (rolled back first)
     * - 2
-      - ``k8s``
-      - Rollback Kubernetes cluster (restores telemetry pods)
+      - ``k8s-telemetry``
+      - Rollback Kubernetes cluster and verify telemetry pods (single combined component)
     * - 3
-      - ``telemetry``
-      - Validate telemetry stack (pods restored by K8s rollback)
-    * - 4
       - ``build_stream``
       - Rollback BuildStreaM upgrade / enablement
-    * - 5
+    * - 4
       - ``oim``
       - Rollback OIM (includes OpenCHAMI) — rolled back last
 
 .. note::
+    - Kubernetes and Telemetry are handled as a **single combined rollback component** (``k8s-telemetry``). The etcd snapshot restore reverts the K8s cluster to its pre-upgrade state, which also restores all telemetry pods (VictoriaMetrics, Kafka, etc.) to their 2.1 versions. Telemetry pod health verification is performed as part of the K8s rollback (Stage 8d). There is no separate telemetry rollback step.
     - There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
-    - The Kubernetes rollback restores all telemetry pods (VictoriaMetrics, Kafka, etc.) as part of the K8s cluster restoration. The ``telemetry`` rollback component validates that the telemetry stack is healthy after the K8s rollback completes.
 
 Rollback Workflow
 ------------------
@@ -104,7 +101,7 @@ On rerun, already-completed components are automatically skipped.
 BuildStreaM Terminal Gate (Rollback)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``telemetry``, ``k8s``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
+If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``k8s-telemetry``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
 Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
 
@@ -142,16 +139,27 @@ The BuildStreaM rollback path is automatically determined from metadata stored d
 .. note::
     If BuildStreaM was never upgraded (upgrade metadata file does not exist), the component is automatically marked as ``skipped``.
 
-Kubernetes Rollback
---------------------
+Kubernetes and Telemetry Rollback (``k8s-telemetry``)
+------------------------------------------------------
 
-The Kubernetes rollback restores the K8s cluster to its pre-upgrade state. It also restores all telemetry pods (VictoriaMetrics, Kafka, etc.) as part of the cluster restoration.
+Kubernetes and Telemetry are rolled back as a single combined component. The etcd snapshot restore reverts the entire K8s cluster state including telemetry pods.
 
-1. Reads ``software_config.json`` from the backup directory to verify K8s was configured in 2.1.
-2. Restores cloud-init and BSS configurations for each K8s functional group from backup.
-3. Reboots K8s nodes to apply restored configurations.
-4. Validates node readiness (``kubectl get nodes``) and pod health after reboot.
-5. Restores telemetry pods as part of the K8s cluster state — the ``telemetry`` component validates their health after this step.
+Rollback stages:
+
+1. **Preflight checks** — Validates backups exist (etcd snapshot, K8s configs, etcd members), target rollback version packages are available in Pulp, and SSH connectivity to control plane nodes.
+2. **Stop the cluster** — Cordons nodes and stops kubelet in correct order.
+3. **Clean up stale MetalLB IPs** — Removes stale MetalLB IP assignments on all nodes.
+4. **Restore etcd snapshot** — Restores the pre-upgrade etcd snapshot on all control plane nodes.
+5. **Restore K8s configs** — Restores ``/etc/kubernetes/`` configs on all control plane nodes from backup.
+6. **Downgrade control plane packages** — Downgrades kubeadm, kubelet, and kubectl to the previous version and starts kubelet.
+7. **Fix kube-vip split-brain** — Resolves VIP ownership after control plane restore.
+8. **Downgrade worker packages** — Downgrades packages on workers and starts kubelet.
+9. **Post-validation** — Validates node readiness (``kubectl get nodes``) and pod health.
+10. **Restart network pods** — Clears stale BIRD/speaker processes.
+11. **Restore Helm binary** — Restores the Helm binary to the rollback version.
+12. **Clean up stale CSI VolumeAttachments** — Removes orphaned PowerScale/Isilon VolumeAttachments.
+13. **Verify telemetry rollback** — Validates that all 2.1 telemetry pods (VictoriaMetrics, Kafka, iDRAC, LDMS, etc.) are healthy and that 2.2-only components (vector-ldms, vector-ome, victoria-logs, victoria-metrics-operator) have been removed by the etcd restore.
+14. **Restore BSS boot params and cloud-init** — Restores pre-upgrade BSS/cloud-init configs from backup so nodes boot with the correct (old) images on next reboot.
 
 .. warning::
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
@@ -163,7 +171,7 @@ The Slurm rollback restores cloud-init and BSS configurations from the 2.1 backu
 
 .. warning::
    - All Slurm and login nodes reboot simultaneously. Ensure no critical jobs are running.
-   - Omnia 2.1 NFS mount points are preserved. New NFS mounts (e.g., VAST) added during upgrade are not retained.
+   - Omnia 2.1 NFS mount points are preserved. New VAST mounts will not be supported during upgrade. Any mounts added post upgrade are not retained after a rollback.
 
 1. Reads ``software_config.json`` and PXE mapping file from the backup directory to identify Slurm and login nodes.
 2. Restores cloud-init and BSS configurations for each Slurm functional group from backup.
