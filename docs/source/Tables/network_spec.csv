@@ -1,7 +1,5 @@
-﻿Network Name,Parameters for the network,Parameter details
+Network Name,Parameters for the network,Parameter details
 "``admin_network``
-
-
 
 
 .. note:: This name cannot be modified. This is mandatory for discovery and provisioning of the cluster nodes.","**oim_nic_name**
@@ -9,11 +7,16 @@
 ``string``
 
 Mandatory",The name of the NIC on which the administrative network is accessible to the OIM. **Default value**: ``eno1``
+,"**subnet**
+
+``IP address``
+
+Mandatory",The subnet address for the admin network. **Default value**: ``172.16.0.0``
 ,"**netmask_bits**
 
 ``integer``
 
-Mandatory",The 32-bit “mask” used to divide an IP address into subnets and specify the network’s available hosts. **Default value**: ``24``
+Mandatory",The number of bits in the subnet mask. **Default value**: ``24``
 ,"**primary_oim_admin_ip**
 
 ``IP address``
@@ -23,20 +26,22 @@ Mandatory",The admin IP address of the OIM server. **Default value**: ``172.16.1
 
 ``IP address``
 
-Conditional mandatory","* The iDRAC  IP address of the OIM server
-* Mandatory only if ``idrac_telemetry`` is set to ``true`` and telemetry data needs to be collected.
-* This field can be omitted if iDRAC telemetry is not required."
+Conditional mandatory","The iDRAC IP address of the OIM server. Mandatory only if ``idrac_telemetry`` is set to ``true`` and telemetry data needs to be collected. Optional - can be omitted if iDRAC telemetry for the OIM server is not required. **Default value**: ``""``
 ,"**dynamic_range**
 
 ``IP address range``
 
-Mandatory",The dynamic range of IPs to be provisioned on target nodes. **Default value**: ``172.16.107.201-172.16.107.250``
+Mandatory",The range of dynamic IP addresses available on the admin network. **Default value**: ``172.16.107.201-172.16.107.250``
 ,"**dns**
 
-``IP address``
+``array of IP addresses``
 
-Optional","External DNS server IP addresses for the admin network.
- "
+Optional","The list of external DNS server IP addresses for the admin network. **Default value**: ``[]``
+,"**ntp_servers**
+
+``array of NTP server objects``
+
+Optional","The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool). Example: ntp_servers: - { address: ""172.16.10.80"", type: ""server"" }. **Default value**: ``[]``
 ,"**additional_subnets**
 
 ``array of subnet objects``
@@ -45,38 +50,39 @@ Optional","Optional field for multi-rack/multi-subnet PXE deployments. Each entr
 
 Each additional subnet entry contains the following parameters:
 
-* **subnet** - The network address of the additional subnet in CIDR format (e.g., ``10.40.1.0/24``)
-* **netmask_bits** - The CIDR prefix length (e.g., ``24``)
+* **subnet** - The network address of the additional subnet (e.g. ""10.40.1.0"")
+* **netmask_bits** - The CIDR prefix length (e.g. ""24"")
 * **router** - The gateway/router IP for this subnet (used as DHCP option 3)
-* **dynamic_range** - The DHCP IP pool range in ``start_ip-end_ip`` format (must fall within the subnet)
+* **dynamic_range** - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
-Example configuration:
+Example (multi-rack with two additional subnets):
 
 .. code-block:: yaml
 
    additional_subnets:
-     - subnet: "10.40.1.0"
-       netmask_bits: "24"
-       router: "10.40.1.1"
-       dynamic_range: "10.40.1.100-10.40.1.200"
-     - subnet: "10.40.3.0"
-       netmask_bits: "24"
-       router: "10.40.3.1"
-       dynamic_range: "10.40.3.100-10.40.3.200"
-
-.. important::
-   Requires coresmd v0.5+ with multi-subnet support and DHCP relay configuration on each subnet's gateway/router."
+     - subnet: ""10.40.1.0""
+       netmask_bits: ""24""
+       router: ""10.40.1.1""
+       dynamic_range: ""10.40.1.100-10.40.1.200""
+     - subnet: ""10.40.3.0""
+       netmask_bits: ""24""
+       router: ""10.40.3.1""
+       dynamic_range: ""10.40.3.100-10.40.3.200""
+"
 "ib_network
 
-.. note:: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable.","**Subnet**
+.. note:: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable.","**subnet**
 
 ``IP address``
 
-Mandatory","The subnet address for the InfiniBand network. 
-Default value: 192.168.0.0"
+Mandatory","The subnet of the IB network. **Default value**: ``192.168.0.0``"
 ,"**netmask_bits**
 
 ``integer``
 
-Mandatory","* The 32-bit “mask” used to divide an IP address into subnets and specify the network’s available hosts. Default value: 24
-* Netmask bits of ib_network should match the netmask bits of the admin network."
+Mandatory","The number of bits in the subnet mask. This value must be same as the admin_network netmask_bits. **Default value**: ``24``"
+,"**dns**
+
+``array of IP addresses``
+
+Optional","External DNS server IP addresses for the InfiniBand network. **Default value**: ``[]``"
