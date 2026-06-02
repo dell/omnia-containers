@@ -34,6 +34,7 @@ Procedure
    * ``security_config.yml``: contains the details about the security configuration.
    * ``storage_config.yml``: contains the details about the storage configuration.
    * ``telemetry_config.yml``: contains the details about the telemetry configuration.
+   * ``telemetry_storage_config.yml``: contains the details about the telemetry storage configuration.
    * ``user_registry_credential.yml``: contains the details about the user registry credentials.
   
 ``build_stream_config.yml``
@@ -109,6 +110,11 @@ Add necessary inputs to the ``storage_config.yml`` file for the storage configur
 
 Add necessary inputs to the ``telemetry_config.yml`` file for the telemetry configuration. Use the :ref:`telemetry configuration table <buildstream-tables-telemetry-configuration>` for guidance when configuring these parameters. 
 
+``telemetry_storage_config.yml``
+--------------------------------
+
+Add necessary inputs to the ``telemetry_storage_config.yml`` file for the telemetry storage configuration. Use the :ref:`telemetry storage configuration table <buildstream-tables-telemetry-storage-configuration>` for guidance when configuring these parameters. 
+
 
 2. After updating the input files, run the ``prepare_oim.yml`` playbook::
 
@@ -183,8 +189,8 @@ its dependent services are running correctly.
       ● ├─omnia_core.service
       ● ├─omnia_postgres.service
       ● ├─playbook_watcher.service
-      ● ├─pulp.service 
-      ● ├─registry.service   
+      ● ├─pulp.service
+      ● ├─registry.service
       ● ├─network-online.target
       ● │ └─NetworkManager-wait-online.service
       ● └─openchami.target
@@ -193,7 +199,8 @@ its dependent services are running correctly.
       ●   ├─bss-init.service
       ●   ├─bss.service
       ●   ├─cloud-init-server.service
-      ●   ├─coresmd.service
+      ●   ├─coresmd-coredhcp.service
+      ●   ├─coresmd-coredns.service
       ●   ├─haproxy.service
       ●   ├─hydra-gen-jwks.service
       ●   ├─hydra-migrate.service
@@ -202,6 +209,7 @@ its dependent services are running correctly.
       ●   ├─opaal.service
       ●   ├─openchami-cert-trust.service
       ●   ├─postgres.service
+      ●   ├─smd-init.service
       ●   ├─smd.service
       ●   └─step-ca.service
 

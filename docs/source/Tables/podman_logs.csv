@@ -1,16 +1,19 @@
 ﻿CONTAINER ID ,IMAGE,COMMAND,CREATED,STATUS,PORTS,NAMES
-0e327d3addf0,docker.io/minio/minio:latest,server /data --co...,2 hours ago,Up 2 hours,0.0.0.0:9000-9001->9000-9001/tcp,minio-server
-1439b4ba453e,docker.io/library/registry:latest,/etc/distribution...,2 hours ago,Up 2 hours,0.0.0.0:5000->5000/tcp,registry
-01c7a7eaeb7d,localhost/omnia_core:1.0,/bin/sh -c mkdi..,3 hours ago,Up 3 hours,2222/tcp,omnia_core
-3087ca8e0324,localhost/omnia_auth:1.0,/opt/bitnami/scri...,2 hours ago,Up 2 hours,"0.0.0.0:389->389/tcp, 0.0.0.0:636->636/tcp",omnia_auth
-bfec21c3e14a,ghcr.io/openchami/local-ca:v0.2.2,/bin/sh -c exec /...,2 hours ago,Up 2 hours,9000/tcp,step-ca
-577af6a7af16,docker.io/library/postgres:11.5-alpine,postgres,2 hours ago,Up 2 hours,5432/tcp,postgres
-d267d7eee9c8,docker.io/oryd/hydra:v2.3,serve -c /etc/con...,2 hours ago,Up 2 hours,,hydra
-c609cf73dd4f,ghcr.io/openchami/opaal:v0.3.10,/opaal/opaal serv...,2 hours ago,Up 2 hours,,opaal-idp
-be4dea6159f3,ghcr.io/openchami/smd:v2.18.0,/smd,2 hours ago,Up 2 hours,27779/tcp,smd
-2aa3b79b9e1f,ghcr.io/openchami/bss:v1.32.0,/bin/sh -c /usr/l...,2 hours ago,Up 2 hours,27778/tcp,bss
-eea83cdfaf93,ghcr.io/openchami/opaal:v0.3.10,/opaal/opaal logi...,2 hours ago,Up 2 hours,,opaal
-5d32b95a8083,ghcr.io/openchami/cloud-init:v1.2.3,/bin/sh -c /usr/l...,2 hours ago,Up 2 hours,,cloud-init-server
-3ad8781f4d1d,cgr.dev/chainguard/haproxy:latest,haproxy -f /usr/l...,2 hours ago,Up 2 hours,"0.0.0.0:8081->80/tcp, 0.0.0.0:8443->443/tcp",haproxy
-b08dc56c006f,ghcr.io/openchami/coredhcp:v0.3.0,/coredhcp,2 hours ago,Up 2 hours,,coresmd
-28d98bc5d18c,docker .io/pulp/pulp:3.80,,2 hours ago,Up 2 hours,"0.0.0.0:2225 -> 2225/tcp, 80.tcp",pulp
+622106c0238a,localhost/omnia_core:2.2,,47 hours ago,Up 47 hours,2222/tcp,omnia_core
+db34394920dc,localhost/omnia_auth:1.0,/bin/sh -c mkdi...,47 hours ago,Up 47 hours,"0.0.0.0:389->389/tcp, 0.0.0.0:636->636/tcp",omnia_auth
+b7b115c7f9b9,docker.io/pgsty/minio:RELEASE.2026-04-17T00-00-00Z,server /data --co...,47 hours ago,Up 47 hours,0.0.0.0:9000-9001->9000-9001/tcp,minio-server
+09f03324e100,docker.io/pulp/pulp:3.80,/init,44 hours ago,Up 44 hours,"0.0.0.0:2225->2225/tcp, 80/tcp",pulp
+d0b76ac340c7,docker.io/library/postgres:16,postgres,44 hours ago,Up 44 hours,5432/tcp,omnia_postgres
+0608aa923b7c,docker.io/dellhpcomniaaisolution/omnia_build_stream:1.1,,44 hours ago,Up 44 hours,,omnia_build_stream
+1a53264391a3,docker.io/library/registry:3.1.0,/etc/distribution...,44 hours ago,Up 44 hours,0.0.0.0:5000->5000/tcp,registry
+c23f11155bfa,docker.io/library/postgres:11.5-alpine,postgres,39 hours ago,Up 39 hours,5432/tcp,postgres
+c76102a85d8b,ghcr.io/openchami/local-ca:v0.2.6,/step-ca.sh,39 hours ago,Up 39 hours,9000/tcp,step-ca
+33f7ea6c1f6c,docker.io/oryd/hydra:v2.3,serve -c /etc/con...,39 hours ago,Up 39 hours,,hydra
+887920fb9b04,ghcr.io/openchami/smd:v2.19.3,/smd,39 hours ago,Up 39 hours,27779/tcp,smd
+fbb6a89d671c,ghcr.io/openchami/opaal:v0.3.12,/opaal/opaal serv...,39 hours ago,Up 39 hours,,opaal-idp
+fb69e07e8a6c,ghcr.io/openchami/bss:v1.32.2,/bin/sh -c /usr/l...,39 hours ago,Up 39 hours,27778/tcp,bss
+6b9d12699af9,ghcr.io/openchami/opaal:v0.3.12,/opaal/opaal logi...,39 hours ago,Up 39 hours,,opaal
+dee68167385c,ghcr.io/openchami/cloud-init:v1.3.0,/usr/local/bin/cl...,39 hours ago,Up 39 hours,,cloud-init-server
+1986ae05d933,cgr.dev/chainguard/haproxy:latest,haproxy -f /usr/l...,39 hours ago,Up 39 hours,"0.0.0.0:8081->80/tcp, 0.0.0.0:8443->443/tcp",haproxy
+3bdafb383a38,ghcr.io/openchami/coresmd:v0.4.3,/coredhcp,39 hours ago,Up 39 hours,,coresmd-coredhcp
+ef6db14ebaca,ghcr.io/openchami/coresmd:v0.4.3,/coredns,39 hours ago,Up 39 hours,,coresmd-coredns

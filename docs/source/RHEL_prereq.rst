@@ -7,7 +7,6 @@ This section outlines the key requirements for the components used by Omnia to d
 NFS Server
 -----------
 
-* If PowerScale is configured as the NFS server, navigate to **Protocols** > **NFS** > **Global Settings** and ensure NFSv3 is enabled while NFSv4 is disabled.
 * If PowerScale is configured as the NFS server using **NFSv4** protocol, 
   the following settings must be enabled on the PowerScale cluster 
   to prevent file ownership from displaying as `nobody:nobody`:
