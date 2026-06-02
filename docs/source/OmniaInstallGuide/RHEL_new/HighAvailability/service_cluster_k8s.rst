@@ -75,7 +75,7 @@ Prerequisites
       service_k8s_cluster:
        - cluster_name: service_cluster
          deployment: true
-         etcd_on_local_disk: true
+         etcd_on_local_disk: false
          k8s_cni: "calico"
          pod_external_ip_range: "192.168.0.183-192.168.0.240"
          k8s_service_addresses: "10.233.0.0/18"
