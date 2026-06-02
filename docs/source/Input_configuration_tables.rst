@@ -23,7 +23,7 @@ High Availability Configuration
    :header-rows: 1
    :keepspace:
 
-.. _omnia-tables-local-repository-configuration:
+.. _buildstream-tables-local-repository-configuration:
 
 Local Repository Configuration
 ------------------------------
@@ -34,7 +34,7 @@ Local Repository Configuration
    :keepspace:
 
 
-.. _omnia-tables-network-configuration:
+.. _buildstream-tables-network-configuration:
 
 Network Configuration
 ---------------------
