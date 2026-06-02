@@ -8,7 +8,7 @@ Execute the BuildStream deploy pipeline to deploy images to cluster nodes. This 
 The BuildStream deploy pipeline automates the deployment of built images to target cluster nodes. The pipeline consists of three sequential stages:
 
 * **deploy**: Deploys the built images to the target nodes
-* **restart**: Restarts the nodes to load the deployed images
+* **restart**: PXE-boots the target nodes to load the deployed images
 * **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health
 
 The deploy pipeline is automatically triggered when you update the PXE mapping file (``pxe_mapping_file.csv``) in the GitLab repository, or can be manually initiated through the GitLab interface.

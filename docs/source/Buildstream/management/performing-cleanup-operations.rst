@@ -39,7 +39,7 @@ Procedure
     .. image:: ../../images/gitlab-clean-select-image.png
     :alt: GitLab Clean Select Image
 
-7. Click the **Run Stage** button on the cleanup stage to execute the cleanup.
+7. Click the **Play** button on the cleanup stage to execute the cleanup.
 
     .. image:: ../../images/gitlab-clean-run-stage.png
         :alt: GitLab Clean Run Stage
@@ -75,4 +75,4 @@ Related Topics
 --------------
 
 * :doc:`../management/retrying-pipelines` - Retry Pipeline Operations
-* :doc:`../reference/configuration-tables` - Configuration Reference
+* :doc:`../../Input_configuration_tables` - Configuration Reference

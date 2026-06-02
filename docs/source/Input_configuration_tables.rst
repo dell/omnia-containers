@@ -30,7 +30,6 @@ Local Repository Configuration
 
 .. csv-table:: local_repo_config.yml
    :file: Tables/local_repo_config_rhel.csv
-   :file: ../../Tables/local_repo_config_rhel.csv
    :header-rows: 1
    :keepspace:
 
@@ -105,7 +104,7 @@ Telemetry Storage Configuration
 -------------------------------
 
 .. csv-table:: telemetry_storage_config.yml
-   :file: ../../Tables/telemetry_storage_config.csv
+   :file: Tables/telemetry_storage_config.csv
    :header-rows: 1
    :keepspace:
 
