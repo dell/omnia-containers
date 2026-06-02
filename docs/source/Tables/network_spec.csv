@@ -3,9 +3,7 @@ Network Name,Parameters for the network,Parameter details
 
 ``string``
 
-Mandatory",The name of the NIC on which the administrative network is accessible to the OIM. **Default value**: ``eno1``
-
-Note: This name cannot be modified. This is mandatory for discovery and provisioning of the cluster nodes."
+Mandatory",The name of the interface on the OIM server associated with the admin network. **Default value**: ``eno1``"
 ,"**subnet**
 
 ``IP address``
@@ -20,12 +18,12 @@ Mandatory",The number of bits in the subnet mask. **Default value**: ``24``"
 
 ``IP address``
 
-Mandatory",The admin IP address of the OIM server. **Default value**: ``172.16.107.254``"
+Mandatory",The admin IP address of the OIM server which is configured. **Default value**: ``172.16.107.254``"
 ,"**primary_oim_bmc_ip**
 
 ``IP address``
 
-Conditional mandatory","The iDRAC IP address of the OIM server. Mandatory only if ``idrac_telemetry`` is set to ``true`` and telemetry data needs to be collected. Optional - can be omitted if iDRAC telemetry for the OIM server is not required. **Default value**: ``""``"
+Optional","The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server. Optional - can be omitted if iDRAC telemetry for the OIM server is not required. **Default value**: ``""``"
 ,"**dynamic_range**
 
 ``IP address range``
@@ -40,28 +38,26 @@ Optional","The list of external DNS server IP addresses for the admin network. *
 
 ``array of NTP server objects``
 
-Optional","The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool). Example: ntp_servers: - { address: ""172.16.10.80"", type: ""server"" }. **Default value**: ``[]``"
+Optional","The list of NTP servers for the admin network. Each NTP server entry should include address (IP address or hostname) and type (server or pool). **Default value**: ``[]``"
 ,"**additional_subnets**
 
 ``array of subnet objects``
 
-Optional","Optional field for multi-rack/multi-subnet PXE deployments. Each entry defines a separate subnet that the CoreDHCP server will manage via DHCP relay (giaddr-based routing). Requires coresmd v0.5+ with multi-subnet support. Leave empty array (``[]``) for single-subnet deployments. **Default value**: ``[]``
+Optional","Optional field for multi-RAC/multi-subnet PXE deployments. Each entry defines a separate subnet that the CoreDHCP server will manage via DHCP relay (giaddr-based routing). Requires coresmd v0.5+ with multi-subnet support. Leave empty array (``[]``) for single-subnet deployments. **Default value**: ``[]``
 
 Each additional subnet entry contains the following parameters:
 
-* **subnet** - The network address of the additional subnet (e.g. ""10.40.1.0"")
-* **netmask_bits** - The CIDR prefix length (e.g. ""24"")
-* **router** - The gateway/router IP for this subnet (used as DHCP option 3)
-* **dynamic_range** - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
+* subnet - The network address of the additional subnet (e.g. ""10.40.1.0"")
+* netmask_bits - The CIDR prefix length (e.g. ""24"")
+* router - The gateway/router IP for this subnet (used as DHCP option 3)
+* dynamic_range - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
-See the documentation below for example configuration."
+See documentation for example configuration."
 "ib_network","**subnet**
 
 ``IP address``
 
-Mandatory","The subnet of the IB network. **Default value**: ``192.168.0.0``
-
-Note: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable."
+Mandatory","The subnet of the IB network. **Default value**: ``192.168.0.0``"
 ,"**netmask_bits**
 
 ``integer``
