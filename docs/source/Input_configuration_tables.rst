@@ -44,6 +44,23 @@ Network Configuration
    :header-rows: 1
    :keepspace:
 
+**Example: additional_subnets configuration**
+
+.. code-block:: yaml
+
+   additional_subnets:
+     - subnet: "10.40.1.0"
+       netmask_bits: "24"
+       router: "10.40.1.1"
+       dynamic_range: "10.40.1.100-10.40.1.200"
+     - subnet: "10.40.3.0"
+       netmask_bits: "24"
+       router: "10.40.3.1"
+       dynamic_range: "10.40.3.100-10.40.3.200"
+
+.. important::
+   Requires coresmd v0.5+ with multi-subnet support and DHCP relay configuration on each subnet's gateway/router.
+
 .. _buildstream-tables-oma-configuration:
 
 Omnia Configuration

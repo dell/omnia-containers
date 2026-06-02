@@ -55,20 +55,7 @@ Each additional subnet entry contains the following parameters:
 * **router** - The gateway/router IP for this subnet (used as DHCP option 3)
 * **dynamic_range** - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
-Example (multi-rack with two additional subnets):
-
-.. code-block:: yaml
-
-   additional_subnets:
-     - subnet: ""10.40.1.0""
-       netmask_bits: ""24""
-       router: ""10.40.1.1""
-       dynamic_range: ""10.40.1.100-10.40.1.200""
-     - subnet: ""10.40.3.0""
-       netmask_bits: ""24""
-       router: ""10.40.3.1""
-       dynamic_range: ""10.40.3.100-10.40.3.200""
-"
+See the documentation below for example configuration."
 "ib_network
 
 .. note:: This network is used for the InfiniBand (IB) interface configuration. Provide the subnet and netmask only if IB configuration is desirable.","**subnet**
