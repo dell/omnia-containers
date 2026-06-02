@@ -1,4 +1,4 @@
-﻿Variables,Mandatory/Optional,Details
+Variables,Mandatory/Optional,Details
 ``cluster_name``,Mandatory,"* **Type**: String
 * Name of the cluster on which you want to deploy Kubernetes.
 * This input is case-sensitive. Do not add any special characters except ``_`` (underscore) in the cluster name."
@@ -30,3 +30,10 @@
 * Use same name as mentioned in each of the ``name``  available in ``storage_config.yml``."
 ``k8s_crio_storage_size``,Mandatory,"* **Type**: String
 * Specifies the disk size allocated for CRI-O container storage."
+``etcd_on_local_disk``,Optional,"* **Type**: Boolean
+* Determines whether ETCD is deployed on local disk or NFS storage.
+* **Accepted values**: ``true`` or ``false``
+* **Default value**: ``false``
+* When set to ``true``, ETCD is deployed on local disk on all master nodes. The system prioritizes BOSS card if available, and falls back to SSD/SATA disks if BOSS is not present. The ``/var/lib/etcd`` directory is mounted on the selected local disk.
+* When set to ``false`` or omitted, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD.
+* **Important**: Migration from NFS to local disk is not supported during upgrades. This configuration is only applicable for fresh installations."
