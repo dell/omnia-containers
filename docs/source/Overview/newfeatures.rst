@@ -4,6 +4,36 @@ New Features
 The following sections describe the new features and enhancements introduced in Omnia 2.2 releases.
 
 
+BuildStreaM Pipeline Architecture and API Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia BuildStreaM now supports enhanced pipeline architecture and API capabilities for improved scalability, reliability, and operational flexibility.
+
+The key enhancements include:
+
+- **Resume & Retry Capability:** Retry failed stages with smart resume (artifact reuse), re-run deploy stages after success, per-attempt log segregation, and integration with GitLab native retry mechanisms
+- **Pipeline Decomposition:** Split monolithic pipeline into Build and Deploy pipelines with parent-child architecture enabling independent execution and better scalability
+- **Dynamic Child Pipeline Generation:** Automatic generation of child pipelines with actual image_group names for image selection workflow
+- **Image Group Lifecycle Tracking:** Automated tracking through BUILT → DEPLOYING → DEPLOYED → VALIDATING → PASSED/FAILED → CLEANED states
+- **Cleanup Capability:** Manual cleanup operations via GitLab pipeline for removing old images when the build image count exceeds the configured limit
+- **PowerScale Support:** Dell PowerScale as optional S3 backend alongside MinIO/NFS
+
+For detailed information, see `BuildStreaM Documentation <../Buildstream/index.html>`_.
+
+Vector Telemetry Pipeline for Data Routing
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports Vector as a high-performance data pipeline tool for collecting, transforming, and routing telemetry data from LDMS and OpenManage Enterprise (OME) sources to VictoriaMetrics and VictoriaLogs. This deployment provides enhanced telemetry data flow management with dedicated write-buffer components.
+
+For detailed configuration instructions, see `Vector Telemetry Pipeline Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/vector_telemetry.html>`_.
+
+PowerScale Telemetry for Storage Monitoring
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports PowerScale Telemetry for collecting storage performance metrics and logs from Dell PowerScale storage nodes. This deployment provides comprehensive storage observability with CSM Metrics for PowerScale, OpenTelemetry Collector, and integration with CSI Driver for Dell PowerScale.
+
+For detailed configuration instructions, see `PowerScale Telemetry Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/power_scale_telemetry.html>`_.
+
 Vast Repo and Vast Client Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -21,14 +51,6 @@ Minimal OS Functional Groups
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Omnia now supports Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) that provide a clean operating system baseline designed specifically for downstream platform software installation.
-
-- Minimal OS functional groups include only essential OS packages and LDMS telemetry packages
-- No schedulers, container runtimes, or orchestration software are pre-installed
-- Designed to deploy platform software without conflicts from Slurm, Kubernetes, or other pre-installed components
-- Maintains cluster-wide telemetry capabilities through LDMS integration
-- Supports optional additional packages via ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``
-- Administrators can include custom packages like ``podman``, diagnostic tools, or monitoring agents
-- If additional packages file is absent or empty, images build successfully with standard Minimal OS package set only
 
 For detailed information on functional groups and additional packages configuration, see :doc:`../OmniaInstallGuide/RHEL_new/composable_roles`.
 
@@ -73,24 +95,6 @@ bind mount — eliminating repeated downloads or per-node installations.
   provisioning; the user invokes it post-provisioning at their discretion
 
 For detailed setup instructions, see `NVIDIA HPC SDK Setup <../OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
-
-BuildStreaM Pipeline Architecture and API Enhancements
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Omnia BuildStreaM now supports enhanced pipeline architecture and API capabilities for improved scalability, reliability, and operational flexibility.
-
-- Core API Implementation including Upload, Images, Deploy, Restart, Validate, and CleanUp with proper state machine management and precondition checks
-- Pipeline Decomposition splitting monolithic pipeline into Build and Deploy pipelines with parent-child architecture enabling independent execution and better scalability
-- Image Lifecycle Management with image_group_id extraction, uniqueness validation, metadata persistence, and automated creation of image_groups and images records
-- Deploy Pipeline Enhancements including list_images stage, dynamic child pipeline generation, and image selection workflow for deployments
-- CleanUp Pipeline with guarded execution, artifact/image deletion, and controlled state transitions
-- Automated Cleanup Capability for failed job artifacts, images, and DB records with state machine validation
-- Resume & Retry Capability with stage-level retry classification (Build vs Deploy), per-attempt log segregation, DB schema updates for attempt tracking, and integration with GitLab native retry mechanisms
-- PowerScale Support adding Dell PowerScale as optional S3 backend alongside MinIO/NFS
-- Validate API Implementation with Molecule test framework replacing stub implementation with full execution, result parsing, and outcome evaluation
-- Molecule Framework Integration including invocation, test suite selection, timeout handling, and API-based validation integration
-
-For detailed information, see `BuildStreaM Documentation <../Buildstream/index.html>`_.
 
 One-Shot Combined Log Extraction for Debugging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
