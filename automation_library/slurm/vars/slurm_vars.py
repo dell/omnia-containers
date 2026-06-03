@@ -92,6 +92,17 @@ LDAP_LOGIN_ALLOWED_GROUPS = [
 # =============================================================================
 # Reboot Test Configuration
 # =============================================================================
+
+# =============================================================================
+# UCX IB-Only Transport Test Configuration
+# =============================================================================
+UCX_MPI_PATH = "/usr/mpi/gcc/openmpi-4.1.9a1/bin"
+UCX_MPI_LIB_PATH = "/usr/mpi/gcc/openmpi-4.1.9a1/lib"
+UCX_JOB_TIMEOUT = 300
+UCX_JOB_POLL_INTERVAL = 10
+UCX_IB_BW_THRESHOLD_GBS = 5.0
+UCX_IB_LARGE_MSG_BYTES = 1048576
+
 REBOOT_WAIT_ONLINE_TIMEOUT = 900
 REBOOT_WAIT_ONLINE_POLL_INTERVAL = 15
 CLOUD_INIT_WAIT_TIMEOUT = 2400
