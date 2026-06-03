@@ -38,12 +38,17 @@ The following parameters are supported for each mount:
     * For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
     * For local: /dev/sdc, UUID=xxx, LABEL=xxx
     * For CIFS: //server/share
-      .. note:: NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
+
+.. note::
+   NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
+
 * **mount_point** - Absolute path for the mount point. Mandatory
     * Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
     * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
     * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
-      .. note:: Path must be unique across all mount entries
+
+.. note::
+   Path must be unique across all mount entries
 
 **Optional Fields:**
 
@@ -66,34 +71,34 @@ The following parameters are supported for each mount:
 **Node-Specific Bind Mounts (paired parameters):**
 
 * **node_key** - Per-node subdirectory isolation variable
-  * Choices: "local_hostname", "local_ipv4", "instance_id"
-  * Default: "local_hostname"
-  * When set, node_mount_point is MANDATORY
-  * Generates bind mounts: <mount_point>/<node_key_value>/<target> -> <target>
+    * Choices: "local_hostname", "local_ipv4", "instance_id"
+    * Default: "local_hostname"
+    * When set, node_mount_point is MANDATORY
+    * Generates bind mounts: <mount_point>/<node_key_value>/<target> -> <target>
 * **node_mount_point** - List of bind mount target paths
-  * Mandatory when node_key is set
-  * Minimum 1 entry, values must be unique absolute paths
+    * Mandatory when node_key is set
+    * Minimum 1 entry, values must be unique absolute paths
 
 **Node Targeting (exactly ONE is required - mutually exclusive):**
 
 * **functional_group_prefix** - List of oChaMI functional group name prefixes
-  * All nodes whose group name starts with any listed prefix receive this mount
-  * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
-  * MUTUALLY EXCLUSIVE with groups
+    * All nodes whose group name starts with any listed prefix receive this mount
+    * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
+    * MUTUALLY EXCLUSIVE with groups
 * **groups** - List of GROUP_NAME values from pxe_mapping_file.csv
-  * Only nodes assigned to the listed PXE groups receive this mount
-  * Example: ["grp1", "grp2"] targets only nodes in those groups
-  * MUTUALLY EXCLUSIVE with functional_group_prefix
+    * Only nodes assigned to the listed PXE groups receive this mount
+    * Example: ["grp1", "grp2"] targets only nodes in those groups
+    * MUTUALLY EXCLUSIVE with functional_group_prefix
 
 **Permissions (optional sub-object):**
 
 * **permissions.owner** - User owner of the mount point
-  * Default: "root"
+    * Default: "root"
 * **permissions.group** - Group owner of the mount point
-  * Default: "root"
+    * Default: "root"
 * **permissions.mode** - Octal permission string (3-4 digits)
-  * Default: "0755"
-  * Examples: "0755", "1777"
+    * Default: "0755"
+    * Examples: "0755", "1777"
 
 .. note::
    When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
@@ -196,9 +201,9 @@ The following parameters are supported for each PowerVault configuration:
 * **node_mount_point** - List of bind mount target paths (required when node_key is set)
 * **functional_group_prefix** - List of functional group prefixes for node targeting
 * **permissions** - Directory ownership and mode applied to mount_point after mount
-  * **owner** - User owner of the mount point (default: root)
-  * **group** - Group owner of the mount point (default: root)
-  * **mode** - Octal permission mode (e.g., 0750, default: 0755)
+    * **owner** - User owner of the mount point (default: root)
+    * **group** - Group owner of the mount point (default: root)
+    * **mode** - Octal permission mode (e.g., 0750, default: 0755)
 
 .. note::
    When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
