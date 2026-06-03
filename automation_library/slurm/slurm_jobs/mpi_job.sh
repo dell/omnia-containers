@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=omnia_test_mpi
 #SBATCH --partition=normal
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --output={{OUTPUT_PATH}}/omnia_test_mpi_%j.out
-#SBATCH --error={{OUTPUT_PATH}}/omnia_test_mpi_%j.err
+#SBATCH --nodes=2
+#SBATCH --ntasks=4
+#SBATCH --ntasks-per-node=2
+#SBATCH --output=/scratch/%u/results/omnia_test_mpi_%j.out
+#SBATCH --error=/scratch/%u/results/omnia_test_mpi_%j.err
 #SBATCH --time=00:05:00
 
 # OpenMPI compile+run job for OMNIA Slurm test automation.
@@ -66,8 +66,11 @@ if [ $? -eq 0 ]; then
     echo "Compilation successful"
     echo "Running MPI program..."
 
-    # Run the MPI program using srun for better SLURM integration
-    srun --mpi=pmi2 ./hello_mpi
+    # Run the MPI program using mpirun (uses Slurm's allocation automatically)
+    # Set UCX_WARN_UNUSED_ENV_VARS=n to suppress UCX warnings
+    # Disable CPU binding to avoid hwloc errors in containerized/virtualized environments
+    export UCX_WARN_UNUSED_ENV_VARS=n
+    mpirun --bind-to none ./hello_mpi
 
     echo ""
     echo "MPI job completed successfully"

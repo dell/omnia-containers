@@ -30,7 +30,6 @@ from automation_library.core import (
     get_nodes_info,
     get_functional_groups_from_pxe_mapping,
     run_on_remote_node,
-    run_in_container,
 )
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
@@ -41,8 +40,6 @@ from automation_library.slurm.vars.slurm_vars import (
     SLURMD_SERVICE,
     MUNGE_SERVICE,
     MUNGE_REQUIRED_GROUPS,
-    SBATCH_JOB_POLL_INTERVAL,
-    SBATCH_JOB_TIMEOUT,
     SACCT_POLL_INTERVAL,
     SACCT_TIMEOUT,
     MULTI_JOB_COUNT,
@@ -53,12 +50,7 @@ from automation_library.slurm.vars.slurm_vars import (
 from automation_library.slurm.messages.slurm_msgs import (
     ERROR_NO_SLURM_CONTROL_NODES,
     ERROR_NO_SLURM_NODES,
-    ERROR_NO_NODES_FOUND,
     ERROR_NO_LOGIN_NODES,
-    ERROR_SERVICE_INACTIVE,
-    STATUS_CHECKING_SERVICE,
-    STATUS_SERVICE_ACTIVE,
-    STATUS_SERVICE_INACTIVE,
     SLURMCTLD_CHECK_PASSED,
     SLURMCTLD_CHECK_FAILED,
     SLURMD_CHECK_PASSED,
@@ -89,8 +81,6 @@ from automation_library.slurm.messages.slurm_msgs import (
     SBATCH_TIMEOUT,
     SBATCH_NO_CONTROL_NODE,
     SACCT_JOB_STATUS,
-    ROOT_LOGIN_SINGLE_PASSED,
-    ROOT_LOGIN_SINGLE_FAILED,
     ROOT_LOGIN_MULTI_PASSED,
     ROOT_LOGIN_MULTI_FAILED,
     ROOT_LOGIN_ALLNODES_PASSED,
@@ -238,8 +228,8 @@ def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
 
     # Read slurm.conf and extract NodeName entries
     slurm_conf_cmd = _safe_run_on_remote_node(
-        host, 
-        "grep '^NodeName=' /etc/slurm/slurm.conf 2>/dev/null", 
+        host,
+        "grep '^NodeName=' /etc/slurm/slurm.conf 2>/dev/null",
         control_ip
     )
 
@@ -260,12 +250,12 @@ def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
         line = line.strip()
         if not line or line.startswith("#"):
             continue
-        
+
         # Extract NodeName value (e.g., "NodeName=snode1" or "NodeName=DEFAULT")
         if line.startswith("NodeName="):
             node_part = line.split()[0]
             node_name = node_part.split("=", 1)[1]
-            
+
             # Skip DEFAULT and other special entries
             if node_name.upper() != "DEFAULT":
                 slurm_nodes.add(node_name)
@@ -1587,11 +1577,11 @@ def _get_nodes_by_type(host, node_type: str) -> List[Dict[str, str]]:
     """Return nodes for a given node type string."""
     if node_type == "slurm_control_node":
         return get_slurm_control_nodes(host)
-    elif node_type == "slurm_node":
+    if node_type == "slurm_node":
         return get_slurm_nodes(host)
-    elif node_type == "login_node":
+    if node_type == "login_node":
         return get_login_nodes(host)
-    elif node_type == "login_compiler_node":
+    if node_type == "login_compiler_node":
         return get_login_compiler_nodes(host)
     return []
 

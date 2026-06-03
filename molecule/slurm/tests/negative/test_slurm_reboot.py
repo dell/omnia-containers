@@ -17,31 +17,21 @@
 This module contains test cases to verify the slurm cluster survives node reboots.
 All node types (control, compute, login, login_compiler) are rebooted simultaneously.
 
-  TC44 - Submit pre-reboot sbatch job (for slurmdbd data preservation check)
-  TC45 - Reboot ALL slurm nodes in parallel and verify they come back online
-  TC46 - Verify cloud-init completes on control and compute nodes after reboot
-  TC47 - Verify cloud-init completes on login_compiler nodes after reboot (longer timeout)
-  TC48 - Verify control node services (slurmctld, slurmdbd, munge) active after reboot
-  TC49 - Verify compute node services (slurmd, munge) active after reboot
-  TC50 - Verify login node services (slurmd, munge) active after reboot
-  TC51 - Verify slurmdbd is active on control nodes after reboot
-  TC52 - Verify slurmdbd data preserved: pre-reboot job found in sacct
-  TC53 - Wait for slurm compute nodes to return to idle after reboot
-  TC54 - Submit and verify sbatch job after reboot
-  TC55 - Verify LDAP user login after reboot
-  TC56 - Verify LDAP user sbatch job after reboot
-  TC57 - Verify LDAP user OpenMPI job after reboot
+  TC55 - Submit pre-reboot sbatch job (for slurmdbd data preservation check)
+  TC56 - Reboot ALL slurm nodes in parallel and verify they come back online
+  TC57 - Verify cloud-init completes on control and compute nodes after reboot
+  TC58 - Verify cloud-init completes on login_compiler nodes after reboot (longer timeout)
+  TC59 - Verify control node services (slurmctld, slurmdbd, munge) active after reboot
+  TC60 - Verify compute node services (slurmd, munge) active after reboot
+  TC61 - Verify login node services (slurmd, munge) active after reboot
+  TC62 - Verify slurmdbd is active on control nodes after reboot
+  TC63 - Verify slurmdbd data preserved: pre-reboot job found in sacct
+  TC64 - Wait for slurm compute nodes to return to idle after reboot
+  TC65 - Submit and verify sbatch job after reboot
+  TC66 - Verify LDAP user login after reboot
+  TC67 - Verify LDAP user sbatch job after reboot
+  TC68 - Verify LDAP user OpenMPI job after reboot
 """
-
-import os
-import sys
-
-# Add the project root to the Python path
-_PROJECT_ROOT = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../../../.."),
-)
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
 
 import pytest
 from automation_library.core import TestLogger
@@ -58,7 +48,12 @@ from automation_library.slurm.functions.slurm_reboot_func import (
     verify_ldap_login_after_reboot,
     verify_ldap_sbatch_after_reboot,
 )
-from automation_library.slurm.functions.slurm_func import verify_sbatch_job
+from automation_library.slurm.functions.slurm_func import (
+    verify_sbatch_job,
+    get_slurm_control_nodes,
+    get_slurm_nodes,
+    get_login_compiler_nodes,
+)
 from automation_library.slurm.functions.slurm_ldap_func import verify_openmpi_job
 
 # =============================================================================
@@ -78,7 +73,7 @@ _reboot_state: dict = {
 # =============================================================================
 
 @pytest.mark.negative
-@pytest.mark.order(44)
+@pytest.mark.order(55)
 def test_submit_pre_reboot_sbatch_job(host):
     """TC44: Submit a sbatch job before reboot to verify slurmdbd data preservation."""
     log = TestLogger("Submit pre-reboot sbatch job for slurmdbd verification")
@@ -99,7 +94,7 @@ def test_submit_pre_reboot_sbatch_job(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(45)
+@pytest.mark.order(56)
 def test_reboot_all_nodes_parallel(host):
     """TC45: Reboot ALL slurm nodes in parallel and verify they come back online."""
     log = TestLogger("Reboot ALL slurm nodes in parallel")
@@ -135,16 +130,11 @@ def test_reboot_all_nodes_parallel(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(46)
+@pytest.mark.order(57)
 def test_cloud_init_after_reboot(host):
     """TC46: Verify cloud-init completes successfully on control and compute nodes after reboot."""
     log = TestLogger("Verify cloud-init after reboot")
     log.check("Checking cloud-init status on control and compute nodes")
-
-    from automation_library.slurm.functions.slurm_func import (
-        get_slurm_control_nodes,
-        get_slurm_nodes,
-    )
 
     control_nodes = get_slurm_control_nodes(host)
     slurm_nodes = get_slurm_nodes(host)
@@ -170,17 +160,15 @@ def test_cloud_init_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(47)
+@pytest.mark.order(58)
 def test_cloud_init_login_compiler_after_reboot(host):
     """TC47: Verify cloud-init completes successfully on login_compiler nodes after reboot.
-    
+
     This test runs separately from TC46 because login_compiler nodes take longer
     to complete cloud-init (up to 40 minutes).
     """
     log = TestLogger("Verify cloud-init on login_compiler nodes after reboot")
     log.check("Checking cloud-init status on login_compiler nodes (longer timeout)")
-
-    from automation_library.slurm.functions.slurm_func import get_login_compiler_nodes
 
     login_compiler_nodes = get_login_compiler_nodes(host)
 
@@ -204,7 +192,7 @@ def test_cloud_init_login_compiler_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(48)
+@pytest.mark.order(59)
 def test_control_node_services_after_reboot(host):
     """TC48: Verify slurmctld, slurmdbd, and munge are active on control nodes after reboot."""
     log = TestLogger("Verify control node services after reboot")
@@ -226,7 +214,7 @@ def test_control_node_services_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(49)
+@pytest.mark.order(60)
 def test_compute_node_services_after_reboot(host):
     """TC49: Verify slurmd and munge are active on compute nodes after reboot."""
     log = TestLogger("Verify compute node services after reboot")
@@ -248,7 +236,7 @@ def test_compute_node_services_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(50)
+@pytest.mark.order(61)
 def test_login_node_services_after_reboot(host):
     """TC50: Verify slurmd and munge are active on login nodes after reboot.
 
@@ -278,7 +266,7 @@ def test_login_node_services_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(51)
+@pytest.mark.order(62)
 def test_slurmdbd_active_after_reboot(host):
     """TC51: Verify slurmdbd service is active on control nodes after reboot."""
     log = TestLogger("Verify slurmdbd service active after reboot")
@@ -299,7 +287,7 @@ def test_slurmdbd_active_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(52)
+@pytest.mark.order(63)
 def test_slurmdbd_data_preserved_after_reboot(host):
     """TC52: Verify slurmdbd preserved job history: pre-reboot job found in sacct after reboot."""
     log = TestLogger("Verify slurmdbd data preserved after reboot")
@@ -324,7 +312,7 @@ def test_slurmdbd_data_preserved_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(53)
+@pytest.mark.order(64)
 def test_nodes_idle_after_reboot(host):
     """TC53: Wait for all slurm compute nodes to return to idle state after reboot."""
     log = TestLogger("Verify slurm nodes return to idle after reboot")
@@ -344,7 +332,7 @@ def test_nodes_idle_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(54)
+@pytest.mark.order(65)
 def test_sbatch_job_after_reboot(host):
     """TC54: Submit and verify sbatch job completes successfully after reboot."""
     log = TestLogger("Submit sbatch job after reboot")
@@ -364,7 +352,7 @@ def test_sbatch_job_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(55)
+@pytest.mark.order(66)
 def test_ldap_login_after_reboot(host):
     """TC55: Verify LDAP user can log in to allowed nodes after reboot."""
     log = TestLogger("Verify LDAP user login after reboot")
@@ -391,7 +379,7 @@ def test_ldap_login_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(56)
+@pytest.mark.order(67)
 def test_ldap_sbatch_after_reboot(host):
     """TC56: Verify LDAP user can submit and complete an sbatch job after reboot."""
     log = TestLogger("Verify LDAP user sbatch job after reboot")
@@ -415,7 +403,7 @@ def test_ldap_sbatch_after_reboot(host):
 
 
 @pytest.mark.negative
-@pytest.mark.order(57)
+@pytest.mark.order(68)
 def test_ldap_openmpi_job_after_reboot(host):
     """TC57: Verify LDAP user can submit and complete an OpenMPI job after reboot."""
     log = TestLogger("Verify LDAP user OpenMPI job after reboot")

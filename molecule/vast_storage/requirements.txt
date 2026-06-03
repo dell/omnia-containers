@@ -1,0 +1,8 @@
+# Requirements for VAST Storage Integration Tests
+pytest>=7.0.0
+pytest-testinfra>=6.0.0
+molecule>=4.0.0
+ansible>=2.14.0
+pyyaml>=5.4.0
+paramiko>=2.9.0
+jinja2>=3.0.0
