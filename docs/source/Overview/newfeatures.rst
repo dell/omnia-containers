@@ -171,16 +171,17 @@ To perform BMC discovery using OME:
 
     ansible-playbook discovery/discovery.yml -e "discovery_mechanism=ome"
 
-This generates a timestamped PXE mapping file: ``bmc_pxe_mapping_file_<timestamp>.csv``
+This generates a timestamped PXE mapping file: ``bmc_pxe_mapping_file_<timestamp>.csv`` and a BMC Discovery Report: ``bmc_discovery_report_<timestamp>.csv`` that provides NIC link status information for all discovered servers.
 
 **Post-Discovery Workflow**
 
 1. Review the generated timestamped CSV file
-2. Adjust functional groups, group names, and hostnames as needed
-3. Copy or rename the desired timestamped file to ``pxe_mapping_file.csv``
-4. Proceed with provisioning
+2. Review the BMC Discovery Report for NIC link statuses (BMC, Ethernet, InfiniBand)
+3. Adjust functional groups, group names, and hostnames as needed
+4. Copy or rename the desired timestamped file to ``pxe_mapping_file.csv``
+5. Proceed with provisioning
 
-For more details, see `BMC Discovery Configuration <OmniaInstallGuide/Maintenance/upgrade.html#bmc-discovery-configuration>`_ and `BMC Discovery Rollback Considerations <OmniaInstallGuide/Maintenance/rollback.html#bmc-discovery-rollback-considerations>`_.
+For more details, see `BMC Discovery Configuration <OmniaInstallGuide/Maintenance/upgrade.html#bmc-discovery-configuration>`_, `BMC Discovery Rollback Considerations <OmniaInstallGuide/Maintenance/rollback.html#bmc-discovery-rollback-considerations>`_, and `BMC Discovery Report Documentation <../OmniaInstallGuide/RHEL_new/Provision/ome_discovery.html>`_.
 
 .. note::
     Magellan-based discovery is planned for a future release. Currently, only OME-based discovery is supported.

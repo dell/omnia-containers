@@ -10,3 +10,4 @@ The ``provision.yml`` playbook is used to discover the potential cluster nodes, 
     provisionparams
     installprovisiontool
     nvhpc_sdk
+    ome_discovery
