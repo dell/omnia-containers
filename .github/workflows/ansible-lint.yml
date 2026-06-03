@@ -24,7 +24,7 @@ jobs:
       - name: Install Ansible and Ansible Lint
         run: |
           python -m pip install --upgrade pip
-          pip install ansible ansible-lint
+          pip install ansible
 
       - name: Install Ansible Collections from requirements.yml
         run: |
