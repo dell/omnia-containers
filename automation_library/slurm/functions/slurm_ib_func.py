@@ -1330,6 +1330,7 @@ def verify_ucx_ib_only(host) -> Dict[str, Any]:
         ),
         "job_id": job_id,
         "nodes": nodes_arg,
+        "submit_node": submit_hostname,
         "steps": steps,
         "job_output_snippet": job_output[-1200:],
         "error": "" if all_ok else "; ".join(failures),

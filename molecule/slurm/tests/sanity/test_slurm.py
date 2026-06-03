@@ -58,8 +58,8 @@ InfiniBand Tests (pre-check: IB_NIC_NAME and IB_IP present in PXE mapping)
   TC50 - IB subnet mask matches network_spec.yml ib_network
   TC51 - IB IP is within correct ib_network subnet
   TC52 - IB ping test between all IB-configured node pairs
-  TC55 - UCX IB-only transport: MPI ping-pong with UCX_TLS=ib,sm,self, verify RDMA
-  TC56 - UCX installation check on login_compiler nodes (ucx_info -v + available transports)
+  TC53 - UCX IB-only transport: MPI ping-pong with UCX_TLS=ib,sm,self, verify RDMA
+  TC54 - UCX installation check on login_compiler nodes (ucx_info -v + available transports)
 """
 
 import pytest
@@ -1657,7 +1657,7 @@ def test_ib_ping(host):
 
 @pytest.mark.sanity
 @pytest.mark.sanityib
-@pytest.mark.order(56)
+@pytest.mark.order(53)
 def test_ucx_installed_on_login_compiler(host):
     """TC56: Verify UCX is installed and functional on login_compiler/login nodes.
 
@@ -1696,26 +1696,86 @@ def test_ucx_installed_on_login_compiler(host):
 
 @pytest.mark.sanity
 @pytest.mark.sanityib
-@pytest.mark.order(55)
+@pytest.mark.order(54)
 def test_ucx_ib_only_transport(host):
-    """TC55: Submit an MPI ping-pong job with UCX_TLS=ib,sm,self and verify
-    that inter-node communication uses InfiniBand RDMA exclusively.
+    """TC55: Three-phase UCX IB-only transport verification.
 
-    Verifies:
-      - MPI ping-pong compiles successfully (mpicc).
-      - Both MPI ranks (Rank 0 and Rank 1) ran on separate nodes.
-      - UCX selected an IB/RDMA transport (rc_mlx5, dc_mlx5, etc.), NOT tcp.
-      - IB hardware counters (port_xmit_data) increased, confirming physical IB traffic.
-      - Large-message bandwidth exceeds the RDMA threshold (>= 5 GB/s).
+    Phase 1 – DOCA-OFED:
+        Verify DOCA-OFED / MLNX-OFED is installed on all IB-configured nodes.
+        (ofed_info -s, OFED RPMs, ib_uverbs kernel module)
 
+    Phase 2 – UCX Installation:
+        Verify UCX (ucx_info) is installed on login_compiler / login nodes.
+        Lists available transports.
+
+    Phase 3 – UCX IB Job:
+        Submit MPI ping-pong job with UCX_TLS=ib,sm,self from login_compiler node.
+        Verifies compile success, MPI ranks, IB transport selection, hardware
+        counter increase, and large-message RDMA bandwidth >= 5 GB/s.
+
+    Each phase must pass before the next is attempted.
     Skips if fewer than 2 IB-configured slurm compute nodes exist in PXE mapping.
     """
     _skip_if_no_ib(host)
     log = TestLogger("TC55: UCX IB-Only Transport Verification")
+
+    # ------------------------------------------------------------------
+    # Phase 1: DOCA-OFED installed on IB nodes
+    # ------------------------------------------------------------------
+    log.check("=" * 60)
+    log.check("Phase 1: DOCA-OFED Installation Check")
+    log.check("=" * 60)
+    doca_result = verify_doca_ofed_installed(host)
+    if doca_result.get("skipped"):
+        pytest.skip(doca_result["message"])
+    for n in doca_result.get("per_node", []):
+        status = "PASS" if n["success"] else "FAIL"
+        log.check(f"  {n['hostname']}: DOCA-OFED [{status}]")
+        log.check(f"    ofed_version : {n['checks'].get('ofed_version', 'N/A')}")
+        log.check(f"    rpms         : {n['checks'].get('rpms', 'N/A')[:80]}")
+        log.check(f"    ib_uverbs    : {n['checks'].get('ib_uverbs_module', 'N/A')}")
+    if doca_result["success"]:
+        log.check("  Phase 1 PASSED: DOCA-OFED confirmed on all IB nodes")
+    else:
+        log.failed("Phase 1 FAILED: DOCA-OFED not installed — cannot proceed with UCX test")
+        assert False, doca_result["message"]
+
+    # ------------------------------------------------------------------
+    # Phase 2: UCX installed on login_compiler / login nodes
+    # ------------------------------------------------------------------
+    log.check("=" * 60)
+    log.check("Phase 2: UCX Installation Check")
+    log.check("=" * 60)
+    ucx_inst_result = verify_ucx_installed(host)
+    if ucx_inst_result.get("skipped"):
+        pytest.skip(ucx_inst_result["message"])
+    for n in ucx_inst_result.get("per_node", []):
+        status = "PASS" if n["success"] else "FAIL"
+        node_label = f"{n['hostname']} [{n.get('node_type', '?')}]"
+        log.check(f"  {node_label}: UCX [{status}]")
+        if n["success"]:
+            log.check(f"    version   : {n.get('ucx_version', 'N/A')}")
+            if n.get("transports"):
+                log.check(f"    transports: {', '.join(n['transports'])}")
+        else:
+            log.check(f"    ERROR: {n.get('error', '')}")
+    if ucx_inst_result["success"]:
+        log.check("  Phase 2 PASSED: UCX confirmed on all login-type nodes")
+    else:
+        log.failed("Phase 2 FAILED: UCX not installed — cannot proceed with UCX IB job")
+        assert False, ucx_inst_result["message"]
+
+    # ------------------------------------------------------------------
+    # Phase 3: UCX IB-only transport job
+    # ------------------------------------------------------------------
+    log.check("=" * 60)
+    log.check("Phase 3: UCX IB-Only Transport Job")
+    log.check("=" * 60)
     result = verify_ucx_ib_only(host)
     if result.get("skipped"):
         pytest.skip(result["message"])
 
+    log.check(f"  Submit node      : {result.get('submit_node', 'N/A')}")
     log.check(f"  Nodes under test : {result.get('nodes', 'unknown')}")
     log.check(f"  Job ID           : {result.get('job_id', 'N/A')}")
 
@@ -1725,7 +1785,8 @@ def test_ucx_ib_only_transport(host):
         status = "PASS" if step_ok else "FAIL"
 
         if step_name == "transfer_script":
-            log.check(f"  [transfer_script] nodes={step.get('nodes')} -> {status}")
+            log.check(f"  [transfer_script] nodes={step.get('nodes')}"
+                      f"  submit_node={step.get('submit_node', 'N/A')} -> {status}")
         elif step_name == "submit_job":
             log.check(f"  [submit_job] job_id={step.get('job_id')} -> {status}")
         elif step_name == "wait_complete":
@@ -1751,7 +1812,7 @@ def test_ucx_ib_only_transport(host):
     else:
         log.failed(result["message"])
         if result.get("job_output_snippet"):
-            log.check("  --- job output (last 1200 chars) ---")
+            log.check("  --- job output (last 30 lines) ---")
             for line in result["job_output_snippet"].splitlines()[-30:]:
                 log.check(f"  {line}")
     assert result["success"], result["message"]
