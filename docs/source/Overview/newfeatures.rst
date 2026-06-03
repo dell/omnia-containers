@@ -20,7 +20,17 @@ The Vast repository can be built and hosted following the steps documented in `V
 Minimal OS Functional Groups
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Introduces new Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) that provide a clean operating system baseline designed specifically for downstream platform software installation.Use Minimal OS functional groups when you need to deploy platform software without conflicts from Slurm, Kubernetes, or other pre-installed components, while maintaining cluster-wide telemetry capabilities.
+Omnia now supports Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) that provide a clean operating system baseline designed specifically for downstream platform software installation.
+
+- Minimal OS functional groups include only essential OS packages and LDMS telemetry packages
+- No schedulers, container runtimes, or orchestration software are pre-installed
+- Designed to deploy platform software without conflicts from Slurm, Kubernetes, or other pre-installed components
+- Maintains cluster-wide telemetry capabilities through LDMS integration
+- Supports optional additional packages via ``additional_packages.json`` files in ``input/config/{arch}/rhel/10.0/``
+- Administrators can include custom packages like ``podman``, diagnostic tools, or monitoring agents
+- If additional packages file is absent or empty, images build successfully with standard Minimal OS package set only
+
+For detailed information on functional groups and additional packages configuration, see :doc:`../OmniaInstallGuide/RHEL_new/composable_roles`.
 
 
 NVIDIA DCGM and CUDA Toolkit Provisioning for Slurm GPU Nodes
@@ -63,6 +73,24 @@ bind mount — eliminating repeated downloads or per-node installations.
   provisioning; the user invokes it post-provisioning at their discretion
 
 For detailed setup instructions, see `NVIDIA HPC SDK Setup <../OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
+
+BuildStreaM Pipeline Architecture and API Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia BuildStreaM now supports enhanced pipeline architecture and API capabilities for improved scalability, reliability, and operational flexibility.
+
+- Core API Implementation including Upload, Images, Deploy, Restart, Validate, and CleanUp with proper state machine management and precondition checks
+- Pipeline Decomposition splitting monolithic pipeline into Build and Deploy pipelines with parent-child architecture enabling independent execution and better scalability
+- Image Lifecycle Management with image_group_id extraction, uniqueness validation, metadata persistence, and automated creation of image_groups and images records
+- Deploy Pipeline Enhancements including list_images stage, dynamic child pipeline generation, and image selection workflow for deployments
+- CleanUp Pipeline with guarded execution, artifact/image deletion, and controlled state transitions
+- Automated Cleanup Capability for failed job artifacts, images, and DB records with state machine validation
+- Resume & Retry Capability with stage-level retry classification (Build vs Deploy), per-attempt log segregation, DB schema updates for attempt tracking, and integration with GitLab native retry mechanisms
+- PowerScale Support adding Dell PowerScale as optional S3 backend alongside MinIO/NFS
+- Validate API Implementation with Molecule test framework replacing stub implementation with full execution, result parsing, and outcome evaluation
+- Molecule Framework Integration including invocation, test suite selection, timeout handling, and API-based validation integration
+
+For detailed information, see `BuildStreaM Documentation <../Buildstream/index.html>`_.
 
 One-Shot Combined Log Extraction for Debugging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
