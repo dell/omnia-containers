@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Discovery Messages Module."""
+"""Discovery Module Messages."""
 
 from .discovery_msgs import (
     TEST_NAMES,

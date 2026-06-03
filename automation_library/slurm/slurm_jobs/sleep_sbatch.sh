@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=omnia_test_sleep
 #SBATCH --nodes=1
-#SBATCH --output={{OUTPUT_PATH}}/omnia_test_sleep_%j.out
-#SBATCH --error={{OUTPUT_PATH}}/omnia_test_sleep_%j.out
+#SBATCH --output=/scratch/%u/results/omnia_test_sleep_%j.out
+#SBATCH --error=/scratch/%u/results/omnia_test_sleep_%j.err
 #SBATCH --time=00:05:00
 
 # Sleep job for OMNIA Slurm PAM test automation.
