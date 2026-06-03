@@ -33,35 +33,35 @@ The following parameters are supported for each mount:
 **Mandatory Fields:**
 
 * **name** - Unique identifier for this mount entry
-  * Pattern: [a-zA-Z0-9_-], length 1-64
+    * Pattern: [a-zA-Z0-9_-], length 1-64
 * **source** - Device or network path. Mandatory
-  * For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
-  * For local: /dev/sdc, UUID=xxx, LABEL=xxx
-  * For CIFS: //server/share
-  * Note: NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
+    * For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
+    * For local: /dev/sdc, UUID=xxx, LABEL=xxx
+    * For CIFS: //server/share
+      .. note:: NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
 * **mount_point** - Absolute path for the mount point. Mandatory
-  * Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
-  * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
-  * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
-  * Note: Path must be unique across all mount entries
+    * Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
+    * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
+    * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
+      .. note:: Path must be unique across all mount entries
 
 **Optional Fields:**
 
 * **fs_type** - Filesystem type (overrides mount_params profile when specified)
-  * Default: "auto"
-  * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
+    * Default: "auto"
+    * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
 * **mnt_opts** - Mount options string (e.g., "defaults,noexec,nofail")
-  * If specified, takes PRIORITY over mount_params profile
+    * If specified, takes PRIORITY over mount_params profile
 * **dump_freq** - Dump frequency
-  * Default: "0"
-  * Choices: "0", "1", "2"
+    * Default: "0"
+    * Choices: "0", "1", "2"
 * **fsck_pass** - Fsck pass number
-  * Default: "0"
-  * Choices: "0" through "9"
+    * Default: "0"
+    * Choices: "0" through "9"
 * **mount_params** - Name of the mount_params profile to use for unspecified fields
 * **mount_on_oim** - Whether to mount this filesystem on the OIM node
-  * Default: false
-  * Ensure storage is network-accessible from OIM before enabling
+    * Default: false
+    * Ensure storage is network-accessible from OIM before enabling
 
 **Node-Specific Bind Mounts (paired parameters):**
 
