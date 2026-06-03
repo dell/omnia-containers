@@ -6,7 +6,7 @@ Configuring Mounts
 The storage configuration in Omnia allows you to configure various storage mounts, PowerVault iSCSI volumes, and swap space for cluster nodes. This configuration is defined in the ``/opt/omnia/input/project_default/storage_config.yml`` file.
 
 .. csv-table:: storage_config.yml parameters
-   :file: ../Tables/storage_config.csv
+   :file: ../Tables/config_mounts.csv
    :header-rows: 1
    :keepspace:
 
