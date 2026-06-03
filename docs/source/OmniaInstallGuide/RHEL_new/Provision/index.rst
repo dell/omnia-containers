@@ -7,7 +7,6 @@ The ``provision.yml`` playbook is used to discover the potential cluster nodes, 
     :maxdepth: 2
 
     provisionprereqs
-    discover_mechanism_mappingfile
     provisionparams
     installprovisiontool
     nvhpc_sdk

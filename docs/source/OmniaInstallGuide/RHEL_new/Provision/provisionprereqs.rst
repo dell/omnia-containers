@@ -1,7 +1,7 @@
 Prerequisites
 =================
 
-* If you want to use OpenManage Enterprise (OME) for PXE mapping file generation, you must first discover the cluster nodes in OME and create static functional groups. For detailed procedures on OME discovery and static group creation, refer to :ref:`ome_discovery`.
+* If you want to use OpenManage Enterprise (OME) for PXE mapping file generation, you must first discover the cluster nodes in OME and create static functional groups. For detailed procedures on OME discovery and static group creation, refer to :ref:`ome_discovery`. For more information on composable roles, see :doc:`../composable_roles`.
 
 * All target bare-metal servers (cluster nodes) should be reachable from the OIM.
 
