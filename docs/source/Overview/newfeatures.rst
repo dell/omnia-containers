@@ -62,7 +62,7 @@ bind mount — eliminating repeated downloads or per-node installations.
 - Setup script (``/usr/local/bin/setup_nvhpc_sdk.sh``) is pre-deployed to all nodes during
   provisioning; the user invokes it post-provisioning at their discretion
 
-For detailed setup instructions, see `NVIDIA HPC SDK Setup <OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
+For detailed setup instructions, see `NVIDIA HPC SDK Setup <../OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
 
 One-Shot Combined Log Extraction for Debugging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
