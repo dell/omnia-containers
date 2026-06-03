@@ -10,11 +10,8 @@ The storage configuration in Omnia allows you to configure various storage mount
    :header-rows: 1
    :keepspace:
 
-
 .. note::
    The storage configuration is applied during node provisioning and can be customized for different node groups using functional group prefixes or group names.
-
-
 
 Overview
 --------
@@ -28,13 +25,13 @@ The ``storage_config.yml`` file contains the following main sections:
 
 mounts
 ------
- 
+
 The ``mounts`` section, each mount entry specifies a source device or network path, mount point, and optional filesystem parameters.
- 
+
 The following parameters are supported for each mount:
- 
+
 **Mandatory Fields:**
- 
+
 * **name** - Unique identifier for this mount entry
   * Pattern: [a-zA-Z0-9_-], length 1-64
 * **source** - Device or network path. Mandatory
@@ -47,9 +44,9 @@ The following parameters are supported for each mount:
   * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
   * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
   * Note: Path must be unique across all mount entries
- 
+
 **Optional Fields:**
- 
+
 * **fs_type** - Filesystem type (overrides mount_params profile when specified)
   * Default: "auto"
   * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
@@ -65,9 +62,9 @@ The following parameters are supported for each mount:
 * **mount_on_oim** - Whether to mount this filesystem on the OIM node
   * Default: false
   * Ensure storage is network-accessible from OIM before enabling
- 
+
 **Node-Specific Bind Mounts (paired parameters):**
- 
+
 * **node_key** - Per-node subdirectory isolation variable
   * Choices: "local_hostname", "local_ipv4", "instance_id"
   * Default: "local_hostname"
@@ -76,9 +73,9 @@ The following parameters are supported for each mount:
 * **node_mount_point** - List of bind mount target paths
   * Mandatory when node_key is set
   * Minimum 1 entry, values must be unique absolute paths
- 
+
 **Node Targeting (exactly ONE is required - mutually exclusive):**
- 
+
 * **functional_group_prefix** - List of oChaMI functional group name prefixes
   * All nodes whose group name starts with any listed prefix receive this mount
   * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
@@ -87,9 +84,9 @@ The following parameters are supported for each mount:
   * Only nodes assigned to the listed PXE groups receive this mount
   * Example: ["grp1", "grp2"] targets only nodes in those groups
   * MUTUALLY EXCLUSIVE with functional_group_prefix
- 
+
 **Permissions (optional sub-object):**
- 
+
 * **permissions.owner** - User owner of the mount point
   * Default: "root"
 * **permissions.group** - Group owner of the mount point
@@ -97,9 +94,9 @@ The following parameters are supported for each mount:
 * **permissions.mode** - Octal permission string (3-4 digits)
   * Default: "0755"
   * Examples: "0755", "1777"
- 
+
 .. note::
-When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
+   When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
 
 Example mounts configuration::
 
@@ -174,7 +171,6 @@ Example mount_params configuration::
         dump_freq: "0"
         fsck_pass: "0"
 
-
 powervault_config
 -----------------
 
@@ -205,7 +201,7 @@ The following parameters are supported for each PowerVault configuration:
   * **mode** - Octal permission mode (e.g., 0750, default: 0755)
 
 .. note::
-When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
+   When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
 
 Example powervault_config configuration::
 
@@ -250,7 +246,7 @@ The following parameters are supported for each swap configuration:
 * **filename** (required) - Path to the swap file to create
 * **size** (required) - Size in bytes, 'auto', or human-readable format (e.g., 2G, 512M)
 * **maxsize** - Maximum size (used with size: auto)
-* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this swap to 
+* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this swap to
 
 Example swap configuration::
 
