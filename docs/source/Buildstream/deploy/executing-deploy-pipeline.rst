@@ -8,7 +8,7 @@ Execute the BuildStream deploy pipeline to deploy images to cluster nodes. This 
 The BuildStream deploy pipeline automates the deployment of built images to target cluster nodes. The pipeline consists of three sequential stages:
 
 * **deploy**: Deploys the built images to the target nodes
-* **restart**: Restarts the nodes to load the deployed images
+* **restart**: PXE-boots the target nodes to load the deployed images
 * **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health
 
 The deploy pipeline is automatically triggered when you update the PXE mapping file (``pxe_mapping_file.csv``) in the GitLab repository, or can be manually initiated through the GitLab interface.
@@ -112,7 +112,7 @@ Monitor Deploy Pipeline Progress
    b. Monitor each stage as it progresses:
 
          - **deploy**: Deploys images to target nodes based on catalog specifications
-         - **restart**: Restarts nodes to load the deployed images
+         - **restart**: PXE-boots the nodes to load the deployed images.
          - **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health
 
 #. Review the stage status indicators:
@@ -207,7 +207,7 @@ Procedure
 
 6. If automated retry is not feasible (for example, VM or manual dependency), manually PXE boot the affected nodes.
 
-7. After manual boot of the nodes, update the node status as ``success`` in ``failed_nodes.json``. Updated nodes are excluded from further PXE attempts by the pipeline/API and are automatically added to the booted nodes list.
+7. After manual boot of the nodes, update the node status as ``success`` in ``failed_nodes.json`` and click the **Retry donwstream pipline** icon to retry the failed pipeline. Updated nodes are excluded from further PXE attempts by the pipeline/API and are automatically added to the booted nodes list.
 
 .. image:: ../../images/buildstream_restart_updated_failed_nodes_json.png
    :alt: updated failed_nodes.json example
@@ -216,6 +216,8 @@ The restart stage completes successfully only when all nodes are successful (aut
 
 .. image:: ../../images/buildstream_restart_stage_success.png
    :alt: restart stage success example
+
+8. To view detailed logs for a validate stage, click on the Validate stage in the pipeline. This will display the execution logs, including whether the stage has passed or failed. Within these logs, the corresponding log file path is provided. Users can navigate to this path on the OIM to access the detailed test report of the cluster deployment. If any failure occurs, the logs will include a comprehensive report for further analysis and debugging.
    
 
 .. _add_node_scenario:

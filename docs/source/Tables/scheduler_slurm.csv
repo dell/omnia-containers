@@ -14,6 +14,21 @@
 
     Mandatory","* Indicates the NFS storage name for the NFS storage to be used by this slurm cluster.
 * This is defined in storage_config.yml as name."
+"**vast_storage_name**
+
+    ``string``
+
+
+
+    Optional","* Storage name corresponding to the VAST storage to be used by slurm cluster.
+* This should match exactly with an entry in storage_config.yml.
+* The following directories will be mounted on the VAST storage:
+
+  * /scratch
+  * /tmp
+  * /home
+  * /apps
+  * /projects"
 "**config_sources**
 
     ``filepath`` or ``mapping``

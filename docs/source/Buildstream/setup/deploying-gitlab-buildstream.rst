@@ -7,9 +7,9 @@ Deploy GitLab as the CI/CD automation engine for BuildStream, providing a three-
 
 BuildStream uses a **three-pipeline architecture** in GitLab:
 
-* **Build Pipeline**: Triggered by catalog/config changes, creates images and establishes Job ID to Image Group ID mapping. This pipeline can also be executed manually.
+* **Build Pipeline**: Triggered by catalog changes, creates images and establishes Job ID to Image Group ID mapping. This pipeline can also be executed manually.
 * **Deploy Pipeline**: Triggered by PXE mapping changes, deploys images to cluster nodes. This pipeline can also be executed manually.
-* **Cleanup Pipeline**: Triggered manually, removes old Image Groups based on retention policy.
+* **Cleanup Pipeline**: Triggered manually, allows users to delete selected Image Groups. 
 
 Prerequisites
 -------------
@@ -38,29 +38,25 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :doc:`../reference/configuration-tables` for reference.
+2. Navigate to ``/opt/omnia/input/project_default/gitlab_config.yml`` and update the ``gitlab_config.yml`` file. Use the :ref:`gitlab configuration table <buildstream-tables-gitlab-configuration>` for reference.
     
    .. code-block:: bash
 
       cat /opt/omnia/input/project_default/gitlab_config.yml
 
-3. Ensure that the BuildStream input configuration files are properly configured in ``/opt/omnia/input/project_default/``. 
-
-   For detailed parameter descriptions, see :doc:`../reference/configuration-tables`.
-
-4. Navigate to the GitLab directory.
+3. Navigate to the GitLab directory.
 
    .. code-block:: bash
 
       cd /omnia/gitlab
 
-5. Run the ``gitlab.yml`` playbook:
+4. Run the ``gitlab.yml`` playbook:
 
    .. code-block:: bash
 
       ansible-playbook gitlab.yml
 
-6. When it prompts you to enter the GitLab password, enter the password. Note the password as it is required to access the GitLab project and instance.
+5. When it prompts you to enter the GitLab password, enter the password. Note the password as it is required to access the GitLab project and instance.
 
 .. note::
    The installation may take 10-15 minutes to complete.
@@ -99,11 +95,12 @@ The input folder includes the following configuration files (see :doc:`../refere
    - ``security_config.yml`` — Security configuration file
    - ``storage_config.yml`` — Storage configuration file
    - ``telemetry_config.yml`` — Telemetry configuration file
+   - ``telemetry_storage_config.yml`` — Telemetry storage configuration file
 
       .. image:: ../../images/buildstream_project_input_files.png
             :alt: BuildStream project input files structure
    
-7. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 4 to the browser.
+6. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 5 to the browser.
 
 Verification
 ------------

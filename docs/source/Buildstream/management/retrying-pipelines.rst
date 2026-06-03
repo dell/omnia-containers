@@ -19,11 +19,11 @@ Before retrying pipeline operations, ensure the following:
 Procedure
 ---------
 
-#.  Navigate to **Build** → **Pipelines** and identify the failed pipeline. 
+1.  Navigate to **Build** → **Pipelines** and identify the failed pipeline. 
 
-#. Identify the stage that failed and review the error logs.
+2. Identify the stage that failed and review the error logs.
 
-#. Resolve the issue that caused the failure:
+3. Resolve the issue that caused the failure:
 
    a. Fix configuration errors if present.
    
@@ -33,7 +33,7 @@ Procedure
    
    d. Address any other specific error conditions.
 
-#. To retry the failed pipeline, click the **Retry donwstream pipline** icon on the stage that executes the entire pipeline.
+4. To retry the failed pipeline, click the **Retry donwstream pipline** icon on the stage that executes the entire pipeline.
 
    .. image:: ../../images/retry-pipeline.png
       :alt: Retry pipeline button
@@ -41,20 +41,20 @@ Procedure
  .. note::
    This creates a new job and re-executes the entire pipeline from the beginning. It is recommended to retry the entire pipeline rather than individual stage.
 
-#. Verify that the pipeline completes successfully.
+5. Verify that the pipeline completes successfully.
 
 Verification
 ------------
 
-#. Check the GitLab pipeline status to ensure all stages passed.
+1. Check the GitLab pipeline status to ensure all stages passed.
 
-#. Verify the new Pipeline ID is created for the retry operation.
+2. Verify the new Pipeline ID is created for the retry operation.
 
-#. For build pipelines, verify that images were created successfully.
+3. For build pipelines, verify that images were created successfully.
 
-#. For deploy pipelines, verify that nodes were deployed correctly.
+4. For deploy pipelines, verify that nodes were deployed correctly.
 
-#. Compare results with the original failed pipeline to confirm the issue is resolved.
+5. Compare results with the original failed pipeline to confirm the issue is resolved.
 
 Related Topics
 --------------

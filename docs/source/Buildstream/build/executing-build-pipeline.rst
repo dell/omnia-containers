@@ -56,8 +56,8 @@ Procedure
       :alt: BuildStreaM Pipeline Execution
 
 .. note:: 
-   * Currently, BuildStreaM supports only one catalog file and one pipeline trigger. BuildStreaM pipeline behaviour is controlled by the GitLab CI/CD configuration in your environment.
-   * Each pipeline processes the catalog changes independently and builds the specified images according to the catalog requirements.   
+   * Currently, BuildStreaM supports only one catalog file and one pipeline trigger. BuildStreaM pipeline behavior is controlled by the GitLab CI/CD configuration in your environment.
+   * Each pipeline processes the catalog changes independently and builds the specified images based on the catalog requirements. Once a pipeline execution is complete, users can modify the catalog and re-trigger the pipeline as needed. However, multiple pipeline triggers cannot be executed simultaneously.   
 
 .. _manual-build-pipeline-retry:
 

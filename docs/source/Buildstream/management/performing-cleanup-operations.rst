@@ -19,33 +19,41 @@ Before performing cleanup operations, ensure the following:
 Procedure
 ---------
 
-#. Navigate to the GitLab project URL::
+1. Navigate to the GitLab project URL::
 
     https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
 
-#. Navigate to **Build** → **Pipelines**.
+2. Navigate to **Build** → **Pipelines**.
 
-#. Click **New Pipeline**.
+3. Click **New Pipeline**.
 
-#.  In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **cleanup**.
+4. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **cleanup**.
 
-#. Click **Run Pipeline** to execute the cleanup pipeline.
+.. image:: ../../images/gitlab-clean-pipeline-variable.png
+    :alt: GitLab Clean Pipeline Variable
 
-    .. image:: ../../images/gitlab-clean-run-pipeline.png
-    :alt: GitLab Clean Run Pipeline
-   
-#. In the pipeline, select the image to be cleaned up from the `select_image` stage.
+5. Click **Run Pipeline** to execute the cleanup pipeline.
+ 
+6. In the pipeline, select the image to be cleaned up from the `select_image` stage.
 
     .. image:: ../../images/gitlab-clean-select-image.png
     :alt: GitLab Clean Select Image
 
-#. Monitor the pipeline progress through the GitLab web interface:
+7. Click the **Play** button on the cleanup stage to execute the cleanup.
+
+    .. image:: ../../images/gitlab-clean-run-stage.png
+        :alt: GitLab Clean Run Stage
+
+8. Monitor the pipeline progress through the GitLab web interface:
 
    a. Click on the running pipeline to view details.
    
    b. Monitor the cleanup stage as it progresses to completion.
+
+   .. image:: ../../images/gitlab-clean-monitor-pipeline.png
+       :alt: GitLab Clean Monitor Pipeline
  
-#. Review the stage status indicators:
+8. Review the stage status indicators:
     - |success| **Green checkmark**: Stage completed successfully
     - |failed| **Red X**: Stage failed (click for error details)
     - |running| **Blue circle**: Stage currently running
@@ -67,4 +75,4 @@ Related Topics
 --------------
 
 * :doc:`../management/retrying-pipelines` - Retry Pipeline Operations
-* :doc:`../reference/configuration-tables` - Configuration Reference
+* :doc:`../../Input_configuration_tables` - Configuration Reference

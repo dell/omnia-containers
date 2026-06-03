@@ -7,7 +7,6 @@ This section outlines the key requirements for the components used by Omnia to d
 NFS Server
 -----------
 
-* If PowerScale is configured as the NFS server, navigate to **Protocols** > **NFS** > **Global Settings** and ensure NFSv3 is enabled while NFSv4 is disabled.
 * If PowerScale is configured as the NFS server using **NFSv4** protocol, 
   the following settings must be enabled on the PowerScale cluster 
   to prevent file ownership from displaying as `nobody:nobody`:
@@ -152,11 +151,40 @@ Run ``ansible-playbook local_repo/local_repo.yml``.
     * If the RPMs are already available but are not externally hosted, place the RPMs in the OIM and follow the steps in `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_. After hosting the RPMs, update the ``user_repo_url_x86_64`` or ``user_repo_url_aarch64`` parameter with the newly created repository URL.
 
 
-Service Kubernetes Cluster 
+Service Kubernetes Cluster
 ---------------------------
 
 * A minimum of **three Kubernetes controller nodes** and **one kube node** must be available.
 * Ensure that each Service Kubernetes Cluster node has at least 64 GB RAM.
+
+ETCD Storage Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ETCD storage can be configured on local disk or NFS based on the ``etcd_on_local_disk`` parameter in ``omnia_config.yml``. For detailed configuration information, see :doc:`Input Parameters for the Cluster <OmniaInstallGuide/RHEL_new/OmniaCluster/schedulerinputparams>` and :doc:`Set up High Availability (HA) Kubernetes on the Service Cluster <OmniaInstallGuide/RHEL_new/HighAvailability/service_cluster_k8s>`.
+
+**When etcd_on_local_disk is set to true:**
+
+* ETCD is deployed on the local disk of each Kubernetes service master node.
+* The ``/var/lib/etcd`` directory is mounted on the selected local disk.
+* **Disk Selection Priority**: The system prioritizes BOSS card (BOSS-N1/N2) if available. If BOSS card is not present, it falls back to SSD or SATA disks.
+* **RAID Configuration**: BOSS cards must have RAID pre-configured (RAID 1 or RAID 10) before deployment. Omnia does not configure RAID automatically.
+* Minimum disk size of 20 GB is recommended for ETCD data partition.
+
+.. caution::
+   Migration from NFS to local disk is not supported during upgrades. The ``etcd_on_local_disk`` configuration is only applicable for fresh installations.
+
+**When etcd_on_local_disk is set to false or omitted:**
+
+* ETCD storage is provisioned using NFS.
+* No local disk configuration is performed for ETCD.
+* Ensure the NFS server is reachable and has sufficient storage for ETCD data.
+
+**Hardware Prerequisites for Local Disk Deployment:**
+
+* Dell BOSS Card (BOSS-N1/N2) with pre-configured RAID 1 or RAID 10, OR
+* SSD or SATA disks if BOSS card is not available
+* Minimum disk size of 20 GB for ETCD data partition
+* RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically)
 
 iDRAC Telemetry Metrics Collection 
 ----------------------------------

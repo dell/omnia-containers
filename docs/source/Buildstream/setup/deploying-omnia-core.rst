@@ -20,7 +20,6 @@ Before you begin, ensure the following:
   * One connected to the public network.  
   * One dedicated to internal cluster communication. 
 * Ensure that Podman container engine is installed on your OIM.
-* If PowerScale is configured as the NFS server, navigate to **Protocols** > **NFS** > **Global Settings** and ensure NFSv3 is enabled while NFSv4 is disabled.
 * If you want to use a NFS share for the omnia shared path, ensure the following:
 
   * The NFS share has 755 permissions and ``no_root_squash`` is enabled on the mounted NFS share. 
@@ -45,12 +44,12 @@ To deploy the container images from any Omnia branch, available at `Omnia Artifa
 
     .. code-block:: bash
 
-      git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.1.0.0
+      git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
       cd omnia-artifactory
-      ./build_images.sh core omnia_branch=v2.1.0.0 core_tag=2.1 
+      ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2 
 
   * For detailed build instructions, refer to the `Omnia Artifacts README <https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md>`_.
-  * For ``core_tag=<version>``, use first two digits of the Omnia version. For example, for ``v2.1.0.0``, use ``core_tag=2.1``.
+  * For ``core_tag=<version>``, use first two digits of the Omnia version. For example, for ``v2.2.0.0``, use ``core_tag=2.2``.
   * For ``omnia_branch=<tag|branch>``, use the branch name or tag name.
 
       * For ``<tag>``, example: v2.1.0.0
@@ -163,17 +162,20 @@ To view the usage instructions, on the OIM, run the following command::
 
    ./omnia.sh --help
 
-    Usage: ./omnia.sh [--install | --uninstall | --version | --help]
-        -i, --install     Install and start the Omnia core container
-        -u, --uninstall   Uninstall the Omnia core container and clean up configuration
-        -v, --version     Display Omnia version information
-        -h, --help        More information about usage
-  
+    Usage: ./omnia.sh [--install | --uninstall | --upgrade | --rollback | --version | --help]
+  -i, --install     Install and start the Omnia core container
+  -u, --uninstall   Uninstall the Omnia core container and clean up configuration
+      --upgrade     Upgrade the Omnia core container to newer version
+      --rollback    Rollback the Omnia core container to previous version
+  -v, --version     Display Omnia version information
+  -h, --help        More information about usage
 
 The help menu includes:
 
   * ``--install``: Deploys the ``omnia_core`` container and configures it as a Systemd service.
   * ``--uninstall``: Stops and removes the ``omnia_core`` container and its associated service.
+  * ``--upgrade``: Upgrade the Omnia core container to newer version.
+  * ``--rollback``: Rollback the Omnia core container to previous version.
   * ``--version``: Display Omnia version information
   * ``--help``: Display usage information.
 

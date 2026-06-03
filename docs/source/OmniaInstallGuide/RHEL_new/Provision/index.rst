@@ -1,4 +1,4 @@
-Step 13: Discover cluster nodes
+Step 13: Provision cluster nodes
 ===========================================
 
 The ``provision.yml`` playbook is used to discover the potential cluster nodes, configure the boot script and cloud-init based on the functional groups.
@@ -7,6 +7,7 @@ The ``provision.yml`` playbook is used to discover the potential cluster nodes, 
     :maxdepth: 2
 
     provisionprereqs
-    discover_mechanism_mappingfile
     provisionparams
-    installprovisiontool   
+    installprovisiontool
+    nvhpc_sdk
+    ome_discovery

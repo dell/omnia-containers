@@ -41,12 +41,59 @@ Prerequisites
   
 * To use NFS for service Kubernetes cluster, ensure the following prerequisites are met:
 
-  * The NFS share has 755 permissions and ``rw,sync,no_root_squash,no_subtree_check`` are enabled on the mounted NFS share. 
+  * The NFS share has 755 permissions and ``rw,sync,no_root_squash,no_subtree_check`` are enabled on the mounted NFS share.
   * Edit the ``/etc/exports`` file on the NFS server to include the ``rw,sync,no_root_squash,no_subtree_check`` option for the ``server_share_path``.
-    
+
     ::
-        
+
         /<your_server_share_path>  *(rw,sync,no_root_squash,no_subtree_check)
+
+* To deploy ETCD on local disk instead of NFS, set ``etcd_on_local_disk: true`` in the ``omnia_config.yml`` file under the ``service_k8s_cluster`` section. When enabled, ETCD is deployed on local disk on all master nodes with the following behavior:
+
+  * **Disk Selection Priority**: The system prioritizes BOSS card (BOSS-N1/N2) if available. If BOSS card is not present, it falls back to SSD or SATA disks.
+  * **Mount Point**: The ``/var/lib/etcd`` directory is mounted on the selected local disk.
+  * **RAID Configuration**: BOSS cards must have RAID pre-configured (RAID 1 or RAID 10) before deployment. Omnia does not configure RAID automatically.
+  * **Storage Size**: Minimum 20 GB disk space is recommended for ETCD data partition.
+
+  .. note:: When ``etcd_on_local_disk`` is set to ``false`` or omitted, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD.
+
+  .. caution:: Migration from NFS to local disk is not supported during upgrades. The ``etcd_on_local_disk`` configuration is only applicable for fresh installations. If you need to change from NFS to local disk, you must perform a fresh installation.
+
+  **Hardware Prerequisites for Local Disk Deployment**:
+
+  * Dell BOSS Card (BOSS-N1/N2) with pre-configured RAID 1 or RAID 10, OR
+  * SSD or SATA disks if BOSS card is not available
+  * Minimum disk size of 20 GB for ETCD data partition
+  * RAID must be pre-configured on BOSS cards before deployment (Omnia does not configure RAID automatically)
+
+  **Configuration Example**:
+
+  The following sample shows how to configure ETCD on local disk in ``omnia_config.yml``:
+
+  ::
+
+      service_k8s_cluster:
+       - cluster_name: service_cluster
+         deployment: true
+         etcd_on_local_disk: false
+         k8s_cni: "calico"
+         pod_external_ip_range: "192.168.0.183-192.168.0.240"
+         k8s_service_addresses: "10.233.0.0/18"
+         k8s_pod_network_cidr: "10.233.64.0/18"
+         nfs_storage_name: "nfs_k8s"
+         k8s_crio_storage_size: "20G"
+         csi_powerscale_driver_secret_file_path: "/opt/omnia/input/project_default/secret.yaml"
+         csi_powerscale_driver_values_file_path: "/opt/omnia/input/project_default/values.yaml"
+
+  **Scope and Limitations**:
+
+  * Supports Dell BOSS cards (BOSS-N1/N2) with pre-configured RAID 1 or RAID 10
+  * Supports disk configuration in HBA and Non-RAID modes
+  * Ensures all Kubernetes master nodes have a local disk (BOSS card, SSD, or SATA)
+  * Current implementation prioritizes BOSS card detection; if unavailable, it falls back to any available disk for mounting ``/var/lib/etcd``
+  * RAID configuration automation is not supported - RAID must be pre-configured by the customer
+  * Multi-disk ETCD storage is not supported - only single BOSS card RAID is supported
+  * Dynamic disk resizing is not supported once the ETCD partition is created
 
 
 Steps

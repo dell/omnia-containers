@@ -128,28 +128,51 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
    * **Throughput**: Adjust polling interval; bridge returns empty array when no new records.
    * **404/409 errors**: 404 usually means wrong group/instance name; 409 means already subscribed.
 
-Verify OME Telemetry Data in VictoriaMetrics and VictoriaLogs
-----------------------------------------------------------
-To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics and VictoriaLogs using Vector, do the following:
+Verify OME Telemetry Data in VictoriaMetrics
+---------------------------------------------
+
+To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics using Vector, do the following:
 
 1. Log in to the VictoriaMetrics UI.
 
 2. Navigate to the **Explore** tab.
 
-3. Run the following query to verify OME metrics are being received::
+3. Run the following queries to verify OME metrics are being received:
 
-      {__name__=~".*ome.*"}
+      
+      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
+
+            .. image:: ../../../../images/external_kafka_ome_metrics_health.png
+
+            
+      * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
+
+            .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
+
+
+.. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
+
 
 4. Verify that OME-related metrics are displayed in the results.
 
-5. Log in to the VictoriaLogs UI.
+.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > metrics_enabled: true``) for metrics data to flow from Kafka to VictoriaMetrics. 
 
-6. Navigate to the **Select** tab.
+Verify OME Telemetry Data in VictoriaLogs
+-----------------------------------------
 
-7. In the query field, run the following query to filter for OME logs::
+To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector, do the following:
 
-      {stream=~".*ome.*"}
+1. Log in to the VictoriaLogs UI.
 
-8. Verify that OME-related logs are displayed in the results.
+2. Navigate to the **Select** tab.
 
-.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > metrics_enabled: true`` and ``telemetry_bridges > vector_ome > logs_enabled: true``) for data to flow from Kafka to VictoriaMetrics and VictoriaLogs.
+3. In the query field, run the following query to filter for OME logs:
+
+   * ``_msg_topic:ome.auditlogs``
+   
+   .. image:: ../../../../images/external_kafka_ome_logs_audit.png
+
+4. Verify that OME-related logs are displayed in the results.
+
+.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > logs_enabled: true``) for logs data to flow from Kafka to VictoriaLogs.
+

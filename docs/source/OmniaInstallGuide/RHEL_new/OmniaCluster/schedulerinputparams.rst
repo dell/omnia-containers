@@ -25,6 +25,7 @@ The ``service_k8s_cluster`` depends on the inputs provided in the following file
    service_k8s_cluster:
       - cluster_name: service_cluster
         deployment: true
+        etcd_on_local_disk: false
         k8s_cni: "calico"
         pod_external_ip_range: ""
         k8s_service_addresses: "10.233.0.0/18"

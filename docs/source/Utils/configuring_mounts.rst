@@ -10,11 +10,8 @@ The storage configuration in Omnia allows you to configure various storage mount
    :header-rows: 1
    :keepspace:
 
-
 .. note::
    The storage configuration is applied during node provisioning and can be customized for different node groups using functional group prefixes or group names.
-
-
 
 Overview
 --------
@@ -28,72 +25,83 @@ The ``storage_config.yml`` file contains the following main sections:
 
 mounts
 ------
- 
+
 The ``mounts`` section, each mount entry specifies a source device or network path, mount point, and optional filesystem parameters.
- 
+
 The following parameters are supported for each mount:
- 
+
 **Mandatory Fields:**
- 
+
 * **name** - Unique identifier for this mount entry
-  * Pattern: [a-zA-Z0-9_-], length 1-64
-* **source** - Device name or network path
-  * Examples: 192.168.1.100:/export/share, /dev/sdc, UUID=xxx
-* **mount_point** - Absolute path for the mount point
-  * Pattern: /path/to/dir
- 
+    * Pattern: [a-zA-Z0-9_-], length 1-64
+* **source** - Device or network path. Mandatory
+    * For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
+    * For local: /dev/sdc, UUID=xxx, LABEL=xxx
+    * For CIFS: //server/share
+
+.. note::
+   NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
+
+* **mount_point** - Absolute path for the mount point. Mandatory
+    * Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
+    * Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
+    * Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
+
+.. note::
+   Path must be unique across all mount entries
+
 **Optional Fields:**
- 
+
 * **fs_type** - Filesystem type (overrides mount_params profile when specified)
-  * Default: "auto"
-  * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
+    * Default: "auto"
+    * Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs
 * **mnt_opts** - Mount options string (e.g., "defaults,noexec,nofail")
-  * If specified, takes PRIORITY over mount_params profile
+    * If specified, takes PRIORITY over mount_params profile
 * **dump_freq** - Dump frequency
-  * Default: "0"
-  * Choices: "0", "1", "2"
+    * Default: "0"
+    * Choices: "0", "1", "2"
 * **fsck_pass** - Fsck pass number
-  * Default: "0"
-  * Choices: "0" through "9"
+    * Default: "0"
+    * Choices: "0" through "9"
 * **mount_params** - Name of the mount_params profile to use for unspecified fields
 * **mount_on_oim** - Whether to mount this filesystem on the OIM node
-  * Default: false
-  * Ensure storage is network-accessible from OIM before enabling
- 
+    * Default: false
+    * Ensure storage is network-accessible from OIM before enabling
+
 **Node-Specific Bind Mounts (paired parameters):**
- 
+
 * **node_key** - Per-node subdirectory isolation variable
-  * Choices: "local_hostname", "local_ipv4", "instance_id"
-  * Default: "local_hostname"
-  * When set, node_mount_point is MANDATORY
-  * Generates bind mounts: <mount_point>/<node_key_value>/<target> -> <target>
+    * Choices: "local_hostname", "local_ipv4", "instance_id"
+    * Default: "local_hostname"
+    * When set, node_mount_point is MANDATORY
+    * Generates bind mounts: <mount_point>/<node_key_value>/<target> -> <target>
 * **node_mount_point** - List of bind mount target paths
-  * Mandatory when node_key is set
-  * Minimum 1 entry, values must be unique absolute paths
- 
+    * Mandatory when node_key is set
+    * Minimum 1 entry, values must be unique absolute paths
+
 **Node Targeting (exactly ONE is required - mutually exclusive):**
- 
+
 * **functional_group_prefix** - List of oChaMI functional group name prefixes
-  * All nodes whose group name starts with any listed prefix receive this mount
-  * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
-  * MUTUALLY EXCLUSIVE with groups
+    * All nodes whose group name starts with any listed prefix receive this mount
+    * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
+    * MUTUALLY EXCLUSIVE with groups
 * **groups** - List of GROUP_NAME values from pxe_mapping_file.csv
-  * Only nodes assigned to the listed PXE groups receive this mount
-  * Example: ["grp1", "grp2"] targets only nodes in those groups
-  * MUTUALLY EXCLUSIVE with functional_group_prefix
- 
+    * Only nodes assigned to the listed PXE groups receive this mount
+    * Example: ["grp1", "grp2"] targets only nodes in those groups
+    * MUTUALLY EXCLUSIVE with functional_group_prefix
+
 **Permissions (optional sub-object):**
- 
+
 * **permissions.owner** - User owner of the mount point
-  * Default: "root"
+    * Default: "root"
 * **permissions.group** - Group owner of the mount point
-  * Default: "root"
+    * Default: "root"
 * **permissions.mode** - Octal permission string (3-4 digits)
-  * Default: "0755"
-  * Examples: "0755", "1777"
- 
+    * Default: "0755"
+    * Examples: "0755", "1777"
+
 .. note::
-When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
+   When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
 
 Example mounts configuration::
 
@@ -116,13 +124,14 @@ Example mounts configuration::
         mount_on_oim: true
         functional_group_prefix: ["service_kube"]
 
-      # VAST NFS home directories using mount_params profile
-      - name: "vast_home"
-        source: "172.16.0.201:/home"
-        mount_point: "/home"
-        mount_params: "vast_nfs"
+      # This storage is critical for the Slurm cluster and must be accessible from OIM.
+      # Configuration: The slurm_cluster section in omnia_config.yml should reference this storage via 'vast_storage_name'.
+      - name: "vast_storage"
+        source: "172.16.107.77:/share/vast"
+        mount_point: "/mnt/vast"
+        mount_params: "vast_rdma"
         mount_on_oim: true
-        functional_group_prefix: ["slurm"]
+        functional_group_prefix: ["slurm_node", "login"]
 
 mount_params
 ------------
@@ -146,10 +155,17 @@ Example mount_params configuration::
         dump_freq: "0"
         fsck_pass: "0"
 
-      # VAST NFS storage - standard configuration
-      vast_nfs:
+      # VAST NFS storage - RDMA configuration
+      vast_rdma:
         fs_type: "nfs"
         mnt_opts: "proto=rdma,hard,intr,noatime,nconnect=16,rsize=1048576,wsize=1048576"
+        dump_freq: "0"
+        fsck_pass: "0"
+
+      # VAST NFS storage with standard configuration
+      vast_nfs:
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard"
         dump_freq: "0"
         fsck_pass: "0"
 
@@ -159,7 +175,6 @@ Example mount_params configuration::
         mnt_opts: "defaults,_netdev,noatime,x-systemd.requires=iscsi.service"
         dump_freq: "0"
         fsck_pass: "0"
-
 
 powervault_config
 -----------------
@@ -182,16 +197,16 @@ The following parameters are supported for each PowerVault configuration:
 * **dump_freq** - Dump frequency (overrides mount_params profile when specified)
 * **fsck_pass** - Fsck pass number (overrides mount_params profile when specified)
 * **mount_params** - Named profile for fs_type/mnt_opts (read by the runcmd script)
-* **node_key** - cloud-init datasource variable accessible via 'cloud-init query <var_name>' (e.g., local_hostname, ds.meta_data.instance_data.local_ipv4, instance_id). The variable chosen must be unique per host to ensure isolation between nodes
+* **node_key** - Per-node subdirectory isolation variable. (e.g., "local_hostname", "local_ipv4", "instance_id"). The variable chosen must be unique per host to ensure isolation between nodes
 * **node_mount_point** - List of bind mount target paths (required when node_key is set)
 * **functional_group_prefix** - List of functional group prefixes for node targeting
 * **permissions** - Directory ownership and mode applied to mount_point after mount
-  * **owner** - User owner of the mount point (default: root)
-  * **group** - Group owner of the mount point (default: root)
-  * **mode** - Octal permission mode (e.g., 0750, default: 0755)
+    * **owner** - User owner of the mount point (default: root)
+    * **group** - Group owner of the mount point (default: root)
+    * **mode** - Octal permission mode (e.g., 0750, default: 0755)
 
 .. note::
-When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
+   When node_key is specified, fs_type is forced to ``none`` and mnt_opts is forced to ``bind`` regardless of user input.
 
 Example powervault_config configuration::
 
@@ -236,7 +251,7 @@ The following parameters are supported for each swap configuration:
 * **filename** (required) - Path to the swap file to create
 * **size** (required) - Size in bytes, 'auto', or human-readable format (e.g., 2G, 512M)
 * **maxsize** - Maximum size (used with size: auto)
-* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this swap to 
+* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this swap to
 
 Example swap configuration::
 
@@ -266,7 +281,6 @@ The following is a complete example of a ``storage_config.yml`` file::
         mnt_opts: "proto=rdma,hard,intr,noatime,nconnect=16,rsize=1048576,wsize=1048576"
         dump_freq: "0"
         fsck_pass: "0"
-        vast_nfs_ip: "192.168.1.100"
 
       powervault_iscsi:
         fs_type: "xfs"
@@ -284,11 +298,23 @@ The following is a complete example of a ``storage_config.yml`` file::
         mount_on_oim: true
         functional_group_prefix: ["slurm", "login"]
 
-      - name: "vast_home"
-        source: "172.16.0.202:/home"
-        mount_point: "/home"
-        mount_params: "vast_nfs"
-        functional_group_prefix: ["slurm"]
+      # NFS mount for Kubernetes
+      - name: "nfs_k8s"
+        source: "172.16.0.254:/mnt/share/omnia_k8s"
+        mount_point: "/opt/omnia/k8s_mount"
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard,intr"
+        mount_on_oim: true
+        functional_group_prefix: ["service_kube"]
+
+      # This storage is critical for the Slurm cluster and must be accessible from OIM.
+      # Configuration: The slurm_cluster section in omnia_config.yml should reference this storage via 'vast_storage_name'.
+      - name: "vast_storage"
+        source: "172.16.107.77:/share/vast"
+        mount_point: "/mnt/vast"
+        mount_params: "vast_rdma"
+        mount_on_oim: true
+        functional_group_prefix: ["slurm_node", "login"]
 
     # PowerVault configurations
     powervault_config:
