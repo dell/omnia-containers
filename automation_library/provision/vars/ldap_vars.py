@@ -37,12 +37,12 @@ CONTAINER_CHECK_INTERVAL = 3
 # Variables to replace:
 # - {ldap_suffix} - e.g., dc=chola,dc=test
 # - {ldap_rootdn} - e.g., cn=admin,dc=chola,dc=test
-# - {ldap_rootpw} - e.g., Dell1234
-# - {ldap_uri} - e.g., ldap://100.98.72.114:1389/dc=chola,dc=test
+# - {ldap_rootpw} - e.g., ABC1239
+# - {ldap_uri} - e.g., ldap://10.1.12.116:1389/dc=chola,dc=test
 # - {ldap_suffixmassage_local} - e.g., dc=chola,dc=test
 # - {ldap_suffixmassage_remote} - e.g., dc=omnia,dc=test
 # - {ldap_bind_dn} - e.g., cn=admin,dc=omnia,dc=test
-# - {ldap_bind_credentials} - e.g., Dell1234
+# - {ldap_bind_credentials} - e.g., ABC1122
 
 SLAPD_CONF_TEMPLATE = """include        /etc/openldap/schema/core.schema
 include        /etc/openldap/schema/cosine.schema

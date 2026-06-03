@@ -38,17 +38,43 @@
 # - 'subnet': The subnet of the IB network.
 # - 'netmask_bits': The number of bits in the subnet mask. This value must be same as the admin_network netmask_bits.
 
+# 'additional_subnets' is optional, for multi-RAC / multi-subnet PXE deployments.
+# Each entry defines a separate subnet that the CoreDHCP server will manage
+# via DHCP relay (giaddr-based routing). Requires coresmd v0.5+ with
+# multi-subnet support.
+#
+# Each additional subnet entry contains:
+# - 'subnet': The network address of the additional subnet (e.g. "10.40.1.0").
+# - 'netmask_bits': The CIDR prefix length (e.g. "24").
+# - 'router': The gateway/router IP for this subnet (used as DHCP option 3).
+# - 'dynamic_range': The DHCP IP pool range in "start_ip-end_ip" format.
+#     Must fall within the subnet.
+#
+# Example (multi-RAC with two additional subnets):
+#   additional_subnets:
+#     - subnet: "10.40.1.0"
+#       netmask_bits: "24"
+#       router: "10.40.1.1"
+#       dynamic_range: "10.40.1.100-10.40.1.200"
+#     - subnet: "10.40.3.0"
+#       netmask_bits: "24"
+#       router: "10.40.3.1"
+#       dynamic_range: "10.40.3.100-10.40.3.200"
+
 
 Networks:
   - admin_network:
       oim_nic_name: "eno1"
+      subnet: "172.16.0.0"
       netmask_bits: "24"
       primary_oim_admin_ip: "172.16.107.254"
       primary_oim_bmc_ip: ""
       dynamic_range: "172.16.107.201-172.16.107.250"
       dns: []
       ntp_servers: []
+      additional_subnets: []
 
   - ib_network:
       subnet: "192.168.0.0"
       netmask_bits: "24"
+      dns: []

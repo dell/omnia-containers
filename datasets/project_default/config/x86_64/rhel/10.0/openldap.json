@@ -1,11 +1,11 @@
 {
   "openldap": {
     "cluster": [
-      {"package": "openldap-clients", "type": "rpm", "repo_name": "x86_64_baseos"},
+      {"package": "openldap-clients", "type": "rpm", "repo_name": "baseos"},
       {"package": "nss-pam-ldapd", "type": "rpm", "repo_name": "epel"},
-      {"package": "sssd", "type": "rpm", "repo_name": "x86_64_baseos"},
-      {"package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "x86_64_appstream"},
-      {"package": "authselect", "type": "rpm", "repo_name": "x86_64_baseos"}
+      {"package": "sssd", "type": "rpm", "repo_name": "baseos"},
+      {"package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "appstream"},
+      {"package": "authselect", "type": "rpm", "repo_name": "baseos"}
     ]
   }
 }
