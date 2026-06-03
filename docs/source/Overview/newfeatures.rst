@@ -43,6 +43,27 @@ user intervention on individual nodes.
   environments
 - Nodes without NVIDIA GPU hardware are automatically skipped — no manual exclusion required
 
+NVIDIA HPC SDK Provisioning for Slurm Clusters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports cluster-wide deployment of the NVIDIA HPC SDK (``nvhpc``) for Slurm
+compiler and compute nodes. The SDK is installed once on the compiler node via DNF,
+copied to shared NFS storage, and made available to all compute nodes through a
+bind mount — eliminating repeated downloads or per-node installations.
+
+- NVIDIA HPC SDK installed on the compiler node via DNF using pre-configured NVIDIA repositories
+- SDK binaries and libraries copied to shared NFS at ``/hpc_tools/nvidia_sdk/nvhpc``
+- All compute nodes mount the NFS copy via a local bind mount at ``/opt/nvidia/nvhpc``
+- Persistent environment configuration written to ``/etc/profile.d/nvhpc.sh`` on every node,
+  covering compilers (``nvc``, ``nvc++``, ``nvfortran``), MPI binaries, manual pages, and module files
+- Architecture-aware: supports both ``x86_64`` and ``aarch64`` without separate configuration
+- Nodes without a completed compiler-node installation are blocked with a clear error message
+  rather than silently failing
+- Setup script (``/usr/local/bin/setup_nvhpc_sdk.sh``) is pre-deployed to all nodes during
+  provisioning; the user invokes it post-provisioning at their discretion
+
+For detailed setup instructions, see `NVIDIA HPC SDK Setup <OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
+
 One-Shot Combined Log Extraction for Debugging
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
