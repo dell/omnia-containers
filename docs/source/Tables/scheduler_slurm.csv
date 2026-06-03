@@ -34,3 +34,18 @@
 
     Optional","* Indicates whether a specific configuration file path under ``config_sources`` should be used  without merging.
 * If ``skip_merge`` is set to true for a configuration source path, that configuration file is applied directly without merging with defaults or existing configurations."
+"**vast_storage_name**
+
+    ``string``
+
+
+
+    Mandatory","* Storage name corresponding to the VAST storage to be used by slurm cluster.
+* This should match exactly with an entry in storage_config.yml.
+* The following directories will be mounted on the VAST storage:
+
+  * /scratch
+  * /tmp
+  * /home
+  * /apps
+  * /projects"
