@@ -84,7 +84,7 @@ The following table provides an overview of the various Omnia log files, their l
 +------------------------------------------------------------------------+---------------------------------------------+
 | /opt/omnia/log/core/playbooks/gitlab_build_stream.log                  | GitLab BuildStreaM logs                     |
 +------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/build_stream/                                           | BuildStreaM container log path              |
+| /opt/omnia/log/build_stream/                                           | build_stream pipeline log path              |
 +------------------------------------------------------------------------+---------------------------------------------+
 
 .. note:: The BuildStreaM and GitLab log paths are available inside the BuildStreaM container.
