@@ -13,7 +13,7 @@ Prerequisites
 
   * ``9094`` for ingesting and querying data.
 * Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
-* Ensure that OpenManage Enterprise Advanced License is installed on the cluster nodes. This license is required to retrieve OME telemetry. 
+* Ensure that OpenManage Enterprise Advanced License is installed on the OME discovered nodes. This license is required to retrieve OME telemetry. 
 
 Steps
 -----

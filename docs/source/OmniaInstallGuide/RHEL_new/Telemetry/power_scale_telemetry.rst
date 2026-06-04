@@ -45,6 +45,8 @@ Prerequisites
 
     * Enable syslog forwarding from PowerScale to Omnia using the following command::
 
+        isi audit settings global modify --add-audited-zones=<comma separated Zone names>
+
         isi audit setting modify --syslog-forwarding-enabled true
 
       .. image:: ../../../images/powerscale_syslog_logs_prereq.png
