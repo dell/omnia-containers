@@ -38,3 +38,11 @@ language: "en_US.UTF-8"
 # Default: 86400
 # Max: 31536000
 default_lease_time: "86400"
+
+#### Optional
+# Enable DNS-based hostname resolution for compute nodes.
+# When true, nodes use coresmd (CoreDNS + OpenCHAMI SMD plugin) instead of /etc/hosts.
+# DNS records are generated automatically from SMD inventory.
+# The cluster domain is read from OIM metadata (domain_name).
+# Default: false
+dns_enabled: false
