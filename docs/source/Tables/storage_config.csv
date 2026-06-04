@@ -23,11 +23,11 @@ Mandatory","Configure mount points compatible with cloud-init mounts module. Sou
 
 * **fs_type**—Filesystem type. Default: ""auto"". Choices: auto, ext2, ext3, ext4, xfs, nfs, nfs4, cifs, tmpfs, cephfs, vfat, ntfs, none, fuse.s3fs. If specified, takes PRIORITY over mount_params profile
 * **mnt_opts**—Mount options string (e.g., defaults,noexec,nofail). If specified, takes PRIORITY over mount_params profile
-* **dump_freq**—Dump frequency. Default: ""0"". Choices: ""0"", ""1"", ""2"". If specified, takes PRIORITY over mount_params profile
-* **fsck_pass**—Fsck pass number. Default: ""0"". Choices: ""0"" through ""9"". If specified, takes PRIORITY over mount_params profile
+* **dump_freq**—Dump frequency. Default: ""0"". Allowed values: ""0""-""2"". If specified, takes PRIORITY over mount_params profile
+* **fsck_pass**—Fsck pass number. Default: ""0"". Allowed values: ""0""-""9"". If specified, takes PRIORITY over mount_params profile
 * **mount_params**—Name of a profile in mount_params section. Used ONLY for fields not explicitly specified in the mount entry
 * **mount_on_oim**—Boolean flag to mount on OIM (Omnia Image Management). Default: false. Ensure storage is network-accessible from OIM before enabling
-* **permissions**—Directory ownership and mode for the mount point
+* **permissions**—Directory ownership and mode for the mount point (applied via chown + chmod after mount)
     * **owner**: User owner (name or numeric UID). Default: ""root""
     * **group**: Group owner (name or numeric GID). Default: ""root""
     * **mode**: Octal permission string (3-4 digits). Default: ""0755"". Examples: ""0755"", ""1777""
@@ -61,8 +61,8 @@ Optional","Named default profiles for mount configurations. Profiles are referen
 
 **Optional Profile Fields:**
 
-* **dump_freq**—Default dump frequency. Choices: ""0"", ""1"", ""2""
-* **fsck_pass**—Default fsck pass number. Choices: ""0"" through ""9""
+* **dump_freq**—Default dump frequency. Allowed values: ""0""-""2""
+* **fsck_pass**—Default fsck pass number. Allowed values: ""0""-""9""
 
 **Predefined Profiles:**
 
@@ -73,15 +73,10 @@ Optional","Named default profiles for mount configurations. Profiles are referen
     * **fsck_pass**: ""0""
 * **vast_rdma**—VAST NFS with RDMA configuration over InfiniBand
     * **fs_type**: ""nfs""
-    * **mnt_opts**: ""proto=rdma,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576""
-* **vast_nfs**—VAST NFS storage with standard configuration
+    * **mnt_opts**: ""proto=rdma,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard""
+* **vast_tcp**—VAST NFS storage with standard TCP configuration
     * **fs_type**: ""nfs""
-    * **mnt_opts**: ""nosuid,rw,sync,hard""
-* **powervault_iscsi**—PowerVault iSCSI storage - block device with XFS
-    * **fs_type**: ""xfs""
-    * **mnt_opts**: ""defaults,_netdev,noatime,x-systemd.requires=iscsi.service""
-    * **dump_freq**: ""0""
-    * **fsck_pass**: ""0"""
+    * **mnt_opts**: ""nosuid,rw,sync,hard"""
 "powervault_config
 
 ``List (dict)``
@@ -102,8 +97,8 @@ Optional","PowerVault iSCSI storage configuration. Processed entirely via runcmd
 * **port**—TCP port for iSCSI target service. Default: 3260. Range: 1-65535
 * **fs_type**—Filesystem type. Default: ""xfs"". Choices: xfs, ext4, ext3, ext2, nfs, nfs4, cifs, ntfs, auto. If specified, takes PRIORITY over mount_params profile
 * **mnt_opts**—Mount options string. If specified, takes PRIORITY over mount_params profile
-* **dump_freq**—Dump frequency. Default: ""0"". Choices: ""0"", ""1"", ""2""
-* **fsck_pass**—Fsck pass number. Default: ""0"". Choices: ""0"" through ""9""
+* **dump_freq**—Dump frequency. Default: ""0"". Allowed values: ""0""-""2""
+* **fsck_pass**—Fsck pass number. Default: ""0"". Allowed values: ""0""-""9""
 * **mount_params**—Named profile key from mount_params section
 
 **Node-Specific Bind Mounts (paired parameters):**
@@ -111,10 +106,10 @@ Optional","PowerVault iSCSI storage configuration. Processed entirely via runcmd
 * **node_key**—Per-node subdirectory isolation variable. Choices: ""local_hostname"", ""local_ipv4"", ""instance_id"". Default: ""local_hostname"". When set, node_mount_point is MANDATORY. When node_key is specified, fs_type is forced to ""none"" and mnt_opts is forced to ""bind"" regardless of user input
 * **node_mount_point**—List of bind mount target paths. Mandatory when node_key is set. Pattern: <mount_point>/<node_key_value>/<target_stripped_slash> -> <target>
 
-**Permissions (optional sub-object):**
+**Permissions (optional sub-object, applied via chown + chmod after mount):**
 
-* **permissions.owner**—User owner of the mount point. Default: ""root""
-* **permissions.group**—Group owner of the mount point. Default: ""root""
+* **permissions.owner**—User owner (name or UID). Default: ""root""
+* **permissions.group**—Group owner (name or GID). Default: ""root""
 * **permissions.mode**—Octal permission string (3-4 digits). Default: ""0755"""
 "swap
 
