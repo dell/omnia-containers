@@ -37,16 +37,20 @@ Note: TC-E02 (Unreachable Node) is manual only (@lab-only).
 Reference: TCASES-LOGEX-2026-001 (v1.0.0)
 """
 
+import os
 import time
 
 import pytest
 
-from automation_library.core import TestLogger
+from automation_library.core import (
+    TestLogger,
+    get_node_admin_ip,
+    K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
+)
 from automation_library.one_shot_log_extraction.vars.one_shot_log_extraction_vars import (
     OUTPUT_PATHS,
     METADATA_REQUIRED_FIELDS,
     SHA256_CONFIG,
-    TIMEOUTS,
     TEST_FILES,
     TEST_CONFIG,
 )
@@ -91,7 +95,6 @@ from automation_library.one_shot_log_extraction.functions.one_shot_log_extractio
     cleanup_workspace,
     cleanup_bundle,
 )
-from automation_library.core import get_node_admin_ip, K8S_CONTROL_PLANE_FUNCTIONAL_GROUP
 
 
 # =============================================================================
@@ -373,10 +376,6 @@ def test_tcf04_bundle_construction(host):
     log.check("Bundle contains collected logs (k8s, slurm)")
     
     # Step 7: Verify output location
-    import os
-    expected_dir = OUTPUT_PATHS["default_output_root"]
-    actual_dir = os.path.dirname(bundle_path)
-    
     log.check(LOG_MSGS["bundle_created"].format(bundle=bundle_path))
     log.passed(
         "Bundle construction successful",
@@ -529,7 +528,10 @@ def test_tcf06_completion_output(host):
 # NEGATIVE / ERROR TEST CASES
 # =============================================================================
 
-@pytest.mark.skip(reason="Not applicable: Playbook runs as root in container and bypasses permission checks")
+@pytest.mark.skip(
+    reason="Not applicable: Playbook runs as root in container "
+           "and bypasses permission checks"
+)
 @pytest.mark.sanity
 @pytest.mark.order(10)
 def test_tce01_output_not_writable(host):
@@ -849,7 +851,6 @@ def test_tcc01_curated_mode(host):
         # Check temp files excluded
         temp_found = False
         for temp_file in TEST_FILES["temp_files"]:
-            import os
             if os.path.basename(temp_file) in str(contents):
                 temp_found = True
                 break
@@ -864,7 +865,6 @@ def test_tcc01_curated_mode(host):
         log.check(LOG_MSGS["temp_files_excluded"])
         
         # Check stale log excluded
-        import os
         stale_name = os.path.basename(TEST_FILES["stale_log"])
         if stale_name in str(contents):
             log.failed(

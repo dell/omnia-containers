@@ -166,7 +166,10 @@ ASSERT_MSGS: Dict[str, str] = {
     
     # Bundle
     "assert_bundle_created": "Bundle archive should be created",
-    "assert_bundle_name_format": "Bundle name should match format: omnia-logs-<id>-<timestamp>.tar.gz",
+    "assert_bundle_name_format": (
+        "Bundle name should match format: "
+        "omnia-logs-<id>-<timestamp>.tar.gz"
+    ),
     "assert_bundle_readable": "Bundle should be readable and extractable",
     "assert_bundle_contents": "Bundle should contain collected logs and metadata",
     
@@ -207,7 +210,10 @@ ASSERT_MSGS: Dict[str, str] = {
 ERROR_MSGS: Dict[str, str] = {
     "output_not_writable": "Output directory not writable: {path}",
     "archive_failed": "Archive generation failed: {reason}",
-    "node_unreachable": "Node {hostname} ({ip}) unreachable; continuing collection for remaining nodes.",
+    "node_unreachable": (
+        "Node {hostname} ({ip}) unreachable; "
+        "continuing collection for remaining nodes."
+    ),
     "source_not_found": "Source file {source} not found on node {node}",
     "disk_full": "No space left on device",
     "permission_denied": "Permission denied: {path}",

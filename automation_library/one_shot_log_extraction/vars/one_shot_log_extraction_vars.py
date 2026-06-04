@@ -26,7 +26,7 @@ Reference Specs:
 - MSPEC-LOGEX-2026-001 (Module Specification)
 """
 
-from typing import Dict, List
+from typing import Dict
 
 # =============================================================================
 # Command Configuration (Actual Implementation)
@@ -36,7 +36,10 @@ from typing import Dict, List
 LOG_COLLECTION_COMMAND = "cd /omnia/log_collector && ansible-playbook collect.yml"
 
 # Curated support mode (exclude temporary/stale-old logs)
-LOG_COLLECTION_CURATED_MODE = "cd /omnia/log_collector && ansible-playbook collect.yml -e collection_mode=curated_support"
+LOG_COLLECTION_CURATED_MODE = (
+    "cd /omnia/log_collector && ansible-playbook collect.yml"
+    " -e collection_mode=curated_support"
+)
 
 # Playbook path (inside omnia_core container)
 COLLECT_PLAYBOOK_PATH = "/omnia/log_collector/collect.yml"
@@ -132,8 +135,14 @@ COLLECTION_MODES = {
         "excludes_temp": True,
         "excludes_stale": True,
         "extra_vars": "collection_mode=curated_support",
-        "command": "cd /omnia/log_collector && ansible-playbook collect.yml -e collection_mode=curated_support",
-        "exclusion_patterns": ["*.tmp", "*.temp", "*.bak", "*.gz", "*.bz2", "*.1", "*.2", "*.3", "*.4", "*.5"],
+        "command": (
+            "cd /omnia/log_collector && ansible-playbook collect.yml"
+            " -e collection_mode=curated_support"
+        ),
+        "exclusion_patterns": [
+            "*.tmp", "*.temp", "*.bak", "*.gz", "*.bz2",
+            "*.1", "*.2", "*.3", "*.4", "*.5",
+        ],
     },
 }
 
@@ -191,8 +200,12 @@ EXIT_CODES = {
 
 # Warning Patterns (per CSPEC-LOGEX-2026-001 Section 3.1)
 WARNING_PATTERNS = {
-    # Unreachable node warning format: "Node <hostname> (<ip>) unreachable; continuing collection for remaining nodes."
-    "unreachable_node": r"Node\s+(\S+)\s+\(([0-9.]+)\)\s+unreachable;\s+continuing\s+collection\s+for\s+remaining\s+nodes",
+    # Unreachable node warning format:
+    # "Node <hostname> (<ip>) unreachable; continuing collection for remaining nodes."
+    "unreachable_node": (
+        r"Node\s+(\S+)\s+\(([0-9.]+)\)\s+unreachable;"
+        r"\s+continuing\s+collection\s+for\s+remaining\s+nodes"
+    ),
     "missing_source": r"Source file\s+(\S+)\s+not found on node\s+(\S+)",
     "output_not_writable": r"Output directory not writable:\s+(\S+)",
     "archive_failure": r"Archive generation failed:\s+(.+)",
@@ -200,7 +213,10 @@ WARNING_PATTERNS = {
 }
 
 # Actual warning message format from implementation
-UNREACHABLE_NODE_MSG_FORMAT = "Node {hostname} ({ip}) not reachable via SSH during stage {stage}: {detail}. Continuing bundle generation."
+UNREACHABLE_NODE_MSG_FORMAT = (
+    "Node {hostname} ({ip}) not reachable via SSH during stage {stage}: "
+    "{detail}. Continuing bundle generation."
+)
 
 # =============================================================================
 # Command Templates

@@ -21,30 +21,25 @@ Reference: TCASES-LOGEX-2026-001 (v1.0.0)
 """
 
 import json
+import os
 import re
 import time
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from ...core import TestLogger, run_on_remote_node
+from ...core import run_on_remote_node
 from ..vars.one_shot_log_extraction_vars import (
+    BUNDLE_NAME_PATTERN,
+    CMD_TEMPLATES,
+    EXIT_CODES,
     LOG_COLLECTION_COMMAND,
     LOG_COLLECTION_CURATED_MODE,
-    COLLECT_PLAYBOOK_PATH,
-    BUNDLE_NAME_PATTERN,
-    OUTPUT_PATHS,
     METADATA_REQUIRED_FIELDS,
-    WARNING_ENTRY_FIELDS,
-    COLLECTION_MODES,
+    OUTPUT_PATHS,
     SHA256_CONFIG,
-    TIMEOUTS,
-    EXIT_CODES,
-    WARNING_PATTERNS,
-    UNREACHABLE_NODE_MSG_FORMAT,
-    CMD_TEMPLATES,
     TEST_FILES,
-    TEST_CONFIG,
+    WARNING_ENTRY_FIELDS,
+    WARNING_PATTERNS,
 )
-from ..messages.one_shot_log_extraction_msgs import LOG_MSGS, ASSERT_MSGS
 
 
 # =============================================================================
@@ -113,7 +108,12 @@ def get_workspace_directory(host, admin_ip: str = "") -> Optional[str]:
         Workspace directory path or None if not found
     """
     # Find the most recent omnia_logs_* directory inside container
-    cmd = f"podman exec omnia_core bash -c 'ls -td {OUTPUT_PATHS['default_output_root']}/{OUTPUT_PATHS['bundle_dir_pattern']} 2>/dev/null | head -1'"
+    output_root = OUTPUT_PATHS['default_output_root']
+    dir_pattern = OUTPUT_PATHS['bundle_dir_pattern']
+    cmd = (
+        f"podman exec omnia_core bash -c "
+        f"'ls -td {output_root}/{dir_pattern} 2>/dev/null | head -1'"
+    )
     result = host.run(cmd)
     
     if result.rc == 0 and result.stdout.strip():
@@ -156,7 +156,11 @@ def get_bundle_path(host, admin_ip: str = "") -> Optional[str]:
         Bundle file path or None if not found
     """
     # Find the most recent omnia_logs_*.tar.gz file inside container
-    cmd = f"podman exec omnia_core bash -c 'ls -t {OUTPUT_PATHS['default_output_root']}/omnia_logs_*/*.tar.gz 2>/dev/null | head -1'"
+    output_root = OUTPUT_PATHS['default_output_root']
+    cmd = (
+        f"podman exec omnia_core bash -c "
+        f"'ls -t {output_root}/omnia_logs_*/*.tar.gz 2>/dev/null | head -1'"
+    )
     result = host.run(cmd)
     
     if result.rc == 0 and result.stdout.strip():
@@ -195,7 +199,6 @@ def verify_bundle_name_format(bundle_path: str) -> bool:
     Returns:
         True if format matches, False otherwise
     """
-    import os
     filename = os.path.basename(bundle_path)
     return bool(re.match(BUNDLE_NAME_PATTERN, filename))
 
@@ -365,7 +368,8 @@ def verify_metadata_warning_entries(metadata: Dict[str, Any]) -> Tuple[bool, Lis
 def verify_warning_message_format(warning: Dict[str, Any]) -> bool:
     """
     Verify warning message follows implementation format.
-    Format: "Node <hostname> (<ip>) not reachable via SSH during stage <stage>: <detail>. Continuing bundle generation."
+    Format: "Node <hostname> (<ip>) not reachable via SSH during
+    stage <stage>: <detail>. Continuing bundle generation."
     
     Args:
         warning: Warning entry dictionary
@@ -458,7 +462,9 @@ def verify_hash_match(hash1: str, hash2: str) -> bool:
 # OUTPUT VERIFICATION FUNCTIONS
 # =============================================================================
 
-def verify_output_contains_path(output: str, path_type: str = "workspace") -> Tuple[bool, Optional[str]]:
+def verify_output_contains_path(
+    output: str, path_type: str = "workspace"
+) -> Tuple[bool, Optional[str]]:
     """
     Verify command output contains expected path.
     
@@ -665,7 +671,7 @@ def fill_disk_space(host, path: str, size_mb: int, admin_ip: str = "") -> bool:
         True if successful, False otherwise
     """
     cmd = CMD_TEMPLATES["fill_disk"].format(path=path, size_mb=size_mb)
-    result = run_on_remote_node(host, cmd, admin_ip=admin_ip)
+    run_on_remote_node(host, cmd, admin_ip=admin_ip)
     return True  # dd may return non-zero on disk full, which is expected
 
 
