@@ -54,6 +54,7 @@
 #   build_image_aarch64 - Build aarch64 images and verify
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
+#   one_shot_log_extraction - Run one-shot log extraction and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
 #   omnia_sh_uninstall  - Uninstall omnia.sh and verify
