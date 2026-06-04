@@ -103,7 +103,6 @@ Storage Configuration
    :file: Tables/storage_config.csv
    :header-rows: 1
    :keepspace:
-   :rst:
 
 
 .. _buildstream-tables-telemetry-configuration:

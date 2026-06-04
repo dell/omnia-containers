@@ -49,7 +49,6 @@ Specify the required parameters in the following input files:
    :file: ../../../Tables/storage_config.csv
    :header-rows: 1
    :keepspace:
-   :rst:
 
 .. note::  
    

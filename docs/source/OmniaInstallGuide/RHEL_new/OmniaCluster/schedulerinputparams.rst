@@ -86,7 +86,6 @@ See the following sample:
    :file: ../../../Tables/storage_config.csv
    :header-rows: 1
    :keepspace:
-   :rst:
 
 
 
