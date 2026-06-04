@@ -1,4 +1,8 @@
 #!/bin/bash
+# ============================================================
+# build_images.sh — omnia-artifactory
+# Base: Wolfi (cgr.dev/chainguard/wolfi-base)
+# ============================================================
 
 # Define color codes
 RED='\033[0;31m'
@@ -8,9 +12,21 @@ YELLOW='\033[1;33m'
 MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
+echo -e "${GREEN}✅ Using Wolfi base (cgr.dev/chainguard/wolfi-base)${NC}"
+
 # Install git if not present
-echo -e "${BLUE}Installing git...${NC}"
-dnf install -y git
+# Detects package manager on the BUILD HOST (not inside the container)
+echo -e "${BLUE}Installing ssgit...${NC}"
+if command -v apk &>/dev/null; then
+    apk add --no-cache git
+elif command -v dnf &>/dev/null; then
+    dnf install -y git
+elif command -v apt-get &>/dev/null; then
+    apt-get update && apt-get install -y git
+else
+    echo -e "${RED}No supported package manager found (apk, dnf, or apt). Install git manually.${NC}"
+    exit 1
+fi
 echo -e "${GREEN}Git installation complete.${NC}\n"
 
 # Arrays to store build status
@@ -22,36 +38,42 @@ PUSHED_IMAGES=()
 # Function to build omnia_core image
 build_omnia_core() {
     echo "Building omnia_core image..."
-    
+
     # Check if omnia_branch was explicitly set
     if [[ ! " ${CONTAINER_PARAMS[@]} " =~ " omnia_branch " ]]; then
         echo -e "${YELLOW}⚠️  Warning: omnia_branch not specified, using default branch: ${OMNIA_VERSION}${NC}"
     fi
-    
-    echo -e "Using Omnia branch: ${YELLOW}${OMNIA_VERSION}${NC}"
-    echo -e "Using Build Tool: ${YELLOW}${BUILD_TOOL}${NC}"
-    echo -e "Using Build Action: ${YELLOW}${BUILD_ACTION}${NC}"
-    echo -e "Using Core Tag: ${YELLOW}${CORE_TAG}${NC}"
+
+    echo -e "Using Omnia branch:   ${YELLOW}${OMNIA_VERSION}${NC}"
+    echo -e "Using Build Tool:     ${YELLOW}${BUILD_TOOL}${NC}"
+    echo -e "Using Build Action:   ${YELLOW}${BUILD_ACTION}${NC}"
+    echo -e "Using Core Tag:       ${YELLOW}${CORE_TAG}${NC}"
+    echo -e "Using Dockerfile:     ${YELLOW}Dockerfile${NC}"
+    echo -e "Using Base:           ${YELLOW}Wolfi (cgr.dev/chainguard/wolfi-base)${NC}"
+
     if [ "$BUILD_TOOL" = "docker" ] && [ "$BUILD_ACTION" = "push" ]; then
-        echo -e "Registry: ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
-        echo -e "Full Image Name: ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_core:${CORE_TAG}${NC}"
+        echo -e "Registry:             ${YELLOW}${OMNIA_DOCKER_REGISTERY}${NC}"
+        echo -e "Full Image Name:      ${YELLOW}${OMNIA_DOCKER_REGISTERY}/omnia_core:${CORE_TAG}${NC}"
     fi
+
     echo -e "${RED}---------------------------------${NC}"
     cd "$OMNIA_CORE_DIR" || exit
+
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} -f Dockerfile
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): omnia_core:${CORE_TAG}"
+
     elif [ "$BUILD_TOOL" = "docker" ]; then
-	if [ "$BUILD_ACTION" = "load" ]; then
-	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
-	    BUILD_RESULT=$?
-	    IMAGE_DESTINATION="Local (Docker): omnia_core:${CORE_TAG}"
-	elif [ "$BUILD_ACTION" = "push" ]; then
-	    docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
-	    BUILD_RESULT=$?
-	    IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}"
-	else
+        if [ "$BUILD_ACTION" = "load" ]; then
+            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t omnia_core:${CORE_TAG} --file Dockerfile --platform linux/amd64 --load .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Local (Docker): omnia_core:${CORE_TAG}"
+        elif [ "$BUILD_ACTION" = "push" ]; then
+            docker buildx build --no-cache --build-arg OMNIA_VERSION="$OMNIA_VERSION" -t "$OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
+            BUILD_RESULT=$?
+            IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_core:${CORE_TAG}"
+        else
             echo -e "${RED}Invalid BUILD_ACTION. Please enter 'load' or 'push'.${NC}"
             exit 1
         fi
@@ -104,7 +126,7 @@ build_ubuntu_ldms() {
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/ubuntu-ldms:${UBUNTU_LDMS_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    
+
     cd "$UBUNTU_LDMS_DIR" || exit
     if [ "$BUILD_TOOL" = "podman" ]; then
         podman build -t ubuntu-ldms:${UBUNTU_LDMS_TAG} -f Dockerfile.bld_n_run.ubuntu26.04 .
@@ -164,7 +186,7 @@ build_omnia_auth() {
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Local (Docker): omnia_auth:${AUTH_TAG}"
         elif [ "$BUILD_ACTION" = "push" ]; then
-            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true  --push .
+            docker buildx build --no-cache -t "$OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}" --file Dockerfile --platform linux/amd64 --provenance=true --sbom=true --push .
             BUILD_RESULT=$?
             IMAGE_DESTINATION="Registry: $OMNIA_DOCKER_REGISTERY/omnia_auth:${AUTH_TAG}"
         else
@@ -295,7 +317,7 @@ build_kafkapump() {
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/kafkapump:${KAFKAPUMP_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    
+
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
@@ -352,7 +374,7 @@ build_victoriapump() {
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/victoriapump:${VICTORIAPUMP_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    
+
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
@@ -409,7 +431,7 @@ build_telemetry_receiver() {
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/idrac_telemetry_receiver:${TELEMETRY_RECEIVER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    
+
     # Clone repo if needed
     clone_idrac_telemetry_repo
     
@@ -474,7 +496,7 @@ build_image_builder() {
         echo -e "Full Image Name: ${YELLOW}$OMNIA_DOCKER_REGISTERY/image-build-el10:${IMAGE_BUILDER_TAG}${NC}"
     fi
     echo -e "${RED}---------------------------------${NC}"
-    
+
     # Clone repo if needed
     clone_image_builder_repo
     
@@ -529,9 +551,9 @@ CORE_TAG="2.2"
 AUTH_TAG="1.1"
 PCS_TAG="1.0"
 UBUNTU_LDMS_TAG="1.1"
-KAFKAPUMP_TAG="1.2"
-VICTORIAPUMP_TAG="1.2"
-TELEMETRY_RECEIVER_TAG="1.2"
+KAFKAPUMP_TAG="1.3"
+VICTORIAPUMP_TAG="1.3"
+TELEMETRY_RECEIVER_TAG="1.3"
 IMAGE_BUILDER_TAG="1.1"
 BUILD_STREAM_TAG="1.1"
 
@@ -554,43 +576,32 @@ for arg in "$@"; do
     if [[ "$arg" != *"="* ]]; then
         continue
     fi
-    
+
     # Extract parameter name
     param_name="${arg%%=*}"
-    
+
     # Check if parameter is valid (exists in VALID_PARAMS)
     if [[ ! " ${VALID_PARAMS[@]} " =~ " ${param_name} " ]]; then
         INVALID_PARAMS+=("$param_name")
     fi
-    
+
     # Store for container-specific validation later
     CONTAINER_PARAMS+=("$param_name")
-    
-    if [[ "$arg" =~ ^omnia_branch=.*$ ]]; then
-        OMNIA_VERSION="${arg#omnia_branch=}"
-    elif [[ "$arg" =~ ^build_tool=.*$ ]]; then
-        BUILD_TOOL="${arg#build_tool=}"
-    elif [[ "$arg" =~ ^build_action=.*$ ]]; then
-        BUILD_ACTION="${arg#build_action=}"
-    elif [[ "$arg" =~ ^core_tag=.*$ ]]; then
-        CORE_TAG="${arg#core_tag=}"
-    elif [[ "$arg" =~ ^auth_tag=.*$ ]]; then
-        AUTH_TAG="${arg#auth_tag=}"
-    elif [[ "$arg" =~ ^pcs_tag=.*$ ]]; then
-        PCS_TAG="${arg#pcs_tag=}"
-    elif [[ "$arg" =~ ^ubuntu_ldms_tag=.*$ ]]; then
-        UBUNTU_LDMS_TAG="${arg#ubuntu_ldms_tag=}"
-    elif [[ "$arg" =~ ^kafkapump_tag=.*$ ]]; then
-        KAFKAPUMP_TAG="${arg#kafkapump_tag=}"
-    elif [[ "$arg" =~ ^victoriapump_tag=.*$ ]]; then
-        VICTORIAPUMP_TAG="${arg#victoriapump_tag=}"
-    elif [[ "$arg" =~ ^telemetry_receiver_tag=.*$ ]]; then
-        TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}"
-    elif [[ "$arg" =~ ^image_builder_tag=.*$ ]]; then
-        IMAGE_BUILDER_TAG="${arg#image_builder_tag=}"
-    elif [[ "$arg" =~ ^build_stream_tag=.*$ ]]; then
-        BUILD_STREAM_TAG="${arg#build_stream_tag=}"
-    fi
+
+    case "$arg" in
+        omnia_branch=*)        OMNIA_VERSION="${arg#omnia_branch=}" ;;
+        build_tool=*)          BUILD_TOOL="${arg#build_tool=}" ;;
+        build_action=*)        BUILD_ACTION="${arg#build_action=}" ;;
+        core_tag=*)            CORE_TAG="${arg#core_tag=}" ;;
+        auth_tag=*)            AUTH_TAG="${arg#auth_tag=}" ;;
+        pcs_tag=*)             PCS_TAG="${arg#pcs_tag=}" ;;
+        ubuntu_ldms_tag=*)     UBUNTU_LDMS_TAG="${arg#ubuntu_ldms_tag=}" ;;
+        kafkapump_tag=*)       KAFKAPUMP_TAG="${arg#kafkapump_tag=}" ;;
+        victoriapump_tag=*)    VICTORIAPUMP_TAG="${arg#victoriapump_tag=}" ;;
+        telemetry_receiver_tag=*) TELEMETRY_RECEIVER_TAG="${arg#telemetry_receiver_tag=}" ;;
+        image_builder_tag=*)   IMAGE_BUILDER_TAG="${arg#image_builder_tag=}" ;;
+        build_stream_tag=*)    BUILD_STREAM_TAG="${arg#build_stream_tag=}" ;;
+    esac
 done
 
 # Validate build_tool value
@@ -642,7 +653,7 @@ IMAGE_BUILDER_DIR="ContainerFile/image-build"
 validate_container_params() {
     local container=$1
     local allowed_params=("${@:2}")
-    
+
     for param in "${CONTAINER_PARAMS[@]}"; do
         # Skip common parameters (always valid)
         if [[ " ${COMMON_PARAMS[@]} " =~ " ${param} " ]]; then
@@ -767,134 +778,134 @@ case "$CONTAINER_ARG" in
     *)
         # Handle individual containers or comma-separated lists
         IFS=',' read -r -a containers <<< "$CONTAINER_ARG"
-        
+
         # Collect allowed parameters for the combination of containers
         ALLOWED_TAG_PARAMS=()
         BUILDING_CORE=false
-    
-    for container in "${containers[@]}"; do
-        case "$container" in
-            all)
-                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
-                BUILDING_CORE=true
-                ;;
-            oim)
-                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
-                BUILDING_CORE=true
-                ;;
-            core)
-                ALLOWED_TAG_PARAMS+=("core_tag" "omnia_branch")
-                BUILDING_CORE=true
-                ;;
-            pcs)
-                ALLOWED_TAG_PARAMS+=("pcs_tag")
-                ;;
-            auth)
-                ALLOWED_TAG_PARAMS+=("auth_tag")
-                ;;
-            ubuntu-ldms)
-                ALLOWED_TAG_PARAMS+=("ubuntu_ldms_tag")
-                ;;
-            pipeline)
-                ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
-                BUILDING_CORE=true
-                ;;
-            telemetry)
-                ALLOWED_TAG_PARAMS+=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag")
-                ;;
-            kafkapump)
-                ALLOWED_TAG_PARAMS+=("kafkapump_tag")
-                ;;
-            victoriapump)
-                ALLOWED_TAG_PARAMS+=("victoriapump_tag")
-                ;;
-            telemetry-receiver)
-                ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag")
-                ;;
-            image-builder)
-                ALLOWED_TAG_PARAMS+=("image_builder_tag")
-                ;;
-            build-stream)
-                ALLOWED_TAG_PARAMS+=("build_stream_tag")
-                ;;
-            *)
-                echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver, image-builder, build-stream.${NC}"
-                exit 1
-                ;;
-        esac
-    done
-    
+
+        for container in "${containers[@]}"; do
+            case "$container" in
+                all)
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                    BUILDING_CORE=true
+                    ;;
+                oim)
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "image_builder_tag" "omnia_branch")
+                    BUILDING_CORE=true
+                    ;;
+                core)
+                    ALLOWED_TAG_PARAMS+=("core_tag" "omnia_branch")
+                    BUILDING_CORE=true
+                    ;;
+                pcs)
+                    ALLOWED_TAG_PARAMS+=("pcs_tag")
+                    ;;
+                auth)
+                    ALLOWED_TAG_PARAMS+=("auth_tag")
+                    ;;
+                ubuntu-ldms)
+                    ALLOWED_TAG_PARAMS+=("ubuntu_ldms_tag")
+                    ;;
+                pipeline)
+                    ALLOWED_TAG_PARAMS+=("core_tag" "auth_tag" "ubuntu_ldms_tag" "kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag" "omnia_branch")
+                    BUILDING_CORE=true
+                    ;;
+                telemetry)
+                    ALLOWED_TAG_PARAMS+=("kafkapump_tag" "victoriapump_tag" "telemetry_receiver_tag")
+                    ;;
+                kafkapump)
+                    ALLOWED_TAG_PARAMS+=("kafkapump_tag")
+                    ;;
+                victoriapump)
+                    ALLOWED_TAG_PARAMS+=("victoriapump_tag")
+                    ;;
+                telemetry-receiver)
+                    ALLOWED_TAG_PARAMS+=("telemetry_receiver_tag")
+                    ;;
+                image-builder)
+                    ALLOWED_TAG_PARAMS+=("image_builder_tag")
+                    ;;
+                build-stream)
+                    ALLOWED_TAG_PARAMS+=("build_stream_tag")
+                    ;;
+                *)
+                    echo -e "${RED}Invalid container: $container. Available options: oim, all, core, pcs, auth, ubuntu-ldms, pipeline, telemetry, kafkapump, victoriapump, telemetry-receiver, image-builder, build-stream.${NC}"
+                    exit 1
+                    ;;
+            esac
+        done
+
     # Check for invalid parameters with context-specific message
-    if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
-        echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
-        echo -e "${YELLOW}Valid parameters for '$1': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
-        exit 1
-    fi
-    
+        if [ ${#INVALID_PARAMS[@]} -ne 0 ]; then
+            echo -e "${RED}Error: Invalid parameter(s): ${INVALID_PARAMS[*]}${NC}"
+            echo -e "${YELLOW}Valid parameters for '$1': ${COMMON_PARAMS[*]} ${ALLOWED_TAG_PARAMS[*]}${NC}"
+            exit 1
+        fi
+
     # Validate parameters against the combined allowed list
-    validate_container_params "$1" "${ALLOWED_TAG_PARAMS[@]}"
-    
+        validate_container_params "$1" "${ALLOWED_TAG_PARAMS[@]}"
+
     # Now build the containers
-    for container in "${containers[@]}"; do
-        case "$container" in
-            all)
-                build_omnia_core
-                build_omnia_auth
-                build_ubuntu_ldms
-                build_kafkapump
-                build_victoriapump
-                build_telemetry_receiver
-                build_omnia_build_stream
-                ;;
-            oim)
-                build_omnia_core
-                build_omnia_auth
-                build_image_builder
-                build_omnia_build_stream
-                ;;
-            core)
-                build_omnia_core
-                ;;
-            pcs)
-                build_omnia_pcs
-                ;;
-            auth)
-                build_omnia_auth
-                ;;
-            ubuntu-ldms)
-                build_ubuntu_ldms
-                ;;
-            pipeline)
-                build_omnia_core
-                build_omnia_auth
-                build_ubuntu_ldms
-                build_kafkapump
-                build_victoriapump
-                build_telemetry_receiver
-                build_omnia_build_stream
-                ;;
-            telemetry)
-                build_kafkapump
-                build_victoriapump
-                build_telemetry_receiver
-                ;;
-            kafkapump)
-                build_kafkapump
-                ;;
-            victoriapump)
-                build_victoriapump
-                ;;
-            telemetry-receiver)
-                build_telemetry_receiver
-                ;;
-            image-builder)
-                build_image_builder
-                ;;
-            build-stream)
-                build_omnia_build_stream
-                ;;
-        esac
-    done
+        for container in "${containers[@]}"; do
+            case "$container" in
+                all)
+                    build_omnia_core
+                    build_omnia_auth
+                    build_ubuntu_ldms
+                    build_kafkapump
+                    build_victoriapump
+                    build_telemetry_receiver
+                    build_omnia_build_stream
+                    ;;
+                oim)
+                    build_omnia_core
+                    build_omnia_auth
+                    build_image_builder
+                    build_omnia_build_stream
+                    ;;
+                core)
+                    build_omnia_core
+                    ;;
+                pcs)
+                    build_omnia_pcs
+                    ;;
+                auth)
+                    build_omnia_auth
+                    ;;
+                ubuntu-ldms)
+                    build_ubuntu_ldms
+                    ;;
+                pipeline)
+                    build_omnia_core
+                    build_omnia_auth
+                    build_ubuntu_ldms
+                    build_kafkapump
+                    build_victoriapump
+                    build_telemetry_receiver
+                    build_omnia_build_stream
+                    ;;
+                telemetry)
+                    build_kafkapump
+                    build_victoriapump
+                    build_telemetry_receiver
+                    ;;
+                kafkapump)
+                    build_kafkapump
+                    ;;
+                victoriapump)
+                    build_victoriapump
+                    ;;
+                telemetry-receiver)
+                    build_telemetry_receiver
+                    ;;
+                image-builder)
+                    build_image_builder
+                    ;;
+                build-stream)
+                    build_omnia_build_stream
+                    ;;
+            esac
+        done
         ;;
 esac
 
@@ -902,7 +913,7 @@ esac
 echo -e "\n${BLUE}=== BUILD SUMMARY ===${NC}"
 if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
     echo -e "${GREEN}Successfully built containers:${YELLOW} ${SUCCESSFUL_BUILDS[*]} ${NC}"
-    
+
     # Show loaded images (local)
     if [ ${#LOADED_IMAGES[@]} -ne 0 ]; then
         echo -e "\n${BLUE}📦 Images loaded locally:${NC}"
@@ -910,7 +921,7 @@ if [ ${#SUCCESSFUL_BUILDS[@]} -ne 0 ]; then
             echo -e "  ${GREEN}✓${NC} ${image}"
         done
     fi
-    
+
     # Show pushed images (registry)
     if [ ${#PUSHED_IMAGES[@]} -ne 0 ]; then
         echo -e "\n${BLUE}🚀 Images pushed to registry:${NC}"
