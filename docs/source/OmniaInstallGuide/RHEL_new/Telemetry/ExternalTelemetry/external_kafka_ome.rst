@@ -13,7 +13,8 @@ Prerequisites
 
   * ``9094`` for ingesting and querying data.
 * Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
-* 
+* Ensure that OpenManage Enterprise Advanced License is installed on the cluster nodes. This license is required to retrieve OME telemetry. 
+
 Steps
 -----
 
@@ -137,18 +138,13 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 2. Navigate to the **Explore** tab.
 
-3. Run the following queries to verify OME metrics are being received:
+3. Run the following queriy  to retrieve health metrics from OME:
 
       
-      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
+      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``
 
-            .. image:: ../../../../images/external_kafka_ome_metrics_health.png
-
-            
-      * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
-
-            .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
-
+      .. image:: ../../../../images/external_kafka_ome_metrics_health.png
+           
 
 .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
 
