@@ -188,15 +188,18 @@ def verify_all_pxe_nodes_in_slurm_cluster(host) -> Dict[str, Any]:
     Returns:
         Dict with success, message, pxe_nodes, slurm_nodes, missing_nodes, extra_nodes, error.
     """
-    # Get all nodes from PXE mapping (excluding control nodes)
+    # Get only nodes from slurm-specific functional groups (excludes k8s and other non-slurm nodes)
+    slurm_fg_keywords = (
+        SLURM_NODE_FUNCTIONAL_GROUP,
+        LOGIN_NODE_FUNCTIONAL_GROUP,
+        LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
+    )
     all_groups = get_functional_groups_from_pxe_mapping(host)
     pxe_nodes = []
     for fg in all_groups:
-        # Skip control node functional groups
-        if SLURM_CONTROL_NODE_FUNCTIONAL_GROUP in fg:
-            continue
-        fg_nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
-        pxe_nodes.extend(fg_nodes)
+        if any(kw in fg for kw in slurm_fg_keywords):
+            fg_nodes = get_nodes_info(host, search_by="functional_group", search_value=fg)
+            pxe_nodes.extend(fg_nodes)
 
     if not pxe_nodes:
         return {
