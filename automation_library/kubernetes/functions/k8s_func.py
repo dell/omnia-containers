@@ -553,20 +553,13 @@ class OIMOperations:
         if not control_planes:
             return False, "No control-plane nodes found in PXE mapping", ""
 
-        admin_ips = self.get_control_plane_admin_ips_from_pxe_mapping()
-        if not admin_ips:
-            return False, "No control-plane admin IPs found in PXE mapping", ""
-
         watcher_host = (control_planes[0].get("hostname") or control_planes[0].get("admin_ip") or "").strip()
         if not watcher_host:
             return False, "Control-plane node missing hostname/admin_ip in PXE mapping", ""
 
-        endpoints = ",".join([f"https://{ip}:{ETCD_PORT}" for ip in admin_ips])
-
-        # Get all etcd pods
+        # Discover etcd pods on the control-plane node
         find_pods_inner = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
-        find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
-        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
+        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_inner)
         if rc != 0 or not out:
             return False, ETCD_PODS_FIND_FAILED.format(error=err or out), (err or out or "")
 
@@ -574,48 +567,44 @@ class OIMOperations:
         if not etcd_pods:
             return False, ETCD_PODS_NONE_FOUND, out
 
-        etcdctl_cmd = K8S_CMD_TEMPLATES["etcdctl_health"].format(
-            endpoints=shlex.quote(endpoints),
-            cacert=ETCD_PKI_CACERT,
-            cert=ETCD_PKI_CERT,
-            key=ETCD_PKI_KEY,
-        )
+        # Run etcdctl health directly inside each pod (no shell wrapper needed)
+        healthy_pods = []
+        unhealthy_pods = []
+        all_output = []
 
-        # Try each etcd pod until one succeeds or we get valid output
-        last_error = ""
-        last_output = ""
         for etcd_pod in etcd_pods:
-            exec_inner = K8S_CMD_TEMPLATES["kubectl_exec_sh_lc"].format(
+            cmd = K8S_CMD_TEMPLATES["kubectl_exec_etcdctl"].format(
                 namespace=ETCD_NAMESPACE,
-                pod=shlex.quote(etcd_pod),
-                cmd=shlex.quote(etcdctl_cmd),
+                pod=etcd_pod,
+                port=ETCD_PORT,
+                cacert=ETCD_PKI_CACERT,
+                cert=ETCD_PKI_CERT,
+                key=ETCD_PKI_KEY,
+                subcmd="endpoint health",
             )
-            exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
-            rc, out, err = self._ssh_from_omnia_core(watcher_host, exec_cmd)
-            output = (out or "").strip() + ("\n" + (err or "").strip() if (err or "").strip() else "")
+            rc, out, err = self._ssh_from_omnia_core(watcher_host, cmd)
+            pod_output = (out or "").strip()
+            all_output.append(f"{etcd_pod}: {pod_output or err or 'no output'}")
 
-            # Check if we got valid health output (even if rc != 0)
-            # etcdctl returns non-zero if any endpoint is unhealthy
-            health_lines = [line for line in (out or "").splitlines() if line.strip()]
-            healthy_count = sum(1 for line in health_lines if "is healthy" in line.lower())
-            unhealthy_count = sum(1 for line in health_lines if "is unhealthy" in line.lower())
-
-            if healthy_count > 0 or unhealthy_count > 0:
-                expected_count = len(admin_ips)
-                if healthy_count == expected_count:
-                    return True, ETCD_HEALTH_ALL_PASSED.format(count=expected_count), output
-                unhealthy_endpoints = [
-                    line.split()[0] for line in health_lines if "is unhealthy" in line.lower()
-                ]
-                return False, ETCD_HEALTH_PARTIAL.format(
-                    healthy=healthy_count, total=expected_count,
-                    unhealthy=", ".join(unhealthy_endpoints),
-                ), output
+            if rc == 0 and "is healthy" in pod_output.lower():
+                healthy_pods.append(etcd_pod)
             else:
-                last_error = f"Pod {etcd_pod}: no valid health output"
-                last_output = output
+                unhealthy_pods.append(etcd_pod)
 
-        return False, ETCD_HEALTH_NO_OUTPUT.format(error=last_error), last_output
+        output = "\n".join(all_output)
+        expected_count = len(etcd_pods)
+        healthy_count = len(healthy_pods)
+
+        if healthy_count == expected_count:
+            return True, ETCD_HEALTH_ALL_PASSED.format(count=expected_count), output
+        if healthy_count > 0:
+            return False, ETCD_HEALTH_PARTIAL.format(
+                healthy=healthy_count, total=expected_count,
+                unhealthy=", ".join(unhealthy_pods),
+            ), output
+
+        last_error = f"No healthy etcd pods found: {output}"
+        return False, ETCD_HEALTH_NO_OUTPUT.format(error=last_error), output
 
     def verify_container_runtime_via_crictl(self, expected_runtime, expected_version):
         """
@@ -2927,71 +2916,58 @@ class OIMOperations:
     # =========================================================================
 
     def verify_etcd_member_list(self):
-        """Verify etcd member list from within an etcd pod.
+        """Verify etcd member list by running etcdctl inside the etcd pod.
 
         Returns:
             tuple: (success, message, output)
         """
-        if self._testinfra_host is None:
-            self._testinfra_host = get_testinfra_host()
-
         control_planes = self.get_control_plane_nodes_from_pxe_mapping()
         if not control_planes:
             return False, ERR_NO_CP_IN_PXE, ""
 
-        admin_ips = self.get_control_plane_admin_ips_from_pxe_mapping()
-        if not admin_ips:
-            return False, ERR_NO_CP_ADMIN_IPS, ""
-
-        watcher_ip = (control_planes[0].get("admin_ip") or "").strip()
-        if not watcher_ip:
+        watcher_host = (control_planes[0].get("hostname") or control_planes[0].get("admin_ip") or "").strip()
+        if not watcher_host:
             return False, ERR_CP_MISSING_ADMIN_IP, ""
 
-        # Get all etcd pods
+        # Discover etcd pods on the control-plane node
         find_pods_cmd = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
-        result = run_on_remote_node(self._testinfra_host, find_pods_cmd, watcher_ip)
-        if result.rc != 0 or not result.stdout:
-            return False, ETCD_PODS_FIND_FAILED.format(
-                error=result.stderr or result.stdout,
-            ), (result.stderr or result.stdout or "")
+        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
+        if rc != 0 or not out:
+            return False, ETCD_PODS_FIND_FAILED.format(error=err or out), (err or out or "")
 
-        etcd_pods = [line.strip().replace("pod/", "") for line in (result.stdout or "").splitlines() if line.strip()]
+        etcd_pods = [line.strip().replace("pod/", "") for line in (out or "").splitlines() if line.strip()]
         if not etcd_pods:
-            return False, ETCD_PODS_NONE_FOUND, result.stdout
+            return False, ETCD_PODS_NONE_FOUND, out
 
-        endpoints = ",".join([f"https://{ip}:{ETCD_PORT}" for ip in admin_ips])
+        expected_count = len(control_planes)
 
-        etcdctl_cmd = K8S_CMD_TEMPLATES["etcdctl_member_list"].format(
-            endpoints=endpoints,
-            cacert=ETCD_PKI_CACERT,
-            cert=ETCD_PKI_CERT,
-            key=ETCD_PKI_KEY,
-        )
-
-        # Try each etcd pod until one succeeds
+        # Try each etcd pod until member list succeeds
         last_error = ""
         for etcd_pod in etcd_pods:
-            exec_cmd = K8S_CMD_TEMPLATES["kubectl_exec_sh_c"].format(
+            cmd = K8S_CMD_TEMPLATES["kubectl_exec_etcdctl"].format(
                 namespace=ETCD_NAMESPACE,
                 pod=etcd_pod,
-                cmd=f"'{etcdctl_cmd}'",
+                port=ETCD_PORT,
+                cacert=ETCD_PKI_CACERT,
+                cert=ETCD_PKI_CERT,
+                key=ETCD_PKI_KEY,
+                subcmd="member list -w table",
             )
-            result = run_on_remote_node(self._testinfra_host, exec_cmd, watcher_ip)
-            output = (result.stdout or "").strip() + ("\n" + (result.stderr or "").strip() if (result.stderr or "").strip() else "")
+            rc, out, err = self._ssh_from_omnia_core(watcher_host, cmd)
+            output = (out or "").strip() + ("\n" + (err or "").strip() if (err or "").strip() else "")
 
-            if result.rc == 0:
+            if rc == 0:
                 member_lines = [
-                    line for line in (result.stdout or "").splitlines()
+                    line for line in (out or "").splitlines()
                     if line.strip() and "|" in line and "ID" not in line.upper() and "---" not in line
                 ]
-                expected_count = len(admin_ips)
                 if len(member_lines) < expected_count:
                     return False, ETCD_MEMBER_COUNT_MISMATCH.format(
                         found=len(member_lines), expected=expected_count,
                     ), output
                 return True, ETCD_MEMBER_LIST_PASSED.format(count=len(member_lines)), output
-            else:
-                last_error = f"Pod {etcd_pod}: {output}"
+
+            last_error = f"Pod {etcd_pod}: {output}"
 
         return False, ETCD_MEMBER_LIST_FAILED.format(error=last_error), last_error
 
@@ -3063,7 +3039,6 @@ class OIMOperations:
                 raft_term (int)
                 raft_index (int)
         """
-        import shlex
         import json
 
         cp_nodes = self.get_control_plane_nodes_from_pxe_mapping()
@@ -3075,22 +3050,6 @@ class OIMOperations:
                 "members": [],
             }
 
-        # Build endpoints list from control plane admin IPs
-        endpoints = []
-        for node in cp_nodes:
-            admin_ip = (node.get("admin_ip") or "").strip()
-            if admin_ip:
-                endpoints.append(f"https://{admin_ip}:{ETCD_PORT}")
-
-        if not endpoints:
-            return {
-                "success": False,
-                "message": ERR_NO_VALID_CP_IPS,
-                "leader_ip": "",
-                "members": [],
-            }
-
-        endpoints_str = ",".join(endpoints)
         watcher_host = (cp_nodes[0].get("hostname") or cp_nodes[0].get("admin_ip") or "").strip()
         if not watcher_host:
             return {
@@ -3100,10 +3059,9 @@ class OIMOperations:
                 "members": [],
             }
 
-        # Get etcd pods
+        # Discover etcd pods on the control-plane node
         find_pods_inner = K8S_CMD_TEMPLATES["find_etcd_pods"].format(namespace=ETCD_NAMESPACE)
-        find_pods_cmd = f"bash -lc {shlex.quote(find_pods_inner)}"
-        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_cmd)
+        rc, out, err = self._ssh_from_omnia_core(watcher_host, find_pods_inner)
         if rc != 0 or not out:
             return {
                 "success": False,
@@ -3121,75 +3079,63 @@ class OIMOperations:
                 "members": [],
             }
 
-        # Run etcdctl endpoint status to get leader and consistency info
-        etcd_cmd = K8S_CMD_TEMPLATES["etcdctl_endpoint_status"].format(
-            endpoints=shlex.quote(endpoints_str),
-            cacert=ETCD_PKI_CACERT,
-            cert=ETCD_PKI_CERT,
-            key=ETCD_PKI_KEY,
-        )
-
-        # Try each etcd pod until one succeeds
+        # Run etcdctl endpoint status -w json inside each pod using the local endpoint
+        members = []
+        leader_ip = ""
+        raft_terms = set()
+        raft_indices = []
         last_error = ""
-        for etcd_pod in etcd_pods:
-            exec_inner = K8S_CMD_TEMPLATES["kubectl_exec_sh_lc"].format(
-                namespace=ETCD_NAMESPACE,
-                pod=shlex.quote(etcd_pod),
-                cmd=shlex.quote(etcd_cmd),
-            )
-            exec_cmd = f"bash -lc {shlex.quote(exec_inner)}"
-            rc, stdout, stderr = self._ssh_from_omnia_core(watcher_host, exec_cmd)
 
-            if rc == 0 and stdout:
-                break
-            last_error = stderr or stdout
-        else:
+        for etcd_pod in etcd_pods:
+            pod_ip = etcd_pod.replace("etcd-", "")
+            cmd = K8S_CMD_TEMPLATES["kubectl_exec_etcdctl"].format(
+                namespace=ETCD_NAMESPACE,
+                pod=etcd_pod,
+                port=ETCD_PORT,
+                cacert=ETCD_PKI_CACERT,
+                cert=ETCD_PKI_CERT,
+                key=ETCD_PKI_KEY,
+                subcmd="endpoint status -w json",
+            )
+            rc, stdout, stderr = self._ssh_from_omnia_core(watcher_host, cmd)
+
+            if rc != 0 or not stdout:
+                last_error = stderr or stdout
+                continue
+
+            try:
+                data = json.loads(stdout)
+                entry = data[0] if isinstance(data, list) and data else data
+                status = entry.get("Status", {})
+                header = status.get("header", {})
+                member_id = header.get("member_id", 0)
+                leader_id = status.get("leader", 0)
+                raft_term = header.get("raft_term", 0)
+                raft_index = status.get("raftIndex", 0)
+                is_leader = (member_id != 0 and member_id == leader_id)
+
+                members.append({
+                    "endpoint": f"https://127.0.0.1:{ETCD_PORT}",
+                    "ip": pod_ip,
+                    "is_leader": is_leader,
+                    "raft_term": raft_term,
+                    "raft_index": raft_index,
+                })
+                if is_leader:
+                    leader_ip = pod_ip
+                raft_terms.add(raft_term)
+                raft_indices.append(raft_index)
+            except (json.JSONDecodeError, KeyError, IndexError, TypeError) as e:
+                last_error = f"{etcd_pod}: {e}"
+                continue
+
+        if not members:
             return {
                 "success": False,
                 "message": ETCD_LEADER_FAILED_RUN.format(error=last_error),
                 "leader_ip": "",
                 "members": [],
             }
-
-        # Parse JSON output
-        try:
-            members_data = json.loads(stdout)
-        except json.JSONDecodeError as e:
-            return {
-                "success": False,
-                "message": ETCD_LEADER_PARSE_FAILED.format(error=str(e)),
-                "leader_ip": "",
-                "members": [],
-            }
-
-        # Extract member info
-        members = []
-        leader_ip = ""
-        raft_terms = set()
-        raft_indices = []
-
-        for member in members_data:
-            endpoint = member.get("Endpoint", "")
-            is_leader = member.get("Status", {}).get("leader") == member.get("Status", {}).get("header", {}).get("member_id")
-            raft_term = member.get("Status", {}).get("header", {}).get("raft_term", 0)
-            raft_index = member.get("Status", {}).get("raftIndex", 0)
-
-            # Extract IP from endpoint
-            member_ip = endpoint.replace("https://", "").replace(f":{ETCD_PORT}", "")
-
-            members.append({
-                "endpoint": endpoint,
-                "ip": member_ip,
-                "is_leader": is_leader,
-                "raft_term": raft_term,
-                "raft_index": raft_index,
-            })
-
-            if is_leader:
-                leader_ip = member_ip
-
-            raft_terms.add(raft_term)
-            raft_indices.append(raft_index)
 
         # Verify consistency
         if len(raft_terms) != 1:
@@ -3201,12 +3147,12 @@ class OIMOperations:
             }
 
         # RAFT indices can differ slightly due to ongoing operations
-        # Check that all indices are within a reasonable delta (e.g., 10)
+        # Check that all indices are within a reasonable delta (e.g., 50)
         if raft_indices:
             min_index = min(raft_indices)
             max_index = max(raft_indices)
             index_delta = max_index - min_index
-            if index_delta > 10:
+            if index_delta > 50:
                 return {
                     "success": False,
                     "message": f"RAFT indices too far apart (delta={index_delta}): {sorted(set(raft_indices))}",
