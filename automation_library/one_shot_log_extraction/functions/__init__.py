@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """One-shot log extraction functions package."""
+# pylint: disable=duplicate-code
 
 from .one_shot_log_extraction_func import (
     execute_log_collection,

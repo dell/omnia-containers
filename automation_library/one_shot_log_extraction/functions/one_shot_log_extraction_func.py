@@ -1,4 +1,4 @@
-# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+﻿# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,6 +41,10 @@ from ..vars.one_shot_log_extraction_vars import (
     WARNING_PATTERNS,
 )
 
+# admin_ip is accepted by many functions for API consistency but not
+# always used when commands target the container via podman directly.
+# pylint: disable=unused-argument
+
 
 # =============================================================================
 # COLLECTION EXECUTION FUNCTIONS
@@ -49,12 +53,12 @@ from ..vars.one_shot_log_extraction_vars import (
 def execute_log_collection(host, mode: str = "full", admin_ip: str = "") -> Tuple[bool, str, int]:
     """
     Execute the one-shot log collection command in omnia_core container.
-    
+
     Args:
         host: Testinfra host object
         mode: Collection mode - "full" or "curated_support"
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Tuple of (success, output, exit_code)
     """
@@ -62,22 +66,22 @@ def execute_log_collection(host, mode: str = "full", admin_ip: str = "") -> Tupl
         command = LOG_COLLECTION_CURATED_MODE
     else:
         command = LOG_COLLECTION_COMMAND
-    
+
     # Execute inside omnia_core container - use host.run() directly
     container_command = f"podman exec omnia_core bash -c '{command}'"
     result = host.run(container_command)
-    
-    success = result.rc == EXIT_CODES["success"] or result.rc == EXIT_CODES["partial_success"]
+
+    success = result.rc in (EXIT_CODES["success"], EXIT_CODES["partial_success"])
     return success, result.stdout + result.stderr, result.rc
 
 
 def verify_collection_started(output: str) -> bool:
     """
     Verify that collection pipeline started successfully.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         True if collection started, False otherwise
     """
@@ -99,11 +103,11 @@ def verify_collection_started(output: str) -> bool:
 def get_workspace_directory(host, admin_ip: str = "") -> Optional[str]:
     """
     Find the most recent workspace directory (bundle directory) inside container.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Workspace directory path or None if not found
     """
@@ -115,7 +119,7 @@ def get_workspace_directory(host, admin_ip: str = "") -> Optional[str]:
         f"'ls -td {output_root}/{dir_pattern} 2>/dev/null | head -1'"
     )
     result = host.run(cmd)
-    
+
     if result.rc == 0 and result.stdout.strip():
         return result.stdout.strip()
     return None
@@ -124,11 +128,11 @@ def get_workspace_directory(host, admin_ip: str = "") -> Optional[str]:
 def verify_workspace_created(host, admin_ip: str = "") -> Tuple[bool, Optional[str]]:
     """
     Verify workspace directory was created inside container.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Tuple of (exists, workspace_path)
     """
@@ -147,11 +151,11 @@ def verify_workspace_created(host, admin_ip: str = "") -> Tuple[bool, Optional[s
 def get_bundle_path(host, admin_ip: str = "") -> Optional[str]:
     """
     Find the most recent bundle archive inside container.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Bundle file path or None if not found
     """
@@ -162,7 +166,7 @@ def get_bundle_path(host, admin_ip: str = "") -> Optional[str]:
         f"'ls -t {output_root}/omnia_logs_*/*.tar.gz 2>/dev/null | head -1'"
     )
     result = host.run(cmd)
-    
+
     if result.rc == 0 and result.stdout.strip():
         return result.stdout.strip()
     return None
@@ -171,11 +175,11 @@ def get_bundle_path(host, admin_ip: str = "") -> Optional[str]:
 def verify_bundle_created(host, admin_ip: str = "") -> Tuple[bool, Optional[str]]:
     """
     Verify bundle archive was created inside container.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Tuple of (exists, bundle_path)
     """
@@ -190,12 +194,12 @@ def verify_bundle_created(host, admin_ip: str = "") -> Tuple[bool, Optional[str]
 def verify_bundle_name_format(bundle_path: str) -> bool:
     """
     Verify bundle filename matches expected format.
-    
+
     Format: omnia-logs-<identifier>-<YYYYMMDD-HHMMSS-TZ>.tar.gz
-    
+
     Args:
         bundle_path: Full path to bundle file
-        
+
     Returns:
         True if format matches, False otherwise
     """
@@ -206,19 +210,19 @@ def verify_bundle_name_format(bundle_path: str) -> bool:
 def extract_bundle(host, bundle_path: str, extract_dir: str, admin_ip: str = "") -> bool:
     """
     Extract bundle archive to directory inside container.
-    
+
     Args:
         host: Testinfra host object
         bundle_path: Path to bundle archive
         extract_dir: Directory to extract to
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if extraction successful, False otherwise
     """
     # Create extract directory inside container
     host.run(f"podman exec omnia_core mkdir -p {extract_dir}")
-    
+
     cmd = f"podman exec omnia_core tar -xzf {bundle_path} -C {extract_dir}"
     result = host.run(cmd)
     return result.rc == 0
@@ -227,18 +231,18 @@ def extract_bundle(host, bundle_path: str, extract_dir: str, admin_ip: str = "")
 def list_bundle_contents(host, bundle_path: str, admin_ip: str = "") -> List[str]:
     """
     List contents of bundle archive inside container.
-    
+
     Args:
         host: Testinfra host object
         bundle_path: Path to bundle archive
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         List of file paths in archive
     """
     cmd = f"podman exec omnia_core tar -tzf {bundle_path}"
     result = host.run(cmd)
-    
+
     if result.rc == 0:
         return [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
     return []
@@ -247,13 +251,13 @@ def list_bundle_contents(host, bundle_path: str, admin_ip: str = "") -> List[str
 def verify_bundle_contains_file(host, bundle_path: str, filename: str, admin_ip: str = "") -> bool:
     """
     Check if bundle contains a specific file.
-    
+
     Args:
         host: Testinfra host object
         bundle_path: Path to bundle archive
         filename: Filename to look for
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if file found in bundle, False otherwise
     """
@@ -268,19 +272,19 @@ def verify_bundle_contains_file(host, bundle_path: str, filename: str, admin_ip:
 def read_metadata(host, workspace_path: str, admin_ip: str = "") -> Optional[Dict[str, Any]]:
     """
     Read and parse metadata JSON from workspace inside container.
-    
+
     Args:
         host: Testinfra host object
         workspace_path: Path to workspace directory
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Parsed metadata dict or None if not found/invalid
     """
     metadata_path = f"{workspace_path}/{OUTPUT_PATHS['metadata_filename']}"
     cmd = f"podman exec omnia_core cat {metadata_path}"
     result = host.run(cmd)
-    
+
     if result.rc == 0:
         try:
             return json.loads(result.stdout)
@@ -292,12 +296,12 @@ def read_metadata(host, workspace_path: str, admin_ip: str = "") -> Optional[Dic
 def verify_metadata_exists(host, workspace_path: str, admin_ip: str = "") -> bool:
     """
     Verify metadata JSON file exists in workspace inside container.
-    
+
     Args:
         host: Testinfra host object
         workspace_path: Path to workspace directory
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if metadata exists, False otherwise
     """
@@ -310,12 +314,12 @@ def verify_metadata_exists(host, workspace_path: str, admin_ip: str = "") -> boo
 def verify_metadata_valid_json(host, workspace_path: str, admin_ip: str = "") -> bool:
     """
     Verify metadata is valid JSON format inside container.
-    
+
     Args:
         host: Testinfra host object
         workspace_path: Path to workspace directory
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if valid JSON, False otherwise
     """
@@ -328,10 +332,10 @@ def verify_metadata_valid_json(host, workspace_path: str, admin_ip: str = "") ->
 def verify_metadata_required_fields(metadata: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     Verify metadata contains all required fields.
-    
+
     Args:
         metadata: Parsed metadata dictionary
-        
+
     Returns:
         Tuple of (all_present, missing_fields)
     """
@@ -346,17 +350,17 @@ def verify_metadata_warning_entries(metadata: Dict[str, Any]) -> Tuple[bool, Lis
     """
     Verify warning entries in metadata contain required fields.
     Per CSPEC-LOGEX-2026-001 Section 4.2.
-    
+
     Args:
         metadata: Parsed metadata dictionary
-        
+
     Returns:
         Tuple of (all_valid, missing_fields)
     """
     warnings = metadata.get("warnings", [])
     if not warnings:
         return True, []
-    
+
     missing = []
     for idx, warning in enumerate(warnings):
         for field in WARNING_ENTRY_FIELDS:
@@ -370,17 +374,17 @@ def verify_warning_message_format(warning: Dict[str, Any]) -> bool:
     Verify warning message follows implementation format.
     Format: "Node <hostname> (<ip>) not reachable via SSH during
     stage <stage>: <detail>. Continuing bundle generation."
-    
+
     Args:
         warning: Warning entry dictionary
-        
+
     Returns:
         True if format contains expected elements, False otherwise
     """
     message = warning.get("message", "")
     node_name = warning.get("node_name", "")
     node_ip = warning.get("node_ip", "")
-    
+
     # Check if message contains key elements
     return (
         node_name in message and
@@ -397,18 +401,18 @@ def verify_warning_message_format(warning: Dict[str, Any]) -> bool:
 def compute_sha256(host, file_path: str, admin_ip: str = "") -> Optional[str]:
     """
     Compute SHA256 hash of a file inside container.
-    
+
     Args:
         host: Testinfra host object
         file_path: Path to file
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         SHA256 hash string or None if failed
     """
     cmd = f"podman exec omnia_core bash -c 'sha256sum {file_path} | awk \"{{print \\$1}}\"'"
     result = host.run(cmd)
-    
+
     if result.rc == 0 and result.stdout.strip():
         return result.stdout.strip()
     return None
@@ -417,10 +421,10 @@ def compute_sha256(host, file_path: str, admin_ip: str = "") -> Optional[str]:
 def verify_hash_format(hash_value: str) -> bool:
     """
     Verify hash is valid SHA256 format (64-character hex).
-    
+
     Args:
         hash_value: Hash string to verify
-        
+
     Returns:
         True if valid format, False otherwise
     """
@@ -431,10 +435,10 @@ def verify_hash_format(hash_value: str) -> bool:
 def verify_hash_in_output(output: str) -> Optional[str]:
     """
     Extract SHA256 hash from command output.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         Hash value if found, None otherwise
     """
@@ -447,11 +451,11 @@ def verify_hash_in_output(output: str) -> Optional[str]:
 def verify_hash_match(hash1: str, hash2: str) -> bool:
     """
     Compare two hash values.
-    
+
     Args:
         hash1: First hash value
         hash2: Second hash value
-        
+
     Returns:
         True if hashes match, False otherwise
     """
@@ -467,11 +471,11 @@ def verify_output_contains_path(
 ) -> Tuple[bool, Optional[str]]:
     """
     Verify command output contains expected path.
-    
+
     Args:
         output: Command output string
         path_type: Type of path to look for ("workspace" or "bundle")
-        
+
     Returns:
         Tuple of (found, path_value)
     """
@@ -479,7 +483,7 @@ def verify_output_contains_path(
         pattern = r"Workspace:\s*(/\S+)"
     else:
         pattern = r"Bundle:\s*(/\S+\.tar\.gz)"
-    
+
     match = re.search(pattern, output)
     if match:
         return True, match.group(1)
@@ -489,10 +493,10 @@ def verify_output_contains_path(
 def verify_path_is_absolute(path: str) -> bool:
     """
     Verify path is absolute (starts with /).
-    
+
     Args:
         path: Path string to verify
-        
+
     Returns:
         True if absolute, False otherwise
     """
@@ -502,10 +506,10 @@ def verify_path_is_absolute(path: str) -> bool:
 def verify_warning_summary_in_output(output: str) -> Tuple[bool, int]:
     """
     Verify warning summary is present in output.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         Tuple of (found, warning_count)
     """
@@ -523,13 +527,13 @@ def verify_warning_summary_in_output(output: str) -> Tuple[bool, int]:
 def set_directory_permissions(host, path: str, mode: str, admin_ip: str = "") -> bool:
     """
     Set permissions on a directory inside container.
-    
+
     Args:
         host: Testinfra host object
         path: Directory path
         mode: Permission mode (e.g., "555", "755")
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if successful, False otherwise
     """
@@ -541,10 +545,10 @@ def set_directory_permissions(host, path: str, mode: str, admin_ip: str = "") ->
 def verify_not_writable_error(output: str) -> bool:
     """
     Verify output contains 'not writable' error message.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         True if error found, False otherwise
     """
@@ -554,10 +558,10 @@ def verify_not_writable_error(output: str) -> bool:
 def verify_archive_failure_error(output: str) -> bool:
     """
     Verify output contains archive failure error message.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         True if error found, False otherwise
     """
@@ -568,10 +572,10 @@ def verify_archive_failure_error(output: str) -> bool:
 def verify_unreachable_node_warning(output: str) -> Tuple[bool, Optional[str], Optional[str]]:
     """
     Verify output contains unreachable node warning with hostname and IP.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         Tuple of (found, hostname, ip)
     """
@@ -584,10 +588,10 @@ def verify_unreachable_node_warning(output: str) -> Tuple[bool, Optional[str], O
 def verify_missing_source_warning(output: str) -> Tuple[bool, Optional[str], Optional[str]]:
     """
     Verify output contains missing source file warning.
-    
+
     Args:
         output: Command output string
-        
+
     Returns:
         Tuple of (found, source_path, node_name)
     """
@@ -604,11 +608,11 @@ def verify_missing_source_warning(output: str) -> Tuple[bool, Optional[str], Opt
 def create_temp_test_files(host, admin_ip: str = "") -> bool:
     """
     Create temporary test files for compatibility tests.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if all files created, False otherwise
     """
@@ -623,11 +627,11 @@ def create_temp_test_files(host, admin_ip: str = "") -> bool:
 def create_stale_test_file(host, admin_ip: str = "") -> bool:
     """
     Create stale test file with old timestamp.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if file created, False otherwise
     """
@@ -642,11 +646,11 @@ def create_stale_test_file(host, admin_ip: str = "") -> bool:
 def cleanup_test_files(host, admin_ip: str = "") -> bool:
     """
     Remove test files created during tests.
-    
+
     Args:
         host: Testinfra host object
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if cleanup successful, False otherwise
     """
@@ -660,13 +664,13 @@ def cleanup_test_files(host, admin_ip: str = "") -> bool:
 def fill_disk_space(host, path: str, size_mb: int, admin_ip: str = "") -> bool:
     """
     Fill disk space with dummy file (for error testing).
-    
+
     Args:
         host: Testinfra host object
         path: Directory to fill
         size_mb: Size in MB
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if successful, False otherwise
     """
@@ -678,12 +682,12 @@ def fill_disk_space(host, path: str, size_mb: int, admin_ip: str = "") -> bool:
 def free_disk_space(host, path: str, admin_ip: str = "") -> bool:
     """
     Remove fill file to free disk space.
-    
+
     Args:
         host: Testinfra host object
         path: Directory with fill file
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if successful, False otherwise
     """
@@ -699,12 +703,12 @@ def free_disk_space(host, path: str, admin_ip: str = "") -> bool:
 def get_bundle_content_checksum(host, bundle_path: str, admin_ip: str = "") -> Optional[str]:
     """
     Get checksum of bundle contents (excluding metadata timestamp).
-    
+
     Args:
         host: Testinfra host object
         bundle_path: Path to bundle archive
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Checksum string or None if failed
     """
@@ -712,13 +716,13 @@ def get_bundle_content_checksum(host, bundle_path: str, admin_ip: str = "") -> O
     extract_dir = "/tmp/bundle_check_" + str(int(time.time()))
     if not extract_bundle(host, bundle_path, extract_dir, admin_ip):
         return None
-    
+
     cmd = CMD_TEMPLATES["content_checksum"].format(dir_path=extract_dir)
     result = run_on_remote_node(host, cmd, admin_ip=admin_ip)
-    
+
     # Cleanup
     run_on_remote_node(host, f"rm -rf {extract_dir}", admin_ip=admin_ip)
-    
+
     if result.rc == 0:
         return result.stdout.strip().split()[0]
     return None
@@ -732,19 +736,19 @@ def compare_bundle_contents(
 ) -> Tuple[bool, str, str]:
     """
     Compare contents of two bundles (excluding metadata timestamp).
-    
+
     Args:
         host: Testinfra host object
         bundle1_path: Path to first bundle
         bundle2_path: Path to second bundle
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         Tuple of (identical, checksum1, checksum2)
     """
     checksum1 = get_bundle_content_checksum(host, bundle1_path, admin_ip)
     checksum2 = get_bundle_content_checksum(host, bundle2_path, admin_ip)
-    
+
     if checksum1 and checksum2:
         return checksum1 == checksum2, checksum1, checksum2
     return False, checksum1 or "", checksum2 or ""
@@ -757,12 +761,12 @@ def compare_bundle_contents(
 def cleanup_workspace(host, workspace_path: str, admin_ip: str = "") -> bool:
     """
     Remove workspace directory.
-    
+
     Args:
         host: Testinfra host object
         workspace_path: Path to workspace directory
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if cleanup successful, False otherwise
     """
@@ -774,12 +778,12 @@ def cleanup_workspace(host, workspace_path: str, admin_ip: str = "") -> bool:
 def cleanup_bundle(host, bundle_path: str, admin_ip: str = "") -> bool:
     """
     Remove bundle archive.
-    
+
     Args:
         host: Testinfra host object
         bundle_path: Path to bundle archive
         admin_ip: Admin IP for remote execution
-        
+
     Returns:
         True if cleanup successful, False otherwise
     """

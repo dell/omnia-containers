@@ -27,6 +27,7 @@ and Slurm cluster nodes. Covers:
 
 Spec: TCASES-LOGEX-2026-001 v1.0.0
 """
+# pylint: disable=duplicate-code
 
 from .functions import (
     execute_log_collection,
