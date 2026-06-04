@@ -85,8 +85,8 @@ See the following sample:
 .. csv-table:: Parameters for Storage
    :file: ../../../Tables/storage_config.csv
    :header-rows: 1
-   :widths: 30, 70
    :keepspace:
+   :rst:
 
 
 

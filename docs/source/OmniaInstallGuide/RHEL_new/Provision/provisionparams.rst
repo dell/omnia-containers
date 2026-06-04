@@ -48,8 +48,8 @@ Specify the required parameters in the following input files:
 .. csv-table:: storage_config.yml
    :file: ../../../Tables/storage_config.csv
    :header-rows: 1
-   :widths: 30, 70
    :keepspace:
+   :rst:
 
 .. note::  
    
