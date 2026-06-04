@@ -5,8 +5,8 @@
         "type": "tarball",
         "url": "https://github.com/openucx/ucx/releases/download/v{{ ucx_version }}/ucx-{{ ucx_version }}.tar.gz"
       },
-      {"package": "gcc-c++", "type": "rpm", "repo_name": "aarch64_appstream"},
-      {"package": "make", "type": "rpm", "repo_name": "aarch64_baseos"}
+      {"package": "gcc-c++", "type": "rpm", "repo_name": "appstream"},
+      {"package": "make", "type": "rpm", "repo_name": "baseos"}
     ]
   }
 }
