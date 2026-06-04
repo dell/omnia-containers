@@ -53,7 +53,7 @@ Prerequisites
 
         isi audit settings global modify --add-audited-zones=<comma separated Zone names>
 
-      .. image:: .. image:: ../../../images/powerscale_audited_zones_logs_prereq.png
+      .. image:: ../../../images/powerscale_audited_zones_logs_prereq.png
 
     * Configure the vlagent loadbalancer IP address (e.g., 172.16.107.1) for log delivery to Victoria logs configured using Omnia::
 
@@ -61,7 +61,7 @@ Prerequisites
         isi audit settings global modify --protocol-syslog-servers=<vlagent loadbalancer ip>:514 --protocol-syslog-tls-enabled=0
         isi audit settings global modify --system-syslog-enabled=1 --system-syslog-servers=<vlagent loadbalancer ip>:514 --system-syslog-tls-enabled=0
 
-      .. image:: .. image:: ../../../images/powerscale_audited_zones_logs_prereq.png
+      .. image:: ../../../images/powerscale_audited_zones_logs_prereq.png
 
 Procedure
 ----------
