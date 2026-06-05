@@ -1,15 +1,17 @@
 FROM docker.io/library/almalinux:10.0
 
-ARG BUILDAH_VERSION=1.43.1
-ARG GO_VERSION=1.25.10
+ARG BUILDAH_VERSION=1.44.0
+ARG GO_VERSION=1.25.11
 
+# Update all packages to latest security patches and install repos
 RUN dnf clean all && \
-    dnf update -y --releasever=10.0 --nogpgcheck && \
+    dnf update -y --releasever=10.0 --nogpgcheck --security && \
     dnf install -y dnf-plugins-core epel-release && \
     dnf config-manager -y --set-enabled crb && \
     dnf clean all
 
-RUN dnf install -y \
+# Install build dependencies - exclude vim and unnecessary packages
+RUN dnf install -y --exclude=vim* \
         bash \
         python3.12 \
         fuse-overlayfs \
@@ -24,7 +26,9 @@ RUN dnf install -y \
         device-mapper-devel \
         btrfs-progs-devel \
         git \
-        wget
+        wget && \
+    dnf update -y --security && \
+    dnf clean all
 
 # Determine architecture and download matching Go tarball
 RUN ARCH=$(uname -m) && \
@@ -43,6 +47,9 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 
 RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
     cd /tmp/buildah && \
+    go get -u golang.org/x/net@v0.55.0 && \
+    go mod tidy && \
+    go mod vendor && \
     make buildah && \
     cp bin/buildah /usr/bin/buildah && \
     rm -rf /tmp/buildah /usr/local/go /root/go && \
@@ -50,16 +57,19 @@ RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containe
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-RUN dnf install -y \
+# Install runtime dependencies with security updates
+RUN dnf install -y --exclude=vim* \
         containers-common \
         crun \
         slirp4netns \
-        fuse-overlayfs
+        fuse-overlayfs && \
+    dnf update -y --security && \
+    dnf clean all
 
 COPY requirements.txt /
 RUN python3.12 -m ensurepip && \
     python3.12 -m pip install --upgrade pip && \
-    python3.12 -m pip install -r /requirements.txt
+    python3.12 -m pip install --upgrade -r /requirements.txt
 
 COPY src/ /usr/local/bin/
 RUN chmod -R 0755 /usr/local/bin/
@@ -72,6 +82,12 @@ RUN setcap cap_setuid=ep "$(command -v newuidmap)" && \
     rpm --restore shadow-utils && \
     echo "builder:2000:50000" > /etc/subuid && \
     echo "builder:2000:50000" > /etc/subgid
+
+# Final security update - remove any vulnerable packages and update all
+RUN dnf remove -y vim-minimal vim-data vim-common 2>/dev/null || true && \
+    dnf update -y --security && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf /tmp/* /var/tmp/*
 
 # Create local user for rootless image builds
 RUN useradd --uid 1002 builder && \
