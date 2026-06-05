@@ -42,3 +42,5 @@ Upgrade and Rollback Limitations
 - Telemetry data (metrics stored in VictoriaMetrics and Kafka) is not preserved during rollback.
   Rolling back the telemetry component resets the telemetry stack to its pre-upgrade state, and
   any metrics collected after the upgrade are lost.
+
+jo
