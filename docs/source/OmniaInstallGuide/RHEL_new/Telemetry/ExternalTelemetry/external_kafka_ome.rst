@@ -101,7 +101,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
         -H 'content-type: application/vnd.kafka.v2+json' \
         -d '{"name": "ome-consumer", "format": "json", "auto.offset.reset": "earliest"}'
 
-3. To view the list of OME Kafka topics configured, use the following command:
+3. To view the list of OME Kafka topics configured, use the following command::
 
       curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
       
@@ -134,7 +134,9 @@ Verify OME Telemetry Data in VictoriaMetrics
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics using Vector, do the following:
 
-1. Log in to the VictoriaMetrics UI.
+1. Access the VMUI in a web browser using::
+
+     https://<external vmselect loadbalancer IP>:8481/select/0/vmui
 
 2. Navigate to the **Explore** tab.
 
@@ -158,7 +160,9 @@ Verify OME Telemetry Data in VictoriaLogs
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector, do the following:
 
-1. Log in to the VictoriaLogs UI.
+1. Access the VictoriaLogs UI in a web browser using::
+
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 2. Navigate to the **Select** tab.
 

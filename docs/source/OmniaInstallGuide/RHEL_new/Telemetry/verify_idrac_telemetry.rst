@@ -58,6 +58,21 @@ After the job completes, check the logs to confirm that the TLS connection is su
 
     kubectl logs victoria-tls-test-xxx -n telemetry    
 
+
+Verify Kafka TLS Connectivity
+-----------------------------
+
+To verify TLS connectivity for Kafka, run the Kafka TLS test job to verify that
+certificates, truststores, keystores, and mTLS communication are functioning correctly::
+
+    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+    kubectl apply -f kafka.tls_test_job.yaml
+
+After the job completes, check the logs to confirm that the TLS connection is successful::
+
+    kubectl logs kafka-tls-test-xxx -n telemetry   
+   
+
 View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 ------------------------------------------------------------------------------------------------
 
