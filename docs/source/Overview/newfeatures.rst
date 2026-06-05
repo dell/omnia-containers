@@ -34,6 +34,41 @@ Omnia now supports PowerScale Telemetry for collecting storage performance metri
 
 For detailed configuration instructions, see `PowerScale Telemetry Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/power_scale_telemetry.html>`_.
 
+UFM Telemetry to VictoriaMetrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports UFM (Unified Fabric Manager) telemetry collection for InfiniBand fabric monitoring. This feature enables vmagent to scrape UFM Prometheus metrics endpoints and forward them to VictoriaMetrics with dual-destination support for local and remote clusters.
+
+**Key Features:**
+
+- Secure HTTPS scraping from UFM Prometheus endpoint with TLS certificate validation
+- Basic Auth or Bearer token authentication support
+- Metric label enrichment with subsystem, domain, and cluster labels
+- Dual remote-write architecture: local VictoriaDB vminsert and remote vmagent forwarding
+- Write-ahead log (WAL) buffering for durability during write failures
+- Scrape failure resilience with automatic retry and backoff
+- Configurable scrape interval with minimum 30-second floor
+
+For detailed configuration instructions, see `UFM Telemetry Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/ufm_telemetry.html>`_.
+
+VAST Storage Telemetry Integration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports VAST storage telemetry integration for comprehensive storage observability. This feature enables metrics scraping from VAST Prometheus endpoints and syslog log collection via VLAgent.
+
+**Key Features:**
+
+- VMagent scraping of 4 VAST Prometheus endpoints (all, views, devices, alarms)
+- Secure HTTPS connection with TLS certificate validation and Basic Auth/Bearer token authentication
+- Metric label enrichment with subsystem, vast_domain, and source_subsystem labels
+- Dual-destination forwarding to internal VictoriaMetrics and external Omni (if enabled)
+- VLAgent syslog ingestion supporting RFC 3164/5424 formats over UDP/TLS
+- Log label enrichment with vast_cluster and event_type labels
+- Buffer management for metrics and logs when destinations are unavailable
+- Scrape health monitoring via VMagent self-metrics
+
+For detailed configuration instructions, see `VAST Telemetry Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/vast_telemetry.html>`_.
+
 Vast Repo and Vast Client Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -189,3 +224,38 @@ For more details, see `BMC Discovery Configuration <OmniaInstallGuide/Maintenanc
 
 .. note::
     Magellan-based discovery is planned for a future release. Currently, only OME-based discovery is supported.
+
+Multi-Subnet DHCP for Rack-Based Provisioning
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports multi-subnet DHCP configuration for rack-based network provisioning in large-scale HPC and AI/ML clusters. This feature enables per-rack /24 subnet assignment with clear rack identification and failure isolation.
+
+**Key Features:**
+
+- Rack-based Admin (PXE) network configuration with per-rack /24 subnets
+- CoreDHCP multi-subnet configuration generation with subnet pools and gateway configurations
+- CoreDNS forward and reverse zone generation for each rack's Admin subnet
+- DHCP pool management per rack with configurable lease times for discovery and provisioning phases
+- Integration with BMC discovery for IP assignment while keeping OOB/BMC network preconfigured externally
+- Validation of subnet overlap and VLAN conflicts
+- Support for up to 100 racks with 254 nodes per rack (25,400 total nodes)
+- DHCP response time ≤ 100 ms (p50) and ≤ 300 ms (p99) during normal operation
+
+For detailed configuration instructions, see `Multi-Subnet DHCP Configuration <../OmniaInstallGuide/RHEL_new/Network/multi_subnet_dhcp.html>`_.
+
+CoreDNS-Based Hostname Resolution for Slurm and MPI
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia now supports dynamic DNS resolution powered by coresmd, replacing static `/etc/hosts` file management. This feature provides automatic hostname resolution for Slurm and MPI workloads with real-time inventory updates.
+
+**Key Features:**
+
+- coresmd queries OpenCHAMI SMD inventory every 30 seconds and auto-generates forward A records for all inventoried nodes
+- Cloud-init based `/etc/resolv.conf` configuration on compute nodes with cluster domain search
+- K8s CoreDNS ConfigMap patching to forward cluster domain queries to OIM coresmd
+- Automatic skipping of `/etc/hosts` management on OIM and Slurm nodes when DNS is enabled
+- Multi-subnet CoreDHCP support for multi-rack PXE deployments
+- New nodes added to SMD become resolvable within 30 seconds without playbook re-run
+- Toggle via `dns_enabled` parameter in `input/provision_config.yml` (default: `false` for backward compatibility)
+
+For detailed configuration instructions, see `CoreDNS Hostname Resolution Configuration <../OmniaInstallGuide/RHEL_new/Network/coredns_hostname_resolution.html>`_.
