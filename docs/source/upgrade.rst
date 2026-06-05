@@ -62,7 +62,33 @@ Upgrade Workflow
 Phase 0: Core Container Upgrade (OIM Host)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The upgrade begins on the OIM host outside the ``omnia_core`` container:
+The upgrade begins on the OIM host outside the ``omnia_core`` container.
+
+.. important::
+    **Use the Omnia 2.2.0.0 omnia.sh script for upgrade operations**
+    
+    The ``omnia.sh`` script from Omnia 2.1.0.0 does **not** support correct upgrade or rollback operations. You must download and use the Omnia 2.2.0.0 version of ``omnia.sh`` to perform upgrades and rollbacks.
+    
+    Do **not** attempt to run ``./omnia.sh --upgrade`` or ``./omnia.sh --rollback`` using the 2.1.0.0 script.
+
+Download the Omnia 2.2.0.0 omnia.sh Script
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before starting the upgrade, download the correct version of the ``omnia.sh`` script:
+
+1. Download the Omnia 2.2.0.0 ``omnia.sh`` script from the Omnia repository: ::
+
+     wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+
+2. Set executable permissions: ::
+
+    chmod +x omnia.sh
+
+3. Verify the script version (optional): ::
+
+    ./omnia.sh --version
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1. Run the core container upgrade command: ::
 
@@ -74,7 +100,13 @@ The upgrade begins on the OIM host outside the ``omnia_core`` container:
     * Shows available upgrade targets
     * Validates version and image availability
     * Requests user approval
-    * Creates backup of configs, metadata, and input files
+    * Creates backup of:
+        - Input configuration files (``/opt/omnia/input/``)
+        - Metadata files (``oim_metadata.yml``)
+        - OpenCHAMI data (PostgreSQL database dump, container environment variables)
+        - OpenCHAMI quadlet files (``/etc/containers/systemd/``)
+        - OpenCHAMI configuration files (``/etc/openchami/``)
+        - Cloud-init data (groups, defaults, hostname mappings)
     * Swaps or restarts the ``omnia_core`` container to the 2.2 image
     * Creates upgrade guard lock at ``/opt/omnia/.data/upgrade_in_progress.lock``
     * Seeds new input defaults
