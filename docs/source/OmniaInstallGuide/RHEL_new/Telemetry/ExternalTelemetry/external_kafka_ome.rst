@@ -95,23 +95,21 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
       GROUP=ome-consumer-group
       INSTANCE=<a-unique-instance-name>
 
-2. Create a Kafka consumer using the following command::
+3. To view the list of OME Kafka topics configured, use the following command:
 
-      curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
-        -H 'content-type: application/vnd.kafka.v2+json' \
-        -d '{
-              "name": "'"$INSTANCE"'",
-              "format": "json",
-              "auto.offset.reset": "earliest"
-            }'
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
 
-3. Subscribe the consumer to the telemetry topic using the following command::
+4. To view the list of OME Kafka topics configured, use the following command:
+
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+      
+5. Subscribe the consumer to the telemetry topic using the following command::
 
       curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
         -H 'content-type: application/vnd.kafka.v2+json' \
         -d '{"topics": ["'"$TOPIC"'"]}'
 
-4. Consume messages from the topic using the following command::
+6. Consume messages from the topic using the following command::
 
       while true; do
         curl -s -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
@@ -119,7 +117,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
         sleep 2
       done
 
-5. (Optional) Cleanup the consumer using the following command::
+7. (Optional) Cleanup the consumer using the following command::
 
       curl -s -X DELETE "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
 

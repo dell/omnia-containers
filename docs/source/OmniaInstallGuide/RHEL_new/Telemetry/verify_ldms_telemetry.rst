@@ -12,7 +12,14 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
 
 1. Log in to the Service Kubernetes Control plane.
 
-2. Create a Kafka consumer using the following command::
+2. Set the required variables using the following command::
+
+    KAFKA_LB_IP=<external IP of bridge-bridge-lb service>
+    TOPIC=ldms
+    GROUP=ldms-consumer-group
+    INSTANCE=ldms-consumer-1
+
+3. Create a Kafka consumer using the following command::
 
     KAFKA_LB_IP=<external load balancer IP of the bridge-bridge-lb service>
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
@@ -24,13 +31,17 @@ To verify that LDMS telemetry data is being successfully published to the ``ldms
             "enable.auto.commit": true
         }'
 
-3. Subscribe the consumer to the LDMS topic using the following command::
+3. To view the list of LDMS Kafka topics configured, use the following command::
+
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+
+4. Subscribe the consumer to the LDMS topic using the following command::
 
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
     -H 'content-type: application/vnd.kafka.v2+json' \ 
     -d '{"topics": ["ldms"]}'
 
-4. Consume messages from the topic using the following command::
+5. Consume messages from the topic using the following command::
 
     while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
