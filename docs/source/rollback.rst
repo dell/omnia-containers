@@ -151,15 +151,17 @@ Rollback stages:
 3. **Clean up stale MetalLB IPs** — Removes stale MetalLB IP assignments on all nodes.
 4. **Restore etcd snapshot** — Restores the pre-upgrade etcd snapshot on all control plane nodes.
 5. **Restore K8s configs** — Restores ``/etc/kubernetes/`` configs on all control plane nodes from backup.
-6. **Downgrade control plane packages** — Downgrades kubeadm, kubelet, and kubectl to the previous version and starts kubelet.
-7. **Fix kube-vip split-brain** — Resolves VIP ownership after control plane restore.
-8. **Downgrade worker packages** — Downgrades packages on workers and starts kubelet.
-9. **Post-validation** — Validates node readiness (``kubectl get nodes``) and pod health.
-10. **Restart network pods** — Clears stale BIRD/speaker processes.
-11. **Restore Helm binary** — Restores the Helm binary to the rollback version.
-12. **Clean up stale CSI VolumeAttachments** — Removes orphaned PowerScale/Isilon VolumeAttachments.
-13. **Verify telemetry rollback** — Validates that all 2.1 telemetry pods (VictoriaMetrics, Kafka, iDRAC, LDMS, etc.) are healthy and that 2.2-only components (vector-ldms, vector-ome, victoria-logs, victoria-metrics-operator) have been removed by the etcd restore.
-14. **Restore BSS boot params and cloud-init** — Restores pre-upgrade BSS/cloud-init configs from backup so nodes boot with the correct (old) images on next reboot.
+6. **Remove kubelet feature gates** — Removes kubelet feature gates for compatibility with older versions.
+7. **Update kubelet config parameters** — Updates kubelet config.yaml parameters to match cloud-init settings.
+8. **Downgrade control plane packages** — Downgrades kubeadm, kubelet, and kubectl to the previous version and starts kubelet.
+9. **Fix kube-vip split-brain** — Resolves VIP ownership after control plane restore.
+10. **Downgrade worker packages** — Downgrades packages on workers and starts kubelet.
+11. **Post-validation** — Validates node readiness (``kubectl get nodes``) and pod health.
+12. **Restart network pods** — Clears stale BIRD/speaker processes.
+13. **Restore Helm binary** — Restores the Helm binary to the rollback version.
+14. **Clean up stale CSI VolumeAttachments** — Removes orphaned PowerScale/Isilon VolumeAttachments.
+15. **Verify telemetry rollback** — Validates that all 2.1 telemetry pods (VictoriaMetrics, Kafka, iDRAC, LDMS, etc.) are healthy and that 2.2-only components (vector-ldms, vector-ome, victoria-logs, victoria-metrics-operator) have been removed by the etcd restore.
+16. **Restore BSS boot params and cloud-init** — Restores pre-upgrade BSS/cloud-init configs from backup so nodes boot with the correct (old) images on next reboot.
 
 .. warning::
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
@@ -193,9 +195,24 @@ After rollback completes:
 
 1. The ``upgrade_manifest.yml`` is archived to ``/opt/omnia/.data/archive/`` so the next upgrade starts with a fresh manifest.
 
-2. The rollback summary displays the final component statuses.
+2. **Kubernetes artifacts archival** — If the k8s-telemetry rollback completed successfully, all upgrade and rollback artifacts are automatically archived to a timestamped directory on the NFS share (``<nfs_mount>/upgrade/archive/<rollback_id>_<timestamp>/``). This includes:
 
-3. Complete the core container rollback by running on the OIM host (outside the container): ::
+   * ``upgrade_status.yml`` — Per-node upgrade step tracking
+   * ``rollback_status.yml`` — Per-node rollback step tracking
+   * ``backup/`` — etcd snapshot, K8s configs, and addon backups
+   * ``telemetry/`` — Telemetry backups
+   * ``logs/`` — Upgrade and rollback execution logs from the OIM container
+
+   The archival process also cleans up:
+
+   * Lock files on NFS (``upgrade.lock``, ``rollback.lock``)
+   * ``omnia-upgrade.repo`` from all K8s nodes
+
+   This ensures a clean slate for the next upgrade run while preserving all evidence for root cause analysis.
+
+3. The rollback summary displays the final component statuses.
+
+4. Complete the core container rollback by running on the OIM host (outside the container): ::
 
     sudo ./omnia.sh --rollback
 
