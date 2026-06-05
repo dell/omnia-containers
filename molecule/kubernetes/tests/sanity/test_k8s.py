@@ -603,8 +603,9 @@ def test_nfs_telemetry_pvcs_bound(oim_ops):
     """Verify all telemetry PVCs are Bound with correct storage class, PV, and volume size.
 
     Checks every PVC in the 'telemetry' namespace against telemetry_config.yml:
-      - Kafka PVCs size == kafka_configurations.persistence_size
-      - vmstorage/vlstorage PVC size == victoria_configurations.persistence_size
+      - Kafka PVCs size == telemetry_sinks.kafka.persistence_size
+      - vmstorage PVC size == telemetry_sinks.victoria_metrics.persistence_size
+      - vlstorage PVC size == telemetry_sinks.victoria_logs.storage_size
       - All PVCs: phase=Bound, storageClass=nfs-client, volumeName set
     """
     log = TestLogger("Verify telemetry PVCs Bound with correct PV and size")
@@ -673,8 +674,9 @@ def test_csi_telemetry_pvcs_bound(oim_ops):
     """Verify all telemetry PVCs are Bound with the CSI storage class, correct PV, and volume size.
 
     Checks every PVC in the 'telemetry' namespace against telemetry_config.yml:
-      - Kafka PVCs size == kafka_configurations.persistence_size
-      - vmstorage/vlstorage PVC size == victoria_configurations.persistence_size
+      - Kafka PVCs size == telemetry_sinks.kafka.persistence_size
+      - vmstorage PVC size == telemetry_sinks.victoria_metrics.persistence_size
+      - vlstorage PVC size == telemetry_sinks.victoria_logs.storage_size
       - All PVCs: phase=Bound, storageClass=DEFAULT_STORAGE_CLASS, volumeName set
     """
     log = TestLogger("Verify CSI telemetry PVCs Bound with correct PV and size")

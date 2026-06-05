@@ -44,7 +44,7 @@ VICTORIA_TEST_NAMES: Dict[str, str] = {
 
 VICTORIA_LOG_MSGS: Dict[str, str] = {
     # Enable check
-    "victoria_enabled": "VictoriaMetrics is enabled in idrac_telemetry_collection_type",
+    "victoria_enabled": "VictoriaMetrics sink is active (sources target victoria_metrics)",
     "victoria_not_enabled": "VictoriaMetrics is not enabled - skipping tests",
 
     # Deployment mode
@@ -91,20 +91,20 @@ VICTORIA_LOG_MSGS: Dict[str, str] = {
 
 VICTORIA_ASSERT_MSGS: Dict[str, str] = {
     "victoria_not_enabled": (
-        "VictoriaMetrics is not enabled in telemetry_config.yml.\n"
-        "idrac_telemetry_collection_type does not contain 'victoria'.\n"
+        "VictoriaMetrics sink is not active in telemetry_config.yml.\n"
+        "No source has 'victoria_metrics' in collection_targets.\n"
         "Skipping all VictoriaMetrics tests."
     ),
     "idrac_telemetry_not_enabled": (
-        "iDRAC telemetry is not enabled in telemetry_config.yml.\n"
-        "idrac_telemetry_support is set to false.\n"
+        "iDRAC telemetry source is not enabled in telemetry_config.yml.\n"
+        "telemetry_sources.idrac.metrics_enabled is false.\n"
         "Skipping all VictoriaMetrics tests."
     ),
     "persistence_size_mismatch": (
         "VictoriaMetrics persistence size mismatch.\n"
         "Expected: {expected}\n"
         "Actual: {actual}\n"
-        "Please check victoria_configurations.persistence_size in telemetry_config.yml"
+        "Please check telemetry_sinks.victoria_metrics.persistence_size in telemetry_config.yml"
     ),
     "pods_not_running": (
         "VictoriaMetrics {component} pods are not running.\n"

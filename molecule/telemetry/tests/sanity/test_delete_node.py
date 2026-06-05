@@ -89,7 +89,7 @@ def test_idrac_deleted_node_data_in_mysql(host):
     if not is_idrac_telemetry_enabled(host):
         log.skipped(
             "iDRAC telemetry not enabled",
-            "Test skipped - idrac_telemetry_support=false"
+            "Test skipped - iDRAC source not enabled"
         )
         pytest.skip("iDRAC telemetry not enabled")
 
@@ -193,7 +193,7 @@ def test_idrac_deleted_node_data_in_kafka(host):
     if not is_idrac_telemetry_enabled(host):
         log.skipped(
             "iDRAC telemetry not enabled",
-            "Test skipped - idrac_telemetry_support=false"
+            "Test skipped - iDRAC source not enabled"
         )
         pytest.skip("iDRAC telemetry not enabled")
 
@@ -383,7 +383,7 @@ def test_idrac_deleted_node_data_in_victoria(host):
     if not is_idrac_telemetry_enabled(host):
         log.skipped(
             "iDRAC telemetry not enabled",
-            "Test skipped - idrac_telemetry_support=false"
+            "Test skipped - iDRAC source not enabled"
         )
         pytest.skip("iDRAC telemetry not enabled")
 

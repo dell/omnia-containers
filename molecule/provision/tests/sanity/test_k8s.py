@@ -105,9 +105,9 @@ def test_k8s_telemetry_pods(host):
 
     Checks pods based on telemetry_config.yml and software_config.json:
     - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled
-    - iDRAC telemetry pods if idrac_telemetry_support is true
-    - VictoriaMetrics pods based on deployment_mode (single-node vs cluster)
-    - Kafka pods (kafka-broker, kafka-controller, strimzi-cluster-operator)
+    - iDRAC telemetry pods if telemetry_sources.idrac.metrics_enabled is true
+    - VictoriaMetrics cluster pods (always cluster mode)
+    - Kafka pods if any source targets kafka
     """
     log = TestLogger("Verify K8s telemetry pods running")
 

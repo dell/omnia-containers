@@ -42,6 +42,20 @@ from .delete_node_msgs import (
     DELETE_NODE_ASSERT_MSGS,
 )
 
+# VictoriaLogs-specific messages
+from .victoria_logs_msgs import (
+    VICTORIA_LOGS_TEST_NAMES,
+    VICTORIA_LOGS_LOG_MSGS,
+    VICTORIA_LOGS_ASSERT_MSGS,
+)
+
+# PowerScale-specific messages
+from .powerscale_msgs import (
+    POWERSCALE_TEST_NAMES,
+    POWERSCALE_LOG_MSGS,
+    POWERSCALE_ASSERT_MSGS,
+)
+
 # Shared messages (used across all telemetry modules)
 from .shared_msgs import (
     TELEMETRY_MSGS,

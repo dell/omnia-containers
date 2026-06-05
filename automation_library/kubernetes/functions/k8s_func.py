@@ -177,8 +177,6 @@ from automation_library.kubernetes.vars.k8s_vars import (
     TELEMETRY_KAFKA_PVC_PATTERN,
     TELEMETRY_VMSTORAGE_PVC_PATTERN,
     TELEMETRY_VLSTORAGE_PVC_PATTERN,
-    TELEMETRY_KAFKA_CFG_SECTION,
-    TELEMETRY_VICTORIA_CFG_SECTION,
     TELEMETRY_PERSISTENCE_SIZE_KEY,
     ETCD_NAMESPACE,
     ETCD_PORT,
@@ -1765,9 +1763,9 @@ class OIMOperations:
         """Verify all telemetry PVCs are Bound with correct storage class, PV, and volume size.
 
         Reads telemetry_config.yml to validate expected storage sizes:
-          - PVCs with 'kafka' in the name: kafka_configurations.persistence_size
-          - PVCs with 'vmstorage' in the name: victoria_configurations.persistence_size
-          - PVCs with 'vlstorage' in the name: victoria_configurations.persistence_size
+          - PVCs with 'kafka' in the name: telemetry_sinks.kafka.persistence_size
+          - PVCs with 'vmstorage' in the name: telemetry_sinks.victoria_metrics.persistence_size
+          - PVCs with 'vlstorage' in the name: telemetry_sinks.victoria_logs.storage_size
           - Other PVCs (mysql, vlagent, etc.): verified Bound and correct SC only
 
         Works for both NFS (storage_class_name='nfs-client') and CSI (e.g. 'ps01') setups.
@@ -1780,13 +1778,18 @@ class OIMOperations:
             if cfg_err:
                 return False, cfg_err, []
 
+            sinks = telemetry_cfg.get("telemetry_sinks", {}) or {}
             kafka_size = (
-                (telemetry_cfg.get(TELEMETRY_KAFKA_CFG_SECTION) or {})
+                (sinks.get("kafka") or {})
                 .get(TELEMETRY_PERSISTENCE_SIZE_KEY, "")
             )
             victoria_size = (
-                (telemetry_cfg.get(TELEMETRY_VICTORIA_CFG_SECTION) or {})
+                (sinks.get("victoria_metrics") or {})
                 .get(TELEMETRY_PERSISTENCE_SIZE_KEY, "")
+            )
+            victoria_logs_size = (
+                (sinks.get("victoria_logs") or {})
+                .get("storage_size", "")
             )
 
             pxe_mapping = self.read_pxe_mapping_file()
@@ -1850,14 +1853,18 @@ class OIMOperations:
                                 actual=actual_size, expected=kafka_size,
                             )
                         )
-                elif (
-                    TELEMETRY_VMSTORAGE_PVC_PATTERN in pvc_name
-                    or TELEMETRY_VLSTORAGE_PVC_PATTERN in pvc_name
-                ) and victoria_size:
+                elif TELEMETRY_VMSTORAGE_PVC_PATTERN in pvc_name and victoria_size:
                     if actual_size != victoria_size:
                         result["issues"].append(
                             TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH.format(
                                 actual=actual_size, expected=victoria_size,
+                            )
+                        )
+                elif TELEMETRY_VLSTORAGE_PVC_PATTERN in pvc_name and victoria_logs_size:
+                    if actual_size != victoria_logs_size:
+                        result["issues"].append(
+                            TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH.format(
+                                actual=actual_size, expected=victoria_logs_size,
                             )
                         )
 

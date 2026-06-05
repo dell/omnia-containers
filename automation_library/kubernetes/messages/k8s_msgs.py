@@ -139,10 +139,10 @@ TELEMETRY_PVC_PHASE_MISMATCH = "phase={phase} (expected 'Bound')"
 TELEMETRY_PVC_SC_MISMATCH = "storageClass={sc} (expected {expected})"
 TELEMETRY_PVC_NO_VOLUME = "volumeName not set (no PV provisioned)"
 TELEMETRY_PVC_KAFKA_SIZE_MISMATCH = (
-    "size={actual} (expected {expected} from kafka_configurations.persistence_size)"
+    "size={actual} (expected {expected} from telemetry_sinks.kafka.persistence_size)"
 )
 TELEMETRY_PVC_VICTORIA_SIZE_MISMATCH = (
-    "size={actual} (expected {expected} from victoria_configurations.persistence_size)"
+    "size={actual} (expected {expected} from telemetry_sinks config)"
 )
 TELEMETRY_PVC_CHECK_FAILED = (
     "Telemetry PVC check failed ({failed}/{total} PVCs): {errors}"
