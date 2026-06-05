@@ -16,7 +16,7 @@ In Omnia, nodes are discovered and provisioned based on the  **groups** and **fu
   - **Slurm Login/Compiler Node** 
   - **Slurm Control Node** 
   - **Slurm Compute Node**
-  - **Minimal OS**
+  - **Minimal OS** 
 
 
 Create Mapping File
@@ -36,7 +36,7 @@ Create PXE File Manually
 Manually collect PXE NIC information of the nodes to be provisioned and manually define them to Omnia using the **pxe_mapping_file.csv** file. Provide the file path to the ``pxe_mapping_file_path`` variable in ``/opt/omnia/input/project_default/provision_config.yml``.
 Each node listed in the mapping file must be assigned with the following values: 
 ``FUNCTIONAL_GROUP_NAME``, ``GROUP_NAME``, ``SERVICE_TAG``, ``PARENT_SERVICE_TAG``, ``HOSTNAME``, ``ADMIN_MAC``, 
-``ADMIN_IP``, ``BMC_MAC``, and ``BMC_IP``.
+``ADMIN_IP``, ``BMC_MAC``, ``BMC_IP``, ``IB_NIC_NAME``, and ``IB_IP``.
 
 Refer to the :ref:`Group Attributes <group-attributes-section>` table to assign the appropriate
 ``GROUP_NAME`` and the :ref:`Types of Functional Groups <functional-groups-section>` table to
@@ -162,6 +162,7 @@ Procedure
    - ``login_node_aarch64``
    - ``login_compiler_node_aarch64``
    - ``os_aarch64``
+   - ``os_x86_64``
 
    To create static groups in OME:
    

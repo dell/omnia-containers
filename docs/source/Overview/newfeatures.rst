@@ -34,6 +34,9 @@ The following table lists the new features and enhancements introduced in Omnia 
    * - Telemetry
      - VAST Storage Telemetry Integration
      - VAST storage telemetry integration through VMagent scraping of VAST Prometheus endpoints and VLAgent syslog log collection with secure HTTPS, TLS authentication, and dual-destination forwarding. For more details, see `VAST Telemetry Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/ExternalTelemetry/vast_telemetry.html>`_.
+   * - Telemetry
+     - External Log Aggregation to VictoriaLogs
+     - Centralized log collection from external sources including network devices, storage systems, and fabric managers through VLAgent with syslog (plaintext/TLS) and HTTP forwarding support, TLS certificate validation, and JSON Lines format ingestion. For more details, see `External Log Sources Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/ExternalTelemetry/external_victoria_logs.html>`_.
    * - OS/Provisioning
      - Minimal OS Functional Groups
      - Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) providing a clean operating system baseline designed specifically for downstream platform software installation. For more details, see `Composable Roles <../OmniaInstallGuide/RHEL_new/composable_roles.html>`_.
