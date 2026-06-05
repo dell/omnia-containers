@@ -43,25 +43,29 @@ from .shared_func import (
 
 def get_deployment_mode(host) -> str:
     """
-    Get VictoriaMetrics deployment mode from telemetry_config.yml.
+    Get VictoriaMetrics deployment mode.
+
+    With the new telemetry_config.yml structure, VictoriaMetrics is always
+    deployed in cluster mode. The deployment_mode key has been removed.
 
     Returns:
-        'single-node' or 'cluster'
+        'cluster' (always)
     """
-    config = get_telemetry_config(host)
-    victoria_config = config.get("victoria_configurations", {})
-    return victoria_config.get("deployment_mode", "")
+    return "cluster"
 
 
 def get_victoria_config(host) -> Dict[str, Any]:
     """
-    Get victoria_configurations from telemetry_config.yml.
+    Get victoria_metrics sink config from telemetry_config.yml.
+
+    Reads from telemetry_sinks.victoria_metrics which contains:
+      persistence_size, retention_period, additional_metric_remote_write_endpoints
 
     Returns:
-        Dict with victoria config (deployment_mode, persistence_size, retention_period)
+        Dict with victoria_metrics sink config
     """
     config = get_telemetry_config(host)
-    return config.get("victoria_configurations", {})
+    return config.get("telemetry_sinks", {}).get("victoria_metrics", {})
 
 
 def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:

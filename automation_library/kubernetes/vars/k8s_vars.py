@@ -85,8 +85,6 @@ TELEMETRY_NAMESPACE = "telemetry"
 TELEMETRY_KAFKA_PVC_PATTERN = "kafka"
 TELEMETRY_VMSTORAGE_PVC_PATTERN = "vmstorage"
 TELEMETRY_VLSTORAGE_PVC_PATTERN = "vlstorage"
-TELEMETRY_KAFKA_CFG_SECTION = "kafka_configurations"
-TELEMETRY_VICTORIA_CFG_SECTION = "victoria_configurations"
 TELEMETRY_PERSISTENCE_SIZE_KEY = "persistence_size"
 
 # =============================================================================

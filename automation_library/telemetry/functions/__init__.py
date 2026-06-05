@@ -29,6 +29,7 @@ from .shared_func import (
     clear_cache,
     # Config reading (with caching)
     get_telemetry_config,
+    get_telemetry_storage_config,
     get_software_config,
     # Enable checks
     is_kafka_enabled,
@@ -41,6 +42,13 @@ from .shared_func import (
     skip_if_kafka_not_enabled,
     skip_if_victoria_not_enabled,
     skip_if_ldms_not_enabled,
+    # VictoriaLogs checks
+    is_victoria_logs_enabled,
+    skip_if_victoria_logs_not_enabled,
+    # PowerScale checks
+    is_powerscale_metrics_enabled,
+    is_powerscale_logs_enabled,
+    skip_if_powerscale_not_enabled,
 )
 
 from .kafka_func import (
@@ -86,6 +94,45 @@ from .delete_node_func import (
     verify_idrac_deleted_node_in_kafka,
     verify_idrac_deleted_node_in_mysql,
     verify_idrac_deleted_node_in_victoria,
+)
+
+# VictoriaLogs functions (all consolidated in victoria_logs_func.py)
+from .victoria_logs_func import (
+    get_victoria_logs_config,
+    get_victoria_logs_storage_config,
+    verify_victoria_logs_storage_size,
+    verify_victoria_logs_cluster_pods,
+    verify_vlagent_pod,
+    verify_victoria_logs_services,
+    verify_victoria_logs_tls_secret,
+    verify_victoria_logs_health,
+    verify_victoria_logs_query,
+    verify_vlagent_configmap,
+    verify_vlagent_pvc,
+    verify_vlagent_syslog_service,
+    inject_test_syslog,
+    verify_syslog_received,
+    # Destructive test functions
+    verify_all_vlstorage_pods_down_behavior,
+    verify_all_vlinsert_pods_down_behavior,
+    verify_all_vlselect_pods_down_behavior,
+    verify_complete_cluster_failure_recovery,
+    verify_single_vlstorage_pod_failure,
+    verify_single_vlinsert_pod_failure,
+    verify_single_vlselect_pod_failure,
+    # Cleanup test functions
+    verify_retention_cleanup_cycle,
+    verify_default_retention_period,
+    verify_victoria_logs_independent_cleanup,
+)
+
+# PowerScale functions
+from .powerscale_func import (
+    get_powerscale_config,
+    get_powerscale_deployment_mode,
+    verify_powerscale_deployment,
+    verify_powerscale_metrics,
+    verify_powerscale_syslog,
 )
 
 # Failover test functions (poweroff/reboot)
