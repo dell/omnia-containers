@@ -107,67 +107,30 @@ Before proceeding with OME discovery, ensure the following:
 - All target servers have iDRAC configured with network connectivity
 - OME has discovered the devices (servers are visible in OME inventory)
 - You have administrative access to OME
-- Ensure that servers have the correct NIC order and configuration to match your intended IP assignment scheme. When Omnia performs OME-based discovery, it uses the following NIC selection logic:
+- Ensure that servers have the correct NIC order and configuration to match your intended IP assignment scheme. You must verify NIC ordering in the server BIOS or iDRAC settings before discovery. When Omnia performs OME-based discovery, it uses the following logic:
   
   - **Admin IP**: The first discoverable NIC (typically the first Ethernet interface) will be used to generate the admin IP address in the PXE mapping file
   - **InfiniBand IP**: The first discoverable InfiniBand NIC will be used to generate the InfiniBand IP address in the PXE mapping file
-  
-  You must verify NIC ordering in the server BIOS or iDRAC settings before discovery.
+  - **NIC MAC Address Selection**: During discovery, Omnia collects MAC addresses using priority-based selection.
+  - **Admin (Non-iDRAC) NIC Selection:**
+    - Priority 1: First NIC that is active/UP
+    - Priority 2: If first NIC is down, use second NIC if UP
+    - Priority 3: If all NICs are down, default to first NIC regardless of link state
+    - Scans server NICs excluding the iDRAC/BMC NIC
+    - NIC order determined by BIOS/iDRAC settings
+  - **InfiniBand (IB) NIC Selection:**
+    - If IB NIC detected: IB Nic Name captured and IB_IP assigned
+    - If no IB NIC: IB fields left empty in CSV (expected behavior, does not affect provisioning)
 
-  **NIC MAC Address Selection**
+- For a deployment with N Scalable Units, ensure one dedicated service_kube_node (Kubernetes worker node) for each Scalable Unit.
+- Ensure that iDRAC hostnames follow the Omnia naming convention. In Omnia, the **node name** is the anchor identity for every compute node. It encodes the physical and logical location of the server, read left to right from the largest grouping down to the individual node.The iDRAC hostname should follow this pattern::
 
-  During discovery, Omnia collects MAC addresses using priority-based selection:
+    idrac-<SU><1-100>R<000-999>OU<1-54><Type><Instance>
 
-  **Admin (Non-iDRAC) NIC Selection:**
-
-  - Priority 1: First NIC that is active/UP
-  - Priority 2: If first NIC is down, use second NIC if UP
-  - Priority 3: If all NICs are down, default to first NIC regardless of link state
-  - Scans server NICs excluding the iDRAC/BMC NIC
-  - NIC order determined by BIOS/iDRAC settings
-
-  **InfiniBand (IB) NIC Selection:**
-
-  - If IB NIC detected: IB Nic Name captured and IB_IP assigned
-  - If no IB NIC: IB fields left empty in CSV (expected behavior, does not affect provisioning)
-
-  **Scalability Rules**
-
-  For a deployment with N Scalable Units, ensure one dedicated service_kube_node (Kubernetes worker node) for each Scalable Unit.
-
-- Ensure that iDRAC hostnames follow the Omnia naming convention. In Omnia, the **node name** is the anchor identity for every compute node. It encodes the physical and logical location of the server, read left to right from the largest grouping down to the individual node.
-
-  **iDRAC Hostname Convention**
-
-  The iDRAC hostname should follow this pattern::
-
-      idrac-<SU><1-100>R<000-999>OU<1-54><Type><Instance>
-
-  **SU — Scalable Unit**
-
-  A **Scalable Unit (SU)** is a logical block of infrastructure — a group of racks deployed and managed together as a single unit. This allows the data center to grow in predictable, repeatable blocks.
-
-  **Supported formats:**
-
-  - ``SU1`` through ``SU100`` (case-insensitive: ``su1``, ``SU1``)
-
-  **R — Rack**
-
-  The **Rack** identifier represents the physical rack cabinet housing servers and networking equipment within the Scalable Unit.
-
-  **Format:** ``R1`` through ``R999``
-
-  **OU — Open Rack v3 (ORv3) Unit Position**
-
-  The **OU** represents the vertical slot position in an ORv3-compliant rack.
-
-  **Format:** ``OU1`` through ``OU54``
-
-  **C — Compute Node**
-
-  The **C** identifier distinguishes individual compute servers at a rack position. A dense chassis can hold multiple nodes, so the C number identifies each one.
-
-  **Format:** ``C1`` through ``C99``
+   - **Scalable Unit (SU)**: Represents a logical block of infrastructure — a group of racks deployed and managed together as a single unit. This allows the data center to grow in predictable, repeatable blocks. **Supported formats:** - ``SU1`` through ``SU100`` (case-insensitive: ``su1``, ``SU1``)
+   - **R — Rack**: The **Rack** identifier represents the physical rack cabinet housing servers and networking equipment within the Scalable Unit. **Format:** ``R1`` through ``R999``
+   - **OU — Open Rack v3 (ORv3) Unit Position**: The **OU** represents the vertical slot position in an ORv3-compliant rack. **Format:** ``OU1`` through ``OU54``
+   - **C — Compute Node**: The **C** identifier distinguishes individual compute servers at a rack position. A dense chassis can hold multiple nodes, so the C number identifies each one.  **Format:** ``C1`` through ``C99``
 
   Example breakdown::
 
