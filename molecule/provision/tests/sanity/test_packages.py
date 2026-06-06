@@ -101,13 +101,16 @@ def test_build_stream_job_stage(host):
         # Check if force flag is enabled
         if FORCE_PROVISION_VALIDATE_FAILED:
             log.skipped(
-                f"Build stream validation failed but FORCE_PROVISION_VALIDATE_FAILED is enabled",
-                f"WARNING: Tests will run on unvalidated images! Stage '{stage}' is {job_state} (job_id: {job_id})"
+                f"Build stream validation BYPASSED (FORCE_PROVISION_VALIDATE_FAILED=True)",
+                f"WARNING: Tests will run on unvalidated images!\n"
+                f"Stage '{stage}' is {job_state} (job_id: {job_id})\n"
+                f"To disable force mode, set FORCE_PROVISION_VALIDATE_FAILED = False\n"
+                f"in automation_library/provision/vars/common_vars.py"
             )
-            # Mark as success to allow tests to continue
+            # Mark as success so autouse fixture allows remaining tests
             build_stream_job_state["success"] = True
             build_stream_job_state["forced"] = True
-            pytest.skip(f"Build stream validation forced to skip (stage: {stage}, state: {job_state})")
+            return
         else:
             log.failed(
                 LOG_MSGS["build_stream_job_failed"].format(

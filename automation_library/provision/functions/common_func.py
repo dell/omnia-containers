@@ -812,11 +812,13 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             results["running_pods"].append(pod_name)
 
     # Check each expected prefix has at least one running pod
+    matched_pods = set()
     for prefix in expected_prefixes:
         found = False
         for pod_name, status in running_pods.items():
             if pod_name.startswith(prefix):
                 found = True
+                matched_pods.add(pod_name)
                 is_running = status in ["Running", "Completed"]
                 results["pod_details"].append({
                     "prefix": prefix,
@@ -831,6 +833,266 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
         if not found:
             results["missing_pods"].append(prefix)
             results["success"] = False
+
+    # Detect unexpected pods (running but not matching any expected prefix)
+    unexpected = []
+    for pod_name, status in running_pods.items():
+        if pod_name not in matched_pods:
+            # Check if this pod matches ANY expected prefix
+            if not any(pod_name.startswith(p) for p in expected_prefixes):
+                unexpected.append({"pod_name": pod_name, "status": status})
+    results["unexpected_pods"] = unexpected
+
+    return results
+
+
+# =============================================================================
+# K8S DEFAULT STORAGE CLASS VERIFICATION
+# =============================================================================
+
+
+def verify_k8s_default_storage_class(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Verify default K8s storage class based on software_config.json.
+
+    Rules (from k8s_config role):
+    - If csi_driver_powerscale is in software_config.json → default SC = ps01
+    - Otherwise → default SC = nfs-client
+
+    Args:
+        host: Testinfra host object
+        k8s_nodes: List of K8s node dicts from PXE mapping
+
+    Returns:
+        Dict with success, expected_sc, actual_default_sc, all_sc, csi_enabled
+    """
+    from automation_library.core import is_software_enabled
+    from automation_library.provision.vars.common_vars import (
+        POWERSCALE_STORAGE_CLASS, NFS_STORAGE_CLASS,
+    )
+
+    results = {
+        "success": False,
+        "csi_powerscale_enabled": False,
+        "expected_default_sc": "",
+        "actual_default_sc": "",
+        "all_storage_classes": [],
+    }
+
+    # Get control plane node
+    control_plane = None
+    for node in k8s_nodes:
+        fg = node.get("functional_group", "")
+        if "control_plane" in fg.lower():
+            control_plane = node
+            break
+
+    if not control_plane:
+        results["error"] = "No control plane node found"
+        return results
+
+    admin_ip = control_plane.get("admin_ip", "")
+
+    # Check if CSI PowerScale is in software_config.json
+    csi_enabled = is_software_enabled(host, "csi_driver_powerscale")
+    results["csi_powerscale_enabled"] = csi_enabled
+
+    if csi_enabled:
+        results["expected_default_sc"] = POWERSCALE_STORAGE_CLASS
+    else:
+        results["expected_default_sc"] = NFS_STORAGE_CLASS
+
+    # Get storage classes from cluster
+    cmd = run_on_remote_node(
+        host,
+        "kubectl get sc -o json 2>/dev/null",
+        admin_ip,
+    )
+
+    if cmd.rc != 0:
+        results["error"] = f"Failed to get storage classes: {cmd.stderr}"
+        return results
+
+    import json as _json
+    try:
+        sc_data = _json.loads(cmd.stdout)
+    except _json.JSONDecodeError as e:
+        results["error"] = f"Failed to parse storage class JSON: {e}"
+        return results
+
+    # Parse storage classes
+    actual_default = ""
+    for sc in sc_data.get("items", []):
+        name = sc.get("metadata", {}).get("name", "")
+        annotations = sc.get("metadata", {}).get("annotations", {})
+        is_default = (
+            annotations.get("storageclass.kubernetes.io/is-default-class") == "true"
+            or annotations.get("storageclass.beta.kubernetes.io/is-default-class") == "true"
+        )
+        provisioner = sc.get("provisioner", "")
+        results["all_storage_classes"].append({
+            "name": name,
+            "provisioner": provisioner,
+            "is_default": is_default,
+        })
+        if is_default:
+            actual_default = name
+
+    results["actual_default_sc"] = actual_default
+    results["success"] = actual_default == results["expected_default_sc"]
+
+    return results
+
+
+# =============================================================================
+# K8S CSI POWERSCALE (ISILON) PODS VERIFICATION
+# =============================================================================
+
+
+def verify_k8s_isilon_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Verify isilon CSI driver pods are running in isilon namespace.
+
+    Checks for isilon-controller and isilon-node pods.
+
+    Args:
+        host: Testinfra host object
+        k8s_nodes: List of K8s node dicts from PXE mapping
+
+    Returns:
+        Dict with success, pods, missing, error
+    """
+    from automation_library.provision.vars.common_vars import (
+        ISILON_NAMESPACE, ISILON_POD_PREFIXES,
+    )
+
+    results = {
+        "success": True,
+        "expected_prefixes": ISILON_POD_PREFIXES,
+        "pods": [],
+        "missing": [],
+    }
+
+    control_plane = None
+    for node in k8s_nodes:
+        fg = node.get("functional_group", "")
+        if "control_plane" in fg.lower():
+            control_plane = node
+            break
+
+    if not control_plane:
+        results["error"] = "No control plane node found"
+        results["success"] = False
+        return results
+
+    admin_ip = control_plane.get("admin_ip", "")
+
+    cmd = run_on_remote_node(
+        host,
+        f"kubectl get pods -n {ISILON_NAMESPACE} --no-headers"
+        f" -o custom-columns=NAME:.metadata.name,STATUS:.status.phase 2>/dev/null",
+        admin_ip,
+    )
+
+    if cmd.rc != 0:
+        results["error"] = f"Failed to get isilon pods: {cmd.stderr}"
+        results["success"] = False
+        return results
+
+    running_pods = {}
+    for line in cmd.stdout.strip().split('\n'):
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            running_pods[parts[0]] = parts[1]
+
+    for prefix in ISILON_POD_PREFIXES:
+        found = False
+        for pod_name, status in running_pods.items():
+            if pod_name.startswith(prefix):
+                found = True
+                is_running = status in ["Running", "Completed"]
+                results["pods"].append({
+                    "prefix": prefix,
+                    "pod_name": pod_name,
+                    "status": status,
+                    "running": is_running,
+                })
+                if not is_running:
+                    results["success"] = False
+                break
+        if not found:
+            results["missing"].append(prefix)
+            results["success"] = False
+
+    return results
+
+
+# =============================================================================
+# K8S NFS PROVISIONER PODS VERIFICATION
+# =============================================================================
+
+
+def verify_k8s_nfs_provisioner_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str, Any]:
+    """
+    Verify NFS provisioner pod is running in default namespace.
+
+    Args:
+        host: Testinfra host object
+        k8s_nodes: List of K8s node dicts from PXE mapping
+
+    Returns:
+        Dict with success, pods, error
+    """
+    from automation_library.provision.vars.common_vars import NFS_PROVISIONER_PREFIX
+
+    results = {
+        "success": False,
+        "pods": [],
+    }
+
+    control_plane = None
+    for node in k8s_nodes:
+        fg = node.get("functional_group", "")
+        if "control_plane" in fg.lower():
+            control_plane = node
+            break
+
+    if not control_plane:
+        results["error"] = "No control plane node found"
+        return results
+
+    admin_ip = control_plane.get("admin_ip", "")
+
+    cmd = run_on_remote_node(
+        host,
+        "kubectl get pods -n default --no-headers"
+        " -o custom-columns=NAME:.metadata.name,STATUS:.status.phase 2>/dev/null",
+        admin_ip,
+    )
+
+    if cmd.rc != 0:
+        results["error"] = f"Failed to get default namespace pods: {cmd.stderr}"
+        return results
+
+    for line in cmd.stdout.strip().split('\n'):
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 2:
+            pod_name, status = parts[0], parts[1]
+            if pod_name.startswith(NFS_PROVISIONER_PREFIX):
+                is_running = status in ["Running", "Completed"]
+                results["pods"].append({
+                    "pod_name": pod_name,
+                    "status": status,
+                    "running": is_running,
+                })
+                results["success"] = is_running
+
+    if not results["pods"]:
+        results["error"] = f"No NFS provisioner pod found (prefix: {NFS_PROVISIONER_PREFIX})"
 
     return results
 
