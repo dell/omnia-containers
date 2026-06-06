@@ -25,12 +25,9 @@ import pytest
 from automation_library.core import (
     run_on_remote_node,
     is_software_enabled,
-    get_nfs_client_mount_path,
 )
 from ..vars import (
     SSH_OPTS,
-    OPENMPI_BIN_PATH,
-    UCX_BIN_PATH,
     LDMS_SAMPLER_SERVICE,
     LDMS_SAMPLER_CONF_PATH,
     LDMS_SAMPLER_ENV_PATH,
@@ -288,15 +285,16 @@ def verify_cross_node_ssh(host) -> Dict[str, Any]:
 
 def verify_sinfo_nodes(host) -> Dict[str, Any]:
     """
-    Verify sinfo shows exactly the compute nodes from PXE mapping.
+    Verify sinfo shows exactly the compute nodes from PXE mapping and all are idle.
 
     Only checks slurm_node functional group - not control or login nodes.
     Fails if:
     - Any expected node is missing from sinfo
     - Any extra node is found in sinfo that's not in PXE mapping
+    - Any node is NOT in idle state
 
     Returns:
-        Dict with success, expected, found, missing, extra
+        Dict with success, expected, found, missing, extra, node_states, not_idle
     """
     results = {
         "success": True,
@@ -304,6 +302,8 @@ def verify_sinfo_nodes(host) -> Dict[str, Any]:
         "found": [],
         "missing": [],
         "extra": [],
+        "node_states": {},
+        "not_idle": [],
     }
 
     # Get expected compute nodes only
@@ -321,18 +321,25 @@ def verify_sinfo_nodes(host) -> Dict[str, Any]:
         return results
 
     control_ip = control_nodes[0].get("admin_ip", "")
-    cmd = run_on_remote_node(host, "sinfo -h -N -o '%N'", control_ip)
+
+    # Get node names and their states
+    cmd = run_on_remote_node(host, "sinfo -h -N -o '%N %T'", control_ip)
 
     if cmd.rc != 0:
         results["success"] = False
         results["error"] = f"sinfo failed: {cmd.stderr}"
         return results
 
-    # Parse sinfo output
+    # Parse sinfo output (node_name state)
     for line in cmd.stdout.strip().split('\n'):
-        node_name = line.strip()
+        parts = line.strip().split()
+        if not parts:
+            continue
+        node_name = parts[0]
+        node_state = parts[1] if len(parts) > 1 else "unknown"
         if node_name and node_name not in results["found"]:
             results["found"].append(node_name)
+            results["node_states"][node_name] = node_state
 
     # Find missing nodes (expected but not in sinfo)
     for expected in results["expected"]:
@@ -344,6 +351,13 @@ def verify_sinfo_nodes(host) -> Dict[str, Any]:
     for found in results["found"]:
         if found not in results["expected"]:
             results["extra"].append(found)
+            results["success"] = False
+
+    # Verify all expected nodes are in idle state
+    for node_name in results["expected"]:
+        state = results["node_states"].get(node_name, "")
+        if state and state != "idle":
+            results["not_idle"].append({"hostname": node_name, "state": state})
             results["success"] = False
 
     return results
@@ -367,17 +381,18 @@ def get_software_version(host, software_name: str) -> str:
 
 
 def _verify_hpc_software(
-    host, software_name: str, bin_path: str, version_flag: str
+    host, software_name: str, binary_name: str, version_flag: str
 ) -> Dict[str, Any]:
     """
     Verify an HPC software is installed and version matches software_config.json.
 
     Generic function for OpenMPI, UCX, etc. Checks on first login_compiler_node.
+    Uses 'which' to locate the binary (available in PATH by default).
 
     Args:
         host: Testinfra host object
         software_name: Name in software_config.json (e.g., "openmpi", "ucx")
-        bin_path: Relative path under NFS mount (e.g., OPENMPI_BIN_PATH)
+        binary_name: Binary name to check via 'which' (e.g., "mpirun", "ucx_info")
         version_flag: Flag to get version (e.g., "--version", "-v")
 
     Returns:
@@ -397,25 +412,20 @@ def _verify_hpc_software(
         results["error"] = "No login_compiler_node in PXE mapping"
         return results
 
-    nfs_path = get_nfs_client_mount_path(host)
-    if not nfs_path:
-        results["error"] = "Could not get NFS client mount path from storage_config.yml"
-        return results
-
     expected_version = get_software_version(host, software_name)
     results["expected_version"] = expected_version
 
     admin_ip = nodes[0].get("admin_ip", "")
-    full_path = f"{nfs_path}/{bin_path}"
 
-    cmd = run_on_remote_node(host, f"test -f {full_path} && echo EXISTS", admin_ip)
-    if cmd.rc != 0 or "EXISTS" not in cmd.stdout:
-        results["error"] = f"{software_name} not found at {full_path}"
+    cmd = run_on_remote_node(host, f"which {binary_name} 2>/dev/null", admin_ip)
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        results["error"] = f"{software_name} binary '{binary_name}' not found in PATH"
         return results
 
+    bin_path = cmd.stdout.strip()
     results["installed"] = True
 
-    cmd = run_on_remote_node(host, f"{full_path} {version_flag} 2>/dev/null | head -1", admin_ip)
+    cmd = run_on_remote_node(host, f"{bin_path} {version_flag} 2>/dev/null | head -1", admin_ip)
     if cmd.rc == 0 and cmd.stdout.strip():
         results["version"] = cmd.stdout.strip()
         if expected_version and expected_version in results["version"]:
@@ -438,12 +448,12 @@ def _verify_hpc_software(
 
 def verify_openmpi_installed(host) -> Dict[str, Any]:
     """Verify OpenMPI is installed and version matches software_config.json."""
-    return _verify_hpc_software(host, "openmpi", OPENMPI_BIN_PATH, "--version")
+    return _verify_hpc_software(host, "openmpi", "mpirun", "--version")
 
 
 def verify_ucx_installed(host) -> Dict[str, Any]:
     """Verify UCX is installed and version matches software_config.json."""
-    return _verify_hpc_software(host, "ucx", UCX_BIN_PATH, "-v")
+    return _verify_hpc_software(host, "ucx", "ucx_info", "-v")
 
 
 # =============================================================================

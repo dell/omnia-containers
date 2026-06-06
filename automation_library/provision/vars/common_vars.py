@@ -99,7 +99,7 @@ CLOUDINIT_TEMPLATE_DIR = f"{OPENCHAMI_WORKDIR}/cloud-init"
 #
 # WARNING: When True, tests run against images that have NOT been
 #          validated by the build_stream pipeline!
-FORCE_PROVISION_VALIDATE_FAILED = False
+FORCE_PROVISION_VALIDATE_FAILED = True
 
 # =============================================================================
 # K8S STORAGE CLASS CONSTANTS

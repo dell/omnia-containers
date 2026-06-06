@@ -689,6 +689,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
 
     # Build expected pods based on configuration
     expected_prefixes = []
+    enabled_features = []
 
     # --- Derive sink support flags (mirrors derive_sink_support_flags.yml) ---
     victoria_metrics_active = False
@@ -728,6 +729,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     results["ldms_enabled"] = ldms_enabled
     if ldms_enabled:
         expected_prefixes.extend(["nersc-ldms-aggr", "nersc-ldms-store"])
+        enabled_features.append("ldms enabled")
 
     # --- iDRAC telemetry pods ---
     idrac_src = sources.get("idrac", {})
@@ -735,6 +737,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     results["idrac_enabled"] = idrac_enabled
     if idrac_enabled:
         expected_prefixes.append("idrac-telemetry")
+        enabled_features.append("idrac enabled")
 
     # --- VictoriaMetrics cluster pods ---
     if victoria_metrics_active:
@@ -744,12 +747,14 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             "vmagent-vmagent", "vminsert", "vmselect", "vmstorage",
             "victoria-metrics-operator",
         ])
+        enabled_features.append("victoria_metrics active")
 
     # --- VictoriaLogs cluster pods ---
     if victoria_logs_active:
         expected_prefixes.extend([
             "vlstorage", "vlinsert", "vlselect", "vlagent-vlagent",
         ])
+        enabled_features.append("victoria_logs active")
 
     # --- Kafka pods ---
     if kafka_active:
@@ -758,12 +763,15 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             "strimzi-cluster-operator", "kafka-entity-operator",
             "bridge-bridge",
         ])
+        enabled_features.append("kafka active")
 
     # --- Vector bridge pods ---
     if vector_ldms.get("metrics_enabled", False) and ldms_enabled:
         expected_prefixes.append("vector-ldms")
+        enabled_features.append("vector-ldms bridge enabled")
     if vector_ome.get("metrics_enabled", False) or vector_ome.get("logs_enabled", False):
         expected_prefixes.append("vector-ome")
+        enabled_features.append("vector-ome bridge enabled")
 
     # --- vmagent-vector / vlagent-vector (write buffers for Vector bridges) ---
     vector_metrics_active = (
@@ -772,8 +780,10 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     )
     if vector_metrics_active and victoria_metrics_active:
         expected_prefixes.append("vmagent-vector")
+        enabled_features.append("vmagent-vector write buffer")
     if vector_ome.get("logs_enabled", False) and victoria_logs_active:
         expected_prefixes.append("vlagent-vector")
+        enabled_features.append("vlagent-vector write buffer")
 
     # --- PowerScale telemetry pods ---
     ps_src = sources.get("powerscale", {})
@@ -783,8 +793,10 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             "otel-collector",
             "karavi-observability-cert-manager",
         ])
+        enabled_features.append("powerscale enabled")
 
     results["expected_pods"] = expected_prefixes
+    results["enabled_features"] = enabled_features
 
     # Get running pods in telemetry namespace
     cmd = run_on_remote_node(
@@ -812,6 +824,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             results["running_pods"].append(pod_name)
 
     # Check each expected prefix has at least one running pod
+    valid_statuses = ["Running", "Completed", "Succeeded"]
     matched_pods = set()
     for prefix in expected_prefixes:
         found = False
@@ -819,7 +832,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             if pod_name.startswith(prefix):
                 found = True
                 matched_pods.add(pod_name)
-                is_running = status in ["Running", "Completed"]
+                is_running = status in valid_statuses
                 results["pod_details"].append({
                     "prefix": prefix,
                     "pod_name": pod_name,

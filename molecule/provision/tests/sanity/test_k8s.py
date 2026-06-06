@@ -268,14 +268,24 @@ def test_k8s_telemetry_pods(host):
         log.failed("Telemetry pod check failed", result["error"])
         assert False, result["error"]
 
-    log.check(f"Checking telemetry pods: {', '.join(result['expected_pods'])}")
+    # Show expected list with enabled features
+    features = result.get("enabled_features", [])
+    log.check(f"Expected pods [{', '.join(features)}]:")
+    for prefix in result["expected_pods"]:
+        log.check(f"  - {prefix}")
 
-    # Build detailed output with configuration info
+    # Show actual running pods
+    log.check(f"Actual pods in telemetry namespace ({len(result['running_pods'])}):")
+    for pod_name in result["running_pods"]:
+        log.check(f"  - {pod_name}")
+
+    # Build detailed output
     details_lines = [
-        f"VictoriaMetrics mode: {result.get('deployment_mode', 'cluster')}",
-        f"LDMS enabled: {'yes' if result.get('ldms_enabled') else 'no'}",
-        f"iDRAC telemetry enabled: {'yes' if result.get('idrac_enabled') else 'no'}",
+        f"Enabled features: [{', '.join(features)}]",
         f"Expected pod types: {len(result['expected_pods'])}",
+        f"Actual pods: {len(result['running_pods'])}",
+        "",
+        "Expected vs Actual:",
     ]
 
     for pod_detail in result.get("pod_details", []):
@@ -309,4 +319,4 @@ def test_k8s_telemetry_pods(host):
     else:
         log.failed("Telemetry pods missing or not running", details)
 
-    assert result["success"], f"Missing pods: {', '.join(result['missing_pods'])}"
+    assert result["success"], f"Missing pods: {', '.join(result.get('missing_pods', []))}"
