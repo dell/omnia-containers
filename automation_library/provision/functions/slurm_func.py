@@ -661,11 +661,7 @@ def verify_ldms_sampler_port(host) -> Dict[str, Any]:
     }
 
     # Get expected port from telemetry_config.yml
-    # New config: ldms_configurations.sampler_port
-    # Legacy config: ldms_sampler_port (top-level)
     expected_port = get_input_value(host, TELEMETRY_CONFIG_FILE, "ldms_configurations.sampler_port")
-    if not expected_port:
-        expected_port = get_input_value(host, TELEMETRY_CONFIG_FILE, "ldms_sampler_port")
     if not expected_port:
         results["error"] = "ldms_configurations.sampler_port not found in telemetry_config.yml"
         results["success"] = False
