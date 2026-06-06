@@ -622,11 +622,26 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     """
     Verify telemetry pods are running in K8s cluster based on telemetry_config.
 
-    Checks pods in telemetry namespace based on configuration:
-    - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled
-    - iDRAC telemetry pods if telemetry_sources.idrac.metrics_enabled is true
-    - VictoriaMetrics cluster pods (always cluster mode)
-    - Kafka pods if any source targets kafka
+    Checks pods in telemetry namespace based on configuration.
+    Mirrors the derive_sink_support_flags.yml logic for determining which
+    sinks (victoria_metrics, victoria_logs, kafka) are active, then checks
+    the corresponding pods.
+
+    Pod presence rules (from generate_telemetry_deployments.yml):
+    - LDMS pods: if telemetry_sources.ldms.metrics_enabled
+    - iDRAC telemetry: if telemetry_sources.idrac.metrics_enabled
+    - VictoriaMetrics cluster: if any source targets victoria_metrics
+    - VictoriaLogs cluster: if any source targets victoria_logs
+    - Kafka + Strimzi: if any source/bridge targets kafka
+    - Kafka bridge: if kafka is active (REST proxy)
+    - Vector-LDMS: if telemetry_bridges.vector_ldms.metrics_enabled AND ldms enabled
+    - Vector-OME: if telemetry_bridges.vector_ome.metrics_enabled or logs_enabled
+    - vmagent-vector: if any Vector bridge metrics_enabled AND victoria_metrics active
+    - vlagent-vector: if vector_ome.logs_enabled AND victoria_logs active
+    - PowerScale: if telemetry_sources.powerscale.metrics_enabled
+    - UFM: uses shared vmagent (no separate pod)
+    - VAST: uses shared vmagent (no separate pod)
+    - victoria-metrics-operator: if victoria_metrics active
 
     Args:
         host: Testinfra host object
@@ -669,39 +684,105 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
 
     # Check telemetry config for enabled features
     telemetry_config = load_input_file(host, TELEMETRY_CONFIG_FILE)
+    sources = telemetry_config.get("telemetry_sources", {}) if telemetry_config else {}
+    bridges = telemetry_config.get("telemetry_bridges", {}) if telemetry_config else {}
 
     # Build expected pods based on configuration
     expected_prefixes = []
 
-    # LDMS pods - only if ldms enabled in software_config
-    ldms_enabled = is_software_enabled(host, "ldms")
+    # --- Derive sink support flags (mirrors derive_sink_support_flags.yml) ---
+    victoria_metrics_active = False
+    victoria_logs_active = False
+    kafka_active = False
+
+    # Check direct source -> sink via collection_targets
+    for _name, src_cfg in sources.items():
+        if not isinstance(src_cfg, dict):
+            continue
+        if src_cfg.get("metrics_enabled") or src_cfg.get("logs_enabled"):
+            targets = src_cfg.get("collection_targets", [])
+            if "victoria_metrics" in targets:
+                victoria_metrics_active = True
+            if "victoria_logs" in targets:
+                victoria_logs_active = True
+            if "kafka" in targets:
+                kafka_active = True
+
+    # Check bridges
+    vector_ldms = bridges.get("vector_ldms", {})
+    vector_ome = bridges.get("vector_ome", {})
+    ldms_src = sources.get("ldms", {})
+    ldms_enabled = bool(ldms_src.get("metrics_enabled", False)) or is_software_enabled(host, "ldms")
+
+    if vector_ldms.get("metrics_enabled", False) and ldms_enabled:
+        kafka_active = True
+        victoria_metrics_active = True
+    if vector_ome.get("metrics_enabled", False):
+        kafka_active = True
+        victoria_metrics_active = True
+    if vector_ome.get("logs_enabled", False):
+        kafka_active = True
+        victoria_logs_active = True
+
+    # --- LDMS pods ---
     results["ldms_enabled"] = ldms_enabled
     if ldms_enabled:
         expected_prefixes.extend(["nersc-ldms-aggr", "nersc-ldms-store"])
 
-    # iDRAC telemetry pods - only if telemetry_sources.idrac.metrics_enabled
-    sources = telemetry_config.get("telemetry_sources", {}) if telemetry_config else {}
+    # --- iDRAC telemetry pods ---
     idrac_src = sources.get("idrac", {})
     idrac_enabled = bool(idrac_src.get("metrics_enabled", False))
     results["idrac_enabled"] = idrac_enabled
     if idrac_enabled:
         expected_prefixes.append("idrac-telemetry")
 
-    # VictoriaMetrics pods - always cluster mode
-    deployment_mode = "cluster"
-    results["deployment_mode"] = deployment_mode
-    expected_prefixes.extend(["vmagent", "vminsert", "vmselect", "vmstorage"])
+    # --- VictoriaMetrics cluster pods ---
+    if victoria_metrics_active:
+        deployment_mode = "cluster"
+        results["deployment_mode"] = deployment_mode
+        expected_prefixes.extend([
+            "vmagent-vmagent", "vminsert", "vmselect", "vmstorage",
+            "victoria-metrics-operator",
+        ])
 
-    # Kafka pods - only if any source targets kafka
-    kafka_active = False
-    for _name, src_cfg in sources.items():
-        if isinstance(src_cfg, dict):
-            if src_cfg.get("metrics_enabled") or src_cfg.get("logs_enabled"):
-                if "kafka" in src_cfg.get("collection_targets", []):
-                    kafka_active = True
-                    break
+    # --- VictoriaLogs cluster pods ---
+    if victoria_logs_active:
+        expected_prefixes.extend([
+            "vlstorage", "vlinsert", "vlselect", "vlagent-vlagent",
+        ])
+
+    # --- Kafka pods ---
     if kafka_active:
-        expected_prefixes.extend(["kafka-broker", "kafka-controller", "strimzi-cluster-operator"])
+        expected_prefixes.extend([
+            "kafka-broker", "kafka-controller",
+            "strimzi-cluster-operator", "kafka-entity-operator",
+            "bridge-bridge",
+        ])
+
+    # --- Vector bridge pods ---
+    if vector_ldms.get("metrics_enabled", False) and ldms_enabled:
+        expected_prefixes.append("vector-ldms")
+    if vector_ome.get("metrics_enabled", False) or vector_ome.get("logs_enabled", False):
+        expected_prefixes.append("vector-ome")
+
+    # --- vmagent-vector / vlagent-vector (write buffers for Vector bridges) ---
+    vector_metrics_active = (
+        (vector_ldms.get("metrics_enabled", False) and ldms_enabled) or
+        vector_ome.get("metrics_enabled", False)
+    )
+    if vector_metrics_active and victoria_metrics_active:
+        expected_prefixes.append("vmagent-vector")
+    if vector_ome.get("logs_enabled", False) and victoria_logs_active:
+        expected_prefixes.append("vlagent-vector")
+
+    # --- PowerScale telemetry pods ---
+    ps_src = sources.get("powerscale", {})
+    if ps_src.get("metrics_enabled", False):
+        expected_prefixes.extend([
+            "karavi-metrics-powerscale",
+            "otel-collector",
+            "karavi-observability-cert-manager",
+        ])
 
     results["expected_pods"] = expected_prefixes
 

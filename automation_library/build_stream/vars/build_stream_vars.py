@@ -141,6 +141,7 @@ GITLAB_API_VERSION: str = "v4"
 GITLAB_ROOT_TOKEN_FILE: str = "/root/.gitlab_root_token"
 CATALOG_FILE_PATH: str = "catalog_rhel.json"
 CATALOG_LOCAL_FILENAME: str = "slurm_only_x86_64_catalog.json"
+CATALOG_DEFAULT_FILENAME: str = "slurm_only_x86_64_catalog.json"
 PXE_MAPPING_FILE_PATH: str = "input/pxe_mapping_file.csv"
 
 # =============================================================================

@@ -40,7 +40,11 @@ from .db_func import (
     get_all_image_groups,
 )
 from .api_func import get_stage_log_path
-from .shared_func import get_allow_pipeline_cancel, get_image_identifier
+from .shared_func import (
+    get_allow_pipeline_cancel,
+    get_image_identifier,
+    get_catalog_name,
+)
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
@@ -58,13 +62,20 @@ from ..messages.build_stream_msgs import (
 )
 
 
-def get_catalog_content() -> str:
+def get_catalog_content(host=None) -> str:
     """
     Load the catalog content with unique identifier for each run.
+
+    Reads catalog_name from omnia_test_config.yml to select which catalog
+    file to use. Falls back to CATALOG_LOCAL_FILENAME if not configured.
 
     The identifier is set to 'image-build-<datetime>' format to ensure
     each pipeline run creates a unique image group and avoids
     DuplicateImageGroupError.
+
+    Args:
+        host: Testinfra host object (optional, used to read catalog_name
+              from omnia_test_config.yml).
 
     Returns:
         Catalog JSON content as string with unique identifier.
@@ -74,9 +85,14 @@ def get_catalog_content() -> str:
 
     catalog_dir = os.path.join(
         os.path.dirname(os.path.dirname(__file__)),
-        "catalogs"
+        "catalogs",
     )
-    catalog_file = os.path.join(catalog_dir, CATALOG_LOCAL_FILENAME)
+
+    if host:
+        catalog_filename = get_catalog_name(host)
+    else:
+        catalog_filename = CATALOG_LOCAL_FILENAME
+    catalog_file = os.path.join(catalog_dir, catalog_filename)
 
     if not os.path.exists(catalog_file):
         return ""
@@ -176,9 +192,14 @@ def trigger_build_pipeline(host, log_callback=None) -> Dict[str, Any]:
     if old_job_id:
         _log(f"Current latest job: {old_job_id[:8]}... (state: {old_job_state})")
 
-    catalog_content = get_catalog_content()
+    catalog_content = get_catalog_content(host)
     if not catalog_content:
-        result["error"] = "Failed to load catalog file from automation library"
+        catalog_filename = get_catalog_name(host)
+        result["error"] = (
+            f"Failed to load catalog file '{catalog_filename}' from "
+            f"automation_library/build_stream/catalogs/. "
+            f"Check catalog_name in omnia_test_config.yml."
+        )
         return result
 
     _log(PIPELINE_MSGS["uploading_catalog"])

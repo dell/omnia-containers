@@ -105,9 +105,13 @@ def test_k8s_telemetry_pods(host):
 
     Checks pods based on telemetry_config.yml and software_config.json:
     - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled
-    - iDRAC telemetry pods if telemetry_sources.idrac.metrics_enabled is true
-    - VictoriaMetrics cluster pods (always cluster mode)
-    - Kafka pods if any source targets kafka
+    - iDRAC telemetry pods if telemetry_sources.idrac.metrics_enabled
+    - VictoriaMetrics cluster pods if any source targets victoria_metrics
+    - VictoriaLogs cluster pods if any source targets victoria_logs
+    - Kafka + Strimzi pods if any source/bridge targets kafka
+    - Vector bridge pods (vector-ldms, vector-ome) if bridges enabled
+    - vmagent-vector / vlagent-vector write buffers for Vector bridges
+    - PowerScale pods (karavi-metrics, otel-collector) if powerscale enabled
     """
     log = TestLogger("Verify K8s telemetry pods running")
 
