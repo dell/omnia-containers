@@ -51,6 +51,7 @@ from automation_library.provision.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS,
     SKIP_MSGS,
 )
+from automation_library.provision.vars.common_vars import FORCE_PROVISION_VALIDATE_FAILED
 
 
 # =============================================================================
@@ -97,19 +98,30 @@ def test_build_stream_job_stage(host):
             )
         )
     else:
-        log.failed(
-            LOG_MSGS["build_stream_job_failed"].format(
-                stage=stage, state=job_state, job_id=job_id
-            ),
-            result.get("error", "")
-        )
-        # Use pytest.fail() so this test shows as FAILED (not skipped)
-        # Remaining tests will be SKIPPED via autouse fixture
-        pytest.fail(
-            ASSERT_MSGS["build_stream_job_stage_failed"].format(
-                stage=stage, job_id=job_id, state=job_state
+        # Check if force flag is enabled
+        if FORCE_PROVISION_VALIDATE_FAILED:
+            log.skipped(
+                f"Build stream validation failed but FORCE_PROVISION_VALIDATE_FAILED is enabled",
+                f"WARNING: Tests will run on unvalidated images! Stage '{stage}' is {job_state} (job_id: {job_id})"
             )
-        )
+            # Mark as success to allow tests to continue
+            build_stream_job_state["success"] = True
+            build_stream_job_state["forced"] = True
+            pytest.skip(f"Build stream validation forced to skip (stage: {stage}, state: {job_state})")
+        else:
+            log.failed(
+                LOG_MSGS["build_stream_job_failed"].format(
+                    stage=stage, state=job_state, job_id=job_id
+                ),
+                result.get("error", "")
+            )
+            # Use pytest.fail() so this test shows as FAILED (not skipped)
+            # Remaining tests will be SKIPPED via autouse fixture
+            pytest.fail(
+                ASSERT_MSGS["build_stream_job_stage_failed"].format(
+                    stage=stage, job_id=job_id, state=job_state
+                )
+            )
 
 
 # =============================================================================

@@ -514,10 +514,11 @@ def _require_build_stream_job(host, request):
         yield
         return
 
-    # Only skip if build_stream is enabled AND job check failed
+    # Only skip if build_stream is enabled AND job check failed AND not forced
     if (is_build_stream_enabled(host) and
             build_stream_job_state["checked"] and
-            not build_stream_job_state["success"]):
+            not build_stream_job_state["success"] and
+            not build_stream_job_state.get("forced", False)):
 
         # Use TestLogger to properly report the skip in test output/report
         log = TestLogger(request.node.name)

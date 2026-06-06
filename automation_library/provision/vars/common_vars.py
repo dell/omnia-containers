@@ -82,3 +82,12 @@ IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"
 OPENCHAMI_WORKDIR = f"{_OIM_SHARED_PATH}/openchami/workdir"
 BSS_BOOT_DIR = f"{OPENCHAMI_WORKDIR}/boot"
 CLOUDINIT_TEMPLATE_DIR = f"{OPENCHAMI_WORKDIR}/cloud-init"
+
+# =============================================================================
+# BUILD STREAM VALIDATION FORCE FLAG
+# =============================================================================
+# Force provision tests to run even when build_stream validate stage failed.
+# Default: false (recommended - ensures pipeline validation)
+# Set to true ONLY if you understand the implications and want to skip validation.
+# WARNING: When true, tests may run on unvalidated images!
+FORCE_PROVISION_VALIDATE_FAILED = False
