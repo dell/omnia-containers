@@ -46,28 +46,32 @@ def get_ldms_config_from_telemetry(host) -> Dict[str, Any]:
     """
     Get LDMS configuration from telemetry_config.yml.
 
+    Reads from ldms_configurations which contains:
+      agg_port, store_port, sampler_port, sampler_plugins
+
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with ldms_agg_port and ldms_store_port (read from config, no defaults)
+        Dict with ldms_agg_port and ldms_store_port
     """
     config = get_telemetry_config(host)
     if config.get("error"):
         return config
 
+    ldms_cfg = config.get("ldms_configurations", {})
     result = {}
 
-    if "ldms_agg_port" in config:
-        result["ldms_agg_port"] = config["ldms_agg_port"]
+    if "agg_port" in ldms_cfg:
+        result["ldms_agg_port"] = ldms_cfg["agg_port"]
     else:
-        result["error"] = "ldms_agg_port not found in telemetry_config.yml"
+        result["error"] = "ldms_configurations.agg_port not found in telemetry_config.yml"
         return result
 
-    if "ldms_store_port" in config:
-        result["ldms_store_port"] = config["ldms_store_port"]
+    if "store_port" in ldms_cfg:
+        result["ldms_store_port"] = ldms_cfg["store_port"]
     else:
-        result["error"] = "ldms_store_port not found in telemetry_config.yml"
+        result["error"] = "ldms_configurations.store_port not found in telemetry_config.yml"
         return result
 
     return result
@@ -75,19 +79,23 @@ def get_ldms_config_from_telemetry(host) -> Dict[str, Any]:
 
 def get_kafka_config_from_telemetry(host) -> Dict[str, Any]:
     """
-    Get kafka_configurations from telemetry_config.yml.
+    Get kafka sink config from telemetry_config.yml.
+
+    Reads from telemetry_sinks.kafka which contains:
+      persistence_size, log_retention_hours, log_retention_bytes,
+      log_segment_bytes, topic_partitions
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with kafka configurations
+        Dict with kafka sink configuration
     """
     config = get_telemetry_config(host)
     if config.get("error"):
         return config
 
-    return config.get("kafka_configurations", {})
+    return config.get("telemetry_sinks", {}).get("kafka", {})
 
 
 def get_topic_partitions_config(host) -> List[Dict[str, Any]]:
@@ -135,7 +143,7 @@ def get_kafka_cluster_config(host, admin_ip: str) -> Dict[str, Any]:
 
 def verify_kafka_config_match(host, admin_ip: str) -> Dict[str, Any]:
     """
-    Verify kafka_configurations in telemetry_config.yml match actual Kafka config.
+    Verify telemetry_sinks.kafka config in telemetry_config.yml matches actual Kafka config.
 
     Args:
         host: Testinfra host object
@@ -249,11 +257,11 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
     Verify Kafka topics exist via REST proxy.
 
     Checks:
-    1. If kafka not in idrac_telemetry_collection_type -> skip (return skip=True)
-    2. If idrac_telemetry_support=true AND kafka in collection_type -> idrac topic MUST exist
-    3. If idrac_telemetry_support=false AND idrac topic exists -> FAIL (should not exist)
-    4. If ldms in software_config.json -> ldms topic MUST exist
-    5. If ldms NOT in software_config.json AND ldms topic exists -> FAIL (should not exist)
+    1. If no source targets kafka -> skip (return skip=True)
+    2. If idrac source targets kafka -> idrac topic MUST exist
+    3. If idrac source does NOT target kafka AND idrac topic exists -> FAIL
+    4. If ldms source targets kafka -> ldms topic MUST exist
+    5. If ldms source does NOT target kafka AND ldms topic exists -> FAIL
 
     All checks run and all errors are collected before returning.
 
@@ -264,33 +272,27 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, skip, topics list, bridge_ip, errors
     """
-    # Get telemetry config
-    config = get_telemetry_config(host)
-    if config.get("error"):
-        return {
-            "success": False,
-            "skip": False,
-            "topics": [],
-            "bridge_ip": "",
-            "error": f"Failed to read telemetry_config.yml: {config.get('error')}"
-        }
+    from .shared_func import _get_source_config, _any_source_targets
 
-    # Check if kafka is in collection type
-    collection_type = config.get("idrac_telemetry_collection_type", "")
-    kafka_enabled = "kafka" in collection_type.lower()
+    # Check if any source targets kafka
+    kafka_active = _any_source_targets(host, "kafka")
 
-    if not kafka_enabled:
+    if not kafka_active:
         return {
             "success": True,
             "skip": True,
-            "skip_reason": "kafka not in idrac_telemetry_collection_type",
+            "skip_reason": "No source targets kafka",
             "topics": [],
             "bridge_ip": "",
             "error": ""
         }
 
-    # Get idrac_telemetry_support
-    idrac_telemetry_support = config.get("idrac_telemetry_support", False)
+    # Check idrac source targeting kafka
+    idrac_src = _get_source_config(host, "idrac")
+    idrac_targets_kafka = (
+        idrac_src.get("metrics_enabled", False)
+        and "kafka" in idrac_src.get("collection_targets", [])
+    )
 
     # Get ldms enabled status
     ldms_enabled = is_ldms_enabled(host)
@@ -339,26 +341,26 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
     ldms_exists = "ldms" in topics
 
     # Check 1: idrac topic
-    if idrac_telemetry_support:
-        # idrac_telemetry_support=true -> idrac topic MUST exist
+    if idrac_targets_kafka:
+        # idrac source targets kafka -> idrac topic MUST exist
         topic_results.append({
             "topic": "idrac",
             "exists": idrac_exists,
             "required": True,
-            "reason": "idrac_telemetry_support=true",
+            "reason": "idrac source targets kafka",
         })
         if not idrac_exists:
-            errors.append("idrac topic not found but idrac_telemetry_support=true")
+            errors.append("idrac topic not found but idrac source targets kafka")
     else:
-        # idrac_telemetry_support=false -> idrac topic should NOT exist
+        # idrac source does not target kafka -> idrac topic should NOT exist
         topic_results.append({
             "topic": "idrac",
             "exists": idrac_exists,
             "required": False,
-            "reason": "idrac_telemetry_support=false",
+            "reason": "idrac source does not target kafka",
         })
         if idrac_exists:
-            errors.append("idrac topic exists but idrac_telemetry_support=false")
+            errors.append("idrac topic exists but idrac source does not target kafka")
 
     # Check 2: ldms topic
     if ldms_enabled:
@@ -387,7 +389,7 @@ def verify_kafka_topics_via_rest(host, admin_ip: str) -> Dict[str, Any]:
         "skip": False,
         "topics": topics,
         "bridge_ip": bridge_ip,
-        "idrac_telemetry_support": idrac_telemetry_support,
+        "idrac_targets_kafka": idrac_targets_kafka,
         "ldms_enabled": ldms_enabled,
         "topic_results": topic_results,
         "errors": errors,
@@ -878,6 +880,8 @@ def get_ldms_sampler_plugins(host) -> List[str]:
     """
     Get list of LDMS sampler plugin names from telemetry_config.yml.
 
+    Reads from ldms_configurations.sampler_plugins list.
+
     Args:
         host: Testinfra host object
 
@@ -888,7 +892,8 @@ def get_ldms_sampler_plugins(host) -> List[str]:
     if "error" in config:
         return []
 
-    sampler_configs = config.get("ldms_sampler_configurations", [])
+    ldms_cfg = config.get("ldms_configurations", {})
+    sampler_configs = ldms_cfg.get("sampler_plugins", [])
     plugins = []
 
     for sampler in sampler_configs:
@@ -976,7 +981,7 @@ def verify_ldms_data_in_kafka(
     Verify LDMS data is flowing to Kafka by checking that data from all
     LDMS-enabled nodes with ALL configured plugins is present in the ldms topic.
 
-    Reads ldms_sampler_configurations from telemetry_config.yml to know which
+    Reads ldms_configurations.sampler_plugins from telemetry_config.yml to know which
     plugin metrics (e.g., meminfo, procstat2, vmstat) should be collected.
     Waits up to timeout_seconds for all hostname×plugin combinations to arrive.
 

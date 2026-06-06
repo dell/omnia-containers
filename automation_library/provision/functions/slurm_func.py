@@ -524,7 +524,7 @@ def verify_ldms_sampler_plugins(host) -> Dict[str, Any]:
     """
     Verify LDMS sampler plugins on nodes match telemetry_config.yml.
 
-    Reads ldms_sampler_configurations from telemetry_config.yml and verifies
+    Reads ldms_configurations.sampler_plugins from telemetry_config.yml and verifies
     /opt/ovis-ldms/etc/ldms/sampler.conf on each node has exactly those plugins.
 
     Returns:
@@ -545,9 +545,10 @@ def verify_ldms_sampler_plugins(host) -> Dict[str, Any]:
         results["success"] = False
         return results
 
-    sampler_configs = config.get("ldms_sampler_configurations", [])
+    ldms_cfg = config.get("ldms_configurations", {})
+    sampler_configs = ldms_cfg.get("sampler_plugins", [])
     if not sampler_configs:
-        results["error"] = "No ldms_sampler_configurations in telemetry_config.yml"
+        results["error"] = "No ldms_configurations.sampler_plugins in telemetry_config.yml"
         results["success"] = False
         return results
 

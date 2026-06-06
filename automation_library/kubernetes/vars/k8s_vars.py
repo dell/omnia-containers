@@ -85,8 +85,6 @@ TELEMETRY_NAMESPACE = "telemetry"
 TELEMETRY_KAFKA_PVC_PATTERN = "kafka"
 TELEMETRY_VMSTORAGE_PVC_PATTERN = "vmstorage"
 TELEMETRY_VLSTORAGE_PVC_PATTERN = "vlstorage"
-TELEMETRY_KAFKA_CFG_SECTION = "kafka_configurations"
-TELEMETRY_VICTORIA_CFG_SECTION = "victoria_configurations"
 TELEMETRY_PERSISTENCE_SIZE_KEY = "persistence_size"
 
 # =============================================================================
@@ -114,6 +112,12 @@ K8S_CMD_TEMPLATES = {
     "find_etcd_pods": "kubectl get pods -n {namespace} -o name | grep '^pod/etcd-'",
     "kubectl_exec_sh_lc": "kubectl exec -n {namespace} {pod} -- sh -lc {cmd}",
     "kubectl_exec_sh_c": "kubectl exec -n {namespace} {pod} -- sh -c {cmd}",
+    "kubectl_exec_etcdctl": (
+        "kubectl exec -n {namespace} {pod} -- etcdctl "
+        "--endpoints=https://127.0.0.1:{port} "
+        "--cacert={cacert} --cert={cert} --key={key} "
+        "{subcmd}"
+    ),
     "etcdctl_health": (
         "ETCDCTL_API=3 etcdctl "
         "--endpoints={endpoints} "

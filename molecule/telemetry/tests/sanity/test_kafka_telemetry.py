@@ -25,7 +25,7 @@ Test cases:
 5. Verify idrac Kafka topic ready (with service tag verification via Redfish)
 6. Verify LDMS data in Kafka topic (if ldms enabled)
 
-Note: Kafka tests skip if kafka is not in idrac_telemetry_collection_type.
+Note: Kafka tests skip if no source targets kafka.
 """
 
 from datetime import datetime
@@ -257,8 +257,8 @@ def _build_topic_result_lines(result):
     lines = [
         f"Kafka bridge IP: {result.get('bridge_ip', '')}",
         f"Topics found: {result.get('topics', [])}",
-        f"idrac_telemetry_support: "
-        f"{result.get('idrac_telemetry_support', False)}",
+        f"idrac_targets_kafka: "
+        f"{result.get('idrac_targets_kafka', False)}",
         f"ldms_enabled: {result.get('ldms_enabled', False)}",
         "",
         "Topic verification:",
@@ -291,11 +291,11 @@ def test_kafka_topics(host):
     Test Case 3: Verify Kafka topics via REST proxy.
 
     Checks:
-    1. If kafka not in idrac_telemetry_collection_type -> skip test
-    2. If idrac_telemetry_support=true -> idrac topic MUST exist
-    3. If idrac_telemetry_support=false -> idrac topic should NOT exist
-    4. If ldms in software_config.json -> ldms topic MUST exist
-    5. If ldms NOT in software_config.json -> ldms topic should NOT exist
+    1. If no source targets kafka -> skip test
+    2. If idrac source targets kafka -> idrac topic MUST exist
+    3. If idrac source does NOT target kafka -> idrac topic should NOT exist
+    4. If ldms source targets kafka -> ldms topic MUST exist
+    5. If ldms source does NOT target kafka -> ldms topic should NOT exist
 
     All checks run and all errors are reported before failing.
     """

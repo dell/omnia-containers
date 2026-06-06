@@ -28,7 +28,7 @@ Test cases:
 8. Verify TLS connection and health endpoint
 9. Verify iDRAC telemetry data in VictoriaMetrics
 
-Note: All tests skip if victoria is not in idrac_telemetry_collection_type.
+Note: All tests skip if no source targets victoria_metrics.
 """
 
 from datetime import datetime
@@ -49,7 +49,6 @@ from automation_library.telemetry.messages.victoria_msgs import (
 )
 from automation_library.telemetry.functions.shared_func import (
     is_victoria_enabled,
-    is_idrac_telemetry_enabled,
     get_activated_service_tags,
     get_admin_ip,
     skip_if_victoria_not_enabled,
@@ -79,27 +78,18 @@ def test_victoria_enabled(host):
     Test Case 1: Verify VictoriaMetrics is enabled.
 
     Checks:
-    - idrac_telemetry_support is true
-    - 'victoria' is in idrac_telemetry_collection_type
+    - At least one source targets victoria_metrics
     - Logs deployment mode for information
     """
     log = TestLogger(VICTORIA_TEST_NAMES["victoria_enabled"])
 
-    # Check if iDRAC telemetry is enabled
-    if not is_idrac_telemetry_enabled(host):
-        log.skipped(
-            "iDRAC telemetry is not enabled (idrac_telemetry_support=false)",
-            "Test skipped - iDRAC telemetry not enabled"
-        )
-        pytest.skip("iDRAC telemetry is not enabled")
-
-    # Check if VictoriaMetrics is enabled
+    # Check if VictoriaMetrics sink is active
     if not is_victoria_enabled(host):
         log.skipped(
             VICTORIA_LOG_MSGS["victoria_not_enabled"],
             "Test skipped - VictoriaMetrics not enabled"
         )
-        pytest.skip("VictoriaMetrics is not enabled in idrac_telemetry_collection_type")
+        pytest.skip("VictoriaMetrics sink is not active")
 
     # Log deployment mode
     deployment_mode = get_deployment_mode(host)
@@ -125,7 +115,7 @@ def test_victoria_persistence_size(host):
     """
     Test Case 2: Verify VictoriaMetrics persistence size matches config.
 
-    Verifies that PVC storage size matches victoria_configurations.persistence_size
+    Verifies that PVC storage size matches telemetry_sinks.victoria_metrics.persistence_size
     in telemetry_config.yml.
     """
     log = TestLogger(VICTORIA_TEST_NAMES["victoria_persistence_size"])
