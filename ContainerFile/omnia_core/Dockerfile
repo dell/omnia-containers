@@ -34,9 +34,13 @@ RUN apk update && apk add --no-cache \
     nano \
     curl \
     ca-certificates-bundle \
+    ca-certificates \
     shadow \
     go \
     build-base
+
+RUN mkdir -p /usr/local/share/ca-certificates
+RUN ln -sf /usr/bin/pulp /usr/local/bin/pulp
 
 # ── STEP 2: git-lfs init ────────────────────────────────────────────────────
 # git-lfs is now installed as an apk — NO source build needed.
@@ -139,7 +143,9 @@ RUN rm -rf /var/cache/apk/* /tmp/* /var/tmp/* && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
 # ── STEP 10: Clone Omnia ────────────────────────────────────────────────────
-RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
+# RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
+
+RUN git clone https://github.com/SAYUK09/omnia.git -b ${OMNIA_VERSION}
 
 # ── STEP 11: Entrypoint and certs ───────────────────────────────────────────
 COPY entrypoint.sh /entrypoint.sh
