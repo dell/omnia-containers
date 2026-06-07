@@ -203,7 +203,7 @@ core_tag: ""
 # Omnia branch/tag for core image build
 # Will build the core container with the below omnia branch/tag code
 # Can be a branch (e.g., "main", "pub/q1_dev") or a tag (e.g., "v1.6.0")
-omnia_branch: "pub/q2_upgrade"
+omnia_branch: ""
 
 # #############################################################################
 #                                                                             #
