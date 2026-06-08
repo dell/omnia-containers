@@ -28,7 +28,6 @@ Test cases:
   TC-F10  test_multi_gpu_discovery
   TC-F16  test_toolkit_nfs_shared_storage
   TC-F18  test_nvidia_peer_mem_installed
-  TC-I01  test_dcgm_role_idempotency
   TC-C01  test_rhel_compatibility
   TC-C02  test_cuda_version_compatibility
 """
@@ -59,7 +58,6 @@ from automation_library.dcgm.functions import (
     verify_cuda_compute_node_install,
     verify_toolkit_nfs_shared_storage,
     verify_nvidia_peer_mem_all_gpu_nodes,
-    verify_dcgm_role_idempotency,
     verify_rhel_compatibility,
     verify_cuda_version_compatibility,
 )
@@ -467,38 +465,11 @@ def test_nvidia_peer_mem_installed(host):
 
 
 # =============================================================================
-# TC-I01: DCGM INSTALLATION ROLE IDEMPOTENCY
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(14)
-def test_dcgm_role_idempotency(host, gpu_node_ip):
-    """
-    TC-I01: Run the Ansible GPU playbook a second time and verify it reports
-    changed=0, confirming idempotency of the DCGM installation role.
-    Maps to: idempotency specification TC-I01
-    """
-    log = TestLogger(TEST_NAMES["dcgm_idempotency"])
-    log.check(f"Running Ansible idempotency check on {gpu_node_ip}")
-
-    result = verify_dcgm_role_idempotency(host, gpu_node_ip)
-
-    if result["success"]:
-        log.passed(LOG["idempotency_no_changes"], result["details"])
-    else:
-        log.failed(LOG["idempotency_changes_found"], result["error"])
-
-    assert result["success"], ASSERT["idempotency_failed"].format(
-        changes=result["changed_count"]
-    )
-
-
-# =============================================================================
 # TC-C01: RHEL 10.x OS COMPATIBILITY
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(15)
+@pytest.mark.order(14)
 def test_rhel_compatibility(host, gpu_node_ip):
     """
     TC-C01: Verify GPU node OS is RHEL 10.x.

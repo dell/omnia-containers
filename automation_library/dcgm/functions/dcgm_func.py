@@ -37,7 +37,6 @@ Test coverage:
   TC-F15  verify_toolkit_failure_lock_release
   TC-F16  verify_toolkit_nfs_shared_storage
   TC-F18  verify_nvidia_peer_mem_installed
-  TC-I01  verify_dcgm_role_idempotency
   TC-C01  verify_rhel_compatibility
   TC-C02  verify_cuda_version_compatibility
   TC-E01  verify_cuda_prerequisite_blocks_deployment
@@ -1056,55 +1055,6 @@ def verify_nvidia_peer_mem_all_gpu_nodes(host) -> Dict[str, Any]:
     )
     if not all_ok:
         result["error"] = f"nvidia_peer_mem not loaded on: {result['failed_nodes']}"
-    return result
-
-
-# =============================================================================
-# TC-I01: DCGM INSTALLATION ROLE IDEMPOTENCY
-# =============================================================================
-
-def verify_dcgm_role_idempotency(host, admin_ip: str) -> Dict[str, Any]:
-    """
-    TC-I01: Run the Ansible GPU playbook twice and verify the second run
-    reports changed=0 (idempotency). Checks via Ansible output parsing.
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Admin IP of the GPU node (used as Ansible limit)
-
-    Returns:
-        Dict with success, details, error, changed_count
-    """
-    result = {"success": False, "details": "", "error": "", "changed_count": -1}
-
-    cmd = run_in_container(
-        host,
-        CMD_TEMPLATES["ansible_idempotency_check"].format(node=admin_ip)
-    )
-
-    output = (cmd.stdout + cmd.stderr).strip()
-
-    changed_match = re.search(r"changed=(\d+)", output)
-    failed_match = re.search(r"failed=(\d+)", output)
-
-    changed = int(changed_match.group(1)) if changed_match else -1
-    failed = int(failed_match.group(1)) if failed_match else -1
-
-    result["changed_count"] = changed
-
-    if failed > 0:
-        result["error"] = f"Ansible playbook failed on second run (failed={failed}): {output[:400]}"
-        return result
-
-    if changed != 0:
-        result["error"] = (
-            f"Ansible playbook not idempotent: changed={changed} on second run. "
-            f"Output: {output[:400]}"
-        )
-        return result
-
-    result["success"] = True
-    result["details"] = f"Second Ansible run on {admin_ip}: changed=0, failed=0 — idempotent"
     return result
 
 

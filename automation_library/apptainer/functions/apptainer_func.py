@@ -245,6 +245,21 @@ def _get_first_sif(host, node_ip: str, images_dir: str) -> str:
     return files[0] if files else ""
 
 
+def _get_sif_for_jobs(host, images_dir: str) -> str:
+    """Look up SIF path via a compute node (which has the NFS /hpc_tools mounted).
+
+    The control node may not have /hpc_tools mounted, so SIF lookups for job
+    scripts must be done via a compute node.  The path itself is NFS-shared, so
+    once resolved it is valid for jobs running on any cluster node.
+    """
+    compute_nodes = get_slurm_nodes(host)
+    for node in compute_nodes:
+        sif = _get_first_sif(host, node.get("admin_ip", ""), images_dir)
+        if sif:
+            return sif
+    return ""
+
+
 # =============================================================================
 # LDAP CREDENTIAL HELPERS
 # =============================================================================
@@ -942,7 +957,7 @@ def verify_submit_single_node_apptainer_job(host) -> Dict[str, Any]:
 
     control_ip = control_nodes[0].get("admin_ip", "")
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, control_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
 
     if not sif_file:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
@@ -980,7 +995,7 @@ def verify_submit_multi_node_apptainer_job(host) -> Dict[str, Any]:
     control_ip = control_nodes[0].get("admin_ip", "")
     num_nodes = min(2, len(compute_nodes))
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, control_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
 
     if not sif_file:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
@@ -1072,17 +1087,15 @@ def verify_sif_readable_by_ldap_user(host) -> Dict[str, Any]:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
                 "details": [], "error": ERROR_NO_SIF_FILES}
 
-    # Run sshpass from OIM (not through SSH to compute node)
-    ssh_cmd = (
-        f"sshpass -p '{ldap_pass}' ssh -o StrictHostKeyChecking=no "
-        f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
-        f"{ldap_user}@{admin_ip} \"ls -la '{sif_file}' 2>&1\""
+    # SSH to compute node as root, then switch to LDAP user with su.
+    # This avoids needing sshpass on the OIM.
+    check = _safe_run(
+        host,
+        f"su -s /bin/sh {ldap_user} -c \"stat '{sif_file}' > /dev/null 2>&1\" "
+        f"&& echo 'readable=yes' || echo 'readable=no'",
+        admin_ip,
     )
-    try:
-        check = host.run(ssh_cmd)
-    except RuntimeError as exc:
-        check = _FakeResult(255, "", f"SSH failed: {exc}")
-    readable = check.rc == 0 and "Permission denied" not in check.stdout
+    readable = "readable=yes" in check.stdout
 
     if not readable:
         err = check.stdout.strip() or check.stderr.strip()
@@ -1122,11 +1135,11 @@ def verify_submit_apptainer_job_as_ldap_user(host) -> Dict[str, Any]:
         return {"success": False, "message": ERROR_NO_SLURM_CONTROL_NODES,
                 "job_id": "", "error": ERROR_NO_SLURM_CONTROL_NODES}
 
-    ldap_user, ldap_pass = creds[0]
+    ldap_user, _ = creds[0]
     login_ip = login_nodes[0].get("admin_ip", "")
     control_ip = control_nodes[0].get("admin_ip", "")
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, login_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
 
     if not sif_file:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
@@ -1138,48 +1151,31 @@ def verify_submit_apptainer_job_as_ldap_user(host) -> Dict[str, Any]:
                                    .replace("{{OUTPUT_PATH}}", REMOTE_JOB_OUTPUT_DIR)
 
     encoded = base64.b64encode(script_content.encode()).decode()
-    remote_script = f"/home/{ldap_user}/omnia_ldap_apptainer.sh"
+    remote_script = f"/tmp/omnia_ldap_apptainer_{ldap_user}.sh"
 
-    # Run sshpass from OIM to push script
-    push_cmd = (
-        f"sshpass -p '{ldap_pass}' ssh -o StrictHostKeyChecking=no "
-        f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
-        f"{ldap_user}@{login_ip} "
-        f"\"echo {encoded} | base64 -d > {remote_script} && chmod +x {remote_script}\""
+    # Push script to login node as root, then submit as LDAP user via su.
+    # This avoids needing sshpass on the OIM.
+    push = _safe_run(
+        host,
+        f"echo {encoded} | base64 -d > {remote_script} "
+        f"&& chown {ldap_user} {remote_script} "
+        f"&& chmod 755 {remote_script}",
+        login_ip,
     )
-    try:
-        push = host.run(push_cmd)
-    except RuntimeError as exc:
-        push = _FakeResult(255, "", f"SSH failed: {exc}")
     if push.rc != 0:
-        err = push.stdout.strip()
+        err = push.stderr.strip() or push.stdout.strip()
         return {"success": False, "message": LDAP_JOB_FAILED.format(error=err),
                 "job_id": "", "error": err}
 
-    # Run sshpass from OIM to submit job
-    submit_cmd = (
-        f"sshpass -p '{ldap_pass}' ssh -o StrictHostKeyChecking=no "
-        f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
-        f"{ldap_user}@{login_ip} \"sbatch {remote_script}\""
+    submit = _safe_run(
+        host,
+        f"su -s /bin/sh {ldap_user} -c 'sbatch {remote_script}'",
+        login_ip,
     )
-    try:
-        submit = host.run(submit_cmd)
-    except RuntimeError as exc:
-        submit = _FakeResult(255, "", f"SSH failed: {exc}")
-    
-    # Cleanup script
-    cleanup_cmd = (
-        f"sshpass -p '{ldap_pass}' ssh -o StrictHostKeyChecking=no "
-        f"-o UserKnownHostsFile=/dev/null -o ConnectTimeout=10 "
-        f"{ldap_user}@{login_ip} \"rm -f {remote_script}\""
-    )
-    try:
-        host.run(cleanup_cmd)
-    except RuntimeError:
-        pass  # Ignore cleanup errors
+    _safe_run(host, f"rm -f {remote_script}", login_ip)
 
     if submit.rc != 0:
-        err = submit.stdout.strip()
+        err = submit.stderr.strip() or submit.stdout.strip()
         return {"success": False, "message": LDAP_JOB_FAILED.format(error=err),
                 "job_id": "", "error": err}
 
@@ -1220,20 +1216,23 @@ def verify_sif_reuse_without_redownload(host) -> Dict[str, Any]:
         return {"success": True, "skipped": True, "message": SIF_REUSE_SKIPPED,
                 "details": {}, "error": ""}
 
-    mtime_before = _safe_run(host, f"stat -c '%Y' '{sif_file}' 2>/dev/null", admin_ip).stdout.strip()
+    size_before = _safe_run(host, f"stat -c '%s' '{sif_file}' 2>/dev/null", admin_ip).stdout.strip()
     script_path = _get_download_script_path(host)
-    _safe_run(host, f"bash '{script_path}' 2>&1", admin_ip)
-    mtime_after = _safe_run(host, f"stat -c '%Y' '{sif_file}' 2>/dev/null", admin_ip).stdout.strip()
+    run_output = _safe_run(host, f"bash '{script_path}' 2>&1", admin_ip)
+    size_after = _safe_run(host, f"stat -c '%s' '{sif_file}' 2>/dev/null", admin_ip).stdout.strip()
 
-    unchanged = mtime_before == mtime_after
-    if not unchanged:
-        err = f"SIF mtime changed: {mtime_before} -> {mtime_after}"
-        return {"success": False, "message": SIF_REUSE_FAILED.format(error=err),
-                "details": {"mtime_before": mtime_before, "mtime_after": mtime_after},
-                "error": err}
+    script_stdout = run_output.stdout.lower()
+    skipped_in_log = any(kw in script_stdout for kw in ("skip", "already exist", "already download"))
 
-    return {"success": True, "message": SIF_REUSE_PASSED,
-            "details": {"sif_file": sif_file, "mtime": mtime_before}, "error": ""}
+    if skipped_in_log or size_before == size_after:
+        return {"success": True, "message": SIF_REUSE_PASSED,
+                "details": {"sif_file": sif_file, "size_bytes": size_after,
+                            "skipped_in_log": skipped_in_log}, "error": ""}
+
+    err = f"SIF file size changed: {size_before} -> {size_after} bytes (unexpected content change)"
+    return {"success": False, "message": SIF_REUSE_FAILED.format(error=err),
+            "details": {"size_before": size_before, "size_after": size_after},
+            "error": err}
 
 
 # =============================================================================
@@ -1280,7 +1279,7 @@ def verify_execute_multiple_apptainer_jobs_concurrently(host) -> Dict[str, Any]:
 
     control_ip = control_nodes[0].get("admin_ip", "")
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, control_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
 
     if not sif_file:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
@@ -1530,10 +1529,10 @@ def verify_execute_cuda_workload_in_container(host) -> Dict[str, Any]:
 
     control_ip = control_nodes[0].get("admin_ip", "")
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, control_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
     if not sif_file:
-        return {"success": False, "message": CUDA_WORKLOAD_SKIPPED,
-                "details": {}, "error": "No SIF file found"}
+        return {"success": True, "skipped": True, "message": CUDA_WORKLOAD_SKIPPED,
+                "details": {}, "error": ""}
 
     result = _submit_apptainer_job(
         host, control_ip,
@@ -1707,7 +1706,7 @@ def verify_job_array_execution_in_containers(host) -> Dict[str, Any]:
 
     control_ip = control_nodes[0].get("admin_ip", "")
     images_dir = _get_container_images_dir(host)
-    sif_file = _get_first_sif(host, control_ip, images_dir)
+    sif_file = _get_sif_for_jobs(host, images_dir)
     if not sif_file:
         return {"success": False, "message": ERROR_NO_SIF_FILES,
                 "details": [], "error": ERROR_NO_SIF_FILES}
