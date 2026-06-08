@@ -1775,6 +1775,11 @@ def test_ucx_ib_only_transport(host):
     if result.get("skipped"):
         pytest.skip(result["message"])
 
+    if result.get("ip_unassigned"):
+        log.failed("Phase 3 FAILED: IB IP not assigned on node(s): "
+                   f"{', '.join(result['ip_unassigned'])}")
+        assert False, result["message"]
+
     log.check(f"  Submit node      : {result.get('submit_node', 'N/A')}")
     log.check(f"  Nodes under test : {result.get('nodes', 'unknown')}")
     log.check(f"  Job ID           : {result.get('job_id', 'N/A')}")

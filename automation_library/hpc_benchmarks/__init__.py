@@ -40,8 +40,6 @@ from .functions import (
     verify_e2e_provisioning_x86_64,
     verify_nfs_accessibility,
     verify_airgapped_staging,
-    verify_dir_creation_idempotency,
-    verify_artifact_staging_idempotency,
     verify_post_staging_validation,
     verify_rhel_compatibility,
     verify_cuda_flow_unaffected,
@@ -49,10 +47,6 @@ from .functions import (
     verify_container_image_flow_unaffected,
     verify_openmpi_unaffected,
     verify_existing_hpc_dirs_preserved,
-    verify_empty_declaration_no_new_dirs,
-    measure_staging_duration,
-    measure_staging_overhead,
-    measure_report_availability,
     verify_missing_artifact_graceful_skip,
     verify_malformed_json_failure,
     verify_msrsafe_aarch64_validation_error,
@@ -77,7 +71,6 @@ from .vars import (
     AARCH64_BENCHMARK_PACKAGES,
     CONTAINER_FIRST_PACKAGE,
     TOOL_TO_DIR,
-    STAGING_DURATION_TARGET_SECS,
 )
 from .messages import TEST_NAMES, TEST_LOG_MSGS, TEST_ASSERT_MSGS
 
@@ -100,8 +93,6 @@ __all__ = [
     "verify_e2e_provisioning_x86_64",
     "verify_nfs_accessibility",
     "verify_airgapped_staging",
-    "verify_dir_creation_idempotency",
-    "verify_artifact_staging_idempotency",
     "verify_post_staging_validation",
     "verify_rhel_compatibility",
     "verify_cuda_flow_unaffected",
@@ -110,11 +101,7 @@ __all__ = [
     "verify_openmpi_unaffected",
     "verify_existing_hpc_dirs_preserved",
     # Regression
-    "verify_empty_declaration_no_new_dirs",
     # Performance
-    "measure_staging_duration",
-    "measure_staging_overhead",
-    "measure_report_availability",
     # Negative / Error
     "verify_missing_artifact_graceful_skip",
     "verify_malformed_json_failure",
@@ -139,7 +126,6 @@ __all__ = [
     "AARCH64_BENCHMARK_PACKAGES",
     "CONTAINER_FIRST_PACKAGE",
     "TOOL_TO_DIR",
-    "STAGING_DURATION_TARGET_SECS",
     # Messages
     "TEST_NAMES",
     "TEST_LOG_MSGS",

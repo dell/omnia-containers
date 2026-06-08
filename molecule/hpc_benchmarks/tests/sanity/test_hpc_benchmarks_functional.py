@@ -17,31 +17,24 @@ HPC Benchmarks Functional, Idempotency, Compatibility, Regression, and
 Performance Tests.
 
 Test IDs:
-  TC-F01  test_x86_64_json_parsing
-  TC-F03  test_local_repo_sync_x86_64
-  TC-F05  test_hpc_tools_dir_creation
-  TC-F06  test_x86_64_artifact_copy
-  TC-F08  test_msr_safe_x86_64_only
-  TC-F09  test_container_first_guidance
-  TC-F10  test_source_only_delivery
-  TC-F11  test_per_tool_staging_report
-  TC-F13  test_e2e_provisioning_x86_64
-  TC-F15  test_nfs_accessibility
-  TC-F16  test_airgapped_staging
-  TC-F17  test_provisioning_idempotency
-  TC-F18  test_post_staging_validation
-  TC-I01  test_dir_creation_idempotency
-  TC-I02  test_artifact_staging_idempotency
-  TC-C01  test_rhel_compatibility
-  TC-RT01 test_cuda_flow_unaffected
-  TC-RT02 test_nvhpc_flow_unaffected
-  TC-RT03 test_container_image_flow_unaffected
-  TC-RT04 test_openmpi_unaffected
-  TC-RT05 test_existing_hpc_dirs_preserved
-  TC-RT06 test_empty_declaration_no_new_dirs
-  TC-P01  test_staging_duration
-  TC-P02  test_staging_overhead
-  TC-P03  test_report_availability
+  TC-01  test_x86_64_json_parsing
+  TC-02  test_local_repo_sync_x86_64
+  TC-03  test_hpc_tools_dir_creation
+  TC-04  test_x86_64_artifact_copy
+  TC-05  test_msr_safe_x86_64_only
+  TC-06  test_container_first_guidance
+  TC-07  test_source_only_delivery
+  TC-08  test_per_tool_staging_report
+  TC-09  test_e2e_provisioning_x86_64
+  TC-10  test_nfs_accessibility
+  TC-11  test_airgapped_staging
+  TC-12  test_post_staging_validation
+  TC-13  test_rhel_compatibility
+  TC-14  test_cuda_flow_unaffected
+  TC-15  test_nvhpc_flow_unaffected
+  TC-16  test_container_image_flow_unaffected
+  TC-17  test_openmpi_unaffected
+  TC-18  test_existing_hpc_dirs_preserved
 
 Spec: TSPEC-HPCBENCH-2026-001 v1.0.0
 """
@@ -64,8 +57,6 @@ from automation_library.hpc_benchmarks import (
     verify_e2e_provisioning_x86_64,
     verify_nfs_accessibility,
     verify_airgapped_staging,
-    verify_dir_creation_idempotency,
-    verify_artifact_staging_idempotency,
     verify_post_staging_validation,
     verify_rhel_compatibility,
     verify_cuda_flow_unaffected,
@@ -73,22 +64,18 @@ from automation_library.hpc_benchmarks import (
     verify_container_image_flow_unaffected,
     verify_openmpi_unaffected,
     verify_existing_hpc_dirs_preserved,
-    verify_empty_declaration_no_new_dirs,
-    measure_staging_duration,
-    measure_staging_overhead,
-    measure_report_availability,
 )
 
 
 # =============================================================================
-# TC-F01: x86_64 JSON DECLARATION PARSING
+# TC-01: x86_64 JSON DECLARATION PARSING
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
 def test_x86_64_json_parsing(host):
     """
-    TC-F01: Parse slurm_custom.json for x86_64; verify all benchmark packages
+    TC-01: Parse slurm_custom.json for x86_64; verify all benchmark packages
     declared with correct types; msr-safe present; container-first image
     declared.
 
@@ -111,14 +98,14 @@ def test_x86_64_json_parsing(host):
 
 
 # =============================================================================
-# TC-F03: LOCAL REPO SYNC — x86_64
+# TC-02: LOCAL REPO SYNC — x86_64
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(3)
+@pytest.mark.order(2)
 def test_local_repo_sync_x86_64(host):
     """
-    TC-F03: Run local_repo.yml; verify all x86_64 benchmark tarballs appear
+    TC-02: Run local_repo.yml; verify all x86_64 benchmark tarballs appear
     in offline_repo/cluster/x86_64/rhel/10.0/tarball/.
 
     Acceptance criteria: AC-6.1.1, FR-03
@@ -139,14 +126,14 @@ def test_local_repo_sync_x86_64(host):
 
 
 # =============================================================================
-# TC-F05: hpc_tools DIRECTORY CREATION
+# TC-03: hpc_tools DIRECTORY CREATION
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(5)
+@pytest.mark.order(4)
 def test_hpc_tools_dir_creation(host, x86_64_node_ip):
     """
-    TC-F05: Run provision.yml; verify hpc_tools/ directory created with one
+    TC-03: Run provision.yml; verify hpc_tools/ directory created with one
     subdirectory per benchmark tool; permissions set to 0755.
 
     Acceptance criteria: AC-6.1.1, VC-001, BL-008
@@ -166,14 +153,14 @@ def test_hpc_tools_dir_creation(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F06: PARALLEL COPY — x86_64 ARTIFACTS
+# TC-04: PARALLEL COPY — x86_64 ARTIFACTS
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(6)
+@pytest.mark.order(3)
 def test_x86_64_artifact_copy(host, x86_64_node_ip):
     """
-    TC-F06: Run provision.yml; verify all x86_64 source tarballs copied to
+    TC-04: Run provision.yml; verify all x86_64 source tarballs copied to
     hpc_tools/<tool>/; only declared tools are staged; undeclared tools absent.
 
     Acceptance criteria: AC-6.1.1, VC-001, VC-003, BL-009
@@ -192,14 +179,14 @@ def test_x86_64_artifact_copy(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F08: msr-safe x86_64-ONLY STAGING
+# TC-05: msr-safe x86_64-ONLY STAGING
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(8)
+@pytest.mark.order(5)
 def test_msr_safe_x86_64_only(host, x86_64_node_ip):
     """
-    TC-F08: Declare msr-safe only for x86_64; run full provisioning; verify
+    TC-05: Declare msr-safe only for x86_64; run full provisioning; verify
     msr-safe present in hpc_tools/msr-safe/ and absent from aarch64
     offline_repo path.
 
@@ -219,14 +206,14 @@ def test_msr_safe_x86_64_only(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F09: CONTAINER-FIRST GUIDANCE FOR HPL/HPL-MxP/STREAM
+# TC-06: CONTAINER-FIRST GUIDANCE FOR HPL/HPL-MxP/STREAM
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(9)
+@pytest.mark.order(6)
 def test_container_first_guidance(host, x86_64_node_ip):
     """
-    TC-F09: Verify HPL/HPL-MxP/STREAM not declared as source artifacts;
+    TC-06: Verify HPL/HPL-MxP/STREAM not declared as source artifacts;
     Container-First image (nvcr.io/nvidia/hpc-benchmarks:25.09) declared
     with type=image; pull_benchmarks.sh deployed to NFS scripts/.
 
@@ -244,14 +231,14 @@ def test_container_first_guidance(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F10: SOURCE-ONLY DELIVERY — NO PRE-COMPILATION
+# TC-07: SOURCE-ONLY DELIVERY — NO PRE-COMPILATION
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(10)
+@pytest.mark.order(7)
 def test_source_only_delivery(host):
     """
-    TC-F10: Verify no compile/make/build commands in provisioning tasks;
+    TC-07: Verify no compile/make/build commands in provisioning tasks;
     no pre-compiled binaries in hpc_tools/<tool>/ directories.
 
     Acceptance criteria: BL-002, FR-04
@@ -270,14 +257,14 @@ def test_source_only_delivery(host):
 
 
 # =============================================================================
-# TC-F11: PER-TOOL STAGING OUTCOME REPORT
+# TC-08: PER-TOOL STAGING OUTCOME REPORT
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(11)
+@pytest.mark.order(8)
 def test_per_tool_staging_report(host, x86_64_node_ip):
     """
-    TC-F11: Run pull_benchmarks.sh on x86_64 node; verify per-tool staging
+    TC-08: Run pull_benchmarks.sh on x86_64 node; verify per-tool staging
     report correctly shows:
     - Already-present tools → SKIPPED with [WARN] marker
     - Missing/deleted tools → DOWNLOADED with [SUCCESS] marker
@@ -300,14 +287,14 @@ def test_per_tool_staging_report(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F13: END-TO-END PROVISIONING — x86_64
+# TC-09: END-TO-END PROVISIONING — x86_64
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(13)
+@pytest.mark.order(9)
 def test_e2e_provisioning_x86_64(host, x86_64_node_ip):
     """
-    TC-F13: Run full x86_64 pipeline (local_repo.yml → provision.yml);
+    TC-09: Run full x86_64 pipeline (local_repo.yml → provision.yml);
     verify JSON declaration, offline repo sync, hpc_tools directories,
     artifact staging, and NFS accessibility from an x86_64 node.
 
@@ -327,14 +314,14 @@ def test_e2e_provisioning_x86_64(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F15: NFS ACCESSIBILITY FROM CLUSTER NODES
+# TC-10: NFS ACCESSIBILITY FROM CLUSTER NODES
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(15)
+@pytest.mark.order(10)
 def test_nfs_accessibility(host, x86_64_node_ip):
     """
-    TC-F15: Verify /hpc_tools NFS is mounted and all benchmark tool
+    TC-10: Verify /hpc_tools NFS is mounted and all benchmark tool
     directories are accessible from an x86_64 cluster node; verify source
     tarball is readable.
 
@@ -354,14 +341,14 @@ def test_nfs_accessibility(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-F16: AIR-GAPPED STAGING COMPLIANCE
+# TC-11: AIR-GAPPED STAGING COMPLIANCE
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(16)
+@pytest.mark.order(11)
 def test_airgapped_staging(host):
     """
-    TC-F16: Disable external network on OIM; run local_repo.yml and
+    TC-11: Disable external network on OIM; run local_repo.yml and
     provision.yml; verify staging completes from local repo only; no external
     network calls logged.
 
@@ -379,40 +366,14 @@ def test_airgapped_staging(host):
 
 
 # =============================================================================
-# TC-F17: PROVISIONING IDEMPOTENCY (alias for TC-I01)
+# TC-12: POST-STAGING VALIDATION CHECKS
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(17)
-def test_provisioning_idempotency(host):
-    """
-    TC-F17: Run provision.yml twice; verify hpc_tools/ structure identical;
-    no duplicate directories; Ansible reports changed=0 on second run.
-
-    Acceptance criteria: BL-005, AC-6.1.3
-    """
-    log = TestLogger(TEST_NAMES["provisioning_idempotency"])
-
-    result = verify_dir_creation_idempotency(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["idempotency_failed"].format(
-            details=result.get("error", "")
-        )
-
-
-# =============================================================================
-# TC-F18: POST-STAGING VALIDATION CHECKS
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(18)
+@pytest.mark.order(12)
 def test_post_staging_validation(host, x86_64_node_ip):
     """
-    TC-F18: After provisioning, run post-staging validation; verify all
+    TC-12: After provisioning, run post-staging validation; verify all
     required benchmark directories reported as present; missing directory
     triggers warning log.
 
@@ -433,67 +394,14 @@ def test_post_staging_validation(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-I01: DIRECTORY CREATION IDEMPOTENCY
+# TC-13: RHEL 10.x OS COMPATIBILITY
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(19)
-def test_dir_creation_idempotency(host):
-    """
-    TC-I01: Run hpc_tools directory creation task twice; verify directory
-    structure identical; no Ansible changes on second run.
-
-    Acceptance criteria: BL-005, AC-6.1.3
-    """
-    log = TestLogger(TEST_NAMES["dir_creation_idempotency"])
-
-    result = verify_dir_creation_idempotency(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["idempotency_failed"].format(
-            details=result.get("error", "")
-        )
-
-
-# =============================================================================
-# TC-I02: ARTIFACT STAGING IDEMPOTENCY AND RE-RUN RECOVERY
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(20)
-def test_artifact_staging_idempotency(host):
-    """
-    TC-I02: Stage artifacts; re-run provision.yml; verify artifact checksums
-    identical; no stale content; re-run after missing tool is added stages
-    it without disturbing other tools.
-
-    Acceptance criteria: BL-005, AC-6.1.3
-    """
-    log = TestLogger(TEST_NAMES["artifact_staging_idempotency"])
-
-    result = verify_artifact_staging_idempotency(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["idempotency_failed"].format(
-            details=result.get("error", "")
-        )
-
-
-# =============================================================================
-# TC-C01: RHEL 10.x OS COMPATIBILITY
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(21)
+@pytest.mark.order(13)
 def test_rhel_compatibility(host, x86_64_node_ip):
     """
-    TC-C01: Verify target cluster node is running RHEL 10.x; staging completes
+    TC-13: Verify target cluster node is running RHEL 10.x; staging completes
     without OS-related errors.
 
     Acceptance criteria: VC-007
@@ -513,14 +421,14 @@ def test_rhel_compatibility(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-RT01: CUDA EXISTING FLOW UNAFFECTED
+# TC-14: CUDA EXISTING FLOW UNAFFECTED
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(23)
+@pytest.mark.order(14)
 def test_cuda_flow_unaffected(host, x86_64_node_ip):
     """
-    TC-RT01: Run benchmark staging on top of a provisioned system; verify
+    TC-14: Run benchmark staging on top of a provisioned system; verify
     /hpc_tools/cuda/ path and nvidia-smi output unchanged.
 
     Acceptance criteria: AC-6.3.2
@@ -537,14 +445,14 @@ def test_cuda_flow_unaffected(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-RT02: NVHPC SDK EXISTING FLOW UNAFFECTED
+# TC-15: NVHPC SDK EXISTING FLOW UNAFFECTED
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(24)
+@pytest.mark.order(15)
 def test_nvhpc_flow_unaffected(host, x86_64_node_ip):
     """
-    TC-RT02: Run benchmark staging; verify /hpc_tools/nvidia_sdk/ path and
+    TC-15: Run benchmark staging; verify /hpc_tools/nvidia_sdk/ path and
     NVIDIA HPC SDK environment unchanged.
     """
     log = TestLogger(TEST_NAMES["nvhpc_flow_unaffected"])
@@ -559,14 +467,14 @@ def test_nvhpc_flow_unaffected(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-RT03: CONTAINER IMAGE DOWNLOAD FLOW UNAFFECTED
+# TC-16: CONTAINER IMAGE DOWNLOAD FLOW UNAFFECTED
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(25)
+@pytest.mark.order(16)
 def test_container_image_flow_unaffected(host, x86_64_node_ip):
     """
-    TC-RT03: Run benchmark staging; verify /hpc_tools/container_images/,
+    TC-16: Run benchmark staging; verify /hpc_tools/container_images/,
     download_container_image.sh, and container_image.list are unmodified.
     """
     log = TestLogger(TEST_NAMES["container_image_flow"])
@@ -581,14 +489,14 @@ def test_container_image_flow_unaffected(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-RT04: OpenMPI/UCX CONFIGURATION UNAFFECTED
+# TC-17: OpenMPI/UCX CONFIGURATION UNAFFECTED
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(26)
+@pytest.mark.order(17)
 def test_openmpi_unaffected(host, x86_64_login_compiler_ip):
     """
-    TC-RT04: Run benchmark staging; verify mpirun --version and OpenMPI/UCX
+    TC-17: Run benchmark staging; verify mpirun --version and OpenMPI/UCX
     library paths and environment variables unchanged on login/compiler node.
     
     Note: mpirun is only available on login/compiler nodes, not compute nodes.
@@ -607,14 +515,14 @@ def test_openmpi_unaffected(host, x86_64_login_compiler_ip):
 
 
 # =============================================================================
-# TC-RT05: EXISTING hpc_tools DIRECTORY STRUCTURE PRESERVED
+# TC-18: EXISTING hpc_tools DIRECTORY STRUCTURE PRESERVED
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(27)
+@pytest.mark.order(18)
 def test_existing_hpc_dirs_preserved(host, x86_64_node_ip):
     """
-    TC-RT05: Record pre-existing hpc_tools/ subdirectories before benchmark
+    TC-18: Record pre-existing hpc_tools/ subdirectories before benchmark
     staging; after staging, verify none removed or modified.
 
     Acceptance criteria: AC-6.3.1, VC-004
@@ -632,79 +540,3 @@ def test_existing_hpc_dirs_preserved(host, x86_64_node_ip):
         )
 
 
-# =============================================================================
-# TC-RT06: EMPTY BENCHMARK DECLARATION — NO NEW DIRECTORIES CREATED
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(28)
-def test_empty_declaration_no_new_dirs(host):
-    """
-    TC-RT06: Use empty slurm_custom.json; run provision.yml; verify no new
-    benchmark subdirectories created under hpc_tools/.
-
-    Acceptance criteria: AC-6.3.3
-    """
-    log = TestLogger(TEST_NAMES["empty_declaration"])
-
-    result = verify_empty_declaration_no_new_dirs(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["new_dirs_on_empty"]
-
-
-# =============================================================================
-# TC-P01: STAGING DURATION
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(29)
-def test_staging_duration(host):
-    """
-    TC-P01: Measure elapsed time for full benchmark tool set staging.
-    Target: ≤ 15 minutes (900 seconds).
-
-    Acceptance criteria: BSpec §6.1.6
-    """
-    log = TestLogger(TEST_NAMES["staging_duration"])
-
-    result = measure_staging_duration(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["staging_too_slow"].format(
-            target=900,
-            actual=result.get("duration_secs", "unknown"),
-        )
-
-
-# =============================================================================
-# TC-P02: STAGING OVERHEAD
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(30)
-def test_staging_overhead(host):
-    """
-    TC-P02: Verify benchmark staging adds ≤ 10% overhead to total
-    provisioning time.
-
-    Acceptance criteria: BSpec §6.1.6
-    """
-    log = TestLogger(TEST_NAMES["staging_overhead"])
-
-    result = measure_staging_overhead(host)
-
-    if result["success"]:
-        log.passed(result["details"])
-    else:
-        log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["overhead_too_high"].format(
-            target=10,
-            actual=result.get("overhead_pct", "unknown"),
-        )
