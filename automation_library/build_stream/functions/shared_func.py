@@ -198,7 +198,7 @@ def get_catalog_name(host) -> str:
 
     If set, automation will use this specific catalog file for build_stream
     pipeline deployments. The catalog file must exist in the
-    automation_library/build_stream/catalogs/ directory.
+    /omnia/examples/catalog/ directory inside the omnia_core container.
 
     If empty or not set, falls back to CATALOG_DEFAULT_FILENAME.
 
