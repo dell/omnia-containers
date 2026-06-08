@@ -4,11 +4,14 @@ FROM fedora:42
 # Build arguments
 ARG OMNIA_VERSION=staging
 
-# Update the system and install Python 3.13 (Fedora 42 default; ansible-core 2.20 requires 3.12+)
+# Update the system and install Python 3.12 (pinned to match cluster OS; ansible-core 2.20 supports 3.12+)
 RUN dnf -y update && \
-    dnf -y install python3 python3-pip git openssh-server sshpass \
+    dnf -y install python3.12 python3.12-devel git openssh-server sshpass \
     iproute systemd passwd openssl jq createrepo yum-utils \
     wget unzip tar dnf-plugins-core rsync iputils nano && \
+    alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 100 && \
+    python3 -m ensurepip --upgrade && \
+    ln -sf "$(command -v pip3.12 2>/dev/null || echo /usr/bin/pip3)" /usr/bin/pip3 && \
     dnf clean all
 
 # Install latest Go version with specific crypto version
@@ -68,7 +71,7 @@ RUN dnf install --setopt=install_weak_deps=False ipcalc -y
 RUN python3 --version
 
 # Upgrade pip to fix CVE-2025-8869 and CVE-2025-68121 (system pip vulnerability)
-# Use dynamic site-packages detection (Fedora 42 ships Python 3.13)
+# Use dynamic site-packages detection (container uses Python 3.12)
 RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'))") && \
     python3 -m pip install --upgrade pip==26.0 --target "$SITE_PKGS" --force-reinstall && \
     find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
