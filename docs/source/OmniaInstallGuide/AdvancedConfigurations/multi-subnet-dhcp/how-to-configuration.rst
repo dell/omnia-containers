@@ -76,38 +76,21 @@ Procedure
    .. note::
       Leave ``additional_subnets: []`` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
 
-5. Validate the configuration using Omnia's validation playbook.
+5. After successfully executing the ``input/prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
 
    .. code-block:: bash
 
-      cd /opt/omnia
-      ansible-playbook validate_network_spec.yml
-
-   The validation checks for:
-   * Subnet CIDR format validity
-   * Subnet overlap with admin network and between additional subnets
-   * Dynamic range overlap within and between subnets
-   * Router IP reachability
-   * Dynamic range within subnet boundaries
-
-6. If validation passes, deploy the CoreDHCP configuration changes.
-
-   .. code-block:: bash
-
-      cd /opt/omnia
-      ansible-playbook deploy_openchami.yml
-
-   This playbook:
-   * Generates CoreDHCP configuration with subnet-aware directives (``subnet=`` and ``subnet_pool=``)
-   * Deploys the custom ``coredhcp.yaml.j2`` template to the OpenCHAMI deployment
-   * Restarts CoreDHCP service to load the new configuration
-
-7. Verify that CoreDHCP is running with the new configuration.
-
-   .. code-block:: bash
-
-      podman exec coredhcp coredhcp --version
+      systemctl list-dependencies openchami.target
       podman logs coredhcp | tail -20
+
+6. Ensure that services such as coredhcp and other dependent services are in an active state.
+   If any of the core services fail to start (for example, ``input/coresmd-coredhcp`` or ``input/coresmd-coredns``), use the following commands to check the error logs:
+
+   .. code-block:: bash
+      
+      journalctl -xeu coresmd-coredhcp
+      journalctl -xeu coresmd-coredns
+
 
    Check the logs for subnet registration messages indicating that the additional subnets are loaded.
 
