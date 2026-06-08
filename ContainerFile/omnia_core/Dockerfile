@@ -40,7 +40,6 @@ RUN apk update && apk add --no-cache \
     build-base
 
 RUN mkdir -p /usr/local/share/ca-certificates
-RUN ln -sf /usr/bin/pulp /usr/local/bin/pulp
 
 # ── STEP 2: git-lfs init ────────────────────────────────────────────────────
 # git-lfs is now installed as an apk — NO source build needed.
@@ -84,6 +83,8 @@ COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
     rm -rf /root/.cache/uv /root/.cache/pip
+
+RUN ln -sf "$(which pulp)" /usr/local/bin/pulp
 
 # ── STEP 6: SSH configuration ───────────────────────────────────────────────
 # Wolfi's openssh package ships sshd. Config path: /etc/ssh/sshd_config
