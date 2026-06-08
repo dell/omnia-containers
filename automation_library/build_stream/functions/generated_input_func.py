@@ -33,13 +33,14 @@ from automation_library.core import (
 )
 
 # =============================================================================
-# CONSTANTS
+# IMPORTS FROM VARS
 # =============================================================================
 
-OMNIA_REPO_URL: str = "https://github.com/dell/omnia.git"
-DEFAULT_CLONE_PATH: str = "/tmp/omnia_input_verify"
-GENERATED_CONFIG_BASE: str = f"{INPUT_BASE_PATH}/config"
-SOURCE_CONFIG_BASE: str = "input/config"
+from ..vars.build_stream_vars import (
+    OMNIA_REPO_URL,
+    DEFAULT_CLONE_PATH,
+    SOURCE_CONFIG_BASE,
+)
 
 # Jinja2 template pattern
 _JINJA2_PATTERN = re.compile(r"\{\{.*?\}\}")
@@ -611,7 +612,7 @@ def _verify_single_software(
     }
 
     gen_file = _find_config_file(
-        host, GENERATED_CONFIG_BASE, arch, os_type,
+        host, f"{INPUT_BASE_PATH}/config", arch, os_type,
         os_version, sw_name, is_container=True,
     )
     if not gen_file:

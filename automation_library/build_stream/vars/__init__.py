@@ -65,6 +65,10 @@ from .build_stream_vars import (
     CATALOG_DEFAULT_FILENAME,
     OMNIA_CATALOG_PATH,
     PXE_MAPPING_FILE_PATH,
+    # Omnia repository and configuration paths
+    OMNIA_REPO_URL,
+    DEFAULT_CLONE_PATH,
+    SOURCE_CONFIG_BASE,
     # GitLab CI/CD variable keys
     BSM_CLIENT_ID_KEY,
     BSM_CLIENT_SECRET_KEY,

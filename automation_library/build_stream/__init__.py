@@ -129,6 +129,10 @@ from .vars import (
     CATALOG_FILE_PATH,
     CATALOG_DEFAULT_FILENAME,
     PXE_MAPPING_FILE_PATH,
+    # Omnia repository and configuration paths
+    OMNIA_REPO_URL,
+    DEFAULT_CLONE_PATH,
+    SOURCE_CONFIG_BASE,
     PIPELINE_TYPE_KEY,
     PIPELINE_TYPE_BUILD,
     PIPELINE_TYPE_DEPLOY,
@@ -249,6 +253,10 @@ __all__ = [
     "CATALOG_FILE_PATH",
     "CATALOG_DEFAULT_FILENAME",
     "PXE_MAPPING_FILE_PATH",
+    # Omnia repository and configuration paths
+    "OMNIA_REPO_URL",
+    "DEFAULT_CLONE_PATH",
+    "SOURCE_CONFIG_BASE",
     "PIPELINE_TYPE_KEY",
     "PIPELINE_TYPE_BUILD",
     "PIPELINE_TYPE_DEPLOY",

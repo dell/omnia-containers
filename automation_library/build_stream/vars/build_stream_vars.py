@@ -145,6 +145,15 @@ PXE_MAPPING_FILE_PATH: str = "input/pxe_mapping_file.csv"
 OMNIA_CATALOG_PATH: str = "/omnia/examples/catalog"
 
 # =============================================================================
+# OMNIA REPOSITORY AND CONFIGURATION PATHS
+# =============================================================================
+
+OMNIA_REPO_URL: str = "https://github.com/dell/omnia.git"
+DEFAULT_CLONE_PATH: str = "/tmp/omnia_input_verify"
+# Note: GENERATED_CONFIG_BASE is constructed dynamically as f"{INPUT_BASE_PATH}/config"
+SOURCE_CONFIG_BASE: str = "input/config"
+
+# =============================================================================
 # GITLAB CI/CD VARIABLE KEYS
 # =============================================================================
 
