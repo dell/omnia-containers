@@ -37,6 +37,12 @@ from .functions.kafka_func import (
     verify_ldms_pods_running,
     verify_ldms_services_ports,
 )
+from .functions.vast_telemetry_func import (
+    is_vast_telemetry_enabled,
+    verify_vast_scrape_active,
+    verify_vast_deployment,
+    verify_vast_metric_coverage,
+)
 from .vars.idrac_telemetry_vars import TELEMETRY_VARS
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
 from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES
