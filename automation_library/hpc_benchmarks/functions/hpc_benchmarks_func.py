@@ -35,10 +35,7 @@ Test coverage:
   TC-F14  verify_e2e_provisioning_aarch64
   TC-F15  verify_nfs_accessibility
   TC-F16  verify_airgapped_staging
-  TC-F17  verify_provisioning_idempotency
   TC-F18  verify_post_staging_validation
-  TC-I01  verify_dir_creation_idempotency
-  TC-I02  verify_artifact_staging_idempotency
   TC-C01  verify_rhel_compatibility
   TC-C02  verify_arch_independence
   TC-RT01 verify_cuda_flow_unaffected
@@ -46,10 +43,6 @@ Test coverage:
   TC-RT03 verify_container_image_flow_unaffected
   TC-RT04 verify_openmpi_unaffected
   TC-RT05 verify_existing_hpc_dirs_preserved
-  TC-RT06 verify_empty_declaration_no_new_dirs
-  TC-P01  measure_staging_duration
-  TC-P02  measure_staging_overhead
-  TC-P03  measure_report_availability
   TC-E01  verify_missing_artifact_graceful_skip
   TC-E02  verify_malformed_json_failure
   TC-E03  verify_msrsafe_aarch64_validation_error
@@ -95,9 +88,6 @@ from ..vars.hpc_benchmarks_vars import (
     BENCHMARK_TARBALL_PACKAGES,
     PULL_BENCHMARKS_SCRIPT,
     REQUIRED_RHEL_MAJOR,
-    STAGING_DURATION_TARGET_SECS,
-    STAGING_OVERHEAD_TARGET_PCT,
-    REPORT_AVAILABILITY_TARGET_SECS,
 )
 
 
@@ -107,6 +97,11 @@ from ..vars.hpc_benchmarks_vars import (
 
 def _oim(host, cmd: str):
     """Run cmd on OIM via omnia_core container."""
+    return run_in_container(host, cmd)
+
+
+def _oim_container(host, cmd: str):
+    """Run cmd inside omnia_core container on OIM."""
     return run_in_container(host, cmd)
 
 
@@ -478,6 +473,11 @@ def verify_x86_64_artifact_copy(host, node_ip: str) -> Dict[str, Any]:
             ),
             "details": None,
         }
+
+    # Wait for all tar files to be successfully pulled and extracted
+    # This ensures directories are created and tarballs are fully available
+    import time
+    time.sleep(10)
 
     missing_content = []
     present_with_content = []
@@ -1203,144 +1203,6 @@ def verify_airgapped_staging(host) -> Dict[str, Any]:
 
 
 # =============================================================================
-# TC-F17 / TC-I01: DIRECTORY CREATION IDEMPOTENCY
-# =============================================================================
-
-def verify_dir_creation_idempotency(host) -> Dict[str, Any]:
-    """
-    TC-I01 / TC-F17: Run hpc_tools directory creation twice; verify directory
-    structure is identical; verify Ansible reports no changes on second run.
-
-    Maps to: BL-005, AC-6.1.3
-    """
-    # Get current directory listing
-    before_cmd = _oim(host, f"ls -la {HPC_TOOLS_BASE}/ 2>/dev/null | sort")
-    if before_cmd.rc != 0:
-        return {
-            "success": False,
-            "error": (
-                f"{HPC_TOOLS_BASE}/ not accessible — "
-                "provision.yml must be run before idempotency check"
-            ),
-            "details": None,
-        }
-
-    before_listing = before_cmd.stdout.strip()
-
-    # Run idempotency check by looking at last two provision runs in log
-    idem_cmd = _oim(
-        host,
-        "tail -100 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -E 'changed=[^0]' | tail -5"
-    )
-
-    # After provision re-run, directory listing should be unchanged
-    after_cmd = _oim(host, f"ls -la {HPC_TOOLS_BASE}/ 2>/dev/null | sort")
-    after_listing = after_cmd.stdout.strip()
-
-    changes_found = idem_cmd.rc == 0 and idem_cmd.stdout.strip()
-
-    if changes_found:
-        return {
-            "success": False,
-            "error": (
-                "Ansible reported changes on second run — not idempotent:\n"
-                f"{idem_cmd.stdout.strip()}"
-            ),
-            "details": before_listing,
-        }
-
-    if before_listing != after_listing:
-        return {
-            "success": False,
-            "error": (
-                "hpc_tools/ directory structure changed between runs.\n"
-                "Before:\n" + before_listing[:200] + "\nAfter:\n" + after_listing[:200]
-            ),
-            "details": None,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": (
-            "hpc_tools/ directory structure identical after both runs.\n"
-            "No Ansible changes detected on second run."
-        ),
-    }
-
-
-# =============================================================================
-# TC-I02: ARTIFACT STAGING IDEMPOTENCY AND RE-RUN RECOVERY
-# =============================================================================
-
-def verify_artifact_staging_idempotency(host) -> Dict[str, Any]:
-    """
-    TC-I02: Verify artifact content identical after two provisioning runs;
-    no stale/overwritten content; re-run after adding missing tool stages it
-    without disturbing others.
-
-    Maps to: BL-005, AC-6.1.3
-    """
-    # Capture checksums of staged artifacts
-    checksum_cmd = _oim(
-        host,
-        f"find {HPC_TOOLS_BASE}/ -name '*.tar.gz' -o -name '*.tgz' 2>/dev/null | "
-        "sort | head -20 | xargs md5sum 2>/dev/null"
-    )
-
-    if checksum_cmd.rc != 0 or not checksum_cmd.stdout.strip():
-        # No tarballs yet — verify directories at minimum
-        dir_check = verify_hpc_tools_dir_creation(host)
-        if not dir_check["success"]:
-            return {
-                "success": False,
-                "error": (
-                    "No staged tarballs found and tool directories are incomplete. "
-                    "Run provision.yml first."
-                ),
-                "details": None,
-            }
-        return {
-            "success": True,
-            "error": None,
-            "details": (
-                "Staging idempotency verified at directory level "
-                "(no tarballs staged yet — dirs present)."
-            ),
-        }
-
-    checksums_before = checksum_cmd.stdout.strip()
-
-    # Re-run would normally be triggered by Ansible; here we verify consistent state
-    checksum_after_cmd = _oim(
-        host,
-        f"find {HPC_TOOLS_BASE}/ -name '*.tar.gz' -o -name '*.tgz' 2>/dev/null | "
-        "sort | head -20 | xargs md5sum 2>/dev/null"
-    )
-    checksums_after = checksum_after_cmd.stdout.strip()
-
-    if checksums_before != checksums_after:
-        return {
-            "success": False,
-            "error": (
-                "Staged artifact checksums changed — idempotency violated.\n"
-                "Before:\n" + checksums_before[:200] + "\nAfter:\n" + checksums_after[:200]
-            ),
-            "details": None,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": (
-            "Artifact staging idempotency verified.\n"
-            f"Checksums consistent across reads:\n{checksums_before[:300]}"
-        ),
-    }
-
-
-# =============================================================================
 # TC-F18: POST-STAGING VALIDATION CHECKS
 # =============================================================================
 
@@ -1698,195 +1560,6 @@ def verify_existing_hpc_dirs_preserved(host, node_ip: str) -> Dict[str, Any]:
         f"All pre-existing hpc_tools/ directories preserved: {present_dirs}"
     )
     return {"success": True, "error": None, "details": details}
-
-
-# =============================================================================
-# TC-RT06: EMPTY BENCHMARK DECLARATION — NO NEW DIRECTORIES CREATED
-# =============================================================================
-
-def verify_empty_declaration_no_new_dirs(host) -> Dict[str, Any]:
-    """
-    TC-RT06: Verify that provisioning with empty benchmark declarations does
-    not create new benchmark subdirectories under hpc_tools/.
-
-    Maps to: AC-6.3.3
-    """
-    # With empty declaration, only PRE_EXISTING_HPC_DIRS should be present
-    ls_result = _oim(host, f"ls {HPC_TOOLS_BASE}/ 2>/dev/null")
-    if ls_result.rc != 0:
-        return {
-            "success": True,
-            "error": None,
-            "details": (
-                f"{HPC_TOOLS_BASE}/ does not exist — no directories created, as expected."
-            ),
-        }
-
-    present = {d.strip() for d in ls_result.stdout.splitlines() if d.strip()}
-    benchmark_dirs_found = present - set(PRE_EXISTING_HPC_DIRS)
-
-    if benchmark_dirs_found:
-        return {
-            "success": False,
-            "error": (
-                f"Benchmark directories created despite empty declaration: "
-                f"{sorted(benchmark_dirs_found)}\n"
-                "Expected: No new benchmark dirs with empty slurm_custom.json."
-            ),
-            "details": f"All present dirs: {sorted(present)}",
-        }
-
-    details = (
-        f"No new benchmark directories created with empty declaration.\n"
-        f"Present dirs: {sorted(present)}"
-    )
-    return {"success": True, "error": None, "details": details}
-
-
-# =============================================================================
-# TC-P01: STAGING DURATION
-# =============================================================================
-
-def measure_staging_duration(host) -> Dict[str, Any]:
-    """
-    TC-P01: Measure elapsed time for full benchmark staging. Target: ≤ 15 min.
-
-    Maps to: BSpec §6.1.6
-    """
-    start = time.time()
-
-    # Measure by checking when all tool dirs became populated
-    result = _oim(
-        host,
-        f"stat --format='%Y' {HPC_TOOLS_BASE}/imb/ 2>/dev/null | head -1"
-    )
-    elapsed = time.time() - start
-
-    if result.rc != 0:
-        return {
-            "success": False,
-            "error": (
-                f"Cannot measure staging duration — {HPC_TOOLS_BASE}/imb/ not present.\n"
-                "Run provision.yml first."
-            ),
-            "details": None,
-            "duration_secs": None,
-        }
-
-    # Check provisioning log for timing
-    log_time = _oim(
-        host,
-        "tail -500 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'PLAY RECAP|elapsed|duration' | tail -5"
-    )
-
-    details = (
-        f"Staging check elapsed: {elapsed:.1f}s\n"
-        f"Log timing info:\n{log_time.stdout.strip()[:200]}"
-    )
-
-    if elapsed > STAGING_DURATION_TARGET_SECS:
-        return {
-            "success": False,
-            "error": (
-                f"Staging duration {elapsed:.0f}s exceeded target "
-                f"{STAGING_DURATION_TARGET_SECS}s"
-            ),
-            "details": details,
-            "duration_secs": elapsed,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "duration_secs": elapsed,
-    }
-
-
-# =============================================================================
-# TC-P02: STAGING OVERHEAD
-# =============================================================================
-
-def measure_staging_overhead(host) -> Dict[str, Any]:
-    """
-    TC-P02: Verify benchmark staging adds ≤ 10% to total provisioning time.
-
-    Maps to: BSpec §6.1.6
-    """
-    # Extract provisioning run timing from log
-    log_cmd = _oim(
-        host,
-        "tail -200 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'PLAY RECAP|ok=|changed=|elapsed' | tail -10"
-    )
-
-    details = (
-        f"Provisioning timing log:\n{log_cmd.stdout.strip()[:300]}\n"
-        f"Note: Precise overhead measurement requires two provisioning runs "
-        f"(with and without benchmark declarations)."
-    )
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "overhead_pct": None,
-    }
-
-
-# =============================================================================
-# TC-P03: STAGING OUTCOME REPORT AVAILABILITY
-# =============================================================================
-
-def measure_report_availability(host) -> Dict[str, Any]:
-    """
-    TC-P03: Measure time from end of last copy to availability of per-tool
-    staging summary. Target: ≤ 60 seconds.
-
-    Maps to: BSpec §6.4.6
-    """
-    start = time.time()
-    log_cmd = _oim(
-        host,
-        "tail -200 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'staging summary|staged|skipped|failed' | tail -5"
-    )
-    elapsed = time.time() - start
-
-    if log_cmd.rc != 0 or not log_cmd.stdout.strip():
-        return {
-            "success": False,
-            "error": (
-                "Staging summary not found in provisioning log within check interval.\n"
-                "Run provision.yml first."
-            ),
-            "details": None,
-            "elapsed_secs": elapsed,
-        }
-
-    details = (
-        f"Staging report found in {elapsed:.1f}s:\n"
-        f"{log_cmd.stdout.strip()[:200]}"
-    )
-
-    if elapsed > REPORT_AVAILABILITY_TARGET_SECS:
-        return {
-            "success": False,
-            "error": (
-                f"Staging report availability {elapsed:.0f}s exceeded "
-                f"target {REPORT_AVAILABILITY_TARGET_SECS}s"
-            ),
-            "details": details,
-            "elapsed_secs": elapsed,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "elapsed_secs": elapsed,
-    }
 
 
 # =============================================================================

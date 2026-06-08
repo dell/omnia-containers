@@ -78,6 +78,7 @@ from automation_library.slurm.messages.slurm_msgs import (
     UCX_INSTALLED_FAILED,
     UCX_NO_LOGIN_COMPILER,
     UCX_NO_SUBMIT_NODE,
+    UCX_IB_IP_NOT_ASSIGNED,
 )
 
 # ---------------------------------------------------------------------------
@@ -1172,6 +1173,41 @@ def verify_ucx_ib_only(host) -> Dict[str, Any]:
             "steps": [],
             "error": UCX_IB_NO_NODES,
         }
+
+    # Verify IB IP is actually assigned on each candidate node's interface.
+    # A node may have ib_ip in PXE mapping but the IP may not be configured
+    # on the interface (e.g. IB driver present but no IP). UCX rc_mlx5 uses
+    # RDMA verbs (LID/GID-based) and bypasses IP entirely, so a job would
+    # silently pass even when IB IP is missing. We must gate on real IP
+    # assignment to ensure the test is valid.
+    ip_unassigned = []
+    ip_verified = []
+    for _n in ib_compute:
+        _admin_ip = _n.get("admin_ip", "")
+        _ib_ip = _n.get("ib_ip", "").strip()
+        _hostname = _n.get("hostname", _admin_ip)
+        _chk = _safe_run_on_remote_node(
+            host,
+            f"ip addr show | grep '{_ib_ip}' && echo found || echo missing",
+            _admin_ip,
+        )
+        if _chk.rc == 0 and "found" in _chk.stdout:
+            ip_verified.append(_n)
+        else:
+            ip_unassigned.append(_hostname)
+
+    if len(ip_verified) < 2:
+        _bad = ", ".join(ip_unassigned)
+        _msg = UCX_IB_IP_NOT_ASSIGNED.format(nodes=_bad)
+        return {
+            "success": False,
+            "message": _msg,
+            "steps": [],
+            "error": _msg,
+            "ip_unassigned": ip_unassigned,
+        }
+
+    ib_compute = ip_verified
 
     control_nodes = get_slurm_control_nodes(host)
     if not control_nodes:

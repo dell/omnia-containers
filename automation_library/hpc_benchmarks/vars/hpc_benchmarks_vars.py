@@ -56,10 +56,10 @@ OIM_SHARED_PATH = "/opt/omnia"
 # =============================================================================
 
 SLURM_CUSTOM_JSON_X86_64 = (
-    f"{OMNIA_CODEBASE_PATH}/input/config/x86_64/rhel/10.0/slurm_custom.json"
+    f"{OIM_SHARED_PATH}/input/project_default/config/x86_64/rhel/10.0/slurm_custom.json"
 )
 SLURM_CUSTOM_JSON_AARCH64 = (
-    f"{OMNIA_CODEBASE_PATH}/input/config/aarch64/rhel/10.0/slurm_custom.json"
+    f"{OIM_SHARED_PATH}/input/project_default/config/aarch64/rhel/10.0/slurm_custom.json"
 )
 
 # =============================================================================
