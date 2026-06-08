@@ -88,6 +88,17 @@ User-Facing Configuration
 - When ``true``, nodes use coresmd for hostname resolution instead of ``/etc/hosts``
 - DNS records are auto-generated from SMD inventory
 - The cluster domain is read from OIM metadata (``domain_name``)
+- When enabled, ``/etc/hosts`` is still populated from the PXE mapping file for custom hostnames (hybrid mode)
+
+**Configuration Behavior**
+
++----------------+------------------------+------------------------+
+| Setting        | CoreDNS                | /etc/hosts             |
++================+========================+========================+
+| ``dns_enabled: false`` | Disabled | Populated from PXE mapping |
++----------------+------------------------+------------------------+
+| ``dns_enabled: true`` | Active | Populated from PXE mapping (hybrid mode) |
++----------------+------------------------+------------------------+
 
 Existing Parameters Used
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -324,20 +335,60 @@ NXDOMAIN Errors
 
 **Resolution Steps**:
 
-1. Verify SMD inventory::
+1. Verify nodes are registered in SMD::
 
-    curl -k https://<oim_ip>:8443/v1/nodes
+    ochami smd component get
 
-2. Verify the domain name in OIM metadata matches the query domain::
+   Ensure nodes have ``NID`` values assigned.
+
+2. Check CoreDNS configuration::
+
+    cat /etc/openchami/configs/Corefile
+
+   Verify the ``zone``, ``cluster_shortname``, and ``cluster_nidlength`` match your expected hostname format.
+
+3. Verify CoreDNS can reach SMD:
+   The ``smd_url`` in the Corefile must be reachable from the CoreDNS container.
+
+4. Verify the domain name in OIM metadata matches the query domain::
 
     cat /etc/resolv.conf  # on compute node
     # Check the 'search' domain
 
-3. Verify the hostname format follows the pattern ``{cluster_shortname}{zero_padded_id}.{cluster_domain}``
+5. Verify the hostname format follows the pattern ``{cluster_shortname}{zero_padded_id}.{cluster_domain}``
 
-4. Check coresmd Corefile configuration::
+Custom Hostnames Not Resolving
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    podman exec coresmd cat /etc/coredns/Corefile
+**Symptom**: Custom hostnames from the PXE mapping don't resolve.
+
+**Possible Causes**:
+
+1. Custom hostname not in ``/etc/hosts``
+2. PXE mapping file not processed correctly
+
+**Resolution Steps**:
+
+1. Check ``/etc/hosts``::
+
+    grep <hostname> /etc/hosts
+
+2. Re-run provisioning to repopulate ``/etc/hosts``::
+
+    ansible-playbook provision.yml
+
+omnia_core Can't Resolve Any Hostnames
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptom**: omnia_core cannot resolve any hostnames.
+
+**Resolution Steps**:
+
+Verify that ``/etc/resolv.conf`` on omnia_core has CoreDNS as a nameserver::
+
+    cat /etc/resolv.conf
+
+If CoreDNS is missing, re-run ``provision.yml`` -- it configures resolv.conf on both OIM and omnia_core when ``dns_enabled: true``.
 
 Slow DNS Resolution
 ~~~~~~~~~~~~~~~~~~~
