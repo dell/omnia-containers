@@ -36,6 +36,7 @@ from .functions import (
     clear_cache,
     skip_if_build_stream_not_enabled,
     get_image_identifier,
+    get_catalog_name,
     # API functions
     check_build_stream_health,
     get_catalog_roles,
@@ -65,6 +66,13 @@ from .functions import (
     get_gitlab_file,
     commit_gitlab_file,
     trigger_pipeline_with_variables,
+    # Generated input functions
+    get_omnia_branch,
+    clone_omnia_repo,
+    cleanup_omnia_clone,
+    get_software_config,
+    compare_software_json,
+    verify_generated_inputs,
     # Pipeline functions
     trigger_build_pipeline,
     trigger_deploy_pipeline,
@@ -119,8 +127,12 @@ from .vars import (
     GITLAB_API_VERSION,
     GITLAB_ROOT_TOKEN_FILE,
     CATALOG_FILE_PATH,
-    CATALOG_LOCAL_FILENAME,
+    CATALOG_DEFAULT_FILENAME,
     PXE_MAPPING_FILE_PATH,
+    # Omnia repository and configuration paths
+    OMNIA_REPO_URL,
+    DEFAULT_CLONE_PATH,
+    SOURCE_CONFIG_BASE,
     PIPELINE_TYPE_KEY,
     PIPELINE_TYPE_BUILD,
     PIPELINE_TYPE_DEPLOY,
@@ -150,6 +162,7 @@ __all__ = [
     "clear_cache",
     "skip_if_build_stream_not_enabled",
     "get_image_identifier",
+    "get_catalog_name",
     # API functions
     "check_build_stream_health",
     "get_catalog_roles",
@@ -179,6 +192,13 @@ __all__ = [
     "get_gitlab_file",
     "commit_gitlab_file",
     "trigger_pipeline_with_variables",
+    # Generated input functions
+    "get_omnia_branch",
+    "clone_omnia_repo",
+    "cleanup_omnia_clone",
+    "get_software_config",
+    "compare_software_json",
+    "verify_generated_inputs",
     # Pipeline functions
     "trigger_build_pipeline",
     "trigger_deploy_pipeline",
@@ -231,8 +251,12 @@ __all__ = [
     "GITLAB_API_VERSION",
     "GITLAB_ROOT_TOKEN_FILE",
     "CATALOG_FILE_PATH",
-    "CATALOG_LOCAL_FILENAME",
+    "CATALOG_DEFAULT_FILENAME",
     "PXE_MAPPING_FILE_PATH",
+    # Omnia repository and configuration paths
+    "OMNIA_REPO_URL",
+    "DEFAULT_CLONE_PATH",
+    "SOURCE_CONFIG_BASE",
     "PIPELINE_TYPE_KEY",
     "PIPELINE_TYPE_BUILD",
     "PIPELINE_TYPE_DEPLOY",

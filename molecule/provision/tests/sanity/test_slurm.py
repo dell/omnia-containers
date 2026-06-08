@@ -420,11 +420,12 @@ def test_cross_node_ssh(host):
 @pytest.mark.order(15)
 def test_sinfo_nodes(host):
     """
-    Test Case 15: Verify sinfo shows exactly the compute nodes from PXE mapping.
+    Test Case 15: Verify sinfo shows exactly the compute nodes from PXE mapping
+    and all nodes are in idle state.
 
-    Fails if any expected node is missing OR if any extra node is found.
+    Fails if any expected node is missing, extra node found, or node not idle.
     """
-    log = TestLogger("Verify sinfo shows compute nodes")
+    log = TestLogger("Verify sinfo shows compute nodes (all idle)")
 
     result = verify_sinfo_nodes(host)
 
@@ -436,15 +437,28 @@ def test_sinfo_nodes(host):
         log.failed("sinfo check failed", result["error"])
         assert False, result["error"]
 
-    # Build details
+    # Build details with node states
     details_lines = [
         f"Expected: {', '.join(result['expected'])}",
         f"Found: {', '.join(result['found'])}",
     ]
+
+    # Show per-node state
+    node_states = result.get("node_states", {})
+    for node_name in result["expected"]:
+        state = node_states.get(node_name, "NOT FOUND")
+        icon = "✓" if state == "idle" else "✗"
+        details_lines.append(f"  {icon} {node_name}: {state}")
+
     if result["missing"]:
         details_lines.append(f"Missing: {', '.join(result['missing'])}")
     if result["extra"]:
         details_lines.append(f"Extra (not in PXE mapping): {', '.join(result['extra'])}")
+    if result.get("not_idle"):
+        not_idle_str = ", ".join(
+            f"{n['hostname']}={n['state']}" for n in result["not_idle"]
+        )
+        details_lines.append(f"Not idle: {not_idle_str}")
 
     details = "\n".join(details_lines)
 
@@ -453,14 +467,22 @@ def test_sinfo_nodes(host):
         error_parts.append(f"missing: {', '.join(result['missing'])}")
     if result.get("extra"):
         error_parts.append(f"extra: {', '.join(result['extra'])}")
+    if result.get("not_idle"):
+        not_idle_str = ", ".join(
+            f"{n['hostname']}={n['state']}" for n in result["not_idle"]
+        )
+        error_parts.append(f"not idle: {not_idle_str}")
 
     if result["success"]:
-        log.passed(f"sinfo shows exactly {len(result['expected'])} compute nodes", details)
+        log.passed(
+            f"sinfo: {len(result['expected'])} compute nodes found, all idle",
+            details,
+        )
     else:
-        log.failed(f"sinfo node mismatch - {'; '.join(error_parts)}", details)
+        log.failed(f"sinfo check failed - {'; '.join(error_parts)}", details)
 
     err_msg = '; '.join(error_parts) if error_parts else 'unknown'
-    assert result["success"], f"sinfo mismatch: {err_msg}"
+    assert result["success"], f"sinfo check failed: {err_msg}"
 
 
 @pytest.mark.sanity
@@ -603,14 +625,15 @@ def test_ldap_slapd_configuration(host):
     Test Case 16: Apply external slapd.conf and verify LDAP service.
 
     Skips if OpenLDAP is not enabled in software_config.json.
+    Skips if external LDAP is not configured in omnia_test_config.yml.
 
     This test:
-    1. Gets external_slapd_conf_path and ldap_server_ip from omnia_test_config.yml
+    1. Gets external LDAP config from omnia_test_config.yml
     2. Backs up existing slapd.conf
-    3. Copies new slapd.conf to /opt/omnia/auth/slapd.conf
+    3. Generates and applies new slapd.conf
     4. Restarts omnia_auth container
-    5. Waits for container to be stable (30 seconds)
-    6. Verifies LDAP server IP is accessible - FAILS if not accessible
+    5. Waits for container to be stable
+    6. Verifies LDAP server IP is accessible
     """
     log = TestLogger("Apply slapd.conf and verify LDAP service")
 
@@ -619,6 +642,10 @@ def test_ldap_slapd_configuration(host):
     log.check("Applying external slapd.conf and verifying LDAP service")
 
     result = apply_slapd_conf_and_verify(host)
+
+    if result.get("error") and "not configured in omnia_test_config" in result["error"]:
+        log.skipped("External LDAP not configured", result["error"])
+        pytest.skip(result["error"])
 
     if result["success"]:
         log.passed("LDAP slapd.conf applied and service verified", result["details"])

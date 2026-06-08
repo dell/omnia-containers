@@ -192,6 +192,48 @@ def get_image_identifier(host) -> str:
         return ""
 
 
+def get_catalog_name(host) -> str:
+    """
+    Get catalog_name from omnia_test_config.yml.
+
+    If set, automation will use this specific catalog file for build_stream
+    pipeline deployments. The catalog file must exist in the
+    /omnia/examples/catalog/ directory inside the omnia_core container.
+
+    If empty or not set, falls back to CATALOG_DEFAULT_FILENAME.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Catalog filename string (e.g., 'catalog_rhel_x86_64.json').
+    """
+    import yaml
+    import os
+
+    from ..vars.build_stream_vars import CATALOG_DEFAULT_FILENAME
+
+    config_path = os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(__file__))
+            )
+        ),
+        "omnia_test_config.yml",
+    )
+
+    try:
+        with open(config_path, "r") as f:
+            config = yaml.safe_load(f) or {}
+        catalog = config.get("catalog_name", "") or ""
+        if catalog:
+            return catalog
+    except Exception:
+        pass
+
+    return CATALOG_DEFAULT_FILENAME
+
+
 # =============================================================================
 # SSH COMMAND EXECUTION (via omnia_core container to GitLab server)
 # =============================================================================

@@ -45,7 +45,11 @@ from ..vars.prepare_oim_vars import (
     OCHAMI_AUTH_RETRIES,
     OCHAMI_AUTH_DELAY,
     CERT_WAIT_TIME,
+    STORAGE_BACKEND_MINIO,
+    MINIO_CONTAINER,
+    MINIO_SERVICE,
 )
+from .storage_func import get_storage_backend
 
 
 # =============================================================================
@@ -724,6 +728,9 @@ def check_omnia_target_deps(host) -> Dict[str, Any]:
     expected = set(OMNIA_TARGET_SERVICES)
     expected.add("openchami.target")
 
+    if get_storage_backend(host) == STORAGE_BACKEND_MINIO:
+        expected.add(MINIO_SERVICE)
+
     if is_ldap_enabled(host):
         expected.add("omnia_auth.service")
 
@@ -788,6 +795,14 @@ def get_expected_containers(host) -> List[Dict[str, Any]]:
             "category": "openchami", "reason": "always required"
         })
 
+    is_minio = get_storage_backend(host) == STORAGE_BACKEND_MINIO
+    containers.append({
+        "name": MINIO_CONTAINER,
+        "expected_running": is_minio,
+        "category": "openchami",
+        "reason": "MinIO storage backend" if is_minio else "PowerScale storage (MinIO not used)"
+    })
+
     ldap = is_ldap_enabled(host)
     containers.append({
         "name": AUTH_CONTAINER,
@@ -833,6 +848,14 @@ def get_expected_services(host) -> List[Dict[str, Any]]:
             "name": svc, "expected_active": True,
             "category": "omnia_target", "reason": "omnia.target dependency"
         })
+
+    is_minio = get_storage_backend(host) == STORAGE_BACKEND_MINIO
+    services.append({
+        "name": MINIO_SERVICE,
+        "expected_active": is_minio,
+        "category": "omnia_target",
+        "reason": "MinIO storage backend" if is_minio else "PowerScale storage (MinIO not used)"
+    })
 
     for svc in OPENCHAMI_TARGET_SERVICES:
         services.append({

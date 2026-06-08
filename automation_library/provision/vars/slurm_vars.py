@@ -37,13 +37,6 @@ SLURM_NODE_SERVICES = ["slurmd", "munge"]
 LOGIN_NODE_SERVICES = ["slurmd", "munge"]
 
 # =============================================================================
-# OPENMPI/UCX PATHS (relative to NFS client mount path)
-# =============================================================================
-
-OPENMPI_BIN_PATH = "slurm/hpc_tools/benchmarks/openmpi/bin/mpirun"
-UCX_BIN_PATH = "slurm/hpc_tools/benchmarks/ucx/bin/ucx_info"
-
-# =============================================================================
 # LDMS PATHS AND SERVICE
 # =============================================================================
 

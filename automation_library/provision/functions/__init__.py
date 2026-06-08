@@ -52,6 +52,9 @@ from .common_func import (
     # K8s verification
     verify_k8s_nodes_ready,
     verify_k8s_telemetry_pods,
+    verify_k8s_default_storage_class,
+    verify_k8s_isilon_pods,
+    verify_k8s_nfs_provisioner_pods,
     # Package verification
     verify_node_packages,
 )

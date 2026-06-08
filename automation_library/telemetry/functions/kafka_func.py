@@ -624,7 +624,7 @@ def verify_idrac_data_in_kafka(
         Dict with success, service_tag_results, found_tags, missing_tags
     """
     from .idrac_telemetry_func import get_activated_ips
-    from .shared_func import is_kafka_enabled, get_ip_to_service_tag_mapping
+    from .shared_func import is_kafka_enabled, get_ip_to_service_tag_mapping, _get_source_config
 
     # Check if Kafka is enabled
     if not is_kafka_enabled(host):
@@ -632,6 +632,16 @@ def verify_idrac_data_in_kafka(
             "success": True,
             "skipped": True,
             "reason": KAFKA_ASSERT_MSGS["idrac_kafka_not_enabled"],
+        }
+
+    # Check if iDRAC specifically targets kafka
+    idrac_src = _get_source_config(host, "idrac")
+    if not (idrac_src.get("metrics_enabled", False)
+            and "kafka" in idrac_src.get("collection_targets", [])):
+        return {
+            "success": True,
+            "skipped": True,
+            "reason": "iDRAC source does not target kafka (collection_targets does not include kafka)",
         }
 
     # Get bridge IP
