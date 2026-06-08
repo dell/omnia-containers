@@ -2,7 +2,7 @@
 name = "omnia_core"
 version = "0.1.0"
 description = "Python environment for the Omnia Core container."
-requires-python = ">= 3.12"
+requires-python = ">=3.12, <3.13"
 dependencies = [
     "psycopg2-binary==2.9.11",
     "requests==2.32.5",
