@@ -288,3 +288,32 @@ external_ldap_bind_password: ""
 # Leave empty ("") to use the latest completed job (default behavior).
 # Wrong UUID → test_build_stream_job_stage skips all tests with a clear error.
 build_stream_job_id: ""
+
+# =============================================================================
+# BUILD STREAM PIPELINE CONTROL
+# =============================================================================
+# Allow automation to auto-cancel running/pending pipelines before triggering new ones.
+# If true: Automation will cancel existing pipelines automatically
+# If false: Automation will wait for pipelines to complete or prompt user to cancel
+allow_pipeline_cancel: false
+
+# =============================================================================
+# BUILD STREAM IMAGE SELECTION
+# =============================================================================
+# Specify which image group to use for deploy/cleanup pipeline tests.
+#
+# The image group identifier (e.g., "image-build-20260530-061909") is the
+# unique ID assigned to each build. You can find it in:
+#   - Database: SELECT id FROM image_groups WHERE status = 'BUILT';
+#   - GitLab: Deploy/Cleanup pipelines show available image groups as manual jobs
+#
+# This is used by BOTH deploy and cleanup pipelines:
+#   - Deploy: Selects this image group for deployment
+#   - Cleanup: Deletes this image group from registry and S3
+#
+# If set, the automation will use THIS specific image group.
+# If empty, the automation will auto-select the LATEST BUILT image group.
+#
+# Format: Image group identifier string (e.g., "image-build-20260530-061909")
+# Leave empty ("") to auto-select latest BUILT image group (default).
+image_identifier: ""

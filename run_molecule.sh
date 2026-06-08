@@ -24,6 +24,7 @@
 # Usage:
 #   ./run_molecule.sh <scenario> <command> [options]
 #   ./run_molecule.sh all <command>              # Run install + prepare_oim
+#   ./run_molecule.sh all verify --flow build_stream  # Run full build_stream flow
 #
 # Commands:
 #   test      - Run full test (create + prepare + converge + verify)
@@ -36,6 +37,7 @@
 # Options:
 #   --suite <name>    Run specific test suite (sanity, negative, regression, smoke)
 #   --marker <expr>   Run tests matching pytest marker expression
+#   --flow <name>     Run a predefined scenario flow (e.g. build_stream)
 #
 # Test Suites:
 #   sanity      - Basic functionality tests (quick validation)
@@ -52,17 +54,24 @@
 #   build_image_aarch64 - Build aarch64 images and verify
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
+#   one_shot_log_extraction - Run one-shot log extraction and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
 #   omnia_sh_uninstall  - Uninstall omnia.sh and verify
 #   all                 - Run all scenarios in order (not cleanup)
+#   build_stream        - Run Build Stream CI/CD pipeline tests
+#
+# Flows (use with 'all --flow <name>'):
+#   build_stream        - omnia_sh_install → prepare_oim → gitlab_install → build_stream verify
 #
 # Examples:
 #   ./run_molecule.sh omnia_sh_install test      # Install + verify
 #   ./run_molecule.sh omnia_sh_install verify    # Verify install only
 #   ./run_molecule.sh omnia_sh_uninstall test    # Cleanup + verify
-#   ./run_molecule.sh all test                   # Run ALL scenarios
-#   ./run_molecule.sh list                       # List scenarios
+#   ./run_molecule.sh all test                          # Run ALL scenarios
+#   ./run_molecule.sh all verify --flow build_stream  # Run build_stream flow
+#   ./run_molecule.sh build_stream verify --suite build_auto   # Run build_auto suite
+#   ./run_molecule.sh list                                # List scenarios
 #   ./run_molecule.sh prepare_oim verify --suite sanity    # Run sanity tests only
 #   ./run_molecule.sh gitlab_install verify --suite sanity # Run GitLab install sanity tests
 #   ./run_molecule.sh gitlab_cleanup verify --suite sanity # Run GitLab cleanup sanity tests
@@ -93,8 +102,9 @@ SCENARIO="$1"
 COMMAND="$2"
 SUITE=""
 MARKER=""
+FLOW=""
 
-# Parse optional arguments (--suite, --marker) only if we have more than 2 args
+# Parse optional arguments (--suite, --marker, --flow) only if we have more than 2 args
 if [[ $# -gt 2 ]]; then
     shift 2
     while [[ $# -gt 0 ]]; do
@@ -105,6 +115,10 @@ if [[ $# -gt 2 ]]; then
                 ;;
             --marker)
                 MARKER="$2"
+                shift 2
+                ;;
+            --flow)
+                FLOW="$2"
                 shift 2
                 ;;
             *)
@@ -145,7 +159,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream gitlab_cleanup oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
@@ -197,11 +211,81 @@ case "$SCENARIO" in
         ;;
     
     all)
-        # Run all scenarios with shared report ID
-        # Order: install scenarios first, then cleanup scenarios
         COMMAND="${COMMAND:-test}"
         export OMNIA_REPORT_ID=$(cat /proc/sys/kernel/random/uuid | cut -c1-8)
-        
+
+        # --flow build_stream: omnia_sh_install -> prepare_oim -> gitlab_install -> build_stream verify
+        if [[ "$FLOW" == "build_stream" ]]; then
+            echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+            echo -e "${BLUE}  Omnia Molecule Test Runner - BUILD STREAM FLOW${NC}"
+            echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+            echo -e "  Flow      : ${GREEN}build_stream${NC}"
+            echo -e "  Command   : ${GREEN}${COMMAND}${NC}"
+            if [[ -n "$SUITE" ]]; then
+                echo -e "  Suite     : ${GREEN}${SUITE}${NC}"
+            fi
+            echo -e "  Report ID : ${GREEN}${OMNIA_REPORT_ID}${NC}"
+            echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+            echo ""
+            echo -e "  Flow: omnia_sh_install → prepare_oim → gitlab_install → build_stream verify"
+            echo ""
+
+            FAILED=0
+            PREREQ_SCENARIOS="omnia_sh_install prepare_oim gitlab_install"
+
+            for name in $PREREQ_SCENARIOS; do
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${YELLOW}➜ Running: ${name} test${NC}"
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo ""
+                LOG_FILE="/tmp/molecule_${name}_${OMNIA_REPORT_ID}.log"
+                export MOLECULE_LOG_FILE="$LOG_FILE"
+                export MOLECULE_COMMAND="test"
+                if molecule test -s "${name}" 2>&1 | tee "$LOG_FILE"; then
+                    echo -e "${GREEN}✔ ${name} completed${NC}"
+                else
+                    echo -e "${RED}✘ ${name} failed — aborting build_stream flow${NC}"
+                    exit 1
+                fi
+                echo ""
+            done
+
+            # Run build_stream verify with optional suite/marker
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}➜ Running: build_stream verify${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo ""
+            LOG_FILE="/tmp/molecule_build_stream_${OMNIA_REPORT_ID}.log"
+            export MOLECULE_LOG_FILE="$LOG_FILE"
+            export MOLECULE_COMMAND="verify"
+            PYTEST_ARGS=$(build_pytest_args)
+            if [[ -n "$PYTEST_ARGS" ]]; then
+                export PYTEST_ADDOPTS="$PYTEST_ARGS"
+                echo -e "  Suite/Marker: ${GREEN}${PYTEST_ARGS}${NC}"
+                echo ""
+            fi
+            if molecule verify -s build_stream 2>&1 | tee "$LOG_FILE"; then
+                echo -e "${GREEN}✔ build_stream verify completed${NC}"
+            else
+                echo -e "${RED}✘ build_stream verify failed${NC}"
+                FAILED=1
+            fi
+            echo ""
+
+            if [[ $FAILED -eq 0 ]]; then
+                echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+                echo -e "${GREEN}  ✔ BUILD STREAM FLOW COMPLETED SUCCESSFULLY${NC}"
+                echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
+            else
+                echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+                echo -e "${RED}  ✘ BUILD STREAM FLOW FAILED${NC}"
+                echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+                exit 1
+            fi
+            exit 0
+        fi
+
+        # Normal 'all' flow (build_stream excluded — use --flow build_stream)
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo -e "${BLUE}  Omnia Molecule Test Runner - ALL SCENARIOS${NC}"
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
@@ -209,23 +293,21 @@ case "$SCENARIO" in
         echo -e "  Report ID : ${GREEN}${OMNIA_REPORT_ID}${NC}"
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
-        
-        # Build ordered list: omnia_sh_install first, then prepare_oim
-        # Note: cleanup scenarios are NOT included in "all" - run them explicitly
+
+        # Note: build_stream is NOT in this list — use: ./run_molecule.sh all verify --flow build_stream
         SCENARIOS="omnia_sh_install prepare_oim discovery local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer"
-        
+
         FAILED=0
         for name in $SCENARIOS; do
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo -e "${YELLOW}➜ Running: ${name} ${COMMAND}${NC}"
             echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo ""
-            
-            # Create log file for this scenario
+
             LOG_FILE="/tmp/molecule_${name}_${OMNIA_REPORT_ID:-$(date +%s)}.log"
             export MOLECULE_LOG_FILE="$LOG_FILE"
             export MOLECULE_COMMAND="${COMMAND}"
-            
+
             if molecule "${COMMAND}" -s "${name}" 2>&1 | tee "$LOG_FILE"; then
                 echo -e "${GREEN}✔ ${name} completed${NC}"
             else
@@ -234,7 +316,7 @@ case "$SCENARIO" in
             fi
             echo ""
         done
-        
+
         if [[ $FAILED -eq 0 ]]; then
             echo -e "${GREEN}═══════════════════════════════════════════════════════════════${NC}"
             echo -e "${GREEN}  ✔ ALL SCENARIOS COMPLETED SUCCESSFULLY${NC}"
@@ -254,6 +336,12 @@ if [[ ! -d "molecule/${SCENARIO}" ]]; then
     echo -e "${RED}Error: Scenario '${SCENARIO}' not found${NC}"
     echo "Run '$0 list' to see available scenarios."
     exit 1
+fi
+
+# For build_stream scenario: always use verify (tests only, no converge needed)
+if [[ "$SCENARIO" == "build_stream" && "$COMMAND" == "test" ]]; then
+    echo -e "${YELLOW}Note: build_stream uses 'verify' instead of 'test' (no converge step needed)${NC}"
+    COMMAND="verify"
 fi
 
 # Default command
@@ -312,3 +400,42 @@ case "$COMMAND" in
         exit 1
         ;;
 esac
+
+# =============================================================================
+# Bash Tab Completion
+# To enable: source <(./run_molecule.sh --completion)
+# Or add to ~/.bashrc: source /root/balaji/omnia-artifactory/.run_molecule_completion.bash
+# =============================================================================
+if [[ "$1" == "--completion" ]]; then
+    cat <<'COMPLETION_SCRIPT'
+_run_molecule_completions() {
+    local cur prev
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    local scenarios="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream gitlab_cleanup oim_cleanup omnia_sh_uninstall all list help"
+    local commands="test verify converge create prepare"
+    local suites="sanity negative regression smoke stress build_auto deploy_auto cleanup_manual build_manual deploy_manual"
+    local flows="build_stream"
+
+    case "${COMP_CWORD}" in
+        1)
+            COMPREPLY=($(compgen -W "$scenarios" -- "$cur"))
+            ;;
+        2)
+            COMPREPLY=($(compgen -W "$commands" -- "$cur"))
+            ;;
+        *)
+            case "$prev" in
+                --suite) COMPREPLY=($(compgen -W "$suites" -- "$cur")) ;;
+                --flow)  COMPREPLY=($(compgen -W "$flows" -- "$cur")) ;;
+                *)       COMPREPLY=($(compgen -W "--suite --marker --flow" -- "$cur")) ;;
+            esac
+            ;;
+    esac
+}
+complete -F _run_molecule_completions run_molecule.sh
+complete -F _run_molecule_completions ./run_molecule.sh
+COMPLETION_SCRIPT
+    exit 0
+fi

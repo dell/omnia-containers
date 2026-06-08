@@ -1,4 +1,8 @@
 ---
+exclude_paths:
+  - .git/
+  - .github/
+  - datasets
 
 skip_list:
   - var-naming

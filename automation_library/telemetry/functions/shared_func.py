@@ -36,6 +36,7 @@ from ...core import (
     clear_input_cache,
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP,
     TELEMETRY_CONFIG_FILE,
+    TELEMETRY_STORAGE_CONFIG_FILE,
     SOFTWARE_CONFIG_FILE,
 )
 
@@ -71,6 +72,22 @@ def get_telemetry_config(host) -> Dict[str, Any]:
     return load_input_file(host, TELEMETRY_CONFIG_FILE)
 
 
+def get_telemetry_storage_config(host) -> Dict[str, Any]:
+    """
+    Read telemetry_storage_config.yml from container (cached by core).
+
+    Contains resource limits, replica counts, and PVC sizes for all
+    telemetry components (VictoriaMetrics, VictoriaLogs, Vector, Kafka, etc.).
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with telemetry storage configuration
+    """
+    return load_input_file(host, TELEMETRY_STORAGE_CONFIG_FILE)
+
+
 def get_software_config(host) -> Dict[str, Any]:
     """
     Read software_config.json from container (cached by core).
@@ -88,37 +105,79 @@ def get_software_config(host) -> Dict[str, Any]:
 # ENABLE CHECK FUNCTIONS (using core get_input_value/get_input_bool)
 # =============================================================================
 
+def _get_source_config(host, source_name: str) -> Dict[str, Any]:
+    """
+    Get a specific source configuration from telemetry_sources.
+
+    Args:
+        host: Testinfra host object
+        source_name: Source key (e.g., 'idrac', 'ldms', 'powerscale')
+
+    Returns:
+        Dict with source configuration, or empty dict if not found
+    """
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    return sources.get(source_name, {})
+
+
+def _any_source_targets(host, target: str) -> bool:
+    """
+    Check if any enabled telemetry source targets a given sink.
+
+    Args:
+        host: Testinfra host object
+        target: Sink name (e.g., 'victoria_metrics', 'victoria_logs', 'kafka')
+
+    Returns:
+        True if at least one enabled source has target in collection_targets
+    """
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    for _name, src_cfg in sources.items():
+        if not isinstance(src_cfg, dict):
+            continue
+        if src_cfg.get("metrics_enabled") or src_cfg.get("logs_enabled"):
+            targets = src_cfg.get("collection_targets", [])
+            if target in targets:
+                return True
+    return False
+
+
 def is_idrac_telemetry_enabled(host) -> bool:
     """Check if iDRAC telemetry is enabled in telemetry_config.yml."""
-    return get_input_bool(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_support")
+    src = _get_source_config(host, "idrac")
+    return bool(src.get("metrics_enabled", False))
 
 
 def is_kafka_enabled(host) -> bool:
-    """Check if Kafka is enabled in idrac_telemetry_collection_type."""
-    collection_type = get_input_value(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_collection_type")
-    if not collection_type:
-        return False
-    return "kafka" in collection_type.lower()
+    """
+    Check if Kafka sink is active.
+
+    Returns True if any source has 'kafka' in collection_targets.
+    """
+    return _any_source_targets(host, "kafka")
 
 
 def is_victoria_enabled(host) -> bool:
     """
-    Check if VictoriaMetrics is enabled in telemetry_config.yml.
+    Check if VictoriaMetrics sink is active.
 
-    Returns True if:
-    - idrac_telemetry_support is true AND
-    - 'victoria' is in idrac_telemetry_collection_type
+    Returns True if any source has 'victoria_metrics' in collection_targets.
     """
-    if not get_input_bool(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_support"):
-        return False
-    collection_type = get_input_value(host, TELEMETRY_CONFIG_FILE, "idrac_telemetry_collection_type")
-    if not collection_type:
-        return False
-    return "victoria" in collection_type.lower()
+    return _any_source_targets(host, "victoria_metrics")
 
 
 def is_ldms_enabled(host) -> bool:
-    """Check if LDMS is enabled in software_config.json."""
+    """
+    Check if LDMS is enabled.
+
+    Checks both telemetry_sources.ldms.metrics_enabled and
+    software_config.json for the LDMS software entry.
+    """
+    src = _get_source_config(host, "ldms")
+    if src.get("metrics_enabled", False):
+        return True
     softwares = get_input_value(host, SOFTWARE_CONFIG_FILE, "softwares")
     if not softwares:
         return False
@@ -320,9 +379,9 @@ def get_admin_ip(host, log=None, use_cache: bool = True) -> str:
 
 def skip_if_kafka_not_enabled(host, log):
     """
-    Skip test if Kafka is not enabled.
+    Skip test if Kafka sink is not active.
 
-    Checks if 'kafka' is in idrac_telemetry_collection_type.
+    Checks if any source has 'kafka' in collection_targets.
 
     Args:
         host: Testinfra host object
@@ -330,37 +389,83 @@ def skip_if_kafka_not_enabled(host, log):
     """
     if not is_kafka_enabled(host):
         log.skipped(
-            "Kafka is not enabled in idrac_telemetry_collection_type",
+            "Kafka sink is not active (no source targets kafka)",
             "Test skipped - Kafka not enabled"
         )
-        pytest.skip("Kafka is not enabled in idrac_telemetry_collection_type")
+        pytest.skip("Kafka sink is not active")
 
 
 def skip_if_victoria_not_enabled(host, log):
     """
-    Skip test if VictoriaMetrics is not enabled.
+    Skip test if VictoriaMetrics sink is not active.
 
-    Checks:
-    - idrac_telemetry_support must be true
-    - 'victoria' must be in idrac_telemetry_collection_type
+    Checks if any source has 'victoria_metrics' in collection_targets.
 
     Args:
         host: Testinfra host object
         log: TestLogger instance
     """
-    if not is_idrac_telemetry_enabled(host):
-        log.skipped(
-            "iDRAC telemetry is not enabled (idrac_telemetry_support=false)",
-            "Test skipped - iDRAC telemetry not enabled"
-        )
-        pytest.skip("iDRAC telemetry is not enabled")
-
     if not is_victoria_enabled(host):
         log.skipped(
-            "VictoriaMetrics is not enabled in idrac_telemetry_collection_type",
+            "VictoriaMetrics sink is not active (no source targets victoria_metrics)",
             "Test skipped - VictoriaMetrics not enabled"
         )
-        pytest.skip("VictoriaMetrics is not enabled")
+        pytest.skip("VictoriaMetrics sink is not active")
+
+
+def is_victoria_logs_enabled(host) -> bool:
+    """
+    Check if VictoriaLogs sink is active.
+
+    Returns True if any source has 'victoria_logs' in collection_targets.
+    """
+    return _any_source_targets(host, "victoria_logs")
+
+
+def skip_if_victoria_logs_not_enabled(host, log):
+    """
+    Skip test if VictoriaLogs sink is not active.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_victoria_logs_enabled(host):
+        log.skipped(
+            "VictoriaLogs sink is not active (no source targets victoria_logs)",
+            "Test skipped - VictoriaLogs not enabled"
+        )
+        pytest.skip("VictoriaLogs sink is not active")
+
+
+def is_powerscale_metrics_enabled(host) -> bool:
+    """Check if PowerScale metrics telemetry is enabled."""
+    src = _get_source_config(host, "powerscale")
+    return bool(src.get("metrics_enabled", False))
+
+
+def is_powerscale_logs_enabled(host) -> bool:
+    """Check if PowerScale logs telemetry is enabled."""
+    src = _get_source_config(host, "powerscale")
+    return bool(src.get("logs_enabled", False))
+
+
+def skip_if_powerscale_not_enabled(host, log):
+    """
+    Skip test if PowerScale telemetry is not enabled.
+
+    Checks telemetry_sources.powerscale.metrics_enabled in telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_powerscale_metrics_enabled(host):
+        log.skipped(
+            "PowerScale telemetry is not enabled (powerscale.metrics_enabled=false)",
+            "Test skipped - PowerScale telemetry not enabled"
+        )
+        pytest.skip("PowerScale telemetry is not enabled")
 
 
 def skip_if_ldms_not_enabled(host, log):

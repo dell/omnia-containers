@@ -51,6 +51,24 @@ from .victoria_vars import (
     VICTORIA_CMD_TEMPLATES,
 )
 
+# VictoriaLogs specific
+from .victoria_logs_vars import (
+    VLCLUSTER_NAME,
+    VLSTORAGE,
+    VLINSERT,
+    VLSELECT,
+    VLAGENT_LOGS,
+    VICTORIA_LOGS_TLS_SECRET,
+    VICTORIA_LOGS_CMD_TEMPLATES,
+)
+
+# PowerScale specific
+from .powerscale_vars import (
+    DEPLOYMENT_MODE_OMNIA,
+    DEPLOYMENT_MODE_OPERATOR,
+    CSM_METRICS_POWERSCALE,
+)
+
 # Failover test specific (poweroff/reboot)
 from .failover_vars import (
     POD_RESCHEDULE_RETRY_LIMIT,

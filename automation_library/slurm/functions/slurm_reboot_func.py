@@ -24,21 +24,13 @@ This module provides functions to:
 - Submit and verify sbatch and LDAP jobs after reboot
 """
 
+import base64
+import os
 import re
 import time
 from typing import Dict, Any, List, Tuple
 
-from automation_library.core import (
-    get_nodes_info,
-    get_functional_groups_from_pxe_mapping,
-    run_on_remote_node,
-    run_in_container,
-)
 from automation_library.slurm.vars.slurm_vars import (
-    SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
-    SLURM_NODE_FUNCTIONAL_GROUP,
-    LOGIN_NODE_FUNCTIONAL_GROUP,
-    LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
     SLURMCTLD_SERVICE,
     SLURMD_SERVICE,
     SLURMDBD_SERVICE,
@@ -52,7 +44,6 @@ from automation_library.slurm.vars.slurm_vars import (
     NODE_IDLE_WAIT_POLL_INTERVAL,
     SACCT_POLL_INTERVAL,
     SACCT_TIMEOUT,
-    SSH_TIMEOUT,
 )
 from automation_library.slurm.messages.slurm_msgs import (
     ERROR_NO_SLURM_CONTROL_NODES,
@@ -88,19 +79,12 @@ from automation_library.slurm.messages.slurm_msgs import (
 )
 from .slurm_func import (
     _safe_run_on_remote_node,
-    _FakeResult,
     _check_service_on_nodes,
-    _submit_and_poll_root,
-    _get_all_login_nodes,
     get_slurm_control_nodes,
     get_slurm_nodes,
     get_login_nodes,
     get_login_compiler_nodes,
     get_slurm_node_count,
-    verify_slurmctld_active,
-    verify_slurmd_active,
-    verify_munge_active,
-    verify_slurm_nodes_idle,
 )
 from .slurm_ldap_func import (
     _get_ldap_credentials,
@@ -163,7 +147,7 @@ def _reboot_all_nodes_parallel(host, nodes: List[Dict[str, Any]]) -> List[Dict[s
             "initiated": reboot_result["success"],
             "error": reboot_result.get("error", ""),
         })
-    
+
     return results
 
 
@@ -535,7 +519,6 @@ def verify_sbatch_after_reboot(host) -> Dict[str, Any]:
         "hostname\n"
         "echo 'reboot_test_completed'\n"
     )
-    import base64
     encoded = base64.b64encode(script_content.encode()).decode()
     create_cmd = (
         f"echo {encoded} | base64 -d > /home/omnia_reboot_sbatch.sh && "
@@ -701,7 +684,6 @@ def verify_ldap_sbatch_after_reboot(host) -> Dict[str, Any]:
     control_ip = control_nodes[0].get("admin_ip", "")
     num_nodes = get_slurm_node_count(host) or 1
 
-    import base64, os
     jobs_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "slurm_jobs",
@@ -909,7 +891,7 @@ def reboot_all_slurm_nodes_parallel(host) -> Dict[str, Any]:
         }
 
     # Issue all reboots in parallel
-    reboot_results = _reboot_all_nodes_parallel(host, all_nodes)
+    _reboot_all_nodes_parallel(host, all_nodes)
 
     # Wait for all nodes to come online
     all_online, online_details = _wait_for_all_nodes_online(host, all_nodes)

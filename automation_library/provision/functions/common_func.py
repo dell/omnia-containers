@@ -623,10 +623,10 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     Verify telemetry pods are running in K8s cluster based on telemetry_config.
 
     Checks pods in telemetry namespace based on configuration:
-    - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled in software_config
-    - iDRAC telemetry pods if idrac_telemetry_support is true
-    - VictoriaMetrics pods based on deployment_mode (single-node vs cluster)
-    - Kafka pods (always expected for telemetry)
+    - LDMS pods (nersc-ldms-aggr, nersc-ldms-store) if ldms enabled
+    - iDRAC telemetry pods if telemetry_sources.idrac.metrics_enabled is true
+    - VictoriaMetrics cluster pods (always cluster mode)
+    - Kafka pods if any source targets kafka
 
     Args:
         host: Testinfra host object
@@ -679,30 +679,29 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
     if ldms_enabled:
         expected_prefixes.extend(["nersc-ldms-aggr", "nersc-ldms-store"])
 
-    # iDRAC telemetry pods - only if idrac_telemetry_support is true
-    idrac_enabled = (
-        telemetry_config.get("idrac_telemetry_support", False) if telemetry_config else False
-    )
+    # iDRAC telemetry pods - only if telemetry_sources.idrac.metrics_enabled
+    sources = telemetry_config.get("telemetry_sources", {}) if telemetry_config else {}
+    idrac_src = sources.get("idrac", {})
+    idrac_enabled = bool(idrac_src.get("metrics_enabled", False))
     results["idrac_enabled"] = idrac_enabled
     if idrac_enabled:
         expected_prefixes.append("idrac-telemetry")
 
-    # VictoriaMetrics pods based on deployment_mode
-    victoria_config = (
-        telemetry_config.get("victoria_configurations", {}) if telemetry_config else {}
-    )
-    deployment_mode = victoria_config.get("deployment_mode", "cluster")
+    # VictoriaMetrics pods - always cluster mode
+    deployment_mode = "cluster"
     results["deployment_mode"] = deployment_mode
+    expected_prefixes.extend(["vmagent", "vminsert", "vmselect", "vmstorage"])
 
-    if deployment_mode == "single-node":
-        # Single-node mode: victoria-metric statefulset + vmagent
-        expected_prefixes.extend(["victoria-metric", "vmagent"])
-    else:
-        # Cluster mode: vminsert, vmselect, vmstorage, vmagent
-        expected_prefixes.extend(["vmagent", "vminsert", "vmselect", "vmstorage"])
-
-    # Kafka pods (always expected for telemetry)
-    expected_prefixes.extend(["kafka-broker", "kafka-controller", "strimzi-cluster-operator"])
+    # Kafka pods - only if any source targets kafka
+    kafka_active = False
+    for _name, src_cfg in sources.items():
+        if isinstance(src_cfg, dict):
+            if src_cfg.get("metrics_enabled") or src_cfg.get("logs_enabled"):
+                if "kafka" in src_cfg.get("collection_targets", []):
+                    kafka_active = True
+                    break
+    if kafka_active:
+        expected_prefixes.extend(["kafka-broker", "kafka-controller", "strimzi-cluster-operator"])
 
     results["expected_pods"] = expected_prefixes
 

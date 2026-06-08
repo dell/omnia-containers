@@ -24,6 +24,7 @@ Modules:
     - local_repo: Local repository automation
     - prepare_oim: OIM preparation automation
     - telemetry: Telemetry (iDRAC, Kafka, LDMS) automation and verification
+    - one_shot_log_extraction: One-shot combined log extraction from K8s/Slurm nodes
 """
 
 __version__ = "0.1.0"

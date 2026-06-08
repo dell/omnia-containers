@@ -46,7 +46,7 @@ KAFKA_TEST_NAMES: Dict[str, str] = {
 
 KAFKA_LOG_MSGS: Dict[str, str] = {
     # Kafka log messages
-    "kafka_enabled": "Kafka is enabled in idrac_telemetry_collection_type",
+    "kafka_enabled": "Kafka sink is active (sources target kafka)",
     "kafka_not_enabled": "Kafka is not enabled - skipping Kafka tests",
     "kafka_cluster_ready": "Kafka cluster is ready",
     "kafka_cluster_not_ready": "Kafka cluster is not ready",
@@ -84,8 +84,8 @@ KAFKA_LOG_MSGS: Dict[str, str] = {
 
 KAFKA_ASSERT_MSGS: Dict[str, str] = {
     "kafka_not_enabled": (
-        "Kafka is not enabled in telemetry_config.yml.\n"
-        "idrac_telemetry_collection_type does not contain 'kafka'.\n"
+        "Kafka sink is not active in telemetry_config.yml.\n"
+        "No source has 'kafka' in collection_targets.\n"
         "Skipping all Kafka tests."
     ),
     "kafka_topic_missing": (
@@ -98,7 +98,7 @@ KAFKA_ASSERT_MSGS: Dict[str, str] = {
     "kafka_config_mismatch": (
         "Kafka configuration does not match telemetry_config.yml.\n"
         "Mismatches:\n{mismatches}\n"
-        "Please verify kafka_configurations in telemetry_config.yml"
+        "Please verify telemetry_sinks.kafka in telemetry_config.yml"
     ),
     "kafka_idrac_data_not_flowing": (
         "Data is not flowing to idrac Kafka topic.\n"
@@ -145,7 +145,7 @@ KAFKA_ASSERT_MSGS: Dict[str, str] = {
     # LDMS data verification errors
     "ldms_no_plugins": (
         "No LDMS sampler plugins configured in telemetry_config.yml.\n"
-        "Please check ldms_sampler_configurations section."
+        "Please check ldms_configurations.sampler_plugins section."
     ),
     "ldms_no_nodes": (
         "No LDMS nodes found in PXE mapping file.\n"
@@ -164,7 +164,7 @@ KAFKA_ASSERT_MSGS: Dict[str, str] = {
     ),
     # iDRAC Kafka data verification errors
     "idrac_kafka_not_enabled": (
-        "Kafka not in idrac_telemetry_collection_type"
+        "No source targets kafka for iDRAC telemetry"
     ),
     "idrac_kafka_no_activated_ips": (
         "No activated IPs found in telemetry report"

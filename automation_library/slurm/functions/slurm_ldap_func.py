@@ -23,23 +23,19 @@ import base64
 import os
 import random
 import re
+import shlex
 import string
 import time
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List
 
 from automation_library.core import (
-    load_input_file,
     load_omnia_test_config,
-    run_on_remote_node,
 )
-from automation_library.core import STORAGE_CONFIG_FILE
 # LDAP user creation skipped - using existing credentials from omnia_test_config.yml
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
-    SLURM_NODE_FUNCTIONAL_GROUP,
     LOGIN_NODE_FUNCTIONAL_GROUP,
     LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
-    LDAP_LOGIN_ALLOWED_GROUPS,
     SSH_TIMEOUT,
     PAM_SLEEP_JOB_DURATION,
     PAM_JOB_POLL_INTERVAL,
@@ -57,7 +53,6 @@ from automation_library.slurm.messages.slurm_msgs import (
     LDAP_LOGIN_BLOCKED_PASSED,
     LDAP_LOGIN_BLOCKED_FAILED,
     LDAP_CREDS_MISSING,
-    LDAP_SETUP_FAILED,
     PAM_TEST_PASSED,
     PAM_TEST_FAILED,
     PAM_JOB_SUBMIT_FAILED,
@@ -71,11 +66,8 @@ from automation_library.slurm.messages.slurm_msgs import (
     MPI_NO_LOGIN_COMPILER,
     MPI_OUTPUT_VERIFICATION_FAILED,
     QUEUE_TEST_PASSED,
-    QUEUE_TEST_FAILED,
     QUEUE_FIRST_NOT_RUNNING,
     QUEUE_SECOND_NOT_PENDING,
-    LDAP_JOB_SINGLE_PASSED,
-    LDAP_JOB_SINGLE_FAILED,
     LDAP_JOB_MULTI_PASSED,
     LDAP_JOB_MULTI_FAILED,
     LDAP_JOB_ALLNODES_PASSED,
@@ -97,12 +89,10 @@ from automation_library.slurm.messages.slurm_msgs import (
 )
 from .slurm_func import (
     _safe_run_on_remote_node,
-    _FakeResult,
     get_slurm_control_nodes,
     get_slurm_nodes,
     get_login_nodes,
     get_login_compiler_nodes,
-    get_slurm_node_count,
     _get_all_login_nodes,
 )
 
@@ -110,6 +100,19 @@ from .slurm_func import (
 # =============================================================================
 # LDAP CREDENTIAL & SSH HELPERS
 # =============================================================================
+
+class _FakeSshResult:
+    """Minimal result returned when host.run() raises RuntimeError (SSH exit 255).
+
+    testinfra raises RuntimeError instead of returning a result object when SSH
+    exits with code 255 (PAM deny, authentication failure, connection refused).
+    This shim lets callers treat all SSH outcomes uniformly.
+    """
+    def __init__(self, rc: int, stdout: str, stderr: str) -> None:
+        self.rc = rc
+        self.stdout = stdout
+        self.stderr = stderr
+
 
 def _get_ldap_credentials() -> Dict[str, str]:
     """Read LDAP credentials from omnia_test_config.yml.
@@ -193,72 +196,78 @@ def _get_all_ldap_credentials() -> Dict[str, Any]:
     return {"users": [], "error": LDAP_CREDS_MISSING}
 
 
+def _run_ldap_ssh_on_host(host, target_ip: str, ldap_user: str,
+                           ldap_password: str, command: str):
+    """Execute an SSH command as ldapuser on a target node via OIM.
+
+    Uses SSH_ASKPASS to supply the password — requires only standard Unix
+    tools (ssh, sh, base64, mktemp) with no sshpass or paramiko on OIM.
+    Runs via host.run() so the connection originates from OIM (correct
+    network path to cluster nodes).
+
+    Returns the host.run() result object (.rc, .stdout, .stderr).
+    """
+    b64_pass = base64.b64encode(ldap_password.encode()).decode()
+    # askpass script: decodes b64 password, prints without trailing newline
+    askpass = f"#!/bin/sh\nprintf '%s' \"$(echo {b64_pass}|base64 -d)\"\n"
+    askpass_b64 = base64.b64encode(askpass.encode()).decode()
+
+    run_cmd = (
+        f"ASKP=$(mktemp /tmp/.ap.XXXXXX) && "
+        f"echo {askpass_b64}|base64 -d>$ASKP && chmod 700 $ASKP && "
+        f"SSH_ASKPASS=$ASKP SSH_ASKPASS_REQUIRE=force DISPLAY=:0 "
+        f"setsid ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+        f"-o ConnectTimeout={SSH_TIMEOUT} "
+        f"{ldap_user}@{target_ip} {shlex.quote(command)}; "
+        f"RC=$?; rm -f $ASKP; exit $RC"
+    )
+    try:
+        return host.run(run_cmd)
+    except RuntimeError as exc:
+        # testinfra raises RuntimeError when SSH exits 255 (PAM deny, auth
+        # failure, connection refused). Convert to _FakeSshResult so callers
+        # can evaluate login_success / blocked state without crashing.
+        return _FakeSshResult(rc=255, stdout="", stderr=str(exc))
+
+
 def _ldap_ssh_login(host, target_ip: str, ldap_user: str,
                     ldap_password: str) -> Dict[str, Any]:
-    """Test SSH login to a node as ldapuser using sshpass from OIM.
+    """Test SSH login to a node as ldapuser via OIM using SSH_ASKPASS.
 
     Runs 'whoami' on the target node to verify the logged-in identity.
 
     Returns:
         Dict with login_success, whoami_output, output, error.
     """
-    ssh_cmd = (
-        f"sshpass -p '{ldap_password}' ssh "
-        f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-        f"-o ConnectTimeout={SSH_TIMEOUT} "
-        f"{ldap_user}@{target_ip} 'whoami'"
-    )
-    try:
-        cmd = host.run(ssh_cmd)
-        whoami_output = cmd.stdout.strip()
-        login_ok = cmd.rc == 0 and whoami_output == ldap_user
-        return {
-            "login_success": login_ok,
-            "whoami_output": whoami_output,
-            "output": whoami_output,
-            "rc": cmd.rc,
-            "error": cmd.stderr.strip() if not login_ok else "",
-        }
-    except RuntimeError as exc:
-        return {
-            "login_success": False,
-            "whoami_output": "",
-            "output": "",
-            "error": f"SSH connection failed: {exc}",
-        }
+    cmd = _run_ldap_ssh_on_host(host, target_ip, ldap_user, ldap_password, "whoami")
+    whoami_output = cmd.stdout.strip()
+    login_ok = cmd.rc == 0 and whoami_output == ldap_user
+    return {
+        "login_success": login_ok,
+        "whoami_output": whoami_output,
+        "output": whoami_output,
+        "rc": cmd.rc,
+        "error": "" if login_ok else cmd.stderr.strip(),
+    }
 
 
 def _run_as_ldapuser(host, target_ip: str, ldap_user: str,
                      ldap_password: str, command: str) -> Dict[str, Any]:
-    """Run a command as ldapuser on a target node via sshpass from OIM.
+    """Run a command as ldapuser on a target node via OIM using SSH_ASKPASS.
 
     Returns:
         Dict with success, rc, stdout, stderr.
     """
-    ssh_cmd = (
-        f"sshpass -p '{ldap_password}' ssh "
-        f"-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
-        f"-o ConnectTimeout={SSH_TIMEOUT} "
-        f"{ldap_user}@{target_ip} '{command}'"
-    )
-    try:
-        cmd = host.run(ssh_cmd)
-        return {
-            "success": cmd.rc == 0,
-            "rc": cmd.rc,
-            "stdout": cmd.stdout.strip(),
-            "stderr": cmd.stderr.strip(),
-        }
-    except RuntimeError as exc:
-        return {
-            "success": False,
-            "rc": 255,
-            "stdout": "",
-            "stderr": f"SSH connection failed: {exc}",
-        }
+    cmd = _run_ldap_ssh_on_host(host, target_ip, ldap_user, ldap_password, command)
+    return {
+        "success": cmd.rc == 0,
+        "rc": cmd.rc,
+        "stdout": cmd.stdout.strip(),
+        "stderr": cmd.stderr.strip(),
+    }
 
 
-def _setup_ldap_user(host) -> Dict[str, Any]:
+def _setup_ldap_user(_host) -> Dict[str, Any]:
     """Common setup: validate credentials for LDAP user login testing.
 
     Returns:
@@ -278,7 +287,7 @@ def _setup_ldap_user(host) -> Dict[str, Any]:
     }
 
 
-def _setup_all_ldap_users(host) -> Dict[str, Any]:
+def _setup_all_ldap_users(_host) -> Dict[str, Any]:
     """Common setup: validate ALL LDAP credentials for multi-user testing.
 
     Returns:
@@ -675,7 +684,7 @@ def _verify_pam_support(host, submit_node_ip: str,
     """Core PAM verification logic used by both login-node and control-node tests.
 
     1. Transfer sleep job to submit_node (as root).
-    2. Submit job as ldapuser from submit_node via sshpass.
+    2. Submit job as ldapuser from submit_node via paramiko.
     3. Wait for RUNNING state.
     4. Verify ldapuser CAN login to allocated slurm nodes.
     5. Wait for job to complete.
@@ -950,7 +959,7 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
                 "output_verified": False, "error": setup["error"]}
 
     ldap_user = setup["ldap_user"]
-    ldap_password = setup["ldap_password"]
+    _ldap_password = setup["ldap_password"]
 
     login_compiler_nodes = get_login_compiler_nodes(host)
     if not login_compiler_nodes:
@@ -977,33 +986,27 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
                 "output_verified": False, "error": "No slurm control nodes found"}
     control_ip = control_nodes[0].get("admin_ip", "")
 
-    # Read NFS client_share_path for nfs_slurm from storage_config.yml
-    storage_config = load_input_file(host, STORAGE_CONFIG_FILE)
-    nfs_share_path = ""
-    for entry in storage_config.get("nfs_client_params", []):
-        if entry.get("nfs_name") == "nfs_slurm":
-            nfs_share_path = entry.get("client_share_path", "")
-            break
-    if not nfs_share_path:
-        return {"success": False,
-                "message": "Could not find client_share_path for nfs_slurm in storage_config.yml",
-                "job_id": "", "job_state": "", "job_output": "",
-                "submit_node": submit_hostname,
-                "output_verified": False,
-                "error": "nfs_slurm client_share_path not found in storage_config.yml"}
+    # Ensure destination directories exist on the submit node:
+    #   - /scratch/<hostname>/  for the job script
+    #   - /scratch/<ldapuser>/results/  matches #SBATCH --output in mpi_job.sh
+    _safe_run_on_remote_node(
+        host,
+        f"mkdir -p /scratch/{submit_hostname} /scratch/{ldap_user}/results"
+        f" && chown -R {ldap_user}: /scratch/{ldap_user}",
+        submit_ip,
+    )
 
-    # Transfer MPI job script to submit node (as root)
+    # Transfer MPI job script to /scratch/<login_compiler_hostname>/
     jobs_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "slurm_jobs",
     )
-    remote_script = "/home/omnia_test_mpi.sh"
+    remote_script = f"/scratch/{submit_hostname}/omnia_test_mpi.sh"
     xfer = _transfer_job_script(
         host, submit_ip,
         os.path.join(jobs_dir, "mpi_job.sh"),
         remote_script,
-        {"{{NFS_CLIENT_SHARE_PATH}}": nfs_share_path,
-         "{{OUTPUT_PATH}}": "/home"},
+        {},
     )
     if not xfer["success"]:
         return {"success": False,
@@ -1012,8 +1015,10 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
                 "submit_node": submit_hostname,
                 "output_verified": False, "error": xfer["error"]}
 
-    # Submit as root from login_compiler node
-    cmd = _safe_run_on_remote_node(host, f"sbatch {remote_script}", submit_ip)
+    # Submit as ldapuser from login_compiler node
+    cmd = _safe_run_on_remote_node(
+        host, f"su - {ldap_user} -c 'sbatch {remote_script}'", submit_ip
+    )
     if cmd.rc != 0:
         _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
         return {
@@ -1042,17 +1047,19 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
         SACCT_TIMEOUT, SACCT_POLL_INTERVAL,
     )
 
-    # Read job output from the submit node (where output file is written)
+    # Read job output from /scratch/<ldapuser>/results/ (matches #SBATCH --output in mpi_job.sh)
     job_output = ""
+    out_file = f"/scratch/{ldap_user}/results/omnia_test_mpi_{job_id}.out"
+    err_file = f"/scratch/{ldap_user}/results/omnia_test_mpi_{job_id}.err"
     read_out = _safe_run_on_remote_node(
-        host, f"cat /home/omnia_test_mpi_{job_id}.out 2>/dev/null", submit_ip,
+        host, f"cat {out_file} 2>/dev/null", submit_ip,
     )
     if read_out.rc == 0:
         job_output = read_out.stdout.strip()
     else:
         # Try reading error file if output file doesn't exist
         read_err = _safe_run_on_remote_node(
-            host, f"cat /home/omnia_test_mpi_{job_id}.err 2>/dev/null", submit_ip,
+            host, f"cat {err_file} 2>/dev/null", submit_ip,
         )
         if read_err.rc == 0:
             job_output = f"ERROR: {read_err.stdout.strip()}"
@@ -1740,4 +1747,377 @@ def verify_invalid_ldap_password(host) -> Dict[str, Any]:
         "ldap_users": ldap_usernames,
         "details": details,
         "error": "" if all_denied else INVALID_LDAP_PASS_FAILED,
+    }
+
+
+def _check_gpu_nodes(host) -> Dict[str, Any]:
+    """Check if there are any GPU nodes in the Slurm cluster.
+
+    Returns:
+        Dict with has_gpu_nodes (bool), gpu_node_count (int), gpu_nodes (list)
+    """
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {"has_gpu_nodes": False, "gpu_node_count": 0, "gpu_nodes": [],
+                "error": "No control nodes found"}
+
+    control_ip = control_nodes[0].get("admin_ip", "")
+
+    # Query sinfo for nodes with GPU gres
+    cmd = _safe_run_on_remote_node(
+        host,
+        "sinfo -N -o '%N %G' | grep -i 'gpu:' | awk '{print $1}' | sort -u",
+        control_ip
+    )
+
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return {"has_gpu_nodes": False, "gpu_node_count": 0, "gpu_nodes": []}
+
+    gpu_nodes = [n.strip() for n in cmd.stdout.strip().split('\n') if n.strip()]
+
+    return {
+        "has_gpu_nodes": len(gpu_nodes) > 0,
+        "gpu_node_count": len(gpu_nodes),
+        "gpu_nodes": gpu_nodes
+    }
+
+
+def verify_gpu_hello_job(host) -> Dict[str, Any]:
+    """Submit a GPU hello world job as ldapuser from login_compiler node.
+
+    Tests basic GPU detection, CUDA compilation, and kernel execution
+    across multiple GPU nodes.
+
+    Returns:
+        Dict with success, message, job_id, job_state, job_output,
+        submit_node, output_verified, error.
+    """
+    # Check for GPU nodes first
+    gpu_check = _check_gpu_nodes(host)
+    if not gpu_check.get("has_gpu_nodes"):
+        return {"success": True, "skipped": True,
+                "message": "No GPU nodes found in cluster, skipping GPU test",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False, "error": ""}
+
+    setup = _setup_ldap_user(host)
+    if not setup["success"]:
+        return {"success": False, "message": setup["error"],
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False, "error": setup["error"]}
+
+    ldap_user = setup["ldap_user"]
+
+    login_compiler_nodes = get_login_compiler_nodes(host)
+    if not login_compiler_nodes:
+        return {"success": False, "message": "No login_compiler nodes found",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False,
+                "error": "No login_compiler nodes"}
+
+    submit_node = login_compiler_nodes[0]
+    submit_ip = submit_node.get("admin_ip", "")
+    submit_hostname = submit_node.get("hostname", "unknown")
+
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {"success": False, "message": "No control nodes found",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": submit_hostname,
+                "output_verified": False, "error": "No slurm control nodes found"}
+    control_ip = control_nodes[0].get("admin_ip", "")
+
+    # Ensure directories exist
+    _safe_run_on_remote_node(
+        host,
+        f"mkdir -p /scratch/{submit_hostname} /scratch/{ldap_user}/results"
+        f" && chown -R {ldap_user}: /scratch/{ldap_user}",
+        submit_ip,
+    )
+
+    # Transfer GPU job script
+    jobs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "slurm_jobs",
+    )
+    remote_script = f"/scratch/{submit_hostname}/omnia_gpu_hello.sh"
+    xfer = _transfer_job_script(
+        host, submit_ip,
+        os.path.join(jobs_dir, "gpu_hello_job.sh"),
+        remote_script,
+        {},
+    )
+    if not xfer["success"]:
+        return {"success": False,
+                "message": f"Failed to transfer GPU job: {xfer['error']}",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": submit_hostname,
+                "output_verified": False, "error": xfer["error"]}
+
+    # Submit as ldapuser
+    cmd = _safe_run_on_remote_node(
+        host, f"su - {ldap_user} -c 'sbatch {remote_script}'", submit_ip
+    )
+    if cmd.rc != 0:
+        _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+        return {
+            "success": False,
+            "message": f"GPU job submission failed: {cmd.stderr.strip()}",
+            "job_id": "", "job_state": "", "job_output": "",
+            "submit_node": submit_hostname,
+            "output_verified": False, "error": cmd.stderr.strip(),
+        }
+
+    match = re.search(r"Submitted batch job (\d+)", cmd.stdout.strip())
+    if not match:
+        _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+        return {
+            "success": False,
+            "message": f"Could not parse GPU job ID: {cmd.stdout.strip()}",
+            "job_id": "", "job_state": "", "job_output": "",
+            "submit_node": submit_hostname,
+            "output_verified": False, "error": "Failed to parse job ID",
+        }
+    job_id = match.group(1)
+
+    # Poll for completion
+    state = _poll_job_state(
+        host, control_ip, job_id, "COMPLETED",
+        SACCT_TIMEOUT, SACCT_POLL_INTERVAL,
+    )
+
+    # Read job output
+    job_output = ""
+    out_file = f"/scratch/{ldap_user}/results/omnia_gpu_hello_{job_id}.out"
+    err_file = f"/scratch/{ldap_user}/results/omnia_gpu_hello_{job_id}.err"
+    read_out = _safe_run_on_remote_node(
+        host, f"cat {out_file} 2>/dev/null", submit_ip,
+    )
+    if read_out.rc == 0:
+        job_output = read_out.stdout.strip()
+    else:
+        read_err = _safe_run_on_remote_node(
+            host, f"cat {err_file} 2>/dev/null", submit_ip,
+        )
+        if read_err.rc == 0:
+            job_output = f"ERROR: {read_err.stdout.strip()}"
+
+    # Cleanup script
+    _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+
+    if state != "COMPLETED":
+        return {
+            "success": False,
+            "message": f"GPU job did not complete. State: {state}",
+            "job_id": job_id,
+            "job_state": state or "UNKNOWN",
+            "job_output": job_output,
+            "submit_node": submit_hostname,
+            "output_verified": False,
+            "error": f"GPU job did not complete. State: {state}",
+        }
+
+    # Verify expected output strings
+    expected_strings = [
+        "Number of GPUs detected:",
+        "Compilation successful",
+        "Hello from GPU thread",
+        "GPU job completed successfully",
+    ]
+    missing = [s for s in expected_strings if s not in job_output]
+    output_verified = len(missing) == 0
+
+    if not output_verified:
+        return {
+            "success": False,
+            "message": f"GPU job output verification failed. Missing: {missing}",
+            "job_id": job_id,
+            "job_state": state,
+            "job_output": job_output,
+            "submit_node": submit_hostname,
+            "output_verified": False,
+            "error": f"Missing in output: {missing}",
+        }
+
+    return {
+        "success": True,
+        "message": f"GPU hello job {job_id} completed successfully",
+        "job_id": job_id,
+        "job_state": state,
+        "job_output": job_output,
+        "submit_node": submit_hostname,
+        "output_verified": True,
+        "error": "",
+    }
+
+
+def verify_gpu_mem_stress_job(host) -> Dict[str, Any]:
+    """Submit a GPU memory stress test job as ldapuser from login_compiler node.
+
+    Tests GPU memory allocation and sustained compute workload across
+    multiple GPU nodes simultaneously.
+
+    Returns:
+        Dict with success, message, job_id, job_state, job_output,
+        submit_node, output_verified, error.
+    """
+    # Check for GPU nodes first
+    gpu_check = _check_gpu_nodes(host)
+    if not gpu_check.get("has_gpu_nodes"):
+        return {"success": True, "skipped": True,
+                "message": "No GPU nodes found in cluster, skipping GPU memory stress test",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False, "error": ""}
+
+    setup = _setup_ldap_user(host)
+    if not setup["success"]:
+        return {"success": False, "message": setup["error"],
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False, "error": setup["error"]}
+
+    ldap_user = setup["ldap_user"]
+
+    login_compiler_nodes = get_login_compiler_nodes(host)
+    if not login_compiler_nodes:
+        return {"success": False, "message": "No login_compiler nodes found",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": "", "output_verified": False,
+                "error": "No login_compiler nodes"}
+
+    submit_node = login_compiler_nodes[0]
+    submit_ip = submit_node.get("admin_ip", "")
+    submit_hostname = submit_node.get("hostname", "unknown")
+
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {"success": False, "message": "No control nodes found",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": submit_hostname,
+                "output_verified": False, "error": "No slurm control nodes found"}
+    control_ip = control_nodes[0].get("admin_ip", "")
+
+    # Ensure directories exist
+    _safe_run_on_remote_node(
+        host,
+        f"mkdir -p /scratch/{submit_hostname} /scratch/{ldap_user}/results"
+        f" && chown -R {ldap_user}: /scratch/{ldap_user}",
+        submit_ip,
+    )
+
+    # Transfer GPU memory stress job script
+    jobs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "slurm_jobs",
+    )
+    remote_script = f"/scratch/{submit_hostname}/omnia_gpu_mem_stress.sh"
+    xfer = _transfer_job_script(
+        host, submit_ip,
+        os.path.join(jobs_dir, "gpu_mem_stress_job.sh"),
+        remote_script,
+        {},
+    )
+    if not xfer["success"]:
+        return {"success": False,
+                "message": f"Failed to transfer GPU memory stress job: {xfer['error']}",
+                "job_id": "", "job_state": "", "job_output": "",
+                "submit_node": submit_hostname,
+                "output_verified": False, "error": xfer["error"]}
+
+    # Submit as ldapuser
+    cmd = _safe_run_on_remote_node(
+        host, f"su - {ldap_user} -c 'sbatch {remote_script}'", submit_ip
+    )
+    if cmd.rc != 0:
+        _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+        return {
+            "success": False,
+            "message": f"GPU memory stress job submission failed: {cmd.stderr.strip()}",
+            "job_id": "", "job_state": "", "job_output": "",
+            "submit_node": submit_hostname,
+            "output_verified": False, "error": cmd.stderr.strip(),
+        }
+
+    match = re.search(r"Submitted batch job (\d+)", cmd.stdout.strip())
+    if not match:
+        _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+        return {
+            "success": False,
+            "message": f"Could not parse GPU memory stress job ID: {cmd.stdout.strip()}",
+            "job_id": "", "job_state": "", "job_output": "",
+            "submit_node": submit_hostname,
+            "output_verified": False, "error": "Failed to parse job ID",
+        }
+    job_id = match.group(1)
+
+    # Poll for completion (longer timeout for stress test)
+    state = _poll_job_state(
+        host, control_ip, job_id, "COMPLETED",
+        SACCT_TIMEOUT * 2, SACCT_POLL_INTERVAL,
+    )
+
+    # Read job output
+    job_output = ""
+    out_file = f"/scratch/{ldap_user}/results/omnia_gpu_mem_stress_{job_id}.out"
+    err_file = f"/scratch/{ldap_user}/results/omnia_gpu_mem_stress_{job_id}.err"
+    read_out = _safe_run_on_remote_node(
+        host, f"cat {out_file} 2>/dev/null", submit_ip,
+    )
+    if read_out.rc == 0:
+        job_output = read_out.stdout.strip()
+    else:
+        read_err = _safe_run_on_remote_node(
+            host, f"cat {err_file} 2>/dev/null", submit_ip,
+        )
+        if read_err.rc == 0:
+            job_output = f"ERROR: {read_err.stdout.strip()}"
+
+    # Cleanup script
+    _safe_run_on_remote_node(host, f"rm -f {remote_script}", submit_ip)
+
+    if state != "COMPLETED":
+        return {
+            "success": False,
+            "message": f"GPU memory stress job did not complete. State: {state}",
+            "job_id": job_id,
+            "job_state": state or "UNKNOWN",
+            "job_output": job_output,
+            "submit_node": submit_hostname,
+            "output_verified": False,
+            "error": f"GPU memory stress job did not complete. State: {state}",
+        }
+
+    # Verify expected output strings
+    expected_strings = [
+        "Multi-GPU Memory Stress Test",
+        "Found",
+        "GPU(s)",
+        "Compilation successful",
+        "Completed",
+        "iterations",
+        "GPU memory stress test completed successfully",
+    ]
+    missing = [s for s in expected_strings if s not in job_output]
+    output_verified = len(missing) == 0
+
+    if not output_verified:
+        return {
+            "success": False,
+            "message": f"GPU memory stress output verification failed. Missing: {missing}",
+            "job_id": job_id,
+            "job_state": state,
+            "job_output": job_output,
+            "submit_node": submit_hostname,
+            "output_verified": False,
+            "error": f"Missing in output: {missing}",
+        }
+
+    return {
+        "success": True,
+        "message": f"GPU memory stress job {job_id} completed successfully",
+        "job_id": job_id,
+        "job_state": state,
+        "job_output": job_output,
+        "submit_node": submit_hostname,
+        "output_verified": True,
+        "error": "",
     }
