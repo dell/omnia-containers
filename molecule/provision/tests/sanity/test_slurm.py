@@ -490,7 +490,7 @@ def test_sinfo_nodes(host):
 @pytest.mark.order(21)
 def test_openmpi_installed(host):
     """
-    Test Case 21: Verify OpenMPI is installed and version matches software_config.json.
+    Test Case 21: Verify OpenMPI is installed on login_compiler_node.
 
     Skips if OpenMPI is not enabled in software_config.json.
     """
@@ -504,21 +504,11 @@ def test_openmpi_installed(host):
         log.skipped("No login_compiler_node in PXE mapping", result["error"])
         pytest.skip(result["error"])
 
-    # Build details with version info
-    details_lines = [f"Installed version: {result['version']}"]
-    if result.get("expected_version"):
-        details_lines.append(f"Expected version: {result['expected_version']}")
-        if result.get("version_match"):
-            details_lines.append("Version match: ✓")
-        else:
-            details_lines.append("Version match: ✗")
-    details = "\n".join(details_lines)
-
     if result["success"]:
-        log.passed(f"OpenMPI installed: {result['version']}", details)
+        log.passed("OpenMPI installed", "OpenMPI binary (mpirun) found in PATH")
     else:
         error = result.get('error', 'Unknown error')
-        log.failed("OpenMPI verification failed", f"{error}\n{details}")
+        log.failed("OpenMPI verification failed", error)
         assert False, result.get("error", "OpenMPI verification failed")
 
 
@@ -527,7 +517,7 @@ def test_openmpi_installed(host):
 @pytest.mark.order(22)
 def test_ucx_installed(host):
     """
-    Test Case 22: Verify UCX is installed and version matches software_config.json.
+    Test Case 22: Verify UCX is installed on login_compiler_node.
 
     Skips if UCX is not enabled in software_config.json.
     """
@@ -541,20 +531,11 @@ def test_ucx_installed(host):
         log.skipped("No login_compiler_node in PXE mapping", result["error"])
         pytest.skip(result["error"])
 
-    # Build details with version info
-    details_lines = [f"Installed version: {result['version']}"]
-    if result.get("expected_version"):
-        details_lines.append(f"Expected version: {result['expected_version']}")
-        if result.get("version_match"):
-            details_lines.append("Version match: ✓")
-        else:
-            details_lines.append("Version match: ✗")
-    details = "\n".join(details_lines)
-
     if result["success"]:
-        log.passed(f"UCX installed: {result['version']}", details)
+        log.passed("UCX installed", "UCX binary (ucx_info) found in PATH")
     else:
-        log.failed("UCX verification failed", f"{result.get('error', 'Unknown error')}\n{details}")
+        error = result.get('error', 'Unknown error')
+        log.failed("UCX verification failed", error)
         assert False, result.get("error", "UCX verification failed")
 
 
