@@ -977,21 +977,6 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
                 "output_verified": False, "error": "No slurm control nodes found"}
     control_ip = control_nodes[0].get("admin_ip", "")
 
-    # Read NFS client_share_path for nfs_slurm from storage_config.yml
-    storage_config = load_input_file(host, STORAGE_CONFIG_FILE)
-    nfs_share_path = ""
-    for entry in storage_config.get("nfs_client_params", []):
-        if entry.get("nfs_name") == "nfs_slurm":
-            nfs_share_path = entry.get("client_share_path", "")
-            break
-    if not nfs_share_path:
-        return {"success": False,
-                "message": "Could not find client_share_path for nfs_slurm in storage_config.yml",
-                "job_id": "", "job_state": "", "job_output": "",
-                "submit_node": submit_hostname,
-                "output_verified": False,
-                "error": "nfs_slurm client_share_path not found in storage_config.yml"}
-
     # Transfer MPI job script to submit node (as root)
     jobs_dir = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -1002,8 +987,7 @@ def verify_openmpi_job(host) -> Dict[str, Any]:
         host, submit_ip,
         os.path.join(jobs_dir, "mpi_job.sh"),
         remote_script,
-        {"{{NFS_CLIENT_SHARE_PATH}}": nfs_share_path,
-         "{{OUTPUT_PATH}}": "/home"},
+        {"{{OUTPUT_PATH}}": "/home"},
     )
     if not xfer["success"]:
         return {"success": False,
