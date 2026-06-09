@@ -42,3 +42,5 @@ Upgrade and Rollback Limitations
 - Telemetry data (metrics stored in VictoriaMetrics and Kafka) is not preserved during rollback.
   Rolling back the telemetry component resets the telemetry stack to its pre-upgrade state, and
   any metrics collected after the upgrade are lost.
+- GitLab project rollback depends on the upgrade commit being the latest commit. If additional commits exist after the upgrade, automatic rollback will not revert GitLab content. 
+  Ensure that manual GitLab commit revert to the previous configuration files is performed.

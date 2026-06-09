@@ -62,7 +62,33 @@ Upgrade Workflow
 Phase 0: Core Container Upgrade (OIM Host)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The upgrade begins on the OIM host outside the ``omnia_core`` container:
+The upgrade begins on the OIM host outside the ``omnia_core`` container.
+
+.. important::
+    **Use the Omnia 2.2.0.0 omnia.sh script for upgrade operations**
+    
+    The ``omnia.sh`` script from Omnia 2.1.0.0 does **not** support correct upgrade or rollback operations. You must download and use the Omnia 2.2.0.0 version of ``omnia.sh`` to perform upgrades and rollbacks.
+    
+    Do **not** attempt to run ``./omnia.sh --upgrade`` or ``./omnia.sh --rollback`` using the 2.1.0.0 script.
+
+Download the Omnia 2.2.0.0 omnia.sh Script
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before starting the upgrade, download the correct version of the ``omnia.sh`` script:
+
+1. Download the Omnia 2.2.0.0 ``omnia.sh`` script from the Omnia repository: ::
+
+     wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+
+2. Set executable permissions: ::
+
+    chmod +x omnia.sh
+
+3. Verify the script version (optional): ::
+
+    ./omnia.sh --version
+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1. Run the core container upgrade command: ::
 
@@ -74,7 +100,13 @@ The upgrade begins on the OIM host outside the ``omnia_core`` container:
     * Shows available upgrade targets
     * Validates version and image availability
     * Requests user approval
-    * Creates backup of configs, metadata, and input files
+    * Creates backup of:
+        - Input configuration files (``/opt/omnia/input/``)
+        - Metadata files (``oim_metadata.yml``)
+        - OpenCHAMI data (PostgreSQL database dump, container environment variables)
+        - OpenCHAMI quadlet files (``/etc/containers/systemd/``)
+        - OpenCHAMI configuration files (``/etc/openchami/``)
+        - Cloud-init data (groups, defaults, hostname mappings)
     * Swaps or restarts the ``omnia_core`` container to the 2.2 image
     * Creates upgrade guard lock at ``/opt/omnia/.data/upgrade_in_progress.lock``
     * Seeds new input defaults
@@ -149,56 +181,6 @@ The ``prepare_upgrade.yml`` playbook transforms input files from the source vers
 
 4. Update any new or changed parameters in ``/opt/omnia/input/project_default/`` as needed.
 
-Phase 2: Execute Upgrade
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Run the full upgrade: ::
-
-    cd /omnia/upgrade
-    ansible-playbook upgrade.yml
-
-.. _aarch64-inventory:
-
-**aarch64 clusters:** If your PXE mapping file contains aarch64 functional groups (e.g., ``slurm_node_aarch64``), you must pass an inventory file with the ``[admin_aarch64]`` group: ::
-
-    cd /omnia/upgrade
-    ansible-playbook upgrade.yml -i <inventory_file>
-
-The inventory file must define exactly one ARM admin node under the ``[admin_aarch64]`` group. Example inventory: ::
-
-    [admin_aarch64]
-    <arm_admin_node_ip_or_hostname>
-
-.. note::
-    - The ``[admin_aarch64]`` group must contain exactly one host. Multiple hosts or an empty group will cause the upgrade to fail.
-    - The ARM admin node must be accessible via SSH from the OIM host.
-    - NFS must be configured on the OIM for aarch64 image building to work.
-    - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE mapping file), the ``-i`` option is not required.
-
-Lock Management
-~~~~~~~~~~~~~~~~
-
-The upgrade orchestrator uses lock files to prevent concurrent operations:
-
-* ``/opt/omnia/.data/upgrade_in_progress.lock`` — Created at the start of the upgrade. Removed only on successful completion.
-* ``/opt/omnia/.data/rollback_in_progress.lock`` — If this lock exists, the upgrade aborts with an error. A rollback must complete (or the lock must be manually removed) before an upgrade can proceed.
-
-.. note::
-    The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
-
-Manifest Tracking
-~~~~~~~~~~~~~~~~~~
-
-The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
-
-* **upgrade_id** — Unique identifier for this upgrade run.
-* **source_version** — The version being upgraded from (derived from ``oim_metadata.yml``).
-* **target_version** — The version being upgraded to.
-* **upgrade_status** — Overall status: ``in-progress``, ``completed``, or ``partial``.
-* **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
-
-On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
-
 BuildStreaM Terminal Gate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -236,6 +218,92 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 .. note::
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
 
+Kubernetes Upgrade
+------------------
+
+Kubernetes upgrade provides a robust, resumable, and transparent upgrade process for Kubernetes clusters.
+
+Pre-Upgrade Checklist for Kubernetes Clusters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before initiating the Kubernetes upgrade, verify the following conditions are met:
+
+1. **All nodes Ready** — All nodes in Ready state, no NotReady
+2. **All kube-system pods Running** — No CrashLoopBackOff, Pending, or Error pods
+3. **etcd cluster healthy** — Cluster should report all members healthy
+4. **All PVCs Bound** — No PVCs in Lost or Pending state
+5. **No PVs in Failed state** — No PVs with Failed phase
+6. **All nodes from PXE mapping are part of the cluster** — Every node defined in ``pxe_mapping_file.csv`` under ``service_kube_control_plane_*`` and ``service_kube_node_*`` must appear in ``kubectl get nodes``
+7. **NFS mount accessible** — The shared NFS storage mount must be reachable from all cluster nodes
+8. **API server reachable via kube_vip** — ``kubectl cluster-info`` works through the HA virtual IP
+9. **.cluster_initialized marker exists on all control planes** — ``/etc/kubernetes/.cluster_initialized`` must be present on every CP node (confirms provisioning completed)
+
+Kubernetes Upgrade Workflow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The K8s upgrade follows this sequence:
+
+1. **Pre-checks** — Validates ``service_k8s`` configuration and prerequisites
+2. **Version Detection** — Detects current K8s version across all nodes
+3. **Hop Chain Calculation** — Determines hop chain for upgrade
+4. **Backup Phase** — Backs up etcd and K8s configurations
+5. **Repository Setup** — Configures package repositories on all nodes
+6. **First Control Plane Upgrade** — Upgrades the first control plane node
+7. **BSS/Cloud-init Update for First Control Plane** — Updates boot configuration and reboots first control plane
+8. **Additional Control Planes Upgrade** — Upgrades remaining control plane nodes sequentially
+9. **BSS/Cloud-init Update for Additional Control Planes** — Updates boot configuration (no reboot)
+10. **Addon Upgrade** — Upgrades Calico, MetalLB, Helm, and PowerScale CSI driver
+11. **First Worker Upgrade** — Upgrades the first worker node
+12. **BSS/Cloud-init Update for All Workers** — Updates boot configuration for all workers and reboots first worker
+13. **Remaining Workers Upgrade** — Upgrades remaining worker nodes sequentially
+14. **Post-Validation** — Comprehensive cluster health checks
+15. **Completion** — Updates manifest and displays summary
+
+.. important::
+   * BSS (Boot Script Service) and cloud-init configurations are updated for **ALL** nodes in their respective groups (control planes and workers)
+   * Only the first control plane and first worker are rebooted during the upgrade to verify the new boot configuration
+   * Remaining nodes are **NOT** rebooted — they continue running with the upgraded software and can be rebooted at any time post successful upgrade
+   * All worker nodes are upgraded sequentially (one at a time) to ensure cluster stability
+
+Primary Status File
+~~~~~~~~~~~~~~~~~~~
+
+**Location:** ``<K8s_NFS_mount_point>/upgrade/upgrade_status.yml``
+
+How to find your K8s NFS mount point:
+
+The mount point is defined in your ``storage_config.yml`` file. Look for the NFS mount entry where ``name: "nfs_k8s"`` and the ``mount_point`` field shows the path.
+
+Example from ``storage_config.yml``: ::
+
+    mounts:
+      - name: "nfs_k8s"
+        source: "172.16.107.121:/mnt/share/omnia_k8s"
+        mount_point: "/opt/omnia/k8s_mount"  # ← This is your K8s NFS mount point
+        fs_type: "nfs"
+        mnt_opts: "nosuid,rw,sync,hard,intr"
+        mount_on_oim: true
+        functional_group_prefix: ["service_kube"]
+
+In this example, the upgrade status file would be located at: ::
+
+    /opt/omnia/k8s_mount/upgrade/upgrade_status.yml
+
+.. note::
+   The mount point path may be different in your environment. Always check your ``storage_config.yml`` file (located at ``/opt/omnia/input/project_default/storage_config.yml``) to find the exact path configured for your K8s NFS storage.
+
+Running the Kubernetes Upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To initiate Kubernetes upgrade, run the upgrade playbook: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
+
+.. note::
+   1. User should run the ``upgrade.yml`` playbook from the ``/omnia/upgrade`` directory so that logs are captured in ``/opt/omnia/log/core/playbooks/upgrade.log``
+   2. If upgrade fails, check the cluster is healthy, fix issues if any and rerun the ``upgrade.yml`` playbook
+
 Slurm Upgrade
 -------------
 
@@ -259,6 +327,56 @@ The upgrade performs the following steps:
    * **Reboot Failed** — Reboot command failed
    * **SSH Failure** — Node did not reconnect after reboot
    * **Sinfo Failure** — Slurm services did not respond after reboot
+
+Phase 2: Execute Upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After reviewing the component-specific upgrade details above, run the full upgrade: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
+
+.. _aarch64-inventory:
+
+**aarch64 clusters:** If your PXE mapping file contains aarch64 functional groups (e.g., ``slurm_node_aarch64``), you must pass an inventory file with the ``[admin_aarch64]`` group: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml -i <inventory_file>
+
+The inventory file must define exactly one ARM admin node under the ``[admin_aarch64]`` group. Example inventory: ::
+
+    [admin_aarch64]
+    <arm_admin_node_ip_or_hostname>
+
+.. note::
+    - The ``[admin_aarch64]`` group must contain exactly one host. Multiple hosts or an empty group will cause the upgrade to fail.
+    - The ARM admin node must be accessible via SSH from the OIM host.
+    - NFS must be configured on the OIM for aarch64 image building to work.
+    - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE mapping file), the ``-i`` option is not required.
+
+Lock Management
+^^^^^^^^^^^^^^^
+
+The upgrade orchestrator uses lock files to prevent concurrent operations:
+
+* ``/opt/omnia/.data/upgrade_in_progress.lock`` — Created at the start of the upgrade. Removed only on successful completion.
+* ``/opt/omnia/.data/rollback_in_progress.lock`` — If this lock exists, the upgrade aborts with an error. A rollback must complete (or the lock must be manually removed) before an upgrade can proceed.
+
+.. note::
+    The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
+
+Manifest Tracking
+^^^^^^^^^^^^^^^^^
+
+The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
+
+* **upgrade_id** — Unique identifier for this upgrade run.
+* **source_version** — The version being upgraded from (derived from ``oim_metadata.yml``).
+* **target_version** — The version being upgraded to.
+* **upgrade_status** — Overall status: ``in-progress``, ``completed``, or ``partial``.
+* **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
+
+On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
 
 Post-Upgrade Verification
 ---------------------------

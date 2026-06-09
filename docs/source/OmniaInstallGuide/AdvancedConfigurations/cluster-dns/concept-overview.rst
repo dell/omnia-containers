@@ -100,6 +100,42 @@ When ``dns_enabled: true``, Omnia uses dynamic DNS resolution:
 - The ``update_hosts_munge.yml`` task detects ``dns_enabled: true`` and skips the entire SSH-based ``/etc/hosts`` management block
 - Munge key distribution and Slurm service restart logic continue to function normally
 
+Hybrid Mode: Custom Hostnames with DNS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When ``dns_enabled: true``, Omnia supports a **hybrid mode** that combines DNS-based resolution for NID-based hostnames with static ``/etc/hosts`` entries for custom hostnames defined in the PXE mapping file.
+
+**CoreDNS Hostname Generation**
+- CoreDNS generates DNS records automatically from the OpenCHAMI SMD inventory
+- Hostnames follow a fixed NID-based pattern: ``{cluster_shortname}{zero_padded_id}.{cluster_domain}``
+- Example: With ``cluster_shortname=nid`` and ``cluster_nidlength=3``, Node ID 1 produces ``nid001.hpc.cluster``
+- CoreDNS does **not** use custom hostnames defined in the PXE mapping file (e.g., ``headnode``, ``compute1``)
+
+**Custom Hostnames via /etc/hosts**
+- Custom hostnames from the PXE mapping file are resolved via ``/etc/hosts``
+- ``/etc/hosts`` is always populated from the PXE mapping regardless of the ``dns_enabled`` setting
+- This enables sites to use descriptive custom names alongside the NID-based DNS names
+
+**Resolution Order**
+The system resolves hostnames in this order (defined by ``/etc/nsswitch.conf``):
+
+1. ``/etc/hosts`` (checked first)
+2. DNS / CoreDNS (checked if not found in ``/etc/hosts``)
+
+**Example Resolution Table**
+
++----------------+------------------------+------------------------------------------+
+| Hostname       | Resolution Source      | Example                                  |
++================+========================+==========================================+
+| ``nid001.hpc.cluster`` | CoreDNS (coresmd) | FQDN from SMD NID pattern               |
++----------------+------------------------+------------------------------------------+
+| ``nid001``     | CoreDNS (via ``search`` domain in resolv.conf) | Short name appended with cluster domain |
++----------------+------------------------+------------------------------------------+
+| ``headnode``   | ``/etc/hosts``         | Custom name from PXE mapping             |
++----------------+------------------------+------------------------------------------+
+| ``compute1``   | ``/etc/hosts``         | Custom name from PXE mapping             |
++----------------+------------------------+------------------------------------------+
+
 **DNS Resolution Flow**
 
 .. code-block:: text
@@ -446,3 +482,98 @@ Use Cases
 - Eliminates SSH access requirement for ``/etc/hosts`` management
 - Reduces attack surface by removing SSH-based configuration pushes
 - DNS queries use UDP/TCP port 53 only
+
+Verifying Hostname Resolution
+------------------------------
+
+Query DNS Only (Bypasses /etc/hosts)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To verify CoreDNS resolution directly without checking ``/etc/hosts``::
+
+    dig <hostname>.<domain> @<admin_nic_ip>
+
+Replace ``<hostname>`` with a cluster node hostname, ``<domain>`` with your cluster domain, and ``<admin_nic_ip>`` with the OIM admin IP.
+
+Expected output includes an ``ANSWER SECTION`` with the node's IP address::
+
+    ;; ANSWER SECTION:
+    nid001.hpc.cluster.     60      IN      A       172.17.0.248
+
+Query /etc/hosts Only
+~~~~~~~~~~~~~~~~~~~~~
+
+To verify custom hostname resolution via ``/etc/hosts``::
+
+    getent ahosts <custom_hostname>
+
+Replace ``<custom_hostname>`` with a custom hostname from the PXE mapping (e.g., ``headnode``).
+
+Expected output::
+
+    172.17.0.248    STREAM headnode
+    172.17.0.248    DGRAM
+    172.17.0.248    RAW
+
+Query Using Full System Resolution Order
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To verify resolution using the system's configured order (``/etc/hosts`` first, then DNS)::
+
+    getent ahosts <hostname>.<domain>
+
+This follows the system's configured resolution order. If the name is in ``/etc/hosts``, it returns that entry. Otherwise, it queries DNS.
+
+resolv.conf Configuration
+--------------------------
+
+When ``dns_enabled: true``, Omnia configures ``/etc/resolv.conf`` on both the **OIM host** and **omnia_core** to use CoreDNS as the primary nameserver::
+
+    search <domain_name> <existing-search-domains>
+    nameserver <cluster_boot_ip>
+    nameserver <existing-nameservers>
+
+- **``search <domain_name>``** -- Allows short hostnames (e.g., ``nid001``) to resolve as FQDNs (``nid001.hpc.cluster``)
+- **``nameserver <cluster_boot_ip>``** -- CoreDNS listening on the cluster boot IP
+- Existing nameservers are preserved as fallback for external DNS queries
+
+.. note::
+   The resolv.conf is protected with the immutable attribute (``chattr +i``) on the OIM host to prevent NetworkManager from overwriting it.
+
+Architecture Summary
+-------------------
+
+.. code-block:: text
+
+                    +------------------+
+                    |   omnia_core     |
+                    | (Ansible control)|
+                    |                  |
+                    | resolv.conf:     |
+                    |  nameserver      |
+                    |  172.17.0.254    |
+                    | /etc/hosts:      |
+                    |  custom names    |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    |   OIM (testbed)  |
+                    |                  |
+                    | resolv.conf:     |
+                    |  nameserver      |
+                    |  172.17.0.254    |
+                    | /etc/hosts:      |
+                    |  custom names    |
+                    +--------+---------+
+                             |
+              +--------------+--------------+
+              |                             |
+     +--------v---------+         +--------v---------+
+     |    CoreDNS       |         |      SMD         |
+     |  (coresmd)       +-------->+  (Node registry) |
+     |  172.17.0.254:53 |         |                  |
+     +------------------+         +------------------+
+              |
+     Resolves: nid001.hpc.cluster
+               nid002.hpc.cluster
+               nid003.hpc.cluster

@@ -47,6 +47,7 @@ See the following sample:
       slurm_cluster:
       - cluster_name: slurm_cluster
         nfs_storage_name: nfs_slurm
+        vast_storage_name: vast_storage
         config_sources:
           slurm:
             SlurmctldTimeout: 60

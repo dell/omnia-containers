@@ -334,6 +334,80 @@ On a healthy control-plane:
 
 Reboot the failed node.
 
+4.7 Static Pods Show Stale "Running" State After Node Shutdown or Reboot
+------------------------------------------------------------------------
+
+**Symptoms**
+
+After a control plane node is powered off, shut down, or rebooted (using ``systemctl poweroff``, ``poweroff``, or ``systemctl reboot``), static pods on the affected node **may intermittently** show:
+
+- Pod STATUS column: ``1/1 Running`` (appears healthy)
+- Pod Phase: ``Running`` (incorrect - should be ``Failed``)
+- Pod Ready Condition: ``True`` or ``False`` (varies)
+- Container State: ``running`` (stale/incorrect - should be ``terminated``)
+
+This is most commonly observed with ``kube-apiserver`` pods, but can affect all static pods (``etcd``, ``kube-controller-manager``, ``kube-scheduler``, ``kube-vip``).
+
+.. note::
+   This is an **intermittent issue** caused by a race condition. The behavior varies depending on timing - sometimes all pods show correct "Failed/Terminated" status, sometimes only certain pods (especially ``kube-apiserver``) show stale "Running" status, and sometimes all pods show stale status. This inconsistency is expected and depends on shutdown timing, network conditions, and system load.
+
+**Example**
+
+.. code-block:: bash
+
+   kubectl get pods -n kube-system | grep 172.10.5.16
+   # Output shows:
+   etcd-172.10.5.16                         1/1     Running   3      4h27m
+   kube-apiserver-172.10.5.16               1/1     Running   3      4h27m
+   kube-controller-manager-172.10.5.16      1/1     Running   3      4h26m
+   kube-scheduler-172.10.5.16               1/1     Running   3      4h27m
+
+   kubectl get node 172.10.5.16
+   # Output shows:
+   NAME          STATUS     ROLES           AGE     VERSION
+   172.10.5.16   NotReady   control-plane   4h27m   v1.35.1
+
+**Causes**
+
+This is a known Kubernetes limitation with graceful node shutdown. During shutdown:
+
+1. All critical pods receive SIGTERM simultaneously
+2. Kubelet attempts to update pod status to the API server
+3. Race condition occurs:
+
+   - Fast-exiting pods (``kube-controller-manager``, ``kube-scheduler``) terminate quickly and status is updated successfully
+   - ``kube-apiserver`` takes longer to shutdown (handling final requests)
+   - ``kube-vip`` releases the VIP before ``kube-apiserver`` fully terminates
+   - When kubelet tries to update ``kube-apiserver`` container status, the API server is unreachable (VIP down or network unavailable)
+   - Container state remains stale as "running"
+
+**Root Cause**: Circular dependency - kubelet needs the API server to update the API server's own status.
+
+**Impact**
+
+- **No functional impact** on cluster operations
+- Pod-level status may show correct Phase (``Failed``) and Ready (``False``)
+- Only container-level state remains stale
+- Cluster continues to operate normally with remaining control planes
+- Pods are properly garbage collected based on ``--terminated-pod-gc-threshold`` setting
+
+**Resolution**
+
+This behavior is expected and does not require action. The cluster continues to operate normally with the remaining control planes. When the node powers back on, pods restart automatically with incremented restart count.
+
+**Related Kubernetes Issues**
+
+This is a known Kubernetes issue tracked upstream:
+
+- `Issue #110755: Kubelet doesn't finish killing pods before shutdown <https://github.com/kubernetes/kubernetes/issues/110755>`_
+- `Issue #124448: GracefulNodeShutdown fails to update Pod status for system critical pods <https://github.com/kubernetes/kubernetes/issues/124448>`_
+- `Issue #109531: Pods in Running/Terminating state after shutdownGracePeriod expiry <https://github.com/kubernetes/kubernetes/issues/109531>`_
+
+**Official Kubernetes Documentation**
+
+- `Kubernetes Node Shutdowns <https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/>`_
+- `Kubelet Configuration Reference <https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/>`_
+
 5. Storage & NFS Issues
 =======================
 
@@ -1100,27 +1174,74 @@ The ``oim`` component fails during upgrade.
 Kubernetes upgrade fails
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+General Kubernetes upgrade failure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 **Symptoms**
 
-The ``k8s`` component fails during upgrade.
+The ``k8s`` component fails during upgrade with status showing ``failed`` in the upgrade manifest.
 
 **Resolution**
 
-1. Verify cluster health before retrying:
+1. Check the upgrade status file to identify what failed: ::
 
-.. code-block:: bash
+    cat <mount_point>/upgrade/upgrade_status.yml
 
-   kubectl get nodes
-   kubectl get pods -A | grep -v Running
+   The mount point is defined in your ``storage_config.yml`` file. Look for the NFS mount entry where ``name: "nfs_k8s"`` and the ``mount_point`` field shows the path.
 
-2. Ensure all nodes are reachable and in a ``Ready`` state.
-3. Check for pending pods or stuck resources.
-4. After resolving, rerun:
+2. Verify cluster health:
 
-.. code-block:: bash
+   * Ensure all nodes are reachable and in a ``Ready`` state
+   * Check for pending pods or stuck resources
 
-   cd /omnia/upgrade
-   ansible-playbook upgrade.yml
+3. Fix the underlying issue based on the error.
+
+4. After resolving, rerun: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
+
+   * Completed steps will be skipped automatically
+   * Only failed steps will be retried
+
+5. If the issue persists after multiple retries, rollback: ::
+
+    cd /omnia/rollback
+    ansible-playbook rollback.yml
+
+Cloud-init timeout after reboot
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Symptoms**
+
+First control plane or first worker reboot fails with "Cloud-init did not complete within timeout" error.
+
+**Resolution**
+
+1. SSH to the node and check the ``/var/log/cloud-init-output.log`` and wait for the cloud-init execution to complete.
+
+2. Once execution is completed, rerun the upgrade playbook: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
+
+Node unreachable during upgrade
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Symptoms**
+
+Upgrade fails with SSH connection errors or node unreachable messages.
+
+**Resolution**
+
+1. Verify node is powered on and accessible.
+
+2. Verify SSH service is running on the node.
+
+3. After restoring connectivity, rerun the upgrade playbook: ::
+
+    cd /omnia/upgrade
+    ansible-playbook upgrade.yml
 
 Build image fails for aarch64 — missing inventory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1184,23 +1305,57 @@ Kubernetes rollback fails
 
 **Symptoms**
 
-The ``k8s`` component fails during rollback.
+The ``k8s-telemetry`` component fails during rollback.
 
 **Resolution**
 
-1. Verify the control plane is reachable:
+1. Check the rollback status file to identify what failed.
 
-.. code-block:: bash
+   The status file is located at ``<mount_point>/upgrade/rollback_status.yml``. The mount point is defined in your ``storage_config.yml`` file. Look for the NFS mount entry where ``name: "nfs_k8s"`` and the ``mount_point`` field shows the path.
 
-   kubectl get nodes
+2. Verify the control plane is reachable and check node status.
 
-2. Confirm the backup directory referenced in ``rollback_manifest.yml`` exists and is accessible.
-3. After resolving, rerun the full rollback. Already-completed components are skipped automatically:
+3. **Check for missing backup files**:
 
-.. code-block:: bash
+   Verify the backup directory exists on NFS at ``<mount_point>/upgrade/backup/``.
 
-   cd /omnia/rollback
-   ansible-playbook rollback.yml
+   Check for required backup files:
+
+   * etcd snapshot: ``<mount_point>/upgrade/backup/etcd-snapshot-*.db``
+   * etcd members: ``<mount_point>/upgrade/backup/etcd-members.json``
+   * K8s configs: ``<mount_point>/upgrade/backup/configs/<node>/k8s-config.tar.gz``
+
+   If backups are missing, rollback cannot proceed. The upgrade must have failed before backups were created, or backups were accidentally deleted.
+
+4. **Check etcd restore issues**:
+
+   If rollback fails during etcd restore stage with "etcd snapshot restore failed" or "/var/lib/etcd/member does not exist":
+
+   a. SSH to the affected control plane node.
+
+   b. Check if etcd data directory is accessible at ``/var/lib/etcd/``.
+
+   c. Verify etcdutl binary is available in backup directory at ``<mount_point>/upgrade/backup/etcdutl``.
+
+   d. Manually verify etcd snapshot integrity using etcdutl.
+
+   e. If snapshot is corrupted, rollback cannot proceed.
+
+5. **Check for nodes stuck in NotReady state**:
+
+   If nodes remain in NotReady state after rollback:
+
+   a. Check node status and identify NotReady nodes.
+
+   b. Check kubelet service status and logs on the affected node.
+
+   c. Verify CNI pods are running in the calico-system namespace.
+
+   d. Restart kubelet service on the affected node.
+
+   e. If issue persists, verify network connectivity and CNI configuration.
+
+6. After resolving the issue, rerun the full rollback. Already-completed stages are skipped automatically.
 
 Slurm or login nodes do not recover after rollback reboot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1301,3 +1456,25 @@ Expected fields:
 .. note::
    ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
 
+12. Kernel Version Override Issues
+===================================
+
+12.1 Repository Issues
+----------------------
+
+Check mirror accessibility and network connectivity to ensure the repositories are reachable from the ``omnia_core`` container.
+
+12.2 Kernel Not Found
+---------------------
+
+Verify that the specified kernel version exists in S3 and matches the expected naming convention.
+
+12.3 PXE Boot Issues
+--------------------
+
+Validate the following components:
+
+* BSS configuration
+* Network connectivity
+* DHCP and TFTP services
+* Node console logs for boot errors

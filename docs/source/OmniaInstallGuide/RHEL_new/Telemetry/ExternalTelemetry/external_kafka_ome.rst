@@ -13,7 +13,8 @@ Prerequisites
 
   * ``9094`` for ingesting and querying data.
 * Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
-* 
+* Ensure that OpenManage Enterprise Advanced License is installed on the OME discovered nodes. This license is required to retrieve OME telemetry. 
+
 Steps
 -----
 
@@ -92,25 +93,25 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
       KAFKA_LB_IP=<external IP of bridge-bridge-lb service>
       TOPIC=<OME Topic Name>
       GROUP=ome-consumer-group
-      INSTANCE=<a-unique-instance-name>
+      INSTANCE=ome-consumer
 
-2. Create a Kafka consumer using the following command::
+3. Create a kafka consumer using the following command::
 
       curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP" \
         -H 'content-type: application/vnd.kafka.v2+json' \
-        -d '{
-              "name": "'"$INSTANCE"'",
-              "format": "json",
-              "auto.offset.reset": "earliest"
-            }'
+        -d '{"name": "ome-consumer", "format": "json", "auto.offset.reset": "earliest"}'
 
-3. Subscribe the consumer to the telemetry topic using the following command::
+3. To view the list of OME Kafka topics configured, use the following command::
+
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+      
+4. Subscribe the consumer to the telemetry topic using the following command::
 
       curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
         -H 'content-type: application/vnd.kafka.v2+json' \
         -d '{"topics": ["'"$TOPIC"'"]}'
 
-4. Consume messages from the topic using the following command::
+5. Consume messages from the topic using the following command::
 
       while true; do
         curl -s -X GET "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/records" \
@@ -118,7 +119,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
         sleep 2
       done
 
-5. (Optional) Cleanup the consumer using the following command::
+6. (Optional) Cleanup the consumer using the following command::
 
       curl -s -X DELETE "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
 
@@ -133,22 +134,19 @@ Verify OME Telemetry Data in VictoriaMetrics
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics using Vector, do the following:
 
-1. Log in to the VictoriaMetrics UI.
+1. Access the VMUI in a web browser using::
+
+     https://<external vmselect loadbalancer IP>:8481/select/0/vmui
 
 2. Navigate to the **Explore** tab.
 
-3. Run the following queries to verify OME metrics are being received:
+3. Run the following queriy  to retrieve health metrics from OME:
 
       
-      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``: This query fetches health metrics from OME.
+      * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``
 
-            .. image:: ../../../../images/external_kafka_ome_metrics_health.png
-
-            
-      * ``last_over_time({source_subsystem="ome", type="inventory"}[24h])``: This query fetches inventory metrics from OME.
-
-            .. image:: ../../../../images/external_kafka_ome_metrics_inventory.png
-
+      .. image:: ../../../../images/external_kafka_ome_metrics_health.png
+           
 
 .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
 
@@ -162,7 +160,9 @@ Verify OME Telemetry Data in VictoriaLogs
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector, do the following:
 
-1. Log in to the VictoriaLogs UI.
+1. Access the VictoriaLogs UI in a web browser using::
+
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 2. Navigate to the **Select** tab.
 

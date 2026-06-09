@@ -3,36 +3,39 @@
 
 ``string``
 
-Optional","* Enter the path where user has placed the PXE mapping CSV file that contains the node details for provisioning.
-* The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP
-* This variable is required to discover nodes using a mapping file.
-* The headers of the ``.csv`` file are are FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP
+Mandatory","* Enter the path where user has placed the PXE mapping CSV file that contains the node details for provisioning.
+* The file must follow the format: FUNCTIONAL_GROUP_NAME, GROUP_NAME, SERVICE_TAG, PARENT_SERVICE_TAG, HOSTNAME, ADMIN_MAC, ADMIN_IP, BMC_MAC, BMC_IP, IB_NIC_NAME, IB_IP.
+* Ensure that admin IPs given in mapping file are within the network defined in the network_spec.yml
 * A sample file is provided here: ``/omnia/examples/pxe_mapping_file.csv``"
-"**timezone**
-
-``string``
-
-Required","Timezone to be used during OS provisioning. Available timezones are provided `here <../../../Appendices/Timezones.html>`_.
-
-Choices:
-
-* ``GMT`` <- default
-* ``EST``
-* ``CET``
-* ``MST``
-* ``CST6CDT``
-* ``PST8PDT``"
 "**language**
 
 ``string``
 
-Required","Language to be used during OS provisioning.
+Mandatory","Language to be used during OS provisioning.
 
-**Default value**: ``en_US.UTF-8``"
+**Only supported value**: ``en_US.UTF-8``"
 "**default_lease_time**
 
 ``integer``
 
-Required","Default lease time for IPs assigned by DHCP. Range: 21600-86400
+Mandatory","Default lease time for IPs assigned by DHCP. Unit: seconds.
+
+**Range**: 21600-31536000
 
 **Default value**: ``86400``"
+"**dns_enabled**
+
+``boolean``
+
+Optional","Enable DNS-based hostname resolution for compute nodes using coresmd (CoreDNS + OpenCHAMI SMD plugin). When true, nodes use coresmd for hostname resolution instead of static /etc/hosts file management. DNS records are generated automatically from SMD inventory using the NID-based pattern. The cluster domain is read from OIM metadata (domain_name). When enabled, /etc/hosts is still populated from the PXE mapping file for custom hostnames (hybrid mode).
+
+**Default value**: ``false``"
+"**kernel_version_override**
+
+``string``
+
+Optional","Pin a specific kernel version for boot image selection. Leave empty (``""``) to auto-select the latest available image from S3.
+
+**Example**: ``6.12.0-55.76.1.el10_0.x86_64``
+
+**Default value**: ``""``"

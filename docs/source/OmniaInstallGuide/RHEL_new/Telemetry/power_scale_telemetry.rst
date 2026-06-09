@@ -45,27 +45,21 @@ Prerequisites
 
     * Enable syslog forwarding from PowerScale to Omnia using the following command::
 
-        isi audit setting modify --syslog-forwarding-enabled true
+         isi audit setting modify --syslog-forwarding-enabled true
 
       .. image:: ../../../images/powerscale_syslog_logs_prereq.png
+  
+    * Enable for required zones using the following command::
 
+        isi audit settings global modify --add-audited-zones=<comma separated zone names>
 
+    * Configure the vlagent loadbalancer IP address (e.g., 10.43.1.27) for log delivery to Victoria logs configured using Omnia::
 
-    .. note::
-       To disable syslog forwarding, run the following command::
- 
-        isi audit setting modify --syslog-forwarding-enabled false
+        isi audit settings global modify --config-syslog-enabled=1 --config-syslog-servers=<vlagent loadbalancer ip>:514 --config-syslog-tls-enabled=0
+        isi audit settings global modify --protocol-syslog-servers=<vlagent loadbalancer ip>:514 --protocol-syslog-tls-enabled=0
+        isi audit settings global modify --system-syslog-enabled=1 --system-syslog-servers=<vlagent loadbalancer ip>:514 --system-syslog-tls-enabled=0
 
-       To completely disable syslog forwarding and clear syslog servers, run the following command::
-
-         isi audit settings global modify --config-syslog-enabled=0 --clear-config-syslog-servers
-         isi audit settings global modify --system-syslog-enabled=0 --clear-system-syslog-servers
-         isi audit settings global modify --clear-protocol-syslog-serverss
-
-   
-    * Configure the vlagent loadbalancer IP address (e.g., ``172.16.107.1``) for log delivery.
-
-        .. image:: ../../../images/powerscale_vmselect_logs_prereq.png
+      .. image:: ../../../images/powerscale_audited_zones_logs_prereq.png
 
 Procedure
 ----------
@@ -214,7 +208,7 @@ You can enable or disable PowerScale telemetry using the following commands:
    * Set ``powerscale.metrics_enabled`` to ``true`` or ``false`` in the ``telemetry_config.yml`` file.
    * The ``powerscale`` tag is mandatory to perform the action.
 
-Enable and Disable PowerScale Logs
+Disable or Enable PowerScale Logs
 -----------------------------------
 
 You can enable or disable PowerScale logs using the following commands:
