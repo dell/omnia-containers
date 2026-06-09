@@ -139,6 +139,9 @@ The BuildStreaM rollback path is automatically determined from metadata stored d
 .. note::
     If BuildStreaM was never upgraded (upgrade metadata file does not exist), the component is automatically marked as ``skipped``.
 
+.. note::
+    GitLab project rollback depends on the upgrade commit being the latest commit. If additional commits exist after the upgrade, automatic rollback will not revert GitLab content. Ensure that manual GitLab commit revert to the previous configuration files is performed.
+
 Kubernetes and Telemetry Rollback (``k8s-telemetry``)
 ------------------------------------------------------
 

@@ -9,6 +9,7 @@ Advanced Configurations
     apptainer
     PowerScale_CSI
     build_arm_ochami_image
+    kernel_upgrade
     cluster-dns/index
     multi-subnet-dhcp/index
     ../RHEL_new/Telemetry/external_kafka_ome
