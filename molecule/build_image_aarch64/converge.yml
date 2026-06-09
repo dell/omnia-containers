@@ -105,6 +105,21 @@
         msg: "✔ All S3 containers are running: {{ s3_containers | join(', ') }}"
 
     # =========================================================================
+    # INSTALL SQUASHFS-TOOLS (REQUIRED FOR MOUNTING S3 IMAGES)
+    # =========================================================================
+
+    - name: Install squashfs-tools package in omnia_core container
+      ansible.builtin.command:
+        cmd: podman exec {{ container_name }} dnf install -y squashfs-tools
+      register: squashfs_install
+      changed_when: squashfs_install.rc == 0
+      failed_when: false
+
+    - name: Display squashfs-tools installation result
+      ansible.builtin.debug:
+        msg: "squashfs-tools installation: {{ 'SUCCESS' if squashfs_install.rc == 0 else 'FAILED (may already be installed)' }}"
+
+    # =========================================================================
     # SYNC PROJECT_DEFAULT INTO CONTAINER
     # =========================================================================
 
@@ -132,7 +147,7 @@
     - name: Execute build_image_aarch64 playbook in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          podman exec -it -w /omnia/build_image_aarch64 {{ container_name }} \
+          podman exec -w /omnia/build_image_aarch64 {{ container_name }} \
             ansible-playbook build_image_aarch64.yml -v
       register: playbook_result
       when: "'EXISTS' in playbook_check.stdout"

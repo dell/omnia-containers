@@ -293,10 +293,11 @@
       ansible.builtin.shell:  # noqa: risky-shell-pipe
         cmd: >
           podman exec {{ container_name }}
-          bash -o pipefail -c
+          bash -c
           'ls /omnia/utils/set_pxe_boot.yml /omnia/discovery/set_pxe_boot.yml 2>/dev/null | head -1'
       register: pxe_boot_playbook_check
       changed_when: false
+      failed_when: false
 
     - name: Set PXE boot playbook path
       ansible.builtin.set_fact:
