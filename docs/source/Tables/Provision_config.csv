@@ -36,6 +36,6 @@ Optional","Enable DNS-based hostname resolution for compute nodes using coresmd 
 
 Optional","Pin a specific kernel version for boot image selection. Leave empty (``""``) to auto-select the latest available image from S3.
 
-**Example**: ``\"6.12.0-55.76.1.el10_0.x86_64\"``
+**Example**: ``6.12.0-55.76.1.el10_0.x86_64``
 
-**Default value**: ``\"\"``"
+**Default value**: ``""``"
