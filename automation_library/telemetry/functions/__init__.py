@@ -152,6 +152,22 @@ from .failover_func import (
     wait_for_node_rejoin_cluster,
 )
 
+# VAST telemetry functions
+from .vast_telemetry_func import (
+    is_vast_telemetry_enabled,
+    get_vast_config,
+    verify_vast_scrape_active,
+    verify_vast_tls_basic_auth,
+    verify_vast_label_enrichment,
+    verify_vast_internal_remotewrite,
+    verify_vast_scrape_interval,
+    verify_vast_deployment,
+    verify_vast_scrape_duration,
+    verify_vast_metric_coverage,
+    verify_vast_tls_enforcement,
+    verify_vast_no_plaintext_credentials,
+)
+
 # Vector verification functions
 from .vector_func import (
     verify_vector_pod_running,
