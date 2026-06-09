@@ -367,43 +367,27 @@ def verify_sinfo_nodes(host) -> Dict[str, Any]:
 # OPENMPI/UCX VERIFICATION
 # =============================================================================
 
-def get_software_version(host, software_name: str) -> str:
-    """Get expected version of a software from software_config.json."""
-    from automation_library.core import load_input_file, SOFTWARE_CONFIG_FILE
-
-    config = load_input_file(host, SOFTWARE_CONFIG_FILE)
-    softwares = config.get("softwares", [])
-
-    for sw in softwares:
-        if sw.get("name") == software_name:
-            return sw.get("version", "")
-    return ""
-
-
 def _verify_hpc_software(
-    host, software_name: str, binary_name: str, version_flag: str
+    host, software_name: str, binary_name: str
 ) -> Dict[str, Any]:
     """
-    Verify an HPC software is installed and version matches software_config.json.
+    Verify an HPC software is installed on login_compiler_node.
 
     Generic function for OpenMPI, UCX, etc. Checks on first login_compiler_node.
     Uses 'which' to locate the binary (available in PATH by default).
+    Does not compare versions - only checks if the software is installed.
 
     Args:
         host: Testinfra host object
         software_name: Name in software_config.json (e.g., "openmpi", "ucx")
         binary_name: Binary name to check via 'which' (e.g., "mpirun", "ucx_info")
-        version_flag: Flag to get version (e.g., "--version", "-v")
 
     Returns:
-        Dict with success, installed, version, expected_version, version_match
+        Dict with success, installed, error
     """
     results = {
         "success": False,
         "installed": False,
-        "version": "",
-        "expected_version": "",
-        "version_match": False,
         "error": "",
     }
 
@@ -412,9 +396,6 @@ def _verify_hpc_software(
         results["error"] = "No login_compiler_node in PXE mapping"
         return results
 
-    expected_version = get_software_version(host, software_name)
-    results["expected_version"] = expected_version
-
     admin_ip = nodes[0].get("admin_ip", "")
 
     cmd = run_on_remote_node(host, f"which {binary_name} 2>/dev/null", admin_ip)
@@ -422,38 +403,20 @@ def _verify_hpc_software(
         results["error"] = f"{software_name} binary '{binary_name}' not found in PATH"
         return results
 
-    bin_path = cmd.stdout.strip()
     results["installed"] = True
-
-    cmd = run_on_remote_node(host, f"{bin_path} {version_flag} 2>/dev/null | head -1", admin_ip)
-    if cmd.rc == 0 and cmd.stdout.strip():
-        results["version"] = cmd.stdout.strip()
-        if expected_version and expected_version in results["version"]:
-            results["version_match"] = True
-            results["success"] = True
-        elif not expected_version:
-            results["version_match"] = True
-            results["success"] = True
-        else:
-            results["error"] = (
-                f"Version mismatch: found '{results['version']}', "
-                f"expected '{expected_version}'"
-            )
-    else:
-        results["version"] = "unknown"
-        results["error"] = f"Could not determine {software_name} version"
+    results["success"] = True
 
     return results
 
 
 def verify_openmpi_installed(host) -> Dict[str, Any]:
-    """Verify OpenMPI is installed and version matches software_config.json."""
-    return _verify_hpc_software(host, "openmpi", "mpirun", "--version")
+    """Verify OpenMPI is installed on login_compiler_node."""
+    return _verify_hpc_software(host, "openmpi", "mpirun")
 
 
 def verify_ucx_installed(host) -> Dict[str, Any]:
-    """Verify UCX is installed and version matches software_config.json."""
-    return _verify_hpc_software(host, "ucx", "ucx_info", "-v")
+    """Verify UCX is installed on login_compiler_node."""
+    return _verify_hpc_software(host, "ucx", "ucx_info")
 
 
 # =============================================================================

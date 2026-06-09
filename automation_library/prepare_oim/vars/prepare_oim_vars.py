@@ -167,7 +167,7 @@ MINIO_CONTAINER: str = "minio-server"
 MINIO_SERVICE: str = "minio.service"
 
 # MinIO data directory (under oim_shared_path)
-MINIO_DATA_DIR_SUFFIX: str = "omnia/openchami/s3/data/s3"
+MINIO_DATA_DIR_SUFFIX: str = "openchami/s3/data/s3"
 
 # s3cmd config file path
 S3CMD_CONFIG_PATH: str = "/root/.s3cfg"
