@@ -1381,3 +1381,26 @@ Expected fields:
 
 .. note::
    ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
+
+12. Kernel Version Override Issues
+===================================
+
+12.1 Repository Issues
+----------------------
+
+Check mirror accessibility and network connectivity to ensure the repositories are reachable from the ``omnia_core`` container.
+
+12.2 Kernel Not Found
+---------------------
+
+Verify that the specified kernel version exists in S3 and matches the expected naming convention.
+
+12.3 PXE Boot Issues
+--------------------
+
+Validate the following components:
+
+* BSS configuration
+* Network connectivity
+* DHCP and TFTP services
+* Node console logs for boot errors

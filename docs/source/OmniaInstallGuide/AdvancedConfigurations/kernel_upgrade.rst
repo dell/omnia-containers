@@ -120,27 +120,6 @@ Power on the cluster nodes and verify the following:
 * Nodes boot successfully
 * ``uname -r`` displays the expected kernel version
 * Cluster services are operational
-* CUDA and DOCA-OFED status are validated (if applicable)
-
-Troubleshooting
-~~~~~~~~~~~~~~~
-
-**Repository Issues**
-
-Check mirror accessibility and network connectivity to ensure the repositories are reachable from the ``omnia_core`` container.
-
-**Kernel Not Found**
-
-Verify that the specified kernel version exists in S3 and matches the expected naming convention.
-
-**PXE Boot Issues**
-
-Validate the following components:
-
-* BSS configuration
-* Network connectivity
-* DHCP and TFTP services
-* Node console logs for boot errors
 
 Summary
 ~~~~~~~
