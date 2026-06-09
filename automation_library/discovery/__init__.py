@@ -22,7 +22,6 @@ This module provides functions for verifying discovery playbook output:
 4. IP correlation validation (ADMIN_IP/IB_IP <-> BMC_IP) based on network_spec.yml
 5. Parent service tag validation for slurm_node groups
 6. OME custom group verification against PXE mapping
-
 Organized by functionality: functions, variables, and messages.
 """
 

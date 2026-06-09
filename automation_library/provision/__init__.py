@@ -22,6 +22,7 @@ Test Categories:
 - Common: Node boot, passwordless SSH, hostname sync
 - Slurm: Services, cross-node SSH, sinfo, OpenMPI/UCX
 - K8s: Node ready status
+- Minimal OS: Functional group validation, package verification, service state
 """
 
 from .functions import (
@@ -73,4 +74,22 @@ from .messages import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
+    MINIMAL_OS_TEST_NAMES,
+    MINIMAL_OS_LOG_MSGS,
+    MINIMAL_OS_ASSERT_MSGS,
+)
+from .functions import (
+    get_test_node,
+    check_functional_groups,
+    validate_node_architecture,
+    check_base_packages,
+    check_ldms_packages,
+    check_excluded_packages,
+    check_additional_packages,
+    check_network_identity,
+    check_required_services,
+    check_ssh_key_auth,
+    check_package_manager,
+    check_ldms_service_state,
+    check_no_embedded_credentials,
 )
