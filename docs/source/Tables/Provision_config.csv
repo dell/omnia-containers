@@ -30,3 +30,12 @@ Mandatory","Default lease time for IPs assigned by DHCP. Unit: seconds.
 Optional","Enable DNS-based hostname resolution for compute nodes using coresmd (CoreDNS + OpenCHAMI SMD plugin). When true, nodes use coresmd for hostname resolution instead of static /etc/hosts file management. DNS records are generated automatically from SMD inventory using the NID-based pattern. The cluster domain is read from OIM metadata (domain_name). When enabled, /etc/hosts is still populated from the PXE mapping file for custom hostnames (hybrid mode).
 
 **Default value**: ``false``"
+"**kernel_version_override**
+
+``string``
+
+Optional","Pin a specific kernel version for boot image selection. Leave empty (``""``) to auto-select the latest available image from S3.
+
+**Example**: ``\"6.12.0-55.76.1.el10_0.x86_64\"``
+
+**Default value**: ``\"\"``"
