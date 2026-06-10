@@ -117,7 +117,7 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.os10" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 1.1.1" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.openmanage" >> /tmp/omnia_core/galaxy_requirements.yml && \
-    echo "    version: 9.6.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
+    echo "    version: 10.0.2" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: ansible.posix" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: containers.podman" >> /tmp/omnia_core/galaxy_requirements.yml && \
@@ -140,7 +140,7 @@ RUN dnf -y autoremove && \
     chmod 700 /root/.ssh 2>/dev/null || true
 
 # Git clone omnia repository
-RUN git clone https://github.com/dell/omnia.git -b ${OMNIA_VERSION}
+RUN git clone https://github.com/abhishek-sa1/omnia.git -b ${OMNIA_VERSION}
 
 # Copy the entrypoint script to / and make it executable
 COPY entrypoint.sh /entrypoint.sh
