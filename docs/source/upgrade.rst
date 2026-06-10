@@ -304,6 +304,40 @@ To initiate Kubernetes upgrade, run the upgrade playbook: ::
    1. User should run the ``upgrade.yml`` playbook from the ``/omnia/upgrade`` directory so that logs are captured in ``/opt/omnia/log/core/playbooks/upgrade.log``
    2. If upgrade fails, check the cluster is healthy, fix issues if any and rerun the ``upgrade.yml`` playbook
 
+Telemetry Upgrade
+-----------------
+
+The telemetry upgrade process upgrades telemetry components to their 2.2 versions while ensuring minimal disruption to metric collection and monitoring services.
+
+**Upgrade Process**
+
+The telemetry upgrade automatically performs the following operations:
+
+1. **Component Detection** — Identifies which telemetry components are currently deployed in the cluster
+2. **Upgrade Path Determination** — Determines the appropriate upgrade procedure for each detected component
+3. **Component-Specific Upgrade** — Executes the upgrade procedure for each telemetry component
+4. **Validation** — Verifies successful upgrade and pod readiness before proceeding
+
+**Post-Upgrade Validation**
+
+After the telemetry upgrade completes, the playbook performs the following validation steps:
+
+1. Retrieves the status of all telemetry pods in the telemetry namespace
+2. Waits for all pods to reach Running or Completed state (60 retries × 15 seconds per retry)
+3. Displays the final pod readiness status
+4. Updates the upgrade manifest with completed status
+
+**Initiating Telemetry Upgrade**
+
+The telemetry upgrade is automatically executed as part of the main upgrade orchestrator. To initiate the telemetry upgrade, run the upgrade playbook from within the ``omnia_core`` container:
+
+.. code-block:: bash
+
+   cd /omnia/upgrade
+   ansible-playbook upgrade.yml
+
+The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
+
 Slurm Upgrade
 -------------
 
