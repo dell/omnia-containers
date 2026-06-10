@@ -40,9 +40,6 @@ from .kafka_vars import (
 
 # VictoriaMetrics specific
 from .victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    DEPLOYMENT_MODE_CLUSTER,
-    VICTORIA_SINGLE_NODE,
     VICTORIA_CLUSTER,
     VMAGENT,
     VICTORIA_TLS_SECRET,

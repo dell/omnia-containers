@@ -42,8 +42,6 @@ from ..vars.kafka_vars import (
     LDMS_FUNCTIONAL_GROUPS,
 )
 from ..vars.victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    VICTORIA_SINGLE_NODE,
     VICTORIA_CLUSTER,
     VICTORIA_TLS_SECRET,
     VICTORIA_API_ENDPOINTS,
@@ -764,19 +762,9 @@ def verify_idrac_deleted_node_in_victoria(
     Returns:
         Dict with success, found_in_victoria, not_found_in_victoria, tag_results
     """
-    from .victoria_func import get_deployment_mode
-
-    deployment_mode = get_deployment_mode(host)
-
-    # Get service info based on deployment mode
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        service_name = VICTORIA_SINGLE_NODE["service_name"]
-        port = VICTORIA_SINGLE_NODE["port"]
-        query_endpoint = VICTORIA_API_ENDPOINTS["single_query"]
-    else:
-        service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
-        port = VICTORIA_CLUSTER["vmselect"]["port"]
-        query_endpoint = VICTORIA_API_ENDPOINTS["cluster_query"]
+    service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
+    port = VICTORIA_CLUSTER["vmselect"]["port"]
+    query_endpoint = VICTORIA_API_ENDPOINTS["query"]
 
     # Get external IP
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_service_external_ip"].format(
@@ -833,7 +821,6 @@ def verify_idrac_deleted_node_in_victoria(
 
     return {
         "success": len(found_in_victoria) == 0,
-        "deployment_mode": deployment_mode,
         "external_ip": external_ip,
         "deleted_service_tags": deleted_service_tags,
         "found_in_victoria": found_in_victoria,
