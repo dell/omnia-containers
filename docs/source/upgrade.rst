@@ -6,7 +6,6 @@ Omnia supports in-place upgrades from version 2.1.0.0 to 2.2.0.0. The upgrade pr
 .. important::
     * Upgrades must be initiated from the OIM host using ``omnia.sh --upgrade`` before entering the ``omnia_core`` container.
     * The upgrade orchestrator must be invoked from the parent directory containing ``upgrade/`` folders.
-    * Ensure a full backup of the OIM node is taken before starting the upgrade.
 
 Supported Upgrade Paths
 ------------------------
@@ -27,11 +26,24 @@ Before starting the upgrade, ensure the following prerequisites are met:
 1. The OIM node is running and accessible.
 2. The ``omnia_core`` container is running and the cluster is currently on Omnia 2.1.0.0.
 3. All compute nodes are in a healthy state.
-4. A full backup of the OIM node and critical data has been taken (NFS shares, credentials, and configuration files).
-5. No other upgrade or rollback is currently in progress.
-6. ``oim_metadata.yml`` at ``/opt/omnia/.data/oim_metadata.yml`` contains the correct current version information.
-7. The target Omnia 2.2.0.0 core container image (``omnia_core:2.2``) is available locally on the OIM host. If it is not already available, build it as described in :ref:`build-core-container`.
-8. **aarch64 clusters only:** If the PXE mapping file contains aarch64 functional groups, an inventory file with an ``[admin_aarch64]`` group is required. This group must contain exactly one ARM admin node. See :ref:`aarch64-inventory` for details.
+4. No other upgrade or rollback is currently in progress.
+5. ``oim_metadata.yml`` at ``/opt/omnia/.data/oim_metadata.yml`` contains the correct current version information.
+6. The target Omnia 2.2.0.0 core container image (``omnia_core:2.2``) is available locally on the OIM host. If it is not already available, build it as described in :ref:`build-core-container`.
+7. **aarch64 clusters only:** If the PXE mapping file contains aarch64 functional groups, an inventory file with an ``[admin_aarch64]`` group is required. This group must contain exactly one ARM admin node. See :ref:`aarch64-inventory` for details.
+
+Pre-Flight Checks
+-----------------
+
+Before initiating the upgrade, perform the following pre-flight checks to ensure the system is ready for upgrade:
+
+1. **Verify OIM node health** — Ensure the OIM node is responsive and has sufficient resources (CPU, memory, disk space) for the upgrade process
+2. **Check network connectivity** — Verify all cluster nodes can reach the OIM node and each other through the admin network
+3. **Validate NFS shares** — Ensure all NFS shares defined in ``storage_config.yml`` are accessible from the OIM and all cluster nodes
+4. **Check disk space** — Verify sufficient disk space is available on the OIM node for backups and container images (minimum 50 GB free recommended)
+5. **Verify time synchronization** — Ensure NTP is configured and time is synchronized across all cluster nodes
+6. **Check running services** — Verify all critical services (OpenCHAMI, PostgreSQL, Kubernetes if applicable) are running and healthy
+7. **Review logs** — Check recent logs in ``/opt/omnia/log/`` for any errors or warnings that might indicate issues
+8. **Validate configuration files** — Ensure all input configuration files in ``/opt/omnia/input/project_default/`` are syntactically correct and contain valid values
 
 .. _build-core-container:
 
@@ -181,6 +193,11 @@ The ``prepare_upgrade.yml`` playbook transforms input files from the source vers
 
 4. Update any new or changed parameters in ``/opt/omnia/input/project_default/`` as needed.
 
+.. warning::
+   **Do not re-run prepare_upgrade.yml after making input changes**
+
+   Re-running ``prepare_upgrade.yml`` after you have modified input files will overwrite your changes and revert to the original 2.1 inputs. Only run ``prepare_upgrade.yml`` once at the beginning of the upgrade process. After reviewing and updating the migrated inputs, proceed directly to the execute phase.
+
 BuildStreaM Terminal Gate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -252,7 +269,7 @@ The K8s upgrade follows this sequence:
 7. **BSS/Cloud-init Update for First Control Plane** — Updates boot configuration and reboots first control plane
 8. **Additional Control Planes Upgrade** — Upgrades remaining control plane nodes sequentially
 9. **BSS/Cloud-init Update for Additional Control Planes** — Updates boot configuration (no reboot)
-10. **Addon Upgrade** — Upgrades Calico, MetalLB, Helm, and PowerScale CSI driver
+10. **Addon Upgrade** — Upgrades Calico, MetalLB, Helm, and PowerScale CSI driver (if PowerScale is configured)
 11. **First Worker Upgrade** — Upgrades the first worker node
 12. **BSS/Cloud-init Update for All Workers** — Updates boot configuration for all workers and reboots first worker
 13. **Remaining Workers Upgrade** — Upgrades remaining worker nodes sequentially
@@ -373,7 +390,7 @@ The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This 
 * **upgrade_id** — Unique identifier for this upgrade run.
 * **source_version** — The version being upgraded from (derived from ``oim_metadata.yml``).
 * **target_version** — The version being upgraded to.
-* **upgrade_status** — Overall status: ``in-progress``, ``completed``, or ``partial``.
+* **upgrade_status** — Overall status: ``in-progress`` or ``completed``.
 * **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
 
 On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
