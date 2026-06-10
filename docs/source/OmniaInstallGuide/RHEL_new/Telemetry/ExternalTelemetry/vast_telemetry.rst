@@ -68,7 +68,7 @@ The VAST Prometheus exporter must be enabled and accessible from the service clu
     https://<vast_ip>:443/api/prometheusmetrics/devices
     https://<vast_ip>:443/api/prometheusmetrics/alarms
 
-- **Configure SSL certificates (optional):** If using CA-signed TLS, set up SSL and CA certificates in VAST. For detailed steps, see `VAST Data Documentation - Security Configuration <https://docs.vastdata.com/>`_.
+- **Configure SSL certificates (optional):** If using CA-signed TLS, set up SSL and CA certificates in VAST. For detailed steps, see `VAST Data Documentation - Security Configuration <https://support.vastdata.com/s/>`_.
 
 For VAST Log Collection
 -----------------------
@@ -87,7 +87,7 @@ Configure the following settings on the VAST appliance:
 
   3. Click **Save**
 
-For detailed information on VAST syslog configuration parameters, see `VAST Data Documentation - Default Notification Actions <https://docs.vastdata.com/>`_.
+For detailed information on VAST syslog configuration parameters, see `VAST Data Documentation - Default Notification Actions <https://support.vastdata.com/s/>`_.
 
 - **Set VLAgent LoadBalancer IP:** Configure the VLAgent LoadBalancer IP address for syslog delivery. Retrieve the VLAgent external IP from the service Kubernetes cluster::
 
