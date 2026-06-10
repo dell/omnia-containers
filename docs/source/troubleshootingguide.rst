@@ -1459,22 +1459,123 @@ Expected fields:
 12. Kernel Version Override Issues
 ===================================
 
-12.1 Repository Issues
-----------------------
+12.1 Repository Sync Issues
+----------------------------
 
-Check mirror accessibility and network connectivity to ensure the repositories are reachable from the ``omnia_core`` container.
+**Symptoms**
 
-12.2 Kernel Not Found
----------------------
+- ``local_repo.yml`` fails to sync the additional kernel repositories.
+- Kernel packages are not available in Pulp after sync.
 
-Verify that the specified kernel version exists in S3 and matches the expected naming convention.
+**Resolution**
+
+1. Verify repository URLs are correct and accessible from the ``omnia_core`` container:
+
+.. code-block:: bash
+
+   podman exec -it omnia_core curl -I <repository_url>
+
+2. For RHEL subscription (EUS) repositories, verify that the entitlement certificates are valid and correctly placed:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/rhel_repo_certs/
+
+3. Validate kernel packages are available in the synced Pulp repository. From within the ``omnia_core`` container, list the repository distributions:
+
+.. code-block:: bash
+
+   pulp rpm distribution list
+
+4. Query the Pulp content endpoint to check for kernel packages. Replace ``<oim_admin_ip>`` with the OIM admin IP and ``<repo_name>`` with the distribution name from the previous step:
+
+.. code-block:: bash
+
+   curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
+
+5. If no kernel packages are found, correct the repository URLs in ``local_repo_config.yml`` and re-run ``local_repo.yml``.
+
+12.2 Kernel Image Not Found in S3
+----------------------------------
+
+**Symptoms**
+
+- ``provision.yml`` fails with a kernel validation error.
+- The specified ``kernel_version_override`` is not found in S3.
+
+**Resolution**
+
+1. Verify that the build image step completed successfully and uploaded images to S3:
+
+.. code-block:: bash
+
+   s3cmd ls -Hr s3://boot-images
+
+2. Look for kernel and initramfs entries matching your functional group:
+
+.. code-block:: text
+
+   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
+   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
+
+3. If the expected kernel is missing, verify that the kernel packages were available in the Pulp repository before running ``build_image_x86_64.yml``. The build process selects the latest kernel available across all configured repositories.
+
+4. Re-run the build image playbook to rebuild with the correct kernel:
+
+.. code-block:: bash
+
+   cd /omnia/build_image_x86_64
+   ansible-playbook build_image_x86_64.yml
+
+5. After the build completes, verify the new kernel image in S3 using ``s3cmd ls -Hr s3://boot-images`` and then re-run ``provision.yml``.
 
 12.3 PXE Boot Issues
 --------------------
 
-Validate the following components:
+**Symptoms**
 
-* BSS configuration
-* Network connectivity
-* DHCP and TFTP services
+- Nodes fail to PXE boot after kernel override.
+- Nodes boot with the old kernel version instead of the overridden version.
+
+**Resolution**
+
+Validate the following:
+
+* BSS configuration matches the expected kernel and initrd paths in S3
+* Network connectivity between nodes and the OIM
+* DHCP and TFTP services are running
 * Node console logs for boot errors
+
+Verify the booted kernel version on the node:
+
+.. code-block:: bash
+
+   uname -r
+
+If the kernel version does not match the expected override, check that ``kernel_version_override`` in ``provision_config.yml`` is set correctly and re-run ``provision.yml``.
+
+12.4 EUS Subscription Certificate Issues
+------------------------------------------
+
+**Symptoms**
+
+- ``local_repo.yml`` fails with TLS/SSL errors when syncing EUS repositories.
+- Pulp reports authentication failures for RHEL CDN URLs.
+
+**Resolution**
+
+1. Verify the certificate files exist at the configured paths:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/rhel_repo_certs/
+
+2. Ensure the CA certificate, client key, and client certificate are valid and not expired:
+
+.. code-block:: bash
+
+   openssl x509 -in /opt/omnia/rhel_repo_certs/<entitlement-cert>.pem -noout -dates
+
+3. Verify the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` paths in ``local_repo_config.yml`` match the actual file locations on the OIM.
+
+4. After correcting the certificates, re-run ``local_repo.yml``.
