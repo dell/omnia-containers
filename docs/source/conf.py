@@ -9,7 +9,7 @@ import sys
 import os
 
 project = 'Omnia' # pylint: disable=invalid-name
-copyright = 'Dell Inc. All Rights Reserved.' # pylint: disable=invalid-name
+copyright = 'Dell Inc. All Rights Reserved' # pylint: disable=invalid-name
 author = 'dell/omnia' # pylint: disable=invalid-name
 release = '1.7' # pylint: disable=invalid-name
 rst_epilog = "If you have any feedback about Omnia documentation, please reach out at `omnia.readme@dell.com <mailto:omnia.readme@dell.com>`_." # pylint: disable=invalid-name
