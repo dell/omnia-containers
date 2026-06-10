@@ -8,7 +8,7 @@ print_usage() {
 
 SLURM_REPO_URL=""
 SLURM_REPO_NAME=""
-LDMS_VERSION="4.5.1"
+LDMS_VERSION="4.5.2"
 # Parse command-line option for LDMS version
 while [[ $# -gt 0 ]]; do
     case "$1" in
