@@ -7,4 +7,5 @@ Known Issues
     Discovery
     Login
     Provision
+    Kubernetes
     Telemetry

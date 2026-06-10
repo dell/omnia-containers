@@ -334,6 +334,80 @@ On a healthy control-plane:
 
 Reboot the failed node.
 
+4.7 Static Pods Show Stale "Running" State After Node Shutdown or Reboot
+------------------------------------------------------------------------
+
+**Symptoms**
+
+After a control plane node is powered off, shut down, or rebooted (using ``systemctl poweroff``, ``poweroff``, or ``systemctl reboot``), static pods on the affected node **may intermittently** show:
+
+- Pod STATUS column: ``1/1 Running`` (appears healthy)
+- Pod Phase: ``Running`` (incorrect - should be ``Failed``)
+- Pod Ready Condition: ``True`` or ``False`` (varies)
+- Container State: ``running`` (stale/incorrect - should be ``terminated``)
+
+This is most commonly observed with ``kube-apiserver`` pods, but can affect all static pods (``etcd``, ``kube-controller-manager``, ``kube-scheduler``, ``kube-vip``).
+
+.. note::
+   This is an **intermittent issue** caused by a race condition. The behavior varies depending on timing - sometimes all pods show correct "Failed/Terminated" status, sometimes only certain pods (especially ``kube-apiserver``) show stale "Running" status, and sometimes all pods show stale status. This inconsistency is expected and depends on shutdown timing, network conditions, and system load.
+
+**Example**
+
+.. code-block:: bash
+
+   kubectl get pods -n kube-system | grep 172.10.5.16
+   # Output shows:
+   etcd-172.10.5.16                         1/1     Running   3      4h27m
+   kube-apiserver-172.10.5.16               1/1     Running   3      4h27m
+   kube-controller-manager-172.10.5.16      1/1     Running   3      4h26m
+   kube-scheduler-172.10.5.16               1/1     Running   3      4h27m
+
+   kubectl get node 172.10.5.16
+   # Output shows:
+   NAME          STATUS     ROLES           AGE     VERSION
+   172.10.5.16   NotReady   control-plane   4h27m   v1.35.1
+
+**Causes**
+
+This is a known Kubernetes limitation with graceful node shutdown. During shutdown:
+
+1. All critical pods receive SIGTERM simultaneously
+2. Kubelet attempts to update pod status to the API server
+3. Race condition occurs:
+
+   - Fast-exiting pods (``kube-controller-manager``, ``kube-scheduler``) terminate quickly and status is updated successfully
+   - ``kube-apiserver`` takes longer to shutdown (handling final requests)
+   - ``kube-vip`` releases the VIP before ``kube-apiserver`` fully terminates
+   - When kubelet tries to update ``kube-apiserver`` container status, the API server is unreachable (VIP down or network unavailable)
+   - Container state remains stale as "running"
+
+**Root Cause**: Circular dependency - kubelet needs the API server to update the API server's own status.
+
+**Impact**
+
+- **No functional impact** on cluster operations
+- Pod-level status may show correct Phase (``Failed``) and Ready (``False``)
+- Only container-level state remains stale
+- Cluster continues to operate normally with remaining control planes
+- Pods are properly garbage collected based on ``--terminated-pod-gc-threshold`` setting
+
+**Resolution**
+
+This behavior is expected and does not require action. The cluster continues to operate normally with the remaining control planes. When the node powers back on, pods restart automatically with incremented restart count.
+
+**Related Kubernetes Issues**
+
+This is a known Kubernetes issue tracked upstream:
+
+- `Issue #110755: Kubelet doesn't finish killing pods before shutdown <https://github.com/kubernetes/kubernetes/issues/110755>`_
+- `Issue #124448: GracefulNodeShutdown fails to update Pod status for system critical pods <https://github.com/kubernetes/kubernetes/issues/124448>`_
+- `Issue #109531: Pods in Running/Terminating state after shutdownGracePeriod expiry <https://github.com/kubernetes/kubernetes/issues/109531>`_
+
+**Official Kubernetes Documentation**
+
+- `Kubernetes Node Shutdowns <https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/>`_
+- `Kubelet Configuration Reference <https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/>`_
+
 5. Storage & NFS Issues
 =======================
 

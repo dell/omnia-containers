@@ -4,7 +4,7 @@ Rollback Omnia
 Omnia provides a rollback mechanism to revert an upgrade and return the cluster to the previous version. Rollback processes components in **reverse order** compared to upgrade, with manifest tracking for idempotent reruns.
 
 .. important::
-    * Rollback must be initiated from within the ``omnia_core`` container.
+    * Rollback must be initiated from the OIM host using ``omnia.sh --rollback`` before entering the ``omnia_core`` container.
     * Rollback is intended for recovering from a **failed or partial upgrade**. Rolling back a fully completed upgrade is blocked by default and not recommended.
     * The rollback orchestrator must be invoked from the parent directory containing ``rollback/`` folders.
 
@@ -52,8 +52,57 @@ Rollback processes components in **reverse order** of the upgrade:
 Rollback Workflow
 ------------------
 
-Running the Rollback
-~~~~~~~~~~~~~~~~~~~~~
+Phase 0: Core Container Rollback (OIM Host)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The rollback begins on the OIM host outside the ``omnia_core`` container.
+
+.. important::
+    **Use the Omnia 2.2.0.0 omnia.sh script for rollback operations**
+
+    The ``omnia.sh`` script from Omnia 2.1.0.0 does **not** support correct rollback operations. You must download and use the Omnia 2.2.0.0 version of ``omnia.sh`` to perform rollbacks.
+
+    Do **not** attempt to run ``./omnia.sh --rollback`` using the 2.1.0.0 script.
+
+Download the Omnia 2.2.0.0 omnia.sh Script
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before starting the rollback, download the correct version of the ``omnia.sh`` script:
+
+1. Download the Omnia 2.2.0.0 ``omnia.sh`` script from the Omnia repository: ::
+
+     wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+
+2. Set executable permissions: ::
+
+    chmod +x omnia.sh
+
+3. Verify the script version (optional): ::
+
+    ./omnia.sh --version
+
+Running the Core Container Rollback
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+1. Run the core container rollback command: ::
+
+    sudo ./omnia.sh --rollback
+
+2. The script performs the following:
+
+    * Detects current version from ``oim_metadata.yml``
+    * Shows available rollback targets
+    * Validates version and backup availability
+    * Requests user approval
+    * Stops the current ``omnia_core`` container and swaps it to the previous version image
+    * Restores input files, configuration, and metadata from the backup directory
+    * Creates rollback guard lock at ``/opt/omnia/.data/rollback_in_progress.lock``
+    * Displays post-rollback instructions
+
+3. After the container swap completes, SSH into the ``omnia_core`` container to proceed with component rollbacks.
+
+Running the Component Rollback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 1. SSH into the OIM node and enter the ``omnia_core`` container: ::
 
@@ -62,7 +111,7 @@ Running the Rollback
 2. Run the rollback playbook: ::
 
     cd /omnia/rollback
-    ansible-playbook rollback.yml
+    ansible-playbook rollback.yml -e force_rollback=true
 
 Validation Checks
 ~~~~~~~~~~~~~~~~~~
@@ -93,7 +142,7 @@ Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 * **triggered_from_upgrade_id** — The upgrade ID that triggered this rollback.
 * **source_version** — The currently installed version (rolling back from).
 * **target_version** — The version being rolled back to.
-* **rollback_status** — Overall status: ``in-progress``, ``completed``, or ``partial``.
+* **rollback_status** — Overall status: ``in-progress`` or ``completed``.
 * **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
 
 On rerun, already-completed components are automatically skipped.
@@ -104,14 +153,6 @@ BuildStreaM Terminal Gate (Rollback)
 If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``k8s-telemetry``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
 Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
-
-Force Rollback
-~~~~~~~~~~~~~~~
-
-To force a rollback after a successful upgrade: ::
-
-    cd /omnia/rollback
-    ansible-playbook rollback.yml -e force_rollback=true
 
 BuildStreaM Rollback
 ---------------------
@@ -214,20 +255,6 @@ After rollback completes:
    This ensures a clean slate for the next upgrade run while preserving all evidence for root cause analysis.
 
 3. The rollback summary displays the final component statuses.
-
-4. Complete the core container rollback by running on the OIM host (outside the container): ::
-
-    sudo ./omnia.sh --rollback
-
-   The ``omnia.sh --rollback`` command performs the following:
-
-   * Reads ``oim_metadata.yml`` to determine the previous version and backup directory
-   * Validates the target container image (``omnia_core:<previous_tag>``) is available locally
-   * Validates the backup directory exists and contains required files
-   * Requests user confirmation before proceeding
-   * Stops the current ``omnia_core`` container and swaps it to the previous version image
-   * Restores input files, configuration, and metadata from the backup directory
-   * Finalizes the ``rollback_manifest.yml`` with ``rollback_status: completed``
 
 Post-Rollback Verification
 ----------------------------
