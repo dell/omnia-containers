@@ -108,9 +108,9 @@ Set the ``kernel_version_override`` parameter:
 
 **Behavior:**
 
-* **Empty value (``""``)**: The provisioning flow automatically selects the latest available kernel from S3 for OS installation.
-* **Set value**: The provisioning flow selects the exact specified kernel version from S3 (even from a different RHEL minor version) for OS installation.
-* This parameter does **not** affect the build image process. The build image playbook always picks the latest kernel available across all configured repositories.
+* Empty value (``""``): The provisioning flow automatically selects the latest available kernel from S3 for OS installation.
+* Set value: The provisioning flow selects the exact specified kernel version from S3 (even from a different RHEL minor version) for OS installation.
+* This parameter does not affect the build image process. The build image playbook always picks the latest kernel available across all configured repositories.
 * Only the kernel and initrd are overridden during provisioning; the OS and root filesystem remain unchanged.
 * Validation fails if the specified kernel is not found in S3.
 
