@@ -12,7 +12,7 @@ Download the Vast package using the following command:
 
 .. code-block:: bash
 
-    curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s --
+    curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s -- --version 4.5.5
 
 .. image:: ../../../images/vastrepo1.png
     :width: 600pt
