@@ -87,7 +87,7 @@ Configure the following settings on the VAST appliance:
 
   3. Click **Save**
 
-For detailed information on VAST syslog configuration parameters, see `VAST Data Documentation - Default Notification Actions <https://support.vastdata.com/s/>`_.
+For detailed information on VAST syslog configuration parameters, see `VAST Data Documentation - Default Notification Actions <https://kb.vastdata.com/documentation/docs/default-notification-actions-6>`_.
 
 - **Set VLAgent LoadBalancer IP:** Configure the VLAgent LoadBalancer IP address for syslog delivery. Retrieve the VLAgent external IP from the service Kubernetes cluster::
 
