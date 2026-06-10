@@ -526,12 +526,12 @@ OMNIA_DOCKER_REGISTERY="docker.io/dellhpcomniaaisolution"
 
 # Default image tags for each container (can be overridden individually)
 CORE_TAG="2.2"
-AUTH_TAG="1.0"
+AUTH_TAG="1.1"
 PCS_TAG="1.0"
 UBUNTU_LDMS_TAG="1.1"
-KAFKAPUMP_TAG="1.2"
-VICTORIAPUMP_TAG="1.2"
-TELEMETRY_RECEIVER_TAG="1.2"
+KAFKAPUMP_TAG="1.3"
+VICTORIAPUMP_TAG="1.3"
+TELEMETRY_RECEIVER_TAG="1.3"
 IMAGE_BUILDER_TAG="1.1"
 BUILD_STREAM_TAG="1.1"
 
@@ -630,7 +630,7 @@ BUILD_STREAM_DIR="ContainerFile/omnia_build_stream"
 UBUNTU_LDMS_DIR="ContainerFile/ubuntu-ldms"
 
 # iDRAC Telemetry container variables
-IDRAC_TELEMETRY_COMMIT="b9cd6e08ecb58a01f26c12041d428d6d21b438f0"
+IDRAC_TELEMETRY_COMMIT="cfa9102a900a76afe9de578d080e98f685625814"
 IDRAC_TELEMETRY_CLONE_DIR=".idrac-telemetry-tools"
 
 # Image Builder container variables
