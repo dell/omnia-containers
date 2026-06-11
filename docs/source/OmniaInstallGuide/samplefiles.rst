@@ -46,7 +46,7 @@ software_config.json for RHEL
     }
  
 
-pxe_mapping_file.csv
+pxe_mapping_file.csv for single subnet DHCP
 ------------------------------------
 
 ::
@@ -63,6 +63,9 @@ pxe_mapping_file.csv
     service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+
+pxe_mapping_file.csv for multiple subnet DHCP
+----------------------------------------------
 
 Slurm configuration files (optional)
 ------------------------------------

@@ -61,6 +61,8 @@ A sample of the ``network_spec.yml`` where nodes are discovered using a **mappin
        dynamic_range: "172.16.107.201-172.16.107.250"
        dns: []
 
+.. note:: For more information about configuring Multi-Subnet DHCP, see :doc:`../AdvancedConfigurations/multi-subnet-dhcp/how-to-configuration`.
+
 ``provision_config.yml``
 -----------------------
 
