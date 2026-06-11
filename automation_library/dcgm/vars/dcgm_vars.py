@@ -54,13 +54,6 @@ CUDA_ATOMIC_LOCK_FILE = "/tmp/cuda_install.lock"
 CUDA_MIN_MAJOR_VERSION = 13
 
 # =============================================================================
-# nvidia_peer_mem Module
-# =============================================================================
-
-NVIDIA_PEER_MEM_MODULE = "nvidia_peer_mem"
-NVIDIA_PEER_MEM_AUTOLOAD_CONF = "/etc/modules-load.d/nvidia_peer_mem.conf"
-
-# =============================================================================
 # RHEL Version Requirement
 # =============================================================================
 
@@ -112,13 +105,6 @@ CMD_TEMPLATES: Dict[str, str] = {
     # GPU discovery
     "dcgmi_discovery": "dcgmi discovery -l",
     "dcgmi_discovery_verbose": "dcgmi discovery -l",
-
-    # nvidia_peer_mem
-    "modprobe_peer_mem": "modprobe nvidia_peer_mem",
-    "lsmod_peer_mem": "lsmod | grep nvidia_peer_mem",
-    "modinfo_peer_mem": "modinfo nvidia_peer_mem",
-    "peer_mem_conf_check": "cat {conf_path}",
-    "find_peer_mem_ko": "find /lib/modules/$(uname -r) -name 'nvidia_peer_mem.ko'",
 
     # OS version
     "os_release": "cat /etc/redhat-release",

@@ -17,6 +17,7 @@
 from .dcgm_func import (
     get_gpu_nodes,
     get_login_compiler_nodes,
+    check_dcgm_metrics_enabled,
     verify_cuda_validation,
     verify_dcgm_metrics_dmon,
     verify_cuda_atomic_lock_installation,
@@ -29,8 +30,6 @@ from .dcgm_func import (
     verify_cuda_login_compiler_install,
     verify_cuda_compute_node_install,
     verify_toolkit_nfs_shared_storage,
-    verify_nvidia_peer_mem_installed,
-    verify_nvidia_peer_mem_all_gpu_nodes,
     verify_rhel_compatibility,
     verify_cuda_version_compatibility,
     verify_cuda_prerequisite_blocks_deployment,
@@ -41,6 +40,7 @@ from .dcgm_func import (
 __all__ = [
     "get_gpu_nodes",
     "get_login_compiler_nodes",
+    "check_dcgm_metrics_enabled",
     "verify_cuda_validation",
     "verify_dcgm_metrics_dmon",
     "verify_cuda_atomic_lock_installation",
@@ -53,8 +53,6 @@ __all__ = [
     "verify_cuda_login_compiler_install",
     "verify_cuda_compute_node_install",
     "verify_toolkit_nfs_shared_storage",
-    "verify_nvidia_peer_mem_installed",
-    "verify_nvidia_peer_mem_all_gpu_nodes",
     "verify_rhel_compatibility",
     "verify_cuda_version_compatibility",
     "verify_cuda_prerequisite_blocks_deployment",

@@ -31,18 +31,23 @@ TEST_NAMES: Dict[str, str] = {
     # Functional
     "x86_64_json_parsing":        "TC-F01: x86_64 JSON Declaration Parsing",
     "aarch64_json_parsing":       "TC-F02: aarch64 JSON Declaration Parsing",
+    "json_parsing":               "TC-F01/F02: JSON Declaration Parsing",
     "local_repo_sync_x86_64":     "TC-F03: Local Repo Sync — x86_64",
     "local_repo_sync_aarch64":    "TC-F04: Local Repo Sync — aarch64",
+    "local_repo_sync":            "TC-F03/F04: Local Repo Sync",
     "hpc_tools_dir_creation":     "TC-F05: hpc_tools Directory Creation",
     "parallel_copy_x86_64":       "TC-F06: Parallel Copy — x86_64 Artifacts",
     "parallel_copy_aarch64":      "TC-F07: Parallel Copy — aarch64 Artifacts",
+    "artifact_copy":              "TC-F06/F07: Artifact Copy Verification",
     "msr_safe_x86_64_only":       "TC-F08: msr-safe x86_64-Only Staging",
+    "msr_safe_arch_boundary":     "TC-F08: msr-safe Architecture Boundary",
     "container_first_guidance":   "TC-F09: Container-First Guidance for HPL/HPL-MxP/STREAM",
     "source_only_delivery":       "TC-F10: Source-Only Delivery — No Pre-Compilation",
     "per_tool_staging_report":    "TC-F11: Per-Tool Staging Outcome Report",
     "staging_summary_count":      "TC-F12: Staging Summary Count",
     "e2e_provisioning_x86_64":    "TC-F13: End-to-End Provisioning — x86_64",
     "e2e_provisioning_aarch64":   "TC-F14: End-to-End Provisioning — aarch64",
+    "e2e_provisioning":           "TC-F13/F14: End-to-End Provisioning",
     "nfs_accessibility":          "TC-F15: NFS Accessibility from Cluster Nodes",
     "airgapped_staging":          "TC-F16: Air-Gapped Staging Compliance",
     "provisioning_idempotency":   "TC-F17: Provisioning Idempotency",
@@ -300,6 +305,17 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "End-to-end aarch64 provisioning failed.\n"
         "Expected: All aarch64 benchmark tool dirs present; msr-safe absent.\n"
         "Details: {details}"
+    ),
+    "e2e_failed": (
+        "End-to-end provisioning failed.\n"
+        "Expected: All benchmark tool dirs and artifacts present for detected architecture.\n"
+        "Details: {details}"
+    ),
+    "artifacts_missing": (
+        "No artifacts found in hpc_tools/ for detected architecture.\n"
+        "Expected: Source tarballs copied from offline_repo for each declared tool.\n"
+        "Missing tools: {missing}\n"
+        "Fix: Verify offline_repo is populated and run provision.yml."
     ),
     "nfs_not_accessible": (
         "hpc_tools NFS share not accessible from node {ip}.\n"
