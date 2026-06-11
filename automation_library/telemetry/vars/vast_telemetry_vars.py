@@ -72,8 +72,9 @@ VAST_REQUIRED_LABELS: List[str] = [
 ]
 
 VAST_ENRICHMENT_LABELS: List[str] = [
-    "source",
+    "source_subsystem",
     "subsystem",
+    "vast_domain",
 ]
 
 
@@ -220,3 +221,23 @@ VAST_VM_QUERY_TEMPLATES: Dict[str, str] = {
 POD_RESTART_WAIT_SECONDS = 30
 POD_RESTART_MAX_RETRIES = 10
 SCRAPE_WAIT_MULTIPLIER = 2
+
+
+# =============================================================================
+# Negative Test (TC-E001): Pod Deletion and Recovery
+# =============================================================================
+
+POD_DELETE_RECOVERY_TIMEOUT_SECONDS = 300
+POD_DELETE_RECOVERY_CHECK_INTERVAL = 15
+POD_DELETE_SCRAPE_SETTLE_SECONDS = 90
+
+VAST_CMD_TEMPLATES_NEGATIVE: Dict[str, str] = {
+    # Delete all pods in telemetry namespace
+    "delete_all_pods": (
+        "kubectl delete pods --all -n {namespace} --grace-period=0 --force"
+    ),
+    # Get all pods with wide output
+    "get_all_pods_wide": (
+        "kubectl get pods -n {namespace} -o wide --no-headers"
+    ),
+}

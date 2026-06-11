@@ -166,6 +166,7 @@ from .vast_telemetry_func import (
     verify_vast_metric_coverage,
     verify_vast_tls_enforcement,
     verify_vast_no_plaintext_credentials,
+    verify_vast_pod_delete_and_recovery,
 )
 
 # Vector verification functions

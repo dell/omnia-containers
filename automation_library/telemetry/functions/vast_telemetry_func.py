@@ -21,6 +21,7 @@ VAST telemetry test specification.
 """
 
 import json
+import time
 import urllib.parse
 from typing import Dict, Any, List
 
@@ -48,6 +49,10 @@ from ..vars.vast_telemetry_vars import (
     CREDENTIAL_PATTERNS,
     VMSELECT_LABEL_SELECTOR,
     VMAGENT_LABEL_SELECTOR,
+    POD_DELETE_RECOVERY_TIMEOUT_SECONDS,
+    POD_DELETE_RECOVERY_CHECK_INTERVAL,
+    POD_DELETE_SCRAPE_SETTLE_SECONDS,
+    VAST_CMD_TEMPLATES_NEGATIVE,
 )
 from ..vars.victoria_vars import (
     VICTORIA_CLUSTER,
@@ -906,4 +911,208 @@ def verify_vast_no_plaintext_credentials(host, admin_ip: str) -> Dict[str, Any]:
         "success": len(findings) == 0 and credentials_in_secrets,
         "findings": findings,
         "credentials_in_secrets": credentials_in_secrets,
+    }
+
+
+# =============================================================================
+# TC-E001: NEGATIVE — POD DELETION AND RECOVERY
+# =============================================================================
+
+def _get_all_telemetry_pods(host, admin_ip: str) -> List[Dict[str, str]]:
+    """
+    Get all pods in the telemetry namespace with their status.
+
+    Returns:
+        List of dicts with name, ready, status, restarts, node keys
+    """
+    kubectl_cmd = VAST_CMD_TEMPLATES_NEGATIVE["get_all_pods_wide"].format(
+        namespace=TELEMETRY_NAMESPACE
+    )
+    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
+    if cmd.rc != 0:
+        return []
+
+    pods = []
+    for line in cmd.stdout.strip().split("\n"):
+        if not line.strip():
+            continue
+        parts = line.split()
+        if len(parts) >= 5:
+            pods.append({
+                "name": parts[0],
+                "ready": parts[1],
+                "status": parts[2],
+                "restarts": parts[3],
+                "node": parts[6] if len(parts) > 6 else "",
+            })
+    return pods
+
+
+def _wait_for_all_pods_running(
+    host, admin_ip: str, expected_count: int
+) -> Dict[str, Any]:
+    """
+    Wait until all telemetry pods reach Running state.
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP for SSH access
+        expected_count: Minimum number of pods expected
+
+    Returns:
+        Dict with success, running_count, not_running, elapsed_seconds, pods
+    """
+    timeout = POD_DELETE_RECOVERY_TIMEOUT_SECONDS
+    interval = POD_DELETE_RECOVERY_CHECK_INTERVAL
+    start = time.time()
+
+    while (time.time() - start) < timeout:
+        elapsed = int(time.time() - start)
+        pods = _get_all_telemetry_pods(host, admin_ip)
+
+        running = [p for p in pods if p["status"] == "Running"]
+        not_running = [p for p in pods if p["status"] != "Running"]
+
+        print(
+            f"  → Pod recovery: {len(running)}/{len(pods)} Running "
+            f"(expected>={expected_count}, elapsed={elapsed}s/{timeout}s)",
+            flush=True,
+        )
+
+        if len(running) >= expected_count and len(not_running) == 0:
+            return {
+                "success": True,
+                "running_count": len(running),
+                "not_running": [],
+                "elapsed_seconds": elapsed,
+                "pods": pods,
+            }
+
+        time.sleep(interval)
+
+    # Timed out
+    pods = _get_all_telemetry_pods(host, admin_ip)
+    running = [p for p in pods if p["status"] == "Running"]
+    not_running = [p for p in pods if p["status"] != "Running"]
+    return {
+        "success": False,
+        "running_count": len(running),
+        "not_running": not_running,
+        "elapsed_seconds": int(time.time() - start),
+        "pods": pods,
+        "error": (
+            f"{len(not_running)} pods not running after {timeout}s"
+        ),
+    }
+
+
+def verify_vast_pod_delete_and_recovery(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Negative test: delete ALL telemetry pods and verify full recovery (TC-E001).
+
+    Workflow:
+    1. Record all pods currently running in the telemetry namespace.
+    2. Force-delete every pod in the namespace.
+    3. Wait for Kubernetes to restore all pods to Running state.
+    4. Wait an additional settle period for scrape cycles to resume.
+    5. Verify VAST scrape is active (up=1) and metrics are queryable.
+
+    Returns:
+        Dict with:
+        - success: True only if all pods recovered AND scrape is active
+        - phase: last phase completed ('record', 'delete', 'recover', 'verify')
+        - pre_delete_pods: list of pods before deletion
+        - post_recovery_pods: list of pods after recovery
+        - pods_recovered: bool
+        - scrape_recovered: bool
+        - scrape_up: bool
+        - series_count: int
+        - elapsed_seconds: total time for recovery
+        - error: error message if any
+    """
+    # ── Phase 1: Record current pods ──
+    pre_pods = _get_all_telemetry_pods(host, admin_ip)
+    pre_running = [p for p in pre_pods if p["status"] == "Running"]
+    expected_count = len(pre_running)
+
+    if expected_count == 0:
+        return {
+            "success": False,
+            "phase": "record",
+            "pre_delete_pods": pre_pods,
+            "post_recovery_pods": [],
+            "pods_recovered": False,
+            "scrape_recovered": False,
+            "scrape_up": False,
+            "series_count": 0,
+            "elapsed_seconds": 0,
+            "error": "No running pods found before deletion — cannot test recovery",
+        }
+
+    # ── Phase 2: Force-delete all pods ──
+    delete_cmd = VAST_CMD_TEMPLATES_NEGATIVE["delete_all_pods"].format(
+        namespace=TELEMETRY_NAMESPACE
+    )
+    cmd = run_on_remote_node(host, delete_cmd, admin_ip)
+    if cmd.rc != 0:
+        return {
+            "success": False,
+            "phase": "delete",
+            "pre_delete_pods": pre_pods,
+            "post_recovery_pods": [],
+            "pods_recovered": False,
+            "scrape_recovered": False,
+            "scrape_up": False,
+            "series_count": 0,
+            "elapsed_seconds": 0,
+            "error": f"kubectl delete failed: {cmd.stderr.strip()}",
+        }
+
+    # ── Phase 3: Wait for all pods to recover ──
+    recovery = _wait_for_all_pods_running(host, admin_ip, expected_count)
+    pods_recovered = recovery["success"]
+
+    if not pods_recovered:
+        return {
+            "success": False,
+            "phase": "recover",
+            "pre_delete_pods": pre_pods,
+            "post_recovery_pods": recovery.get("pods", []),
+            "pods_recovered": False,
+            "scrape_recovered": False,
+            "scrape_up": False,
+            "series_count": 0,
+            "elapsed_seconds": recovery["elapsed_seconds"],
+            "not_running_pods": recovery["not_running"],
+            "error": recovery.get("error", "Pods did not recover"),
+        }
+
+    # ── Phase 4: Wait for scrape cycles to settle ──
+    print(
+        f"  → Pods recovered. Waiting {POD_DELETE_SCRAPE_SETTLE_SECONDS}s "
+        f"for scrape cycles to settle...",
+        flush=True,
+    )
+    time.sleep(POD_DELETE_SCRAPE_SETTLE_SECONDS)
+
+    # Clear vmselect IP cache (pods may have new IPs)
+    _vmselect_ip_cache.clear()
+
+    # ── Phase 5: Verify VAST scrape and metrics ──
+    scrape_result = verify_vast_scrape_active(host, admin_ip)
+    scrape_up = scrape_result.get("scrape_up", False)
+    series_count = scrape_result.get("series_count", 0)
+    scrape_recovered = scrape_up and series_count > 0
+
+    return {
+        "success": pods_recovered and scrape_recovered,
+        "phase": "verify",
+        "pre_delete_pods": pre_pods,
+        "post_recovery_pods": recovery.get("pods", []),
+        "pods_recovered": pods_recovered,
+        "scrape_recovered": scrape_recovered,
+        "scrape_up": scrape_up,
+        "series_count": series_count,
+        "elapsed_seconds": recovery["elapsed_seconds"],
+        "error": "" if scrape_recovered else "Scrape not recovered after pod restoration",
     }
