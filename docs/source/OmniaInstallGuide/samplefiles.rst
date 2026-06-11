@@ -69,6 +69,22 @@ pxe_mapping_file.csv for single subnet DHCP
 pxe_mapping_file.csv for multiple subnet DHCP
 ----------------------------------------------
 
+::
+
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_x86_64,grp1,DEF456,,service-kube-control-plane1,aa:bb:cc:dd:ee:03,10.40.2.11,aa:bb:cc:dd:ee:04,10.41.1.15,InfiniBand.Slot.7-2,192.168.2.11
+    service_kube_control_plane_x86_64,grp1,GHI789,,service-kube-control-plane2,aa:bb:cc:dd:ee:05,10.40.2.12,aa:bb:cc:dd:ee:06,10.41.1.16,InfiniBand.Slot.7-3,192.168.2.12
+    service_kube_control_plane_x86_64,grp1,JKL012,,service-kube-control-plane3,aa:bb:cc:dd:ee:07,10.40.2.13,aa:bb:cc:dd:ee:08,10.41.1.17,InfiniBand.Slot.7-4,192.168.2.13
+    service_kube_node_x86_64,grp2,MNO345,,service-kube-node1,aa:bb:cc:dd:ee:09,10.40.2.14,aa:bb:cc:dd:ee:10,10.41.1.18,InfiniBand.Slot.7-5,192.168.2.14
+    service_kube_node_x86_64,grp2,PQR678,,service-kube-node2,aa:bb:cc:dd:ee:11,10.40.2.15,aa:bb:cc:dd:ee:12,10.41.1.19,InfiniBand.Slot.7-6,192.168.2.15
+    slurm_control_node_x86_64,grp3,ABC123,,slurm-control-node1,aa:bb:cc:dd:ee:01,10.40.1.21,aa:bb:cc:dd:ee:02,10.41.0.10,InfiniBand.Slot.7-1,192.168.1.10
+    slurm_node_x86_64,grp4,STU901,2LY0B33,slurm-node1,aa:bb:cc:dd:ee:13,10.40.3.31,aa:bb:cc:dd:ee:14,10.41.2.22,InfiniBand.Slot.7-7,192.168.3.22
+    slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.40.3.32,aa:bb:cc:dd:ee:16,10.41.2.23,InfiniBand.Slot.7-8,192.168.3.23
+    login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.40.3.33,aa:bb:cc:dd:ee:18,10.41.2.24,InfiniBand.Slot.7-9,192.168.3.24
+    login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.40.1.22,aa:bb:cc:dd:ee:20,10.41.0.11,InfiniBand.Slot.7-10,192.168.1.11
+    os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.40.1.23,aa:bb:cc:dd:ee:22,10.41.0.12,InfiniBand.Slot.7-11,192.168.1.12
+    os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.40.1.23,aa:bb:cc:dd:ee:22,10.41.0.12,InfiniBand.Slot.7-11,192.168.1.12
+
 Slurm configuration files (optional)
 ------------------------------------
 
