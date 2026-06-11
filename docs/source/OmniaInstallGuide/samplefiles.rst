@@ -1,3 +1,5 @@
+.. _sample-files:
+
 Sample Files
 =============      
 

@@ -15,7 +15,7 @@ Before configuring multi-subnet DHCP:
 * CoreSMD services deployed (CoreSMD v0.6.3+ required for multi-subnet support)
 * Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
 * DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
-* PXE mapping file configured and validated for your deployment scenario. Ensure that the ``pxe_mapping_file.csv`` is aligned with your network topology. Use the single-subnet configuration for single-subnet deployments or the multi-subnet configuration for multi-subnet DHCP deployments. For sample configurations, see https://omnia-devel.readthedocs.io/en/latest/OmniaInstallGuide/samplefiles.html.
+* PXE mapping file configured and validated for your deployment scenario. Ensure that the ``pxe_mapping_file.csv`` is aligned with your network topology. Use the single-subnet configuration for single-subnet deployments or the multi-subnet configuration for multi-subnet DHCP deployments. For sample configurations, see :doc:`../../samplefiles`.
 
 .. important::
    Multi-Subnet DHCP requires DHCP relay agents configured on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreSMD server.
