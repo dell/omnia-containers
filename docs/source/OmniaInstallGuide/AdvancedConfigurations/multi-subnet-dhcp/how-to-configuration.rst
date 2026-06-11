@@ -95,7 +95,9 @@ Procedure
 
       systemctl list-dependencies openchami.target
 
-6. Ensure that services such as CoreSMD and other dependent services are in an active state.
+6. Open the ``openchami.target`` file and follow the steps under the multi-subnet configuration section (requires CoreSMD v0.6.x+). Verify that all CoreSMD services and dependent services are operational.
+
+7. Ensure that services such as CoreSMD and other dependent services are in an active state.
    If any of the core services fail to start, use the following commands to check the error logs:
 
    .. code-block:: bash
