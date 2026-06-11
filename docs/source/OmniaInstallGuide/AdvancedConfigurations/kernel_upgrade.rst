@@ -113,7 +113,7 @@ Set the ``kernel_version_override`` parameter:
 * This parameter does not affect the build image process. The build image playbook always picks the latest kernel available across all configured repositories.
 * Only the kernel and initrd are overridden during provisioning; the OS and root filesystem remain unchanged.
 * Validation fails if the specified kernel is not found in S3.
-* The specified kernel version applies to both x86_64 and aarch64 architectures.
+* The specified kernel version applies to both Intel/AMD (x86_64) and ARM (aarch64) processor architectures.
 
 **Example:**
 
