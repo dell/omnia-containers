@@ -117,7 +117,7 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.os10" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 1.1.1" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.openmanage" >> /tmp/omnia_core/galaxy_requirements.yml && \
-    echo "    version: 9.6.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
+    echo "    version: 10.0.2" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: ansible.posix" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: containers.podman" >> /tmp/omnia_core/galaxy_requirements.yml && \
