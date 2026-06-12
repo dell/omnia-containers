@@ -1,12 +1,12 @@
 Additional Cloud-Init Configuration
 =====================================
 
-Omnia allows administrators to inject custom cloud-init directives into the node provisioning pipeline. This enables boot-time customization such as writing configuration files or running setup commands on cluster nodes — without modifying platform-managed templates.
+Omnia allows administrators to inject custom cloud-init directives into the node provisioning pipeline. This enables boot-time customization such as writing configuration files or running setup commands on cluster nodes without modifying platform-managed templates.
 
-Customizations can be applied cluster-wide (to all nodes) or targeted to specific functional groups (for example, only Slurm compute nodes or only login nodes).
+Apply customizations cluster-wide to all nodes or target specific functional groups, for example, only Slurm compute nodes or only login nodes.
 
 .. note::
-   Platform-managed cloud-init settings (networking, boot commands, package installation) always take precedence. User-provided directives are **appended** to the platform defaults and cannot override them.
+   Platform-managed cloud-init settings (networking, boot commands, package installation) always take precedence. User-provided directives are **appended** to the platform defaults and do not override them.
 
 Overview
 --------
@@ -14,7 +14,7 @@ Overview
 The additional cloud-init feature supports two scopes:
 
 * **common**: Directives applied to **all** provisioned nodes.
-* **groups**: Directives applied only to nodes belonging to a specific functional group (as defined in the PXE mapping file).
+* **groups**: Directives applied only to nodes belonging to a specific functional group as defined in the PXE mapping file.
 
 Both scopes support the following cloud-init directives:
 
@@ -29,21 +29,21 @@ Both scopes support the following cloud-init directives:
    * - ``runcmd``
      - Run shell commands during the final stage of cloud-init. Each entry must be a string.
 
-The following cloud-init keys are **prohibited** and will cause validation to fail if present:
+The following cloud-init keys are **prohibited** and cause validation to fail if available:
 
 * ``bootcmd``
 * ``network``
 * ``network-config``
 * ``packages``
 
-These keys are platform-managed by Omnia and must not be overridden.
+These keys are platform-managed by Omnia and do not allow overrides.
 
 Prerequisites
 -------------
 
-* Omnia Infrastructure Manager (OIM) is deployed and ``omnia_core`` container is running.
-* ``prepare_oim.yml`` and ``local_repo.yml`` have been executed successfully.
-* Cluster node images have been built using the build image playbook.
+* Omnia Infrastructure Manager (OIM) is deployed and the ``omnia_core`` container is running.
+* ``prepare_oim.yml`` and ``local_repo.yml`` are executed successfully.
+* Cluster node images are built using the build image playbook.
 * A valid PXE mapping file is configured in ``provision_config.yml``.
 
 Configuration
@@ -113,7 +113,7 @@ A sample file is provided at ``/omnia/input/additional_cloud_init.yml``. Edit th
      - Cloud-init directives applied to all provisioned nodes.
    * - ``groups``
      - Dictionary of dictionaries
-     - Each key is a functional group name (must match a ``FUNCTIONAL_GROUP_NAME`` in the PXE mapping file). Each value contains the cloud-init directives for that group.
+     - Each key is a functional group name and must match a ``FUNCTIONAL_GROUP_NAME`` in the PXE mapping file. Each value contains the cloud-init directives for that group.
 
 **write_files entry fields:**
 
@@ -128,7 +128,7 @@ A sample file is provided at ``/omnia/input/additional_cloud_init.yml``. Edit th
    * - ``path``
      - String
      - Yes
-     - Absolute path where the file will be created on the node.
+     - Absolute path where the file is created on the node.
    * - ``content``
      - String
      - No
@@ -136,7 +136,7 @@ A sample file is provided at ``/omnia/input/additional_cloud_init.yml``. Edit th
    * - ``permissions``
      - String
      - No
-     - File permissions in octal format (for example, ``'0644'``).
+     - File permissions in octal format, for example, ``'0644'``.
    * - ``owner``
      - String
      - No
@@ -148,11 +148,11 @@ A sample file is provided at ``/omnia/input/additional_cloud_init.yml``. Edit th
    * - ``encoding``
      - String
      - No
-     - Content encoding (for example, ``base64``). Default is plain text.
+     - Content encoding, for example, ``base64``. Default is plain text.
 
 **runcmd entries:**
 
-Each entry in the ``runcmd`` list must be a string. Commands are executed during the final stage of cloud-init, after all ``write_files`` directives have been processed.
+Each entry in the ``runcmd`` list must be a string. Commands execute during the final stage of cloud-init, after all ``write_files`` directives are processed.
 
 Step 3: Run the provisioning playbook
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -163,11 +163,11 @@ Step 3: Run the provisioning playbook
    cd /omnia/provision
    ansible-playbook provision.yml
 
-The provisioning playbook will:
+The provisioning playbook:
 
-1. Validate the additional cloud-init configuration file (structure, allowed keys, functional group names).
-2. Create SMD groups for common and per-functional-group cloud-init.
-3. Render and register the cloud-init configurations with the Boot Script Service (BSS).
+1. Validates the additional cloud-init configuration file (structure, allowed keys, functional group names).
+2. Creates SMD groups for common and per-functional-group cloud-init.
+3. Renders and registers the cloud-init configurations with the Boot Script Service (BSS).
 4. When nodes PXE boot, cloud-init merges: platform defaults → common additional → per-functional-group additional.
 
 Merge Behavior
@@ -175,11 +175,11 @@ Merge Behavior
 
 Omnia uses the following cloud-init merge strategy:
 
-* **Dictionaries**: ``no_replace`` — platform-defined values cannot be overridden by user entries.
+* **Dictionaries**: ``no_replace`` — platform-defined values are not overridden by user entries.
 * **Lists**: ``append`` — user entries (``write_files``, ``runcmd``) are appended to platform lists.
 * **Order**: Platform defaults are applied first, then common additional cloud-init, then per-functional-group additional cloud-init.
 
-This ensures that platform-critical configurations (networking, boot parameters) are never accidentally overridden.
+This ensures that platform-critical configurations (networking, boot parameters) are not accidentally overridden.
 
 Validation
 ----------
@@ -235,7 +235,7 @@ Apply an MOTD banner and a setup script to all nodes:
 Example 2: Per-functional-group configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Run different setup commands on Slurm compute nodes vs. login nodes:
+Run different setup commands on Slurm compute nodes versus login nodes:
 
 .. code-block:: yaml
 
@@ -272,11 +272,11 @@ Apply a common log entry to all nodes, plus additional Slurm-specific commands:
        runcmd:
          - echo "Slurm-specific setup complete" >> /var/log/custom_setup.log
 
-In this case, Slurm compute nodes will have both the common ``runcmd`` and the group-specific ``runcmd`` appended.
+In this case, Slurm compute nodes have both the common ``runcmd`` and the group-specific ``runcmd`` appended.
 
 Limitations
 -----------
 
 * Customization granularity is at the functional-group level. Per-node cloud-init customization is not supported.
 * Only ``write_files`` and ``runcmd`` (config and final stage directives) are supported. Early-boot keys remain platform-managed.
-* If a functional group name in the ``groups`` section does not match any entry in the PXE mapping file, validation will fail.
+* If a functional group name in the ``groups`` section does not match any entry in the PXE mapping file, validation fails.
