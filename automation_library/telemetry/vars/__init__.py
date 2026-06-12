@@ -66,6 +66,14 @@ from .powerscale_vars import (
     CSM_METRICS_POWERSCALE,
 )
 
+# VAST telemetry specific
+from .vast_telemetry_vars import (
+    VAST_JOB_PATTERN,
+    VAST_SCRAPE_JOB,
+    VAST_CREDENTIALS_SECRET,
+    VAST_VMSERVICESCRAPE_NAME,
+)
+
 # Failover test specific (poweroff/reboot)
 from .failover_vars import (
     POD_RESCHEDULE_RETRY_LIMIT,

@@ -497,6 +497,32 @@ def skip_if_powerscale_not_enabled(host, log):
         pytest.skip("PowerScale telemetry is not enabled")
 
 
+def is_vast_telemetry_enabled_check(host) -> bool:
+    """Check if VAST telemetry is enabled in telemetry_config.yml."""
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    vast_config = sources.get("vast", {})
+    return bool(vast_config.get("metrics_enabled", False))
+
+
+def skip_if_vast_not_enabled(host, log):
+    """
+    Skip test if VAST telemetry is not enabled.
+
+    Checks telemetry_sources.vast.metrics_enabled in telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_vast_telemetry_enabled_check(host):
+        log.skipped(
+            "VAST telemetry is not enabled (vast.metrics_enabled=false)",
+            "Test skipped - VAST telemetry not enabled"
+        )
+        pytest.skip("VAST telemetry is not enabled")
+
+
 def skip_if_ldms_not_enabled(host, log):
     """
     Skip test if LDMS is not enabled.
