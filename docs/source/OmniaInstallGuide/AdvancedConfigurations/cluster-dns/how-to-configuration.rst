@@ -11,19 +11,17 @@ Prerequisites
 Before enabling Cluster DNS, ensure the following:
 
 - Omnia is deployed on the OIM node with OpenCHAMI services running
-- ``input/network_spec.yml`` is configured with valid ``admin_network.dns`` entries for upstream DNS forwarding
-- ``input/provision_config.yml`` exists and is validated
+- ``/opt/omnia/input/project_default/provision_config.yml`` exists and is validated
 - The OIM node is accessible on the admin network
-- SMD (State Manager Daemon) is running and accessible from the OIM node
 
 Enabling Cluster DNS
 --------------------
 
 To enable Cluster DNS for dynamic hostname resolution:
 
-1. Edit the ``input/provision_config.yml`` file on the OIM node::
+1. Edit the ``/opt/omnia/input/project_default/provision_config.yml`` file on the OIM node::
 
-    vi input/provision_config.yml
+    vi /opt/omnia/input/project_default/provision_config.yml
 
 2. Set the ``dns_enabled`` parameter to ``true``::
 
@@ -32,25 +30,15 @@ To enable Cluster DNS for dynamic hostname resolution:
    .. note::
       The default value is ``false``, which preserves the legacy ``/etc/hosts`` behavior.
 
-3. Validate the configuration using the input validator::
-
-    python3 common/library/module_utils/input_validation/input_validator.py -i input/
-
-   Ensure no validation errors are reported.
-
-4. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed)::
+3. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed)::
 
     ansible-playbook prepare_oim/prepare_oim.yml
 
-5. Run the discovery playbook to populate SMD with node inventory::
-
-    ansible-playbook discovery/discovery.yml
-
-6. Run the provisioning playbook to provision nodes with cloud-init containing ``/etc/resolv.conf``::
+4. Run the provisioning playbook to provision nodes with cloud-init containing ``/etc/resolv.conf``::
 
     ansible-playbook provision/provision.yml
 
-7. Reprovision (reboot) all compute nodes to apply the new cloud-init configuration.
+5. Reprovision (reboot) all compute nodes to apply the new cloud-init configuration.
 
    .. important::
       Nodes must be reprovisioned (rebooted) after setting ``dns_enabled: true`` for the change to take effect. Existing nodes retain their previous configuration until reprovisioned.
@@ -77,63 +65,6 @@ To revert to the legacy ``/etc/hosts`` behavior:
 .. note::
    No coresmd or OpenCHAMI changes are needed for rollback. coresmd continues running but compute nodes no longer query it.
 
-Configuration Parameters
--------------------------
-
-User-Facing Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**dns_enabled** (boolean, default: ``false``)
-- Location: ``input/provision_config.yml``
-- When ``true``, nodes use coresmd for hostname resolution instead of ``/etc/hosts``
-- DNS records are auto-generated from SMD inventory
-- The cluster domain is read from OIM metadata (``domain_name``)
-- When enabled, ``/etc/hosts`` is still populated from the PXE mapping file for custom hostnames (hybrid mode)
-
-**Configuration Behavior**
-
-+----------------+------------------------+------------------------+
-| Setting        | CoreDNS                | /etc/hosts             |
-+================+========================+========================+
-| ``dns_enabled: false`` | Disabled | Populated from PXE mapping |
-+----------------+------------------------+------------------------+
-| ``dns_enabled: true`` | Active | Populated from PXE mapping (hybrid mode) |
-+----------------+------------------------+------------------------+
-
-Existing Parameters Used
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The following existing parameters are used by Cluster DNS:
-
-**admin_network.dns**
-- Location: ``input/network_spec.yml``
-- DNS forwarders for coresmd and K8s CoreDNS external resolution
-- Used to forward non-cluster DNS queries (e.g., ``google.com``)
-
-**admin_network.primary_oim_admin_ip**
-- Location: ``input/network_spec.yml``
-- Nameserver IP written to compute node ``/etc/resolv.conf``
-- The IP address that coresmd listens on for DNS queries
-
-**admin_network.additional_subnets**
-- Location: ``input/network_spec.yml``
-- Triggers multi-subnet CoreDHCP config format (if defined)
-- Does not directly affect DNS configuration
-
-**domain_name**
-- Location: OIM metadata (set during ``prepare_oim.yml``)
-- Cluster domain used as DNS zone and ``search`` domain in resolv.conf
-- Example: ``hpc.cluster``
-
-**cluster_shortname**
-- Location: OpenCHAMI config
-- Hostname pattern prefix (e.g., ``nid``)
-- Used to generate DNS record names
-
-**cluster_nidlength**
-- Location: OpenCHAMI config
-- Zero-padded node ID length (e.g., ``3`` produces ``nid001``)
-- Used to generate DNS record names
 
 Verification
 ------------
@@ -269,9 +200,9 @@ Expected output should complete without DNS timeouts.
 Verify New Node Auto-Resolution
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1. Add a new node to SMD via the discovery playbook::
+1. Add a new node to SMD via the provision playbook::
 
-    ansible-playbook discovery/discovery.yml
+    ansible-playbook provision/provision.yml
 
 2. Wait up to 30 seconds for coresmd to refresh its cache.
 
@@ -283,79 +214,6 @@ Expected output should show the new node's IP address without requiring any play
 
 Troubleshooting
 --------------
-
-DNS Queries Failing
-~~~~~~~~~~~~~~~~~~~
-
-**Symptom**: ``getent hosts <hostname>`` returns no results or times out.
-
-**Possible Causes**:
-
-1. coresmd container is not running
-2. OIM node is unreachable
-3. ``dns_enabled`` is not set to ``true`` on the compute node
-4. Node is not registered in SMD
-
-**Resolution Steps**:
-
-1. Check coresmd status on the OIM node::
-
-    podman ps | grep coresmd
-
-   If not running, start it::
-
-    podman start coresmd
-
-2. Verify OIM network connectivity from the compute node::
-
-    ping <admin_nic_ip>
-
-3. Verify that ``/etc/resolv.conf`` is configured correctly on the compute node::
-
-    cat /etc/resolv.conf
-
-4. Verify that the node is registered in SMD::
-
-    curl -k https://<oim_ip>:8443/v1/nodes | jq '.[] | select(.hostname=="<hostname>")'
-
-5. Check coresmd logs for errors::
-
-    podman logs coresmd
-
-NXDOMAIN Errors
-~~~~~~~~~~~~~~~
-
-**Symptom**: DNS queries return ``NXDOMAIN`` (non-existent domain).
-
-**Possible Causes**:
-
-1. Node is not registered in SMD
-2. Domain name mismatch
-3. Incorrect hostname format
-
-**Resolution Steps**:
-
-1. Verify nodes are registered in SMD::
-
-    ochami smd component get
-
-   Ensure nodes have ``NID`` values assigned.
-
-2. Check CoreDNS configuration::
-
-    cat /etc/openchami/configs/Corefile
-
-   Verify the ``zone``, ``cluster_shortname``, and ``cluster_nidlength`` match your expected hostname format.
-
-3. Verify CoreDNS can reach SMD:
-   The ``smd_url`` in the Corefile must be reachable from the CoreDNS container.
-
-4. Verify the domain name in OIM metadata matches the query domain::
-
-    cat /etc/resolv.conf  # on compute node
-    # Check the 'search' domain
-
-5. Verify the hostname format follows the pattern ``{cluster_shortname}{zero_padded_id}.{cluster_domain}``
 
 Custom Hostnames Not Resolving
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -376,69 +234,6 @@ Custom Hostnames Not Resolving
 2. Re-run provisioning to repopulate ``/etc/hosts``::
 
     ansible-playbook provision.yml
-
-omnia_core Can't Resolve Any Hostnames
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptom**: omnia_core cannot resolve any hostnames.
-
-**Resolution Steps**:
-
-Verify that ``/etc/resolv.conf`` on omnia_core has CoreDNS as a nameserver::
-
-    cat /etc/resolv.conf
-
-If CoreDNS is missing, re-run ``provision.yml`` -- it configures resolv.conf on both OIM and omnia_core when ``dns_enabled: true``.
-
-Slow DNS Resolution
-~~~~~~~~~~~~~~~~~~~
-
-**Symptom**: DNS queries take more than 1 second to respond.
-
-**Possible Causes**:
-
-1. coresmd cache miss (first lookup)
-2. SMD API is slow or unreachable
-3. Network latency between compute node and OIM
-
-**Resolution Steps**:
-
-1. Check if this is a cache miss by running the query twice (second should be fast)
-2. Check SMD connectivity from coresmd::
-
-    podman exec coresmd curl -k https://<smd_url>:8443/v1/nodes
-
-3. Check network latency::
-
-    ping <admin_nic_ip>
-
-4. Monitor coresmd cache metrics::
-
-    curl http://<admin_nic_ip>:9153/metrics | grep coredns_cache
-
-K8s Pods Cannot Resolve Compute Hostnames
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Symptom**: ``kubectl exec <pod> -- getent hosts <hostname>`` fails.
-
-**Possible Causes**:
-
-1. K8s CoreDNS ConfigMap was not patched
-2. Forward zone is missing or incorrect
-3. Pod is using host network and lacks resolver configuration
-
-**Resolution Steps**:
-
-1. Verify K8s CoreDNS ConfigMap contains the forward zone::
-
-    kubectl -n kube-system get configmap coredns -o yaml
-
-2. If missing, manually patch the ConfigMap or reprovision the first control plane node
-3. Check if the pod is using host network::
-
-    kubectl get pod <pod> -o jsonpath='{.spec.hostNetwork}'
-
-   If ``true``, the pod uses the node's resolver configuration.
 
 Mixed-State Cluster
 ~~~~~~~~~~~~~~~~~~
@@ -507,67 +302,3 @@ Best Practices
 - Note that InfiniBand-specific DNS is not provided
 - Ensure MPI workloads use UCX auto-detection for IB transport
 
-Migration from /etc/hosts to DNS
----------------------------------
-
-To migrate an existing cluster from ``/etc/hosts`` to DNS:
-
-1. **Backup Current Configuration**
-   - Document current ``/etc/hosts`` entries on a sample node
-   - Record any manual hostname entries that may need special handling
-
-2. **Enable DNS Mode**
-   - Set ``dns_enabled: true`` in ``input/provision_config.yml``
-   - Validate the configuration
-
-3. **Reprovision Nodes**
-   - Run ``ansible-playbook provision/provision.yml``
-   - Reprovision all nodes (reboot into cloud-init)
-   - Monitor node boot and cloud-init execution
-
-4. **Verify DNS Resolution**
-   - Test resolution from each node type (compute, Slurm controller, login, K8s)
-   - Verify Slurm functionality with ``sinfo`` and test jobs
-   - Verify MPI job execution
-   - Verify K8s pod resolution if applicable
-
-5. **Clean Up Stale /etc/hosts Entries**
-   - After verification, ``/etc/hosts`` entries are no longer needed
-   - The playbook skips ``/etc/hosts`` updates when DNS is enabled
-   - Manual cleanup is not required but can be performed if desired
-
-6. **Update Documentation**
-   - Update cluster documentation to reflect DNS mode
-   - Inform users about the change in hostname resolution method
-   - Provide troubleshooting guidance for DNS-related issues
-
-Rollback from DNS to /etc/hosts
--------------------------------
-
-To rollback from DNS to ``/etc/hosts``:
-
-1. **Disable DNS Mode**
-   - Set ``dns_enabled: false`` in ``input/provision_config.yml``
-   - Validate the configuration
-
-2. **Reprovision Nodes**
-   - Run ``ansible-playbook provision/provision.yml``
-   - Reprovision all nodes (reboot into cloud-init)
-   - Monitor node boot and cloud-init execution
-
-3. **Verify /etc/hosts Entries**
-   - Verify that ``/etc/hosts`` contains all peer entries on compute nodes
-   - Verify that OIM and Slurm node ``/etc/hosts`` are updated by the playbook
-
-4. **Verify Functionality**
-   - Test resolution from each node type using ``getent hosts``
-   - Verify Slurm functionality
-   - Verify MPI job execution
-   - Verify K8s functionality (pods use node's ``/etc/hosts``)
-
-5. **Update Documentation**
-   - Update cluster documentation to reflect ``/etc/hosts`` mode
-   - Inform users about the change in hostname resolution method
-
-.. note::
-   coresmd continues running after rollback but compute nodes no longer query it. No coresmd or OpenCHAMI changes are needed for rollback.
