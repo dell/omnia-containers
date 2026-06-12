@@ -3,22 +3,6 @@ Troubleshooting BuildStreaM Pipeline Issues
 
 This section provides troubleshooting guidance for common BuildStreaM pipeline issues.
 
-Common Issues
--------------
-
-Retry Button Not Displayed
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Issue**: The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
-
-**Possible Cause**: The Retry button may not appear in certain failed pipeline stages due to Gitlab issues
-
-**Resolution**:
-
-1. Initiate a restart from the parent pipeline to resolve this issue.
-
-2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
-
 Stage: Health Check
 -------------------
 
