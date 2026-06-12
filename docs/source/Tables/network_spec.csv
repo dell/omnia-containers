@@ -52,8 +52,7 @@ Each additional subnet entry contains the following parameters:
 * router - The gateway/router IP for this subnet (used as DHCP option 3)
 * dynamic_range - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
-See documentation for example configuration.
-,,".. note:: For more information about configuring Multi-Subnet DHCP, see :doc:`../OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp/how-to-configuration`."
+See documentation for example configuration. For more information about configuring Multi-Subnet DHCP, see :doc:`../OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp/how-to-configuration`.
 
 ``ib_network``,"**subnet**
 
