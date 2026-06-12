@@ -5,6 +5,55 @@ This section describes the steps to build the Vast repository and install the Va
 
 .. note:: The Vast repository must be hosted on an HTTP server (such as Apache) before it can be used as a user repository in Omnia.
 
+VAST Storage Prerequisites
+---------------------------
+
+Configure the following settings on the VAST Storage appliance before building the Vast repository:
+
+1. **Login to VAST Dashboard**
+
+   Login to the VAST dashboard and click on **Element Store**.
+
+   .. image:: ../../../images/vast_storage_prereq_1.png
+      :width: 600pt
+      :align: center
+
+2. **Configure Tenant**
+
+   Ensure that the tenant is configured on the VAST Storage appliance.
+
+   .. image:: ../../../images/vast_storage_prereq_2.png
+      :width: 600pt
+      :align: center
+
+3. **Configure Policies**
+
+   Ensure that the policies are configured. 
+
+   .. image:: ../../../images/vast_storage_prereq_3.png
+      :width: 600pt
+      :align: center
+
+    Verify the options are configured as follows:
+
+   .. image:: ../../../images/vast_storage_prereq_4.png
+      :width: 600pt
+      :align: center
+
+4. **Create New Configuration**
+
+   Right-click on the empty space and the **Create** option will appear.
+
+   .. image:: ../../../images/vast_storage_prereq_5.png
+      :width: 600pt
+      :align: center
+
+   .. image:: ../../../images/vast_storage_prereq_6.png
+      :width: 600pt
+      :align: center
+
+   Click on the **Create** button to complete the configuration.
+
 Step 1: Download Vast
 ---------------------
 
@@ -12,7 +61,7 @@ Download the Vast package using the following command:
 
 .. code-block:: bash
 
-    curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s --
+    curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s -- --version 4.5.5
 
 .. image:: ../../../images/vastrepo1.png
     :width: 600pt

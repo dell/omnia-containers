@@ -1,3 +1,5 @@
+.. _sample-files:
+
 Sample Files
 =============      
 
@@ -46,7 +48,7 @@ software_config.json for RHEL
     }
  
 
-pxe_mapping_file.csv
+pxe_mapping_file.csv for single subnet DHCP
 ------------------------------------
 
 ::
@@ -63,6 +65,25 @@ pxe_mapping_file.csv
     service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+
+pxe_mapping_file.csv for multiple subnet DHCP
+----------------------------------------------
+
+::
+
+    FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+    service_kube_control_plane_x86_64,grp1,DEF456,,service-kube-control-plane1,aa:bb:cc:dd:ee:03,10.41.1.15,aa:bb:cc:dd:ee:04,10.40.1.15,InfiniBand.Slot.7-2,10.42.1.15
+    service_kube_control_plane_x86_64,grp1,GHI789,,service-kube-control-plane2,aa:bb:cc:dd:ee:05,10.41.1.16,aa:bb:cc:dd:ee:06,10.40.1.16,InfiniBand.Slot.7-3,10.42.1.16
+    service_kube_control_plane_x86_64,grp1,JKL012,,service-kube-control-plane3,aa:bb:cc:dd:ee:07,10.41.1.17,aa:bb:cc:dd:ee:08,10.40.1.17,InfiniBand.Slot.7-4,10.42.1.17
+    service_kube_node_x86_64,grp2,MNO345,,service-kube-node1,aa:bb:cc:dd:ee:09,10.41.1.18,aa:bb:cc:dd:ee:10,10.40.1.18,InfiniBand.Slot.7-5,10.42.1.18
+    service_kube_node_x86_64,grp2,PQR678,,service-kube-node2,aa:bb:cc:dd:ee:11,10.41.1.19,aa:bb:cc:dd:ee:12,10.40.1.19,InfiniBand.Slot.7-6,10.42.1.19
+    slurm_control_node_x86_64,grp3,ABC123,,slurm-control-node1,aa:bb:cc:dd:ee:01,10.41.0.10,aa:bb:cc:dd:ee:02,10.40.0.10,InfiniBand.Slot.7-1,10.42.0.10
+    slurm_node_x86_64,grp4,STU901,2LY0B33,slurm-node1,aa:bb:cc:dd:ee:13,10.41.2.22,aa:bb:cc:dd:ee:14,10.40.2.22,InfiniBand.Slot.7-7,10.42.2.22
+    slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,aa:bb:cc:dd:ee:16,10.40.2.23,InfiniBand.Slot.7-8,10.42.2.23
+    login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.41.2.24,aa:bb:cc:dd:ee:18,10.40.2.24,InfiniBand.Slot.7-9,10.42.2.24
+    login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.41.0.11,aa:bb:cc:dd:ee:20,10.40.0.11,InfiniBand.Slot.7-10,10.42.0.11
+    os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+    os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
 
 Slurm configuration files (optional)
 ------------------------------------

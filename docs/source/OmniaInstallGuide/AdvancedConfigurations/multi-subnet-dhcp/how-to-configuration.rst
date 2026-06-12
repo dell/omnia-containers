@@ -3,7 +3,7 @@
 Configuring Multi-Subnet DHCP
 ============================
 
-Configure multi-subnet DHCP in Omnia to enable rack-based network provisioning with per-rack /24 subnets. This procedure covers editing the ``network_spec.yml`` file, validating the configuration, and deploying the CoreDHCP changes to support multiple subnets via DHCP relay.
+Configure multi-subnet DHCP in Omnia to enable rack-based network provisioning with per-rack /24 subnets. This procedure covers editing the ``network_spec.yml`` file, validating the configuration, and deploying the CoreSMD changes to support multiple subnets via DHCP relay.
 
 Prerequisites
 -------------
@@ -11,14 +11,14 @@ Prerequisites
 Before configuring multi-subnet DHCP:
 
 * Omnia cluster deployed and operational
-* Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM CoreDHCP server
-* CoreDHCP and coresmd services deployed (coresmd v0.5+ required for multi-subnet support)
-* Access to edit ``input/network_spec.yml`` on the OIM node
+* Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM CoreSMD server
+* CoreSMD services deployed (CoreSMD v0.6.3+ required for multi-subnet support)
 * Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
 * DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
+* PXE mapping file configured and validated for your deployment scenario. Ensure that the ``pxe_mapping_file.csv`` is aligned with your network topology. For sample configurations, see :doc:`../../samplefiles`.
 
 .. important::
-   Multi-Subnet DHCP requires DHCP relay agents configured on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreDHCP server.
+   Multi-Subnet DHCP requires DHCP relay agents configured on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreSMD server.
 
 Procedure
 ---------
@@ -33,7 +33,7 @@ Procedure
 
    .. code-block:: bash
 
-      cd /opt/omnia/input
+      cd /opt/omnia/input/project_default/
       cat network_spec.yml
 
 3. Edit the ``network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
@@ -56,121 +56,64 @@ Procedure
       Networks:
       - admin_network:
           oim_nic_name: "eno1"
-          subnet: "172.16.0.0"
+          subnet: "10.40.1.0"
           netmask_bits: "24"
-          primary_oim_admin_ip: "172.16.107.254"
+          primary_oim_admin_ip: "10.40.1.111"
           primary_oim_bmc_ip: ""
-          dynamic_range: "172.16.107.201-172.16.107.250"
+          dynamic_range: "10.40.1.201-10.40.1.250"
           dns: []
           ntp_servers: []
           additional_subnets:
-            - subnet: "10.40.1.0"
+            - subnet: "10.40.2.0"
               netmask_bits: "24"
-              router: "10.40.1.1"
-              dynamic_range: "10.40.1.100-10.40.1.200"
+              router: "10.40.2.1"
+              dynamic_range: "10.40.2.190-10.40.2.200"
+
             - subnet: "10.40.3.0"
               netmask_bits: "24"
               router: "10.40.3.1"
-              dynamic_range: "10.40.3.100-10.40.3.200"
+              dynamic_range: "10.40.3.190-10.40.3.200"
+
+      - ib_network:
+          subnet: "198.168.0.0"
+          netmask_bits: "24"
+          dns: []
 
    .. note::
       Leave ``additional_subnets: []`` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
 
-5. After successfully executing the ``input/prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
+5. Execute the ``prepare_oim.yml`` playbook using the following command:
+
+   .. code-block:: bash
+
+      cd /opt/omnia/input/project_default/
+      ansible-playbook prepare_oim.yml
+
+6. After successfully executing the ``prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
 
    .. code-block:: bash
 
       systemctl list-dependencies openchami.target
-      podman logs coredhcp | tail -20
 
-6. Ensure that services such as coredhcp and other dependent services are in an active state.
-   If any of the core services fail to start (for example, ``input/coresmd-coredhcp`` or ``input/coresmd-coredns``), use the following commands to check the error logs:
+7. Open the ``/etc/openchami/configs/coredhcp.yaml`` file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
+
+.. 
+
+8. Execute the following command to restart the openchami target:
 
    .. code-block:: bash
-      
+
+      systemctl restart openchami.target
+
+9. Ensure that services such as CoreSMD and other dependent services are in an active state. If any of the core services fail to start, use the following commands to check the error logs:
+
+   .. code-block:: bash
+
       journalctl -xeu coresmd-coredhcp
       journalctl -xeu coresmd-coredns
 
-
-   Check the logs for subnet registration messages indicating that the additional subnets are loaded.
-
-Verification
-------------
-
-After configuring multi-subnet DHCP, verify the following:
-
-1. Verify that CoreDHCP has registered the additional subnets.
-
-   .. code-block:: bash
-
-      podman logs coredhcp | grep "subnet="
-
-   Expected output should show ``subnet=`` directives for each additional subnet.
-
-2. Verify that DHCP relay is functioning by checking that a node in a remote subnet can obtain an IP address.
-
-   .. code-block:: bash
-
-      # On the OIM node, check CoreDHCP logs for DHCP requests
-      podman logs -f coredhcp
-
-   Boot a node in a remote subnet and observe the DHCP request in the logs. The ``giaddr`` field should indicate the subnet gateway IP, and the assigned IP should be from the correct subnet pool.
-
-3. Verify that the assigned IP address is from the correct subnet pool.
-
-   .. code-block:: text
-
-      Example: Node in Rack 2 (subnet 10.40.3.0/24) should receive IP 10.40.3.150
-      Expected: IP in range 10.40.3.100-10.40.3.200
-
-4. Verify that the node can PXE boot and provision successfully with the assigned IP address.
-
-   .. code-block:: bash
-
-      # Check node status in SMD
-      # Verify node completed PXE boot and cloud-init provisioning
-
-5. Verify that multiple nodes across different subnets can boot simultaneously without IP conflicts.
-
-   .. code-block:: bash
-
-      # Boot nodes in Rack 1 and Rack 2 simultaneously
-      # Verify each receives IP from its respective subnet pool
-      # Check CoreDHCP logs for proper giaddr-based routing
-
-.. warning::
-   If nodes are receiving IP addresses from the wrong subnet, verify that DHCP relay is correctly configured on the ToR switches and that the ``router`` parameter in ``network_spec.yml`` matches the ToR switch interface IP.
-
 Configuration Examples
 -----------------------
-
-Two-Rack Configuration
-~~~~~~~~~~~~~~~~~~~~~~~
-
-For a deployment with 2 racks, each with its own /24 subnet:
-
-.. code-block:: yaml
-
-   Networks:
-   - admin_network:
-       oim_nic_name: "eno1"
-       subnet: "172.16.0.0"
-       netmask_bits: "24"
-       primary_oim_admin_ip: "172.16.107.254"
-       dynamic_range: "172.16.107.201-172.16.107.250"
-       additional_subnets:
-         - subnet: "10.40.1.0"
-           netmask_bits: "24"
-           router: "10.40.1.1"
-           dynamic_range: "10.40.1.100-10.40.1.200"
-         - subnet: "10.40.3.0"
-           netmask_bits: "24"
-           router: "10.40.3.1"
-           dynamic_range: "10.40.3.100-10.40.3.200"
-
-This configuration:
-* Rack 1: Subnet ``10.40.1.0/24``, gateway ``10.40.1.1``, pool ``10.40.1.100-10.40.1.200``
-* Rack 2: Subnet ``10.40.3.0/24``, gateway ``10.40.3.1``, pool ``10.40.3.100-10.40.3.200``
 
 Ten-Rack Configuration
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -181,20 +124,23 @@ For a large deployment with 10 racks:
 
    Networks:
    - admin_network:
-       oim_nic_name: "eno1"
-       subnet: "172.16.0.0"
-       netmask_bits: "24"
-       primary_oim_admin_ip: "172.16.107.254"
-       dynamic_range: "172.16.107.201-172.16.107.250"
-       additional_subnets:
-         - subnet: "10.40.1.0"
+      oim_nic_name: "eno1"
+      subnet: "10.40.1.0"
+      netmask_bits: "24"
+      primary_oim_admin_ip: "10.40.1.111"
+      primary_oim_bmc_ip: ""
+      dynamic_range: "10.40.1.201-10.40.1.250"
+      dns: []
+      ntp_servers: []
+      additional_subnets:
+         - subnet: "10.40.2.0"
            netmask_bits: "24"
-           router: "10.40.1.1"
-           dynamic_range: "10.40.1.100-10.40.1.200"
+           router: "10.40.2.1"
+           dynamic_range: "10.40.2.190-10.40.2.200"
          - subnet: "10.40.3.0"
            netmask_bits: "24"
            router: "10.40.3.1"
-           dynamic_range: "10.40.3.100-10.40.3.200"
+           dynamic_range: "10.40.3.190-10.40.3.200"
          - subnet: "10.40.5.0"
            netmask_bits: "24"
            router: "10.40.5.1"
@@ -229,40 +175,3 @@ For a large deployment with 10 racks:
            dynamic_range: "10.40.19.100-10.40.19.200"
 
 This configuration supports 10 racks with non-overlapping /24 subnets, each with 100 IP addresses available for DHCP allocation.
-
-Common Configuration Errors
----------------------------
-
-**Subnet Overlap**
-- **Error**: Validation fails with "subnet overlap detected"
-- **Cause**: Two subnets have overlapping CIDR ranges
-- **Fix**: Ensure each subnet has a unique, non-overlapping CIDR
-
-**Dynamic Range Outside Subnet**
-- **Error**: Validation fails with "dynamic range not within subnet"
-- **Cause**: DHCP pool range extends beyond subnet boundaries
-- **Fix**: Ensure ``dynamic_range`` start and end IPs are within the subnet CIDR
-
-**Gateway IP Unreachable**
-- **Error**: Nodes cannot obtain IP addresses from remote subnet
-- **Cause**: Router IP is not reachable from OIM or DHCP relay not configured
-- **Fix**: Verify routing and DHCP relay configuration on ToR switches
-
-**Wrong IP Assignment**
-- **Error**: Node receives IP from wrong subnet pool
-- **Cause**: ``giaddr`` not set correctly by DHCP relay
-- **Fix**: Verify DHCP relay helper-address points to CoreDHCP server
-
-Troubleshooting
----------------
-
-For detailed troubleshooting procedures, see :doc:`../../troubleshootingguide/multi-subnet-dhcp`.
-
-Next Steps
-----------
-
-After configuring multi-subnet DHCP:
-
-* Review network architecture design patterns in :doc:`concept-network-architecture`
-* Apply operational best practices in :doc:`how-to-best-practices`
-* Reference the complete parameter documentation in :doc:`../../Tables/network_spec`

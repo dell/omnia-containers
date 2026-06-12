@@ -4,6 +4,7 @@ Advanced Configurations
 .. toctree::
     :maxdepth: 2
     
+    additional_cloud_init
     DeployAdditionalPackages
     DeployAdditionalRepo
     apptainer

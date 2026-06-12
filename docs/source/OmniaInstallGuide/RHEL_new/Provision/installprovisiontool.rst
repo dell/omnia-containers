@@ -17,6 +17,7 @@ Configurations made by the ``provision.yml`` playbook
 * Provisions all target servers.
 * Configures the boot script based on the functional groups.
 * Configures the cloud-init based on the functional groups.
+* Applies additional cloud-init configurations (if configured). See `Additional Cloud-Init Configuration <../../AdvancedConfigurations/additional_cloud_init.html>`_.
 * Deploys iDRAC telemetry service on the service cluster.
 * Deploys LDMS on the service cluster.
 
