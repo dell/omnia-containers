@@ -42,5 +42,56 @@ Upgrade and Rollback Limitations
 - Telemetry data (metrics stored in VictoriaMetrics and Kafka) is not preserved during rollback.
   Rolling back the telemetry component resets the telemetry stack to its pre-upgrade state, and
   any metrics collected after the upgrade are lost.
-- GitLab project rollback depends on the upgrade commit being the latest commit. If additional commits exist after the upgrade, automatic rollback will not revert GitLab content. 
+- GitLab project rollback depends on the upgrade commit being the latest commit. If additional commits exist after the upgrade, automatic rollback will not revert GitLab content.
   Ensure that manual GitLab commit revert to the previous configuration files is performed.
+
+BMS Discovery Limitation
+-------------------------
+
+OS NIC MAC Address Retrieval Limitation on Belton Platforms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On Dell Belton platforms configured with shared LOM (LAN on Motherboard) and Mellanox ConnectX-6 or ConnectX-7 NIC adapters, the host (OS) NIC MAC address is not retrievable through standard management interfaces when the system is in a bare-metal state (no operating system installed).
+
+**Affected Platforms and Configuration**
+
+- Dell Belton platforms
+- Shared LOM configuration
+- Mellanox ConnectX-6 / ConnectX-7 NIC adapters
+- Bare-metal state (no OS installed)
+
+**Issue**
+
+The host NIC MAC address cannot be retrieved using:
+
+- iDRAC GUI
+- OpenManage Enterprise (OME)
+- Redfish APIs
+- RACADM CLI
+- Lifecycle Controller inventory
+
+.. note::
+   The iDRAC MAC address remains visible and correctly exposed in iDRAC and OME. NIC objects are detected, but MAC address fields are empty or unavailable.
+
+**Workaround**
+
+Since the host NIC MAC address cannot be retrieved via iDRAC, OME, or Redfish APIs on Belton platforms, use the following methods to obtain the MAC address:
+
+- Observe DHCP/PXE traffic during network boot
+- Check switch MAC address tables
+- Use factory-supplied MAC address lists
+- Analyze PXE boot logs
+
+Example using DHCP discovery:
+
+.. code-block:: bash
+
+   tcpdump -i <interface> -nne port 67 or port 68
+
+Sample output:
+
+.. code-block:: bash
+
+   DHCPDISCOVER from 3c:ec:ef:12:34:56
+
+The MAC address (3c:ec:ef:12:34:56) corresponds to the host OS NIC.
