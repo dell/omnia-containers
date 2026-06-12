@@ -144,3 +144,19 @@ Stage: Deploy Images
 2. Ensure the functional groups listed in the PXE mapping file matches the functional groups defined in the ``catalog_rhel.json``.
 
 3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
+
+Common Issues
+-------------
+
+Retry Button Not Displayed
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Issue**: The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
+
+**Possible Cause**: The Retry button may not appear in certain failed pipeline stages due to pipeline state or configuration limitations.
+
+**Resolution**:
+
+1. Initiate a restart from the parent pipeline to resolve this issue.
+
+2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
