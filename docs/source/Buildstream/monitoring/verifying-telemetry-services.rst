@@ -240,10 +240,10 @@ successfully in a cluster mode VictoriaMetrics deployment. For more details, see
 
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui 
 
-5. Filter and view telemetry metrics using queries in VMUI.
+6. Filter and view telemetry metrics using queries in VMUI.
 For example, the following query displays detailed PowerScale metrics for each hardware component::
 
-    {__name__=~"powerscale"}
+    {source=~"powerscale"}
 
 .. image:: ../../images/powerscale_metrics_vmui_cluster.png
 
