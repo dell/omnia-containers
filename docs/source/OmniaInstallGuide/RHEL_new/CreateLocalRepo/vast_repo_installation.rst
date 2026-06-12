@@ -10,41 +10,39 @@ VAST Storage Prerequisites
 
 Configure the following settings on the VAST Storage appliance before building the Vast repository:
 
-1. **Tenant Configuration**
+1. **Login to VAST Dashboard**
 
-   Ensure that the tenant is configured on the VAST Storage appliance.
+   Login to the VAST dashboard and click on **Element Store**.
 
    .. image:: ../../../images/vast_storage_prereq_1.png
       :width: 600pt
       :align: center
 
-2. **Policy Configuration**
+2. **Configure Tenant**
 
-   Ensure that the policies are configured on the VAST Storage appliance.
+   Ensure that the tenant is configured on the VAST Storage appliance.
 
    .. image:: ../../../images/vast_storage_prereq_2.png
       :width: 600pt
       :align: center
 
-3. **Configure Options**
+3. **Configure Policies**
 
-   Ensure the options are configured as follows:
+   Ensure that the policies are configured. 
 
    .. image:: ../../../images/vast_storage_prereq_3.png
+      :width: 600pt
+      :align: center
+
+    Verify the options are configured as follows:
+
+   .. image:: ../../../images/vast_storage_prereq_4.png
       :width: 600pt
       :align: center
 
 4. **Create New Configuration**
 
    Right-click on the empty space and the **Create** option will appear.
-
-   .. image:: ../../../images/vast_storage_prereq_4.png
-      :width: 600pt
-      :align: center
-
-5. **Complete Configuration**
-
-   Click on the **Create** button to complete the configuration.
 
    .. image:: ../../../images/vast_storage_prereq_5.png
       :width: 600pt
@@ -53,6 +51,8 @@ Configure the following settings on the VAST Storage appliance before building t
    .. image:: ../../../images/vast_storage_prereq_6.png
       :width: 600pt
       :align: center
+
+   Click on the **Create** button to complete the configuration.
 
 Step 1: Download Vast
 ---------------------
