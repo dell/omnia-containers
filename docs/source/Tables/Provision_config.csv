@@ -39,3 +39,12 @@ Optional","Pin a specific kernel version for boot image selection. Leave empty (
 **Example**: ``6.12.0-55.76.1.el10_0``
 
 **Default value**: ``""``"
+"**additional_cloud_init_config_file**
+
+``string``
+
+Optional","Path to an external YAML file containing additional cloud-init directives (``write_files`` and ``runcmd``) to inject into the provisioning pipeline. Supports both cluster-wide (``common``) and per-functional-group (``groups``) customization. Leave empty to disable. For details, see `Additional Cloud-Init Configuration <../../OmniaInstallGuide/AdvancedConfigurations/additional_cloud_init.html>`_.
+
+**Default value**: ``""``
+
+**Example**: ``/opt/omnia/input/project_default/additional_cloud_init.yml``"
