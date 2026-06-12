@@ -153,7 +153,7 @@ Retry Button Not Displayed
 
 **Issue**: The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
 
-**Possible Cause**: The Retry button may not appear in certain failed pipeline stages due to pipeline state or configuration limitations.
+**Possible Cause**: The Retry button may not appear in certain failed pipeline stages due to Gitlab issues
 
 **Resolution**:
 
