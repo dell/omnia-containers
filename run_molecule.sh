@@ -23,6 +23,7 @@
 #
 # Usage:
 #   ./run_molecule.sh <scenario> <command> [options]
+#   ./run_molecule.sh --config                         # Run from test_run_config.yml
 #   ./run_molecule.sh all <command>              # Run install + prepare_oim
 #   ./run_molecule.sh all verify --flow build_stream  # Run full build_stream flow
 #
@@ -151,6 +152,128 @@ build_pytest_args() {
     echo "$pytest_args"
 }
 
+# =============================================================================
+# --config mode: Read test_run_config.yml and run enabled scenarios
+# =============================================================================
+if [[ "$SCENARIO" == "--config" || "$SCENARIO" == "config" ]]; then
+    CONFIG_FILE="$(dirname "$0")/test_run_config.yml"
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo -e "${RED}Error: Config file not found: ${CONFIG_FILE}${NC}"
+        echo "Create test_run_config.yml and set scenarios to run: true"
+        exit 1
+    fi
+
+    # Parse YAML config with Python — outputs lines: scenario:command:suite
+    SCENARIO_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer build_stream gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+    PARSED=$(python3 -c "
+import yaml, sys
+with open('$CONFIG_FILE') as f:
+    cfg = yaml.safe_load(f) or {}
+order = '$SCENARIO_ORDER'.split()
+for name in order:
+    s = cfg.get(name, {})
+    if isinstance(s, dict) and s.get('run', False):
+        cmd = s.get('command', 'verify')
+        suite = s.get('suite', '') or ''
+        print(f'{name}:{cmd}:{suite}')
+")
+
+    if [[ -z "$PARSED" ]]; then
+        echo -e "${RED}No scenarios enabled in ${CONFIG_FILE}${NC}"
+        echo "Edit the file and set scenarios to 'run: true' to enable them."
+        exit 1
+    fi
+
+    # Export oim_cleanup extra-vars as env vars for converge.yml
+    eval "$(python3 -c "
+import yaml
+with open('$CONFIG_FILE') as f:
+    cfg = yaml.safe_load(f) or {}
+ev = cfg.get('oim_cleanup_extra_vars', {}) or {}
+for k, v in [('slurm_cleanup', 'OIM_CLEANUP_SLURM'),
+             ('k8s_cleanup', 'OIM_CLEANUP_K8S'),
+             ('postgres_backup', 'OIM_CLEANUP_POSTGRES_BACKUP')]:
+    val = str(ev.get(k, '') or '')
+    if val:
+        print(f'export {v}=\"{val}\"')
+st = str(cfg.get('oim_cleanup_skip_tags', '') or '')
+if st:
+    print(f'export OIM_CLEANUP_SKIP_TAGS=\"{st}\"')
+")"
+
+    export OMNIA_REPORT_ID=$(cat /proc/sys/kernel/random/uuid | cut -c1-8)
+
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  Omnia Molecule Test Runner - CONFIG MODE${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "  Config    : ${GREEN}${CONFIG_FILE}${NC}"
+    echo -e "  Report ID : ${GREEN}${OMNIA_REPORT_ID}${NC}"
+    echo -e "${BLUE}───────────────────────────────────────────────────────────────${NC}"
+    while IFS=: read -r s_name s_cmd s_suite; do
+        printf "  %-30s  %-8s  %s\n" "${s_name}" "${s_cmd}" "${s_suite:-all}"
+    done <<< "$PARSED"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo ""
+
+    FAILED=0
+    PASSED_LIST=""
+    FAILED_LIST=""
+
+    while IFS=: read -r s_name s_cmd s_suite; do
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}➜ ${s_name}  command=${s_cmd}  suite=${s_suite:-all}${NC}"
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+
+        LOG_FILE="/tmp/molecule_${s_name}_${OMNIA_REPORT_ID}.log"
+        export MOLECULE_LOG_FILE="$LOG_FILE"
+        export MOLECULE_COMMAND="${s_cmd}"
+
+        # build_stream always uses verify
+        run_cmd="$s_cmd"
+        if [[ "$s_name" == "build_stream" && "$run_cmd" == "test" ]]; then
+            run_cmd="verify"
+        fi
+
+        # Set pytest marker for suite
+        unset PYTEST_ADDOPTS
+        if [[ -n "$s_suite" ]]; then
+            export PYTEST_ADDOPTS="-m $s_suite"
+        fi
+
+        if molecule "${run_cmd}" -s "${s_name}" 2>&1 | tee "$LOG_FILE"; then
+            echo -e "${GREEN}✔ ${s_name} completed${NC}"
+            PASSED_LIST="$PASSED_LIST $s_name"
+        else
+            echo -e "${RED}✘ ${s_name} failed${NC}"
+            FAILED=1
+            FAILED_LIST="$FAILED_LIST $s_name"
+        fi
+        echo ""
+    done <<< "$PARSED"
+
+    # Summary
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  CONFIG MODE - EXECUTION SUMMARY  (Report: ${OMNIA_REPORT_ID})${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+    if [[ -n "$PASSED_LIST" ]]; then
+        echo -e "  ${GREEN}✔ Passed:${NC}$PASSED_LIST"
+    fi
+    if [[ -n "$FAILED_LIST" ]]; then
+        echo -e "  ${RED}✘ Failed:${NC}$FAILED_LIST"
+    fi
+    echo -e "  Logs: /tmp/molecule_*_${OMNIA_REPORT_ID}.log"
+    echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
+
+    if [[ $FAILED -eq 0 ]]; then
+        echo -e "${GREEN}  ✔ ALL SCENARIOS COMPLETED SUCCESSFULLY${NC}"
+    else
+        echo -e "${RED}  ✘ SOME SCENARIOS FAILED${NC}"
+        exit 1
+    fi
+    exit 0
+fi
+
 # Handle special commands that don't need scenario
 case "$SCENARIO" in
     list|--list)
@@ -171,6 +294,7 @@ case "$SCENARIO" in
     
     help|--help|-h|"")
         echo "Usage: $0 <scenario> <command> [options]"
+        echo "       $0 --config"
         echo ""
         echo "Commands:"
         echo "  test      - Run full test (create + prepare + converge + verify)"
@@ -182,6 +306,7 @@ case "$SCENARIO" in
         echo "Options:"
         echo "  --suite <name>    Run specific test suite (sanity, negative, regression, smoke)"
         echo "  --marker <expr>   Run tests matching pytest marker expression"
+        echo "  --config          Run scenarios from test_run_config.sh"
         echo ""
         echo "Test Suites:"
         echo "  sanity      - Basic functionality tests (quick)"
@@ -197,16 +322,21 @@ case "$SCENARIO" in
         echo "  list      - List available scenarios"
         echo "  help      - Show this help"
         echo ""
+        echo "Config Mode:"
+        echo "  Edit test_run_config.yml to enable scenarios, set command & suite."
+        echo "  Then run: $0 --config"
+        echo ""
         echo "Examples:"
-        echo "  $0 omnia_sh_install test      # Install + verify"
-        echo "  $0 omnia_sh_install verify    # Verify install only"
-        echo "  $0 omnia_sh_uninstall test    # Uninstall + verify"
+        echo "  $0 omnia_sh_install test       # Install + verify"
+        echo "  $0 omnia_sh_install verify     # Verify install only"
+        echo "  $0 omnia_sh_uninstall test     # Uninstall + verify"
         echo "  $0 prepare_oim verify --suite sanity     # Run sanity tests only"
-        echo "  $0 gitlab_install verify --suite sanity # Run GitLab install sanity tests"
+        echo "  $0 gitlab_install verify --suite sanity  # Run GitLab install sanity tests"
         echo "  $0 telemetry verify --suite negative     # Run negative tests only"
         echo "  $0 discovery verify --marker smoke       # Run smoke tests"
-        echo "  $0 all test                   # Run ALL scenarios"
-        echo "  $0 list                       # List scenarios"
+        echo "  $0 all test                    # Run ALL scenarios"
+        echo "  $0 --config                    # Run from test_run_config.yml"
+        echo "  $0 list                        # List scenarios"
         exit 0
         ;;
     

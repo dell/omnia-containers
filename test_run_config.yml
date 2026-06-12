@@ -1,0 +1,121 @@
+# =============================================================================
+# Test Run Configuration
+# =============================================================================
+#
+# Configure which scenarios to run, the command, and test suite per scenario.
+#
+# Usage:
+#   1. Edit this file to enable/disable scenarios
+#   2. Run: ./run_molecule.sh --config
+#
+# Each scenario has:
+#   run:     true/false   - Whether to execute this scenario
+#   command: test/verify/converge - What molecule command to run
+#   suite:   sanity/negative/regression/smoke/"" - Test suite filter (empty = all)
+#
+# Scenarios execute in the order listed below.
+# =============================================================================
+
+# --- Install & Setup ---
+omnia_sh_install:
+  run: false
+  command: "test"
+  suite: ""
+
+prepare_oim:
+  run: false
+  command: "test"
+  suite: ""
+
+# --- GitLab ---
+gitlab_install:
+  run: false
+  command: "test"
+  suite: ""
+
+# --- Build & Repo ---
+local_repo:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+build_image_x86_64:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+build_image_aarch64:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Provision & Deploy ---
+discovery:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+provision:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Services ---
+telemetry:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+apptainer:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Build Stream (CI/CD pipeline tests) ---
+build_stream:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Cleanup ---
+gitlab_cleanup:
+  run: false
+  command: "test"
+  suite: ""
+
+oim_cleanup:
+  run: false
+  command: "test"
+  suite: ""
+
+omnia_sh_uninstall:
+  run: false
+  command: "test"
+  suite: ""
+
+# =============================================================================
+# OIM CLEANUP EXTRA VARS (used only when oim_cleanup.run is true)
+# =============================================================================
+# Pass extra-vars to oim_cleanup.yml inside omnia_core container.
+#
+#   slurm_cleanup:
+#     true  -> auto-confirm slurm NFS cleanup (no prompt, deletes dirs)
+#     false -> skip slurm NFS cleanup entirely (no prompt, no delete)
+#     ""    -> prompt for YES confirmation (default)
+#
+#   k8s_cleanup:
+#     true  -> auto-confirm k8s NFS cleanup (no prompt, deletes dirs)
+#     false -> skip k8s NFS cleanup entirely (no prompt, no delete)
+#     ""    -> prompt for YES confirmation (default)
+#
+#   postgres_backup:
+#     true  -> preserve postgres data during cleanup (default)
+#     false -> delete postgres data during cleanup
+oim_cleanup_extra_vars:
+  slurm_cleanup: ""
+  k8s_cleanup: ""
+  postgres_backup: ""
+
+# Skip tags: comma-separated Ansible tags to skip during oim_cleanup
+# Available: slurm, k8s, pulp, openchami, auth, build_stream, postgres, common, credentials
+oim_cleanup_skip_tags: ""
