@@ -97,6 +97,8 @@ Procedure
 
 7. Open the ``/etc/openchami/configs/coredhcp.yaml`` file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
 
+.. 
+
 8. Execute the following command to restart the openchami target:
 
    .. code-block:: bash
