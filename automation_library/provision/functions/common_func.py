@@ -20,9 +20,6 @@ Functions for SSH verification and node retrieval used across all tests.
 
 from typing import Dict, Any, List
 
-import sys
-import time
-
 import pytest
 
 from automation_library.core import (
@@ -775,8 +772,8 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
 
     # --- vmagent-vector / vlagent-vector (write buffers for Vector bridges) ---
     vector_metrics_active = (
-        (vector_ldms.get("metrics_enabled", False) and ldms_enabled) or
-        vector_ome.get("metrics_enabled", False)
+        (vector_ldms.get("metrics_enabled", False) and ldms_enabled)
+        or vector_ome.get("metrics_enabled", False)
     )
     if vector_metrics_active and victoria_metrics_active:
         expected_prefixes.append("vmagent-vector")
@@ -792,6 +789,7 @@ def verify_k8s_telemetry_pods(host, k8s_nodes: List[Dict[str, str]]) -> Dict[str
             "karavi-metrics-powerscale",
             "otel-collector",
             "karavi-observability-cert-manager",
+            "csi-volume-exporter",
         ])
         enabled_features.append("powerscale enabled")
 

@@ -55,6 +55,9 @@ from .build_stream_job_func import (
     is_build_stream_enabled,
     get_last_build_image_job_id,
 )
+from automation_library.build_stream.functions.db_func import (
+    get_image_groups_for_job,
+)
 
 
 # =============================================================================
@@ -457,14 +460,22 @@ def _match_s3_images_for_group(
     image_types: list,
     s3_files: Dict[str, Any],
     job_id: Optional[str] = None,
+    image_group_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Find all required image types for one functional group in the S3 listing.
 
-    When job_id is given (build_stream enabled) the path must contain the
-    UUID suffix ``<fg>_<job_id>-image-build`` to be considered a match.
-    When job_id is None (build_stream disabled) any path containing ``<fg>``
-    and the image type keyword is accepted.
+    When build_stream is enabled the S3 directory name embeds both the job
+    UUID and the image_group_id from the postgres ``image_groups`` table::
+
+        s3://boot-images/<fg>/rhel-<fg>_..._<job_id>-<image_group_id>/<files>
+
+    We build a precise segment ``<job_id>-<image_group_id>`` to match.
+    If we only have the job_id (no image_group_id), we fall back to
+    matching the job_id alone.
+
+    When build_stream is disabled any path containing ``<fg>`` and the
+    image type keyword is accepted.
 
     Returns a group-level result dict.
     """
@@ -477,9 +488,15 @@ def _match_s3_images_for_group(
         "job_id": job_id,
     }
 
-    # When build_stream is enabled the image dir is named
-    # "rhel-<fg>_<UUID>-image-build" so we can be precise.
-    uuid_segment = f"{fg}_{job_id}-image-build" if job_id else None
+    # Build the S3 path segment to match when build_stream is enabled.
+    # Prefer the precise <job_id>-<image_group_id> from the database;
+    # fall back to just <job_id> if image_group_id is unavailable.
+    if job_id and image_group_id:
+        s3_match_segment = f"{job_id}-{image_group_id}"
+    elif job_id:
+        s3_match_segment = job_id
+    else:
+        s3_match_segment = None
 
     for img_type in image_types:
         found = False
@@ -490,18 +507,18 @@ def _match_s3_images_for_group(
             # Must contain the image type keyword
             if img_type not in path:
                 continue
-            # When build_stream enabled, path must contain the UUID segment
-            if uuid_segment and uuid_segment not in path:
+            # When build_stream enabled, path must contain the DB-derived segment
+            if s3_match_segment and s3_match_segment not in path:
                 continue
             found = True
             group_result["found_images"].append(img_type)
-            
+
             # Extract meaningful directory name (rhel-<fg>_<UUID>-image-build) from full path
             # From: s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build/file
             # To: rhel-slurm_control_node_x86_64_c01cdd28-3c60-4124-bcf0-b53a0ef93c8b-image-build
             path_parts = path.split('/')
             display_path = next((part for part in path_parts if part.startswith('rhel-') and '-image-build' in part), info["filename"])
-            
+
             group_result["image_details"].append({
                 "type": img_type,
                 "filename": info["filename"],
@@ -601,6 +618,15 @@ def check_s3_bucket_images(host, arch: str = None) -> Dict[str, Any]:
         job_id = job_result["job_id"]
 
     # -----------------------------------------------------------------------
+    # Query DB for image_group_id (S3 path = <job_id>-<image_group_id>)
+    # -----------------------------------------------------------------------
+    image_group_id: Optional[str] = None
+    if job_id:
+        ig_result = get_image_groups_for_job(host, job_id)
+        if ig_result["success"] and ig_result["image_groups"]:
+            image_group_id = ig_result["image_groups"][0].get("id", "")
+
+    # -----------------------------------------------------------------------
     # Fetch full S3 listing once
     # -----------------------------------------------------------------------
     s3_list_cmd = host.run(f"{s3_cmd} 2>/dev/null")
@@ -614,7 +640,9 @@ def check_s3_bucket_images(host, arch: str = None) -> Dict[str, Any]:
     all_passed = True
 
     for fg in functional_groups:
-        group_result = _match_s3_images_for_group(fg, image_types, s3_files, job_id)
+        group_result = _match_s3_images_for_group(
+            fg, image_types, s3_files, job_id, image_group_id
+        )
         results.append(group_result)
         if not group_result["success"]:
             all_passed = False
@@ -766,10 +794,13 @@ def _get_base_image_packages(host, images_dir: str, arch: str = "x86_64") -> lis
         return []
 
 
-def _verify_single_image_packages(host, functional_group: str, images_dir: str,
-                                   temp_image: str, temp_mount: str,
-                                   base_packages: list = None,
-                                   job_id: Optional[str] = None) -> Dict[str, Any]:
+def _verify_single_image_packages(
+    host, functional_group: str, images_dir: str,
+    temp_image: str, temp_mount: str,
+    base_packages: list = None,
+    job_id: Optional[str] = None,
+    image_group_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Helper function to verify packages in a single image.
     Downloads, mounts, checks RPM database, and cleans up.
@@ -838,14 +869,20 @@ def _verify_single_image_packages(host, functional_group: str, images_dir: str,
     expected_packages = all_expected
 
     # Find the S3 image path
-    # When build_stream is enabled, the image dir contains the job UUID:
-    #   rhel-<fg>_<UUID>-image-build/  — filter precisely to avoid stale images.
+    # When build_stream is enabled, use <job_id>-<image_group_id> from DB.
     # When build_stream is disabled, match by functional group name only.
     s3_cmd = BUILD_IMAGE_VARS["s3_list_images_cmd"]
-    uuid_segment = f"{functional_group}_{job_id}-image-build" if job_id else None
-    if uuid_segment:
+    if job_id and image_group_id:
+        s3_match = f"{job_id}-{image_group_id}"
+    elif job_id:
+        s3_match = job_id
+    else:
+        s3_match = None
+
+    if s3_match:
         s3_list = host.run(
-            f"{s3_cmd} 2>/dev/null | grep '{uuid_segment}' | "
+            f"{s3_cmd} 2>/dev/null | grep '{functional_group}' | "
+            f"grep '{s3_match}' | "
             "grep -v efi-images | grep -v initramfs | grep -v vmlinuz"
         )
     else:
@@ -1046,16 +1083,22 @@ def verify_all_image_packages(host, arch: str = None) -> Dict[str, Any]:
     results = []
     all_passed = True
 
-    # Resolve job_id for S3 path filtering (None when build_stream disabled)
+    # Resolve job_id and image_group_id for S3 path filtering
     job_id: Optional[str] = None
+    image_group_id: Optional[str] = None
     if is_build_stream_enabled(host):
         job_result = get_last_build_image_job_id(host, arch=arch or "x86_64")
         if job_result["success"]:
             job_id = job_result["job_id"]
+    if job_id:
+        ig_result = get_image_groups_for_job(host, job_id)
+        if ig_result["success"] and ig_result["image_groups"]:
+            image_group_id = ig_result["image_groups"][0].get("id", "")
 
     for fg in groups_to_verify:
         result = _verify_single_image_packages(
-            host, fg, images_dir, temp_image, temp_mount, base_packages, job_id
+            host, fg, images_dir, temp_image, temp_mount,
+            base_packages, job_id, image_group_id,
         )
         results.append(result)
         if not result["success"]:

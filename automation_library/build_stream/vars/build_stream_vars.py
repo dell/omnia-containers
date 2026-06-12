@@ -24,6 +24,15 @@ For module-specific messages, see:
 
 from typing import List
 
+from automation_library.core.vars.build_stream_vars import (
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
+
 # =============================================================================
 # BUILD STREAM API (omnia_build_stream container)
 # Keys used to read runtime values from build_stream_config.yml
@@ -41,26 +50,26 @@ BUILD_STREAM_AUTH_TOKEN_PATH: str = "/api/v1/auth/token"
 
 BUILD_PIPELINE_CORE_STAGES: List[str] = [
     "upload",
-    "parse-catalog",
-    "generate-input-files",
-    "create-local-repository",
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+    STAGE_CREATE_LOCAL_REPO,
 ]
 
 BUILD_IMAGE_STAGE_PREFIX: str = "build-image-"
 
 BUILD_PIPELINE_STAGES: List[str] = [
     "upload",
-    "parse-catalog",
-    "generate-input-files",
-    "create-local-repository",
-    "build-image-x86_64",
-    "build-image-aarch64",
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
 ]
 
 DEPLOY_PIPELINE_STAGES: List[str] = [
     "deploy",
     "restart",
-    "validate",
+    STAGE_VALIDATE_IMAGE,
 ]
 
 CLEANUP_PIPELINE_STAGES: List[str] = [

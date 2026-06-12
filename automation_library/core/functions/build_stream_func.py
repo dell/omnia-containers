@@ -42,7 +42,7 @@ from ..vars.paths_vars import (
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
 )
-from ..vars.build_stream_vars import (
+from ..vars.build_stream_vars import (  # noqa: F401 - stage constants re-exported via core.__init__
     POSTGRES_CONTAINER as _POSTGRES_CONTAINER,
     POSTGRES_DB as _POSTGRES_DB,
     POSTGRES_USER_KEY as _POSTGRES_USER_KEY,
@@ -68,7 +68,7 @@ def _get_omnia_test_config_job_id() -> str:
     This is the local file (project root), NOT inside any container.
     """
     project_root = os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     )
     omnia_test_config_path = os.path.join(project_root, "omnia_test_config.yml")
     if not os.path.exists(omnia_test_config_path):
