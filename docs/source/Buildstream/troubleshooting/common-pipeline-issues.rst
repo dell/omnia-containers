@@ -146,10 +146,10 @@ Stage: Deploy Images
 3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
 
 Common Issues
--------------
+=============
 
 Retry Button Not Displayed
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 **Issue**: The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
 
