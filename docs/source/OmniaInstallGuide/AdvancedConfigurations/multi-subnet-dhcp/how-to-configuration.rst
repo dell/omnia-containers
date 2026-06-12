@@ -15,7 +15,7 @@ Before configuring multi-subnet DHCP:
 * CoreSMD services deployed (CoreSMD v0.6.3+ required for multi-subnet support)
 * Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
 * DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
-* PXE mapping file configured and validated for your deployment scenario. Ensure that the ``pxe_mapping_file.csv`` is aligned with your network topology. Use the single-subnet configuration for single-subnet deployments or the multi-subnet configuration for multi-subnet DHCP deployments. For sample configurations, see :doc:`../../samplefiles`.
+* PXE mapping file configured and validated for your deployment scenario. Ensure that the ``pxe_mapping_file.csv`` is aligned with your network topology. For sample configurations, see :doc:`../../samplefiles`.
 
 .. important::
    Multi-Subnet DHCP requires DHCP relay agents configured on each subnet's gateway/router. Without proper DHCP relay configuration, DHCP requests from remote subnets will not reach the CoreSMD server.
@@ -82,28 +82,31 @@ Procedure
    .. note::
       Leave ``additional_subnets: []`` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
 
-6. Execute the ``prepare_oim.yml`` playbook using the following command:
+5. Execute the ``prepare_oim.yml`` playbook using the following command:
 
    .. code-block:: bash
 
       cd /opt/omnia/input/project_default/
       ansible-playbook prepare_oim.yml
 
-5. After successfully executing the ``prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
+6. After successfully executing the ``prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
 
    .. code-block:: bash
 
       systemctl list-dependencies openchami.target
 
-6. Open the ``openchami.target`` file and follow the steps under the multi-subnet configuration section (requires CoreSMD v0.6.x+). Verify that all CoreSMD services and dependent services are operational.
+7. Open the ``/etc/openchami/configs/coredhcp.yaml`` file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
 
-.. 
-
-7. Ensure that services such as CoreSMD and other dependent services are in an active state.
-   If any of the core services fail to start, use the following commands to check the error logs:
+8. Execute the following command to restart the openchami target:
 
    .. code-block:: bash
-      
+
+      systemctl restart openchami.target
+
+9. Ensure that services such as CoreSMD and other dependent services are in an active state. If any of the core services fail to start, use the following commands to check the error logs:
+
+   .. code-block:: bash
+
       journalctl -xeu coresmd-coredhcp
       journalctl -xeu coresmd-coredns
 
