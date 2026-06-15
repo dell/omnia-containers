@@ -212,7 +212,7 @@ Report Generation
 
 The discovery report is generated automatically when the discovery playbook runs::
 
-    ansible-playbook discovery/discovery.yml
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
 The report is created after the PXE mapping file as the final step in the OME discovery workflow:
 
