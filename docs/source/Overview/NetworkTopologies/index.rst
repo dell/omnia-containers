@@ -6,3 +6,4 @@ Network Topologies
     dedicated
     lom
     Hybrid
+    multi-rack-multi-subnet
