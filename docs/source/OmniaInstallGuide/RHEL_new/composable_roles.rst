@@ -252,7 +252,7 @@ The discovery report CSV contains the following columns:
    * - ``BMC_IP``
      - IP address assigned to the BMC (iDRAC).
    * - ``BMC_NIC_STATUS``
-     - Link status of the BMC NIC. Typically ``Reachable`` if the server is managed by OME.
+     - Link status of the BMC NIC. Typically ``Up`` if the server is managed by OME.
    * - ``ETHERNET_NIC_MAC``
      - MAC address of the first Ethernet NIC (excluding iDRAC and InfiniBand NICs).
    * - ``ETHERNET_NIC_LINK_STATUS``
