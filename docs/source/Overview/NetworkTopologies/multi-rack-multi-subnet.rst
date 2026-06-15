@@ -7,7 +7,7 @@ Network Topology: Multi-Rack Multi-Subnet Setup
 
 In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the Admin (PXE) network. This architecture allows large-scale HPC and AI/ML deployments to have per-rack management subnets instead of a single shared subnet, improving scalability, failure isolation, and operational efficiency.
 
-* **Public Network (Blue line)**: This indicates the external public network that is connected to the internet. NIC2 of the OIM, Service cluster nodes, Head node, Service Kubernetes node, and Login node [optional] are connected to the public network.
+* **Public Network (Blue line)**: This indicates the external public network that is connected to the internet. NIC2 of the OIM is connected to the public network.
 
 * **BMC Network (Red line)**: This indicates the private BMC (iDRAC) network used by the OIM to control the cluster nodes using out-of-band management.
 
