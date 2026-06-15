@@ -3,7 +3,7 @@ Network Topology: Multi-Rack Multi-Subnet Setup
 
 .. note:: The following diagram is for representational purposes only.
 
-.. image:: ../../images/multi_rack_setup_arch
+.. image:: ../../images/multi_rack_setup_arch.png
 
 In a **Multi-Rack Multi-Subnet Setup**, each rack has its own /24 subnet for the Admin (PXE) network. This architecture allows large-scale HPC and AI/ML deployments to have per-rack management subnets instead of a single shared subnet, improving scalability, failure isolation, and operational efficiency.
 
