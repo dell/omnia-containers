@@ -3,7 +3,7 @@ Network Topology: Hybrid Setup
 
 .. note:: The following diagram is for representational purposes only.
 
-.. image:: ../../images/Hybird_Network_2.1_rc1.jpg
+.. image:: ../../images/Hybird_Network_2.2_rc1.jpg
 
 In a **Hybrid Setup**, the OIM and special nodes such as the head and login node are connected to the public network, while the iDRAC and the compute nodes use a shared LOM network.
 

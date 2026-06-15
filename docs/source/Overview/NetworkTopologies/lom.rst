@@ -3,7 +3,7 @@ Network Topology: Shared LOM Setup
 
 .. note:: The following diagram is for representational purposes only.
 
-.. image:: ../../images/LOM_Network_2.1_rc1.jpg
+.. image:: ../../images/LOM_Network_2.2_rc1.jpg
 
 In a **Shared LOM setup**, the Administration and BMC logical networks share the same ethernet segment and physical connection.
 
