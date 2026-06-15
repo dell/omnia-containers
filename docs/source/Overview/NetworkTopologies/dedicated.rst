@@ -7,7 +7,7 @@ Network Topology: Dedicated Setup
 
 In a **Dedicated Setup**, all the cluster nodes (Head, Compute, and Login [optional]) have dedicated iDRAC connections.
 
-* **Public Network (Blue line)**: This indicates the external public network that is connected to the internet. NIC2 of the OIM, Service cluster nodes, Head node, Service Kubernetes node, and Login node [optional] are connected to the public network.
+* **Public Network (Blue line)**: This indicates the external public network that is connected to the internet. NIC2 of the OIM is connected to the public network.
 
 * **BMC Network (Red line)**: This indicates the private BMC (iDRAC) network used by the OIM to control the cluster nodes using out-of-band management.
 
