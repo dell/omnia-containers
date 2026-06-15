@@ -322,7 +322,7 @@ If a server fails to PXE boot during provisioning:
 
 1. Check the ``ETHERNET_NIC_LINK_STATUS`` in the discovery report
 2. If the status is ``Down`` or ``Unknown``, verify the physical cable connection and switch port configuration
-3. If the ``ETHERNET_NIC_MAC`` appears incorrect, check if InfiniBand NICs were incorrectly selected (this was fixed in Omnia — see `Known issues`_)
+3. If the ``ETHERNET_NIC_MAC`` appears incorrect, check if InfiniBand NICs were incorrectly selected (this was fixed in Omnia)
 
 **Inventory Auditing**
 
@@ -362,17 +362,6 @@ The discovery report and PXE mapping file are complementary:
    * - **Used by provision.yml**
      - Yes
      - No
-
-Known Issues
-~~~~~~~~~~~~
-
-**ADMIN_MAC incorrectly selecting InfiniBand MAC (fixed)**
-
-In earlier versions, when all Ethernet NICs reported ``Unknown`` link status, the fallback logic could select an InfiniBand NIC MAC address as the ``ADMIN_MAC`` in the PXE mapping file. This has been fixed by explicitly excluding InfiniBand NICs from the Ethernet NIC search.
-
-**Blank link status for UNKNOWN NICs (fixed)**
-
-When OME returned a ``null`` or empty ``LinkStatus`` for NICs in an unknown state, the discovery report showed blank values instead of ``Unknown``. This has been fixed to default empty link statuses to ``Unknown``.
 
 Configuration
 ~~~~~~~~~~~~
