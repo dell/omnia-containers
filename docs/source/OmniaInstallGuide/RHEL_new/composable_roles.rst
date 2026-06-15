@@ -268,9 +268,9 @@ Sample Output
 .. code-block:: text
 
     SERVICE_TAG,BMC_MAC,BMC_IP,BMC_NIC_STATUS,ETHERNET_NIC_MAC,ETHERNET_NIC_LINK_STATUS,IB_NIC_NAME,IB_NIC_LINK_STATUS
-    H94M8F3,B8:CE:F6:57:89:D0,172.16.0.101,Reachable,b0:7b:25:d8:4a:f4,Up,InfiniBand.Slot.3-1,Unknown
-    J7KN2G4,A4:BF:01:12:34:56,172.16.0.102,Reachable,e4:43:4b:01:23:45,Up,,
-    K5LP9H2,D0:94:66:AB:CD:EF,172.16.0.103,Reachable,24:6e:96:78:90:12,Unknown,InfiniBand.Slot.3-1,Up
+    H94M8F3,B8:CE:F6:57:89:D0,172.16.0.101,UP,b0:7b:25:d8:4a:f4,Up,InfiniBand.Slot.3-1,Unknown
+    J7KN2G4,A4:BF:01:12:34:56,172.16.0.102,UP,e4:43:4b:01:23:45,Up,,
+    K5LP9H2,D0:94:66:AB:CD:EF,172.16.0.103,UP,24:6e:96:78:90:12,Unknown,InfiniBand.Slot.3-1,Up
 
 NIC Link Statuses
 ~~~~~~~~~~~~~~~~
