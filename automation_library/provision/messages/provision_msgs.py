@@ -245,7 +245,11 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "            -c \"SELECT * FROM job_stages WHERE job_id = '{job_id}';\"\n"
         "  3. If FAILED, re-trigger the build_stream pipeline\n"
         "  4. If still RUNNING, wait for it to complete\n"
-        "  5. To override: set build_stream_job_id in omnia_test_config.yml"
+        "  5. To override: set build_stream_job_id in omnia_test_config.yml\n\n"
+        "TO FORCE TESTS WITHOUT VALIDATION:\n"
+        "  Set FORCE_PROVISION_VALIDATE_FAILED = True in\n"
+        "  automation_library/provision/vars/common_vars.py\n"
+        "  WARNING: Tests will run on unvalidated images!"
     ),
 }
 

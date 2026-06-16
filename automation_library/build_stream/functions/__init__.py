@@ -28,6 +28,7 @@ from .shared_func import (
     skip_if_build_stream_not_enabled,
     get_allow_pipeline_cancel,
     get_image_identifier,
+    get_catalog_name,
 )
 
 from .api_func import (
@@ -67,6 +68,15 @@ from .gitlab_func import (
     wait_for_pipeline_triggered,
     get_gitlab_file,
     commit_gitlab_file,
+)
+
+from .generated_input_func import (
+    get_omnia_branch,
+    clone_omnia_repo,
+    cleanup_omnia_clone,
+    get_software_config,
+    compare_software_json,
+    verify_generated_inputs,
 )
 
 from .pipeline_func import (

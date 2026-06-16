@@ -51,6 +51,7 @@ from automation_library.provision.messages import (
     TEST_NAMES, TEST_LOG_MSGS as LOG_MSGS, TEST_ASSERT_MSGS as ASSERT_MSGS,
     SKIP_MSGS,
 )
+from automation_library.provision.vars.common_vars import FORCE_PROVISION_VALIDATE_FAILED
 
 
 # =============================================================================
@@ -97,19 +98,33 @@ def test_build_stream_job_stage(host):
             )
         )
     else:
-        log.failed(
-            LOG_MSGS["build_stream_job_failed"].format(
-                stage=stage, state=job_state, job_id=job_id
-            ),
-            result.get("error", "")
-        )
-        # Use pytest.fail() so this test shows as FAILED (not skipped)
-        # Remaining tests will be SKIPPED via autouse fixture
-        pytest.fail(
-            ASSERT_MSGS["build_stream_job_stage_failed"].format(
-                stage=stage, job_id=job_id, state=job_state
+        # Check if force flag is enabled
+        if FORCE_PROVISION_VALIDATE_FAILED:
+            log.skipped(
+                f"Build stream validation BYPASSED (FORCE_PROVISION_VALIDATE_FAILED=True)",
+                f"WARNING: Tests will run on unvalidated images!\n"
+                f"Stage '{stage}' is {job_state} (job_id: {job_id})\n"
+                f"To disable force mode, set FORCE_PROVISION_VALIDATE_FAILED = False\n"
+                f"in automation_library/provision/vars/common_vars.py"
             )
-        )
+            # Mark as success so autouse fixture allows remaining tests
+            build_stream_job_state["success"] = True
+            build_stream_job_state["forced"] = True
+            return
+        else:
+            log.failed(
+                LOG_MSGS["build_stream_job_failed"].format(
+                    stage=stage, state=job_state, job_id=job_id
+                ),
+                result.get("error", "")
+            )
+            # Use pytest.fail() so this test shows as FAILED (not skipped)
+            # Remaining tests will be SKIPPED via autouse fixture
+            pytest.fail(
+                ASSERT_MSGS["build_stream_job_stage_failed"].format(
+                    stage=stage, job_id=job_id, state=job_state
+                )
+            )
 
 
 # =============================================================================

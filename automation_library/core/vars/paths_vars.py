@@ -131,6 +131,13 @@ LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP = "login_compiler_node_x86_64"
 LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP = "login_compiler_node_aarch64"
 
 # =============================================================================
+# MINIMAL OS FUNCTIONAL GROUPS (from PXE mapping file)
+# =============================================================================
+
+MINIMAL_OS_X86_64_FUNCTIONAL_GROUP = "os_x86_64"
+MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP = "os_aarch64"
+
+# =============================================================================
 # OMNIA SUPPORTED FUNCTIONAL GROUPS (all valid functional group names)
 # =============================================================================
 
@@ -144,6 +151,8 @@ OMNIA_SUPPORTED_FUNCTIONAL_GROUPS = [
     LOGIN_NODE_AARCH64_FUNCTIONAL_GROUP,
     LOGIN_COMPILER_NODE_FUNCTIONAL_GROUP,
     LOGIN_COMPILER_NODE_AARCH64_FUNCTIONAL_GROUP,
+    MINIMAL_OS_X86_64_FUNCTIONAL_GROUP,
+    MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP,
 ]
 
 # =============================================================================

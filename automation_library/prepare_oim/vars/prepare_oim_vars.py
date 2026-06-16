@@ -39,7 +39,6 @@ from automation_library.core import (
 # OpenChami containers (deployed by prepare_oim)
 OPENCHAMI_CONTAINERS: List[str] = [
     "pulp",
-    "minio-server",
     "registry",
     "step-ca",
     "postgres",
@@ -71,7 +70,6 @@ OMNIA_TARGET_SERVICES: List[str] = [
     "omnia_core.service",
     "pulp.service",
     "registry.service",
-    "minio.service",
     "network-online.target",
 ]
 
@@ -142,4 +140,44 @@ CERT_WAIT_TIME: int = 30
 
 PULP_CERT_PATH: str = _CORE_PULP_CERT
 LDAP_CERT_PATH: str = _CORE_LDAP_CERT
+
+# =============================================================================
+# S3 / STORAGE BACKEND CONFIGURATION
+# =============================================================================
+
+# Supported S3 storage backends
+STORAGE_BACKEND_MINIO: str = "minio"
+STORAGE_BACKEND_POWERSCALE: str = "powerscale"
+
+# S3 configuration key in storage_config.yml
+S3_CONFIG_KEY: str = "s3_configurations"
+S3_PROVIDER_KEY: str = "provider"
+S3_ENDPOINT_URL_KEY: str = "endpoint_url"
+
+# S3 buckets created by prepare_oim
+S3_EXPECTED_BUCKETS: List[str] = [
+    "s3://efi",
+    "s3://boot-images",
+]
+
+# MinIO container name
+MINIO_CONTAINER: str = "minio-server"
+
+# MinIO systemd service name
+MINIO_SERVICE: str = "minio.service"
+
+# MinIO data directory (under oim_shared_path)
+MINIO_DATA_DIR_SUFFIX: str = "openchami/s3/data/s3"
+
+# s3cmd config file path
+S3CMD_CONFIG_PATH: str = "/root/.s3cfg"
+
+# Registry port for regctl
+REGISTRY_PORT: int = 5000
+
+# regctl config path
+REGCTL_CONFIG_PATH: str = "/root/.regctl/config.json"
+
+# regctl binary path
+REGCTL_BINARY_PATH: str = "/usr/local/bin/regctl"
 

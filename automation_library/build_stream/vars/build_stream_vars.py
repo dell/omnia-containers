@@ -140,8 +140,18 @@ CLEANUP_WAIT_TIMEOUT: int = 300  # seconds to wait for cleanup completion
 GITLAB_API_VERSION: str = "v4"
 GITLAB_ROOT_TOKEN_FILE: str = "/root/.gitlab_root_token"
 CATALOG_FILE_PATH: str = "catalog_rhel.json"
-CATALOG_LOCAL_FILENAME: str = "slurm_only_x86_64_catalog.json"
+CATALOG_DEFAULT_FILENAME: str = "catalog_rhel_x86_64_with_slurm_only.json"
 PXE_MAPPING_FILE_PATH: str = "input/pxe_mapping_file.csv"
+OMNIA_CATALOG_PATH: str = "/omnia/examples/catalog"
+
+# =============================================================================
+# OMNIA REPOSITORY AND CONFIGURATION PATHS
+# =============================================================================
+
+OMNIA_REPO_URL: str = "https://github.com/dell/omnia.git"
+DEFAULT_CLONE_PATH: str = "/tmp/omnia_input_verify"
+# Note: GENERATED_CONFIG_BASE is constructed dynamically as f"{INPUT_BASE_PATH}/config"
+SOURCE_CONFIG_BASE: str = "input/config"
 
 # =============================================================================
 # GITLAB CI/CD VARIABLE KEYS
