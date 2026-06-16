@@ -61,8 +61,8 @@ This framework automates testing of Omnia Infrastructure Manager (OIM) deploymen
 ## Quick Start
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/dell/omnia-artifactory.git
+# 1. Clone the repository with release-specific branch
+git clone -b automation-<release> https://github.com/dell/omnia-artifactory.git
 cd omnia-artifactory
 
 # 2. Run the environment setup script
