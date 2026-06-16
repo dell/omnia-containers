@@ -74,8 +74,8 @@
 * Additional packages required for the cluster are downloaded from the provided ``rhel_subscription_repo_config_x86_64`` and stored in the Pulp container.
 * ``url`` defines the baseurl for the repository where the OS package is hosted.
 * ``gpgkey`` defines the aarch64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
-* ``name`` defines the name of the OS package.
-* If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
+* ``name`` defines the name of the OS package. To override any of the 3 base repos (baseos, appstream, codeready-builder), the 'name' field must match exactly: 'baseos', 'appstream', or 'codeready-builder'
+* SSL certificates are ALWAYS auto-populated from RHEL subscription defaults
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_subscription_repo_config_x86_64``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
