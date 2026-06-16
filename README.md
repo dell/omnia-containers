@@ -262,8 +262,7 @@ omnia-artifactory/
 ├── docs/                              # Detailed reference documentation
 │   ├── input_reference.md             # omnia_test_config.yml parameter reference
 │   ├── dataset_reference.md           # Dataset files reference
-│   ├── prereq_check_reference.md      # Prerequisite checks reference
-│   └── test_suite_reference.md        # Test suite documentation template
+│   └── prereq_check_reference.md      # Prerequisite checks reference
 │
 └── reports/                           # Generated test reports (gitignored)
 ```
@@ -277,7 +276,6 @@ omnia-artifactory/
 | [docs/input_reference.md](docs/input_reference.md) | Complete `omnia_test_config.yml` parameter reference with types, defaults, and usage |
 | [docs/dataset_reference.md](docs/dataset_reference.md) | All dataset files, which Omnia playbooks consume them, and how input files flow into the container |
 | [docs/prereq_check_reference.md](docs/prereq_check_reference.md) | Detailed prerequisite check descriptions and `oim-prereq-check` usage |
-| [docs/test_suite_reference.md](docs/test_suite_reference.md) | Test suite documentation — add your test case explanations here |
 
 ---
 
