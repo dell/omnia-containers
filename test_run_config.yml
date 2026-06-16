@@ -92,30 +92,3 @@ omnia_sh_uninstall:
   run: false
   command: "test"
   suite: ""
-
-# =============================================================================
-# OIM CLEANUP EXTRA VARS (used only when oim_cleanup.run is true)
-# =============================================================================
-# Pass extra-vars to oim_cleanup.yml inside omnia_core container.
-#
-#   slurm_cleanup:
-#     true  -> auto-confirm slurm NFS cleanup (no prompt, deletes dirs)
-#     false -> skip slurm NFS cleanup entirely (no prompt, no delete)
-#     ""    -> prompt for YES confirmation (default)
-#
-#   k8s_cleanup:
-#     true  -> auto-confirm k8s NFS cleanup (no prompt, deletes dirs)
-#     false -> skip k8s NFS cleanup entirely (no prompt, no delete)
-#     ""    -> prompt for YES confirmation (default)
-#
-#   postgres_backup:
-#     true  -> preserve postgres data during cleanup (default)
-#     false -> delete postgres data during cleanup
-oim_cleanup_extra_vars:
-  slurm_cleanup: ""
-  k8s_cleanup: ""
-  postgres_backup: ""
-
-# Skip tags: comma-separated Ansible tags to skip during oim_cleanup
-# Available: slurm, k8s, pulp, openchami, auth, build_stream, postgres, common, credentials
-oim_cleanup_skip_tags: ""

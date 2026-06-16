@@ -1,69 +1,69 @@
+<!-- Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License. -->
+
 # Omnia Automation Framework
 
-End-to-end automation and Molecule-based infrastructure testing for **Omnia Infrastructure Manager (OIM)** deployments -- covering container installation, OIM preparation, local repository sync, image builds, node discovery, telemetry, Kubernetes, Slurm, and cleanup.
+End-to-end automation and testing for **Omnia Infrastructure Manager (OIM)** deployments using Molecule and pytest-testinfra.
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+  - [omnia\_test\_config.yml](#omnia_test_configyml)
+  - [Datasets](#datasets)
+- [Execution](#execution)
+  - [Prerequisite Checks](#prerequisite-checks)
+  - [Running Molecule Tests](#running-molecule-tests)
+  - [Config-Driven Batch Execution](#config-driven-batch-execution)
+  - [Suite and Marker Filtering](#suite-and-marker-filtering)
+  - [Test Reports](#test-reports)
+- [Scenarios](#scenarios)
+- [Project Structure](#project-structure)
+- [Core Library Reference](#core-library-reference)
+- [License](#license)
+
+---
 
 ## Overview
 
-This framework automates end-to-end testing of Omnia Infrastructure Manager (OIM) deployments:
+This framework automates testing of Omnia Infrastructure Manager (OIM) deployments. It provides:
 
-1. **Configure** - Edit `omnia_test_config.yml` with OIM server details
-2. **Validate** - Run prerequisite checks on the target server
-3. **Test** - Execute Molecule scenarios to run playbooks and verify results
-4. **Report** - View interactive HTML reports in your browser
-
-## Architecture
-
-```
-                          omnia_test_config.yml
-                                |
-                                v
-                    +-------------------------+
-                    |     setup_env.sh        |  Creates .venv, installs deps,
-                    |                         |  registers oim-prereq-check
-                    +-------------------------+
-                          |             |
-              +-----------+             +-----------+
-              v                                     v
-  +---------------------+              +------------------------+
-  | oim-prereq-check    |              |   run_molecule.sh      |
-  | (CLI entry point)   |              |   (test runner)        |
-  +---------------------+              +------------------------+
-              |                                     |
-              v                                     v
-  +---------------------+              +------------------------+
-  | automation_library/  |              |   molecule/            |
-  |   checks/           |              |     <scenario>/        |
-  |     hardware.py     |              |       molecule.yml     |
-  |     network.py      |              |       create.yml       |
-  |     system.py       |              |       converge.yml     |
-  |     validation.py   |              |       tests/           |
-  |     repository.py   |              +------------------------+
-  |     services.py     |                          |
-  +---------------------+                          v
-                                        +------------------------+
-                                        | automation_library/    |
-                                        |   core/                |
-                                        |   prepare_oim/         |
-                                        |   telemetry/           |
-                                        |   discovery/           |
-                                        |   omnia_sh/            |
-                                        |   local_repo/          |
-                                        |   build_image/         |
-                                        |   kubernetes/          |
-                                        |   oim_cleanup/         |
-                                        +------------------------+
-```
+- **Prerequisite validation** of the OIM server (hardware, OS, network, NFS, Podman)
+- **Molecule-based test scenarios** that execute Ansible playbooks inside the `omnia_core` container and verify results with pytest-testinfra
+- **Interactive HTML and JSON reports** for every test run
 
 ### How It Works
 
-1. **`omnia_test_config.yml`** provides OIM server IP, SSH credentials, hardware thresholds, network settings, and dataset selection.
-2. **`setup_env.sh`** creates a Python virtual environment, installs all dependencies, and registers the `oim-prereq-check` CLI command.
-3. **`setup.py`** packages the `automation_library` as `omnia-automation` with the console entry point `oim-prereq-check=run_prereq_check:main`.
-4. **Molecule scenarios** (executed via `run_molecule.sh`) follow a `create -> converge -> verify` lifecycle:
-   - **create.yml** -- Sets up dynamic Ansible inventory from `omnia_test_config.yml` and waits for SSH.
-   - **converge.yml** -- Syncs the configured dataset folder (e.g., `datasets/project_default/`) to the `omnia_core` container, then executes the target Ansible playbook via `podman exec`.
-   - **verify** -- Runs pytest-testinfra tests that use `automation_library` functions to validate the deployment.
-5. **`automation_library/core/`** provides shared infrastructure for host connections, config loading, PXE mapping parsing, container commands, and report generation.
+1. **`omnia_test_config.yml`** drives all automation — it defines the OIM server connection, hardware thresholds, deployment options, and dataset selection.
+2. **`setup_env.sh`** creates a Python virtual environment, installs dependencies, and registers the `oim-prereq-check` CLI and `run_molecule` shell function.
+3. **Molecule scenarios** follow a `create → converge → verify` lifecycle:
+   - **create.yml** — Builds dynamic Ansible inventory from `omnia_test_config.yml` and verifies SSH connectivity to the OIM server.
+   - **converge.yml** — Optionally syncs dataset files into the `omnia_core` container at `/opt/omnia/input/project_default/`, then executes the target playbook via `podman exec` inside the container.
+   - **verify** — Runs pytest-testinfra tests that use `automation_library` functions to SSH into the OIM, execute commands inside the container, and validate deployment state.
+4. **`automation_library/core/`** provides shared utilities for host connections, config loading, container command execution, PXE mapping parsing, credential decryption, and report generation.
+
+### Local Mode vs Remote Mode
+
+| Mode | When | How |
+|------|------|-----|
+| **Local mode** | `oim_server_ip` is empty, `""`, `localhost`, or `127.0.0.1` | All commands run directly on the local machine via `local://` — no SSH required. Assumes the automation is running on the OIM server itself. |
+| **Remote mode** | `oim_server_ip` is set to a remote IP address | All commands are executed over SSH using the provided `oim_ssh_user` and `oim_ssh_password`. |
+
+> **Important:** If `oim_server_ip` is not set, every scenario (including `omnia_sh_install`) runs in local mode. For `omnia_sh_install`, passwordless SSH is required to the OIM server — if no IP is provided, it will validate against localhost.
+
+---
 
 ## Quick Start
 
@@ -72,345 +72,531 @@ This framework automates end-to-end testing of Omnia Infrastructure Manager (OIM
 git clone https://github.com/dell/omnia-artifactory.git
 cd omnia-artifactory
 
-# 2. Setup virtual environment
+# 2. Run the environment setup script
 ./setup_env.sh
+
+# 3. Activate the virtual environment
 source .venv/bin/activate
 
-# 3. Configure your settings
-vi omnia_test_config.yml              # OIM server IP, SSH creds, dataset selection
-vi datasets/project_default/*.yml     # Omnia config files (network, storage, telemetry, etc.)
+# 4. Configure your OIM server
+vi omnia_test_config.yml
 
-# 4. Run prerequisite checks
+# 5. (Optional) Fill dataset files — required only for converge/test runs
+vi datasets/project_default/network_spec.yml
+vi datasets/project_default/software_config.json
+# ... edit other dataset files as needed
+
+# 6. Run prerequisite checks
 oim-prereq-check
 
-# 5. Run molecule tests
-run_molecule all test                    # All scenarios end-to-end
-run_molecule telemetry verify            # Single scenario, verify only
-run_molecule prepare_oim verify --suite sanity  # Run sanity tests only
+# 7. Run molecule tests
+run_molecule telemetry verify --suite sanity   # Single scenario
+run_molecule all test                          # Full lifecycle
+run_molecule --config                          # Batch from config file
 ```
 
-## Installation
+> **Note:** For `verify`-only runs (validating an already-deployed environment), filling the dataset files is not required. Datasets are only synced during `converge` and `test` commands when `sync_dataset_to_core: true` is set.
 
-```bash
-# Option 1: Using setup script (recommended)
-./setup_env.sh            # Creates .venv, installs deps, registers CLI
-source .venv/bin/activate
-
-# Option 2: Manual installation
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt   # Installs ansible-core, molecule, pytest-testinfra, etc.
-```
-
-### Dependencies (requirements.txt)
-
-| Package              | Version   | Purpose                          |
-|----------------------|-----------|----------------------------------|
-| ansible-core         | 2.20.1    | Ansible automation engine        |
-| molecule             | 25.12.0   | Infrastructure test framework    |
-| molecule-plugins     | 25.8.12   | Molecule driver plugins          |
-| paramiko             | 4.0.0     | SSH protocol library             |
-| pexpect              | 4.9.0     | Interactive process control      |
-| pytest               | 9.0.2     | Test framework                   |
-| pytest-testinfra     | 10.2.2    | Infrastructure testing via SSH   |
-| PyYAML               | 6.0.1     | YAML parsing                     |
-
-### System Requirements
-
-- Python 3.9+ (3.12+ recommended)
-- `sshpass` (auto-installed by `setup_env.sh`)
-- SSH access to the target OIM server
-- Podman on the OIM server (for container management)
+---
 
 ## Configuration
 
-### omnia\_test\_config.yml (Required)
+### omnia\_test\_config.yml
 
-Central configuration for all automation tasks. Edit this file before running anything:
+This is the central configuration file. Every automation script reads from it. Edit this file before running any tests.
+
+#### Dataset Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `dataset` | string | `"project_default"` | Name of the dataset folder under `datasets/` to use. The folder contains all deployment input files that get synced into the `omnia_core` container at `/opt/omnia/input/project_default/`. |
+| `sync_dataset_to_core` | boolean | `false` | When `true`, the `converge` step copies dataset files from `datasets/<dataset>/` into the container via rsync. When `false`, the existing files inside the container are used as-is. |
+
+#### Execution Control
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip_on_failure` | boolean | `false` | When `true`, prerequisite checks continue running even if one fails. When `false`, execution stops at the first failure. |
+
+#### Target OIM Server
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `oim_server_ip` | string | `""` | IP address of the OIM server. **Leave empty for local mode** — all commands run on the local machine without SSH. Set to a remote IP for remote mode. |
+| `oim_ssh_user` | string | `""` | SSH username for remote OIM server. Only required in remote mode. |
+| `oim_ssh_password` | string | `""` | SSH password for remote OIM server. Only required in remote mode. |
+| `oim_ssh_port` | integer | `22` | SSH port for remote OIM server. |
+
+#### Hostname Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `oim_hostname` | string | `""` | FQDN to set on the OIM server (e.g., `oim.omnia.test`). Must include a domain. Used during prerequisite checks. |
+
+#### Hardware Thresholds
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `min_cores` | integer | `4` | Minimum CPU cores required on the OIM server. |
+| `min_memory_gb` | integer | `8` | Minimum RAM in GB. |
+| `min_disk_gb` | integer | `50` | Minimum disk space in GB. |
+
+#### OS Validation
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `required_os` | string | `"rhel"` | Expected OS name (e.g., `rhel`, `rocky`). |
+| `required_os_version` | string | `"10"` | Expected OS version string. |
+| `required_kernel_version` | string | `""` | Expected kernel version (e.g., `6.12.0-55.9.1.el10_0.x86_64`). Leave empty to skip kernel check. |
+
+#### Network Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `network_type` | string | `"dedicated"` | Network topology: `"dedicated"` (separate PXE and public NICs) or `"lom"` (LAN-on-Motherboard — single interface shared for PXE and iDRAC). |
+| `pxe_interface` | string | `""` | PXE/provisioning network interface name (e.g., `eno33np0`). |
+| `public_interface` | string | `""` | Public/internet-facing network interface name. |
+| `pxe_ip` | string | `""` | IP address in CIDR notation for the PXE interface (e.g., `172.16.107.254/24`). If empty, defaults to `172.16.107.254/24`. |
+| `idrac_ip` | string | `""` | iDRAC IP address. Only used when `network_type` is `"lom"`. |
+| `force_configure_pxe` | boolean | `true` | When `true`, removes existing PXE IP and applies new configuration. |
+
+#### NFS Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `nfs_server_ip` | string | `""` | IP address of the external NFS server. |
+| `nfs_share_path` | string | `""` | NFS export path (e.g., `/mnt/share`). |
+| `nfs_min_capacity_gb` | integer | `100` | Minimum NFS share capacity in GB. |
+
+#### Podman Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `podman_min_version` | string | `"5.0.0"` | Minimum required Podman version on the OIM server. |
+
+#### Container Image Build
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `reconfigure_images` | boolean | `false` | When `true`, clones the artifactory repo and builds container images. When `false`, skips the build. |
+| `omnia_repo_url` | string | `"https://github.com/dell/omnia-artifactory.git"` | Git URL for the Omnia Artifactory repository. |
+| `artifactory_branch` | string | `"omnia-container"` | Branch to clone. |
+| `omnia_clone_path` | string | `"/opt/omnia-artifactory"` | Clone destination on the OIM server. |
+| `core_tag` | string | `""` | Version tag for the core container image. |
+| `omnia_branch` | string | `""` | Omnia branch or tag for the core image build (e.g., `main`, `pub/q1_dev`, `v1.6.0`). |
+
+#### omnia.sh Installation
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `share_option` | string | `"NFS"` | Storage backend: `"NFS"` (external or internal NFS server) or `"Local"` (local disk). |
+| `nfs_type` | string | `"external"` | NFS type: `"external"` (pre-existing NFS server outside OIM) or `"internal"` (NFS managed by OIM itself — for flat provisioning only). |
+| `omnia_shared_path` | string | `""` | Local directory for Omnia data. For external NFS, this is the mount point. For local storage, data is stored here directly. |
+| `omnia_core_password` | string | `""` | Root password for the `omnia_core` container SSH access (port 2222). Required for dataset sync and container operations. |
+
+#### LDAP Configuration
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ldap_credentials` | string | `""` | LDAP credentials for SSH login tests. Format: `"user:password"` or comma-separated `"user1:pass1,user2:pass2"`. Used by Slurm LDAP, Apptainer, and provisioning tests. |
+| `external_ldap_server_ip` | string | `""` | External LDAP server IP for slapd.conf tests. |
+| `external_ldap_server_port` | string | `""` | External LDAP server port. |
+| `external_ldap_domain` | string | `""` | External LDAP domain (e.g., `omnia.test` → `dc=omnia,dc=test`). |
+| `external_ldap_bind_username` | string | `""` | External LDAP bind username. |
+| `external_ldap_bind_password` | string | `""` | External LDAP bind password. |
+
+#### Build Stream (CI/CD Pipeline)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `build_stream_job_id` | string | `""` | Pin a specific BuildStream job UUID for verification. When empty, the automation resolves the latest `COMPLETED` job from the Postgres database. |
+| `allow_pipeline_cancel` | boolean | `false` | When `true`, automation auto-cancels running/pending pipelines before triggering new ones. When `false`, waits for completion or prompts user. |
+| `image_identifier` | string | `""` | Specific image group ID for deploy/cleanup pipeline tests (e.g., `image-build-20260530-061909`). When empty, auto-selects the latest `BUILT` image group. |
+
+#### Example Configuration
 
 ```yaml
-# ── Target OIM Server (REQUIRED) ───────────────────────────
-oim_server_ip: "192.168.1.100"
+# Target OIM Server
+oim_server_ip: "<OIM_SERVER_IP>"
 oim_ssh_user: "root"
-oim_ssh_password: "your_password"
+oim_ssh_password: "<SSH_PASSWORD>"
 oim_ssh_port: 22
 
-# ── Hostname ────────────────────────────────────────────────
-oim_hostname: "oim.example.com"        # FQDN for OIM server
+# Hostname
+oim_hostname: "oim.omnia.test"
 
-# ── Hardware Thresholds ─────────────────────────────────────
+# Hardware Thresholds
 min_cores: 4
 min_memory_gb: 8
 min_disk_gb: 50
 
-# ── OS Validation ───────────────────────────────────────────
+# OS Validation
 required_os: "rhel"
 required_os_version: "10"
-required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
+required_kernel_version: ""
 
-# ── Network ─────────────────────────────────────────────────
-network_type: "dedicated"               # "dedicated" or "lom"
-pxe_interface: "eno1"
-public_interface: "eno2"
+# Network
+network_type: "dedicated"
+pxe_interface: "eno33np0"
+public_interface: "eno1"
 pxe_ip: "172.16.107.254/24"
-force_configure_pxe: false
+force_configure_pxe: true
 
-# ── NFS ─────────────────────────────────────────────────────
-nfs_server_ip: "192.168.1.200"
+# NFS
+nfs_server_ip: "<NFS_SERVER_IP>"
 nfs_share_path: "/mnt/share"
 nfs_min_capacity_gb: 100
 
-# ── Podman ──────────────────────────────────────────────────
+# Podman
 podman_min_version: "5.0.0"
 
-# ── Container Image Build (optional) ───────────────────────
-reconfigure_images: false
-omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
-artifactory_branch: "omnia-container"
-omnia_clone_path: "/opt/omnia-artifactory"
-omnia_branch: "pub/k8s_telemetry"
-
-# ── omnia.sh Installation ──────────────────────────────────
-share_option: "NFS"                     # "NFS" or "Local"
-nfs_type: "external"                    # "external" or "internal"
+# omnia.sh Installation
+share_option: "NFS"
+nfs_type: "external"
 omnia_shared_path: "/opt/omnia"
-omnia_core_password: "password"
+omnia_core_password: "<CONTAINER_PASSWORD>"
 
-# ── LDAP (optional) ────────────────────────────────────────
-ldap_credentials:
-  - username: "testuser1"
-    password: "testpass"
+# Dataset
+dataset: "project_default"
+sync_dataset_to_core: false
+
+# Execution Control
+skip_on_failure: false
 ```
 
-### datasets/project\_default/ Directory
+---
 
-Omnia deployment configuration files synced into the `omnia_core` container:
+### Datasets
 
-| File                           | Purpose                                                          |
-|--------------------------------|------------------------------------------------------------------|
-| `network_spec.yml`             | Admin network (PXE NIC, DHCP range, DNS, NTP), InfiniBand        |
-| `provision_config.yml`         | PXE mapping file path, DHCP lease time, OS language              |
-| `omnia_config.yml`             | Slurm and Kubernetes cluster definitions, CNI, pod networks      |
-| `telemetry_config.yml`         | iDRAC telemetry, VictoriaMetrics, Kafka, LDMS sampler plugins    |
-| `storage_config.yml`           | NFS and PowerVault persistent storage backends                   |
-| `local_repo_config.yml`        | Pulp repository URLs (RPM, container, file) per architecture     |
-| `security_config.yml`          | LDAP connection type (TLS/SSL)                                   |
-| `high_availability_config.yml` | K8s HA virtual IP configuration                                  |
-| `build_stream_config.yml`      | BuildStream CI/CD pipeline settings                              |
-| `user_registry_credential.yml` | Container registry authentication credentials                    |
+The `datasets/project_default/` folder contains Omnia deployment input files. These files mirror what the Omnia playbooks expect at `/opt/omnia/input/project_default/` inside the `omnia_core` container.
 
-## Prerequisite Check
+When `sync_dataset_to_core: true` is set and a `converge` or `test` command runs, the automation:
+1. Uses `rsync` over SSH (port 2222) to copy `datasets/<dataset>/` into the container at `/opt/omnia/input/project_default/`
+2. Creates a vault key and encrypts `omnia_config_credentials.yml` using `ansible-vault` (same mechanism as Omnia playbooks)
 
-Validates the OIM server before deployment:
+#### How Omnia Uses These Files
+
+Inside the `omnia_core` container, every playbook starts by importing `utils/include_input_dir.yml`, which:
+1. Reads `/opt/omnia/input/default.yml` to get the `project_name` (default: `project_default`)
+2. Sets `input_project_dir` to `/opt/omnia/input/project_default/`
+3. All subsequent playbook roles load their config files from `input_project_dir`
+
+For example:
+- `prepare_oim.yml` reads `software_config.json` to determine which services to deploy (Slurm, K8s, OpenLDAP, etc.)
+- `discovery.yml` reads `discovery_config.yml` for BMC discovery and OME integration settings
+- `local_repo.yml` reads `local_repo_config.yml` and `software_config.json` for package and repository URLs
+- `provision.yml` reads `provision_config.yml`, `build_stream_config.yml`, and `network_spec.yml` for node provisioning
+- `telemetry.yml` reads `telemetry_config.yml` for iDRAC, LDMS, DCGM, and PowerScale telemetry settings
+- `gitlab.yml` reads `gitlab_config.yml` for GitLab server and pipeline configuration
+- `oim_cleanup.yml` reads `omnia_config.yml` and `storage_config.yml` for cleanup paths
+
+#### Dataset Files
+
+| File | Consumed By | Description |
+|------|-------------|-------------|
+| `software_config.json` | `prepare_oim.yml`, `local_repo.yml`, `build_image_*.yml`, `input_validation/` | **Central control file.** Defines `cluster_os_type`, `cluster_os_version`, `repo_config`, and the list of softwares to deploy (e.g., `slurm_custom`, `service_k8s`, `openldap`, `ldms`, `ucx`, `openmpi`, `csi_driver_powerscale`). Each software entry specifies `name`, optional `version`, and `arch` (`x86_64`/`aarch64`). |
+| `network_spec.yml` | `prepare_oim.yml`, `discovery.yml`, `provision.yml`, `local_repo.yml` | Defines the `admin_network` (OIM NIC name, subnet, DHCP dynamic range, DNS, NTP servers) and `ib_network` (InfiniBand subnet). Also supports `additional_subnets` for multi-RAC PXE deployments. |
+| `provision_config.yml` | `provision.yml` | PXE mapping file path, DHCP lease time, OS language, kernel version override, and optional additional cloud-init config file path. |
+| `discovery_config.yml` | `discovery.yml` | BMC discovery toggle (`enable_bmc_discovery`) and OME IP address. |
+| `omnia_config.yml` | `provision.yml`, `oim_cleanup.yml` | Slurm cluster definition (cluster name, NFS storage name) and service K8s cluster definition (deployment toggle, CNI, pod IP ranges, NFS storage name, CRI-O storage size, CSI PowerScale paths). |
+| `omnia_config_credentials.yml` | `prepare_oim.yml`, `provision.yml`, `gitlab.yml` (via `credential_utility/`) | Ansible-vault encrypted credentials for cluster node access, container registry, and service accounts. Auto-encrypted during dataset sync. |
+| `telemetry_config.yml` | `telemetry.yml` | Telemetry source configuration: iDRAC metrics (collection targets: `victoria_metrics`, `kafka`), LDMS metrics, DCGM GPU metrics, and PowerScale storage metrics. Each source has `metrics_enabled` and `collection_targets`. |
+| `telemetry_storage_config.yml` | `telemetry.yml` | VictoriaMetrics cluster sizing (vmstorage, vminsert, vmselect replicas and resource limits), vmagent, and Kafka resource allocations. |
+| `storage_config.yml` | `provision.yml`, `oim_cleanup.yml` | NFS mount definitions (source, mount point, options, functional group prefix), mount parameter presets (`nfs_default`, `vast_rdma`, `vast_tcp`), and S3 configuration (provider, endpoint URL). |
+| `local_repo_config.yml` | `local_repo.yml` | RPM repository URLs per architecture — `user_repo_url_x86_64`, `user_repo_url_aarch64`, `rhel_os_url_*`, `omnia_repo_url_rhel_*`, and `additional_repos_*`. Each entry has `url`, `gpgkey`, and `name`. |
+| `security_config.yml` | `prepare_oim.yml` | LDAP connection type (`TLS` or `SSL`). |
+| `high_availability_config.yml` | `provision.yml` | Kubernetes HA configuration — `enable_k8s_ha`, `virtual_ip_address` per cluster. |
+| `gitlab_config.yml` | `gitlab.yml` | GitLab server settings — host IP, project name, visibility, HTTPS port, resource minimums, Puma workers, Sidekiq concurrency. |
+| `build_stream_config.yml` | `provision.yml`, `build_stream/` | BuildStream toggle (`enable_build_stream`), host IP, port, and aarch64 inventory host IP. |
+| `user_registry_credential.yml` | `local_repo.yml` | Container registry authentication credentials for pulling images during local repo sync. |
+| `pxe_mapping_file.csv` | `discovery.yml`, `provision.yml` | Node-to-network mapping — hostname, admin IP, BMC IP, MAC address, functional groups. Used by OpenCHAMI for PXE boot and node assignment. |
+| `config/<arch>/<os>/<version>/*.json` | `local_repo.yml`, `build_image_*.yml` | Per-architecture, per-OS package lists. Each JSON file corresponds to a software name from `software_config.json` and defines the RPM packages, container images, and files to sync for that component. |
+
+---
+
+## Execution
+
+### Installation
 
 ```bash
-oim-prereq-check                    # Run all checks
-oim-prereq-check --debug            # With debug output
-oim-prereq-check --stop-on-failure  # Stop on first failure
-oim-prereq-check --no-report        # Skip report generation
+./setup_env.sh                # Creates .venv, installs deps, registers CLI
+source .venv/bin/activate     # Activates the virtual environment
 ```
 
-### Checks Performed
+The setup script:
+- Validates system prerequisites (Python 3.9+, venv module, sshpass)
+- Creates a Python virtual environment at `.venv/`
+- Installs all Python dependencies from `requirements.txt`
+- Makes `run_molecule.sh` executable
+- Registers the `run_molecule` shell function with tab-completion
 
-| # | Check                | Description                                                |
-|---|----------------------|------------------------------------------------------------|
-| 1 | IPMI Tool            | Verify/install ipmitool                                    |
-| 2 | Hardware Inventory   | Validate CPU cores, memory, disk, DIMMs, storage           |
-| 3 | OS Validation        | Validate OS name, version, and kernel                      |
-| 4 | Network Interfaces   | Validate PXE and Public interfaces exist and are UP        |
-| 5 | PXE NIC Config       | Configure PXE interface IP address                         |
-| 6 | NFS Server           | Ping NFS server and verify share capacity                  |
-| 7 | Internet Access      | Test internet connectivity via public interface            |
-| 8 | Podman               | Validate Podman installation and version                   |
-| 9 | RHEL Repository      | Check RHEL repository availability                         |
-| 10 | Git                 | Verify/install git (if `reconfigure_images=true`)          |
-| 11 | Omnia Artifactory   | Clone repository and download `omnia.sh` (if reconfigure)  |
-| 12 | Container Images    | Build container images (if `reconfigure_images=true`)      |
+| Flag | Description |
+|------|-------------|
+| `--force` | Remove existing `.venv` and recreate from scratch |
+| `--debug` | Verbose output — show every package installed |
 
-The check runs either locally or remotely over SSH depending on whether `oim_server_ip` is the local machine. Results are printed with colored output and optionally saved as an HTML report.
+### Prerequisite Checks
 
-## Molecule Testing
+Validates the OIM server meets all requirements before deployment:
 
-### Scenarios
+```bash
+oim-prereq-check                       # Run all checks
+oim-prereq-check --debug               # Verbose output
+oim-prereq-check --stop-on-failure     # Stop on first failure
+oim-prereq-check --continue-on-failure # Continue even if a check fails
+oim-prereq-check --no-report           # Skip HTML report generation
+```
 
-Tests are organized into ordered scenarios that cover the full OIM lifecycle:
+Checks performed:
 
-| # | Scenario                | Description                                                             |
-|---|-------------------------|-------------------------------------------------------------------------|
-| 1 | `omnia_sh_install`      | Install `omnia_core` container via `omnia.sh` |
-| 2 | `prepare_oim`           | Run `prepare_oim.yml`, verify OpenCHAMI services |
-| 3 | `local_repo`            | Run `local_repo.yml`, verify Pulp repository sync |
-| 4 | `build_image_x86_64`    | Build x86\_64 images, verify registry and S3 |
-| 5 | `build_image_aarch64`   | Build aarch64 images |
-| 6 | `discovery`             | Run `discovery.yml`, verify node provisioning |
-| 7 | `telemetry`             | Run `telemetry.yml`, verify telemetry stack |
-| 8 | `kubernetes`            | Verify K8s cluster health (verify-only) |
-| 9 | `oim_cleanup`           | Run `oim_cleanup.yml`, verify cleanup |
-| 10 | `omnia_sh_uninstall`   | Uninstall `omnia_core` container |
+| # | Check | Description |
+|---|-------|-------------|
+| 1 | IPMI Tool | Verify/install ipmitool |
+| 2 | Hardware Inventory | Validate CPU cores, memory, disk against `min_cores`, `min_memory_gb`, `min_disk_gb` |
+| 3 | OS Validation | Validate OS name, version, and kernel against `required_os`, `required_os_version`, `required_kernel_version` |
+| 4 | Network Interfaces | Validate PXE and public interfaces exist and are UP |
+| 5 | PXE NIC Config | Configure PXE interface IP address based on `pxe_ip` and `force_configure_pxe` |
+| 6 | NFS Server | Ping NFS server and verify share capacity against `nfs_min_capacity_gb` |
+| 7 | Internet Access | Test internet connectivity via public interface |
+| 8 | Podman | Validate Podman installation and version against `podman_min_version` |
+| 9 | RHEL Repository | Check RHEL repository availability |
+| 10 | Git | Verify/install git (only when `reconfigure_images: true`) |
+| 11 | Omnia Artifactory | Clone repository (only when `reconfigure_images: true`) |
+| 12 | Container Images | Build container images (only when `reconfigure_images: true`) |
 
-### Running Tests
+### Running Molecule Tests
 
 ```bash
 # List available scenarios
 run_molecule list
 
-# Run all scenarios sequentially (full lifecycle)
+# Full lifecycle (create + converge + verify)
+run_molecule <scenario> test
+
+# Run playbook only (no tests)
+run_molecule <scenario> converge
+
+# Run tests only (skip playbook — for already-deployed environments)
+run_molecule <scenario> verify
+
+# Setup inventory only
+run_molecule <scenario> create
+
+# Run specific test suites
+run_molecule <scenario> verify --suite sanity
+
+# Run specific markers
+run_molecule <scenario> verify --marker smoke
+
+# Run all scenarios sequentially
 run_molecule all test
 
-# Run a specific scenario
-run_molecule <scenario> test       # Full lifecycle (create + converge + verify)
-run_molecule <scenario> converge   # Run playbook only
-run_molecule <scenario> verify     # Run tests only (skip playbook)
-run_molecule <scenario> create     # Setup inventory only
-
-# Run specific test suites or markers
-run_molecule <scenario> verify --suite sanity
-run_molecule <scenario> verify --marker smoke
+# Run build_stream flow
+run_molecule all verify --flow build_stream
 ```
 
-### Suite vs Marker: What's the Difference?
+### Config-Driven Batch Execution
 
-| Option | Purpose | Example |
-|--------|---------|----------|
-| `--suite` | **Folder-based filtering** - Runs tests from a specific folder under `tests/` (e.g., `sanity/`, `negative/`, `regression/`) | `--suite sanity` runs `tests/sanity/*.py` |
-| `--marker` | **Decorator-based filtering** - Runs tests with a specific `@pytest.mark.<marker>` decorator regardless of folder | `--marker smoke` runs all tests with `@pytest.mark.smoke` |
+Enable/disable scenarios in `test_run_config.yml` and run them all at once:
 
-**When to use which:**
-- Use `--suite sanity` for standard test runs (most common)
-- Use `--marker smoke` for quick critical-path validation
-- Use `--marker cleanup` for cleanup-specific tests
-
-### Test Execution Flow
-
+```bash
+vi test_run_config.yml        # Enable desired scenarios
+run_molecule --config          # Execute all enabled scenarios
 ```
-create.yml              converge.yml                    verify (pytest)
-──────────              ────────────                    ───────────────
-1. Load config          1. Check omnia_core running     1. SSH to OIM server
-2. Build inventory      2. Sync dataset folder          2. Run test functions
-3. Wait for SSH         3. Execute ansible playbook     3. Collect results
-                        4. Report playbook status       4. Generate reports
+
+Each scenario entry in `test_run_config.yml`:
+
+```yaml
+telemetry:
+  run: true              # true/false — whether to execute
+  command: "verify"      # test/verify/converge
+  suite: "sanity"        # sanity/negative/regression/smoke/"" (empty = all)
 ```
+
+### Suite and Marker Filtering
+
+| Option | Mechanism | Example |
+|--------|-----------|---------|
+| `--suite` | Folder-based — runs tests from `tests/<suite>/` directory | `--suite sanity` → runs `tests/sanity/*.py` |
+| `--marker` | Decorator-based — runs tests with `@pytest.mark.<marker>` | `--marker smoke` → runs all `@pytest.mark.smoke` tests |
+
+Registered markers (defined in `pytest.ini`): `sanity`, `negative`, `regression`, `smoke`, `build_auto`, `deploy_auto`, `cleanup_manual`, `ldap`, `sanityib`, `vast_telemetry`
 
 ### Test Reports
 
-After running tests, two report types are generated in `reports/`:
+After test execution, reports are generated in `reports/`:
 
-| Report | File | Description |
+| Format | File | Description |
 |--------|------|-------------|
-| **HTML** | `test_report.html` | Interactive dark-themed report with collapsible sections, playbook logs, and per-test details |
-| **JSON** | `test_report.json` | Machine-readable format organized by server IP for CI/CD integration |
-
-**How to view reports:**
+| HTML | `test_report.html` | Interactive dark-themed report with collapsible sections and per-test details |
+| JSON | `test_report.json` | Machine-readable format for CI/CD integration |
 
 ```bash
-# Open HTML report in browser (Linux)
-xdg-open reports/test_report.html
-
-# Open HTML report in browser (macOS)
-open reports/test_report.html
-
-# Download report from remote server
-scp user@automation-server:/path/to/reports/test_report.html .
-
-# Parse JSON report
-jq '.servers' reports/test_report.json
+xdg-open reports/test_report.html        # Open in browser
+jq '.servers' reports/test_report.json    # Parse JSON
 ```
 
-Report structure:
-```
-servers -> <server_ip> -> runs[] -> modules[] -> results[]
-```
+---
 
-Each result includes: test name, status (PASSED/FAILED/SKIPPED), duration, details, and error message.
+## Scenarios
+
+| # | Scenario | Omnia Playbook | Description |
+|---|----------|---------------|-------------|
+| 1 | `omnia_sh_install` | `omnia.sh --install` | Installs the `omnia_core` container on the OIM server |
+| 2 | `prepare_oim` | `prepare_oim/prepare_oim.yml` | Prepares OIM — deploys OpenCHAMI services, configures firewall, NTP, NFS |
+| 3 | `gitlab_install` | `gitlab/gitlab.yml` | Deploys GitLab server for BuildStream CI/CD pipeline |
+| 4 | `local_repo` | `local_repo/local_repo.yml` | Syncs RPM packages, container images, and files to Pulp repository |
+| 5 | `build_image_x86_64` | `build_image_x86_64/build_image_x86_64.yml` | Builds x86_64 OS images, pushes to registry and S3 |
+| 6 | `build_image_aarch64` | `build_image_aarch64/build_image_aarch64.yml` | Builds aarch64 OS images |
+| 7 | `discovery` | `discovery/discovery.yml` | Discovers cluster nodes via BMC/OME, generates PXE mapping |
+| 8 | `provision` | `provision/provision.yml` | Provisions discovered nodes with OS and software stack |
+| 9 | `telemetry` | `telemetry/telemetry.yml` | Deploys telemetry stack — iDRAC, LDMS, DCGM, PowerScale, VictoriaMetrics, Kafka |
+| 10 | `apptainer` | — (verify only) | Verifies Apptainer container runtime on Slurm nodes |
+| 11 | `build_stream` | — (verify only) | Verifies BuildStream CI/CD pipeline job stages in Postgres |
+| 12 | `gitlab_cleanup` | `gitlab/cleanup_gitlab.yml` | Removes GitLab deployment |
+| 13 | `oim_cleanup` | `utils/oim_cleanup.yml` | Cleans up OIM — removes containers, credentials, NFS mounts |
+| 14 | `omnia_sh_uninstall` | `omnia.sh --uninstall` | Uninstalls the `omnia_core` container |
+
+> Scenarios not listed above (e.g., `kubernetes`, `slurm`, `dcgm`, `hpc_benchmarks`, `vast_storage`, `one_shot_log_extraction`) are verify-only scenarios that validate already-deployed components without running a converge playbook.
+
+---
 
 ## Project Structure
 
 ```
 omnia-artifactory/
-├── omnia_test_config.yml            # Test configuration (OIM server, credentials, dataset)
-├── requirements.txt                 # Python dependencies
-├── setup.py                         # Package setup (omnia-automation)
-├── setup_env.sh                     # Environment setup script
-├── run_molecule.sh                  # Molecule test runner
-├── run_prereq_check.py              # Prerequisite check entry point
+├── omnia_test_config.yml              # Central config — OIM server, credentials, dataset
+├── test_run_config.yml                # Batch scenario runner — enable/disable scenarios
+├── requirements.txt                   # Python dependencies
+├── setup.py                           # Package setup (omnia-automation)
+├── setup_env.sh                       # Environment setup script
+├── run_molecule.sh                    # Molecule test runner
+├── run_prereq_check.py                # Prerequisite check entry point
+├── pytest.ini                         # Pytest configuration and custom markers
 │
-├── datasets/                        # Input configuration datasets
-│   └── project_default/             # Default dataset (synced to container)
-│       ├── network_spec.yml
-│       ├── provision_config.yml
-│       ├── telemetry_config.yml
-│       └── ...
+├── datasets/                          # Deployment input datasets
+│   └── project_default/               # Default dataset (synced to omnia_core container)
+│       ├── software_config.json       # Software enablement (Slurm, K8s, LDMS, etc.)
+│       ├── network_spec.yml           # Admin network, IB network, NTP, DNS
+│       ├── provision_config.yml       # PXE mapping path, DHCP, language
+│       ├── discovery_config.yml       # BMC discovery, OME IP
+│       ├── omnia_config.yml           # Slurm and K8s cluster definitions
+│       ├── omnia_config_credentials.yml # Cluster credentials (ansible-vault encrypted)
+│       ├── telemetry_config.yml       # Telemetry sources (iDRAC, LDMS, DCGM, PowerScale)
+│       ├── telemetry_storage_config.yml # VictoriaMetrics cluster sizing
+│       ├── storage_config.yml         # NFS mounts, VAST storage, S3 config
+│       ├── local_repo_config.yml      # RPM repository URLs per architecture
+│       ├── security_config.yml        # LDAP connection type
+│       ├── high_availability_config.yml # K8s HA virtual IP
+│       ├── gitlab_config.yml          # GitLab server settings
+│       ├── build_stream_config.yml    # BuildStream pipeline settings
+│       ├── user_registry_credential.yml # Container registry credentials
+│       ├── pxe_mapping_file.csv       # Node-to-network mapping
+│       └── config/                    # Per-architecture package lists
+│           ├── x86_64/rhel/10.0/      # x86_64 RHEL 10 package definitions
+│           └── aarch64/rhel/10.0/     # aarch64 RHEL 10 package definitions
 │
-├── automation_library/              # Python automation library
-│   ├── core/                        # Shared infrastructure
-│   ├── checks/                      # Prerequisite validation
-│   ├── omnia_sh/                    # omnia.sh install/uninstall
-│   ├── prepare_oim/                 # OIM preparation verification
-│   ├── local_repo/                  # Pulp repository verification
-│   ├── build_image/                 # OS image build verification
-│   ├── discovery/                   # Node discovery verification
-│   ├── telemetry/                   # Telemetry verification
-│   ├── kubernetes/                  # K8s cluster verification
-│   └── oim_cleanup/                 # OIM cleanup verification
+├── automation_library/                # Python automation library
+│   ├── core/                          # Shared infrastructure
+│   │   ├── functions/                 # Host connections, config loading, reporting
+│   │   ├── vars/                      # Path constants, container names
+│   │   └── msgs/                      # Message templates
+│   ├── checks/                        # Prerequisite validation checks
+│   ├── apptainer/                     # Apptainer verification
+│   ├── build_image/                   # OS image build verification
+│   ├── build_stream/                  # BuildStream pipeline verification
+│   ├── discovery/                     # Node discovery verification
+│   ├── gitlab/                        # GitLab deployment verification
+│   ├── kubernetes/                    # Kubernetes cluster verification
+│   ├── local_repo/                    # Pulp repository verification
+│   ├── oim_cleanup/                   # OIM cleanup verification
+│   ├── omnia_sh/                      # omnia.sh install/uninstall verification
+│   ├── prepare_oim/                   # OIM preparation verification
+│   ├── provision/                     # Provisioned node verification
+│   ├── slurm/                         # Slurm verification
+│   ├── telemetry/                     # Telemetry stack verification
+│   └── ...                            # Additional modules
 │
-├── molecule/                        # Molecule test scenarios
-│   ├── conftest.py                  # Global pytest config
-│   ├── shared/tasks/                # Shared Ansible tasks
-│   └── <scenario>/                  # Individual scenarios
-│       ├── molecule.yml
-│       ├── create.yml
-│       ├── converge.yml
-│       └── tests/sanity/            # Test suite folder
+├── molecule/                          # Molecule test scenarios
+│   ├── conftest.py                    # Global pytest fixtures and report hooks
+│   ├── shared/tasks/                  # Shared Ansible tasks
+│   │   ├── setup_inventory.yml        # Dynamic inventory from omnia_test_config.yml
+│   │   └── sync_project_default.yml   # Dataset sync and credential encryption
+│   ├── omnia_sh_install/
+│   ├── prepare_oim/
+│   ├── telemetry/
+│   ├── ...                            # One directory per scenario
+│   └── oim_cleanup/
 │
-└── reports/                         # Generated test reports (gitignored)
+└── reports/                           # Generated test reports (gitignored)
+    ├── test_report.html
+    └── test_report.json
 ```
 
-## Core Library (`automation_library/core/`)
+---
 
-The core module provides shared infrastructure used by all test modules. Import functions from here instead of reimplementing.
+## Core Library Reference
+
+The `automation_library/core/` module provides shared utilities used by all test modules.
 
 ### Key Functions
 
 ```python
 from automation_library.core import (
-    # Connection & Command Execution
-    get_testinfra_host,       # Get SSH connection to OIM server
-    run_on_oim,               # Run command on OIM server
+    # Connection and Command Execution
+    get_testinfra_host,       # Get SSH or local connection to OIM server
+    run_on_oim,               # Run command on OIM host
     run_in_container,         # Run command inside omnia_core container
-    run_on_remote_node,       # Run command on K8s/Slurm node via SSH
-    
-    # PXE Mapping & Node Lookup
+    run_on_remote_node,       # Run command on cluster node via SSH
+
+    # PXE Mapping and Node Lookup
     get_node_info,            # Get single node by hostname, IP, or service tag
     get_nodes_info,           # Get multiple nodes by functional group
-    
-    # Config File Loading
-    load_input_file,          # Load YAML/JSON from container
-    get_input_value,          # Get specific config value with dot-notation
-    is_software_enabled,      # Check if software is enabled in software_config.json
-    
+
+    # Config File Loading (reads from inside the container)
+    load_input_file,          # Load YAML/JSON from /opt/omnia/input/project_default/
+    get_input_value,          # Get specific value with dot-notation key
+    is_software_enabled,      # Check if software is in software_config.json
+
     # Test Output
     TestLogger,               # Structured logging with check/passed/failed/skipped
     Colors, Symbols,          # Terminal colors and Unicode symbols
-    
+
     # Credentials
     view_credentials_file,    # Decrypt ansible-vault files
     get_credential_value,     # Get specific credential value
+
+    # Build Stream
+    is_build_stream_enabled,  # Check if BuildStream CI/CD is active
+    check_build_stream_stage, # Validate a specific pipeline stage
+
+    # Node Connectivity
+    verify_nodes_connectivity,# Verify ping + SSH to a list of nodes
+    get_reachable_nodes,      # Get nodes that passed connectivity checks
+    get_unreachable_nodes,    # Get nodes that failed connectivity checks
 )
 ```
 
-### Module Files
+### Module Structure
 
-| File | Purpose |
-|------|---------|
-| `host.py` | SSH connections, command execution, PXE mapping parsing |
-| `load_inputs.py` | Load YAML/JSON config files from container |
-| `formatting.py` | Colors, symbols, TestLogger for structured output |
-| `report.py` | Test report generation (HTML/JSON) |
-| `secrets.py` | Ansible vault decryption, credential handling |
-| `build_stream.py` | BuildStream pipeline utilities |
-| `db_exec.py` | Database query execution (MySQL) |
-| `vars.py` | Path constants, container names, functional groups |
+Each automation module follows a consistent pattern:
+
+```
+automation_library/<module>/
+├── __init__.py            # Public API exports
+├── functions/             # Business logic and verification functions
+├── messages/              # Test assertion and log message templates
+└── vars/                  # Module-specific constants
+```
+
+---
 
 ## License
 
-Apache License 2.0
+Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
