@@ -55,4 +55,3 @@ The following table lists the new features and enhancements introduced in Omnia 
    * - High Availability
      - ETCD on Local Disk Support for Kubernetes Service Cluster
      - ETCD deployment on local disk instead of NFS for Kubernetes service cluster with configurable ```etcd_on_local_disk``` setting in ```omnia_config.yml```, automatic disk selection prioritizing BOSS cards (BOSS-N1/N2) with fallback to SSD/SATA disks, ```/var/lib/etcd``` mount point, support for pre-configured RAID 1 or RAID 10 on BOSS cards, and minimum 20 GB disk space recommendation. For more details, see `High Availability Kubernetes Setup <../OmniaInstallGuide/RHEL_new/HighAvailability/service_cluster_k8s.html>`_.
-test
