@@ -212,7 +212,7 @@ Report Generation
 
 The discovery report is generated automatically when the discovery playbook runs::
 
-    ansible-playbook discovery/discovery.yml
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
 
 The report is created after the PXE mapping file as the final step in the OME discovery workflow:
 
@@ -252,7 +252,7 @@ The discovery report CSV contains the following columns:
    * - ``BMC_IP``
      - IP address assigned to the BMC (iDRAC).
    * - ``BMC_NIC_STATUS``
-     - Link status of the BMC NIC. Typically ``Reachable`` if the server is managed by OME.
+     - Link status of the BMC NIC. Typically ``Up`` if the server is managed by OME.
    * - ``ETHERNET_NIC_MAC``
      - MAC address of the first Ethernet NIC (excluding iDRAC and InfiniBand NICs).
    * - ``ETHERNET_NIC_LINK_STATUS``
@@ -268,9 +268,9 @@ Sample Output
 .. code-block:: text
 
     SERVICE_TAG,BMC_MAC,BMC_IP,BMC_NIC_STATUS,ETHERNET_NIC_MAC,ETHERNET_NIC_LINK_STATUS,IB_NIC_NAME,IB_NIC_LINK_STATUS
-    H94M8F3,B8:CE:F6:57:89:D0,172.16.0.101,Reachable,b0:7b:25:d8:4a:f4,Up,InfiniBand.Slot.3-1,Unknown
-    J7KN2G4,A4:BF:01:12:34:56,172.16.0.102,Reachable,e4:43:4b:01:23:45,Up,,
-    K5LP9H2,D0:94:66:AB:CD:EF,172.16.0.103,Reachable,24:6e:96:78:90:12,Unknown,InfiniBand.Slot.3-1,Up
+    H94M8F3,B8:CE:F6:57:89:D0,172.16.0.101,UP,b0:7b:25:d8:4a:f4,Up,InfiniBand.Slot.3-1,Unknown
+    J7KN2G4,A4:BF:01:12:34:56,172.16.0.102,UP,e4:43:4b:01:23:45,Up,,
+    K5LP9H2,D0:94:66:AB:CD:EF,172.16.0.103,UP,24:6e:96:78:90:12,Unknown,InfiniBand.Slot.3-1,Up
 
 NIC Link Statuses
 ~~~~~~~~~~~~~~~~
@@ -322,7 +322,7 @@ If a server fails to PXE boot during provisioning:
 
 1. Check the ``ETHERNET_NIC_LINK_STATUS`` in the discovery report
 2. If the status is ``Down`` or ``Unknown``, verify the physical cable connection and switch port configuration
-3. If the ``ETHERNET_NIC_MAC`` appears incorrect, check if InfiniBand NICs were incorrectly selected (this was fixed in Omnia — see `Known issues`_)
+3. If the ``ETHERNET_NIC_MAC`` appears incorrect, check if InfiniBand NICs were incorrectly selected (this was fixed in Omnia)
 
 **Inventory Auditing**
 
@@ -362,17 +362,6 @@ The discovery report and PXE mapping file are complementary:
    * - **Used by provision.yml**
      - Yes
      - No
-
-Known Issues
-~~~~~~~~~~~~
-
-**ADMIN_MAC incorrectly selecting InfiniBand MAC (fixed)**
-
-In earlier versions, when all Ethernet NICs reported ``Unknown`` link status, the fallback logic could select an InfiniBand NIC MAC address as the ``ADMIN_MAC`` in the PXE mapping file. This has been fixed by explicitly excluding InfiniBand NICs from the Ethernet NIC search.
-
-**Blank link status for UNKNOWN NICs (fixed)**
-
-When OME returned a ``null`` or empty ``LinkStatus`` for NICs in an unknown state, the discovery report showed blank values instead of ``Unknown``. This has been fixed to default empty link statuses to ``Unknown``.
 
 Configuration
 ~~~~~~~~~~~~

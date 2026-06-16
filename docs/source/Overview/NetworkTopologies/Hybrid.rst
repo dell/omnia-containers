@@ -3,11 +3,11 @@ Network Topology: Hybrid Setup
 
 .. note:: The following diagram is for representational purposes only.
 
-.. image:: ../../images/Hybird_Network_2.1_rc1.jpg
+.. image:: ../../images/Hybird_Network_2.2_rc1.jpg
 
 In a **Hybrid Setup**, the OIM and special nodes such as the head and login node are connected to the public network, while the iDRAC and the compute nodes use a shared LOM network.
 
-* **Public Network (Blue line)**: This indicates the external public network which is connected to the internet. NIC2 of the OIM, Service cluster nodes, Head node, Service Kubernetes node, and Login node [optional] is connected to the public network. Along with this, BMC NIC of the Head node is connected.
+* **Public Network (Blue line)**: This indicates the external public network which is connected to the internet. NIC2 of the OIM is connected to the public network.
 
 * **Admin Network and BMC network (Green line)**: This indicates the admin network and the BMC network utilized by Omnia to provision the cluster nodes and to control the cluster nodes using out-of-band management. NIC1 of all the nodes are connected to the private switch.
 
