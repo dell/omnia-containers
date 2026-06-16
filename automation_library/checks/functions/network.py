@@ -94,8 +94,10 @@ def validate_network_interfaces() -> Dict:
             "name": "pxe_interface",
             "passed": False,
             "message": OIM_PREREQ_MSGS["iface_omnia_test_configured"],
-            "instruction": (f"ACTION REQUIRED: Set 'pxe_interface' in {OMNIA_TEST_CONFIG_PATH} "
-                           f"with your PXE network interface name.")
+            "instruction": (
+                f"ACTION REQUIRED: Set 'pxe_interface' in {OMNIA_TEST_CONFIG_PATH} "
+                f"with your PXE network interface name."
+            )
         })
         results["passed"] = False
 
@@ -265,85 +267,88 @@ def configure_pxe_nic() -> Dict:
 
     # Case 1: Already configured and not forcing reconfigure
     if current_ip and not force_configure:
-        _log(OIM_PREREQ_MSGS["pxe_nic_already_configured"].format(interface=pxe_iface, ip=current_ip), "INFO")
+        # Check if current IP matches the target PXE IP (ignore /prefix for comparison)
+        current_ip_addr = current_ip.split("/")[0]
+        target_ip_addr = pxe_ip.split("/")[0]
+        ip_matches = current_ip_addr == target_ip_addr
+
+        if ip_matches:
+            _log(OIM_PREREQ_MSGS["pxe_nic_already_configured"].format(interface=pxe_iface, ip=current_ip), "INFO")
+            return {
+                "passed": True,
+                "configured": True,
+                "already_configured": True,
+                "current_ip": current_ip,
+                "message": OIM_PREREQ_MSGS["pxe_nic_already_configured"].format(interface=pxe_iface, ip=current_ip),
+                "details": f"To reconfigure, set 'force_configure_pxe: true' in {OMNIA_TEST_CONFIG_PATH}"
+            }
+
+        # Current IP doesn't match target — warn and skip (don't silently accept wrong IP)
+        _log(f"PXE interface {pxe_iface} has IP {current_ip} but target is {pxe_ip}", "WARN")
         return {
             "passed": True,
             "configured": True,
             "already_configured": True,
+            "ip_mismatch": True,
             "current_ip": current_ip,
-            "message": OIM_PREREQ_MSGS["pxe_nic_already_configured"].format(interface=pxe_iface, ip=current_ip),
-            "details": f"To reconfigure, set 'force_configure_pxe: true' in {OMNIA_TEST_CONFIG_PATH}"
+            "target_ip": pxe_ip,
+            "message": (
+                f"PXE interface {pxe_iface} has IP {current_ip} "
+                f"(target: {pxe_ip}). Set 'force_configure_pxe: true' to reconfigure."
+            ),
+            "details": (
+                f"Current IP: {current_ip}\nTarget IP: {pxe_ip}\n"
+                f"To reconfigure, set 'force_configure_pxe: true' in {OMNIA_TEST_CONFIG_PATH}"
+            )
         }
 
-    # Case 2: Force reconfigure - flush ALL IPs first
+    # Case 2: Force reconfigure - flush ALL IPs first, then let Case 3 configure
     if force_configure:
         _log(OIM_PREREQ_MSGS["pxe_nic_force_reconfigure"].format(interface=pxe_iface), "INFO")
 
         # Get the NetworkManager connection name for this interface
-        rc, nm_conn, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
-        nm_conn = nm_conn.strip() if rc == 0 else ""
+        rc, nm_conn_flush, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
+        nm_conn_flush = nm_conn_flush.strip() if rc == 0 else ""
 
-        if nm_conn:
-            _log(f"Found NetworkManager connection '{nm_conn}' for {pxe_iface}", "INFO")
-            # Completely reset NetworkManager connection IPv4 settings
-            run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '' 2>/dev/null")
-            run_shell(f"nmcli con mod '{nm_conn}' ipv4.method disabled 2>/dev/null")
-            run_shell(f"nmcli con mod '{nm_conn}' ipv4.gateway '' 2>/dev/null")
-            run_shell(f"nmcli con mod '{nm_conn}' ipv4.dns '' 2>/dev/null")
+        if nm_conn_flush:
+            _log(f"Found NetworkManager connection '{nm_conn_flush}' for {pxe_iface}", "INFO")
+            # Bring connection down FIRST so NM stops managing IPs on this interface
+            run_shell(f"nmcli con down '{nm_conn_flush}' 2>/dev/null")
+            run_shell("sleep 1")
 
-            # Also directly edit the NetworkManager config file to ensure old IPs are removed
-            config_file = f"/etc/NetworkManager/system-connections/{nm_conn}.nmconnection"
+            # Clear all old IPv4 settings from the NM profile
+            run_shell(f"nmcli con mod '{nm_conn_flush}' ipv4.addresses '' 2>/dev/null")
+            run_shell(f"nmcli con mod '{nm_conn_flush}' ipv4.method disabled 2>/dev/null")
+            run_shell(f"nmcli con mod '{nm_conn_flush}' ipv4.gateway '' 2>/dev/null")
+            run_shell(f"nmcli con mod '{nm_conn_flush}' ipv4.dns '' 2>/dev/null")
+
+            # Also directly edit the NM config file to ensure old IPs are removed
+            config_file = f"/etc/NetworkManager/system-connections/{nm_conn_flush}.nmconnection"
             _log(f"Clearing NetworkManager config file: {config_file}", "INFO")
             run_shell(f"sed -i '/^address[0-9]*=/d' '{config_file}' 2>/dev/null")
 
-            # Reload NetworkManager to pick up config changes
+            # Reload NM so it picks up the cleared profile
             run_shell("nmcli con reload 2>/dev/null")
 
-            # Bring connection down and up to apply changes
-            run_shell(f"nmcli con down '{nm_conn}' 2>/dev/null")
-            run_shell("sleep 3")
-            run_shell(f"nmcli con up '{nm_conn}' 2>/dev/null")
-            run_shell("sleep 2")
+        # Flush all IPs from the kernel (NM is down so it won't re-add them)
+        _log(f"Flushing all IPv4 addresses from {pxe_iface}...", "INFO")
+        run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
+        run_shell("sleep 1")
 
-        # Multiple attempts to remove all IPs
-        for attempt in range(3):
-            _log(f"IP removal attempt {attempt + 1}/3...", "INFO")
-
-            # Get all current IPs before removal
-            rc, all_ips_output, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep 'inet ' | awk '{{print $2}}'")
-            all_ips = [ip.strip() for ip in all_ips_output.strip().split("\n") if ip.strip()] if all_ips_output.strip() else []
-
-            if not all_ips:
-                _log(f"No IPs found on {pxe_iface}", "OK")
-                break
-
-            _log(f"Found {len(all_ips)} IP(s) to remove: {', '.join(all_ips)}", "INFO")
-
-            # Remove each IP individually first
-            for ip in all_ips:
-                if ip.strip():
-                    _log(f"Removing IP: {ip}", "INFO")
-                    run_shell(f"ip addr del {ip} dev {pxe_iface} 2>/dev/null")
-
-            # Then do a flush
-            _log(f"Flushing all IPv4 addresses from {pxe_iface}...", "INFO")
-            run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
-
-            # Brief pause to let changes take effect
-            run_shell("sleep 1")
-
-        # Final verification
+        # Verify flush
         rc, remaining_output, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep 'inet ' | wc -l")
         remaining_count = remaining_output.strip() if remaining_output else "0"
 
         if remaining_count == "0":
             _log(f"All IPs successfully removed from {pxe_iface}", "OK")
         else:
-            _log(f"Warning: {remaining_count} IP(s) may still remain on {pxe_iface}", "WARN")
-            # Show what's still there
-            rc, remaining_ips, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep 'inet ' | awk '{{print $2}}'")
-            if remaining_ips.strip():
-                _log(f"Remaining IPs: {remaining_ips.strip()}", "WARN")
+            _log(f"Warning: {remaining_count} IP(s) still remain on {pxe_iface}, retrying...", "WARN")
+            # Second attempt: remove each IP individually then flush again
+            rc, leftover, _ = run_shell(f"ip -4 addr show {pxe_iface} 2>/dev/null | grep 'inet ' | awk '{{print $2}}'")
+            for ip in (leftover or "").strip().split("\n"):
+                if ip.strip():
+                    run_shell(f"ip addr del {ip.strip()} dev {pxe_iface} 2>/dev/null")
+            run_shell(f"ip -4 addr flush dev {pxe_iface} 2>/dev/null")
 
     # Case 3: Configure new IP(s) based on network type
     if network_type.lower() == "lom":
@@ -361,23 +366,21 @@ def configure_pxe_nic() -> Dict:
             _log(f"Added default subnet, using: {ip}", "DEBUG")
         validated_ips.append(ip)
 
-    # Try to configure via NetworkManager first (persistent)
-    rc, nm_conn, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show --active 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
+    # Try to configure via NetworkManager (persistent)
+    rc, nm_conn, _ = run_shell(f"nmcli -t -f NAME,DEVICE con show 2>/dev/null | grep ':{pxe_iface}$' | cut -d: -f1")
     nm_conn = nm_conn.strip() if rc == 0 else ""
 
     if nm_conn:
         _log(f"Configuring IPs via NetworkManager connection '{nm_conn}'...", "INFO")
-        # Ensure NetworkManager is completely reset first
-        run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '' 2>/dev/null")
-        run_shell(f"nmcli con mod '{nm_conn}' ipv4.method disabled 2>/dev/null")
+        # Ensure connection is down before modifying
         run_shell(f"nmcli con down '{nm_conn}' 2>/dev/null")
-        run_shell("sleep 2")
+        run_shell("sleep 1")
 
         # Set all IPs via NetworkManager (space-separated for multiple IPs)
         ip_list = " ".join(validated_ips)
         run_shell(f"nmcli con mod '{nm_conn}' ipv4.addresses '{ip_list}'")
         run_shell(f"nmcli con mod '{nm_conn}' ipv4.method manual")
-        # Apply changes
+        # Bring connection up with new settings
         run_shell(f"nmcli con up '{nm_conn}' 2>/dev/null")
         run_shell("sleep 2")
 

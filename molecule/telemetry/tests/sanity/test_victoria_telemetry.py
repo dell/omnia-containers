@@ -20,13 +20,12 @@ This module contains pytest test cases for verifying VictoriaMetrics deployment.
 Test cases:
 1. Verify VictoriaMetrics is enabled
 2. Verify persistence size matches config
-3. Verify single-node pods running (if deployment_mode=single-node)
-4. Verify cluster pods running (if deployment_mode=cluster)
-5. Verify vmagent pod running
-6. Verify VictoriaMetrics services have external IPs
-7. Verify TLS secret exists
-8. Verify TLS connection and health endpoint
-9. Verify iDRAC telemetry data in VictoriaMetrics
+3. Verify cluster pods running (vmstorage, vminsert, vmselect)
+4. Verify vmagent pod running
+5. Verify VictoriaMetrics services have external IPs
+6. Verify TLS secret exists
+7. Verify TLS connection and health endpoint
+8. Verify iDRAC telemetry data in VictoriaMetrics
 
 Note: All tests skip if no source targets victoria_metrics.
 """
@@ -37,9 +36,6 @@ import pytest
 
 from automation_library.core import TestLogger
 from automation_library.telemetry.vars.victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    DEPLOYMENT_MODE_CLUSTER,
-    VICTORIA_SINGLE_NODE,
     VICTORIA_TLS_SECRET,
 )
 from automation_library.telemetry.messages.victoria_msgs import (
@@ -54,10 +50,8 @@ from automation_library.telemetry.functions.shared_func import (
     skip_if_victoria_not_enabled,
 )
 from automation_library.telemetry.functions.victoria_func import (
-    get_deployment_mode,
     get_victoria_config,
     verify_victoria_persistence_size,
-    verify_victoria_single_node_pods,
     verify_victoria_cluster_pods,
     verify_vmagent_pod,
     verify_victoria_services,
@@ -91,17 +85,10 @@ def test_victoria_enabled(host):
         )
         pytest.skip("VictoriaMetrics sink is not active")
 
-    # Log deployment mode
-    deployment_mode = get_deployment_mode(host)
     victoria_config = get_victoria_config(host)
 
-    mode_msg = (
-        VICTORIA_LOG_MSGS["deployment_mode_single"]
-        if deployment_mode == DEPLOYMENT_MODE_SINGLE
-        else VICTORIA_LOG_MSGS["deployment_mode_cluster"]
-    )
     details = (
-        f"{mode_msg}\n"
+        f"Deployment mode: cluster\n"
         f"persistence_size: {victoria_config.get('persistence_size', 'N/A')}\n"
         f"retention_period: {victoria_config.get('retention_period', 'N/A')}"
     )
@@ -132,10 +119,8 @@ def test_victoria_persistence_size(host):
         assert False, result["error"]
 
     # Build details
-    deployment_mode = result.get("deployment_mode", "")
     expected_size = result.get("expected_size", "")
     details_lines = [
-        f"Deployment mode: {deployment_mode}",
         f"Expected size: {expected_size}",
     ]
     for pvc_result in result.get("pvc_results", []):
@@ -167,105 +152,20 @@ def test_victoria_persistence_size(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(14)
-def test_victoria_single_node_pods(host):
-    """
-    Test Case 3: Verify VictoriaMetrics single-node pods are running.
-
-    Only runs if deployment_mode is 'single-node'.
-    Verifies victoria-metric StatefulSet pod is running.
-    """
-    log = TestLogger(VICTORIA_TEST_NAMES["victoria_single_node_pods"])
-
-    skip_if_victoria_not_enabled(host, log)
-
-    # Check deployment mode
-    deployment_mode = get_deployment_mode(host)
-    if deployment_mode != DEPLOYMENT_MODE_SINGLE:
-        log.skipped(
-            f"Deployment mode is '{deployment_mode}', not single-node",
-            "Test skipped - not single-node mode"
-        )
-        pytest.skip(f"Deployment mode is '{deployment_mode}', not single-node")
-
-    admin_ip = get_admin_ip(host, log)
-
-    # Verify single-node pods
-    log.check("Verifying VictoriaMetrics single-node pods")
-    result = verify_victoria_single_node_pods(host, admin_ip)
-
-    if result.get("skip"):
-        log.skipped(result.get("skip_reason", ""), "Test skipped")
-        pytest.skip(result.get("skip_reason", ""))
-
-    if result.get("error"):
-        log.failed("Failed to verify pods", result["error"])
-        assert False, result["error"]
-
-    # Build details
-    details_lines = []
-    for pod_result in result.get("pod_results", []):
-        pod = pod_result["pod"]
-        phase = pod_result["phase"]
-        running = pod_result["running"]
-        status = "✓" if running else "✗"
-        details_lines.append(f"{status} Pod '{pod}': {phase}")
-
-    details = "\n".join(details_lines)
-
-    if result["success"]:
-        log.passed(
-            VICTORIA_LOG_MSGS["all_pods_running"].format(
-                component="victoria-metric",
-                count=result.get("actual_count", 0)
-            ),
-            details
-        )
-    else:
-        errors = result.get("errors", [])
-        log.failed(
-            VICTORIA_LOG_MSGS["pods_not_running"].format(component="victoria-metric"),
-            details + "\n" + "; ".join(errors)
-        )
-        assert False, VICTORIA_ASSERT_MSGS["pods_not_running"].format(
-            component="victoria-metric",
-            expected=1,
-            running=result.get("actual_count", 0),
-            not_running=errors,
-            app_label=VICTORIA_SINGLE_NODE["app_label"]
-        )
-
-
-@pytest.mark.sanity
-@pytest.mark.order(15)
 def test_victoria_cluster_pods(host):
     """
-    Test Case 4: Verify VictoriaMetrics cluster pods are running.
+    Test Case 3: Verify VictoriaMetrics cluster pods are running.
 
-    Only runs if deployment_mode is 'cluster'.
     Verifies vmstorage (3), vminsert (2), vmselect (2) pods are running.
     """
     log = TestLogger(VICTORIA_TEST_NAMES["victoria_cluster_pods"])
 
     skip_if_victoria_not_enabled(host, log)
-
-    # Check deployment mode
-    deployment_mode = get_deployment_mode(host)
-    if deployment_mode != DEPLOYMENT_MODE_CLUSTER:
-        log.skipped(
-            f"Deployment mode is '{deployment_mode}', not cluster",
-            "Test skipped - not cluster mode"
-        )
-        pytest.skip(f"Deployment mode is '{deployment_mode}', not cluster")
-
     admin_ip = get_admin_ip(host, log)
 
     # Verify cluster pods
     log.check("Verifying VictoriaMetrics cluster pods")
     result = verify_victoria_cluster_pods(host, admin_ip)
-
-    if result.get("skip"):
-        log.skipped(result.get("skip_reason", ""), "Test skipped")
-        pytest.skip(result.get("skip_reason", ""))
 
     if result.get("error"):
         log.failed("Failed to verify pods", result["error"])
@@ -314,7 +214,7 @@ def test_victoria_cluster_pods(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(16)
+@pytest.mark.order(15)
 def test_vmagent_pod_running(host):
     """
     Test Case 5: Verify vmagent pod is running.
@@ -363,13 +263,12 @@ def test_vmagent_pod_running(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(17)
+@pytest.mark.order(16)
 def test_victoria_services(host):
     """
-    Test Case 6: Verify VictoriaMetrics services have external IPs.
+    Test Case 5: Verify VictoriaMetrics services have external IPs.
 
-    Single-node: victoria-loadbalancer (port 8443)
-    Cluster: vminsert (port 8480), vmselect (port 8481)
+    Checks vminsert (port 8480) and vmselect (port 8481) services.
     """
     log = TestLogger(VICTORIA_TEST_NAMES["victoria_services"])
 
@@ -377,8 +276,7 @@ def test_victoria_services(host):
     admin_ip = get_admin_ip(host, log)
 
     # Verify services
-    deployment_mode = get_deployment_mode(host)
-    log.check(f"Verifying VictoriaMetrics services (mode: {deployment_mode})")
+    log.check("Verifying VictoriaMetrics services")
     result = verify_victoria_services(host, admin_ip)
 
     if result.get("error"):
@@ -422,7 +320,7 @@ def test_victoria_services(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(18)
+@pytest.mark.order(17)
 def test_victoria_tls_secret(host):
     """
     Test Case 7: Verify VictoriaMetrics TLS secret exists.
@@ -476,7 +374,7 @@ def test_victoria_tls_secret(host):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(19)
+@pytest.mark.order(18)
 def test_victoria_tls_health(host):
     """
     Test Case 8: Verify TLS connection and health endpoint.
@@ -491,8 +389,7 @@ def test_victoria_tls_health(host):
     admin_ip = get_admin_ip(host, log)
 
     # Verify TLS connection and health
-    deployment_mode = get_deployment_mode(host)
-    log.check(f"Verifying TLS connection (mode: {deployment_mode})")
+    log.check("Verifying TLS connection")
     result = verify_victoria_tls_health(host, admin_ip)
 
     if result.get("error"):
@@ -559,7 +456,7 @@ def _build_victoria_tag_lines(tag_result):
 
 
 @pytest.mark.sanity
-@pytest.mark.order(20)
+@pytest.mark.order(19)
 def test_victoria_idrac_data(host):
     """
     Test Case 9: Verify iDRAC telemetry data in VictoriaMetrics.

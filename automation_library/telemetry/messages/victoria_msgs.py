@@ -28,7 +28,6 @@ from typing import Dict
 VICTORIA_TEST_NAMES: Dict[str, str] = {
     "victoria_enabled": "Check if VictoriaMetrics is enabled",
     "victoria_persistence_size": "Verify VictoriaMetrics persistence size",
-    "victoria_single_node_pods": "Verify VictoriaMetrics single-node pods running",
     "victoria_cluster_pods": "Verify VictoriaMetrics cluster pods running",
     "vmagent_pod_running": "Verify vmagent pod running",
     "victoria_services": "Verify VictoriaMetrics services",
@@ -46,10 +45,6 @@ VICTORIA_LOG_MSGS: Dict[str, str] = {
     # Enable check
     "victoria_enabled": "VictoriaMetrics sink is active (sources target victoria_metrics)",
     "victoria_not_enabled": "VictoriaMetrics is not enabled - skipping tests",
-
-    # Deployment mode
-    "deployment_mode_single": "Deployment mode: single-node",
-    "deployment_mode_cluster": "Deployment mode: cluster",
 
     # Persistence
     "persistence_size_match": "Persistence size matches config: {size}",

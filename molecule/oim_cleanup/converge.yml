@@ -58,20 +58,15 @@
         msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping oim_cleanup"
       when: container_exists.rc != 0
 
-    - name: Run oim_cleanup.yml inside omnia_core container (non-interactive)
+    # =========================================================================
+    # RUN OIM CLEANUP PLAYBOOK
+    # =========================================================================
+    - name: Execute oim_cleanup.yml in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          set -o pipefail
-          # Supply YES for all interactive prompts:
-          #   1. Postgres credentials backup prompt (seconds-based but may consume stdin)
-          #   2. Build stream cleanup warning (seconds-based)
-          #   3. Slurm NFS cleanup confirmation (needs YES)
-          #   4. K8s NFS cleanup confirmation (needs YES)
-          # Extra YES answers ensure prompts don't hang even if some are consumed
-          printf "YES\nYES\nYES\nYES\nYES\nYES\n" | podman exec -i -w /omnia/utils {{ container_name }} \
+          podman exec -w /omnia/utils {{ container_name }} \
             ansible-playbook oim_cleanup.yml -v \
-            -e "wait_delay=1" \
-            -e "build_stream_pause_seconds=1"
+            -e "skip_approval=true"
       register: cleanup_result
       when: container_exists.rc == 0
       changed_when: cleanup_result.rc == 0
