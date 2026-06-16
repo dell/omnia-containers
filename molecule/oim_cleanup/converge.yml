@@ -58,51 +58,15 @@
         msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping oim_cleanup"
       when: container_exists.rc != 0
 
-    # -----------------------------------------------------------------
-    # Build extra-vars from environment variables.
-    # Set by: run_molecule.sh --config (reads test_run_config.yml)
-    # Or pass manually: OIM_CLEANUP_SLURM=true OIM_CLEANUP_K8S=false molecule ...
-    #
-    # Supported env vars:
-    #   OIM_CLEANUP_SLURM          -> -e slurm_cleanup=<value>
-    #   OIM_CLEANUP_K8S            -> -e k8s_cleanup=<value>
-    #   OIM_CLEANUP_POSTGRES_BACKUP -> -e postgres_backup=<value>
-    #   OIM_CLEANUP_SKIP_TAGS      -> --skip-tags <value>
-    # -----------------------------------------------------------------
-    - name: Build extra-vars from environment
-      ansible.builtin.set_fact:
-        _slurm_cleanup_env: "{{ lookup('env', 'OIM_CLEANUP_SLURM') | default('', true) }}"
-        _k8s_cleanup_env: "{{ lookup('env', 'OIM_CLEANUP_K8S') | default('', true) }}"
-        _postgres_backup_env: "{{ lookup('env', 'OIM_CLEANUP_POSTGRES_BACKUP') | default('', true) }}"
-        _skip_tags_env: "{{ lookup('env', 'OIM_CLEANUP_SKIP_TAGS') | default('', true) }}"
-
-    - name: Build cleanup command with extra-vars
-      ansible.builtin.set_fact:
-        _cleanup_cmd: >-
-          ansible-playbook oim_cleanup.yml -v
-          -e "wait_delay=1"
-          -e "build_stream_pause_seconds=1"
-          {% if _slurm_cleanup_env | length > 0 %} -e "slurm_cleanup={{ _slurm_cleanup_env }}"{% endif %}
-          {% if _k8s_cleanup_env | length > 0 %} -e "k8s_cleanup={{ _k8s_cleanup_env }}"{% endif %}
-          {% if _postgres_backup_env | length > 0 %} -e "postgres_backup={{ _postgres_backup_env }}"{% endif %}
-          {% if _skip_tags_env | length > 0 %} --skip-tags {{ _skip_tags_env }}{% endif %}
-
-    - name: Display cleanup command
-      ansible.builtin.debug:
-        msg: "Command: {{ _cleanup_cmd }}"
-
-    - name: Run oim_cleanup.yml inside omnia_core container (non-interactive)
+    # =========================================================================
+    # RUN OIM CLEANUP PLAYBOOK
+    # =========================================================================
+    - name: Execute oim_cleanup.yml in omnia_core container
       ansible.builtin.shell:
         cmd: |
-          set -o pipefail
-          # Supply YES for all interactive prompts:
-          #   1. Postgres credentials backup prompt (seconds-based but may consume stdin)
-          #   2. Build stream cleanup warning (seconds-based)
-          #   3. Slurm NFS cleanup confirmation (needs YES)
-          #   4. K8s NFS cleanup confirmation (needs YES)
-          # Extra YES answers ensure prompts don't hang even if some are consumed
-          printf "YES\nYES\nYES\nYES\nYES\nYES\n" | podman exec -i -w /omnia/utils {{ container_name }} \
-            {{ _cleanup_cmd }}
+          podman exec -w /omnia/utils {{ container_name }} \
+            ansible-playbook oim_cleanup.yml -v \
+            -e "skip_approval=true"
       register: cleanup_result
       when: container_exists.rc == 0
       changed_when: cleanup_result.rc == 0

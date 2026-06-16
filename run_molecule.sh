@@ -90,6 +90,26 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# =============================================================================
+# Supported Values (used for validation and tab-completion)
+# =============================================================================
+# Add new scenarios, commands, or suites here when extending the framework.
+
+# Supported scenario names (must match directories under molecule/)
+SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+
+# Supported molecule commands
+SUPPORTED_COMMANDS="test verify converge create prepare"
+
+# Supported run values (boolean)
+SUPPORTED_RUN_VALUES="true false"
+
+# Supported test suites (must match directories under molecule/<scenario>/tests/)
+SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual"
+
+# Execution order for --config mode and 'all' command
+SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+
 # Change to script directory
 cd "$(dirname "$0")"
 
@@ -153,6 +173,86 @@ build_pytest_args() {
 }
 
 # =============================================================================
+# Validate test_run_config.yml before execution
+# =============================================================================
+validate_test_run_config() {
+    local config_file="$1"
+    echo -e "${BLUE}Validating ${config_file}...${NC}"
+
+    VALIDATION_RESULT=$(python3 << PYEOF
+import yaml, sys
+
+SUPPORTED_SCENARIOS = set("${SUPPORTED_SCENARIOS}".split())
+SUPPORTED_COMMANDS = set("${SUPPORTED_COMMANDS}".split())
+SUPPORTED_RUN_VALUES = {True, False}  # YAML booleans
+SUPPORTED_SUITES = set("${SUPPORTED_SUITES}".split()) | {''}  # empty string = all
+
+errors = []
+try:
+    with open("${config_file}") as f:
+        cfg = yaml.safe_load(f) or {}
+except Exception as e:
+    print(f"ERROR: Failed to parse YAML: {e}")
+    sys.exit(1)
+
+for key, value in cfg.items():
+    # Skip non-scenario keys (e.g. oim_cleanup_extra_vars)
+    if not isinstance(value, dict):
+        continue
+    if 'run' not in value:
+        continue
+
+    # Validate scenario name
+    if key not in SUPPORTED_SCENARIOS:
+        errors.append(f"  [{key}] Invalid scenario name. Supported: {', '.join(sorted(SUPPORTED_SCENARIOS))}")
+        continue
+
+    # Validate 'run' value
+    run_val = value.get('run')
+    if run_val not in SUPPORTED_RUN_VALUES:
+        errors.append(f"  [{key}].run = '{run_val}' is invalid. Must be: true or false")
+
+    # Validate 'command' value
+    cmd_val = value.get('command', 'verify')
+    if cmd_val not in SUPPORTED_COMMANDS:
+        errors.append(f"  [{key}].command = '{cmd_val}' is invalid. Supported: {', '.join(sorted(SUPPORTED_COMMANDS))}")
+
+    # Validate 'suite' value
+    suite_val = str(value.get('suite', '') or '')
+    # Support comma-separated suites
+    for s in suite_val.split(','):
+        s = s.strip()
+        if s and s not in SUPPORTED_SUITES:
+            errors.append(f"  [{key}].suite = '{s}' is invalid. Supported: {', '.join(sorted(SUPPORTED_SUITES - {''}))}")
+
+if errors:
+    print("VALIDATION_FAILED")
+    for e in errors:
+        print(e)
+else:
+    print("VALIDATION_OK")
+PYEOF
+)
+
+    # Check result
+    if echo "$VALIDATION_RESULT" | head -1 | grep -q "VALIDATION_FAILED"; then
+        echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+        echo -e "${RED}  test_run_config.yml VALIDATION FAILED${NC}"
+        echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+        echo "$VALIDATION_RESULT" | tail -n +2
+        echo ""
+        echo -e "${YELLOW}Supported scenarios:${NC}  ${SUPPORTED_SCENARIOS}"
+        echo -e "${YELLOW}Supported commands:${NC}   ${SUPPORTED_COMMANDS}"
+        echo -e "${YELLOW}Supported run values:${NC} true, false"
+        echo -e "${YELLOW}Supported suites:${NC}     ${SUPPORTED_SUITES}"
+        echo -e "${RED}═══════════════════════════════════════════════════════════════${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✔ Config validation passed${NC}"
+    echo ""
+}
+
+# =============================================================================
 # --config mode: Read test_run_config.yml and run enabled scenarios
 # =============================================================================
 if [[ "$SCENARIO" == "--config" || "$SCENARIO" == "config" ]]; then
@@ -163,13 +263,13 @@ if [[ "$SCENARIO" == "--config" || "$SCENARIO" == "config" ]]; then
         exit 1
     fi
 
-    # Parse YAML config with Python — outputs lines: scenario:command:suite
-    SCENARIO_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer build_stream gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+    # Validate config before execution
+    validate_test_run_config "$CONFIG_FILE"
     PARSED=$(python3 -c "
 import yaml, sys
 with open('$CONFIG_FILE') as f:
     cfg = yaml.safe_load(f) or {}
-order = '$SCENARIO_ORDER'.split()
+order = '$SCENARIO_EXECUTION_ORDER'.split()
 for name in order:
     s = cfg.get(name, {})
     if isinstance(s, dict) and s.get('run', False):
@@ -464,8 +564,30 @@ esac
 # Validate scenario exists
 if [[ ! -d "molecule/${SCENARIO}" ]]; then
     echo -e "${RED}Error: Scenario '${SCENARIO}' not found${NC}"
+    echo -e "${YELLOW}Supported scenarios:${NC} ${SUPPORTED_SCENARIOS}"
     echo "Run '$0 list' to see available scenarios."
     exit 1
+fi
+
+# Default command
+COMMAND="${COMMAND:-test}"
+
+# Validate command
+if ! echo " ${SUPPORTED_COMMANDS} " | grep -q " ${COMMAND} "; then
+    echo -e "${RED}Error: Invalid command '${COMMAND}'${NC}"
+    echo -e "${YELLOW}Supported commands:${NC} ${SUPPORTED_COMMANDS}"
+    exit 1
+fi
+
+# Validate suite if provided
+if [[ -n "$SUITE" ]]; then
+    for _s in $(echo "$SUITE" | tr ',' ' '); do
+        if ! echo " ${SUPPORTED_SUITES} " | grep -q " ${_s} "; then
+            echo -e "${RED}Error: Invalid suite '${_s}'${NC}"
+            echo -e "${YELLOW}Supported suites:${NC} ${SUPPORTED_SUITES}"
+            exit 1
+        fi
+    done
 fi
 
 # For build_stream scenario: always use verify (tests only, no converge needed)
@@ -473,9 +595,6 @@ if [[ "$SCENARIO" == "build_stream" && "$COMMAND" == "test" ]]; then
     echo -e "${YELLOW}Note: build_stream uses 'verify' instead of 'test' (no converge step needed)${NC}"
     COMMAND="verify"
 fi
-
-# Default command
-COMMAND="${COMMAND:-test}"
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 echo -e "${BLUE}  Omnia Molecule Test Runner${NC}"
