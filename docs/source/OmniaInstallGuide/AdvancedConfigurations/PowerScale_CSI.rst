@@ -39,7 +39,10 @@ Prerequisites
 
 4. Configure PowerScale user privileges:
 
-   The username specified in ``secret.yaml`` must be from the authentication providers of PowerScale. The user must have sufficient privileges to perform the required actions. The suggested privileges are as follows:
+   .. note::
+      This step is required only if you want to collect PowerScale telemetry.
+
+   The username in ``secret.yaml`` must be from the PowerScale authentication providers. You must have sufficient privileges to perform the required actions. The suggested privileges are as follows:
 
    .. list-table::
       :header-rows: 1
