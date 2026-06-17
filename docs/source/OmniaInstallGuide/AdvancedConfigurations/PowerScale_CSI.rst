@@ -341,9 +341,64 @@ To uninstall the PowerScale CSI driver manually, do the following:
 
 6. Delete the snapshot controller deployment:
 
-    :: 
-           
+    ::
+
             kubectl delete deployments snapshot-controller -n kube-system
 
+PowerScale User Privileges
+---------------------------
 
+The username specified in ``secret.yaml`` must be from the authentication providers of PowerScale. The user must have sufficient privileges to perform the required actions. The suggested privileges are as follows:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 20
+
+   * - Privilege
+     - Type
+   * - ISI_PRIV_LOGIN_PAPI
+     - Read Only
+   * - ISI_PRIV_NFS
+     - Read Write
+   * - ISI_PRIV_QUOTA
+     - Read Write
+   * - ISI_PRIV_SNAPSHOT
+     - Read Write
+   * - ISI_PRIV_IFS_RESTORE
+     - Read Only
+   * - ISI_PRIV_NS_IFS_ACCESS
+     - Read Only
+   * - ISI_PRIV_IFS_BACKUP
+     - Read Only
+   * - ISI_PRIV_AUTH_ZONES
+     - Read Only
+   * - ISI_PRIV_SYNCIQ
+     - Read Write
+   * - ISI_PRIV_STATISTICS
+     - Read Only
+
+For more information, see the `CSM Installation Guide <https://dell.github.io/csm-docs/docs/getting-started/installation/kubernetes/powerscale/helm/#user-privileges>`_.
+
+**Create Group and User for CSM**
+
+To create a user with the required privileges, follow these steps:
+
+1. Create the group and user:
+
+   .. code-block:: bash
+
+      isi auth group create csmadmins --zone system
+      isi auth user create csmadmin --password "P@ssw0rd123" --password-expires false --primary-group csmadmins --zone system
+
+2. Create the role and assign the required permissions:
+
+   .. code-block:: bash
+
+      isi auth roles create CSMAdminRole --description "Dell CSM Admin Role" --zone System
+      isi auth roles modify CSMAdminRole --zone System --add-priv-read ISI_PRIV_LOGIN_PAPI --add-priv-read ISI_PRIV_IFS_RESTORE --add-priv-read ISI_PRIV_NS_IFS_ACCESS --add-priv-read ISI_PRIV_IFS_BACKUP --add-priv-read ISI_PRIV_AUTH --add-priv-read ISI_PRIV_AUTH_ZONES --add-priv-read ISI_PRIV_STATISTICS
+      isi auth roles modify CSMAdminRole --zone System --add-priv-write ISI_PRIV_NFS --add-priv-write ISI_PRIV_QUOTA --add-priv-write ISI_PRIV_SNAPSHOT --add-priv-write ISI_PRIV_SYNCIQ
+      isi auth roles modify CSMAdminRole --add-group csmadmins
+
+.. note::
+   Ensure that all roles for the given user (check with ``isi auth roles list``) have these privileges.
 
