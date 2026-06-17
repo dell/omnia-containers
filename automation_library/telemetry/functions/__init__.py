@@ -67,10 +67,8 @@ from .kafka_func import (
 )
 
 from .victoria_func import (
-    get_deployment_mode,
     get_victoria_config,
     verify_victoria_persistence_size,
-    verify_victoria_single_node_pods,
     verify_victoria_cluster_pods,
     verify_vmagent_pod,
     verify_victoria_services,
@@ -130,9 +128,11 @@ from .victoria_logs_func import (
 from .powerscale_func import (
     get_powerscale_config,
     get_powerscale_deployment_mode,
+    is_onefs_api_configured,
     verify_powerscale_deployment,
     verify_powerscale_metrics,
     verify_powerscale_syslog,
+    verify_victoria_powerscale_data,
 )
 
 # Failover test functions (poweroff/reboot)

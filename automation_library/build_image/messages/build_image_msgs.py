@@ -214,9 +214,9 @@ TEST_ASSERT_MSGS = {
 ║
 ║ HOW TO FIX:
 ║   1. Check S3 bucket: s3cmd ls -Hr s3://boot-images
-║   2. Verify minio-server container is running: podman ps | grep minio
+║   2. {storage_fix_hint}
 ║   3. Check build logs for errors
-║   4. Re-run build_image_x86_64.yml playbook
+║   4. Re-run build_image playbook for the appropriate architecture
 ╚══════════════════════════════════════════════════════════════════════════════╝
 """,
     "validation_failed": "Validation failed: {error}",

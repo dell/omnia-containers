@@ -54,6 +54,7 @@ from automation_library.build_stream import (
     get_catalog_roles,
     get_image_groups_for_job,
     get_images_for_job,
+    get_all_image_groups,
     verify_registry_images,
     verify_s3_boot_images,
     list_pipelines,
@@ -582,11 +583,34 @@ def test_stress_build_pipeline(host):
         log.skipped("Build stream not enabled", "Test skipped")
         pytest.skip("Build stream not enabled")
 
-    count = _get_stress_count()
-    log.check(f"Running {count} full build pipeline iteration(s) with ALL validations")
+    target_count = _get_stress_count()
+
+    # Check how many BUILT images already exist in the database
+    existing_count = 0
+    ig_result = get_all_image_groups(host)
+    if ig_result["success"]:
+        existing_count = len([
+            g for g in ig_result["image_groups"] if g["status"] == "BUILT"
+        ])
+
+    remaining = max(0, target_count - existing_count)
+    log.check(
+        f"Target: {target_count} images, "
+        f"Existing in DB: {existing_count}, "
+        f"Remaining to build: {remaining}"
+    )
+
+    if remaining == 0:
+        log.passed(
+            f"Already have {existing_count} BUILT image(s) in DB "
+            f"(target: {target_count}), no new builds needed",
+            f"Existing: {existing_count}, Target: {target_count}"
+        )
+        return
 
     print("\n" + "#" * 70, flush=True)
-    print(f"# BUILD STREAM STRESS TEST - {count} ITERATIONS", flush=True)
+    print(f"# BUILD STREAM STRESS TEST - {remaining} ITERATIONS", flush=True)
+    print(f"# Existing in DB: {existing_count}, Target: {target_count}", flush=True)
     print("# Each iteration: trigger -> stages -> DB -> registry -> S3", flush=True)
     print(f"# Started at: {datetime.now().isoformat()}", flush=True)
     print("#" * 70 + "\n", flush=True)
@@ -596,9 +620,9 @@ def test_stress_build_pipeline(host):
     failed = 0
     total_elapsed = 0
 
-    for i in range(1, count + 1):
+    for i in range(1, remaining + 1):
         iteration_result = _run_single_iteration(
-            host, i, count,
+            host, existing_count + i, target_count,
             is_first=(i == 1)
         )
         results.append(iteration_result)
@@ -610,7 +634,7 @@ def test_stress_build_pipeline(host):
             failed += 1
 
         print(
-            f"\n    Progress: {i}/{count} complete, "
+            f"\n    Progress: {i}/{remaining} complete, "
             f"{passed} passed, {failed} failed\n",
             flush=True
         )
@@ -628,7 +652,7 @@ def test_stress_build_pipeline(host):
     # =========================================================================
     print("\n" + "#" * 70, flush=True)
     print("# STRESS TEST COMPLETE", flush=True)
-    print(f"# Total: {count}, Passed: {passed}, Failed: {failed}", flush=True)
+    print(f"# Total: {remaining} new (of {target_count} target), Passed: {passed}, Failed: {failed}", flush=True)
     print(
         f"# Total time: {total_elapsed}s "
         f"({total_elapsed // 60}m {total_elapsed % 60}s)",
@@ -638,7 +662,8 @@ def test_stress_build_pipeline(host):
     print("#" * 70 + "\n", flush=True)
 
     summary_lines = [
-        f"Total iterations: {count}",
+        f"Existing in DB: {existing_count}",
+        f"New iterations: {remaining} (target: {target_count})",
         f"Passed: {passed}",
         f"Failed: {failed}",
         f"Total time: {total_elapsed}s",
@@ -662,12 +687,12 @@ def test_stress_build_pipeline(host):
 
     if failed == 0:
         log.passed(
-            f"All {count} iterations passed with full validation",
+            f"All {remaining} iterations passed with full validation",
             "\n".join(summary_lines),
         )
     else:
         log.failed(
-            f"{failed}/{count} iterations failed",
+            f"{failed}/{remaining} iterations failed",
             "\n".join(summary_lines),
         )
-        pytest.fail(f"Stress test: {failed}/{count} iterations failed")
+        pytest.fail(f"Stress test: {failed}/{remaining} iterations failed")

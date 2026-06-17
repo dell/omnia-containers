@@ -1,0 +1,139 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Test Run Configuration
+# =============================================================================
+#
+# Configure which scenarios to run, the command, and test suite per scenario.
+#
+# Usage:
+#   1. Edit this file to enable/disable scenarios
+#   2. Run: ./run_molecule.sh --config
+#
+# Each scenario has:
+#   run:     true/false   - Whether to execute this scenario
+#   command: test/verify/converge - What molecule command to run
+#   suite:   sanity/negative/regression/smoke/"" - Test suite filter (empty = all)
+#
+# Scenarios execute in the order listed below.
+# =============================================================================
+
+# --- Install & Setup ---
+omnia_sh_install:
+  run: true
+  command: "verify"
+  suite: ""
+
+prepare_oim:
+  run: true
+  command: "verify"
+  suite: ""
+
+# --- GitLab ---
+gitlab_install:
+  run: true
+  command: "verify"
+  suite: ""
+
+# --- Build & Repo ---
+local_repo:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+build_image_x86_64:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+build_image_aarch64:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Provision & Deploy ---
+discovery:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+provision:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Services ---
+telemetry:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+apptainer:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+kubernetes:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+slurm:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+dcgm:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+hpc_benchmarks:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+vast_storage:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Build Stream (CI/CD pipeline tests) ---
+build_stream:
+  run: false
+  command: "verify"
+  suite: "sanity"
+
+# --- Logs ---
+one_shot_log_extraction:
+  run: false
+  command: "test"
+  suite: ""
+
+# --- Cleanup ---
+gitlab_cleanup:
+  run: false
+  command: "test"
+  suite: ""
+
+oim_cleanup:
+  run: false
+  command: "test"
+  suite: ""
+
+omnia_sh_uninstall:
+  run: false
+  command: "test"
+  suite: ""

@@ -180,4 +180,3 @@ REGCTL_CONFIG_PATH: str = "/root/.regctl/config.json"
 
 # regctl binary path
 REGCTL_BINARY_PATH: str = "/usr/local/bin/regctl"
-
