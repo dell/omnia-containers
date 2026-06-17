@@ -80,6 +80,7 @@
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
+
    Override baseos with standard URL (only url and name required, certs auto-populated) 
     ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/"", name: ""baseos"" }``
    Override appstream with custom URL and policy 
@@ -101,6 +102,7 @@
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
+
   Override baseos with standard URL (only url and name required, certs auto-populated) 
     ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/baseos/os/"", name: ""baseos"" }``
   Override appstream with custom URL and policy 
