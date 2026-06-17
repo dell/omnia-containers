@@ -52,3 +52,6 @@ The following table lists the new features and enhancements introduced in Omnia 
    * - Debugging
      - One-Shot Combined Log Extraction for Debugging
      - One-shot log collection playbook for gathering cluster logs from Kubernetes and Slurm nodes with full and curated support collection modes, log collection from all node types, and timestamped tar.gz bundle output. For more details, see `Log Management <../Logging/index.html>`_.
+   * - High Availability
+     - ETCD on Local Disk Support for Kubernetes Service Cluster
+     - ETCD deployment on local disk instead of NFS for Kubernetes service cluster with configurable ```etcd_on_local_disk``` setting in ```omnia_config.yml```, automatic disk selection prioritizing BOSS cards (BOSS-N1/N2) with fallback to SSD/SATA disks, ```/var/lib/etcd``` mount point, support for pre-configured RAID 1 or RAID 10 on BOSS cards, and minimum 20 GB disk space recommendation. For more details, see `High Availability Kubernetes Setup <../OmniaInstallGuide/RHEL_new/HighAvailability/service_cluster_k8s.html>`_.

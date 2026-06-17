@@ -6,7 +6,8 @@
 * **cert_path**: Path to the SSL certificate file. This field is required when the registry uses HTTPS and must point to a file with a .crt extension.
 * **key_path**: Path to the SSL private key file. This parameter is mandatory when the registry operates over HTTPS and must reference a file with a .key extension.
 
-.. note:: User registry certificates and private keys specified in ``cert_path`` and ``key_path`` must already exist at the given locations, and these paths must be accessible from within the ``omnia_core container``."
+.. note:: User registry certificates and private keys specified in ``cert_path`` and ``key_path`` must already exist at the given locations, and these paths must be accessible from within the ``omnia_core container``.
+  "
 **user_repo_url_x86_64**,Optional,"* **Type**: JSON list
 * This variable accepts the x86_64 repository urls  from which the software packages/images will be downloaded and accessed by the cluster.
 * Omnia downloads the software packages from the given list of URLs and stores them into a local Pulp container. These packages are then accessed by the cluster nodes from that Pulp container.
@@ -19,7 +20,8 @@
 
 * **Example**: ``- { url: ""https://download.docker.com/linux/centos/9/x86_64/stable"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce-repo"", sslcacert: """", sslclientkey: """", sslclientcert: """", policy: """" }``
 
-.. note:: All SSL related certificates must be kept in ``/opt/omnia/user-repo-certs/<user_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files. "
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/user-repo-certs/<user_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files.
+  "
 **user_repo_url_aarch64**,Optional,"* **Type**: JSON list
 * This variable accepts the aarch64 repository urls from which the software packages/images will be downloaded and accessed by the cluster.
 * Omnia downloads the software packages from the given list of URLs and stores them into a local Pulp container. These packages are then accessed by the cluster nodes from that Pulp container.
@@ -32,51 +34,58 @@
 
 * **Example**: ``- { url: ""https://download.docker.com/linux/centos/9/aarch64/stable"", gpgkey: ""https://download.docker.com/linux/centos/gpg"", name: ""docker-ce-repo"", sslcacert: """", sslclientkey: """", sslclientcert: """", policy: """" }``
 
-.. note:: All SSL related certificates must be kept in ``/opt/omnia/user-repo-certs/<user_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files. "
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/user-repo-certs/<user_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files.
+  "
 **rhel_os_url_x86_64**,Mandatory,"* **Type**: string
 * Mandatory when ``cluster_os_type`` is ``rhel`` in ``/opt/omnia/input/project_default/software_config.json`` and the RHEL subscription is not registered.
-* For RHEL systems without a subscription, the repository URLs for ``x86_64_codeready-builder``,  ``x86_64_appstream``, and ``x86_64_baseos`` are mandatory.
+* For RHEL systems without a subscription, the repository URLs for ``codeready-builder``,  ``appstream``, and ``baseos`` are mandatory.
 * Additional packages required for the cluster are downloaded from the provided ``rhel_os_url`` and stored in the Pulp container.
 * ``url`` defines the baseurl for the repository where the OS package is hosted.
-* ``gpgkey`` defines the x86_64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
+* ``gpgkey`` defines the gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
 * ``name`` defines the name of the OS package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_os_url``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
-* **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/x86_64/os/"", gpgkey: ""http://crb.com/CRB/x86_64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_codeready-builder""}``
+* **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/x86_64/os/"", gpgkey: ""http://crb.com/CRB/x86_64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""codeready-builder""}``
 
 
-.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files. "
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files.
+  "
 **rhel_os_url_aarch64**,Mandatory,"* **Type**: string
 * Mandatory when ``cluster_os_type`` is ``rhel`` in ``/opt/omnia/input/project_default/software_config.json`` and the RHEL subscription is not registered.
-* For RHEL systems without a subscription, the repository URLs for ``aarch64_codeready-builder``,  ``aarch64_appstream``, and ``aarch64_baseos`` are mandatory.
+* For RHEL systems without a subscription, the repository URLs for ``codeready-builder``,  ``appstream``, and ``baseos`` are mandatory.
 * Additional packages required for the cluster are downloaded from the provided ``rhel_os_url`` and stored in the Pulp container.
 * ``url`` defines the baseurl for the repository where the OS package is hosted.
-* ``gpgkey`` defines the aarch64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
+* ``gpgkey`` defines the gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
 * ``name`` defines the name of the OS package.
 * If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_os_url``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
-* **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/aarch64/os/"", gpgkey: ""http://crb.com/CRB/aarch64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_codeready-builder"" }``
+* **Example**: If ``cluster_os_type`` is rhel, ``rhel_os_url`` might be ``- { url: ""http://crb.com/CRB/aarch64/os/"", gpgkey: ""http://crb.com/CRB/aarch64/os/RPM-GPG-KEY"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""codeready-builder"" }``
 
 
-.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
+.. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files.
+  "
 **rhel_subscription_repo_config_x86_64**,Optional,"* **Type**: JSON list
 * Optional configuration for overriding policy and caching settings for RHEL subscription-based repositories on x86_64 architecture. When subscription is enabled, this config takes precedence over dynamically generated URLs for matching repositories and adds any additional repositories.
 * Matching is done by repository name (e.g., x86_64_appstream) and Non-matching repositories are added as additional repos.
 * Additional packages required for the cluster are downloaded from the provided ``rhel_subscription_repo_config_x86_64`` and stored in the Pulp container.
 * ``url`` defines the baseurl for the repository where the OS package is hosted.
 * ``gpgkey`` defines the aarch64_gpgkey for the repository. If ``gpgkey`` is omitted, then ``gpgcheck=0`` is set for that repository.
-* ``name`` defines the name of the OS package.
-* If you are using SSL certificates for encryption, include the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` fields, and ensure each is populated with the correct certificate or key data. Omit these fields entirely if SSL is not in use.
+* ``name`` defines the name of the OS package. To override any of the 3 base repos (baseos, appstream, codeready-builder), the 'name' field must match exactly: 'baseos', 'appstream', or 'codeready-builder'
+* SSL certificates are ALWAYS auto-populated from RHEL subscription defaults
 * Irrespective of the value set to ``repo_config`` in ``/opt/omnia/input/project_default/software_config.json``, you can set  an individual policy (``always``, ``partial``) for the ``rhel_subscription_repo_config_x86_64``. To do so, add the ``policy`` key and provide the desired value while providing the repository URLs.
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
-  ``- { url: ""https://example.com/appstream"", gpgkey: """", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_appstream"", policy: ""always"", caching: true }``
-  ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", gpgkey: ""file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""x86_64_supplementary"", policy: ""always"", caching: false }``
+   Override baseos with standard URL (only url and name required, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/"", name: ""baseos"" }``
+   Override appstream with custom URL and policy 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
+   Add supplementary repo (non-base repo, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }``
 
 
 .. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
@@ -92,9 +101,12 @@
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
-  ``- { url: ""https://example.com/appstream"", gpgkey: """", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_appstream"", policy: ""always"", caching: true }``
-  ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/"", gpgkey: ""file:///etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"", sslcacert: """", sslclientkey: """", sslclientcert: """", name: ""aarch64_supplementary"", policy: ""always"", caching: false }``
-
+  Override baseos with standard URL (only url and name required, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/baseos/os/"", name: ""baseos"" }``
+  Override appstream with custom URL and policy 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
+   Add supplementary repo (non-base repo, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }`` 
 
 .. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
 **omnia_repo_url_rhel_x86_64**,Mandatory,"* **Type**: JSON list
@@ -111,7 +123,8 @@
  
 .. note::
       * These inputs are not validated by Omnia. Incorrect values provided to this variable can lead to unexpected failures during Omnia's deployment.
-      * Ensure that all the listed URLs are reachable from the OIM."
+      * Ensure that all the listed URLs are reachable from the OIM.
+  "
 **omnia_repo_url_rhel_aarch64**,Mandatory,"* **Type**: JSON list
 * This variable accepts a list of all the aarch64 repo urls from where ``.rpm`` packages will be downloaded for RHEL clusters.
 * ``url`` defines the baseurl for the repository where the package is hosted.
@@ -126,7 +139,8 @@
 
 .. note::
       * These inputs are not validated by Omnia. Incorrect values provided to this variable can lead to unexpected failures during Omnia's deployment.
-      * Ensure that all the listed URLs are reachable from the OIM."
+      * Ensure that all the listed URLs are reachable from the OIM.
+  "
 **additional_repos_x86_64**,Optional,"* **Type**: JSON list
 * Each repository entry must include: 
 
