@@ -80,12 +80,12 @@
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
-Override baseos with standard URL (only url and name required, certs auto-populated) 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/"", name: ""baseos"" }``
-Override appstream with custom URL and policy 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
-Add supplementary repo (non-base repo, certs auto-populated) 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }``
+    *Override baseos with standard URL (only url and name required, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/"", name: ""baseos"" }``
+    *Override appstream with custom URL and policy 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
+    *Add supplementary repo (non-base repo, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }``
 
 
 .. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
@@ -101,12 +101,12 @@ Add supplementary repo (non-base repo, certs auto-populated)
 * Enable or disable local caching of repository content in the Pulp container. ``true``: Store packages locally to improve performance and reduce bandwidth. ``false`` : Always download fresh packages from the repository. Allowed values: ``true,false`` (OPTIONAL). Defaults to ``true`` if not provided.To do so, add the ``caching`` key and provide the desired value while providing the repository URLs.
 
 * **Example**: 
-Override baseos with standard URL (only url and name required, certs auto-populated) 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/baseos/os/"", name: ""baseos"" }``
-Override appstream with custom URL and policy 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
-Add supplementary repo (non-base repo, certs auto-populated) 
-``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }`` 
+    *Override baseos with standard URL (only url and name required, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/baseos/os/"", name: ""baseos"" }``
+    *Override appstream with custom URL and policy 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/appstream/os/"", name: ""appstream"", policy: ""always"" }`` 
+    *Add supplementary repo (non-base repo, certs auto-populated) 
+    ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/aarch64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }`` 
 
 .. note:: All SSL related certificates must be kept in ``/opt/omnia/rhel-repo-certs/<rhel_repo_name>``. The certificate files are encrypted post ``local_repo.yml`` playbook execution. Execute the ``ansible-vault decrypt <certificate_file> --vault-password-file /opt/omnia/input/project_default/.local_repo_credentials_key`` command to decrypt the files."
 **omnia_repo_url_rhel_x86_64**,Mandatory,"* **Type**: JSON list
