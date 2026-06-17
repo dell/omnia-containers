@@ -37,11 +37,67 @@ Prerequisites
 
 3. Verify that the PowerScale system is operational.
 
-4. Download the ``secret.yaml`` file template from the following command: ::
-       
+4. Configure PowerScale user privileges:
+
+   The username specified in ``secret.yaml`` must be from the authentication providers of PowerScale. The user must have sufficient privileges to perform the required actions. The suggested privileges are as follows:
+
+   .. list-table::
+      :header-rows: 1
+      :widths: 40 20
+
+      * - Privilege
+        - Type
+      * - ISI_PRIV_LOGIN_PAPI
+        - Read Only
+      * - ISI_PRIV_NFS
+        - Read Write
+      * - ISI_PRIV_QUOTA
+        - Read Write
+      * - ISI_PRIV_SNAPSHOT
+        - Read Write
+      * - ISI_PRIV_IFS_RESTORE
+        - Read Only
+      * - ISI_PRIV_NS_IFS_ACCESS
+        - Read Only
+      * - ISI_PRIV_IFS_BACKUP
+        - Read Only
+      * - ISI_PRIV_AUTH_ZONES
+        - Read Only
+      * - ISI_PRIV_SYNCIQ
+        - Read Write
+      * - ISI_PRIV_STATISTICS
+        - Read Only
+
+   For more information, see the `CSM Installation Guide <https://dell.github.io/csm-docs/docs/getting-started/installation/kubernetes/powerscale/helm/#user-privileges>`_.
+
+   **Create Group and User for CSM**
+
+   To create a user with the required privileges, follow these steps:
+
+   a. Create the group and user:
+
+      .. code-block:: bash
+
+         isi auth group create csmadmins --zone system
+         isi auth user create csmadmin --password "P@ssw0rd123" --password-expires false --primary-group csmadmins --zone system
+
+   b. Create the role and assign the required permissions:
+
+      .. code-block:: bash
+
+         isi auth roles create CSMAdminRole --description "Dell CSM Admin Role" --zone System
+         isi auth roles modify CSMAdminRole --zone System --add-priv-read ISI_PRIV_LOGIN_PAPI --add-priv-read ISI_PRIV_IFS_RESTORE --add-priv-read ISI_PRIV_NS_IFS_ACCESS --add-priv-read ISI_PRIV_IFS_BACKUP --add-priv-read ISI_PRIV_AUTH --add-priv-read ISI_PRIV_AUTH_ZONES --add-priv-read ISI_PRIV_STATISTICS
+         isi auth roles modify CSMAdminRole --zone System --add-priv-write ISI_PRIV_NFS --add-priv-write ISI_PRIV_QUOTA --add-priv-write ISI_PRIV_SNAPSHOT --add-priv-write ISI_PRIV_SYNCIQ
+         isi auth roles modify CSMAdminRole --add-group csmadmins
+
+   .. note::
+      Ensure that all roles for the given user (check with ``isi auth roles list``) have these privileges.
+
+5. Download the ``secret.yaml`` file template from the following command: ::
+
         wget raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.15.0/samples/secret/secret.yaml
 
-5. Update the following parameters in the ``secret.yaml`` file as per your cluster details and keep the rest as default values. For example:
+6. Update the following parameters in the ``secret.yaml`` file as per your cluster details and keep the rest as default values. For example:
 
     *	clusterName: <desired cluster name>
     *	endpoint: <endpoint_IP>
@@ -55,11 +111,11 @@ Prerequisites
 
    .. image:: ../../images/csi_powerscale_1.png
 
-6. Download the ``values.yaml`` files template using the following command: ::
+7. Download the ``values.yaml`` files template using the following command: ::
 
     wget https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml
 
-7. Update the following parameters in the ``values.yaml`` file and keep the rest as default values. Refer the below sample values:
+8. Update the following parameters in the ``values.yaml`` file and keep the rest as default values. Refer the below sample values:
 
     * controllerCount: 1
 
@@ -91,9 +147,9 @@ Prerequisites
 
     * isiPath: /ifs/data/csi
 
-8. Ensure that ``get_config_credentials.yml`` playbook has been executed and the ``omnia_config_credentials`` file has been generated. Once that's done, add the values for ``csi_username`` and ``csi_password`` to that file.
+9. Ensure that ``get_config_credentials.yml`` playbook has been executed and the ``omnia_config_credentials`` file has been generated. Once that's done, add the values for ``csi_username`` and ``csi_password`` to that file.
 
-9. Enable ``auth_basic`` for the PowerScale devices: Omnia authenticates and connects with PowerScale devices using basic authentication. To check and enable basic authentication from PowerScale's end, do the following:
+10. Enable ``auth_basic`` for the PowerScale devices: Omnia authenticates and connects with PowerScale devices using basic authentication. To check and enable basic authentication from PowerScale's end, do the following:
 
     i. Establish an SSH connection with the PowerScale node.
     ii. Execute the following command: 
@@ -344,61 +400,4 @@ To uninstall the PowerScale CSI driver manually, do the following:
     ::
 
             kubectl delete deployments snapshot-controller -n kube-system
-
-PowerScale User Privileges
----------------------------
-
-The username specified in ``secret.yaml`` must be from the authentication providers of PowerScale. The user must have sufficient privileges to perform the required actions. The suggested privileges are as follows:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 40 20
-
-   * - Privilege
-     - Type
-   * - ISI_PRIV_LOGIN_PAPI
-     - Read Only
-   * - ISI_PRIV_NFS
-     - Read Write
-   * - ISI_PRIV_QUOTA
-     - Read Write
-   * - ISI_PRIV_SNAPSHOT
-     - Read Write
-   * - ISI_PRIV_IFS_RESTORE
-     - Read Only
-   * - ISI_PRIV_NS_IFS_ACCESS
-     - Read Only
-   * - ISI_PRIV_IFS_BACKUP
-     - Read Only
-   * - ISI_PRIV_AUTH_ZONES
-     - Read Only
-   * - ISI_PRIV_SYNCIQ
-     - Read Write
-   * - ISI_PRIV_STATISTICS
-     - Read Only
-
-For more information, see the `CSM Installation Guide <https://dell.github.io/csm-docs/docs/getting-started/installation/kubernetes/powerscale/helm/#user-privileges>`_.
-
-**Create Group and User for CSM**
-
-To create a user with the required privileges, follow these steps:
-
-1. Create the group and user:
-
-   .. code-block:: bash
-
-      isi auth group create csmadmins --zone system
-      isi auth user create csmadmin --password "P@ssw0rd123" --password-expires false --primary-group csmadmins --zone system
-
-2. Create the role and assign the required permissions:
-
-   .. code-block:: bash
-
-      isi auth roles create CSMAdminRole --description "Dell CSM Admin Role" --zone System
-      isi auth roles modify CSMAdminRole --zone System --add-priv-read ISI_PRIV_LOGIN_PAPI --add-priv-read ISI_PRIV_IFS_RESTORE --add-priv-read ISI_PRIV_NS_IFS_ACCESS --add-priv-read ISI_PRIV_IFS_BACKUP --add-priv-read ISI_PRIV_AUTH --add-priv-read ISI_PRIV_AUTH_ZONES --add-priv-read ISI_PRIV_STATISTICS
-      isi auth roles modify CSMAdminRole --zone System --add-priv-write ISI_PRIV_NFS --add-priv-write ISI_PRIV_QUOTA --add-priv-write ISI_PRIV_SNAPSHOT --add-priv-write ISI_PRIV_SYNCIQ
-      isi auth roles modify CSMAdminRole --add-group csmadmins
-
-.. note::
-   Ensure that all roles for the given user (check with ``isi auth roles list``) have these privileges.
 
