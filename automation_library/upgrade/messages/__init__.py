@@ -20,10 +20,20 @@ from .upgrade_core_msgs import (
     TEST_ASSERT_MSGS,
     SKIP_MSGS,
 )
+from .prepare_upgrade_msgs import (
+    PREPARE_TEST_NAMES,
+    PREPARE_LOG_MSGS,
+    PREPARE_ASSERT_MSGS,
+    PREPARE_SKIP_MSGS,
+)
 
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
     "TEST_ASSERT_MSGS",
     "SKIP_MSGS",
+    "PREPARE_TEST_NAMES",
+    "PREPARE_LOG_MSGS",
+    "PREPARE_ASSERT_MSGS",
+    "PREPARE_SKIP_MSGS",
 ]

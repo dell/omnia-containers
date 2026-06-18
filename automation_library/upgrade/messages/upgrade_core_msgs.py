@@ -128,15 +128,9 @@ TEST_LOG_MSGS: Dict[str, str] = {
 
     # --- Input files backup verification -------------------------------------
     "input_files_check": "Verifying input files backup (md5sum)",
-    "input_file_ok": "  ✓ {name} — md5 validated",
-    "input_file_mismatch": (
-        "  ✗ {name} — MISMATCH (backup: {bk_md5}, current: {cur_md5})"
-    ),
+    "input_file_ok": "  ✓ {name}",
+    "input_file_mismatch": "  ✗ {name}",
     "input_files_none": "  No input files found in backup",
-
-    "pd_header": "  project_default/ ({count} files — existence check only):",
-    "pd_file_ok": "    ✓ {name}",
-    "pd_file_missing": "    ✗ {name} — MISSING",
 
     # --- Metadata backup verification ----------------------------------------
     "metadata_check": "Verifying metadata backup files",
@@ -161,6 +155,7 @@ TEST_LOG_MSGS: Dict[str, str] = {
     ),
     "post_container_running": "✓ omnia_core container is running",
     "post_container_not_running": "✗ omnia_core container is NOT running",
+
 }
 
 # =============================================================================
@@ -318,6 +313,7 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  2. Start: systemctl start omnia_core.service\n"
         "  3. Check logs: journalctl -u omnia_core.service"
     ),
+
 }
 
 # =============================================================================

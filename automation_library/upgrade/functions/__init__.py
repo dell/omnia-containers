@@ -31,6 +31,9 @@ from .upgrade_core_func import (
     verify_quadlet_backup,
     verify_post_upgrade_state,
 )
+from .prepare_upgrade_func import (
+    run_prepare_upgrade,
+)
 
 __all__ = [
     "validate_operation",
@@ -48,4 +51,5 @@ __all__ = [
     "verify_metadata_backup",
     "verify_quadlet_backup",
     "verify_post_upgrade_state",
+    "run_prepare_upgrade",
 ]

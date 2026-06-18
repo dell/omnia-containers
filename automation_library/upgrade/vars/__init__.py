@@ -21,6 +21,9 @@ from .upgrade_core_vars import (
     VERSION_PROPERTIES,
     get_core_tag_for_version,
 )
+from .prepare_upgrade_vars import (
+    PREPARE_UPGRADE_VARS,
+)
 
 __all__ = [
     "UPGRADE_VARS",
@@ -28,4 +31,5 @@ __all__ = [
     "VALID_OPERATIONS",
     "VERSION_PROPERTIES",
     "get_core_tag_for_version",
+    "PREPARE_UPGRADE_VARS",
 ]

@@ -529,59 +529,33 @@ def test_verify_input_files(host):
 
     log.check(LOG["input_files_check"])
     result = verify_input_files_backup(host)
-    user_files = result.get("files", [])
-    pd_files = result.get("project_default_files", [])
+    files = result.get("files", [])
 
-    if not user_files and not pd_files:
+    if not files:
         log.failed(LOG["input_files_none"], result["error"])
         pytest.fail(
             ASSERT["input_files_empty"].format(path=backup_path)
         )
 
-    # Top-level user files (md5sum validated)
-    for f in user_files:
+    # Build details — show ✓/✗ for every file (no printing during search)
+    lines = []
+    for f in files:
         if f["match"] == "✓":
-            print(
-                f"    {LOG['input_file_ok'].format(name=f['name'])}",
-                flush=True,
-            )
+            lines.append(LOG["input_file_ok"].format(name=f["name"]))
         else:
-            print(
-                f"    {LOG['input_file_mismatch'].format(name=f['name'], bk_md5=f['backup_md5'], cur_md5=f['current_md5'])}",
-                flush=True,
-            )
+            lines.append(LOG["input_file_mismatch"].format(name=f["name"]))
+    details = "\n".join(lines)
 
-    # project_default/ files (existence check only)
-    if pd_files:
-        print(
-            f"    {LOG['pd_header'].format(count=len(pd_files))}",
-            flush=True,
-        )
-        for f in pd_files:
-            if f["exists"]:
-                print(
-                    f"    {LOG['pd_file_ok'].format(name=f['name'])}",
-                    flush=True,
-                )
-            else:
-                print(
-                    f"    {LOG['pd_file_missing'].format(name=f['name'])}",
-                    flush=True,
-                )
-
-    total = len(user_files) + len(pd_files)
     if result["success"]:
         log.passed(
-            f"All {total} input files validated",
-            "",
+            f"All {len(files)} input files validated (md5sum)",
+            details,
         )
     else:
-        md5_fail = [f["name"] for f in user_files if f["match"] != "✓"]
-        missing_pd = [f["name"] for f in pd_files if not f["exists"]]
-        issues = md5_fail + missing_pd
+        mismatched = [f["name"] for f in files if f["match"] != "✓"]
         log.failed(
-            f"Input file issues: {', '.join(issues)}",
-            result["error"],
+            f"Input file mismatch: {', '.join(mismatched)}",
+            details,
         )
         pytest.fail(
             ASSERT["input_files_mismatch"].format(path=backup_path)

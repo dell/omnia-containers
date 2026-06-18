@@ -705,21 +705,21 @@ def verify_backup_directory(host) -> Dict[str, Any]:
 
 def verify_input_files_backup(host) -> Dict[str, Any]:
     """
-    Verify backup of input files.
+    Verify backup of ALL input files (including project_default/) using md5sum.
 
-    - **Top-level files** (e.g., ``default.yml``): md5sum comparison with
-      current — these are user-modified and must be identical.
-    - **project_default/ files**: existence check only — framework defaults
-      change between versions, so md5 mismatch is expected.
+    Scans ``{backup_path}/input/`` recursively. For each file, computes
+    md5sum of both backup and current, reports ✓ (match) or ✗ (mismatch).
 
-    Scans ``{backup_path}/input/`` recursively.
+    Top-level user files (e.g. ``default.yml``) must match — mismatch is a
+    failure. ``project_default/`` files may change between versions, so
+    mismatches there are reported but do not cause a test failure.
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, files (list of dicts), project_default_files
-              (list of dicts), error
+        Dict with success, files (list of dicts with name, match, critical),
+              error
     """
     container = UPGRADE_VARS["container_name"]
     backup_path = UPGRADE_VARS["backup_path"]
@@ -737,65 +737,49 @@ def verify_input_files_backup(host) -> Dict[str, Any]:
         return {
             "success": False,
             "files": [],
-            "project_default_files": [],
             "error": f"No files found in {backup_input}",
         }
 
     rel_paths = [
         f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
     ]
-
-    # Split: top-level user files vs project_default/ framework files
-    user_files: List[Dict[str, str]] = []
-    pd_files: List[Dict[str, Any]] = []
-    all_ok = True
+    files: List[Dict[str, Any]] = []
+    critical_fail = False
 
     for rel_path in rel_paths:
-        if rel_path.startswith("project_default/"):
-            # Existence check only (framework defaults change between versions)
-            chk = run_in_container(
-                host,
-                f"test -f '{backup_input}/{rel_path}'",
-                container=container,
-            )
-            exists = chk.rc == 0
-            if not exists:
-                all_ok = False
-            pd_files.append({
-                "name": rel_path,
-                "exists": exists,
-            })
-        else:
-            # md5sum comparison for user-modified files
-            bk_md5_cmd = run_in_container(
-                host,
-                f"md5sum '{backup_input}/{rel_path}' 2>/dev/null "
-                f"| awk '{{print $1}}'",
-                container=container,
-            )
-            cur_md5_cmd = run_in_container(
-                host,
-                f"md5sum '{current_input}/{rel_path}' 2>/dev/null "
-                f"| awk '{{print $1}}'",
-                container=container,
-            )
-            bk_md5 = bk_md5_cmd.stdout.strip() if bk_md5_cmd.rc == 0 else ""
-            cur_md5 = cur_md5_cmd.stdout.strip() if cur_md5_cmd.rc == 0 else ""
-            match = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
-            if not match:
-                all_ok = False
-            user_files.append({
-                "name": rel_path,
-                "backup_md5": bk_md5,
-                "current_md5": cur_md5,
-                "match": "✓" if match else "✗",
-            })
+        bk_md5_cmd = run_in_container(
+            host,
+            f"md5sum '{backup_input}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+            container=container,
+        )
+        cur_md5_cmd = run_in_container(
+            host,
+            f"md5sum '{current_input}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+            container=container,
+        )
+        bk_md5 = bk_md5_cmd.stdout.strip() if bk_md5_cmd.rc == 0 else ""
+        cur_md5 = cur_md5_cmd.stdout.strip() if cur_md5_cmd.rc == 0 else ""
+        match = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
+
+        # project_default/ mismatches are expected (framework defaults change)
+        is_critical = not rel_path.startswith("project_default/")
+        if not match and is_critical:
+            critical_fail = True
+
+        files.append({
+            "name": rel_path,
+            "match": "✓" if match else "✗",
+            "critical": is_critical,
+        })
 
     return {
-        "success": all_ok,
-        "files": user_files,
-        "project_default_files": pd_files,
-        "error": "" if all_ok else "Some input files failed verification",
+        "success": not critical_fail,
+        "files": files,
+        "error": "" if not critical_fail else (
+            "Some user input files do not match"
+        ),
     }
 
 
