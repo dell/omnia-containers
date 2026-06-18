@@ -20,7 +20,7 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, List
+from typing import Dict, Any, Callable, List
 
 import yaml
 import testinfra
@@ -179,6 +179,87 @@ def run_on_remote_node(
         f'root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
     )
     return run_in_container(host, ssh_cmd)
+
+
+def compare_directory_md5sum(
+    host: testinfra.host.Host,
+    backup_dir: str,
+    current_dir: str,
+    backup_cmd_fn: Callable[..., subprocess.CompletedProcess],
+    current_cmd_fn: Callable[..., subprocess.CompletedProcess],
+) -> Dict[str, Any]:
+    """
+    Compare md5sum of every file in *backup_dir* against *current_dir*.
+
+    This is a **generic, reusable utility** — any module that needs to
+    compare two directory trees by md5sum can call this.  The caller
+    provides two command runners so the function works regardless of
+    whether the directories are on the OIM host, inside a container, or
+    on a remote node.
+
+    Args:
+        host: Testinfra host object (passed through to command runners).
+        backup_dir: Absolute path to the "backup" (source) directory.
+        current_dir: Absolute path to the "current" (target) directory.
+        backup_cmd_fn: ``fn(host, cmd) -> result`` — runs a shell command
+            where *backup_dir* lives.
+        current_cmd_fn: ``fn(host, cmd) -> result`` — runs a shell command
+            where *current_dir* lives.
+
+    Returns:
+        Dict with:
+        - **success** (bool): True if every file matched.
+        - **files** (list[dict]): Per-file results, each dict has
+          ``name`` (str) and ``match`` (``"✓"`` or ``"✗"``).
+        - **error** (str): Empty on success, description on failure.
+    """
+    # List all files in backup dir (relative paths, sorted)
+    ls_cmd = backup_cmd_fn(
+        host,
+        f"find '{backup_dir}' -type f "
+        f"| sed 's|^{backup_dir}/||' | sort",
+    )
+    if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
+        return {
+            "success": False,
+            "files": [],
+            "error": f"No files found in {backup_dir}",
+        }
+
+    rel_paths = [
+        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
+    ]
+
+    files: List[Dict[str, str]] = []
+    all_match = True
+
+    for rel_path in rel_paths:
+        bk_cmd = backup_cmd_fn(
+            host,
+            f"md5sum '{backup_dir}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+        )
+        cur_cmd = current_cmd_fn(
+            host,
+            f"md5sum '{current_dir}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+        )
+        bk_md5 = bk_cmd.stdout.strip() if bk_cmd.rc == 0 else ""
+        cur_md5 = cur_cmd.stdout.strip() if cur_cmd.rc == 0 else ""
+        matched = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
+        if not matched:
+            all_match = False
+
+        files.append({
+            "name": rel_path,
+            "match": "✓" if matched else "✗",
+        })
+
+    return {
+        "success": all_match,
+        "files": files,
+        "error": "" if all_match else "Some files do not match",
+    }
 
 
 # Column name mapping (CSV header -> internal field name)

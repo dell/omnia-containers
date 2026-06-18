@@ -27,6 +27,7 @@ from .host_func import (
     get_nodes_info,
     check_container_running,
     make_verification_result,
+    compare_directory_md5sum,
     get_project_root,
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,

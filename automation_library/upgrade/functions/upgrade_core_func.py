@@ -456,42 +456,65 @@ def download_omnia_sh(host) -> Dict[str, Any]:
     """
     Download omnia.sh from the configured omnia_branch and mark executable.
 
-    Same pattern as oim-prereq-check repository.download_omnia_sh().
+    Tries branch URL first, then tag URL (same fallback pattern as
+    oim-prereq-check ``repository.download_omnia_sh()``).
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, path, error
+        Dict with success, path, url, ref_type, error
     """
     omnia_branch = UPGRADE_VARS["omnia_branch"]
     clone_path = UPGRADE_VARS["clone_path"]
     omnia_sh_path = f"{clone_path}/omnia.sh"
+    branch_url = UPGRADE_VARS["omnia_sh_branch_url"]
+    tag_url = UPGRADE_VARS["omnia_sh_tag_url"]
 
-    base_url = "https://raw.githubusercontent.com/dell/omnia"
-    url = f"{base_url}/{omnia_branch}/omnia.sh"
-
-    cmd = run_on_oim(
-        host,
-        f"curl -f -o {omnia_sh_path} {url}",
-    )
-
-    if cmd.rc != 0:
+    if not omnia_branch:
         return {
             "success": False,
             "path": omnia_sh_path,
-            "url": url,
-            "error": cmd.stderr or cmd.stdout or "curl failed",
+            "url": "",
+            "ref_type": "",
+            "error": "omnia_branch not configured in omnia_test_config.yml",
         }
 
-    # Make executable
-    run_on_oim(host, f"chmod +x {omnia_sh_path}")
+    # Try branch URL first
+    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{branch_url}'")
+    if cmd.rc == 0:
+        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
+        return {
+            "success": True,
+            "path": omnia_sh_path,
+            "url": branch_url,
+            "ref_type": "branch",
+            "error": "",
+        }
 
+    # Fallback: try tag URL
+    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{tag_url}'")
+    if cmd.rc == 0:
+        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
+        return {
+            "success": True,
+            "path": omnia_sh_path,
+            "url": tag_url,
+            "ref_type": "tag",
+            "error": "",
+        }
+
+    # Both failed
     return {
-        "success": True,
+        "success": False,
         "path": omnia_sh_path,
-        "url": url,
-        "error": "",
+        "url": f"{branch_url} / {tag_url}",
+        "ref_type": "",
+        "error": (
+            f"Failed to download omnia.sh from '{omnia_branch}'.\n"
+            f"  Tried branch: {branch_url}\n"
+            f"  Tried tag:    {tag_url}"
+        ),
     }
 
 
@@ -624,20 +647,17 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
 
 def verify_backup_directory(host) -> Dict[str, Any]:
     """
-    Verify backup directory structure: expected sub-dirs, key files, and
-    a ``find``-based tree listing.
+    Verify backup directory exists with expected sub-directories.
 
     Checks:
     - ``{backup_path}`` exists
-    - Sub-directories: ``input/``, ``metadata/``, ``configs/``
-    - Key files: ``configs/omnia_core.container``
+    - Sub-directories: ``configs/``, ``input/``, ``metadata/``, ``openchami/``
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, backup_path, sub_dirs (dict), files (dict),
-              tree (str), error
+        Dict with success, backup_path, sub_dirs (dict), error
     """
     container = UPGRADE_VARS["container_name"]
     backup_path = UPGRADE_VARS["backup_path"]
@@ -650,13 +670,11 @@ def verify_backup_directory(host) -> Dict[str, Any]:
             "success": False,
             "backup_path": backup_path,
             "sub_dirs": {},
-            "files": {},
-            "tree": "",
             "error": f"Backup directory not found: {backup_path}",
         }
 
     # Sub-directories
-    expected_subs = ("input", "metadata", "configs")
+    expected_subs = ("configs", "input", "metadata", "openchami")
     sub_dirs: Dict[str, bool] = {}
     for sub in expected_subs:
         chk = run_in_container(
@@ -664,233 +682,14 @@ def verify_backup_directory(host) -> Dict[str, Any]:
         )
         sub_dirs[sub] = chk.rc == 0
 
-    # Key files
-    expected_files = {
-        "configs/omnia_core.container": False,
-    }
-    for fpath in expected_files:
-        chk = run_in_container(
-            host, f"test -f '{backup_path}/{fpath}'", container=container,
-        )
-        expected_files[fpath] = chk.rc == 0
-
-    # Tree listing (depth 3)
-    tree_cmd = run_in_container(
-        host,
-        f"find '{backup_path}' -maxdepth 3 -print "
-        f"| sed 's|{backup_path}||' | sort",
-        container=container,
-    )
-    tree = tree_cmd.stdout.strip() if tree_cmd.rc == 0 else ""
-
     missing_dirs = [k for k, v in sub_dirs.items() if not v]
-    missing_files = [k for k, v in expected_files.items() if not v]
-    all_ok = len(missing_dirs) == 0 and len(missing_files) == 0
-
-    errors: List[str] = []
-    if missing_dirs:
-        errors.append(f"Missing dirs: {', '.join(missing_dirs)}")
-    if missing_files:
-        errors.append(f"Missing files: {', '.join(missing_files)}")
+    all_ok = len(missing_dirs) == 0
 
     return {
         "success": all_ok,
         "backup_path": backup_path,
         "sub_dirs": sub_dirs,
-        "files": expected_files,
-        "tree": tree,
-        "error": "; ".join(errors) if errors else "",
-    }
-
-
-def verify_input_files_backup(host) -> Dict[str, Any]:
-    """
-    Verify backup of ALL input files (including project_default/) using md5sum.
-
-    Scans ``{backup_path}/input/`` recursively. For each file, computes
-    md5sum of both backup and current, reports ✓ (match) or ✗ (mismatch).
-
-    Top-level user files (e.g. ``default.yml``) must match — mismatch is a
-    failure. ``project_default/`` files may change between versions, so
-    mismatches there are reported but do not cause a test failure.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with success, files (list of dicts with name, match, critical),
-              error
-    """
-    container = UPGRADE_VARS["container_name"]
-    backup_path = UPGRADE_VARS["backup_path"]
-    backup_input = f"{backup_path}/input"
-    current_input = "/opt/omnia/input"
-
-    # List all files recursively (relative paths from backup_input)
-    ls_cmd = run_in_container(
-        host,
-        f"find '{backup_input}' -type f "
-        f"| sed 's|^{backup_input}/||' | sort",
-        container=container,
-    )
-    if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
-        return {
-            "success": False,
-            "files": [],
-            "error": f"No files found in {backup_input}",
-        }
-
-    rel_paths = [
-        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
-    ]
-    files: List[Dict[str, Any]] = []
-    critical_fail = False
-
-    for rel_path in rel_paths:
-        bk_md5_cmd = run_in_container(
-            host,
-            f"md5sum '{backup_input}/{rel_path}' 2>/dev/null "
-            f"| awk '{{print $1}}'",
-            container=container,
-        )
-        cur_md5_cmd = run_in_container(
-            host,
-            f"md5sum '{current_input}/{rel_path}' 2>/dev/null "
-            f"| awk '{{print $1}}'",
-            container=container,
-        )
-        bk_md5 = bk_md5_cmd.stdout.strip() if bk_md5_cmd.rc == 0 else ""
-        cur_md5 = cur_md5_cmd.stdout.strip() if cur_md5_cmd.rc == 0 else ""
-        match = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
-
-        # project_default/ mismatches are expected (framework defaults change)
-        is_critical = not rel_path.startswith("project_default/")
-        if not match and is_critical:
-            critical_fail = True
-
-        files.append({
-            "name": rel_path,
-            "match": "✓" if match else "✗",
-            "critical": is_critical,
-        })
-
-    return {
-        "success": not critical_fail,
-        "files": files,
-        "error": "" if not critical_fail else (
-            "Some user input files do not match"
-        ),
-    }
-
-
-def verify_metadata_backup(host) -> Dict[str, Any]:
-    """
-    Verify that metadata backup files exist (no md5 — metadata may change).
-
-    Lists all files in ``{backup_path}/metadata/`` and reports their presence.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with success, files (list of dicts with name, exists), error
-    """
-    container = UPGRADE_VARS["container_name"]
-    backup_path = UPGRADE_VARS["backup_path"]
-    metadata_dir = f"{backup_path}/metadata"
-
-    chk = run_in_container(
-        host, f"test -d '{metadata_dir}'", container=container,
-    )
-    if chk.rc != 0:
-        return {
-            "success": False,
-            "files": [],
-            "error": f"Metadata directory not found: {metadata_dir}",
-        }
-
-    ls_cmd = run_in_container(
-        host,
-        f"find '{metadata_dir}' -type f "
-        f"| sed 's|^{metadata_dir}/||' | sort",
-        container=container,
-    )
-    if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
-        return {
-            "success": False,
-            "files": [],
-            "error": f"No files found in {metadata_dir}",
-        }
-
-    rel_paths = [
-        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
-    ]
-    files: List[Dict[str, Any]] = []
-    for rel_path in rel_paths:
-        chk = run_in_container(
-            host,
-            f"test -s '{metadata_dir}/{rel_path}'",
-            container=container,
-        )
-        files.append({"name": rel_path, "exists": chk.rc == 0})
-
-    all_ok = all(f["exists"] for f in files)
-    return {
-        "success": all_ok,
-        "files": files,
-        "error": "" if all_ok else "Some metadata files are missing or empty",
-    }
-
-
-def verify_quadlet_backup(host) -> Dict[str, Any]:
-    """
-    Verify that the quadlet file (omnia_core.container) was backed up.
-
-    Checks:
-    - ``{backup_path}/configs/omnia_core.container`` exists
-    - The backup file is non-empty
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with success, quadlet_path, size, error
-    """
-    container = UPGRADE_VARS["container_name"]
-    backup_path = UPGRADE_VARS["backup_path"]
-    quadlet_path = f"{backup_path}/configs/omnia_core.container"
-
-    chk = run_in_container(
-        host, f"test -f '{quadlet_path}'", container=container,
-    )
-    if chk.rc != 0:
-        return {
-            "success": False,
-            "quadlet_path": quadlet_path,
-            "size": 0,
-            "error": f"Quadlet backup not found: {quadlet_path}",
-        }
-
-    size_cmd = run_in_container(
-        host,
-        f"stat -c '%s' '{quadlet_path}' 2>/dev/null || echo 0",
-        container=container,
-    )
-    size = int(size_cmd.stdout.strip()) if size_cmd.stdout.strip().isdigit() else 0
-
-    if size == 0:
-        return {
-            "success": False,
-            "quadlet_path": quadlet_path,
-            "size": 0,
-            "error": "Quadlet backup file is empty",
-        }
-
-    return {
-        "success": True,
-        "quadlet_path": quadlet_path,
-        "size": size,
-        "error": "",
+        "error": f"Missing dirs: {', '.join(missing_dirs)}" if missing_dirs else "",
     }
 
 
@@ -934,9 +733,10 @@ def verify_post_upgrade_state(host) -> Dict[str, Any]:
     # 3. Read version from metadata
     version = ""
     if container_running:
+        metadata_path = UPGRADE_VARS["oim_metadata_path"]
         meta_cmd = run_in_container(
             host,
-            "grep '^omnia_version:' /opt/omnia/.data/oim_metadata.yml "
+            f"grep '^omnia_version:' {metadata_path} "
             "| awk '{print $2}' | tr -d '\"'",
             container=container,
         )

@@ -1,0 +1,71 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Molecule Configuration for Omnia Rollback Testing
+# =============================================================================
+#
+# This module tests the Omnia rollback workflow (e.g., 2.2.0.0 → 2.1.0.0).
+# Tests only — no converge step (rollback is driven from within tests).
+#
+# PREREQUISITES:
+# --------------
+#   - omnia_core container running at the NEW version (e.g., 2.2.0.0)
+#   - An upgrade has already been performed (backup exists)
+#   - The original image (e.g., omnia_core:2.1) is available locally
+#   - 'upgrade' section configured in omnia_test_config.yml
+#
+# USAGE:
+# ------
+#   ./run_molecule.sh rollback_omnia_sh verify     # Run verification tests
+#   ./run_molecule.sh rollback_omnia_sh test        # Full test sequence
+#
+# Configuration (omnia_test_config.yml):
+#   upgrade:
+#     operation: "upgrade"        # must be "upgrade" or "rollback"
+#     current_version: "2.1.0.0"  # pre-upgrade version (rollback target)
+#     new_version: "2.2.0.0"      # post-upgrade version (current state)
+#     repo_branch: "omnia-container"
+#
+# =============================================================================
+
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+  options:
+    managed: false
+
+platforms:
+  - name: oim_server
+
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_VERBOSITY: 1
+    ANSIBLE_HOST_KEY_CHECKING: "false"
+
+verifier:
+  name: testinfra
+  directory: ./tests/sanity
+  options:
+    v: true
+    s: true
+    tb: short
+
+scenario:
+  name: rollback_omnia_sh
+  test_sequence:
+    - verify

@@ -40,7 +40,7 @@ from automation_library.upgrade.messages import (
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(9)
+@pytest.mark.order(11)
 def test_run_prepare_upgrade(host):
     """
     Test Case 1: Run prepare_upgrade.yml inside omnia_core container.

@@ -34,7 +34,12 @@ Usage:
 
 from typing import Dict, Any, Tuple
 
-from ...core import load_omnia_test_config, OMNIA_CORE_CONTAINER
+from ...core import (
+    load_omnia_test_config,
+    OMNIA_CORE_CONTAINER,
+    OMNIA_GIT_RAW_BASE_URL,
+    OIM_METADATA_PATH,
+)
 
 _omnia_test_config = load_omnia_test_config()
 
@@ -84,8 +89,8 @@ VERSION_PROPERTIES: Dict[str, Dict[str, str]] = {
 # DERIVED VALUES (from user config)
 # =============================================================================
 
-_current_version: str = _upgrade_config.get("current_version", "2.1.0.0")
-_new_version: str = _upgrade_config.get("new_version", "2.2.0.0")
+_current_version: str = _upgrade_config.get("current_version", "")
+_new_version: str = _upgrade_config.get("new_version", "")
 _new_version_key: str = f"omnia_version_{_new_version.replace('.', '_')}"
 _new_core_tag: str = VERSION_PROPERTIES.get(_new_version_key, {}).get(
     "core_tag", _new_version.rsplit(".", 2)[0],
@@ -123,11 +128,19 @@ UPGRADE_VARS: Dict[str, Any] = {
     # =========================================================================
     # REPOSITORY & BUILD  (from omnia_test_config.yml)
     # =========================================================================
-    "repo_url": _upgrade_config.get(
-        "repo_url", "https://github.com/dell/omnia-artifactory.git",
+    "repo_url": _upgrade_config.get("repo_url", ""),
+    "repo_branch": _upgrade_config.get("repo_branch", ""),
+    "omnia_branch": _upgrade_config.get("omnia_branch", ""),
+
+    # omnia.sh download URLs (branch fallback → tag fallback)
+    "omnia_sh_branch_url": (
+        f"{OMNIA_GIT_RAW_BASE_URL}/"
+        f"{_upgrade_config.get('omnia_branch', '')}/omnia.sh"
     ),
-    "repo_branch": _upgrade_config.get("repo_branch", "omnia-container"),
-    "omnia_branch": _upgrade_config.get("omnia_branch", "pub/q2_upgrade"),
+    "omnia_sh_tag_url": (
+        f"{OMNIA_GIT_RAW_BASE_URL}/"
+        f"refs/tags/{_upgrade_config.get('omnia_branch', '')}/omnia.sh"
+    ),
 
     # Clone path — auto-derived from new_version, deleted and re-created on
     # every run to guarantee a fresh clone.
@@ -137,7 +150,7 @@ UPGRADE_VARS: Dict[str, Any] = {
     # CONTAINER / PATH CONSTANTS
     # =========================================================================
     "container_name": OMNIA_CORE_CONTAINER,
-    "oim_metadata_path": "/opt/omnia/.data/oim_metadata.yml",
+    "oim_metadata_path": OIM_METADATA_PATH,
     "backup_path": f"/opt/omnia/backups/upgrade/version_{_current_version}",
     "quadlet_file_path": "/etc/containers/systemd/omnia_core.container",
 

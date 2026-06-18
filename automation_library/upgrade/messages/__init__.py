@@ -26,6 +26,12 @@ from .prepare_upgrade_msgs import (
     PREPARE_ASSERT_MSGS,
     PREPARE_SKIP_MSGS,
 )
+from .backup_verify_msgs import (
+    BACKUP_TEST_NAMES,
+    BACKUP_LOG_MSGS,
+    BACKUP_ASSERT_MSGS,
+    BACKUP_SKIP_MSGS,
+)
 
 __all__ = [
     "TEST_NAMES",
@@ -36,4 +42,8 @@ __all__ = [
     "PREPARE_LOG_MSGS",
     "PREPARE_ASSERT_MSGS",
     "PREPARE_SKIP_MSGS",
+    "BACKUP_TEST_NAMES",
+    "BACKUP_LOG_MSGS",
+    "BACKUP_ASSERT_MSGS",
+    "BACKUP_SKIP_MSGS",
 ]

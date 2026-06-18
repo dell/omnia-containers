@@ -12,28 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Upgrade Variables Module."""
+"""Rollback Functions Module."""
 
-from .upgrade_core_vars import (
-    UPGRADE_VARS,
-    SUPPORTED_VERSIONS,
-    VALID_OPERATIONS,
-    VERSION_PROPERTIES,
-    get_core_tag_for_version,
-)
-from .prepare_upgrade_vars import (
-    PREPARE_UPGRADE_VARS,
-)
-from .backup_verify_vars import (
-    BACKUP_VERIFY_VARS,
+from .rollback_func import (
+    check_rollback_image,
+    download_omnia_sh_for_rollback,
+    run_omnia_rollback,
+    verify_rollback_container,
+    verify_project_default_restored,
 )
 
 __all__ = [
-    "UPGRADE_VARS",
-    "SUPPORTED_VERSIONS",
-    "VALID_OPERATIONS",
-    "VERSION_PROPERTIES",
-    "get_core_tag_for_version",
-    "PREPARE_UPGRADE_VARS",
-    "BACKUP_VERIFY_VARS",
+    "check_rollback_image",
+    "download_omnia_sh_for_rollback",
+    "run_omnia_rollback",
+    "verify_rollback_container",
+    "verify_project_default_restored",
 ]

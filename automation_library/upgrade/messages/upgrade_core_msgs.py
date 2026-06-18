@@ -120,30 +120,6 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "backup_dir_check": "Checking backup directory structure: {path}",
     "backup_dir_found": "✓ Backup directory verified: {path}",
     "backup_dir_not_found": "✗ Backup directory not found: {path}",
-    "backup_sub_ok": "  ✓ {name}/",
-    "backup_sub_missing": "  ✗ {name}/ — MISSING",
-    "backup_file_ok": "  ✓ {path}",
-    "backup_file_missing": "  ✗ {path} — MISSING",
-    "backup_tree_header": "Backup directory tree:",
-
-    # --- Input files backup verification -------------------------------------
-    "input_files_check": "Verifying input files backup (md5sum)",
-    "input_file_ok": "  ✓ {name}",
-    "input_file_mismatch": "  ✗ {name}",
-    "input_files_none": "  No input files found in backup",
-
-    # --- Metadata backup verification ----------------------------------------
-    "metadata_check": "Verifying metadata backup files",
-    "metadata_file_ok": "  ✓ {name}",
-    "metadata_file_missing": "  ✗ {name} — MISSING",
-    "metadata_none": "  No metadata files found in backup",
-
-    # --- Quadlet backup verification -----------------------------------------
-    "quadlet_check": "Checking quadlet backup: configs/omnia_core.container",
-    "quadlet_ok": "✓ omnia_core.container backed up ({size} bytes)",
-    "quadlet_not_found": "✗ omnia_core.container not found in backup",
-    "quadlet_empty": "✗ omnia_core.container is empty (0 bytes)",
-
     # --- Post-upgrade --------------------------------------------------------
     "post_container_check": "Checking post-upgrade container state",
     "post_container_name": "Container: {name}",
@@ -267,34 +243,6 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "HOW TO FIX:\n"
         "  1. Check: podman exec omnia_core ls -laR {path}\n"
         "  2. The upgrade may have failed during backup creation"
-    ),
-    "input_files_mismatch": (
-        "Some input files in the backup do not match current files.\n"
-        "Backup path: {path}/input/\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check: podman exec omnia_core ls -la {path}/input/\n"
-        "  2. Compare manually with /opt/omnia/input/"
-    ),
-    "input_files_empty": (
-        "No input files found in backup.\n"
-        "Expected files in: {path}/input/\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check: podman exec omnia_core ls -la {path}/input/\n"
-        "  2. Verify /opt/omnia/input/ has files before upgrade"
-    ),
-    "quadlet_missing": (
-        "Quadlet backup file not found.\n"
-        "Expected: {path}/configs/omnia_core.container\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check: podman exec omnia_core ls -la {path}/configs/\n"
-        "  2. The upgrade may have failed during config backup"
-    ),
-    "metadata_missing": (
-        "Metadata backup files missing.\n"
-        "Backup path: {path}/metadata/\n\n"
-        "HOW TO FIX:\n"
-        "  1. Check: podman exec omnia_core ls -la {path}/metadata/\n"
-        "  2. The upgrade may have failed during metadata backup"
     ),
     "post_upgrade_version_mismatch": (
         "Version mismatch after upgrade.\n"

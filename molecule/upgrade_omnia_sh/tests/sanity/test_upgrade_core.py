@@ -27,11 +27,8 @@ Test cases (executed in order):
 1. Verify omnia_core is running the FROM version
 2. Clone repo, build core image, download omnia.sh
 3. Run omnia.sh --upgrade (with 10s progress output, last 50 lines on finish)
-4. Verify backup directory structure (tree, expected dirs and files)
-5. Verify input files backup integrity (md5sum, including project_default/)
-6. Verify metadata backup files (existence check, no md5)
-7. Verify quadlet file (omnia_core.container) backed up
-8. Verify omnia_core upgraded to TO version and container is healthy
+4. Verify omnia_core upgraded to TO version and container is healthy
+5. Verify backup directory created (configs, input, metadata, openchami)
 """
 
 import pytest
@@ -49,9 +46,6 @@ from automation_library.upgrade.functions import (
     download_omnia_sh,
     run_omnia_upgrade,
     verify_backup_directory,
-    verify_input_files_backup,
-    verify_metadata_backup,
-    verify_quadlet_backup,
     verify_post_upgrade_state,
 )
 from automation_library.upgrade.vars import (
@@ -420,247 +414,14 @@ def test_run_upgrade(host):
 
 
 # =============================================================================
-# TC-4: VERIFY BACKUP DIRECTORY STRUCTURE
+# TC-4: VERIFY POST-UPGRADE STATE
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(4)
-def test_verify_backup_directory(host):
-    """
-    Test Case 4: Verify backup directory structure.
-
-    Checks:
-    - Backup directory exists
-    - Sub-directories: input/, metadata/, configs/
-    - Key files: configs/omnia_core.container
-    - Displays tree listing
-    """
-    backup_path = UPGRADE_VARS["backup_path"]
-    log = TestLogger(TEST_NAMES["verify_backup_directory"])
-
-    _gate_operation(log)
-    _skip_if_pre_upgrade_failed()
-
-    log.check(LOG["backup_dir_check"].format(path=backup_path))
-    result = verify_backup_directory(host)
-
-    if result.get("error", "").startswith("Backup directory not found"):
-        log.failed(
-            LOG["backup_dir_not_found"].format(path=backup_path),
-            result["error"],
-        )
-        pytest.fail(ASSERT["backup_dir_missing"].format(path=backup_path))
-
-    # Sub-directories
-    sub_dirs = result.get("sub_dirs", {})
-    for name, exists in sub_dirs.items():
-        if exists:
-            print(
-                f"    {LOG['backup_sub_ok'].format(name=name)}",
-                flush=True,
-            )
-        else:
-            print(
-                f"    {LOG['backup_sub_missing'].format(name=name)}",
-                flush=True,
-            )
-
-    # Key files
-    files = result.get("files", {})
-    for fpath, exists in files.items():
-        if exists:
-            print(
-                f"    {LOG['backup_file_ok'].format(path=fpath)}",
-                flush=True,
-            )
-        else:
-            print(
-                f"    {LOG['backup_file_missing'].format(path=fpath)}",
-                flush=True,
-            )
-
-    # Tree listing
-    tree = result.get("tree", "")
-    if tree:
-        print(f"    {LOG['backup_tree_header']}", flush=True)
-        for line in tree.split("\n"):
-            if line.strip():
-                print(f"      {line}", flush=True)
-
-    if result["success"]:
-        log.passed(
-            LOG["backup_dir_found"].format(path=backup_path),
-            "✓ All expected directories and files present",
-        )
-    else:
-        missing_d = [k for k, v in sub_dirs.items() if not v]
-        missing_f = [k for k, v in files.items() if not v]
-        all_missing = missing_d + missing_f
-        log.failed(
-            f"Missing: {', '.join(all_missing)}",
-            result["error"],
-        )
-        pytest.fail(
-            ASSERT["backup_dir_incomplete"].format(
-                path=backup_path,
-                missing=", ".join(all_missing),
-            )
-        )
-
-
-# =============================================================================
-# TC-5: VERIFY INPUT FILES BACKUP (MD5SUM)
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(5)
-def test_verify_input_files(host):
-    """
-    Test Case 5: Verify input files backup integrity.
-
-    Scans backup input/ recursively (including project_default/), computes
-    md5sum for each file and compares with current.
-    """
-    backup_path = UPGRADE_VARS["backup_path"]
-    log = TestLogger(TEST_NAMES["verify_input_files"])
-
-    _gate_operation(log)
-    _skip_if_pre_upgrade_failed()
-
-    log.check(LOG["input_files_check"])
-    result = verify_input_files_backup(host)
-    files = result.get("files", [])
-
-    if not files:
-        log.failed(LOG["input_files_none"], result["error"])
-        pytest.fail(
-            ASSERT["input_files_empty"].format(path=backup_path)
-        )
-
-    # Build details — show ✓/✗ for every file (no printing during search)
-    lines = []
-    for f in files:
-        if f["match"] == "✓":
-            lines.append(LOG["input_file_ok"].format(name=f["name"]))
-        else:
-            lines.append(LOG["input_file_mismatch"].format(name=f["name"]))
-    details = "\n".join(lines)
-
-    if result["success"]:
-        log.passed(
-            f"All {len(files)} input files validated (md5sum)",
-            details,
-        )
-    else:
-        mismatched = [f["name"] for f in files if f["match"] != "✓"]
-        log.failed(
-            f"Input file mismatch: {', '.join(mismatched)}",
-            details,
-        )
-        pytest.fail(
-            ASSERT["input_files_mismatch"].format(path=backup_path)
-        )
-
-
-# =============================================================================
-# TC-6: VERIFY METADATA BACKUP
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(6)
-def test_verify_metadata_backup(host):
-    """
-    Test Case 6: Verify metadata backup files exist (no md5 — metadata may
-    change during upgrade).
-    """
-    backup_path = UPGRADE_VARS["backup_path"]
-    log = TestLogger(TEST_NAMES["verify_metadata_backup"])
-
-    _gate_operation(log)
-    _skip_if_pre_upgrade_failed()
-
-    log.check(LOG["metadata_check"])
-    result = verify_metadata_backup(host)
-    files = result.get("files", [])
-
-    if not files:
-        log.failed(LOG["metadata_none"], result["error"])
-        pytest.fail(
-            ASSERT["metadata_missing"].format(path=backup_path)
-        )
-
-    for f in files:
-        if f["exists"]:
-            print(
-                f"    {LOG['metadata_file_ok'].format(name=f['name'])}",
-                flush=True,
-            )
-        else:
-            print(
-                f"    {LOG['metadata_file_missing'].format(name=f['name'])}",
-                flush=True,
-            )
-
-    if result["success"]:
-        log.passed(
-            f"All {len(files)} metadata files present",
-            "",
-        )
-    else:
-        missing = [f["name"] for f in files if not f["exists"]]
-        log.failed(
-            f"Missing metadata: {', '.join(missing)}",
-            result["error"],
-        )
-        pytest.fail(
-            ASSERT["metadata_missing"].format(path=backup_path)
-        )
-
-
-# =============================================================================
-# TC-7: VERIFY QUADLET BACKUP
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(7)
-def test_verify_quadlet_backup(host):
-    """
-    Test Case 7: Verify quadlet file (omnia_core.container) was backed up.
-    Checks the file exists in configs/ and is non-empty.
-    """
-    backup_path = UPGRADE_VARS["backup_path"]
-    log = TestLogger(TEST_NAMES["verify_quadlet_backup"])
-
-    _gate_operation(log)
-    _skip_if_pre_upgrade_failed()
-
-    log.check(LOG["quadlet_check"])
-    result = verify_quadlet_backup(host)
-
-    if result["success"]:
-        log.passed(
-            LOG["quadlet_ok"].format(size=result["size"]),
-            f"✓ {result['quadlet_path']} ({result['size']} bytes)",
-        )
-    else:
-        if result.get("size", 0) == 0 and result.get("quadlet_path"):
-            log.failed(LOG["quadlet_empty"], result["error"])
-        else:
-            log.failed(LOG["quadlet_not_found"], result["error"])
-        pytest.fail(
-            ASSERT["quadlet_missing"].format(path=backup_path)
-        )
-
-
-# =============================================================================
-# TC-8: VERIFY POST-UPGRADE STATE
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(8)
 def test_verify_post_upgrade(host):
     """
-    Test Case 8: Verify omnia_core upgraded and container is healthy.
+    Test Case 4: Verify omnia_core upgraded and container is healthy.
     Skipped if TC-1 failed.
     """
     current_ver = UPGRADE_VARS["current_version"]
@@ -738,3 +499,56 @@ def test_verify_post_upgrade(host):
         ),
         details,
     )
+
+
+# =============================================================================
+# TC-5: VERIFY BACKUP DIRECTORY
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(5)
+def test_verify_backup_directory(host):
+    """
+    Test Case 5: Verify backup directory created with expected subdirs.
+
+    Checks: configs/, input/, metadata/, openchami/
+    """
+    backup_path = UPGRADE_VARS["backup_path"]
+    log = TestLogger(TEST_NAMES["verify_backup_directory"])
+
+    _gate_operation(log)
+    _skip_if_pre_upgrade_failed()
+
+    log.check(LOG["backup_dir_check"].format(path=backup_path))
+    result = verify_backup_directory(host)
+
+    if result.get("error", "").startswith("Backup directory not found"):
+        log.failed(
+            LOG["backup_dir_not_found"].format(path=backup_path),
+            result["error"],
+        )
+        pytest.fail(ASSERT["backup_dir_missing"].format(path=backup_path))
+
+    sub_dirs = result.get("sub_dirs", {})
+    lines = []
+    for name, exists in sub_dirs.items():
+        if exists:
+            lines.append(f"✓ {name}/")
+        else:
+            lines.append(f"✗ {name}/")
+    details = "\n".join(lines)
+
+    if result["success"]:
+        log.passed(
+            LOG["backup_dir_found"].format(path=backup_path),
+            details,
+        )
+    else:
+        missing = [k for k, v in sub_dirs.items() if not v]
+        log.failed(f"Missing: {', '.join(missing)}", details)
+        pytest.fail(
+            ASSERT["backup_dir_incomplete"].format(
+                path=backup_path,
+                missing=", ".join(missing),
+            )
+        )

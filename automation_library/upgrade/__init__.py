@@ -37,10 +37,9 @@ from .functions import (
     download_omnia_sh,
     run_omnia_upgrade,
     verify_backup_directory,
-    verify_input_files_backup,
-    verify_metadata_backup,
-    verify_quadlet_backup,
     verify_post_upgrade_state,
+    run_prepare_upgrade,
+    verify_backup_md5sum,
 )
 from .vars import (
     UPGRADE_VARS,
@@ -48,6 +47,8 @@ from .vars import (
     VALID_OPERATIONS,
     VERSION_PROPERTIES,
     get_core_tag_for_version,
+    PREPARE_UPGRADE_VARS,
+    BACKUP_VERIFY_VARS,
 )
 from .messages import (
     TEST_NAMES,

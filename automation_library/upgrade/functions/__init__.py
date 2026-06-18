@@ -26,13 +26,13 @@ from .upgrade_core_func import (
     download_omnia_sh,
     run_omnia_upgrade,
     verify_backup_directory,
-    verify_input_files_backup,
-    verify_metadata_backup,
-    verify_quadlet_backup,
     verify_post_upgrade_state,
 )
 from .prepare_upgrade_func import (
     run_prepare_upgrade,
+)
+from .backup_verify_func import (
+    verify_backup_md5sum,
 )
 
 __all__ = [
@@ -47,9 +47,7 @@ __all__ = [
     "download_omnia_sh",
     "run_omnia_upgrade",
     "verify_backup_directory",
-    "verify_input_files_backup",
-    "verify_metadata_backup",
-    "verify_quadlet_backup",
     "verify_post_upgrade_state",
     "run_prepare_upgrade",
+    "verify_backup_md5sum",
 ]
