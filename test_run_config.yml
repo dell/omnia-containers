@@ -44,7 +44,7 @@ prepare_oim:
 # --- GitLab ---
 gitlab_install:
   run: true
-  command: "verify"
+  command: "test"
   suite: ""
 
 # --- Build & Repo ---
@@ -121,6 +121,12 @@ one_shot_log_extraction:
   run: false
   command: "test"
   suite: ""
+
+# --- Upgrade ---
+upgrade_omnia_sh:
+  run: false
+  command: "verify"
+  suite: "sanity"
 
 # --- Cleanup ---
 gitlab_cleanup:

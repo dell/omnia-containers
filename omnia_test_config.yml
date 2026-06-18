@@ -317,3 +317,39 @@ allow_pipeline_cancel: false
 # Format: Image group identifier string (e.g., "image-build-20260530-061909")
 # Leave empty ("") to auto-select latest BUILT image group (default).
 image_identifier: ""
+
+# #############################################################################
+#                                                                             #
+#                         OMNIA UPGRADE TESTING                               #
+#                                                                             #
+# #############################################################################
+# Configuration for testing omnia.sh --upgrade workflow
+# Used by the upgrade_omnia_sh molecule scenario
+#
+# This tests upgrading from one Omnia version to another
+# (e.g., 2.1.0.0 → 2.2.0.0)
+
+upgrade:
+  # Version currently running on the OIM server (before upgrade)
+  from_version: "2.1.0.0"
+
+  # Version to upgrade to
+  to_version: "2.2.0.0"
+
+  # Omnia Artifactory repository URL for the NEW version
+  # This repo will be cloned to build the new core image
+  repo_url: "https://github.com/dell/omnia-artifactory.git"
+
+  # Branch of omnia-artifactory to clone for the upgrade
+  repo_branch: "omnia-container"
+
+  # Local path where the new artifactory will be cloned
+  # Default: /opt/omnia/upgrade-to-<to_version>
+  clone_path: "/opt/omnia/upgrade-to-2.2"
+
+  # Omnia branch/tag for building the new core image
+  # Usage: ./build_images.sh core omnia_branch=<this_value> core_tag=<core_tag>
+  omnia_branch: "pub/q2_upgrade"
+
+  # Core image version tag for the upgrade
+  core_tag: "2.2"
