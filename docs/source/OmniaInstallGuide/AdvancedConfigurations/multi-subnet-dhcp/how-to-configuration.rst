@@ -42,12 +42,7 @@ Procedure
 
       vi network_spec.yml
 
-4. Add the ``additional_subnets`` array with subnet entries for each rack. Each subnet entry requires the following parameters:
-
-   * ``subnet``: Network address in CIDR format (e.g., ``10.40.1.0/24``)
-   * ``netmask_bits``: CIDR prefix length (e.g., ``24``)
-   * ``router``: Gateway/router IP for this subnet (used as DHCP option 3)
-   * ``dynamic_range``: DHCP IP pool range in ``start_ip-end_ip`` format
+4. Add the ``additional_subnets`` array with subnet entries for each rack. For a complete description of subnet parameters and the multi-subnet DHCP architecture, see :doc:`concept-overview`.
 
    Example configuration for 2 racks:
 

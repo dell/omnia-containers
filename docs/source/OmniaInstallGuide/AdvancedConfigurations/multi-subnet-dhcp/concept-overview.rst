@@ -27,7 +27,7 @@ Network issues are contained to individual racks. If Rack 2 experiences a networ
 Smaller broadcast domains (254 nodes per subnet instead of thousands) improve network performance and reduce unnecessary broadcast traffic across the cluster.
 
 **Scalability**
-Supports deployments with up to 100 racks (25,400 nodes) while maintaining manageable network segments. Each rack operates as an independent network segment, avoiding the scalability limits of large flat networks.
+Supports deployments with up to 254 racks (64,516 nodes) while maintaining manageable network segments. Each rack operates as an independent network segment, avoiding the scalability limits of large flat networks.
 
 **Clear Network Organization**
 Per-rack subnets provide a logical mapping between physical infrastructure (racks) and network addressing, making the network topology easier to understand and manage.
@@ -77,71 +77,9 @@ This architecture allows a single CoreDHCP instance to manage IP assignment acro
 Configuration Model
 ~~~~~~~~~~~~~~~~~~~
 
-Multi-subnet DHCP configuration is specified in the ``input/network_spec.yml`` file:
+Multi-subnet DHCP configuration is specified in the ``/opt/omnia/input/project_default/network_spec.yml`` file using the ``additional_subnets`` field under ``admin_network``. Each subnet entry defines a separate /24 network segment with its own DHCP pool.
 
-**additional_subnets Field**
-- Optional array under ``admin_network``
-- Each entry defines a separate subnet with its parameters
-- Empty array (``[]``) defaults to single-subnet mode for backward compatibility
-
-**Subnet Parameters**
-- ``subnet``: Network address in CIDR format (e.g., ``10.40.1.0/24``)
-- ``netmask_bits``: CIDR prefix length (e.g., ``24``)
-- ``router``: Gateway/router IP for this subnet (used as DHCP option 3)
-- ``dynamic_range``: DHCP IP pool range in ``start_ip-end_ip`` format
-
-**Example Configuration**
-
-.. code-block:: yaml
-
-   Networks:
-   - admin_network:
-       oim_nic_name: "eno1"
-       subnet: "172.16.0.0"
-       netmask_bits: "24"
-       primary_oim_admin_ip: "172.16.107.254"
-       dynamic_range: "172.16.107.201-172.16.107.250"
-       additional_subnets:
-         - subnet: "10.40.1.0"
-           netmask_bits: "24"
-           router: "10.40.1.1"
-           dynamic_range: "10.40.1.100-10.40.1.200"
-         - subnet: "10.40.3.0"
-           netmask_bits: "24"
-           router: "10.40.3.1"
-           dynamic_range: "10.40.3.100-10.40.3.200"
-         - subnet: "10.40.5.0"
-           netmask_bits: "24"
-           router: "10.40.5.1"
-           dynamic_range: "10.40.5.100-10.40.5.200"
-         - subnet: "10.40.7.0"
-           netmask_bits: "24"
-           router: "10.40.7.1"
-           dynamic_range: "10.40.7.100-10.40.7.200"
-         - subnet: "10.40.9.0"
-           netmask_bits: "24"
-           router: "10.40.9.1"
-           dynamic_range: "10.40.9.100-10.40.9.200"
-         - subnet: "10.40.11.0"
-           netmask_bits: "24"
-           router: "10.40.11.1"
-           dynamic_range: "10.40.11.100-10.40.11.200"
-         - subnet: "10.40.13.0"
-           netmask_bits: "24"
-           router: "10.40.13.1"
-           dynamic_range: "10.40.13.100-10.40.13.200"
-         - subnet: "10.40.15.0"
-           netmask_bits: "24"
-           router: "10.40.15.1"
-           dynamic_range: "10.40.15.100-10.40.15.200"
-         - subnet: "10.40.17.0"
-           netmask_bits: "24"
-           router: "10.40.17.1"
-           dynamic_range: "10.40.17.100-10.40.17.200"
-         - subnet: "10.40.19.0"
-           netmask_bits: "24"
-           router: "10.40.19.1"
-           dynamic_range: "10.40.19.100-10.40.19.200"
+For detailed configuration examples and step-by-step procedures, see :doc:`how-to-configuration`.
 
 Use Cases
 ---------
@@ -166,13 +104,13 @@ Organizations with security or operational policies that require network segment
 Prerequisites
 ------------
 
-Before configuring multi-subnet DHCP:
+Multi-subnet DHCP requires a network infrastructure with:
 
-- OS is provisioned on the OIM server and IP address is configured
-- Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM Server's Admin/PXE Network IP
-- Access to edit ``input/network_spec.yml`` on the OIM node
-- Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
-- DHCP pool ranges planned and validated to avoid conflicts with static IPs and OIM admin IP
+- Routed Layer-3 management network with per-rack subnets
+- DHCP relay agents configured on each subnet's gateway/router
+- Network topology documented with rack IDs, subnet allocations, and gateway IPs
+
+For detailed configuration prerequisites and step-by-step setup procedures, see :doc:`how-to-configuration`.
 
 Verification
 ------------
@@ -181,7 +119,7 @@ After configuring multi-subnet DHCP, verify the following:
 
 - Verify that CoreSMD has registered the additional subnets. Expected output should show ``subnet=`` directives for each additional subnet::
 
-    podman logs coredhcp | grep "subnet="
+    podman logs coresmd-coredhcp | grep "subnet="
 
 Limitations
 -----------
