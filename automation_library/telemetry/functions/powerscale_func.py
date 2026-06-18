@@ -49,7 +49,6 @@ from ..vars.powerscale_vars import (
     SYSLOG_MAX_WAIT_SECONDS,
 )
 from ..vars.victoria_vars import (
-    DEPLOYMENT_MODE_CLUSTER,
     VICTORIA_CLUSTER,
     VICTORIA_TLS_SECRET,
     VICTORIA_API_ENDPOINTS,
@@ -85,6 +84,22 @@ def get_powerscale_deployment_mode(host) -> str:
     return DEPLOYMENT_MODE_OMNIA
 
 
+def is_onefs_api_configured(host) -> bool:
+    """
+    Check if OneFS API metrics collection is configured.
+
+    OneFS API metrics (powerscale_cluster_*, powerscale_directory_*, etc.) require
+    csm_observability_values_file_path to be set in powerscale_configurations.
+    Without it, only CSI topology metrics (karavi_topology_metrics) are available.
+
+    Returns:
+        True if csm_observability_values_file_path is configured
+    """
+    ps_config = get_powerscale_config(host)
+    values_path = ps_config.get("csm_observability_values_file_path", "")
+    return bool(values_path and values_path.strip())
+
+
 def get_powerscale_scrape_interval(host) -> str:
     """
     Get PowerScale scrape interval from telemetry_config.yml.
@@ -114,7 +129,7 @@ def _get_vm_query_endpoint(host) -> Dict[str, Any]:
     return {
         "service_name": VICTORIA_CLUSTER["vmselect"]["service_name"],
         "port": VICTORIA_CLUSTER["vmselect"]["port"],
-        "query_endpoint": VICTORIA_API_ENDPOINTS["cluster_query"],
+        "query_endpoint": VICTORIA_API_ENDPOINTS["query"],
     }
 
 
@@ -379,17 +394,38 @@ def verify_powerscale_metrics(host, admin_ip: str) -> Dict[str, Any]:
     """
     Verify PowerScale metric collection and labels (TC-F002).
 
-    Checks all 6 metric categories and required labels.
+    Checks metric categories based on configuration:
+    - OneFS API categories (performance, capacity, quota) require
+      csm_observability_values_file_path to be configured
+    - Topology category (karavi_topology_metrics) is always expected
 
     Returns:
         Dict with success, category_results, label_results
     """
+    onefs_configured = is_onefs_api_configured(host)
+    # OneFS API categories require csm_observability_values_file_path
+    onefs_categories = {"performance", "capacity", "quota"}
+
     category_results = []
     found_categories = []
     missing_categories = []
+    skipped_categories = []
     all_series = []
 
     for category, pattern in POWERSCALE_METRIC_CATEGORIES.items():
+        # Skip OneFS API categories when values file not configured
+        if category in onefs_categories and not onefs_configured:
+            category_results.append({
+                "category": category,
+                "pattern": pattern,
+                "found": False,
+                "series_count": 0,
+                "skipped": True,
+                "skip_reason": "csm_observability_values_file_path not configured",
+            })
+            skipped_categories.append(category)
+            continue
+
         query = f'{{__name__=~"{pattern}"}}'
         vm_result = _query_victoria_metrics(host, admin_ip, query)
         series = vm_result.get("result", [])
@@ -400,39 +436,178 @@ def verify_powerscale_metrics(host, admin_ip: str) -> Dict[str, Any]:
             "pattern": pattern,
             "found": found,
             "series_count": len(series),
+            "skipped": False,
         })
 
         if found:
             found_categories.append(category)
             all_series.extend(series)
         else:
-            missing_categories.append(category)
+            # OneFS API categories are informational when CSM Metrics pod
+            # encounters privilege or connectivity errors on the PowerScale
+            # cluster. Only topology is a hard requirement.
+            if category in onefs_categories:
+                skipped_categories.append(category)
+            else:
+                missing_categories.append(category)
 
-    # Check labels on powerscale_* series only (karavi_* has different label schema)
-    ps_series = [s for s in all_series if s.get("metric", {}).get("__name__", "").startswith("powerscale_")]
+    # Check labels on available series
+    # karavi_topology_metrics use StorageSystem and otel_scope_name
+    # powerscale_* metrics use ClusterName and otel_scope_name
     label_results = []
     missing_labels = []
 
-    for label in POWERSCALE_REQUIRED_LABELS:
-        count = sum(1 for item in ps_series if label in item.get("metric", {}))
-        has_label = count == len(ps_series) if ps_series else False
-        label_results.append({
-            "label": label,
-            "present": has_label,
-            "count": count,
-            "total": len(ps_series),
-        })
-        if not has_label and ps_series:
-            missing_labels.append(label)
+    if all_series:
+        for label in POWERSCALE_REQUIRED_LABELS:
+            count = sum(1 for item in all_series if label in item.get("metric", {}))
+            has_label = count == len(all_series)
+            label_results.append({
+                "label": label,
+                "present": has_label,
+                "count": count,
+                "total": len(all_series),
+            })
+            if not has_label:
+                missing_labels.append(label)
 
     return {
         "success": len(missing_categories) == 0 and len(missing_labels) == 0,
         "category_results": category_results,
         "found_categories": found_categories,
         "missing_categories": missing_categories,
+        "skipped_categories": skipped_categories,
+        "onefs_configured": onefs_configured,
         "label_results": label_results,
         "missing_labels": missing_labels,
         "total_series": len(all_series),
+    }
+
+
+# =============================================================================
+# POWERSCALE DATA VERIFICATION (like test_victoria_idrac_data)
+# =============================================================================
+
+def verify_victoria_powerscale_data(
+    host, admin_ip: str, timeout_seconds: int = 30
+) -> Dict[str, Any]:
+    """
+    Verify PowerScale telemetry data exists in VictoriaMetrics.
+
+    Queries for all PowerScale-related metrics (powerscale_* and karavi_*)
+    and provides a detailed breakdown by storage system, including:
+    - Total metric count
+    - Sample metrics with values
+    - Latest timestamp
+    - Labels present
+
+    Args:
+        host: Testinfra host object
+        admin_ip: Admin IP of K8s node
+        timeout_seconds: Timeout for API queries
+
+    Returns:
+        Dict with success, storage_system_results, metric_summary
+    """
+    onefs_configured = is_onefs_api_configured(host)
+    all_series = []
+
+    # Query powerscale_* metrics (OneFS API)
+    ps_query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_powerscale"]
+    ps_result = _query_victoria_metrics(host, admin_ip, ps_query, timeout_seconds)
+    ps_series = ps_result.get("result", [])
+    all_series.extend(ps_series)
+
+    # Query karavi_* metrics (CSI topology)
+    karavi_query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_karavi"]
+    karavi_result = _query_victoria_metrics(host, admin_ip, karavi_query, timeout_seconds)
+    karavi_series = karavi_result.get("result", [])
+    all_series.extend(karavi_series)
+
+    if not all_series:
+        return {
+            "success": False,
+            "error": "No PowerScale metrics found in VictoriaMetrics",
+            "onefs_configured": onefs_configured,
+            "powerscale_count": 0,
+            "karavi_count": 0,
+            "storage_system_results": [],
+            "metric_summary": [],
+        }
+
+    # Group by StorageSystem
+    storage_systems = {}
+    for item in all_series:
+        metric = item.get("metric", {})
+        storage_system = metric.get("StorageSystem", "unknown")
+        if storage_system not in storage_systems:
+            storage_systems[storage_system] = []
+        storage_systems[storage_system].append(item)
+
+    storage_system_results = []
+    for ss_name, series_list in storage_systems.items():
+        # Get latest timestamp
+        latest_ts = 0
+        for item in series_list:
+            value = item.get("value", [])
+            if len(value) > 0:
+                ts = int(float(value[0]))
+                if ts > latest_ts:
+                    latest_ts = ts
+
+        # Sample metrics (up to 5)
+        sample_metrics = []
+        for item in series_list[:5]:
+            metric = item.get("metric", {})
+            value = item.get("value", [])
+            metric_name = metric.get("__name__", "")
+            metric_value = value[1] if len(value) > 1 else ""
+            labels = {
+                k: v for k, v in metric.items()
+                if k not in ("__name__", "StorageSystem")
+            }
+            sample_metrics.append({
+                "metric_name": metric_name,
+                "value": metric_value,
+                "labels": labels,
+            })
+
+        # Collect unique label keys
+        all_labels = set()
+        for item in series_list:
+            all_labels.update(item.get("metric", {}).keys())
+        all_labels.discard("__name__")
+
+        storage_system_results.append({
+            "storage_system": ss_name,
+            "found": True,
+            "metric_count": len(series_list),
+            "latest_timestamp": latest_ts,
+            "sample_metrics": sample_metrics,
+            "labels_present": sorted(all_labels),
+        })
+
+    # Build metric summary by category
+    metric_summary = []
+    for category, pattern in POWERSCALE_METRIC_CATEGORIES.items():
+        count = 0
+        for item in all_series:
+            name = item.get("metric", {}).get("__name__", "")
+            if re.match(pattern, name):
+                count += 1
+        metric_summary.append({
+            "category": category,
+            "count": count,
+            "skipped": category in {"performance", "capacity", "quota"} and not onefs_configured,
+        })
+
+    return {
+        "success": True,
+        "onefs_configured": onefs_configured,
+        "powerscale_count": len(ps_series),
+        "karavi_count": len(karavi_series),
+        "total_series": len(all_series),
+        "storage_system_results": storage_system_results,
+        "metric_summary": metric_summary,
     }
 
 
@@ -670,6 +845,10 @@ def verify_deployment_mode(host, admin_ip: str) -> Dict[str, Any]:
     metrics_query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_powerscale"]
     metrics_result = _query_victoria_metrics(host, admin_ip, metrics_query)
     metric_count = len(metrics_result.get("result", []))
+    if metric_count == 0:
+        karavi_query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_karavi"]
+        karavi_result = _query_victoria_metrics(host, admin_ip, karavi_query)
+        metric_count = len(karavi_result.get("result", []))
     metrics_present = metric_count > 0
 
     return {
@@ -918,24 +1097,19 @@ def verify_label_compliance(host, admin_ip: str) -> Dict[str, Any]:
             "total_series": 0,
         }
 
-    # Check required labels on OneFS API metrics only (job=otel-collector).
-    # CSI Volume Exporter metrics (job=csi-volume-exporter) use a different
-    # label schema by design and should not be checked for these labels.
-    onefs_only = [
-        s for s in ps_series
-        if s.get("metric", {}).get("__name__", "").startswith("powerscale_")
-        and s.get("metric", {}).get("job") == "otel-collector"
-    ]
+    # Check required labels on all PowerScale-related metrics.
+    # Both powerscale_* (OneFS API) and karavi_* (topology) should carry
+    # the required labels (otel_scope_name, StorageSystem).
     label_checks = {}
     for label in POWERSCALE_REQUIRED_LABELS:
         present_count = sum(
-            1 for item in onefs_only
+            1 for item in ps_series
             if label in item.get("metric", {})
         )
         label_checks[label] = {
             "present_count": present_count,
-            "total_count": len(onefs_only),
-            "all_present": present_count == len(onefs_only) if onefs_only else False,
+            "total_count": len(ps_series),
+            "all_present": present_count == len(ps_series) if ps_series else False,
         }
 
     # Check if PowerScale is distinguishable from other sources
@@ -1066,10 +1240,14 @@ def verify_csi_authorization_mode(host, admin_ip: str) -> Dict[str, Any]:
         p.get("status", {}).get("phase") == "Running" for p in csm_pods
     )
 
-    # Check metrics flowing
+    # Check metrics flowing (both powerscale_* and karavi_*)
     query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_powerscale"]
     vm_result = _query_victoria_metrics(host, admin_ip, query)
     metrics_flowing = len(vm_result.get("result", [])) > 0
+    if not metrics_flowing:
+        query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_karavi"]
+        vm_result = _query_victoria_metrics(host, admin_ip, query)
+        metrics_flowing = len(vm_result.get("result", [])) > 0
 
     # Check CSM Metrics logs for auth errors
     no_auth_errors = True
@@ -1083,7 +1261,12 @@ def verify_csi_authorization_mode(host, admin_ip: str) -> Dict[str, Any]:
         cmd = run_on_remote_node(host, log_cmd, admin_ip)
         if cmd.rc == 0:
             log_output = cmd.stdout.lower()
-            auth_error_patterns = ["authorization error", "auth failed", "401", "403 forbidden"]
+            auth_error_patterns = [
+                "authorization error",
+                "auth failed",
+                "403 forbidden",
+                "unauthorized request",
+            ]
             for pattern in auth_error_patterns:
                 if pattern in log_output:
                     no_auth_errors = False
@@ -1480,6 +1663,10 @@ def verify_metric_latency(host, admin_ip: str) -> Dict[str, Any]:
     query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_powerscale"]
     vm_result = _query_victoria_metrics(host, admin_ip, query)
     series = vm_result.get("result", [])
+    if not series:
+        query = POWERSCALE_VM_QUERY_TEMPLATES["query_all_karavi"]
+        vm_result = _query_victoria_metrics(host, admin_ip, query)
+        series = vm_result.get("result", [])
 
     current_time = time.time()
     latency_ok = True

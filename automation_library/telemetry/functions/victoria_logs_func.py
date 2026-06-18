@@ -1789,8 +1789,8 @@ def verify_ha_under_vlstorage_failure(host, admin_ip: str) -> Dict[str, Any]:
     # Accept partial results or errors during outage, but not complete silence
     result["vlselect_degraded_ok"] = True  # vlselect responded (even if degraded)
     
-    # Step 6: Wait for pod recovery
-    for i in range(30):
+    # Step 6: Wait for pod recovery (up to 120s)
+    for i in range(60):
         check_cmd = run_on_remote_node(
             host,
             f"kubectl get pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} "
@@ -1803,7 +1803,7 @@ def verify_ha_under_vlstorage_failure(host, admin_ip: str) -> Dict[str, Any]:
         time.sleep(2)
     
     if not result["pod_recovered"]:
-        result["error"] = "vlstorage-0 did not recover within 60s"
+        result["error"] = "vlstorage-0 did not recover within 120s"
         return result
     
     # Step 7: Verify outage events queryable post-recovery

@@ -220,8 +220,8 @@ def verify_all_telemetry_pods_running(host, admin_ip: str) -> Dict[str, Any]:
     running_pods = []
     not_running_pods = []
 
-    # Valid statuses: Running for regular pods, Completed for job/cronjob pods
-    valid_statuses = ["Running", "Completed"]
+    # Valid statuses: Running for regular pods, Completed/Succeeded for job pods
+    valid_statuses = ["Running", "Completed", "Succeeded"]
 
     for line in cmd.stdout.strip().split('\n'):
         if not line.strip():

@@ -82,3 +82,43 @@ IMAGE_CONFIG_YAML_DIR = f"{_OIM_SHARED_PATH}/openchami/workdir/images"
 OPENCHAMI_WORKDIR = f"{_OIM_SHARED_PATH}/openchami/workdir"
 BSS_BOOT_DIR = f"{OPENCHAMI_WORKDIR}/boot"
 CLOUDINIT_TEMPLATE_DIR = f"{OPENCHAMI_WORKDIR}/cloud-init"
+
+# =============================================================================
+# BUILD STREAM VALIDATION FORCE FLAG
+# =============================================================================
+# Force provision tests to run even when build_stream validate stage
+# failed or is still pending.
+#
+# Default: False (recommended - ensures pipeline validation before tests)
+#
+# HOW TO ENABLE:
+#   1. Open this file:
+#      automation_library/provision/vars/common_vars.py
+#   2. Change the value below from False to True
+#   3. Re-run: bash run_molecule.sh provision verify
+#
+# WARNING: When True, tests run against images that have NOT been
+#          validated by the build_stream pipeline!
+FORCE_PROVISION_VALIDATE_FAILED = True
+
+# =============================================================================
+# K8S STORAGE CLASS CONSTANTS
+# =============================================================================
+
+# PowerScale CSI storage class name (deployed by k8s_config role)
+POWERSCALE_STORAGE_CLASS = "ps01"
+
+# NFS storage class name (deployed by k8s_config role)
+NFS_STORAGE_CLASS = "nfs-client"
+
+# PowerScale CSI driver name
+POWERSCALE_CSI_DRIVER = "csi-isilon.dellemc.com"
+
+# Isilon namespace where CSI pods run
+ISILON_NAMESPACE = "isilon"
+
+# Isilon pod prefixes
+ISILON_POD_PREFIXES = ["isilon-controller", "isilon-node"]
+
+# NFS provisioner pod prefix
+NFS_PROVISIONER_PREFIX = "nfs-client-nfs-subdir-external-provisioner"

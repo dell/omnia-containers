@@ -34,6 +34,7 @@ TEST_NAMES = {
     "registry_images": "Registry Images Verification",
     "s3_boot_images": "S3 Boot Images Verification",
     "build_pipeline_result": "Build Pipeline Final Result",
+    "verify_generated_inputs": "Verify Generated Input Config Files",
 }
 
 # =============================================================================
@@ -72,6 +73,10 @@ TEST_LOG_MSGS = {
     "s3_fail": "Missing {count} role boot image(s) in S3: {missing}",
     "pipeline_result_ok": "Build pipeline completed — all stages passed",
     "pipeline_result_fail": "Build pipeline completed with failures",
+    "clone_ok": "Omnia repo cloned (branch: {branch})",
+    "clone_fail": "Failed to clone Omnia repo: {error}",
+    "generated_inputs_ok": "All generated input configs match source",
+    "generated_inputs_fail": "Generated input config verification failed",
 }
 
 # =============================================================================
@@ -93,6 +98,10 @@ TEST_ASSERT_MSGS = {
     "catalog_roles_failed": "Failed to retrieve catalog roles: {error}",
     "registry_images_failed": "Registry image verification failed: {error}",
     "s3_images_failed": "S3 boot image verification failed: {error}",
+    "clone_failed": "Failed to clone Omnia repo: {error}",
+    "generated_inputs_failed": (
+        "Generated input config mismatch.\n{summary}"
+    ),
 }
 
 # =============================================================================
@@ -105,6 +114,7 @@ SKIP_MSGS = {
     "previous_stage_failed": "Test skipped - previous stage '{stage}' failed",
     "build_failed": "Test skipped - build pipeline failed",
     "pipeline_not_triggered": "Test skipped - pipeline not triggered",
+    "clone_failed": "Test skipped - Omnia repo clone failed",
 }
 
 # =============================================================================

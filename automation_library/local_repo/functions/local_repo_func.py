@@ -811,13 +811,29 @@ def _build_config_path(os_type: str, os_version: str, arch: str, sw_name: str) -
 
 
 def _load_package_config(host, os_type: str, os_version: str,
-                         arch: str, sw_name: str) -> Dict[str, Any]:
-    """Load a specific package config JSON from the container."""
+                         arch: str, sw_name: str,
+                         sw_version: str = "") -> Dict[str, Any]:
+    """
+    Load a specific package config JSON from the container.
+
+    Tries exact match first (e.g. ``service_k8s.json``).  When a version is
+    provided from software_config.json, also tries the versioned filename
+    (e.g. ``service_k8s_v1.35.1.json``).
+    """
     path = _build_config_path(os_type, os_version, arch, sw_name)
     config = load_container_file(host, path)
-    if not config:
-        return {"success": False, "config": {}, "path": path, "error": f"Failed to read {path}"}
-    return {"success": True, "config": config, "path": path, "error": None}
+    if config:
+        return {"success": True, "config": config, "path": path, "error": None}
+
+    # Fallback: try versioned filename from software_config.json version
+    if sw_version:
+        versioned_name = f"{sw_name}_v{sw_version}"
+        versioned_path = _build_config_path(os_type, os_version, arch, versioned_name)
+        versioned_config = load_container_file(host, versioned_path)
+        if versioned_config:
+            return {"success": True, "config": versioned_config, "path": versioned_path, "error": None}
+
+    return {"success": False, "config": {}, "path": path, "error": f"Failed to read {path}"}
 
 
 def _extract_packages(config: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -866,13 +882,16 @@ def check_software_packages_in_pulp(host) -> Dict[str, Any]:
         if not name or not archs:
             continue
 
+        version = sw.get("version", "")
         for arch in archs:
-            pkg_result = _load_package_config(host, os_type, os_version, arch, name)
+            pkg_result = _load_package_config(
+                host, os_type, os_version, arch, name, sw_version=version
+            )
             if not pkg_result["success"]:
                 errors.append(f"{name}/{arch}: {pkg_result['error']}")
                 continue
 
-            loaded_configs.append(f"{arch}/{os_type}/{os_version}/{name}.json")
+            loaded_configs.append(pkg_result.get("path", f"{arch}/{os_type}/{os_version}/{name}.json"))
             for pkg in _extract_packages(pkg_result["config"]):
                 pkg["arch"] = arch
                 pkg["software"] = name

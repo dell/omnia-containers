@@ -92,8 +92,8 @@ POWERSCALE_METRIC_CATEGORIES: Dict[str, str] = {
 }
 
 POWERSCALE_REQUIRED_LABELS: List[str] = [
-    "ClusterName",
     "otel_scope_name",
+    "StorageSystem",
 ]
 
 POWERSCALE_PROTOCOL_LABELS: List[str] = [

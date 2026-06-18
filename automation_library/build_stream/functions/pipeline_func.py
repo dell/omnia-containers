@@ -18,7 +18,6 @@ Build Stream Pipeline Functions.
 Functions for triggering and monitoring build_stream pipelines.
 """
 
-import os
 import sys
 import time
 from typing import Dict, Any, List
@@ -40,7 +39,11 @@ from .db_func import (
     get_all_image_groups,
 )
 from .api_func import get_stage_log_path
-from .shared_func import get_allow_pipeline_cancel, get_image_identifier
+from .shared_func import (
+    get_allow_pipeline_cancel,
+    get_image_identifier,
+    get_catalog_name,
+)
 from ..vars.build_stream_vars import (
     STAGE_POLL_INTERVAL,
     STAGE_POLL_TIMEOUT,
@@ -50,7 +53,6 @@ from ..vars.build_stream_vars import (
     STAGE_STATE_FAILED,
     STAGE_STATE_RUNNING,
     STAGE_STATE_PENDING,
-    CATALOG_LOCAL_FILENAME,
 )
 from ..messages.build_stream_msgs import (
     PIPELINE_MSGS,
@@ -58,39 +60,65 @@ from ..messages.build_stream_msgs import (
 )
 
 
-def get_catalog_content() -> str:
+def get_catalog_content(host) -> Dict[str, Any]:
     """
     Load the catalog content with unique identifier for each run.
+
+    Reads catalog_name from omnia_test_config.yml to select which catalog
+    file to use from /omnia/examples/catalog/ inside the omnia_core container.
+    If not configured, uses CATALOG_DEFAULT_FILENAME.
 
     The identifier is set to 'image-build-<datetime>' format to ensure
     each pipeline run creates a unique image group and avoids
     DuplicateImageGroupError.
 
+    Args:
+        host: Testinfra host object (required to read catalog from
+              omnia_core container).
+
     Returns:
-        Catalog JSON content as string with unique identifier.
+        Dict with 'success', 'content', 'catalog_file', 'error' keys.
     """
     import json
     import datetime
 
-    catalog_dir = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)),
-        "catalogs"
-    )
-    catalog_file = os.path.join(catalog_dir, CATALOG_LOCAL_FILENAME)
+    from ..vars.build_stream_vars import OMNIA_CATALOG_PATH
 
-    if not os.path.exists(catalog_file):
-        return ""
+    result = {
+        "success": False,
+        "content": "",
+        "catalog_file": "",
+        "error": "",
+    }
 
-    with open(catalog_file, "r") as f:
-        content = f.read()
+    catalog_filename = get_catalog_name(host)
+    catalog_file = f"{OMNIA_CATALOG_PATH}/{catalog_filename}"
+    result["catalog_file"] = catalog_file
+
+    # Verify catalog file exists in omnia_core container
+    check_cmd = host.run(f"podman exec omnia_core test -f {catalog_file}")
+    if check_cmd.rc != 0:
+        result["error"] = f"Catalog file not found: {catalog_file}"
+        return result
+
+    # Read catalog content
+    cmd = host.run(f"podman exec omnia_core cat {catalog_file}")
+    if cmd.rc != 0:
+        result["error"] = f"Failed to read catalog file: {cmd.stderr}"
+        return result
+
+    content = cmd.stdout
 
     try:
         catalog = json.loads(content)
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
         catalog["Catalog"]["Identifier"] = f"image-build-{timestamp}"
-        return json.dumps(catalog, indent=2)
-    except (json.JSONDecodeError, KeyError):
-        return content
+        result["content"] = json.dumps(catalog, indent=2)
+        result["success"] = True
+    except (json.JSONDecodeError, KeyError) as e:
+        result["error"] = f"Failed to parse catalog JSON: {e}"
+
+    return result
 
 
 def trigger_build_pipeline(host, log_callback=None) -> Dict[str, Any]:
@@ -176,13 +204,17 @@ def trigger_build_pipeline(host, log_callback=None) -> Dict[str, Any]:
     if old_job_id:
         _log(f"Current latest job: {old_job_id[:8]}... (state: {old_job_state})")
 
-    catalog_content = get_catalog_content()
-    if not catalog_content:
-        result["error"] = "Failed to load catalog file from automation library"
+    catalog_result = get_catalog_content(host)
+    if not catalog_result["success"]:
+        result["error"] = (
+            f"Failed to load catalog: {catalog_result['error']}. "
+            f"Check catalog_name in omnia_test_config.yml."
+        )
         return result
 
+    _log(f"Using catalog: {catalog_result['catalog_file']}")
     _log(PIPELINE_MSGS["uploading_catalog"])
-    upload_result = upload_catalog_file(host, catalog_content)
+    upload_result = upload_catalog_file(host, catalog_result["content"])
     if not upload_result["success"]:
         result["error"] = f"Failed to upload catalog: {upload_result['error']}"
         return result
@@ -485,7 +517,8 @@ def select_image_for_deploy(host, pipeline_id: int, log_callback=None) -> Dict[s
     target_job = None
     available_jobs = [j.get('name') for j in jobs_result['jobs']]
     _log(f"Looking for job matching image group: {image_group_id}")
-    _log(f"Available selection jobs ({len(available_jobs)}): {available_jobs[:5]}{'...' if len(available_jobs) > 5 else ''}")
+    suffix = '...' if len(available_jobs) > 5 else ''
+    _log(f"Available selection jobs ({len(available_jobs)}): {available_jobs[:5]}{suffix}")
 
     for job in jobs_result["jobs"]:
         job_name = job.get("name", "")

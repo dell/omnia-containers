@@ -66,7 +66,7 @@ from automation_library.telemetry.functions.powerscale_func import (
 # NEGATIVE / ERROR TEST CASES (TC-E001 through TC-E011)
 # =============================================================================
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(42)
 def test_tc_e001_csm_pod_recovery(host):
     """
@@ -115,7 +115,7 @@ def test_tc_e001_csm_pod_recovery(host):
             )
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(43)
 def test_tc_e002_otel_pod_recovery(host):
     """
@@ -159,7 +159,7 @@ def test_tc_e002_otel_pod_recovery(host):
         )
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(44)
 def test_tc_e003_vmagent_scrape_retry(host):
     """
@@ -187,7 +187,7 @@ def test_tc_e003_vmagent_scrape_retry(host):
         assert False, "vmagent scrape is not active - cannot verify retry behavior"
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(45)
 def test_tc_e004_tls_misconfig(host):
     """
@@ -221,7 +221,7 @@ def test_tc_e004_tls_misconfig(host):
         assert False, "TLS scrape not active or health metrics missing"
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(46)
 def test_tc_e005_external_failure(host):
     """
@@ -258,7 +258,7 @@ def test_tc_e005_external_failure(host):
         assert False, POWERSCALE_ASSERT_MSGS["internal_affected_by_external"]
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(47)
 def test_tc_e006_vlagent_failure(host):
     """
@@ -286,7 +286,7 @@ def test_tc_e006_vlagent_failure(host):
         assert False, "Metrics path affected - should be isolated from VLAgent"
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(48)
 def test_tc_e007_powerscale_unreachable(host):
     """
@@ -324,7 +324,7 @@ def test_tc_e007_powerscale_unreachable(host):
             )
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(49)
 def test_tc_e008_worker_node_failure(host):
     """
@@ -341,7 +341,7 @@ def test_tc_e008_worker_node_failure(host):
     pytest.skip("TC-E008 is a manual test case")
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(60)
 def test_tc_e009_kafka_broker_outage(host):
     """
@@ -385,7 +385,7 @@ def test_tc_e009_kafka_broker_outage(host):
         assert False, POWERSCALE_ASSERT_MSGS["kafka_outage_affected_metrics"]
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(61)
 def test_tc_e010_vminsert_outage(host):
     """
@@ -432,7 +432,7 @@ def test_tc_e010_vminsert_outage(host):
             )
 
 
-@pytest.mark.sanity
+@pytest.mark.negative
 @pytest.mark.order(62)
 def test_tc_e011_vlinsert_outage(host):
     """

@@ -67,10 +67,8 @@ from .kafka_func import (
 )
 
 from .victoria_func import (
-    get_deployment_mode,
     get_victoria_config,
     verify_victoria_persistence_size,
-    verify_victoria_single_node_pods,
     verify_victoria_cluster_pods,
     verify_vmagent_pod,
     verify_victoria_services,
@@ -130,9 +128,11 @@ from .victoria_logs_func import (
 from .powerscale_func import (
     get_powerscale_config,
     get_powerscale_deployment_mode,
+    is_onefs_api_configured,
     verify_powerscale_deployment,
     verify_powerscale_metrics,
     verify_powerscale_syslog,
+    verify_victoria_powerscale_data,
 )
 
 # Failover test functions (poweroff/reboot)
@@ -150,4 +150,41 @@ from .failover_func import (
     wait_for_node_online,
     wait_for_cloudinit_done,
     wait_for_node_rejoin_cluster,
+)
+
+# VAST telemetry functions
+from .vast_telemetry_func import (
+    is_vast_telemetry_enabled,
+    get_vast_config,
+    verify_vast_scrape_active,
+    verify_vast_tls_basic_auth,
+    verify_vast_label_enrichment,
+    verify_vast_internal_remotewrite,
+    verify_vast_scrape_interval,
+    verify_vast_deployment,
+    verify_vast_scrape_duration,
+    verify_vast_metric_coverage,
+    verify_vast_tls_enforcement,
+    verify_vast_no_plaintext_credentials,
+)
+
+# Vector verification functions
+from .vector_func import (
+    verify_vector_pod_running,
+    verify_vector_resource_specs,
+    verify_vector_no_pvc,
+    verify_vector_configmap_exists,
+    verify_all_vector_configmaps,
+    verify_vector_mtls_config,
+    get_vector_pod_logs,
+    verify_vector_no_errors_in_logs,
+    verify_no_plaintext_credentials,
+    verify_vector_self_metrics_endpoint,
+    delete_vector_pod,
+    rollout_restart_vector,
+    scale_vector_deployment,
+    create_kafka_topic,
+    produce_test_message_to_kafka,
+    query_victoria_metrics,
+    query_victoria_logs,
 )

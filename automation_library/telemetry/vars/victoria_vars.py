@@ -31,50 +31,33 @@ BMC_GROUP_DATA_PATH = TELEMETRY_VARS["bmc_group_data_path"]
 
 
 # =============================================================================
-# VictoriaMetrics Deployment Modes
-# =============================================================================
-
-DEPLOYMENT_MODE_SINGLE = "single-node"
-DEPLOYMENT_MODE_CLUSTER = "cluster"
-
-
-# =============================================================================
-# VictoriaMetrics Single-Node Constants
-# =============================================================================
-
-VICTORIA_SINGLE_NODE = {
-    "statefulset_name": "victoria-metric",
-    "service_name": "victoria-loadbalancer",
-    "port": 8443,
-    "app_label": "victoriametrics",
-}
-
-
-# =============================================================================
 # VictoriaMetrics Cluster Constants
 # =============================================================================
 
 VICTORIA_CLUSTER = {
     "vmstorage": {
-        "statefulset_name": "vmstorage",
-        "service_name": "vmstorage",
+        "statefulset_name": "vmstorage-victoria-cluster",
+        "service_name": "vmstorage-victoria-cluster",
         "replicas": 3,
         "port": 8482,
         "app_label": "vmstorage",
+        "label_selector": "app.kubernetes.io/name=vmstorage,app.kubernetes.io/instance=victoria-cluster",
     },
     "vminsert": {
-        "deployment_name": "vminsert",
-        "service_name": "vminsert",
+        "deployment_name": "vminsert-victoria-cluster",
+        "service_name": "vminsert-victoria-cluster",
         "replicas": 2,
         "port": 8480,
         "app_label": "vminsert",
+        "label_selector": "app.kubernetes.io/name=vminsert,app.kubernetes.io/instance=victoria-cluster",
     },
     "vmselect": {
-        "deployment_name": "vmselect",
-        "service_name": "vmselect",
+        "deployment_name": "vmselect-victoria-cluster",
+        "service_name": "vmselect-victoria-cluster",
         "replicas": 2,
         "port": 8481,
         "app_label": "vmselect",
+        "label_selector": "app.kubernetes.io/name=vmselect,app.kubernetes.io/instance=victoria-cluster",
     },
 }
 
@@ -84,8 +67,9 @@ VICTORIA_CLUSTER = {
 # =============================================================================
 
 VMAGENT = {
-    "deployment_name": "vmagent",
+    "deployment_name": "vmagent-vmagent",
     "app_label": "vmagent",
+    "label_selector": "app.kubernetes.io/name=vmagent,app.kubernetes.io/instance=vmagent",
 }
 
 
@@ -104,12 +88,8 @@ VICTORIA_TLS_SECRET_KEYS = ["tls.crt", "tls.key", "ca.crt"]
 VICTORIA_API_ENDPOINTS = {
     "health": "/health",
     "metrics": "/metrics",
-    # Single-node API paths
-    "single_query": "/api/v1/query",
-    "single_label_values": "/api/v1/label/__name__/values",
-    # Cluster API paths (vmselect)
-    "cluster_query": "/select/0/prometheus/api/v1/query",
-    "cluster_label_values": "/select/0/prometheus/api/v1/label/__name__/values",
+    "query": "/select/0/prometheus/api/v1/query",
+    "label_values": "/select/0/prometheus/api/v1/label/__name__/values",
 }
 
 
@@ -118,9 +98,9 @@ VICTORIA_API_ENDPOINTS = {
 # =============================================================================
 
 VICTORIA_CMD_TEMPLATES: Dict[str, str] = {
-    # Get pods by label
+    # Get pods by label (uses label_selector for vm-operator managed pods)
     "get_pods_by_label": (
-        "kubectl get pods -n {namespace} -l app={app_label} -o json"
+        "kubectl get pods -n {namespace} -l {label_selector} -o json"
     ),
 
     # Get service external IP
@@ -144,11 +124,6 @@ VICTORIA_CMD_TEMPLATES: Dict[str, str] = {
     "get_pvc_storage": (
         "kubectl get pvc {pvc_name} -n {namespace} "
         "-o jsonpath={{.spec.resources.requests.storage}}"
-    ),
-
-    # Get all PVCs for a statefulset
-    "get_statefulset_pvcs": (
-        "kubectl get pvc -n {namespace} -l app={app_label} -o json"
     ),
 
     # Curl with TLS (using CA cert from secret)

@@ -123,16 +123,23 @@ def _get_source_config(host, source_name: str) -> Dict[str, Any]:
 
 def _any_source_targets(host, target: str) -> bool:
     """
-    Check if any enabled telemetry source targets a given sink.
+    Check if any enabled telemetry source or bridge targets a given sink.
+
+    Mirrors the logic in derive_sink_support_flags.yml:
+    - Checks telemetry_sources.*.collection_targets for direct source → sink
+    - Checks telemetry_bridges (vector_ldms, vector_ome) which also enable
+      kafka and victoria_metrics/victoria_logs support
 
     Args:
         host: Testinfra host object
         target: Sink name (e.g., 'victoria_metrics', 'victoria_logs', 'kafka')
 
     Returns:
-        True if at least one enabled source has target in collection_targets
+        True if at least one enabled source/bridge requires this sink
     """
     config = get_telemetry_config(host)
+
+    # Check direct source → sink mapping via collection_targets
     sources = config.get("telemetry_sources", {})
     for _name, src_cfg in sources.items():
         if not isinstance(src_cfg, dict):
@@ -141,6 +148,28 @@ def _any_source_targets(host, target: str) -> bool:
             targets = src_cfg.get("collection_targets", [])
             if target in targets:
                 return True
+
+    # Check telemetry_bridges — Vector bridges also require kafka + victoria
+    bridges = config.get("telemetry_bridges", {})
+    vector_ldms = bridges.get("vector_ldms", {})
+    vector_ome = bridges.get("vector_ome", {})
+    ldms_src = sources.get("ldms", {})
+
+    # Vector-LDMS bridge: requires kafka + victoria_metrics (when ldms enabled)
+    if vector_ldms.get("metrics_enabled", False) and ldms_src.get("metrics_enabled", False):
+        if target in ("kafka", "victoria_metrics"):
+            return True
+
+    # Vector-OME metrics bridge: requires kafka + victoria_metrics
+    if vector_ome.get("metrics_enabled", False):
+        if target in ("kafka", "victoria_metrics"):
+            return True
+
+    # Vector-OME logs bridge: requires kafka + victoria_logs
+    if vector_ome.get("logs_enabled", False):
+        if target in ("kafka", "victoria_logs"):
+            return True
+
     return False
 
 
@@ -466,6 +495,32 @@ def skip_if_powerscale_not_enabled(host, log):
             "Test skipped - PowerScale telemetry not enabled"
         )
         pytest.skip("PowerScale telemetry is not enabled")
+
+
+def is_vast_telemetry_enabled_check(host) -> bool:
+    """Check if VAST telemetry is enabled in telemetry_config.yml."""
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    vast_config = sources.get("vast", {})
+    return bool(vast_config.get("metrics_enabled", False))
+
+
+def skip_if_vast_not_enabled(host, log):
+    """
+    Skip test if VAST telemetry is not enabled.
+
+    Checks telemetry_sources.vast.metrics_enabled in telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_vast_telemetry_enabled_check(host):
+        log.skipped(
+            "VAST telemetry is not enabled (vast.metrics_enabled=false)",
+            "Test skipped - VAST telemetry not enabled"
+        )
+        pytest.skip("VAST telemetry is not enabled")
 
 
 def skip_if_ldms_not_enabled(host, log):
