@@ -40,7 +40,7 @@ Test cases (executed in order):
 import pytest
 
 from automation_library.core import TestLogger
-from automation_library.rollback.functions import (
+from automation_library.upgrade_and_rollback.functions import (
     verify_rollback_precondition,
     check_rollback_image,
     download_omnia_sh_for_rollback,
@@ -48,8 +48,8 @@ from automation_library.rollback.functions import (
     verify_rollback_container,
     verify_rollback_backup_md5sum,
 )
-from automation_library.rollback.vars import ROLLBACK_VARS
-from automation_library.rollback.messages import (
+from automation_library.upgrade_and_rollback.vars import ROLLBACK_VARS
+from automation_library.upgrade_and_rollback.messages import (
     ROLLBACK_TEST_NAMES as TEST_NAMES,
     ROLLBACK_LOG_MSGS as LOG,
     ROLLBACK_ASSERT_MSGS as ASSERT,
@@ -153,12 +153,12 @@ def test_check_rollback_image(host):
     """
     global _rollback_image_ok
 
-    if not _rollback_needed:
-        pytest.skip(SKIP["not_needed"])
-
     tag = ROLLBACK_VARS["rollback_image_tag"]
-
     log = TestLogger(TEST_NAMES["check_rollback_image"].format(tag=tag))
+
+    if not _rollback_needed:
+        log.skipped(SKIP["not_needed"], "Rollback precondition not met")
+        pytest.skip(SKIP["not_needed"])
     log.check(LOG["checking_image"].format(tag=tag))
 
     result = check_rollback_image(host)
@@ -196,13 +196,14 @@ def test_run_rollback(host):
     """
     global _rollback_passed
 
+    log = TestLogger(TEST_NAMES["run_rollback"])
+
     if not _rollback_image_ok:
+        log.skipped(SKIP["image_not_available"], "Rollback image check failed")
         pytest.skip(SKIP["image_not_available"])
 
     tail_lines = ROLLBACK_VARS["tail_lines"]
     omnia_sh_path = ROLLBACK_VARS["omnia_sh_path"]
-
-    log = TestLogger(TEST_NAMES["run_rollback"])
 
     # Step 1: Download omnia.sh (branch → tag fallback)
     branch_url = ROLLBACK_VARS["omnia_sh_branch_url"]
@@ -274,14 +275,15 @@ def test_verify_rollback_container(host):
     Checks container is running, image tag matches, and omnia_version
     in metadata matches the original (current_version).
     """
-    if not _rollback_passed:
-        pytest.skip(SKIP["rollback_failed"])
-
     expected_ver = ROLLBACK_VARS["current_version"]
-
     log = TestLogger(
         TEST_NAMES["verify_rollback_container"].format(version=expected_ver)
     )
+
+    if not _rollback_passed:
+        log.skipped(SKIP["rollback_failed"], "Rollback execution failed")
+        pytest.skip(SKIP["rollback_failed"])
+
     log.check(LOG["checking_container"])
 
     result = verify_rollback_container(host)
@@ -307,15 +309,15 @@ def test_verify_rollback_container(host):
 
     # Check version
     if result["version"] == expected_ver:
-        print(
-            f"    {LOG['container_version_ok'].format(version=result['version'], expected=expected_ver)}",
-            flush=True,
+        msg = LOG['container_version_ok'].format(
+            version=result['version'], expected=expected_ver,
         )
+        print(f"    {msg}", flush=True)
     else:
-        print(
-            f"    {LOG['container_version_fail'].format(expected=expected_ver, actual=result.get('version', 'unknown'))}",
-            flush=True,
+        msg = LOG['container_version_fail'].format(
+            expected=expected_ver, actual=result.get('version', 'unknown'),
         )
+        print(f"    {msg}", flush=True)
 
     if result["success"]:
         details = (
@@ -358,14 +360,16 @@ def _run_rollback_verify(host, category: str):
         host: Testinfra host object
         category: ROLLBACK_VARS["verify_categories"] key
     """
-    if not _rollback_passed:
-        pytest.skip(SKIP["rollback_failed"])
-
     cfg = ROLLBACK_VARS["verify_categories"][category]
     backup_dir = cfg["backup_dir"]
     current_dir = cfg["current_dir"]
 
     log = TestLogger(TEST_NAMES[f"verify_{category}"])
+
+    if not _rollback_passed:
+        log.skipped(SKIP["rollback_failed"], "Rollback execution failed")
+        pytest.skip(SKIP["rollback_failed"])
+
     log.check(LOG["checking_category"].format(category=category))
 
     result = verify_rollback_backup_md5sum(host, category)
@@ -385,32 +389,35 @@ def _run_rollback_verify(host, category: str):
     # Build details
     lines = []
     for f in files:
-        lines.append(
-            LOG["file_ok" if f["match"] == "✓" else "file_mismatch"]
-            .format(name=f["name"])
-        )
+        if f["match"] == "✓":
+            lines.append(LOG["file_ok"].format(name=f["name"]))
+        elif f["match"] == "⊘":
+            lines.append(LOG["file_skipped"].format(name=f["name"]))
+        else:
+            lines.append(LOG["file_mismatch"].format(name=f["name"]))
     details = "\n".join(lines)
 
     matched = sum(1 for f in files if f["match"] == "✓")
-    total = len(files)
-    mismatched = total - matched
+    skipped = sum(1 for f in files if f["match"] == "⊘")
+    compared = len(files) - skipped
+    mismatched = compared - matched
 
     if result["success"]:
         log.passed(
-            LOG["all_match"].format(count=total, category=category),
+            LOG["all_match"].format(count=compared, category=category),
             details,
         )
     else:
         log.failed(
             LOG["some_mismatch"].format(
-                mismatch=mismatched, total=total, category=category,
+                mismatch=mismatched, total=compared, category=category,
             ),
             details,
         )
         pytest.fail(
             ASSERT["md5_mismatch"].format(
                 mismatch=mismatched,
-                total=total,
+                total=compared,
                 category=category,
                 backup_dir=backup_dir,
                 current_dir=current_dir,

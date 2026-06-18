@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Upgrade Functions Module."""
+"""Upgrade and Rollback Functions Module."""
 
+from .common_func import compare_versions
 from .upgrade_core_func import (
-    validate_operation,
+    validate_upgrade_versions,
     validate_versions,
     validate_config,
     check_backup_exists,
@@ -28,15 +29,20 @@ from .upgrade_core_func import (
     verify_backup_directory,
     verify_post_upgrade_state,
 )
-from .prepare_upgrade_func import (
-    run_prepare_upgrade,
-)
-from .backup_verify_func import (
-    verify_backup_md5sum,
+from .prepare_upgrade_func import run_prepare_upgrade
+from .backup_verify_func import verify_backup_md5sum
+from .rollback_core_func import (
+    verify_rollback_precondition,
+    check_rollback_image,
+    download_omnia_sh_for_rollback,
+    run_omnia_rollback,
+    verify_rollback_container,
+    verify_rollback_backup_md5sum,
 )
 
 __all__ = [
-    "validate_operation",
+    "compare_versions",
+    "validate_upgrade_versions",
     "validate_versions",
     "validate_config",
     "check_backup_exists",
@@ -50,4 +56,10 @@ __all__ = [
     "verify_post_upgrade_state",
     "run_prepare_upgrade",
     "verify_backup_md5sum",
+    "verify_rollback_precondition",
+    "check_rollback_image",
+    "download_omnia_sh_for_rollback",
+    "run_omnia_rollback",
+    "verify_rollback_container",
+    "verify_rollback_backup_md5sum",
 ]

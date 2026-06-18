@@ -31,7 +31,7 @@ from ...core import (
     compare_directory_md5sum,
     download_omnia_sh as _core_download_omnia_sh,
 )
-from ..vars.rollback_vars import ROLLBACK_VARS
+from ..vars.rollback_core_vars import ROLLBACK_VARS
 
 
 def verify_rollback_precondition(host) -> Dict[str, Any]:
@@ -236,13 +236,15 @@ def run_omnia_rollback(
     else:
         # Timeout — kill any remaining process
         run_on_oim(host, f"pkill -f '{omnia_sh_path} --rollback' 2>/dev/null")
-        tail_cmd = run_on_oim(
-            host, f"tail -{tail_lines} {log_file} 2>/dev/null",
-        )
+        # Get output (full if tail_lines=0, else last N lines)
+        if tail_lines == 0:
+            out_cmd = run_on_oim(host, f"cat {log_file} 2>/dev/null")
+        else:
+            out_cmd = run_on_oim(host, f"tail -{tail_lines} {log_file} 2>/dev/null")
         return {
             "success": False,
             "rc": -1,
-            "output": tail_cmd.stdout.strip() if tail_cmd.rc == 0 else "",
+            "output": out_cmd.stdout.strip() if out_cmd.rc == 0 else "",
             "error": f"Rollback timed out after {timeout}s",
         }
 
@@ -251,11 +253,12 @@ def run_omnia_rollback(
     rc_str = rc_cmd.stdout.strip()
     rc = int(rc_str) if rc_str.isdigit() else 1
 
-    # Get last N lines
-    tail_cmd = run_on_oim(
-        host, f"tail -{tail_lines} {log_file} 2>/dev/null",
-    )
-    output = tail_cmd.stdout.strip() if tail_cmd.rc == 0 else ""
+    # Get output (full if tail_lines=0, else last N lines)
+    if tail_lines == 0:
+        out_cmd = run_on_oim(host, f"cat {log_file} 2>/dev/null")
+    else:
+        out_cmd = run_on_oim(host, f"tail -{tail_lines} {log_file} 2>/dev/null")
+    output = out_cmd.stdout.strip() if out_cmd.rc == 0 else ""
 
     if rc != 0:
         return {
@@ -369,6 +372,7 @@ def verify_rollback_backup_md5sum(host, category: str) -> Dict[str, Any]:
     backup_dir = cfg["backup_dir"]
     current_dir = cfg["current_dir"]
     on_oim = cfg["on_oim"]
+    exclude = cfg.get("exclude", [])
 
     # Backup is always under /opt/omnia (shared volume) → container
     backup_cmd = partial(run_in_container, container=container)
@@ -385,13 +389,15 @@ def verify_rollback_backup_md5sum(host, category: str) -> Dict[str, Any]:
         current_dir=current_dir,
         backup_cmd_fn=backup_cmd,
         current_cmd_fn=current_cmd,
+        exclude=exclude,
     )
 
-    # Enrich error with category context
+    # Enrich error with category context (exclude skipped files from count)
     if not result["success"] and result["files"]:
-        mismatched = sum(1 for f in result["files"] if f["match"] != "✓")
+        mismatched = sum(1 for f in result["files"] if f["match"] == "✗")
+        compared = sum(1 for f in result["files"] if f["match"] != "⊘")
         result["error"] = (
-            f"{mismatched}/{len(result['files'])} {category} files "
+            f"{mismatched}/{compared} {category} files "
             f"do not match after rollback"
         )
     elif not result["files"]:

@@ -26,9 +26,9 @@ Test cases (executed in order):
 import pytest
 
 from automation_library.core import TestLogger
-from automation_library.upgrade.functions import run_prepare_upgrade
-from automation_library.upgrade.vars import PREPARE_UPGRADE_VARS
-from automation_library.upgrade.messages import (
+from automation_library.upgrade_and_rollback.functions import run_prepare_upgrade
+from automation_library.upgrade_and_rollback.vars import PREPARE_UPGRADE_VARS
+from automation_library.upgrade_and_rollback.messages import (
     PREPARE_TEST_NAMES as TEST_NAMES,
     PREPARE_LOG_MSGS as LOG,
     PREPARE_ASSERT_MSGS as ASSERT,

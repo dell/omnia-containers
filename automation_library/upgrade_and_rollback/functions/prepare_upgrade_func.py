@@ -67,7 +67,6 @@ def run_prepare_upgrade(
             "error": f"Failed to start playbook: {start_cmd.stderr.strip()}",
         }
 
-    pid = start_cmd.stdout.strip()
     elapsed = 0
 
     # Poll until playbook finishes (rc_file appears when done)
@@ -93,13 +92,16 @@ def run_prepare_upgrade(
     )
     rc = int(rc_cmd.stdout.strip()) if rc_cmd.stdout.strip().isdigit() else 1
 
-    # Get last N lines
-    tail_cmd = run_in_container(
-        host,
-        f"tail -{tail_lines} {log_file} 2>/dev/null",
-        container=container,
-    )
-    output = tail_cmd.stdout.strip() if tail_cmd.rc == 0 else ""
+    # Get output (full if tail_lines=0, else last N lines)
+    if tail_lines == 0:
+        out_cmd = run_in_container(
+            host, f"cat {log_file} 2>/dev/null", container=container,
+        )
+    else:
+        out_cmd = run_in_container(
+            host, f"tail -{tail_lines} {log_file} 2>/dev/null", container=container,
+        )
+    output = out_cmd.stdout.strip() if out_cmd.rc == 0 else ""
 
     return {
         "success": rc == 0,

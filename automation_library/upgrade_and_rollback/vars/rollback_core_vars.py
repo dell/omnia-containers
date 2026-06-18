@@ -26,16 +26,14 @@ oim-prereq-check and upgrade modules.
 
 from typing import Dict, Any
 
-from automation_library.core import (
+from ...core import (
     load_omnia_test_config,
     OMNIA_CORE_CONTAINER,
     OMNIA_GIT_RAW_BASE_URL,
     OIM_METADATA_PATH,
     INPUT_BASE_PATH,
 )
-from automation_library.upgrade.vars.upgrade_core_vars import (
-    get_core_tag_for_version,
-)
+from .upgrade_core_vars import get_core_tag_for_version
 
 # =============================================================================
 # CONFIG  (no fallback defaults — must be set in omnia_test_config.yml)
@@ -105,6 +103,7 @@ ROLLBACK_VARS: Dict[str, Any] = {
                           "/openchami/quadlets",
             "current_dir": "/etc/containers/systemd",
             "on_oim": True,
+            "exclude": ["omnia_core.container"],  # Updated during rollback
         },
         "boot": {
             "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
@@ -134,6 +133,6 @@ ROLLBACK_VARS: Dict[str, Any] = {
 
     # Timing
     "poll_interval": 10,
-    "tail_lines": 50,
+    "tail_lines": 0,  # 0 = full output, N = last N lines
     "rollback_timeout": 600,
 }

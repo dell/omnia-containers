@@ -323,32 +323,30 @@ image_identifier: ""
 #                         OMNIA UPGRADE / ROLLBACK TESTING                    #
 #                                                                             #
 # #############################################################################
-# Used by the upgrade_omnia_sh molecule scenario.
+# Used by the upgrade_omnia_sh and rollback_omnia_sh molecule scenarios.
 #
 # ┌──────────────────────────────────────────────────────────────────────────┐
-# │  UPGRADE  — moves the cluster to a newer Omnia version.                │
-# │    Set operation: "upgrade"                                             │
-# │    current_version = version running NOW  (e.g. 2.1.0.0)               │
-# │    new_version     = version to move TO   (e.g. 2.2.0.0)               │
-# │                                                                         │
-# │  ROLLBACK — reverts the cluster to the previous Omnia version.         │
-# │    Set operation: "rollback"                                            │
-# │    current_version = version running NOW  (e.g. 2.2.0.0)               │
-# │    new_version     = version to revert TO (e.g. 2.1.0.0)               │
-# │                                                                         │
-# │  DISABLED — leave operation empty ("") or any other value.             │
-# │    ALL upgrade/rollback tests will FAIL with a clear message.          │
-# │    This prevents accidental execution on the wrong cluster.            │
+# │  VERSION CONFIGURATION                                                   │
+# │                                                                          │
+# │  current_version = LOWER version (e.g. 2.1.0.0) - the "from" version    │
+# │  new_version     = HIGHER version (e.g. 2.2.0.0) - the "to" version     │
+# │                                                                          │
+# │  UPGRADE TEST (upgrade_omnia_sh):                                        │
+# │    - Upgrades from current_version → new_version                        │
+# │    - Runs if container is at current_version                            │
+# │    - Fails if container is already at new_version                       │
+# │                                                                          │
+# │  ROLLBACK TEST (rollback_omnia_sh):                                      │
+# │    - Rolls back from new_version → current_version                      │
+# │    - Runs if container is at new_version (upgrade was done)             │
+# │    - Fails if container is at current_version (nothing to rollback)     │
 # └──────────────────────────────────────────────────────────────────────────┘
 
 upgrade:
-  # "upgrade" | "rollback" | "" (empty = fail all tests)
-  operation: "upgrade"
-
-  # Version of omnia_core currently running on this OIM server
+  # Lower version (upgrade FROM this, rollback TO this)
   current_version: "2.1.0.0"
 
-  # Target version to upgrade or rollback to
+  # Higher version (upgrade TO this, rollback FROM this)
   new_version: "2.2.0.0"
 
   # -------------------------------------------------------------------------

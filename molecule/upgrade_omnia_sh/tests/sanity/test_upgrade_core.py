@@ -34,8 +34,8 @@ Test cases (executed in order):
 import pytest
 
 from automation_library.core import TestLogger
-from automation_library.upgrade.functions import (
-    validate_operation,
+from automation_library.upgrade_and_rollback.functions import (
+    validate_upgrade_versions,
     validate_versions,
     validate_config,
     check_backup_exists,
@@ -48,11 +48,11 @@ from automation_library.upgrade.functions import (
     verify_backup_directory,
     verify_post_upgrade_state,
 )
-from automation_library.upgrade.vars import (
+from automation_library.upgrade_and_rollback.vars import (
     UPGRADE_VARS,
     SUPPORTED_VERSIONS,
 )
-from automation_library.upgrade.messages import (
+from automation_library.upgrade_and_rollback.messages import (
     TEST_NAMES,
     TEST_LOG_MSGS as LOG,
     TEST_ASSERT_MSGS as ASSERT,
@@ -68,12 +68,12 @@ _pre_upgrade_passed: bool = False
 
 
 # =============================================================================
-# HELPER: validate operation + versions + config
+# HELPER: validate config + versions for upgrade
 # =============================================================================
 
 def _gate_operation(log: TestLogger) -> None:
     """
-    Validate upgrade config, operation, and versions.
+    Validate upgrade config and version ordering (current < new).
     Calls pytest.fail() if invalid so every test fails with a HOW-TO-FIX msg.
     """
     # Config completeness
@@ -94,19 +94,24 @@ def _gate_operation(log: TestLogger) -> None:
             ASSERT["config_validation_failed"].format(error=cfg["error"])
         )
 
-    # Operation
-    op_result = validate_operation()
-    if not op_result["success"]:
-        operation = op_result["operation"]
+    # Version ordering (current < new required for upgrade)
+    upgrade_ver = validate_upgrade_versions()
+    if not upgrade_ver["success"]:
         log.failed(
-            LOG["operation_invalid"].format(operation=operation),
-            op_result["error"],
+            LOG["version_order_invalid"].format(
+                current=upgrade_ver["current_version"],
+                new=upgrade_ver["new_version"],
+            ),
+            upgrade_ver["error"],
         )
         pytest.fail(
-            ASSERT["operation_invalid"].format(operation=operation)
+            ASSERT["version_order_invalid"].format(
+                current=upgrade_ver["current_version"],
+                new=upgrade_ver["new_version"],
+            )
         )
 
-    # Versions
+    # Versions in supported list
     ver_result = validate_versions()
     if not ver_result["success"]:
         log.failed(
@@ -463,10 +468,10 @@ def test_verify_post_upgrade(host):
                 flush=True,
             )
         else:
-            print(
-                f"    {LOG['post_version_fail'].format(expected=new_ver, actual=result['version'])}",
-                flush=True,
+            msg = LOG['post_version_fail'].format(
+                expected=new_ver, actual=result['version'],
             )
+            print(f"    {msg}", flush=True)
 
     if not result["container_running"]:
         log.failed(LOG["post_container_not_running"], result["error"])

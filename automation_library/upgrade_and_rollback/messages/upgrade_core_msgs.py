@@ -59,9 +59,9 @@ TEST_NAMES: Dict[str, str] = {
 
 TEST_LOG_MSGS: Dict[str, str] = {
 
-    # --- Operation validation ------------------------------------------------
-    "operation_invalid": (
-        "upgrade.operation is '{operation}' — must be 'upgrade' or 'rollback'"
+    # --- Version validation --------------------------------------------------
+    "version_order_invalid": (
+        "Cannot upgrade: current_version ({current}) >= new_version ({new})"
     ),
     "version_unsupported": (
         "Version '{version}' is not in SUPPORTED_VERSIONS: {supported}"
@@ -139,13 +139,14 @@ TEST_LOG_MSGS: Dict[str, str] = {
 # =============================================================================
 
 TEST_ASSERT_MSGS: Dict[str, str] = {
-    "operation_invalid": (
-        "upgrade.operation is '{operation}' in omnia_test_config.yml.\n"
-        "Valid values: 'upgrade', 'rollback'\n\n"
+    "version_order_invalid": (
+        "Cannot upgrade: current_version ({current}) >= new_version ({new}).\n"
+        "Upgrade requires current_version < new_version.\n\n"
         "HOW TO FIX:\n"
         "  1. Open omnia_test_config.yml\n"
-        "  2. Set upgrade.operation to 'upgrade' or 'rollback'\n"
-        "  3. Re-run the upgrade_omnia_sh scenario"
+        "  2. Set upgrade.current_version to the version currently running\n"
+        "  3. Set upgrade.new_version to a HIGHER version to upgrade to\n"
+        "  4. If already upgraded, run rollback first"
     ),
     "version_unsupported": (
         "Version '{version}' is not supported.\n"
@@ -183,8 +184,7 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "HOW TO FIX:\n"
         "  1. Open omnia_test_config.yml\n"
         "  2. Fill in all required fields under upgrade: section\n"
-        "  3. Ensure operation, current_version, new_version, "
-        "repo_branch, omnia_branch are set"
+        "  3. Ensure current_version, new_version, repo_branch, omnia_branch are set"
     ),
     "clone_failed": (
         "Failed to clone omnia-artifactory for upgrade.\n"

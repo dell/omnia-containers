@@ -29,17 +29,12 @@ Test cases (executed in order):
 import pytest
 
 from automation_library.core import TestLogger
-from automation_library.upgrade.functions.backup_verify_func import (
-    verify_backup_md5sum,
-)
-from automation_library.upgrade.vars.backup_verify_vars import (
-    BACKUP_VERIFY_VARS,
-)
-from automation_library.upgrade.messages.backup_verify_msgs import (
+from automation_library.upgrade_and_rollback.functions import verify_backup_md5sum
+from automation_library.upgrade_and_rollback.vars import BACKUP_VERIFY_VARS
+from automation_library.upgrade_and_rollback.messages import (
     BACKUP_TEST_NAMES as TEST_NAMES,
     BACKUP_LOG_MSGS as LOG,
     BACKUP_ASSERT_MSGS as ASSERT,
-    BACKUP_SKIP_MSGS as SKIP,
 )
 
 
@@ -80,31 +75,35 @@ def _run_backup_verify(host, category: str, order_num: int):
     # Build details — only show in final output
     lines = []
     for f in files:
-        lines.append(LOG[
-            "file_ok" if f["match"] == "✓" else "file_mismatch"
-        ].format(name=f["name"]))
+        if f["match"] == "✓":
+            lines.append(LOG["file_ok"].format(name=f["name"]))
+        elif f["match"] == "⊘":
+            lines.append(LOG["file_skipped"].format(name=f["name"]))
+        else:
+            lines.append(LOG["file_mismatch"].format(name=f["name"]))
     details = "\n".join(lines)
 
     matched = sum(1 for f in files if f["match"] == "✓")
-    total = len(files)
-    mismatched = total - matched
+    skipped = sum(1 for f in files if f["match"] == "⊘")
+    compared = len(files) - skipped
+    mismatched = compared - matched
 
     if result["success"]:
         log.passed(
-            LOG["all_match"].format(count=total, category=category),
+            LOG["all_match"].format(count=compared, category=category),
             details,
         )
     else:
         log.failed(
             LOG["some_mismatch"].format(
-                mismatch=mismatched, total=total, category=category,
+                mismatch=mismatched, total=compared, category=category,
             ),
             details,
         )
         pytest.fail(
             ASSERT["md5_mismatch"].format(
                 mismatch=mismatched,
-                total=total,
+                total=compared,
                 category=category,
                 backup_dir=backup_dir,
                 current_dir=current_dir,

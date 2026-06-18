@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Rollback Functions Module."""
+"""Upgrade and Rollback Variables Module."""
 
-from .rollback_func import (
-    verify_rollback_precondition,
-    check_rollback_image,
-    download_omnia_sh_for_rollback,
-    run_omnia_rollback,
-    verify_rollback_container,
-    verify_rollback_backup_md5sum,
+from .upgrade_core_vars import (
+    UPGRADE_VARS,
+    SUPPORTED_VERSIONS,
+    VERSION_PROPERTIES,
+    get_core_tag_for_version,
 )
+from .prepare_upgrade_vars import PREPARE_UPGRADE_VARS
+from .backup_verify_vars import BACKUP_VERIFY_VARS
+from .rollback_core_vars import ROLLBACK_VARS
 
 __all__ = [
-    "verify_rollback_precondition",
-    "check_rollback_image",
-    "download_omnia_sh_for_rollback",
-    "run_omnia_rollback",
-    "verify_rollback_container",
-    "verify_rollback_backup_md5sum",
+    "UPGRADE_VARS",
+    "SUPPORTED_VERSIONS",
+    "VERSION_PROPERTIES",
+    "get_core_tag_for_version",
+    "PREPARE_UPGRADE_VARS",
+    "BACKUP_VERIFY_VARS",
+    "ROLLBACK_VARS",
 ]

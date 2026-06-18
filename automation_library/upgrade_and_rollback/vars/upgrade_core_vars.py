@@ -17,19 +17,17 @@ Upgrade Module - Variables.
 
 Configuration variables for the Omnia upgrade/rollback workflow.
 
-Only ``operation``, ``current_version``, ``new_version``, ``repo_url``,
-``repo_branch``, and ``omnia_branch`` come from ``omnia_test_config.yml``.
+From ``omnia_test_config.yml`` (upgrade section):
+  - ``current_version``: Version currently running on OIM
+  - ``new_version``: Target version for upgrade
+  - ``repo_url``, ``repo_branch``, ``omnia_branch``: Build settings
 
-Everything else — clone path, core tags, container tags, timeouts — lives
-here so that the user config stays minimal and the version-specific data
-is maintained in one place.
-
-Variable Naming:
-    Version-specific keys use ``omnia_version_X_Y_Z_W_<property>`` format
-    so future multi-version paths can be added by extending this file only.
+Version validation (automatic, no operation flag needed):
+  - Upgrade: Fails if current_version >= new_version
+  - Rollback: Fails if running version != new_version (not upgraded yet)
 
 Usage:
-    from automation_library.upgrade.vars.upgrade_core_vars import UPGRADE_VARS
+    from automation_library.upgrade_and_rollback.vars import UPGRADE_VARS
 """
 
 from typing import Dict, Any, Tuple
@@ -58,12 +56,6 @@ SUPPORTED_VERSIONS: Tuple[str, ...] = (
     "2.1.0.0",
     "2.2.0.0",
 )
-
-# =============================================================================
-# VALID OPERATIONS
-# =============================================================================
-
-VALID_OPERATIONS: Tuple[str, ...] = ("upgrade", "rollback")
 
 # =============================================================================
 # VERSION-SPECIFIC PROPERTIES
@@ -104,11 +96,6 @@ _clone_path: str = f"/opt/omnia/upgrade-to-{_new_version.replace('.', '-')}"
 # =============================================================================
 
 UPGRADE_VARS: Dict[str, Any] = {
-
-    # =========================================================================
-    # OPERATION  ("upgrade" | "rollback" | "" → fail all tests)
-    # =========================================================================
-    "operation": _upgrade_config.get("operation", ""),
 
     # =========================================================================
     # VERSION INFO  (from omnia_test_config.yml)
@@ -155,12 +142,14 @@ UPGRADE_VARS: Dict[str, Any] = {
     "quadlet_file_path": "/etc/containers/systemd/omnia_core.container",
 
     # =========================================================================
-    # TIMEOUTS (seconds)
+    # TIMEOUTS & OUTPUT
     # =========================================================================
     "clone_timeout": 300,
     "build_timeout": 1800,
     "upgrade_timeout": 1200,
     "build_progress_interval": 60,
+    "upgrade_poll_interval": 10,
+    "tail_lines": 0,  # 0 = full output, N = last N lines
 }
 
 

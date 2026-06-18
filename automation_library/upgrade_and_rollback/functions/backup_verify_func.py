@@ -60,6 +60,7 @@ def verify_backup_md5sum(
     backup_dir = cfg["backup_dir"]
     current_dir = cfg["current_dir"]
     on_oim = cfg["on_oim"]
+    exclude = cfg.get("exclude", [])
 
     # Backup files are always under /opt/omnia (shared volume) — container
     backup_cmd = partial(run_in_container, container=container)
@@ -76,13 +77,15 @@ def verify_backup_md5sum(
         current_dir=current_dir,
         backup_cmd_fn=backup_cmd,
         current_cmd_fn=current_cmd,
+        exclude=exclude,
     )
 
-    # Enrich error message with category context
+    # Enrich error message with category context (exclude skipped files from count)
     if not result["success"] and result["files"]:
-        mismatched = sum(1 for f in result["files"] if f["match"] != "✓")
+        mismatched = sum(1 for f in result["files"] if f["match"] == "✗")
+        compared = sum(1 for f in result["files"] if f["match"] != "⊘")
         result["error"] = (
-            f"{mismatched}/{len(result['files'])} {category} backup files "
+            f"{mismatched}/{compared} {category} backup files "
             f"do not match"
         )
     elif not result["files"]:

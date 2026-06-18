@@ -60,6 +60,7 @@ BACKUP_VERIFY_VARS: Dict[str, Any] = {
         "backup_dir": QUADLETS_BACKUP_DIR,
         "current_dir": QUADLETS_CURRENT_DIR,
         "on_oim": True,
+        "exclude": ["omnia_core.container"],  # Updated during upgrade with new image
     },
     "boot": {
         "backup_dir": BOOT_BACKUP_DIR,

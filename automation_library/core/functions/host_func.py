@@ -187,6 +187,7 @@ def compare_directory_md5sum(
     current_dir: str,
     backup_cmd_fn: Callable[..., subprocess.CompletedProcess],
     current_cmd_fn: Callable[..., subprocess.CompletedProcess],
+    exclude: List[str] = None,
 ) -> Dict[str, Any]:
     """
     Compare md5sum of every file in *backup_dir* against *current_dir*.
@@ -205,14 +206,17 @@ def compare_directory_md5sum(
             where *backup_dir* lives.
         current_cmd_fn: ``fn(host, cmd) -> result`` — runs a shell command
             where *current_dir* lives.
+        exclude: Optional list of filenames to skip (expected to differ).
 
     Returns:
         Dict with:
-        - **success** (bool): True if every file matched.
+        - **success** (bool): True if every non-excluded file matched.
         - **files** (list[dict]): Per-file results, each dict has
-          ``name`` (str) and ``match`` (``"✓"`` or ``"✗"``).
+          ``name`` (str) and ``match`` (``"✓"``, ``"✗"``, or ``"⊘"`` skipped).
         - **error** (str): Empty on success, description on failure.
     """
+    if exclude is None:
+        exclude = []
     # List all files in backup dir (relative paths, sorted)
     ls_cmd = backup_cmd_fn(
         host,
@@ -234,6 +238,11 @@ def compare_directory_md5sum(
     all_match = True
 
     for rel_path in rel_paths:
+        # Check if file should be excluded (expected to differ)
+        if rel_path in exclude:
+            files.append({"name": rel_path, "match": "⊘"})
+            continue
+
         bk_cmd = backup_cmd_fn(
             host,
             f"md5sum '{backup_dir}/{rel_path}' 2>/dev/null "

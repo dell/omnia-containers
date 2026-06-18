@@ -35,33 +35,54 @@ from ...core import (
 from ..vars.upgrade_core_vars import (
     UPGRADE_VARS,
     SUPPORTED_VERSIONS,
-    VALID_OPERATIONS,
     get_core_tag_for_version,
 )
+from .common_func import compare_versions
 
 
 # =============================================================================
 # VALIDATION HELPERS
 # =============================================================================
 
-def validate_operation() -> Dict[str, Any]:
+def validate_upgrade_versions() -> Dict[str, Any]:
     """
-    Validate that upgrade.operation is a supported value.
+    Validate that upgrade is possible: current_version < new_version.
+
+    For upgrade to be valid, the current version must be LESS than new version.
+    If current >= new, upgrade is not possible.
 
     Returns:
-        Dict with success, operation, error
+        Dict with success, current_version, new_version, error
     """
-    operation = UPGRADE_VARS["operation"].strip().lower()
-    if operation not in VALID_OPERATIONS:
+    cur_ver = UPGRADE_VARS["current_version"]
+    new_ver = UPGRADE_VARS["new_version"]
+
+    if not cur_ver or not new_ver:
         return {
             "success": False,
-            "operation": UPGRADE_VARS["operation"],
+            "current_version": cur_ver,
+            "new_version": new_ver,
+            "error": "current_version or new_version not set in omnia_test_config.yml",
+        }
+
+    cmp = compare_versions(cur_ver, new_ver)
+    if cmp >= 0:
+        return {
+            "success": False,
+            "current_version": cur_ver,
+            "new_version": new_ver,
             "error": (
-                f"upgrade.operation is '{UPGRADE_VARS['operation']}' — "
-                f"must be one of: {', '.join(VALID_OPERATIONS)}"
+                f"Cannot upgrade: current_version ({cur_ver}) >= new_version ({new_ver}). "
+                f"Upgrade requires current_version < new_version."
             ),
         }
-    return {"success": True, "operation": operation, "error": ""}
+
+    return {
+        "success": True,
+        "current_version": cur_ver,
+        "new_version": new_ver,
+        "error": "",
+    }
 
 
 def validate_versions() -> Dict[str, Any]:
@@ -98,13 +119,13 @@ def validate_config() -> Dict[str, Any]:
     """
     Validate that all required upgrade config fields are present and non-blank.
 
-    Checks: operation, current_version, new_version, repo_branch, omnia_branch.
+    Checks: current_version, new_version, repo_branch, omnia_branch.
 
     Returns:
         Dict with success, missing (list), blank (list), error
     """
     required_fields = (
-        "operation", "current_version", "new_version",
+        "current_version", "new_version",
         "repo_branch", "omnia_branch",
     )
     missing: List[str] = []
@@ -326,6 +347,7 @@ def build_core_image(host, progress_callback=None) -> Dict[str, Any]:
     core_tag = UPGRADE_VARS["core_tag"]
     timeout = UPGRADE_VARS["build_timeout"]
     interval = UPGRADE_VARS["build_progress_interval"]
+    tail_lines = UPGRADE_VARS["tail_lines"]
 
     # Make executable
     run_on_oim(host, f"chmod +x {clone_path}/build_images.sh")
@@ -386,8 +408,11 @@ def build_core_image(host, progress_callback=None) -> Dict[str, Any]:
     except ValueError:
         rc = 1
 
-    # Read build log (last 200 lines for display)
-    log_cmd = run_on_oim(host, f"tail -200 {log_file} 2>/dev/null")
+    # Get build output (full if tail_lines=0, else last N lines)
+    if tail_lines == 0:
+        log_cmd = run_on_oim(host, f"cat {log_file} 2>/dev/null")
+    else:
+        log_cmd = run_on_oim(host, f"tail -{tail_lines} {log_file} 2>/dev/null")
     build_output = log_cmd.stdout.strip() if log_cmd.rc == 0 else ""
 
     # Clean up temp files
@@ -509,7 +534,8 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
     clone_path = UPGRADE_VARS["clone_path"]
     omnia_sh_path = f"{clone_path}/omnia.sh"
     timeout = UPGRADE_VARS["upgrade_timeout"]
-    poll_interval = 10
+    poll_interval = UPGRADE_VARS["upgrade_poll_interval"]
+    tail_lines = UPGRADE_VARS["tail_lines"]
 
     # Verify omnia.sh is present and executable
     check = run_on_oim(host, f"test -x {omnia_sh_path}")
@@ -573,9 +599,12 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
     except ValueError:
         rc = 1
 
-    # Capture last 50 lines for display
-    log_cmd = run_on_oim(host, f"tail -50 {log_file} 2>/dev/null")
-    last_50 = log_cmd.stdout.strip() if log_cmd.rc == 0 else ""
+    # Get output (full if tail_lines=0, else last N lines)
+    if tail_lines == 0:
+        log_cmd = run_on_oim(host, f"cat {log_file} 2>/dev/null")
+    else:
+        log_cmd = run_on_oim(host, f"tail -{tail_lines} {log_file} 2>/dev/null")
+    output = log_cmd.stdout.strip() if log_cmd.rc == 0 else ""
 
     # Clean up
     run_on_oim(host, f"rm -f {log_file} {pid_file} {rc_file} {wrapper}")
@@ -583,7 +612,7 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
     if rc != 0 and elapsed >= timeout:
         return {
             "success": False,
-            "output": last_50,
+            "output": output,
             "rc": rc,
             "omnia_sh_path": omnia_sh_path,
             "error": f"omnia.sh --upgrade timed out after {timeout}s",
@@ -592,7 +621,7 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
     if rc != 0:
         return {
             "success": False,
-            "output": last_50,
+            "output": output,
             "rc": rc,
             "omnia_sh_path": omnia_sh_path,
             "error": "omnia.sh --upgrade exited non-zero",
@@ -600,7 +629,7 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
 
     return {
         "success": True,
-        "output": last_50,
+        "output": output,
         "rc": 0,
         "omnia_sh_path": omnia_sh_path,
         "error": "",

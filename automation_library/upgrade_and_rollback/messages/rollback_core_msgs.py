@@ -103,6 +103,7 @@ ROLLBACK_LOG_MSGS: Dict[str, str] = {
     "checking_category": "Verifying {category} backup vs current (md5sum)",
     "file_ok": "✓ {name}",
     "file_mismatch": "✗ {name}",
+    "file_skipped": "⊘ {name} (expected to differ)",
     "no_files": "✗ No files found in {dir}",
     "all_match": "✓ All {count} {category} files match",
     "some_mismatch": "✗ {mismatch}/{total} {category} files differ",

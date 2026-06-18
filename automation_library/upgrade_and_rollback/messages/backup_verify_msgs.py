@@ -41,6 +41,7 @@ BACKUP_LOG_MSGS: Dict[str, str] = {
     "checking": "Verifying {category} backup (md5sum)",
     "file_ok": "✓ {name}",
     "file_mismatch": "✗ {name}",
+    "file_skipped": "⊘ {name} (expected to differ)",
     "no_files": "No files found in {dir}",
     "all_match": "All {count} {category} files match (md5sum)",
     "some_mismatch": "{mismatch}/{total} {category} files differ",
