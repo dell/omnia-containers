@@ -17,6 +17,8 @@
 from .upgrade_core_func import (
     validate_operation,
     validate_versions,
+    validate_config,
+    check_backup_exists,
     check_pre_upgrade_container,
     clone_upgrade_repo,
     build_core_image,
@@ -25,6 +27,7 @@ from .upgrade_core_func import (
     run_omnia_upgrade,
     verify_backup_directory,
     verify_input_files_backup,
+    verify_metadata_backup,
     verify_quadlet_backup,
     verify_post_upgrade_state,
 )
@@ -32,6 +35,8 @@ from .upgrade_core_func import (
 __all__ = [
     "validate_operation",
     "validate_versions",
+    "validate_config",
+    "check_backup_exists",
     "check_pre_upgrade_container",
     "clone_upgrade_repo",
     "build_core_image",
@@ -40,6 +45,7 @@ __all__ = [
     "run_omnia_upgrade",
     "verify_backup_directory",
     "verify_input_files_backup",
+    "verify_metadata_backup",
     "verify_quadlet_backup",
     "verify_post_upgrade_state",
 ]

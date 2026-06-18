@@ -93,6 +93,61 @@ def validate_versions() -> Dict[str, Any]:
     }
 
 
+def validate_config() -> Dict[str, Any]:
+    """
+    Validate that all required upgrade config fields are present and non-blank.
+
+    Checks: operation, current_version, new_version, repo_branch, omnia_branch.
+
+    Returns:
+        Dict with success, missing (list), blank (list), error
+    """
+    required_fields = (
+        "operation", "current_version", "new_version",
+        "repo_branch", "omnia_branch",
+    )
+    missing: List[str] = []
+    blank: List[str] = []
+
+    for field in required_fields:
+        val = UPGRADE_VARS.get(field)
+        if val is None:
+            missing.append(field)
+        elif isinstance(val, str) and not val.strip():
+            blank.append(field)
+
+    errors: List[str] = []
+    if missing:
+        errors.append(f"Missing fields: {', '.join(missing)}")
+    if blank:
+        errors.append(f"Blank fields: {', '.join(blank)}")
+
+    return {
+        "success": len(errors) == 0,
+        "missing": missing,
+        "blank": blank,
+        "error": "; ".join(errors),
+    }
+
+
+def check_backup_exists(host) -> bool:
+    """
+    Check if the backup directory exists (used to detect prior upgrade).
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        True if backup_path directory exists inside the container.
+    """
+    container = UPGRADE_VARS["container_name"]
+    backup_path = UPGRADE_VARS["backup_path"]
+    chk = run_in_container(
+        host, f"test -d '{backup_path}'", container=container,
+    )
+    return chk.rc == 0
+
+
 # =============================================================================
 # PRE-UPGRADE CHECKS
 # =============================================================================
@@ -569,17 +624,20 @@ def run_omnia_upgrade(host, progress_callback=None) -> Dict[str, Any]:
 
 def verify_backup_directory(host) -> Dict[str, Any]:
     """
-    Verify that the upgrade backup directory and its sub-directories exist.
+    Verify backup directory structure: expected sub-dirs, key files, and
+    a ``find``-based tree listing.
 
     Checks:
     - ``{backup_path}`` exists
-    - ``input/``, ``metadata/``, ``configs/`` sub-directories exist
+    - Sub-directories: ``input/``, ``metadata/``, ``configs/``
+    - Key files: ``configs/omnia_core.container``
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, backup_path, sub_dirs (dict of name→bool), error
+        Dict with success, backup_path, sub_dirs (dict), files (dict),
+              tree (str), error
     """
     container = UPGRADE_VARS["container_name"]
     backup_path = UPGRADE_VARS["backup_path"]
@@ -592,9 +650,12 @@ def verify_backup_directory(host) -> Dict[str, Any]:
             "success": False,
             "backup_path": backup_path,
             "sub_dirs": {},
+            "files": {},
+            "tree": "",
             "error": f"Backup directory not found: {backup_path}",
         }
 
+    # Sub-directories
     expected_subs = ("input", "metadata", "configs")
     sub_dirs: Dict[str, bool] = {}
     for sub in expected_subs:
@@ -603,80 +664,197 @@ def verify_backup_directory(host) -> Dict[str, Any]:
         )
         sub_dirs[sub] = chk.rc == 0
 
-    missing = [k for k, v in sub_dirs.items() if not v]
+    # Key files
+    expected_files = {
+        "configs/omnia_core.container": False,
+    }
+    for fpath in expected_files:
+        chk = run_in_container(
+            host, f"test -f '{backup_path}/{fpath}'", container=container,
+        )
+        expected_files[fpath] = chk.rc == 0
+
+    # Tree listing (depth 3)
+    tree_cmd = run_in_container(
+        host,
+        f"find '{backup_path}' -maxdepth 3 -print "
+        f"| sed 's|{backup_path}||' | sort",
+        container=container,
+    )
+    tree = tree_cmd.stdout.strip() if tree_cmd.rc == 0 else ""
+
+    missing_dirs = [k for k, v in sub_dirs.items() if not v]
+    missing_files = [k for k, v in expected_files.items() if not v]
+    all_ok = len(missing_dirs) == 0 and len(missing_files) == 0
+
+    errors: List[str] = []
+    if missing_dirs:
+        errors.append(f"Missing dirs: {', '.join(missing_dirs)}")
+    if missing_files:
+        errors.append(f"Missing files: {', '.join(missing_files)}")
+
     return {
-        "success": len(missing) == 0,
+        "success": all_ok,
         "backup_path": backup_path,
         "sub_dirs": sub_dirs,
-        "error": f"Missing sub-directories: {', '.join(missing)}" if missing else "",
+        "files": expected_files,
+        "tree": tree,
+        "error": "; ".join(errors) if errors else "",
     }
 
 
 def verify_input_files_backup(host) -> Dict[str, Any]:
     """
-    Compare files in the backup input/ directory against the current input
-    files inside the container using md5sum.
+    Verify backup of input files.
 
-    For each file in ``{backup_path}/input/``, compute its md5 and compare
-    with the same file under ``/opt/omnia/input/``.
+    - **Top-level files** (e.g., ``default.yml``): md5sum comparison with
+      current — these are user-modified and must be identical.
+    - **project_default/ files**: existence check only — framework defaults
+      change between versions, so md5 mismatch is expected.
+
+    Scans ``{backup_path}/input/`` recursively.
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, files (list of dicts with name, backup_md5,
-              current_md5, match), error
+        Dict with success, files (list of dicts), project_default_files
+              (list of dicts), error
     """
     container = UPGRADE_VARS["container_name"]
     backup_path = UPGRADE_VARS["backup_path"]
     backup_input = f"{backup_path}/input"
     current_input = "/opt/omnia/input"
 
-    # List files in backup input/
+    # List all files recursively (relative paths from backup_input)
     ls_cmd = run_in_container(
         host,
-        f"find {backup_input} -maxdepth 1 -type f -exec basename {{}} \\;",
+        f"find '{backup_input}' -type f "
+        f"| sed 's|^{backup_input}/||' | sort",
         container=container,
     )
     if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
         return {
             "success": False,
             "files": [],
+            "project_default_files": [],
             "error": f"No files found in {backup_input}",
         }
 
-    filenames = [f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()]
-    files: List[Dict[str, str]] = []
-    all_match = True
+    rel_paths = [
+        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
+    ]
 
-    for fname in sorted(filenames):
-        bk_md5_cmd = run_in_container(
-            host,
-            f"md5sum '{backup_input}/{fname}' 2>/dev/null | awk '{{print $1}}'",
-            container=container,
-        )
-        cur_md5_cmd = run_in_container(
-            host,
-            f"md5sum '{current_input}/{fname}' 2>/dev/null | awk '{{print $1}}'",
-            container=container,
-        )
-        bk_md5 = bk_md5_cmd.stdout.strip() if bk_md5_cmd.rc == 0 else ""
-        cur_md5 = cur_md5_cmd.stdout.strip() if cur_md5_cmd.rc == 0 else ""
-        match = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
-        if not match:
-            all_match = False
+    # Split: top-level user files vs project_default/ framework files
+    user_files: List[Dict[str, str]] = []
+    pd_files: List[Dict[str, Any]] = []
+    all_ok = True
 
-        files.append({
-            "name": fname,
-            "backup_md5": bk_md5,
-            "current_md5": cur_md5,
-            "match": "✓" if match else "✗",
-        })
+    for rel_path in rel_paths:
+        if rel_path.startswith("project_default/"):
+            # Existence check only (framework defaults change between versions)
+            chk = run_in_container(
+                host,
+                f"test -f '{backup_input}/{rel_path}'",
+                container=container,
+            )
+            exists = chk.rc == 0
+            if not exists:
+                all_ok = False
+            pd_files.append({
+                "name": rel_path,
+                "exists": exists,
+            })
+        else:
+            # md5sum comparison for user-modified files
+            bk_md5_cmd = run_in_container(
+                host,
+                f"md5sum '{backup_input}/{rel_path}' 2>/dev/null "
+                f"| awk '{{print $1}}'",
+                container=container,
+            )
+            cur_md5_cmd = run_in_container(
+                host,
+                f"md5sum '{current_input}/{rel_path}' 2>/dev/null "
+                f"| awk '{{print $1}}'",
+                container=container,
+            )
+            bk_md5 = bk_md5_cmd.stdout.strip() if bk_md5_cmd.rc == 0 else ""
+            cur_md5 = cur_md5_cmd.stdout.strip() if cur_md5_cmd.rc == 0 else ""
+            match = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
+            if not match:
+                all_ok = False
+            user_files.append({
+                "name": rel_path,
+                "backup_md5": bk_md5,
+                "current_md5": cur_md5,
+                "match": "✓" if match else "✗",
+            })
 
     return {
-        "success": all_match,
+        "success": all_ok,
+        "files": user_files,
+        "project_default_files": pd_files,
+        "error": "" if all_ok else "Some input files failed verification",
+    }
+
+
+def verify_metadata_backup(host) -> Dict[str, Any]:
+    """
+    Verify that metadata backup files exist (no md5 — metadata may change).
+
+    Lists all files in ``{backup_path}/metadata/`` and reports their presence.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, files (list of dicts with name, exists), error
+    """
+    container = UPGRADE_VARS["container_name"]
+    backup_path = UPGRADE_VARS["backup_path"]
+    metadata_dir = f"{backup_path}/metadata"
+
+    chk = run_in_container(
+        host, f"test -d '{metadata_dir}'", container=container,
+    )
+    if chk.rc != 0:
+        return {
+            "success": False,
+            "files": [],
+            "error": f"Metadata directory not found: {metadata_dir}",
+        }
+
+    ls_cmd = run_in_container(
+        host,
+        f"find '{metadata_dir}' -type f "
+        f"| sed 's|^{metadata_dir}/||' | sort",
+        container=container,
+    )
+    if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
+        return {
+            "success": False,
+            "files": [],
+            "error": f"No files found in {metadata_dir}",
+        }
+
+    rel_paths = [
+        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
+    ]
+    files: List[Dict[str, Any]] = []
+    for rel_path in rel_paths:
+        chk = run_in_container(
+            host,
+            f"test -s '{metadata_dir}/{rel_path}'",
+            container=container,
+        )
+        files.append({"name": rel_path, "exists": chk.rc == 0})
+
+    all_ok = all(f["exists"] for f in files)
+    return {
+        "success": all_ok,
         "files": files,
-        "error": "" if all_match else "Some input files do not match",
+        "error": "" if all_ok else "Some metadata files are missing or empty",
     }
 
 

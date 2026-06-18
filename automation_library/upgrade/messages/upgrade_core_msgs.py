@@ -37,10 +37,13 @@ TEST_NAMES: Dict[str, str] = {
         "Run omnia.sh --upgrade from {from_version} to {to_version}"
     ),
     "verify_backup_directory": (
-        "Verify upgrade backup directory created"
+        "Verify upgrade backup directory structure"
     ),
     "verify_input_files": (
         "Verify input files backup integrity (md5sum)"
+    ),
+    "verify_metadata_backup": (
+        "Verify metadata backup files"
     ),
     "verify_quadlet_backup": (
         "Verify quadlet file (omnia_core.container) backed up"
@@ -64,20 +67,27 @@ TEST_LOG_MSGS: Dict[str, str] = {
         "Version '{version}' is not in SUPPORTED_VERSIONS: {supported}"
     ),
 
+    # --- Input validation ----------------------------------------------------
+    "config_missing_field": "Missing required config field: upgrade.{field}",
+    "config_blank_field": "Config field upgrade.{field} is blank",
+
     # --- Pre-upgrade ---------------------------------------------------------
     "checking_container": "Checking omnia_core container status",
-    "container_info": (
-        "Container: {name}\n"
-        "  Image:  {image}\n"
-        "  Status: {status}"
-    ),
+    "container_name": "Container: {name}",
+    "container_image": "Image:     {image}",
+    "container_status": "Status:    {status}",
     "reading_version": "Reading omnia_version from metadata",
     "current_version_ok": (
         "omnia_core is running version {version} — ready for upgrade"
     ),
     "already_at_target": (
-        "omnia_core is already at target version {version} — "
-        "this is already the desired version"
+        "Already at target version {version}"
+    ),
+    "already_at_target_backup_found": (
+        "Backup found at {path} — upgrade was already performed"
+    ),
+    "already_at_target_no_backup": (
+        "No backup found — already at desired version {version}"
     ),
 
     # --- Clone ---------------------------------------------------------------
@@ -107,17 +117,32 @@ TEST_LOG_MSGS: Dict[str, str] = {
     "upgrade_fail": "omnia.sh --upgrade FAILED (exit code {rc})",
 
     # --- Backup directory verification ---------------------------------------
-    "backup_dir_check": "Checking backup directory: {path}",
-    "backup_dir_found": "✓ Backup directory exists: {path}",
+    "backup_dir_check": "Checking backup directory structure: {path}",
+    "backup_dir_found": "✓ Backup directory verified: {path}",
     "backup_dir_not_found": "✗ Backup directory not found: {path}",
-    "backup_sub_ok": "  ✓ {name}/ present",
-    "backup_sub_missing": "  ✗ {name}/ missing",
+    "backup_sub_ok": "  ✓ {name}/",
+    "backup_sub_missing": "  ✗ {name}/ — MISSING",
+    "backup_file_ok": "  ✓ {path}",
+    "backup_file_missing": "  ✗ {path} — MISSING",
+    "backup_tree_header": "Backup directory tree:",
 
     # --- Input files backup verification -------------------------------------
-    "input_files_check": "Comparing backup input files with current (md5sum)",
-    "input_file_ok": "  ✓ {name} — validated (md5 match)",
-    "input_file_mismatch": "  ✗ {name} — mismatch (backup: {bk_md5}, current: {cur_md5})",
+    "input_files_check": "Verifying input files backup (md5sum)",
+    "input_file_ok": "  ✓ {name} — md5 validated",
+    "input_file_mismatch": (
+        "  ✗ {name} — MISMATCH (backup: {bk_md5}, current: {cur_md5})"
+    ),
     "input_files_none": "  No input files found in backup",
+
+    "pd_header": "  project_default/ ({count} files — existence check only):",
+    "pd_file_ok": "    ✓ {name}",
+    "pd_file_missing": "    ✗ {name} — MISSING",
+
+    # --- Metadata backup verification ----------------------------------------
+    "metadata_check": "Verifying metadata backup files",
+    "metadata_file_ok": "  ✓ {name}",
+    "metadata_file_missing": "  ✗ {name} — MISSING",
+    "metadata_none": "  No metadata files found in backup",
 
     # --- Quadlet backup verification -----------------------------------------
     "quadlet_check": "Checking quadlet backup: configs/omnia_core.container",
@@ -127,11 +152,9 @@ TEST_LOG_MSGS: Dict[str, str] = {
 
     # --- Post-upgrade --------------------------------------------------------
     "post_container_check": "Checking post-upgrade container state",
-    "post_container_info": (
-        "Container: {name}\n"
-        "  Image:  {image}\n"
-        "  Status: {status}"
-    ),
+    "post_container_name": "Container: {name}",
+    "post_container_image": "Image:     {image}",
+    "post_container_status": "Status:    {status}",
     "post_version_ok": "✓ omnia_version: {version} (expected: {expected})",
     "post_version_fail": (
         "✗ Version mismatch: expected {expected}, found {actual}"
@@ -182,6 +205,15 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "HOW TO FIX:\n"
         "  - If this is expected, the upgrade was already performed\n"
         "  - To re-test, rollback first or redeploy from {from_version}"
+    ),
+    "config_validation_failed": (
+        "Upgrade config validation failed.\n"
+        "Error: {error}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Open omnia_test_config.yml\n"
+        "  2. Fill in all required fields under upgrade: section\n"
+        "  3. Ensure operation, current_version, new_version, "
+        "repo_branch, omnia_branch are set"
     ),
     "clone_failed": (
         "Failed to clone omnia-artifactory for upgrade.\n"
@@ -262,6 +294,13 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "  1. Check: podman exec omnia_core ls -la {path}/configs/\n"
         "  2. The upgrade may have failed during config backup"
     ),
+    "metadata_missing": (
+        "Metadata backup files missing.\n"
+        "Backup path: {path}/metadata/\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check: podman exec omnia_core ls -la {path}/metadata/\n"
+        "  2. The upgrade may have failed during metadata backup"
+    ),
     "post_upgrade_version_mismatch": (
         "Version mismatch after upgrade.\n"
         "Expected: {expected}\nActual: {actual}\n\n"
@@ -293,5 +332,8 @@ SKIP_MSGS: Dict[str, str] = {
     "container_not_running": "omnia_core container is not running",
     "already_upgraded": (
         "omnia_core is already at target version {version}"
+    ),
+    "pre_upgrade_failed": (
+        "Pre-upgrade check failed — skipping remaining upgrade tests"
     ),
 }
