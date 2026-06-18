@@ -106,3 +106,34 @@ Multi-Subnet DHCP has the following limitations:
 - **BMC Subnet Management**: BMC IPs are managed separately through the OOB/BMC network and are not part of the multi-subnet DHCP configuration.
 - **Dynamic Subnet Discovery**: Subnets must be explicitly configured in ``/opt/omnia/input/project_default/network_spec.yml``. Automatic subnet discovery is not supported.
 - **Per-Subnet Hostname Patterns**: While coresmd supports per-subnet hostname patterns via ``rule=subnet:`` directives, Omnia templates do not currently wire this functionality. All racks share the same hostname pattern.
+
+Cluster DNS Limitations
+-----------------------
+
+**No Reverse DNS (PTR Records)**
+- coresmd does not generate PTR records
+- ``gethostbyaddr()`` calls fail
+- Some MPI implementations may log warnings
+- MPI typically uses UCX auto-detection for IB transport; PTR is rarely required for job execution
+
+**No InfiniBand Fabric-Specific DNS**
+- InfiniBand hostnames (e.g., ``nid001-ib``) are not resolvable via DNS
+- MPI over IB uses UCX device selection
+- Explicit IB DNS only needed for specific Slurm/MPI configs
+
+**Cloud-Init One-Shot**
+- Changing ``dns_enabled`` requires node reprovisioning (reboot into cloud-init)
+- Toggle is a deployment-time decision; not expected to change frequently
+
+**Single IP per Hostname**
+- coresmd returns only admin/PXE IP from SMD
+- Sufficient for Slurm hostname resolution
+- IB traffic uses separate transport layer
+
+**30s Cache Staleness**
+- New nodes may not resolve for up to 30 seconds after SMD registration
+- Acceptable for HPC workloads; nodes are typically provisioned in batches
+
+**No HA Failover**
+- Single coresmd instance on OIM; no VIP failover
+- Deferred to OIM HA specification
