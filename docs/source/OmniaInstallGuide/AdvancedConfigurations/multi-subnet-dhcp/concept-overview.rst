@@ -101,8 +101,8 @@ Deployments where service nodes (OIM, storage, login nodes) must discover, boot,
 **Sites Enforcing Network Segmentation**
 Organizations with security or operational policies that require network segmentation, with each rack as a separate network segment.
 
-Prerequisites
-------------
+Infrastructure Requirements
+---------------------------
 
 Multi-subnet DHCP requires a network infrastructure with:
 
@@ -112,22 +112,4 @@ Multi-subnet DHCP requires a network infrastructure with:
 
 For detailed configuration prerequisites and step-by-step setup procedures, see :doc:`how-to-configuration`.
 
-Verification
-------------
-
-After configuring multi-subnet DHCP, verify the following:
-
-- Verify that CoreSMD has registered the additional subnets. Expected output should show ``subnet=`` directives for each additional subnet::
-
-    podman logs coresmd-coredhcp | grep "subnet="
-
-Limitations
------------
-
-Multi-Subnet DHCP has the following limitations:
-
-- **Single CoreDHCP Instance**: All subnets share one DHCP server process listening on the admin NIC. High-availability configurations require additional setup.
-- **No IPv6 DHCP**: DHCPv6 is not supported by coresmd. Only IPv4 multi-subnet DHCP is available.
-- **BMC Subnet Management**: BMC IPs are managed separately through the OOB/BMC network and are not part of the multi-subnet DHCP configuration.
-- **Dynamic Subnet Discovery**: Subnets must be explicitly configured in ``network_spec.yml``. Automatic subnet discovery is not supported.
-- **Per-Subnet Hostname Patterns**: While coresmd supports per-subnet hostname patterns via ``rule=subnet:`` directives, Omnia templates do not currently wire this functionality. All racks share the same hostname pattern.
+For a complete list of limitations and constraints, see :doc:`/limitations`.
