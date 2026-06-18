@@ -23,9 +23,11 @@ from typing import Dict, Any
 
 from automation_library.core import (
     run_on_oim,
+    run_in_container,
     get_input_value,
     check_container_running as _core_check_container,
     OIM_SHARED_PATH,
+    OMNIA_CORE_CONTAINER,
     STORAGE_CONFIG_FILE,
 )
 from ..vars.prepare_oim_vars import (
@@ -123,11 +125,14 @@ def verify_storage_backend(host) -> Dict[str, Any]:
     if backend == STORAGE_BACKEND_MINIO:
         container_result = _core_check_container(host, MINIO_CONTAINER)
         if container_result["success"]:
-            minio_data_path = f"{OIM_SHARED_PATH}/{MINIO_DATA_DIR_SUFFIX}"
-            dir_cmd = run_on_oim(
+            minio_data_path = (
+                f"{OIM_SHARED_PATH}/{MINIO_DATA_DIR_SUFFIX}"
+            )
+            dir_cmd = run_in_container(
                 host,
                 f"test -d {minio_data_path} && echo 'EXISTS' "
-                f"|| echo 'NOT_FOUND'"
+                f"|| echo 'NOT_FOUND'",
+                container=OMNIA_CORE_CONTAINER,
             )
             dir_exists = (
                 dir_cmd.rc == 0 and "EXISTS" in dir_cmd.stdout
@@ -427,10 +432,13 @@ def verify_s3_directories(host) -> Dict[str, Any]:
     result["backend"] = backend
 
     if backend == STORAGE_BACKEND_MINIO:
-        minio_data_path = f"{OIM_SHARED_PATH}/{MINIO_DATA_DIR_SUFFIX}"
-        dir_cmd = run_on_oim(
+        minio_data_path = (
+            f"{OIM_SHARED_PATH}/{MINIO_DATA_DIR_SUFFIX}"
+        )
+        dir_cmd = run_in_container(
             host,
-            f"ls -d {minio_data_path}/*/ 2>/dev/null || echo 'EMPTY'"
+            f"ls -d {minio_data_path}/*/ 2>/dev/null || echo 'EMPTY'",
+            container=OMNIA_CORE_CONTAINER,
         )
 
         if dir_cmd.rc == 0 and "EMPTY" not in dir_cmd.stdout:
@@ -448,10 +456,11 @@ def verify_s3_directories(host) -> Dict[str, Any]:
             for d in dirs:
                 result["details"] += f"\n    - {d}"
         else:
-            dir_exists_cmd = run_on_oim(
+            dir_exists_cmd = run_in_container(
                 host,
                 f"test -d {minio_data_path} && echo 'EXISTS' "
-                f"|| echo 'NOT_FOUND'"
+                f"|| echo 'NOT_FOUND'",
+                container=OMNIA_CORE_CONTAINER,
             )
             if "EXISTS" in dir_exists_cmd.stdout:
                 result["success"] = True

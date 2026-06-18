@@ -320,36 +320,47 @@ image_identifier: ""
 
 # #############################################################################
 #                                                                             #
-#                         OMNIA UPGRADE TESTING                               #
+#                         OMNIA UPGRADE / ROLLBACK TESTING                    #
 #                                                                             #
 # #############################################################################
-# Configuration for testing omnia.sh --upgrade workflow
-# Used by the upgrade_omnia_sh molecule scenario
+# Used by the upgrade_omnia_sh molecule scenario.
 #
-# This tests upgrading from one Omnia version to another
-# (e.g., 2.1.0.0 → 2.2.0.0)
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  UPGRADE  — moves the cluster to a newer Omnia version.                │
+# │    Set operation: "upgrade"                                             │
+# │    current_version = version running NOW  (e.g. 2.1.0.0)               │
+# │    new_version     = version to move TO   (e.g. 2.2.0.0)               │
+# │                                                                         │
+# │  ROLLBACK — reverts the cluster to the previous Omnia version.         │
+# │    Set operation: "rollback"                                            │
+# │    current_version = version running NOW  (e.g. 2.2.0.0)               │
+# │    new_version     = version to revert TO (e.g. 2.1.0.0)               │
+# │                                                                         │
+# │  DISABLED — leave operation empty ("") or any other value.             │
+# │    ALL upgrade/rollback tests will FAIL with a clear message.          │
+# │    This prevents accidental execution on the wrong cluster.            │
+# └──────────────────────────────────────────────────────────────────────────┘
 
 upgrade:
-  # Version currently running on the OIM server (before upgrade)
-  from_version: "2.1.0.0"
+  # "upgrade" | "rollback" | "" (empty = fail all tests)
+  operation: "upgrade"
 
-  # Version to upgrade to
-  to_version: "2.2.0.0"
+  # Version of omnia_core currently running on this OIM server
+  current_version: "2.1.0.0"
 
-  # Omnia Artifactory repository URL for the NEW version
-  # This repo will be cloned to build the new core image
+  # Target version to upgrade or rollback to
+  new_version: "2.2.0.0"
+
+  # -------------------------------------------------------------------------
+  # Repository & Build Settings
+  # -------------------------------------------------------------------------
+
+  # Git URL of omnia-artifactory (contains build_images.sh)
   repo_url: "https://github.com/dell/omnia-artifactory.git"
 
-  # Branch of omnia-artifactory to clone for the upgrade
+  # Branch to clone from omnia-artifactory
   repo_branch: "omnia-container"
 
-  # Local path where the new artifactory will be cloned
-  # Default: /opt/omnia/upgrade-to-<to_version>
-  clone_path: "/opt/omnia/upgrade-to-2.2"
-
-  # Omnia branch/tag for building the new core image
-  # Usage: ./build_images.sh core omnia_branch=<this_value> core_tag=<core_tag>
+  # Omnia branch/tag passed to build_images.sh for building the core image
+  # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
   omnia_branch: "pub/q2_upgrade"
-
-  # Core image version tag for the upgrade
-  core_tag: "2.2"

@@ -13,30 +13,38 @@
 # limitations under the License.
 
 """
-Upgrade Module
+Upgrade Module.
 
-This module provides functions for verifying the Omnia upgrade workflow
-(e.g., upgrading from 2.1.0.0 to 2.2.0.0).
+Functions, variables, and messages for testing the Omnia upgrade / rollback
+workflow (e.g., upgrading from 2.1.0.0 to 2.2.0.0).
 
 Test Categories:
-- Pre-upgrade: Verify current omnia_core container version
-- Build: Clone new artifactory and build core image
-- Upgrade: Run omnia.sh --upgrade and verify completion
-- Post-upgrade: Verify backup, new container version, old container removed
+- Pre-upgrade: Validate operation, verify current container version
+- Build: Clone repo, build core image, download omnia.sh
+- Upgrade: Run omnia.sh --upgrade with automated interactive input
+- Post-upgrade: Verify backup folders, new container version, container health
 """
 
 from .functions import (
-    get_current_omnia_version,
-    verify_pre_upgrade_state,
-    clone_upgrade_artifactory,
-    build_upgrade_core_image,
+    validate_operation,
+    validate_versions,
+    check_pre_upgrade_container,
+    clone_upgrade_repo,
+    build_core_image,
+    verify_podman_image,
+    download_omnia_sh,
     run_omnia_upgrade,
-    verify_backup_folder,
-    verify_post_upgrade_version,
-    verify_no_old_container,
+    verify_backup_directory,
+    verify_input_files_backup,
+    verify_quadlet_backup,
+    verify_post_upgrade_state,
 )
 from .vars import (
     UPGRADE_VARS,
+    SUPPORTED_VERSIONS,
+    VALID_OPERATIONS,
+    VERSION_PROPERTIES,
+    get_core_tag_for_version,
 )
 from .messages import (
     TEST_NAMES,

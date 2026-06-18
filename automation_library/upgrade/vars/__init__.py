@@ -14,8 +14,18 @@
 
 """Upgrade Variables Module."""
 
-from .upgrade_vars import UPGRADE_VARS
+from .upgrade_core_vars import (
+    UPGRADE_VARS,
+    SUPPORTED_VERSIONS,
+    VALID_OPERATIONS,
+    VERSION_PROPERTIES,
+    get_core_tag_for_version,
+)
 
 __all__ = [
     "UPGRADE_VARS",
+    "SUPPORTED_VERSIONS",
+    "VALID_OPERATIONS",
+    "VERSION_PROPERTIES",
+    "get_core_tag_for_version",
 ]

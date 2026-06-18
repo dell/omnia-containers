@@ -14,7 +14,7 @@
 
 """Upgrade Messages Module."""
 
-from .upgrade_msgs import (
+from .upgrade_core_msgs import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,

@@ -212,7 +212,7 @@ TEST_ASSERT_MSGS = {
 ║ Error: {error}
 ║
 ║ HOW TO FIX:
-║   1. For MinIO: Check data dir at /opt/omnia/omnia/openchami/s3/data/s3
+║   1. For MinIO: podman inspect minio-server to find data volume mount
 ║   2. For PowerScale: s3cmd ls to verify buckets at endpoint
 ║   3. Re-run prepare_oim.yml to create directories
 ╚══════════════════════════════════════════════════════════════════════════════╝

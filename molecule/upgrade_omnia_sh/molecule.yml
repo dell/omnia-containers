@@ -33,13 +33,12 @@
 #
 # Configuration (omnia_test_config.yml):
 #   upgrade:
-#     from_version: "2.1.0.0"
-#     to_version: "2.2.0.0"
+#     operation: "upgrade"        # "upgrade" | "rollback" | "" (fail all)
+#     current_version: "2.1.0.0"  # version running NOW
+#     new_version: "2.2.0.0"      # target version
 #     repo_url: "https://github.com/dell/omnia-artifactory.git"
 #     repo_branch: "omnia-container"
-#     clone_path: "/opt/omnia/upgrade-to-2.2"
 #     omnia_branch: "pub/q2_upgrade"
-#     core_tag: "2.2"
 #
 # =============================================================================
 

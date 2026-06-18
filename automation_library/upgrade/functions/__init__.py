@@ -14,24 +14,32 @@
 
 """Upgrade Functions Module."""
 
-from .upgrade_func import (
-    get_current_omnia_version,
-    verify_pre_upgrade_state,
-    clone_upgrade_artifactory,
-    build_upgrade_core_image,
+from .upgrade_core_func import (
+    validate_operation,
+    validate_versions,
+    check_pre_upgrade_container,
+    clone_upgrade_repo,
+    build_core_image,
+    verify_podman_image,
+    download_omnia_sh,
     run_omnia_upgrade,
-    verify_backup_folder,
-    verify_post_upgrade_version,
-    verify_no_old_container,
+    verify_backup_directory,
+    verify_input_files_backup,
+    verify_quadlet_backup,
+    verify_post_upgrade_state,
 )
 
 __all__ = [
-    "get_current_omnia_version",
-    "verify_pre_upgrade_state",
-    "clone_upgrade_artifactory",
-    "build_upgrade_core_image",
+    "validate_operation",
+    "validate_versions",
+    "check_pre_upgrade_container",
+    "clone_upgrade_repo",
+    "build_core_image",
+    "verify_podman_image",
+    "download_omnia_sh",
     "run_omnia_upgrade",
-    "verify_backup_folder",
-    "verify_post_upgrade_version",
-    "verify_no_old_container",
+    "verify_backup_directory",
+    "verify_input_files_backup",
+    "verify_quadlet_backup",
+    "verify_post_upgrade_state",
 ]
