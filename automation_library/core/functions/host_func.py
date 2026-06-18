@@ -68,7 +68,7 @@ def _is_local_ip(ip: str) -> bool:
 def is_local_execution() -> bool:
     """
     Determine if tests should run locally (on the OIM itself).
-    
+
     Returns True when:
     - oim_server_ip is empty/not set (implies running on the OIM)
     - oim_server_ip matches a local IP address
@@ -259,6 +259,90 @@ def compare_directory_md5sum(
         "success": all_match,
         "files": files,
         "error": "" if all_match else "Some files do not match",
+    }
+
+
+def download_omnia_sh(
+    host,
+    branch_url: str,
+    tag_url: str,
+    dest_path: str,
+    cmd_fn: Callable = None,
+) -> Dict[str, Any]:
+    """
+    Download ``omnia.sh`` with branch → tag fallback.
+
+    Shared utility for upgrade, rollback, and oim-prereq-check.
+    Tries *branch_url* first; if that fails, tries *tag_url*.
+    On success the file is made executable.
+
+    Args:
+        host: Testinfra host object
+        branch_url: Primary download URL (branch ref)
+        tag_url: Fallback download URL (tag ref)
+        dest_path: Full destination path on the remote host
+        cmd_fn: Command runner (default ``run_on_oim``).
+                Must accept ``(host, cmd_string)`` and return an
+                object with ``.rc``, ``.stdout``, ``.stderr``.
+
+    Returns:
+        Dict with success, path, url, ref_type, error
+    """
+    if cmd_fn is None:
+        cmd_fn = run_on_oim
+
+    dest_dir = os.path.dirname(dest_path)
+
+    # Ensure directory exists
+    mkdir_cmd = cmd_fn(host, f"mkdir -p '{dest_dir}'")
+    if mkdir_cmd.rc != 0:
+        return {
+            "success": False,
+            "path": dest_path,
+            "url": "",
+            "ref_type": "",
+            "error": f"Cannot create directory {dest_dir}: "
+                     f"{mkdir_cmd.stderr.strip()}",
+        }
+
+    # Remove existing file
+    cmd_fn(host, f"rm -f '{dest_path}'")
+
+    # Try branch URL first
+    cmd = cmd_fn(host, f"curl -f -o '{dest_path}' '{branch_url}'")
+    if cmd.rc == 0:
+        cmd_fn(host, f"chmod +x '{dest_path}'")
+        return {
+            "success": True,
+            "path": dest_path,
+            "url": branch_url,
+            "ref_type": "branch",
+            "error": "",
+        }
+
+    # Fallback: try tag URL
+    cmd = cmd_fn(host, f"curl -f -o '{dest_path}' '{tag_url}'")
+    if cmd.rc == 0:
+        cmd_fn(host, f"chmod +x '{dest_path}'")
+        return {
+            "success": True,
+            "path": dest_path,
+            "url": tag_url,
+            "ref_type": "tag",
+            "error": "",
+        }
+
+    # Both failed
+    return {
+        "success": False,
+        "path": dest_path,
+        "url": f"{branch_url} / {tag_url}",
+        "ref_type": "",
+        "error": (
+            f"Failed to download omnia.sh.\n"
+            f"  Tried branch: {branch_url}\n"
+            f"  Tried tag:    {tag_url}"
+        ),
     }
 
 

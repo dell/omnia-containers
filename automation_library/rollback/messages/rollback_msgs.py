@@ -26,16 +26,29 @@ from typing import Dict
 # =============================================================================
 
 ROLLBACK_TEST_NAMES: Dict[str, str] = {
+    # Pre-check
+    "precondition": "Verify rollback is needed ({new_version} → {target_version})",
+
+    # Pre-rollback
     "check_rollback_image": (
         "Verify rollback image (omnia_core:{tag}) is available"
     ),
+
+    # Rollback execution
     "run_rollback": "Download omnia.sh and run rollback",
+
+    # Post-rollback container
     "verify_rollback_container": (
         "Verify omnia_core rolled back to {version}"
     ),
-    "verify_project_default": (
-        "Verify project_default files restored (md5sum)"
-    ),
+
+    # Post-rollback backup verify (per category)
+    "verify_project_default": "Verify project_default files restored (md5sum)",
+    "verify_quadlets": "Verify quadlet files restored (md5sum)",
+    "verify_boot": "Verify boot files restored (md5sum)",
+    "verify_cloudinit": "Verify cloud-init files restored (md5sum)",
+    "verify_nodes": "Verify nodes files restored (md5sum)",
+    "verify_images": "Verify image definition files restored (md5sum)",
 }
 
 # =============================================================================
@@ -43,6 +56,20 @@ ROLLBACK_TEST_NAMES: Dict[str, str] = {
 # =============================================================================
 
 ROLLBACK_LOG_MSGS: Dict[str, str] = {
+    # Pre-check
+    "checking_precondition": (
+        "Checking if rollback is needed ({new_version} → {target_version})"
+    ),
+    "precondition_ok": (
+        "✓ Container at {running_version}, rollback to {target_version} needed"
+    ),
+    "precondition_not_needed": (
+        "✗ Container already at {target_version} — no rollback needed"
+    ),
+    "precondition_unknown": (
+        "✗ Container at {running_version} — cannot determine rollback eligibility"
+    ),
+
     # Image check
     "checking_image": "Checking rollback image: omnia_core:{tag}",
     "image_found": "✓ omnia_core:{tag} available",
@@ -72,12 +99,13 @@ ROLLBACK_LOG_MSGS: Dict[str, str] = {
         "✗ Expected {expected}, found {actual}"
     ),
 
-    # project_default files
-    "checking_project_default": (
-        "Verifying project_default backup vs current (md5sum)"
-    ),
+    # Backup verify (generic — used for all categories)
+    "checking_category": "Verifying {category} backup vs current (md5sum)",
     "file_ok": "✓ {name}",
     "file_mismatch": "✗ {name}",
+    "no_files": "✗ No files found in {dir}",
+    "all_match": "✓ All {count} {category} files match",
+    "some_mismatch": "✗ {mismatch}/{total} {category} files differ",
 }
 
 # =============================================================================
@@ -85,19 +113,46 @@ ROLLBACK_LOG_MSGS: Dict[str, str] = {
 # =============================================================================
 
 ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
+    # Pre-check
+    "already_at_target": (
+        "Container is already at {target_version} — no rollback needed.\n\n"
+        "This means the system is already at the expected pre-upgrade version.\n"
+        "Rollback is only applicable when running {new_version}."
+    ),
+    "precondition_failed": (
+        "Cannot determine rollback eligibility.\n"
+        "Running: {running_version}, expected: {new_version}.\n\n"
+        "HOW TO FIX:\n"
+        "  1. Verify upgrade was performed: podman exec omnia_core "
+        "grep omnia_version /opt/omnia/.data/oim_metadata.yml\n"
+        "  2. Ensure current_version and new_version are correct in "
+        "omnia_test_config.yml"
+    ),
+    "config_missing": (
+        "current_version or new_version not set in omnia_test_config.yml.\n\n"
+        "HOW TO FIX:\n"
+        "  Set upgrade.current_version and upgrade.new_version in "
+        "omnia_test_config.yml"
+    ),
+
+    # Image
     "image_not_found": (
         "Rollback image omnia_core:{tag} not found.\n\n"
         "HOW TO FIX:\n"
         "  1. Check: podman images | grep omnia_core\n"
         "  2. Ensure the original image was not removed during upgrade"
     ),
+
+    # Download
     "omnia_sh_download_failed": (
         "Failed to download omnia.sh from {url}.\n\n"
         "HOW TO FIX:\n"
         "  1. Check network connectivity\n"
         "  2. Verify URL is correct\n"
-        "  3. Try: wget -q {url} -O {path}"
+        "  3. Try: curl -f -o /tmp/omnia.sh {url}"
     ),
+
+    # Rollback execution
     "rollback_failed": (
         "omnia.sh --rollback failed with rc={rc}.\n\n"
         "HOW TO FIX:\n"
@@ -105,6 +160,8 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
         "  2. Re-run manually: {omnia_sh_path} --rollback\n"
         "  3. Check container status: podman ps -a"
     ),
+
+    # Container
     "container_wrong_version": (
         "After rollback, container is at {actual} instead of {expected}.\n\n"
         "HOW TO FIX:\n"
@@ -120,13 +177,19 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
         "  2. Check logs: podman logs omnia_core\n"
         "  3. Check systemd: systemctl status omnia_core"
     ),
-    "project_default_mismatch": (
-        "{mismatch}/{total} project_default files do not match after "
-        "rollback.\n\n"
+
+    # Backup verify (generic)
+    "md5_mismatch": (
+        "{mismatch}/{total} {category} files do not match after rollback.\n\n"
         "HOW TO FIX:\n"
-        "  1. Compare backup vs current project_default files\n"
-        "  2. Check: podman exec omnia_core ls -la "
-        "/opt/omnia/input/project_default/"
+        "  1. Compare: diff {backup_dir}/ {current_dir}/\n"
+        "  2. Check rollback log: cat /tmp/rollback.log"
+    ),
+    "no_backup_dir": (
+        "No {category} backup files found in {dir}.\n\n"
+        "HOW TO FIX:\n"
+        "  1. Verify backup exists: ls -la {dir}\n"
+        "  2. Ensure upgrade was run with backup enabled"
     ),
 }
 
@@ -135,6 +198,7 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
 # =============================================================================
 
 ROLLBACK_SKIP_MSGS: Dict[str, str] = {
+    "not_needed": "Skipped — rollback not needed (already at target version)",
     "image_not_available": "Skipped — rollback image not available",
     "rollback_failed": "Skipped — rollback execution failed",
 }

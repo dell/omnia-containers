@@ -26,11 +26,12 @@ Test Categories:
 """
 
 from .functions import (
+    verify_rollback_precondition,
     check_rollback_image,
     download_omnia_sh_for_rollback,
     run_omnia_rollback,
     verify_rollback_container,
-    verify_project_default_restored,
+    verify_rollback_backup_md5sum,
 )
 from .vars import (
     ROLLBACK_VARS,

@@ -29,8 +29,95 @@ from ...core import (
     run_in_container,
     check_container_running,
     compare_directory_md5sum,
+    download_omnia_sh as _core_download_omnia_sh,
 )
 from ..vars.rollback_vars import ROLLBACK_VARS
+
+
+def verify_rollback_precondition(host) -> Dict[str, Any]:
+    """
+    Check whether rollback is needed by reading the current omnia_version.
+
+    If the container is already running the ``current_version`` (rollback
+    target), rollback is not needed and the test suite should skip/fail.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with:
+          - rollback_needed (bool)
+          - running_version (str)
+          - target_version (str)
+          - container_running (bool)
+          - error (str)
+    """
+    container = ROLLBACK_VARS["container_name"]
+    target_version = ROLLBACK_VARS["current_version"]
+    new_version = ROLLBACK_VARS["new_version"]
+    metadata_path = ROLLBACK_VARS["oim_metadata_path"]
+
+    if not target_version or not new_version:
+        return {
+            "rollback_needed": False,
+            "running_version": "",
+            "target_version": target_version,
+            "container_running": False,
+            "error": (
+                "current_version or new_version not configured in "
+                "omnia_test_config.yml upgrade section"
+            ),
+        }
+
+    # Check container running
+    status = check_container_running(host, container)
+    container_running = status.get("success", False)
+
+    running_version = ""
+    if container_running:
+        meta_cmd = run_in_container(
+            host,
+            f"grep '^omnia_version:' {metadata_path} "
+            "| awk '{print $2}' | tr -d '\"'",
+            container=container,
+        )
+        running_version = meta_cmd.stdout.strip() if meta_cmd.rc == 0 else ""
+
+    # Already at target → no rollback needed
+    if running_version == target_version:
+        return {
+            "rollback_needed": False,
+            "running_version": running_version,
+            "target_version": target_version,
+            "container_running": container_running,
+            "error": (
+                f"Container is already at {target_version}. "
+                f"No rollback needed."
+            ),
+        }
+
+    # At new_version → rollback is needed
+    if running_version == new_version:
+        return {
+            "rollback_needed": True,
+            "running_version": running_version,
+            "target_version": target_version,
+            "container_running": container_running,
+            "error": "",
+        }
+
+    # Unknown state
+    return {
+        "rollback_needed": False,
+        "running_version": running_version,
+        "target_version": target_version,
+        "container_running": container_running,
+        "error": (
+            f"Container running version '{running_version}' — "
+            f"expected '{new_version}' (to rollback to '{target_version}'). "
+            f"Cannot determine rollback eligibility."
+        ),
+    }
 
 
 def check_rollback_image(host) -> Dict[str, Any]:
@@ -64,9 +151,7 @@ def download_omnia_sh_for_rollback(host) -> Dict[str, Any]:
     """
     Download a fresh omnia.sh for rollback.
 
-    Always removes any existing omnia.sh first.  Tries the branch URL
-    first, then the tag URL (same fallback pattern as upgrade and
-    oim-prereq-check).
+    Thin wrapper around ``core.download_omnia_sh`` using rollback vars.
 
     Args:
         host: Testinfra host object
@@ -74,72 +159,23 @@ def download_omnia_sh_for_rollback(host) -> Dict[str, Any]:
     Returns:
         Dict with success, path, url, ref_type, error
     """
-    omnia_sh_path = ROLLBACK_VARS["omnia_sh_path"]
     omnia_branch = ROLLBACK_VARS["omnia_branch"]
-    branch_url = ROLLBACK_VARS["omnia_sh_branch_url"]
-    tag_url = ROLLBACK_VARS["omnia_sh_tag_url"]
-    clone_path = ROLLBACK_VARS["clone_path"]
-
     if not omnia_branch:
         return {
             "success": False,
-            "path": omnia_sh_path,
+            "path": ROLLBACK_VARS["omnia_sh_path"],
             "url": "",
             "ref_type": "",
             "error": "omnia_branch not configured in omnia_test_config.yml",
         }
 
-    # Ensure directory exists
-    mkdir_cmd = run_on_oim(host, f"mkdir -p '{clone_path}'")
-    if mkdir_cmd.rc != 0:
-        return {
-            "success": False,
-            "path": omnia_sh_path,
-            "url": "",
-            "ref_type": "",
-            "error": f"Cannot create directory {clone_path}: "
-                     f"{mkdir_cmd.stderr.strip()}",
-        }
-
-    # Remove existing omnia.sh
-    run_on_oim(host, f"rm -f '{omnia_sh_path}'")
-
-    # Try branch URL first
-    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{branch_url}'")
-    if cmd.rc == 0:
-        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
-        return {
-            "success": True,
-            "path": omnia_sh_path,
-            "url": branch_url,
-            "ref_type": "branch",
-            "error": "",
-        }
-
-    # Fallback: try tag URL
-    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{tag_url}'")
-    if cmd.rc == 0:
-        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
-        return {
-            "success": True,
-            "path": omnia_sh_path,
-            "url": tag_url,
-            "ref_type": "tag",
-            "error": "",
-        }
-
-    # Both failed
-    return {
-        "success": False,
-        "path": omnia_sh_path,
-        "url": f"{branch_url} / {tag_url}",
-        "ref_type": "",
-        "error": (
-            f"Failed to download omnia.sh from '{omnia_branch}'.\n"
-            f"  Tried branch: {branch_url}\n"
-            f"  Tried tag:    {tag_url}"
-        ),
-    }
+    return _core_download_omnia_sh(
+        host,
+        branch_url=ROLLBACK_VARS["omnia_sh_branch_url"],
+        tag_url=ROLLBACK_VARS["omnia_sh_tag_url"],
+        dest_path=ROLLBACK_VARS["omnia_sh_path"],
+        cmd_fn=run_on_oim,
+    )
 
 
 def run_omnia_rollback(
@@ -304,44 +340,61 @@ def verify_rollback_container(host) -> Dict[str, Any]:
     }
 
 
-def verify_project_default_restored(host) -> Dict[str, Any]:
+def verify_rollback_backup_md5sum(host, category: str) -> Dict[str, Any]:
     """
-    After rollback, verify project_default files match backup (md5sum).
+    After rollback, verify restored files match their backup (md5sum).
 
-    Uses the core ``compare_directory_md5sum`` utility to compare the
-    backup at ``{backup_path}/input/project_default/`` against the live
-    ``/opt/omnia/input/project_default/``.
+    Uses the core ``compare_directory_md5sum`` utility.  The *category*
+    selects paths from ``ROLLBACK_VARS["verify_categories"]``.
+
+    Categories: project_default, quadlets, boot, cloudinit, nodes, images.
 
     Args:
         host: Testinfra host object
+        category: Key in ROLLBACK_VARS["verify_categories"]
 
     Returns:
         Dict with success, files (list of {name, match}), error
     """
-    container = ROLLBACK_VARS["container_name"]
-    backup_path = ROLLBACK_VARS["backup_path"]
-    backup_pd = f"{backup_path}/input/project_default"
-    current_pd = ROLLBACK_VARS["project_default_current_dir"]
+    categories = ROLLBACK_VARS["verify_categories"]
+    cfg = categories.get(category)
+    if cfg is None:
+        return {
+            "success": False,
+            "files": [],
+            "error": f"Unknown rollback verify category: {category}",
+        }
 
-    # Both dirs are inside /opt/omnia → use run_in_container for both
-    container_cmd = partial(run_in_container, container=container)
+    container = ROLLBACK_VARS["container_name"]
+    backup_dir = cfg["backup_dir"]
+    current_dir = cfg["current_dir"]
+    on_oim = cfg["on_oim"]
+
+    # Backup is always under /opt/omnia (shared volume) → container
+    backup_cmd = partial(run_in_container, container=container)
+
+    # Current: OIM host or container depending on category
+    if on_oim:
+        current_cmd = run_on_oim
+    else:
+        current_cmd = partial(run_in_container, container=container)
 
     result = compare_directory_md5sum(
         host,
-        backup_dir=backup_pd,
-        current_dir=current_pd,
-        backup_cmd_fn=container_cmd,
-        current_cmd_fn=container_cmd,
+        backup_dir=backup_dir,
+        current_dir=current_dir,
+        backup_cmd_fn=backup_cmd,
+        current_cmd_fn=current_cmd,
     )
 
-    # Enrich error message for context
+    # Enrich error with category context
     if not result["success"] and result["files"]:
         mismatched = sum(1 for f in result["files"] if f["match"] != "✓")
         result["error"] = (
-            f"{mismatched}/{len(result['files'])} project_default files "
+            f"{mismatched}/{len(result['files'])} {category} files "
             f"do not match after rollback"
         )
     elif not result["files"]:
-        result["error"] = f"No files found in {backup_pd}"
+        result["error"] = f"No files found in {backup_dir}"
 
     return result

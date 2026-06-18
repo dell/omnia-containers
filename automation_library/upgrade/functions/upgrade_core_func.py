@@ -30,6 +30,7 @@ from ...core import (
     run_on_oim,
     run_in_container,
     check_container_running,
+    download_omnia_sh as _core_download_omnia_sh,
 )
 from ..vars.upgrade_core_vars import (
     UPGRADE_VARS,
@@ -456,8 +457,7 @@ def download_omnia_sh(host) -> Dict[str, Any]:
     """
     Download omnia.sh from the configured omnia_branch and mark executable.
 
-    Tries branch URL first, then tag URL (same fallback pattern as
-    oim-prereq-check ``repository.download_omnia_sh()``).
+    Thin wrapper around ``core.download_omnia_sh`` using upgrade vars.
 
     Args:
         host: Testinfra host object
@@ -466,56 +466,22 @@ def download_omnia_sh(host) -> Dict[str, Any]:
         Dict with success, path, url, ref_type, error
     """
     omnia_branch = UPGRADE_VARS["omnia_branch"]
-    clone_path = UPGRADE_VARS["clone_path"]
-    omnia_sh_path = f"{clone_path}/omnia.sh"
-    branch_url = UPGRADE_VARS["omnia_sh_branch_url"]
-    tag_url = UPGRADE_VARS["omnia_sh_tag_url"]
-
     if not omnia_branch:
         return {
             "success": False,
-            "path": omnia_sh_path,
+            "path": UPGRADE_VARS.get("clone_path", ""),
             "url": "",
             "ref_type": "",
             "error": "omnia_branch not configured in omnia_test_config.yml",
         }
 
-    # Try branch URL first
-    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{branch_url}'")
-    if cmd.rc == 0:
-        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
-        return {
-            "success": True,
-            "path": omnia_sh_path,
-            "url": branch_url,
-            "ref_type": "branch",
-            "error": "",
-        }
-
-    # Fallback: try tag URL
-    cmd = run_on_oim(host, f"curl -f -o '{omnia_sh_path}' '{tag_url}'")
-    if cmd.rc == 0:
-        run_on_oim(host, f"chmod +x '{omnia_sh_path}'")
-        return {
-            "success": True,
-            "path": omnia_sh_path,
-            "url": tag_url,
-            "ref_type": "tag",
-            "error": "",
-        }
-
-    # Both failed
-    return {
-        "success": False,
-        "path": omnia_sh_path,
-        "url": f"{branch_url} / {tag_url}",
-        "ref_type": "",
-        "error": (
-            f"Failed to download omnia.sh from '{omnia_branch}'.\n"
-            f"  Tried branch: {branch_url}\n"
-            f"  Tried tag:    {tag_url}"
-        ),
-    }
+    return _core_download_omnia_sh(
+        host,
+        branch_url=UPGRADE_VARS["omnia_sh_branch_url"],
+        tag_url=UPGRADE_VARS["omnia_sh_tag_url"],
+        dest_path=f"{UPGRADE_VARS['clone_path']}/omnia.sh",
+        cmd_fn=run_on_oim,
+    )
 
 
 # =============================================================================

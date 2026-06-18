@@ -34,7 +34,6 @@ from automation_library.core import (
     INPUT_BASE_PATH,
 )
 from automation_library.upgrade.vars.upgrade_core_vars import (
-    VERSION_PROPERTIES,
     get_core_tag_for_version,
 )
 
@@ -87,6 +86,51 @@ ROLLBACK_VARS: Dict[str, Any] = {
     # Metadata / project_default paths (from core)
     "oim_metadata_path": OIM_METADATA_PATH,
     "project_default_current_dir": INPUT_BASE_PATH,
+
+    # =========================================================================
+    # ROLLBACK BACKUP VERIFY CATEGORIES
+    # After rollback the restored files must match their backup counterparts.
+    # Same categories as upgrade backup_verify — quadlets, boot, cloudinit,
+    # nodes, images, plus project_default.
+    # =========================================================================
+    "verify_categories": {
+        "project_default": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/input/project_default",
+            "current_dir": INPUT_BASE_PATH,
+            "on_oim": False,
+        },
+        "quadlets": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/openchami/quadlets",
+            "current_dir": "/etc/containers/systemd",
+            "on_oim": True,
+        },
+        "boot": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/openchami/openchami_data/workdir/boot",
+            "current_dir": "/opt/omnia/openchami/workdir/boot",
+            "on_oim": False,
+        },
+        "cloudinit": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/openchami/openchami_data/workdir/cloud-init",
+            "current_dir": "/opt/omnia/openchami/workdir/cloud-init",
+            "on_oim": False,
+        },
+        "nodes": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/openchami/openchami_data/workdir/nodes",
+            "current_dir": "/opt/omnia/openchami/workdir/nodes",
+            "on_oim": False,
+        },
+        "images": {
+            "backup_dir": f"/opt/omnia/backups/upgrade/version_{_current_version}"
+                          "/openchami/openchami_data/workdir/images",
+            "current_dir": "/opt/omnia/openchami/workdir/images",
+            "on_oim": False,
+        },
+    },
 
     # Timing
     "poll_interval": 10,

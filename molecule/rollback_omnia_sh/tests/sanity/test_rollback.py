@@ -17,7 +17,7 @@ Omnia Core Rollback Test Cases.
 
 Verifies the omnia.sh --rollback workflow after an upgrade has been
 performed.  Restores the omnia_core container to the original version
-and checks that configuration files are correctly restored.
+and checks that all configuration files are correctly restored.
 
 PREREQUISITES:
   - omnia_core is running at the upgraded version (e.g. 2.2.0.0)
@@ -25,21 +25,28 @@ PREREQUISITES:
   - The original image (e.g. omnia_core:2.1) is available locally
 
 Test cases (executed in order):
-1. Verify rollback image (omnia_core:2.1) is available
-2. Download omnia.sh and run omnia.sh --rollback
-3. Verify omnia_core rolled back to original version (2.1.0.0)
-4. Verify project_default files restored (md5sum backup vs current)
+ 1. Verify rollback precondition (not already at target version)
+ 2. Verify rollback image (omnia_core:2.1) is available
+ 3. Download omnia.sh and run omnia.sh --rollback
+ 4. Verify omnia_core rolled back to original version (2.1.0.0)
+ 5. Verify project_default files restored (md5sum)
+ 6. Verify quadlet files restored (md5sum)
+ 7. Verify boot files restored (md5sum)
+ 8. Verify cloud-init files restored (md5sum)
+ 9. Verify nodes files restored (md5sum)
+10. Verify image definition files restored (md5sum)
 """
 
 import pytest
 
 from automation_library.core import TestLogger
 from automation_library.rollback.functions import (
+    verify_rollback_precondition,
     check_rollback_image,
     download_omnia_sh_for_rollback,
     run_omnia_rollback,
     verify_rollback_container,
-    verify_project_default_restored,
+    verify_rollback_backup_md5sum,
 )
 from automation_library.rollback.vars import ROLLBACK_VARS
 from automation_library.rollback.messages import (
@@ -54,24 +61,101 @@ from automation_library.rollback.messages import (
 # MODULE-LEVEL GATES
 # =============================================================================
 
+_rollback_needed: bool = False
 _rollback_image_ok: bool = False
 _rollback_passed: bool = False
 
 
 # =============================================================================
-# TC-1: CHECK ROLLBACK IMAGE AVAILABLE
+# TC-1: VERIFY ROLLBACK PRECONDITION
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
+def test_rollback_precondition(host):
+    """
+    Test Case 1: Verify rollback is actually needed.
+
+    If the container is already at the target version (current_version),
+    skip all remaining tests — no rollback needed.
+    """
+    global _rollback_needed
+
+    target = ROLLBACK_VARS["current_version"]
+    new_ver = ROLLBACK_VARS["new_version"]
+
+    log = TestLogger(
+        TEST_NAMES["precondition"].format(
+            new_version=new_ver, target_version=target,
+        )
+    )
+    log.check(
+        LOG["checking_precondition"].format(
+            new_version=new_ver, target_version=target,
+        )
+    )
+
+    result = verify_rollback_precondition(host)
+
+    if not result["container_running"] and not result["rollback_needed"]:
+        if not target or not new_ver:
+            log.failed("Config incomplete", result["error"])
+            pytest.fail(ASSERT["config_missing"])
+        log.failed("Container not running", result["error"])
+        pytest.fail(result["error"])
+
+    if result["rollback_needed"]:
+        _rollback_needed = True
+        log.passed(
+            LOG["precondition_ok"].format(
+                running_version=result["running_version"],
+                target_version=target,
+            ),
+            f"✓ Running {result['running_version']}, will rollback to {target}",
+        )
+    elif result["running_version"] == target:
+        log.failed(
+            LOG["precondition_not_needed"].format(target_version=target),
+            result["error"],
+        )
+        pytest.fail(
+            ASSERT["already_at_target"].format(
+                target_version=target, new_version=new_ver,
+            )
+        )
+    else:
+        log.failed(
+            LOG["precondition_unknown"].format(
+                running_version=result["running_version"],
+            ),
+            result["error"],
+        )
+        pytest.fail(
+            ASSERT["precondition_failed"].format(
+                running_version=result["running_version"],
+                new_version=new_ver,
+            )
+        )
+
+
+# =============================================================================
+# TC-2: CHECK ROLLBACK IMAGE AVAILABLE
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(2)
 def test_check_rollback_image(host):
     """
-    Test Case 1: Verify the rollback target image exists locally.
+    Test Case 2: Verify the rollback target image exists locally.
 
     If the image is not found, all subsequent tests are skipped because
     the rollback cannot proceed.
     """
     global _rollback_image_ok
+
+    if not _rollback_needed:
+        pytest.skip(SKIP["not_needed"])
+
     tag = ROLLBACK_VARS["rollback_image_tag"]
 
     log = TestLogger(TEST_NAMES["check_rollback_image"].format(tag=tag))
@@ -94,18 +178,18 @@ def test_check_rollback_image(host):
 
 
 # =============================================================================
-# TC-2: DOWNLOAD OMNIA.SH + RUN ROLLBACK
+# TC-3: DOWNLOAD OMNIA.SH + RUN ROLLBACK
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(2)
+@pytest.mark.order(3)
 def test_run_rollback(host):
     """
-    Test Case 2: Download a fresh omnia.sh and execute --rollback.
+    Test Case 3: Download a fresh omnia.sh and execute --rollback.
 
     Steps:
     - Delete any existing omnia.sh in clone_path
-    - Download from configured URL
+    - Download from configured URL (branch → tag fallback)
     - Run omnia.sh --rollback with 'y' confirmation
     - Poll every 10s, show progress
     - PASS if rc=0
@@ -178,14 +262,14 @@ def test_run_rollback(host):
 
 
 # =============================================================================
-# TC-3: VERIFY CONTAINER ROLLED BACK
+# TC-4: VERIFY CONTAINER ROLLED BACK
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(3)
+@pytest.mark.order(4)
 def test_verify_rollback_container(host):
     """
-    Test Case 3: Verify omnia_core is running the pre-upgrade version.
+    Test Case 4: Verify omnia_core is running the pre-upgrade version.
 
     Checks container is running, image tag matches, and omnia_version
     in metadata matches the original (current_version).
@@ -263,33 +347,42 @@ def test_verify_rollback_container(host):
 
 
 # =============================================================================
-# TC-4: VERIFY PROJECT_DEFAULT FILES RESTORED
+# BACKUP VERIFY HELPER  (shared by TC-5 through TC-10)
 # =============================================================================
 
-@pytest.mark.sanity
-@pytest.mark.order(4)
-def test_verify_project_default(host):
+def _run_rollback_verify(host, category: str):
     """
-    Test Case 4: After rollback, project_default files should match backup.
+    Generic test body for rollback backup md5sum verification.
 
-    Uses md5sum to compare every file in the backup's project_default/
-    against the current /opt/omnia/input/project_default/.  After a
-    correct rollback, all files must match.
+    Args:
+        host: Testinfra host object
+        category: ROLLBACK_VARS["verify_categories"] key
     """
     if not _rollback_passed:
         pytest.skip(SKIP["rollback_failed"])
 
-    log = TestLogger(TEST_NAMES["verify_project_default"])
-    log.check(LOG["checking_project_default"])
+    cfg = ROLLBACK_VARS["verify_categories"][category]
+    backup_dir = cfg["backup_dir"]
+    current_dir = cfg["current_dir"]
 
-    result = verify_project_default_restored(host)
+    log = TestLogger(TEST_NAMES[f"verify_{category}"])
+    log.check(LOG["checking_category"].format(category=category))
+
+    result = verify_rollback_backup_md5sum(host, category)
     files = result.get("files", [])
 
     if not files:
-        log.failed("No project_default files found", result["error"])
-        pytest.fail(result["error"])
+        log.failed(
+            LOG["no_files"].format(dir=backup_dir),
+            result["error"],
+        )
+        pytest.fail(
+            ASSERT["no_backup_dir"].format(
+                category=category, dir=backup_dir,
+            )
+        )
 
-    # Build details — collect results silently, show in final output
+    # Build details
     lines = []
     for f in files:
         lines.append(
@@ -304,16 +397,88 @@ def test_verify_project_default(host):
 
     if result["success"]:
         log.passed(
-            f"All {total} project_default files match (md5sum)",
+            LOG["all_match"].format(count=total, category=category),
             details,
         )
     else:
         log.failed(
-            f"{mismatched}/{total} project_default files differ",
+            LOG["some_mismatch"].format(
+                mismatch=mismatched, total=total, category=category,
+            ),
             details,
         )
         pytest.fail(
-            ASSERT["project_default_mismatch"].format(
-                mismatch=mismatched, total=total,
+            ASSERT["md5_mismatch"].format(
+                mismatch=mismatched,
+                total=total,
+                category=category,
+                backup_dir=backup_dir,
+                current_dir=current_dir,
             )
         )
+
+
+# =============================================================================
+# TC-5: VERIFY PROJECT_DEFAULT FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(5)
+def test_verify_project_default(host):
+    """Test Case 5: Verify project_default files restored after rollback."""
+    _run_rollback_verify(host, "project_default")
+
+
+# =============================================================================
+# TC-6: VERIFY QUADLET FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(6)
+def test_verify_quadlets(host):
+    """Test Case 6: Verify quadlet files restored after rollback."""
+    _run_rollback_verify(host, "quadlets")
+
+
+# =============================================================================
+# TC-7: VERIFY BOOT FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(7)
+def test_verify_boot(host):
+    """Test Case 7: Verify boot files restored after rollback."""
+    _run_rollback_verify(host, "boot")
+
+
+# =============================================================================
+# TC-8: VERIFY CLOUD-INIT FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(8)
+def test_verify_cloudinit(host):
+    """Test Case 8: Verify cloud-init files restored after rollback."""
+    _run_rollback_verify(host, "cloudinit")
+
+
+# =============================================================================
+# TC-9: VERIFY NODES FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(9)
+def test_verify_nodes(host):
+    """Test Case 9: Verify nodes files restored after rollback."""
+    _run_rollback_verify(host, "nodes")
+
+
+# =============================================================================
+# TC-10: VERIFY IMAGE DEFINITION FILES RESTORED
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(10)
+def test_verify_images(host):
+    """Test Case 10: Verify image definition files restored after rollback."""
+    _run_rollback_verify(host, "images")
