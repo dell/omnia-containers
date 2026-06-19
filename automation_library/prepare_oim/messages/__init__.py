@@ -28,6 +28,13 @@ from .build_stream_msgs import (
     TEST_ASSERT_MSGS as BS_TEST_ASSERT_MSGS,
 )
 
+from .multi_subnet_msgs import (
+    MS_TEST_NAMES,
+    MS_TEST_LOG_MSGS,
+    MS_TEST_ASSERT_MSGS,
+    MS_SKIP_MSGS,
+)
+
 __all__ = [
     "TEST_NAMES",
     "TEST_LOG_MSGS",
@@ -35,4 +42,8 @@ __all__ = [
     "BS_TEST_NAMES",
     "BS_TEST_LOG_MSGS",
     "BS_TEST_ASSERT_MSGS",
+    "MS_TEST_NAMES",
+    "MS_TEST_LOG_MSGS",
+    "MS_TEST_ASSERT_MSGS",
+    "MS_SKIP_MSGS",
 ]
