@@ -35,7 +35,7 @@ LOG_FILE: str = "/tmp/prepare_upgrade.log"
 
 POLL_INTERVAL: int = 10
 
-TAIL_LINES: int = 0  # 0 = full output, N = last N lines
+TAIL_LINES: int = 50  # 0 = full output, N = last N lines
 
 PREPARE_UPGRADE_VARS: Dict[str, Any] = {
     "container_name": CONTAINER_NAME,

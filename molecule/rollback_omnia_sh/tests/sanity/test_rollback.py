@@ -76,8 +76,11 @@ def test_rollback_precondition(host):
     """
     Test Case 1: Verify rollback is actually needed.
 
-    If the container is already at the target version (current_version),
-    skip all remaining tests — no rollback needed.
+    States:
+    - not_running: Container not running → skip all tests
+    - fresh_install: At current_version without previous_omnia_version → skip all
+    - rollback_needed: At new_version with previous_version → proceed
+    - already_rolled_back: At current_version → skip all tests
     """
     global _rollback_needed
 
@@ -96,46 +99,72 @@ def test_rollback_precondition(host):
     )
 
     result = verify_rollback_precondition(host)
+    state = result.get("state", "unknown")
 
-    if not result["container_running"] and not result["rollback_needed"]:
-        if not target or not new_ver:
-            log.failed("Config incomplete", result["error"])
-            pytest.fail(ASSERT["config_missing"])
-        log.failed("Container not running", result["error"])
-        pytest.fail(result["error"])
+    # Config error
+    if state == "config_error":
+        log.failed("Config incomplete", result["error"])
+        pytest.fail(ASSERT["config_missing"])
 
-    if result["rollback_needed"]:
+    # Container not running - skip all with detailed service status
+    if state == "not_running":
+        log.skipped(
+            SKIP["container_not_running"],
+            result.get("error", "Container not running"),
+        )
+        pytest.skip(SKIP["container_not_running"])
+
+    # Fresh install at current_version (never upgraded) - skip all
+    if state == "fresh_install":
+        log.skipped(
+            SKIP["fresh_install"].format(version=result["running_version"]),
+            result["error"],
+        )
+        pytest.skip(SKIP["fresh_install"].format(version=result["running_version"]))
+
+    # Fresh install at new_version (no previous version) - skip all
+    if state == "fresh_install_new":
+        log.skipped(
+            SKIP["fresh_install_new"].format(version=result["running_version"]),
+            result["error"],
+        )
+        pytest.skip(SKIP["fresh_install_new"].format(version=result["running_version"]))
+
+    # Already rolled back - skip all
+    if state == "already_rolled_back":
+        log.skipped(
+            SKIP["not_needed"],
+            f"Container already at {target} - no rollback needed",
+        )
+        pytest.skip(SKIP["not_needed"])
+
+    # Rollback needed - proceed
+    if state == "rollback_needed":
         _rollback_needed = True
+        prev_ver = result.get("previous_version", "")
         log.passed(
             LOG["precondition_ok"].format(
                 running_version=result["running_version"],
                 target_version=target,
             ),
-            f"✓ Running {result['running_version']}, will rollback to {target}",
+            f"✓ Running {result['running_version']}, previous: {prev_ver}\n"
+            f"✓ Will rollback to {target}",
         )
-    elif result["running_version"] == target:
-        log.failed(
-            LOG["precondition_not_needed"].format(target_version=target),
-            result["error"],
+        return
+
+    # Unexpected version or unknown state - fail
+    log.failed(
+        LOG["precondition_unknown"].format(
+            running_version=result.get("running_version", "unknown"),
+        ),
+        result.get("error", "Unknown state"),
+    )
+    pytest.fail(
+        ASSERT["precondition_failed"].format(
+            running_version=result.get("running_version", "unknown"),
+            new_version=new_ver,
         )
-        pytest.fail(
-            ASSERT["already_at_target"].format(
-                target_version=target, new_version=new_ver,
-            )
-        )
-    else:
-        log.failed(
-            LOG["precondition_unknown"].format(
-                running_version=result["running_version"],
-            ),
-            result["error"],
-        )
-        pytest.fail(
-            ASSERT["precondition_failed"].format(
-                running_version=result["running_version"],
-                new_version=new_ver,
-            )
-        )
+    )
 
 
 # =============================================================================

@@ -61,10 +61,13 @@ from automation_library.upgrade_and_rollback.messages import (
 
 
 # =============================================================================
-# MODULE-LEVEL GATE: skip TCs 2-8 if TC-1 fails
+# MODULE-LEVEL GATES
 # =============================================================================
+# _pre_upgrade_passed: True if container is at current_version, ready for upgrade
+# _already_upgraded: True if container already at new_version (skip build/upgrade)
 
 _pre_upgrade_passed: bool = False
+_already_upgraded: bool = False
 
 
 # =============================================================================
@@ -137,8 +140,14 @@ def _gate_operation(log: TestLogger) -> None:
 
 def _skip_if_pre_upgrade_failed() -> None:
     """Skip this test if TC-1 did not pass."""
-    if not _pre_upgrade_passed:
+    if not _pre_upgrade_passed and not _already_upgraded:
         pytest.skip(SKIP_MSGS["pre_upgrade_failed"])
+
+
+def _skip_if_already_upgraded() -> None:
+    """Skip build/upgrade tests if container already upgraded."""
+    if _already_upgraded:
+        pytest.skip(SKIP_MSGS["skip_build_already_upgraded"])
 
 
 # =============================================================================
@@ -150,10 +159,15 @@ def _skip_if_pre_upgrade_failed() -> None:
 def test_pre_upgrade_version(host):
     """
     Test Case 1: Verify omnia_core container is running the expected FROM
-    version.  If already at target, check whether a backup exists and report.
-    Sets _pre_upgrade_passed so subsequent tests know whether to run.
+    version.  Determines upgrade state and sets appropriate flags.
+
+    States:
+    - not_running: Container not running → skip all tests
+    - already_upgraded: At new_version with previous_version → skip build/upgrade
+    - already_at_target: Fresh install at new_version → skip all tests
+    - ready_for_upgrade: At current_version → proceed with upgrade
     """
-    global _pre_upgrade_passed
+    global _pre_upgrade_passed, _already_upgraded
     current_ver = UPGRADE_VARS["current_version"]
     new_ver = UPGRADE_VARS["new_version"]
     backup_path = UPGRADE_VARS["backup_path"]
@@ -183,45 +197,57 @@ def test_pre_upgrade_version(host):
 
     state = result.get("state", "error")
 
+    # Container not running - skip all tests with detailed service status
     if state == "not_running":
-        log.failed("omnia_core container is not running", result["error"])
-        pytest.fail(ASSERT["container_not_running"])
+        log.skipped(
+            SKIP["container_not_running"],
+            result.get("error", "omnia_core container is not running"),
+        )
+        pytest.skip(SKIP["container_not_running"])
 
+    # Already upgraded (at new_version with previous_omnia_version)
+    # Skip build/upgrade tests but allow verification tests to run
+    if state == "already_upgraded":
+        _already_upgraded = True
+        prev_ver = result.get("previous_version", "")
+        print(
+            f"    {LOG['already_at_target'].format(version=result['version'])}",
+            flush=True,
+        )
+        print(
+            f"    Previous version: {prev_ver}",
+            flush=True,
+        )
+        detail_msg = (
+            f"Container already upgraded to {result['version']}.\n"
+            f"Previous version: {prev_ver}\n"
+            f"Build and upgrade tests will be skipped.\n"
+            f"Verification tests will run to validate upgrade state."
+        )
+        log.passed(
+            f"Already upgraded to {result['version']}",
+            detail_msg,
+        )
+        return  # Pass this test, subsequent build/upgrade tests will skip
+
+    # Fresh install at new_version (no previous_omnia_version) - skip all
     if state == "already_at_target":
         print(
             f"    {LOG['already_at_target'].format(version=result['version'])}",
             flush=True,
         )
-        # Check if backup exists → was upgrade already performed?
-        if check_backup_exists(host):
-            print(
-                f"    {LOG['already_at_target_backup_found'].format(path=backup_path)}",
-                flush=True,
-            )
-            detail_msg = (
-                f"Already at version {result['version']}.\n"
-                f"Backup found at {backup_path} — upgrade was performed.\n"
-                f"To re-test: rollback first, then run again."
-            )
-        else:
-            print(
-                f"    {LOG['already_at_target_no_backup'].format(version=result['version'])}",
-                flush=True,
-            )
-            detail_msg = (
-                f"Already at version {result['version']}.\n"
-                f"No backup found — no upgrade possible."
-            )
-        log.failed(
-            LOG["already_at_target"].format(version=result["version"]),
+        detail_msg = (
+            f"Container is at {result['version']} (fresh install).\n"
+            f"No previous_omnia_version found — never upgraded.\n"
+            f"No upgrade testing possible."
+        )
+        log.skipped(
+            SKIP["already_at_target"].format(version=result["version"]),
             detail_msg,
         )
-        pytest.fail(
-            ASSERT["already_at_target_version"].format(
-                version=result["version"], from_version=current_ver,
-            )
-        )
+        pytest.skip(SKIP["already_at_target"].format(version=result["version"]))
 
+    # Unexpected version - fail
     if state == "unexpected_version":
         log.failed("Unexpected container version", result["error"])
         pytest.fail(
@@ -230,7 +256,7 @@ def test_pre_upgrade_version(host):
             )
         )
 
-    # SUCCESS — mark gate so TCs 2-8 proceed
+    # SUCCESS — container at current_version, ready for upgrade
     _pre_upgrade_passed = True
 
     details = (
@@ -254,7 +280,7 @@ def test_pre_upgrade_version(host):
 def test_build_and_prepare(host):
     """
     Test Case 2: Clone repo, build core image, download omnia.sh.
-    Skipped if TC-1 failed.
+    Skipped if TC-1 failed or container already upgraded.
     """
     core_tag = UPGRADE_VARS["core_tag"]
     omnia_branch = UPGRADE_VARS["omnia_branch"]
@@ -266,6 +292,7 @@ def test_build_and_prepare(host):
 
     _gate_operation(log)
     _skip_if_pre_upgrade_failed()
+    _skip_if_already_upgraded()
 
     # ---- Step 1: Clone ----
     log.check(LOG["clone_start"].format(branch=branch))
@@ -367,7 +394,7 @@ def test_run_upgrade(host):
     """
     Test Case 3: Run omnia.sh --upgrade with automated interactive input.
     Prints progress every 10 seconds. Shows last 50 lines on completion.
-    Skipped if TC-1 failed.
+    Skipped if TC-1 failed or container already upgraded.
     """
     current_ver = UPGRADE_VARS["current_version"]
     new_ver = UPGRADE_VARS["new_version"]
@@ -380,6 +407,7 @@ def test_run_upgrade(host):
 
     _gate_operation(log)
     _skip_if_pre_upgrade_failed()
+    _skip_if_already_upgraded()
 
     log.check(LOG["upgrade_start"])
     print(

@@ -200,6 +200,16 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
 
 ROLLBACK_SKIP_MSGS: Dict[str, str] = {
     "not_needed": "Skipped — rollback not needed (already at target version)",
+    "container_not_running": "Skipped — omnia_core container not running",
+    "fresh_install": (
+        "Skipped — container is fresh install at {version}, never upgraded. "
+        "Rollback not applicable."
+    ),
+    "fresh_install_new": (
+        "Skipped — container is fresh install at {version}, "
+        "no previous version found. Cannot rollback."
+    ),
     "image_not_available": "Skipped — rollback image not available",
     "rollback_failed": "Skipped — rollback execution failed",
+    "precondition_failed": "Skipped — rollback precondition check failed",
 }

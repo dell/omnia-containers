@@ -14,7 +14,11 @@
 
 """Upgrade and Rollback Functions Module."""
 
-from .common_func import compare_versions
+from .common_func import (
+    compare_versions,
+    get_oim_metadata,
+    check_container_service_status,
+)
 from .upgrade_core_func import (
     validate_upgrade_versions,
     validate_versions,
@@ -42,6 +46,8 @@ from .rollback_core_func import (
 
 __all__ = [
     "compare_versions",
+    "get_oim_metadata",
+    "check_container_service_status",
     "validate_upgrade_versions",
     "validate_versions",
     "validate_config",

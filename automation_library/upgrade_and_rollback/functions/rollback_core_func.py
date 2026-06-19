@@ -32,14 +32,18 @@ from ...core import (
     download_omnia_sh as _core_download_omnia_sh,
 )
 from ..vars.rollback_core_vars import ROLLBACK_VARS
+from .common_func import get_oim_metadata, check_container_service_status
 
 
 def verify_rollback_precondition(host) -> Dict[str, Any]:
     """
-    Check whether rollback is needed by reading the current omnia_version.
+    Check whether rollback is needed by reading the oim_metadata.yml.
 
-    If the container is already running the ``current_version`` (rollback
-    target), rollback is not needed and the test suite should skip/fail.
+    Determines rollback state based on omnia_version and previous_omnia_version:
+    - not_running: Container not running (check service status)
+    - fresh_install: At current_version without previous_omnia_version (never upgraded)
+    - rollback_needed: At new_version with previous_omnia_version (can rollback)
+    - already_rolled_back: At current_version (rollback already done or not needed)
 
     Args:
         host: Testinfra host object
@@ -48,70 +52,124 @@ def verify_rollback_precondition(host) -> Dict[str, Any]:
         Dict with:
           - rollback_needed (bool)
           - running_version (str)
+          - previous_version (str)
           - target_version (str)
           - container_running (bool)
+          - state (str): not_running/fresh_install/rollback_needed/already_rolled_back
           - error (str)
     """
     container = ROLLBACK_VARS["container_name"]
     target_version = ROLLBACK_VARS["current_version"]
     new_version = ROLLBACK_VARS["new_version"]
-    metadata_path = ROLLBACK_VARS["oim_metadata_path"]
 
+    # Validate config
     if not target_version or not new_version:
         return {
             "rollback_needed": False,
             "running_version": "",
+            "previous_version": "",
             "target_version": target_version,
             "container_running": False,
+            "state": "config_error",
             "error": (
                 "current_version or new_version not configured in "
                 "omnia_test_config.yml upgrade section"
             ),
         }
 
-    # Check container running
+    # Check container running with service status
     status = check_container_running(host, container)
     container_running = status.get("success", False)
 
-    running_version = ""
-    if container_running:
-        meta_cmd = run_in_container(
-            host,
-            f"grep '^omnia_version:' {metadata_path} "
-            "| awk '{print $2}' | tr -d '\"'",
-            container=container,
-        )
-        running_version = meta_cmd.stdout.strip() if meta_cmd.rc == 0 else ""
-
-    # Already at target → no rollback needed
-    if running_version == target_version:
+    if not container_running:
+        # Get detailed service status for better error message
+        svc_status = check_container_service_status(host, container)
         return {
             "rollback_needed": False,
-            "running_version": running_version,
+            "running_version": "",
+            "previous_version": "",
             "target_version": target_version,
-            "container_running": container_running,
+            "container_running": False,
+            "state": "not_running",
+            "service_status": svc_status.get("service_status", ""),
+            "service_exists": svc_status.get("service_exists", False),
+            "error": svc_status.get("error", f"{container} container is not running"),
+        }
+
+    # Read full metadata including previous_omnia_version
+    metadata = get_oim_metadata(host, container)
+    if not metadata["success"]:
+        return {
+            "rollback_needed": False,
+            "running_version": "",
+            "previous_version": "",
+            "target_version": target_version,
+            "container_running": True,
+            "state": "metadata_error",
+            "error": metadata["error"],
+        }
+
+    running_version = metadata["omnia_version"]
+    previous_version = metadata["previous_omnia_version"]
+
+    base = {
+        "running_version": running_version,
+        "previous_version": previous_version,
+        "target_version": target_version,
+        "container_running": True,
+    }
+
+    # At current_version (target) without previous_version → fresh install
+    if running_version == target_version and not previous_version:
+        return {
+            **base,
+            "rollback_needed": False,
+            "state": "fresh_install",
+            "error": (
+                f"Container is at {target_version} (fresh install). "
+                f"No previous_omnia_version found - never upgraded. "
+                f"Rollback not applicable."
+            ),
+        }
+
+    # At current_version (target) with previous_version → already rolled back
+    if running_version == target_version:
+        return {
+            **base,
+            "rollback_needed": False,
+            "state": "already_rolled_back",
             "error": (
                 f"Container is already at {target_version}. "
                 f"No rollback needed."
             ),
         }
 
-    # At new_version → rollback is needed
+    # At new_version with previous_version → rollback is needed
+    if running_version == new_version and previous_version:
+        return {
+            **base,
+            "rollback_needed": True,
+            "state": "rollback_needed",
+            "error": "",
+        }
+
+    # At new_version without previous_version → fresh install at new version
     if running_version == new_version:
         return {
-            "rollback_needed": True,
-            "running_version": running_version,
-            "target_version": target_version,
-            "container_running": container_running,
-            "error": "",
+            **base,
+            "rollback_needed": False,
+            "state": "fresh_install_new",
+            "error": (
+                f"Container is at {new_version} (fresh install). "
+                f"No previous_omnia_version found - cannot rollback."
+            ),
         }
 
     # Unknown state
     return {
+        **base,
         "rollback_needed": False,
-        "running_version": running_version,
-        "target_version": target_version,
-        "container_running": container_running,
+        "state": "unexpected_version",
         "error": (
             f"Container running version '{running_version}' — "
             f"expected '{new_version}' (to rollback to '{target_version}'). "

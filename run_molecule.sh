@@ -110,7 +110,7 @@ SUPPORTED_RUN_VALUES="true false"
 SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual"
 
 # Execution order for --config mode and 'all' command
-SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
 
 # Change to script directory
 cd "$(dirname "$0")"

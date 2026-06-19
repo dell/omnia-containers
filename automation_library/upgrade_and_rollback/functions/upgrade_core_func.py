@@ -37,7 +37,11 @@ from ..vars.upgrade_core_vars import (
     SUPPORTED_VERSIONS,
     get_core_tag_for_version,
 )
-from .common_func import compare_versions
+from .common_func import (
+    compare_versions,
+    get_oim_metadata,
+    check_container_service_status,
+)
 
 
 # =============================================================================
@@ -178,18 +182,20 @@ def check_pre_upgrade_container(host) -> Dict[str, Any]:
     """
     Check omnia_core container status and current version via podman and metadata.
 
-    Returns structured container info (container_name, container_image,
-    container_status) instead of raw podman output.
+    Returns structured container info and determines upgrade state:
+    - not_running: Container is not running (check service status)
+    - already_upgraded: At new_version with previous_omnia_version (upgrade done)
+    - ready_for_upgrade: At current_version, ready to upgrade
+    - unexpected_version: Version doesn't match config
 
     Args:
         host: Testinfra host object
 
     Returns:
-        Dict with success, version, container_name, container_image,
-              container_status, state, error
+        Dict with success, version, previous_version, container_name,
+              container_image, container_status, state, service_error, error
     """
     container = UPGRADE_VARS["container_name"]
-    metadata_path = UPGRADE_VARS["oim_metadata_path"]
     from_version = UPGRADE_VARS["current_version"]
     to_version = UPGRADE_VARS["new_version"]
 
@@ -205,54 +211,76 @@ def check_pre_upgrade_container(host) -> Dict[str, Any]:
         if len(parts) == 3:
             c_name, c_image, c_status = (p.strip() for p in parts)
 
-    # 2. Check container running
+    # 2. Check container running with service status
     container_check = check_container_running(host, container)
     if not container_check.get("success"):
+        # Get detailed service status for better error message
+        svc_status = check_container_service_status(host, container)
         return {
             "success": False,
             "version": "",
+            "previous_version": "",
             "container_name": c_name,
             "container_image": c_image,
             "container_status": c_status or "not running",
             "state": "not_running",
-            "error": f"{container} container is not running",
+            "service_status": svc_status.get("service_status", ""),
+            "service_exists": svc_status.get("service_exists", False),
+            "error": svc_status.get("error", f"{container} container is not running"),
         }
 
-    # 3. Read version from metadata (only omnia_version, not full contents)
-    meta_cmd = run_in_container(
-        host,
-        f"grep '^omnia_version:' {metadata_path} "
-        "| awk '{print $2}' | tr -d '\"'",
-        container=container,
-    )
-
-    if meta_cmd.rc != 0:
+    # 3. Read full metadata including previous_omnia_version
+    metadata = get_oim_metadata(host, container)
+    if not metadata["success"]:
         return {
             "success": False,
             "version": "",
+            "previous_version": "",
             "container_name": c_name,
             "container_image": c_image,
             "container_status": c_status,
             "state": "metadata_error",
-            "error": f"Failed to read omnia_version from {metadata_path}",
+            "error": metadata["error"],
         }
 
-    current_version = meta_cmd.stdout.strip()
+    current_version = metadata["omnia_version"]
+    previous_version = metadata["previous_omnia_version"]
 
     # 4. Determine state
     base = {
         "version": current_version,
+        "previous_version": previous_version,
         "container_name": c_name,
         "container_image": c_image,
         "container_status": c_status,
     }
 
-    if current_version == to_version:
-        return {**base, "success": False, "state": "already_at_target", "error": ""}
+    # At new_version with previous_version means already upgraded
+    if current_version == to_version and previous_version:
+        return {
+            **base,
+            "success": False,
+            "state": "already_upgraded",
+            "error": (
+                f"Container already upgraded to {to_version} "
+                f"(previous: {previous_version})"
+            ),
+        }
 
+    # At new_version without previous_version - fresh install at new version
+    if current_version == to_version:
+        return {
+            **base,
+            "success": False,
+            "state": "already_at_target",
+            "error": f"Container is at {to_version} - no upgrade needed",
+        }
+
+    # At current_version - ready for upgrade
     if current_version == from_version:
         return {**base, "success": True, "state": "ready_for_upgrade", "error": ""}
 
+    # Unexpected version
     return {
         **base,
         "success": False,

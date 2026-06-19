@@ -273,11 +273,19 @@ SKIP_MSGS: Dict[str, str] = {
         "upgrade.operation not set to 'upgrade' or 'rollback' in "
         "omnia_test_config.yml (current: '{operation}')"
     ),
-    "container_not_running": "omnia_core container is not running",
+    "container_not_running": "Skipped — omnia_core container is not running",
     "already_upgraded": (
-        "omnia_core is already at target version {version}"
+        "Skipped — omnia_core already upgraded to {version} "
+        "(previous: {previous_version})"
     ),
+    "already_at_target": "Skipped — omnia_core is already at {version}",
     "pre_upgrade_failed": (
-        "Pre-upgrade check failed — skipping remaining upgrade tests"
+        "Skipped — pre-upgrade check failed"
+    ),
+    "skip_build_already_upgraded": (
+        "Skipped — build not needed, container already upgraded"
+    ),
+    "skip_upgrade_already_upgraded": (
+        "Skipped — upgrade not needed, container already at target version"
     ),
 }
