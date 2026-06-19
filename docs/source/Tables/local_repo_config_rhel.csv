@@ -82,9 +82,9 @@
 * **Example** :
 Override baseos with standard URL (only url and name required, certs auto-populated)
 ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/baseos/os/"", name: ""baseos"" }``
-Override appstream with custom URL and policy ::
+Override appstream with custom URL and policy 
 ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/appstream/os/"", name: ""appstream"", policy: ""always"" }``
-Add supplementary repo (non-base repo, certs auto-populated):: 
+Add supplementary repo (non-base repo, certs auto-populated)
 ``- { url: ""https://cdn.redhat.com/content/dist/rhel10/10.0/x86_64/supplementary/os/"", name: ""supplementary"", policy: ""always"", caching: false }``
 
 
