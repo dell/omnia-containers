@@ -324,10 +324,10 @@ def clone_upgrade_repo(host) -> Dict[str, Any]:
     parent_dir = "/".join(clone_path.rsplit("/", 1)[:-1]) or "/"
     run_on_oim(host, f"mkdir -p {parent_dir}")
 
-    # Clone
+    # Clone (shallow clone with --depth 1 for faster download)
     cmd = run_on_oim(
         host,
-        f"git clone -b {branch} {repo_url} {clone_path}",
+        f"git clone -b {branch} --depth 1 {repo_url} {clone_path}",
     )
 
     if cmd.rc != 0:

@@ -147,7 +147,7 @@ UPGRADE_VARS: Dict[str, Any] = {
     "clone_timeout": 300,
     "build_timeout": 1800,
     "upgrade_timeout": 1200,
-    "build_progress_interval": 60,
+    "build_progress_interval": 10,
     "upgrade_poll_interval": 10,
     "tail_lines": 0,  # 0 = full output, N = last N lines
 }

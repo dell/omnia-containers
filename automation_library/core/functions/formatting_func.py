@@ -179,7 +179,7 @@ class TestLogger:
         """Add line to output and print."""
         global _last_output
         self._output_lines.append(line)
-        print(line)
+        print(line, flush=True)
         _last_output = "\n".join(self._output_lines)
 
     def check(self, message: str):
