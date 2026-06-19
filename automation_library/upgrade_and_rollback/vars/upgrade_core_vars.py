@@ -89,7 +89,7 @@ _new_core_tag: str = VERSION_PROPERTIES.get(_new_version_key, {}).get(
 )
 
 # Clone path is auto-derived — never user-configurable
-_clone_path: str = f"/opt/omnia/upgrade-to-{_new_version.replace('.', '-')}"
+_clone_path: str = f"/upgrade-{_new_version.replace('.', '-')}"
 
 # =============================================================================
 # UPGRADE VARIABLES  (single source of truth for functions + tests)

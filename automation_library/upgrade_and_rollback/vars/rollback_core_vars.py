@@ -50,7 +50,7 @@ _omnia_branch: str = _upgrade_config.get("omnia_branch", "")
 # DERIVED VALUES
 # =============================================================================
 
-_clone_path: str = f"/opt/omnia/upgrade-to-{_new_version.replace('.', '-')}"
+_clone_path: str = f"/upgrade-{_new_version.replace('.', '-')}"
 
 # omnia.sh download URLs  (branch → tag fallback, from dell/omnia repo)
 _branch_url: str = f"{OMNIA_GIT_RAW_BASE_URL}/{_omnia_branch}/omnia.sh"
