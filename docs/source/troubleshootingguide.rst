@@ -460,7 +460,7 @@ Driver not listed in ``software_config.json``.
 
    {
      "name": "csi_driver_powerscale",
-     "version": "v2.15.0",
+     "version": "v2.17.0",
      "arch": ["x86_64"]
    }
 

@@ -58,7 +58,7 @@ Configuring Specific Local Repositories
 
     To install Dell CSI PowerScale driver, include the following line under ``softwares`` in ``software_config.json``: ::
 
-            {"name": "csi_driver_powerscale", "version":"v2.15.0", "arch": ["x86_64"]},
+            {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
 
 For more information on deploying Dell CSI PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../../AdvancedConfigurations/PowerScale_CSI.html>`_ 
     

@@ -30,7 +30,7 @@ software_config.json for RHEL
             {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
             {"name": "ucx", "version": "1.19.0", "arch": ["x86_64","aarch64"]},
             {"name": "openmpi", "version": "5.0.8", "arch": ["x86_64","aarch64"]},
-            {"name": "csi_driver_powerscale", "version":"v2.15.0", "arch": ["x86_64"]},
+            {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
             {"name": "ldms", "arch": ["x86_64","aarch64"]}
         ],
         "slurm_custom": [
