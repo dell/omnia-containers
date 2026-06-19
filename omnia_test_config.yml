@@ -317,3 +317,58 @@ allow_pipeline_cancel: false
 # Format: Image group identifier string (e.g., "image-build-20260530-061909")
 # Leave empty ("") to auto-select latest BUILT image group (default).
 image_identifier: ""
+
+# #############################################################################
+#                                                                             #
+#                         OMNIA UPGRADE / ROLLBACK TESTING                    #
+#                                                                             #
+# #############################################################################
+# Used by the upgrade_omnia_sh and rollback_omnia_sh molecule scenarios.
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  VERSION CONFIGURATION                                                   │
+# │                                                                          │
+# │  current_version = LOWER version (e.g. 2.1.0.0) - the "from" version    │
+# │  new_version     = HIGHER version (e.g. 2.2.0.0) - the "to" version     │
+# │                                                                          │
+# │  UPGRADE TEST (upgrade_omnia_sh):                                        │
+# │    - Upgrades from current_version → new_version                        │
+# │    - Runs if container is at current_version                            │
+# │    - Fails if container is already at new_version                       │
+# │                                                                          │
+# │  ROLLBACK TEST (rollback_omnia_sh):                                      │
+# │    - Rolls back from new_version → current_version                      │
+# │    - Runs if container is at new_version (upgrade was done)             │
+# │    - Fails if container is at current_version (nothing to rollback)     │
+# └──────────────────────────────────────────────────────────────────────────┘
+
+upgrade:
+  # Lower version (upgrade FROM this, rollback TO this)
+  current_version: "2.1.0.0"
+
+  # Higher version (upgrade TO this, rollback FROM this)
+  new_version: "2.2.0.0"
+
+  # -------------------------------------------------------------------------
+  # Repository & Build Settings
+  # -------------------------------------------------------------------------
+
+  # Git URL of omnia-artifactory (contains build_images.sh)
+  repo_url: "https://github.com/dell/omnia-artifactory.git"
+
+  # Branch to clone from omnia-artifactory
+  repo_branch: "omnia-container"
+
+  # Omnia branch/tag passed to build_images.sh for building the core image
+  # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
+  omnia_branch: "pub/q2_upgrade"
+
+  # -------------------------------------------------------------------------
+  # Clone Path Configuration
+  # -------------------------------------------------------------------------
+
+  # Base directory for cloning omnia-artifactory repository
+  # Default: "/upgrade" (creates /upgrade-2.2.0.0 for version 2.2.0.0)
+  # Custom example: "/opt/omnia-upgrade" (creates /opt/omnia-upgrade/upgrade-2.2.0.0)
+  # IMPORTANT: This must NOT be the same as or a subdirectory of omnia_shared_path
+  # clone_base_path: "/upgrade"

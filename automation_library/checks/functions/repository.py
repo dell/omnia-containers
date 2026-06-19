@@ -17,7 +17,7 @@
 import re
 from typing import Dict
 
-from ...core import log as _log
+from ...core import log as _log, OMNIA_GIT_RAW_BASE_URL
 from ..messages.oim_prereq_msgs import OIM_PREREQ_MSGS
 from ..vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
 from .system import run_command, run_shell
@@ -259,9 +259,8 @@ def download_omnia_sh() -> Dict:
         }
 
     # Try to download from branch first, then tag
-    base_url = "https://raw.githubusercontent.com/dell/omnia"
-    branch_url = f"{base_url}/{omnia_branch}/omnia.sh"
-    tag_url = f"{base_url}/{omnia_branch}/omnia.sh"
+    branch_url = f"{OMNIA_GIT_RAW_BASE_URL}/{omnia_branch}/omnia.sh"
+    tag_url = f"{OMNIA_GIT_RAW_BASE_URL}/refs/tags/{omnia_branch}/omnia.sh"
 
     # Try branch URL
     rc, _, _ = run_command(["curl", "-f", "-o", f"{clone_path}/omnia.sh", branch_url], timeout=60)

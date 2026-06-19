@@ -26,6 +26,15 @@ OMNIA_CORE_CONTAINER = "omnia_core"
 PODMAN_EXEC_PREFIX = f"podman exec {OMNIA_CORE_CONTAINER} bash -lc"
 
 # =============================================================================
+# GIT URL BASE  (shared across upgrade, rollback, prereq, etc.)
+# =============================================================================
+
+OMNIA_GIT_RAW_BASE_URL = "https://raw.githubusercontent.com/dell/omnia"
+OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL = (
+    "https://raw.githubusercontent.com/dell/omnia-artifactory"
+)
+
+# =============================================================================
 # SSH OPTIONS
 # =============================================================================
 
