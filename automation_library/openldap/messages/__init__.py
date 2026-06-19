@@ -1,4 +1,3 @@
----
 # Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- name: Setup inventory and verify connectivity
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Setup inventory and verify OIM server connectivity
-      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
+"""
+OpenLDAP Module - Message Exports.
+
+Re-exports messages from sub-files for external use.
+"""
+
+from .openldap_msgs import (
+    TEST_NAMES,
+    TEST_LOG_MSGS,
+    TEST_ASSERT_MSGS,
+    SKIP_MSGS,
+)
