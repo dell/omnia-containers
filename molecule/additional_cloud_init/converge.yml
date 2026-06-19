@@ -1,0 +1,95 @@
+---
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+- name: Sync dataset to core container
+  hosts: oim_server
+  gather_facts: false
+  vars:
+    run_provision: "{{ lookup('env', 'RUN_PROVISION') | default(false) | bool }}"
+  tasks:
+    - name: Check if omnia_core container exists
+      ansible.builtin.shell: podman ps -a --format "{{.Names}}" | grep -q "^omnia_core$"
+      register: container_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fail if omnia_core container not found
+      ansible.builtin.fail:
+        msg: |
+          omnia_core container not found. Additional cloud-init requires the core container.
+          Please run provision scenario first to create the container.
+      when: container_check.rc != 0
+
+    - name: Sync project_default dataset to core container
+      ansible.builtin.include_tasks: ../shared/tasks/sync_project_default.yml
+
+- name: Run provision playbook for idempotency testing (conditional)
+  hosts: oim_server
+  gather_facts: false
+  vars:
+    run_provision: "{{ lookup('env', 'RUN_PROVISION') | default(false) | bool }}"
+  tasks:
+    - name: Run additional cloud-init provision tasks
+      when: run_provision | bool
+      block:
+        - name: Log provision run start
+          ansible.builtin.debug:
+            msg: "Running provision playbook for idempotency testing (RUN_PROVISION=true)"
+
+        - name: Execute additional cloud-init configuration in container
+          ansible.builtin.shell: |
+            podman exec omnia_core bash -lc '
+              cd /omnia &&
+              ansible-playbook provision/roles/configure_ochami/tasks/validate_additional_cloud_init.yml \
+                -e input_project_dir=/opt/omnia/input/project_default
+            '
+          register: validation_result
+          changed_when: false
+          failed_when: false
+
+        - name: Execute additional cloud-init SMD group creation in container
+          ansible.builtin.shell: |
+            podman exec omnia_core bash -lc '
+              cd /omnia &&
+              ansible-playbook provision/roles/configure_ochami/tasks/create_groups_additional_fg.yml \
+                -e input_project_dir=/opt/omnia/input/project_default
+            '
+          register: smd_result
+          changed_when: false
+          failed_when: false
+
+        - name: Execute additional cloud-init BSS registration in container
+          ansible.builtin.shell: |
+            podman exec omnia_core bash -lc '
+              cd /omnia &&
+              ansible-playbook provision/roles/configure_ochami/tasks/configure_cloud_init_additional.yml \
+                -e input_project_dir=/opt/omnia/input/project_default
+            '
+          register: bss_result
+          changed_when: false
+          failed_when: false
+
+        - name: Display provision results
+          ansible.builtin.debug:
+            msg: |
+              Provision playbook execution completed.
+              Validation: {{ validation_result.rc }}
+              SMD groups: {{ smd_result.rc }}
+              BSS registration: {{ bss_result.rc }}
+
+    - name: Skip provision run (validation-only mode)
+      when: not run_provision | bool
+      ansible.builtin.debug:
+        msg: "Skipping provision playbook run (validation-only mode, RUN_PROVISION=false)"

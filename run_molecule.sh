@@ -335,10 +335,13 @@ if st:
             run_cmd="verify"
         fi
 
-        # Set pytest marker for suite
+        # Set pytest marker for suite with verbose options
         unset PYTEST_ADDOPTS
+        local verbose_opts="-v --tb=short -s"
         if [[ -n "$s_suite" ]]; then
-            export PYTEST_ADDOPTS="-m $s_suite"
+            export PYTEST_ADDOPTS="$verbose_opts -m $s_suite"
+        else
+            export PYTEST_ADDOPTS="$verbose_opts"
         fi
 
         if molecule "${run_cmd}" -s "${s_name}" 2>&1 | tee "$LOG_FILE"; then
@@ -626,11 +629,15 @@ run_molecule() {
     # Build pytest args for test suite filtering
     local pytest_args
     pytest_args=$(build_pytest_args)
+    # Always include verbose pytest options
+    local verbose_opts="-v --tb=short -s"
     if [[ -n "$pytest_args" ]]; then
-        export PYTEST_ADDOPTS="$pytest_args"
+        export PYTEST_ADDOPTS="$verbose_opts $pytest_args"
         echo -e "  Suite/Marker: ${GREEN}${pytest_args}${NC}"
-        echo ""
+    else
+        export PYTEST_ADDOPTS="$verbose_opts"
     fi
+    echo ""
 
     molecule "${cmd}" -s "${scenario}" 2>&1 | tee "$LOG_FILE"
     echo ""
