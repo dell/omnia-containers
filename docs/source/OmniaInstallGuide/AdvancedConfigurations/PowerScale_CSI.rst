@@ -97,7 +97,7 @@ Prerequisites
 
 5. Download the ``secret.yaml`` file template from the following command: ::
 
-        wget raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.15.0/samples/secret/secret.yaml
+        wget raw.githubusercontent.com/dell/csi-powerscale/refs/heads/release/v2.17.0/samples/secret/secret.yaml
 
 6. Update the following parameters in the ``secret.yaml`` file as per your cluster details and keep the rest as default values. For example:
 
@@ -115,7 +115,7 @@ Prerequisites
 
 7. Download the ``values.yaml`` files template using the following command: ::
 
-    wget https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml
+    wget https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml
 
 8. Update the following parameters in the ``values.yaml`` file and keep the rest as default values. Refer the below sample values:
 
