@@ -107,7 +107,7 @@ SUPPORTED_COMMANDS="test verify converge create prepare"
 SUPPORTED_RUN_VALUES="true false"
 
 # Supported test suites (must match directories under molecule/<scenario>/tests/)
-SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual"
+SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual build_stream"
 
 # Execution order for --config mode and 'all' command
 SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_omnia_sh rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
@@ -666,7 +666,7 @@ _run_molecule_completions() {
 
     local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh all list help"
     local commands="test verify converge create prepare"
-    local suites="sanity negative regression smoke stress build_auto deploy_auto cleanup_manual build_manual deploy_manual"
+    local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream"
     local flows="build_stream"
 
     case "${COMP_CWORD}" in
