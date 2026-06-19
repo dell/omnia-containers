@@ -57,7 +57,7 @@ This separation allows Omnia to focus on the provisioning network while the site
 DHCP Relay and giaddr Routing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The DHCP relay architecture enables CoreDHCP to serve multiple subnets from a single instance:
+The DHCP relay architecture enables CoreDHCP (running on the OIM) to serve multiple subnets from a single instance:
 
 1. **Node Boot Request**: A server in Rack 2 broadcasts a DHCP request on its local subnet (``10.40.3.0/24``)
 
