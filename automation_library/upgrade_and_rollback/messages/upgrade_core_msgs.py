@@ -67,6 +67,9 @@ TEST_LOG_MSGS: Dict[str, str] = {
         "Version '{version}' is not in SUPPORTED_VERSIONS: {supported}"
     ),
 
+    # --- Clone path validation -----------------------------------------------
+    "validating_clone_path": "Validating clone path doesn't conflict with oim_shared_path",
+
     # --- Input validation ----------------------------------------------------
     "config_missing_field": "Missing required config field: upgrade.{field}",
     "config_blank_field": "Config field upgrade.{field} is blank",
@@ -243,6 +246,18 @@ TEST_ASSERT_MSGS: Dict[str, str] = {
         "HOW TO FIX:\n"
         "  1. Check: podman exec omnia_core ls -laR {path}\n"
         "  2. The upgrade may have failed during backup creation"
+    ),
+    "clone_path_conflict": (
+        "Clone path conflicts with oim_shared_path.\n"
+        "Clone path: {clone_path}\n"
+        "oim_shared_path: {oim_shared_path}\n\n"
+        "This will cause conflicts during upgrade/rollback operations.\n\n"
+        "HOW TO FIX:\n"
+        "  1. Edit omnia_test_config.yml\n"
+        "  2. In the 'upgrade' section, add/modify 'clone_base_path'\n"
+        "  3. Use a different base path, e.g., '/upgrade' or '/tmp/upgrade'\n"
+        "  4. Example: clone_base_path: '/upgrade'\n"
+        "  5. This will create clone path: /upgrade/upgrade-{version}"
     ),
     "post_upgrade_version_mismatch": (
         "Version mismatch after upgrade.\n"

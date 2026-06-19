@@ -33,7 +33,7 @@ from ...core import (
     OIM_METADATA_PATH,
     INPUT_BASE_PATH,
 )
-from .upgrade_core_vars import get_core_tag_for_version
+from .upgrade_core_vars import get_core_tag_for_version, UPGRADE_VARS
 
 # =============================================================================
 # CONFIG  (no fallback defaults — must be set in omnia_test_config.yml)
@@ -50,7 +50,9 @@ _omnia_branch: str = _upgrade_config.get("omnia_branch", "")
 # DERIVED VALUES
 # =============================================================================
 
-_clone_path: str = f"/upgrade-{_new_version.replace('.', '-')}"
+# Use same clone_base_path as upgrade for consistency
+_clone_base_path: str = UPGRADE_VARS["clone_base_path"]
+_clone_path: str = f"{_clone_base_path}/upgrade-{_new_version.replace('.', '-')}"
 
 # omnia.sh download URLs  (branch → tag fallback, from dell/omnia repo)
 _branch_url: str = f"{OMNIA_GIT_RAW_BASE_URL}/{_omnia_branch}/omnia.sh"

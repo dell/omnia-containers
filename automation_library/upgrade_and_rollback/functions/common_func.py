@@ -28,7 +28,7 @@ def get_oim_metadata(host, container: str = "omnia_core") -> Dict[str, Any]:
     Read oim_metadata.yml from inside the omnia_core container.
 
     Parses the full metadata file and returns key fields including
-    omnia_version and previous_omnia_version (if present).
+    omnia_version, previous_omnia_version, and oim_shared_path.
 
     Args:
         host: Testinfra host object
@@ -40,6 +40,7 @@ def get_oim_metadata(host, container: str = "omnia_core") -> Dict[str, Any]:
           - omnia_version (str): Current version running
           - previous_omnia_version (str): Previous version if upgrade was done
           - upgrade_backup_dir (str): Backup directory path if exists
+          - oim_shared_path (str): Omnia shared path from metadata
           - error (str): Error message if failed
     """
     result = {
@@ -47,6 +48,7 @@ def get_oim_metadata(host, container: str = "omnia_core") -> Dict[str, Any]:
         "omnia_version": "",
         "previous_omnia_version": "",
         "upgrade_backup_dir": "",
+        "oim_shared_path": "",
         "error": "",
     }
 
@@ -63,6 +65,8 @@ def get_oim_metadata(host, container: str = "omnia_core") -> Dict[str, Any]:
             result["previous_omnia_version"] = line.split(":", 1)[1].strip().strip('"')
         elif line.startswith("upgrade_backup_dir:"):
             result["upgrade_backup_dir"] = line.split(":", 1)[1].strip().strip('"')
+        elif line.startswith("oim_shared_path:"):
+            result["oim_shared_path"] = line.split(":", 1)[1].strip().strip('"')
 
     result["success"] = bool(result["omnia_version"])
     return result

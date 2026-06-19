@@ -362,3 +362,13 @@ upgrade:
   # Omnia branch/tag passed to build_images.sh for building the core image
   # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
   omnia_branch: "pub/q2_upgrade"
+
+  # -------------------------------------------------------------------------
+  # Clone Path Configuration
+  # -------------------------------------------------------------------------
+
+  # Base directory for cloning omnia-artifactory repository
+  # Default: "/upgrade" (creates /upgrade-2.2.0.0 for version 2.2.0.0)
+  # Custom example: "/opt/omnia-upgrade" (creates /opt/omnia-upgrade/upgrade-2.2.0.0)
+  # IMPORTANT: This must NOT be the same as or a subdirectory of omnia_shared_path
+  # clone_base_path: "/upgrade"

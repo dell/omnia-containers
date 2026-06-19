@@ -48,6 +48,106 @@ from .common_func import (
 # VALIDATION HELPERS
 # =============================================================================
 
+def validate_clone_path_conflict(host) -> Dict[str, Any]:
+    """
+    Check if clone path conflicts with oim_shared_path from oim_metadata.yml.
+
+    Clone path must not be the same as or a subdirectory of oim_shared_path,
+    as this would cause conflicts during upgrade/rollback operations.
+
+    Args:
+        host: Testinfra host object
+
+    Returns:
+        Dict with success, clone_path, oim_shared_path, error
+    """
+    container = UPGRADE_VARS["container_name"]
+    clone_path = UPGRADE_VARS["clone_path"]
+    clone_base_path = UPGRADE_VARS["clone_base_path"]
+
+    # Read oim_shared_path from metadata
+    metadata = get_oim_metadata(host, container)
+    if not metadata["success"]:
+        return {
+            "success": False,
+            "clone_path": clone_path,
+            "oim_shared_path": "",
+            "error": f"Failed to read oim_metadata.yml: {metadata['error']}",
+        }
+
+    oim_shared_path = metadata.get("oim_shared_path", "")
+    if not oim_shared_path:
+        return {
+            "success": False,
+            "clone_path": clone_path,
+            "oim_shared_path": "",
+            "error": "oim_shared_path not found in oim_metadata.yml",
+        }
+
+    # Check for conflicts
+    # 1. Clone path is the same as oim_shared_path
+    if clone_path == oim_shared_path:
+        return {
+            "success": False,
+            "clone_path": clone_path,
+            "oim_shared_path": oim_shared_path,
+            "error": (
+                f"Clone path '{clone_path}' cannot be the same as oim_shared_path '{oim_shared_path}'.\n\n"
+                f"HOW TO FIX:\n"
+                f"  1. Edit omnia_test_config.yml\n"
+                f"  2. In the 'upgrade' section, add/modify 'clone_base_path'\n"
+                f"  3. Use a different base path, e.g., '/upgrade' or '/tmp/upgrade'\n"
+                f"  4. Example: clone_base_path: '/upgrade'\n"
+                f"  5. This will create clone path: {clone_base_path}/upgrade-{UPGRADE_VARS['new_version'].replace('.', '-')}"
+            ),
+        }
+
+    # 2. Clone path is a subdirectory of oim_shared_path
+    if clone_path.startswith(oim_shared_path.rstrip("/") + "/"):
+        return {
+            "success": False,
+            "clone_path": clone_path,
+            "oim_shared_path": oim_shared_path,
+            "error": (
+                f"Clone path '{clone_path}' is inside oim_shared_path '{oim_shared_path}'.\n\n"
+                f"This will cause conflicts during upgrade as the clone directory\n"
+                f"would be unmounted when oim_shared_path is remounted.\n\n"
+                f"HOW TO FIX:\n"
+                f"  1. Edit omnia_test_config.yml\n"
+                f"  2. In the 'upgrade' section, add/modify 'clone_base_path'\n"
+                f"  3. Use a different base path outside '{oim_shared_path}'\n"
+                f"  4. Example: clone_base_path: '/upgrade'\n"
+                f"  5. This will create clone path: {clone_base_path}/upgrade-{UPGRADE_VARS['new_version'].replace('.', '.')}"
+            ),
+        }
+
+    # 3. oim_shared_path is a subdirectory of clone path
+    if oim_shared_path.startswith(clone_path.rstrip("/") + "/"):
+        return {
+            "success": False,
+            "clone_path": clone_path,
+            "oim_shared_path": oim_shared_path,
+            "error": (
+                f"oim_shared_path '{oim_shared_path}' is inside clone path '{clone_path}'.\n\n"
+                f"This will cause conflicts as the clone operation would\n"
+                f"affect the mounted shared directory.\n\n"
+                f"HOW TO FIX:\n"
+                f"  1. Edit omnia_test_config.yml\n"
+                f"  2. In the 'upgrade' section, add/modify 'clone_base_path'\n"
+                f"  3. Use a different base path, e.g., '/upgrade' or '/tmp/upgrade'\n"
+                f"  4. Example: clone_base_path: '/upgrade'\n"
+                f"  5. This will create clone path: {clone_base_path}/upgrade-{UPGRADE_VARS['new_version'].replace('.', '.')}"
+            ),
+        }
+
+    return {
+        "success": True,
+        "clone_path": clone_path,
+        "oim_shared_path": oim_shared_path,
+        "error": "",
+    }
+
+
 def validate_upgrade_versions() -> Dict[str, Any]:
     """
     Validate that upgrade is possible: current_version < new_version.

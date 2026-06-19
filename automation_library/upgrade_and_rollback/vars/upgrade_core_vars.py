@@ -48,6 +48,12 @@ _omnia_test_config = load_omnia_test_config()
 _upgrade_config: Dict[str, Any] = _omnia_test_config.get("upgrade", {})
 
 # =============================================================================
+# CLONE PATH CONFIGURATION
+# =============================================================================
+# Clone base path from config or use default
+_clone_base_path: str = _upgrade_config.get("clone_base_path", "/upgrade")
+
+# =============================================================================
 # SUPPORTED VERSIONS  (chronological order, oldest first)
 # Add new entries here when a new Omnia release is supported.
 # =============================================================================
@@ -88,8 +94,8 @@ _new_core_tag: str = VERSION_PROPERTIES.get(_new_version_key, {}).get(
     "core_tag", _new_version.rsplit(".", 2)[0],
 )
 
-# Clone path is auto-derived — never user-configurable
-_clone_path: str = f"/upgrade-{_new_version.replace('.', '-')}"
+# Clone path is auto-derived from base path and version
+_clone_path: str = f"{_clone_base_path}/upgrade-{_new_version.replace('.', '-')}"
 
 # =============================================================================
 # UPGRADE VARIABLES  (single source of truth for functions + tests)
@@ -132,6 +138,7 @@ UPGRADE_VARS: Dict[str, Any] = {
     # Clone path — auto-derived from new_version, deleted and re-created on
     # every run to guarantee a fresh clone.
     "clone_path": _clone_path,
+    "clone_base_path": _clone_base_path,
 
     # =========================================================================
     # CONTAINER / PATH CONSTANTS

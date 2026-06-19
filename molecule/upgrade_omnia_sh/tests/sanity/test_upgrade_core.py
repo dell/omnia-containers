@@ -38,6 +38,7 @@ from automation_library.upgrade_and_rollback.functions import (
     validate_upgrade_versions,
     validate_versions,
     validate_config,
+    validate_clone_path_conflict,
     check_backup_exists,
     check_pre_upgrade_container,
     clone_upgrade_repo,
@@ -293,6 +294,23 @@ def test_build_and_prepare(host):
     _gate_operation(log)
     _skip_if_pre_upgrade_failed()
     _skip_if_already_upgraded()
+
+    # ---- Step 0: Validate clone path doesn't conflict with oim_shared_path ----
+    log.check(LOG["validating_clone_path"])
+    path_check = validate_clone_path_conflict(host)
+    if not path_check["success"]:
+        log.failed("Clone path conflict", path_check["error"])
+        pytest.fail(
+            ASSERT["clone_path_conflict"].format(
+                clone_path=path_check["clone_path"],
+                oim_shared_path=path_check["oim_shared_path"],
+            )
+        )
+    log.passed(
+        f"Clone path {path_check['clone_path']} is valid",
+        f"✓ Clone path: {path_check['clone_path']}\n"
+        f"✓ oim_shared_path: {path_check['oim_shared_path']}"
+    )
 
     # ---- Step 1: Clone ----
     log.check(LOG["clone_start"].format(branch=branch))
