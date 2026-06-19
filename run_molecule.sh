@@ -664,7 +664,7 @@ _run_molecule_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local scenarios="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream upgrade_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall all list help"
+    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh all list help"
     local commands="test verify converge create prepare"
     local suites="sanity negative regression smoke stress build_auto deploy_auto cleanup_manual build_manual deploy_manual"
     local flows="build_stream"
