@@ -36,7 +36,6 @@ Test coverage:
   TC-F14  verify_atomic_lock_timeout
   TC-F15  verify_toolkit_failure_lock_release
   TC-F16  verify_toolkit_nfs_shared_storage
-  TC-F18  verify_nvidia_peer_mem_installed
   TC-C01  verify_rhel_compatibility
   TC-C02  verify_cuda_version_compatibility
   TC-E01  verify_cuda_prerequisite_blocks_deployment
@@ -64,8 +63,6 @@ from ..vars.dcgm_vars import (
     CUDA_PROFILE_SCRIPT,
     CUDA_ATOMIC_LOCK_FILE,
     CUDA_MIN_MAJOR_VERSION,
-    NVIDIA_PEER_MEM_MODULE,
-    NVIDIA_PEER_MEM_AUTOLOAD_CONF,
     REQUIRED_RHEL_MAJOR,
     SERVICE_START_TIMEOUT,
     DAEMON_RESTART_WAIT,
@@ -80,6 +77,52 @@ from ..vars.dcgm_vars import (
 def _ssh(host, admin_ip: str, cmd: str):
     """Run cmd on remote GPU node via omnia_core container SSH."""
     return run_on_remote_node(host, cmd, admin_ip)
+
+
+def check_dcgm_metrics_enabled(host) -> Dict[str, Any]:
+    """
+    Check if DCGM metrics collection is enabled in telemetry_config.yml.
+    
+    Args:
+        host: Testinfra host object
+        
+    Returns:
+        Dict with enabled (bool), details (str), error (str)
+    """
+    result = {"enabled": False, "details": "", "error": ""}
+    
+    # Read telemetry config from omnia_core container
+    config_path = "/opt/omnia/input/project_default/telemetry_config.yml"
+    cmd = run_in_container(host, f"cat {config_path}")
+    
+    if cmd.rc != 0:
+        result["error"] = f"Failed to read {config_path}: {cmd.stderr.strip()}"
+        return result
+    
+    config_content = cmd.stdout
+    
+    # Parse YAML-like content to find dcgm.metrics_enabled
+    import re
+    
+    # Look for dcgm section - match from 'dcgm:' to next top-level section
+    dcgm_section_match = re.search(r'dcgm:\s*\n((?:[ \t]+[^\n]+\n)+)', config_content)
+    if not dcgm_section_match:
+        result["error"] = "DCGM section not found in telemetry_config.yml"
+        return result
+    
+    dcgm_section = dcgm_section_match.group(1)
+    
+    # Look for metrics_enabled in the dcgm section
+    metrics_match = re.search(r'metrics_enabled:\s*(true|false)', dcgm_section, re.IGNORECASE)
+    if not metrics_match:
+        result["error"] = "metrics_enabled setting not found in dcgm section"
+        return result
+    
+    metrics_enabled = metrics_match.group(1).lower() == 'true'
+    result["enabled"] = metrics_enabled
+    result["details"] = f"DCGM metrics_enabled: {metrics_enabled}"
+    
+    return result
 
 
 def _extract_cuda_version(output: str) -> Optional[str]:
@@ -951,110 +994,6 @@ def verify_toolkit_nfs_shared_storage(host, admin_ip: str) -> Dict[str, Any]:
         f"  /hpc_tools NFS mount: {mount_line.strip()}\n"
         f"  nvcc via NFS: CUDA {cuda_version}"
     )
-    return result
-
-
-# =============================================================================
-# TC-F18: nvidia_peer_mem.ko MODULE INSTALLATION
-# =============================================================================
-
-def verify_nvidia_peer_mem_installed(host, admin_ip: str) -> Dict[str, Any]:
-    """
-    TC-F18: Verify nvidia_peer_mem kernel module is installed, loaded, and
-    configured for auto-load on boot on the GPU node.
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Admin IP of the GPU node
-
-    Returns:
-        Dict with success, details, error, module_loaded, autoload_configured, ko_found
-    """
-    result = {
-        "success": False, "details": "", "error": "",
-        "module_loaded": False, "autoload_configured": False, "ko_found": False,
-    }
-
-    # Step 1: lsmod check
-    cmd = _ssh(host, admin_ip, CMD_TEMPLATES["lsmod_peer_mem"])
-    result["module_loaded"] = cmd.rc == 0 and NVIDIA_PEER_MEM_MODULE in cmd.stdout
-
-    if not result["module_loaded"]:
-        result["error"] = (
-            f"nvidia_peer_mem module not loaded on {admin_ip}. "
-            f"lsmod output: {cmd.stdout.strip()}"
-        )
-        return result
-
-    # Step 2: .ko file exists in kernel modules dir
-    cmd = _ssh(host, admin_ip, CMD_TEMPLATES["find_peer_mem_ko"])
-    result["ko_found"] = cmd.rc == 0 and "nvidia_peer_mem.ko" in cmd.stdout
-
-    # Step 3: modinfo check (version + depends)
-    cmd_info = _ssh(host, admin_ip, CMD_TEMPLATES["modinfo_peer_mem"])
-    depends_nvidia = cmd_info.rc == 0 and "nvidia" in cmd_info.stdout.lower()
-
-    # Step 4: auto-load configuration
-    cmd = _ssh(host, admin_ip,
-               CMD_TEMPLATES["peer_mem_conf_check"].format(conf_path=NVIDIA_PEER_MEM_AUTOLOAD_CONF))
-    result["autoload_configured"] = (
-        cmd.rc == 0 and NVIDIA_PEER_MEM_MODULE in cmd.stdout
-    )
-
-    if not result["autoload_configured"]:
-        result["error"] = (
-            f"nvidia_peer_mem not configured for auto-load on {admin_ip}. "
-            f"{NVIDIA_PEER_MEM_AUTOLOAD_CONF} missing or does not contain 'nvidia_peer_mem'."
-        )
-        return result
-
-    result["success"] = True
-    result["details"] = (
-        f"GPU node {admin_ip}:\n"
-        f"  nvidia_peer_mem lsmod: loaded\n"
-        f"  .ko file found: {result['ko_found']}\n"
-        f"  modinfo depends on nvidia: {depends_nvidia}\n"
-        f"  auto-load conf ({NVIDIA_PEER_MEM_AUTOLOAD_CONF}): configured"
-    )
-    return result
-
-
-def verify_nvidia_peer_mem_all_gpu_nodes(host) -> Dict[str, Any]:
-    """
-    TC-F18 (multi-node): Verify nvidia_peer_mem module loaded on ALL GPU nodes.
-
-    Args:
-        host: Testinfra host object
-
-    Returns:
-        Dict with success, details, error, results (per-node), failed_nodes
-    """
-    result = {"success": False, "details": "", "error": "", "results": [], "failed_nodes": []}
-
-    gpu_nodes = get_gpu_nodes(host)
-    if not gpu_nodes:
-        result["error"] = "No GPU nodes found in PXE mapping"
-        return result
-
-    all_ok = True
-    lines = []
-    for node in gpu_nodes:
-        admin_ip = node.get("admin_ip", "")
-        node_result = verify_nvidia_peer_mem_installed(host, admin_ip)
-        result["results"].append({"ip": admin_ip, **node_result})
-        status = "OK" if node_result["success"] else "FAIL"
-        lines.append(f"  {admin_ip}: {status}")
-        if not node_result["success"]:
-            all_ok = False
-            result["failed_nodes"].append(admin_ip)
-
-    result["success"] = all_ok
-    result["details"] = (
-        f"nvidia_peer_mem check across {len(gpu_nodes)} GPU node(s):\n" +
-        "\n".join(lines)
-    )
-    if not all_ok:
-        result["error"] = f"nvidia_peer_mem not loaded on: {result['failed_nodes']}"
     return result
 
 

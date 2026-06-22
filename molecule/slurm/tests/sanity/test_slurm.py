@@ -1400,7 +1400,7 @@ def test_gpu_hello_job(host):
 # TC45: GPU Memory Stress Test job from ldapuser on login_compiler node
 # =============================================================================
 
-@pytest.mark.sanity
+@pytest.mark.sanitygpu
 @pytest.mark.order(45)
 def test_gpu_mem_stress_job(host):
     """TC45: Test submitting a GPU memory stress test job as ldapuser from login_compiler node.

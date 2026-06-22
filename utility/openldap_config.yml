@@ -1,0 +1,88 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# OPENLDAP SERVER SETUP CONFIGURATION
+# =============================================================================
+# Configuration for deploying a Bitnami OpenLDAP container and creating
+# LDAP users automatically. Used by: utility/create_ldap_user.py
+#
+# TARGET SERVER:
+#   - Set openldap_server_ip to deploy on a remote server (via SSH)
+#   - Leave empty to deploy on localhost
+
+# Target server IP where OpenLDAP container will be deployed
+# Leave empty ("") to deploy on localhost
+openldap_server_ip: ""
+
+# SSH username for remote server (only needed when openldap_server_ip is set)
+openldap_server_ssh_user: "root"
+
+# SSH password for remote server (only needed when openldap_server_ip is set)
+openldap_server_ssh_password: ""
+
+# SSH port for remote server (default: 22)
+openldap_server_ssh_port: 22
+
+# LDAP admin username (default: admin)
+openldap_admin_username: "admin"
+
+# LDAP admin password (REQUIRED)
+openldap_admin_password: ""
+
+# LDAP domain name (OPTIONAL - auto-fetched from server)
+# If set, this value will be used. If empty, the script will
+# SSH to the server and fetch the domain automatically via 'hostname -f'.
+# Converted to dc components automatically: omnia.test -> dc=omnia,dc=test
+openldap_domain: ""
+
+# OpenLDAP container image
+openldap_image: "docker.io/bitnamilegacy/openldap:latest"
+
+# OpenLDAP container name
+openldap_container_name: "openldap"
+
+# Host port for LDAP (mapped to container port 1389)
+openldap_port: 1389
+
+# Host port for LDAPS (mapped to container port 1636)
+openldap_secure_port: 1636
+
+# LDAP users to create (REQUIRED)
+# Format: list of user definitions
+# Each user must have: username, password
+# Optional per-user: uid_number, gid_number, login_shell, home_directory
+#
+# Example:
+#   openldap_users:
+#     - username: "ldapuser1"
+#       password: "UserPass123"
+#       uid_number: 2000
+#       gid_number: 2000
+#     - username: "ldapuser2"
+#       password: "UserPass456"
+#       uid_number: 2001
+#       gid_number: 2001
+#
+openldap_users:
+  - username: "ldapuser1"
+    password: ""
+    uid_number: 2000
+    gid_number: 2000
+
+# Default login shell for LDAP users (used if not specified per-user)
+openldap_default_login_shell: "/bin/bash"
+
+# Starting UID number (auto-incremented if uid_number not specified per-user)
+openldap_default_uid_start: 2000
