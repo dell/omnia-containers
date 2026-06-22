@@ -523,6 +523,58 @@ def skip_if_vast_not_enabled(host, log):
         pytest.skip("VAST telemetry is not enabled")
 
 
+def is_ufm_metrics_enabled(host) -> bool:
+    """Check if UFM telemetry metrics are enabled in telemetry_config.yml."""
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    ufm_config = sources.get("ufm", {})
+    return bool(ufm_config.get("metrics_enabled", False))
+
+
+def is_ufm_logs_enabled(host) -> bool:
+    """Check if UFM syslog collection is enabled in telemetry_config.yml."""
+    config = get_telemetry_config(host)
+    sources = config.get("telemetry_sources", {})
+    ufm_config = sources.get("ufm", {})
+    return bool(ufm_config.get("logs_enabled", False))
+
+
+def skip_if_ufm_not_enabled(host, log):
+    """
+    Skip test if UFM telemetry is not enabled.
+
+    Checks telemetry_sources.ufm.metrics_enabled in telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_ufm_metrics_enabled(host):
+        log.skipped(
+            "UFM telemetry is not enabled (ufm.metrics_enabled=false)",
+            "Test skipped - UFM telemetry not enabled"
+        )
+        pytest.skip("UFM telemetry is not enabled")
+
+
+def skip_if_ufm_logs_not_enabled(host, log):
+    """
+    Skip test if UFM syslog collection is not enabled.
+
+    Checks telemetry_sources.ufm.logs_enabled in telemetry_config.yml.
+
+    Args:
+        host: Testinfra host object
+        log: TestLogger instance
+    """
+    if not is_ufm_logs_enabled(host):
+        log.skipped(
+            "UFM syslog collection is not enabled (ufm.logs_enabled=false)",
+            "Test skipped - UFM syslog not enabled"
+        )
+        pytest.skip("UFM syslog collection is not enabled")
+
+
 def skip_if_ldms_not_enabled(host, log):
     """
     Skip test if LDMS is not enabled.
