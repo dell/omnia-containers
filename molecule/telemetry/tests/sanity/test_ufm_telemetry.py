@@ -67,7 +67,6 @@ from automation_library.telemetry.functions.ufm_telemetry_func import (
 # 1. FUNCTIONAL TEST CASES
 # =============================================================================
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(70)
 def test_tc_f001_ufm_scrape_active(host):
@@ -105,7 +104,6 @@ def test_tc_f001_ufm_scrape_active(host):
             assert False, UFM_ASSERT_MSGS["metrics_not_present"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(71)
 def test_tc_f002_ufm_dual_remotewrite(host):
@@ -153,7 +151,6 @@ def test_tc_f002_ufm_dual_remotewrite(host):
         assert False, UFM_ASSERT_MSGS["dual_remotewrite_failed"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(72)
 def test_tc_f003_ufm_syslog_ingestion(host):
@@ -194,7 +191,6 @@ def test_tc_f003_ufm_syslog_ingestion(host):
         assert False, UFM_ASSERT_MSGS["syslog_not_ingested"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(73)
 def test_tc_f004_ufm_deployment(host):
@@ -251,7 +247,6 @@ def test_tc_f004_ufm_deployment(host):
             )
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(74)
 def test_tc_f005_ufm_tls_basic_auth(host):
@@ -302,7 +297,6 @@ def test_tc_f005_ufm_tls_basic_auth(host):
             assert False, UFM_ASSERT_MSGS["scrape_not_active"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(75)
 def test_tc_f006_ufm_label_enrichment(host):
@@ -357,7 +351,6 @@ def test_tc_f006_ufm_label_enrichment(host):
         )
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(76)
 def test_tc_f007_ufm_internal_remotewrite(host):
@@ -390,7 +383,6 @@ def test_tc_f007_ufm_internal_remotewrite(host):
         assert False, UFM_ASSERT_MSGS["remotewrite_failed"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(77)
 def test_tc_f008_ufm_scrape_interval(host):
@@ -442,7 +434,6 @@ def test_tc_f008_ufm_scrape_interval(host):
 # 2. PERFORMANCE TEST CASES
 # =============================================================================
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(78)
 def test_tc_p001_ufm_scrape_latency(host):
@@ -494,7 +485,6 @@ def test_tc_p001_ufm_scrape_latency(host):
 # 3. SECURITY TEST CASES
 # =============================================================================
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(79)
 def test_tc_s001_ufm_tls_enforcement(host):
@@ -526,7 +516,6 @@ def test_tc_s001_ufm_tls_enforcement(host):
         assert False, UFM_ASSERT_MSGS["tls_not_configured"]
 
 
-@pytest.mark.sanity
 @pytest.mark.ufm_telemetry
 @pytest.mark.order(80)
 def test_tc_s002_ufm_no_plaintext_creds(host):
