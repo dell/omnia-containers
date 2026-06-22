@@ -36,6 +36,7 @@ from ..vars.upgrade_core_vars import (
     UPGRADE_VARS,
     SUPPORTED_VERSIONS,
     get_core_tag_for_version,
+    OPENCHAMI_BASE_PATH,
 )
 from .common_func import (
     compare_versions,
@@ -798,7 +799,7 @@ def verify_backup_directory(host) -> Dict[str, Any]:
 
     # Check if source openchami directory exists
     source_openchami_check = run_in_container(
-        host, "test -d /opt/omnia/openchami", container=container,
+        host, f"test -d {OPENCHAMI_BASE_PATH}", container=container,
     )
     source_has_openchami = source_openchami_check.rc == 0
 
