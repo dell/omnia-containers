@@ -17,15 +17,15 @@ HPC Benchmarks Functional, Idempotency, Compatibility, Regression, and
 Performance Tests.
 
 Test IDs:
-  TC-01  test_x86_64_json_parsing
-  TC-02  test_local_repo_sync_x86_64
+  TC-01  test_json_parsing
+  TC-02  test_local_repo_sync
   TC-03  test_hpc_tools_dir_creation
-  TC-04  test_x86_64_artifact_copy
-  TC-05  test_msr_safe_x86_64_only
+  TC-04  test_artifact_copy
+  TC-05  test_msr_safe_arch_boundary
   TC-06  test_container_first_guidance
   TC-07  test_source_only_delivery
   TC-08  test_per_tool_staging_report
-  TC-09  test_e2e_provisioning_x86_64
+  TC-09  test_e2e_provisioning
   TC-10  test_nfs_accessibility
   TC-11  test_airgapped_staging
   TC-12  test_post_staging_validation
@@ -46,15 +46,15 @@ from automation_library.hpc_benchmarks import (
     TEST_NAMES,
     TEST_LOG_MSGS,
     TEST_ASSERT_MSGS,
-    verify_x86_64_json_parsing,
-    verify_local_repo_sync_x86_64,
+    verify_json_parsing,
+    verify_local_repo_sync,
     verify_hpc_tools_dir_creation,
-    verify_x86_64_artifact_copy,
+    verify_artifact_copy,
     verify_msr_safe_x86_64_only,
     verify_container_first_guidance,
     verify_source_only_delivery,
     verify_per_tool_staging_report,
-    verify_e2e_provisioning_x86_64,
+    verify_e2e_provisioning,
     verify_nfs_accessibility,
     verify_airgapped_staging,
     verify_post_staging_validation,
@@ -68,59 +68,68 @@ from automation_library.hpc_benchmarks import (
 
 
 # =============================================================================
-# TC-01: x86_64 JSON DECLARATION PARSING
+# TC-01: JSON DECLARATION PARSING
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
-def test_x86_64_json_parsing(host):
+def test_json_parsing(host):
     """
-    TC-01: Parse slurm_custom.json for x86_64; verify all benchmark packages
-    declared with correct types; msr-safe present; container-first image
-    declared.
+    TC-01: Parse slurm_custom.json for detected architecture(s); verify all
+    benchmark packages declared with correct types.
+
+    Automatically detects cluster architecture:
+    - x86_64 nodes → verifies x86_64 JSON (incl. msr-safe, container-first)
+    - aarch64 nodes → verifies aarch64 JSON (no msr-safe)
+    - Both → verifies both
 
     Acceptance criteria: AC-6.1.1
     """
-    log = TestLogger(TEST_NAMES["x86_64_json_parsing"])
+    log = TestLogger(TEST_NAMES["json_parsing"])
 
-    result = verify_x86_64_json_parsing(host)
+    result = verify_json_parsing(host)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
         assert result["success"], TEST_ASSERT_MSGS["packages_missing"].format(
-            arch="x86_64",
-            expected="imb, osu-micro-benchmarks, likwid, geopm, papi, msr-safe, sionlib",
+            arch="detected",
+            expected="architecture-specific benchmark packages",
             missing=result.get("error", ""),
-            path="/omnia/input/config/x86_64/rhel/10.0/slurm_custom.json",
+            path="slurm_custom.json",
         )
 
 
 # =============================================================================
-# TC-02: LOCAL REPO SYNC — x86_64
+# TC-02: LOCAL REPO SYNC
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(2)
-def test_local_repo_sync_x86_64(host):
+def test_local_repo_sync(host):
     """
-    TC-02: Run local_repo.yml; verify all x86_64 benchmark tarballs appear
-    in offline_repo/cluster/x86_64/rhel/10.0/tarball/.
+    TC-02: Run local_repo.yml; verify all benchmark tarballs appear in the
+    appropriate offline_repo directory for detected architecture(s).
+
+    Automatically detects cluster architecture:
+    - x86_64 nodes → checks x86_64 offline_repo
+    - aarch64 nodes → checks aarch64 offline_repo
+    - Both → checks both
 
     Acceptance criteria: AC-6.1.1, FR-03
     """
-    log = TestLogger(TEST_NAMES["local_repo_sync_x86_64"])
+    log = TestLogger(TEST_NAMES["local_repo_sync"])
 
-    result = verify_local_repo_sync_x86_64(host)
+    result = verify_local_repo_sync(host)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
         assert result["success"], TEST_ASSERT_MSGS["tarballs_missing"].format(
-            arch="x86_64",
-            base="/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/tarball",
+            arch="detected",
+            base="offline_repo/cluster/<arch>/rhel/10.0/tarball",
             missing=result.get("missing", []),
         )
 
@@ -131,16 +140,18 @@ def test_local_repo_sync_x86_64(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(4)
-def test_hpc_tools_dir_creation(host, x86_64_node_ip):
+def test_hpc_tools_dir_creation(host, cluster_node_ip):
     """
     TC-03: Run provision.yml; verify hpc_tools/ directory created with one
     subdirectory per benchmark tool; permissions set to 0755.
+
+    Automatically detects node architecture and checks appropriate dirs.
 
     Acceptance criteria: AC-6.1.1, VC-001, BL-008
     """
     log = TestLogger(TEST_NAMES["hpc_tools_dir_creation"])
 
-    result = verify_hpc_tools_dir_creation(host, x86_64_node_ip)
+    result = verify_hpc_tools_dir_creation(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -153,27 +164,29 @@ def test_hpc_tools_dir_creation(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-04: PARALLEL COPY — x86_64 ARTIFACTS
+# TC-04: ARTIFACT COPY VERIFICATION
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
-def test_x86_64_artifact_copy(host, x86_64_node_ip):
+def test_artifact_copy(host, cluster_node_ip):
     """
-    TC-04: Run provision.yml; verify all x86_64 source tarballs copied to
+    TC-04: Run provision.yml; verify all source tarballs copied to
     hpc_tools/<tool>/; only declared tools are staged; undeclared tools absent.
+
+    Automatically detects node architecture and checks appropriate artifacts.
 
     Acceptance criteria: AC-6.1.1, VC-001, VC-003, BL-009
     """
-    log = TestLogger(TEST_NAMES["parallel_copy_x86_64"])
+    log = TestLogger(TEST_NAMES["artifact_copy"])
 
-    result = verify_x86_64_artifact_copy(host, x86_64_node_ip)
+    result = verify_artifact_copy(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["artifacts_missing_x86_64"].format(
+        assert result["success"], TEST_ASSERT_MSGS["artifacts_missing"].format(
             missing=result.get("missing", [])
         )
 
@@ -184,17 +197,19 @@ def test_x86_64_artifact_copy(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
-def test_msr_safe_x86_64_only(host, x86_64_node_ip):
+def test_msr_safe_x86_64_only(host, cluster_node_ip):
     """
     TC-05: Declare msr-safe only for x86_64; run full provisioning; verify
     msr-safe present in hpc_tools/msr-safe/ and absent from aarch64
     offline_repo path.
 
+    On aarch64-only clusters, validates msr-safe is correctly absent.
+
     Acceptance criteria: AC-6.2.1, BL-001, VC-002
     """
-    log = TestLogger(TEST_NAMES["msr_safe_x86_64_only"])
+    log = TestLogger(TEST_NAMES["msr_safe_arch_boundary"])
 
-    result = verify_msr_safe_x86_64_only(host, x86_64_node_ip)
+    result = verify_msr_safe_x86_64_only(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -211,7 +226,7 @@ def test_msr_safe_x86_64_only(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(6)
-def test_container_first_guidance(host, x86_64_node_ip):
+def test_container_first_guidance(host, cluster_node_ip):
     """
     TC-06: Verify HPL/HPL-MxP/STREAM not declared as source artifacts;
     Container-First image (nvcr.io/nvidia/hpc-benchmarks:25.09) declared
@@ -221,7 +236,7 @@ def test_container_first_guidance(host, x86_64_node_ip):
     """
     log = TestLogger(TEST_NAMES["container_first_guidance"])
 
-    result = verify_container_first_guidance(host, x86_64_node_ip)
+    result = verify_container_first_guidance(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -262,9 +277,9 @@ def test_source_only_delivery(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_per_tool_staging_report(host, x86_64_node_ip):
+def test_per_tool_staging_report(host, cluster_node_ip):
     """
-    TC-08: Run pull_benchmarks.sh on x86_64 node; verify per-tool staging
+    TC-08: Run pull_benchmarks.sh on cluster node; verify per-tool staging
     report correctly shows:
     - Already-present tools → SKIPPED with [WARN] marker
     - Missing/deleted tools → DOWNLOADED with [SUCCESS] marker
@@ -273,11 +288,13 @@ def test_per_tool_staging_report(host, x86_64_node_ip):
     Test scenario: After initial staging, if a tool directory is deleted and
     script re-run, that tool should be downloaded while others are skipped.
 
+    Automatically detects node architecture and checks appropriate packages.
+
     Acceptance criteria: AC-6.4.1, AC-6.4.4, VC-006, VC-010
     """
     log = TestLogger(TEST_NAMES["per_tool_staging_report"])
 
-    result = verify_per_tool_staging_report(host, x86_64_node_ip)
+    result = verify_per_tool_staging_report(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -287,28 +304,30 @@ def test_per_tool_staging_report(host, x86_64_node_ip):
 
 
 # =============================================================================
-# TC-09: END-TO-END PROVISIONING — x86_64
+# TC-09: END-TO-END PROVISIONING
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(9)
-def test_e2e_provisioning_x86_64(host, x86_64_node_ip):
+def test_e2e_provisioning(host, cluster_node_ip):
     """
-    TC-09: Run full x86_64 pipeline (local_repo.yml → provision.yml);
+    TC-09: Run full pipeline (local_repo.yml → provision.yml);
     verify JSON declaration, offline repo sync, hpc_tools directories,
-    artifact staging, and NFS accessibility from an x86_64 node.
+    artifact staging, and NFS accessibility from a cluster node.
 
-    Acceptance criteria: AC-6.1.1, FR-01
+    Automatically detects node architecture and runs appropriate E2E checks.
+
+    Acceptance criteria: AC-6.1.1, FR-01/FR-02
     """
-    log = TestLogger(TEST_NAMES["e2e_provisioning_x86_64"])
+    log = TestLogger(TEST_NAMES["e2e_provisioning"])
 
-    result = verify_e2e_provisioning_x86_64(host, x86_64_node_ip)
+    result = verify_e2e_provisioning(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
-        assert result["success"], TEST_ASSERT_MSGS["e2e_x86_64_failed"].format(
+        assert result["success"], TEST_ASSERT_MSGS["e2e_failed"].format(
             details=result.get("error", "")
         )
 
@@ -319,24 +338,26 @@ def test_e2e_provisioning_x86_64(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
-def test_nfs_accessibility(host, x86_64_node_ip):
+def test_nfs_accessibility(host, cluster_node_ip):
     """
     TC-10: Verify /hpc_tools NFS is mounted and all benchmark tool
-    directories are accessible from an x86_64 cluster node; verify source
+    directories are accessible from a cluster node; verify source
     tarball is readable.
+
+    Automatically detects node architecture and checks appropriate dirs.
 
     Acceptance criteria: AC-6.1.1, VC-008
     """
     log = TestLogger(TEST_NAMES["nfs_accessibility"])
 
-    result = verify_nfs_accessibility(host, x86_64_node_ip)
+    result = verify_nfs_accessibility(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
         assert result["success"], TEST_ASSERT_MSGS["nfs_not_accessible"].format(
-            ip=x86_64_node_ip
+            ip=cluster_node_ip
         )
 
 
@@ -371,17 +392,19 @@ def test_airgapped_staging(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(12)
-def test_post_staging_validation(host, x86_64_node_ip):
+def test_post_staging_validation(host, cluster_node_ip):
     """
     TC-12: After provisioning, run post-staging validation; verify all
     required benchmark directories reported as present; missing directory
     triggers warning log.
 
+    Automatically detects node architecture and checks appropriate dirs.
+
     Acceptance criteria: SB-006, FR-01
     """
     log = TestLogger(TEST_NAMES["post_staging_validation"])
 
-    result = verify_post_staging_validation(host, x86_64_node_ip)
+    result = verify_post_staging_validation(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -399,7 +422,7 @@ def test_post_staging_validation(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(13)
-def test_rhel_compatibility(host, x86_64_node_ip):
+def test_rhel_compatibility(host, cluster_node_ip):
     """
     TC-13: Verify target cluster node is running RHEL 10.x; staging completes
     without OS-related errors.
@@ -408,14 +431,14 @@ def test_rhel_compatibility(host, x86_64_node_ip):
     """
     log = TestLogger(TEST_NAMES["rhel_compatibility"])
 
-    result = verify_rhel_compatibility(host, x86_64_node_ip)
+    result = verify_rhel_compatibility(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
     else:
         log.failed(result["error"])
         assert result["success"], TEST_ASSERT_MSGS["rhel_version_mismatch"].format(
-            ip=x86_64_node_ip,
+            ip=cluster_node_ip,
             version=result.get("os_version", "unknown"),
         )
 
@@ -426,7 +449,7 @@ def test_rhel_compatibility(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(14)
-def test_cuda_flow_unaffected(host, x86_64_node_ip):
+def test_cuda_flow_unaffected(host, cluster_node_ip):
     """
     TC-14: Run benchmark staging on top of a provisioned system; verify
     /hpc_tools/cuda/ path and nvidia-smi output unchanged.
@@ -435,7 +458,7 @@ def test_cuda_flow_unaffected(host, x86_64_node_ip):
     """
     log = TestLogger(TEST_NAMES["cuda_flow_unaffected"])
 
-    result = verify_cuda_flow_unaffected(host, x86_64_node_ip)
+    result = verify_cuda_flow_unaffected(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -450,14 +473,14 @@ def test_cuda_flow_unaffected(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(15)
-def test_nvhpc_flow_unaffected(host, x86_64_node_ip):
+def test_nvhpc_flow_unaffected(host, cluster_node_ip):
     """
     TC-15: Run benchmark staging; verify /hpc_tools/nvidia_sdk/ path and
     NVIDIA HPC SDK environment unchanged.
     """
     log = TestLogger(TEST_NAMES["nvhpc_flow_unaffected"])
 
-    result = verify_nvhpc_flow_unaffected(host, x86_64_node_ip)
+    result = verify_nvhpc_flow_unaffected(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -472,14 +495,14 @@ def test_nvhpc_flow_unaffected(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(16)
-def test_container_image_flow_unaffected(host, x86_64_node_ip):
+def test_container_image_flow_unaffected(host, cluster_node_ip):
     """
     TC-16: Run benchmark staging; verify /hpc_tools/container_images/,
     download_container_image.sh, and container_image.list are unmodified.
     """
     log = TestLogger(TEST_NAMES["container_image_flow"])
 
-    result = verify_container_image_flow_unaffected(host, x86_64_node_ip)
+    result = verify_container_image_flow_unaffected(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -494,18 +517,19 @@ def test_container_image_flow_unaffected(host, x86_64_node_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(17)
-def test_openmpi_unaffected(host, x86_64_login_compiler_ip):
+def test_openmpi_unaffected(host, hpc_login_compiler_ip):
     """
     TC-17: Run benchmark staging; verify mpirun --version and OpenMPI/UCX
     library paths and environment variables unchanged on login/compiler node.
     
     Note: mpirun is only available on login/compiler nodes, not compute nodes.
+    Uses any available login/compiler node (x86_64 or aarch64).
 
     Acceptance criteria: AC-6.3.4
     """
     log = TestLogger(TEST_NAMES["openmpi_unaffected"])
 
-    result = verify_openmpi_unaffected(host, x86_64_login_compiler_ip)
+    result = verify_openmpi_unaffected(host, hpc_login_compiler_ip)
 
     if result["success"]:
         log.passed(result["details"])
@@ -520,7 +544,7 @@ def test_openmpi_unaffected(host, x86_64_login_compiler_ip):
 
 @pytest.mark.sanity
 @pytest.mark.order(18)
-def test_existing_hpc_dirs_preserved(host, x86_64_node_ip):
+def test_existing_hpc_dirs_preserved(host, cluster_node_ip):
     """
     TC-18: Record pre-existing hpc_tools/ subdirectories before benchmark
     staging; after staging, verify none removed or modified.
@@ -529,7 +553,7 @@ def test_existing_hpc_dirs_preserved(host, x86_64_node_ip):
     """
     log = TestLogger(TEST_NAMES["existing_hpc_dirs_preserved"])
 
-    result = verify_existing_hpc_dirs_preserved(host, x86_64_node_ip)
+    result = verify_existing_hpc_dirs_preserved(host, cluster_node_ip)
 
     if result["success"]:
         log.passed(result["details"])

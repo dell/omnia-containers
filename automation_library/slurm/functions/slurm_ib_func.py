@@ -993,7 +993,9 @@ def _parse_ucx_job_output(output: str) -> Dict[str, Any]:
     after_vals: Dict[str, int] = {}
     in_before = False
     in_after = False
-    ctr_re = re.compile(r"\[([^\]]+)\].*xmit_data=(\d+)")
+    # Match: "0: [hostname] mlx5_0:1 xmit_data=12345" or "[hostname] mlx5_0:1 xmit_data=12345"
+    # Use hostname/device_port as key to compare the same port before and after
+    ctr_re = re.compile(r"(?:\d+:\s*)?\[([^\]]+)\]\s+(\S+)\s+xmit_data=(\d+)")
     for line in output.splitlines():
         if "IB COUNTERS BEFORE" in line:
             in_before, in_after = True, False
@@ -1005,16 +1007,17 @@ def _parse_ucx_job_output(output: str) -> Dict[str, Any]:
             in_before = False
         m = ctr_re.search(line)
         if m:
-            node_name, val = m.group(1), int(m.group(2))
+            key = f"{m.group(1)}/{m.group(2)}"
+            val = int(m.group(3))
             if in_before:
-                before_vals.setdefault(node_name, val)
+                before_vals.setdefault(key, val)
             elif in_after:
-                after_vals[node_name] = val
+                after_vals[key] = val
 
     increases = [
-        f"{n}: {before_vals[n]} -> {after_vals.get(n, before_vals[n])}"
-        for n in before_vals
-        if after_vals.get(n, before_vals[n]) > before_vals[n]
+        f"{k}: {before_vals[k]} -> {after_vals[k]}"
+        for k in before_vals
+        if after_vals.get(k, before_vals[k]) > before_vals[k]
     ]
     results["counter_increase"] = len(increases) > 0
     results["counter_detail"] = (

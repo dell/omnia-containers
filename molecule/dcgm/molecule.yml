@@ -27,6 +27,8 @@
 #   - CUDA 13.x+ toolkit available in Pulp local repo
 #   - /hpc_tools NFS mount configured on all cluster nodes
 #   - pxe_mapping_file.csv contains slurm_node_x86_64 entries
+#   - DCGM metrics enabled in /opt/omnia/input/project_default/telemetry_config.yml
+#     (dcgm.metrics_enabled: true)
 #
 # USAGE:
 # ------
