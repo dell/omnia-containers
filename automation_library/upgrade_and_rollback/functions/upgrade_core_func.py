@@ -796,16 +796,31 @@ def verify_backup_directory(host) -> Dict[str, Any]:
             "error": f"Backup directory not found: {backup_path}",
         }
 
+    # Check if source openchami directory exists
+    source_openchami_check = run_in_container(
+        host, "test -d /opt/omnia/openchami", container=container,
+    )
+    source_has_openchami = source_openchami_check.rc == 0
+
     # Sub-directories
     expected_subs = ("configs", "input", "metadata", "openchami")
     sub_dirs: Dict[str, bool] = {}
     for sub in expected_subs:
+        # Skip checking openchami if source doesn't have it
+        if sub == "openchami" and not source_has_openchami:
+            sub_dirs[sub] = True  # Mark as OK since source doesn't have it
+            continue
+        
         chk = run_in_container(
             host, f"test -d '{backup_path}/{sub}'", container=container,
         )
         sub_dirs[sub] = chk.rc == 0
 
     missing_dirs = [k for k, v in sub_dirs.items() if not v]
+    # Don't count openchami as missing if source doesn't have it
+    if not source_has_openchami and "openchami" in missing_dirs:
+        missing_dirs.remove("openchami")
+    
     all_ok = len(missing_dirs) == 0
 
     return {
