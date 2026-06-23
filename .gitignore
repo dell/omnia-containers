@@ -28,3 +28,4 @@ omnia_test_config.yml.backup
 
 # Prereq check reports (generated)
 oim_prereq_report.txt
+omnia_test_config.yml
