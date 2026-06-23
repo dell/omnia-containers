@@ -74,6 +74,15 @@ User needs to provide the following credentials during cluster configuration. On
 
     10. LDMS Sampler (Password)
 
+    11. Postgres (``postgres_user``, ``postgres_password``)
+
+    12. GitLab (``gitlab_root_password``)
+
+    13. OME Discovery (``ome_username``, ``ome_password``)
+
+    14. UFM Telemetry (``ufm_username``, ``ufm_password``)
+
+    15. VAST Telemetry (``vast_username``, ``vast_password``)
     
 Authentication to External Systems
 ==================================

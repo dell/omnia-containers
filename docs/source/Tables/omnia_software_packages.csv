@@ -39,7 +39,7 @@ xilinx-device-plugin,Apache-2.0,The AMD-Xilinx device plugin for Kubernetes is a
 OFED,NVIDIA Software License,OFED driver,24.10-1.1.4.0
 OpenMPI,GPL-2.0-only,Open MPI main development repository,5.0.8
 NVidia container runtime,Apache-2.0,Nvidia container runtime library,3.4.2
-helm,Apache-2.0,Kubernetes Package Manager,3.19.0
+helm,Apache-2.0,Kubernetes Package Manager,3.20.1
 spark-operator,Apache-2.0,Unified analytics engine for large-scale data processing,v1beta2-1.3.8-3.1.1
 prometheus,Apache-2.0,It is a monitoring and alerting tool,v3.4.1
 postgresSQL,PostgreSQL,"PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance.",16.8
