@@ -29,3 +29,5 @@ omnia_test_config.yml
 
 # Backups
 *.backup
+omnia_test_credentials.yml
+.backups/
