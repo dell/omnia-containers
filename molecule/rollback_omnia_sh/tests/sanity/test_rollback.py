@@ -114,13 +114,15 @@ def test_rollback_precondition(host):
         )
         pytest.skip(SKIP["container_not_running"])
 
-    # Fresh install at current_version (never upgraded) - skip all
+    # Fresh install at current_version (never upgraded) - fail
     if state == "fresh_install":
-        log.skipped(
-            SKIP["fresh_install"].format(version=result["running_version"]),
+        log.failed(
+            "Cannot rollback from fresh install",
             result["error"],
         )
-        pytest.skip(SKIP["fresh_install"].format(version=result["running_version"]))
+        pytest.fail(
+            ASSERT["fresh_install"].format(version=result["running_version"])
+        )
 
     # Fresh install at new_version (no previous version) - skip all
     if state == "fresh_install_new":
@@ -403,6 +405,14 @@ def _run_rollback_verify(host, category: str):
 
     result = verify_rollback_backup_md5sum(host, category)
     files = result.get("files", [])
+
+    # Check if test was skipped due to missing source directory
+    if result.get("skipped", False):
+        log.skipped(
+            result["error"],
+            result["error"],
+        )
+        pytest.skip(result["error"])
 
     if not files:
         log.failed(

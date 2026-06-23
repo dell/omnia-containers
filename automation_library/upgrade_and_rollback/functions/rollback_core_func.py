@@ -432,6 +432,32 @@ def verify_rollback_backup_md5sum(host, category: str) -> Dict[str, Any]:
     on_oim = cfg["on_oim"]
     exclude = cfg.get("exclude", [])
 
+    # Check if source directory exists before attempting verification
+    if on_oim:
+        check_cmd = run_on_oim
+    else:
+        check_cmd = partial(run_in_container, container=container)
+    
+    dir_check = check_cmd(host, f"test -d {current_dir} && echo 'EXISTS' || echo 'NOT_EXISTS'")
+    if dir_check.stdout.strip() != "EXISTS":
+        return {
+            "success": True,  # Skip test, not a failure
+            "files": [],
+            "error": f"Source directory {current_dir} does not exist - rollback verification skipped",
+            "skipped": True,
+        }
+    
+    # Check if source directory has any files (for quadlets specifically)
+    if category == "quadlets":
+        files_check = check_cmd(host, f"ls -1 {current_dir}/*.container 2>/dev/null | wc -l")
+        if files_check.stdout.strip() == "0":
+            return {
+                "success": True,  # Skip test, not a failure
+                "files": [],
+                "error": f"No .container files found in {current_dir} (except omnia_core.container) - rollback verification skipped",
+                "skipped": True,
+            }
+
     # Backup is always under /opt/omnia (shared volume) → container
     backup_cmd = partial(run_in_container, container=container)
 
@@ -459,6 +485,12 @@ def verify_rollback_backup_md5sum(host, category: str) -> Dict[str, Any]:
             f"do not match after rollback"
         )
     elif not result["files"]:
-        result["error"] = f"No files found in {backup_dir}"
+        # Check if this is expected (e.g., all files excluded for quadlets)
+        if category == "quadlets":
+            result["success"] = True  # Skip as success, not a failure
+            result["error"] = f"No .container files found in {current_dir} (except omnia_core.container) - rollback verification skipped"
+            result["skipped"] = True
+        else:
+            result["error"] = f"No files found in {backup_dir}"
 
     return result

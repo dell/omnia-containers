@@ -135,6 +135,14 @@ ROLLBACK_ASSERT_MSGS: Dict[str, str] = {
         "  Set upgrade.current_version and upgrade.new_version in "
         "omnia_test_config.yml"
     ),
+    "fresh_install": (
+        "Cannot rollback from fresh install at {version}.\n\n"
+        "The container has never been upgraded - there is no previous version to rollback to.\n"
+        "Rollback requires the system to have been upgraded first.\n\n"
+        "HOW TO FIX:\n"
+        "  1. First perform an upgrade: run upgrade_omnia_sh scenario\n"
+        "  2. Then run rollback_omnia_sh scenario"
+    ),
 
     # Image
     "image_not_found": (

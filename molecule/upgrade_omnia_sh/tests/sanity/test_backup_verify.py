@@ -61,6 +61,14 @@ def _run_backup_verify(host, category: str, order_num: int):
     result = verify_backup_md5sum(host, category)
     files = result.get("files", [])
 
+    # Check if test was skipped due to missing source directory
+    if result.get("skipped", False):
+        log.skipped(
+            result["error"],
+            result["error"],
+        )
+        pytest.skip(result["error"])
+
     if not files:
         log.failed(
             LOG["no_files"].format(dir=backup_dir),
