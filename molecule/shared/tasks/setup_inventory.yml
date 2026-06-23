@@ -17,10 +17,63 @@
 # Include this in playbooks that need to connect to OIM server
 # =============================================================================
 
-- name: Load omnia_test_config.yml
+- name: Load omnia_test_config.yml (plain text)
   ansible.builtin.include_vars:
     file: "{{ project_dir }}/omnia_test_config.yml"
     name: omnia_test_config
+  no_log: true
+
+- name: Set credentials file paths
+  ansible.builtin.set_fact:
+    _creds_file: "{{ project_dir }}/omnia_test_credentials.yml"
+    _creds_key_file: "{{ project_dir }}/.omnia_test_credentials.key"
+
+- name: Check if credentials file is encrypted  # noqa: risky-shell-pipe
+  ansible.builtin.shell: head -1 "{{ _creds_file }}" | grep -q "\$ANSIBLE_VAULT"
+  register: _creds_encrypted
+  failed_when: false
+  changed_when: false
+
+- name: Check if vault key file exists
+  ansible.builtin.stat:
+    path: "{{ _creds_key_file }}"
+  register: _key_file_stat
+  when: _creds_encrypted.rc == 0
+
+- name: Fail if credentials encrypted but key file missing
+  ansible.builtin.fail:
+    msg: |
+      Credentials file is encrypted but vault key file not found!
+
+      Missing key file: {{ _creds_key_file }}
+
+      HOW TO FIX:
+        1. Create the vault key file with a 32-character password:
+           echo 'your-32-char-password-here' > {{ _creds_key_file }}
+           chmod 600 {{ _creds_key_file }}
+
+        2. OR decrypt the credentials file manually and remove encryption:
+           ansible-vault decrypt {{ _creds_file }} --ask-vault-pass
+  when: _creds_encrypted.rc == 0 and not (_key_file_stat.stat.exists | default(false))
+
+- name: Decrypt credentials file if encrypted
+  ansible.builtin.shell: |
+    ansible-vault decrypt "{{ _creds_file }}" --vault-password-file "{{ _creds_key_file }}"
+  when: _creds_encrypted.rc == 0 and (_key_file_stat.stat.exists | default(false))
+  changed_when: true
+  no_log: true
+
+- name: Load omnia_test_credentials.yml (now decrypted)
+  ansible.builtin.include_vars:
+    file: "{{ _creds_file }}"
+    name: omnia_test_credentials
+  no_log: true
+
+- name: Re-encrypt credentials file if it was originally encrypted
+  ansible.builtin.shell: |
+    ansible-vault encrypt "{{ _creds_file }}" --vault-password-file "{{ _creds_key_file }}"
+  when: _creds_encrypted.rc == 0 and (_key_file_stat.stat.exists | default(false))
+  changed_when: true
   no_log: true
 
 - name: Determine execution mode (local vs remote)
@@ -33,7 +86,7 @@
     groups: oim
     ansible_host: "{{ omnia_test_config.oim_server_ip }}"
     ansible_user: "{{ omnia_test_config.oim_ssh_user | default('root') }}"
-    ansible_password: "{{ omnia_test_config.oim_ssh_password }}"
+    ansible_password: "{{ omnia_test_credentials.oim_ssh_password }}"
     ansible_port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
     ansible_connection: ssh
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

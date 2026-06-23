@@ -39,3 +39,14 @@ OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL = (
 # =============================================================================
 
 SSH_OPTS = "-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+
+# =============================================================================
+# CONFIGURATION FILES
+# =============================================================================
+
+# Main config file (non-sensitive settings - always plain text)
+OMNIA_TEST_CONFIG_FILE = "omnia_test_config.yml"
+
+# Credentials file (sensitive passwords - vault encrypted)
+OMNIA_TEST_CREDENTIALS_FILE = "omnia_test_credentials.yml"
+OMNIA_TEST_CREDENTIALS_KEY = ".omnia_test_credentials.key"

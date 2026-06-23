@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from .host_func import get_project_root
+from .host_func import get_project_root, load_omnia_test_config
 
 
 def _get_report_dir() -> str:
@@ -37,20 +37,18 @@ def _get_report_dir() -> str:
 
 def _get_server_info() -> Dict[str, str]:
     """Get current server IP and hostname from omnia_test_config.yml."""
-    config_path = os.path.join(get_project_root(), "omnia_test_config.yml")
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f) or {}
-        ip = config.get("oim_server_ip", "localhost")
+        config = load_omnia_test_config()
+        ip = config.get("oim_server_ip", "") or "localhost"
         hostname = config.get("oim_hostname", "")
         if not hostname:
             # Try to resolve hostname from IP
             try:
-                hostname = socket.gethostbyaddr(ip)[0]
+                hostname = socket.gethostbyaddr(ip)[0] if ip != "localhost" else "localhost"
             except (socket.herror, socket.gaierror, OSError):
                 hostname = ip
         return {"ip": ip, "hostname": hostname}
-    except (IOError, yaml.YAMLError):
+    except (IOError, yaml.YAMLError, ValueError):
         return {"ip": "localhost", "hostname": "localhost"}
 
 

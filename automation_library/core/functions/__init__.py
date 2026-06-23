@@ -18,6 +18,11 @@
 from .host_func import (
     get_testinfra_host,
     load_omnia_test_config,
+    load_omnia_test_credentials,
+    encrypt_omnia_test_credentials,
+    OMNIA_TEST_CONFIG_FILE,
+    OMNIA_TEST_CREDENTIALS_FILE,
+    OMNIA_TEST_CREDENTIALS_KEY,
     get_dataset_path,
     is_local_execution,
     run_on_oim,
