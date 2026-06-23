@@ -44,9 +44,6 @@ platforms:
 
 provisioner:
   name: ansible
-  playbooks:
-    create: create.yml
-    converge: converge.yml
   env:
     ANSIBLE_VERBOSITY: 1
     ANSIBLE_HOST_KEY_CHECKING: "false"
