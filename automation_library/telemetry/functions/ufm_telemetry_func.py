@@ -54,6 +54,7 @@ from ..vars.ufm_telemetry_vars import (
     CREDENTIAL_PATTERNS,
     VMSELECT_LABEL_SELECTOR,
     VMAGENT_LABEL_SELECTOR,
+    VICTORIA_LOGS_QUERY_PORT,
 )
 from ..vars.victoria_vars import (
     VICTORIA_CLUSTER,
@@ -429,7 +430,7 @@ def verify_ufm_syslog_ingestion(host, admin_ip: str) -> Dict[str, Any]:
         # Query for UFM syslog events
         query_cmd = (
             f"curl -sk --max-time 30 "
-            f"'https://{vlselect_ip}:9481/select/logsql/query"
+            f"'https://{vlselect_ip}:{VICTORIA_LOGS_QUERY_PORT}/select/logsql/query"
             f"?query=source%3Dufm&limit=10'"
         )
         cmd = run_on_remote_node(host, query_cmd, admin_ip)
