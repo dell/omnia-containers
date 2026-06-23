@@ -1,0 +1,109 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# Omnia Infrastructure Manager (OIM) - Automation Configuration TEMPLATE
+# =============================================================================
+#
+# SECURITY NOTE: This is a template file. Copy to omnia_test_config.yml and 
+# fill in your actual values. The actual config file is gitignored for security.
+#
+# cp omnia_test_config.yml.template omnia_test_config.yml
+# 
+# Then edit omnia_test_config.yml with your actual server IPs and settings.
+#
+# =============================================================================
+
+# =============================================================================
+# OIM SERVER CONNECTION
+# =============================================================================
+# Remote OIM server where all operations will be executed via SSH.
+#
+# LOCAL MODE: If you are running this automation directly on the OIM server,
+# leave oim_server_ip empty (or set to "localhost" / "127.0.0.1").
+# In local mode, SSH credentials are NOT required — all commands run locally.
+#
+# REMOTE MODE: If you are running from a different machine, set oim_server_ip
+# to the OIM's IP address and provide SSH credentials below.
+
+# OIM server IP address (leave empty for local mode — running on OIM itself)
+oim_server_ip: ""
+
+# SSH username for remote OIM server (only needed for remote mode)
+oim_ssh_user: ""
+
+# SSH port for remote OIM server (default: 22)
+oim_ssh_port: 22
+
+# =============================================================================
+# NFS CONFIGURATION
+# =============================================================================
+# Configure shared storage for omnia cluster nodes.
+# 
+# Options:
+#   - "NFS": Use Network File System (requires nfs_type)
+#   - "Local": Use local storage (no NFS setup)
+
+share_option: ""
+
+# NFS type (only required if share_option is "NFS"):
+#   - "external": Use existing NFS server (requires nfs_server_ip, nfs_share_path, omnia_shared_path)
+#   - "internal": Setup NFS server on OIM (requires oim_server_ip, nfs_share_path)
+nfs_type: ""
+
+# External NFS server IP (only for nfs_type: "external")
+nfs_server_ip: ""
+
+# NFS share path on the server (for both internal and external NFS)
+nfs_share_path: ""
+
+# Local mount point on cluster nodes (for external NFS and Local storage)
+omnia_shared_path: ""
+
+# =============================================================================
+# OMNIA REPOSITORY CONFIGURATION  
+# =============================================================================
+# Configure which version of omnia to download and install.
+
+# Omnia branch name (e.g., "devel", "release-2.2")
+omnia_branch: ""
+
+# Omnia core container tag (e.g., "2.2", "latest")
+core_tag: ""
+
+# Local path where omnia repo will be cloned on OIM server
+omnia_clone_path: ""
+
+# =============================================================================
+# CLUSTER NETWORK CONFIGURATION
+# =============================================================================
+# Network settings for cluster deployment.
+
+# Admin network interface name (e.g., "eno1", "eth0")
+admin_interface: ""
+
+# Public network interface name (e.g., "eno2", "eth1") 
+public_interface: ""
+
+# PXE interface IP address with subnet (CIDR notation)
+# If not set or empty, default is 172.16.107.254/24
+pxe_ip: ""
+
+# iDRAC IP address (only used when network_type is "lom")
+idrac_ip: ""
+
+# Network type for cluster nodes:
+#   - "lom": Use Lights Out Management (iDRAC/BMC)
+#   - "dedicated": Use dedicated network interfaces
+network_type: ""
