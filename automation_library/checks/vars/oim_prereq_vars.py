@@ -41,6 +41,7 @@ from typing import Dict, Any
 import yaml
 
 from automation_library.core import OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH
+from automation_library.core import load_omnia_test_config, load_omnia_test_credentials
 
 
 # =============================================================================
@@ -70,7 +71,6 @@ OMNIA_TEST_CREDENTIALS_PATH = _OMNIA_TEST_CREDENTIALS_FILE
 def _load_omnia_test_config() -> Dict[str, Any]:
     """Load config using core function (plain text - no encryption)."""
     try:
-        from automation_library.core import load_omnia_test_config
         return load_omnia_test_config()
     except (ImportError, ValueError):
         return {}
@@ -79,7 +79,6 @@ def _load_omnia_test_config() -> Dict[str, Any]:
 def _load_omnia_test_credentials() -> Dict[str, Any]:
     """Load credentials using core function (with auto-encryption)."""
     try:
-        from automation_library.core import load_omnia_test_credentials
         return load_omnia_test_credentials()
     except (ImportError, ValueError):
         return {}
