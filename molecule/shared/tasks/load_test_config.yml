@@ -13,109 +13,26 @@
 # limitations under the License.
 
 # =============================================================================
-# Shared task to load omnia_test_config.yml with vault encryption support
+# Shared task to load omnia_test_config.yml (plain text - no encryption)
 #
 # Usage:
 #   - name: Load test config
 #     ansible.builtin.include_tasks: "{{ project_dir }}/molecule/shared/tasks/load_test_config.yml"
 #
-# This task will:
-# 1. Check if config is encrypted (starts with $ANSIBLE_VAULT)
-# 2. If encrypted and key exists: decrypt and load
-# 3. If encrypted but no key: fail with error
-# 4. If plain: load config, create key if missing, encrypt file
+# Note:
+#   - Config file contains non-sensitive settings (IPs, paths, options)
+#   - Sensitive credentials are in omnia_test_credentials.yml (encrypted)
 # =============================================================================
 
-- name: Define config paths
+- name: Define config path
   ansible.builtin.set_fact:
     _config_file: "{{ project_dir }}/omnia_test_config.yml"
-    _key_file: "{{ project_dir }}/.omnia_test_config.key"
 
-- name: Check if vault key exists
-  ansible.builtin.stat:
-    path: "{{ _key_file }}"
-  delegate_to: localhost
-  register: _vault_key_stat
-
-- name: Check if config is encrypted
-  ansible.builtin.shell:
-    cmd: head -n1 "{{ _config_file }}" | grep -q '^\$ANSIBLE_VAULT' && echo ENCRYPTED || echo PLAIN
-  delegate_to: localhost
-  register: _config_encryption_check
-  changed_when: false
-
-# -----------------------------------------------------------------------------
-# Case 1: Config is encrypted
-# -----------------------------------------------------------------------------
-
-- name: Fail if encrypted but no key
-  ansible.builtin.fail:
-    msg: |
-      omnia_test_config.yml is encrypted but .omnia_test_config.key not found.
-      
-      HOW TO FIX:
-        If you have the original key, place it at: {{ _key_file }}
-        If key is lost, you'll need to recreate omnia_test_config.yml from template.
-  when:
-    - _config_encryption_check.stdout == "ENCRYPTED"
-    - not _vault_key_stat.stat.exists
-
-- name: Decrypt config content to temp file
-  ansible.builtin.shell:
-    cmd: ansible-vault view "{{ _config_file }}" --vault-password-file "{{ _key_file }}"
-  delegate_to: localhost
-  register: _decrypted_config
-  no_log: true
-  when:
-    - _config_encryption_check.stdout == "ENCRYPTED"
-    - _vault_key_stat.stat.exists
-
-- name: Set omnia_test_config from decrypted content
-  ansible.builtin.set_fact:
-    omnia_test_config: "{{ _decrypted_config.stdout | from_yaml }}"
-  no_log: true
-  when:
-    - _config_encryption_check.stdout == "ENCRYPTED"
-    - _vault_key_stat.stat.exists
-
-# -----------------------------------------------------------------------------
-# Case 2: Config is plain - load, create key, encrypt
-# -----------------------------------------------------------------------------
-
-- name: Load plain config
+- name: Load config (plain text)
   ansible.builtin.include_vars:
     file: "{{ _config_file }}"
     name: omnia_test_config
-  no_log: true
-  when: _config_encryption_check.stdout == "PLAIN"
-
-- name: Create vault key if not exists (32 char random)
-  ansible.builtin.shell:
-    cmd: |
-      head -c 32 /dev/urandom | base64 | head -c 32 > "{{ _key_file }}"
-      chmod 600 "{{ _key_file }}"
-  delegate_to: localhost
-  when:
-    - _config_encryption_check.stdout == "PLAIN"
-    - not _vault_key_stat.stat.exists
-  changed_when: true
-
-- name: Re-check vault key after creation
-  ansible.builtin.stat:
-    path: "{{ _key_file }}"
-  delegate_to: localhost
-  register: _vault_key_stat_after
-  when: _config_encryption_check.stdout == "PLAIN"
-
-- name: Encrypt plain config file
-  ansible.builtin.shell:
-    cmd: ansible-vault encrypt "{{ _config_file }}" --vault-password-file "{{ _key_file }}"
-  delegate_to: localhost
-  when:
-    - _config_encryption_check.stdout == "PLAIN"
-    - _vault_key_stat_after.stat.exists | default(_vault_key_stat.stat.exists)
-  changed_when: true
 
 - name: Config loaded successfully
   ansible.builtin.debug:
-    msg: "omnia_test_config.yml loaded (was {{ 'encrypted' if _config_encryption_check.stdout == 'ENCRYPTED' else 'plain, now encrypted' }})"
+    msg: "omnia_test_config.yml loaded successfully"

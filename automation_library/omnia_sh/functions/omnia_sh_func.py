@@ -1220,3 +1220,503 @@ def check_mount_removed(host, omnia_shared_path: str = None) -> Dict[str, Any]:
         "details": None,
         "error": f"{omnia_shared_path} is still mounted"
     }
+
+
+# =============================================================================
+# NFS VALIDATION FUNCTIONS (for pytest/testinfra)
+# =============================================================================
+
+def validate_nfs_config() -> Dict[str, Any]:
+    """
+    Validate NFS configuration in omnia_test_config.yml.
+
+    Validates required fields based on share_option and nfs_type:
+    - NFS external: nfs_server_ip, nfs_share_path, omnia_shared_path, omnia_core_password required
+    - NFS internal: nfs_share_path, omnia_core_password required (oim_server_ip optional - uses localhost)
+    - Local: omnia_shared_path, omnia_core_password required
+
+    Returns:
+        Dict with 'success', 'share_option', 'nfs_type', 'missing_fields', 'error'
+    """
+    share_option = OMNIA_SH_VARS["share_option"]
+    nfs_type = OMNIA_SH_VARS["nfs_type"]
+    nfs_server_ip = OMNIA_SH_VARS["nfs_server_ip"]
+    nfs_share_path = OMNIA_SH_VARS["nfs_share_path"]
+    omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
+    omnia_core_password = OMNIA_SH_VARS["omnia_core_password"]
+    # oim_server_ip is optional for internal NFS - used in install function
+
+    missing = []
+
+    # share_option is always required
+    if not share_option:
+        missing.append("share_option")
+        return {
+            "success": False,
+            "share_option": share_option,
+            "nfs_type": nfs_type,
+            "missing_fields": missing,
+            "error": "share_option not configured in omnia_test_config.yml"
+        }
+
+    # omnia_core_password is always required
+    if not omnia_core_password:
+        missing.append("omnia_core_password")
+
+    if share_option == "NFS":
+        # nfs_type is required for NFS
+        if not nfs_type:
+            missing.append("nfs_type")
+
+        if nfs_type == "external":
+            # External NFS requires: nfs_server_ip, nfs_share_path, omnia_shared_path
+            if not nfs_server_ip:
+                missing.append("nfs_server_ip")
+            if not nfs_share_path:
+                missing.append("nfs_share_path")
+            if not omnia_shared_path:
+                missing.append("omnia_shared_path")
+        elif nfs_type == "internal":
+            # Internal NFS requires: nfs_share_path only
+            # oim_server_ip is optional - if blank, runs on localhost
+            if not nfs_share_path:
+                missing.append("nfs_share_path")
+        else:
+            missing.append(f"nfs_type (invalid value: {nfs_type})")
+
+    elif share_option == "Local":
+        # Local requires only omnia_shared_path
+        if not omnia_shared_path:
+            missing.append("omnia_shared_path")
+    else:
+        missing.append(f"share_option (invalid value: {share_option})")
+
+    if missing:
+        # Separate config vs credentials fields for better error message
+        config_fields = [f for f in missing if f not in ["omnia_core_password"]]
+        creds_fields = [f for f in missing if f == "omnia_core_password"]
+
+        error_parts = []
+        if config_fields:
+            error_parts.append(f"Config fields missing in omnia_test_config.yml: {', '.join(config_fields)}")
+        if creds_fields:
+            error_parts.append(f"Credential fields missing in omnia_test_credentials.yml: {', '.join(creds_fields)}")
+
+        return {
+            "success": False,
+            "share_option": share_option,
+            "nfs_type": nfs_type,
+            "missing_fields": missing,
+            "error": "; ".join(error_parts)
+        }
+
+    return {
+        "success": True,
+        "share_option": share_option,
+        "nfs_type": nfs_type,
+        "missing_fields": [],
+        "error": ""
+    }
+
+
+# =============================================================================
+# TESTINFRA-BASED INSTALL/UNINSTALL FUNCTIONS
+# =============================================================================
+
+def download_omnia_sh_script(host) -> Dict[str, Any]:
+    """
+    Download omnia.sh script using core download function with fallback.
+
+    Removes existing omnia.sh and downloads fresh copy.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'path', 'url', 'ref_type', 'error'
+    """
+    from ...core import download_omnia_sh as _core_download
+
+    branch_url = OMNIA_SH_VARS["omnia_sh_branch_url"]
+    tag_url = OMNIA_SH_VARS["omnia_sh_tag_url"]
+    dest_path = OMNIA_SH_VARS["omnia_sh_path"]
+
+    if not dest_path:
+        return {
+            "success": False,
+            "path": "",
+            "url": "",
+            "ref_type": "",
+            "error": "omnia_clone_path not configured in omnia_test_config.yml"
+        }
+
+    if not branch_url and not tag_url:
+        return {
+            "success": False,
+            "path": dest_path,
+            "url": "",
+            "ref_type": "",
+            "error": (
+                "omnia_branch not configured in omnia_test_config.yml\n\n"
+                "HOW TO FIX:\n"
+                "  Set 'omnia_branch' in omnia_test_config.yml to download omnia.sh\n"
+                "  Example: omnia_branch: \"pub/q1_dev\" or omnia_branch: \"main\""
+            )
+        }
+
+    return _core_download(host, branch_url, tag_url, dest_path)
+
+
+def run_omnia_sh_install_testinfra(host, progress_callback=None, use_background=True) -> Dict[str, Any]:
+    """
+    Run omnia.sh --install using testinfra host with optional progress output.
+
+    Args:
+        host: testinfra host object
+        progress_callback: Optional callable(elapsed_seconds: int) for progress output
+        use_background: If True, runs in background with progress (like upgrade).
+                       If False, runs directly (simpler but no progress updates).
+
+    Returns:
+        Dict with 'success', 'output', 'error'
+    """
+    omnia_sh_path = OMNIA_SH_VARS["omnia_sh_path"]
+    timeout = OMNIA_SH_VARS["install_timeout"]
+    poll_interval = OMNIA_SH_VARS["poll_interval"]
+
+    if not omnia_sh_path:
+        return {
+            "success": False,
+            "output": "",
+            "error": "omnia_clone_path not configured in omnia_test_config.yml"
+        }
+
+    # Validate NFS config first
+    nfs_result = validate_nfs_config()
+    if not nfs_result["success"]:
+        return {
+            "success": False,
+            "output": "",
+            "error": nfs_result["error"]
+        }
+
+    # Get all values from vars (no fallbacks)
+    share_option = OMNIA_SH_VARS["share_option"]
+    nfs_type = OMNIA_SH_VARS["nfs_type"]
+    nfs_server_ip = OMNIA_SH_VARS["nfs_server_ip"]
+    nfs_share_path = OMNIA_SH_VARS["nfs_share_path"]
+    omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
+    omnia_core_password = OMNIA_SH_VARS["omnia_core_password"]
+    oim_server_ip = OMNIA_SH_VARS["oim_server_ip"]
+
+    inputs = []
+    if share_option == "NFS":
+        inputs.append("1")  # Select NFS
+        if nfs_type == "external":
+            inputs.append("1")  # Select External
+            inputs.append(nfs_server_ip)
+            inputs.append(nfs_share_path)
+            inputs.append(omnia_shared_path)
+        else:  # internal
+            inputs.append("2")  # Select Internal
+            server_ip = oim_server_ip if oim_server_ip else "localhost"
+            inputs.append(server_ip)
+            inputs.append(nfs_share_path)
+    else:  # Local
+        inputs.append("2")  # Select Local
+        inputs.append(omnia_shared_path)
+
+    inputs.append(omnia_core_password)
+    inputs.append(omnia_core_password)  # Confirm password
+
+    # Create input file
+    input_content = "\n".join(inputs)
+    input_file = "/tmp/omnia_sh_inputs.txt"
+    host.run(f"echo '{input_content}' > {input_file} && chmod 600 {input_file}")
+
+    # Simple direct execution (no background)
+    if not use_background:
+        cmd = host.run(f"{omnia_sh_path} --install < {input_file}")
+        host.run(f"rm -f {input_file}")  # Cleanup
+
+        if cmd.rc == 0:
+            return {"success": True, "output": cmd.stdout, "error": ""}
+        return {"success": False, "output": cmd.stdout, "error": cmd.stderr or "Install failed"}
+
+    # Background execution with progress (like upgrade scenario)
+    log_file = "/tmp/omnia_install.log"
+    pid_file = "/tmp/omnia_install.pid"
+    rc_file = "/tmp/omnia_install.rc"
+    wrapper = "/tmp/omnia_install.sh"
+
+    # Write wrapper script
+    host.run(
+        f"cat > {wrapper} << 'INSTALLEOF'\n"
+        f"#!/bin/bash\n"
+        f"{omnia_sh_path} --install < {input_file}\n"
+        f"echo $? > {rc_file}\n"
+        f"INSTALLEOF\n"
+        f"chmod +x {wrapper}"
+    )
+
+    # Run wrapper in background
+    host.run(f"nohup {wrapper} > {log_file} 2>&1 & echo $! > {pid_file}")
+
+    # Read the PID
+    pid_cmd = host.run(f"cat {pid_file}")
+    pid = pid_cmd.stdout.strip()
+
+    elapsed = 0
+    while elapsed < timeout:
+        time.sleep(min(poll_interval, timeout - elapsed))
+        elapsed += poll_interval
+
+        # Check if process is still running
+        alive = host.run(f"kill -0 {pid} 2>/dev/null; echo $?")
+        still_running = alive.stdout.strip() == "0"
+
+        if progress_callback:
+            progress_callback(elapsed)
+
+        if not still_running:
+            break
+
+    # If still running after timeout, kill it
+    if elapsed >= timeout:
+        host.run(f"kill -9 {pid} 2>/dev/null || true")
+
+    # Read exit code
+    rc_cmd = host.run(f"cat {rc_file} 2>/dev/null || echo 1")
+    rc_str = rc_cmd.stdout.strip().split("\n")[-1]
+    try:
+        rc = int(rc_str)
+    except ValueError:
+        rc = 1
+
+    # Get full output
+    log_cmd = host.run(f"cat {log_file} 2>/dev/null")
+    output = log_cmd.stdout.strip() if log_cmd.rc == 0 else ""
+
+    # Clean up temp files
+    host.run(f"rm -f {log_file} {pid_file} {rc_file} {input_file} {wrapper}")
+
+    if rc != 0 and elapsed >= timeout:
+        return {
+            "success": False,
+            "output": output,
+            "error": f"omnia.sh --install timed out after {timeout}s"
+        }
+
+    if rc != 0:
+        return {
+            "success": False,
+            "output": output,
+            "error": "omnia.sh --install exited non-zero"
+        }
+
+    return {
+        "success": True,
+        "output": output,
+        "error": ""
+    }
+
+
+def run_omnia_sh_uninstall_testinfra(host, progress_callback=None, use_background=True) -> Dict[str, Any]:
+    """
+    Run omnia.sh --uninstall using testinfra host with optional progress output.
+
+    Args:
+        host: testinfra host object
+        progress_callback: Optional callable(elapsed_seconds: int) for progress output
+        use_background: If True, runs in background with progress (like upgrade).
+                       If False, runs directly (simpler but no progress updates).
+
+    Returns:
+        Dict with 'success', 'output', 'error'
+    """
+    omnia_sh_path = OMNIA_SH_VARS["omnia_sh_path"]
+    timeout = OMNIA_SH_VARS["uninstall_timeout"]
+    poll_interval = OMNIA_SH_VARS["poll_interval"]
+
+    if not omnia_sh_path:
+        return {
+            "success": False,
+            "output": "",
+            "error": "omnia_clone_path not configured in omnia_test_config.yml"
+        }
+
+    # Check if omnia.sh exists, download if not
+    check = host.run(f"test -f {omnia_sh_path}")
+    if check.rc != 0:
+        download_result = download_omnia_sh_script(host)
+        if not download_result["success"]:
+            return {
+                "success": False,
+                "output": "",
+                "error": f"omnia.sh not found and download failed: {download_result['error']}"
+            }
+
+    # Simple direct execution (no background)
+    if not use_background:
+        cmd = host.run(f"echo 'y' | {omnia_sh_path} --uninstall")
+
+        if cmd.rc == 0:
+            return {"success": True, "output": cmd.stdout, "error": ""}
+        return {"success": False, "output": cmd.stdout, "error": cmd.stderr or "Uninstall failed"}
+
+    # Background execution with progress (like upgrade scenario)
+    log_file = "/tmp/omnia_uninstall.log"
+    pid_file = "/tmp/omnia_uninstall.pid"
+    rc_file = "/tmp/omnia_uninstall.rc"
+    wrapper = "/tmp/omnia_uninstall.sh"
+
+    # Write wrapper script
+    host.run(
+        f"cat > {wrapper} << 'UNINSTALLEOF'\n"
+        f"#!/bin/bash\n"
+        f"echo 'y' | {omnia_sh_path} --uninstall\n"
+        f"echo $? > {rc_file}\n"
+        f"UNINSTALLEOF\n"
+        f"chmod +x {wrapper}"
+    )
+
+    # Run wrapper in background
+    host.run(f"nohup {wrapper} > {log_file} 2>&1 & echo $! > {pid_file}")
+
+    # Read the PID
+    pid_cmd = host.run(f"cat {pid_file}")
+    pid = pid_cmd.stdout.strip()
+
+    elapsed = 0
+    while elapsed < timeout:
+        time.sleep(min(poll_interval, timeout - elapsed))
+        elapsed += poll_interval
+
+        # Check if process is still running
+        alive = host.run(f"kill -0 {pid} 2>/dev/null; echo $?")
+        still_running = alive.stdout.strip() == "0"
+
+        if progress_callback:
+            progress_callback(elapsed)
+
+        if not still_running:
+            break
+
+    # If still running after timeout, kill it
+    if elapsed >= timeout:
+        host.run(f"kill -9 {pid} 2>/dev/null || true")
+
+    # Read exit code
+    rc_cmd = host.run(f"cat {rc_file} 2>/dev/null || echo 1")
+    rc_str = rc_cmd.stdout.strip().split("\n")[-1]
+    try:
+        rc = int(rc_str)
+    except ValueError:
+        rc = 1
+
+    # Get full output
+    log_cmd = host.run(f"cat {log_file} 2>/dev/null")
+    output = log_cmd.stdout.strip() if log_cmd.rc == 0 else ""
+
+    # Clean up temp files
+    host.run(f"rm -f {log_file} {pid_file} {rc_file} {wrapper}")
+
+    if rc != 0 and elapsed >= timeout:
+        return {
+            "success": False,
+            "output": output,
+            "error": f"omnia.sh --uninstall timed out after {timeout}s"
+        }
+
+    if rc != 0:
+        return {
+            "success": False,
+            "output": output,
+            "error": "omnia.sh --uninstall exited non-zero"
+        }
+
+    return {
+        "success": True,
+        "output": output,
+        "error": ""
+    }
+
+
+def setup_internal_nfs_server(host) -> Dict[str, Any]:
+    """
+    Setup internal NFS server on OIM when nfs_type is internal.
+
+    Installs nfs-utils, creates share directory, configures exports with *, and starts services.
+    If oim_server_ip is blank, runs on localhost.
+
+    Args:
+        host: testinfra host object
+
+    Returns:
+        Dict with 'success', 'details', 'error'
+    """
+    nfs_share_path = OMNIA_SH_VARS["nfs_share_path"]
+
+    if not nfs_share_path:
+        return {
+            "success": False,
+            "details": None,
+            "error": "nfs_share_path not configured in omnia_test_config.yml"
+        }
+
+    # Check if NFS server is already configured
+    check_exports = host.run(f"grep -q '{nfs_share_path}' /etc/exports 2>/dev/null")
+    if check_exports.rc == 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"NFS export already configured for {nfs_share_path}. Remove existing config first."
+        }
+
+    # Install nfs-utils
+    install_cmd = host.run("dnf install -y nfs-utils")
+    if install_cmd.rc != 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Failed to install nfs-utils: {install_cmd.stderr}"
+        }
+
+    # Create share directory
+    mkdir_cmd = host.run(f"mkdir -p {nfs_share_path}")
+    if mkdir_cmd.rc != 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Failed to create directory: {mkdir_cmd.stderr}"
+        }
+
+    # Add export entry with * (allow all)
+    export_line = f"{nfs_share_path} *(rw,sync,no_root_squash,no_subtree_check)"
+    add_export = host.run(f"echo '{export_line}' >> /etc/exports")
+    if add_export.rc != 0:
+        return {
+            "success": False,
+            "details": None,
+            "error": f"Failed to add export: {add_export.stderr}"
+        }
+
+    # Export and start services
+    host.run("exportfs -a")
+    host.run("systemctl enable --now nfs-server")
+    host.run("systemctl enable --now rpcbind")
+
+    # Verify
+    verify = host.run(f"exportfs -v | grep -q '{nfs_share_path}'")
+    if verify.rc == 0:
+        return {
+            "success": True,
+            "details": f"NFS server configured with export: {nfs_share_path} *(rw,sync,no_root_squash,no_subtree_check)",
+            "error": ""
+        }
+
+    return {
+        "success": False,
+        "details": None,
+        "error": "NFS export not found after configuration"
+    }

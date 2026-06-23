@@ -108,7 +108,21 @@ Key parameters:
 | `dataset` | Dataset folder name under `datasets/` (default: `project_default`). |
 | `sync_dataset_to_core` | When `true`, syncs dataset files into the container during converge. |
 | `share_option` | Storage backend for omnia.sh: `NFS` or `Local`. |
+| `nfs_type` | NFS type: `external` (separate NFS server) or `internal` (NFS on OIM). |
+| `nfs_server_ip` | External NFS server IP (only for `nfs_type: external`). |
+| `nfs_share_path` | NFS share path on the server (only for `share_option: NFS`). |
+| `omnia_shared_path` | Local mount point for NFS or local storage directory. |
+| `omnia_branch` | Omnia branch for downloading `omnia.sh` (e.g., `pub/q2_upgrade`). |
+
+### Credentials File
+
+Sensitive credentials are stored separately in `omnia_test_credentials.yml`:
+
+| Parameter | Description |
+|-----------|-------------|
+| `oim_ssh_password` | SSH password for remote OIM server (remote mode only). |
 | `omnia_core_password` | Root password for `omnia_core` container SSH (port 2222). |
+| `ldap_credentials` | LDAP credentials for testing (format: `user:password`). |
 
 ### Datasets
 

@@ -30,6 +30,7 @@ from automation_library.core import (
     is_software_enabled,
     get_multiple_credentials,
     load_omnia_test_config,
+    load_omnia_test_credentials,
     SLAPD_CONF_PATH,
     OMNIA_CREDENTIALS_PATH,
     OMNIA_CREDENTIALS_KEY_PATH,
@@ -377,9 +378,9 @@ def apply_slapd_conf_and_verify(host) -> Dict[str, Any]:
 # LDAP USER LOGIN VERIFICATION
 # =============================================================================
 
-def parse_ldap_credentials(omnia_config: Dict[str, Any]) -> List[Dict[str, str]]:
+def parse_ldap_credentials(creds_dict: Dict[str, Any]) -> List[Dict[str, str]]:
     """
-    Parse LDAP credentials from omnia_test_config.yml.
+    Parse LDAP credentials from omnia_test_credentials.yml.
 
     Supports two formats:
     1. New format: ldap_credentials: "user1:pwd1,user2:pwd2"
@@ -391,7 +392,7 @@ def parse_ldap_credentials(omnia_config: Dict[str, Any]) -> List[Dict[str, str]]
     credentials = []
 
     # Try new format first: ldap_credentials: "user1:pwd1,user2:pwd2"
-    ldap_creds_str = omnia_config.get("ldap_credentials", "")
+    ldap_creds_str = creds_dict.get("ldap_credentials", "")
     if ldap_creds_str:
         for cred in ldap_creds_str.split(","):
             cred = cred.strip()
@@ -404,8 +405,8 @@ def parse_ldap_credentials(omnia_config: Dict[str, Any]) -> List[Dict[str, str]]
 
     # Fall back to legacy format if no new format found
     if not credentials:
-        ldap_user = omnia_config.get("ldap_user", "")
-        ldap_password = omnia_config.get("ldap_password", "")
+        ldap_user = creds_dict.get("ldap_user", "")
+        ldap_password = creds_dict.get("ldap_password", "")
         if ldap_user and ldap_password:
             credentials.append({
                 "user": ldap_user,
@@ -446,14 +447,14 @@ def _verify_ldap_user_login(host, run_func) -> Dict[str, Any]:
         "error": "",
     }
 
-    omnia_test_config = load_omnia_test_config()
-    if not omnia_test_config:
-        results["error"] = "Failed to load omnia_test_config.yml"
+    omnia_test_creds = load_omnia_test_credentials()
+    if not omnia_test_creds:
+        results["error"] = "Failed to load omnia_test_credentials.yml"
         return results
 
-    credentials = parse_ldap_credentials(omnia_test_config)
+    credentials = parse_ldap_credentials(omnia_test_creds)
     if not credentials:
-        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
+        results["error"] = "ldap_credentials not set in omnia_test_credentials.yml"
         return results
 
     results["ldap_users"] = [c["user"] for c in credentials]
@@ -553,15 +554,15 @@ def verify_pam_slurm_adopt(host) -> Dict[str, Any]:
         "error": "",
     }
 
-    # Get LDAP credentials from omnia_test_config.yml
-    omnia_test_config = load_omnia_test_config()
-    if not omnia_test_config:
-        results["error"] = "Failed to load omnia_test_config.yml"
+    # Get LDAP credentials from omnia_test_credentials.yml
+    omnia_test_creds = load_omnia_test_credentials()
+    if not omnia_test_creds:
+        results["error"] = "Failed to load omnia_test_credentials.yml"
         return results
 
-    credentials = parse_ldap_credentials(omnia_test_config)
+    credentials = parse_ldap_credentials(omnia_test_creds)
     if not credentials:
-        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
+        results["error"] = "ldap_credentials not set in omnia_test_credentials.yml"
         return results
 
     # For PAM test, use only the first user (PAM behavior is the same for all users)
@@ -656,15 +657,15 @@ def verify_pam_slurm_adopt_session_termination(host) -> Dict[str, Any]:
         "ldap_users": [],
     }
 
-    # Get LDAP credentials from omnia_test_config.yml
-    omnia_test_config = load_omnia_test_config()
-    if not omnia_test_config:
-        results["error"] = "Failed to load omnia_test_config.yml"
+    # Get LDAP credentials from omnia_test_credentials.yml
+    omnia_test_creds = load_omnia_test_credentials()
+    if not omnia_test_creds:
+        results["error"] = "Failed to load omnia_test_credentials.yml"
         return results
 
-    credentials = parse_ldap_credentials(omnia_test_config)
+    credentials = parse_ldap_credentials(omnia_test_creds)
     if not credentials:
-        results["error"] = "ldap_credentials not set in omnia_test_config.yml"
+        results["error"] = "ldap_credentials not set in omnia_test_credentials.yml"
         return results
 
     ldap_user = credentials[0]["user"]

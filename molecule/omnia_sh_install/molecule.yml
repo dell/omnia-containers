@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,19 +13,31 @@
 # limitations under the License.
 
 # =============================================================================
-# Molecule Configuration for omnia.sh Install Testing
+# Molecule Configuration for Omnia.sh Install Testing
 # =============================================================================
 #
-# This module runs omnia.sh --install and verifies installation.
+# This module tests the omnia.sh --install workflow.
+# Tests only — no converge step (install is driven from within tests).
+#
+# PREREQUISITES:
+# --------------
+#   - Network access to GitHub (for omnia.sh download)
+#   - NFS or Local storage configuration in omnia_test_config.yml
+#   - omnia_core_password configured
 #
 # USAGE:
 # ------
-#   ./run_molecule.sh test       # Install + verify
-#   ./run_molecule.sh verify     # Verify only
-#   ./run_molecule.sh install    # Install only
+#   ./run_molecule.sh omnia_sh_install verify    # Run verification tests
+#   ./run_molecule.sh omnia_sh_install test      # Full test sequence
 #
-# Configuration:
-#   - omnia_test_config.yml: All configuration settings
+# Configuration (omnia_test_config.yml):
+#   share_option: "NFS" | "Local"
+#   nfs_type: "external" | "internal"  (only for NFS)
+#   nfs_server_ip: "x.x.x.x"           (external NFS only)
+#   nfs_share_path: "/path/to/share"   (NFS only)
+#   omnia_shared_path: "/code-base"
+#   omnia_core_password: "password"
+#   omnia_branch: "pub/q1_dev"         (for omnia.sh download)
 #
 # =============================================================================
 
@@ -42,16 +54,13 @@ platforms:
 
 provisioner:
   name: ansible
-  playbooks:
-    create: create.yml
-    prepare: prepare.yml
-    converge: converge.yml
   env:
     ANSIBLE_VERBOSITY: 1
     ANSIBLE_HOST_KEY_CHECKING: "false"
 
 verifier:
   name: testinfra
+  directory: ./tests/sanity
   options:
     v: true
     s: true
@@ -60,9 +69,4 @@ verifier:
 scenario:
   name: omnia_sh_install
   test_sequence:
-    - dependency
-    - syntax
-    - create
-    - prepare
-    - converge
     - verify

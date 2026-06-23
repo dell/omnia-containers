@@ -93,7 +93,7 @@ def validate_network_interfaces() -> Dict:
         results["checks"].append({
             "name": "pxe_interface",
             "passed": False,
-            "message": OIM_PREREQ_MSGS["iface_omnia_test_configured"],
+            "message": OIM_PREREQ_MSGS["iface_not_configured"] + " (pxe_interface)",
             "instruction": (
                 f"ACTION REQUIRED: Set 'pxe_interface' in {OMNIA_TEST_CONFIG_PATH} "
                 f"with your PXE network interface name."
@@ -134,7 +134,7 @@ def validate_network_interfaces() -> Dict:
         results["checks"].append({
             "name": "public_interface",
             "passed": False,
-            "message": OIM_PREREQ_MSGS["iface_omnia_test_configured"],
+            "message": OIM_PREREQ_MSGS["iface_not_configured"] + " (public_interface)",
             "instruction": f"ACTION REQUIRED: Set 'public_interface' in {OMNIA_TEST_CONFIG_PATH} with your public network interface name."
         })
         results["passed"] = False

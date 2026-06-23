@@ -83,8 +83,7 @@ oim_server_ip: ""
 # SSH username for remote OIM server (only needed for remote mode)
 oim_ssh_user: ""
 
-# SSH password for remote OIM server (only needed for remote mode)
-oim_ssh_password: ""
+# SSH password: See omnia_test_credentials.yml (separate encrypted file)
 
 # SSH port (default: 22, only needed for remote mode)
 oim_ssh_port: 22
@@ -156,20 +155,6 @@ idrac_ip: ""
 force_configure_pxe: true
 
 # =============================================================================
-# NFS CONFIGURATION
-# =============================================================================
-# NFS server settings for shared storage
-
-# NFS server IP address
-nfs_server_ip: ""
-
-# NFS share path on the server
-nfs_share_path: ""
-
-# Minimum NFS capacity required (in GB)
-nfs_min_capacity_gb: 100
-
-# =============================================================================
 # PODMAN CONFIGURATION
 # =============================================================================
 # Container runtime requirements
@@ -211,39 +196,33 @@ omnia_branch: ""
 #                                                                             #
 # #############################################################################
 # Configuration for omnia.sh --install command
-# These settings are used when running molecule converge or omnia.sh --install
+# These settings are used when running molecule tests or omnia.sh --install
 
-# Storage option (REQUIRED)
-# Choose how omnia will store data:
-#   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path above)
-#   "Local" - Use local disk storage
+# Storage option (REQUIRED): "NFS" or "Local"
+#   NFS   - Shared storage for HA/K8s (requires nfs_type, nfs_server_ip, nfs_share_path)
+#   Local - Local disk storage (single OIM only, no HA)
 share_option: "NFS"
 
-# NFS type (only if share_option is "NFS")
-#   "external" - External NFS server (outside OIM) - for HA and K8s clusters
-#   "internal" - NFS server on OIM itself - for flat provisioning only
+# NFS type (only when share_option="NFS"): "external" or "internal"
+#   external - Use external NFS server (for HA, K8s clusters)
+#   internal - Setup NFS server on OIM itself (for flat provisioning, testing)
 nfs_type: "external"
 
-# Omnia shared path (REQUIRED)
-# This is the local directory where omnia data will be stored
-# - For external NFS: This path will be used as mount point for NFS share
-# - For Local: This directory will store omnia data directly
-omnia_shared_path: ""
+# NFS server IP (only when nfs_type="external")
+nfs_server_ip: ""
 
-# Root password for accessing omnia_core container via SSH (REQUIRED)
-omnia_core_password: ""
+# NFS share path on server (only when share_option="NFS")
+nfs_share_path: ""
+
+# Omnia shared path (REQUIRED) - local mount point for NFS or local storage dir
+omnia_shared_path: "/code-base"
+
+# Container password: See omnia_test_credentials.yml (separate encrypted file)
 
 # =============================================================================
 # LDAP CONFIGURATION (for LDAP login tests)
 # =============================================================================
-# LDAP user credentials for testing LDAP SSH login on cluster nodes
-
-# LDAP credentials for testing SSH login (REQUIRED for LDAP tests)
-# Format: Single user or comma-separated list of user:password pairs
-# Examples:
-#   ldap_credentials: "ldapuser:ldappassword"
-#   ldap_credentials: "ldapuser:ldappassword,ldapuser1:ldappassword1,ldapuser2:ldappassword2"
-ldap_credentials: ""
+# LDAP credentials: See omnia_test_credentials.yml (separate encrypted file)
 
 # =============================================================================
 # LDAP SLAPD.CONF CONFIGURATION (for external LDAP slapd.conf test)
@@ -361,7 +340,7 @@ upgrade:
 
   # Omnia branch/tag passed to build_images.sh for building the core image
   # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
-  omnia_branch: "pub/q2_upgrade"
+  omnia_branch: ""
 
   # -------------------------------------------------------------------------
   # Clone Path Configuration
