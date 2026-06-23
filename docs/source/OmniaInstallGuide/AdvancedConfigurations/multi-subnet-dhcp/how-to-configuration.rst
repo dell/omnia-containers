@@ -3,7 +3,7 @@
 Configuring Multi-Subnet DHCP
 ============================
 
-Configure multi-subnet DHCP in Omnia to enable rack-based network provisioning with per-rack /24 subnets. This procedure covers editing the ``network_spec.yml`` file, validating the configuration, and deploying the CoreSMD changes to support multiple subnets via DHCP relay.
+Configure multi-subnet DHCP in Omnia to enable rack-based network provisioning with per-rack /24 subnets. This procedure covers editing the ``/opt/omnia/input/project_default/network_spec.yml`` file, validating the configuration, and deploying the CoreSMD changes to support multiple subnets via DHCP relay.
 
 Prerequisites
 -------------
@@ -29,25 +29,20 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to the input directory and view the current ``network_spec.yml`` file.
+2. Navigate to the input directory and view the current ``/opt/omnia/input/project_default/network_spec.yml`` file.
 
    .. code-block:: bash
 
       cd /opt/omnia/input/project_default/
-      cat network_spec.yml
+      cat /opt/omnia/input/project_default/network_spec.yml
 
-3. Edit the ``network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
+3. Edit the ``/opt/omnia/input/project_default/network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
 
    .. code-block:: bash
 
-      vi network_spec.yml
+      vi /opt/omnia/input/project_default/network_spec.yml
 
-4. Add the ``additional_subnets`` array with subnet entries for each rack. Each subnet entry requires the following parameters:
-
-   * ``subnet``: Network address in CIDR format (e.g., ``10.40.1.0/24``)
-   * ``netmask_bits``: CIDR prefix length (e.g., ``24``)
-   * ``router``: Gateway/router IP for this subnet (used as DHCP option 3)
-   * ``dynamic_range``: DHCP IP pool range in ``start_ip-end_ip`` format
+4. Add the ``additional_subnets`` array with subnet entries for each rack. For a complete description of subnet parameters and the multi-subnet DHCP architecture, see :doc:`concept-overview`.
 
    Example configuration for 2 racks:
 
@@ -95,7 +90,7 @@ Procedure
 
       systemctl list-dependencies openchami.target
 
-7. Open the ``/etc/openchami/configs/coredhcp.yaml`` file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
+7. Open the ``/etc/openchami/configs/coredhcp.yaml`` input file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
 
 .. 
 
@@ -111,6 +106,15 @@ Procedure
 
       journalctl -xeu coresmd-coredhcp
       journalctl -xeu coresmd-coredns
+
+Verification
+------------
+
+After configuring multi-subnet DHCP, verify the following:
+
+- Verify that CoreSMD has registered the additional subnets. Expected output should show ``subnet=`` directives for each additional subnet::
+
+    podman logs coresmd-coredhcp | grep "subnet="
 
 Configuration Examples
 -----------------------

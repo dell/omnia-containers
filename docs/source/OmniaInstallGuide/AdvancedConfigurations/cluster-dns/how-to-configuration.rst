@@ -48,7 +48,7 @@ Disabling Cluster DNS (Reverting to /etc/hosts)
 
 To revert to the legacy ``/etc/hosts`` behavior:
 
-1. Edit ``input/provision_config.yml`` and set ``dns_enabled`` to ``false``::
+1. Edit ``/opt/omnia/input/project_default/provision_config.yml`` and set ``dns_enabled`` to ``false``::
 
     dns_enabled: false
 
@@ -233,7 +233,7 @@ Custom Hostnames Not Resolving
 
 2. Re-run provisioning to repopulate ``/etc/hosts``::
 
-    ansible-playbook provision.yml
+    ansible-playbook provision/provision.yml
 
 Mixed-State Cluster
 ~~~~~~~~~~~~~~~~~~
