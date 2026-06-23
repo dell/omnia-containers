@@ -108,11 +108,7 @@ def test_uninstall_container_removed(host):
 
     Skip if uninstall was skipped (container was not running).
     """
-    if _uninstall_skipped:
-        log = TestLogger(TEST_NAMES["cleanup_container_removed"])
-        log.skipped(SKIP_MSGS["container_not_running"])
-        pytest.skip(SKIP_MSGS["container_not_running"])
-    if not _uninstall_passed:
+    if not _uninstall_passed and not _uninstall_skipped:
         log = TestLogger(TEST_NAMES["cleanup_container_removed"])
         log.skipped("Uninstall test failed - skipping verification tests")
         pytest.skip("Uninstall test failed - skipping verification tests")
@@ -137,11 +133,7 @@ def test_uninstall_service_file_removed(host):
 
     Skip if uninstall was skipped (container was not running).
     """
-    if _uninstall_skipped:
-        log = TestLogger(TEST_NAMES["cleanup_service_removed"])
-        log.skipped(SKIP_MSGS["container_not_running"])
-        pytest.skip(SKIP_MSGS["container_not_running"])
-    if not _uninstall_passed:
+    if not _uninstall_passed and not _uninstall_skipped:
         log = TestLogger(TEST_NAMES["cleanup_service_removed"])
         log.skipped("Uninstall test failed - skipping verification tests")
         pytest.skip("Uninstall test failed - skipping verification tests")
@@ -168,11 +160,7 @@ def test_uninstall_fstab_entry_removed(host):
 
     Skip if uninstall was skipped (container was not running).
     """
-    if _uninstall_skipped:
-        log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
-        log.skipped(SKIP_MSGS["container_not_running"])
-        pytest.skip(SKIP_MSGS["container_not_running"])
-    if not _uninstall_passed:
+    if not _uninstall_passed and not _uninstall_skipped:
         log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
         log.skipped("Uninstall test failed - skipping verification tests")
         pytest.skip("Uninstall test failed - skipping verification tests")
@@ -197,11 +185,7 @@ def test_uninstall_mount_removed(host):
 
     Skip if uninstall was skipped (container was not running).
     """
-    if _uninstall_skipped:
-        log = TestLogger(TEST_NAMES["cleanup_mount_removed"])
-        log.skipped(SKIP_MSGS["container_not_running"])
-        pytest.skip(SKIP_MSGS["container_not_running"])
-    if not _uninstall_passed:
+    if not _uninstall_passed and not _uninstall_skipped:
         log = TestLogger(TEST_NAMES["cleanup_mount_removed"])
         log.skipped("Uninstall test failed - skipping verification tests")
         pytest.skip("Uninstall test failed - skipping verification tests")
