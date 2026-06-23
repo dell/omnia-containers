@@ -168,6 +168,11 @@ def test_uninstall_fstab_entry_removed(host):
     log = TestLogger(TEST_NAMES["cleanup_fstab_removed"])
     result = check_fstab_entry_removed(host)
 
+    # Skip if omnia_shared_path is not configured
+    if "No omnia_shared_path configured" in result.get("details", ""):
+        log.skipped(result["details"])
+        pytest.skip(result["details"])
+
     if result["success"]:
         print(f"    │ {result['details']}", flush=True)
         log.passed(LOG_MSGS["cleanup_fstab_removed"], result["details"])
@@ -192,6 +197,11 @@ def test_uninstall_mount_removed(host):
 
     log = TestLogger(TEST_NAMES["cleanup_mount_removed"])
     result = check_mount_removed(host)
+
+    # Skip if omnia_shared_path is not configured
+    if "No omnia_shared_path configured" in result.get("details", ""):
+        log.skipped(result["details"])
+        pytest.skip(result["details"])
 
     if result["success"]:
         print(f"    │ {result['details']}", flush=True)
