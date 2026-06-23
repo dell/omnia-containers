@@ -76,6 +76,27 @@
   changed_when: true
   no_log: true
 
+- name: Check if vault key file exists for plain text file
+  ansible.builtin.stat:
+    path: "{{ _creds_key_file }}"
+  register: _key_file_stat_plain
+  when: _creds_encrypted.rc != 0
+
+- name: Create vault key file if it doesn't exist (for plain text encryption)
+  ansible.builtin.shell: |
+    head -c 32 /dev/urandom | base64 | head -c 32 > "{{ _creds_key_file }}"
+    chmod 600 "{{ _creds_key_file }}"
+  when: _creds_encrypted.rc != 0 and not (_key_file_stat_plain.stat.exists | default(false))
+  changed_when: true
+  no_log: true
+
+- name: Encrypt plain text credentials file
+  ansible.builtin.shell: |
+    ansible-vault encrypt "{{ _creds_file }}" --vault-password-file "{{ _creds_key_file }}"
+  when: _creds_encrypted.rc != 0
+  changed_when: true
+  no_log: true
+
 - name: Determine execution mode (local vs remote)
   ansible.builtin.set_fact:
     _oim_local_mode: "{{ (omnia_test_config.oim_server_ip | default('') | trim) in ['', 'localhost', '127.0.0.1'] }}"
