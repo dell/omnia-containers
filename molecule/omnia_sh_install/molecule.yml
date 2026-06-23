@@ -29,16 +29,6 @@
 # ------
 #   ./run_molecule.sh omnia_sh_install verify    # Run verification tests
 #   ./run_molecule.sh omnia_sh_install test      # Full test sequence
-#
-# Configuration (omnia_test_config.yml):
-#   share_option: "NFS" | "Local"
-#   nfs_type: "external" | "internal"  (only for NFS)
-#   nfs_server_ip: "x.x.x.x"           (external NFS only)
-#   nfs_share_path: "/path/to/share"   (NFS only)
-#   omnia_shared_path: "/code-base"
-#   omnia_core_password: "password"
-#   omnia_branch: "pub/q1_dev"         (for omnia.sh download)
-#
 # =============================================================================
 
 dependency:
