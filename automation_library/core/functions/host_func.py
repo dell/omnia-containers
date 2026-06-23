@@ -36,13 +36,170 @@ def _get_project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 
 
+# =============================================================================
+# VAULT KEY AND CONFIG PATHS
+# =============================================================================
+
+OMNIA_TEST_CONFIG_FILE = "omnia_test_config.yml"
+OMNIA_TEST_CONFIG_KEY = ".omnia_test_config.key"
+
+
+def _get_config_paths() -> tuple:
+    """Get config file and key file paths."""
+    project_root = _get_project_root()
+    config_path = os.path.join(project_root, OMNIA_TEST_CONFIG_FILE)
+    key_path = os.path.join(project_root, OMNIA_TEST_CONFIG_KEY)
+    return config_path, key_path
+
+
+def _is_vault_encrypted(file_path: str) -> bool:
+    """Check if file is ansible-vault encrypted."""
+    if not os.path.exists(file_path):
+        return False
+    with open(file_path, "r", encoding="utf-8") as f:
+        first_line = f.readline().strip()
+    return first_line.startswith("$ANSIBLE_VAULT")
+
+
+def _create_vault_key(key_path: str) -> None:
+    """Create a new vault key file with random 32-char password."""
+    import secrets
+    key = secrets.token_urlsafe(32)[:32]
+    with open(key_path, "w", encoding="utf-8") as f:
+        f.write(key)
+    os.chmod(key_path, 0o600)
+
+
+def _decrypt_vault_file(config_path: str, key_path: str) -> Dict[str, Any]:
+    """Decrypt ansible-vault encrypted file and return as dict."""
+    try:
+        result = subprocess.run(
+            ["ansible-vault", "view", config_path, "--vault-password-file", key_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True
+        )
+        return yaml.safe_load(result.stdout) or {}
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Failed to decrypt {config_path}: {e.stderr}") from e
+    except FileNotFoundError:
+        raise ValueError("ansible-vault command not found. Install ansible.") from None
+
+
+def _encrypt_vault_file(config_path: str, key_path: str) -> bool:
+    """Encrypt file with ansible-vault."""
+    try:
+        subprocess.run(
+            ["ansible-vault", "encrypt", config_path, "--vault-password-file", key_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Failed to encrypt {config_path}: {e.stderr}") from e
+    except FileNotFoundError:
+        raise ValueError("ansible-vault command not found. Install ansible.") from None
+
+
 def load_omnia_test_config() -> Dict[str, Any]:
-    """Load omnia_test_config.yml."""
-    config_path = os.path.join(_get_project_root(), "omnia_test_config.yml")
-    if os.path.exists(config_path):
+    """
+    Load omnia_test_config.yml with automatic vault encryption.
+
+    Behavior:
+    - If file is encrypted and key exists: decrypt and return config
+    - If file is encrypted and key missing: raise error
+    - If file is plain: read config, create key if missing, encrypt file, return config
+
+    Returns:
+        Dict containing the configuration
+    """
+    config_path, key_path = _get_config_paths()
+
+    if not os.path.exists(config_path):
+        return {}
+
+    if _is_vault_encrypted(config_path):
+        # File is encrypted
+        if os.path.exists(key_path):
+            return _decrypt_vault_file(config_path, key_path)
+        else:
+            raise ValueError(
+                f"Config file is encrypted but key not found: {key_path}\n"
+                f"Please ensure {OMNIA_TEST_CONFIG_KEY} exists in project root."
+            )
+    else:
+        # File is plain - read it first, then encrypt
         with open(config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    return {}
+            config = yaml.safe_load(f) or {}
+
+        # Create key if not exists
+        if not os.path.exists(key_path):
+            _create_vault_key(key_path)
+
+        # Encrypt the file
+        _encrypt_vault_file(config_path, key_path)
+
+        return config
+
+
+def encrypt_omnia_test_config() -> bool:
+    """
+    Encrypt omnia_test_config.yml if not already encrypted.
+
+    Creates vault key if it doesn't exist.
+
+    Returns:
+        True if file is now encrypted, False if file doesn't exist
+    """
+    config_path, key_path = _get_config_paths()
+
+    if not os.path.exists(config_path):
+        return False
+
+    if _is_vault_encrypted(config_path):
+        return True  # Already encrypted
+
+    # Create key if not exists
+    if not os.path.exists(key_path):
+        _create_vault_key(key_path)
+
+    # Encrypt the file
+    _encrypt_vault_file(config_path, key_path)
+    return True
+
+
+def decrypt_omnia_test_config() -> bool:
+    """
+    Decrypt omnia_test_config.yml if encrypted.
+
+    Returns:
+        True if file is now plain, False if file doesn't exist or key missing
+    """
+    config_path, key_path = _get_config_paths()
+
+    if not os.path.exists(config_path):
+        return False
+
+    if not _is_vault_encrypted(config_path):
+        return True  # Already plain
+
+    if not os.path.exists(key_path):
+        return False  # Cannot decrypt without key
+
+    try:
+        subprocess.run(
+            ["ansible-vault", "decrypt", config_path, "--vault-password-file", key_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
 
 
 def get_dataset_path() -> str:

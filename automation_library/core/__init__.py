@@ -33,6 +33,10 @@ from .functions import (
     # Host
     get_testinfra_host,
     load_omnia_test_config,
+    encrypt_omnia_test_config,
+    decrypt_omnia_test_config,
+    OMNIA_TEST_CONFIG_FILE,
+    OMNIA_TEST_CONFIG_KEY,
     get_dataset_path,
     run_on_oim,
     run_in_container,
@@ -205,6 +209,10 @@ __all__ = [
     # Host
     "get_testinfra_host",
     "load_omnia_test_config",
+    "encrypt_omnia_test_config",
+    "decrypt_omnia_test_config",
+    "OMNIA_TEST_CONFIG_FILE",
+    "OMNIA_TEST_CONFIG_KEY",
     "get_dataset_path",
     "run_on_oim",
     "run_in_container",
