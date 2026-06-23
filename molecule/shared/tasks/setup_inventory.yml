@@ -17,8 +17,10 @@
 # Include this in playbooks that need to connect to OIM server
 # =============================================================================
 
-- name: Load omnia_test_config.yml (with vault support)
-  ansible.builtin.include_tasks: "{{ project_dir }}/molecule/shared/tasks/load_test_config.yml"
+- name: Load omnia_test_config.yml (plain text)
+  ansible.builtin.include_vars:
+    file: "{{ project_dir }}/omnia_test_config.yml"
+    name: omnia_test_config
 
 - name: Determine execution mode (local vs remote)
   ansible.builtin.set_fact:
