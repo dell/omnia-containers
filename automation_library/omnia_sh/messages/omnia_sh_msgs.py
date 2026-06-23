@@ -101,7 +101,7 @@ TEST_ASSERT_MSGS = {
         "  2. Set credentials in omnia_test_credentials.yml: omnia_core_password\n"
         "  Required fields:\n"
         "     - For NFS external: nfs_server_ip, nfs_share_path, omnia_shared_path, omnia_core_password\n"
-        "     - For NFS internal: nfs_share_path, omnia_core_password\n"
+        "     - For NFS internal: oim_server_ip, nfs_share_path, omnia_core_password\n"
         "     - For Local: omnia_shared_path, omnia_core_password"
     ),
     "download_failed": (

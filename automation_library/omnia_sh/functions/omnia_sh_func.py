@@ -1260,7 +1260,7 @@ def validate_nfs_config() -> Dict[str, Any]:
     nfs_share_path = OMNIA_SH_VARS["nfs_share_path"]
     omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
     omnia_core_password = OMNIA_SH_VARS["omnia_core_password"]
-    # oim_server_ip is optional for internal NFS - used in install function
+    oim_server_ip = OMNIA_SH_VARS["oim_server_ip"]
 
     missing = []
 
@@ -1293,8 +1293,10 @@ def validate_nfs_config() -> Dict[str, Any]:
             if not omnia_shared_path:
                 missing.append("omnia_shared_path")
         elif nfs_type == "internal":
-            # Internal NFS requires: nfs_share_path only
-            # oim_server_ip is optional - if blank, runs on localhost
+            # Internal NFS requires: oim_server_ip, nfs_share_path
+            # oim_server_ip is mandatory for internal NFS setup
+            if not oim_server_ip:
+                missing.append("oim_server_ip")
             if not nfs_share_path:
                 missing.append("nfs_share_path")
         else:
@@ -1457,7 +1459,17 @@ def run_omnia_sh_install_testinfra(host, progress_callback=None, use_background=
 
         if cmd.rc == 0:
             return {"success": True, "output": cmd.stdout, "error": ""}
-        return {"success": False, "output": cmd.stdout, "error": cmd.stderr or "Install failed"}
+        
+        # Include detailed error output
+        error_msg = f"omnia.sh --install failed (exit code {cmd.rc})"
+        if cmd.stderr:
+            error_msg += f"\n\nError output:\n{cmd.stderr}"
+        if cmd.stdout:
+            # Show last few lines of stdout for context
+            lines = cmd.stdout.strip().split('\n')
+            last_lines = lines[-5:] if len(lines) > 5 else lines
+            error_msg += f"\n\nLast output lines:\n" + "\n".join(last_lines)
+        return {"success": False, "output": cmd.stdout, "error": error_msg}
 
     # Background execution with progress (like upgrade scenario)
     log_file = "/tmp/omnia_install.log"
@@ -1524,10 +1536,17 @@ def run_omnia_sh_install_testinfra(host, progress_callback=None, use_background=
         }
 
     if rc != 0:
+        # Include actual error output for debugging
+        error_msg = f"omnia.sh --install failed (exit code {rc})"
+        if output:
+            # Show last few lines of output for context
+            lines = output.strip().split('\n')
+            last_lines = lines[-5:] if len(lines) > 5 else lines
+            error_msg += f"\n\nLast output lines:\n" + "\n".join(last_lines)
         return {
             "success": False,
             "output": output,
-            "error": "omnia.sh --install exited non-zero"
+            "error": error_msg
         }
 
     return {
@@ -1578,7 +1597,17 @@ def run_omnia_sh_uninstall_testinfra(host, progress_callback=None, use_backgroun
 
         if cmd.rc == 0:
             return {"success": True, "output": cmd.stdout, "error": ""}
-        return {"success": False, "output": cmd.stdout, "error": cmd.stderr or "Uninstall failed"}
+        
+        # Include detailed error output
+        error_msg = f"omnia.sh --uninstall failed (exit code {cmd.rc})"
+        if cmd.stderr:
+            error_msg += f"\n\nError output:\n{cmd.stderr}"
+        if cmd.stdout:
+            # Show last few lines of stdout for context
+            lines = cmd.stdout.strip().split('\n')
+            last_lines = lines[-5:] if len(lines) > 5 else lines
+            error_msg += f"\n\nLast output lines:\n" + "\n".join(last_lines)
+        return {"success": False, "output": cmd.stdout, "error": error_msg}
 
     # Background execution with progress (like upgrade scenario)
     log_file = "/tmp/omnia_uninstall.log"
@@ -1645,10 +1674,17 @@ def run_omnia_sh_uninstall_testinfra(host, progress_callback=None, use_backgroun
         }
 
     if rc != 0:
+        # Include actual error output for debugging
+        error_msg = f"omnia.sh --uninstall failed (exit code {rc})"
+        if output:
+            # Show last few lines of output for context
+            lines = output.strip().split('\n')
+            last_lines = lines[-5:] if len(lines) > 5 else lines
+            error_msg += f"\n\nLast output lines:\n" + "\n".join(last_lines)
         return {
             "success": False,
             "output": output,
-            "error": "omnia.sh --uninstall exited non-zero"
+            "error": error_msg
         }
 
     return {

@@ -183,12 +183,12 @@ omnia_clone_path: "/opt/omnia-artifactory"
 
 # Core image version tag
 # Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
-core_tag: ""
+core_tag: "2.2"
 
 # Omnia branch/tag for core image build
 # Will build the core container with the below omnia branch/tag code
 # Can be a branch (e.g., "main", "pub/q1_dev") or a tag (e.g., "v1.6.0")
-omnia_branch: ""
+omnia_branch: "pub/q2_upgrade"
 
 # #############################################################################
 #                                                                             #
@@ -206,16 +206,16 @@ share_option: "NFS"
 # NFS type (only when share_option="NFS"): "external" or "internal"
 #   external - Use external NFS server (for HA, K8s clusters)
 #   internal - Setup NFS server on OIM itself (for flat provisioning, testing)
-nfs_type: "external"
+nfs_type: "internal"
 
 # NFS server IP (only when nfs_type="external")
-nfs_server_ip: ""
+nfs_server_ip: "100.98.69.235"
 
 # NFS share path on server (only when share_option="NFS")
-nfs_share_path: ""
+nfs_share_path: "/mnt/ninja/rc1-test"
 
 # Omnia shared path (REQUIRED) - local mount point for NFS or local storage dir
-omnia_shared_path: ""
+omnia_shared_path: "/alter"
 
 # Container password: See omnia_test_credentials.yml (separate encrypted file)
 
