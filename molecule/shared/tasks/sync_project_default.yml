@@ -38,6 +38,7 @@
       root@{{ ansible_host }}:{{ project_default_dest }}/
   delegate_to: localhost
   changed_when: true
+  no_log: true
   when: sync_enabled
 
 - name: Skip sync message
@@ -47,6 +48,7 @@
 
 # =============================================================================
 # CREATE VAULT KEY AND ENCRYPT CREDENTIALS (same as Omnia mechanism)
+# Only runs when sync_dataset_to_core is enabled
 # =============================================================================
 
 - name: Check if vault key exists in container
@@ -59,6 +61,8 @@
   delegate_to: localhost
   register: vault_key_check
   changed_when: false
+  no_log: true
+  when: sync_enabled
 
 - name: Create vault key file in container (32 char random password)  # noqa: risky-shell-pipe
   ansible.builtin.shell:
@@ -70,7 +74,8 @@
       chmod 600 {{ project_default_dest }}/{{ omnia_config_credentials_key }}"
   delegate_to: localhost
   changed_when: true
-  when: vault_key_check.stdout == "NOT_FOUND"
+  no_log: true
+  when: sync_enabled and vault_key_check.stdout | default('') == "NOT_FOUND"
 
 - name: Check if credentials file is already encrypted  # noqa: risky-shell-pipe
   ansible.builtin.shell:
@@ -83,6 +88,8 @@
   register: cred_file_check
   changed_when: false
   failed_when: false
+  no_log: true
+  when: sync_enabled
 
 - name: Encrypt omnia_config_credentials.yml in container
   ansible.builtin.shell:
@@ -95,8 +102,10 @@
       --vault-password-file {{ omnia_config_credentials_key }}"
   delegate_to: localhost
   changed_when: true
-  when: cred_file_check.stdout == "PLAIN"
+  no_log: true
+  when: sync_enabled and cred_file_check.stdout | default('') == "PLAIN"
 
 - name: Display sync and encryption result
   ansible.builtin.debug:
     msg: "project_default synced and credentials encrypted on {{ ansible_host }}"
+  when: sync_enabled

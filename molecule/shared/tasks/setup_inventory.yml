@@ -17,10 +17,44 @@
 # Include this in playbooks that need to connect to OIM server
 # =============================================================================
 
-- name: Load omnia_test_config.yml
+- name: Load omnia_test_config.yml (plain text)
   ansible.builtin.include_vars:
     file: "{{ project_dir }}/omnia_test_config.yml"
     name: omnia_test_config
+  no_log: true
+
+- name: Set credentials file paths
+  ansible.builtin.set_fact:
+    _creds_file: "{{ project_dir }}/omnia_test_credentials.yml"
+    _creds_key_file: "{{ project_dir }}/.omnia_test_credentials.key"
+
+- name: Check if credentials file is encrypted
+  ansible.builtin.shell: head -1 "{{ _creds_file }}" | grep -q "\$ANSIBLE_VAULT"
+  register: _creds_encrypted
+  failed_when: false
+  changed_when: false
+
+- name: Decrypt credentials file if encrypted
+  ansible.builtin.shell: |
+    if [ -f "{{ _creds_key_file }}" ]; then
+      ansible-vault decrypt "{{ _creds_file }}" --vault-password-file "{{ _creds_key_file }}"
+    else
+      echo "Vault key file not found: {{ _creds_key_file }}"
+      exit 1
+    fi
+  when: _creds_encrypted.rc == 0
+  no_log: true
+
+- name: Load omnia_test_credentials.yml (now decrypted)
+  ansible.builtin.include_vars:
+    file: "{{ _creds_file }}"
+    name: omnia_test_credentials
+  no_log: true
+
+- name: Re-encrypt credentials file if it was originally encrypted
+  ansible.builtin.shell: |
+    ansible-vault encrypt "{{ _creds_file }}" --vault-password-file "{{ _creds_key_file }}"
+  when: _creds_encrypted.rc == 0
   no_log: true
 
 - name: Determine execution mode (local vs remote)
@@ -33,7 +67,7 @@
     groups: oim
     ansible_host: "{{ omnia_test_config.oim_server_ip }}"
     ansible_user: "{{ omnia_test_config.oim_ssh_user | default('root') }}"
-    ansible_password: "{{ omnia_test_config.oim_ssh_password }}"
+    ansible_password: "{{ omnia_test_credentials.oim_ssh_password }}"
     ansible_port: "{{ omnia_test_config.oim_ssh_port | default(22) }}"
     ansible_connection: ssh
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'

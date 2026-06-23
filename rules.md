@@ -693,10 +693,32 @@ Shared Ansible tasks go in `molecule/shared/tasks/`. Do not duplicate tasks acro
 
 ### 8.2 Configuration Files
 
-- **`omnia_test_config.yml`** — Central config for OIM server details. Each user maintains their own copy.
+- **`omnia_test_config.yml`** — Central config for OIM server details (plain text, no encryption). Contains non-sensitive settings like IPs, paths, options.
+- **`omnia_test_credentials.yml`** — Sensitive credentials file (vault encrypted). Contains passwords for SSH, container, LDAP.
+- **`.omnia_test_credentials.key`** — Vault key for credentials file (gitignored, never commit).
 - **`test_run_config.yml`** — Batch scenario runner config. Tracked in git.
 - **`pytest.ini`** — Pytest settings and custom marker registration.
 - **`requirements.txt`** — Pinned Python dependencies.
+
+#### Credentials File Structure
+
+```yaml
+# omnia_test_credentials.yml (encrypted with ansible-vault)
+oim_ssh_password: ""        # SSH password for remote OIM server
+omnia_core_password: ""     # Root password for omnia_core container
+ldap_credentials: ""        # LDAP credentials (format: user:password)
+```
+
+#### Loading Config and Credentials
+
+```python
+from automation_library.core import load_omnia_test_config, load_omnia_test_credentials
+
+config = load_omnia_test_config()      # Returns dict (plain text)
+creds = load_omnia_test_credentials()  # Returns dict (auto-decrypts)
+```
+
+**Note:** `load_omnia_test_credentials()` automatically encrypts the file if found in plain text.
 
 ---
 
