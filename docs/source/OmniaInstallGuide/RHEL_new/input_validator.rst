@@ -7,23 +7,10 @@ Before moving on to the next step, which is running the ``prepare_oim.yml`` play
 
 Here's an example of the input files present in the ``project_default`` directory:
 
-.. image:: ../../images/input_project_default.jpg
+.. image:: ../../images/input_project_default.png
 
-Input Templates for Deployment
-===============================
-
-You can use the provided input templates to simplify deployment. Choose the template that matches your cluster architecture and telemetry requirements:
-
-* **x86_64 Slurm cluster with telemetry**: Use the templates available at: :file:`omnia/examples/input_template/bare_metal_slurm/x86_64/with_service_k8s`
-
-* **x86_64 Slurm controller node with ARM-based Slurm nodes and telemetry**:  Use the templates available at: :file:`omnia/examples/input_template/bare_metal_slurm/aarch64/with_service_k8s`
-
-* **x86_64 Slurm cluster without telemetry**: Use the templates available at: :file:`omnia/examples/input_template/bare_metal_slurm/x86_64/without_service_k8s`
-
-* **x86_64 Slurm controller node with ARM-based Slurm nodes without telemetry**: Use the templates available at: :file:`omnia/examples/input_template/bare_metal_slurm/aarch64/without_service_k8s`
-
-Default Values Assumed in these Templates (change if needed):
----------------------------------------------------------------
+Default Values (change if needed):
+-----------------------------------
 
 * Virtual address for Kubernetes cluster: ``172.16.0.1``
 * OIM PXE NIC IP address: ``172.16.0.254``
