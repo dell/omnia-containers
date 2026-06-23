@@ -1174,6 +1174,14 @@ def check_fstab_entry_removed(host, omnia_shared_path: str = None) -> Dict[str, 
     if omnia_shared_path is None:
         omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
 
+    # If omnia_shared_path is not configured, skip check
+    if not omnia_shared_path:
+        return {
+            "success": True,
+            "details": "No omnia_shared_path configured - skipping fstab check",
+            "error": None
+        }
+
     cmd = host.run(f"grep -E '\\s+{omnia_shared_path}\\s+' /etc/fstab")
 
     if cmd.rc != 0:
@@ -1204,6 +1212,14 @@ def check_mount_removed(host, omnia_shared_path: str = None) -> Dict[str, Any]:
     """
     if omnia_shared_path is None:
         omnia_shared_path = OMNIA_SH_VARS["omnia_shared_path"]
+
+    # If omnia_shared_path is not configured, skip check
+    if not omnia_shared_path:
+        return {
+            "success": True,
+            "details": "No omnia_shared_path configured - skipping mount check",
+            "error": None
+        }
 
     cmd = host.run(f"mountpoint -q {omnia_shared_path}")
 

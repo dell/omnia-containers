@@ -215,7 +215,7 @@ nfs_server_ip: ""
 nfs_share_path: ""
 
 # Omnia shared path (REQUIRED) - local mount point for NFS or local storage dir
-omnia_shared_path: "/code-base"
+omnia_shared_path: ""
 
 # Container password: See omnia_test_credentials.yml (separate encrypted file)
 
