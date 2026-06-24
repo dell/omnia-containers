@@ -57,8 +57,9 @@ its dependent services are running correctly.
    * A **grey circle** indicates that the service is not running.
    * A **circle with a cross** indicates that the service failed to start.
 
-   .. note::  The ``omnia_auth.service`` runs only when OpenLDAP is specified in the ``/opt/omnia/input/project_default/software_config.json``.
-   .. note::  The ``omnia_build_stream.service`` and ``omnia_postgres.service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
+   .. note::
+      * The ``omnia_auth.service`` runs only when OpenLDAP is specified in the ``/opt/omnia/input/project_default/software_config.json``.
+      * The ``omnia_build_stream.service`` and ``omnia_postgres.service`` run only when BuildStreaM is enabled in the ``/opt/omnia/input/project_default/build_stream_config.yml``.
     
 
 Verify PowerScale S3 Connection
