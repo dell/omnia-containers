@@ -249,7 +249,7 @@ Before initiating the Kubernetes upgrade, verify the following conditions are me
 2. **All kube-system pods Running** — No CrashLoopBackOff, Pending, or Error pods
 3. **etcd cluster healthy** — Cluster should report all members healthy
 4. **All PVCs Bound** — No PVCs in Lost or Pending state
-5. **No PVs in Failed state** — No PVs with Failed phase
+5. **No PVs in Failed state** — No PVs in Failed state
 6. **All nodes from PXE mapping are part of the cluster** — Every node defined in ``pxe_mapping_file.csv`` under ``service_kube_control_plane_*`` and ``service_kube_node_*`` must appear in ``kubectl get nodes``
 7. **NFS mount accessible** — The shared NFS storage mount must be reachable from all cluster nodes
 8. **API server reachable via kube_vip** — ``kubectl cluster-info`` works through the HA virtual IP

@@ -6,6 +6,14 @@ Security Controls Map
 
 .. image:: ../images/SecurityControlMap.jpg
 
+.. note:: Omnia supports NFS configured on the following external storage solutions for HPC cluster data storage:
+
+   * Dell PowerVault (iSCSI)
+   * Dell PowerScale (CSI)
+   * VAST
+
+   Each storage system may require specific authentication credentials and configurations. Refer to the respective storage integration documentation for detailed setup instructions.
+
 Omnia performs bare metal configuration to enable AI/HPC workloads. It uses Ansible playbooks to perform installations and configurations. iDRAC is supported for provisioning bare metal servers. Omnia enables provisioning 
 of clusters via PXE using Mapping file **[Mandatory]** to dictate IP address/MAC mapping.
 
