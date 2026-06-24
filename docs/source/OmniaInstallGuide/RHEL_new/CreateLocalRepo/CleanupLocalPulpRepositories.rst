@@ -9,7 +9,7 @@ Cleanup a specific RPM repository:
 
 .. code-block:: bash
 
-    ansible-playbook pulp_cleanup.yml -e cleanup_repos=x86_64_appstream
+    ansible-playbook pulp_cleanup.yml -e cleanup_repos=x86_64_rhel_10.0_appstream
 
 Cleanup a specific file:
 
