@@ -1,4 +1,4 @@
-ansible-core==2.20.1
+ansible-core==2.20.7
 boto3
 cryptography>=48.0.0
 dnspython
