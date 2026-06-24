@@ -98,7 +98,7 @@ You must plan the following IP ranges:
 * **External IP Range**: For load balancer external IPs (e.g., 192.168.0.183-192.168.0.240)
 * **Virtual IP**: For HA control plane (default: 172.16.107.1)
 
-.. caution:: The virtual IP address must not belong to the dynamic_range or static_range mentioned in ``network_spec.yml`` <../Provision/provisionparams.html>. In multi-subnet DHCP deployments, the virtual IP address must be allocated from the IP range assigned to the service cluster nodes.
+.. caution:: The virtual IP address must not belong to the dynamic_range or static_range mentioned in ``network_spec.yml``. In multi-subnet DHCP deployments, the virtual IP address must be allocated from the IP range assigned to the service cluster nodes.
 
 .. caution:: Ensure that the ``pod_external_ip_range`` defined in ``omnia_config.yml`` is reachable from the OpenManage Enterprise appliance and the SFM network.
 
