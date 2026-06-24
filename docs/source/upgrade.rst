@@ -367,7 +367,7 @@ The Slurm upgrade workflow updates the cloud-init and BSS configurations on all 
    - Existing NFS mount configurations from Omnia 2.1 are preserved during the upgrade. Do not add, remove, or modify NFS mount points until the upgrade has completed successfully.
 
 Upgrade Workflow
-----------------
+~~~~~~~~~~~~~~~~
 
 During the Slurm upgrade, Omnia performs the following operations:
 
@@ -386,7 +386,7 @@ During the Slurm upgrade, Omnia performs the following operations:
 #. Generates a consolidated upgrade status report for all nodes.
 
 Node Reboot and Validation
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After configuration updates are applied, Omnia initiates a cluster-wide reboot to activate the new settings.
 
@@ -400,7 +400,7 @@ The reboot workflow includes the following validations:
 - The validation operation is retried automatically to accommodate service startup delays.
 
 Health Checks Performed
------------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 The following checks are performed for every upgraded node:
 
@@ -417,7 +417,7 @@ The following checks are performed for every upgraded node:
 - Verify that ``sinfo`` returns a valid response from the node.
 
 Upgrade Status Report
----------------------
+~~~~~~~~~~~~~~~~~~~~
 
 At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
 
@@ -454,7 +454,7 @@ The node completed all upgrade stages successfully:
 - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Upgrade Recommendations
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After a successful upgrade:
 
