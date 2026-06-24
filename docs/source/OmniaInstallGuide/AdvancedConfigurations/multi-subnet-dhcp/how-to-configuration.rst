@@ -81,7 +81,7 @@ Procedure
 
    .. code-block:: bash
 
-      cd /opt/omnia/input/project_default/
+      cd /omnia/prepare_oim
       ansible-playbook prepare_oim.yml
 
 6. After successfully executing the ``prepare_oim.yml`` playbook, verify that all required services are running correctly by executing
@@ -90,7 +90,7 @@ Procedure
 
       systemctl list-dependencies openchami.target
 
-7. Open the ``/etc/openchami/configs/coredhcp.yaml`` input file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.x+)**.
+7. Open the ``/etc/openchami/configs/coredhcp.yaml`` input file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.3+)**.
 
 .. 
 
