@@ -42,7 +42,7 @@ Minimum Node Requirements
 Network Interface Cards (NICs)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each node must be equipped with two active Network Interface Cards:
+Each node must be equipped with active Network Interface Cards:
 
 1. **Admin NIC** (Internal Cluster Communication)
 
