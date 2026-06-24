@@ -9,7 +9,7 @@ dependencies = [
     "pyarrow==22.0.0",
     "pandas==2.3.3",
     "passlib==1.7.4",
-    "pulp-cli==0.33.0",
+    "pulp-cli==0.40.1",
     "pygments>=2.20.0",
     "netaddr==1.3.0",
     "pexpect==4.9.0",
