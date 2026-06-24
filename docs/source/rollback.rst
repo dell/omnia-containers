@@ -211,26 +211,136 @@ Rollback stages:
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
 
 Slurm Rollback
---------------
+==============
 
-The Slurm rollback restores cloud-init and BSS configurations from the 2.1 backup and reboots all Slurm and login nodes.
+The Slurm rollback workflow restores the Slurm cluster configuration to the previously backed-up Omnia 2.1 state. During rollback, Omnia restores the cloud-init and Bare System Setup (BSS) configurations from the upgrade backup and applies the restored configuration by rebooting all Slurm and login nodes.
+
+Rollback is intended primarily for recovery from a failed or partially completed upgrade. It restores the node provisioning and configuration state captured before the upgrade and validates the operational health of the Slurm cluster after recovery.
 
 .. warning::
-   - All Slurm and login nodes reboot simultaneously. Ensure no critical jobs are running.
-   - Omnia 2.1 NFS mount points are preserved. New VAST mounts will not be supported during upgrade. Any mounts added post upgrade are not retained after a rollback.
 
-1. Reads ``software_config.json`` and PXE mapping file from the backup directory to identify Slurm and login nodes.
-2. Restores cloud-init and BSS configurations for each Slurm functional group from backup.
-3. Reboots all Slurm and login nodes simultaneously with a 600-second timeout per node.
-4. Waits for SSH connectivity to restore on each node (up to 60 seconds).
-5. Validates Slurm services using ``sinfo`` with retries on each node.
-6. Generates a node status report with the following categories:
+   - All Slurm control, compute, and login nodes are rebooted simultaneously during rollback. Ensure that no critical workloads or user sessions are active before starting the rollback process.
+   - Existing Omnia 2.1 NFS mount configurations are preserved during rollback.
+   - VAST mounts added after the upgrade are not restored during rollback. Any new mounts configured after the upgrade must be recreated manually after rollback, if required.
+   - Rollback restores the configuration state captured during the backup process. Configuration changes made after the upgrade may be lost.
 
-   * **Successful** — Reboot complete, SSH active, ``sinfo`` responding
-   * **Unreachable** — Node was not reachable before reboot
-   * **Reboot Failed** — Reboot command failed
-   * **SSH Failure** — Node did not reconnect after reboot
-   * **Sinfo Failure** — Slurm services did not respond after reboot
+Rollback Workflow
+-----------------
+
+During rollback, Omnia performs the following operations:
+
+#. Reads the backed-up ``software_config.json`` file to identify the Slurm deployment configuration that existed before the upgrade.
+#. Reads the backed-up PXE mapping file to determine the Slurm and login nodes that must participate in the rollback process.
+#. Restores cloud-init configurations from the Omnia 2.1 backup.
+#. Restores BSS configurations from the Omnia 2.1 backup.
+#. Applies the restored configuration to the following functional groups:
+
+   - ``slurm_control_node``
+   - ``slurm_node``
+   - ``login_node``
+   - ``login_compiler_node``
+
+#. Initiates a coordinated reboot of all affected nodes.
+#. Waits for nodes to return online after reboot.
+#. Validates the operational status of Slurm services.
+#. Generates a rollback status report summarizing the outcome for each node.
+
+Configuration Restoration
+-------------------------
+
+The rollback process restores the pre-upgrade configuration captured during the upgrade backup phase.
+
+The following configuration components are restored:
+
+- Cloud-init configuration files.
+- BSS configuration files.
+- Slurm node role assignments.
+- Node provisioning configuration.
+- PXE-based node mapping information used by Omnia.
+
+This restoration ensures that the Slurm infrastructure returns to the same configuration state that existed before the upgrade was initiated.
+
+Node Restart and Recovery Validation
+------------------------------------
+
+After the backup configuration has been restored, Omnia performs a cluster-wide reboot to activate the recovered settings.
+
+The reboot and validation workflow includes the following steps:
+
+- A reboot command is issued to all Slurm and login nodes.
+- Each node is allowed up to **1200 seconds** to complete the reboot process.
+- Omnia continuously monitors node availability after the reboot.
+- SSH connectivity is verified for every node.
+- Each node is allowed up to **60 seconds** to restore SSH connectivity after boot completion.
+- Once SSH connectivity is confirmed, Omnia validates Slurm functionality using the ``sinfo`` command.
+- Validation checks are retried automatically to account for service startup delays.
+
+Health Checks Performed
+-----------------------
+
+The following checks are executed during rollback validation:
+
+**Pre-Reboot Checks**
+
+- Verify that the node is reachable.
+- Confirm SSH accessibility before initiating the reboot.
+
+**Post-Reboot Checks**
+
+- Verify successful reboot completion.
+- Confirm restoration of SSH connectivity.
+- Validate Slurm daemon availability.
+- Verify successful execution of ``sinfo``.
+- Confirm that the node can participate in normal cluster operations.
+
+Rollback Status Report
+----------------------
+
+At the end of the rollback process, Omnia generates a node-level status report showing the outcome for every Slurm and login node.
+
+Nodes are grouped into the following categories:
+
+**Successful**
+
+The node successfully completed all rollback operations:
+
+- Configuration restored successfully.
+- Reboot completed successfully.
+- SSH connectivity restored.
+- Slurm services started correctly.
+- ``sinfo`` validation passed.
+
+**Unreachable**
+
+- The node was not reachable before the reboot phase.
+- Rollback validation could not be performed.
+
+**Reboot Failed**
+
+- The reboot command failed.
+- The node did not complete the reboot cycle successfully.
+
+**SSH Failure**
+
+- The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+- Subsequent validation checks could not be performed.
+
+**Sinfo Failure**
+
+- SSH connectivity was restored successfully.
+- Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
+
+Post-Rollback Recommendations
+-----------------------------
+
+After rollback completes successfully:
+
+- Verify cluster health using ``sinfo`` and ``scontrol show nodes``.
+- Confirm that all expected compute nodes are visible and in the appropriate state.
+- Validate connectivity and accessibility of all required NFS mounts.
+- Review any custom storage mounts that were added after the upgrade and recreate them if necessary.
+- Run a small test workload to verify scheduler functionality.
+- Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
 
 Post-Rollback
 ~~~~~~~~~~~~~~
