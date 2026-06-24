@@ -34,8 +34,8 @@ Steps
    The ``external_victoria_connect_details.yml`` playbook performs the following:
       - Retrieves the VictoriaMetrics vminsert and vmselect LoadBalancer IPs.
       - Extracts the server CA certificate for TLS.
-      - Writes the connection details to ``/opt/omnia/telemetry/external_victoria_connect_details.yml``.
-      - Saves the CA certificate at ``/opt/omnia/telemetry/victoria-certs/ca.crt``.
+      - Writes the connection details to ``/omnia/utils/external_victoria_connect_details.yml``.
+      - Saves the CA certificate at ``/omnia/utils/victoria-certs/ca.crt``.
 
 2. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
@@ -47,7 +47,7 @@ Steps
       - **Enable**: ON
       - **URL**: ``https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write``
       - **Message Version**: v1
-      - **TLS Config**: Upload ``ca.crt`` from ``/opt/omnia/telemetry/victoria-certs/`` as the Server Certificate File
+      - **TLS Config**: Upload ``ca.crt`` from ``/omnia/utils/victoria-certs/`` as the Server Certificate File
 
    .. note::
       If SFM is installed on a different system than the OIM host, copy ``ca.crt`` to that system before uploading it in the UI.

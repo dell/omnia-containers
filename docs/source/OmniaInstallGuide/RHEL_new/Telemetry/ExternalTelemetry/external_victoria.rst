@@ -33,8 +33,8 @@ Run the following playbook to retrieve the VictoriaMetrics connection details an
 The ``external_victoria_connect_details.yml`` playbook does the following:
  - Retrieves the VictoriaMetrics vminsert and vmselect LoadBalancer IPs.
  - Extracts the server CA certificate for TLS.
- - Writes the connection details to ``/opt/omnia/telemetry/external_victoria_connect_details.yml``.
- - Saves the CA certificate at ``/opt/omnia/telemetry/victoria-certs/ca.crt``.
+ - Writes the connection details to ``/omnia/utils/external_victoria_connect_details.yml``.
+ - Saves the CA certificate at ``/omnia/utils/victoria-certs/ca.crt``.
 
    
 Push Sample metrics from Omnia Core Container in the OIM
