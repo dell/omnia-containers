@@ -664,8 +664,8 @@ Validation ensures that:
 
 This validation process helps prevent invalid Slurm configurations from being applied to the cluster and improves deployment reliability.
 
-Container Image Management
----------------------------
+Container Images and Benchmark Tool Management
+----------------------------------------------
 
 **Pulling Container Images on Slurm Cluster Nodes**
 
