@@ -74,7 +74,7 @@ RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'
     find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
-RUN pip3 install uv==0.9.13
+RUN pip3 install uv==0.11.15
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
