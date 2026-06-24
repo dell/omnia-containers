@@ -256,7 +256,7 @@ Run the ``prepare_oim.yml`` playbook to prepare the Omnia Infrastructure Manager
 
 ::
 
-    ansible-playbook prepare_oim.yml
+    ansible-playbook prepare_oim/prepare_oim.yml
 
 **Verification**: Verify that OIM preparation completed successfully by checking the prepare_oim logs.
 
@@ -267,7 +267,7 @@ Run the ``local_repo.yml`` playbook to download the required artifacts for Kuber
 
 ::
 
-    ansible-playbook local_repo.yml
+    ansible-playbook local_repo/local_repo.yml
 
 **Verification**: Verify that the artifacts are downloaded successfully by checking the repository logs.
 
@@ -289,7 +289,7 @@ Run the ``build_image_x86_64.yml`` playbook to build diskless images for cluster
 
 ::
 
-    ansible-playbook build_image_x86_64.yml
+    ansible-playbook build_image_x86_64/build_image_x86_64.yml
 
 **Verification**: Verify that the images are built successfully by checking the image build logs.
 
@@ -300,7 +300,7 @@ Run the ``provision.yml`` playbook to discover potential cluster nodes, configur
 
 ::
 
-    ansible-playbook provision.yml
+    ansible-playbook provision/provision.yml
 
 **Verification**: Verify that nodes are discovered and configured successfully by checking the provision logs.
 
@@ -318,7 +318,7 @@ After successfully running the ``provision.yml`` playbook, PXE boot the nodes to
 
 ::
 
-    ansible-playbook set_pxe_boot.yml
+    ansible-playbook utils/set_pxe_boot.yml
 
 **Verification**: Verify that nodes boot successfully and join the cluster by checking node status.
 
