@@ -38,5 +38,6 @@ dependencies = [
 
 [tool.uv]
 override-dependencies = [
-    "requests>=2.33.0"
+    "requests>=2.33.0",
+    "click>=8.4.1",
 ]
