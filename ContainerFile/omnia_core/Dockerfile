@@ -176,8 +176,8 @@ LABEL security.go.version="1.25.10" \
       security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
-      security.ansible.version="2.20.1" \
-      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.1 (supported through ~May 2027)"
+      security.ansible.version="2.20.7" \
+      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
