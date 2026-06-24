@@ -3,7 +3,7 @@ Cleanup Local Pulp Repositories
 
 Removes unused content from the Pulp container to free up disk space. This includes RPM repositories, files (tarball, git, pip, manifest...), and container images. Active repositories and their associated content are preserved during the cleanup process.
 
-Below are some commands that can be used to cleanup local repo artifacts:
+Below are some commands that can be used to cleanup the local repo artifacts:
 
 Cleanup a specific RPM repository:
 
