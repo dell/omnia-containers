@@ -49,6 +49,14 @@ Key-Based authentication
 
 A password-less channel is created between the management station and compute nodes using SSH authorized keys. This is explained in the `Security Controls Map <#security-controls-map>`_.
 
+.. note:: Omnia supports NFS configured on the following external storage solutions for HPC cluster data storage:
+
+   * Dell PowerVault (iSCSI)
+   * Dell PowerScale (CSI)
+   * VAST
+
+   Each storage system may require specific authentication credentials and configurations. Refer to the respective storage integration documentation for detailed setup instructions.
+
 Login Security Settings
 ------------------------
 
