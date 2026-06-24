@@ -19,6 +19,8 @@ Omnia supports the following telemetry collection to monitor and manage your HPC
 
 * **UFM Telemetry** collects NVIDIA UFM InfiniBand Fabric Manager metrics and syslog logs, including IB port state, transmit/receive data, error counters, and fabric topology. The UFM Telemetry data and logs can be collected and sent to VictoriaMetrics and VictoriaLogs, respectively.
 
+* **VAST Telemetry** collects storage performance metrics and syslog events from VAST Storage appliances. The VAST Telemetry data can be collected and sent to VictoriaMetrics, while the logs can be collected and sent to VictoriaLogs.
+
 **Vector Telemetry Pipeline**
 
 The Vector Telemetry Pipeline provides Kafka-to-Victoria ingestion using Vector for collecting, transforming, and routing telemetry data to VictoriaMetrics and VictoriaLogs:
