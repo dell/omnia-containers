@@ -139,15 +139,9 @@ Add the service_k8s software to ``/opt/omnia/input/project_default/software_conf
       ],
       "service_k8s": [
         {
-          "name": "service_kube_control_plane_first"
-        },
-        {
-          "name": "service_kube_control_plane"
-        },
-        {
-          "name": "service_kube_control_plane"
-        },
-        {
+          "name": "service_kube_control_plane_first",
+          "name": "service_kube_control_plane",
+          "name": "service_kube_control_plane",
           "name": "service_kube_node"
         }
       ]
