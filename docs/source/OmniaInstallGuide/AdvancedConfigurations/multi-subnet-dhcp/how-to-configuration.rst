@@ -29,18 +29,18 @@ Procedure
 
       ssh omnia_core
 
-2. Navigate to the input directory and view the current ``/opt/omnia/input/project_default/network_spec.yml`` file.
+2. Navigate to the input directory and view the current ``network_spec.yml`` file.
 
    .. code-block:: bash
 
       cd /opt/omnia/input/project_default/
       cat /opt/omnia/input/project_default/network_spec.yml
 
-3. Edit the ``/opt/omnia/input/project_default/network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
+3. Edit the ``network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
 
    .. code-block:: bash
 
-      vi /opt/omnia/input/project_default/network_spec.yml
+      vi network_spec.yml
 
 4. Add the ``additional_subnets`` array with subnet entries for each rack. For a complete description of subnet parameters and the multi-subnet DHCP architecture, see :doc:`concept-overview`.
 
