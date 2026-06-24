@@ -225,7 +225,7 @@ Rollback is intended primarily for recovery from a failed or partially completed
    - Rollback restores the configuration state captured during the backup process. Configuration changes made after the upgrade may be lost.
 
 Rollback Workflow
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 During rollback, Omnia performs the following operations:
 
@@ -246,7 +246,7 @@ During rollback, Omnia performs the following operations:
 #. Generates a rollback status report summarizing the outcome for each node.
 
 Configuration Restoration
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The rollback process restores the pre-upgrade configuration captured during the upgrade backup phase.
 
@@ -261,7 +261,7 @@ The following configuration components are restored:
 This restoration ensures that the Slurm infrastructure returns to the same configuration state that existed before the upgrade was initiated.
 
 Node Restart and Recovery Validation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After the backup configuration has been restored, Omnia performs a cluster-wide reboot to activate the recovered settings.
 
@@ -276,7 +276,7 @@ The reboot and validation workflow includes the following steps:
 - Validation checks are retried automatically to account for service startup delays.
 
 Health Checks Performed
-~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following checks are executed during rollback validation:
 
@@ -300,8 +300,7 @@ At the end of the rollback process, Omnia generates a node-level status report s
 
 Nodes are grouped into the following categories:
 
-Successful
-^^^^^^^^^^^
+**Successful**
 
 The node successfully completed all rollback operations:
 
@@ -311,32 +310,28 @@ The node successfully completed all rollback operations:
 - Slurm services started correctly.
 - ``sinfo`` validation passed.
 
-Unreachable
-^^^^^^^^^^^
+**Unreachable**
 
 - The node was not reachable before the reboot phase.
 - Rollback validation could not be performed.
 
-Reboot Failed
-^^^^^^^^^^^^
+**Reboot Failed**
 
 - The reboot command failed.
 - The node did not complete the reboot cycle successfully.
 
-SSH Failure
-^^^^^^^^^^^
+**SSH Failure**
 
 - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
 - Subsequent validation checks could not be performed.
 
-Sinfo Failure
-^^^^^^^^^^^^
+**Sinfo Failure**
 
 - SSH connectivity was restored successfully.
 - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Rollback Recommendations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After rollback completes successfully:
 
