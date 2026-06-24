@@ -45,7 +45,7 @@ The following table lists the new features and enhancements introduced in Omnia 
      - Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) providing a clean operating system baseline designed specifically for downstream platform software installation. For more details, see `Composable Roles <../OmniaInstallGuide/RHEL_new/composable_roles.html>`_.
    * - GPU/HPC
      - NVIDIA DCGM and CUDA Toolkit Provisioning for Slurm GPU Nodes
-     - End-to-end automated GPU readiness for Slurm clusters with NVIDIA driver installation, CUDA toolkit distribution to shared cluster storage, and DCGM setup during stateless node provisioning.
+     - End-to-end automated GPU readiness for Slurm clusters with NVIDIA driver installation, CUDA toolkit distribution to shared cluster storage, and DCGM setup during stateless node provisioning. For more details, see `Slurm Installation Guide <../OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/install_slurm.html>`_.
    * - HPC
      - NVIDIA HPC SDK Provisioning for Slurm Clusters
      - Cluster-wide deployment of NVIDIA HPC SDK (``nvhpc``) for Slurm compiler and compute nodes with single installation on compiler node, NFS sharing, and bind mount distribution. For more details, see `NVIDIA HPC SDK Setup <../OmniaInstallGuide/RHEL_new/Provision/nvhpc_sdk.html>`_.
