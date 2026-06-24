@@ -147,8 +147,6 @@ Add the service_k8s software to ``/opt/omnia/input/project_default/software_conf
       ]
     }
 
-.. note:: Ensure there are at least three ``service_kube_control_plane_x86_64`` entries and one ``service_kube_node_x86_64`` entry in the ``pxe_mapping_file.csv`` for the Kubernetes controller HA scenario. For workload and pod failover, it is recommended to have at least two ``service_kube_node_x86_64`` nodes.
-
 2. Omnia Configuration
 ----------------------
 
@@ -243,6 +241,8 @@ Example::
     service_kube_control_plane_x86_64,grp1,SVCTAG003,,nid00003,00:1a:2b:3c:4d:7e,172.16.0.12,00:1a:2b:3c:4d:7f,10.0.0.12,ib0,192.168.2.12
     service_kube_node_x86_64,grp2,SVCTAG004,,nid00004,00:1a:2b:3c:4d:8e,172.16.0.20,00:1a:2b:3c:4d:8f,10.0.0.20,ib0,192.168.2.20
     service_kube_node_x86_64,grp2,SVCTAG005,,nid00005,00:1a:2b:3c:4d:9e,172.16.0.21,00:1a:2b:3c:4d:9f,10.0.0.21,ib0,192.168.2.21
+
+.. note:: Ensure there are at least three ``service_kube_control_plane_x86_64`` entries and one ``service_kube_node_x86_64`` entry in the ``pxe_mapping_file.csv`` for the Kubernetes controller HA scenario. For workload and pod failover, it is recommended to have at least two ``service_kube_node_x86_64`` nodes.
 
 .. note:: The PXE mapping file is typically generated automatically using the OME discovery process. Manual creation is only required for special cases or testing.
 
