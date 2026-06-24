@@ -420,11 +420,9 @@ Upgrade Status Report
 ^^^^^^^^^^^^^^^^^^^^^
 
 At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
-
 The report categorizes nodes into the following groups:
 
-Successful
-~~~~~~~~~~~~
+**Successful**
 
 The node completed all upgrade stages successfully:
 
@@ -434,26 +432,22 @@ The node completed all upgrade stages successfully:
 - Slurm services started successfully.
 - ``sinfo`` validation passed.
 
-Unreachable
-~~~~~~~~~~~~~
+**Unreachable**
 
 - The node was not reachable before the reboot phase.
 - Upgrade validation could not be performed on the node.
 
-Reboot Failed
-~~~~~~~~~~~~~~~
+**Reboot Failed**
 
 - The reboot command could not be executed successfully.
 - The node failed to begin or complete the reboot process.
 
-SSH Failure
-~~~~~~~~~~~~~
+**SSH Failure**
 
 - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
 - Post-upgrade validation could not continue.
 
-Sinfo Failure
-~~~~~~~~~~~~~~~
+**Sinfo Failure**
 
 - SSH connectivity was restored successfully.
 - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
