@@ -610,7 +610,7 @@ For supported configuration parameters, refer to the Slurm documentation:
 - Other Slurm configuration files applicable to your deployment
 
 Configuration Merge Behavior (skip_merge)
-------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, Omnia merges user-provided configurations with existing and default configuration values to produce a complete and valid configuration. The skip_merge parameter provides control over this behavior.
 
@@ -646,7 +646,7 @@ When skip_merge is enabled, file-based configuration sources are applied directl
    - No merge processing is performed before deployment
 
 Configuration Validation
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Omnia includes a built-in validation framework that verifies Slurm configuration files before deployment. The validator checks configuration files such as:
 
