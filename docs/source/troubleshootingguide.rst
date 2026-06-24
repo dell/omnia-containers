@@ -656,8 +656,8 @@ Review ``/var/log/nvidia_peermem_install.log`` for details.
 
 .. note:: If RDMA is not required for any workload on this node, this warning is non-blocking.
 
-6.7 Manual Recovery: CUDA Toolkit and DCGM Setup Failure
--------------------------------------------------------
+6.7 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
+---------------------------------------------------------
 
 **Symptoms**
 
