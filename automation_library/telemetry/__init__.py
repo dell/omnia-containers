@@ -43,6 +43,12 @@ from .functions.vast_telemetry_func import (
     verify_vast_deployment,
     verify_vast_metric_coverage,
 )
+from .functions.ufm_telemetry_func import (
+    is_ufm_telemetry_enabled,
+    verify_ufm_scrape_active,
+    verify_ufm_deployment,
+    verify_ufm_scrape_latency,
+)
 from .vars.idrac_telemetry_vars import TELEMETRY_VARS
 from .vars.kafka_vars import KAFKA_CMD_TEMPLATES
 from .messages.shared_msgs import TELEMETRY_MSGS, TEST_NAMES

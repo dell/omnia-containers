@@ -169,6 +169,25 @@ from .vast_telemetry_func import (
     verify_vast_pod_delete_and_recovery,
 )
 
+# UFM telemetry functions
+from .ufm_telemetry_func import (
+    is_ufm_telemetry_enabled,
+    is_ufm_logs_enabled,
+    get_ufm_config,
+    get_additional_remote_write_endpoints,
+    verify_ufm_scrape_active,
+    verify_ufm_dual_remotewrite,
+    verify_ufm_syslog_ingestion,
+    verify_ufm_deployment,
+    verify_ufm_tls_basic_auth,
+    verify_ufm_label_enrichment,
+    verify_ufm_internal_remotewrite,
+    verify_ufm_scrape_interval,
+    verify_ufm_scrape_latency,
+    verify_ufm_tls_enforcement,
+    verify_ufm_no_plaintext_credentials,
+)
+
 # Vector verification functions
 from .vector_func import (
     verify_vector_pod_running,
