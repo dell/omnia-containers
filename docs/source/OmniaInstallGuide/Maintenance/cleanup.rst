@@ -50,12 +50,7 @@ Steps
 
     1. Reboot the OIM node to ensure all changes take effect.
 
-    2. The playbook does **not** remove data stored under the NFS ``server_share_path`` (See ``storage_config.yml``).
-            
-        - Reusing the same ``server_share_path`` for new deployments can cause deployment failures or inconsistent Kubernetes/Slurm behavior.
-        - For a fresh deployment, either manually clean this directory or use a new NFS export/path.
-
-    3. The ``omnia_core`` container is **not** removed by ``oim_cleanup.yml``.
+    2. The ``omnia_core`` container is **not** removed by ``oim_cleanup.yml``.
 
         - To delete it, log in to the OIM node and run::
                     

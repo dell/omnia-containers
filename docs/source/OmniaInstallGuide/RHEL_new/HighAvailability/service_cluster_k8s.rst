@@ -7,12 +7,16 @@ Overview
 
 With Omnia, you can deploy a service Kubernetes cluster on designated service nodes to efficiently distribute workload and manage resources for telemetry data collection. This setup reduces the processing load on the Omnia Infrastructure Manager (OIM) node and enhances overall scalability. Each service_kube_node is responsible for collecting telemetry data from its assigned subset of compute nodes. This federated approach to telemetry data collection improves efficiency for large-scale clusters.
 
-Supported Version
-=================
+Supported Versions
+==================
 
 **Kubernetes Version**: 1.35.1
 
 Omnia supports only Kubernetes version 1.35.1 for the service cluster deployment.
+
+**Operating System**
+
+* RHEL 10.0
 
 Functional Groups
 =================
@@ -42,7 +46,7 @@ Minimum Node Requirements
 Network Interface Cards (NICs)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Each node must be equipped with two active Network Interface Cards:
+Each node must be equipped with active Network Interface Cards:
 
 1. **Admin NIC** (Internal Cluster Communication)
 
@@ -79,11 +83,6 @@ If deploying ETCD on local disk instead of NFS:
 
 .. note:: When ``etcd_on_local_disk`` is set to ``false`` or omitted, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD.
 
-Operating System
-~~~~~~~~~~~~~~~~
-
-* RHEL 10.0
-
 Network Requirements
 --------------------
 
@@ -98,7 +97,7 @@ You must plan the following IP ranges:
 * **External IP Range**: For load balancer external IPs (e.g., 192.168.0.183-192.168.0.240)
 * **Virtual IP**: For HA control plane (default: 172.16.107.1)
 
-.. caution:: The virtual IP address must not belong to the dynamic_range or static_range mentioned in ``network_spec.yml`` <../Provision/provisionparams.html>. In multi-subnet DHCP deployments, the virtual IP address must be allocated from the IP range assigned to the service cluster nodes.
+.. caution:: The virtual IP address must not belong to the dynamic_range or static_range mentioned in ``network_spec.yml``. In multi-subnet DHCP deployments, the virtual IP address must be allocated from the IP range assigned to the service cluster nodes.
 
 .. caution:: Ensure that the ``pod_external_ip_range`` defined in ``omnia_config.yml`` is reachable from the OpenManage Enterprise appliance and the SFM network.
 
@@ -140,15 +139,9 @@ Add the service_k8s software to ``/opt/omnia/input/project_default/software_conf
       ],
       "service_k8s": [
         {
-          "name": "service_kube_control_plane_first"
-        },
-        {
-          "name": "service_kube_control_plane"
-        },
-        {
-          "name": "service_kube_control_plane"
-        },
-        {
+          "name": "service_kube_control_plane_first",
+          "name": "service_kube_control_plane",
+          "name": "service_kube_control_plane",
           "name": "service_kube_node"
         }
       ]
