@@ -39,7 +39,7 @@ Steps
 
 2. In the Smart Fabric Manager for SONiC UI, navigate to **Observability**, and then select the **Settings** tab.
 
-   .. image:: ../../../images/sfm_observability_settings.png
+   .. image:: ../../../../images/sfm_observability_settings.png
 
 3. Under **Prometheus Remote Write**, select the option button next to ``vminsert-target``, and then select **Edit**.
 
@@ -52,11 +52,11 @@ Steps
    .. note::
       If SFM is installed on a different system than the OIM host, copy ``ca.crt`` to that system before uploading it in the UI.
 
-   .. image:: ../../../images/sfm_observability_settings_prometheus_remote_write.png
+   .. image:: ../../../../images/sfm_observability_settings_prometheus_remote_write.png
 
-   .. image:: ../../../images/sfm_observability_remote_write_settings.png
+   .. image:: ../../../../images/sfm_observability_remote_write_settings.png
 
-   .. image:: ../../../images/sfm_observability_TLS_config.png    
+   .. image:: ../../../../images/sfm_observability_TLS_config.png    
 
 5. Update the ``etc/hosts`` file of the Kubernetes Prometheus pod in the SFM VM by performing the following steps:
 
@@ -67,25 +67,25 @@ Steps
 
    c. From the **SFM - Main Menu**, enter **6** to select **Debug Menu**.
 
-      .. image:: ../../../images/telemetry_sfm_main_menu.png    
+      .. image:: ../../../../images/telemetry_sfm_main_menu.png    
 
    d. From the **Debug Menu**, enter **12** to select **Enter Secure Shell**. This will open a shell session on the SFM host VM.
 
-      .. image:: ../../../images/telemetry_sfm_debug_menu.png  
+      .. image:: ../../../../images/telemetry_sfm_debug_menu.png  
 
    e. Identify the Prometheus pod using the following command::
       
          kubectl get pods -A | grep prometheus
 
-     .. image:: ../../../images/telemetry_sfm_identify_propmetheus_pod.png
+     .. image:: ../../../../images/telemetry_sfm_identify_propmetheus_pod.png
 
    f. Inside the Prometheus pod, add the VictoriaMetrics insert LoadBalancer IP to ``/etc/hosts`` ::  
        
          kubectl exec -it -n <Prometheus Namespace> <Prometheus Pod Name> -- /bin/sh
          echo "<vmselect loadbalancer ip> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
 
-      .. image:: ../../../images/telemetry_sfm_propmetheus_pod.png
-      .. image:: ../../../images/telemetry_sfm_vminsert.png
+      .. image:: ../../../../images/telemetry_sfm_propmetheus_pod.png
+      .. image:: ../../../../images/telemetry_sfm_vminsert.png
 
 
 View Collected SFM Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
@@ -96,13 +96,13 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
+.. image:: ../../../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that that all the services of VictoriaMetrics cluster are running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: ../../../images/victoria_metrics_service_cluster.png
+.. image:: ../../../../images/victoria_metrics_service_cluster.png
 
 3. Note the **External IP** and **port number** of the ``vmselect`` service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -115,7 +115,7 @@ For example, the following query displays transceiver DOM temperature values::
 
     transceiver_dom_temperature_value
 
-.. image:: ../../../images/victoria_metrics_vmui_cluster.png
+.. image:: ../../../../images/victoria_metrics_vmui_cluster.png
 
 The following are some of the key metrics that can be queried:
 
