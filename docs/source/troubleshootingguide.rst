@@ -254,7 +254,7 @@ As a workaround to unblock repository synchronization, run the following command
 
 **Resolution**
 
-- Add credentials to ``omnia_config_credentials.yml``
+- Add Docker Credentials to ``omnia_config_credentials.yml``
 - Ensure ``local_repo.yml`` succeeded
 
 For more information, `click here <https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry>`_
@@ -656,8 +656,8 @@ Review ``/var/log/nvidia_peermem_install.log`` for details.
 
 .. note:: If RDMA is not required for any workload on this node, this warning is non-blocking.
 
-6.7 Manual Recovery: CUDA Toolkit and DCGM Setup Failure
--------------------------------------------------------
+6.6 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
+---------------------------------------------------------
 
 **Symptoms**
 
@@ -796,7 +796,7 @@ Log File Reference
 * ``/var/log/dcgm_setup.log``: DCGM package install, service startup, GPU discovery
 * ``/var/log/nvidia_peermem_install.log``: ``nvidia-peermem`` DKMS build and load output
 
-6.8 Benchmark assets missing on Slurm nodes
+6.7 Benchmark assets missing on Slurm nodes
 -------------------------------------------
 
 **Symptom**

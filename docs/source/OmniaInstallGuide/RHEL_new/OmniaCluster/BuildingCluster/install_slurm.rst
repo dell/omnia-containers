@@ -438,143 +438,141 @@ Omnia supports removing Slurm compute nodes from an existing cluster.
 
 .. note:: Dynamic node removal is supported only for slurm_node functional groups.
 
-Slurm Configuration files
--------------------------
+Slurm Configuration Management
+-------------------------------
 
-slurm.conf is an ASCII file which describes general Slurm configuration information, the nodes to be managed, information about how those nodes are grouped into partitions, and various scheduling parameters associated with those partitions. Refer to the `Slurm documentation <https://slurm.schedmd.com/slurm.conf.html>` for more details.
+Omnia provides flexible mechanisms to manage Slurm configuration files such as slurm.conf, slurmdbd.conf, cgroup.conf, and gres.conf. Administrators can either use the default configurations provided by Omnia or supply custom configurations through the config_sources parameter in omnia_config.yml.
 
-**Default Slurm Configuration**
+Default Slurm Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Omnia provides a comprehensive default configuration optimized for HPC clusters. These defaults are automatically applied and can be overridden via custom configuration files.
 
-**Default slurm.conf parameters:**
+**Default Partition Configuration**
 
-.. note:: The parameters ClusterName, SlurmctldHost, AccountingStorageHost are configured automatically and should not be provided in the custom configuration file.
+- By default, a partition named "normal" is created with all Slurm compute nodes listed in the PXE mapping file
+- Configuration: ``PartitionName=normal Nodes=<Comma-separated list of all compute nodes> MaxTime=INFINITE State=UP``
+
+**Default Node Configuration**
+
+- If iDRAC is not reachable, the default values of nodename information in slurm.conf are considered
+- Configuration: ``NodeName=<nodename> Sockets=1 CoresPerSocket=1 ThreadsPerCore=1 RealMemory=3686``
+
+**Default slurm.conf parameters**
+
+.. note:: The parameters ClusterName, SlurmctldHost, AccountingStorageHost cannot be modified.
 
 .. code-block:: bash
 
     # Authentication and Security
-        AuthType=auth/munge
-        CredType=cred/munge
-        SlurmUser=slurm
+    AuthType=auth/munge
+    CredType=cred/munge
+    SlurmUser=slurm
 
     # Controller Configuration
-        ClusterName=cluster
-        SlurmctldHost=<auto-detected>
-        SlurmctldPort=6817
-        SlurmctldTimeout=120
-        SlurmctldLogFile=/var/log/slurm/slurmctld.log
-        SlurmctldPidFile=/var/run/slurmctld.pid
-        SlurmctldParameters=enable_configless
-        StateSaveLocation=/var/spool/slurmctld
+    ClusterName=cluster
+    SlurmctldHost=<auto-detected>
+    SlurmctldPort=6817
+    SlurmctldTimeout=120
+    SlurmctldLogFile=/var/log/slurm/slurmctld.log
+    SlurmctldPidFile=/var/run/slurmctld.pid
+    SlurmctldParameters=enable_configless
+    StateSaveLocation=/var/spool/slurmctld
 
     # Compute Node Configuration
-        SlurmdPort=6818
-        SlurmdTimeout=300
-        SlurmdLogFile=/var/log/slurm/slurmd.log
-        SlurmdPidFile=/var/run/slurmd.pid
-        SlurmdSpoolDir=/var/spool/slurmd
+    SlurmdPort=6818
+    SlurmdTimeout=300
+    SlurmdLogFile=/var/log/slurm/slurmd.log
+    SlurmdPidFile=/var/run/slurmd.pid
+    SlurmdSpoolDir=/var/spool/slurmd
 
     # Accounting
-        AccountingStorageHost=<auto-detected>
-        AccountingStoragePort=6819
-        AccountingStorageType=accounting_storage/slurmdbd
+    AccountingStorageHost=<auto-detected>
+    AccountingStoragePort=6819
+    AccountingStorageType=accounting_storage/slurmdbd
 
     # Job Execution
-        SrunPortRange=60001-63000
-        ReturnToService=2
-        Epilog=/etc/slurm/epilog.d/logout_user.sh
-        PrologFlags=contain
+    SrunPortRange=60001-63000
+    ReturnToService=2
+    Epilog=/etc/slurm/epilog.d/logout_user.sh
+    PrologFlags=contain
 
     # Scheduling
-        SchedulerType=sched/backfill
-        SelectType=select/linear
+    SchedulerType=sched/backfill
+    SelectType=select/linear
 
     # Resource Tracking
-        TaskPlugin=task/cgroup
-        ProctrackType=proctrack/cgroup
-        JobAcctGatherType=jobacct_gather/linux
-        JobAcctGatherFrequency=30
+    TaskPlugin=task/cgroup
+    ProctrackType=proctrack/cgroup
+    JobAcctGatherType=jobacct_gather/linux
+    JobAcctGatherFrequency=30
 
     # MPI Configuration
-        MpiDefault=none
+    MpiDefault=none
 
     # Plugin Directory
-        PluginDir=/usr/lib64/slurm
+    PluginDir=/usr/lib64/slurm
 
     # Default Node Configuration
-        NodeName=DEFAULT State=UNKNOWN
+    NodeName=DEFAULT State=UNKNOWN
 
     # Default Partition Configuration
-        PartitionName=DEFAULT Nodes=ALL Default=YES MaxTime=INFINITE State=UP
-        PartitionName=normal Nodes=<compute_nodes> Default=YES MaxTime=INFINITE State=UP
+    PartitionName=DEFAULT Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+    PartitionName=normal Nodes=<compute_nodes> Default=YES MaxTime=INFINITE State=UP
 
-**Default slurmdbd.conf parameters:**
+**Default slurmdbd.conf parameters**
 
-.. note:: The parameters DbdHost, StorageHost, and StoragePass are auto-detected based on the configuration.
+.. note:: The parameters DbdHost, StorageHost cannot be modified.
 
 .. code-block:: bash
 
     # Authentication
-        AuthType=auth/munge
-        SlurmUser=slurm
+    AuthType=auth/munge
+    SlurmUser=slurm
 
     # Database Daemon Configuration
-        DbdHost=<auto-detected>
-        DbdPort=6819
-        LogFile=/var/log/slurm/slurmdbd.log
-        PidFile=/var/run/slurmdbd.pid
-        PluginDir=/usr/lib64/slurm
+    DbdHost=<auto-detected>
+    DbdPort=6819
+    LogFile=/var/log/slurm/slurmdbd.log
+    PidFile=/var/run/slurmdbd.pid
+    PluginDir=/usr/lib64/slurm
 
     # Database Connection
-        StorageType=accounting_storage/mysql
-        StorageHost=<auto-detected>
-        StoragePort=3306
-        StorageLoc=slurm_acct_db
-        StorageUser=slurm
-        StoragePass=<storage_password>
+    StorageType=accounting_storage/mysql
+    StorageHost=<auto-detected>
+    StoragePort=3306
+    StorageLoc=slurm_acct_db
+    StorageUser=slurm
+    StoragePass=<storage_password>
 
 **Default cgroup.conf parameters**
 
 .. code-block:: bash
 
     # Cgroup Plugin
-        CgroupPlugin=autodetect
+    CgroupPlugin=autodetect
 
     # Resource Constraints
-        ConstrainCores=yes
-        ConstrainDevices=yes
-        ConstrainRAMSpace=yes
-        ConstrainSwapSpace=yes
+    ConstrainCores=yes
+    ConstrainDevices=yes
+    ConstrainRAMSpace=yes
+    ConstrainSwapSpace=yes
 
 **Default gres.conf parameters**
 
 .. code-block:: bash
 
     # GPU Auto-Detection
-        AutoDetect=nvml
+    AutoDetect=nvml
 
-**Default Partition Configuration**:
-- By default, a partition named "normal" is created with all Slurm compute nodes listed in the PXE mapping file
-- Configuration: ``PartitionName=normal Nodes=<Comma-separated list of all compute nodes> MaxTime=INFINITE State=UP``
+Configuration Sources
+^^^^^^^^^^^^^^^^^^^^^
 
-**Default Node Configuration**:
-- If iDRAC is not reachable, the default values of nodename information in slurm.conf are considered
-- Configuration: ``NodeName=<nodename> Sockets=1 CoresPerSocket=1 ThreadsPerCore=1 RealMemory=3686``
+Custom configuration files can be supplied in one of the following ways:
 
-.. note:: The parameters ClusterName, SlurmctldHost, and AccountingStorageHost cannot be modified.
+**1. Parameter-Based Configuration (Mapping)**
 
-**Custom slurm.conf**
-
-Omnia provides a way to manage slurm.conf file in two ways:
-1. Using the default slurm.conf file provided by Omnia
-2. Using a custom slurm.conf file provided by the user using the ``config_sources`` parameter in the slurm configuration file in 2 ways:
-   - Using the ``config_sources`` parameter with a file path for complete update
-   - Using the ``config_sources`` parameter as a mapping for specific values
-
-In the same way we can use the ``config_sources`` parameter for other Slurm configuration files like ``slurmdbd.conf``, ``cgroup.conf``, ``gres.conf``, etc.
-
-You can provide custom configurations in omnia_config.yml > slurm_cluster > config_sources either as a file path or a mapping directly. For supported conf parameters, see `Slurm.conf <https://slurm.schedmd.com/slurm.conf.html>`.
+Specify individual configuration parameters directly in config_sources. Omnia merges these values with the default configuration.
 
 .. code-block:: yaml
 
@@ -590,7 +588,11 @@ You can provide custom configurations in omnia_config.yml > slurm_cluster > conf
            CgroupPlugin: autodetect
            AllowedRAMSpace: 100
 
-   #######    OR   ########
+**2. File-Based Configuration**
+
+Provide complete custom configuration files for one or more Slurm components.
+
+.. code-block:: yaml
 
    slurm_cluster:
      - cluster_name: slurm_cluster
@@ -601,23 +603,69 @@ You can provide custom configurations in omnia_config.yml > slurm_cluster > conf
          slurmdbd: /path/to/custom_slurmdbd.conf
          gres: /path/to/custom_gres.conf
 
-**Default Behavior Merge - skip_merge**
+For supported configuration parameters, refer to the Slurm documentation:
 
-The ``skip_merge`` parameter in ``omnia_config.yml -> slurm_cluster`` provides granular control over how Slurm configuration files are processed and applied to the cluster. By default, Omnia merges custom configuration sources with system defaults and existing configurations to ensure a complete and valid setup.
+- `slurm.conf <https://slurm.schedmd.com/slurm.conf.html>`_
+- `slurmdbd.conf <https://slurm.schedmd.com/slurmdbd.conf.html>`_
+- Other Slurm configuration files applicable to your deployment
 
-**Behavior**:
-- When skip_merge is set to true, specific configuration source paths under config_sources are applied directly to the cluster without any merging operations
-- skip_merge is not applicable to mapping type config_sources
-- Default value: false
-- When using skip_merge: true, administrators must ensure that the provided configuration file is complete and valid
-- Omnia does not supplement the file with default values or perform validation checks during the merge process
+Configuration Merge Behavior (skip_merge)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Configuration Validation**
+By default, Omnia merges user-provided configurations with existing and default configuration values to produce a complete and valid configuration. The skip_merge parameter provides control over this behavior.
 
-Omnia includes a built-in validation system that checks Slurm configuration files for correctness before deployment. The input validator module validates all configuration files (slurm.conf, slurmdbd.conf, cgroup.conf, gres.conf, etc.) against Slurm 25.X specifications, ensuring parameter names are valid and values match expected types (integers, strings, booleans, arrays, etc.).
+Default value: false
 
-Container Image Management
----------------------------
+**Default Behavior (skip_merge: false)**
+
+- Custom configurations are merged with Omnia defaults
+- Missing parameters may be populated from the default configuration
+- Configuration validation is performed before deployment
+
+**Direct Configuration Deployment (skip_merge: true)**
+
+When skip_merge is enabled, file-based configuration sources are applied directly without any merge operations.
+
+.. code-block:: yaml
+
+   slurm_cluster:
+     - cluster_name: slurm_cluster
+       nfs_storage_name: nfs_slurm
+       skip_merge: true
+       config_sources:
+         slurm: /path/to/custom_slurm.conf
+         cgroup: /path/to/custom_cgroup.conf
+         slurmdbd: /path/to/custom_slurmdbd.conf
+         gres: /path/to/custom_gres.conf
+
+.. important::
+   - Applicable only to file-based config_sources
+   - Not supported for mapping-based configurations
+   - The provided configuration file must be complete and valid
+   - Omnia does not supplement missing values from defaults
+   - No merge processing is performed before deployment
+
+Configuration Validation
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Omnia includes a built-in validation framework that verifies Slurm configuration files before deployment. The validator checks configuration files such as:
+
+- slurm.conf
+- slurmdbd.conf
+- cgroup.conf
+- gres.conf
+- Other supported Slurm configuration files
+
+Validation ensures that:
+
+- Configuration parameters are recognized by the supported Slurm version
+- Parameter values match expected data types (integer, string, boolean, array, etc.)
+- Common configuration errors are detected before deployment
+
+This validation process helps prevent invalid Slurm configurations from being applied to the cluster and improves deployment reliability.
+
+Container Images and Benchmark Tool Management
+----------------------------------------------
 
 **Pulling Container Images on Slurm Cluster Nodes**
 
