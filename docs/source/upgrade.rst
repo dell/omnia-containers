@@ -356,28 +356,113 @@ The telemetry upgrade is automatically executed as part of the main upgrade orch
 The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
 
 Slurm Upgrade
--------------
+=============
 
-The Slurm upgrade updates cloud-init and BSS configurations and reboots all Slurm and login nodes to apply them.
+The Slurm upgrade workflow updates the cloud-init and BSS configurations on all Slurm cluster nodes and applies the changes through a coordinated reboot of the cluster infrastructure. This process ensures that provisioning, node configuration, and runtime settings are synchronized with the target Omnia release.
 
 .. warning::
-   - All Slurm and login nodes reboot simultaneously. Ensure no critical jobs are running.
-   - Do not modify Slurm node entries in the PXE mapping file until upgrade completes.
-   - Omnia 2.1 NFS mount points are preserved. Do not modify during upgrade.
 
-The upgrade performs the following steps:
+   - All Slurm compute, control, and login nodes are rebooted simultaneously during the upgrade process. Ensure that no critical or long-running jobs are active before starting the upgrade.
+   - Do not modify Slurm node definitions or host mappings in the PXE mapping file while the upgrade is in progress.
+   - Existing NFS mount configurations from Omnia 2.1 are preserved during the upgrade. Do not add, remove, or modify NFS mount points until the upgrade has completed successfully.
 
-1. Updates cloud-init and BSS configurations for each Slurm functional group (``slurm_control_node``, ``slurm_node``, ``login``).
-2. Reboots all Slurm and login nodes simultaneously with a 600-second timeout per node.
-3. Waits for SSH connectivity to restore on each node (up to 60 seconds).
-4. Validates Slurm services using ``sinfo`` with retries on each node.
-5. Generates a node status report with the following categories:
+Upgrade Workflow
+----------------
 
-   * **Successful** — Reboot complete, SSH active, ``sinfo`` responding
-   * **Unreachable** — Node was not reachable before reboot
-   * **Reboot Failed** — Reboot command failed
-   * **SSH Failure** — Node did not reconnect after reboot
-   * **Sinfo Failure** — Slurm services did not respond after reboot
+During the Slurm upgrade, Omnia performs the following operations:
+
+#. Updates cloud-init configurations for all Slurm functional node groups.
+#. Updates BSS configurations used for node provisioning and configuration management.
+#. Applies the updated configurations to the following node categories:
+
+   - ``slurm_control_node``
+   - ``slurm_node``
+   - ``login_node``
+   - ``login_compiler_node``
+
+#. Initiates a coordinated reboot of all Slurm and login nodes.
+#. Waits for each node to complete the reboot cycle and restore SSH connectivity.
+#. Verifies the operational status of Slurm services on each node.
+#. Generates a consolidated upgrade status report for all nodes.
+
+Node Reboot and Validation
+--------------------------
+
+After configuration updates are applied, Omnia initiates a cluster-wide reboot to activate the new settings.
+
+The reboot workflow includes the following validations:
+
+- A reboot command is issued to all Slurm and login nodes.
+- Each node is allowed up to **1200 seconds** to complete the reboot process.
+- Omnia continuously checks for SSH availability after the reboot.
+- Nodes are given up to **60 seconds** to re-establish SSH connectivity once booting is complete.
+- After SSH connectivity is restored, Omnia validates Slurm functionality using the ``sinfo`` command.
+- The validation operation is retried automatically to accommodate service startup delays.
+
+Health Checks Performed
+-----------------------
+
+The following checks are performed for every upgraded node:
+
+**Pre-Reboot Validation**
+
+- Verify that the node is reachable before initiating the reboot.
+- Confirm that the node is accessible through SSH.
+
+**Post-Reboot Validation**
+
+- Verify successful completion of the reboot operation.
+- Confirm restoration of SSH connectivity.
+- Validate that Slurm services are running correctly.
+- Verify that ``sinfo`` returns a valid response from the node.
+
+Upgrade Status Report
+---------------------
+
+At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
+
+The report categorizes nodes into the following groups:
+
+**Successful**
+
+The node completed all upgrade stages successfully:
+
+- Configuration update completed.
+- Reboot completed successfully.
+- SSH connectivity was restored.
+- Slurm services started successfully.
+- ``sinfo`` validation passed.
+
+**Unreachable**
+
+- The node was not reachable before the reboot phase.
+- Upgrade validation could not be performed on the node.
+
+**Reboot Failed**
+
+- The reboot command could not be executed successfully.
+- The node failed to begin or complete the reboot process.
+
+**SSH Failure**
+
+- The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+- Post-upgrade validation could not continue.
+
+**Sinfo Failure**
+
+- SSH connectivity was restored successfully.
+- Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
+
+Post-Upgrade Recommendations
+----------------------------
+
+After a successful upgrade:
+
+- Verify overall cluster health using ``sinfo`` and ``scontrol show nodes``.
+- Confirm that all expected compute nodes have returned to the ``IDLE`` or intended operational state.
+- Validate NFS accessibility from login and compute nodes.
+- Submit a small test job to confirm scheduler functionality.
+- Review the generated status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
 
 Phase 2: Execute Upgrade
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
