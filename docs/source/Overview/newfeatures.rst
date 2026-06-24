@@ -37,6 +37,9 @@ The following table lists the new features and enhancements introduced in Omnia 
    * - Telemetry
      - External Log Aggregation to VictoriaLogs
      - Centralized log collection from external sources including network devices, storage systems, and fabric managers through VLAgent with syslog (plaintext/TLS) and HTTP forwarding support, TLS certificate validation, and JSON Lines format ingestion. For more details, see `External Log Sources Configuration <../OmniaInstallGuide/RHEL_new/Telemetry/ExternalTelemetry/external_victoria_logs.html>`_.
+   * - Telemetry
+     - Configurable Pod Replicas for vmagent and vlagent
+     - Configurable replica counts for vmagent and vlagent pods with default value of 2 replicas each, providing improved availability and scalability for telemetry data collection and log aggregation. For more details, see `Telemetry Storage Configuration <../Input_configuration_tables.html#buildstream-tables-telemetry-storage-configuration>`_.
    * - OS/Provisioning
      - Minimal OS Functional Groups
      - Minimal OS functional groups (``os_x86_64`` and ``os_aarch64``) providing a clean operating system baseline designed specifically for downstream platform software installation. For more details, see `Composable Roles <../OmniaInstallGuide/RHEL_new/composable_roles.html>`_.
