@@ -156,6 +156,7 @@ Procedure
 
    - ``slurm_control_node_x86_64``
    - ``slurm_node_x86_64``
+   - ``login_node_x86_64``
    - ``login_compiler_node_x86_64``
    - ``service_kube_control_plane_x86_64``
    - ``service_kube_node_x86_64``
