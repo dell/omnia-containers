@@ -34,7 +34,7 @@ Procedure
    .. code-block:: bash
 
       cd /opt/omnia/input/project_default/
-      cat /opt/omnia/input/project_default/network_spec.yml
+      cat network_spec.yml
 
 3. Edit the ``network_spec.yml`` file to add the ``additional_subnets`` field under the ``admin_network`` section.
 
