@@ -51,6 +51,8 @@ its dependent services are running correctly.
       ●   ├─smd.service
       ●   └─step-ca.service
 
+   The following service status indicators are displayed on the live cluster:
+
    * A **green circle** indicates that the service is running.
    * A **grey circle** indicates that the service is not running.
    * A **circle with a cross** indicates that the service failed to start.
