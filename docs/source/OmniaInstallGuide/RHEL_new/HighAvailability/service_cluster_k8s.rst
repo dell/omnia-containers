@@ -7,12 +7,16 @@ Overview
 
 With Omnia, you can deploy a service Kubernetes cluster on designated service nodes to efficiently distribute workload and manage resources for telemetry data collection. This setup reduces the processing load on the Omnia Infrastructure Manager (OIM) node and enhances overall scalability. Each service_kube_node is responsible for collecting telemetry data from its assigned subset of compute nodes. This federated approach to telemetry data collection improves efficiency for large-scale clusters.
 
-Supported Version
-=================
+Supported Versions
+==================
 
 **Kubernetes Version**: 1.35.1
 
 Omnia supports only Kubernetes version 1.35.1 for the service cluster deployment.
+
+**Operating System**
+
+* RHEL 10.0
 
 Functional Groups
 =================
@@ -78,11 +82,6 @@ If deploying ETCD on local disk instead of NFS:
 .. caution:: Migration from NFS to local disk is not supported during upgrades. This configuration is only applicable for fresh installations.
 
 .. note:: When ``etcd_on_local_disk`` is set to ``false`` or omitted, ETCD storage is provisioned using NFS, and no local disk configuration is performed for ETCD.
-
-Operating System
-~~~~~~~~~~~~~~~~
-
-* RHEL 10.0
 
 Network Requirements
 --------------------
