@@ -294,13 +294,14 @@ The following checks are executed during rollback validation:
 - Confirm that the node can participate in normal cluster operations.
 
 Rollback Status Report
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 At the end of the rollback process, Omnia generates a node-level status report showing the outcome for every Slurm and login node.
 
 Nodes are grouped into the following categories:
 
-**Successful**
+Successful
+^^^^^^^^^^^
 
 The node successfully completed all rollback operations:
 
@@ -310,28 +311,32 @@ The node successfully completed all rollback operations:
 - Slurm services started correctly.
 - ``sinfo`` validation passed.
 
-**Unreachable**
+Unreachable
+^^^^^^^^^^^
 
 - The node was not reachable before the reboot phase.
 - Rollback validation could not be performed.
 
-**Reboot Failed**
+Reboot Failed
+^^^^^^^^^^^^
 
 - The reboot command failed.
 - The node did not complete the reboot cycle successfully.
 
-**SSH Failure**
+SSH Failure
+^^^^^^^^^^^
 
 - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
 - Subsequent validation checks could not be performed.
 
-**Sinfo Failure**
+Sinfo Failure
+^^^^^^^^^^^^
 
 - SSH connectivity was restored successfully.
 - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Rollback Recommendations
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After rollback completes successfully:
 
