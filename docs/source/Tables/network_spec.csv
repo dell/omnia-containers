@@ -23,7 +23,7 @@ Mandatory","The admin IP address of the OIM server which is configured. **Defaul
 
 ``IP address``
 
-Optional","The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server. Optional - can be omitted if iDRAC telemetry for the OIM server is not required. **Default value**: ``""``"
+Optional","The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is set to true and telemetry data needs to be collected from the OIM server. Optional - can be omitted if iDRAC telemetry for the OIM server is not required. **Default value**: ``""""``"
 ,"**dynamic_range**
 
 ``IP address range``
@@ -53,7 +53,7 @@ Each additional subnet entry contains the following parameters:
 * dynamic_range - The DHCP IP pool range in ""start_ip-end_ip"" format. Must fall within the subnet.
 
 For more information about configuring Multi-Subnet DHCP, see :doc:`../OmniaInstallGuide/AdvancedConfigurations/multi-subnet-dhcp/how-to-configuration`."
-
+,,
 ``ib_network``,"**subnet**
 
 ``IP address``
