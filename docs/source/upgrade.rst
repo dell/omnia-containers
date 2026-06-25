@@ -100,8 +100,6 @@ Before starting the upgrade, download the correct version of the ``omnia.sh`` sc
 
     ./omnia.sh --version
 
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 1. Run the core container upgrade command: ::
 
     sudo ./omnia.sh --upgrade
@@ -368,7 +366,7 @@ The Slurm upgrade workflow updates the cloud-init and BSS configurations on all 
    - Existing NFS mount configurations from Omnia 2.1 are preserved during the upgrade. Do not add, remove, or modify NFS mount points until the upgrade has completed successfully.
 
 Upgrade Workflow
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~
 
 During the Slurm upgrade, Omnia performs the following operations:
 
@@ -387,7 +385,7 @@ During the Slurm upgrade, Omnia performs the following operations:
 #. Generates a consolidated upgrade status report for all nodes.
 
 Node Reboot and Validation
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After configuration updates are applied, Omnia initiates a cluster-wide reboot to activate the new settings.
 
@@ -401,7 +399,7 @@ The reboot workflow includes the following validations:
 - The validation operation is retried automatically to accommodate service startup delays.
 
 Health Checks Performed
-^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 The following checks are performed for every upgraded node:
 
@@ -418,43 +416,23 @@ The following checks are performed for every upgraded node:
 - Verify that ``sinfo`` returns a valid response from the node.
 
 Upgrade Status Report
-^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~
 
 At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
 The report categorizes nodes into the following groups:
 
-**Successful**
+**Successful** -The node completed all upgrade stages successfully.
 
-The node completed all upgrade stages successfully:
+**Unreachable** - The node was not reachable before the reboot phase.
 
-- Configuration update completed.
-- Reboot completed successfully.
-- SSH connectivity was restored.
-- Slurm services started successfully.
-- ``sinfo`` validation passed.
+**Reboot Failed** - The reboot command could not be executed successfully.
 
-**Unreachable**
+**SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
 
-- The node was not reachable before the reboot phase.
-- Upgrade validation could not be performed on the node.
-
-**Reboot Failed**
-
-- The reboot command could not be executed successfully.
-- The node failed to begin or complete the reboot process.
-
-**SSH Failure**
-
-- The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-- Post-upgrade validation could not continue.
-
-**Sinfo Failure**
-
-- SSH connectivity was restored successfully.
-- Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
+**Sinfo Failure** - SSH connectivity was restored successfully.
 
 Post-Upgrade Recommendations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After a successful upgrade:
 
@@ -464,8 +442,11 @@ After a successful upgrade:
 - Submit a small test job to confirm scheduler functionality.
 - Review the generated status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
 
+Upgrade Orchestrator Details
+----------------------------
+
 Lock Management
-^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~
 
 The upgrade orchestrator uses lock files to prevent concurrent operations:
 
@@ -476,7 +457,7 @@ The upgrade orchestrator uses lock files to prevent concurrent operations:
     The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
 
 Manifest Tracking
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
 
@@ -491,7 +472,7 @@ On rerun, already-completed components are automatically skipped. This ensures i
 .. _phase-2-execute-upgrade:
 
 Phase 2: Execute Upgrade
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 After reviewing the component-specific upgrade details above, run the full upgrade: ::
 
