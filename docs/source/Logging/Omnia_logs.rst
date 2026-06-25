@@ -86,6 +86,8 @@ Logs corresponding to every playbook run can be found under ``/opt/omnia/log/cor
 
 Core and other container logs
 +--------------------------------------------------------------------+--------------------------------------+
+| Location                                                           | Purpose                              |
++====================================================================+======================================+
 | /opt/omnia/log/openchami/*log                                      | OpenCHAMI playbook logs              |
 +--------------------------------------------------------------------+--------------------------------------+
 | /opt/omnia/log/pulp/*log                                           | Pulp container logs                  |
@@ -124,15 +126,16 @@ Logs of Individual Podman Containers in OIM
 
 Logs of Individual K8s Containers on Service Cluster
 -----------------------------------------------------
-   1. A list of namespaces and their corresponding pods can be obtained using:
 
-      ``kubectl get pods -A``
+1. A list of namespaces and their corresponding pods can be obtained using:
 
-   2. Get a list of containers for the pod in question using:
+   ``kubectl get pods -A``
 
-      ``kubectl get pods <pod_name> -o jsonpath='{.spec.containers[*].name}'``
+2. Get a list of containers for the pod in question using:
 
-   3. Once you have the namespace, pod and container names, run the below command to get the required logs:
+   ``kubectl get pods <pod_name> -o jsonpath='{.spec.containers[*].name}'``
 
-      ``kubectl logs pod <pod_name> -n <namespace> -c <container_name>``
+3. Once you have the namespace, pod and container names, run the below command to get the required logs:
+
+   ``kubectl logs pod <pod_name> -n <namespace> -c <container_name>``
 
