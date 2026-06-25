@@ -1,5 +1,6 @@
-OIM Logs
+OMNIA Logs
 ----------
+OMNIA maintains comprehensive logs across all playbook executions, container operations, and cluster activities. These logs are essential for monitoring, debugging, and troubleshooting Omnia deployments across OIM, Kubernetes, and Slurm environments.
 
 .. caution:: It is not recommended to delete the below log files or the directories they reside in.
 
@@ -46,58 +47,54 @@ To collect logs from the cluster, execute the following commands::
 * Nodes must be reachable from OIM
 
    
-Omnia Playbook Logs
--------------------
+Omnia playbook and container logs
+---------------------------------
 
-The following table provides an overview of the various Omnia playbook log files, their locations, and their purposes for monitoring.
+The following table provides an overview of the various Omnia log files, their locations, and their purposes for monitoring.
 
-+------------------------------------------------------------------------+---------------------------------------------+
-| Location                                                               | Purpose                                     |
-+========================================================================+=============================================+
-| /opt/omnia/log/core/playbooks/discovery.log                            | Discovery logs                              |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/local_repo.log                           | Local Repository logs                       |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/prepare_oim.log                          | Prepare OIM Logs                            |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/provision.log                            | Provision Logs                              |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/scheduler.log                            | Scheduler Logs                              |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/telemetry.log                            | Telemetry logs                              |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/utils.log                                | Utility logs                                |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/credential_utility.log                   | Credential utility logs                     |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/openchami/*log                                          | OpenCHAMI playbook logs                     |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/validation_omnia_project_default.log     | Omnia input validation report logs          |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/input_validation.log                     | Omnia input validation playbook logs        |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/playbooks/gitlab_build_stream.log                  | GitLab BuildStreaM logs                     |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/build_stream/                                           | build_stream pipeline log path              |
-+------------------------------------------------------------------------+---------------------------------------------+
+Playbook logs
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| Location                                                           | Purpose                              | Playbook                                      |
++====================================================================+======================================+===============================================+
+| /opt/omnia/log/core/playbooks/discovery.log                        | Discovery logs                       | discovery/discovery.yml                       |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/local_repo.log                       | Local Repository logs                | local_repo/local_repo.yml                     |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/prepare_oim.log                      | Prepare OIM Logs                     | prepare_oim/prepare_oim.yml                   |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/provision.log                        | Provision Logs                       | provision/provision.yml                       |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/scheduler.log                        | Scheduler Logs                       | scheduler/scheduler.yml                       |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/telemetry.log                        | Telemetry logs                       | telemetry/telemetry.yml                       |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/utils.log                            | Utility logs                         | utils/*.yml                                   |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/validation_omnia_project_default.log | Omnia input validation report logs   |                                               |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/credential_utility.log               | Credential utility logs              | credential_utility/get_config_credentials.yml |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/input_validation.log                 | Omnia input validation playbook logs | input_validation/validate_config.yml          |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/gitlab_build_stream.log              | GitLab BuildStreaM logs              |                                               |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+| /opt/omnia/log/core/playbooks/build_image_<arch>.log               | Build image logs                     | build/build_image_<arch>.yml                  |
++--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
+
+Core and other container logs
++--------------------------------------------------------------------+--------------------------------------+
+| /opt/omnia/log/openchami/*log                                      | OpenCHAMI playbook logs              |
++--------------------------------------------------------------------+--------------------------------------+
+| /opt/omnia/log/pulp/*log                                           | Pulp container logs                  |
++--------------------------------------------------------------------+--------------------------------------+
+| /opt/omnia/log/local_repo/*log                                     | Local repo logs                      |
++--------------------------------------------------------------------+--------------------------------------+
+| /opt/omnia/log/core/container/*log                                 | Core container logs                  |
++--------------------------------------------------------------------+--------------------------------------+
+| /opt/omnia/log/build_stream/                                       | build_stream pipeline log path       |
++--------------------------------------------------------------------+--------------------------------------+
 
 .. note:: The BuildStreaM and GitLab log paths are available inside the BuildStreaM container.
-
-
-Omnia Container Logs
---------------------
-
-The following table provides an overview of the various Omnia container log files, their locations, and their purposes for monitoring.
-
-+------------------------------------------------------------------------+---------------------------------------------+
-| Location                                                               | Purpose                                     |
-+========================================================================+=============================================+
-| /opt/omnia/log/pulp/*log                                               | Pulp container logs                         |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/local_repo/*log                                         | Local repo logs                             |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/container/*log                                     | Core container logs                         |
-+------------------------------------------------------------------------+---------------------------------------------+
 
 
 Logs of Individual Podman Containers in OIM
