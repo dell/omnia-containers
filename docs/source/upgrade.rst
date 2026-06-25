@@ -464,7 +464,7 @@ After a successful upgrade:
 - Review the generated status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
 
 Phase 2: Execute Upgrade
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After reviewing the component-specific upgrade details above, run the full upgrade: ::
 
