@@ -165,8 +165,7 @@ Vector Telemetry Data Flows
    To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command::
 
    .. code-block:: bash
-
-       curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+      :caption: curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
 
 PowerScale Telemetry Data Flows
 --------------------------------
