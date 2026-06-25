@@ -4,7 +4,7 @@ Product and Subsystem Security
 Security Controls Map
 ----------------------
 
-.. image:: ../images/SecurityControlMap.jpg
+.. image:: ../images/SecurityControlMap.png
 
 .. note:: Omnia supports NFS configured on the following external storage solutions for HPC cluster data storage:
 
