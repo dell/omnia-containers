@@ -198,6 +198,8 @@ The ``prepare_upgrade.yml`` playbook transforms input files from the source vers
 
    Re-running ``prepare_upgrade.yml`` after you have modified input files will overwrite your changes and revert to the original 2.1 inputs. Only run ``prepare_upgrade.yml`` once at the beginning of the upgrade process. After reviewing and updating the migrated inputs, proceed directly to the execute phase.
 
+.. _buildstream-terminal-gate:
+
 BuildStreaM Terminal Gate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -237,6 +239,9 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
 
 Kubernetes Upgrade
 ------------------
+
+.. note::
+   The Kubernetes upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``k8s`` component in the correct order (after provision and before telemetry) and handles all validation and status tracking automatically.
 
 Kubernetes upgrade provides a robust, resumable, and transparent upgrade process for Kubernetes clusters.
 
@@ -312,10 +317,7 @@ In this example, the upgrade status file would be located at: ::
 Running the Kubernetes Upgrade
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To initiate Kubernetes upgrade, run the upgrade playbook: ::
-
-    cd /omnia/upgrade
-    ansible-playbook upgrade.yml
+The Kubernetes upgrade is executed automatically by the upgrade orchestrator when you run the main upgrade playbook. See :ref:`phase-2-execute-upgrade` for instructions.
 
 .. note::
    1. User should run the ``upgrade.yml`` playbook from the ``/omnia/upgrade`` directory so that logs are captured in ``/opt/omnia/log/core/playbooks/upgrade.log``
@@ -323,6 +325,9 @@ To initiate Kubernetes upgrade, run the upgrade playbook: ::
 
 Telemetry Upgrade
 -----------------
+
+.. note::
+   The telemetry upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
 
 The telemetry upgrade process upgrades telemetry components to their 2.2 versions while ensuring minimal disruption to metric collection and monitoring services.
 
@@ -346,17 +351,13 @@ After the telemetry upgrade completes, the playbook performs the following valid
 
 **Initiating Telemetry Upgrade**
 
-The telemetry upgrade is automatically executed as part of the main upgrade orchestrator. To initiate the telemetry upgrade, run the upgrade playbook from within the ``omnia_core`` container:
-
-.. code-block:: bash
-
-   cd /omnia/upgrade
-   ansible-playbook upgrade.yml
-
-The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
+The telemetry upgrade is executed automatically by the upgrade orchestrator when you run the main upgrade playbook. See :ref:`phase-2-execute-upgrade` for instructions.
 
 Slurm Upgrade
 --------------
+
+.. note::
+   The Slurm upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``slurm`` component in the correct order (after telemetry) and handles all validation and status tracking automatically.
 
 The Slurm upgrade workflow updates the cloud-init and BSS configurations on all Slurm cluster nodes and applies the changes through a coordinated reboot of the cluster infrastructure. This process ensures that provisioning, node configuration, and runtime settings are synchronized with the target Omnia release.
 
@@ -463,6 +464,32 @@ After a successful upgrade:
 - Submit a small test job to confirm scheduler functionality.
 - Review the generated status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
 
+Lock Management
+^^^^^^^^^^^^^^^
+
+The upgrade orchestrator uses lock files to prevent concurrent operations:
+
+* ``/opt/omnia/.data/upgrade_in_progress.lock`` — Created at the start of the upgrade. Removed only on successful completion.
+* ``/opt/omnia/.data/rollback_in_progress.lock`` — If this lock exists, the upgrade aborts with an error. A rollback must complete (or the lock must be manually removed) before an upgrade can proceed.
+
+.. note::
+    The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
+
+Manifest Tracking
+^^^^^^^^^^^^^^^^^
+
+The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
+
+* **upgrade_id** — Unique identifier for this upgrade run.
+* **source_version** — The version being upgraded from (derived from ``oim_metadata.yml``).
+* **target_version** — The version being upgraded to.
+* **upgrade_status** — Overall status: ``in-progress`` or ``completed``.
+* **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
+
+On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
+
+.. _phase-2-execute-upgrade:
+
 Phase 2: Execute Upgrade
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -488,30 +515,6 @@ The inventory file must define exactly one ARM admin node under the ``[admin_aar
     - The ARM admin node must be accessible via SSH from the OIM host.
     - NFS must be configured on the OIM for aarch64 image building to work.
     - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE mapping file), the ``-i`` option is not required.
-
-Lock Management
-^^^^^^^^^^^^^^^
-
-The upgrade orchestrator uses lock files to prevent concurrent operations:
-
-* ``/opt/omnia/.data/upgrade_in_progress.lock`` — Created at the start of the upgrade. Removed only on successful completion.
-* ``/opt/omnia/.data/rollback_in_progress.lock`` — If this lock exists, the upgrade aborts with an error. A rollback must complete (or the lock must be manually removed) before an upgrade can proceed.
-
-.. note::
-    The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
-
-Manifest Tracking
-^^^^^^^^^^^^^^^^^
-
-The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
-
-* **upgrade_id** — Unique identifier for this upgrade run.
-* **source_version** — The version being upgraded from (derived from ``oim_metadata.yml``).
-* **target_version** — The version being upgraded to.
-* **upgrade_status** — Overall status: ``in-progress`` or ``completed``.
-* **component_status** — Per-component status: ``pending``, ``in-progress``, ``completed``, ``skipped``, or ``failed``.
-
-On rerun, already-completed components are automatically skipped. This ensures idempotent execution — you can safely rerun the upgrade after fixing a failed component.
 
 Post-Upgrade Verification
 ---------------------------
