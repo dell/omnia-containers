@@ -1,5 +1,5 @@
 OMNIA Logs
-----------
+===========
 OMNIA maintains comprehensive logs across all playbook executions, container operations, and cluster activities. These logs are essential for monitoring, debugging, and troubleshooting Omnia deployments across OIM, Kubernetes, and Slurm environments.
 
 .. caution:: It is not recommended to delete the below log files or the directories they reside in.
