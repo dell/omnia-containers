@@ -162,7 +162,7 @@ Vector Telemetry Data Flows
    OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
 
 .. note::
-   To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command::
+   To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command:
 
    .. code-block:: bash
       :caption: curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
