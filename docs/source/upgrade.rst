@@ -536,4 +536,3 @@ After the upgrade completes, verify the following:
 5. If BuildStreaM is enabled, trigger the GitLab pipeline for downstream components.
 
 For troubleshooting upgrade issues, see `Upgrade and Rollback Troubleshooting <troubleshootingguide.html>`_.
-P
