@@ -168,6 +168,42 @@ Omnia configures the following ports for use by third-party tools installed by O
         |                | UDP    | Flannel services        | Manager/Compute               |
         | 8472           |        |                         |                               |
         +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | kube-proxy health check | Manager + Compute             |
+        | 10256          |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | MetalLB L2 speaker      | Prometheus metrics Manager    |
+        | 7472           |        |                         | + Compute                     |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | MetalLB gossip/memberlist | Manager + Compute             |
+        | 7946           |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | kube-vip Prometheus     | metrics + health Manager      |
+        | 2112           |        |                         | (kcp1, kcp2)                  |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | Controller manager       | secure HTTPS port Manager     |
+        | 10257          |        |                         | (kcp1, kcp2)                  |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | Scheduler secure HTTPS  | port Manager (kcp1, kcp2)     |
+        | 10259          |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | kube-proxy Prometheus  | metrics Manager + Compute     |
+        | 10249          |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | kubelet local health    | check Manager + Compute        |
+        | 10248          |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | Calico Felix health     | check Manager + Compute        |
+        | 9099           |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP/UDP | Kubernetes CoreDNS      | Manager (kcp1, kcp2)           |
+        | 53             |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | NFS StorageClass dynamic| provisioner Compute (knode1)  |
+        | 443            |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
+        |                | TCP    | CRI-O runtime service   | N/A                           |
+        | 45845          |        |                         |                               |
+        +----------------+--------+-------------------------+-------------------------------+
 
 
 **Slurm port requirements**
