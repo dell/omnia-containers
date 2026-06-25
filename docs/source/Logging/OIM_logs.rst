@@ -46,10 +46,10 @@ To collect logs from the cluster, execute the following commands::
 * Nodes must be reachable from OIM
 
    
-Omnia playbook and container logs
----------------------------------
+Omnia Playbook Logs
+-------------------
 
-The following table provides an overview of the various Omnia log files, their locations, and their purposes for monitoring.
+The following table provides an overview of the various Omnia playbook log files, their locations, and their purposes for monitoring.
 
 +------------------------------------------------------------------------+---------------------------------------------+
 | Location                                                               | Purpose                                     |
@@ -72,12 +72,6 @@ The following table provides an overview of the various Omnia log files, their l
 +------------------------------------------------------------------------+---------------------------------------------+
 | /opt/omnia/log/openchami/*log                                          | OpenCHAMI playbook logs                     |
 +------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/pulp/*log                                               | Pulp container logs                         |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/local_repo/*log                                         | Local repo logs                             |
-+------------------------------------------------------------------------+---------------------------------------------+
-| /opt/omnia/log/core/container/*log                                     | Core container logs                         |
-+------------------------------------------------------------------------+---------------------------------------------+
 | /opt/omnia/log/core/playbooks/validation_omnia_project_default.log     | Omnia input validation report logs          |
 +------------------------------------------------------------------------+---------------------------------------------+
 | /opt/omnia/log/core/playbooks/input_validation.log                     | Omnia input validation playbook logs        |
@@ -88,6 +82,22 @@ The following table provides an overview of the various Omnia log files, their l
 +------------------------------------------------------------------------+---------------------------------------------+
 
 .. note:: The BuildStreaM and GitLab log paths are available inside the BuildStreaM container.
+
+
+Omnia Container Logs
+--------------------
+
+The following table provides an overview of the various Omnia container log files, their locations, and their purposes for monitoring.
+
++------------------------------------------------------------------------+---------------------------------------------+
+| Location                                                               | Purpose                                     |
++========================================================================+=============================================+
+| /opt/omnia/log/pulp/*log                                               | Pulp container logs                         |
++------------------------------------------------------------------------+---------------------------------------------+
+| /opt/omnia/log/local_repo/*log                                         | Local repo logs                             |
++------------------------------------------------------------------------+---------------------------------------------+
+| /opt/omnia/log/core/container/*log                                     | Core container logs                         |
++------------------------------------------------------------------------+---------------------------------------------+
 
 
 Logs of Individual Podman Containers in OIM
