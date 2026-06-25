@@ -1,7 +1,11 @@
 Log Management
 ----------------
 
-Use ``/etc/logrotate.conf`` to customize how often logs are rotated. The default settings for ``logrotate.conf`` are: ::
+This section describes log rotation configuration on the OIM system.
+
+Use ``/etc/logrotate.conf`` to customize how often logs are rotated. For detailed information about logrotate configuration options, see the `official logrotate documentation <https://linux.die.net/man/8/logrotate>`_.
+
+The default settings for ``logrotate.conf`` are: ::
 
     cat /etc/logrotate.conf
     # see "man logrotate" for details
