@@ -163,11 +163,11 @@ Omnia configures the following ports for use by third-party tools installed by O
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 7946         | TCP        | MetalLB gossip/memberlist                              | Manager + Compute             |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 2112         | TCP        | kube-vip Prometheus metrics + health                   | Manager (kcp1, kcp2)          |
+        | 2112         | TCP        | kube-vip Prometheus metrics + health                   | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10257        | TCP        | Controller manager secure HTTPS port                   | Manager (kcp1, kcp2)          |
+        | 10257        | TCP        | Controller manager secure HTTPS port                   | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10259        | TCP        | Scheduler secure HTTPS port                            | Manager (kcp1, kcp2)          |
+        | 10259        | TCP        | Scheduler secure HTTPS port                            | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 10249        | TCP        | kube-proxy Prometheus metrics                          | Manager + Compute             |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
@@ -175,7 +175,7 @@ Omnia configures the following ports for use by third-party tools installed by O
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 9099         | TCP        | Calico Felix health check                              | Manager + Compute             |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 53           | TCP/UDP    | Kubernetes CoreDNS                                     | Manager (kcp1, kcp2)          |
+        | 53           | TCP/UDP    | Kubernetes CoreDNS                                     | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 443          | TCP        | NFS StorageClass dynamic provisioner                   | Compute (knode1)              |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
