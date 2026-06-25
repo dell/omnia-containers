@@ -26,10 +26,9 @@ Test cases:
     - Update coresmd image in quadlet container files
     - systemctl daemon-reload
     - systemctl restart openchami.target
-10. Verify multi-subnet CoreDHCP configuration
-    - Check additional_subnets in network_spec.yml
-    - If multi-subnet: verify coredhcp.yaml exists on OIM host
-    - Verify coredhcp.yaml is in multi-subnet mode (key=value coresmd format)
+10. Verify CoreDHCP configuration mode matches network_spec.yml
+    - If additional_subnets configured: verify multi-subnet mode (key=value)
+    - If no additional_subnets: verify single-subnet mode (positional)
 11. Verify all additional_subnet entries present in coredhcp.yaml
     - Each subnet has coresmd rule=subnet:CIDR,type:Node directives
     - Each subnet has coresmd rule=subnet:CIDR,type:NodeBMC directives
@@ -135,33 +134,21 @@ def test_activate_multi_subnet(host):
 @pytest.mark.order(10)
 def test_multi_subnet_coredhcp_config(host):
     """
-    Test Case 10: Verify multi-subnet CoreDHCP configuration after prepare_oim.
+    Test Case 10: Verify CoreDHCP configuration mode matches network_spec.yml.
 
     Steps:
     1. Check if additional_subnets is configured in network_spec.yml
-    2. If multi-subnet: verify /etc/openchami/configs/coredhcp.yaml exists on OIM
-    3. Verify coredhcp.yaml is in multi-subnet mode (key=value coresmd format)
+    2. Verify coredhcp.yaml exists on OIM host
+    3. If additional_subnets present: verify multi-subnet mode (key=value)
+       If no additional_subnets: verify single-subnet mode (positional)
 
-    Skips if no additional_subnets are configured (single-subnet deployment).
+    This test runs in BOTH modes — it does not skip for single-subnet.
     """
     log = TestLogger(MS_TEST_NAMES["multi_subnet_coredhcp_config"])
 
-    # Step 1: Check for additional_subnets
-    if not has_additional_subnets(host):
-        log.skipped(SKIP_MSGS["no_additional_subnets"])
-        pytest.skip(SKIP_MSGS["no_additional_subnets"])
+    multi_subnet = has_additional_subnets(host)
 
-    subnets = get_additional_subnets(host)
-    subnet_summary = ", ".join(
-        f"{s.get('subnet', '')}/{s.get('netmask_bits', '')}"
-        for s in subnets
-    )
-    log.check(
-        f"Found {len(subnets)} additional subnet(s) in network_spec.yml: "
-        f"{subnet_summary}"
-    )
-
-    # Step 2: Verify coredhcp.yaml exists on OIM host
+    # Step 1: Verify coredhcp.yaml exists on OIM host
     log.check(f"Checking coredhcp.yaml at {COREDHCP_CONFIG_PATH}")
     file_result = check_coredhcp_file_exists(host)
 
@@ -176,31 +163,60 @@ def test_multi_subnet_coredhcp_config(host):
 
     log.check(LOG_MSGS["coredhcp_file_exists"].format(path=COREDHCP_CONFIG_PATH))
 
-    # Step 3: Verify multi-subnet mode
+    # Step 2: Check configuration mode
     log.check("Checking coredhcp.yaml configuration mode")
     mode_result = check_coredhcp_multisubnet_mode(host)
 
-    details_lines = [
-        f"Configuration mode: {mode_result['mode']}",
-        f"Additional subnets configured: {len(subnets)}",
-    ]
-    if mode_result.get("details"):
-        details_lines.append(mode_result["details"])
-
-    details = "\n".join(details_lines)
-
-    if mode_result["success"]:
-        if mode_result["mode"] == "multi-subnet":
-            log.passed(LOG_MSGS["coredhcp_multisubnet_active"], details)
-        else:
-            # mode == "commented": entries present but commented out
-            log.passed(LOG_MSGS["coredhcp_commented_mode"], details)
-    else:
-        log.failed(
-            LOG_MSGS["coredhcp_singlesubnet_active"],
-            details,
+    if multi_subnet:
+        # ── Multi-subnet path: expect key=value format ──
+        subnets = get_additional_subnets(host)
+        subnet_summary = ", ".join(
+            f"{s.get('subnet', '')}/{s.get('netmask_bits', '')}"
+            for s in subnets
         )
-        assert False, ASSERT_MSGS["coredhcp_not_multisubnet"]
+        log.check(
+            f"Found {len(subnets)} additional subnet(s): {subnet_summary}"
+        )
+
+        details_lines = [
+            f"Configuration mode: {mode_result['mode']}",
+            f"Additional subnets configured: {len(subnets)}",
+        ]
+        if mode_result.get("details"):
+            details_lines.append(mode_result["details"])
+        details = "\n".join(details_lines)
+
+        if mode_result["success"]:
+            if mode_result["mode"] == "multi-subnet":
+                log.passed(LOG_MSGS["coredhcp_multisubnet_active"], details)
+            else:
+                log.passed(LOG_MSGS["coredhcp_commented_mode"], details)
+        else:
+            log.failed(
+                LOG_MSGS["coredhcp_singlesubnet_active"],
+                details,
+            )
+            assert False, ASSERT_MSGS["coredhcp_not_multisubnet"]
+    else:
+        # ── Single-subnet path: expect positional format ──
+        log.check("No additional_subnets configured — verifying single-subnet mode")
+
+        details_lines = [
+            f"Configuration mode: {mode_result['mode']}",
+            "Additional subnets configured: 0",
+        ]
+        if mode_result.get("details"):
+            details_lines.append(mode_result["details"])
+        details = "\n".join(details_lines)
+
+        if mode_result["mode"] == "single-subnet":
+            log.passed(LOG_MSGS["coredhcp_singlesubnet_verified"], details)
+        else:
+            log.failed(
+                LOG_MSGS["coredhcp_singlesubnet_unexpected_multi"],
+                details,
+            )
+            assert False, ASSERT_MSGS["coredhcp_unexpected_multisubnet"]
 
 
 # =============================================================================

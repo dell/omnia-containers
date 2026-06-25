@@ -65,6 +65,14 @@ MS_TEST_LOG_MSGS: Dict[str, str] = {
     "coredhcp_singlesubnet_active": (
         "CoreDHCP is in single-subnet mode (positional coresmd format)"
     ),
+    "coredhcp_singlesubnet_verified": (
+        "No additional_subnets configured — CoreDHCP correctly uses "
+        "single-subnet mode (legacy positional format)"
+    ),
+    "coredhcp_singlesubnet_unexpected_multi": (
+        "No additional_subnets configured but CoreDHCP is in "
+        "multi-subnet mode — expected single-subnet positional format"
+    ),
     "coredhcp_transformed": (
         "CoreDHCP successfully transformed to multi-subnet mode"
     ),
@@ -155,6 +163,16 @@ MS_TEST_ASSERT_MSGS: Dict[str, str] = {
         "  3. systemctl daemon-reload && systemctl restart openchami.target\n"
         "  4. Verify: podman inspect coresmd-coredhcp --format "
         "'{{{{.ImageName}}}}'"
+    ),
+    "coredhcp_unexpected_multisubnet": (
+        "CoreDHCP is in multi-subnet mode but no additional_subnets are "
+        "configured in network_spec.yml.\n\n"
+        "HOW TO FIX:\n"
+        "  1. If multi-subnet is intended, add additional_subnets to "
+        "network_spec.yml\n"
+        "  2. If single-subnet is intended, re-run prepare_oim.yml to "
+        "regenerate coredhcp.yaml in legacy format\n"
+        "  3. Inspect config: cat /etc/openchami/configs/coredhcp.yaml"
     ),
 }
 
