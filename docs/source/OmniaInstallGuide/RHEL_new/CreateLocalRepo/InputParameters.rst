@@ -133,4 +133,4 @@ The following is the sample ``additional_packages.json`` file:
 
 .. note::
 
-    * For systems with RedHat subscription, subscription URLs override ``rhel_os_urls`` and are processed automatically by the ``local_repo.yml`` playbook.
+    * For systems with RedHat subscription, subscription URLs override ``rhel_os_url_<arch>`` and are processed automatically by the ``local_repo.yml`` playbook.
