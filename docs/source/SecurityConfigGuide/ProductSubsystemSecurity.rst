@@ -177,11 +177,11 @@ Omnia configures the following ports for use by third-party tools installed by O
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 53           | TCP/UDP    | Kubernetes CoreDNS                                     | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 443          | TCP        | NFS StorageClass dynamic provisioner                   | Compute (knode1)              |
+        | 443          | TCP        | NFS StorageClass dynamic provisioner                   | Compute                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
         | 45845        | TCP        | CRI-O runtime service                                  | Manager/Compute               |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 18515-18520  | TCP        | DOCA/OFED RDMA and InfiniBand communication port range | Compute (IB nodes)            |
+        | 18515-18520  | TCP        | DOCA/OFED RDMA and InfiniBand communication port range | Compute                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
 
 
