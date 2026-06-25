@@ -275,3 +275,24 @@ external_ldap_bind_password: ""
 # Leave empty ("") to use the latest completed job (default behavior).
 # Wrong UUID → test_build_stream_job_stage skips all tests with a clear error.
 build_stream_job_id: ""
+
+# =============================================================================
+# BUILD STREAM PIPELINE CONTROL
+# =============================================================================
+# Allow automation to auto-cancel running/pending pipelines before triggering new ones.
+# If true: Automation will cancel existing pipelines automatically
+# If false: Automation will wait for pipelines to complete or prompt user to cancel
+allow_pipeline_cancel: false
+
+# =============================================================================
+# BUILD STREAM CATALOG SELECTION
+# =============================================================================
+# Specify which catalog file to use for build_stream pipeline trigger.
+# The catalog file must exist in /omnia/examples/catalog/ inside omnia_core container.
+#
+# Available catalogs (v2.1):
+#   - catalog_rhel.json
+#   - catalog_rhel_x86_64_with_slurm_only.json
+#
+# If empty, defaults to catalog_rhel_x86_64_with_slurm_only.json
+catalog_name: ""

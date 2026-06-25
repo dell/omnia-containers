@@ -101,6 +101,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "regression: marks tests as regression tests (full coverage)")
     config.addinivalue_line("markers", "smoke: marks tests as smoke tests (critical path only)")
     config.addinivalue_line("markers", "build_stream: marks tests as build stream related tests (pipeline validation)")
+    config.addinivalue_line("markers", "build_auto: marks tests as build pipeline auto-trigger tests")
 
 
 def pytest_collection_modifyitems(session, config, items):
