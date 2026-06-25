@@ -3,6 +3,8 @@
 Step 7: Initialize and Verify Telemetry
 ==========================================
 
+.. note:: BuildStreaM does not automate telemetry invocation and data collection. You must perform all steps in this section manually on the OIM.
+
 Prerequisites
 ---------------
 
