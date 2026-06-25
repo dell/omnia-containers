@@ -6,7 +6,7 @@ Configuring Specific Local Repositories
 
     To install Kubernetes, include the following line under ``softwares`` in ``software_config.json``: ::
 
-            {"name": "service_k8s", "version":"1.31.4", "arch": ["x86_64"]},
+            {"name": "service_k8s", "version":"1.35.1", "arch": ["x86_64"]},
 
     For more information about installing Kubernetes, `click here <../HighAvailability/service_cluster_k8s.html>`_.
 
@@ -38,11 +38,11 @@ Configuring Specific Local Repositories
 
             {"name": "openmpi", "version":"5.0.8","arch": ["x86_64"]},
 
-    OpenMPI is deployed on the cluster when the above configurations are complete and `omnia.yml <../OmniaCluster/BuildingCluster/installscheduler.html>`_ playbook is executed.
+    OpenMPI is deployed on the cluster when the above configurations are complete and the ``Build_image_x86_64.yml`` and ``provision.yml`` playbooks are executed.
 
     For more information on OpenMPI configurations, `click here <../../AdvancedConfigurations/install_ucx_openmpi.html>`_.
 
-.. note:: The default OpenMPI version for Omnia is 4.1.6. If you change the version in the ``software_config.json`` file, make sure to update it in the ``openmpi.json`` file in the ``config`` directory as well.
+.. note:: The default OpenMPI version for Omnia is 5.0.8. If you change the version in the ``software_config.json`` file, make sure to update it in the ``openmpi.json`` file in the ``config`` directory as well.
 
 
 **Unified Communication X**
@@ -51,14 +51,14 @@ Configuring Specific Local Repositories
 
             {"name": "ucx", "version":"1.19.0", "arch": ["x86_64"]},
 
-    UCX is deployed on the cluster when ``local_repo.yml`` playbook is executed, followed by the execution of `omnia.yml <../OmniaCluster/BuildingCluster/installscheduler.html>`_.
+    UCX is deployed on the cluster when the ``local_repo.yml`` playbook is executed, followed by the execution of the ``Build_image_x86_64.yml`` and ``provision.yml`` playbooks.
 
 
 **Dell CSI PowerScale driver**
 
     To install Dell CSI PowerScale driver, include the following line under ``softwares`` in ``software_config.json``: ::
 
-            {"name": "csi_driver_powerscale", "version":"v2.15.0", "arch": ["x86_64"]},
+            {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
 
 For more information on deploying Dell CSI PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../../AdvancedConfigurations/PowerScale_CSI.html>`_ 
     

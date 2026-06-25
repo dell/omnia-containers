@@ -27,10 +27,13 @@ After a successful execution of the ``local_repo.yml`` playbook, a metadata file
 This file captures the ``repo_config`` (``always``, ``partial``) details provided during the playbook execution. 
 If the ``local_repo.yml`` playbook is re-run, it compares the current repository policy with the previously captured metadata. Based on this, there can be two scenarios:
 
-    * If a change in policy is detected, you will be prompted to confirm whether to proceed with the updated configuration or not.
+    * If a change in policy is detected, the system displays a warning message:
 
-        * If you agree, the playbook continues with the updated policy and after successful execution, it updates the metadata file with the new repository policy.
-        * If you decline, the playbook execution is aborted and the metadata file remains unchanged.
+       .. code-block:: text
+
+          WARNING: Metadata has changed since last run. Execution may fail if there is no internet on OIM. Proceeding automatically in 15 seconds...
+
+       The playbook pauses for 15 seconds and then continues automatically with the updated policy. After successful execution, the metadata file is updated with the new repository policy.
 
     * If there is no change in policy, the playbook execution proceeds without prompting. The metadata file remains unchanged.
          
@@ -58,11 +61,11 @@ Log Files
 
 The ``local_repo.yml`` playbook generates and provides two types of log files as part of its execution:
 
-1. ``standard.log``: This log file is present in the ``/opt/omnia/log/local_repo`` directory, and contains the overall status of the ``local_repo.yml`` playbook execution.
+1. ``standard.log``: This log file is present in the ``/opt/omnia/log/local_repo/<cluster_os_type>/<cluster_os_version>/`` directory, and contains the overall status of the ``local_repo.yml`` playbook execution.
 
-2. **Package based logs**: Each package download initiated by the ``local_repo.yml`` playbook comes with its own log file. These log files can be accessed from ``/opt/omnia/log/local_repo``.
+2. **Package based logs**: Each package download initiated by the ``local_repo.yml`` playbook comes with its own log file. These log files can be accessed from ``/opt/omnia/log/local_repo/<cluster_os_type>/<cluster_os_version>/<arch_type>/<sw_name>/logs/``.
 
-.. note:: To view the log files in ``.csv`` format, navigate to ``/opt/omnia/log/local_repo/<arch_type>/<sw_name>/status.csv``.
+.. note:: To view the log files in ``.csv`` format, navigate to ``/opt/omnia/log/local_repo/<cluster_os_type>/<cluster_os_version>/status.csv``.
 
 Here's an example of how the log files are organized in the ``/opt/omnia/log/local_repo`` directory:
 
@@ -99,7 +102,7 @@ Resync specific RPM repository:
 
 .. code-block:: bash
 
-    ansible-playbook local_repo.yml -e "resync_repos=x86_64_epel"
+    ansible-playbook local_repo.yml -e "resync_repos=x86_64_rhel_10.0_epel"
 
 .. note::
    * Use ``all`` to resync all configured RPM repositories

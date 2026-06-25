@@ -5,6 +5,7 @@ Prerequisites
 ---------------
 
 * Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
+* Ensure that all the nodes are booted and pods are running before executing the telemetry playbook.
 
 Steps
 ------

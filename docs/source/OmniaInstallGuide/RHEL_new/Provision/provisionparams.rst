@@ -54,7 +54,7 @@ Specify the required parameters in the following input files:
    
     When PowerScale is configured as an NFS server, ensure that the following CSI-PowerScale driver entry is present in the ``software_config.json`` file::
 
-     {"name": "csi_driver_powerscale", "version": "v2.15.0", "arch": ["x86_64"]}
+     {"name": "csi_driver_powerscale", "version": "v2.17.0", "arch": ["x86_64"]}
 
     For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../../AdvancedConfigurations/PowerScale_CSI.html>`_.
 
@@ -105,11 +105,17 @@ The following table lists the parameters that must be configured in ``omnia_conf
 A sample of the ``/opt/omnia/input/project_default/network_spec.yml`` is provided below. This configuration is used for both OME-based discovery and mapping file discovery: ::
 
     
-   Networks:
-   - admin_network:
+   admin_network:
       oim_nic_name: "eno1"
+      subnet: "172.16.0.0"
       netmask_bits: "24"
       primary_oim_admin_ip: "172.16.107.254"
-      primary_oim_bmc_ip: "" 
+      primary_oim_bmc_ip: ""
       dynamic_range: "172.16.107.201-172.16.107.250"
+      dns: []
+      ntp_servers: []
+      additional_subnets: []
+   ib_network:
+      subnet: "192.168.0.0"
+      netmask_bits: "24"
       dns: []

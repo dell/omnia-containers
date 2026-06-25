@@ -21,17 +21,18 @@ software_config.json for RHEL
     {
         "cluster_os_type": "rhel",
         "cluster_os_version": "10.0",
-        "repo_config": "always",
+        "repo_config": "partial",
         "softwares": [
             {"name": "default_packages", "arch": ["x86_64","aarch64"]},
+            {"name": "admin_debug_packages", "arch": ["x86_64","aarch64"]},
             {"name": "openldap", "arch": ["x86_64","aarch64"]},
-            {"name": "nfs", "arch": ["x86_64","aarch64"]},
-            {"name": "service_k8s","version": "1.34.1", "arch": ["x86_64"]},
+            {"name": "service_k8s","version": "1.35.1", "arch": ["x86_64"]},
             {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
             {"name": "ucx", "version": "1.19.0", "arch": ["x86_64","aarch64"]},
             {"name": "openmpi", "version": "5.0.8", "arch": ["x86_64","aarch64"]},
-            {"name": "csi_driver_powerscale", "version":"v2.15.0", "arch": ["x86_64"]},
-            {"name": "ldms", "arch": ["x86_64","aarch64"]}
+            {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
+            {"name": "ldms", "arch": ["x86_64","aarch64"]},
+            {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
         ],
         "slurm_custom": [
             {"name": "slurm_control_node"},
@@ -43,8 +44,17 @@ software_config.json for RHEL
             {"name": "service_kube_control_plane_first"},
             {"name": "service_kube_control_plane"},
             {"name": "service_kube_node"}
+        ],
+        "additional_packages":[
+            {"name": "service_kube_control_plane_first"},
+            {"name": "service_kube_control_plane"},
+            {"name": "service_kube_node"},
+            {"name": "slurm_control_node"},
+            {"name": "slurm_node"},
+            {"name": "login_node"},
+            {"name": "login_compiler_node"},
+            {"name": "os"}
         ]
-
     }
  
 
@@ -65,6 +75,8 @@ pxe_mapping_file.csv for single subnet DHCP
     service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
     service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
     service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+    os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+    os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
 
 pxe_mapping_file.csv for multiple subnet DHCP
 ----------------------------------------------

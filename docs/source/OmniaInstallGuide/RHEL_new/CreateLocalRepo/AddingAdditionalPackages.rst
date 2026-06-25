@@ -38,7 +38,7 @@ The following is a sample ``software_config.json`` snippet with ``additional_pac
             {
             "cluster_os_type": "rhel",
             "cluster_os_version": "10.0",
-            "repo_config": "always",
+            "repo_config": "partial",
             "softwares": [
                 {"name": "default_packages", "arch": ["x86_64","aarch64"]},
                 {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
@@ -75,7 +75,7 @@ The following is a sample ``additional_packages.json`` file: ::
             "cluster": [
             { "package": "fuse-overlayfs", "type": "rpm", "repo_name": "appstream" },
             { "package": "python3-PyMySQL", "type": "rpm", "repo_name": "appstream" },
-            { "package": "sssd", "type": "rpm", "repo_name": "x86_64_baseos" },
+            { "package": "sssd", "type": "rpm", "repo_name": "baseos" },
             { "package": "oddjob-mkhomedir", "type": "rpm", "repo_name": "appstream" },
             { "package": "quay.io/strimzi/kafka-bridge", "type": "image", "tag": "0.33.1" },
             { "package": "registry.k8s.io/pause", "type": "image", "digest": "sha256:7031c1b283388c2c47cc389c74e7a6a1f91e3c23f7f9c2d9e25f7c8b1a2d3e4f" },
@@ -85,10 +85,9 @@ The following is a sample ``additional_packages.json`` file: ::
         "os": {
             "cluster": [
             { "package": "podman", "type": "rpm", "repo_name": "appstream" },
-            { "package": "curl", "type": "rpm", "repo_name": "x86_64_baseos" },
+            { "package": "curl", "type": "rpm", "repo_name": "baseos" },
             { "package": "wget", "type": "rpm", "repo_name": "appstream" },
             { "package": "podman", "type": "rpm", "repo_name": "appstream" },
-            { "package": "curl", "type": "rpm", "repo_name": "arm64_baseos" },
             { "package": "wget", "type": "rpm", "repo_name": "appstream" }
             ]
         }

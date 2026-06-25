@@ -30,15 +30,16 @@ The following is the sample ``software_config.json`` file:
     {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",
-    "repo_config": "always",
+    "repo_config": "partial",
     "softwares": [
-        {"name": "default_packages", "arch": ["x86_64","aarch64"]},
-        {"name": "admin_debug_packages", "arch": ["x86_64","aarch64"]},
-        {"name": "openldap", "arch": ["x86_64"]},
-        {"name": "nfs", "arch": ["x86_64","aarch64"]},
-        {"name": "service_k8s","version": "1.31.4", "arch": ["x86_64"]},
-        {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
-        {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
+        {"name": "default_packages", "arch": ["x86_64", "aarch64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64", "aarch64"]},
+        {"name": "openldap", "arch": ["x86_64", "aarch64"]},
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "slurm_custom", "arch": ["x86_64", "aarch64"]},
+        {"name": "csi_driver_powerscale", "version": "v2.16.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64", "aarch64"]},
+        {"name": "additional_packages", "arch": ["x86_64", "aarch64"]}
     ],
     "slurm_custom": [
         {"name": "slurm_control_node"},
@@ -50,15 +51,16 @@ The following is the sample ``software_config.json`` file:
         {"name": "service_kube_control_plane_first"},
         {"name": "service_kube_control_plane"},
         {"name": "service_kube_node"}
-    ]
+    ],
     "additional_packages": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
         {"name": "slurm_control_node"},
         {"name": "slurm_node"},
         {"name": "login_node"},
         {"name": "login_compiler_node"},
-        {"name": "service_kube_control_plane_first"},
-        {"name": "service_kube_control_plane"},
-        {"name": "service_kube_node"}
+        {"name": "os"}
     ]
     }
 

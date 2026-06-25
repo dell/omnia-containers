@@ -3,13 +3,13 @@ Cleanup Local Pulp Repositories
 
 Removes unused content from the Pulp container to free up disk space. This includes RPM repositories, files (tarball, git, pip, manifest...), and container images. Active repositories and their associated content are preserved during the cleanup process.
 
-Below are some commands that can be used to cleanup local repo artifacts:
+Below are some commands that can be used to cleanup the local repo artifacts:
 
 Cleanup a specific RPM repository:
 
 .. code-block:: bash
 
-    ansible-playbook pulp_cleanup.yml -e cleanup_repos=x86_64_appstream
+    ansible-playbook pulp_cleanup.yml -e cleanup_repos=x86_64_rhel_10.0_appstream
 
 Cleanup a specific file:
 

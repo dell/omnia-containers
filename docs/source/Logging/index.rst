@@ -2,7 +2,7 @@ Omnia Logs
 ===========
 
 .. toctree::
-    OIM_logs
+    Omnia_logs
     
 
 
