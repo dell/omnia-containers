@@ -84,8 +84,11 @@
 
 - name: Create vault key file if it doesn't exist (for plain text encryption)
   ansible.builtin.shell: |
+    set -o pipefail
     head -c 32 /dev/urandom | base64 | head -c 32 > "{{ _creds_key_file }}"
     chmod 600 "{{ _creds_key_file }}"
+  args:
+    executable: /bin/bash
   when: _creds_encrypted.rc != 0 and not (_key_file_stat_plain.stat.exists | default(false))
   changed_when: true
   no_log: true
