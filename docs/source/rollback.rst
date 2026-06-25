@@ -211,7 +211,7 @@ Rollback stages:
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
 
 Slurm Rollback
-==============
+---------------
 
 The Slurm rollback workflow restores the Slurm cluster configuration to the previously backed-up Omnia 2.1 state. During rollback, Omnia restores the cloud-init and Bare System Setup (BSS) configurations from the upgrade backup and applies the restored configuration by rebooting all Slurm and login nodes.
 
