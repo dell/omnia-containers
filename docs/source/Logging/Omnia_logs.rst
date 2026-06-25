@@ -85,7 +85,10 @@ Logs corresponding to every playbook run can be found under ``/opt/omnia/log/cor
 +--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
 
 Core and other container logs
+
 +--------------------------------------------------------------------+--------------------------------------+
+| Location                                                           | Purpose                              |
++====================================================================+======================================+
 | /opt/omnia/log/openchami/*log                                      | OpenCHAMI playbook logs              |
 +--------------------------------------------------------------------+--------------------------------------+
 | /opt/omnia/log/pulp/*log                                           | Pulp container logs                  |
@@ -124,15 +127,50 @@ Logs of Individual Podman Containers in OIM
 
 Logs of Individual K8s Containers on Service Cluster
 -----------------------------------------------------
-   1. A list of namespaces and their corresponding pods can be obtained using:
 
-      ``kubectl get pods -A``
+1. A list of namespaces and their corresponding pods can be obtained using:
 
-   2. Get a list of containers for the pod in question using:
+   ``kubectl get pods -A``
 
-      ``kubectl get pods <pod_name> -o jsonpath='{.spec.containers[*].name}'``
+2. Get a list of containers for the pod in question using:
 
-   3. Once you have the namespace, pod and container names, run the below command to get the required logs:
+   ``kubectl get pods <pod_name> -o jsonpath='{.spec.containers[*].name}'``
 
-      ``kubectl logs pod <pod_name> -n <namespace> -c <container_name>``
+3. Once you have the namespace, pod and container names, run the below command to get the required logs:
+
+   ``kubectl logs pod <pod_name> -n <namespace> -c <container_name>``
+
+
+Log Management
+--------------
+
+This section describes log rotation configuration on the OIM system.
+
+Use ``/etc/logrotate.conf`` to customize how often logs are rotated. For detailed information about logrotate configuration options, see the `official logrotate documentation <https://linux.die.net/man/8/logrotate>`_.
+
+The default settings for ``logrotate.conf`` are: ::
+
+    cat /etc/logrotate.conf
+    # see "man logrotate" for details
+    # rotate log files weekly
+    weekly
+    # keep 4 weeks worth of backlogs
+    rotate 4
+    # create new (empty) log files after rotating old ones
+    create
+    # use date as a suffix of the rotated file
+    dateext
+    # uncomment this if you want your log files compressed
+    #compress
+    # RPM packages drop log rotation information into this directory
+    include /etc/logrotate.d
+    # system-specific logs may also be configured here.
+
+With the above settings:
+
+* Logs are backed up weekly.
+
+* Data up to 4 weeks old is backed up. Any log backup older than four weeks will be deleted.
+
+.. caution:: Since these logs take up ``/var`` space, sufficient space must be allocated to ``/var`` partition if it's created. If ``/var`` partition space fills up, OIM might crash.
 
