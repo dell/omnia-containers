@@ -3,6 +3,8 @@
 Step 7: Initialize and Verify Telemetry
 ==========================================
 
+This step describes how to initialize and verify telemetry services for monitoring the cluster. Telemetry collection enables you to gather performance metrics and system health data from cluster nodes.
+
 .. note:: BuildStreaM does not automate telemetry invocation and data collection. You must perform all steps in this section manually on the OIM.
 
 Prerequisites
