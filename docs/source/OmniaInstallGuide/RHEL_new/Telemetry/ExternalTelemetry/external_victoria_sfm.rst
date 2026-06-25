@@ -115,7 +115,7 @@ For example, the following query displays transceiver DOM temperature values::
 
     transceiver_dom_temperature_value
 
-.. image:: ../../../../images/victoria_metrics_vmui_cluster.png
+.. image:: ../../../../images/victoria_metrics_dom_temperature.png
 
 The following are some of the key metrics that can be queried:
 
