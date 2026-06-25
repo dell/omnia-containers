@@ -53,6 +53,9 @@ Omnia playbook and container logs
 The following table provides an overview of the various Omnia log files, their locations, and their purposes for monitoring.
 
 Playbook logs
+
+Logs corresponding to every playbook run can be found under ``/opt/omnia/log/core/playbooks``.
+
 +--------------------------------------------------------------------+--------------------------------------+-----------------------------------------------+
 | Location                                                           | Purpose                              | Playbook                                      |
 +====================================================================+======================================+===============================================+
