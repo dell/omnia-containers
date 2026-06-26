@@ -300,11 +300,11 @@ At the end of the rollback process, Omnia generates a node-level status report s
 
 Nodes are grouped into the following categories:
 
-**Successful** - The node successfully completed all rollback operations.
-**Unreachable** - The node was not reachable before the reboot phase.
-**Reboot Failed** - The reboot command failed.
-**SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-**Sinfo Failure** - SSH connectivity was restored successfully.
+* **Successful** - The node successfully completed all rollback operations.
+* **Unreachable** - The node was not reachable before the reboot phase.
+* **Reboot Failed** - The reboot command failed.
+* **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+* **Sinfo Failure** - SSH connectivity was restored successfully.
 
 Post-Rollback Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

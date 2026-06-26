@@ -445,11 +445,11 @@ Upgrade Status Report
 At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
 The report categorizes nodes into the following groups:
 
-**Successful** -The node completed all upgrade stages successfully.
-**Unreachable** - The node was not reachable before the reboot phase.
-**Reboot Failed** - The reboot command could not be executed successfully.
-**SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-**Sinfo Failure** - SSH connectivity was restored successfully.
+* **Successful** -The node completed all upgrade stages successfully.
+* **Unreachable** - The node was not reachable before the reboot phase.
+* **Reboot Failed** - The reboot command could not be executed successfully.
+* **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+* **Sinfo Failure** - SSH connectivity was restored successfully.
 
 Post-Upgrade Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
