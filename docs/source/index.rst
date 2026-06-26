@@ -67,7 +67,7 @@ For a better understanding of what Omnia does, check out the following:
 **Table Of Contents**
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     Overview/index
     bestpractices
@@ -78,7 +78,7 @@ For a better understanding of what Omnia does, check out the following:
     Buildstream/index
     Input_configuration_tables
     Utils/index
-    Logging/index
+    Logging/Omnia_logs
     troubleshootingguide
     KnownIssues/index
     limitations

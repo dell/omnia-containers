@@ -37,7 +37,7 @@ The Vector Telemetry Pipeline provides Kafka-to-Victoria ingestion using Vector 
 
 .. note::
 
-   To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, or Vector), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and the corresponding telemetry source fields are set to ``true`` in the ``telemetry_config.yml`` file. For example, set ``telemetry_sources > idrac > metrics_enabled = true`` to enable iDRAC telemetry, or ``telemetry_sources > powerscale > metrics_enabled = true`` to enable PowerScale telemetry.
+   To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, Vast, or Vector), ensure that the ``service_k8s`` entry is mentioned in the ``software_config.json`` file and the corresponding telemetry source fields are set to ``true`` in the ``telemetry_config.yml`` file. For example, set ``telemetry_sources > idrac > metrics_enabled = true`` to enable iDRAC telemetry, or ``telemetry_sources > powerscale > metrics_enabled = true`` to enable PowerScale telemetry.
 
 
 Omnia Telemetry Architecture
@@ -71,9 +71,11 @@ Hosts telemetry collection and storage services:
 - **Victoria Metrics** – Time-series database for metric storage
 - **vmstorage-victoria-cluster** – Storage backend for VictoriaMetrics cluster
 - **vminsert-victoria-cluster** – Ingestion component for VictoriaMetrics cluster
+- **vmselect-victoria-cluster** – Query component for VictoriaMetrics cluster
 - **VictoriaLogs Cluster** – Distributed log storage system with vlstorage, vlinsert, vlselect components
 - **vlstorage-victoria-logs-cluster** – Storage backend for VictoriaLogs cluster
 - **vlinsert-victoria-logs-cluster** – Ingestion component for VictoriaLogs cluster
+- **vlselect-victoria-logs-cluster** – Query component for VictoriaLogs cluster
 - **VLAgent** – Platform-managed log collection agent that receives logs from external sources
 - **karavi-metrics-powerscale** – Collects PowerScale metrics via Karavi Observability
 - **csm-metrics** – Collects PowerScale metrics
@@ -110,7 +112,6 @@ iDRAC and LDMS Telemetry Data Flows
 
    iDRAC (BMC) → iDRAC Collector → Kafka
    iDRAC (BMC) → iDRAC Collector → VMAgent → Victoria Metrics
-   iDRAC (BMC) → iDRAC Collector → VLAgent → Victoria Logs
 
 Vector Telemetry Data Flows
 -----------------------------
@@ -127,8 +128,29 @@ PowerScale Telemetry Data Flows
 ::
 
    PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent(shared) → victoria_metric
-   PowerScale Nodes forwards syslog →  vlagent → Victoria Logs
 
+UFM Telemetry Data Flows
+--------------------------
+
+::
+
+   UFM Fabric Manager → OTEL Collector → vmagent(shared) → victoria_metric
+   UFM Fabric Manager forwards syslog → vlagent → Victoria Logs
+
+VAST Telemetry Data Flows
+--------------------------
+
+::
+
+   VAST Storage Appliances → OTEL Collector → vmagent(shared) → victoria_metric
+   VAST Storage Appliances forwards syslog → vlagent → Victoria Logs
+
+DCGM Telemetry Data Flows
+--------------------------
+
+::
+
+   GPU Nodes → DCGM → VMAgent → Victoria Metrics
 
 Vector Telemetry Data Flows
 -----------------------------
@@ -140,11 +162,11 @@ Vector Telemetry Data Flows
    OME → Kafka '*.inventory', '*.telemetry', '*.health', '*.alerts', '*.auditlogs' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
 
 .. note::
-   To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command::
+   To list all Kafka topics (including LDMS, iDRAC, and OME topics), run the following command:
 
    .. code-block:: bash
 
-       curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+      curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
 
 PowerScale Telemetry Data Flows
 --------------------------------

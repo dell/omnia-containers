@@ -71,7 +71,7 @@ Procedure
     .. code-block:: json
 
         {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
-        {"name": "csi_driver_powerscale", "version": "2.16.0", "arch": ["x86_64"]}
+        {"name": "csi_driver_powerscale", "version": "2.17.0", "arch": ["x86_64"]}
 
 2. Configure the ``omnia_config.yml``:
 
@@ -98,9 +98,9 @@ Procedure
 5. Configure the CSM Observability values file:
 
     - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in ``telemetry_config.yml``
-    - Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
+    - Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml
     - **Important**: In the values.yaml file, only set ``karaviMetricsPowerscale -> enabled: true``. Set the following parameters to false: ``karaviMetricsPowerflex -> enabled=false``, ``karaviMetricsPowerstore -> enabled=false``, ``karaviMetricsPowerscale.authorization -> enabled=false``, ``karaviMetricsPowermax -> enabled=false``.
-    - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor -> enabled: true`` and ``node > healthMonitor -> enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.15.0/charts/csi-isilon/values.yaml).
+    - **Health Metrics**: For CSI PowerScale health metrics, enable ``controller > healthMonitor -> enabled: true`` and ``node > healthMonitor -> enabled: true`` in the CSI PowerScale values.yaml (https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml).
 
 .. note::
    The karavi-metrics-powerscale pod may go into crashloopback state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale, run the following command::

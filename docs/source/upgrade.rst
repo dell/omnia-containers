@@ -69,7 +69,7 @@ The upgrade swaps the running ``omnia_core`` container to the 2.2.0.0 image. Thi
     Ensure the OIM host has stable internet connectivity and sufficient disk space while building the container image.
 
 Upgrade Workflow
------------------
+~~~~~~~~~~~~~~~~~
 
 Phase 0: Core Container Upgrade (OIM Host)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -125,7 +125,7 @@ Before starting the upgrade, download the correct version of the ``omnia.sh`` sc
 3. After the container swap completes, SSH into the new ``omnia_core`` container to proceed with input preparation and component upgrades.
 
 Upgrade Component Order
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The upgrade orchestrator processes components in the following fixed order:
 
@@ -162,7 +162,7 @@ The upgrade orchestrator processes components in the following fixed order:
       - Slurm cluster upgrade
 
 Safety Mechanisms
-------------------
+~~~~~~~~~~~~~~~~~~
 
 The upgrade is designed to be safe to rerun and to fail cleanly:
 
@@ -260,7 +260,7 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
 
 Kubernetes Upgrade
-------------------
+~~~~~~~~~~~~~~~~~~~
 
 .. note::
    The Kubernetes upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``k8s`` component in the correct order (after provision and before telemetry) and handles all validation and status tracking automatically.
@@ -346,7 +346,7 @@ The Kubernetes upgrade is executed automatically by the upgrade orchestrator whe
    2. If upgrade fails, check the cluster is healthy, fix issues if any and rerun the ``upgrade.yml`` playbook
 
 Telemetry Upgrade
------------------
+~~~~~~~~~~~~~~~~~~
 
 .. note::
    The telemetry upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
@@ -376,7 +376,7 @@ After the telemetry upgrade completes, the playbook performs the following valid
 The telemetry upgrade is executed automatically by the upgrade orchestrator when you run the main upgrade playbook. See :ref:`phase-2-execute-upgrade` for instructions.
 
 Slurm Upgrade
---------------
+~~~~~~~~~~~~~~
 
 .. note::
    The Slurm upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``slurm`` component in the correct order (after telemetry) and handles all validation and status tracking automatically.
@@ -445,11 +445,11 @@ Upgrade Status Report
 At the end of the upgrade process, Omnia generates a node-level status report summarizing the outcome for every node in the cluster.
 The report categorizes nodes into the following groups:
 
-**Successful** -The node completed all upgrade stages successfully.
-**Unreachable** - The node was not reachable before the reboot phase.
-**Reboot Failed** - The reboot command could not be executed successfully.
-**SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-**Sinfo Failure** - SSH connectivity was restored successfully.
+* **Successful** -The node completed all upgrade stages successfully.
+* **Unreachable** - The node was not reachable before the reboot phase.
+* **Reboot Failed** - The reboot command could not be executed successfully.
+* **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+* **sinfo Failure** - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Upgrade Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -465,7 +465,7 @@ After a successful upgrade:
 .. _phase-2-execute-upgrade:
 
 Phase 2: Execute Upgrade
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After reviewing the component-specific upgrade details above, run the full upgrade: ::
 

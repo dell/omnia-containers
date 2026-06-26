@@ -50,7 +50,7 @@ Rollback processes components in **reverse order** of the upgrade:
     - There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
 
 Rollback Workflow
-------------------
+~~~~~~~~~~~~~~~~~
 
 Phase 0: Core Container Rollback (OIM Host)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,7 +211,7 @@ Rollback stages:
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
 
 Slurm Rollback
----------------
+~~~~~~~~~~~~~~
 
 The Slurm rollback workflow restores the Slurm cluster configuration to the previously backed-up Omnia 2.1 state. During rollback, Omnia restores the cloud-init and Bare System Setup (BSS) configurations from the upgrade backup and applies the restored configuration by rebooting all Slurm and login nodes.
 
@@ -300,11 +300,11 @@ At the end of the rollback process, Omnia generates a node-level status report s
 
 Nodes are grouped into the following categories:
 
-**Successful** - The node successfully completed all rollback operations.
-**Unreachable** - The node was not reachable before the reboot phase.
-**Reboot Failed** - The reboot command failed.
-**SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-**Sinfo Failure** - SSH connectivity was restored successfully.
+* **Successful** - The node successfully completed all rollback operations.
+* **Unreachable** - The node was not reachable before the reboot phase.
+* **Reboot Failed** - The reboot command failed.
+* **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
+* **sinfo Failure** - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Rollback Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -316,7 +316,7 @@ After rollback completes successfully:
 - Validate connectivity and accessibility of all required NFS mounts.
 - Review any custom storage mounts that were added after the upgrade and recreate them if necessary.
 - Run a small test workload to verify scheduler functionality.
-- Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
+- Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *sinfo Failure* categories before returning the cluster to production use.
 
 Post-Rollback
 ~~~~~~~~~~~~~~
@@ -343,7 +343,7 @@ After rollback completes:
 3. The rollback summary displays the final component statuses.
 
 Post-Rollback Verification
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the rollback completes, verify the following:
 
