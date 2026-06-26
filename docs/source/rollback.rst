@@ -50,7 +50,7 @@ Rollback processes components in **reverse order** of the upgrade:
     - There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
 
 Rollback Workflow
-------------------
+~~~~~~~~~~~~~~~~~
 
 Phase 0: Core Container Rollback (OIM Host)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,7 +211,7 @@ Rollback stages:
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
 
 Slurm Rollback
----------------
+~~~~~~~~~~~~~~
 
 The Slurm rollback workflow restores the Slurm cluster configuration to the previously backed-up Omnia 2.1 state. During rollback, Omnia restores the cloud-init and Bare System Setup (BSS) configurations from the upgrade backup and applies the restored configuration by rebooting all Slurm and login nodes.
 
@@ -343,7 +343,7 @@ After rollback completes:
 3. The rollback summary displays the final component statuses.
 
 Post-Rollback Verification
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the rollback completes, verify the following:
 
