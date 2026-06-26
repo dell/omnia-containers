@@ -160,8 +160,8 @@ Logs of Individual K8s Containers on Service Cluster
    ``kubectl logs pod <pod_name> -n <namespace> -c <container_name>``
 
 
-Log Management
---------------
+Customizing Log Rotation on OIM
+------------------------------
 
 This section describes log rotation configuration on the OIM system.
 
@@ -191,5 +191,5 @@ With the above settings:
 
 * Data up to 4 weeks old is backed up. Any log backup older than four weeks will be deleted.
 
-.. caution:: Since these logs take up ``/var`` space, sufficient space must be allocated to ``/var`` partition if it's created. If ``/var`` partition space fills up, OIM might crash.
+.. caution:: Since logs are stored in ``/var``, ensure sufficient space is allocated to the ``/var`` partition.
 
