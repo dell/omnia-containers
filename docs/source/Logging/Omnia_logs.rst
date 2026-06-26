@@ -113,25 +113,25 @@ Logs of Individual Podman Containers in OIM
 
 ::
 
-    CONTAINER ID   IMAGE                                                        COMMAND                  CREATED        STATUS        PORTS                                       NAMES
-    222d8d96554b   localhost/omnia_auth:1.0                                      /bin/sh -c mkdi…         2 days ago     Up 2 days     0.0.0.0:389->389/tcp, 0.0.0.0:636->636/tcp   omnia_auth
-    0640a9adfce3   localhost/omnia_core:2.2                                                              2 days ago     Up 2 days     2222/tcp                                    omnia_core
-    42515184e9ba   docker.io/pgsty/minio:RELEASE.2026-04-17T00-00-00Z            server /data –co…       2 days ago     Up 2 days     0.0.0.0:9000-9001->9000-9001/tcp             minio-server
-    5bbce8efdc27   docker.io/pulp/pulp:3.80                                     /init                    2 days ago     Up 2 days     0.0.0.0:2225->2225/tcp, 80/tcp              pulp
-    d0b76ac340c7   docker.io/library/postgres:16                               postgres                 2 days ago     Up 2 days     5432/tcp                                    omnia postgres
-    0608aa923b7c   docker.io/dellhpcomniaaisolution/omnia_build_stream:1.1                               2 days ago     Up 2 days                                                 omnia_build_stream
-    251709e17ec2   docker.io/library/registry:3.1.0                             /etc/distribution…      2 days ago     Up 2 days     0.0.0.0:5000->5000/tcp                     registry
-    992a9ca91d5d   docker.io/library/postgres:11.5-alpine                       postgres                 2 days ago     Up 2 days     5432/tcp                                    postgres
-    b731b88c87ff   ghcr.io/openchami/local-ca:v0.2.6                             /step-ca.sh              2 days ago     Up 2 days     9000/tcp                                    step-ca
-    ec2a4422424d   docker.io/oryd/hydra:v2.3                                    serve -c /etc/con…      2 days ago     Up 2 days                                                 hydra
-    0751a15ca614   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal serv…       2 days ago     Up 2 days                                                 opaal-idp
-    72e566933565   ghcr.io/openchami/smd:v2.19.3                                /smd                     2 days ago     Up 2 days     27779/tcp                                   smd
-    e95d50f8da14   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal logi…       2 days ago     Up 2 days                                                 opaal
-    3fac48412fe9   ghcr.io/openchami/bss:v1.32.2                                /bin/sh -c /usr/l…      2 days ago     Up 2 days     27778/tcp                                   bss
-    81f488e6b5cb   ghcr.io/openchami/cloud-init:v1.3.0                           /usr/local/bin/cl…      2 days ago     Up 2 days                                                 cloud-init-server
-    7e970ad459ca   cgr.dev/chainguard/haproxy:latest                            haproxy -f /usr/l…      2 days ago     Up 2 days     0.0.0.0:8081->80/tcp, 0.0.0.0:8443->443/tcp   haproxy
-    5f5028bab1cd   ghcr.io/openchami/coresmd:v0.4.3                             /coredhcp                2 days ago     Up 2 days                                                 coresmd-coredhcp
-    354f3305a7b8   ghcr.io/openchami/coresmd:v0.4.3                             /coredns                 2 days ago     Up 2 days                                                 coresmd-coredns  
+    CONTAINER ID   IMAGE                                                        COMMAND                  CREATED        STATUS        PORTS                                        NAMES
+    222d8d96554b   localhost/omnia_auth:1.0                                     /bin/sh -c mkdi…         2 days ago     Up 2 days     0.0.0.0:389->389/tcp, 0.0.0.0:636->636/tcp   omnia_auth
+    0640a9adfce3   localhost/omnia_core:2.2                                                              2 days ago     Up 2 days     2222/tcp                                     omnia_core
+    42515184e9ba   docker.io/pgsty/minio:RELEASE.2026-04-17T00-00-00Z           server /data –co…        2 days ago     Up 2 days     0.0.0.0:9000-9001->9000-9001/tcp             minio-server
+    5bbce8efdc27   docker.io/pulp/pulp:3.80                                     /init                    2 days ago     Up 2 days     0.0.0.0:2225->2225/tcp, 80/tcp               pulp
+    d0b76ac340c7   docker.io/library/postgres:16                                postgres                 2 days ago     Up 2 days     5432/tcp                                     omnia postgres
+    0608aa923b7c   docker.io/dellhpcomniaaisolution/omnia_build_stream:1.1                               2 days ago     Up 2 days                                                  omnia_build_stream
+    251709e17ec2   docker.io/library/registry:3.1.0                             /etc/distribution…       2 days ago     Up 2 days     0.0.0.0:5000->5000/tcp                       registry
+    992a9ca91d5d   docker.io/library/postgres:11.5-alpine                       postgres                 2 days ago     Up 2 days     5432/tcp                                     postgres
+    b731b88c87ff   ghcr.io/openchami/local-ca:v0.2.6                            /step-ca.sh              2 days ago     Up 2 days     9000/tcp                                     step-ca
+    ec2a4422424d   docker.io/oryd/hydra:v2.3                                    serve -c /etc/con…       2 days ago     Up 2 days                                                  hydra
+    0751a15ca614   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal serv…       2 days ago     Up 2 days                                                  opaal-idp
+    72e566933565   ghcr.io/openchami/smd:v2.19.3                                /smd                     2 days ago     Up 2 days     27779/tcp                                    smd
+    e95d50f8da14   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal logi…       2 days ago     Up 2 days                                                  opaal
+    3fac48412fe9   ghcr.io/openchami/bss:v1.32.2                                /bin/sh -c /usr/l…       2 days ago     Up 2 days     27778/tcp                                    bss
+    81f488e6b5cb   ghcr.io/openchami/cloud-init:v1.3.0                          /usr/local/bin/cl…       2 days ago     Up 2 days                                                  cloud-init-server
+    7e970ad459ca   cgr.dev/chainguard/haproxy:latest                            haproxy -f /usr/l…       2 days ago     Up 2 days     0.0.0.0:8081->80/tcp, 0.0.0.0:8443->443/tcp  haproxy
+    5f5028bab1cd   ghcr.io/openchami/coresmd:v0.4.3                             /coredhcp                2 days ago     Up 2 days                                                  coresmd-coredhcp
+    354f3305a7b8   ghcr.io/openchami/coresmd:v0.4.3                             /coredns                 2 days ago     Up 2 days                                                  coresmd-coredns  
 
 2. To view the logs from a specific container, run the following command:
 
