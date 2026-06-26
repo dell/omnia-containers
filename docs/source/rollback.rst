@@ -304,7 +304,7 @@ Nodes are grouped into the following categories:
 * **Unreachable** - The node was not reachable before the reboot phase.
 * **Reboot Failed** - The reboot command failed.
 * **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-* **Sinfo Failure** - SSH connectivity was restored successfully.
+* **sinfo Failure** - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Rollback Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -316,7 +316,7 @@ After rollback completes successfully:
 - Validate connectivity and accessibility of all required NFS mounts.
 - Review any custom storage mounts that were added after the upgrade and recreate them if necessary.
 - Run a small test workload to verify scheduler functionality.
-- Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *Sinfo Failure* categories before returning the cluster to production use.
+- Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *sinfo Failure* categories before returning the cluster to production use.
 
 Post-Rollback
 ~~~~~~~~~~~~~~

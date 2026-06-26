@@ -449,7 +449,7 @@ The report categorizes nodes into the following groups:
 * **Unreachable** - The node was not reachable before the reboot phase.
 * **Reboot Failed** - The reboot command could not be executed successfully.
 * **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
-* **Sinfo Failure** - SSH connectivity was restored successfully.
+* **sinfo Failure** - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Upgrade Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
