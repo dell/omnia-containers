@@ -450,7 +450,7 @@ The report categorizes nodes into the following groups:
 * **Reboot Failed** - The reboot command could not be executed successfully.
 * **SSH Failure** - The node rebooted but did not restore SSH connectivity within the allowed timeout period.
 * **Sinfo Failure** - SSH connectivity was restored successfully.
-p
+
 Post-Upgrade Recommendations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
