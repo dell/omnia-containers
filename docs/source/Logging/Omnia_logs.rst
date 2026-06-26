@@ -109,7 +109,9 @@ Logs of Individual Podman Containers in OIM
 
    ``podman ps -a``
 
-   The following table shows the status of Omnia containers running on the OIM:
+   The following output shows the status of Omnia containers running on the OIM:
+
+   .. note:: 'CONTAINER ID' column values will vary on every system.
 
 ::
 
