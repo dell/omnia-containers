@@ -1,93 +1,70 @@
-FROM docker.io/library/almalinux:10.0
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 ARG BUILDAH_VERSION=1.42.2
-ARG GO_VERSION=1.25.8
 
-RUN dnf clean all && \
-    dnf update -y --releasever=10.0 --nogpgcheck && \
-    dnf install -y dnf-plugins-core epel-release && \
-    dnf config-manager -y --set-enabled crb && \
-    dnf clean all
+RUN apk update && apk add --no-cache \
+        bash curl make gcc glibc-dev glib-dev gpgme-dev \
+        libseccomp-dev btrfs-progs-dev lvm2-dev git pkgconf \
+        zlib-dev xz-dev lzo-dev zstd-dev lz4-dev \
+        go
 
-RUN dnf install -y \
-        bash \
-        python3.12 \
-        fuse-overlayfs \
-        tar \
-        squashfs-tools \
-        make \
-        gcc \
-        glib2-devel \
-        gpgme-devel \
-        libseccomp-devel \
-        libselinux-devel \
-        device-mapper-devel \
-        btrfs-progs-devel \
-        git \
-        wget
+# Build squashfs-tools from source
+RUN git clone --depth 1 https://github.com/plougher/squashfs-tools.git /tmp/squashfs-tools && \
+    cd /tmp/squashfs-tools/squashfs-tools && \
+    make -j$(nproc) && \
+    make install INSTALL_PREFIX=/usr
 
-# Determine architecture and download matching Go tarball
-RUN ARCH=$(uname -m) && \
-    if [ "$ARCH" = "x86_64" ]; then \
-        GOARCH=amd64; \
-    elif [ "$ARCH" = "aarch64" ]; then \
-        GOARCH=arm64; \
-    else \
-        echo "Unsupported architecture: $ARCH" && exit 1; \
-    fi && \
-    curl -LO https://go.dev/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz && \
-    tar -C /usr/local -xzf go${GO_VERSION}.linux-${GOARCH}.tar.gz && \
-    rm go${GO_VERSION}.linux-${GOARCH}.tar.gz
-
-ENV PATH="/usr/local/go/bin:${PATH}"
-
-RUN git clone --branch v${BUILDAH_VERSION} --depth 1 https://github.com/containers/buildah.git /tmp/buildah && \
+# Build buildah from source
+RUN git clone --branch v${BUILDAH_VERSION} --depth 1 \
+        https://github.com/containers/buildah.git /tmp/buildah && \
     cd /tmp/buildah && \
     go get github.com/sigstore/fulcio@v1.8.5 && \
     go get golang.org/x/crypto@v0.45.0 && \
     go get github.com/containernetworking/plugins@v1.9.0 && \
-    go mod tidy && \
-    go get github.com/sigstore/fulcio@v1.8.5 && \
     go get github.com/sigstore/sigstore@v1.10.4 && \
+    go mod tidy && \
     go mod vendor && \
-    make buildah && \
-    cp bin/buildah /usr/bin/buildah && \
-    rm -rf /tmp/buildah /usr/local/go /root/go && \
-    dnf remove -y --noautoremove make gcc git wget glib2-devel gpgme-devel libseccomp-devel libselinux-devel device-mapper-devel btrfs-progs-devel && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
+    make buildah BUILDTAGS="seccomp"
 
-RUN dnf install -y \
-        containers-common \
-        crun \
-        slirp4netns \
-        fuse-overlayfs
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM cgr.dev/chainguard/wolfi-base:latest
+
+RUN apk update && apk add --no-cache \
+        bash python-3.12 py3.12-pip \
+        fuse-overlayfs \
+        containers-common crun slirp4netns \
+        shadow libcap-utils just-newuidmap-newgidmap gpgme libseccomp glib netavark \
+        zlib xz lzo libzstd1 liblz4-1
+
+RUN apk add --no-cache ca-certificates && \
+    printf '#!/bin/sh\nexec update-ca-certificates\n' > /usr/sbin/update-ca-trust && \
+    chmod +x /usr/sbin/update-ca-trust
+
+# Copy built binaries from Stage 1
+COPY --from=builder /tmp/buildah/bin/buildah /usr/bin/buildah
+COPY --from=builder /usr/bin/mksquashfs /usr/bin/mksquashfs
+COPY --from=builder /usr/bin/unsquashfs /usr/bin/unsquashfs
 
 COPY requirements.txt /
-RUN python3.12 -m ensurepip && \
-    python3.12 -m pip install --upgrade pip && \
+RUN python3.12 -m pip install --upgrade pip && \
     python3.12 -m pip install -r /requirements.txt
 
 COPY src/ /usr/local/bin/
 RUN chmod -R 0755 /usr/local/bin/
 
-# Allow non-root to run buildah commands
+RUN useradd --uid 1002 -m builder && \
+    chown -R builder /home/builder
+
 RUN setcap cap_setuid=ep "$(command -v newuidmap)" && \
-    setcap cap_setgid=ep "$(command -v newgidmap)" &&\
+    setcap cap_setgid=ep "$(command -v newgidmap)" && \
     chmod 0755 "$(command -v newuidmap)" && \
     chmod 0755 "$(command -v newgidmap)" && \
-    rpm --restore shadow-utils && \
     echo "builder:2000:50000" > /etc/subuid && \
     echo "builder:2000:50000" > /etc/subgid
 
-# Create local user for rootless image builds
-RUN useradd --uid 1002 builder && \
-    chown -R builder /home/builder
-
-# Make builder the default user when running container
 USER builder
 WORKDIR /home/builder
 
 ENV BUILDAH_ISOLATION=chroot
-
 ENTRYPOINT ["/usr/bin/buildah", "unshare"]

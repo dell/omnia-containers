@@ -18,8 +18,8 @@ ARG OMNIA_VERSION=staging
 #   ✅ Eliminates the ENTIRE multi-step Go source build from your Fedora Dockerfile
 
 RUN apk update && apk add --no-cache \
-    python3 \
-    py3-pip \
+    python-3.12 \
+    py3.12-pip \
     git \
     git-lfs \
     openssh \
@@ -40,6 +40,9 @@ RUN apk update && apk add --no-cache \
     build-base
 
 RUN mkdir -p /usr/local/share/ca-certificates
+
+# Optional safety check (recommended)
+RUN python3 --version | grep 3.12
 
 # ── STEP 2: git-lfs init ────────────────────────────────────────────────────
 # git-lfs is now installed as an apk — NO source build needed.
