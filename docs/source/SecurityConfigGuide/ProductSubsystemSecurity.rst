@@ -118,45 +118,86 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Host port requirements**
 
-        +--------------+------------+-----------------------------+----------------+
-        | Port Number  | Protocol   | Service                     | Type of Node  |
-        +==============+============+=============================+================+
-        | 22           | TCP        | SSH                         | All Nodes     |
-        +--------------+------------+-----------------------------+----------------+
-        | 2222         | TCP        | SSH — omnia_core relay      | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 2049         | TCP        | NFS Server                  | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 2049         | UDP        | NFS Server                  | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 111          | TCP/UDP    | RPC Bind                    | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 20048        | TCP/UDP    | NFS mountd                  | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 123          | UDP        | NTP                         | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 53           | TCP/UDP    | DNS — cluster               | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 9153         | TCP        | DNS metrics                 | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 53           | TCP/UDP    | DNS — Podman internal       | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 67           | UDP        | DHCP                        | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 68           | UDP        | DHCP bootpc                 | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 69           | UDP        | TFTP                        | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 3702         | UDP        | WS-Discovery (OS)           | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 5353         | UDP        | mDNS (OS)                   | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 631          | TCP        | CUPS printing (OS)          | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 34869        | TCP        | Unknown listener            | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
-        | 46467        | TCP        | Unknown listener            | Manager (OIM) |
-        +--------------+------------+-----------------------------+----------------+
+.. list-table:: Host Port Requirements
+   :widths: 15 10 35 20
+   :header-rows: 1
+
+   * - Port Number
+     - Protocol
+     - Service
+     - Type of Node
+   * - 22
+     - TCP
+     - SSH
+     - All Nodes
+   * - 2222
+     - TCP
+     - SSH — omnia_core relay
+     - Manager (OIM)
+   * - 2049
+     - TCP
+     - NFS Server
+     - Manager (OIM)
+   * - 2049
+     - UDP
+     - NFS Server
+     - Manager (OIM)
+   * - 111
+     - TCP/UDP
+     - RPC Bind
+     - Manager (OIM)
+   * - 20048
+     - TCP/UDP
+     - NFS mountd
+     - Manager (OIM)
+   * - 123
+     - UDP
+     - NTP
+     - Manager (OIM)
+   * - 53
+     - TCP/UDP
+     - DNS — cluster
+     - Manager (OIM)
+   * - 9153
+     - TCP
+     - DNS metrics
+     - Manager (OIM)
+   * - 53
+     - TCP/UDP
+     - DNS — Podman internal
+     - Manager (OIM)
+   * - 67
+     - UDP
+     - DHCP
+     - Manager (OIM)
+   * - 68
+     - UDP
+     - DHCP bootpc
+     - Manager (OIM)
+   * - 69
+     - UDP
+     - TFTP
+     - Manager (OIM)
+   * - 3702
+     - UDP
+     - WS-Discovery (OS)
+     - Manager (OIM)
+   * - 5353
+     - UDP
+     - mDNS (OS)
+     - Manager (OIM)
+   * - 631
+     - TCP
+     - CUPS printing (OS)
+     - Manager (OIM)
+   * - 34869
+     - TCP
+     - Unknown listener
+     - Manager (OIM)
+   * - 46467
+     - TCP
+     - Unknown listener
+     - Manager (OIM)
 
 **Ports used by Podman container and services**
 
