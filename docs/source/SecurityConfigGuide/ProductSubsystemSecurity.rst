@@ -161,7 +161,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **Ports used by Podman container and services**
 
         +------------+----------+----------------------+----------------+
-        | Port       | Protocol | Service Name         | Type of Node           |
+        | Port       | Protocol | Service Name         | Type of Node  |
         +============+==========+======================+================+
         | 2222       | TCP      | Omnia Core           | Manager (OIM) |
         +------------+----------+----------------------+----------------+
@@ -250,7 +250,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **OpenLDAP port requirements**
 
         +---------------+---------+----------------------+----------------------+
-        | Port   Number | Protocol | Service Name              | Node                 |
+        | Port Number   | Protocol | Service Name         | Node                 |
         +===============+=========+======================+======================+
         | 80            | TCP     | HTTP/HTTPS           | Manager/ Login_Node  |
         +---------------+---------+----------------------+----------------------+
