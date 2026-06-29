@@ -289,11 +289,17 @@ clone_image_builder_repo() {
         # Copy Dockerfile.el10 from ContainerFile/image-build/
         echo -e "${YELLOW}Copying Dockerfile.el10 to dockerfiles/dnf/...${NC}"
         cp "../${IMAGE_BUILDER_DIR}/Dockerfile.el10" "dockerfiles/dnf/Dockerfile.el10"
-        
+
         # Copy requirements.txt from ContainerFile/image-build/
         echo -e "${YELLOW}Copying requirements.txt from ContainerFile/image-build/...${NC}"
         cp "../${IMAGE_BUILDER_DIR}/requirements.txt" "requirements.txt"
-        
+
+        # Copy modified Python source files from local .image-builder-tools
+        echo -e "${YELLOW}Copying modified Python source files from local .image-builder-tools...${NC}"
+        cp "../.image-builder-tools/src/installer.py" "src/installer.py"
+        cp "../.image-builder-tools/src/layer.py" "src/layer.py"
+        cp "../.image-builder-tools/src/oscap.py" "src/oscap.py"
+
         # Modify utils.py to remove Setting from import
         echo -e "${YELLOW}Modifying src/utils.py import statement...${NC}"
         sed -i 's/from ansible.config.manager import ConfigManager, Setting/from ansible.config.manager import ConfigManager/' src/utils.py
@@ -302,6 +308,13 @@ clone_image_builder_repo() {
         echo -e "${GREEN}Repository cloned and configured at ${IMAGE_BUILDER_COMMIT}.${NC}"
     else
         echo -e "${YELLOW}OpenCHAMI/image-builder already cloned.${NC}"
+        # Copy modified Python source files from local .image-builder-tools
+        echo -e "${YELLOW}Copying modified Python source files from local .image-builder-tools...${NC}"
+        cd "$IMAGE_BUILDER_CLONE_DIR" || exit 1
+        cp "../.image-builder-tools/src/installer.py" "src/installer.py"
+        cp "../.image-builder-tools/src/layer.py" "src/layer.py"
+        cp "../.image-builder-tools/src/oscap.py" "src/oscap.py"
+        cd - > /dev/null || exit 1
     fi
 }
 
@@ -502,7 +515,7 @@ build_image_builder() {
     
     cd "${IMAGE_BUILDER_CLONE_DIR}" || exit 1
     if [ "$BUILD_TOOL" = "podman" ]; then
-        podman build -t image-build-el10:${IMAGE_BUILDER_TAG} -f dockerfiles/dnf/Dockerfile.el10 .
+        podman build --no-cache -t image-build-el10:${IMAGE_BUILDER_TAG} -f dockerfiles/dnf/Dockerfile.el10 .
         BUILD_RESULT=$?
         IMAGE_DESTINATION="Local (Podman): image-build-el10:${IMAGE_BUILDER_TAG}"
     elif [ "$BUILD_TOOL" = "docker" ]; then
