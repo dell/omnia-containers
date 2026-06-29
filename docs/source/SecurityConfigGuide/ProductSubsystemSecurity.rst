@@ -366,7 +366,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **Build Stream ports**
 
         +------------+------------+----------------------+----------------+
-        | Port       | Protocol   | Service Name         | Type of Node  |
+        | Port       | Protocol   | Service Name         | Type of Node   |
         +============+============+======================+================+
         | 8010       | TCP        | Build Stream API      | Manager (OIM) |
         +------------+------------+----------------------+----------------+
@@ -374,7 +374,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **DOCA/IB ports**
 
         +------------+------------+----------------------+---------------------+
-        | Port       | Protocol   | Service Name         | Type of Node        |
+        | Port       | Protocol  | Service Name         | Type of Node       |
         +============+============+======================+=====================+
         | 18515-18520| TCP       | DOCA/OFED RDMA       | Compute (IB nodes) |
         +------------+------------+----------------------+---------------------+
