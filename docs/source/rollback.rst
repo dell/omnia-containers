@@ -9,7 +9,7 @@ Omnia provides a rollback mechanism to revert an upgrade and return the cluster 
     * The rollback orchestrator must be invoked from the parent directory containing ``rollback/`` folders.
 
 When to Use Rollback
----------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Use rollback in the following scenarios:
 
@@ -21,7 +21,7 @@ Use rollback in the following scenarios:
     Rolling back after a **fully successful upgrade** is not recommended because all components were upgraded consistently. If you need to rollback despite successful completion, use ``-e force_rollback=true``.
 
 Rollback Component Order
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Rollback processes components in **reverse order** of the upgrade:
 
@@ -50,10 +50,10 @@ Rollback processes components in **reverse order** of the upgrade:
     - There is no separate ``local_repo``, ``build_image``, or ``provision`` rollback step. The packages and images produced during upgrade do not require active reversion, and the Cloud-Init and BSS boot configuration is restored to the previous version **within** the Slurm and Kubernetes rollbacks for the affected nodes.
 
 Rollback Workflow
-~~~~~~~~~~~~~~~~~
+----------------
 
 Phase 0: Core Container Rollback (OIM Host)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The rollback begins on the OIM host outside the ``omnia_core`` container.
 
@@ -65,7 +65,7 @@ The rollback begins on the OIM host outside the ``omnia_core`` container.
     Do **not** attempt to run ``./omnia.sh --rollback`` using the 2.1.0.0 script.
 
 Download the Omnia 2.2.0.0 omnia.sh Script
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Before starting the rollback, download the correct version of the ``omnia.sh`` script:
 
@@ -82,7 +82,7 @@ Before starting the rollback, download the correct version of the ``omnia.sh`` s
     ./omnia.sh --version
 
 Running the Core Container Rollback
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1. Run the core container rollback command: ::
 
@@ -102,7 +102,7 @@ Running the Core Container Rollback
 3. After the container swap completes, SSH into the ``omnia_core`` container to proceed with component rollbacks.
 
 Running the Component Rollback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1. SSH into the OIM node and enter the ``omnia_core`` container: ::
 
@@ -114,7 +114,7 @@ Running the Component Rollback
     ansible-playbook rollback.yml -e force_rollback=true
 
 Validation Checks
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
 
 The rollback orchestrator performs the following validation checks before making any changes:
 
@@ -125,7 +125,7 @@ The rollback orchestrator performs the following validation checks before making
 3. **Already-completed rollback check** — If a previous ``rollback_manifest.yml`` shows ``rollback_status: completed``, the rollback is blocked. Override with ``-e force_rollback=true``.
 
 Lock Management
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 * ``/opt/omnia/.data/rollback_in_progress.lock`` — Created at the start of the rollback. Removed on completion.
 * ``/opt/omnia/.data/upgrade_in_progress.lock`` — If this lock exists, rollback aborts.
@@ -134,7 +134,7 @@ Lock Management
     The ``omnia.sh --rollback`` wrapper may pre-create the rollback lock. The playbook detects this and proceeds normally.
 
 Manifest Tracking
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 
@@ -148,14 +148,14 @@ Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 On rerun, already-completed components are automatically skipped.
 
 BuildStreaM Terminal Gate (Rollback)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``k8s-telemetry``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
 Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
 
 BuildStreaM Rollback
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 The BuildStreaM rollback path is automatically determined from metadata stored during the upgrade:
 
@@ -246,7 +246,7 @@ During rollback, Omnia performs the following operations:
 #. Generates a rollback status report summarizing the outcome for each node.
 
 Configuration Restoration
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 The rollback process restores the pre-upgrade configuration captured during the upgrade backup phase.
 
@@ -261,7 +261,7 @@ The following configuration components are restored:
 This restoration ensures that the Slurm infrastructure returns to the same configuration state that existed before the upgrade was initiated.
 
 Node Restart and Recovery Validation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After the backup configuration has been restored, Omnia performs a cluster-wide reboot to activate the recovered settings.
 
@@ -276,7 +276,7 @@ The reboot and validation workflow includes the following steps:
 - Validation checks are retried automatically to account for service startup delays.
 
 Health Checks Performed
-~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The following checks are executed during rollback validation:
 
@@ -294,7 +294,7 @@ The following checks are executed during rollback validation:
 - Confirm that the node can participate in normal cluster operations.
 
 Rollback Status Report
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
 
 At the end of the rollback process, Omnia generates a node-level status report showing the outcome for every Slurm and login node.
 
@@ -307,7 +307,7 @@ Nodes are grouped into the following categories:
 * **sinfo Failure** - Slurm services failed to start correctly or did not respond to ``sinfo`` validation checks.
 
 Post-Rollback Recommendations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 After rollback completes successfully:
 
@@ -319,7 +319,7 @@ After rollback completes successfully:
 - Review the rollback status report and investigate any nodes reported under the *Unreachable*, *Reboot Failed*, *SSH Failure*, or *sinfo Failure* categories before returning the cluster to production use.
 
 Post-Rollback
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~
 
 After rollback completes:
 
@@ -343,7 +343,7 @@ After rollback completes:
 3. The rollback summary displays the final component statuses.
 
 Post-Rollback Verification
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 After the rollback completes, verify the following:
 

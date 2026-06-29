@@ -9,7 +9,7 @@ Advanced Configurations
     DeployAdditionalRepo
     apptainer
     PowerScale_CSI
-    build_arm_ochami_image
+    build_arm_OpenCHAMI_image
     kernel_upgrade
     cluster-dns/index
     multi-subnet-dhcp/index

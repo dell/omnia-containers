@@ -198,24 +198,20 @@ Pulp container resource saturation.
 
 Allow the system to idle ~1 hour before re-running.
 
-3.3 Pulp Sync/Publish "No space left on device"
------------------------------------------------
+3.3 Pulp Reset Password Failed
+--------------------------------
 
-**Cause**
+.. image:: images/pulp_reset_password_failed.png
 
-NFS mount full.
+**Possible Causes for Pulp Reset Password Failed:**
+
+* **NFS Storage Export Configuration (PowerScale)**: Enable the ``nfsv4-no-names``, ``nfsv4-no-domain``, ``nfsv4-no-domain-uids``, and ``nfsv4-allow-numeric-ids`` settings. Ensure consistent UID and GID mappings between the NFS server and client.
+* **Access Permissions**: Add the ``no_root_squash`` option to the NFS export configuration in ``/etc/exports``.
+* **Network Reachability**: Verify NFS server connectivity and ensure firewall ports 2049, 111, and 20048 are open.
 
 **Resolution**
 
-Increase NFS size
-Set concurrency to 1:
-
-.. code-block:: bash
-
-   PULP_SYNC_CONCURRENCY = 1
-   PULP_PUBLISH_CONCURRENCY = 1
-
-Re-run playbook
+Verify the configurations and settings mentioned above, then rerun the ``prepare_oim.yml`` playbook. For PowerScale-specific configuration details, see the PowerScale configuration page in the `Omnia Deployment Requirements <https://omnia.readthedocs.io/en/v2.2.0.0-rc1/RHEL_prereq.html>`_ documentation.
 
 3.4 EPEL Repository Instability
 -------------------------------
