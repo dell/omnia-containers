@@ -94,7 +94,7 @@ Optional","PowerVault iSCSI storage configuration. Processed entirely via runcmd
 * **iscsi_initiator**—iSCSI initiator IQN for the host. Pattern: iqn.<date>.<domain>:<identifier>
 * **volume_id**—Volume WWN/identifier for multipath device matching. Pattern: hex string [a-fA-F0-9]+
 * **mount_point**—Absolute path where the discovered device gets mounted
-* **functional_group_prefix**—List of oChaMI functional group name prefixes. All nodes whose group name starts with any listed prefix receive this entry
+* **functional_group_prefix**—List of OpenCHAMI functional group name prefixes. All nodes whose group name starts with any listed prefix receive this entry
 
 **Optional Fields:**
 
@@ -146,7 +146,7 @@ Optional","Swap file configuration for cluster nodes. Swap files are created and
 
 * **filename**—Path to the swap file to create. Pattern: /path/to/swapfile (absolute path)
 * **size**—Swap file size. Values: ""auto"", a byte integer, or human-readable format (e.g., ""2G"", ""512M"")
-* **functional_group_prefix**—List of oChaMI functional group name prefixes. All nodes whose group name starts with any listed prefix receive this swap
+* **functional_group_prefix**—List of OpenCHAMI functional group name prefixes. All nodes whose group name starts with any listed prefix receive this swap
 
 **Optional Fields:**
 

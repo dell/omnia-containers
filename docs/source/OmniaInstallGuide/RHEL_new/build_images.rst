@@ -48,7 +48,7 @@ Build Images for aarch64 Cluster Nodes
 
 To build images for the nodes present in each functional group, do the following.
 
-1. Prepare the aarch64 cluster nodes by following the steps provided in :doc:`../AdvancedConfigurations/build_arm_ochami_image`.
+1. Prepare the aarch64 cluster nodes by following the steps provided in :doc:`../AdvancedConfigurations/build_arm_OpenCHAMI_image`.
 
 2. Navigate to the image build directory::
 
