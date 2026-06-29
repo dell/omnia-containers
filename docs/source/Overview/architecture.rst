@@ -6,18 +6,19 @@ Omnia provides a comprehensive infrastructure management platform that orchestra
 **OIM Role and Responsibilities**
 
 The OIM is the primary management node that coordinates all cluster activities:
-- **Provisioning**: Manages the Bare System Setup (BSS) and cloud-init configurations to provision nodes from bare metal
-- **Package Deployment**: Handles software distribution and configuration management across the cluster
-- **Monitoring**: Collects and aggregates metrics, logs, and telemetry data from all cluster components
-- **Orchestration**: Coordinates workflows for cluster operations including upgrades, scaling, and maintenance
+
+* **Provisioning**: Manages the Bare System Setup (BSS) and cloud-init configurations to provision nodes from bare metal
+* **Package Deployment**: Handles software distribution and configuration management across the cluster
+* **Monitoring**: Collects and aggregates metrics, logs, and telemetry data from all cluster components
+* **Orchestration**: Coordinates workflows for cluster operations including upgrades, scaling, and maintenance
 
 **Node Relationships**
 
 The OIM maintains a hierarchical relationship with provisioned nodes:
-- **Service Cluster**: Kubernetes-based control plane running core services (monitoring, telemetry, scheduling)
-- **Compute Nodes**: Slurm-managed workload execution nodes
-- **Login Nodes**: User access points for job submission and cluster interaction
-- **Storage Nodes**: Dedicated nodes for shared storage and data management
+* **Service Cluster**: Kubernetes-based control plane running core services (monitoring, telemetry, scheduling)
+* **Compute Nodes**: Slurm-managed workload execution nodes
+* **Login Nodes**: User access points for job submission and cluster interaction
+* **Storage Nodes**: Dedicated nodes for shared storage and data management
 
 All nodes communicate with the OIM through secure channels for configuration updates, health checks, and status reporting. The OIM maintains the authoritative source of truth for cluster state and configuration.
 

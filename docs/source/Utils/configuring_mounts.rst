@@ -81,7 +81,7 @@ The following parameters are supported for each mount:
 
 **Node Targeting (exactly ONE is required - mutually exclusive):**
 
-* **functional_group_prefix** - List of oChaMI functional group name prefixes
+* **functional_group_prefix** - List of OpenCHAMI functional group name prefixes
     * All nodes whose group name starts with any listed prefix receive this mount
     * Example: ["slurm"] matches slurm_control_node, slurm_node, etc.
     * MUTUALLY EXCLUSIVE with groups
@@ -251,7 +251,7 @@ The following parameters are supported for each swap configuration:
 * **filename** (required) - Path to the swap file to create
 * **size** (required) - Size in bytes, 'auto', or human-readable format (e.g., 2G, 512M)
 * **maxsize** - Maximum size (used with size: auto)
-* **functional_group_prefix** - List of oChaMI functional group prefixes to apply this swap to
+* **functional_group_prefix** - List of OpenCHAMI functional group prefixes to apply this swap to
 
 Example swap configuration::
 
