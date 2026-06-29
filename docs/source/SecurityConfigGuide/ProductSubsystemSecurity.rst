@@ -116,7 +116,7 @@ Firewall Settings
 
 Omnia configures the following ports for use by third-party tools installed by Omnia.
 
-**Host port requirements**
+**Host Port Requirements**
 
 .. list-table::
    :widths: 15 10 35 20
@@ -195,7 +195,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Unknown listener
      - Manager (OIM)
 
-**Ports used by Podman container and services**
+**Podman Container Port Requirements**
 
 .. list-table::
    :widths: 10 10 30 20
@@ -234,7 +234,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - OpenLDAPS
      - Manager (OIM)
 
-**Kubernetes ports requirements**
+**Kubernetes Port Requirements**
 
 .. list-table::
    :widths: 15 10 45 25
@@ -342,7 +342,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Compute
 
 
-**Slurm port requirements**
+**Slurm Port Requirements**
 
 .. list-table::
    :widths: 15 10 25 20
@@ -369,7 +369,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Slurm SrunPortRange
      - Manager + Compute
 
-**OpenLDAP port requirements**
+**OpenLDAP Port Requirements**
 
 .. list-table::
    :widths: 15 10 25 25
@@ -397,7 +397,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Manager/ Login_Node
 
 
-**LDAP port requirements**
+**LDAP Port Requirements**
 
 .. list-table::
    :widths: 10 10 25 20
@@ -425,7 +425,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Manager / Login
 
 
-**Telemetry ports**
+**Telemetry Port Requirements**
 
 .. list-table::
    :widths: 12 12 30 25
@@ -544,7 +544,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - LDMS sampler
      - Compute
 
-**Build Stream ports**
+**Build Stream Port Requirements**
 
 .. list-table::
    :widths: 15 10 30 20
@@ -559,7 +559,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Build Stream API
      - Manager (OIM)
 
-**DOCA/IB ports**
+**DOCA/IB Port Requirements**
 
 .. list-table::
    :widths: 15 10 25 25
@@ -579,7 +579,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Compute (IB nodes)
 
   
-**OpenCHAMI ports**
+**OpenCHAMI Port Requirements**
 
 .. list-table::
    :widths: 15 10 30 20
