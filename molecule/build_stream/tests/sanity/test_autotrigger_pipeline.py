@@ -18,19 +18,17 @@ Build Stream Auto-Trigger Pipeline Tests (v2.1).
 Sanity tests for triggering and monitoring the build pipeline:
   - Trigger pipeline via catalog upload
   - Monitor each stage (parse-catalog, generate-input-files,
-    create-local-repository, build-image-x86_64)
+    create-local-repository, build-image-x86_64, build-image-aarch64,
+    validate-image-on-test)
   - Verify each stage in database
   - Verify catalog roles and architectures
   - Verify registry images
   - Verify S3 boot images
   - Final pipeline result summary
 
-v2.1 differences from v2.2:
-  - No deploy pipeline
-  - No image_groups/images tables
-  - No cleanup pipeline
-  - No "upload" stage (catalog is parsed directly)
-  - validate-image-on-test (not "validate")
+v2.1 has a SINGLE pipeline (unlike v2.2 which has separate build + deploy).
+The "deploy-and-validate" CI/CD stage runs the validate-image-on-test job
+which deploys and validates the built images on test nodes.
 """
 
 import sys
@@ -44,7 +42,7 @@ from automation_library.build_stream.functions import (
     trigger_build_pipeline,
     wait_for_stage_completion,
     get_catalog_roles,
-    get_stage_state,
+    verify_stage_completed,
     get_latest_job,
     verify_registry_images,
     verify_s3_boot_images,
@@ -56,6 +54,7 @@ from automation_library.build_stream.vars.build_stream_vars import (
     STAGE_STATE_FAILED,
     STAGE_POLL_TIMEOUT,
     STAGE_POLL_INTERVAL,
+    STAGE_VALIDATE_IMAGE,
 )
 from automation_library.build_stream.messages import (
     TEST_NAMES,
@@ -97,6 +96,7 @@ def _get_build_stages():
         stages.append(f"{BUILD_IMAGE_STAGE_PREFIX}{arch}")
     if not _build_state.get("catalog_architectures"):
         stages.append(f"{BUILD_IMAGE_STAGE_PREFIX}x86_64")
+    stages.append(STAGE_VALIDATE_IMAGE)
     return stages
 
 
@@ -175,9 +175,14 @@ def _run_build_stage_monitor(host, stage_name: str):
 
     log.check(TEST_LOG_MSGS["stage_running"].format(stage=stage_name))
 
+    if stage_name in ["parse-catalog", "generate-input-files"]:
+        stage_timeout = 300
+    else:
+        stage_timeout = STAGE_POLL_TIMEOUT
+
     result = wait_for_stage_completion(
         host, job_id, stage_name,
-        timeout=STAGE_POLL_TIMEOUT,
+        timeout=stage_timeout,
         poll_interval=STAGE_POLL_INTERVAL,
         log_callback=_log_callback,
     )
@@ -228,7 +233,7 @@ def _run_build_stage_db_verify(host, stage_name: str):
         pytest.skip(SKIP_MSGS["no_job_id"])
 
     log.check(f"Verifying stage '{stage_name}' in database...")
-    db_result = get_stage_state(host, job_id, stage_name)
+    db_result = verify_stage_completed(host, job_id, stage_name)
 
     if not db_result["success"]:
         log.failed(
@@ -239,7 +244,7 @@ def _run_build_stage_db_verify(host, stage_name: str):
         )
 
     db_state = db_result["stage_state"]
-    details = f"Stage: {stage_name}\nDB State: {db_state}"
+    details = f"Stage: {stage_name}\nDB State: {db_state}\n{db_result.get('details', '')}"
 
     if stage_name in _build_state["stage_results"]:
         monitored_state = _build_state["stage_results"][stage_name].get("stage_state", "")
@@ -422,12 +427,32 @@ def test_build_stage_build_image_aarch64_db_verify(host):
 
 
 # =============================================================================
-# TEST 21: Catalog Roles Verification
+# TESTS 21-22: validate-image-on-test (deploy-and-validate CI/CD stage)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
 @pytest.mark.order(21)
+def test_build_stage_validate_image_monitor(host):
+    """Monitor validate-image-on-test stage until completion."""
+    _run_build_stage_monitor(host, STAGE_VALIDATE_IMAGE)
+
+
+@pytest.mark.sanity
+@pytest.mark.build_auto
+@pytest.mark.order(22)
+def test_build_stage_validate_image_db_verify(host):
+    """Verify validate-image-on-test stage state in database."""
+    _run_build_stage_db_verify(host, STAGE_VALIDATE_IMAGE)
+
+
+# =============================================================================
+# TEST 23: Catalog Roles Verification
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.build_auto
+@pytest.mark.order(23)
 def test_build_catalog_roles(host):
     """Verify catalog roles and architectures from Build Stream API."""
     log = TestLogger(TEST_NAMES["catalog_roles"])
@@ -472,12 +497,12 @@ def test_build_catalog_roles(host):
 
 
 # =============================================================================
-# TEST 22: Registry Images Verification
+# TEST 24: Registry Images Verification
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(22)
+@pytest.mark.order(24)
 def test_build_registry_images(host):
     """Verify container images exist in the local registry for each role."""
     log = TestLogger(TEST_NAMES["registry_images"])
@@ -527,12 +552,12 @@ def test_build_registry_images(host):
 
 
 # =============================================================================
-# TEST 23: S3 Boot Images Verification
+# TEST 25: S3 Boot Images Verification
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(23)
+@pytest.mark.order(25)
 def test_build_s3_boot_images(host):
     """Verify S3 boot images exist for each role."""
     log = TestLogger(TEST_NAMES["s3_boot_images"])
@@ -582,12 +607,12 @@ def test_build_s3_boot_images(host):
 
 
 # =============================================================================
-# TEST 24: Build Pipeline Final Result
+# TEST 26: Build Pipeline Final Result
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(24)
+@pytest.mark.order(26)
 def test_build_pipeline_result(host):
     """Final summary of build pipeline results."""
     log = TestLogger(TEST_NAMES["build_pipeline_result"])

@@ -47,13 +47,19 @@ BUILD_STREAM_AUTH_TOKEN_PATH: str = "/api/v1/auth/token"
 # =============================================================================
 # PIPELINE STAGES (from GitLab CI/CD -- BuildStream 2.1)
 #
-# v2.1 pipeline stages (from .gitlab-ci.yml):
-#   initialization, parse-catalog, generate-input-files,
-#   configure-local-repository, build-images, deploy-and-validate, summary
+# v2.1 has a SINGLE pipeline (triggered by catalog_rhel.json commit):
+#   CI/CD stages:
+#     initialization, parse-catalog, generate-input-files,
+#     configure-local-repository, build-images, deploy-and-validate, summary
 #
-# These map to BuildStream API/DB stages:
-#   parse-catalog, generate-input-files, create-local-repository,
-#   build-image-x86_64, build-image-aarch64, validate-image-on-test
+#   DB stage names (from StageType enum):
+#     parse-catalog, generate-input-files, create-local-repository,
+#     build-image-x86_64, build-image-aarch64, validate-image-on-test
+#
+# The "deploy-and-validate" CI/CD stage runs the validate-image-on-test
+# job which deploys and validates the built images on test nodes.
+#
+# NOTE: v2.2 splits this into separate build + deploy pipelines.
 # =============================================================================
 
 BUILD_PIPELINE_CORE_STAGES: List[str] = [
@@ -70,6 +76,7 @@ BUILD_PIPELINE_STAGES: List[str] = [
     STAGE_CREATE_LOCAL_REPO,
     STAGE_BUILD_IMAGE_X86_64,
     STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_VALIDATE_IMAGE,
 ]
 
 # =============================================================================

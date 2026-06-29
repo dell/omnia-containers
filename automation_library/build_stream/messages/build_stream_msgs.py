@@ -32,6 +32,8 @@ TEST_NAMES = {
     "registry_images": "Registry Images Verification",
     "s3_boot_images": "S3 Boot Images Verification",
     "build_pipeline_result": "Build Pipeline Final Result",
+    "pxe_boot_connectivity": "PXE Boot Node Connectivity Check",
+    "pxe_boot_cloudinit": "PXE Boot Cloud-Init Verification",
 }
 
 # =============================================================================
@@ -66,6 +68,11 @@ TEST_LOG_MSGS = {
     "s3_fail": "Missing {count} role boot image(s) in S3: {missing}",
     "pipeline_result_ok": "Build pipeline completed -- all stages passed",
     "pipeline_result_fail": "Build pipeline completed with failures",
+    "pxe_connectivity_ok": "All {count} nodes reachable (ping + SSH)",
+    "pxe_connectivity_fail": "{unreachable} of {total} nodes unreachable",
+    "pxe_cloudinit_ok": "Cloud-init completed on all {count} reachable nodes",
+    "pxe_cloudinit_fail": "Cloud-init failed on {failed} of {total} nodes",
+    "pxe_no_nodes": "No nodes found in PXE mapping file",
 }
 
 # =============================================================================
@@ -85,6 +92,8 @@ TEST_ASSERT_MSGS = {
     "catalog_roles_failed": "Failed to retrieve catalog roles: {error}",
     "registry_images_failed": "Registry image verification failed: {error}",
     "s3_images_failed": "S3 boot image verification failed: {error}",
+    "pxe_connectivity_failed": "Node connectivity check failed: {error}",
+    "pxe_cloudinit_failed": "Cloud-init verification failed: {error}",
 }
 
 # =============================================================================
@@ -97,6 +106,7 @@ SKIP_MSGS = {
     "previous_stage_failed": "Test skipped - previous stage '{stage}' failed",
     "build_failed": "Test skipped - build pipeline failed",
     "pipeline_not_triggered": "Test skipped - pipeline not triggered",
+    "no_nodes_in_pxe_mapping": "Test skipped - no nodes found in PXE mapping file",
 }
 
 # =============================================================================
