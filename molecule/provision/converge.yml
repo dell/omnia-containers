@@ -32,7 +32,9 @@
     - name: Set facts for OIM server play
       ansible.builtin.set_fact:
         omnia_test_config: "{{ omnia_test_config }}"
+        omnia_test_credentials: "{{ omnia_test_credentials }}"
         cacheable: true
+      no_log: true
 
 
 - name: Converge - Run provision prerequisite checks and playbook
@@ -41,6 +43,7 @@
 
   vars:
     omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    omnia_test_credentials: "{{ hostvars['localhost']['omnia_test_credentials'] }}"
     container_name: "omnia_core"
     provision_playbook: "/omnia/provision/provision.yml"
     provision_config_path: "/opt/omnia/input/project_default/provision_config.yml"
