@@ -31,7 +31,7 @@
 - name: Sync project_default to container via rsync  # noqa: command-instead-of-module
   ansible.builtin.shell:
     cmd: >
-      rsync -avz --delete
+      rsync -avz
       -e "sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       {{ project_default_src }}/
