@@ -249,17 +249,31 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **OpenLDAP port requirements**
 
-        +---------------+---------+----------------------+----------------------+
-        | Port Number   | Protocol | Service Name        | Node                 |
-        +===============+=========+======================+======================+
-        | 80            | TCP     | HTTP/HTTPS           | Manager/ Login_Node  |
-        +---------------+---------+----------------------+----------------------+
-        | 443           | TCP     | HTTP/HTTPS           | Manager/ Login_Node  |
-        +---------------+---------+----------------------+----------------------+
-        | 389           | TCP     | LDAP/LDAPS           | Manager/ Login_Node  |
-        +---------------+---------+----------------------+----------------------+
-        | 636           | TCP     | LDAP/LDAPS           | Manager/ Login_Node  |
-        +---------------+---------+----------------------+----------------------+
+.. list-table:: OpenLDAP Port Requirements
+   :widths: 15 10 25 25
+   :header-rows: 1
+
+   * - Port Number
+     - Protocol
+     - Service Name
+     - Node
+   * - 80
+     - TCP
+     - HTTP/HTTPS
+     - Manager/ Login_Node
+   * - 443
+     - TCP
+     - HTTP/HTTPS
+     - Manager/ Login_Node
+   * - 389
+     - TCP
+     - LDAP/LDAPS
+     - Manager/ Login_Node
+   * - 636
+     - TCP
+     - LDAP/LDAPS
+     - Manager/ Login_Node
+
 
 **LDAP port requirements**
 
