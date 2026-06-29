@@ -15,6 +15,7 @@ The OIM is the primary management node that coordinates all cluster activities:
 **Node Relationships**
 
 The OIM maintains a hierarchical relationship with provisioned nodes:
+
 * **Service Cluster**: Kubernetes-based control plane running core services (monitoring, telemetry, scheduling)
 * **Compute Nodes**: Slurm-managed workload execution nodes
 * **Login Nodes**: User access points for job submission and cluster interaction
