@@ -260,7 +260,7 @@ These components are managed by the GitLab CI/CD pipeline instead. The user must
     When ``enable_build_stream=false``, the ``build_stream`` component is marked ``skipped`` in the manifest instead of being left as ``pending``.
 
 Kubernetes Upgrade
-^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~
 
 .. note::
    The Kubernetes upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``k8s`` component in the correct order (after provision and before telemetry) and handles all validation and status tracking automatically.
@@ -346,7 +346,7 @@ The Kubernetes upgrade is executed automatically by the upgrade orchestrator whe
    2. If upgrade fails, check the cluster is healthy, fix issues if any and rerun the ``upgrade.yml`` playbook
 
 Telemetry Upgrade
-^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 .. note::
    The telemetry upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``telemetry`` component in the correct order (after Kubernetes and before Slurm) and handles all validation and status tracking automatically.
@@ -376,7 +376,7 @@ After the telemetry upgrade completes, the playbook performs the following valid
 The telemetry upgrade is executed automatically by the upgrade orchestrator when you run the main upgrade playbook. See :ref:`phase-2-execute-upgrade` for instructions.
 
 Slurm Upgrade
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~
 
 .. note::
    The Slurm upgrade is automatically executed as part of :ref:`phase-2-execute-upgrade`. The upgrade orchestrator processes the ``slurm`` component in the correct order (after telemetry) and handles all validation and status tracking automatically.
