@@ -168,10 +168,10 @@ idrac_telemetry_storage:
     resources:
       requests:
         cpu: "100m"
-        memory: "256Mi"
+        memory: "512Mi"
       limits:
         cpu: "500m"
-        memory: "512Mi"
+        memory: "1536Mi"
   receiver:
     resources:
       requests:
@@ -184,18 +184,18 @@ idrac_telemetry_storage:
     resources:
       requests:
         cpu: "50m"
-        memory: "64Mi"
+        memory: "128Mi"
       limits:
         cpu: "200m"
-        memory: "256Mi"
+        memory: "512Mi"
   victoria_pump:
     resources:
       requests:
         cpu: "50m"
-        memory: "64Mi"
+        memory: "128Mi"
       limits:
         cpu: "200m"
-        memory: "256Mi"
+        memory: "512Mi"
 
 # Kafka Storage resources
 kafka_storage:

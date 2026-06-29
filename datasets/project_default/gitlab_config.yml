@@ -16,7 +16,7 @@
 # SIMPLY APPEND THE REQUIRED VALUES AGAINST THE PARAMETER OF YOUR CHOICE.
 # ***********************************************************************
 
-
+ 
 # Target host for GitLab deployment/cleanup
 # Fields:
 #   gitlab_host: IP address of the target host where GitLab will be deployed
@@ -25,7 +25,7 @@
 #   - Must be accessible from the OIM server
 #   - Must be configured in build_stream/gitlab/inventory/hosts.ini
 gitlab_host: ""
-
+ 
 # Project settings
 # Name of the GitLab project Omnia will create/manage
 # Fields:
@@ -52,13 +52,13 @@ gitlab_project_visibility: "private"
 #   - This branch will be used as the default for all operations
 gitlab_default_branch: "main"
 
-
-# HTTPS is always enabled for GitLab deployment
+ 
+# HTTPS is always enabled for GitLab deployment 
 # ----------------------------------------------------------------------------
 # DEFAULT / ADVANCED VARIABLES (CHANGE ONLY IF NEEDED)
 # ----------------------------------------------------------------------------
 # These defaults are suitable for most setups and can be tuned as required.
-
+ 
 # Network
 # HTTPS port exposed via GitLab NGINX
 # Fields:
@@ -93,7 +93,7 @@ gitlab_min_memory_gb: 4
 #   - Default: 2
 #   - More cores may be needed for production workloads
 gitlab_min_cpu_cores: 2
-
+ 
 
 # Web worker count; scale with CPU
 # Fields:
@@ -109,6 +109,7 @@ gitlab_puma_workers: 2
 # Notes:
 #   - Default: 10
 #   - Adjust based on available memory and workload
-
+ 
 # Target host for GitLab deployment/cleanup
 gitlab_sidekiq_concurrency: 10
+ 

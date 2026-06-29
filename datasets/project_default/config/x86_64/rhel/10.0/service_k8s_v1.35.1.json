@@ -1,3 +1,4 @@
+
 {
   "service_k8s": {
     "cluster": [
@@ -32,21 +33,21 @@
       { "package": "cffi==1.17.1", "type": "pip_module" },
       { "package": "prometheus_client==0.20.0", "type": "pip_module" },
       { "package": "kubernetes==33.1.0", "type": "pip_module" },
-      { "package": "quay.io/strimzi/operator", "tag": "0.48.0", "type": "image" },
-      { "package": "quay.io/strimzi/kafka", "tag": "0.48.0-kafka-4.1.0", "type": "image" },
+      { "package": "quay.io/strimzi/operator", "tag": "1.0.1", "type": "image" },
+      { "package": "quay.io/strimzi/kafka", "tag": "1.0.1-kafka-4.2.0", "type": "image" },
       { "package": "docker.io/dellhpcomniaaisolution/ubuntu-ldms", "tag": "1.1", "type": "image" },
-      { "package": "quay.io/dell/container-storage-modules/csm-metrics-powerscale", "tag": "v1.11.0", "type": "image" },
-      { "package": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector", "tag": "0.143.1", "type": "image" },
+      { "package": "quay.io/dell/container-storage-modules/csm-metrics-powerscale", "tag": "v1.12.0", "type": "image" },
+      { "package": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector", "tag": "0.150.1", "type": "image" },
       { "package": "docker.io/nginxinc/nginx-unprivileged", "tag": "1.29", "type": "image" },
-      { "package": "karavi-observability", "type": "git", "url": "https://github.com/dell/karavi-observability.git", "version": "v1.12.0" },
-      { "package": "helm-charts", "type": "git", "url": "https://github.com/dell/helm-charts.git", "version": "container-storage-modules-1.9.2" },
+      { "package": "karavi-observability", "type": "git", "url": "https://github.com/dell/karavi-observability.git", "version": "v1.15.0" },
+      { "package": "helm-charts", "type": "git", "url": "https://github.com/dell/helm-charts.git", "version": "container-storage-modules-1.10.0" },
       { "package": "quay.io/jetstack/cert-manager-controller", "tag": "v1.10.0", "type": "image" },
       { "package": "quay.io/jetstack/cert-manager-cainjector", "tag": "v1.10.0", "type": "image" },
       { "package": "quay.io/jetstack/cert-manager-webhook", "tag": "v1.10.0", "type": "image" },
       { "package": "quay.io/jetstack/cert-manager-acmesolver", "tag": "v1.10.0", "type": "image" },
       { "package": "cert-manager-v1.10.0", "type": "tarball", "url": "https://charts.jetstack.io/charts/cert-manager-v1.10.0.tgz" },
-      { "package": "strimzi-kafka-operator-helm-3-chart-0.48.0", "type": "tarball", "url": "https://github.com/strimzi/strimzi-kafka-operator/releases/download/0.48.0/strimzi-kafka-operator-helm-3-chart-0.48.0.tgz" },
-      { "package": "quay.io/strimzi/kafka-bridge", "tag": "0.33.1", "type": "image" },
+      { "package": "strimzi-kafka-operator-helm-3-chart-1.0.1", "type": "tarball", "url": "https://github.com/strimzi/strimzi-kafka-operator/releases/download/1.0.1/strimzi-kafka-operator-helm-3-chart-1.0.1.tgz" },
+      { "package": "quay.io/strimzi/kafka-bridge", "tag": "1.0.0", "type": "image" },
       { "package": "docker.io/victoriametrics/operator", "tag": "v0.68.3", "type": "image" },
       { "package": "docker.io/victoriametrics/operator", "tag": "config-reloader-v0.68.3", "type": "image" },
       { "package": "victoria-metrics-operator-0.59.3", "type": "tarball", "url": "https://github.com/VictoriaMetrics/helm-charts/releases/download/victoria-metrics-operator-0.59.3/victoria-metrics-operator-0.59.3.tgz" },
@@ -99,7 +100,7 @@
       { "package": "docker.io/calico/node", "tag": "v3.31.4", "type": "image" },
       { "package": "quay.io/metallb/speaker", "tag": "v0.15.3", "type": "image" },
       { "package": "calico-v3.31.4","type": "manifest", "url": "https://raw.githubusercontent.com/projectcalico/calico/v3.31.4/manifests/calico.yaml" },
-      { "package": "metallb-native-v0.15.3", "type": "manifest", "url": "https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml" },     
+      { "package": "metallb-native-v0.15.3", "type": "manifest", "url": "https://raw.githubusercontent.com/metallb/metallb/v0.15.3/config/manifests/metallb-native.yaml" },
       { "package": "helm-v3.20.1-amd64", "type": "tarball", "url": "https://get.helm.sh/helm-v3.20.1-linux-amd64.tar.gz" },
       { "package": "nfs-subdir-external-provisioner-4.0.18", "type": "tarball", "url": "https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner/releases/download/nfs-subdir-external-provisioner-4.0.18/nfs-subdir-external-provisioner-4.0.18.tgz" },
       { "package": "kubectl-1.35.1", "type": "rpm", "repo_name": "kubernetes-v1-35"},
@@ -115,7 +116,7 @@
     "cluster": [
       { "package": "registry.k8s.io/sig-storage/nfs-subdir-external-provisioner", "tag": "v4.0.2", "type": "image" },
       { "package": "quay.io/metallb/speaker", "tag": "v0.15.3", "type": "image" },
-      { "package": "quay.io/metallb/controller", "tag": "v0.15.3", "type": "image" } 
+      { "package": "quay.io/metallb/controller", "tag": "v0.15.3", "type": "image" }
     ]
   }
 }

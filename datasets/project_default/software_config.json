@@ -8,7 +8,7 @@
         {"name": "openldap", "arch": ["x86_64","aarch64"]},
         {"name": "service_k8s","version": "1.35.1", "arch": ["x86_64"]},
         {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
-        {"name": "csi_driver_powerscale", "version":"v2.16.0", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
         {"name": "ldms", "arch": ["x86_64","aarch64"]},
         {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
     ],

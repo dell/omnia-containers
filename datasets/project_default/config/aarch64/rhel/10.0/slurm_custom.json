@@ -33,12 +33,7 @@
             {"package": "slurm-slurmd", "type": "rpm", "repo_name": "slurm_custom"},
             {"package": "slurm-pam_slurm", "type": "rpm", "repo_name": "slurm_custom"},
             {"package": "kernel-devel", "type": "rpm", "repo_name": "appstream"},
-            {"package": "kernel-headers", "type": "rpm", "repo_name": "appstream"},
-            {
-            "package": "nvhpc_2025_2511_Linux_aarch64_cuda_13.0",
-            "type": "tarball",
-            "url": "https://developer.download.nvidia.com/hpc-sdk/25.11/nvhpc_2025_2511_Linux_aarch64_cuda_13.0.tar.gz"
-            }
+            {"package": "kernel-headers", "type": "rpm", "repo_name": "appstream"}
              
         ]
     },

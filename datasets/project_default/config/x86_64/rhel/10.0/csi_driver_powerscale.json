@@ -2,81 +2,81 @@
   "csi_driver_powerscale": {
     "cluster": [
       {
-        "package": "csi-powerscale-v2.16.0",
+        "package": "csi-powerscale-v2.17.0",
         "url": "https://github.com/dell/csi-powerscale.git",
         "type": "git",
-        "version": "v2.16.0"
+        "version": "v2.17.0"
       },
       {
-        "package": "external-snapshotter-v8.4.0",
+        "package": "external-snapshotter-v8.5.0",
         "url": "https://github.com/kubernetes-csi/external-snapshotter.git",
         "type": "git",
-        "version": "v8.4.0"
+        "version": "v8.5.0"
       },
       {
-        "package": "helm-charts-2.16.0",
+        "package": "helm-charts-2.17.0",
         "url": "https://github.com/dell/helm-charts.git",
         "type": "git",
-        "version": "csi-isilon-2.16.0"
+        "version": "csi-isilon-2.17.0"
       },
       {
         "package": "quay.io/dell/container-storage-modules/csi-isilon",
-        "tag": "v2.16.0",
+        "tag": "v2.17.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-attacher",
-        "tag": "v4.10.0",
+        "tag": "v4.11.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-provisioner",
-        "tag": "v6.1.0",
+        "tag": "v6.2.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-snapshotter",
-        "tag": "v8.4.0",
+        "tag": "v8.5.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-resizer",
-        "tag": "v2.0.0",
+        "tag": "v2.1.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-node-driver-registrar",
-        "tag": "v2.15.0",
+        "tag": "v2.16.0",
         "type": "image"
       },
       {
         "package": "registry.k8s.io/sig-storage/csi-external-health-monitor-controller",
-        "tag": "v0.16.0",
+        "tag": "v0.17.0",
         "type": "image"
      },
      {
       "package": "quay.io/dell/container-storage-modules/dell-csi-replicator",
-      "tag": "v1.14.0",
+      "tag": "v1.15.0",
       "type": "image"
     },
      {
       "package": "quay.io/dell/container-storage-modules/podmon",
-      "tag": "v1.15.0",
+      "tag": "v1.16.0",
       "type": "image"
      },
       {
       "package": "quay.io/dell/container-storage-modules/csm-authorization-sidecar",
-      "tag": "v2.4.0",
+      "tag": "v2.5.0",
       "type": "image"
      },
     {
       "package": "quay.io/dell/container-storage-modules/csi-metadata-retriever",
-      "tag": "v1.13.0",
+      "tag": "v1.14.0",
       "type": "image"
     },
     {
       "package": "registry.k8s.io/sig-storage/snapshot-controller",
-      "tag": "v8.4.0",
+      "tag": "v8.5.0",
       "type": "image"
     },
     {
@@ -87,3 +87,4 @@
     ]
   }
 }
+
