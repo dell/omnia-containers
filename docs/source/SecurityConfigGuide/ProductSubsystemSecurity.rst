@@ -118,7 +118,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Host port requirements**
 
-.. list-table:: Host Port Requirements
+.. list-table::
    :widths: 15 10 35 20
    :header-rows: 1
 
@@ -201,23 +201,42 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Ports used by Podman container and services**
 
-        +------------+----------+----------------------+----------------+
-        | Port       | Protocol | Service Name         | Type of Node  |
-        +============+==========+======================+================+
-        | 2222       | TCP      | Omnia Core           | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 2225       | TCP      | Pulp Content Service | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 5000       | TCP      | OCI Registry         | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 9000       | TCP      | MinIO S3 API         | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 9001       | TCP      | MinIO Console        | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 389        | TCP      | OpenLDAP             | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
-        | 636        | TCP      | OpenLDAPS            | Manager (OIM) |
-        +------------+----------+----------------------+----------------+
+.. list-table::
+   :widths: 10 10 30 20
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 2222
+     - TCP
+     - Omnia Core
+     - Manager (OIM)
+   * - 2225
+     - TCP
+     - Pulp Content Service
+     - Manager (OIM)
+   * - 5000
+     - TCP
+     - OCI Registry
+     - Manager (OIM)
+   * - 9000
+     - TCP
+     - MinIO S3 API
+     - Manager (OIM)
+   * - 9001
+     - TCP
+     - MinIO Console
+     - Manager (OIM)
+   * - 389
+     - TCP
+     - OpenLDAP
+     - Manager (OIM)
+   * - 636
+     - TCP
+     - OpenLDAPS
+     - Manager (OIM)
 
 **Kubernetes ports requirements**
 
@@ -276,21 +295,34 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Slurm port requirements**
 
-        +------------+------------+----------------------+----------------+
-        | Port       | Protocol   | Service Name         | Type of Node  |
-        +============+============+======================+================+
-        | 6817       | TCP/UDP    | slurmctld            | Manager (Slurm) |
-        +------------+------------+----------------------+----------------+
-        | 6818       | TCP/UDP    | slurmd               | Compute (Slurm) |
-        +------------+------------+----------------------+----------------+
-        | 6819       | TCP/UDP    | slurmdbd             | Manager (Slurm) |
-        +------------+------------+----------------------+----------------+
-        | 60001-63000 | TCP       | Slurm SrunPortRange  | Manager + Compute |
-        +------------+------------+----------------------+----------------+
+.. list-table::
+   :widths: 15 10 25 20
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 6817
+     - TCP/UDP
+     - slurmctld
+     - Manager (Slurm)
+   * - 6818
+     - TCP/UDP
+     - slurmd
+     - Compute (Slurm)
+   * - 6819
+     - TCP/UDP
+     - slurmdbd
+     - Manager (Slurm)
+   * - 60001-63000
+     - TCP
+     - Slurm SrunPortRange
+     - Manager + Compute
 
 **OpenLDAP port requirements**
 
-.. list-table:: OpenLDAP Port Requirements
+.. list-table::
    :widths: 15 10 25 25
    :header-rows: 1
 
@@ -318,7 +350,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **LDAP port requirements**
 
-.. list-table:: LDAP Port Requirements
+.. list-table::
    :widths: 10 10 25 20
    :header-rows: 1
 
@@ -346,63 +378,122 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Telemetry ports**
 
-        +------------+------------+----------------------+-----------------------+
-        | Port       | Protocol   | Service Name         | Type of Node         |
-        +============+============+======================+=======================+
-        | 8161       | TCP        | ActiveMQ Console     | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 61613      | TCP        | ActiveMQ STOMP (port 1) | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 61616      | TCP        | ActiveMQ STOMP (port 2) | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8082       | TCP        | Telemetry Config UI  | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 3306       | TCP        | MySQL primary        | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 33060      | TCP        | MySQL X Protocol     | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9092       | TCP        | Kafka broker plaintext | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9093       | TCP        | Kafka broker TLS     | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9094       | TCP        | Kafka LoadBalancer   | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8443       | TCP        | VictoriaMetrics service | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8480       | TCP        | VictoriaMetrics Insert LB | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8481       | TCP        | VictoriaMetrics Query LB | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 2112       | TCP        | vmagent self-metrics | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8429       | TCP        | vmagent remote_write receiver | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9427       | TCP        | vlagent JSON Lines receiver | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9481       | TCP        | VictoriaLogs vlinsert | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9491       | TCP        | VictoriaLogs vlstorage health | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9471       | TCP        | VictoriaLogs vlselect query | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8687       | TCP        | vector-ldms health   | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9599       | TCP        | vector-ldms metrics  | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 8688       | TCP        | vector-ome health    | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 9600       | TCP        | vector-ome metrics   | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 514        | TCP/UDP    | Syslog plaintext (VLAgent) | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 6514       | TCP        | Syslog TLS (VLAgent) | Manager (Telemetry K8s) |
-        +------------+------------+----------------------+-----------------------+
-        | 6001-6100  | TCP        | LDMS aggregator      | Manager (Telemetry) |
-        +------------+------------+----------------------+-----------------------+
-        | 6001-6100  | TCP        | LDMS store daemon    | Manager (Telemetry) |
-        +------------+------------+----------------------+-----------------------+
-        | 10001-10100| TCP        | LDMS sampler         | Compute |
-        +------------+------------+----------------------+-----------------------+
+.. list-table::
+   :widths: 12 12 30 25
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 8161
+     - TCP
+     - ActiveMQ Console
+     - Manager (Telemetry K8s)
+   * - 61613
+     - TCP
+     - ActiveMQ STOMP (port 1)
+     - Manager (Telemetry K8s)
+   * - 61616
+     - TCP
+     - ActiveMQ STOMP (port 2)
+     - Manager (Telemetry K8s)
+   * - 8082
+     - TCP
+     - Telemetry Config UI
+     - Manager (Telemetry K8s)
+   * - 3306
+     - TCP
+     - MySQL primary
+     - Manager (Telemetry K8s)
+   * - 33060
+     - TCP
+     - MySQL X Protocol
+     - Manager (Telemetry K8s)
+   * - 9092
+     - TCP
+     - Kafka broker plaintext
+     - Manager (Telemetry K8s)
+   * - 9093
+     - TCP
+     - Kafka broker TLS
+     - Manager (Telemetry K8s)
+   * - 9094
+     - TCP
+     - Kafka LoadBalancer
+     - Manager (Telemetry K8s)
+   * - 8443
+     - TCP
+     - VictoriaMetrics service
+     - Manager (Telemetry K8s)
+   * - 8480
+     - TCP
+     - VictoriaMetrics Insert LB
+     - Manager (Telemetry K8s)
+   * - 8481
+     - TCP
+     - VictoriaMetrics Query LB
+     - Manager (Telemetry K8s)
+   * - 2112
+     - TCP
+     - vmagent self-metrics
+     - Manager (Telemetry K8s)
+   * - 8429
+     - TCP
+     - vmagent remote_write receiver
+     - Manager (Telemetry K8s)
+   * - 9427
+     - TCP
+     - vlagent JSON Lines receiver
+     - Manager (Telemetry K8s)
+   * - 9481
+     - TCP
+     - VictoriaLogs vlinsert
+     - Manager (Telemetry K8s)
+   * - 9491
+     - TCP
+     - VictoriaLogs vlstorage health
+     - Manager (Telemetry K8s)
+   * - 9471
+     - TCP
+     - VictoriaLogs vlselect query
+     - Manager (Telemetry K8s)
+   * - 8687
+     - TCP
+     - vector-ldms health
+     - Manager (Telemetry K8s)
+   * - 9599
+     - TCP
+     - vector-ldms metrics
+     - Manager (Telemetry K8s)
+   * - 8688
+     - TCP
+     - vector-ome health
+     - Manager (Telemetry K8s)
+   * - 9600
+     - TCP
+     - vector-ome metrics
+     - Manager (Telemetry K8s)
+   * - 514
+     - TCP/UDP
+     - Syslog plaintext (VLAgent)
+     - Manager (Telemetry K8s)
+   * - 6514
+     - TCP
+     - Syslog TLS (VLAgent)
+     - Manager (Telemetry K8s)
+   * - 6001-6100
+     - TCP
+     - LDMS aggregator
+     - Manager (Telemetry)
+   * - 6001-6100
+     - TCP
+     - LDMS store daemon
+     - Manager (Telemetry)
+   * - 10001-10100
+     - TCP
+     - LDMS sampler
+     - Compute
 
 **Build Stream ports**
 
@@ -414,44 +505,82 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **DOCA/IB ports**
 
-        +------------+------------+----------------------+---------------------+
-        | Port       | Protocol  | Service Name         | Type of Node       |
-        +============+============+======================+=====================+
-        | 18515-18520| TCP       | DOCA/OFED RDMA       | Compute (IB nodes) |
-        +------------+------------+----------------------+---------------------+
-        | 18515-18520| UDP       | DOCA/OFED RDMA       | Compute (IB nodes) |
-        +------------+------------+----------------------+---------------------+
+.. list-table::
+   :widths: 15 10 25 25
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 18515-18520
+     - TCP
+     - DOCA/OFED RDMA
+     - Compute (IB nodes)
+   * - 18515-18520
+     - UDP
+     - DOCA/OFED RDMA
+     - Compute (IB nodes)
 
   
 **OpenCHAMI ports**
 
-        +------------+------------+--------------------------+----------------+
-        | Port       | Protocol   | Service Name            | Type of Node  |
-        +============+============+==========================+================+
-        | 8081       | TCP        | HAProxy HTTP            | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 8443       | TCP        | HAProxy HTTPS           | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 27779      | TCP        | State Mgmt Daemon (SMD)  | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 27778      | TCP        | Boot Script Service (BSS)| Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 5432       | TCP        | PostgreSQL              | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 9000       | TCP        | Step CA (PKI)           | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 4444/4445  | TCP        | Hydra OAuth2            | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | internal   | TCP        | OPAAL IDP               | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | internal   | TCP        | OPAAL token exchange    | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | internal   | TCP        | Cloud-Init Server       | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 67/69      | UDP        | CoreDHCP                | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
-        | 53         | TCP/UDP    | CoreDNS                 | Manager (OIM) |
-        +------------+------------+--------------------------+----------------+
+.. list-table::
+   :widths: 15 10 30 20
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 8081
+     - TCP
+     - HAProxy HTTP
+     - Manager (OIM)
+   * - 8443
+     - TCP
+     - HAProxy HTTPS
+     - Manager (OIM)
+   * - 27779
+     - TCP
+     - State Mgmt Daemon (SMD)
+     - Manager (OIM)
+   * - 27778
+     - TCP
+     - Boot Script Service (BSS)
+     - Manager (OIM)
+   * - 5432
+     - TCP
+     - PostgreSQL
+     - Manager (OIM)
+   * - 9000
+     - TCP
+     - Step CA (PKI)
+     - Manager (OIM)
+   * - 4444/4445
+     - TCP
+     - Hydra OAuth2
+     - Manager (OIM)
+   * - internal
+     - TCP
+     - OPAAL IDP
+     - Manager (OIM)
+   * - internal
+     - TCP
+     - OPAAL token exchange
+     - Manager (OIM)
+   * - internal
+     - TCP
+     - Cloud-Init Server
+     - Manager (OIM)
+   * - 67/69
+     - UDP
+     - CoreDHCP
+     - Manager (OIM)
+   * - 53
+     - TCP/UDP
+     - CoreDNS
+     - Manager (OIM)
        
        
 
