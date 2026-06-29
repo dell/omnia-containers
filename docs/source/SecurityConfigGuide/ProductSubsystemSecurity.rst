@@ -135,11 +135,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - SSH — omnia_core relay
      - Manager (OIM)
    * - 2049
-     - TCP
-     - NFS Server
-     - Manager (OIM)
-   * - 2049
-     - UDP
+     - TCP/UDP
      - NFS Server
      - Manager (OIM)
    * - 111
@@ -560,18 +556,6 @@ Omnia configures the following ports for use by third-party tools installed by O
    * - 4444/4445
      - TCP
      - Hydra OAuth2
-     - Manager (OIM)
-   * - internal
-     - TCP
-     - OPAAL IDP
-     - Manager (OIM)
-   * - internal
-     - TCP
-     - OPAAL token exchange
-     - Manager (OIM)
-   * - internal
-     - TCP
-     - Cloud-Init Server
      - Manager (OIM)
    * - 67/69
      - UDP
