@@ -236,57 +236,110 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Kubernetes ports requirements**
 
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | Port Number  | Protocol   | Service                                                | Type of Node                  |
-        +==============+============+========================================================+===============================+
-        | 6443         | TCP        | Kubernetes API server                                  | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 2379-2380    | TCP        | etcd server client API                                 | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10251        | TCP        | Kube-scheduler                                         | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10252        | TCP        | Kube-controller manager                                | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10250        | TCP        | Kubelet API                                            | Compute                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 30000-32767  | TCP        | NodePort services                                      | Compute                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 5473         | TCP        | Calico services                                        | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 179          | TCP        | Calico services                                        | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 4789         | UDP        | Calico services                                        | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 8285         | UDP        | Flannel services                                       | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 8472         | UDP        | Flannel services                                       | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10256        | TCP        | kube-proxy health check                                | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 7472         | TCP        | MetalLB L2 speaker Prometheus metrics                  | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 7946         | TCP        | MetalLB gossip/memberlist                              | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 2112         | TCP        | kube-vip Prometheus metrics + health                   | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10257        | TCP        | Controller manager secure HTTPS port                   | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10259        | TCP        | Scheduler secure HTTPS port                            | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10249        | TCP        | kube-proxy Prometheus metrics                          | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 10248        | TCP        | kubelet local health check                             | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 9099         | TCP        | Calico Felix health check                              | Manager + Compute             |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 53           | TCP/UDP    | Kubernetes CoreDNS                                     | Manager                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 443          | TCP        | NFS StorageClass dynamic provisioner                   | Compute                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 45845        | TCP        | CRI-O runtime service                                  | Manager/Compute               |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | 18515-18520  | TCP        | DOCA/OFED RDMA and InfiniBand communication port range | Compute                       |
-        +--------------+------------+--------------------------------------------------------+-------------------------------+
+.. list-table::
+   :widths: 15 10 45 25
+   :header-rows: 1
+
+   * - Port Number
+     - Protocol
+     - Service
+     - Type of Node
+   * - 6443
+     - TCP
+     - Kubernetes API server
+     - Manager
+   * - 2379-2380
+     - TCP
+     - etcd server client API
+     - Manager
+   * - 10251
+     - TCP
+     - Kube-scheduler
+     - Manager
+   * - 10252
+     - TCP
+     - Kube-controller manager
+     - Manager
+   * - 10250
+     - TCP
+     - Kubelet API
+     - Compute
+   * - 30000-32767
+     - TCP
+     - NodePort services
+     - Compute
+   * - 5473
+     - TCP
+     - Calico services
+     - Manager/Compute
+   * - 179
+     - TCP
+     - Calico services
+     - Manager/Compute
+   * - 4789
+     - UDP
+     - Calico services
+     - Manager/Compute
+   * - 8285
+     - UDP
+     - Flannel services
+     - Manager/Compute
+   * - 8472
+     - UDP
+     - Flannel services
+     - Manager/Compute
+   * - 10256
+     - TCP
+     - kube-proxy health check
+     - Manager + Compute
+   * - 7472
+     - TCP
+     - MetalLB L2 speaker Prometheus metrics
+     - Manager + Compute
+   * - 7946
+     - TCP
+     - MetalLB gossip/memberlist
+     - Manager + Compute
+   * - 2112
+     - TCP
+     - kube-vip Prometheus metrics + health
+     - Manager
+   * - 10257
+     - TCP
+     - Controller manager secure HTTPS port
+     - Manager
+   * - 10259
+     - TCP
+     - Scheduler secure HTTPS port
+     - Manager
+   * - 10249
+     - TCP
+     - kube-proxy Prometheus metrics
+     - Manager + Compute
+   * - 10248
+     - TCP
+     - kubelet local health check
+     - Manager + Compute
+   * - 9099
+     - TCP
+     - Calico Felix health check
+     - Manager + Compute
+   * - 53
+     - TCP/UDP
+     - Kubernetes CoreDNS
+     - Manager
+   * - 443
+     - TCP
+     - NFS StorageClass dynamic provisioner
+     - Compute
+   * - 45845
+     - TCP
+     - CRI-O runtime service
+     - Manager/Compute
+   * - 18515-18520
+     - TCP
+     - DOCA/OFED RDMA and InfiniBand communication port range
+     - Compute
 
 
 **Slurm port requirements**
@@ -493,11 +546,18 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **Build Stream ports**
 
-        +------------+------------+----------------------+----------------+
-        | Port       | Protocol   | Service Name         | Type of Node   |
-        +============+============+======================+================+
-        | 8010       | TCP        | Build Stream API      | Manager (OIM) |
-        +------------+------------+----------------------+----------------+
+.. list-table::
+   :widths: 15 10 30 20
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 8010
+     - TCP
+     - Build Stream API
+     - Manager (OIM)
 
 **DOCA/IB ports**
 
