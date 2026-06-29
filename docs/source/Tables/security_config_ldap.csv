@@ -1,7 +1,0 @@
-﻿Parameter,Details
-"ldap_connection_type 
-     ``string``      
-     Required        ","For TLS  connection, ensure port 389 is open.                                
-     Choices:                                           
-     * ``TLS`` <- Default                               
-    "
