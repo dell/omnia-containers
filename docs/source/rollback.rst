@@ -184,7 +184,7 @@ The BuildStreaM rollback path is automatically determined from metadata stored d
     GitLab project rollback depends on the upgrade commit being the latest commit. If additional commits exist after the upgrade, automatic rollback will not revert GitLab content. Ensure that manual GitLab commit revert to the previous configuration files is performed.
 
 Kubernetes and Telemetry Rollback (``k8s-telemetry``)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Kubernetes and Telemetry are rolled back as a single combined component. The etcd snapshot restore reverts the entire K8s cluster state including telemetry pods.
 
@@ -211,7 +211,7 @@ Rollback stages:
    K8s node reboots will cause temporary cluster unavailability. Plan the rollback during a maintenance window.
 
 Slurm Rollback
-^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 The Slurm rollback workflow restores the Slurm cluster configuration to the previously backed-up Omnia 2.1 state. During rollback, Omnia restores the cloud-init and Bare System Setup (BSS) configurations from the upgrade backup and applies the restored configuration by rebooting all Slurm and login nodes.
 
