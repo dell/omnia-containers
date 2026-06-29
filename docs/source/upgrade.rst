@@ -19,7 +19,7 @@ Supported Upgrade Paths
 .. note:: Direct upgrades across multiple major versions (e.g., 2.0 → 2.2) are not supported. Upgrade one version at a time.
 
 Prerequisites
----------------
+~~~~~~~~~~~~~
 
 Before starting the upgrade, ensure the following prerequisites are met:
 
