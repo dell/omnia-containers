@@ -119,7 +119,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **Host port requirements**
 
         +--------------+------------+-----------------------------+----------------+
-        | Port Number  | Protocol   | Service             | Type of Node  |
+        | Port Number  | Protocol   | Service                     | Type of Node  |
         +==============+============+=============================+================+
         | 22           | TCP        | SSH                         | All Nodes     |
         +--------------+------------+-----------------------------+----------------+
@@ -181,7 +181,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 **Kubernetes ports requirements**
 
         +--------------+------------+--------------------------------------------------------+-------------------------------+
-        | Port Number  | Protocol   | Service                                        | Type of Node                  |
+        | Port Number  | Protocol   | Service                                                | Type of Node                  |
         +==============+============+========================================================+===============================+
         | 6443         | TCP        | Kubernetes API server                                  | Manager                       |
         +--------------+------------+--------------------------------------------------------+-------------------------------+
@@ -244,13 +244,13 @@ Omnia configures the following ports for use by third-party tools installed by O
         +------------+------------+----------------------+----------------+
         | 6819       | TCP/UDP    | slurmdbd             | Manager (Slurm) |
         +------------+------------+----------------------+----------------+
-        | 60001-63000 | TCP        | Slurm SrunPortRange  | Manager + Compute |
+        | 60001-63000 | TCP       | Slurm SrunPortRange  | Manager + Compute |
         +------------+------------+----------------------+----------------+
 
 **OpenLDAP port requirements**
 
         +---------------+---------+----------------------+----------------------+
-        | Port Number   | Protocol | Service Name         | Node                 |
+        | Port Number   | Protocol | Service Name        | Node                 |
         +===============+=========+======================+======================+
         | 80            | TCP     | HTTP/HTTPS           | Manager/ Login_Node  |
         +---------------+---------+----------------------+----------------------+
@@ -263,17 +263,31 @@ Omnia configures the following ports for use by third-party tools installed by O
 
 **LDAP port requirements**
 
-        +------------+------------+----------------------+----------------+
-        | Port       | Protocol   | Service Name         | Type of Node  |
-        +============+============+======================+================+
-        | 389        | TCP        | OpenLDAP             | Manager / Login |
-        +------------+------------+----------------------+----------------+
-        | 636        | TCP        | OpenLDAPS            | Manager / Login |
-        +------------+------------+----------------------+----------------+
-        | 80         | TCP        | HTTP                 | Manager / Login |
-        +------------+------------+----------------------+----------------+
-        | 443        | TCP        | HTTPS                | Manager / Login |
-        +------------+------------+----------------------+----------------+
+.. list-table:: LDAP Port Requirements
+   :widths: 10 10 25 20
+   :header-rows: 1
+
+   * - Port
+     - Protocol
+     - Service Name
+     - Type of Node
+   * - 389
+     - TCP
+     - OpenLDAP
+     - Manager / Login
+   * - 636
+     - TCP
+     - OpenLDAPS
+     - Manager / Login
+   * - 80
+     - TCP
+     - HTTP
+     - Manager / Login
+   * - 443
+     - TCP
+     - HTTPS
+     - Manager / Login
+
 
 **Telemetry ports**
 
