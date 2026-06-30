@@ -625,29 +625,7 @@ Epilog script not executable.
    chmod 0755 /etc/slurm/epilog.d/logout_user.sh
    scontrol reconfigure
 
-6.2 Slurm Nodes Cannot Contact Controller
------------------------------------------
-
-**Cause**
-
-Nodes booted before controller.
-
-**Resolution**
-
-.. code-block:: bash
-
-   scontrol reconfigure
-   systemctl restart slurmd
-
-6.3 Missing Controller Groups / Missing slurm.conf
------------------------------------------------------
-
-**Resolution**
-
-- Update ``pxe_mapping.csv`` with controller groups
-- Choose different backup or create new one
-
-6.5 NVIDIA GPU, CUDA, and DCGM Issues
+6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
 
 ``nvidia-smi`` Not Found or Driver Not Communicating
@@ -786,12 +764,16 @@ Review ``/var/log/nvidia_peermem_install.log`` for details.
 
 .. note:: If RDMA is not required for any workload on this node, this warning is non-blocking.
 
-6.6 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
+6.3 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
 ---------------------------------------------------------
 
-**Symptoms**
+**Symptom**
 
-Automated GPU setup fails during provisioning — due to repository unavailability, NFS connectivity issues, or node initialization errors.
+Automated GPU setup fails during provisioning.
+
+**Cause**
+
+Repository unavailability, NFS connectivity issues, or node initialization errors.
 
 **Resolution**
 
@@ -926,7 +908,7 @@ Log File Reference
 * ``/var/log/dcgm_setup.log``: DCGM package install, service startup, GPU discovery
 * ``/var/log/nvidia_peermem_install.log``: ``nvidia-peermem`` DKMS build and load output
 
-6.7 Benchmark assets missing on Slurm nodes
+6.4 Benchmark assets missing on Slurm nodes
 -------------------------------------------
 
 **Symptom**
