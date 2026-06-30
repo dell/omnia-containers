@@ -63,7 +63,7 @@ pulp-glue-deb,GPL-2.0-only,Version agnostic glue library to talk to pulpcore's R
 pulpcore,GPL-2.0-only,Pulp Django Application and Related Modules,3.80.1
 containers.podman,GPL-3.0-or-later,"Repository for Ansible content that can include playbooks, roles, modules, and plugins for use with the Podman tool",1.16.2
 initscripts,GPL-2.0-only,Basic support for legacy System V init scripts,10.11.8
-ochami,Apache-2.0,Open Composable Heterogeneous Adaptable Management Infrastructure,0.5.3
+OpenCHAMI,Apache-2.0,Open Composable Heterogeneous Adaptable Management Infrastructure,0.5.3
 magellan,MIT,Redfish-based BMC discovery tool written in Go,0.3.1
 SMD,MIT,"The State Management Database (SMD) is a robust service designed for monitoring, tracking, and managing hardware components in high-performance computing (HPC) environments.",2.18.0
 BSS,MIT,"The Boot Script Service (BSS) provides boot arguments (initrd, kernel arguments, etc.) and Level 2 boot services for static images in HPE Shasta systems.",1.32.1
