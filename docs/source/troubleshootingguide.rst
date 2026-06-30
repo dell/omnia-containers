@@ -313,18 +313,13 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
 4. View detailed failure information in the package status log:
 
-   ::
-
-       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/logs/package_status_<pid>.log
+   To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
 
    Example:
 
    ::
 
        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
-
-   
-5. For detailed failure information and the reason for job being unsuccessful, review the package status log mentioned in the task results:
 
    .. image:: images/troubleshooting_local_repo_updated_5.png
 
