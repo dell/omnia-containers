@@ -1,0 +1,86 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster_ha"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-ha">
+                                <strong>service_k8s_cluster_ha</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>High Availability (HA) configuration for Kubernetes (K8s) service clusters. Service K8s clusters are supported only in HA mode.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster_ha/cluster_name"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-ha-cluster-name">
+                                <strong>cluster_name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Required. Name of the Kubernetes service cluster. Must match the service cluster name defined elsewhere.</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster_ha/enable_k8s_ha"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-ha-enable-k8s-ha">
+                                <strong>enable_k8s_ha</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Mandatory. Must be true. Service Kubernetes cluster deployment is supported only in HA mode.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster_ha/virtual_ip_address"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-ha-virtual-ip-address">
+                                <strong>virtual_ip_address</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Mandatory. Virtual IP address used as the Kubernetes API endpoint for the service cluster setup.</p>
+                        </div>
+                    </td>
+                </tr>
+    </tbody>
+</table>
