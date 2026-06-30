@@ -265,6 +265,10 @@ Download failures occur due to:
 
 The ``local_repo.yml`` playbook generates log files for troubleshooting download failures. To diagnose specific issues:
 
+.. image:: images/troubleshooting_local_repo_updated.png
+
+.. image:: images/troubleshooting_local_repo_updated_1.png
+
 1. View overall download status of all software:
 
    ::
@@ -277,9 +281,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
        /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
 
-   .. image:: images/troubleshooting_local_repo_updated.png
-
-   .. image:: images/troubleshooting_local_repo_updated_1.png
+   .. image:: images/troubleshooting_local_repo_updated_2.png
 
 2. View download status and log filenames for a specific software:
 
@@ -293,7 +295,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
 
-   .. image:: images/troubleshooting_local_repo_updated_2.png
+   .. image:: images/troubleshooting_local_repo_updated_3.png
 
 3. View package-level status for a specific software:
 
@@ -307,7 +309,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
 
-   .. image:: images/troubleshooting_local_repo_updated_3.png
+   .. image:: images/troubleshooting_local_repo_updated_4.png
 
 4. View detailed failure information in the package status log:
 
@@ -321,8 +323,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
 
-   .. image:: images/troubleshooting_local_repo_updated_4.png
-
+   
 5. For detailed failure information and the reason for job being unsuccessful, review the package status log mentioned in the task results:
 
    .. image:: images/troubleshooting_local_repo_updated_5.png
