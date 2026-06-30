@@ -19,10 +19,11 @@ This module contains functional, performance, and security test cases
 for verifying VAST storage telemetry deployment as defined in the
 VAST telemetry test specification.
 
-Test cases (10 total):
+Test cases (11 total):
   Functional (6): TC-F001, TC-F002, TC-F003, TC-F004, TC-F008, TC-F012
   Performance (2): TC-P001, TC-P002
   Security (2): TC-S001, TC-S002
+  Negative (1): TC-E001
 
 Note: All tests skip if telemetry_sources.vast.metrics_enabled is false.
 """
@@ -55,6 +56,7 @@ from automation_library.telemetry.functions.vast_telemetry_func import (
     verify_vast_metric_coverage,
     verify_vast_tls_enforcement,
     verify_vast_no_plaintext_credentials,
+    verify_vast_pod_delete_and_recovery,
 )
 
 
@@ -521,3 +523,83 @@ def test_tc_s002_vast_no_plaintext_creds(host):
             location=first_finding.get("location", "unknown"),
             pattern=first_finding.get("pattern", "unknown"),
         )
+
+
+# =============================================================================
+# 4. NEGATIVE / ERROR TEST CASES
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.vast_telemetry
+@pytest.mark.order(70)
+def test_tc_e001_pod_delete_recovery(host):
+    """
+    TC-E001: Pod Deletion and Recovery — Full Telemetry Stack (P0).
+
+    Negative test that verifies the telemetry stack can recover from a
+    complete pod wipe-out:
+    1. Record all running pods in the telemetry namespace.
+    2. Force-delete every pod (kubectl delete pods --all --force).
+    3. Wait for Kubernetes to restore all pods to Running state.
+    4. Verify VAST scrape resumes (up=1) and metrics are queryable.
+    """
+    log = TestLogger(VAST_TEST_NAMES["tc_e001_pod_delete_recovery"])
+    skip_if_vast_not_enabled(host, log)
+    admin_ip = get_admin_ip(host, log)
+
+    # Phase 1: Record pre-delete state
+    log.check("Recording telemetry pods before deletion")
+    result = verify_vast_pod_delete_and_recovery(host, admin_ip)
+
+    pre_count = len(result.get("pre_delete_pods", []))
+    post_pods = result.get("post_recovery_pods", [])
+    post_count = len(post_pods)
+
+    details_lines = [
+        f"Phase reached: {result.get('phase')}",
+        f"Pre-delete pods: {pre_count}",
+        f"Post-recovery pods: {post_count}",
+        f"Pods recovered: {result.get('pods_recovered')}",
+        f"Scrape recovered: {result.get('scrape_recovered')}",
+        f"Scrape up: {result.get('scrape_up')}",
+        f"Series count: {result.get('series_count')}",
+        f"Recovery time: {result.get('elapsed_seconds')}s",
+    ]
+
+    # List post-recovery pods
+    if post_pods:
+        details_lines.append("\nRecovered pods:")
+        for p in post_pods:
+            details_lines.append(
+                f"  {p['name']}: {p['status']} (node={p.get('node', '?')})"
+            )
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(
+            VAST_LOG_MSGS["pods_recovered"].format(count=post_count)
+            + " | "
+            + VAST_LOG_MSGS["scrape_recovered"],
+            details,
+        )
+    else:
+        # Determine which phase failed
+        if not result.get("pods_recovered"):
+            not_running = result.get("not_running_pods", [])
+            log.failed(
+                VAST_LOG_MSGS["pods_not_recovered"].format(
+                    not_running=len(not_running),
+                    total=pre_count,
+                    timeout=result.get("elapsed_seconds"),
+                ),
+                details,
+            )
+            assert False, VAST_ASSERT_MSGS["pod_recovery_failed"].format(
+                not_running_pods=[p["name"] for p in not_running]
+            )
+        else:
+            log.failed(VAST_LOG_MSGS["scrape_not_recovered"], details)
+            assert False, VAST_ASSERT_MSGS["scrape_recovery_failed"].format(
+                series_count=result.get("series_count", 0)
+            )

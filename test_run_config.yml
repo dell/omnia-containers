@@ -32,88 +32,88 @@
 
 # --- Install & Setup ---
 omnia_sh_install:
-  run: true
-  command: "verify"
+  run: false
+  command: "test"
   suite: ""
 
 prepare_oim:
-  run: true
-  command: "verify"
+  run: false
+  command: "test"
   suite: ""
 
 # --- GitLab ---
 gitlab_install:
-  run: true
-  command: "verify"
+  run: false
+  command: "test"
   suite: ""
 
 # --- Build & Repo ---
 local_repo:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 build_image_x86_64:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 build_image_aarch64:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 # --- Provision & Deploy ---
 discovery:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 provision:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 # --- Services ---
 telemetry:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 apptainer:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 kubernetes:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 slurm:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 dcgm:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 hpc_benchmarks:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 vast_storage:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 # --- Build Stream (CI/CD pipeline tests) ---
 build_stream:
   run: false
-  command: "verify"
+  command: "test"
   suite: "sanity"
 
 # --- Logs ---
@@ -121,6 +121,17 @@ one_shot_log_extraction:
   run: false
   command: "test"
   suite: ""
+
+# --- Upgrade & Rollback ---
+upgrade_omnia_sh:
+  run: false
+  command: "test"
+  suite: "sanity"
+
+rollback_omnia_sh:
+  run: false
+  command: "test"
+  suite: "sanity"
 
 # --- Cleanup ---
 gitlab_cleanup:

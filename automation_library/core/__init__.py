@@ -41,6 +41,8 @@ from .functions import (
     get_nodes_info,
     check_container_running,
     make_verification_result,
+    compare_directory_md5sum,
+    download_omnia_sh,
     get_project_root,
     get_node_admin_ip,
     get_functional_groups_from_pxe_mapping,
@@ -112,6 +114,8 @@ from .vars import (
     SSH_OPTS,
     OMNIA_CORE_CONTAINER,
     PODMAN_EXEC_PREFIX,
+    OMNIA_GIT_RAW_BASE_URL,
+    OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL,
     # Build stream vars
     POSTGRES_CONTAINER,
     POSTGRES_DB,
@@ -209,6 +213,8 @@ __all__ = [
     "get_nodes_info",
     "check_container_running",
     "make_verification_result",
+    "compare_directory_md5sum",
+    "download_omnia_sh",
     "get_project_root",
     "get_node_admin_ip",
     "get_functional_groups_from_pxe_mapping",
@@ -294,6 +300,9 @@ __all__ = [
     "LOCAL_REPO_LOG_PATH",
     # Vars - Container names
     "OMNIA_CORE_CONTAINER",
+    # Vars - Git URL bases
+    "OMNIA_GIT_RAW_BASE_URL",
+    "OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL",
     # Vars - K8s groups
     "K8S_CONTROL_PLANE_FUNCTIONAL_GROUP",
     "K8S_WORKER_NODE_FUNCTIONAL_GROUP",

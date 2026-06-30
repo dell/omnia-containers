@@ -741,11 +741,11 @@ def check_s3_bucket_images_for_group(host, functional_group: str) -> Dict[str, A
 
 def _check_squashfs_tools_installed(host) -> Dict[str, Any]:
     """
-    Check if squashfs-tools package is installed (required for mounting images).
+    Ensure squashfs-tools is installed (required for mounting images).
 
-    If not installed, also checks whether any enabled repository provides it.
-    This distinguishes "package missing — just install it" from "no repo is
-    configured that has this package — configure a repo first".
+    If the package is not present, this function will **automatically install
+    it** using ``dnf install -y squashfs-tools``.  If the install fails
+    (e.g. no repo provides it), the function returns a clear error.
 
     Returns dict with 'installed' boolean and 'error' message if not installed.
     """
@@ -753,26 +753,38 @@ def _check_squashfs_tools_installed(host) -> Dict[str, Any]:
     if check_cmd.rc == 0:
         return {"installed": True, "error": None}
 
-    # Package is not installed — check if any enabled repo provides it
+    # Not installed — attempt automatic install
+    install_cmd = host.run("dnf install -y squashfs-tools 2>&1")
+    if install_cmd.rc == 0:
+        # Verify it's actually available now
+        verify = host.run("which unsquashfs 2>/dev/null || rpm -q squashfs-tools 2>/dev/null")
+        if verify.rc == 0:
+            return {"installed": True, "error": None}
+
+    # Install failed — check if any enabled repo provides it
     repo_check = host.run("dnf provides squashfs-tools --quiet 2>/dev/null | grep -q 'squashfs-tools'")
     if repo_check.rc != 0:
-        # No repo provides it — repo configuration needed
         return {
             "installed": False,
             "error": (
                 TEST_LOG_MSGS["squashfs_repo_not_configured"] + "\n"
                 "  squashfs-tools is not available in any enabled repository.\n"
+                "  Auto-install attempted but failed.\n"
                 "  Enable a repository that provides it "
                 "(e.g., 'dnf config-manager --enable <repo>'), then re-run."
             ),
         }
 
-    # Repo provides it but package is not installed
+    # Repo provides it but install still failed
+    stderr = install_cmd.stderr.strip()[:300] if install_cmd.stderr else ""
+    stdout = install_cmd.stdout.strip()[:300] if install_cmd.stdout else ""
     return {
         "installed": False,
         "error": (
             TEST_LOG_MSGS["squashfs_tools_not_installed"] + "\n"
-            "  Install it using: dnf install -y squashfs-tools"
+            f"  Auto-install attempted: dnf install -y squashfs-tools\n"
+            f"  Exit code: {install_cmd.rc}\n"
+            f"  Output: {stdout or stderr}"
         ),
     }
 

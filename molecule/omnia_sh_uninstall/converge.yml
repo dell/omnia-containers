@@ -43,6 +43,10 @@
     omnia_sh_path: "{{ omnia_clone_path }}/omnia.sh"
     omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
     container_name: "omnia_core"
+    omnia_branch: "{{ omnia_test_config.upgrade.omnia_branch | default('') }}"
+    omnia_git_raw_base_url: "https://raw.githubusercontent.com/dell/omnia"
+    omnia_sh_branch_url: "{{ omnia_git_raw_base_url }}/{{ omnia_branch }}/omnia.sh"
+    omnia_sh_tag_url: "{{ omnia_git_raw_base_url }}/refs/tags/{{ omnia_branch }}/omnia.sh"
 
   tasks:
     - name: Display target OIM server
@@ -60,6 +64,58 @@
       ansible.builtin.debug:
         msg: "Container {{ container_name }} not found on {{ ansible_host }}, skipping uninstall"
       when: container_exists.rc != 0
+
+    - name: Check if omnia.sh exists
+      ansible.builtin.stat:
+        path: "{{ omnia_sh_path }}"
+      register: omnia_sh_stat
+      when: container_exists.rc == 0
+
+    - name: Ensure clone directory exists
+      ansible.builtin.file:
+        path: "{{ omnia_clone_path }}"
+        state: directory
+        mode: "0755"
+      when:
+        - container_exists.rc == 0
+        - not (omnia_sh_stat.stat.exists | default(false))
+        - omnia_branch | length > 0
+
+    - name: Download omnia.sh from branch URL
+      ansible.builtin.get_url:
+        url: "{{ omnia_sh_branch_url }}"
+        dest: "{{ omnia_sh_path }}"
+        mode: "0755"
+        force: true
+      register: download_branch
+      failed_when: false
+      when:
+        - container_exists.rc == 0
+        - not (omnia_sh_stat.stat.exists | default(false))
+        - omnia_branch | length > 0
+
+    - name: Download omnia.sh from tag URL (fallback)
+      ansible.builtin.get_url:
+        url: "{{ omnia_sh_tag_url }}"
+        dest: "{{ omnia_sh_path }}"
+        mode: "0755"
+        force: true
+      register: download_tag
+      when:
+        - container_exists.rc == 0
+        - not (omnia_sh_stat.stat.exists | default(false))
+        - omnia_branch | length > 0
+        - download_branch is failed or (download_branch.status_code | default(0)) != 200
+
+    - name: Fail if omnia.sh not available
+      ansible.builtin.fail:
+        msg: >-
+          omnia.sh not found at {{ omnia_sh_path }} and could not be downloaded.
+          Tried: {{ omnia_sh_branch_url }} and {{ omnia_sh_tag_url }}
+      when:
+        - container_exists.rc == 0
+        - not (omnia_sh_stat.stat.exists | default(false))
+        - (download_tag is failed | default(true)) or (download_branch is failed | default(true))
 
     - name: Run omnia.sh --uninstall with auto-confirm
       ansible.builtin.shell:

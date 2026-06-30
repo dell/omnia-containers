@@ -20,7 +20,7 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, Any, List
+from typing import Dict, Any, Callable, List
 
 import yaml
 import testinfra
@@ -68,7 +68,7 @@ def _is_local_ip(ip: str) -> bool:
 def is_local_execution() -> bool:
     """
     Determine if tests should run locally (on the OIM itself).
-    
+
     Returns True when:
     - oim_server_ip is empty/not set (implies running on the OIM)
     - oim_server_ip matches a local IP address
@@ -179,6 +179,180 @@ def run_on_remote_node(
         f'root@{admin_ip} "{escaped_cmd}" 2>/dev/null'
     )
     return run_in_container(host, ssh_cmd)
+
+
+def compare_directory_md5sum(
+    host: testinfra.host.Host,
+    backup_dir: str,
+    current_dir: str,
+    backup_cmd_fn: Callable[..., subprocess.CompletedProcess],
+    current_cmd_fn: Callable[..., subprocess.CompletedProcess],
+    exclude: List[str] = None,
+) -> Dict[str, Any]:
+    """
+    Compare md5sum of every file in *backup_dir* against *current_dir*.
+
+    This is a **generic, reusable utility** — any module that needs to
+    compare two directory trees by md5sum can call this.  The caller
+    provides two command runners so the function works regardless of
+    whether the directories are on the OIM host, inside a container, or
+    on a remote node.
+
+    Args:
+        host: Testinfra host object (passed through to command runners).
+        backup_dir: Absolute path to the "backup" (source) directory.
+        current_dir: Absolute path to the "current" (target) directory.
+        backup_cmd_fn: ``fn(host, cmd) -> result`` — runs a shell command
+            where *backup_dir* lives.
+        current_cmd_fn: ``fn(host, cmd) -> result`` — runs a shell command
+            where *current_dir* lives.
+        exclude: Optional list of filenames to skip (expected to differ).
+
+    Returns:
+        Dict with:
+        - **success** (bool): True if every non-excluded file matched.
+        - **files** (list[dict]): Per-file results, each dict has
+          ``name`` (str) and ``match`` (``"✓"``, ``"✗"``, or ``"⊘"`` skipped).
+        - **error** (str): Empty on success, description on failure.
+    """
+    if exclude is None:
+        exclude = []
+    # List all files in backup dir (relative paths, sorted)
+    ls_cmd = backup_cmd_fn(
+        host,
+        f"find '{backup_dir}' -type f "
+        f"| sed 's|^{backup_dir}/||' | sort",
+    )
+    if ls_cmd.rc != 0 or not ls_cmd.stdout.strip():
+        return {
+            "success": False,
+            "files": [],
+            "error": f"No files found in {backup_dir}",
+        }
+
+    rel_paths = [
+        f.strip() for f in ls_cmd.stdout.strip().split("\n") if f.strip()
+    ]
+
+    files: List[Dict[str, str]] = []
+    all_match = True
+
+    for rel_path in rel_paths:
+        # Check if file should be excluded (expected to differ)
+        if rel_path in exclude:
+            files.append({"name": rel_path, "match": "⊘"})
+            continue
+
+        bk_cmd = backup_cmd_fn(
+            host,
+            f"md5sum '{backup_dir}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+        )
+        cur_cmd = current_cmd_fn(
+            host,
+            f"md5sum '{current_dir}/{rel_path}' 2>/dev/null "
+            f"| awk '{{print $1}}'",
+        )
+        bk_md5 = bk_cmd.stdout.strip() if bk_cmd.rc == 0 else ""
+        cur_md5 = cur_cmd.stdout.strip() if cur_cmd.rc == 0 else ""
+        matched = bool(bk_md5 and cur_md5 and bk_md5 == cur_md5)
+        if not matched:
+            all_match = False
+
+        files.append({
+            "name": rel_path,
+            "match": "✓" if matched else "✗",
+        })
+
+    return {
+        "success": all_match,
+        "files": files,
+        "error": "" if all_match else "Some files do not match",
+    }
+
+
+def download_omnia_sh(
+    host,
+    branch_url: str,
+    tag_url: str,
+    dest_path: str,
+    cmd_fn: Callable = None,
+) -> Dict[str, Any]:
+    """
+    Download ``omnia.sh`` with branch → tag fallback.
+
+    Shared utility for upgrade, rollback, and oim-prereq-check.
+    Tries *branch_url* first; if that fails, tries *tag_url*.
+    On success the file is made executable.
+
+    Args:
+        host: Testinfra host object
+        branch_url: Primary download URL (branch ref)
+        tag_url: Fallback download URL (tag ref)
+        dest_path: Full destination path on the remote host
+        cmd_fn: Command runner (default ``run_on_oim``).
+                Must accept ``(host, cmd_string)`` and return an
+                object with ``.rc``, ``.stdout``, ``.stderr``.
+
+    Returns:
+        Dict with success, path, url, ref_type, error
+    """
+    if cmd_fn is None:
+        cmd_fn = run_on_oim
+
+    dest_dir = os.path.dirname(dest_path)
+
+    # Ensure directory exists
+    mkdir_cmd = cmd_fn(host, f"mkdir -p '{dest_dir}'")
+    if mkdir_cmd.rc != 0:
+        return {
+            "success": False,
+            "path": dest_path,
+            "url": "",
+            "ref_type": "",
+            "error": f"Cannot create directory {dest_dir}: "
+                     f"{mkdir_cmd.stderr.strip()}",
+        }
+
+    # Remove existing file
+    cmd_fn(host, f"rm -f '{dest_path}'")
+
+    # Try branch URL first
+    cmd = cmd_fn(host, f"curl -f -o '{dest_path}' '{branch_url}'")
+    if cmd.rc == 0:
+        cmd_fn(host, f"chmod +x '{dest_path}'")
+        return {
+            "success": True,
+            "path": dest_path,
+            "url": branch_url,
+            "ref_type": "branch",
+            "error": "",
+        }
+
+    # Fallback: try tag URL
+    cmd = cmd_fn(host, f"curl -f -o '{dest_path}' '{tag_url}'")
+    if cmd.rc == 0:
+        cmd_fn(host, f"chmod +x '{dest_path}'")
+        return {
+            "success": True,
+            "path": dest_path,
+            "url": tag_url,
+            "ref_type": "tag",
+            "error": "",
+        }
+
+    # Both failed
+    return {
+        "success": False,
+        "path": dest_path,
+        "url": f"{branch_url} / {tag_url}",
+        "ref_type": "",
+        "error": (
+            f"Failed to download omnia.sh.\n"
+            f"  Tried branch: {branch_url}\n"
+            f"  Tried tag:    {tag_url}"
+        ),
+    }
 
 
 # Column name mapping (CSV header -> internal field name)

@@ -18,6 +18,8 @@ from .common_vars import (
     SSH_OPTS,
     OMNIA_CORE_CONTAINER,
     PODMAN_EXEC_PREFIX,
+    OMNIA_GIT_RAW_BASE_URL,
+    OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL,
 )
 
 from .connectivity_vars import (

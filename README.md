@@ -222,9 +222,11 @@ Reports are generated in `reports/` after execution:
 | 15 | `vast_storage` | — (verify only) | Verifies VAST storage mounts |
 | 16 | `build_stream` | — (verify only) | Verifies BuildStream CI/CD pipeline |
 | 17 | `one_shot_log_extraction` | — (converge + verify) | Extracts combined logs from cluster nodes |
-| 18 | `gitlab_cleanup` | `gitlab/cleanup_gitlab.yml` | Removes GitLab deployment |
-| 19 | `oim_cleanup` | `utils/oim_cleanup.yml` | Cleans up OIM environment |
-| 20 | `omnia_sh_uninstall` | `omnia.sh --uninstall` | Uninstalls the `omnia_core` container |
+| 18 | `upgrade_omnia_sh` | `omnia.sh --upgrade` | Upgrades the `omnia_core` container to newer version |
+| 19 | `rollback_omnia_sh` | `omnia.sh --rollback` | Rolls back the `omnia_core` container to previous version |
+| 20 | `gitlab_cleanup` | `gitlab/cleanup_gitlab.yml` | Removes GitLab deployment |
+| 21 | `oim_cleanup` | `utils/oim_cleanup.yml` | Cleans up OIM environment |
+| 22 | `omnia_sh_uninstall` | `omnia.sh --uninstall` | Uninstalls the `omnia_core` container |
 
 ---
 
