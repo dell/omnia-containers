@@ -10,15 +10,9 @@ across cluster nodes.
 ## Parameter reference
 
 
-### Scheduler settings
+### Slurm settings
 
-
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `scheduler_type` | String | No | `slurm` | Job scheduler to deploy. Accepted values: `slurm`, `k8s`, `slurm,k8s` (both). When set to `k8s`, Slurm components are skipped. |
-| `slurm_installation_type` | String | No | `nfs_share` | How Slurm binaries and configuration are distributed. Values: `nfs_share` (shared NFS mount), `configless` (slurmd fetches config from slurmctld at startup). |
-| `slurm_config_path` | String | No | (auto-generated) | Custom path to a user-provided `slurm.conf`. If omitted, Omnia generates a default configuration. See [Slurm Conf](../SampleFiles/slurm_conf.md). |
-| `restart_slurm_services` | Boolean | No | `true` | Whether to restart Slurm daemons after configuration changes during `omnia.yml` execution. |
+--8<-- "html/storage_config.html"
 
 ### Kubernetes settings
 
