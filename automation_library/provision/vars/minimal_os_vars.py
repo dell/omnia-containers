@@ -1,0 +1,98 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Minimal OS - Variables and Constants.
+
+This module contains all constants, paths, and configuration values
+for the Minimal OS automation tests.
+"""
+
+from automation_library.core.vars import (
+    PROVISION_CONFIG_PATH,
+    SOFTWARE_CONFIG_PATH,
+    FUNCTIONAL_GROUPS_CONFIG_PATH,
+    INPUT_BASE_PATH,
+    MINIMAL_OS_X86_64_FUNCTIONAL_GROUP,
+    MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP,
+)
+
+# Functional group names (imported from core)
+FUNCTIONAL_GROUPS = {
+    "os_x86_64": MINIMAL_OS_X86_64_FUNCTIONAL_GROUP,
+    "os_aarch64": MINIMAL_OS_AARCH64_FUNCTIONAL_GROUP,
+}
+
+# Base OS packages that must be present (AC-2.1, FS-IC-01, FS-CR-03)
+BASE_PACKAGES = [
+    "kernel",
+    "systemd",
+    "NetworkManager",
+    "openssh-server",
+    "chrony",
+    "dnf",
+]
+
+# LDMS packages that must be present (AC-2.2, AC-5.1, FS-IC-02)
+LDMS_PACKAGES = [
+    "ovis-ldms",
+]
+
+# Package patterns that must NOT be present (AC-2.3-2.5, AC-4.3-4.6, FS-EX-01-03)
+EXCLUDED_PACKAGE_PATTERNS = {
+    "slurm": "Slurm",
+    "kube|k8s|kubernetes": "Kubernetes",
+    "docker|podman|containerd": "Container runtime",
+    "mlnx|ofed|doca": "DOCA-OFED",
+    "cuda|nvidia-driver": "CUDA",
+    "openmpi|mpich": "MPI",
+}
+
+# Services that must NOT be running at handoff (AC-4.3-4.6, FS-EX-04-05)
+EXCLUDED_SERVICES = [
+    "slurmd",
+    "slurmctld",
+    "slurmdbd",
+    "slurmrestd",
+    "munge",
+    "kubelet",
+    "docker",
+    "podman",
+    "containerd",
+]
+
+# Services that MUST be running at handoff (AC-4.2, FS-HS-02)
+REQUIRED_SERVICES = [
+    "sshd",
+    "chronyd",
+    "NetworkManager",
+]
+
+# LDMS service check command
+LDMS_SERVICE_CHECK_CMD = "systemctl is-active ldmsd"
+
+# All variables in a single dict for easy import
+MINIMAL_OS_VARS = {
+    "functional_groups": FUNCTIONAL_GROUPS,
+    "base_packages": BASE_PACKAGES,
+    "ldms_packages": LDMS_PACKAGES,
+    "excluded_package_patterns": EXCLUDED_PACKAGE_PATTERNS,
+    "excluded_services": EXCLUDED_SERVICES,
+    "required_services": REQUIRED_SERVICES,
+    "provision_config_path": PROVISION_CONFIG_PATH,
+    "software_config_path": SOFTWARE_CONFIG_PATH,
+    "functional_groups_config_path": FUNCTIONAL_GROUPS_CONFIG_PATH,
+    "input_base_path": INPUT_BASE_PATH,
+    "ldms_service_check_cmd": LDMS_SERVICE_CHECK_CMD,
+}
