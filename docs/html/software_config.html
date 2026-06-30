@@ -14,6 +14,121 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-cluster_os_type"></div>
+                            <p class="omnia-title" id="module-parameter-cluster-os-type">
+                                <strong>cluster_os_type</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Specifies the type of operating system for the cluster.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-cluster_os_version"></div>
+                            <p class="omnia-title" id="module-parameter-cluster-os-version">
+                                <strong>cluster_os_version</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Specifies the version of the operating system for the cluster.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-repo_config"></div>
+                            <p class="omnia-title" id="module-parameter-repo-config">
+                                <strong>repo_config</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Specifies how repository configurations are handled.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-softwares"></div>
+                            <p class="omnia-title" id="module-parameter-softwares">
+                                <strong>softwares</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Array of software packages to be configured.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-softwares/name"></div>
+                            <p class="omnia-title" id="module-parameter-softwares-name">
+                                <strong>name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-softwares/version"></div>
+                            <p class="omnia-title" id="module-parameter-softwares-version">
+                                <strong>version</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-softwares/arch"></div>
+                            <p class="omnia-title" id="module-parameter-softwares-arch">
+                                <strong>arch</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-additional_software"></div>
                             <p class="omnia-title" id="module-parameter-additional-software">
                                 <strong>additional_software</strong>
@@ -27,7 +142,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
+                <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
@@ -44,62 +159,12 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-even">
+                <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-additional_software/version"></div>
                             <p class="omnia-title" id="module-parameter-additional-software-version">
-                                <strong>version</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu">
-                                <strong>amdgpu</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Array of AMDGPU software components.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/name"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/version"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu-version">
                                 <strong>version</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -164,16 +229,16 @@
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi"></div>
-                            <p class="omnia-title" id="module-parameter-intelgaudi">
-                                <strong>intelgaudi</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-amdgpu"></div>
+                            <p class="omnia-title" id="module-parameter-amdgpu">
+                                <strong>amdgpu</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Array of Intel Gaudi components.</p>
+                            <p>Array of AMDGPU software components.</p>
                         </div>
                     </td>
                 </tr>
@@ -181,8 +246,8 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi/name"></div>
-                            <p class="omnia-title" id="module-parameter-intelgaudi-name">
+                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/name"></div>
+                            <p class="omnia-title" id="module-parameter-amdgpu-name">
                                 <strong>name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
@@ -195,6 +260,23 @@
                     </td>
                 </tr>
                 <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/version"></div>
+                            <p class="omnia-title" id="module-parameter-amdgpu-version">
+                                <strong>version</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-pytorch"></div>
@@ -210,7 +292,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-even">
+                <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
@@ -227,74 +309,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-softwares"></div>
-                            <p class="omnia-title" id="module-parameter-softwares">
-                                <strong>softwares</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Array of software packages to be configured.</p>
-                        </div>
-                    </td>
-                </tr>
                 <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-softwares/arch"></div>
-                            <p class="omnia-title" id="module-parameter-softwares-arch">
-                                <strong>arch</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-softwares/name"></div>
-                            <p class="omnia-title" id="module-parameter-softwares-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-softwares/version"></div>
-                            <p class="omnia-title" id="module-parameter-softwares-version">
-                                <strong>version</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
                     <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-tensorflow"></div>
@@ -310,7 +325,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-even">
+                <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
@@ -327,51 +342,36 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-cluster_os_type"></div>
-                            <p class="omnia-title" id="module-parameter-cluster-os-type">
-                                <strong>cluster_os_type</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Specifies the type of operating system for the cluster.</p>
-                        </div>
-                    </td>
-                </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-cluster_os_version"></div>
-                            <p class="omnia-title" id="module-parameter-cluster-os-version">
-                                <strong>cluster_os_version</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi"></div>
+                            <p class="omnia-title" id="module-parameter-intelgaudi">
+                                <strong>intelgaudi</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Specifies the version of the operating system for the cluster.</p>
+                            <p>Array of Intel Gaudi components.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
+                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-repo_config"></div>
-                            <p class="omnia-title" id="module-parameter-repo-config">
-                                <strong>repo_config</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi/name"></div>
+                            <p class="omnia-title" id="module-parameter-intelgaudi-name">
+                                <strong>name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Specifies how repository configurations are handled.</p>
                         </div>
                     </td>
                 </tr>

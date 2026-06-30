@@ -14,16 +14,16 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params">
-                                <strong>mount_params</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config">
+                                <strong>powervault_config</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Named mount parameter profiles. Each profile provides defaults for fs_type, mnt_opts, dump_freq, fsck_pass. Custom fields are allowed for backend-specific metadata.</p>
+                            <p>List of PowerVault iSCSI volume connection definitions. Processed via runcmd script because device path is only known after iSCSI login + multipath scan.</p>
                         </div>
                     </td>
                 </tr>
@@ -31,27 +31,155 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>">
-                                <strong>&lt;mount_params_key&gt;</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/name"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-name">
+                                <strong>name</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Dynamic key matching pattern: <code class="docutils literal notranslate"><span class="pre">^[a-zA-Z0-9_-]+$</span></code></p>
+                            <p>Unique identifier for this PowerVault volume</p>
+                            <p>Minimum length: 1.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/ip"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-ip">
+                                <strong>ip</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of target controller IP addresses for iSCSI discovery</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/dump_freq"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-dump-freq">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/port"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-port">
+                                <strong>port</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>TCP port for iSCSI target (default 3260)</p>
+                            <p>Range: 1-65535.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/iscsi_initiator"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-iscsi-initiator">
+                                <strong>iscsi_initiator</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>iSCSI initiator IQN</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/volume_id"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-volume-id">
+                                <strong>volume_id</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Volume identifier (hex string / WWN) for multipath device matching</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mount_point"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-mount-point">
+                                <strong>mount_point</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Where the discovered device gets mounted</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/fs_type"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-fs-type">
+                                <strong>fs_type</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Filesystem type. Overrides mount_params profile when specified.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">xfs</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mnt_opts"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-mnt-opts">
+                                <strong>mnt_opts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Mount options. Overrides mount_params profile when specified.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/dump_freq"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-dump-freq">
                                 <strong>dump_freq</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -59,39 +187,18 @@
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Default dump frequency</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/fs_type"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-fs-type">
-                                <strong>fs_type</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Default filesystem type</p>
+                            <p>Dump frequency (usually 0). Overrides mount_params profile when specified.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/fsck_pass"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-fsck-pass">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/fsck_pass"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-fsck-pass">
                                 <strong>fsck_pass</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -99,45 +206,46 @@
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Default fsck pass number</p>
+                            <p>Fsck pass number (usually 0 or 2). Overrides mount_params profile when specified.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/mnt_opts"></div>
-                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-mnt-opts">
-                                <strong>mnt_opts</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mount_params"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-mount-params">
+                                <strong>mount_params</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Default mount options</p>
+                            <p>Named profile key from mount_params section. Must reference an existing profile defined in mount_params.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
+                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts"></div>
-                            <p class="omnia-title" id="module-parameter-mounts">
-                                <strong>mounts</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/node_key"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-node-key">
+                                <strong>node_key</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
                     </td>
                     <td>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Cloud-init compatible mount configurations. Source must be known at boot time.</p>
+                            <p>cloud_init variable for per-node bind mounts (e.g., local_hostname, ds.meta_data.instance_data.local_ipv4). When present, generates bind mounts under mount_point/&lt;node_key_value&gt;/</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">local_hostname</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -145,8 +253,44 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-permissions">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/node_mount_point"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-node-mount-point">
+                                <strong>node_mount_point</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of bind mount target paths. Required when node_key is set. Each gets: mount_point/&lt;node_key_value&gt;/&lt;target_stripped_slash&gt; -&gt; &lt;target&gt;</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/functional_group_prefix"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-functional-group-prefix">
+                                <strong>functional_group_prefix</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of functional group prefixes for node targeting. Mutually exclusive with group.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-permissions">
                                 <strong>permissions</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
@@ -164,8 +308,29 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/group"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-permissions-group">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/owner"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-owner">
+                                <strong>owner</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>User owner of the mount point (name or numeric UID)</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">root</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/group"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-group">
                                 <strong>group</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -180,13 +345,13 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
+                <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/mode"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-permissions-mode">
+                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/mode"></div>
+                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-mode">
                                 <strong>mode</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -197,28 +362,116 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>Octal permission mode (e.g., 0755, 1777)</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0755</span></code>.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0644</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts"></div>
+                            <p class="omnia-title" id="module-parameter-mounts">
+                                <strong>mounts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Cloud-init compatible mount configurations. Source must be known at boot time.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/name"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-name">
+                                <strong>name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Unique identifier for this mount entry</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/owner"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-permissions-owner">
-                                <strong>owner</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/source"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-source">
+                                <strong>source</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Device name or network path (e.g., /dev/sdc, UUID=xxx, 192.168.1.100:/export/share, powervault:&lt;name&gt;)</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/mount_point"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-mount-point">
+                                <strong>mount_point</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Mount point path</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/fs_type"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-fs-type">
+                                <strong>fs_type</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Filesystem type. Overrides mount_params profile when specified.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">auto</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/mnt_opts"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-mnt-opts">
+                                <strong>mnt_opts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>User owner of the mount point (name or numeric UID)</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">root</span></code>.</p>
+                            <p>Mount options. Overrides mount_params profile when specified.</p>
                         </div>
                     </td>
                 </tr>
@@ -245,25 +498,6 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/fs_type"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-fs-type">
-                                <strong>fs_type</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Filesystem type. Overrides mount_params profile when specified.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">auto</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-mounts/fsck_pass"></div>
                             <p class="omnia-title" id="module-parameter-mounts-fsck-pass">
                                 <strong>fsck_pass</strong>
@@ -279,80 +513,7 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/functional_group_prefix"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-functional-group-prefix">
-                                <strong>functional_group_prefix</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of oChaMI functional group prefixes to apply this mount to. Mutually exclusive with group.</p>
-                        </div>
-                    </td>
-                </tr>
                 <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/groups"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-groups">
-                                <strong>groups</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of GROUP_NAME values from pxe_mapping_file.csv. Mutually exclusive with functional_group_prefix.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/mnt_opts"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-mnt-opts">
-                                <strong>mnt_opts</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Mount options. Overrides mount_params profile when specified.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/mount_on_oim"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-mount-on-oim">
-                                <strong>mount_on_oim</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Whether to mount this filesystem on the OIM node. Default: false. Ensure the storage system is accessible to OIM</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
@@ -370,40 +531,22 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/mount_point"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-mount-point">
-                                <strong>mount_point</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Mount point path</p>
-                        </div>
-                    </td>
-                </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/name"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-name">
-                                <strong>name</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/mount_on_oim"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-mount-on-oim">
+                                <strong>mount_on_oim</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Unique identifier for this mount entry</p>
-                            <p>Minimum length: 1.</p>
+                            <p>Whether to mount this filesystem on the OIM node. Default: false. Ensure the storage system is accessible to OIM</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -448,34 +591,35 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-mounts/source"></div>
-                            <p class="omnia-title" id="module-parameter-mounts-source">
-                                <strong>source</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/functional_group_prefix"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-functional-group-prefix">
+                                <strong>functional_group_prefix</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Device name or network path (e.g., /dev/sdc, UUID=xxx, 192.168.1.100:/export/share, powervault:&lt;name&gt;)</p>
-                            <p>Minimum length: 1.</p>
+                            <p>List of oChaMI functional group prefixes to apply this mount to. Mutually exclusive with group.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
+                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config">
-                                <strong>powervault_config</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/groups"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-groups">
+                                <strong>groups</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
                         </div>
                     </td>
                     <td>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>List of PowerVault iSCSI volume connection definitions. Processed via runcmd script because device path is only known after iSCSI login + multipath scan.</p>
+                            <p>List of GROUP_NAME values from pxe_mapping_file.csv. Mutually exclusive with functional_group_prefix.</p>
                         </div>
                     </td>
                 </tr>
@@ -483,8 +627,8 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-permissions">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-permissions">
                                 <strong>permissions</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
@@ -502,50 +646,8 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/group"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-group">
-                                <strong>group</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Group owner of the mount point (name or numeric GID)</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">root</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/mode"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-mode">
-                                <strong>mode</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Octal permission mode (e.g., 0755, 1777)</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0644</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/permissions/owner"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-permissions-owner">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/owner"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-permissions-owner">
                                 <strong>owner</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -563,9 +665,126 @@
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/dump_freq"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-dump-freq">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/group"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-permissions-group">
+                                <strong>group</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Group owner of the mount point (name or numeric GID)</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">root</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mounts/permissions/mode"></div>
+                            <p class="omnia-title" id="module-parameter-mounts-permissions-mode">
+                                <strong>mode</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Octal permission mode (e.g., 0755, 1777)</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0755</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params">
+                                <strong>mount_params</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Named mount parameter profiles. Each profile provides defaults for fs_type, mnt_opts, dump_freq, fsck_pass. Custom fields are allowed for backend-specific metadata.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>">
+                                <strong>&lt;mount_params_key&gt;</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Dynamic key matching pattern: <code class="docutils literal notranslate"><span class="pre">^[a-zA-Z0-9_-]+$</span></code></p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/fs_type"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-fs-type">
+                                <strong>fs_type</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Default filesystem type</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/mnt_opts"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-mnt-opts">
+                                <strong>mnt_opts</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Default mount options</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/dump_freq"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-dump-freq">
                                 <strong>dump_freq</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -573,37 +792,19 @@
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Dump frequency (usually 0). Overrides mount_params profile when specified.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+                            <p>Default dump frequency</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/fs_type"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-fs-type">
-                                <strong>fs_type</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Filesystem type. Overrides mount_params profile when specified.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">xfs</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/fsck_pass"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-fsck-pass">
+                            <div class="ansibleOptionAnchor" id="parameter-mount_params/<mount_params_key>/fsck_pass"></div>
+                            <p class="omnia-title" id="module-parameter-mount-params-<mount-params-key>-fsck-pass">
                                 <strong>fsck_pass</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
@@ -611,9 +812,25 @@
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Fsck pass number (usually 0 or 2). Overrides mount_params profile when specified.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+                            <p>Default fsck pass number</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-swap"></div>
+                            <p class="omnia-title" id="module-parameter-swap">
+                                <strong>swap</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Swap file configurations</p>
                         </div>
                     </td>
                 </tr>
@@ -621,8 +838,62 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/functional_group_prefix"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-functional-group-prefix">
+                            <div class="ansibleOptionAnchor" id="parameter-swap/filename"></div>
+                            <p class="omnia-title" id="module-parameter-swap-filename">
+                                <strong>filename</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Path to the swap file to create</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-swap/size"></div>
+                            <p class="omnia-title" id="module-parameter-swap-size">
+                                <strong>size</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Size in bytes, &#x27;auto&#x27;, or human-readable format (e.g., 2G, 512M)</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-swap/maxsize"></div>
+                            <p class="omnia-title" id="module-parameter-swap-maxsize">
+                                <strong>maxsize</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Maximum size (used with size: auto)</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-swap/functional_group_prefix"></div>
+                            <p class="omnia-title" id="module-parameter-swap-functional-group-prefix">
                                 <strong>functional_group_prefix</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
@@ -631,194 +902,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>List of functional group prefixes for node targeting. Mutually exclusive with group.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/ip"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-ip">
-                                <strong>ip</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of target controller IP addresses for iSCSI discovery</p>
+                            <p>List of oChaMI functional group prefixes to apply this swap to. Mutually exclusive with group.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/iscsi_initiator"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-iscsi-initiator">
-                                <strong>iscsi_initiator</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>iSCSI initiator IQN</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mnt_opts"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-mnt-opts">
-                                <strong>mnt_opts</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Mount options. Overrides mount_params profile when specified.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mount_params"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-mount-params">
-                                <strong>mount_params</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Named profile key from mount_params section. Must reference an existing profile defined in mount_params.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/mount_point"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-mount-point">
-                                <strong>mount_point</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Where the discovered device gets mounted</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/name"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Unique identifier for this PowerVault volume</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/node_key"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-node-key">
-                                <strong>node_key</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>cloud_init variable for per-node bind mounts (e.g., local_hostname, ds.meta_data.instance_data.local_ipv4). When present, generates bind mounts under mount_point/&lt;node_key_value&gt;/</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">local_hostname</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/node_mount_point"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-node-mount-point">
-                                <strong>node_mount_point</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of bind mount target paths. Required when node_key is set. Each gets: mount_point/&lt;node_key_value&gt;/&lt;target_stripped_slash&gt; -&gt; &lt;target&gt;</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/port"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-port">
-                                <strong>port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>TCP port for iSCSI target (default 3260)</p>
-                            <p>Range: 1-65535.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powervault_config/volume_id"></div>
-                            <p class="omnia-title" id="module-parameter-powervault-config-volume-id">
-                                <strong>volume_id</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Volume identifier (hex string / WWN) for multipath device matching</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
                     <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-s3_configurations"></div>
@@ -831,24 +919,6 @@
                     <td>
                         <div class="omnia-cell">
                             <p>S3-compatible storage configuration for OpenCHAMI image repository.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-s3_configurations/endpoint_url"></div>
-                            <p class="omnia-title" id="module-parameter-s3-configurations-endpoint-url">
-                                <strong>endpoint_url</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>S3 endpoint URL. Required for powerscale (e.g., https://10.43.1.11:9021). Leave empty for minio.</p>
                         </div>
                     </td>
                 </tr>
@@ -873,63 +943,11 @@
                 </tr>
                 <tr class="row-even">
                     <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-swap"></div>
-                            <p class="omnia-title" id="module-parameter-swap">
-                                <strong>swap</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Swap file configurations</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-swap/filename"></div>
-                            <p class="omnia-title" id="module-parameter-swap-filename">
-                                <strong>filename</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Path to the swap file to create</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-swap/functional_group_prefix"></div>
-                            <p class="omnia-title" id="module-parameter-swap-functional-group-prefix">
-                                <strong>functional_group_prefix</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of oChaMI functional group prefixes to apply this swap to. Mutually exclusive with group.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-swap/maxsize"></div>
-                            <p class="omnia-title" id="module-parameter-swap-maxsize">
-                                <strong>maxsize</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-s3_configurations/endpoint_url"></div>
+                            <p class="omnia-title" id="module-parameter-s3-configurations-endpoint-url">
+                                <strong>endpoint_url</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
@@ -937,25 +955,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Maximum size (used with size: auto)</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-swap/size"></div>
-                            <p class="omnia-title" id="module-parameter-swap-size">
-                                <strong>size</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Size in bytes, &#x27;auto&#x27;, or human-readable format (e.g., 2G, 512M)</p>
+                            <p>S3 endpoint URL. Required for powerscale (e.g., https://10.43.1.11:9021). Leave empty for minio.</p>
                         </div>
                     </td>
                 </tr>

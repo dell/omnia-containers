@@ -14,16 +14,16 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations">
-                                <strong>ldms_configurations</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources">
+                                <strong>telemetry_sources</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>LDMS-specific configurations for aggregator, store, and sampler.</p>
+                            <p>Data collectors — each source can be independently enabled/disabled.</p>
                         </div>
                     </td>
                 </tr>
@@ -31,172 +31,59 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins">
-                                <strong>sampler_plugins</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>LDMS sampler plugin configurations.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/activation_parameters"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-activation-parameters">
-                                <strong>activation_parameters</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Activation parameters (e.g., &#x27;interval=30000000 offset=0&#x27;).</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/config_parameters"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-config-parameters">
-                                <strong>config_parameters</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Plugin-specific configuration parameters as a single string.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/plugin_name"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-plugin-name">
-                                <strong>plugin_name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Name of the LDMS sampler plugin.</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/agg_port"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-agg-port">
-                                <strong>agg_port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>LDMS Aggregator port on service K8s cluster. Valid range: 6001-6100.</p>
-                            <p>Range: 6001-6100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_port"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-port">
-                                <strong>sampler_port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>LDMS sampler port on compute nodes. Valid range: 10001-10100.</p>
-                            <p>Range: 10001-10100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">10001</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/store_port"></div>
-                            <p class="omnia-title" id="module-parameter-ldms-configurations-store-port">
-                                <strong>store_port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>LDMS store daemon port. Valid range: 6001-6100.</p>
-                            <p>Range: 6001-6100.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations"></div>
-                            <p class="omnia-title" id="module-parameter-powerscale-configurations">
-                                <strong>powerscale_configurations</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac">
+                                <strong>idrac</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PowerScale telemetry detailed configurations.</p>
+                            <p>iDRAC hardware metrics from Dell PowerEdge servers.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable iDRAC metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations/csm_observability_values_file_path"></div>
-                            <p class="omnia-title" id="module-parameter-powerscale-configurations-csm-observability-values-file-path">
-                                <strong>csm_observability_values_file_path</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac-collection-targets">
+                                <strong>collection_targets</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Path to the CSM Observability (Karavi) values.yaml file.</p>
+                            <p>Where iDRAC data is sent. Supported: &#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;]</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -204,18 +91,422 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations/otel_collector_storage_size"></div>
-                            <p class="omnia-title" id="module-parameter-powerscale-configurations-otel-collector-storage-size">
-                                <strong>otel_collector_storage_size</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms">
+                                <strong>ldms</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>PVC size for OTEL Collector metric batching and buffering.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
+                            <p>Lightweight Distributed Metric Service for compute node metrics.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable LDMS metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms-collection-targets">
+                                <strong>collection_targets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>LDMS only supports Kafka collection. Vector-LDMS bridge routes to victoria_metrics.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/dcgm"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-dcgm">
+                                <strong>dcgm</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>NVIDIA Data Center GPU Manager telemetry.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/dcgm/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-dcgm-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable NVIDIA DCGM (Data Center GPU Manager) on GPU compute nodes. When true, nvidia-dcgm.service is started during cloud-init provisioning. Default: true</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale">
+                                <strong>powerscale</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Dell PowerScale (OneFS) storage telemetry.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable PowerScale metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/logs_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-logs-enabled">
+                                <strong>logs_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable PowerScale logs collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-collection-targets">
+                                <strong>collection_targets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>PowerScale supports victoria_metrics (metrics) and victoria_logs (logs).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm">
+                                <strong>ufm</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>NVIDIA UFM InfiniBand Fabric telemetry.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable UFM InfiniBand metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/logs_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-logs-enabled">
+                                <strong>logs_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable UFM syslog logs collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-collection-targets">
+                                <strong>collection_targets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>UFM supports victoria_metrics (metrics) and victoria_logs (logs).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast">
+                                <strong>vast</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>VAST Data Storage telemetry.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable VAST storage metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/logs_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-logs-enabled">
+                                <strong>logs_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable VAST syslog logs collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-collection-targets">
+                                <strong>collection_targets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>VAST supports victoria_metrics (metrics) and victoria_logs (logs).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome">
+                                <strong>ome</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Dell OpenManage Enterprise telemetry. OME publishes to Kafka; Vector-OME bridge routes to Victoria sinks.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/metrics_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-metrics-enabled">
+                                <strong>metrics_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable OME metrics collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/logs_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-logs-enabled">
+                                <strong>logs_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable OME logs collection.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/collection_targets"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-collection-targets">
+                                <strong>collection_targets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>OME only supports Kafka collection. Vector-OME bridge routes to victoria_metrics/victoria_logs.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -297,27 +588,6 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_bridges/vector_ome/logs_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-bridges-vector-ome-logs-enabled">
-                                <strong>logs_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable Vector-OME logs routing.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-telemetry_bridges/vector_ome/metrics_enabled"></div>
                             <p class="omnia-title" id="module-parameter-telemetry-bridges-vector-ome-metrics-enabled">
                                 <strong>metrics_enabled</strong>
@@ -330,6 +600,27 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>Enable or disable Vector-OME metrics routing.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_bridges/vector_ome/logs_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-bridges-vector-ome-logs-enabled">
+                                <strong>logs_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Enable or disable Vector-OME logs routing.</p>
                             <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
                         </div>
                     </td>
@@ -376,6 +667,260 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics">
+                                <strong>victoria_metrics</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>victoria_metrics time-series database for metrics.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/persistence_size"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-persistence-size">
+                                <strong>persistence_size</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Storage per vmstorage pod PVC. Cluster total = persistence_size × 3 pods.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/retention_period"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-retention-period">
+                                <strong>retention_period</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Metric retention period in hours. Default: 168 (7 days).</p>
+                            <p>Minimum: 24.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints">
+                                <strong>additional_metric_remote_write_endpoints</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Additional metrics remote_write endpoints. Metrics are sent to Omnia VictoriaMetrics AND these endpoints.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints/url"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints-url">
+                                <strong>url</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Metrics remote_write endpoint URL.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints/tls_insecure_skip_verify"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints-tls-insecure-skip-verify">
+                                <strong>tls_insecure_skip_verify</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Skip TLS certificate verification for this endpoint.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs">
+                                <strong>victoria_logs</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>victoria_logs centralized log storage.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/storage_size"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-storage-size">
+                                <strong>storage_size</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Storage per vlstorage pod PVC. Total = storage_size × 3 pods.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/retention_period"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-retention-period">
+                                <strong>retention_period</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Log retention period in hours. Default: 168 (7 days).</p>
+                            <p>Minimum: 24.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints">
+                                <strong>additional_log_write_endpoints</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Additional log remote_write endpoints. Logs are sent to Omnia VictoriaLogs AND these endpoints.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints/url"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints-url">
+                                <strong>url</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Logs remote_write endpoint URL.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints/tls_insecure_skip_verify"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints-tls-insecure-skip-verify">
+                                <strong>tls_insecure_skip_verify</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Skip TLS certificate verification for this endpoint.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka"></div>
                             <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka">
                                 <strong>kafka</strong>
@@ -387,6 +932,92 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>Apache Kafka distributed streaming platform.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/persistence_size"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-persistence-size">
+                                <strong>persistence_size</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Storage per Kafka pod PVC. Total = persistence_size × 6 pods (3 brokers + 3 controllers).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_retention_hours"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-retention-hours">
+                                <strong>log_retention_hours</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Kafka log retention in hours. Default: 168 (7 days).</p>
+                            <p>Minimum: 1.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_retention_bytes"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-retention-bytes">
+                                <strong>log_retention_bytes</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Maximum size of Kafka logs (bytes) before deletion. Default: -1 (unlimited).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_segment_bytes"></div>
+                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-segment-bytes">
+                                <strong>log_segment_bytes</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Maximum size of Kafka log segments (bytes). Default: 1073741824 (1 GB).</p>
+                            <p>Minimum: 1.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">1073741824</span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -460,66 +1091,95 @@
                 </tr>
                 <tr class="row-odd">
                     <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_retention_bytes"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-retention-bytes">
-                                <strong>log_retention_bytes</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations">
+                                <strong>ldms_configurations</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Maximum size of Kafka logs (bytes) before deletion. Default: -1 (unlimited).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">-1</span></code>.</p>
+                            <p>LDMS-specific configurations for aggregator, store, and sampler.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_retention_hours"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-retention-hours">
-                                <strong>log_retention_hours</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/agg_port"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-agg-port">
+                                <strong>agg_port</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kafka log retention in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 1.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                            <p>LDMS Aggregator port on service K8s cluster. Valid range: 6001-6100.</p>
+                            <p>Range: 6001-6100.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/log_segment_bytes"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-log-segment-bytes">
-                                <strong>log_segment_bytes</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/store_port"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-store-port">
+                                <strong>store_port</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>LDMS store daemon port. Valid range: 6001-6100.</p>
+                            <p>Range: 6001-6100.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">6001</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_port"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-port">
+                                <strong>sampler_port</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Maximum size of Kafka log segments (bytes). Default: 1073741824 (1 GB).</p>
-                            <p>Minimum: 1.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">1073741824</span></code>.</p>
+                            <p>LDMS sampler port on compute nodes. Valid range: 10001-10100.</p>
+                            <p>Range: 10001-10100.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">10001</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins">
+                                <strong>sampler_plugins</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>LDMS sampler plugin configurations.</p>
                         </div>
                     </td>
                 </tr>
@@ -528,9 +1188,9 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/kafka/persistence_size"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-kafka-persistence-size">
-                                <strong>persistence_size</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/plugin_name"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-plugin-name">
+                                <strong>plugin_name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
@@ -539,92 +1199,8 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per Kafka pod PVC. Total = persistence_size × 6 pods (3 brokers + 3 controllers).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs">
-                                <strong>victoria_logs</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>victoria_logs centralized log storage.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints">
-                                <strong>additional_log_write_endpoints</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Additional log remote_write endpoints. Logs are sent to Omnia VictoriaLogs AND these endpoints.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints/tls_insecure_skip_verify"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints-tls-insecure-skip-verify">
-                                <strong>tls_insecure_skip_verify</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Skip TLS certificate verification for this endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/additional_log_write_endpoints/url"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-additional-log-write-endpoints-url">
-                                <strong>url</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Logs remote_write endpoint URL.</p>
+                            <p>Name of the LDMS sampler plugin.</p>
+                            <p>Minimum length: 1.</p>
                         </div>
                     </td>
                 </tr>
@@ -633,20 +1209,18 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/retention_period"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-retention-period">
-                                <strong>retention_period</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/config_parameters"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-config-parameters">
+                                <strong>config_parameters</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Log retention period in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 24.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
+                            <p>Plugin-specific configuration parameters as a single string.</p>
                         </div>
                     </td>
                 </tr>
@@ -655,9 +1229,9 @@
                         <div class="omnia-indent"></div>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_logs/storage_size"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-logs-storage-size">
-                                <strong>storage_size</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-ldms_configurations/sampler_plugins/activation_parameters"></div>
+                            <p class="omnia-title" id="module-parameter-ldms-configurations-sampler-plugins-activation-parameters">
+                                <strong>activation_parameters</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
@@ -666,634 +1240,60 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per vlstorage pod PVC. Total = storage_size × 3 pods.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
+                            <p>Activation parameters (e.g., &#x27;interval=30000000 offset=0&#x27;).</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics">
-                                <strong>victoria_metrics</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations"></div>
+                            <p class="omnia-title" id="module-parameter-powerscale-configurations">
+                                <strong>powerscale_configurations</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>victoria_metrics time-series database for metrics.</p>
+                            <p>PowerScale telemetry detailed configurations.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints">
-                                <strong>additional_metric_remote_write_endpoints</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Additional metrics remote_write endpoints. Metrics are sent to Omnia VictoriaMetrics AND these endpoints.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints/tls_insecure_skip_verify"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints-tls-insecure-skip-verify">
-                                <strong>tls_insecure_skip_verify</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Skip TLS certificate verification for this endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/additional_metric_remote_write_endpoints/url"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-additional-metric-remote-write-endpoints-url">
-                                <strong>url</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations/otel_collector_storage_size"></div>
+                            <p class="omnia-title" id="module-parameter-powerscale-configurations-otel-collector-storage-size">
+                                <strong>otel_collector_storage_size</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Metrics remote_write endpoint URL.</p>
+                            <p>PVC size for OTEL Collector metric batching and buffering.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">5Gi</span></code>.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/persistence_size"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-persistence-size">
-                                <strong>persistence_size</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-powerscale_configurations/csm_observability_values_file_path"></div>
+                            <p class="omnia-title" id="module-parameter-powerscale-configurations-csm-observability-values-file-path">
+                                <strong>csm_observability_values_file_path</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage per vmstorage pod PVC. Cluster total = persistence_size × 3 pods.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">8Gi</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sinks/victoria_metrics/retention_period"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sinks-victoria-metrics-retention-period">
-                                <strong>retention_period</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Metric retention period in hours. Default: 168 (7 days).</p>
-                            <p>Minimum: 24.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">168</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources">
-                                <strong>telemetry_sources</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Data collectors — each source can be independently enabled/disabled.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/dcgm"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-dcgm">
-                                <strong>dcgm</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>NVIDIA Data Center GPU Manager telemetry.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/dcgm/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-dcgm-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable NVIDIA DCGM (Data Center GPU Manager) on GPU compute nodes. When true, nvidia-dcgm.service is started during cloud-init provisioning. Default: true</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac">
-                                <strong>idrac</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>iDRAC hardware metrics from Dell PowerEdge servers.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Where iDRAC data is sent. Supported: &#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;, &#x27;kafka&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/idrac/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-idrac-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable iDRAC metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms">
-                                <strong>ldms</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Lightweight Distributed Metric Service for compute node metrics.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>LDMS only supports Kafka collection. Vector-LDMS bridge routes to victoria_metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ldms/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ldms-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable LDMS metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome">
-                                <strong>ome</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Dell OpenManage Enterprise telemetry. OME publishes to Kafka; Vector-OME bridge routes to Victoria sinks.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>OME only supports Kafka collection. Vector-OME bridge routes to victoria_metrics/victoria_logs.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;kafka&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/logs_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-logs-enabled">
-                                <strong>logs_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable OME logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ome/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ome-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable OME metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale">
-                                <strong>powerscale</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Dell PowerScale (OneFS) storage telemetry.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>PowerScale supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/logs_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-logs-enabled">
-                                <strong>logs_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable PowerScale logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/powerscale/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-powerscale-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable PowerScale metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm">
-                                <strong>ufm</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>NVIDIA UFM InfiniBand Fabric telemetry.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>UFM supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/logs_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-logs-enabled">
-                                <strong>logs_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable UFM syslog logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/ufm/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-ufm-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable UFM InfiniBand metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast">
-                                <strong>vast</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>VAST Data Storage telemetry.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/collection_targets"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-collection-targets">
-                                <strong>collection_targets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>VAST supports victoria_metrics (metrics) and victoria_logs (logs).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">[&#x27;victoria_metrics&#x27;]</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/logs_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-logs-enabled">
-                                <strong>logs_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable VAST syslog logs collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-telemetry_sources/vast/metrics_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-telemetry-sources-vast-metrics-enabled">
-                                <strong>metrics_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Enable or disable VAST storage metrics collection.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Path to the CSM Observability (Karavi) values.yaml file.</p>
                         </div>
                     </td>
                 </tr>
@@ -1310,6 +1310,120 @@
                     <td>
                         <div class="omnia-cell">
                             <p>UFM telemetry detailed configurations.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_endpoint"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-endpoint">
+                                <strong>ufm_endpoint</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>UFM appliance IP address or hostname. Required when UFM telemetry is enabled (metrics_enabled or logs_enabled is true).</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_metrics_port"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-metrics-port">
+                                <strong>ufm_metrics_port</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>UFM Prometheus exporter port.</p>
+                            <p>Range: 1-65535.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">9001</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/scrape_interval"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-scrape-interval">
+                                <strong>scrape_interval</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Prometheus scrape interval for UFM metrics.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/scrape_timeout"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-scrape-timeout">
+                                <strong>scrape_timeout</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/tls_mode"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-tls-mode">
+                                <strong>tls_mode</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>TLS mode for connecting to UFM Prometheus endpoint.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_ca_cert_path"></div>
+                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-ca-cert-path">
+                                <strong>ufm_ca_cert_path</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Path to CA certificate file for UFM TLS verification.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -1334,120 +1448,6 @@
                 </tr>
                 <tr class="row-even">
                     <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/scrape_interval"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-scrape-interval">
-                                <strong>scrape_interval</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Prometheus scrape interval for UFM metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/scrape_timeout"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-scrape-timeout">
-                                <strong>scrape_timeout</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/tls_mode"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-tls-mode">
-                                <strong>tls_mode</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>TLS mode for connecting to UFM Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_ca_cert_path"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-ca-cert-path">
-                                <strong>ufm_ca_cert_path</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Path to CA certificate file for UFM TLS verification.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_endpoint"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-endpoint">
-                                <strong>ufm_endpoint</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>UFM appliance IP address or hostname. Required when UFM telemetry is enabled (metrics_enabled or logs_enabled is true).</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-ufm_configuration/ufm_metrics_port"></div>
-                            <p class="omnia-title" id="module-parameter-ufm-configuration-ufm-metrics-port">
-                                <strong>ufm_metrics_port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>UFM Prometheus exporter port.</p>
-                            <p>Range: 1-65535.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">9001</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-vast_configuration"></div>
                             <p class="omnia-title" id="module-parameter-vast-configuration">
@@ -1459,120 +1459,6 @@
                     <td>
                         <div class="omnia-cell">
                             <p>VAST telemetry detailed configurations.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/auth_mode"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-auth-mode">
-                                <strong>auth_mode</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Authentication mode for VAST Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">basic</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/metrics_path"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-metrics-path">
-                                <strong>metrics_path</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Prometheus metrics path for VAST API.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">/api/prometheusmetrics/all</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/scrape_interval"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-scrape-interval">
-                                <strong>scrape_interval</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Prometheus scrape interval for VAST metrics.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/scrape_timeout"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-scrape-timeout">
-                                <strong>scrape_timeout</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/tls_mode"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-tls-mode">
-                                <strong>tls_mode</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>TLS mode for connecting to VAST Prometheus endpoint.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/vast_ca_cert_path"></div>
-                            <p class="omnia-title" id="module-parameter-vast-configuration-vast-ca-cert-path">
-                                <strong>vast_ca_cert_path</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Path to CA certificate file for VAST TLS verification.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
                         </div>
                     </td>
                 </tr>
@@ -1611,6 +1497,120 @@
                             <p>VAST Prometheus metrics port.</p>
                             <p>Range: 1-65535.</p>
                             <p>Default: <code class="docutils literal notranslate"><span class="pre">443</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/metrics_path"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-metrics-path">
+                                <strong>metrics_path</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Prometheus metrics path for VAST API.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">/api/prometheusmetrics/all</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/scrape_interval"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-scrape-interval">
+                                <strong>scrape_interval</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Prometheus scrape interval for VAST metrics.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">30s</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/scrape_timeout"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-scrape-timeout">
+                                <strong>scrape_timeout</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Prometheus scrape timeout (must be &lt;= scrape_interval).</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">15s</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/tls_mode"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-tls-mode">
+                                <strong>tls_mode</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>TLS mode for connecting to VAST Prometheus endpoint.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">self_signed</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/vast_ca_cert_path"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-vast-ca-cert-path">
+                                <strong>vast_ca_cert_path</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Path to CA certificate file for VAST TLS verification.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-vast_configuration/auth_mode"></div>
+                            <p class="omnia-title" id="module-parameter-vast-configuration-auth-mode">
+                                <strong>auth_mode</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Authentication mode for VAST Prometheus endpoint.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">basic</span></code>.</p>
                         </div>
                     </td>
                 </tr>

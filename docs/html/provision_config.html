@@ -14,72 +14,20 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-additional_cloud_init_config_file"></div>
-                            <p class="omnia-title" id="module-parameter-additional-cloud-init-config-file">
-                                <strong>additional_cloud_init_config_file</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Path to additional cloud-init configuration file for stateless node provisioning. Leave empty to disable.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-default_lease_time"></div>
-                            <p class="omnia-title" id="module-parameter-default-lease-time">
-                                <strong>default_lease_time</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-pxe_mapping_file_path"></div>
+                            <p class="omnia-title" id="module-parameter-pxe-mapping-file-path">
+                                <strong>pxe_mapping_file_path</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Default lease time for DHCP.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">86400</span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-dns_enabled"></div>
-                            <p class="omnia-title" id="module-parameter-dns-enabled">
-                                <strong>dns_enabled</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Enable DNS-based hostname resolution via coresmd.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                            <p>Path to the PXE mapping file.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-kernel_version_override"></div>
-                            <p class="omnia-title" id="module-parameter-kernel-version-override">
-                                <strong>kernel_version_override</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Optional kernel version to pin for boot image selection. Leave empty to auto-select latest.</p>
-                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-language"></div>
@@ -96,19 +44,71 @@
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
+                <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-pxe_mapping_file_path"></div>
-                            <p class="omnia-title" id="module-parameter-pxe-mapping-file-path">
-                                <strong>pxe_mapping_file_path</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-default_lease_time"></div>
+                            <p class="omnia-title" id="module-parameter-default-lease-time">
+                                <strong>default_lease_time</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Path to the PXE mapping file.</p>
+                            <p>Default lease time for DHCP.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">86400</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-dns_enabled"></div>
+                            <p class="omnia-title" id="module-parameter-dns-enabled">
+                                <strong>dns_enabled</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Enable DNS-based hostname resolution via coresmd.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-kernel_version_override"></div>
+                            <p class="omnia-title" id="module-parameter-kernel-version-override">
+                                <strong>kernel_version_override</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Optional kernel version to pin for boot image selection. Leave empty to auto-select latest.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-additional_cloud_init_config_file"></div>
+                            <p class="omnia-title" id="module-parameter-additional-cloud-init-config-file">
+                                <strong>additional_cloud_init_config_file</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Path to additional cloud-init configuration file for stateless node provisioning. Leave empty to disable.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre"></span></code>.</p>
                         </div>
                     </td>
                 </tr>

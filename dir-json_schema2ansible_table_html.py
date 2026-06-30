@@ -44,7 +44,7 @@ TYPE_MAP_ANSIBLE2DISPLAY = {
 
 def map_json_type_to_ansible(json_type):
     """Map JSON Schema type to Ansible doc type."""
-    print(json_type)
+    # print(json_type)
     if isinstance(json_type, list):
         # e.g. ["string", "null"] -> pick the non-null type
         types = [t for t in json_type if t != "null"]
@@ -63,11 +63,6 @@ def build_description(schema):
     desc = schema.get("description")
     if desc:
         parts.append(desc)
-
-    # # Pattern constraint
-    # pattern = schema.get("pattern")
-    # if pattern:
-    #     parts.append(f"Pattern: C({pattern})")
 
     # Min/max for integers/numbers
     minimum = schema.get("minimum")
@@ -110,9 +105,9 @@ def convert_property(name, schema, required_list=None):
     desc = build_description(schema)
     if desc:
         option["description"] = desc
-    print(schema)
+    # print(schema)
     json_type = schema.get("type")
-    print("JSON Type:", json_type)
+    # print("JSON Type:", json_type)
     ansible_type = map_json_type_to_ansible(json_type)
 
     # Choices from enum
@@ -157,25 +152,24 @@ def convert_property(name, schema, required_list=None):
             option["suboptions"] = suboptions
 
         # patternProperties -> convert each pattern's schema as a suboption
-        # with a descriptive name
         elif schema.get("patternProperties"):
             suboptions = {}
             for pattern, pat_schema in schema["patternProperties"].items():
-                # Use the pattern as a key hint
                 key_name = f"<{name}_key>"
-                pat_option = convert_property(key_name, pat_schema)
-                pat_desc = pat_option.get("description", "")
-                if isinstance(pat_desc, list):
-                    pat_desc.insert(0, f"Dynamic key matching pattern: C({pattern})")
-                elif pat_desc:
-                    pat_option["description"] = [
-                        f"Dynamic key matching pattern: C({pattern})",
-                        pat_desc,
-                    ]
+                pat_type = pat_schema.get("type")
+                if pat_type == "object" and pat_schema.get("properties"):
+                    pat_option = convert_property(key_name, pat_schema,
+                                                  pat_schema.get("required", []))
                 else:
-                    pat_option["description"] = (
-                        f"Dynamic key matching pattern: C({pattern})"
-                    )
+                    pat_option = convert_property(key_name, pat_schema)
+                pat_desc = pat_option.get("description", "")
+                hint = f"Dynamic key matching pattern: C({pattern})"
+                if isinstance(pat_desc, list):
+                    pat_desc.insert(0, hint)
+                elif pat_desc:
+                    pat_option["description"] = [hint, pat_desc]
+                else:
+                    pat_option["description"] = hint
                 suboptions[key_name] = pat_option
             option["suboptions"] = suboptions
 
@@ -273,28 +267,15 @@ def description_to_paragraphs(desc):
 # ---------- flatten options tree ----------
 def flatten_options(options, parent_path="", depth=0):
     """
-    Depth-first flattening of the options tree, preserving the
-    original insertion order from the JSON schema.
+    Depth-first flattening of the options tree.
+    Preserves the original definition order from the JSON schema.
     Returns a list of (name, option_dict, path, depth) tuples.
     """
     if not options:
         return []
 
-    # Separate options with suboptions from leaf options
-    with_sub = []
-    without_sub = []
-    for name in sorted(options.keys()):
-        opt = options[name]
-        if opt and opt.get("suboptions"):
-            with_sub.append((name, opt))
-        else:
-            without_sub.append((name, opt))
-
-    # Options with suboptions first, then leaf options
-    sorted_items = with_sub + without_sub
-
     rows = []
-    for name, opt in sorted_items:
+    for name, opt in options.items():
         path = f"{parent_path}/{name}" if parent_path else name
         rows.append((name, opt or {}, path, depth))
         if opt and opt.get("suboptions"):

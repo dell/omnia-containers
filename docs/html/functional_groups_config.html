@@ -14,75 +14,6 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-functional_groups"></div>
-                            <p class="omnia-title" id="module-parameter-functional-groups">
-                                <strong>functional_groups</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/cluster_name"></div>
-                            <p class="omnia-title" id="module-parameter-functional-groups-cluster-name">
-                                <strong>cluster_name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Name of the cluster. Mandatory for service and compute kubernetes roles like &#x27;service_kube_node&#x27;, &#x27;kube_node&#x27;.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/group"></div>
-                            <p class="omnia-title" id="module-parameter-functional-groups-group">
-                                <strong>group</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>List of groups defined by the user</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/name"></div>
-                            <p class="omnia-title" id="module-parameter-functional-groups-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Name of the functional_group, can be any of the following Omnia defined functional_group.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-groups"></div>
                             <p class="omnia-title" id="module-parameter-groups">
                                 <strong>groups</strong>
@@ -150,6 +81,75 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>List of service tag of associated active service node(s). This field will be mandatory for slurm_node related roles.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-functional_groups"></div>
+                            <p class="omnia-title" id="module-parameter-functional-groups">
+                                <strong>functional_groups</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/name"></div>
+                            <p class="omnia-title" id="module-parameter-functional-groups-name">
+                                <strong>name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Name of the functional_group, can be any of the following Omnia defined functional_group.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/cluster_name"></div>
+                            <p class="omnia-title" id="module-parameter-functional-groups-cluster-name">
+                                <strong>cluster_name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Name of the cluster. Mandatory for service and compute kubernetes roles like &#x27;service_kube_node&#x27;, &#x27;kube_node&#x27;.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-functional_groups/group"></div>
+                            <p class="omnia-title" id="module-parameter-functional-groups-group">
+                                <strong>group</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of groups defined by the user</p>
                         </div>
                     </td>
                 </tr>

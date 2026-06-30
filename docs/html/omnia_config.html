@@ -14,6 +14,286 @@
                 <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster">
+                                <strong>slurm_cluster</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>List of slurm cluster configurations.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/cluster_name"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-cluster-name">
+                                <strong>cluster_name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Unique name for the slurm cluster.</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/nfs_storage_name"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-nfs-storage-name">
+                                <strong>nfs_storage_name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Name of the nfs storage in storage_config.yml</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/vast_storage_name"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-vast-storage-name">
+                                <strong>vast_storage_name</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Name of the vast storage in storage_config.yml</p>
+                            <p>Minimum length: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/skip_merge"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-skip-merge">
+                                <strong>skip_merge</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Variable indicates whether a specific configuration file path under config_sources should be used as-is without merging</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_discovery_mode"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-discovery-mode">
+                                <strong>node_discovery_mode</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Node hardware discovery mode. &#x27;homogeneous&#x27; for group-based discovery, &#x27;heterogeneous&#x27; for individual node discovery. Default: heterogeneous</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults">
+                                <strong>node_hardware_defaults</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Hardware specifications for homogeneous node groups. Key is group name (grp0-grp100 or SU1-SU100), value is hardware specs.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>">
+                                <strong>&lt;node_hardware_defaults_key&gt;</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Dynamic key matching pattern: <code class="docutils literal notranslate"><span class="pre">^(grp([0-9]|[1-9][0-9]|100</span></code>|[Ss][Uu]([1-9]|[1-9][0-9]|100))$)</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/sockets"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-sockets">
+                                <strong>sockets</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Number of CPU sockets per node</p>
+                            <p>Minimum: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/cores_per_socket"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-cores-per-socket">
+                                <strong>cores_per_socket</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Number of CPU cores per socket</p>
+                            <p>Minimum: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/threads_per_core"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-threads-per-core">
+                                <strong>threads_per_core</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Number of CPU threads per core</p>
+                            <p>Minimum: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/real_memory"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-real-memory">
+                                <strong>real_memory</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Memory in MB (exact value to use in Slurm)</p>
+                            <p>Minimum: 1.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/gres"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-gres">
+                                <strong>gres</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>GPU resources in format &#x27;gpu:N&#x27; (optional)</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/config_sources"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-cluster-config-sources">
+                                <strong>config_sources</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Config can be a file path or inline mapping</p>
+                            <p>Value can be: str (File path string) or dict (Inline configuration mapping).</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster"></div>
                             <p class="omnia-title" id="module-parameter-service-k8s-cluster">
                                 <strong>service_k8s_cluster</strong>
@@ -43,42 +323,6 @@
                         <div class="omnia-cell">
                             <p>Unique name for the service Kubernetes cluster.</p>
                             <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/csi_powerscale_driver_secret_file_path"></div>
-                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-csi-powerscale-driver-secret-file-path">
-                                <strong>csi_powerscale_driver_secret_file_path</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Absolute file path for the secret.yaml file.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/csi_powerscale_driver_values_file_path"></div>
-                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-csi-powerscale-driver-values-file-path">
-                                <strong>csi_powerscale_driver_values_file_path</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>File path for the values.yaml file.</p>
                         </div>
                     </td>
                 </tr>
@@ -138,27 +382,9 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/k8s_crio_storage_size"></div>
-                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-k8s-crio-storage-size">
-                                <strong>k8s_crio_storage_size</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Storage size for CRI-O in Gigabytes only (example: 10G, 15G, 100G)</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/k8s_pod_network_cidr"></div>
-                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-k8s-pod-network-cidr">
-                                <strong>k8s_pod_network_cidr</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/pod_external_ip_range"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-pod-external-ip-range">
+                                <strong>pod_external_ip_range</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
@@ -166,11 +392,11 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CIDR for K8s pod network.</p>
+                            <p>Kubernetes pod network CIDR for internal network</p>
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
+                <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
@@ -185,6 +411,24 @@
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
                             <p>CIDR for K8s service IPs.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/k8s_pod_network_cidr"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-k8s-pod-network-cidr">
+                                <strong>k8s_pod_network_cidr</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>CIDR for K8s pod network.</p>
                         </div>
                     </td>
                 </tr>
@@ -210,9 +454,9 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/pod_external_ip_range"></div>
-                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-pod-external-ip-range">
-                                <strong>pod_external_ip_range</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/csi_powerscale_driver_secret_file_path"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-csi-powerscale-driver-secret-file-path">
+                                <strong>csi_powerscale_driver_secret_file_path</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
@@ -220,185 +464,35 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kubernetes pod network CIDR for internal network</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster">
-                                <strong>slurm_cluster</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>List of slurm cluster configurations.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults">
-                                <strong>node_hardware_defaults</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Hardware specifications for homogeneous node groups. Key is group name (grp0-grp100 or SU1-SU100), value is hardware specs.</p>
+                            <p>Absolute file path for the secret.yaml file.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>">
-                                <strong>&lt;node_hardware_defaults_key&gt;</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Dynamic key matching pattern: <code class="docutils literal notranslate"><span class="pre">^(grp([0-9]|[1-9][0-9]|100</span></code>|[Ss][Uu]([1-9]|[1-9][0-9]|100))$)</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/cores_per_socket"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-cores-per-socket">
-                                <strong>cores_per_socket</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Number of CPU cores per socket</p>
-                            <p>Minimum: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/gres"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-gres">
-                                <strong>gres</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/csi_powerscale_driver_values_file_path"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-csi-powerscale-driver-values-file-path">
+                                <strong>csi_powerscale_driver_values_file_path</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>GPU resources in format &#x27;gpu:N&#x27; (optional)</p>
+                            <p>File path for the values.yaml file.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/real_memory"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-real-memory">
-                                <strong>real_memory</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Memory in MB (exact value to use in Slurm)</p>
-                            <p>Minimum: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/sockets"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-sockets">
-                                <strong>sockets</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Number of CPU sockets per node</p>
-                            <p>Minimum: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_hardware_defaults/<node_hardware_defaults_key>/threads_per_core"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-hardware-defaults-<node-hardware-defaults-key>-threads-per-core">
-                                <strong>threads_per_core</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Number of CPU threads per core</p>
-                            <p>Minimum: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/cluster_name"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-cluster-name">
-                                <strong>cluster_name</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s_cluster/k8s_crio_storage_size"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-cluster-k8s-crio-storage-size">
+                                <strong>k8s_crio_storage_size</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
                         </div>
@@ -406,101 +500,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Unique name for the slurm cluster.</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/config_sources"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-config-sources">
-                                <strong>config_sources</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Config can be a file path or inline mapping</p>
-                            <p>Value can be: str (File path string) or dict (Inline configuration mapping).</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/nfs_storage_name"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-nfs-storage-name">
-                                <strong>nfs_storage_name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Name of the nfs storage in storage_config.yml</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/node_discovery_mode"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-node-discovery-mode">
-                                <strong>node_discovery_mode</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Node hardware discovery mode. &#x27;homogeneous&#x27; for group-based discovery, &#x27;heterogeneous&#x27; for individual node discovery. Default: heterogeneous</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/skip_merge"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-skip-merge">
-                                <strong>skip_merge</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Variable indicates whether a specific configuration file path under config_sources should be used as-is without merging</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-slurm_cluster/vast_storage_name"></div>
-                            <p class="omnia-title" id="module-parameter-slurm-cluster-vast-storage-name">
-                                <strong>vast_storage_name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                            <p>Name of the vast storage in storage_config.yml</p>
-                            <p>Minimum length: 1.</p>
+                            <p>Storage size for CRI-O in Gigabytes only (example: 10G, 15G, 100G)</p>
                         </div>
                     </td>
                 </tr>
