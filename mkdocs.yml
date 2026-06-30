@@ -125,7 +125,7 @@ extra:
   generator: false
 
 # Copyright
-copyright: "Copyright &copy; 2025 Dell Technologies. All rights reserved."
+copyright: "© Copyright Dell Inc. All Rights Reserved."
 
 # Navigation
 nav:
