@@ -57,3 +57,7 @@ from .minimal_os_vars import (
     LDMS_SERVICE_CHECK_CMD,
     MINIMAL_OS_VARS,
 )
+
+from .coredns_vars import (
+    COREDNS_CONTAINER_NAME,
+)

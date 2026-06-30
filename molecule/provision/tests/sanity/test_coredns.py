@@ -43,12 +43,25 @@ import time
 
 import pytest
 
-from automation_library.core import TestLogger
-from automation_library.core.functions import (
+from automation_library.core import (
+    TestLogger,
     run_on_oim,
     run_in_container,
     run_on_remote_node,
+    get_input_value,
+    PROVISION_CONFIG_FILE,
 )
+from automation_library.provision.vars import COREDNS_CONTAINER_NAME
+
+
+def get_pxe_mapping_file_path(host):
+    """Get pxe_mapping_file_path from provision_config.yml."""
+    return get_input_value(
+        host,
+        PROVISION_CONFIG_FILE,
+        "pxe_mapping_file_path",
+        default="/opt/omnia/input/project_default/pxe_mapping_file.csv"
+    )
 
 
 def get_dns_server_ip(host):
@@ -56,7 +69,7 @@ def get_dns_server_ip(host):
     # Get bind IP from Corefile (most reliable)
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns grep 'bind ' /Corefile 2>/dev/null | "
+        f"podman exec {COREDNS_CONTAINER_NAME} grep 'bind ' /Corefile 2>/dev/null | "
         "tr -d ' ' | sed 's/bind//'"
     )
     if cmd.rc == 0 and cmd.stdout.strip():
@@ -67,7 +80,7 @@ def get_dns_server_ip(host):
     # Fallback: check netstat inside the container
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns netstat -tulpn 2>/dev/null | "
+        f"podman exec {COREDNS_CONTAINER_NAME} netstat -tulpn 2>/dev/null | "
         "grep ':53 ' | head -1 | cut -d: -f1 | rev | cut -d' ' -f1 | rev"
     )
     if cmd.rc == 0 and cmd.stdout.strip():
@@ -92,7 +105,7 @@ def get_coresmd_container_status(host):
     """Check if coresmd-coredns container is running on OIM host."""
     cmd = run_on_oim(
         host,
-        "podman ps --format '{{.Names}}\t{{.Status}}' | grep coresmd-coredns"
+        f"podman ps --format '{{{{.Names}}}}\t{{{{.Status}}}}' | grep {COREDNS_CONTAINER_NAME}"
     )
     return {
         "running": cmd.rc == 0,
@@ -132,9 +145,10 @@ def get_smd_components(host):
 
 def get_pxe_nodes(host):
     """Get node hostnames and IPs from PXE mapping file."""
+    pxe_mapping_path = get_pxe_mapping_file_path(host)
     cmd = run_in_container(
         host,
-        "sh -c \"grep -v '^#' /opt/omnia/input/project_default/pxe_mapping_file.csv | "
+        f"sh -c \"grep -v '^#' {pxe_mapping_path} | "
         "tail -n +2 | cut -d',' -f5,7\""
     )
 
@@ -155,7 +169,7 @@ def get_dns_domain(host):
     # Read zone from Corefile (most reliable - excludes comment lines)
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns grep -E '^ *zone ' /Corefile 2>/dev/null | "
+        f"podman exec {COREDNS_CONTAINER_NAME} grep -E '^ *zone ' /Corefile 2>/dev/null | "
         "sed 's/.*zone //;s/ {.*//' | head -1"
     )
     if cmd.rc == 0 and cmd.stdout.strip():
@@ -176,10 +190,11 @@ def get_dns_domain(host):
 
 def get_k8s_control_plane_ip(host):
     """Get K8s control plane admin IP from PXE mapping."""
+    pxe_mapping_path = get_pxe_mapping_file_path(host)
     cmd = run_in_container(
         host,
-        "sh -c \"grep -i 'kube_control_plane' "
-        "/opt/omnia/input/project_default/pxe_mapping_file.csv 2>/dev/null | "
+        f"sh -c \"grep -i 'kube_control_plane' "
+        f"{pxe_mapping_path} 2>/dev/null | "
         "head -1 | cut -d',' -f7\""
     )
     if cmd.rc == 0 and cmd.stdout.strip():
@@ -201,7 +216,7 @@ def check_k8s_coredns_configmap(host, kcp_ip):
     }
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(40)
 def test_dns_configuration_enable(host):
     """TC-F01: Verify dns_enabled=true enables CoreDNS-based resolution."""
@@ -230,7 +245,7 @@ def test_dns_configuration_enable(host):
     log.passed("DNS configuration is enabled and coresmd is running", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(41)
 def test_coresmd_container_deployment(host):
     """TC-F11: Verify coresmd container is deployed correctly."""
@@ -244,13 +259,13 @@ def test_coresmd_container_deployment(host):
         assert False, "coresmd-coredns container is not running"
 
     log.check("Checking container port mappings")
-    cmd = run_on_oim(host, "podman port coresmd-coredns 2>/dev/null")
+    cmd = run_on_oim(host, f"podman port {COREDNS_CONTAINER_NAME} 2>/dev/null")
     port_mappings = cmd.stdout.strip() if cmd.rc == 0 else "No port mappings found"
 
     log.check("Verifying Corefile configuration")
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns cat /Corefile 2>/dev/null | grep -i coresmd"
+        f"podman exec {COREDNS_CONTAINER_NAME} cat /Corefile 2>/dev/null | grep -i coresmd"
     )
     has_coresmd_plugin = cmd.rc == 0
 
@@ -267,7 +282,7 @@ def test_coresmd_container_deployment(host):
     log.passed("coresmd container deployed correctly", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(42)
 def test_forward_zone_generation(host):
     """TC-F23: Verify forward zone file is generated with A records from SMD."""
@@ -321,7 +336,7 @@ def test_forward_zone_generation(host):
     log.passed(f"Forward zone generated with {resolved_count} A records", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(43)
 def test_forward_dns_resolution(host):
     """TC-F32: Verify forward DNS resolution for compute node hostnames."""
@@ -380,7 +395,7 @@ def test_forward_dns_resolution(host):
     log.passed(f"Forward DNS resolution working ({successful}/{len(results)})", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(44)
 def test_slurm_dns_resolution(host):
     """TC-F48: Verify Slurm controller and node hostnames resolve via DNS."""
@@ -401,10 +416,11 @@ def test_slurm_dns_resolution(host):
         pytest.skip("No nodes in PXE mapping")
 
     # Find Slurm controller (first node with 'control' in functional group)
+    pxe_mapping_path = get_pxe_mapping_file_path(host)
     cmd = run_in_container(
         host,
-        "sh -c \"grep -i 'slurm_control' "
-        "/opt/omnia/input/project_default/pxe_mapping_file.csv 2>/dev/null | "
+        f"sh -c \"grep -i 'slurm_control' "
+        f"{pxe_mapping_path} 2>/dev/null | "
         "head -1 | cut -d',' -f5\""
     )
     slurm_ctrl_out = cmd.stdout.strip()
@@ -437,7 +453,7 @@ def test_slurm_dns_resolution(host):
     log.passed("Slurm hostnames resolve via DNS", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(45)
 def test_k8s_coredns_forwarding(host):
     """
@@ -489,7 +505,7 @@ def test_k8s_coredns_forwarding(host):
     log.passed("Kubernetes CoreDNS ConfigMap configured", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(46)
 def test_dns_query_performance(host):
     """
@@ -563,7 +579,7 @@ def test_dns_query_performance(host):
     )
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(47)
 def test_smd_tls_communication(host):
     """
@@ -583,21 +599,23 @@ def test_smd_tls_communication(host):
     log.check("Verifying coresmd TLS configuration")
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns cat /Corefile 2>/dev/null | grep -i -E 'https|tls|ca_cert'"
+        f"podman exec {COREDNS_CONTAINER_NAME} cat /Corefile 2>/dev/null | "
+        "grep -i -E 'https|tls|ca_cert'"
     )
     has_tls_config = cmd.rc == 0
 
     log.check("Checking for CA certificate")
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns ls -la /root_ca/root_ca.crt 2>/dev/null"
+        f"podman exec {COREDNS_CONTAINER_NAME} ls -la /root_ca/root_ca.crt 2>/dev/null"
     )
     ca_cert_exists = cmd.rc == 0
 
     log.check("Checking coresmd logs for TLS errors")
     cmd = run_on_oim(
         host,
-        "podman logs coresmd-coredns 2>&1 | grep -i -E 'tls|ssl|certificate' | grep -i error"
+        f"podman logs {COREDNS_CONTAINER_NAME} 2>&1 | "
+        "grep -i -E 'tls|ssl|certificate' | grep -i error"
     )
     has_tls_errors = cmd.rc == 0
 
@@ -617,7 +635,7 @@ def test_smd_tls_communication(host):
     log.passed("SMD TLS communication configured", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(48)
 def test_coredns_deployment_idempotency(host):
     """
@@ -637,13 +655,13 @@ def test_coredns_deployment_idempotency(host):
     log.check("Capturing baseline coresmd configuration")
     cmd = run_on_oim(
         host,
-        "podman exec coresmd-coredns cat /Corefile 2>/dev/null | md5sum"
+        f"podman exec {COREDNS_CONTAINER_NAME} cat /Corefile 2>/dev/null | md5sum"
     )
     corefile_hash_before = cmd.stdout.strip().split()[0] if cmd.rc == 0 else None
 
     cmd = run_on_oim(
         host,
-        "podman inspect coresmd-coredns --format '{{.State.StartedAt}}' 2>/dev/null"
+        f"podman inspect {COREDNS_CONTAINER_NAME} --format '{{{{.State.StartedAt}}}}' 2>/dev/null"
     )
     container_start_time = cmd.stdout.strip() if cmd.rc == 0 else None
 
@@ -660,7 +678,7 @@ def test_coredns_deployment_idempotency(host):
     log.passed("CoreDNS deployment baseline captured", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(49)
 def test_dns_reverse_resolution(host):
     """
@@ -713,7 +731,7 @@ def test_dns_reverse_resolution(host):
         log.passed(f"Reverse DNS working ({resolved_count}/{len(results)})", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(50)
 def test_dns_configuration_validation(host):
     """
@@ -749,7 +767,7 @@ def test_dns_configuration_validation(host):
     log.passed("DNS configuration is valid", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(51)
 def test_mpi_dns_resolution(host):
     """
@@ -809,7 +827,7 @@ def test_mpi_dns_resolution(host):
     )
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(52)
 def test_node_addition_dns_update(host):
     """
@@ -867,7 +885,7 @@ def test_node_addition_dns_update(host):
         log.passed("All nodes have DNS records", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(53)
 def test_smd_unreachable_graceful_degradation(host):
     """
@@ -899,7 +917,8 @@ def test_smd_unreachable_graceful_degradation(host):
     log.check("Checking coresmd logs for SMD connection errors")
     cmd = run_on_oim(
         host,
-        "podman logs coresmd-coredns --tail 50 2>&1 | grep -i -E 'smd|error|connection'"
+        f"podman logs {COREDNS_CONTAINER_NAME} --tail 50 2>&1 | "
+        "grep -i -E 'smd|error|connection'"
     )
     log_excerpt = cmd.stdout[:500] if cmd.rc == 0 else "No relevant logs"
 
@@ -920,7 +939,7 @@ def test_smd_unreachable_graceful_degradation(host):
         log.passed("DNS continues working (cached data)", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(54)
 def test_backward_compatibility_dns_disabled(host):
     """
@@ -956,7 +975,7 @@ def test_backward_compatibility_dns_disabled(host):
     log.passed("Backward compatibility verified", "\n".join(details))
 
 
-@pytest.mark.sanity
+@pytest.mark.dns
 @pytest.mark.order(55)
 def test_invalid_domain_format_validation(host):
     """TC-E01: Verify invalid domain format is rejected during validation."""
