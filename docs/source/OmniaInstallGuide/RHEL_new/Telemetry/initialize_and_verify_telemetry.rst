@@ -7,6 +7,9 @@ Prerequisites
 * Ensure that the ``provision.yml`` playbook has been executed successfully with ``service_kube_control_plane`` and ``service_kube_node`` in the mapping file.
 * Ensure that all the nodes are booted and pods are running before executing the telemetry playbook.
 
+.. note::
+   If you want to enable any of the telemetry components after making changes in ``telemetry_config.yml`` after the first successful deployment of telemetry and if Kubernetes is already up and running, you will have to execute the ``telemetry.sh`` script on kube-control-plane present at path ``<K8s_NFS_mount_point>/telemetry/telemetry.sh``.
+
 Steps
 ------
 

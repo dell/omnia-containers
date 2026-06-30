@@ -105,6 +105,73 @@ To edit encrypted parameters: ::
 
         ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
 
+1.5 OIM Cleanup NFS Directory Deletion Failure
+-----------------------------------------------
+
+**Symptoms**
+
+- ``oim_cleanup.yml`` playbook fails with error: ``[ERROR]: Task failed: Module failed: rmtree failed: [Errno 39] Directory not empty``
+- Specific error on directories like ``/share_omnia_k8s/<node_ip>/kubelet/pods``
+- Cleanup process completes partially but leaves NFS share directories intact
+
+**Example Error**
+
+.. code-block:: text
+
+   [ERROR]: Task failed: Module failed: rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'
+
+   failed: [oim] (item=/share_omnia_k8s/10.20.0.15) => {
+     "ansible_loop_var": "item",
+     "changed": false,
+     "item": "/share_omnia_k8s/10.20.0.15",
+     "msg": "rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'"
+   }
+
+**Causes**
+
+- **Active processes** - Kubernetes processes (kubelet, crio) on compute nodes or OIM node have open file handles to the NFS share directories
+- **Active NFS mounts** - NFS shares are still mounted and in use on compute nodes
+
+.. note::
+   The OIM cleanup process cleans the contents of NFS shares for both Slurm and Kubernetes (K8s). Active processes or mounts may prevent successful cleanup.
+
+**Resolution**
+
+**Step 1: Manually delete the problematic directories on the OIM node**
+
+Log in to the OIM node and navigate to the NFS share path to manually delete the contents:
+
+.. code-block:: bash
+
+   # On the OIM node
+   # Navigate to the problematic directory
+   cd /share_omnia_k8s/<node_ip>/kubelet/pods
+
+   # Delete all contents
+   rm -rf *
+
+   # Or delete the entire node directory
+   cd /share_omnia_k8s/
+   rm -rf <node_ip>
+
+**Step 2: Re-run the OIM cleanup playbook from the omnia_core container**
+
+After manually deleting the problematic directories, log in to the omnia_core container and re-run the cleanup playbook:
+
+.. code-block:: bash
+
+   # Log in to omnia_core container
+   ssh omnia_core
+
+   # Navigate to utils directory
+   cd /omnia/utils
+
+   # Re-run the cleanup playbook
+   ansible-playbook oim_cleanup.yml
+
+.. tip::
+   If manual deletion also fails with "Directory not empty" or "Device or resource busy" errors, the directories are still in use by active processes. In such cases, power off the compute nodes before attempting manual cleanup.
+
 2. PXE Boot & Provisioning Issues
 =================================
 
