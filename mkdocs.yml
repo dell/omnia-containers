@@ -106,10 +106,14 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tilde
+  - pymdownx.snippets:
+      base_path:
+        - docs
 
 # Custom CSS
 extra_css:
-  - stylesheets/dell-brand.css
+  - stylesheets/dell.css
+  - stylesheets/omnia.css
 
 # Custom JS
 extra_javascript:
