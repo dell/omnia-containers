@@ -13,22 +13,25 @@
 # limitations under the License.
 
 """
-PXE Boot Node Connectivity and Cloud-Init Verification (v2.1).
+PXE Boot Node Reboot, Connectivity and Cloud-Init Verification (v2.1).
 
-After the build pipeline's deploy-and-validate stage PXE boots the nodes,
-these tests verify:
-  1. Node connectivity - all nodes from PXE mapping are reachable (ping + SSH)
-  2. Cloud-init status - cloud-init has completed on all reachable nodes
+After the build pipeline's deploy-and-validate stage completes,
+these tests:
+  Test 29: PXE boot reboot - Trigger PXE boot reboot using set_pxe_boot.yml
+  Test 30: Node connectivity - Verify all nodes are reachable (ping + SSH)
+  Test 31: Cloud-init status - Verify cloud-init completed on reachable nodes
 
-In v2.1, PXE boot is part of the single build pipeline
-(deploy-and-validate CI/CD stage). In v2.2, it is a separate deploy pipeline.
+Test 29 triggers the PXE boot reboot by running set_pxe_boot.yml playbook which:
+  - Reads PXE mapping file to identify target nodes
+  - Sets boot source to PXE via iDRAC Redfish API
+  - Reboots nodes (graceful or forced restart)
+  - Tracks booted nodes in BuildStream state
 
-This test uses the core module's verify_nodes_connectivity() with a
-two-phase approach:
+Test 30 uses the core module's verify_nodes_connectivity() with two-phase approach:
   Phase 1: Quick parallel check of all nodes (no retry)
   Phase 2: Retry only failed nodes with full retry logic (10 min ping, 5 min SSH)
 
-Cloud-init verification:
+Test 31 verifies cloud-init completion:
   Polls "cloud-init status" on each reachable node (120 retries x 5s = 10m per node)
 """
 
@@ -40,6 +43,8 @@ from automation_library.core import (
     clear_connectivity_cache,
     verify_nodes_connectivity,
     verify_cloudinit_status,
+    run_on_oim,
+    run_in_container,
 )
 from automation_library.discovery.functions import (
     get_all_slurm_nodes,
@@ -119,6 +124,108 @@ def _group_nodes_by_functional_group(nodes):
             groups[fg] = []
         groups[fg].append(node)
     return groups
+
+
+# =============================================================================
+# TEST 29: PXE Boot Reboot Nodes
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.build_auto
+@pytest.mark.order(29)
+def test_pxe_boot_reboot_nodes(host):
+    """
+    Trigger PXE boot reboot of nodes using set_pxe_boot.yml playbook.
+
+    This playbook:
+    1. Reads PXE mapping file to identify target nodes
+    2. Sets boot source to PXE via iDRAC Redfish API
+    3. Reboots nodes (graceful or forced)
+    4. Tracks booted nodes in BuildStream state (if enabled)
+    5. Optionally waits for cloud-init phone-home
+
+    The playbook expects:
+    - BMC inventory from PXE mapping CSV
+    - Credentials available via vault
+    - iDRAC connectivity to target nodes
+    """
+    log = TestLogger("PXE Boot Reboot Nodes")
+    skip_if_build_stream_not_enabled(host, log)
+    _skip_if_build_failed(host, log)
+
+    all_nodes = _get_all_target_nodes(host)
+
+    if not all_nodes:
+        log.skipped(
+            TEST_LOG_MSGS["pxe_no_nodes"],
+            "No nodes found in PXE mapping file. Cannot trigger PXE reboot."
+        )
+        pytest.skip(SKIP_MSGS["no_nodes_in_pxe_mapping"])
+
+    # Create a temporary inventory file with the nodes if needed or use -e pxe_mapping_file_path
+    # In v2.1 tests, the dataset path may not be /opt/omnia/input/project_default
+    from automation_library.core import get_dataset_path
+    import tempfile
+    
+    dataset_path = get_dataset_path()
+    pxe_mapping_path = f"{dataset_path}/pxe_mapping_file.csv"
+
+    # Generate bmc_inventory file and copy to container
+    inventory_lines = ["[bmc]"]
+    for node in all_nodes:
+        if node.get("bmc_ip"):
+            inventory_lines.append(node["bmc_ip"])
+    
+    inventory_content = "\n".join(inventory_lines) + "\n"
+    
+    # Write to a temp file on the OIM host, then podman cp it into the container
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write(inventory_content)
+        temp_inv_path = f.name
+        
+    host.run(f"podman cp {temp_inv_path} omnia_core:/omnia/utils/bmc_inventory")
+    host.run(f"rm -f {temp_inv_path}")
+
+    log.check(f"Triggering PXE boot reboot for {len(all_nodes)} nodes using {pxe_mapping_path}...")
+
+    # Run the set_pxe_boot.yml playbook inside the omnia_core container
+    # Since we are not triggering it via API, we run it manually with required vars
+    playbook_path = "/omnia/utils/set_pxe_boot.yml"
+    cmd = f"ansible-playbook {playbook_path} -i /omnia/utils/bmc_inventory -e pxe_mapping_file_path={pxe_mapping_path} -e bmc_username=root -e bmc_password=calvin"
+
+    result = run_in_container(host, cmd)
+
+    details_lines = [
+        f"Playbook: {playbook_path}",
+        f"Target nodes: {len(all_nodes)}",
+        f"Exit code: {result.rc}",
+        "",
+        "Output:",
+        result.stdout if result.stdout else "(no output)",
+    ]
+
+    if result.stderr:
+        details_lines.append("")
+        details_lines.append("Errors:")
+        details_lines.append(result.stderr)
+
+    details = "\n".join(details_lines)
+
+    if result.rc == 0:
+        log.passed(
+            f"PXE boot reboot triggered successfully for {len(all_nodes)} nodes",
+            details
+        )
+        # Wait a bit for nodes to start booting before connectivity checks
+        import time
+        log.check("Waiting 30 seconds for nodes to begin PXE boot sequence...")
+        time.sleep(30)
+    else:
+        log.failed(
+            f"PXE boot reboot playbook failed with exit code {result.rc}",
+            details
+        )
+        assert False, f"set_pxe_boot.yml failed with exit code {result.rc}"
 
 
 # =============================================================================
