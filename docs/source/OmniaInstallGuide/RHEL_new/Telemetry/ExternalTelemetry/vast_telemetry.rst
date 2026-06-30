@@ -6,6 +6,9 @@ This section describes how to configure VAST Storage to securely stream telemetr
 
 This procedure assumes that VictoriaMetrics is deployed in cluster mode in the telemetry namespace of the Service Kubernetes cluster. For more information, see the `VictoriaMetrics cluster mode documentation <https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/>`_.
 
+.. note::
+   If you want to enable any of the telemetry components after making changes in ``telemetry_config.yml`` after the first successful deployment of telemetry and if Kubernetes is already up and running, you will have to execute the ``telemetry.sh`` script on kube-control-plane present at path ``<K8s_NFS_mount_point>/telemetry/telemetry.sh``.
+
 Using Omnia, you can deploy VAST Telemetry to collect storage performance metrics and syslog events from VAST Storage appliances. The deployment includes configuring the VAST Telemetry components on the service Kubernetes cluster, integrating with the VAST Prometheus exporter via vmagent, and ingesting syslog events via the VLAgent pipeline.
 
 VAST Telemetry collects storage metrics and logs. VAST Telemetry includes these components:
