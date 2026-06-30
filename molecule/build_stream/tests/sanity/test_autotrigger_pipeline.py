@@ -144,6 +144,41 @@ def _any_build_stage_failed() -> bool:
     return False
 
 
+def _regenerate_ochami_token(host):
+    """
+    Regenerate Ochami access token.
+    
+    This is needed before the validate-image-on-test stage because:
+    - The token may expire during long-running stages (create-local-repository, build-image)
+    - The validate stage requires a valid token for Ochami API calls
+    
+    Returns:
+        Dict with 'success', 'token', 'env_var', 'error'
+    """
+    hostname = host.run("hostname -s").stdout.strip().upper()
+    env_var = f"{hostname}_ACCESS_TOKEN"
+    
+    cmd = host.run("sudo bash -lc 'gen_access_token'")
+    token = cmd.stdout.strip()
+    
+    if cmd.rc == 0 and token and token != "null":
+        return {
+            "success": True,
+            "token": token,
+            "env_var": env_var,
+            "error": None,
+            "details": f"Token regenerated successfully\nEnvironment variable: {env_var}"
+        }
+    
+    return {
+        "success": False,
+        "token": "",
+        "env_var": env_var,
+        "error": f"Failed to generate access token (exit code: {cmd.rc})",
+        "details": f"Command output: {cmd.stdout.strip()}\nError: {cmd.stderr.strip()}"
+    }
+
+
 # =============================================================================
 # SHARED STAGE MONITOR + DB VERIFY FUNCTIONS
 # =============================================================================
@@ -424,6 +459,55 @@ def test_build_stage_build_image_aarch64_db_verify(host):
         pytest.skip("aarch64 not in catalog architectures")
 
     _run_build_stage_db_verify(host, "build-image-aarch64")
+
+
+# =============================================================================
+# TEST 20.5: Ochami Token Regeneration (before validate stage)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.build_auto
+@pytest.mark.order(20.5)
+def test_regenerate_ochami_token(host):
+    """
+    Regenerate Ochami access token before validate-image-on-test stage.
+    
+    The token may expire during long-running stages (create-local-repository,
+    build-image). This test regenerates the token to ensure the validate stage
+    has a valid token for Ochami API calls.
+    """
+    log = TestLogger("Regenerate Ochami Token")
+    skip_if_build_stream_not_enabled(host, log)
+    _skip_if_build_not_triggered(log)
+    
+    # Skip if any prior stage failed
+    if _any_build_stage_failed():
+        failed_stage = ""
+        for stage, result in _build_state["stage_results"].items():
+            if result.get("stage_state") == STAGE_STATE_FAILED:
+                failed_stage = stage
+                break
+        log.skipped(
+            f"Skipping token regeneration due to prior stage failure: {failed_stage}",
+            f"Failed stage: {failed_stage}"
+        )
+        pytest.skip(f"Prior stage '{failed_stage}' failed")
+    
+    log.check("Regenerating Ochami access token for validate stage...")
+    
+    result = _regenerate_ochami_token(host)
+    
+    if result["success"]:
+        log.passed(
+            "Ochami access token regenerated successfully",
+            result["details"]
+        )
+    else:
+        log.failed(
+            f"Failed to regenerate Ochami token: {result['error']}",
+            result["details"]
+        )
+        pytest.fail(f"Token regeneration failed: {result['error']}")
 
 
 # =============================================================================
