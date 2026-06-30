@@ -715,6 +715,10 @@ For troubleshooting Kafka issues related to the missing CSI driver, see `Section
 6.1 Nodes Entering DRAINED State
 --------------------------------
 
+**Symptom**
+
+Slurm nodes enter DRAINED state unexpectedly.
+
 **Cause**
 
 Epilog script not executable.
@@ -735,7 +739,7 @@ Epilog script not executable.
 
 ``nvidia-smi: command not found`` or ``nvidia-smi`` exits with a non-zero return code
 
-**Probable cause**
+**Cause**
 
 NVIDIA driver installation failed during provisioning, or GPU hardware is absent on this node
 
@@ -775,7 +779,7 @@ CUDA Toolkit NFS Mount Failed
 
 ``/usr/local/cuda`` is empty or not mounted after provisioning
 
-**Probable cause**
+**Cause**
 
 NFS server was unreachable at provisioning time, or the NFS export is not configured with ``no_root_squash``
 
@@ -811,7 +815,7 @@ DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
 
 ``nvidia-dcgm`` service is not present on Slurm node, and ``/var/log/dcgm_setup.log`` is missing
 
-**Probable cause**
+**Cause**
 
 ``dcgm.metrics_enabled`` is set to ``false`` under ``telemetry_sources`` in ``telemetry_config.yml``, so Omnia intentionally skips DCGM installation during Slurm node cloud-init
 
@@ -825,7 +829,7 @@ DCGM Package Version Mismatch
 
 DCGM package installation fails with ``No match for argument`` or ``No packages found``
 
-**Probable cause**
+**Cause**
 
 The CUDA major version on the node does not have a matching ``datacenter-gpu-manager-4-cuda<N>`` package available in the configured local repository
 
@@ -1017,7 +1021,7 @@ Log File Reference
 - Benchmark tool directories are missing or incomplete under ``/hpc_tools``.
 - Expected benchmark artifacts are not visible on login/compiler/compute nodes.
 
-**Possible causes**
+**Cause**
 
 - Shared NFS path (``/hpc_tools``) is not mounted or not accessible.
 - ``pull_benchmarks.sh`` or ``benchmark_tools.list`` is missing under ``/hpc_tools/scripts``.
@@ -1072,7 +1076,11 @@ Expected files:
 7.1 Kafka Pods CrashLoopBackOff
 -------------------------------
 
-**Causes**
+**Symptom**
+
+Kafka pods enter CrashLoopBackOff state.
+
+**Cause**
 
 - No service kube nodes
 - Missing CSI driver
@@ -1137,6 +1145,10 @@ Check the status of LDMS components and review logs for errors:
 8.1 LDAP Login Fails After User Creation
 ----------------------------------------
 
+**Symptom**
+
+User login fails after LDAP user creation.
+
 **Cause**
 
 Whitespace in LDIF.
@@ -1150,6 +1162,10 @@ Whitespace in LDIF.
 
 8.2 OpenLDAP Login Fails
 ------------------------
+
+**Symptom**
+
+OpenLDAP login fails.
 
 **Cause**
 
@@ -1169,6 +1185,14 @@ Stale SSH key.
 9.1 Certificate Expiration
 --------------------------
 
+**Symptom**
+
+OpenCHAMI certificates have expired.
+
+**Cause**
+
+Certificates have reached their expiration date.
+
 **Resolution**
 
 .. code-block:: bash
@@ -1179,6 +1203,14 @@ Stale SSH key.
 9.2 Token Expired
 ----------------
 
+**Symptom**
+
+OpenCHAMI access token has expired.
+
+**Cause**
+
+Token has reached its expiration time.
+
 **Resolution**
 
 .. code-block:: bash
@@ -1187,6 +1219,10 @@ Stale SSH key.
 
 9.3 provision.yml Fails - prepare_oim Needs to be Executed
 ----------------------------------------------------------
+
+**Symptom**
+
+The ``provision.yml`` playbook fails with an error indicating that ``prepare_oim`` needs to be executed first.
 
 **Cause**
 
@@ -1200,7 +1236,15 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 ==================
 
 10.1 Playbook Fails Due to HW/Network/Storage
-----------------------------------------------
+--------------------------------------------
+
+**Symptom**
+
+Playbook execution fails due to hardware, network, or storage issues.
+
+**Cause**
+
+Underlying hardware, network, or storage problem preventing playbook execution.
 
 **Resolution**
 
@@ -1254,6 +1298,10 @@ The Open Subnet Manager (OpenSM) service is not running on the InfiniBand (IB) s
 
 **Omnia containers not coming up after OIM reboot**
 
+**Symptom**
+
+Omnia containers fail to start after OIM reboot.
+
 **Cause**
 
 The Admin NIC on the OIM may have its autoconnect settings disabled (``autoconnect=no``), which stops it from reconnecting automatically after a reboot.
@@ -1263,6 +1311,10 @@ The Admin NIC on the OIM may have its autoconnect settings disabled (``autoconne
 Ensure that the Admin NIC on the OIM is configured with ``autoconnect=yes`` so it automatically reconnects after reboot. If you changed this configuration, reboot your OIM once to nullify any cache-related or stale configuration issues.
 
 **PostgreSQL container deployment fails after cleanup**
+
+**Symptom**
+
+PostgreSQL container deployment fails after running ``oim_cleanup.yml``.
 
 **Cause**
 
@@ -1284,6 +1336,10 @@ The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associ
 
 **local_repo.yml fails with connectivity errors**
 
+**Symptom**
+
+The ``local_repo.yml`` playbook fails with connectivity errors.
+
 **Cause**
 
 The OIM was unable to reach a required online resource due to a network glitch.
@@ -1293,6 +1349,10 @@ The OIM was unable to reach a required online resource due to a network glitch.
 Verify all connectivity and re-run the playbook.
 
 **Software installation fails with checksum error**
+
+**Symptom**
+
+Software installation fails with a checksum error.
 
 **Cause**
 
