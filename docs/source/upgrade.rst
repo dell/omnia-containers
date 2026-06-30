@@ -19,7 +19,7 @@ Supported Upgrade Paths
 .. note:: Direct upgrades across multiple major versions (e.g., 2.0 → 2.2) are not supported. Upgrade one version at a time.
 
 Prerequisites
-^^^^^^^^^^^^^
+-------------
 
 Before starting the upgrade, ensure the following prerequisites are met:
 
@@ -55,7 +55,7 @@ The upgrade swaps the running ``omnia_core`` container to the 2.2.0.0 image. Thi
     Ensure the OIM host has stable internet connectivity and sufficient disk space while building the container image.
 
 Upgrade Workflow
-^^^^^^^^^^^^^^^^
+----------------
 
 Phase 0: Core Container Upgrade (OIM Host)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -70,7 +70,7 @@ The upgrade begins on the OIM host outside the ``omnia_core`` container.
     Do **not** attempt to run ``./omnia.sh --upgrade`` or ``./omnia.sh --rollback`` using the 2.1.0.0 script.
 
 Download the Omnia 2.2.0.0 omnia.sh Script
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+""""""""""""""""""""""""""""""""""""""
 
 Before starting the upgrade, download the correct version of the ``omnia.sh`` script:
 
@@ -111,7 +111,7 @@ Before starting the upgrade, download the correct version of the ``omnia.sh`` sc
 3. After the container swap completes, SSH into the new ``omnia_core`` container to proceed with input preparation and component upgrades.
 
 Upgrade Component Order
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""
 
 The upgrade orchestrator processes components in the following fixed order:
 
@@ -148,7 +148,7 @@ The upgrade orchestrator processes components in the following fixed order:
       - Slurm cluster upgrade
 
 Safety Mechanisms
-^^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 
 The upgrade is designed to be safe to rerun and to fail cleanly:
 
@@ -183,7 +183,7 @@ The ``prepare_upgrade.yml`` playbook transforms input files from the source vers
    Re-running ``prepare_upgrade.yml`` after you have modified input files will overwrite your changes and revert to the original 2.1 inputs. Only run ``prepare_upgrade.yml`` once at the beginning of the upgrade process. After reviewing and updating the migrated inputs, proceed directly to the execute phase.
 
 Lock Management
-^^^^^^^^^^^^^^
+""""""""""""""""""""""""
 
 The upgrade orchestrator uses lock files to prevent concurrent operations:
 
@@ -194,7 +194,7 @@ The upgrade orchestrator uses lock files to prevent concurrent operations:
     The ``omnia.sh --upgrade`` wrapper may pre-create the upgrade lock. The playbook detects this and proceeds normally without failing.
 
 Manifest Tracking
-^^^^^^^^^^^^^^^^
+""""""""""""""""""""""""""
 
 The upgrade state is tracked in ``/opt/omnia/.data/upgrade_manifest.yml``. This manifest records:
 
@@ -209,7 +209,7 @@ On rerun, already-completed components are automatically skipped. This ensures i
 .. _buildstream-terminal-gate:
 
 BuildStreaM Terminal Gate
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""
 
 When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
 
@@ -254,7 +254,7 @@ Kubernetes Upgrade
 Kubernetes upgrade provides a robust, resumable, and transparent upgrade process for Kubernetes clusters.
 
 Pre-Upgrade Checklist for Kubernetes Clusters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""""""""""""""""
 
 Before initiating the Kubernetes upgrade, verify the following conditions are met:
 
@@ -269,7 +269,7 @@ Before initiating the Kubernetes upgrade, verify the following conditions are me
 9. **.cluster_initialized marker exists on all control planes** — ``/etc/kubernetes/.cluster_initialized`` must be present on every CP node (confirms provisioning completed)
 
 Kubernetes Upgrade Workflow
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""
 
 The K8s upgrade follows this sequence:
 
@@ -296,7 +296,7 @@ The K8s upgrade follows this sequence:
    * All worker nodes are upgraded sequentially (one at a time) to ensure cluster stability
 
 Primary Status File
-^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""
 
 **Location:** ``<K8s_NFS_mount_point>/upgrade/upgrade_status.yml``
 
@@ -323,7 +323,7 @@ In this example, the upgrade status file would be located at: ::
    The mount point path may be different in your environment. Always check your ``storage_config.yml`` file (located at ``/opt/omnia/input/project_default/storage_config.yml``) to find the exact path configured for your K8s NFS storage.
 
 Running the Kubernetes Upgrade
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""""""""""
 
 The Kubernetes upgrade is executed automatically by the upgrade orchestrator when you run the main upgrade playbook. See :ref:`phase-2-execute-upgrade` for instructions.
 
@@ -376,7 +376,7 @@ The Slurm upgrade workflow updates the cloud-init and BSS configurations on all 
    - Existing NFS mount configurations from Omnia 2.1 are preserved during the upgrade. Do not add, remove, or modify NFS mount points until the upgrade has completed successfully.
 
 Slurm Upgrade Workflow
-^^^^^^^^^^^^^^^^^^^^
+"""""""""""""""""""""""
 
 During the Slurm upgrade, Omnia performs the following operations:
 
