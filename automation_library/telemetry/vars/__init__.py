@@ -74,6 +74,14 @@ from .vast_telemetry_vars import (
     VAST_VMSERVICESCRAPE_NAME,
 )
 
+# UFM telemetry specific
+from .ufm_telemetry_vars import (
+    UFM_JOB_PATTERN,
+    UFM_SCRAPE_JOB,
+    UFM_CREDENTIALS_SECRET,
+    UFM_VMSERVICESCRAPE_NAME,
+)
+
 # Failover test specific (poweroff/reboot)
 from .failover_vars import (
     POD_RESCHEDULE_RETRY_LIMIT,
