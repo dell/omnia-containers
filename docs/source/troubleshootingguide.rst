@@ -241,18 +241,77 @@ Retry login or reprovision the node.
 3.1 local_repo.yml Download Failures
 -------------------------------------
 
-**Causes**
+**Symptom**
 
-- Incorrect URLs in software JSON
-- Docker pull limit
-- Insufficient disk space
+The ``local_repo.yml`` playbook fails during package download, displaying errors such as "TASK [parse_and_download : Display Failed Packages]" or indicating that specific software packages could not be downloaded.
+
+**Cause**
+
+Download failures occur due to:
+
+- Incorrect URLs in software JSON configuration files
+- Docker pull limit reached or invalid Docker credentials
+- Insufficient disk space on Pulp NFS storage
+- Unreachable software repositories
 
 **Resolution**
 
-- Correct URLs
-- Provide valid Docker credentials
-- Ensure adequate disk on Pulp NFS
-- Re-run the playbook
+1. Verify and correct URLs in the software JSON configuration files
+2. Provide valid Docker credentials in ``input/omnia_config_credentials.yml``
+3. Ensure adequate disk space is available on Pulp NFS storage
+4. Re-run the ``local_repo.yml`` playbook
+
+**Detailed Log Analysis**
+
+The ``local_repo.yml`` playbook generates log files for troubleshooting download failures. To diagnose specific issues:
+
+1. View overall download status of all software:
+
+   ::
+
+       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
+
+2. View download status and log filenames for a specific software:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
+
+   Example for OpenLDAP:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
+
+3. View package-level status for a specific software:
+
+   ::
+
+       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
+
+4. View detailed failure information in the package status log:
+
+   ::
+
+       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/logs/package_status_<pid>.log
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
 
 3.2 Failure When Re-run Multiple Times
 --------------------------------------
@@ -529,6 +588,12 @@ Driver not listed in ``software_config.json``.
 
 For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
 
+**Resolution**
+
+Add the required entry to ``software_config.json`` and re-run the playbook.
+
+For troubleshooting Kafka issues related to the missing CSI driver, see :ref:`section-7-1`.
+
 6. Slurm Issues
 ===============
 
@@ -567,18 +632,6 @@ Nodes booted before controller.
 
 - Update ``pxe_mapping.csv`` with controller groups
 - Choose different backup or create new one
-
-6.4 LDMS Metrics Missing
--------------------------
-
-**Checks**
-
-.. code-block:: bash
-
-   kubectl logs -n telemetry nersc-ldms-aggr-0
-   kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
-   sudo systemctl status ldmsd.sampler.service
-   /opt/ovis-ldms/sbin/ldms_ls ...
 
 6.5 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
@@ -934,6 +987,8 @@ Expected files:
 - Add PowerScale CSI driver
 - Increase Kafka volume and configure log retention
 
+For more information on adding the PowerScale CSI driver, see :ref:`section-5-3`.
+
 .. image:: images/telemetry.png
 
 7.2 Kafka "No space left on device"
@@ -952,6 +1007,30 @@ Configured ``persistence_size`` for Kafka reaches capacity limit.
 **Resolution**
 
 The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit.
+
+7.3 LDMS Metrics Missing
+--------------------------
+
+**Symptom**
+
+LDMS metrics are not appearing in the telemetry dashboard or are missing expected data points.
+
+**Cause**
+
+- LDMS aggregator pods are not running or experiencing errors
+- LDMS store daemon service is inactive
+- LDMS sampler service is not functioning correctly
+
+**Resolution**
+
+Check the status of LDMS components and review logs for errors:
+
+.. code-block:: bash
+
+   kubectl logs -n telemetry nersc-ldms-aggr-0
+   kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+   sudo systemctl status ldmsd.sampler.service
+   /opt/ovis-ldms/sbin/ldms_ls ...
 
 8. Authentication Issues
 ========================
@@ -1049,80 +1128,7 @@ While Omnia playbooks are licensed by Apache 2.0, Omnia deploys multiple softwar
 
 For more information, see `Logs <Logging/OIM_logs.html>`_.
 
-10.5 Local Repository Package Download Issues
----------------------------------------------
-
-1. The ``local_repo.yml`` playbook generates and provides log files as part of its execution. For example, if the local repository is partially unsuccessful for OpenLDAP, analyze the issue using the following steps: 
-
-.. image:: images/troubleshooting_local_repo_updated.png
-
-.. image:: images/troubleshooting_local_repo_updated_1.png
-
-2. To view the overall download status of all software in the .csv format, run the following command:
-
-::
-
-        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
-
-Example: :: 
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
-
-.. image:: images/troubleshooting_local_repo_updated_2.png
-
-3. To view the overall download status of all packages and the log filenames for a specific software, run the following command:
-
-::
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
-
-Example: For nfs: ::
-
-         /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
-
-.. image:: images/troubleshooting_local_repo_updated_3.png
-
-4. To view the package level status, run the following command: 
-
-::
-
-         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
-
-Example: ::
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
-
-.. image:: images/troubleshooting_local_repo_updated_4.png
-
-5. To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
-
-Example: ::
-        
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
-
-.. image:: images/troubleshooting_local_repo_updated_5.png
-
-**Why does the** ``local_repo.yml`` **playbook execution fail at** ``TASK [parse_and_download : Display Failed Packages]`` **?**
-
-.. image:: images/package_failure_local_repo.png
-
-**Cause**: This issue is encountered if Omnia fails to download any software package while executing ``local_repo.yml`` playbook. Download failures can occur if:
-
-    * The URL to download the software packages mentioned in the ``<cluster_os_type>/<cluster_os_version>/<software>.json`` is incorrect or the repository is unreachable.
-    * The provided Docker credentials are incorrect or if you encounter a Docker pull limit issue. For more information, `click here <https://www.docker.com/increase-rate-limits/#:~:text=You%20have%20reached%20your%20pull%20rate%20limit.%20You,account%20to%20a%20Docker%20Pro%20or%20Team%20subscription.>`_.
-    * If disk space is insufficient while downloading the package.
-
-**Resolution**: Re-run the ``local_repo.yml`` playbook while ensuring the following:
-
-    * URL to download the software packages mentioned in ``<arch>/<cluster_os_type>/<cluster_os_version>/<software>.json`` is correct, and the repository is reachable.
-    * Docker credentials provided in ``input/omnia_config_credentials.yml`` are correct.
-    * Sufficient disk space is available while downloading the package. For disk space considerations, see the `Omnia installation guide <../OmniaInstallGuide/RHEL_new/RHELSpace.html>`_.
-
-If the ``local_repo.yml`` is executed successfully without any package download failures, a ``Successful`` message is displayed as shown below:
-
-.. image:: images/local_repo_success.png
-
-10.6 InfiniBand Issues
+10.5 InfiniBand Issues
 ----------------------
 
 **Symptoms**
