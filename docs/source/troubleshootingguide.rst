@@ -90,6 +90,13 @@ Re-run ``omnia.sh``.
 - Expected container not created
 - Service is running but unreachable
 
+**Cause**
+
+- Invalid or expired TLS certificates
+- Container image pull failures
+- Network connectivity issues
+- Incorrect configuration parameters
+
 **Resolution**
 
 Verify container inventory:
@@ -141,10 +148,10 @@ For information on managing encrypted parameters, see `Encrypted Parameters Mana
      "msg": "rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'"
    }
 
-**Causes**
+**Cause**
 
-- **Active processes** - Kubernetes processes (kubelet, crio) on compute nodes or OIM node have open file handles to the NFS share directories
-- **Active NFS mounts** - NFS shares are still mounted and in use on compute nodes
+- Active processes - Kubernetes processes (kubelet, crio) on compute nodes or OIM node have open file handles to the NFS share directories
+- Active NFS mounts - NFS shares are still mounted and in use on compute nodes
 
 .. note::
    The OIM cleanup process cleans the contents of NFS shares for both Slurm and Kubernetes (K8s). Active processes or mounts may prevent successful cleanup.
@@ -192,6 +199,10 @@ After manually deleting the problematic directories, log in to the omnia_core co
 2.1 Node Hangs at nm-wait-online-initrd.service
 -----------------------------------------------
 
+**Symptom**
+
+Node hangs during boot at the ``nm-wait-online-initrd.service`` stage.
+
 **Cause**
 
 IP address conflict with old node.
@@ -205,7 +216,11 @@ IP address conflict with old node.
 2.2 PXE Boot Timeout (TFTP/Service Timeout)
 --------------------------------------------
 
-**Causes**
+**Symptom**
+
+PXE boot process times out with TFTP or service timeout errors.
+
+**Cause**
 
 - PXE NIC not configured
 - Extra NIC interfering
@@ -220,7 +235,11 @@ IP address conflict with old node.
 2.3 Target Server Unreachable After PXE Boot
 ----------------------------------------------
 
-**Causes**
+**Symptom**
+
+Target server becomes unreachable after PXE boot completes.
+
+**Cause**
 
 - POST errors
 - F1 hardware prompts
@@ -236,7 +255,11 @@ IP address conflict with old node.
 2.4 Root Login Fails
 --------------------
 
-**Causes**
+**Symptom**
+
+Unable to log in as root user via SSH.
+
+**Cause**
 
 - Outdated SSH key
 - cloud-init not rendered
@@ -344,6 +367,10 @@ If the ``local_repo.yml`` is executed successfully without any package download 
 3.2 Failure When Re-run Multiple Times
 --------------------------------------
 
+**Symptom**
+
+The ``local_repo.yml`` playbook fails when re-run multiple times in quick succession.
+
 **Cause**
 
 Pulp container resource saturation.
@@ -355,13 +382,18 @@ Allow the system to idle ~1 hour before re-running.
 3.3 Pulp Reset Password Failed
 --------------------------------
 
+**Symptom**
+
+Pulp reset password operation fails during ``prepare_oim.yml`` execution.
+
 .. image:: images/pulp_reset_password_failed.png
 
-**Possible Causes for Pulp Reset Password Failed:**
+**Cause**
 
-* **NFS Storage Export Configuration (PowerScale)**: Enable the ``nfsv4-no-names``, ``nfsv4-no-domain``, ``nfsv4-no-domain-uids``, and ``nfsv4-allow-numeric-ids`` settings. Ensure consistent UID and GID mappings between the NFS server and client.
-* **Access Permissions**: Add the ``no_root_squash`` option to the NFS export configuration in ``/etc/exports``.
-* **Network Reachability**: Verify NFS server connectivity and ensure firewall ports 2049, 111, and 20048 are open.
+- NFS Storage Export Configuration (PowerScale): Missing or incorrect settings for ``nfsv4-no-names``, ``nfsv4-no-domain``, ``nfsv4-no-domain-uids``, and ``nfsv4-allow-numeric-ids``
+- Inconsistent UID and GID mappings between NFS server and client
+- Access Permissions: Missing ``no_root_squash`` option in NFS export configuration
+- Network Reachability: NFS server connectivity issues or firewall blocking ports 2049, 111, and 20048
 
 **Resolution**
 
@@ -369,6 +401,14 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 
 3.4 EPEL Repository Instability
 -------------------------------
+
+**Symptom**
+
+EPEL repository is unstable or unavailable during package installation.
+
+**Cause**
+
+EPEL repository server issues or network connectivity problems.
 
 **Resolution**
 
@@ -378,9 +418,15 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 3.5 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
 -------------------------------------------------------------------------------------------
 
-**Cause**: The issue is caused by iptables rules on the OIM node not being persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+**Symptom**
 
-**Resolution**:
+Local repository sync fails intermittently due to blocked outbound internet access from containers.
+
+**Cause**
+
+iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+
+**Resolution**
 
 As a workaround to unblock repository synchronization, run the following commands to relax iptables default policies on the OIM node:
 
@@ -422,6 +468,16 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 4.3 Cluster Nodes Reboot
 -------------------------
 
+**Symptom**
+
+Cluster nodes reboot unexpectedly or require reboot after configuration changes.
+
+**Cause**
+
+- Configuration changes requiring node restart
+- Kernel updates
+- System instability
+
 **Resolution**
 
 Wait 15 minutes
@@ -435,6 +491,16 @@ Verify:
 4.4 DNS Unresponsive / CoreDNS Issues
 -------------------------------------
 
+**Symptom**
+
+DNS resolution fails or CoreDNS is unresponsive in the cluster.
+
+**Cause**
+
+- CoreDNS pod not running
+- DNS configuration errors
+- Network connectivity issues
+
 **Resolution**
 
 Restart CoreDNS:
@@ -445,6 +511,10 @@ Restart CoreDNS:
 
 4.5 PowerScale SmartConnect DNS Resolution Issues
 -------------------------------------------------
+
+**Symptom**
+
+DNS resolution fails for PowerScale SmartConnect zone entries.
 
 **Cause**
 
@@ -469,6 +539,10 @@ Restart CoreDNS.
 
 4.6 Control-plane Join Fails Due to Certificate Key Expiry
 ---------------------------------------------------------
+
+**Symptom**
+
+Control-plane node fails to join the cluster due to certificate key expiry.
 
 **Cause**
 
@@ -564,6 +638,10 @@ This is a known Kubernetes issue tracked upstream:
 5.1 NFS-Client Provisioner CrashLoopBackOff
 --------------------------------------------
 
+**Symptom**
+
+NFS-Client provisioner pod enters CrashLoopBackOff state.
+
 **Cause**
 
 NFS server not active at ``server_share_path``.
@@ -583,6 +661,12 @@ PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after node reboot.
 
 .. image:: images/troubleshoot_powerscale.jpg
 
+**Cause**
+
+- CSI controller fails to reconnect to PowerScale storage after node reboot
+- Storage connectivity issues or configuration problems
+- PowerScale (Isilon) service unavailability
+
 **Resolution**
 
 1. Inspect recent logs from the controller deployment: ::
@@ -599,6 +683,10 @@ PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after node reboot.
 
 5.3 Missing PowerScale CSI Driver
 ----------------------------------
+
+**Symptom**
+
+PowerScale CSI driver is not deployed or available in the cluster.
 
 **Cause**
 
@@ -1342,6 +1430,10 @@ Manifest file is missing or corrupted
 
 The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml`` cannot be parsed.
 
+**Cause**
+
+The manifest file was manually deleted, corrupted due to disk errors, or contains invalid YAML syntax.
+
 **Resolution**
 
 1. Check the manifest file for syntax errors:
@@ -1370,6 +1462,12 @@ OIM upgrade fails
 **Symptoms**
 
 The ``oim`` component fails during upgrade.
+
+**Cause**
+
+- ``oim_metadata.yml`` is missing or incorrectly configured
+- ``omnia_core`` container is not running or inaccessible
+- Database connectivity issues
 
 **Resolution**
 
@@ -1402,6 +1500,13 @@ General Kubernetes upgrade failure
 **Symptoms**
 
 The ``k8s`` component fails during upgrade with status showing ``failed`` in the upgrade manifest.
+
+**Cause**
+
+- Cluster nodes are not in Ready state
+- Pending pods or stuck resources
+- Network connectivity issues between nodes
+- Storage mount failures
 
 **Resolution**
 
@@ -1438,6 +1543,10 @@ Cloud-init timeout after reboot
 
 First control plane or first worker reboot fails with "Cloud-init did not complete within timeout" error.
 
+**Cause**
+
+Cloud-init execution takes longer than the configured timeout period due to slow network, large package downloads, or system resource constraints.
+
 **Resolution**
 
 1. SSH to the node and check the ``/var/log/cloud-init-output.log`` and wait for the cloud-init execution to complete.
@@ -1453,6 +1562,13 @@ Node unreachable during upgrade
 **Symptoms**
 
 Upgrade fails with SSH connection errors or node unreachable messages.
+
+**Cause**
+
+- Node is powered off or has hardware issues
+- SSH service is not running on the node
+- Network connectivity issues between OIM and the node
+- Firewall blocking SSH connections
 
 **Resolution**
 
@@ -1528,6 +1644,13 @@ Kubernetes rollback fails
 **Symptoms**
 
 The ``k8s-telemetry`` component fails during rollback.
+
+**Cause**
+
+- Control plane is unreachable or nodes are not in Ready state
+- Backup files are missing or corrupted on NFS
+- Storage mount failures preventing access to backup directory
+- Network connectivity issues between OIM and Kubernetes cluster
 
 **Resolution**
 
