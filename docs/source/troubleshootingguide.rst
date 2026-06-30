@@ -4,6 +4,33 @@ Troubleshooting Guide
 
 A structured guide for diagnosing and resolving issues across Omnia deployment, provisioning, Kubernetes, Slurm, storage, authentication, and telemetry workflows.
 
+Key Log Locations
+----------------
+
+When troubleshooting issues, consult the following log files:
+
+**Playbook Logs**
+
+- ``/opt/omnia/log/`` - Main playbook execution logs
+- ``/var/log/ansible/`` - Ansible playbook logs
+
+**Container Logs**
+
+- ``podman logs <container>`` - View container logs
+- ``podman logs -n 200 <container>`` - View last 200 lines
+
+**Kubernetes Logs**
+
+- ``kubectl logs -n <namespace> <pod>`` - View Kubernetes pod logs
+- ``kubectl logs -f -n <namespace> <pod>`` - Follow logs in real-time
+
+**Slurm Logs**
+
+- ``/var/log/slurm/`` - Slurm controller and daemon logs
+- ``/var/spool/slurm/`` - Slurm accounting and job logs
+
+For comprehensive logging information, see `Logs <Logging/OIM_logs.html>`_.
+
 .. contents::
    :depth: 2
    :local:
@@ -71,41 +98,28 @@ Verify container inventory:
 
    podman ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 
-1.3 Common Container Debugging Tools
+For common container debugging commands, see `Container Debugging Tools <../Utils/container_debugging_tools.html>`_.
+
+1.3 Ansible Vault Decryption Failures
 ------------------------------------
 
-Use the following commands to troubleshoot container issues across Omnia services.
+**Symptom**
 
-* To view list of all Omnia containers, run the following command:
+Playbook execution fails with error message "Attempting to decrypt but no vault secrets found" or similar vault decryption errors.
 
-.. code-block:: bash
+**Cause**
 
-   podman ps -a
+The vault password file (``.omnia_config_credentials_key``) is missing, incorrect, or inaccessible to the playbook execution context.
 
-* To view container logs, run the following command:
+**Resolution**
 
-.. code-block:: bash
+1. Verify the vault password file exists in the correct location: ``.omnia_config_credentials_key``
+2. Ensure the file has the correct permissions (readable by the user running the playbook)
+3. Re-run the playbook with the correct vault password file
 
-   podman logs -n 200 <container>
+For information on managing encrypted parameters, see `Encrypted Parameters Management <../SecurityConfigGuide/MiscellaneousConfigurationManagementElements.html#encrypted-parameters-management>`_.
 
-* To test outbound connectivity from a container, run the following command:
-
-.. code-block:: bash
-
-   podman exec -it <container> sh -lc 'curl -I https://example.com'
-
-1.4 Encrypted Parameters Management
-----------------------------------
-
-To view encrypted parameters: ::
-
-        ansible-vault view omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
-
-To edit encrypted parameters: ::
-
-        ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
-
-1.5 OIM Cleanup NFS Directory Deletion Failure
+1.4 OIM Cleanup NFS Directory Deletion Failure
 -----------------------------------------------
 
 **Symptoms**
@@ -1105,28 +1119,29 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 
 Fix underlying issue → re-run playbook.
 
-10.2 Graceful Shutdown of Omnia Cluster
-----------------------------------------
+10.2 Cluster Not Recovering After Power Cycle
+----------------------------------------------
 
-**Procedure**
+**Symptom**
 
-- Shutdown compute nodes first
-- Shutdown OIM last
-- On startup, power on OIM first → then compute nodes
+After a power cycle, the Omnia cluster does not recover properly. Nodes fail to rejoin the cluster or services do not start as expected.
 
-10.3 Licensing Requirements
-----------------------------
+**Cause**
+
+- OIM was not powered on before compute nodes
+- Compute nodes were powered on before OIM was fully operational
+- Network connectivity issues after power cycle
+- Persistent storage or NFS mount failures
 
 **Resolution**
 
-While Omnia playbooks are licensed by Apache 2.0, Omnia deploys multiple software that are licensed separately by their respective developer communities. For a comprehensive list of software and their licenses, `click here <Overview/SupportMatrix/omniainstalledsoftware.html>`_.
+1. Follow the proper startup sequence: power on OIM first, then compute nodes
+2. Verify OIM is fully operational before powering on compute nodes
+3. Check network connectivity between OIM and compute nodes
+4. Verify NFS mounts are accessible
+5. If issues persist, reprovision affected nodes
 
-10.4 Troubleshooting Logs
---------------------------
-
-For more information, see `Logs <Logging/OIM_logs.html>`_.
-
-10.5 InfiniBand Issues
+10.3 InfiniBand Issues
 ----------------------
 
 **Symptoms**
@@ -1147,7 +1162,7 @@ The Open Subnet Manager (OpenSM) service is not running on the InfiniBand (IB) s
    * Run the following command on the host: ``ibstat``
    * Verify that the InfiniBand ports state transition to: ``State: Active``
 
-10.7 System Recovery Issues
+10.4 System Recovery Issues
 ---------------------------
 
 **Omnia containers not coming up after OIM reboot**
@@ -1177,7 +1192,7 @@ Database initialization issues when existing data is present.
 
 The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associated data and log files. After cleanup completes, re-run ``prepare_oim.yml`` to deploy a new ``postgres_container_name`` container.
 
-10.8 Connectivity Issues
+10.5 Connectivity Issues
 -----------------------
 
 **local_repo.yml fails with connectivity errors**
