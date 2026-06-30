@@ -4,8 +4,7 @@ Troubleshooting Guide
 
 A structured guide for diagnosing and resolving issues across Omnia deployment, provisioning, Kubernetes, Slurm, storage, authentication, and telemetry workflows.
 
-Key Log Locations
-----------------
+.. rubric:: Key Log Locations
 
 When troubleshooting issues, consult the following log files:
 
