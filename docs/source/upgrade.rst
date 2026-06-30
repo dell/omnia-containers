@@ -31,20 +31,6 @@ Before starting the upgrade, ensure the following prerequisites are met:
 6. The target Omnia 2.2.0.0 core container image (``omnia_core:2.2``) is available locally on the OIM host. If it is not already available, build it as described in :ref:`build-core-container`.
 7. **aarch64 clusters only:** If the PXE mapping file contains aarch64 functional groups, an inventory file with an ``[admin_aarch64]`` group is required. This group must contain exactly one ARM admin node. See :ref:`aarch64-inventory` for details.
 
-Pre-Flight Checks
-^^^^^^^^^^^^^^^^
-
-Before initiating the upgrade, perform the following pre-flight checks to ensure the system is ready for upgrade:
-
-1. **Verify OIM node health** — Ensure the OIM node is responsive and has sufficient resources (CPU, memory, disk space) for the upgrade process
-2. **Check network connectivity** — Verify all cluster nodes can reach the OIM node and each other through the admin network
-3. **Validate NFS shares** — Ensure all NFS shares defined in ``storage_config.yml`` are accessible from the OIM and all cluster nodes
-4. **Check disk space** — Verify sufficient disk space is available on the OIM node for backups and container images (minimum 50 GB free recommended)
-5. **Verify time synchronization** — Ensure NTP is configured and time is synchronized across all cluster nodes
-6. **Check running services** — Verify all critical services (OpenCHAMI, PostgreSQL, Kubernetes if applicable) are running and healthy
-7. **Review logs** — Check recent logs in ``/opt/omnia/log/`` for any errors or warnings that might indicate issues
-8. **Validate configuration files** — Ensure all input configuration files in ``/opt/omnia/input/project_default/`` are syntactically correct and contain valid values
-
 .. _build-core-container:
 
 Build the Omnia 2.2.0.0 Core Container Image
