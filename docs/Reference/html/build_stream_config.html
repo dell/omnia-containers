@@ -1,0 +1,80 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-aarch64_inventory_host_ip"></div>
+                            <p class="omnia-title" id="module-parameter-aarch64-inventory-host-ip">
+                                <strong>aarch64_inventory_host_ip</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>AArch64 inventory host IP for aarch64 builds. Must be in same subnet as OIM admin IP. Accepted values: valid IPv4 address, empty string, or null</p>
+                            <p>Pattern: <code class="docutils literal notranslate"><span class="pre">^$|^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?</span></code>\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-build_stream_host_ip"></div>
+                            <p class="omnia-title" id="module-parameter-build-stream-host-ip">
+                                <strong>build_stream_host_ip</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Mandatory when build stream is enabled: Build Stream API server host IP. Must be either admin IP or public IP of OIM. Accepted values: valid IPv4 address</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-build_stream_port"></div>
+                            <p class="omnia-title" id="module-parameter-build-stream-port">
+                                <strong>build_stream_port</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">int,str</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Build Stream API server port. Accepted values: valid port number (1-65535). Default: 443</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-enable_build_stream"></div>
+                            <p class="omnia-title" id="module-parameter-enable-build-stream">
+                                <strong>enable_build_stream</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Enable or disable build stream pipeline. Accepted values: true or false. Default: false</p>
+                        </div>
+                    </td>
+                </tr>
+    </tbody>
+</table>
