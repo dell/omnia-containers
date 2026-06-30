@@ -49,6 +49,7 @@ from automation_library.build_image.functions import (
     check_s3_bucket_images,
     verify_all_image_packages,
 )
+from automation_library.prepare_oim.functions import get_storage_backend
 
 
 def _has_aarch64_groups(host) -> bool:
@@ -59,6 +60,7 @@ def _has_aarch64_groups(host) -> bool:
 
 # Architecture constant for this test module
 ARCH = "aarch64"
+
 
 # =============================================================================
 # 1. BUILD STREAM JOB STAGE VALIDATION (first test — gates all others)
@@ -313,9 +315,15 @@ def test_s3_bucket_images(host):
             fg_name = fg_res['functional_group']
             fg_missing = ', '.join(fg_res['missing_images'])
             assert_details.append(f"║   - {fg_name}: missing {fg_missing}")
+        backend = get_storage_backend(host)
+        if backend == "powerscale":
+            storage_hint = "Verify PowerScale S3 endpoint is reachable: curl -sk <endpoint_url>"
+        else:
+            storage_hint = "Verify minio-server container is running: podman ps | grep minio"
         assert False, ASSERT_MSGS["s3_bucket_images_missing"].format(
             group="multiple groups",
-            missing_list="\n".join(assert_details)
+            missing_list="\n".join(assert_details),
+            storage_fix_hint=storage_hint,
         )
 
 

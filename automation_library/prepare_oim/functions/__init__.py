@@ -41,6 +41,16 @@ from .build_stream_func import (
     verify_postgres_db_tables,
 )
 
+from .storage_func import (
+    get_storage_backend,
+    get_s3_endpoint_url,
+    verify_storage_backend,
+    verify_s3cmd_working,
+    verify_s3_buckets,
+    verify_regctl_working,
+    verify_s3_directories,
+)
+
 __all__ = [
     # Config helpers
     "is_ldap_enabled",
@@ -62,4 +72,12 @@ __all__ = [
     # Build stream functions
     "check_build_stream_health",
     "verify_postgres_db_tables",
+    # Storage functions
+    "get_storage_backend",
+    "get_s3_endpoint_url",
+    "verify_storage_backend",
+    "verify_s3cmd_working",
+    "verify_s3_buckets",
+    "verify_regctl_working",
+    "verify_s3_directories",
 ]

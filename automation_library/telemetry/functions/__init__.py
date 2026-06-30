@@ -67,10 +67,8 @@ from .kafka_func import (
 )
 
 from .victoria_func import (
-    get_deployment_mode,
     get_victoria_config,
     verify_victoria_persistence_size,
-    verify_victoria_single_node_pods,
     verify_victoria_cluster_pods,
     verify_vmagent_pod,
     verify_victoria_services,
@@ -130,9 +128,11 @@ from .victoria_logs_func import (
 from .powerscale_func import (
     get_powerscale_config,
     get_powerscale_deployment_mode,
+    is_onefs_api_configured,
     verify_powerscale_deployment,
     verify_powerscale_metrics,
     verify_powerscale_syslog,
+    verify_victoria_powerscale_data,
 )
 
 # Failover test functions (poweroff/reboot)
@@ -150,6 +150,42 @@ from .failover_func import (
     wait_for_node_online,
     wait_for_cloudinit_done,
     wait_for_node_rejoin_cluster,
+)
+
+# VAST telemetry functions
+from .vast_telemetry_func import (
+    is_vast_telemetry_enabled,
+    get_vast_config,
+    verify_vast_scrape_active,
+    verify_vast_tls_basic_auth,
+    verify_vast_label_enrichment,
+    verify_vast_internal_remotewrite,
+    verify_vast_scrape_interval,
+    verify_vast_deployment,
+    verify_vast_scrape_duration,
+    verify_vast_metric_coverage,
+    verify_vast_tls_enforcement,
+    verify_vast_no_plaintext_credentials,
+    verify_vast_pod_delete_and_recovery,
+)
+
+# UFM telemetry functions
+from .ufm_telemetry_func import (
+    is_ufm_telemetry_enabled,
+    is_ufm_logs_enabled,
+    get_ufm_config,
+    get_additional_remote_write_endpoints,
+    verify_ufm_scrape_active,
+    verify_ufm_dual_remotewrite,
+    verify_ufm_syslog_ingestion,
+    verify_ufm_deployment,
+    verify_ufm_tls_basic_auth,
+    verify_ufm_label_enrichment,
+    verify_ufm_internal_remotewrite,
+    verify_ufm_scrape_interval,
+    verify_ufm_scrape_latency,
+    verify_ufm_tls_enforcement,
+    verify_ufm_no_plaintext_credentials,
 )
 
 # Vector verification functions

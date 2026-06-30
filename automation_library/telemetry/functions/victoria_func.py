@@ -25,9 +25,6 @@ from typing import Dict, Any
 from ...core import run_on_remote_node
 from ..vars.shared_vars import TELEMETRY_NAMESPACE
 from ..vars.victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    DEPLOYMENT_MODE_CLUSTER,
-    VICTORIA_SINGLE_NODE,
     VICTORIA_CLUSTER,
     VMAGENT,
     VICTORIA_TLS_SECRET,
@@ -39,19 +36,6 @@ from .shared_func import (
     get_telemetry_config,
     get_activated_service_tags,
 )
-
-
-def get_deployment_mode(host) -> str:
-    """
-    Get VictoriaMetrics deployment mode.
-
-    With the new telemetry_config.yml structure, VictoriaMetrics is always
-    deployed in cluster mode. The deployment_mode key has been removed.
-
-    Returns:
-        'cluster' (always)
-    """
-    return "cluster"
 
 
 def get_victoria_config(host) -> Dict[str, Any]:
@@ -81,13 +65,7 @@ def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:
     """
     victoria_config = get_victoria_config(host)
     expected_size = victoria_config.get("persistence_size", "")
-    deployment_mode = get_deployment_mode(host)
-
-    # Get PVCs based on deployment mode
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        pvc_prefix = "victoria-metrics-pvc"
-    else:
-        pvc_prefix = "vmstorage-data"
+    pvc_prefix = "vmstorage-db"
 
     # Get all PVCs
     kubectl_cmd = f"kubectl get pvc -n {TELEMETRY_NAMESPACE} -o json"
@@ -135,79 +113,9 @@ def verify_victoria_persistence_size(host, admin_ip: str) -> Dict[str, Any]:
 
     return {
         "success": len(mismatches) == 0 and len(pvc_results) > 0,
-        "deployment_mode": deployment_mode,
         "expected_size": expected_size,
         "pvc_results": pvc_results,
         "mismatches": mismatches,
-    }
-
-
-def verify_victoria_single_node_pods(host, admin_ip: str) -> Dict[str, Any]:
-    """
-    Verify VictoriaMetrics single-node pods are running.
-
-    Args:
-        host: Testinfra host object
-        admin_ip: Admin IP of K8s node
-
-    Returns:
-        Dict with success, pod_results, errors
-    """
-    deployment_mode = get_deployment_mode(host)
-    if deployment_mode != DEPLOYMENT_MODE_SINGLE:
-        return {
-            "skip": True,
-            "skip_reason": f"Deployment mode is '{deployment_mode}', not single-node",
-        }
-
-    app_label = VICTORIA_SINGLE_NODE["app_label"]
-
-    kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_pods_by_label"].format(
-        namespace=TELEMETRY_NAMESPACE,
-        app_label=app_label
-    )
-    cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
-    if cmd.rc != 0:
-        return {
-            "success": False,
-            "error": "Failed to get pods",
-        }
-
-    try:
-        data = json.loads(cmd.stdout)
-        items = data.get("items", [])
-    except json.JSONDecodeError:
-        return {
-            "success": False,
-            "error": "Failed to parse pods JSON",
-        }
-
-    pod_results = []
-    errors = []
-
-    for pod in items:
-        pod_name = pod.get("metadata", {}).get("name", "")
-        phase = pod.get("status", {}).get("phase", "")
-        running = phase == "Running"
-        pod_results.append({
-            "pod": pod_name,
-            "phase": phase,
-            "running": running,
-        })
-        if not running:
-            errors.append(f"Pod '{pod_name}' is not running (status: {phase})")
-
-    # Expect at least 1 pod
-    if len(pod_results) == 0:
-        errors.append("No victoria-metric pods found")
-
-    return {
-        "success": len(errors) == 0,
-        "deployment_mode": deployment_mode,
-        "expected_count": 1,
-        "actual_count": len(pod_results),
-        "pod_results": pod_results,
-        "errors": errors,
     }
 
 
@@ -224,23 +132,16 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, component_results, errors
     """
-    deployment_mode = get_deployment_mode(host)
-    if deployment_mode != DEPLOYMENT_MODE_CLUSTER:
-        return {
-            "skip": True,
-            "skip_reason": f"Deployment mode is '{deployment_mode}', not cluster",
-        }
-
     component_results = []
     errors = []
 
     for component_name, component_config in VICTORIA_CLUSTER.items():
-        app_label = component_config["app_label"]
+        label_selector = component_config["label_selector"]
         expected_replicas = component_config["replicas"]
 
         kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_pods_by_label"].format(
             namespace=TELEMETRY_NAMESPACE,
-            app_label=app_label
+            label_selector=label_selector
         )
         cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
         if cmd.rc != 0:
@@ -276,7 +177,7 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
 
         component_results.append({
             "component": component_name,
-            "app_label": app_label,
+            "label_selector": label_selector,
             "expected_replicas": expected_replicas,
             "running_count": running_count,
             "pod_results": pod_results,
@@ -285,7 +186,6 @@ def verify_victoria_cluster_pods(host, admin_ip: str) -> Dict[str, Any]:
 
     return {
         "success": len(errors) == 0,
-        "deployment_mode": deployment_mode,
         "component_results": component_results,
         "errors": errors,
     }
@@ -302,11 +202,11 @@ def verify_vmagent_pod(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, pod_results, errors
     """
-    app_label = VMAGENT["app_label"]
+    label_selector = VMAGENT["label_selector"]
 
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_pods_by_label"].format(
         namespace=TELEMETRY_NAMESPACE,
-        app_label=app_label
+        label_selector=label_selector
     )
     cmd = run_on_remote_node(host, kubectl_cmd, admin_ip)
     if cmd.rc != 0:
@@ -360,27 +260,16 @@ def verify_victoria_services(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, service_results, errors
     """
-    deployment_mode = get_deployment_mode(host)
-
-    # Determine which services to check based on deployment mode
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        services_to_check = [
-            {
-                "name": VICTORIA_SINGLE_NODE["service_name"],
-                "port": VICTORIA_SINGLE_NODE["port"],
-            }
-        ]
-    else:
-        services_to_check = [
-            {
-                "name": VICTORIA_CLUSTER["vminsert"]["service_name"],
-                "port": VICTORIA_CLUSTER["vminsert"]["port"],
-            },
-            {
-                "name": VICTORIA_CLUSTER["vmselect"]["service_name"],
-                "port": VICTORIA_CLUSTER["vmselect"]["port"],
-            },
-        ]
+    services_to_check = [
+        {
+            "name": VICTORIA_CLUSTER["vminsert"]["service_name"],
+            "port": VICTORIA_CLUSTER["vminsert"]["port"],
+        },
+        {
+            "name": VICTORIA_CLUSTER["vmselect"]["service_name"],
+            "port": VICTORIA_CLUSTER["vmselect"]["port"],
+        },
+    ]
 
     service_results = []
     errors = []
@@ -411,7 +300,6 @@ def verify_victoria_services(host, admin_ip: str) -> Dict[str, Any]:
 
     return {
         "success": len(errors) == 0,
-        "deployment_mode": deployment_mode,
         "service_results": service_results,
         "errors": errors,
     }
@@ -474,15 +362,8 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
     Returns:
         Dict with success, tls_connected, health_response, errors
     """
-    deployment_mode = get_deployment_mode(host)
-
-    # Get service info based on deployment mode
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        service_name = VICTORIA_SINGLE_NODE["service_name"]
-        port = VICTORIA_SINGLE_NODE["port"]
-    else:
-        service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
-        port = VICTORIA_CLUSTER["vmselect"]["port"]
+    service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
+    port = VICTORIA_CLUSTER["vmselect"]["port"]
 
     # Get external IP
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_service_external_ip"].format(
@@ -513,7 +394,6 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
     # Save CA cert to temp file and curl health endpoint
     # Use --resolve to map service DNS name to IP for TLS verification
     # since the cert SAN contains DNS names, not the LoadBalancer IP
-    # Write cert directly via kubectl to preserve newlines, add trailing echo
     service_dns = f"{service_name}.{TELEMETRY_NAMESPACE}"
     curl_cmd = (
         f"kubectl get secret {VICTORIA_TLS_SECRET} -n {TELEMETRY_NAMESPACE} "
@@ -531,7 +411,6 @@ def verify_victoria_tls_health(host, admin_ip: str) -> Dict[str, Any]:
 
     return {
         "success": tls_connected and health_ok,
-        "deployment_mode": deployment_mode,
         "service_name": service_name,
         "external_ip": external_ip,
         "port": port,
@@ -555,8 +434,6 @@ def verify_victoria_idrac_data(
     Returns:
         Dict with success, service_tag_results, found_tags, missing_tags
     """
-    deployment_mode = get_deployment_mode(host)
-
     # Get activated service tags
     activated_tags = get_activated_service_tags(host)
     if not activated_tags:
@@ -565,15 +442,9 @@ def verify_victoria_idrac_data(
             "skip_reason": "No activated service tags found in telemetry report",
         }
 
-    # Get service info based on deployment mode
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        service_name = VICTORIA_SINGLE_NODE["service_name"]
-        port = VICTORIA_SINGLE_NODE["port"]
-        query_endpoint = VICTORIA_API_ENDPOINTS["single_query"]
-    else:
-        service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
-        port = VICTORIA_CLUSTER["vmselect"]["port"]
-        query_endpoint = VICTORIA_API_ENDPOINTS["cluster_query"]
+    service_name = VICTORIA_CLUSTER["vmselect"]["service_name"]
+    port = VICTORIA_CLUSTER["vmselect"]["port"]
+    query_endpoint = VICTORIA_API_ENDPOINTS["query"]
 
     # Get external IP
     kubectl_cmd = VICTORIA_CMD_TEMPLATES["get_service_external_ip"].format(
@@ -671,7 +542,6 @@ def verify_victoria_idrac_data(
 
     return {
         "success": len(missing_tags) == 0,
-        "deployment_mode": deployment_mode,
         "external_ip": external_ip,
         "port": port,
         "activated_tags": activated_tags,

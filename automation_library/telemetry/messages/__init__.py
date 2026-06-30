@@ -56,6 +56,20 @@ from .powerscale_msgs import (
     POWERSCALE_ASSERT_MSGS,
 )
 
+# VAST telemetry-specific messages
+from .vast_telemetry_msgs import (
+    VAST_TEST_NAMES,
+    VAST_LOG_MSGS,
+    VAST_ASSERT_MSGS,
+)
+
+# UFM telemetry-specific messages
+from .ufm_telemetry_msgs import (
+    UFM_TEST_NAMES,
+    UFM_LOG_MSGS,
+    UFM_ASSERT_MSGS,
+)
+
 # Shared messages (used across all telemetry modules)
 from .shared_msgs import (
     TELEMETRY_MSGS,

@@ -92,6 +92,12 @@ _aarch64_node_ips: list = []
 _aarch64_node_collection_error: str = None
 _x86_64_login_compiler_ips: list = []
 _x86_64_login_compiler_collection_error: str = None
+_aarch64_login_compiler_ips: list = []
+_aarch64_login_compiler_collection_error: str = None
+_all_cluster_node_ips: list = []
+_all_cluster_node_collection_error: str = None
+_all_login_compiler_ips: list = []
+_all_login_compiler_collection_error: str = None
 
 
 class _TeeStream:
@@ -199,6 +205,9 @@ def _collect_hpc_benchmark_nodes(config):
     global _x86_64_node_ips, _x86_64_node_collection_error
     global _aarch64_node_ips, _aarch64_node_collection_error
     global _x86_64_login_compiler_ips, _x86_64_login_compiler_collection_error
+    global _aarch64_login_compiler_ips, _aarch64_login_compiler_collection_error
+    global _all_cluster_node_ips, _all_cluster_node_collection_error
+    global _all_login_compiler_ips, _all_login_compiler_collection_error
 
     # Only run for hpc_benchmarks scenario
     if config.args:
@@ -211,6 +220,7 @@ def _collect_hpc_benchmark_nodes(config):
             get_x86_64_cluster_nodes,
             get_aarch64_cluster_nodes,
             get_login_compiler_nodes_x86_64,
+            get_login_compiler_nodes_aarch64,
         )
 
         host = get_testinfra_host()
@@ -226,13 +236,27 @@ def _collect_hpc_benchmark_nodes(config):
         # Collect x86_64 login/compiler nodes
         lc_nodes = get_login_compiler_nodes_x86_64(host)
         _x86_64_login_compiler_ips = [n["admin_ip"] for n in lc_nodes] if lc_nodes else []
+
+        # Collect aarch64 login/compiler nodes
+        lc_aa64_nodes = get_login_compiler_nodes_aarch64(host)
+        _aarch64_login_compiler_ips = [n["admin_ip"] for n in lc_aa64_nodes] if lc_aa64_nodes else []
+
+        # Build generic lists (any arch)
+        _all_cluster_node_ips = _x86_64_node_ips + _aarch64_node_ips
+        _all_login_compiler_ips = _x86_64_login_compiler_ips + _aarch64_login_compiler_ips
     except Exception as e:
         _x86_64_node_collection_error = f"x86_64 node collection failed: {e}"
         _aarch64_node_collection_error = f"aarch64 node collection failed: {e}"
         _x86_64_login_compiler_collection_error = f"x86_64 login/compiler node collection failed: {e}"
+        _aarch64_login_compiler_collection_error = f"aarch64 login/compiler node collection failed: {e}"
+        _all_cluster_node_collection_error = f"Cluster node collection failed: {e}"
+        _all_login_compiler_collection_error = f"Login/compiler node collection failed: {e}"
         _x86_64_node_ips = []
         _aarch64_node_ips = []
         _x86_64_login_compiler_ips = []
+        _aarch64_login_compiler_ips = []
+        _all_cluster_node_ips = []
+        _all_login_compiler_ips = []
 
 
 def pytest_generate_tests(metafunc):
@@ -323,6 +347,44 @@ def pytest_generate_tests(metafunc):
                 "x86_64_login_compiler_ip",
                 _x86_64_login_compiler_ips,
                 ids=_x86_64_login_compiler_ips,
+            )
+
+    # Parametrize cluster_node_ip (any arch — HPC benchmarks)
+    if "cluster_node_ip" in metafunc.fixturenames:
+        if not _all_cluster_node_ips:
+            reason = (
+                _all_cluster_node_collection_error
+                if _all_cluster_node_collection_error
+                else "No cluster nodes found (x86_64 or aarch64)"
+            )
+            metafunc.parametrize(
+                "cluster_node_ip",
+                [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
+            )
+        else:
+            metafunc.parametrize(
+                "cluster_node_ip",
+                [_all_cluster_node_ips[0]],
+                ids=[_all_cluster_node_ips[0]],
+            )
+
+    # Parametrize hpc_login_compiler_ip (any arch — HPC benchmarks)
+    if "hpc_login_compiler_ip" in metafunc.fixturenames:
+        if not _all_login_compiler_ips:
+            reason = (
+                _all_login_compiler_collection_error
+                if _all_login_compiler_collection_error
+                else "No login/compiler nodes found (x86_64 or aarch64)"
+            )
+            metafunc.parametrize(
+                "hpc_login_compiler_ip",
+                [pytest.param(None, marks=pytest.mark.skip(reason=reason))],
+            )
+        else:
+            metafunc.parametrize(
+                "hpc_login_compiler_ip",
+                [_all_login_compiler_ips[0]],
+                ids=[_all_login_compiler_ips[0]],
             )
 
 
@@ -514,10 +576,11 @@ def _require_build_stream_job(host, request):
         yield
         return
 
-    # Only skip if build_stream is enabled AND job check failed
+    # Only skip if build_stream is enabled AND job check failed AND not forced
     if (is_build_stream_enabled(host) and
             build_stream_job_state["checked"] and
-            not build_stream_job_state["success"]):
+            not build_stream_job_state["success"] and
+            not build_stream_job_state.get("forced", False)):
 
         # Use TestLogger to properly report the skip in test output/report
         log = TestLogger(request.node.name)

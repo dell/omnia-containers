@@ -40,9 +40,6 @@ from .kafka_vars import (
 
 # VictoriaMetrics specific
 from .victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    DEPLOYMENT_MODE_CLUSTER,
-    VICTORIA_SINGLE_NODE,
     VICTORIA_CLUSTER,
     VMAGENT,
     VICTORIA_TLS_SECRET,
@@ -67,6 +64,22 @@ from .powerscale_vars import (
     DEPLOYMENT_MODE_OMNIA,
     DEPLOYMENT_MODE_OPERATOR,
     CSM_METRICS_POWERSCALE,
+)
+
+# VAST telemetry specific
+from .vast_telemetry_vars import (
+    VAST_JOB_PATTERN,
+    VAST_SCRAPE_JOB,
+    VAST_CREDENTIALS_SECRET,
+    VAST_VMSERVICESCRAPE_NAME,
+)
+
+# UFM telemetry specific
+from .ufm_telemetry_vars import (
+    UFM_JOB_PATTERN,
+    UFM_SCRAPE_JOB,
+    UFM_CREDENTIALS_SECRET,
+    UFM_VMSERVICESCRAPE_NAME,
 )
 
 # Failover test specific (poweroff/reboot)

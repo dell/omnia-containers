@@ -31,6 +31,8 @@ Test cases (18 total):
 Note: All tests skip if telemetry_sources.powerscale.metrics_enabled is false.
 """
 
+from datetime import datetime
+
 import pytest
 
 from automation_library.core import TestLogger
@@ -47,7 +49,6 @@ from automation_library.telemetry.functions.shared_func import (
 )
 from automation_library.telemetry.functions.powerscale_func import (
     get_powerscale_config,
-    get_powerscale_deployment_mode,
     verify_powerscale_deployment,
     verify_powerscale_metrics,
     verify_powerscale_syslog,
@@ -66,6 +67,7 @@ from automation_library.telemetry.functions.powerscale_func import (
     verify_endpoint_availability,
     verify_tls_all_communications,
     verify_no_plaintext_credentials,
+    verify_victoria_powerscale_data,
 )
 
 
@@ -156,7 +158,16 @@ def test_tc_f002_metric_collection(host):
 
     # Build details
     details_lines = []
+    if not result.get("onefs_configured", True):
+        details_lines.append("NOTE: csm_observability_values_file_path not configured")
+        details_lines.append("      Only topology metrics (karavi_*) are expected")
+        details_lines.append("")
     for cat in result.get("category_results", []):
+        if cat.get("skipped"):
+            details_lines.append(
+                f"- {cat['category']}: SKIPPED ({cat.get('skip_reason', '')})"
+            )
+            continue
         status = "âœ“" if cat["found"] else "âœ—"
         details_lines.append(
             f"{status} {cat['category']}: {cat['series_count']} series"
@@ -587,6 +598,100 @@ def test_tc_f012_csi_auth_mode(host):
             )
         else:
             assert False, "CSI authorization mode: metrics not flowing or auth errors detected"
+
+
+@pytest.mark.sanity
+@pytest.mark.order(42)
+def test_tc_f013_powerscale_data(host):
+    """
+    TC-F013: PowerScale Telemetry Data in VictoriaMetrics (P0).
+
+    For each PowerScale StorageSystem:
+    - Query VictoriaMetrics for powerscale_* and karavi_* metrics
+    - Verify data exists
+    - Display sample metrics with values and labels
+    - Show metric category breakdown
+    """
+    log = TestLogger(POWERSCALE_TEST_NAMES["tc_f013_powerscale_data"])
+    skip_if_powerscale_not_enabled(host, log)
+
+    if not is_powerscale_metrics_enabled(host):
+        log.skipped(POWERSCALE_LOG_MSGS["metrics_not_enabled"],
+                     "Test skipped - metrics not enabled")
+        pytest.skip("PowerScale metrics not enabled")
+
+    admin_ip = get_admin_ip(host, log)
+
+    log.check(POWERSCALE_LOG_MSGS["powerscale_data_verifying"])
+    result = verify_victoria_powerscale_data(host, admin_ip)
+
+    if result.get("error"):
+        log.failed(POWERSCALE_LOG_MSGS["powerscale_data_missing"], result["error"])
+        assert False, POWERSCALE_ASSERT_MSGS["powerscale_data_missing"]
+
+    # Build details matching iDRAC data test format
+    details_lines = [
+        f"OneFS API configured: {result.get('onefs_configured')}",
+        f"powerscale_* series: {result.get('powerscale_count', 0)}",
+        f"karavi_* series: {result.get('karavi_count', 0)}",
+        f"Total series: {result.get('total_series', 0)}",
+        "",
+        "Metric categories:",
+    ]
+    for cat in result.get("metric_summary", []):
+        if cat.get("skipped"):
+            details_lines.append(f"  - {cat['category']}: SKIPPED (OneFS API not configured)")
+        else:
+            details_lines.append(f"  - {cat['category']}: {cat['count']} series")
+
+    details_lines.append("")
+    details_lines.append("Storage system verification:")
+
+    for ss_result in result.get("storage_system_results", []):
+        details_lines.extend(_build_powerscale_storage_lines(ss_result))
+
+    details = "\n".join(details_lines)
+
+    if result["success"]:
+        log.passed(
+            POWERSCALE_LOG_MSGS["powerscale_data_found"].format(
+                count=result.get("total_series", 0),
+                systems=len(result.get("storage_system_results", []))
+            ),
+            details
+        )
+    else:
+        log.failed(POWERSCALE_LOG_MSGS["powerscale_data_missing"], details)
+        assert False, POWERSCALE_ASSERT_MSGS["powerscale_data_missing"]
+
+
+def _build_powerscale_storage_lines(ss_result):
+    """Build detail lines for a single PowerScale StorageSystem result."""
+    lines = []
+    ss_name = ss_result["storage_system"]
+    if ss_result["found"]:
+        lines.append(f"  {ss_name}")
+        lines.append(f"      Metrics     : {ss_result['metric_count']} found")
+        latest_ts = ss_result.get("latest_timestamp", 0)
+        if latest_ts:
+            try:
+                human_ts = datetime.fromtimestamp(
+                    int(latest_ts)
+                ).strftime("%Y-%m-%d %H:%M:%S")
+                lines.append(f"      VM Time     : {latest_ts} ({human_ts})")
+            except (ValueError, OSError):
+                lines.append(f"      VM Time     : {latest_ts}")
+        labels = ss_result.get("labels_present", [])
+        if labels:
+            lines.append(f"      Labels      : {', '.join(labels)}")
+        for sample in ss_result.get("sample_metrics", []):
+            lines.append(
+                f"        - {sample['metric_name']}: {sample['value']}"
+            )
+    else:
+        lines.append(f"  {ss_name}: NO DATA FOUND")
+    return lines
+
 
 # =============================================================================
 # 2. IDEMPOTENCY TEST CASES (TC-I001)

@@ -280,3 +280,8 @@ UCX_INSTALLED_PASSED = "UCX is installed and functional on all login_compiler no
 UCX_INSTALLED_FAILED = "UCX not found or non-functional on some login_compiler nodes: {nodes}"
 UCX_NO_LOGIN_COMPILER = "No login_compiler nodes found; skipping UCX installation check"
 UCX_NO_SUBMIT_NODE = "No login_compiler node available to submit UCX job; cannot proceed"
+UCX_IB_IP_NOT_ASSIGNED = (
+    "IB IP not actually assigned on node(s): {nodes}. "
+    "These nodes have IB_IP in PXE mapping but the IP is not present on the interface. "
+    "Need at least 2 nodes with IB IP assigned for UCX IB-only transport test."
+)

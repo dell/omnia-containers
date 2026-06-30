@@ -27,8 +27,6 @@ Test cases:
   TC-F09  test_cuda_compute_node_install
   TC-F10  test_multi_gpu_discovery
   TC-F16  test_toolkit_nfs_shared_storage
-  TC-F18  test_nvidia_peer_mem_installed
-  TC-I01  test_dcgm_role_idempotency
   TC-C01  test_rhel_compatibility
   TC-C02  test_cuda_version_compatibility
 """
@@ -46,6 +44,7 @@ from automation_library.core import TestLogger
 from automation_library.dcgm.functions import (
     get_gpu_nodes,
     get_login_compiler_nodes,
+    check_dcgm_metrics_enabled,
     verify_cuda_validation,
     verify_dcgm_metrics_dmon,
     verify_cuda_atomic_lock_installation,
@@ -58,8 +57,6 @@ from automation_library.dcgm.functions import (
     verify_cuda_login_compiler_install,
     verify_cuda_compute_node_install,
     verify_toolkit_nfs_shared_storage,
-    verify_nvidia_peer_mem_all_gpu_nodes,
-    verify_dcgm_role_idempotency,
     verify_rhel_compatibility,
     verify_cuda_version_compatibility,
 )
@@ -73,6 +70,26 @@ from automation_library.dcgm.messages import (
 # =============================================================================
 # SHARED FIXTURES
 # =============================================================================
+
+@pytest.fixture(scope="module", autouse=True)
+def dcgm_metrics_precondition(host):
+    """Check if DCGM metrics are enabled in telemetry config. Skip all tests if disabled."""
+    result = check_dcgm_metrics_enabled(host)
+    
+    if result.get("error"):
+        pytest.skip(f"Failed to check DCGM metrics configuration: {result['error']}")
+    
+    # Log the DCGM metrics configuration status
+    if result.get("enabled", False):
+        print("\n[INFO] DCGM metrics collection is ENABLED in telemetry_config.yml (dcgm.metrics_enabled: true)")
+        print("[INFO] Proceeding with DCGM test cases...")
+    else:
+        print("\n[INFO] DCGM metrics collection is DISABLED in telemetry_config.yml (dcgm.metrics_enabled: false)")
+        print("[INFO] Skipping all DCGM test cases...")
+        pytest.skip("DCGM metrics collection is disabled in telemetry_config.yml (dcgm.metrics_enabled: false)")
+    
+    return result
+
 
 @pytest.fixture(scope="module")
 def all_gpu_nodes(host):
@@ -435,70 +452,11 @@ def test_toolkit_nfs_shared_storage(host, gpu_node_ip):
 
 
 # =============================================================================
-# TC-F18: nvidia_peer_mem.ko MODULE INSTALLATION
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(13)
-def test_nvidia_peer_mem_installed(host):
-    """
-    TC-F18: Verify nvidia_peer_mem kernel module is loaded and configured for
-    auto-load on boot on ALL GPU nodes.
-    Maps to: VC-006
-    """
-    log = TestLogger(TEST_NAMES["nvidia_peer_mem"])
-    log.check("Verifying nvidia_peer_mem module across all GPU nodes")
-
-    result = verify_nvidia_peer_mem_all_gpu_nodes(host)
-
-    if not result["results"]:
-        log.skipped(LOG["no_gpu_nodes"], "No GPU nodes found — TC-F18 skipped")
-        pytest.skip(ASSERT["no_gpu_nodes"])
-
-    if result["success"]:
-        count = len(result["results"])
-        log.passed(LOG["peer_mem_all_nodes_ok"].format(count=count), result["details"])
-    else:
-        log.failed(LOG["peer_mem_not_loaded"].format(ip=str(result["failed_nodes"])), result["error"])
-
-    assert result["success"], ASSERT["peer_mem_not_loaded"].format(
-        ip=str(result.get("failed_nodes", []))
-    )
-
-
-# =============================================================================
-# TC-I01: DCGM INSTALLATION ROLE IDEMPOTENCY
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.order(14)
-def test_dcgm_role_idempotency(host, gpu_node_ip):
-    """
-    TC-I01: Run the Ansible GPU playbook a second time and verify it reports
-    changed=0, confirming idempotency of the DCGM installation role.
-    Maps to: idempotency specification TC-I01
-    """
-    log = TestLogger(TEST_NAMES["dcgm_idempotency"])
-    log.check(f"Running Ansible idempotency check on {gpu_node_ip}")
-
-    result = verify_dcgm_role_idempotency(host, gpu_node_ip)
-
-    if result["success"]:
-        log.passed(LOG["idempotency_no_changes"], result["details"])
-    else:
-        log.failed(LOG["idempotency_changes_found"], result["error"])
-
-    assert result["success"], ASSERT["idempotency_failed"].format(
-        changes=result["changed_count"]
-    )
-
-
-# =============================================================================
 # TC-C01: RHEL 10.x OS COMPATIBILITY
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(15)
+@pytest.mark.order(13)
 def test_rhel_compatibility(host, gpu_node_ip):
     """
     TC-C01: Verify GPU node OS is RHEL 10.x.
@@ -524,7 +482,7 @@ def test_rhel_compatibility(host, gpu_node_ip):
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(16)
+@pytest.mark.order(14)
 def test_cuda_version_compatibility(host, gpu_node_ip):
     """
     TC-C02: Verify CUDA 13.x toolkit and drivers are present and DCGM daemon

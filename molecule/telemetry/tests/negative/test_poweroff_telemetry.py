@@ -67,10 +67,8 @@ from automation_library.telemetry.functions import (
     verify_ldms_services_ports,
     verify_idrac_data_in_kafka,
     verify_ldms_data_in_kafka,
-    get_deployment_mode,
     get_victoria_config,
     verify_victoria_persistence_size,
-    verify_victoria_single_node_pods,
     verify_victoria_cluster_pods,
     verify_vmagent_pod,
     verify_victoria_services,
@@ -91,8 +89,6 @@ from automation_library.telemetry.functions.shared_func import (
 )
 from automation_library.telemetry.vars import NODE_POWEROFF_WAIT_SECONDS
 from automation_library.telemetry.vars.victoria_vars import (
-    DEPLOYMENT_MODE_SINGLE,
-    DEPLOYMENT_MODE_CLUSTER,
     VICTORIA_TLS_SECRET,
 )
 from automation_library.telemetry.messages import (
@@ -780,16 +776,10 @@ def test_victoria_enabled(host):
         log.skipped(VICTORIA_LOG_MSGS["victoria_not_enabled"], "Test skipped")
         pytest.skip("VictoriaMetrics is not enabled")
 
-    deployment_mode = get_deployment_mode(host)
     victoria_config = get_victoria_config(host)
 
-    mode_msg = (
-        VICTORIA_LOG_MSGS["deployment_mode_single"]
-        if deployment_mode == DEPLOYMENT_MODE_SINGLE
-        else VICTORIA_LOG_MSGS["deployment_mode_cluster"]
-    )
     details = (
-        f"{mode_msg}\n"
+        f"Deployment mode: cluster\n"
         f"persistence_size: {victoria_config.get('persistence_size', 'N/A')}\n"
         f"retention_period: {victoria_config.get('retention_period', 'N/A')}"
     )
@@ -821,9 +811,8 @@ def test_victoria_persistence_size(host):
         log.failed("Failed to verify persistence size", result["error"])
         assert False, result["error"]
 
-    deployment_mode = result.get("deployment_mode", "")
     expected_size = result.get("expected_size", "")
-    details_lines = [f"Deployment mode: {deployment_mode}", f"Expected size: {expected_size}"]
+    details_lines = ["Deployment mode: cluster", f"Expected size: {expected_size}"]
 
     for pvc_result in result.get("pvc_results", []):
         status = "\u2713" if pvc_result["match"] else "\u2717"
@@ -854,17 +843,9 @@ def test_victoria_pods(host):
         pytest.skip("VictoriaMetrics is not enabled")
 
     admin_ip = get_admin_ip(host, log)
-    deployment_mode = get_deployment_mode(host)
 
-    log.check(f"Verifying VictoriaMetrics pods (mode: {deployment_mode})")
-
-    if deployment_mode == DEPLOYMENT_MODE_SINGLE:
-        result = verify_victoria_single_node_pods(host, admin_ip)
-    elif deployment_mode == DEPLOYMENT_MODE_CLUSTER:
-        result = verify_victoria_cluster_pods(host, admin_ip)
-    else:
-        log.skipped(f"Unknown deployment mode: {deployment_mode}", "Test skipped")
-        pytest.skip(f"Unknown deployment mode: {deployment_mode}")
+    log.check("Verifying VictoriaMetrics cluster pods")
+    result = verify_victoria_cluster_pods(host, admin_ip)
 
     if result.get("skip"):
         log.skipped(result.get("skip_reason", ""), "Test skipped")
@@ -882,10 +863,10 @@ def test_victoria_pods(host):
     details = "\n".join(details_lines)
 
     if result["success"]:
-        log.passed(VICTORIA_LOG_MSGS["all_pods_running"].format(component=deployment_mode, count=len(result.get("pod_results", []))), details)
+        log.passed(VICTORIA_LOG_MSGS["all_pods_running"].format(component="cluster", count=len(result.get("pod_results", []))), details)
     else:
         errors = result.get("errors", [])
-        log.failed(VICTORIA_LOG_MSGS["pods_not_running"].format(component=deployment_mode), details + "\n" + "; ".join(errors))
+        log.failed(VICTORIA_LOG_MSGS["pods_not_running"].format(component="cluster"), details + "\n" + "; ".join(errors))
         assert False, "; ".join(errors)
 
 
@@ -944,9 +925,7 @@ def test_victoria_services(host):
         pytest.skip("VictoriaMetrics is not enabled")
 
     admin_ip = get_admin_ip(host, log)
-    deployment_mode = get_deployment_mode(host)
-
-    log.check(f"Verifying VictoriaMetrics services (mode: {deployment_mode})")
+    log.check("Verifying VictoriaMetrics services (cluster mode)")
     result = verify_victoria_services(host, admin_ip)
 
     if result.get("error"):
@@ -1037,9 +1016,7 @@ def test_victoria_tls_health(host):
         pytest.skip("VictoriaMetrics is not enabled")
 
     admin_ip = get_admin_ip(host, log)
-    deployment_mode = get_deployment_mode(host)
-
-    log.check(f"Verifying TLS connection (mode: {deployment_mode})")
+    log.check("Verifying TLS connection (cluster mode)")
     result = verify_victoria_tls_health(host, admin_ip)
 
     if result.get("error"):

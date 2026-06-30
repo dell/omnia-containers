@@ -24,6 +24,15 @@ For module-specific messages, see:
 
 from typing import List
 
+from automation_library.core.vars.build_stream_vars import (
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_VALIDATE_IMAGE,
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+)
+
 # =============================================================================
 # BUILD STREAM API (omnia_build_stream container)
 # Keys used to read runtime values from build_stream_config.yml
@@ -41,26 +50,26 @@ BUILD_STREAM_AUTH_TOKEN_PATH: str = "/api/v1/auth/token"
 
 BUILD_PIPELINE_CORE_STAGES: List[str] = [
     "upload",
-    "parse-catalog",
-    "generate-input-files",
-    "create-local-repository",
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+    STAGE_CREATE_LOCAL_REPO,
 ]
 
 BUILD_IMAGE_STAGE_PREFIX: str = "build-image-"
 
 BUILD_PIPELINE_STAGES: List[str] = [
     "upload",
-    "parse-catalog",
-    "generate-input-files",
-    "create-local-repository",
-    "build-image-x86_64",
-    "build-image-aarch64",
+    STAGE_PARSE_CATALOG,
+    STAGE_GENERATE_INPUT,
+    STAGE_CREATE_LOCAL_REPO,
+    STAGE_BUILD_IMAGE_X86_64,
+    STAGE_BUILD_IMAGE_AARCH64,
 ]
 
 DEPLOY_PIPELINE_STAGES: List[str] = [
     "deploy",
     "restart",
-    "validate",
+    STAGE_VALIDATE_IMAGE,
 ]
 
 CLEANUP_PIPELINE_STAGES: List[str] = [
@@ -140,8 +149,18 @@ CLEANUP_WAIT_TIMEOUT: int = 300  # seconds to wait for cleanup completion
 GITLAB_API_VERSION: str = "v4"
 GITLAB_ROOT_TOKEN_FILE: str = "/root/.gitlab_root_token"
 CATALOG_FILE_PATH: str = "catalog_rhel.json"
-CATALOG_LOCAL_FILENAME: str = "slurm_only_x86_64_catalog.json"
+CATALOG_DEFAULT_FILENAME: str = "catalog_rhel_x86_64_with_slurm_only.json"
 PXE_MAPPING_FILE_PATH: str = "input/pxe_mapping_file.csv"
+OMNIA_CATALOG_PATH: str = "/omnia/examples/catalog"
+
+# =============================================================================
+# OMNIA REPOSITORY AND CONFIGURATION PATHS
+# =============================================================================
+
+OMNIA_REPO_URL: str = "https://github.com/dell/omnia.git"
+DEFAULT_CLONE_PATH: str = "/tmp/omnia_input_verify"
+# Note: GENERATED_CONFIG_BASE is constructed dynamically as f"{INPUT_BASE_PATH}/config"
+SOURCE_CONFIG_BASE: str = "input/config"
 
 # =============================================================================
 # GITLAB CI/CD VARIABLE KEYS

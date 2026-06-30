@@ -369,26 +369,22 @@ def get_nfs_client_mount_path(host, nfs_name: str = None) -> str:
     """
     Get NFS client mount path from storage_config.yml.
 
+    Reads from mounts[] entries with name/mount_point fields.
+
     Args:
         host: Testinfra host object
         nfs_name: Optional NFS name to filter (e.g., "nfs_slurm", "nfs_k8s")
-                  If not provided, returns first NFS client path
+                  If not provided, returns first mount path
 
     Returns:
         NFS client mount path string, or empty string if not found
     """
     from ..vars.paths_vars import STORAGE_CONFIG_FILE
 
-    # Try nfs_client_params first (current format), then nfs_client (legacy)
-    for list_key in ["nfs_client_params", "nfs_client"]:
-        result = get_config_list_item(
-            host, STORAGE_CONFIG_FILE, list_key,
-            filter_key="nfs_name" if nfs_name else None,
-            filter_value=nfs_name,
-            return_key="client_share_path",
-            fallback_keys=["client_mount_path"]
-        )
-        if result:
-            return result
-
-    return ""
+    result = get_config_list_item(
+        host, STORAGE_CONFIG_FILE, "mounts",
+        filter_key="name" if nfs_name else None,
+        filter_value=nfs_name,
+        return_key="mount_point",
+    )
+    return result or ""

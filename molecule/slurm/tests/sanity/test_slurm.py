@@ -1400,7 +1400,7 @@ def test_gpu_hello_job(host):
 # TC45: GPU Memory Stress Test job from ldapuser on login_compiler node
 # =============================================================================
 
-@pytest.mark.sanity
+@pytest.mark.sanitygpu
 @pytest.mark.order(45)
 def test_gpu_mem_stress_job(host):
     """TC45: Test submitting a GPU memory stress test job as ldapuser from login_compiler node.
@@ -1774,6 +1774,11 @@ def test_ucx_ib_only_transport(host):
     result = verify_ucx_ib_only(host)
     if result.get("skipped"):
         pytest.skip(result["message"])
+
+    if result.get("ip_unassigned"):
+        log.failed("Phase 3 FAILED: IB IP not assigned on node(s): "
+                   f"{', '.join(result['ip_unassigned'])}")
+        assert False, result["message"]
 
     log.check(f"  Submit node      : {result.get('submit_node', 'N/A')}")
     log.check(f"  Nodes under test : {result.get('nodes', 'unknown')}")

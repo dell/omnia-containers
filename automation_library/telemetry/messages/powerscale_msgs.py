@@ -63,6 +63,9 @@ POWERSCALE_TEST_NAMES: Dict[str, str] = {
     "tc_p002_syslog_latency": "TC-P002: Syslog Event Ingestion Latency < 1 Minute",
     "tc_p003_endpoint_availability": "TC-P003: OTel Collector Endpoint Availability >= 98%",
 
+    # Data verification
+    "tc_f013_powerscale_data": "TC-F013: PowerScale Telemetry Data in VictoriaMetrics",
+
     # Security
     "tc_s001_tls_all_comms": "TC-S001: TLS Enforcement for All Off-Cluster Communications",
     "tc_s002_no_plaintext_creds": "TC-S002: No Plaintext Credentials in Deployed Artifacts",
@@ -186,6 +189,11 @@ POWERSCALE_LOG_MSGS: Dict[str, str] = {
     "creds_in_k8s_secrets": "PowerScale API credentials stored in K8s Secrets",
     "tls_keys_in_secrets": "TLS private keys stored in K8s Secrets only",
 
+    # PowerScale data verification
+    "powerscale_data_verifying": "Verifying PowerScale telemetry data in VictoriaMetrics",
+    "powerscale_data_found": "PowerScale data found: {count} metric series across {systems} storage system(s)",
+    "powerscale_data_missing": "No PowerScale metric data found in VictoriaMetrics",
+
     # Other telemetry isolation
     "other_sources_unaffected": "Other telemetry sources (iDRAC, LDMS) completely unaffected",
     "other_sources_affected": "Other telemetry sources affected by PowerScale issue",
@@ -233,7 +241,7 @@ POWERSCALE_ASSERT_MSGS: Dict[str, str] = {
     "otel_collector_not_running": (
         "OTel Collector pod is not Running.\n"
         "Status: {status}\n"
-        "Please check: kubectl get pods -n telemetry -l app=otel-collector"
+        "Please check: kubectl get pods -n telemetry -l app.kubernetes.io/name=otel-collector"
     ),
     "csi_driver_missing": (
         "CSI Driver for Dell PowerScale not found.\n"
@@ -404,6 +412,16 @@ POWERSCALE_ASSERT_MSGS: Dict[str, str] = {
     "tls_keys_not_in_secrets": (
         "TLS private keys not stored in K8s Secrets.\n"
         "Private keys must be mounted from Secrets, not ConfigMaps."
+    ),
+
+    # PowerScale data
+    "powerscale_data_missing": (
+        "No PowerScale telemetry data found in VictoriaMetrics.\n"
+        "Please verify:\n"
+        "  1) CSM Metrics PowerScale pod is Running\n"
+        "  2) OTel Collector pod is Running\n"
+        "  3) vmagent is scraping the OTel Collector endpoint\n"
+        "  4) PowerScale cluster is accessible"
     ),
 
     # Isolation

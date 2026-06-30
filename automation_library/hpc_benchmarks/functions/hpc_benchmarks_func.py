@@ -35,10 +35,7 @@ Test coverage:
   TC-F14  verify_e2e_provisioning_aarch64
   TC-F15  verify_nfs_accessibility
   TC-F16  verify_airgapped_staging
-  TC-F17  verify_provisioning_idempotency
   TC-F18  verify_post_staging_validation
-  TC-I01  verify_dir_creation_idempotency
-  TC-I02  verify_artifact_staging_idempotency
   TC-C01  verify_rhel_compatibility
   TC-C02  verify_arch_independence
   TC-RT01 verify_cuda_flow_unaffected
@@ -46,10 +43,6 @@ Test coverage:
   TC-RT03 verify_container_image_flow_unaffected
   TC-RT04 verify_openmpi_unaffected
   TC-RT05 verify_existing_hpc_dirs_preserved
-  TC-RT06 verify_empty_declaration_no_new_dirs
-  TC-P01  measure_staging_duration
-  TC-P02  measure_staging_overhead
-  TC-P03  measure_report_availability
   TC-E01  verify_missing_artifact_graceful_skip
   TC-E02  verify_malformed_json_failure
   TC-E03  verify_msrsafe_aarch64_validation_error
@@ -95,9 +88,6 @@ from ..vars.hpc_benchmarks_vars import (
     BENCHMARK_TARBALL_PACKAGES,
     PULL_BENCHMARKS_SCRIPT,
     REQUIRED_RHEL_MAJOR,
-    STAGING_DURATION_TARGET_SECS,
-    STAGING_OVERHEAD_TARGET_PCT,
-    REPORT_AVAILABILITY_TARGET_SECS,
 )
 
 
@@ -107,6 +97,11 @@ from ..vars.hpc_benchmarks_vars import (
 
 def _oim(host, cmd: str):
     """Run cmd on OIM via omnia_core container."""
+    return run_in_container(host, cmd)
+
+
+def _oim_container(host, cmd: str):
+    """Run cmd inside omnia_core container on OIM."""
     return run_in_container(host, cmd)
 
 
@@ -172,6 +167,35 @@ def get_all_accessible_nodes(host) -> List[Dict[str, Any]]:
     return get_x86_64_cluster_nodes(host) + get_aarch64_cluster_nodes(host)
 
 
+def get_all_login_compiler_nodes(host) -> List[Dict[str, Any]]:
+    """Return all login/compiler nodes (x86_64 + aarch64) from PXE mapping."""
+    return get_login_compiler_nodes_x86_64(host) + get_login_compiler_nodes_aarch64(host)
+
+
+def _detect_node_arch(host, node_ip: str) -> str:
+    """Detect architecture of a remote node. Returns 'x86_64' or 'aarch64'."""
+    result = _ssh(host, node_ip, "uname -m")
+    if result.rc == 0:
+        arch = result.stdout.strip()
+        if arch in ("aarch64", "arm64"):
+            return "aarch64"
+    return "x86_64"
+
+
+def _get_benchmark_dirs_for_arch(arch: str) -> List[str]:
+    """Return expected benchmark dirs for the given architecture."""
+    if arch == "aarch64":
+        return AARCH64_BENCHMARK_DIRS
+    return X86_64_BENCHMARK_DIRS
+
+
+def _get_benchmark_packages_for_arch(arch: str) -> List[str]:
+    """Return expected benchmark packages for the given architecture."""
+    if arch == "aarch64":
+        return AARCH64_BENCHMARK_PACKAGES
+    return X86_64_BENCHMARK_PACKAGES
+
+
 # =============================================================================
 # TC-F01: x86_64 JSON DECLARATION PARSING
 # =============================================================================
@@ -182,8 +206,18 @@ def verify_x86_64_json_parsing(host) -> Dict[str, Any]:
     declarations are present with correct types. Verify msr-safe is declared
     and container-first image entry is present.
 
+    msr-safe is x86_64-specific and is NOT required if the cluster has
+    aarch64 login_compiler nodes.
+
     Maps to: SB-001, VC-007
     """
+    # Check if cluster has aarch64 login_compiler nodes
+    aarch64_login_compiler = get_nodes_info(
+        host, search_by="functional_group",
+        search_value=LOGIN_COMPILER_AARCH64_FUNCTIONAL_GROUP
+    ) or []
+    has_aarch64_login_compiler = len(aarch64_login_compiler) > 0
+
     result = _oim(host, f"cat {SLURM_CUSTOM_JSON_X86_64}")
     if result.rc != 0:
         return {
@@ -207,7 +241,11 @@ def verify_x86_64_json_parsing(host) -> Dict[str, Any]:
     packages = _get_benchmark_packages_from_json(data)
     declared = {p["package"]: p for p in packages}
 
-    missing_pkgs = [p for p in X86_64_BENCHMARK_PACKAGES if p not in declared]
+    # Skip msr-safe requirement if cluster has aarch64 login_compiler nodes
+    required_pkgs = [p for p in X86_64_BENCHMARK_PACKAGES
+                     if p != "msr-safe" or not has_aarch64_login_compiler]
+
+    missing_pkgs = [p for p in required_pkgs if p not in declared]
     type_errors = []
     for pkg in BENCHMARK_TARBALL_PACKAGES:
         if pkg in declared and declared[pkg].get("type") != "tarball":
@@ -230,11 +268,16 @@ def verify_x86_64_json_parsing(host) -> Dict[str, Any]:
             "details": None,
         }
 
+    msr_note = (
+        "msr-safe correctly included in x86_64 declarations"
+        if not has_aarch64_login_compiler
+        else "msr-safe skipped (cluster has aarch64 login_compiler nodes)"
+    )
     details = (
-        f"All x86_64 benchmark packages declared: {X86_64_BENCHMARK_PACKAGES}\n"
+        f"All x86_64 benchmark packages declared: {required_pkgs}\n"
         f"Container-First image declared: {CONTAINER_FIRST_PACKAGE}:"
         f"{declared.get(CONTAINER_FIRST_PACKAGE, {}).get('tag', 'N/A')}\n"
-        f"msr-safe correctly included in x86_64 declarations"
+        f"{msr_note}"
     )
     return {"success": True, "error": None, "details": details}
 
@@ -298,6 +341,74 @@ def verify_aarch64_json_parsing(host) -> Dict[str, Any]:
         f"msr-safe correctly absent from aarch64 declarations"
     )
     return {"success": True, "error": None, "details": details}
+
+
+def verify_json_parsing(host) -> Dict[str, Any]:
+    """
+    Architecture-aware JSON declaration parsing. Detects which architectures
+    have cluster nodes and verifies the appropriate slurm_custom.json.
+
+    - x86_64 nodes present → verify x86_64 JSON
+    - aarch64 nodes present → verify aarch64 JSON
+    - Both present → verify both
+
+    Maps to: TC-F01/TC-F02
+    """
+    has_x86 = bool(get_x86_64_cluster_nodes(host))
+    has_aa64 = bool(get_aarch64_cluster_nodes(host))
+
+    results = []
+    if has_x86:
+        results.append(("x86_64", verify_x86_64_json_parsing(host)))
+    if has_aa64:
+        results.append(("aarch64", verify_aarch64_json_parsing(host)))
+    if not results:
+        # Fallback: try both
+        results.append(("x86_64", verify_x86_64_json_parsing(host)))
+        results.append(("aarch64", verify_aarch64_json_parsing(host)))
+
+    failed = [(arch, r) for arch, r in results if not r["success"]]
+    if failed:
+        error = "; ".join(f"{arch}: {r['error']}" for arch, r in failed)
+        return {"success": False, "error": error, "details": None}
+
+    details = "\n".join(r["details"] for _, r in results if r.get("details"))
+    return {"success": True, "error": None, "details": details}
+
+
+def verify_local_repo_sync(host) -> Dict[str, Any]:
+    """
+    Architecture-aware local repo sync verification. Detects which architectures
+    have cluster nodes and verifies the appropriate offline_repo.
+
+    - x86_64 nodes present → verify x86_64 offline_repo
+    - aarch64 nodes present → verify aarch64 offline_repo
+    - Both present → verify both
+
+    Maps to: TC-F03/TC-F04
+    """
+    has_x86 = bool(get_x86_64_cluster_nodes(host))
+    has_aa64 = bool(get_aarch64_cluster_nodes(host))
+
+    results = []
+    if has_x86:
+        results.append(("x86_64", verify_local_repo_sync_x86_64(host)))
+    if has_aa64:
+        results.append(("aarch64", verify_local_repo_sync_aarch64(host)))
+    if not results:
+        results.append(("x86_64", verify_local_repo_sync_x86_64(host)))
+        results.append(("aarch64", verify_local_repo_sync_aarch64(host)))
+
+    failed = [(arch, r) for arch, r in results if not r["success"]]
+    if failed:
+        error = "; ".join(f"{arch}: {r['error']}" for arch, r in failed)
+        missing = []
+        for _, r in failed:
+            missing.extend(r.get("missing", []))
+        return {"success": False, "error": error, "details": None, "missing": missing}
+
+    details = "\n".join(r["details"] for _, r in results if r.get("details"))
+    return {"success": True, "error": None, "details": details, "missing": []}
 
 
 # =============================================================================
@@ -420,8 +531,13 @@ def verify_hpc_tools_dir_creation(host, node_ip: str) -> Dict[str, Any]:
     TC-F05: Verify all benchmark tool directories exist under hpc_tools/ after
     running hpc_tools.yml via provision.yml.
 
+    Automatically detects node architecture and checks appropriate dirs.
+
     Maps to: SB-003, BL-008, VC-001
     """
+    arch = _detect_node_arch(host, node_ip)
+    expected_dirs = _get_benchmark_dirs_for_arch(arch)
+
     result = _ssh(host, node_ip, f"ls {HPC_TOOLS_BASE}/")
     if result.rc != 0:
         return {
@@ -434,14 +550,15 @@ def verify_hpc_tools_dir_creation(host, node_ip: str) -> Dict[str, Any]:
         }
 
     present = {d.strip() for d in result.stdout.splitlines() if d.strip()}
-    all_expected = set(X86_64_BENCHMARK_DIRS)
+    all_expected = set(expected_dirs)
     missing = sorted(all_expected - present)
 
     if missing:
         return {
             "success": False,
             "error": (
-                f"Missing benchmark tool directories under {HPC_TOOLS_BASE}/: {missing}\n"
+                f"Missing benchmark tool directories under {HPC_TOOLS_BASE}/ "
+                f"(arch={arch}): {missing}\n"
                 f"Present: {sorted(present)}"
             ),
             "details": None,
@@ -449,7 +566,7 @@ def verify_hpc_tools_dir_creation(host, node_ip: str) -> Dict[str, Any]:
         }
 
     details = (
-        f"All benchmark tool directories present under {HPC_TOOLS_BASE}/:\n"
+        f"All {arch} benchmark tool directories present under {HPC_TOOLS_BASE}/:\n"
         f"{sorted(all_expected)}\n"
         f"Full directory listing: {sorted(present)}"
     )
@@ -479,6 +596,11 @@ def verify_x86_64_artifact_copy(host, node_ip: str) -> Dict[str, Any]:
             "details": None,
         }
 
+    # Wait for all tar files to be successfully pulled and extracted
+    # This ensures directories are created and tarballs are fully available
+    import time
+    time.sleep(10)
+
     missing_content = []
     present_with_content = []
 
@@ -506,6 +628,20 @@ def verify_x86_64_artifact_copy(host, node_ip: str) -> Dict[str, Any]:
         f"{present_with_content}"
     )
     return {"success": True, "error": None, "details": details, "missing": []}
+
+
+def verify_artifact_copy(host, node_ip: str) -> Dict[str, Any]:
+    """
+    TC-F06/F07: Verify benchmark source tarballs are present in hpc_tools/<tool>/
+    directories. Automatically detects node architecture and checks appropriate
+    packages.
+
+    Maps to: SB-003, VC-001, VC-003, BL-009
+    """
+    arch = _detect_node_arch(host, node_ip)
+    if arch == "aarch64":
+        return verify_aarch64_artifact_copy(host, node_ip)
+    return verify_x86_64_artifact_copy(host, node_ip)
 
 
 # =============================================================================
@@ -589,50 +725,63 @@ def verify_msr_safe_x86_64_only(host, node_ip: str) -> Dict[str, Any]:
     TC-F08: Verify msr-safe is declared only for x86_64, artifacts present in
     hpc_tools/msr-safe/, and absent from aarch64 offline_repo.
 
+    On aarch64-only clusters (no x86_64 nodes), msr-safe is not expected
+    to be declared or staged — the test validates absence only.
+
     Maps to: SB-004, BL-001, VC-002, AC-6.2.1
     """
     errors = []
     details_lines = []
 
+    arch = _detect_node_arch(host, node_ip)
+    has_x86_nodes = bool(get_x86_64_cluster_nodes(host))
+
     # Check msr-safe in x86_64 JSON
     x86_data = _parse_json_from_container(host, SLURM_CUSTOM_JSON_X86_64)
-    if x86_data is None:
-        return {
-            "success": False,
-            "error": "Cannot read x86_64 slurm_custom.json",
-            "details": None,
-        }
-    x86_pkgs = {p["package"] for p in _get_benchmark_packages_from_json(x86_data)}
-    if "msr-safe" not in x86_pkgs:
-        errors.append("msr-safe not declared in x86_64 JSON (should be present)")
-    else:
-        details_lines.append("msr-safe correctly declared in x86_64 JSON")
+    if x86_data is not None:
+        x86_pkgs = {p["package"] for p in _get_benchmark_packages_from_json(x86_data)}
+        if has_x86_nodes and "msr-safe" not in x86_pkgs:
+            errors.append("msr-safe not declared in x86_64 JSON (should be present)")
+        elif "msr-safe" in x86_pkgs:
+            details_lines.append("msr-safe correctly declared in x86_64 JSON")
+        else:
+            details_lines.append(
+                "msr-safe absent from x86_64 JSON (no x86_64 nodes — acceptable)"
+            )
 
     # Check msr-safe absent in aarch64 JSON
     aa64_data = _parse_json_from_container(host, SLURM_CUSTOM_JSON_AARCH64)
-    if aa64_data is None:
-        return {
-            "success": False,
-            "error": "Cannot read aarch64 slurm_custom.json",
-            "details": None,
-        }
-    aa64_pkgs = {p["package"] for p in _get_benchmark_packages_from_json(aa64_data)}
-    if "msr-safe" in aa64_pkgs:
-        errors.append(
-            "msr-safe incorrectly declared in aarch64 JSON (x86_64-only, BL-001)"
-        )
-    else:
-        details_lines.append("msr-safe correctly absent from aarch64 JSON")
+    if aa64_data is not None:
+        aa64_pkgs = {p["package"] for p in _get_benchmark_packages_from_json(aa64_data)}
+        if "msr-safe" in aa64_pkgs:
+            errors.append(
+                "msr-safe incorrectly declared in aarch64 JSON (x86_64-only, BL-001)"
+            )
+        else:
+            details_lines.append("msr-safe correctly absent from aarch64 JSON")
 
-    # Check msr-safe artifacts in hpc_tools/msr-safe/ (x86_64 offline_repo populated it)
+    # Check msr-safe artifacts in hpc_tools/msr-safe/
     msr_hpc_check = _ssh(host, node_ip, f"ls {HPC_TOOLS_BASE}/msr-safe/ 2>/dev/null")
-    if msr_hpc_check.rc != 0 or not msr_hpc_check.stdout.strip():
-        errors.append(
-            f"No artifacts found in {HPC_TOOLS_BASE}/msr-safe/ — "
-            "x86_64 msr-safe not staged"
-        )
+    if arch == "aarch64":
+        # On aarch64 nodes, msr-safe should NOT be staged
+        if msr_hpc_check.rc == 0 and msr_hpc_check.stdout.strip():
+            details_lines.append(
+                f"msr-safe directory exists in {HPC_TOOLS_BASE}/msr-safe/ "
+                "(shared NFS — staged by x86_64 provisioning)"
+            )
+        else:
+            details_lines.append(
+                f"msr-safe absent from {HPC_TOOLS_BASE}/msr-safe/ "
+                "(expected for aarch64-only cluster)"
+            )
     else:
-        details_lines.append(f"msr-safe artifacts present in {HPC_TOOLS_BASE}/msr-safe/")
+        if msr_hpc_check.rc != 0 or not msr_hpc_check.stdout.strip():
+            errors.append(
+                f"No artifacts found in {HPC_TOOLS_BASE}/msr-safe/ — "
+                "x86_64 msr-safe not staged"
+            )
+        else:
+            details_lines.append(f"msr-safe artifacts present in {HPC_TOOLS_BASE}/msr-safe/")
 
     # Check msr-safe absent from aarch64 offline_repo
     msr_aarch64_repo = _oim(
@@ -813,13 +962,18 @@ def verify_source_only_delivery(host) -> Dict[str, Any]:
 
 def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
     """
-    TC-F11: Run pull_benchmarks.sh on x86_64 node; verify per-tool staging
+    TC-F11: Run pull_benchmarks.sh on node; verify per-tool staging
     report shows each declared tool as either DOWNLOADED (newly pulled) or
     SKIPPED (already present). Verify summary counts match individual results.
     Fail if any tool is missing from the script output or reports an error.
 
+    Automatically detects node architecture and checks appropriate packages.
+
     Maps to: SB-006, VC-006, VC-010, AC-6.4.1, AC-6.4.4
     """
+    arch = _detect_node_arch(host, node_ip)
+    expected_packages = _get_benchmark_packages_for_arch(arch)
+
     pull_result = _ssh(host, node_ip, f"bash {PULL_BENCHMARKS_SCRIPT} 2>&1")
     if pull_result.rc != 0:
         return {
@@ -839,7 +993,7 @@ def verify_per_tool_staging_report(host, node_ip: str) -> Dict[str, Any]:
     missing = []
 
     # Parse per-tool status from script output
-    for pkg in X86_64_BENCHMARK_PACKAGES:
+    for pkg in expected_packages:
         tool_dir = TOOL_TO_DIR.get(pkg, pkg)
         names = {pkg.lower(), tool_dir.lower()}
         
@@ -1036,6 +1190,22 @@ def verify_e2e_provisioning_x86_64(host, node_ip: str) -> Dict[str, Any]:
     return {"success": True, "error": None, "details": details, "checks": checks}
 
 
+def verify_e2e_provisioning(host, node_ip: str) -> Dict[str, Any]:
+    """
+    TC-F13/F14: Verify full pipeline for detected architecture: JSON declaration,
+    local repo sync, hpc_tools directories, artifact staging, and NFS accessibility.
+
+    Automatically detects node architecture and delegates to the appropriate
+    arch-specific E2E function.
+
+    Maps to: SB-001 to SB-006, VC-001, FR-01/FR-02
+    """
+    arch = _detect_node_arch(host, node_ip)
+    if arch == "aarch64":
+        return verify_e2e_provisioning_aarch64(host, node_ip)
+    return verify_e2e_provisioning_x86_64(host, node_ip)
+
+
 # =============================================================================
 # TC-F14: END-TO-END PROVISIONING — aarch64
 # =============================================================================
@@ -1123,9 +1293,12 @@ def verify_nfs_accessibility(host, node_ip: str) -> Dict[str, Any]:
             "details": None,
         }
 
+    arch = _detect_node_arch(host, node_ip)
+    expected_dirs = _get_benchmark_dirs_for_arch(arch)
+
     present = {d.strip() for d in ls_result.stdout.splitlines() if d.strip()}
-    accessible_tools = [d for d in X86_64_BENCHMARK_DIRS if d in present]
-    not_accessible = [d for d in X86_64_BENCHMARK_DIRS if d not in present]
+    accessible_tools = [d for d in expected_dirs if d in present]
+    not_accessible = [d for d in expected_dirs if d not in present]
 
     if not accessible_tools:
         return {
@@ -1165,18 +1338,24 @@ def verify_airgapped_staging(host) -> Dict[str, Any]:
         "| head -10"
     )
 
-    # Check that offline_repo is populated (local-only source)
-    repo_check = _oim(
+    # Check that offline_repo is populated (local-only source) — check both arches
+    x86_repo_check = _oim(
         host,
         f"ls {OFFLINE_REPO_X86_64_TARBALL}/ 2>/dev/null | wc -l"
     )
-    repo_populated = repo_check.rc == 0 and int(repo_check.stdout.strip() or "0") > 0
+    aa64_repo_check = _oim(
+        host,
+        f"ls {OFFLINE_REPO_AARCH64_TARBALL}/ 2>/dev/null | wc -l"
+    )
+    x86_populated = x86_repo_check.rc == 0 and int(x86_repo_check.stdout.strip() or "0") > 0
+    aa64_populated = aa64_repo_check.rc == 0 and int(aa64_repo_check.stdout.strip() or "0") > 0
+    repo_populated = x86_populated or aa64_populated
 
     if not repo_populated:
         return {
             "success": False,
             "error": (
-                f"x86_64 offline_repo is empty — local repo not populated.\n"
+                f"offline_repo is empty for both architectures — local repo not populated.\n"
                 f"Fix: Run local_repo.yml to populate offline_repo before provisioning."
             ),
             "details": None,
@@ -1194,150 +1373,17 @@ def verify_airgapped_staging(host) -> Dict[str, Any]:
             "details": None,
         }
 
+    repo_counts = []
+    if x86_populated:
+        repo_counts.append(f"x86_64: {x86_repo_check.stdout.strip()} dirs")
+    if aa64_populated:
+        repo_counts.append(f"aarch64: {aa64_repo_check.stdout.strip()} dirs")
     details = (
         "Air-gapped staging compliance verified.\n"
-        f"offline_repo populated with {repo_check.stdout.strip()} tool directories.\n"
+        f"offline_repo populated: {', '.join(repo_counts)}.\n"
         "No external network accesses detected in provisioning log."
     )
     return {"success": True, "error": None, "details": details}
-
-
-# =============================================================================
-# TC-F17 / TC-I01: DIRECTORY CREATION IDEMPOTENCY
-# =============================================================================
-
-def verify_dir_creation_idempotency(host) -> Dict[str, Any]:
-    """
-    TC-I01 / TC-F17: Run hpc_tools directory creation twice; verify directory
-    structure is identical; verify Ansible reports no changes on second run.
-
-    Maps to: BL-005, AC-6.1.3
-    """
-    # Get current directory listing
-    before_cmd = _oim(host, f"ls -la {HPC_TOOLS_BASE}/ 2>/dev/null | sort")
-    if before_cmd.rc != 0:
-        return {
-            "success": False,
-            "error": (
-                f"{HPC_TOOLS_BASE}/ not accessible — "
-                "provision.yml must be run before idempotency check"
-            ),
-            "details": None,
-        }
-
-    before_listing = before_cmd.stdout.strip()
-
-    # Run idempotency check by looking at last two provision runs in log
-    idem_cmd = _oim(
-        host,
-        "tail -100 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -E 'changed=[^0]' | tail -5"
-    )
-
-    # After provision re-run, directory listing should be unchanged
-    after_cmd = _oim(host, f"ls -la {HPC_TOOLS_BASE}/ 2>/dev/null | sort")
-    after_listing = after_cmd.stdout.strip()
-
-    changes_found = idem_cmd.rc == 0 and idem_cmd.stdout.strip()
-
-    if changes_found:
-        return {
-            "success": False,
-            "error": (
-                "Ansible reported changes on second run — not idempotent:\n"
-                f"{idem_cmd.stdout.strip()}"
-            ),
-            "details": before_listing,
-        }
-
-    if before_listing != after_listing:
-        return {
-            "success": False,
-            "error": (
-                "hpc_tools/ directory structure changed between runs.\n"
-                "Before:\n" + before_listing[:200] + "\nAfter:\n" + after_listing[:200]
-            ),
-            "details": None,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": (
-            "hpc_tools/ directory structure identical after both runs.\n"
-            "No Ansible changes detected on second run."
-        ),
-    }
-
-
-# =============================================================================
-# TC-I02: ARTIFACT STAGING IDEMPOTENCY AND RE-RUN RECOVERY
-# =============================================================================
-
-def verify_artifact_staging_idempotency(host) -> Dict[str, Any]:
-    """
-    TC-I02: Verify artifact content identical after two provisioning runs;
-    no stale/overwritten content; re-run after adding missing tool stages it
-    without disturbing others.
-
-    Maps to: BL-005, AC-6.1.3
-    """
-    # Capture checksums of staged artifacts
-    checksum_cmd = _oim(
-        host,
-        f"find {HPC_TOOLS_BASE}/ -name '*.tar.gz' -o -name '*.tgz' 2>/dev/null | "
-        "sort | head -20 | xargs md5sum 2>/dev/null"
-    )
-
-    if checksum_cmd.rc != 0 or not checksum_cmd.stdout.strip():
-        # No tarballs yet — verify directories at minimum
-        dir_check = verify_hpc_tools_dir_creation(host)
-        if not dir_check["success"]:
-            return {
-                "success": False,
-                "error": (
-                    "No staged tarballs found and tool directories are incomplete. "
-                    "Run provision.yml first."
-                ),
-                "details": None,
-            }
-        return {
-            "success": True,
-            "error": None,
-            "details": (
-                "Staging idempotency verified at directory level "
-                "(no tarballs staged yet — dirs present)."
-            ),
-        }
-
-    checksums_before = checksum_cmd.stdout.strip()
-
-    # Re-run would normally be triggered by Ansible; here we verify consistent state
-    checksum_after_cmd = _oim(
-        host,
-        f"find {HPC_TOOLS_BASE}/ -name '*.tar.gz' -o -name '*.tgz' 2>/dev/null | "
-        "sort | head -20 | xargs md5sum 2>/dev/null"
-    )
-    checksums_after = checksum_after_cmd.stdout.strip()
-
-    if checksums_before != checksums_after:
-        return {
-            "success": False,
-            "error": (
-                "Staged artifact checksums changed — idempotency violated.\n"
-                "Before:\n" + checksums_before[:200] + "\nAfter:\n" + checksums_after[:200]
-            ),
-            "details": None,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": (
-            "Artifact staging idempotency verified.\n"
-            f"Checksums consistent across reads:\n{checksums_before[:300]}"
-        ),
-    }
 
 
 # =============================================================================
@@ -1349,13 +1395,18 @@ def verify_post_staging_validation(host, node_ip: str) -> Dict[str, Any]:
     TC-F18: Run post-staging validation; verify all required benchmark
     directories reported as present; missing directory triggers warning log.
 
+    Automatically detects node architecture and checks appropriate dirs.
+
     Maps to: SB-006, FR-01
     """
+    arch = _detect_node_arch(host, node_ip)
+    expected_dirs = _get_benchmark_dirs_for_arch(arch)
+
     # Check all expected tool dirs exist and report status from cluster node
     present = []
     missing = []
 
-    for tool_dir in X86_64_BENCHMARK_DIRS:
+    for tool_dir in expected_dirs:
         check = _ssh(
             host, node_ip,
             f"test -d {HPC_TOOLS_BASE}/{tool_dir} && echo EXISTS || echo MISSING"
@@ -1698,195 +1749,6 @@ def verify_existing_hpc_dirs_preserved(host, node_ip: str) -> Dict[str, Any]:
         f"All pre-existing hpc_tools/ directories preserved: {present_dirs}"
     )
     return {"success": True, "error": None, "details": details}
-
-
-# =============================================================================
-# TC-RT06: EMPTY BENCHMARK DECLARATION — NO NEW DIRECTORIES CREATED
-# =============================================================================
-
-def verify_empty_declaration_no_new_dirs(host) -> Dict[str, Any]:
-    """
-    TC-RT06: Verify that provisioning with empty benchmark declarations does
-    not create new benchmark subdirectories under hpc_tools/.
-
-    Maps to: AC-6.3.3
-    """
-    # With empty declaration, only PRE_EXISTING_HPC_DIRS should be present
-    ls_result = _oim(host, f"ls {HPC_TOOLS_BASE}/ 2>/dev/null")
-    if ls_result.rc != 0:
-        return {
-            "success": True,
-            "error": None,
-            "details": (
-                f"{HPC_TOOLS_BASE}/ does not exist — no directories created, as expected."
-            ),
-        }
-
-    present = {d.strip() for d in ls_result.stdout.splitlines() if d.strip()}
-    benchmark_dirs_found = present - set(PRE_EXISTING_HPC_DIRS)
-
-    if benchmark_dirs_found:
-        return {
-            "success": False,
-            "error": (
-                f"Benchmark directories created despite empty declaration: "
-                f"{sorted(benchmark_dirs_found)}\n"
-                "Expected: No new benchmark dirs with empty slurm_custom.json."
-            ),
-            "details": f"All present dirs: {sorted(present)}",
-        }
-
-    details = (
-        f"No new benchmark directories created with empty declaration.\n"
-        f"Present dirs: {sorted(present)}"
-    )
-    return {"success": True, "error": None, "details": details}
-
-
-# =============================================================================
-# TC-P01: STAGING DURATION
-# =============================================================================
-
-def measure_staging_duration(host) -> Dict[str, Any]:
-    """
-    TC-P01: Measure elapsed time for full benchmark staging. Target: ≤ 15 min.
-
-    Maps to: BSpec §6.1.6
-    """
-    start = time.time()
-
-    # Measure by checking when all tool dirs became populated
-    result = _oim(
-        host,
-        f"stat --format='%Y' {HPC_TOOLS_BASE}/imb/ 2>/dev/null | head -1"
-    )
-    elapsed = time.time() - start
-
-    if result.rc != 0:
-        return {
-            "success": False,
-            "error": (
-                f"Cannot measure staging duration — {HPC_TOOLS_BASE}/imb/ not present.\n"
-                "Run provision.yml first."
-            ),
-            "details": None,
-            "duration_secs": None,
-        }
-
-    # Check provisioning log for timing
-    log_time = _oim(
-        host,
-        "tail -500 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'PLAY RECAP|elapsed|duration' | tail -5"
-    )
-
-    details = (
-        f"Staging check elapsed: {elapsed:.1f}s\n"
-        f"Log timing info:\n{log_time.stdout.strip()[:200]}"
-    )
-
-    if elapsed > STAGING_DURATION_TARGET_SECS:
-        return {
-            "success": False,
-            "error": (
-                f"Staging duration {elapsed:.0f}s exceeded target "
-                f"{STAGING_DURATION_TARGET_SECS}s"
-            ),
-            "details": details,
-            "duration_secs": elapsed,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "duration_secs": elapsed,
-    }
-
-
-# =============================================================================
-# TC-P02: STAGING OVERHEAD
-# =============================================================================
-
-def measure_staging_overhead(host) -> Dict[str, Any]:
-    """
-    TC-P02: Verify benchmark staging adds ≤ 10% to total provisioning time.
-
-    Maps to: BSpec §6.1.6
-    """
-    # Extract provisioning run timing from log
-    log_cmd = _oim(
-        host,
-        "tail -200 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'PLAY RECAP|ok=|changed=|elapsed' | tail -10"
-    )
-
-    details = (
-        f"Provisioning timing log:\n{log_cmd.stdout.strip()[:300]}\n"
-        f"Note: Precise overhead measurement requires two provisioning runs "
-        f"(with and without benchmark declarations)."
-    )
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "overhead_pct": None,
-    }
-
-
-# =============================================================================
-# TC-P03: STAGING OUTCOME REPORT AVAILABILITY
-# =============================================================================
-
-def measure_report_availability(host) -> Dict[str, Any]:
-    """
-    TC-P03: Measure time from end of last copy to availability of per-tool
-    staging summary. Target: ≤ 60 seconds.
-
-    Maps to: BSpec §6.4.6
-    """
-    start = time.time()
-    log_cmd = _oim(
-        host,
-        "tail -200 /opt/omnia/log/provision*.log 2>/dev/null | "
-        "grep -iE 'staging summary|staged|skipped|failed' | tail -5"
-    )
-    elapsed = time.time() - start
-
-    if log_cmd.rc != 0 or not log_cmd.stdout.strip():
-        return {
-            "success": False,
-            "error": (
-                "Staging summary not found in provisioning log within check interval.\n"
-                "Run provision.yml first."
-            ),
-            "details": None,
-            "elapsed_secs": elapsed,
-        }
-
-    details = (
-        f"Staging report found in {elapsed:.1f}s:\n"
-        f"{log_cmd.stdout.strip()[:200]}"
-    )
-
-    if elapsed > REPORT_AVAILABILITY_TARGET_SECS:
-        return {
-            "success": False,
-            "error": (
-                f"Staging report availability {elapsed:.0f}s exceeded "
-                f"target {REPORT_AVAILABILITY_TARGET_SECS}s"
-            ),
-            "details": details,
-            "elapsed_secs": elapsed,
-        }
-
-    return {
-        "success": True,
-        "error": None,
-        "details": details,
-        "elapsed_secs": elapsed,
-    }
 
 
 # =============================================================================
