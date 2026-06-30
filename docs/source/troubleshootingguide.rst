@@ -606,7 +606,7 @@ For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CS
 
 Add the required entry to ``software_config.json`` and re-run the playbook.
 
-For troubleshooting Kafka issues related to the missing CSI driver, see `Section 7.1 <#section-7-1-kafka-pods-crashloopbackoff>`_.
+For troubleshooting Kafka issues related to the missing CSI driver, see `Section 7.1 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#kafka-pods-crashloopbackoff>`_.
 
 6. Slurm Issues
 ===============
@@ -1001,7 +1001,9 @@ Expected files:
 - Add PowerScale CSI driver
 - Increase Kafka volume and configure log retention
 
-For more information on adding the PowerScale CSI driver, see `Section 5.3 <#section-5-3-missing-powerscale-csi-driver>`_.
+For more information on adding the PowerScale CSI driver, see `Section 5.3 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#missing-powerscale-csi-driver>`_.
+
+For more details on Kafka Pods CrashLoopBackOff issues, see `Section 7.1 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#kafka-pods-crashloopbackoff>`_.
 
 .. image:: images/telemetry.png
 
