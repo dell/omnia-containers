@@ -400,12 +400,56 @@ def test_build_stage_local_repo_db_verify(host):
 
 
 # =============================================================================
-# TESTS 17-18: build-image-x86_64
+# TEST 17: Ochami Token Regeneration (immediately after local repo stage)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
 @pytest.mark.order(17)
+def test_regenerate_ochami_token(host):
+    """
+    Regenerate Ochami access token immediately after create-local-repository stage.
+
+    The token may expire during the long-running create-local-repository stage.
+    Regenerating here ensures a fresh token is available for all subsequent
+    stages (build-image, validate-image-on-test) that require Ochami API access.
+    """
+    log = TestLogger("Regenerate Ochami Token")
+    skip_if_build_stream_not_enabled(host, log)
+    _skip_if_build_not_triggered(log)
+
+    failed_stage = _get_build_failed_prior_stage("build-image-x86_64")
+    if failed_stage:
+        log.skipped(
+            SKIP_MSGS["previous_stage_failed"].format(stage=failed_stage),
+            f"Prior stage '{failed_stage}' failed"
+        )
+        pytest.skip(SKIP_MSGS["previous_stage_failed"].format(stage=failed_stage))
+
+    log.check("Regenerating Ochami access token for subsequent stages...")
+
+    result = _regenerate_ochami_token(host)
+
+    if result["success"]:
+        log.passed(
+            "Ochami access token regenerated successfully",
+            result["details"]
+        )
+    else:
+        log.failed(
+            f"Failed to regenerate Ochami token: {result['error']}",
+            result["details"]
+        )
+        pytest.fail(f"Token regeneration failed: {result['error']}")
+
+
+# =============================================================================
+# TESTS 18-19: build-image-x86_64
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.build_auto
+@pytest.mark.order(18)
 def test_build_stage_build_image_x86_64_monitor(host):
     """Monitor build-image-x86_64 stage until completion."""
     _run_build_stage_monitor(host, "build-image-x86_64")
@@ -413,19 +457,19 @@ def test_build_stage_build_image_x86_64_monitor(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(18)
+@pytest.mark.order(19)
 def test_build_stage_build_image_x86_64_db_verify(host):
     """Verify build-image-x86_64 stage state in database."""
     _run_build_stage_db_verify(host, "build-image-x86_64")
 
 
 # =============================================================================
-# TESTS 19-20: build-image-aarch64 (conditional)
+# TESTS 20-21: build-image-aarch64 (conditional)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(19)
+@pytest.mark.order(20)
 def test_build_stage_build_image_aarch64_monitor(host):
     """Monitor build-image-aarch64 stage until completion (if applicable)."""
     log = TestLogger(TEST_NAMES["stage_monitor"].format(stage="build-image-aarch64"))
@@ -444,7 +488,7 @@ def test_build_stage_build_image_aarch64_monitor(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(20)
+@pytest.mark.order(21)
 def test_build_stage_build_image_aarch64_db_verify(host):
     """Verify build-image-aarch64 stage state in database (if applicable)."""
     log = TestLogger(TEST_NAMES["stage_db_verify"].format(stage="build-image-aarch64"))
@@ -462,61 +506,12 @@ def test_build_stage_build_image_aarch64_db_verify(host):
 
 
 # =============================================================================
-# TEST 20.5: Ochami Token Regeneration (before validate stage)
+# TESTS 22-23: validate-image-on-test (deploy-and-validate CI/CD stage)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(20.5)
-def test_regenerate_ochami_token(host):
-    """
-    Regenerate Ochami access token before validate-image-on-test stage.
-    
-    The token may expire during long-running stages (create-local-repository,
-    build-image). This test regenerates the token to ensure the validate stage
-    has a valid token for Ochami API calls.
-    """
-    log = TestLogger("Regenerate Ochami Token")
-    skip_if_build_stream_not_enabled(host, log)
-    _skip_if_build_not_triggered(log)
-    
-    # Skip if any prior stage failed
-    if _any_build_stage_failed():
-        failed_stage = ""
-        for stage, result in _build_state["stage_results"].items():
-            if result.get("stage_state") == STAGE_STATE_FAILED:
-                failed_stage = stage
-                break
-        log.skipped(
-            f"Skipping token regeneration due to prior stage failure: {failed_stage}",
-            f"Failed stage: {failed_stage}"
-        )
-        pytest.skip(f"Prior stage '{failed_stage}' failed")
-    
-    log.check("Regenerating Ochami access token for validate stage...")
-    
-    result = _regenerate_ochami_token(host)
-    
-    if result["success"]:
-        log.passed(
-            "Ochami access token regenerated successfully",
-            result["details"]
-        )
-    else:
-        log.failed(
-            f"Failed to regenerate Ochami token: {result['error']}",
-            result["details"]
-        )
-        pytest.fail(f"Token regeneration failed: {result['error']}")
-
-
-# =============================================================================
-# TESTS 21-22: validate-image-on-test (deploy-and-validate CI/CD stage)
-# =============================================================================
-
-@pytest.mark.sanity
-@pytest.mark.build_auto
-@pytest.mark.order(21)
+@pytest.mark.order(22)
 def test_build_stage_validate_image_monitor(host):
     """Monitor validate-image-on-test stage until completion."""
     _run_build_stage_monitor(host, STAGE_VALIDATE_IMAGE)
@@ -524,19 +519,19 @@ def test_build_stage_validate_image_monitor(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(22)
+@pytest.mark.order(23)
 def test_build_stage_validate_image_db_verify(host):
     """Verify validate-image-on-test stage state in database."""
     _run_build_stage_db_verify(host, STAGE_VALIDATE_IMAGE)
 
 
 # =============================================================================
-# TEST 23: Catalog Roles Verification
+# TEST 24: Catalog Roles Verification
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(23)
+@pytest.mark.order(24)
 def test_build_catalog_roles(host):
     """Verify catalog roles and architectures from Build Stream API."""
     log = TestLogger(TEST_NAMES["catalog_roles"])
@@ -586,7 +581,7 @@ def test_build_catalog_roles(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(24)
+@pytest.mark.order(25)
 def test_build_registry_images(host):
     """Verify container images exist in the local registry for each role."""
     log = TestLogger(TEST_NAMES["registry_images"])
@@ -641,7 +636,7 @@ def test_build_registry_images(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(25)
+@pytest.mark.order(26)
 def test_build_s3_boot_images(host):
     """Verify S3 boot images exist for each role."""
     log = TestLogger(TEST_NAMES["s3_boot_images"])
@@ -696,7 +691,7 @@ def test_build_s3_boot_images(host):
 
 @pytest.mark.sanity
 @pytest.mark.build_auto
-@pytest.mark.order(26)
+@pytest.mark.order(27)
 def test_build_pipeline_result(host):
     """Final summary of build pipeline results."""
     log = TestLogger(TEST_NAMES["build_pipeline_result"])
