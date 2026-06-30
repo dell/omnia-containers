@@ -1,4 +1,4 @@
-site_name: Dell Omnia
+site_name: "Omnia: Everything at once!"
 site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
 # For deployment, set to the actual URL (e.g., https://dell.github.io/omnia/)
 site_url: ""
