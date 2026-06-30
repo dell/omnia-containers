@@ -11,7 +11,7 @@ Steps
       -p 0.0.0.0:1389:1389 \
       -p 0.0.0.0:1636:1636 \
       -e LDAP_ADMIN_USERNAME=admin \
-      -e LDAP_ADMIN_PASSWORD=Dell1234\
+      -e LDAP_ADMIN_PASSWORD=<password>\
       -e LDAP_ROOT=dc=omnia,dc=test \
       -v openldap_data:/bitnami/openldap \
       docker.io/bitnamilegacy/openldap:latest
@@ -22,7 +22,7 @@ Steps
    
    * The LDAP admin username in the examples is set as: ``LDAP_ADMIN_USERNAME=admin``. You can replace this value with any username of your choice.
    
-   * The LDAP admin password in the examples is set as: ``LDAP_ADMIN_PASSWORD=Dell1234``. You can replace this value with any secure password of your choice.
+   * The LDAP admin password in the examples is set as: ``LDAP_ADMIN_PASSWORD=<password>``. You can replace this value with any secure password of your choice.
 
 
 The following are the parameters used in the command:
@@ -97,9 +97,9 @@ The following are the parameters used in the command:
 
     b. Then run the ldapadd commands from inside the container::
 
-        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w Dell1234 -f ou_people.ldif
-        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w Dell1234 -f ldapuser.ldif
-        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w Dell1234 -f ldapuser_grp.ldif
+        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <password> -f ou_people.ldif
+        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <password> -f ldapuser.ldif
+        ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <password> -f ldapuser_grp.ldif
 
     The following are the parameters used in this command:
 
