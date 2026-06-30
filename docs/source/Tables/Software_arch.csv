@@ -1,9 +1,0 @@
-﻿Software name,x86_64 ,aarch64
-default_packages.json,Yes,Yes
-openldap.json,Yes,No
-slurm_custom.json,Yes,Yes
-service_k8s_v1.35.1.json,Yes,No
-ucx.json,Yes,No
-openmpi,Yes,No
-additional_packages.json,Yes,Yes
-admin_debug_packages.json,Yes,Yes

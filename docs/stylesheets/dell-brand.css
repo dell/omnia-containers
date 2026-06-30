@@ -1,0 +1,623 @@
+/* ============================================================
+   Dell Omnia -- MkDocs Material Brand Theme
+   Mimics squidfunk.github.io/mkdocs-material styling
+   with Dell Technologies brand colors.
+   ============================================================ */
+
+/* ── Color tokens ─────────────────────────────────────────── */
+:root {
+  /* Dell brand palette */
+  --dell-blue:        #0076CE;
+  --dell-dark:        #003566;
+  --dell-navy:        #001d3d;
+  --dell-light:       #4DA3E0;
+  --dell-sky:         #00a8e8;
+  --dell-teal:        #00857C;
+  --dell-gray-50:     #FAFAFA;
+  --dell-gray-100:    #F5F5F5;
+  --dell-gray-200:    #EEEEEE;
+  --dell-gray-600:    #757575;
+  --dell-gray-900:    #212121;
+}
+
+/* ── Light Mode ───────────────────────────────────────────── */
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color:        var(--dell-blue);
+  --md-primary-fg-color--light: var(--dell-light);
+  --md-primary-fg-color--dark:  var(--dell-dark);
+  --md-primary-bg-color:        #ffffff;
+  --md-primary-bg-color--light: #ffffff;
+
+  --md-accent-fg-color:         var(--dell-teal);
+  --md-accent-fg-color--transparent: rgba(0, 133, 124, 0.1);
+
+  --md-default-fg-color:                 rgba(0, 0, 0, 0.87);
+  --md-default-fg-color--light:          rgba(0, 0, 0, 0.54);
+  --md-default-fg-color--lighter:        rgba(0, 0, 0, 0.32);
+  --md-default-fg-color--lightest:       rgba(0, 0, 0, 0.07);
+
+  --md-code-bg-color:           var(--dell-gray-100);
+  --md-code-fg-color:           var(--dell-gray-900);
+
+  --md-footer-bg-color:         var(--dell-navy);
+  --md-footer-bg-color--dark:   #000d1a;
+  --md-footer-fg-color:         #ffffff;
+  --md-footer-fg-color--light:  rgba(255, 255, 255, 0.7);
+  --md-footer-fg-color--lighter:rgba(255, 255, 255, 0.5);
+}
+
+/* ── Dark Mode ────────────────────────────────────────────── */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color:        var(--dell-light);
+  --md-primary-fg-color--light: #7FC1EE;
+  --md-primary-fg-color--dark:  var(--dell-blue);
+
+  --md-accent-fg-color:         #3DC9BE;
+  --md-accent-fg-color--transparent: rgba(61, 201, 190, 0.1);
+
+  --md-default-bg-color:        #1a1a2e;
+  --md-default-bg-color--light: #222240;
+
+  --md-code-bg-color:           #0d1117;
+  --md-code-fg-color:           #c9d1d9;
+
+  --md-footer-bg-color:         #0d1117;
+  --md-footer-bg-color--dark:   #010409;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.md-header {
+  background: var(--dell-navy);
+  box-shadow: none;
+  transition: background 0.3s ease;
+}
+
+[data-md-color-scheme="slate"] .md-header {
+  background: #0d1117;
+}
+
+.md-header[data-md-state="shadow"] {
+  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.1),
+              0 0.2rem 0.4rem rgba(0, 0, 0, 0.2);
+}
+
+/* Logo: show original Dell Blue on dark header (matches colour family) */
+.md-header .md-header__button.md-logo img {
+  height: 1.4rem;
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.md-header .md-header__button.md-logo:hover img {
+  opacity: 0.85;
+}
+
+/* Dark mode: brighten logo so it pops on the darker header */
+[data-md-color-scheme="slate"] .md-header .md-header__button.md-logo img {
+  filter: brightness(1.4) saturate(1.3);
+}
+
+/* Site title */
+.md-header__title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.md-header__topic:first-child {
+  font-weight: 700;
+}
+
+/* ── Navigation Tabs ──────────────────────────────────────── */
+.md-tabs {
+  background: var(--dell-dark);
+  border-bottom: none;
+}
+
+[data-md-color-scheme="slate"] .md-tabs {
+  background: #161b22;
+}
+
+.md-tabs__link {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  color: #ffffff;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  opacity: 1;
+  color: #ffffff;
+}
+
+/* Dark mode: bright white text on tabs for high contrast */
+[data-md-color-scheme="slate"] .md-tabs__link {
+  opacity: 0.85;
+  color: #e6edf3;
+}
+
+[data-md-color-scheme="slate"] .md-tabs__link--active,
+[data-md-color-scheme="slate"] .md-tabs__link:hover {
+  opacity: 1;
+  color: #ffffff;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.md-sidebar {
+  transition: opacity 0.15s ease;
+}
+
+/* Right-side TOC panel: subtle background tint (below the heading) */
+.md-sidebar--secondary .md-nav--secondary > .md-nav__list {
+  background: #EEF1F5;
+  border-radius: 0.3rem;
+  padding: 0.5rem 0.6rem;
+}
+
+[data-md-color-scheme="slate"] .md-sidebar--secondary .md-nav--secondary > .md-nav__list {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.md-nav__item .md-nav__link {
+  font-size: 0.7rem;
+  transition: color 0.15s ease;
+}
+
+.md-nav__link--active {
+  color: var(--md-primary-fg-color) !important;
+  font-weight: 700;
+}
+
+.md-nav__item--nested > .md-nav__link {
+  font-weight: 700;
+}
+
+/* Section headings in sidebar (e.g. Support Matrix, Configuration) */
+.md-nav--primary .md-nav__item--nested > .md-nav__link,
+.md-nav--primary .md-nav__item--section > .md-nav__link {
+  font-weight: 700;
+  font-size: 0.72rem;
+  color: var(--dell-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.6em;
+  padding-top: 0.4em;
+  border-top: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* First section heading needs no top border */
+.md-nav--primary .md-nav__item--nested:first-child > .md-nav__link,
+.md-nav--primary .md-nav__item--section:first-child > .md-nav__link {
+  border-top: none;
+  margin-top: 0;
+}
+
+/* Dark mode section headings */
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--nested > .md-nav__link,
+[data-md-color-scheme="slate"] .md-nav--primary .md-nav__item--section > .md-nav__link {
+  color: #e0e0e0;
+}
+
+/* ── Content Typography ───────────────────────────────────── */
+.md-typeset {
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+  margin: 0 0 1.25em;
+  color: var(--dell-navy);
+  border: none;
+  padding: 0;
+}
+
+[data-md-color-scheme="slate"] .md-typeset h1 {
+  color: #ffffff;
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  font-size: 1.5625em;
+  letter-spacing: -0.01em;
+  margin: 1.6em 0 0.64em;
+  color: var(--dell-dark);
+  border: none;
+}
+
+[data-md-color-scheme="slate"] .md-typeset h2 {
+  color: #e0e0e0;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+  font-size: 1.25em;
+  letter-spacing: -0.01em;
+  margin: 1.6em 0 0.64em;
+}
+
+.md-typeset h4 {
+  font-weight: 600;
+  font-size: 1em;
+  letter-spacing: -0.01em;
+}
+
+/* Paragraph spacing to match Material ref */
+.md-typeset p {
+  margin-bottom: 0.6em;
+}
+
+/* ── Links ────────────────────────────────────────────────── */
+.md-typeset a {
+  color: var(--md-primary-fg-color);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  word-break: break-word;
+}
+
+.md-typeset a:hover {
+  color: var(--md-accent-fg-color);
+  text-decoration: underline;
+}
+
+/* ── Code blocks ──────────────────────────────────────────── */
+.md-typeset pre {
+  border-radius: 0.3rem;
+  margin: 1em 0;
+}
+
+.md-typeset pre > code {
+  font-size: 0.84em;
+  line-height: 1.5;
+  padding: 0.8em 1em;
+}
+
+.md-typeset code {
+  font-size: 0.85em;
+  padding: 0 0.3em;
+  border-radius: 0.2rem;
+  word-break: break-word;
+}
+
+/* Code title bar */
+.md-typeset .highlight .filename {
+  background: var(--dell-dark);
+  color: #ffffff;
+  border-radius: 0.3rem 0.3rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Copy button */
+.md-clipboard {
+  color: var(--md-default-fg-color--lighter);
+  transition: color 0.15s ease;
+}
+
+.md-clipboard:hover {
+  color: var(--md-accent-fg-color);
+}
+
+/* ── Cards (Grid) ─────────────────────────────────────────── */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid.cards > ol > li {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem;
+  padding: 0.8rem;
+  transition: border-color 0.2s ease,
+              box-shadow 0.2s ease,
+              transform 0.2s ease;
+}
+
+.md-typeset .grid.cards > ul > li:hover,
+.md-typeset .grid.cards > ol > li:hover {
+  border-color: var(--md-primary-fg-color);
+  box-shadow: 0 0.1rem 0.6rem rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Card icons */
+.md-typeset .grid.cards .twemoji,
+.md-typeset .grid.cards .emojione {
+  color: var(--md-primary-fg-color);
+}
+
+/* Card link arrow */
+.md-typeset .grid.cards a {
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+/* ── Tables ───────────────────────────────────────────────── */
+.md-typeset table:not([class]) {
+  font-size: 0.74rem;
+  border-collapse: collapse;
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem;
+  overflow: hidden;
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--dell-blue);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.6em 1em;
+  text-align: left;
+  border: none;
+}
+
+.md-typeset table:not([class]) th a {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+.md-typeset table:not([class]) th a:hover {
+  color: #ffffff !important;
+  text-decoration: none !important;
+  opacity: 0.85;
+}
+
+[data-md-color-scheme="slate"] .md-typeset table:not([class]) th {
+  background: var(--dell-dark);
+}
+
+.md-typeset table:not([class]) td {
+  padding: 0.6em 1em;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-typeset table:not([class]) tr:last-child td {
+  border-bottom: none;
+}
+
+.md-typeset table:not([class]) tr:hover td {
+  background: var(--md-accent-fg-color--transparent);
+}
+
+/* ── Admonitions ──────────────────────────────────────────── */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.3rem;
+  border-width: 0 0 0 4px;
+  box-shadow: 0 0.05rem 0.2rem rgba(0, 0, 0, 0.05);
+  font-size: 0.74rem;
+  margin: 1.5em 0;
+}
+
+.md-typeset .admonition-title,
+.md-typeset summary {
+  font-weight: 700;
+  font-size: 0.74rem;
+}
+
+/* ── Search ───────────────────────────────────────────────── */
+.md-search__form {
+  border-radius: 0.3rem;
+}
+
+[data-md-toggle="search"]:checked ~ .md-header .md-search__form {
+  border-radius: 0.3rem 0.3rem 0 0;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.md-footer {
+  margin-top: 2rem;
+}
+
+.md-footer-meta {
+  background: var(--md-footer-bg-color--dark);
+}
+
+.md-copyright {
+  font-size: 0.65rem;
+  opacity: 0.6;
+}
+
+/* ── Back to top ──────────────────────────────────────────── */
+.md-top {
+  background: var(--dell-blue);
+  border-radius: 2rem;
+  box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.2);
+}
+
+.md-top:hover {
+  background: var(--dell-dark);
+}
+
+/* ── Permalink anchors ────────────────────────────────────── */
+.md-typeset .headerlink {
+  color: var(--md-default-fg-color--lighter);
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.md-typeset :hover > .headerlink {
+  color: var(--md-accent-fg-color);
+}
+
+/* ── Smooth scrolling ─────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Selection ────────────────────────────────────────────── */
+::selection {
+  background: rgba(0, 118, 206, 0.2);
+  color: inherit;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--md-default-fg-color--lighter);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--md-default-fg-color--light);
+}
+
+/* ── Print ────────────────────────────────────────────────── */
+@media print {
+  .md-typeset h1 { color: var(--dell-navy) !important; }
+  .md-typeset h2 { color: var(--dell-dark) !important; }
+  .md-header, .md-tabs, .md-sidebar, .md-footer { display: none; }
+}
+
+/* ── Diagram images (raster network topology & flow diagrams) */
+.md-typeset img[alt*="Network Topology"],
+.md-typeset img[alt*="Deployment Flow"],
+.md-typeset img[alt*="Omnia Architecture"],
+.md-typeset img[alt*="Omnia Slurm"],
+.md-typeset img[alt*="Omnia Kubernetes"] {
+  border-radius: 0.5rem;
+  box-shadow: 0 0.1rem 0.4rem rgba(0, 0, 0, 0.1);
+  display: block;
+  margin: 1.5em auto;
+  max-width: 100%;
+}
+
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Network Topology"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Deployment Flow"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Architecture"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Slurm"],
+[data-md-color-scheme="slate"] .md-typeset img[alt*="Omnia Kubernetes"] {
+  background: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.2rem 0.8rem rgba(0, 0, 0, 0.3);
+}
+
+/* ── Mermaid diagram overrides ────────────────────────────── */
+.md-typeset .mermaid {
+  margin: 1.5em 0;
+  text-align: center;
+}
+
+/* ── Software Stack Diagrams ─────────────────────────────── */
+.stack-diagram {
+  max-width: 640px;
+  margin: 1.5em auto;
+  font-family: var(--md-text-font-family);
+  font-size: 0.78rem;
+}
+
+.stack-diagram .stack-label {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: var(--md-default-fg-color);
+}
+
+.stack-diagram .stack-row {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.stack-diagram .stack-cell {
+  flex: 1;
+  text-align: center;
+  padding: 0.6em 0.4em;
+  font-weight: 600;
+  color: #fff;
+  border-radius: 3px;
+}
+
+.stack-diagram .stack-cell.full {
+  flex: 1 1 100%;
+}
+
+.stack-diagram .stack-cell.half {
+  flex: 1 1 48%;
+}
+
+.stack-diagram .stack-cell.third {
+  flex: 1 1 31%;
+}
+
+/* Omnia bracket */
+.stack-diagram .omnia-bracket {
+  border: 2px dashed var(--md-default-fg-color--lighter);
+  border-radius: 6px;
+  padding: 2px;
+  margin-bottom: 2px;
+  position: relative;
+}
+
+.stack-diagram .omnia-bracket::before {
+  content: "OMNIA";
+  position: absolute;
+  left: -3.2em;
+  top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--dell-blue);
+}
+
+/* Layer colors */
+.stack-cell.layer-user      { background: #55BDE2; color: #000; }
+.stack-cell.layer-app       { background: #3DB49F; color: #000; }
+.stack-cell.layer-lib       { background: #58A642; }
+.stack-cell.layer-compiler  { background: #0076CE; }
+.stack-cell.layer-sched     { background: #FFB900; color: #000; }
+.stack-cell.layer-lb        { background: #00A651; }
+.stack-cell.layer-ops       { background: #005B96; }
+.stack-cell.layer-orch      { background: #FFB900; color: #000; }
+.stack-cell.layer-runtime   { background: #888; }
+.stack-cell.layer-driver    { background: #E8590C; }
+.stack-cell.layer-os        { background: #C4262E; }
+.stack-cell.layer-os-virt   { background: #E06070; }
+.stack-cell.layer-hw        { background: #555; }
+.stack-cell.layer-hw-virt   { background: #999; }
+
+/* Container sub-boxes (K8s) */
+.stack-diagram .container-box {
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 4px;
+  padding: 0.3em;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 31%;
+}
+
+.stack-diagram .container-box .stack-cell {
+  font-size: 0.68rem;
+  padding: 0.3em;
+}
+
+/* Spacer between physical and virtual */
+.stack-diagram .stack-spacer {
+  flex: 0 0 1em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--md-default-fg-color--lighter);
+}
+
+/* ── Palette toggle fallback for file:// browsing ──────── */
+/* When the bundle JS can't initialize the palette component
+   (e.g. opened via file:// from a zip), ensure the toggle
+   icon is still visible using CSS sibling selectors.        */
+#__palette_0:checked ~ label[for="__palette_1"][hidden] {
+  display: flex !important;
+}
+#__palette_1:checked ~ label[for="__palette_0"][hidden] {
+  display: flex !important;
+}

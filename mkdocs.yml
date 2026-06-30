@@ -1,0 +1,262 @@
+site_name: Dell Omnia
+site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
+# For deployment, set to the actual URL (e.g., https://dell.github.io/omnia/)
+site_url: ""
+
+# Repository
+repo_name: dell/omnia
+repo_url: https://github.com/dell/omnia
+edit_uri: edit/main/docs/
+
+# Flat URLs for offline/file:// browsing (page.html instead of page/index.html)
+use_directory_urls: false
+
+# Theme
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: assets/omnia-logo.png
+  favicon: assets/favicon.png
+  icon:
+    repo: fontawesome/brands/github
+    admonition:
+      note: octicons/tag-16
+      tip: octicons/squirrel-16
+      warning: octicons/alert-16
+      danger: octicons/zap-16
+      info: octicons/info-16
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - announce.dismiss
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - toc.follow
+    - header.autohide
+
+# Plugins
+plugins:
+  - offline
+  - search
+  - tags
+
+# Extensions
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Custom CSS
+extra_css:
+  - stylesheets/dell-brand.css
+
+# Custom JS
+extra_javascript:
+  - javascripts/palette-fallback.js
+
+# Footer
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/dell/omnia
+  generator: false
+
+# Copyright
+copyright: "Copyright &copy; 2025 Dell Technologies. All rights reserved."
+
+# Navigation
+nav:
+  - Home: index.md
+  - Overview:
+    - Overview/index.md
+    - Architecture: Overview/architecture.md
+    - Components: Overview/components.md
+    - Network Topologies: Overview/network_topologies.md
+    - Composable Roles: Overview/composable_roles.md
+    - Telemetry Architecture: Overview/telemetry_architecture.md
+    - Security Model: Overview/security_model.md
+    - Release Notes: Overview/release_notes.md
+    - Blogs about Omnia: Overview/blogs.md
+    - Glossary: Overview/glossary.md
+  - Get Started:
+    - GetStarted/index.md
+    - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
+    - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
+    - "Path B: Full Deployment": GetStarted/full_deployment.md
+    - "Path C: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
+    - "Path D: BuildStreaM": GetStarted/buildstream_deployment.md
+  - How-to Guides:
+    - HowTo/index.md
+    - Setup:
+      - Prepare OIM: HowTo/Setup/prepare_oim.md
+      - Configure Inputs: HowTo/Setup/configure_inputs.md
+      - Configure Credentials: HowTo/Setup/configure_credentials.md
+      - Create Local Repos: HowTo/Setup/create_local_repos.md
+      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
+      - Discover Nodes: HowTo/Setup/discover_nodes.md
+      - Create Mapping File: HowTo/Setup/create_mapping_file.md
+      - PXE Boot Nodes: HowTo/Setup/pxe_boot_nodes.md
+      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Verify OIM Services: HowTo/Setup/verify_oim_services.md
+      - Verify Cluster: HowTo/Setup/verify_cluster.md
+    - Slurm:
+      - Set Up Slurm: HowTo/Slurm/setup_slurm.md
+      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
+      - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
+      - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
+      - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
+      - Config Backup: HowTo/Slurm/slurm_config_backup.md
+      - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
+    - Kubernetes:
+      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
+      - Configure HA: HowTo/Kubernetes/configure_ha.md
+      - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
+    - Storage:
+      - Configure NFS: HowTo/Storage/configure_nfs.md
+      - Configure PowerVault: HowTo/Storage/configure_powervault.md
+    - Networking:
+      - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
+      - Configure RoCE: HowTo/Networking/configure_roce.md
+    - Authentication:
+      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
+      - OpenLDAP Proxy: HowTo/Authentication/setup_openldap_proxy.md
+      - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
+      - Replicate LDAP: HowTo/Authentication/replicate_ldap.md
+    - Telemetry:
+      - Set Up Telemetry: HowTo/Telemetry/setup_telemetry.md
+      - Verify Telemetry: HowTo/Telemetry/verify_telemetry.md
+      - Telemetry from OME: HowTo/Telemetry/telemetry_from_ome.md
+      - Configure LDMS: HowTo/Telemetry/configure_ldms.md
+      - External Kafka: HowTo/Telemetry/configure_external_kafka.md
+      - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
+    - Containers:
+      - Use Apptainer: HowTo/Containers/use_apptainer.md
+      - Deploy Additional Packages: HowTo/Containers/deploy_additional_packages.md
+    - BuildStreaM:
+      - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
+      - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
+      - BuildStreaM Troubleshooting: HowTo/BuildStreaM/buildstream_troubleshooting.md
+  - Reference:
+    - Reference/index.md
+    - Support Matrix:
+      - Servers: Reference/SupportMatrix/servers.md
+      - Operating Systems: Reference/SupportMatrix/operating_systems.md
+      - Network Topologies: Reference/SupportMatrix/network_topologies.md
+      - NICs: Reference/SupportMatrix/nics.md
+      - Switches: Reference/SupportMatrix/switches.md
+      - Storage: Reference/SupportMatrix/storage.md
+      - Installed Software: Reference/SupportMatrix/installed_software.md
+    - Configuration:
+      - Omnia Config: Reference/Configuration/omnia_config.md
+      - Provision Config: Reference/Configuration/provision_config.md
+      - Network Spec: Reference/Configuration/network_spec.md
+      - Software Config: Reference/Configuration/software_config.md
+      - Telemetry Config: Reference/Configuration/telemetry_config.md
+      - Storage Config: Reference/Configuration/storage_config.md
+      - Security Config: Reference/Configuration/security_config.md
+      - HA Config: Reference/Configuration/ha_config.md
+      - Local Repo Config: Reference/Configuration/local_repo_config.md
+      - BuildStreaM Config: Reference/Configuration/buildstream_config.md
+    - Sample Files:
+      - PXE Mapping File: Reference/SampleFiles/pxe_mapping_file.md
+      - slurm.conf: Reference/SampleFiles/slurm_conf.md
+      - slurmdbd.conf: Reference/SampleFiles/slurmdbd_conf.md
+      - software_config.json: Reference/SampleFiles/software_config_json.md
+    - Cluster Requirements:
+      - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
+      - Disk Space: Reference/ClusterRequirements/disk_space.md
+      - Ports: Reference/ClusterRequirements/ports.md
+    - Playbooks:
+      - Playbook Reference: Reference/Playbooks/playbook_reference.md
+    - Metrics:
+      - iDRAC Metrics: Reference/Metrics/idrac_metrics.md
+      - GPU Metrics: Reference/Metrics/gpu_metrics.md
+      - LDMS Metrics: Reference/Metrics/ldms_metrics.md
+    - Appendices:
+      - Hostname Requirements: Reference/Appendices/hostname_requirements.md
+      - Timezone List: Reference/Appendices/timezones.md
+      - BeeGFS Server Setup: Reference/Appendices/beegfs_server_setup.md
+  - Operations:
+    - Operations/index.md
+    - Add / Remove Nodes: Operations/add_remove_nodes.md
+    - Reprovision Cluster: Operations/reprovision_cluster.md
+    - OIM Cleanup: Operations/oim_cleanup.md
+    - Log Management: Operations/log_management.md
+    - Security Hardening: Operations/security_hardening.md
+    - Best Practices Checklist: Operations/best_practices_checklist.md
+  - Troubleshooting:
+    - Troubleshooting/index.md
+    - General: Troubleshooting/general.md
+    - Provisioning: Troubleshooting/provisioning.md
+    - Slurm: Troubleshooting/slurm.md
+    - Kubernetes: Troubleshooting/kubernetes.md
+    - Telemetry: Troubleshooting/telemetry.md
+    - Authentication: Troubleshooting/authentication.md
+    - BuildStreaM: Troubleshooting/buildstream.md
+    - Known Limitations: Troubleshooting/known_limitations.md
+  - Contributing:
+    - Contributing/index.md
+    - Pull Requests: Contributing/pull_requests.md
