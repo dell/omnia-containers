@@ -137,11 +137,11 @@ Repository
 
   user_repo_url_x86_64::
 
-    - { url: "http://<ipaddress>/slurm-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "x86_64_slurm_custom" }
+    - { url: "http://<ipaddress>/slurm-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
 
   user_repo_url_aarch64::
 
-    - { url: "http://<ipaddress>/slurm-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "aarch64_slurm_custom" }
+    - { url: "http://<ipaddress>/slurm-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "", name: "slurm_custom" }
 
 Run ``ansible-playbook local_repo/local_repo.yml``.
 
@@ -207,11 +207,11 @@ Lightweight Distributed Metric Service (LDMS)
 
   user_repo_url_x86_64::
 
-   { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_ldms" }
+   { url: "http://<ipaddress>/ldms-repo/x86_64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "ldms" }
 
   user_repo_url_aarch64::
 
-   { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_ldms" }
+   { url: "http://<ipaddress>/ldms-repo/aarch64", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "ldms" }
 
   Run ``ansible-playbook local_repo/local_repo.yml``.
 
@@ -226,12 +226,12 @@ Slurm
 * If the repository is hosted, use the URL created in the ``local_repo_config.yml`` file.
 
   user_repo_url_x86_64::
-    
-   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "x86_64_slurm_custom" }
+
+   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "slurm_custom" }
 
   user_repo_url_aarch64::
-    
-   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "aarch64_slurm_custom" }
+
+   - { url: "<hosted slurm repository url>", gpgkey: "", sslcacert: "", sslclientkey: "", sslclientcert: "",  name: "slurm_custom" }
 
   Run ``ansible-playbook local_repo/local_repo.yml``.
 * Create Slurm repository build for x86_64. See `Build Slurm repository for x86_64 <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/build_slurm_repo.html>`_ and `Host RPMS on Apache server <OmniaInstallGuide/RHEL_new/OmniaCluster/BuildingCluster/hosting_RPMS_on_Apache_server.html>`_.
