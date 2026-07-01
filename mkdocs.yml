@@ -137,7 +137,7 @@ nav:
     - Network Topologies: Overview/network_topologies.md
     - Composable Roles: Overview/composable_roles.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
-    - Security Model: Overview/security_model.md
+    - Security Configuration Guide: Overview/security_configuration_guide.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
     - Glossary: Overview/glossary.md

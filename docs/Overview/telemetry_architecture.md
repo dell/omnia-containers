@@ -233,5 +233,5 @@ cardinality, and compresses data more efficiently.
       model.
     - [Components](components.md) -- Details on each software component, including Kafka
       and VictoriaMetrics.
-    - [Security Model](security_model.md) -- How telemetry traffic is encrypted and
+    - [Security Configuration Guide](security_configuration_guide.md) -- How telemetry traffic is encrypted and
       authenticated.
