@@ -1317,13 +1317,21 @@ Log queries return nothing or only old data; new node or syslog events never app
 Omnia (Q2) deploys VictoriaLogs in cluster mode: vlinsert, vlstorage, vlselect.
 
 **Example errors**
+
 vlstorage:
+
 - ``cannot create new part: no space left on device``
+
 vlinsert:
+
 - ``cannot proxy request to vlstorage: dial tcp <vlstorage-svc>:9491: i/o timeout``
+
 vlselect:
+
 - ``cannot perform query: some vlstorage nodes are unavailable``
+
 VLAgent:
+
 - ``syslog: failed to forward to vlinsert: connection refused``
 
 **Cause**
