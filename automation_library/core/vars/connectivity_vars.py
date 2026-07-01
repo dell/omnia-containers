@@ -19,10 +19,10 @@ Configuration for ping and SSH connectivity checks with retry logic.
 """
 
 # =============================================================================
-# PING RETRY CONFIGURATION (20 minutes total)
+# PING RETRY CONFIGURATION (10 minutes total)
 # =============================================================================
 
-PING_RETRY_LIMIT = 240  # 240 retries * 5s = 20 minutes
+PING_RETRY_LIMIT = 120  # 120 retries * 5s = 10 minutes
 PING_RETRY_INTERVAL = 5  # 5 seconds between retries
 
 # =============================================================================
