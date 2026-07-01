@@ -1167,11 +1167,13 @@ Check the status of LDMS components and review logs for errors:
 iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in 0/1 Ready state. New nodes do not appear as telemetry sources after provisioning.
 
 **Example errors**
+
 In the VictoriaPump / KafkaPump container logs:
-- `ERROR failed to subscribe to Redfish event service: 401 Unauthorized`
-- `ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)`
-- `WARN activemq: connection refused tcp 127.0.0.1:61616`
-- `ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused`
+
+- ``ERROR failed to subscribe to Redfish event service: 401 Unauthorized``
+- ``ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)``
+- ``WARN activemq: connection refused tcp 127.0.0.1:61616``
+- ``ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
 
 **Cause**
 
@@ -1238,13 +1240,21 @@ Grafana panels show "No data" or queries time out or return partial series. One 
 Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
 
 **Example errors**
+
 vmstorage:
+
 - ``panic: cannot open storage at "/storage": no space left on device``
+
 vminsert:
+
 - ``cannot send data to vmstorage node "vmstorage-1:8400": connection timed out``
+
 vmselect:
+
 - ``error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)``
+
 Pod events:
+
 - ``0/3 nodes are available: 3 Insufficient memory.``
 - ``Pod ephemeral local storage usage exceeds the total limit of containers``
 
