@@ -1,0 +1,106 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - K8s & Telemetry Upgrade Negative / Performance Tests
+# =============================================================================
+# This converge step:
+#   1. Sets up the environment for negative and performance testing
+#   2. Runs the K8s & Telemetry upgrade playbook inside omnia_core
+#   3. Saves the upgrade execution log for verification tests
+#
+# NOTE: Negative tests require fault injection capabilities. The converge
+# step verifies prerequisites and executes the upgrade. Actual fault
+# injection happens in the test functions via SSH commands to target nodes.
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../../../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../../../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - Execute upgrade and verify prerequisites for negative tests
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    upgrade_config: "{{ omnia_test_config.upgrade | default({}) }}"
+    upgrade_playbook: "{{ upgrade_config.k8s_telemetry_playbook | default('upgrade/k8s_telemetry_upgrade.yml') }}"
+    container_name: "omnia_core"
+
+  tasks:
+    - name: Display upgrade and negative test parameters
+      ansible.builtin.debug:
+        msg: >-
+          Running K8s & Telemetry upgrade then negative/performance tests.
+          playbook={{ upgrade_playbook }},
+          current={{ upgrade_config.current_version | default('auto-detect') }},
+          target={{ upgrade_config.new_version | default('latest') }}.
+          Requires: SSH access to all K8s nodes for fault injection.
+
+    - name: Verify omnia_core container is running
+      ansible.builtin.shell:
+        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name={{ container_name }}
+      register: container_check
+      changed_when: false
+      failed_when: "container_name not in container_check.stdout"
+
+    - name: Verify pre-upgrade snapshot exists
+      ansible.builtin.shell:
+        cmd: test -f /tmp/k8s_telemetry_upgrade_precheck.json && echo OK
+      register: snapshot_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Snapshot status
+      ansible.builtin.debug:
+        msg: "Pre-upgrade snapshot: {{ 'FOUND' if 'OK' in (snapshot_check.stdout | default('')) else 'NOT FOUND (some tests may skip)' }}"
+
+    - name: Run K8s & Telemetry upgrade playbook
+      ansible.builtin.shell:
+        cmd: >-
+          podman exec {{ container_name }}
+          ansible-playbook {{ upgrade_playbook }}
+          -e k8s_target_version={{ upgrade_config.new_version | default('') }}
+          -v
+      register: upgrade_result
+      changed_when: true
+      timeout: 7200
+
+    - name: Display upgrade result
+      ansible.builtin.debug:
+        msg: "Upgrade rc={{ upgrade_result.rc }}, stdout_lines={{ upgrade_result.stdout_lines | length }}"
+
+    - name: Save upgrade log
+      ansible.builtin.copy:
+        content: "{{ upgrade_result.stdout }}"
+        dest: /tmp/k8s_telemetry_upgrade_execution.log
+        mode: "0644"
+      changed_when: false

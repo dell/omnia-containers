@@ -1,0 +1,65 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# =============================================================================
+# Molecule Converge - K8s & Telemetry Upgrade Pre-Check
+# =============================================================================
+# This converge step only sets up inventory and verifies basic OIM
+# connectivity.  No upgrade playbook is executed.
+# The actual pre-check data collection happens in the verify step
+# (pytest / testinfra tests).
+# =============================================================================
+
+- name: Converge - Load configuration and setup inventory
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../../../..', true) }}"
+
+  tasks:
+    - name: Setup dynamic inventory
+      ansible.builtin.include_tasks: ../../../shared/tasks/setup_inventory.yml
+
+    - name: Set facts for OIM server play
+      ansible.builtin.set_fact:
+        omnia_test_config: "{{ omnia_test_config }}"
+        cacheable: true
+      no_log: true
+
+
+- name: Converge - Verify OIM connectivity
+  hosts: oim_server
+  gather_facts: false
+
+  vars:
+    omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+
+  tasks:
+    - name: Display target OIM server
+      ansible.builtin.debug:
+        msg: "K8s/Telemetry pre-check on OIM server: {{ ansible_host }}"
+
+    - name: Verify omnia_core container is running
+      ansible.builtin.shell:
+        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name=omnia_core
+      register: container_check
+      changed_when: false
+      failed_when: "'omnia_core' not in container_check.stdout"
+
+    - name: Display container status
+      ansible.builtin.debug:
+        msg: "omnia_core container: {{ 'running' if 'omnia_core' in container_check.stdout else 'NOT FOUND' }}"
