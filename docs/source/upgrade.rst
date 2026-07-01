@@ -209,7 +209,7 @@ On rerun, already-completed components are automatically skipped. This ensures i
 .. _buildstream-terminal-gate:
 
 BuildStreaM Terminal Gate
-"""""""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
 
