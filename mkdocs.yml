@@ -237,7 +237,6 @@ nav:
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
-      - Timezone List: Reference/Appendices/timezones.md
       - BeeGFS Server Setup: Reference/Appendices/beegfs_server_setup.md
   - Operations:
     - Operations/index.md

@@ -341,7 +341,6 @@ vi /opt/cluster-catalog/catalog.yml
 cluster:
   name: "production-hpc"
   domain: "omnia.local"
-  timezone: "America/Chicago"
 
 networks:
   admin:
