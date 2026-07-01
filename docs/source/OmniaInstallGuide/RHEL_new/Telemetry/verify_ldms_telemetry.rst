@@ -57,21 +57,29 @@ To verify that LDMS telemetry data is being successfully consumed from Kafka by 
 
 1. Verify that the Vector-LDMS pod is running::
 
-    kubectl get pods -n telemetry -l app=vector-ldms
+    kubectl get pods -n telemetry | grep vector-ldms
+
+    .. image:: ../../../images/victoria_metrics_ldms_1.png
 
 2. Verify that the vmagent-vector pod is running::
 
-    kubectl get pods -n telemetry -l app=vmagent-vector
+    kubectl get pods -n telemetry | grep vmagent-vector
 
-3. Verify that the Kafka consumer group is registered::
+    .. image:: ../../../images/victoria_metrics_ldms_2.png
 
-    kubectl get kafkagroups -n telemetry
+3. Verify that the VictoriaMetrics service is running::
 
-4. Verify data flow by checking Vector pod logs::
+    kubectl get service -n telemetry | grep vm
 
-    kubectl logs -n telemetry <vector-ldms-pod-name> -c vector
+    .. image:: ../../../images/victoria_metrics_ldms_3.png
 
-5. Verify that metrics are reaching VictoriaMetrics by querying the VMUI or using PromQL queries. For example, the following query displays LDMS-related metrics::
+4. Note the External IP and port number of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+
+5. Access the VMUI in a web browser using::
+
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+
+6. Verify that metrics are reaching VictoriaMetrics by querying the VMUI or using PromQL queries. For example, the following query displays LDMS-related metrics::
 
     {__name__=~"ldms_.*"}
 
