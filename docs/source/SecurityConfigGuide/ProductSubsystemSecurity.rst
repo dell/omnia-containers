@@ -186,14 +186,6 @@ Omnia configures the following ports for use by third-party tools installed by O
      - TCP
      - CUPS printing (OS)
      - Manager (OIM)
-   * - 34869
-     - TCP
-     - Unknown listener
-     - Manager (OIM)
-   * - 46467
-     - TCP
-     - Unknown listener
-     - Manager (OIM)
 
 **Podman Container Port Requirements**
 
@@ -224,14 +216,6 @@ Omnia configures the following ports for use by third-party tools installed by O
    * - 9001
      - TCP
      - MinIO Console
-     - Manager (OIM)
-   * - 389
-     - TCP
-     - OpenLDAP
-     - Manager (OIM)
-   * - 636
-     - TCP
-     - OpenLDAPS
      - Manager (OIM)
 
 **Kubernetes Port Requirements**
@@ -397,34 +381,6 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Manager/ Login_Node
 
 
-**LDAP Port Requirements**
-
-.. list-table::
-   :widths: 10 10 25 20
-   :header-rows: 1
-
-   * - Port
-     - Protocol
-     - Service Name
-     - Type of Node
-   * - 389
-     - TCP
-     - OpenLDAP
-     - Manager / Login
-   * - 636
-     - TCP
-     - OpenLDAPS
-     - Manager / Login
-   * - 80
-     - TCP
-     - HTTP
-     - Manager / Login
-   * - 443
-     - TCP
-     - HTTPS
-     - Manager / Login
-
-
 **Telemetry Port Requirements**
 
 .. list-table::
@@ -570,11 +526,7 @@ Omnia configures the following ports for use by third-party tools installed by O
      - Service Name
      - Type of Node
    * - 18515-18520
-     - TCP
-     - DOCA/OFED RDMA
-     - Compute (IB nodes)
-   * - 18515-18520
-     - UDP
+     - TCP/UDP
      - DOCA/OFED RDMA
      - Compute (IB nodes)
 
