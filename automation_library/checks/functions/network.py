@@ -179,13 +179,13 @@ def validate_ip_configuration(pxe_ip: str, idrac_ip: str = None, network_type: s
 
         return validation_result
 
-    except (ipaddress.AddressValueError, ValueError) as e:
+    except (ipaddress.AddressValueError, ValueError):
         return {
             "valid": False,
             "pxe_ip_valid": "/" in pxe_ip,
             "idrac_ip_valid": "/" in idrac_ip if idrac_ip else True,
             "conflict": False,
-            "message": f"Invalid IP format: {str(e)}"
+            "message": "Invalid IP address format provided"
         }
 
 

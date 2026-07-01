@@ -127,9 +127,9 @@ def run_command(cmd: list, timeout: Optional[int] = None) -> Tuple[int, str, str
     except subprocess.TimeoutExpired:
         _log(f"Command timed out after {timeout}s", "ERROR")
         return -1, "", "Command timed out"
-    except Exception as e:
-        _log(f"Command failed: {str(e)}", "ERROR")
-        return -1, "", str(e)
+    except Exception:
+        _log("Command execution failed unexpectedly", "ERROR")
+        return -1, "", "Command execution failed"
 
 
 def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
@@ -158,9 +158,9 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
     except subprocess.TimeoutExpired:
         _log(f"Command timed out after {timeout}s", "ERROR")
         return -1, "", "Command timed out"
-    except Exception as e:
-        _log(f"Command failed: {str(e)}", "ERROR")
-        return -1, "", str(e)
+    except Exception:
+        _log("Shell command execution failed unexpectedly", "ERROR")
+        return -1, "", "Shell command execution failed"
 
 
 def run_interactive(cmd: str, inputs: list, timeout: Optional[int] = None) -> Tuple[int, str, str]:
@@ -178,6 +178,7 @@ def run_interactive(cmd: str, inputs: list, timeout: Optional[int] = None) -> Tu
     timeout = timeout or OMNIA_SH_VARS["install_timeout"]
     _log(f"Running interactive: {cmd}", "DEBUG")
 
+    process = None
     try:
         # Join inputs with newlines
         input_str = "\n".join(inputs) + "\n"
@@ -195,12 +196,22 @@ def run_interactive(cmd: str, inputs: list, timeout: Optional[int] = None) -> Tu
         return process.returncode, stdout.strip(), stderr.strip()
 
     except subprocess.TimeoutExpired:
-        process.kill()
+        if process is not None:
+            process.kill()
+            process.wait()
         _log(f"Interactive command timed out after {timeout}s", "ERROR")
         return -1, "", "Command timed out"
-    except Exception as e:
-        _log(f"Interactive command failed: {str(e)}", "ERROR")
-        return -1, "", str(e)
+    except Exception:
+        if process is not None:
+            process.kill()
+            process.wait()
+        _log("Interactive command failed unexpectedly", "ERROR")
+        return -1, "", "Interactive command failed"
+    finally:
+        if process is not None:
+            for stream in (process.stdin, process.stdout, process.stderr):
+                if stream and not stream.closed:
+                    stream.close()
 
 
 # =============================================================================
