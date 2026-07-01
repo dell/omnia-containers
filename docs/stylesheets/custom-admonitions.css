@@ -1,0 +1,63 @@
+/* Custom admonition: important (purple, GitHub convention)
+   Usage: !!! important "Title"
+   Renders with purple left border, light purple background, and star-burst alert icon.
+   Visually distinct from note (blue), warning (orange), danger (red), tip (green).
+*/
+
+:root {
+  --md-admonition-icon--important: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M23 12l-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68L23 12m-10 5h-2v-2h2v2m0-4h-2V7h2v6z"/></svg>');
+}
+
+.md-typeset .admonition.important,
+.md-typeset details.important {
+  border-color: #8250df;
+}
+
+.md-typeset .important > .admonition-title,
+.md-typeset .important > summary {
+  background-color: rgba(130, 80, 223, 0.1);
+}
+
+.md-typeset .important > .admonition-title::before,
+.md-typeset .important > summary::before {
+  background-color: #8250df;
+  -webkit-mask-image: var(--md-admonition-icon--important);
+          mask-image: var(--md-admonition-icon--important);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .important > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .important > summary {
+  background-color: rgba(130, 80, 223, 0.15);
+}
+
+/* Custom admonition: caution (red, GitHub convention)
+   Usage: !!! caution "Title"
+   Renders with red left border, light red background, and alert-octagon icon.
+   Visually distinct from warning (orange) and danger (darker red).
+*/
+
+:root {
+  --md-admonition-icon--caution: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 13h-2V7h2m0 10h-2v-2h2M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2z"/></svg>');
+}
+
+.md-typeset .admonition.caution,
+.md-typeset details.caution {
+  border-color: #cf222e;
+}
+
+.md-typeset .caution > .admonition-title,
+.md-typeset .caution > summary {
+  background-color: rgba(207, 34, 46, 0.1);
+}
+
+.md-typeset .caution > .admonition-title::before,
+.md-typeset .caution > summary::before {
+  background-color: #cf222e;
+  -webkit-mask-image: var(--md-admonition-icon--caution);
+          mask-image: var(--md-admonition-icon--caution);
+}
+
+[data-md-color-scheme="slate"] .md-typeset .caution > .admonition-title,
+[data-md-color-scheme="slate"] .md-typeset .caution > summary {
+  background-color: rgba(207, 34, 46, 0.15);
+}
