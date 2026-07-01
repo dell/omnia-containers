@@ -59,7 +59,7 @@ To verify that LDMS telemetry data is being successfully consumed from Kafka by 
 
     kubectl get pods -n telemetry | grep vector-ldms
 
-.. image:: ../../../images/victoria_metrics_ldms_1.png
+   .. image:: ../../../images/victoria_metrics_ldms_1.png
 
 2. Verify that the vmagent-vector pod is running::
 
