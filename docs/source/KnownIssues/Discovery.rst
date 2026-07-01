@@ -20,13 +20,13 @@ This correlation works correctly only when the BMC and Admin networks differ in 
 
 - BMC: 10.10.43.0/24
 - Admin: 10.20.43.0/24
-- BMC IP 10.10.43.100 → Admin IP 10.20.43.100 ✅
+- BMC IP 10.10.43.100 → Admin IP 10.20.43.100
 
 **Example — Failing (networks differ only at 3rd octet):**
 
 - BMC: 172.20.43.0/24
 - Admin: 172.20.44.0/24
-- BMC IP 172.20.43.100 → Admin IP 172.20.43.100 ❌ (same as BMC IP — 3rd octet 43 is copied from BMC instead of using 44 from admin subnet)
+- BMC IP 172.20.43.100 → Admin IP 172.20.43.100 (same as BMC IP — 3rd octet 43 is copied from BMC instead of using 44 from admin subnet)
 
 **Impact**: In network environments where the BMC and Admin subnets share the same first two octets and differ only at the 3rd octet (common in /24 deployments), the generated ADMIN_IP will be identical to the BMC_IP. The same issue applies to IB IP generation.
 
