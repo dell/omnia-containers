@@ -5,7 +5,7 @@
 File path: `/opt/omnia/input/project_default/provision_config.yml`
 
 This file controls the provisioning behavior of the OIM, including PXE boot
-mapping, timezone, domain name, and OS image settings.
+mapping, domain name, and OS image settings.
 
 ## Parameter reference
 
@@ -13,7 +13,6 @@ mapping, timezone, domain name, and OS image settings.
 | Parameter | Type | Required | Default | Description |
 | --- | --- | --- | --- | --- |
 | `pxe_mapping_file_path` | String | Yes | (none) | Absolute path to the PXE mapping CSV file that maps service tags to functional groups, hostnames, and network addresses. See [Pxe Mapping File](../SampleFiles/pxe_mapping_file.md) for the file format. |
-| `timezone` | String | No | `UTC` | IANA timezone string applied to all provisioned nodes (e.g., `America/New_York`, `Asia/Kolkata`). See [Timezones](../Appendices/timezones.md) for the full list. |
 | `domain_name` | String | No | `omnia.test` | DNS domain name assigned to all provisioned nodes. Must be a valid FQDN suffix (e.g., `hpc.example.com`). Do not include a leading dot. |
 | `repo_store_path` | String | No | `/opt/omnia/repo_store` | Local directory on the OIM where Pulp-mirrored repositories are stored. Must have sufficient disk space (see [Disk Space](../ClusterRequirements/disk_space.md)). |
 | `language` | String | No | `en-US` | System locale for provisioned nodes. |
@@ -31,7 +30,6 @@ mapping, timezone, domain name, and OS image settings.
 
 ```yaml title="File: /opt/omnia/input/project_default/provision_config.yml"
 pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping.csv"
-timezone: "America/Chicago"
 domain_name: "hpc.example.com"
 repo_store_path: "/opt/omnia/repo_store"
 language: "en-US"
@@ -51,7 +49,6 @@ provision_os_version: "10.0"
 !!! info
 
     - [Pxe Mapping File](../SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV format.
-    - [Timezones](../Appendices/timezones.md) -- Valid timezone values.
     - [Hostname Requirements](../Appendices/hostname_requirements.md) -- Hostname rules for
       provisioned nodes.
     - [Network Spec](network_spec.md) -- Network configuration that complements provisioning.

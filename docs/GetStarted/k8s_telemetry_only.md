@@ -182,7 +182,6 @@ vi /opt/omnia/input/project_default/provision_config.yml
 
 ```yaml title="Example provision_config.yml"
 iso_path: /opt/isos/RHEL-8.8-x86_64-dvd.iso
-timezone: America/Chicago
 domain_name: omnia.local
 ```
 

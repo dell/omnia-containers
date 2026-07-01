@@ -1,4 +1,4 @@
-site_name: Dell Omnia
+site_name: "Omnia: Everything at once!"
 site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
 # For deployment, set to the actual URL (e.g., https://dell.github.io/omnia/)
 site_url: ""
@@ -125,7 +125,7 @@ extra:
   generator: false
 
 # Copyright
-copyright: "Copyright &copy; 2025 Dell Technologies. All rights reserved."
+copyright: "© Copyright Dell Inc. All Rights Reserved."
 
 # Navigation
 nav:
@@ -237,7 +237,6 @@ nav:
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
-      - Timezone List: Reference/Appendices/timezones.md
       - BeeGFS Server Setup: Reference/Appendices/beegfs_server_setup.md
   - Operations:
     - Operations/index.md
