@@ -59,19 +59,19 @@ To verify that LDMS telemetry data is being successfully consumed from Kafka by 
 
     kubectl get pods -n telemetry | grep vector-ldms
 
-    .. image:: ../../../images/victoria_metrics_ldms_1.png
+.. image:: ../../../images/victoria_metrics_ldms_1.png
 
 2. Verify that the vmagent-vector pod is running::
 
     kubectl get pods -n telemetry | grep vmagent-vector
 
-    .. image:: ../../../images/victoria_metrics_ldms_2.png
+.. image:: ../../../images/victoria_metrics_ldms_2.png
 
 3. Verify that the VictoriaMetrics service is running::
 
     kubectl get service -n telemetry | grep vm
 
-    .. image:: ../../../images/victoria_metrics_ldms_3.png
+.. image:: ../../../images/victoria_metrics_ldms_3.png
 
 4. Note the External IP and port number of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
