@@ -228,7 +228,6 @@ nav:
     - Cluster Requirements:
       - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
       - Disk Space: Reference/ClusterRequirements/disk_space.md
-      - Ports: Reference/ClusterRequirements/ports.md
     - Playbooks:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:

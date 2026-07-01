@@ -136,7 +136,7 @@ Omnia uses port 22 for SSH connections, same as Ansible.
 
 Omnia configures the following ports for use by third-party tools installed by Omnia.
 
-**Host Port Requirements**
+#### Host Port Requirements
 
 | Port Number | Protocol | Service | Type of Node |
 |-------------|----------|---------|--------------|
@@ -152,7 +152,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 | 67 | UDP | DHCP | Manager (OIM) |
 | 68 | UDP | DHCP BootPC | Manager (OIM) |
 
-**Podman Container Port Requirements**
+#### Podman Container Port Requirements
 
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|
@@ -163,7 +163,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 |9001|TCP|MinIO Console|Manager (OIM)|
 |389|TCP|OpenLDAP|Manager (OIM)|
 
-**Kubernetes Port Requirements**
+#### Kubernetes Port Requirements
 
 | Port Number | Protocol | Service | Type of Node |
 |---|---|---|---|
@@ -191,7 +191,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 |443|TCP|NFS StorageClass dynamic provisioner|Compute|
 |45845|TCP|CRI-O runtime service|Manager/Compute|
 
-**Slurm Port Requirements**
+#### Slurm Port Requirements
 
 | Port Number | Layer 4 Protocol | Purpose | Node |
 |-------------|------------------|---------|------|
@@ -201,7 +201,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 | 60001-63000 | TCP | Slurm SrunPortRange | Compute |
 | 3306 | TCP | MariaDB | Manager |
 
-**OpenLDAP Port Requirements**
+#### OpenLDAP Port Requirements
 
 | Port Number | Layer 4 Protocol | Purpose | Node |
 |-------------|------------------|---------|------|
@@ -210,7 +210,7 @@ Omnia configures the following ports for use by third-party tools installed by O
 | 389 | TCP | LDAP | Manager / Login Node |
 | 636 | TCP | LDAPS | Manager / Login Node |
 
-**Telemetry Ports**
+#### Telemetry Ports
 
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|
@@ -241,19 +241,19 @@ Omnia configures the following ports for use by third-party tools installed by O
 |6001-6100|TCP|LDMS Aggregator / Store Daemon|Manager (Telemetry)|
 |10001-10100|TCP|LDMS Sampler|Compute|
 
-**Build Stream Ports**
+#### Build Stream Ports
 
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|
 |8010|TCP|Build Stream API|Manager (OIM)|
 
-**DOCA/IB Ports **
+#### DOCA/IB Ports
 
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|
 |18515-18520|TCP/UDP|DOCA/OFED RDMA|Compute (IB nodes)|
 
-**OpenCHAMI Ports**
+#### OpenCHAMI Ports
 
 | Port | Protocol | Service Name | Type of Node |
 |---|---|---|---|

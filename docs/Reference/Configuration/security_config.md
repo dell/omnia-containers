@@ -86,5 +86,5 @@ ssh_key_auth_only: false
 
     - [Playbook Reference](../Playbooks/playbook_reference.md) -- The `auth.yml`
       playbook that deploys authentication services.
-    - [Ports](../ClusterRequirements/ports.md) -- Ports required by LDAP,
+    - [Ports](../../Overview/security_configuration_guide.md#openldap-port-requirements) -- Ports required by LDAP,
       Kerberos, and FreeIPA.
