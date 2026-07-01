@@ -1090,6 +1090,53 @@ Expected files:
 - Remove that tool directory only if refresh is required.
 - Re-run ``/hpc_tools/scripts/pull_benchmarks.sh``.
 
+6.5 ``sacct`` Returning Empty Results
+--------------------------------------
+
+**Symptom**
+
+The ``sacct`` command returns no output or empty results when querying job accounting information.
+
+**Cause**
+
+- slurmdbd service is not running
+- MariaDB service is not running (slurmdbd depends on MariaDB)
+- slurmdbd cannot communicate with the database
+- Port 6819 (slurmdbd port) is not listening
+
+**Resolution**
+
+Check if slurmdbd service is running:
+
+.. code-block:: bash
+
+   systemctl status slurmdbd
+
+Check if MariaDB service is running:
+
+.. code-block:: bash
+
+   systemctl status mariadb
+
+Check the slurmdbd logs:
+
+.. code-block:: bash
+
+   tail -50 /var/log/slurm/slurmdbd.log
+
+Check the slurmdbd port:
+
+.. code-block:: bash
+
+   ss -tlnp | grep 6819
+
+Restart the services accordingly:
+
+.. code-block:: bash
+
+   systemctl restart slurmdbd
+   systemctl restart mariadb
+
 7. Telemetry Issues
 ===================
 
