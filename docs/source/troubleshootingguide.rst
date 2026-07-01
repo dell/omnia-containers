@@ -256,7 +256,11 @@ Target server becomes unreachable after PXE boot completes.
 
 **Symptom**
 
-Unable to log in as root user via SSH.
+Unable to log in as root user via SSH. Error messages include:
+
+- ``WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!``
+- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
+- ``ssh: connect to host <ip> port 22: Connection refused``
 
 **Cause**
 
@@ -456,6 +460,19 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 4.2 Pods Not in Running State
 -----------------------------
+
+**Symptom**
+
+Pods are not in Running state. Status values observed include:
+
+- ``Pending``
+- ``CrashLoopBackOff``
+- ``ImagePullBackOff``
+- ``OOMKilled`` (from ``kubectl describe pod`` Events section)
+
+**Cause**
+
+Pod startup failures due to various issues including resource constraints, image pull failures, or application errors.
 
 **Resolution**
 
@@ -717,7 +734,10 @@ For troubleshooting Kafka issues related to the missing CSI driver, see `Section
 
 **Symptom**
 
-Slurm nodes enter DRAINED state unexpectedly.
+Slurm nodes enter DRAINED state unexpectedly. Error messages include:
+
+- ``State=IDLE+DRAIN Reason=Kill task failed``
+- ``State=DOWN+DRAIN Reason=Not responding``
 
 **Cause**
 
@@ -1147,7 +1167,10 @@ Check the status of LDMS components and review logs for errors:
 
 **Symptom**
 
-User login fails after LDAP user creation.
+User login fails after LDAP user creation. Error messages include:
+
+- ``id: 'newuser': no such user``
+- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
 
 **Cause**
 
