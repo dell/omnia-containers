@@ -81,5 +81,5 @@ powervault_enabled: false
 !!! info
 
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
-    - [Beegfs Server Setup](../Appendices/beegfs_server_setup.md) -- BeeGFS server setup.
+
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.

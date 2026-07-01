@@ -214,7 +214,7 @@ for HPC workloads. Omnia automates the deployment of:
 
 - [Run Hpc Benchmarks](../Slurm/run_hpc_benchmarks.md) -- Run MPI benchmarks over the IB
   fabric.
-- [Configure Roce](configure_roce.md) -- Configure RoCE as an alternative to InfiniBand.
+
 
 
 ## Troubleshooting
