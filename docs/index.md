@@ -63,6 +63,10 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
 -   :material-book-open-variant: **[Security Configuration Guide](Overview/security_configuration_guide.md)**
 
+    ---
+
+    Security controls, authentication setup, firewall and port requirements, credential management with Ansible Vault, auditing, logging, and vulnerability scanning.
+
 </div>
 
 ## Quick Links
