@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Target host IP for GitLab deployment. Accepted values: valid IPv4 address. Cannot be empty.</p>
+                            <p>IP address of the target host where GitLab will be deployed. Must be accessible from the OIM server.</p>
                             <p>Minimum length: 1.</p>
                         </div>
                     </td>
@@ -40,7 +40,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Name of the GitLab project Omnia will create/manage. Accepted values: alphanumeric string starting with a letter or digit. Default: omnia-catalog</p>
+                            <p>Name of the GitLab project that Omnia creates or manages. This project is created automatically if it does not exist. Default: omnia-catalog.</p>
                             <p>Minimum length: 1.</p>
                         </div>
                     </td>
@@ -57,7 +57,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>GitLab project visibility. Accepted values: private, internal, public. Default: private</p>
+                            <p>Visibility level for the GitLab project. private: access must be granted explicitly for each user. internal: can be cloned by any logged-in user. public: can be cloned without any authentication. Default: private.</p>
                         </div>
                     </td>
                 </tr>
@@ -73,7 +73,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Default branch for repository and API operations. Accepted values: valid git branch name. Default: main</p>
+                            <p>The default branch used for repository and API operations. This branch is used as the default for all operations. Default: main.</p>
                             <p>Minimum length: 1.</p>
                         </div>
                     </td>
@@ -90,7 +90,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>HTTPS port exposed via GitLab NGINX. Accepted values: valid port number (1-65535). Default: 443</p>
+                            <p>HTTPS port exposed via GitLab NGINX. Must be between 1-65535 and must not conflict with other services. Default: 443.</p>
                             <p>Range: 1-65535.</p>
                         </div>
                     </td>
@@ -124,7 +124,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Minimum free disk space in GB required before install. Accepted values: integer &gt;= 20. Default: 20</p>
+                            <p>Free disk space in GB validated before install. GitLab requires at least 20GB of free disk space. Default: 20.</p>
                             <p>Minimum: 20.</p>
                         </div>
                     </td>
@@ -158,7 +158,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Minimum CPU core count required before install. Accepted values: integer &gt;= 1. Default: 2</p>
+                            <p>Minimum CPU core count validated before install. More cores may be needed for production workloads. Default: 2.</p>
                             <p>Minimum: 1.</p>
                         </div>
                     </td>
@@ -175,7 +175,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Puma web worker count. Scale with CPU count. Accepted values: integer (1-64). Default: 2</p>
+                            <p>Number of Puma web worker processes. Scale with CPU cores (recommended: 1-2 workers per CPU core). Default: 2.</p>
                             <p>Range: 1-64.</p>
                         </div>
                     </td>
@@ -192,7 +192,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Sidekiq background job concurrency. Accepted values: integer (1-200). Default: 10</p>
+                            <p>Sidekiq background job concurrency. Adjust based on available memory and workload. Default: 10.</p>
                             <p>Range: 1-200.</p>
                         </div>
                     </td>

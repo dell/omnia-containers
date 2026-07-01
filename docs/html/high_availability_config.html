@@ -41,7 +41,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Required. Name of the Kubernetes service cluster. Must match the service cluster name defined elsewhere.</p>
+                            <p>Name of the Kubernetes cluster for which you want to set up HA. Must match the service cluster name defined elsewhere.</p>
                             <p>Minimum length: 1.</p>
                         </div>
                     </td>
@@ -60,7 +60,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Mandatory. Must be true. Service Kubernetes cluster deployment is supported only in HA mode.</p>
+                            <p>Set to true to enable HA for the Kubernetes cluster. Service Kubernetes cluster deployment is supported only in HA mode. Accepted values: true or false.</p>
                         </div>
                     </td>
                 </tr>
@@ -78,7 +78,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Mandatory. Virtual IP address used as the Kubernetes API endpoint for the service cluster setup.</p>
+                            <p>Virtual IP address of the admin network used as the Kubernetes API endpoint for the service cluster setup. Ensure that the virtual IP is not assigned to any node in the cluster. Example: 10.11.255.10.</p>
                         </div>
                     </td>
                 </tr>

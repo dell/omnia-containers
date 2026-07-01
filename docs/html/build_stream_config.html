@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Enable or disable build stream pipeline. Accepted values: true or false. Default: false</p>
+                            <p>Enable or disable BuildStreaM pipeline. Accepted values: boolean (true or false, yes or no). Default: false.</p>
                         </div>
                     </td>
                 </tr>
@@ -39,7 +39,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Mandatory when build stream is enabled: Build Stream API server host IP. Must be either admin IP or public IP of OIM. Accepted values: valid IPv4 address</p>
+                            <p>Build Stream API server host IP. Accepted values: the public IP address of OIM or admin IP of OIM. The public IP address should be reachable from the GitLab server. Default: the admin IP of OIM.</p>
                         </div>
                     </td>
                 </tr>
@@ -55,7 +55,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Build Stream API server port. Accepted values: valid port number (1-65535). Default: 443</p>
+                            <p>BuildStreaM API server port. Accepted values: valid port number (1-65535) which is free. Default: 8010.</p>
                         </div>
                     </td>
                 </tr>
@@ -71,7 +71,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>AArch64 inventory host IP for aarch64 builds. Must be in same subnet as OIM admin IP. Accepted values: valid IPv4 address, empty string, or null</p>
+                            <p>Specify the aarch64 inventory host IP address for aarch64 builds. Accepted values: the admin IP of aarch64 host where OS is installed. Default: None. If not specified, build images for aarch64 are not generated.</p>
                         </div>
                     </td>
                 </tr>

@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Enable BMC discovery via OME. When true, ome_ip must be a valid IP address.</p>
+                            <p>Set to true to enable BMC discovery via OME. When false, OME credentials will not be prompted during prepare_oim. Accepted values: true or false. Default: false.</p>
                         </div>
                     </td>
                 </tr>
@@ -39,7 +39,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>IP address of the Dell OpenManage Enterprise (OME) instance.</p>
+                            <p>IP address of the Dell OpenManage Enterprise (OME) instance used for server discovery and inventory collection. Required when enable_bmc_discovery is set to true. Example: 192.168.1.100. Default: empty string.</p>
                         </div>
                     </td>
                 </tr>

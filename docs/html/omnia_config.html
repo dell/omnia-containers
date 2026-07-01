@@ -340,6 +340,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>Indicates if Kubernetes will be deployed or not. Accepted values: true or false.</p>
                         </div>
                     </td>
                 </tr>
@@ -357,6 +358,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>Determines whether ETCD is deployed on local disk or NFS storage. When true, ETCD is deployed on local disk on all master nodes prioritizing BOSS card if available. When false, ETCD storage is provisioned using NFS. Default: false.</p>
                         </div>
                     </td>
                 </tr>
@@ -374,7 +376,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>K8s CNI plugin to use for this cluster.</p>
+                            <p>Kubernetes SDN network. Accepted values: calico. Default: calico.</p>
                         </div>
                     </td>
                 </tr>
@@ -392,7 +394,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Kubernetes pod network CIDR for internal network</p>
+                            <p>IP range used by the loadbalancer for assigning external IPs to Kubernetes services. Ensure the IP range is not assigned to any node in the cluster.</p>
                         </div>
                     </td>
                 </tr>
@@ -410,7 +412,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CIDR for K8s service IPs.</p>
+                            <p>Kubernetes internal network for services. This network must be unused in your network infrastructure. Default: 10.233.0.0/18.</p>
                         </div>
                     </td>
                 </tr>
@@ -428,7 +430,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>CIDR for K8s pod network.</p>
+                            <p>Kubernetes pod network CIDR for internal communication. This network must be unused in your network infrastructure. Default: 10.233.64.0/18.</p>
                         </div>
                     </td>
                 </tr>
@@ -446,7 +448,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>The NFS client server name mentioned in storage_config.yml</p>
+                            <p>Name of the NFS client server as mentioned in storage_config.yml. Used to set up the NFS provisioner on the K8s service cluster for PV provisioning.</p>
                         </div>
                     </td>
                 </tr>
@@ -464,7 +466,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Absolute file path for the secret.yaml file.</p>
+                            <p>Absolute file path for the CSI PowerScale driver secret.yaml file. Required when using Dell PowerScale storage with the Kubernetes cluster.</p>
                         </div>
                     </td>
                 </tr>
@@ -482,7 +484,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>File path for the values.yaml file.</p>
+                            <p>Absolute file path for the CSI PowerScale driver values.yaml file. Required when csi_powerscale_driver_secret_file_path is provided.</p>
                         </div>
                     </td>
                 </tr>
@@ -500,7 +502,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                            <p>Storage size for CRI-O in Gigabytes only (example: 10G, 15G, 100G)</p>
+                            <p>Storage size for CRI-O container runtime. Specify in Gigabytes (e.g., 10G, 15G, 100G). Default: 10G.</p>
                         </div>
                     </td>
                 </tr>

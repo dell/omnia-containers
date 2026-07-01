@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Specifies the type of operating system for the cluster.</p>
+                            <p>Specify the operating system running on the OIM and the one to be provisioned on the compute nodes. Accepted value: rhel.</p>
                         </div>
                     </td>
                 </tr>
@@ -39,7 +39,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Specifies the version of the operating system for the cluster.</p>
+                            <p>The OS version that will be provisioned on compute nodes. Accepted value: 10.0.</p>
                         </div>
                     </td>
                 </tr>
@@ -55,7 +55,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Specifies how repository configurations are handled.</p>
+                            <p>Controls how Omnia sets up and manages the local Pulp repository. In case of &#x27;always&#x27;, packages are downloaded and cached on OIM during local_repo.yml execution. In case of &#x27;partial&#x27;, packages are not pre-downloaded; OIM downloads from upstream URLs when needed. Accepted values: always, partial. Default: always.</p>
                         </div>
                     </td>
                 </tr>

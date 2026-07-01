@@ -23,7 +23,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Kubernetes internal network for services</p>
+                            <p>Kubernetes SDN network. Accepted values: calico. Default: calico</p>
                         </div>
                     </td>
                 </tr>
@@ -39,7 +39,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Kubernetes pod network CIDR for internal network</p>
+                            <p>Kubernetes internal network for services. This network must be unused in your network infrastructure. Default: 10.233.0.0/18</p>
                         </div>
                     </td>
                 </tr>
@@ -55,7 +55,7 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Kubernetes pod network CIDR for internal network</p>
+                            <p>IP range used by the loadbalancer for assigning external IPs to Kubernetes services. Ensure the IP range is not assigned to any node in the cluster.</p>
                         </div>
                     </td>
                 </tr>
