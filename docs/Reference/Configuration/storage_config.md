@@ -1,85 +1,99 @@
 
 # storage_config.yml Reference
 
-
 File path: `/opt/omnia/input/project_default/storage_config.yml`
 
 This file configures shared storage for the cluster, including NFS mounts,
-BeeGFS parallel filesystem settings, and Dell PowerScale/PowerVault
-integration.
+Dell PowerScale/PowerVault and swap configuration.
 
-## NFS configuration
-
-
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `nfs_client_params` | String | No | `nosuid,rw,sync,hard,intr` | Default NFS mount options applied to all NFS client mounts. |
-| `nfs_shares` | List | No | `[]` | List of NFS export definitions. Each entry defines a server path, client mount point, and options. |
-| `nfs_shares[].server` | String | Yes | (none) | IP address or hostname of the NFS server (e.g., `10.5.0.100` or `nfs.hpc.example.com`). |
-| `nfs_shares[].server_path` | String | Yes | (none) | Export path on the NFS server (e.g., `/exports/home`). |
-| `nfs_shares[].client_mount_path` | String | Yes | (none) | Mount point on the cluster nodes (e.g., `/home`). |
-| `nfs_shares[].mount_options` | String | No | Value of `nfs_client_params` | Per-share mount options that override the global default. |
-
-## BeeGFS configuration
-
-
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `beegfs_enabled` | Boolean | No | `false` | Enable BeeGFS client installation and configuration on cluster nodes. |
-| `beegfs_mgmt_server` | String | Conditional | (none) | IP address or hostname of the BeeGFS management server. Required when `beegfs_enabled` is `true`. |
-| `beegfs_mount_path` | String | No | `/mnt/beegfs` | Local mount point for the BeeGFS filesystem on client nodes. |
-| `beegfs_client_config_path` | String | No | `/etc/beegfs/beegfs-client.conf` | Path to the BeeGFS client configuration file. |
-| `beegfs_connInterfacesFile` | String | No | (none) | Path to a file listing network interfaces for BeeGFS communication (one interface per line). |
-| `beegfs_connNetFilterFile` | String | No | (none) | Path to a file listing allowed subnets for BeeGFS traffic. |
-
-## PowerScale configuration
-
-
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `powerscale_enabled` | Boolean | No | `false` | Enable PowerScale NFS export mounting on cluster nodes. |
-| `powerscale_server` | String | Conditional | (none) | SmartConnect zone name or IP of the PowerScale cluster. Required when `powerscale_enabled` is `true`. |
-| `powerscale_exports` | List | Conditional | `[]` | List of PowerScale NFS exports to mount. Each entry uses the same schema as `nfs_shares[]`. |
-
-## PowerVault ME5 configuration
-
-
-| Parameter | Type | Required | Default | Description |
-| --- | --- | --- | --- | --- |
-| `powervault_enabled` | Boolean | No | `false` | Enable PowerVault ME5 iSCSI volume mapping on cluster nodes. |
-| `powervault_mgmt_ip` | String | Conditional | (none) | Management IP address of the PowerVault ME5 controller. Required when `powervault_enabled` is `true`. |
-| `powervault_volumes` | List | Conditional | `[]` | List of volume-to-host mappings. Each entry specifies a LUN, target nodes, and a mount point. |
-| `powervault_volumes[].volume_name` | String | Yes | (none) | Name of the pre-created PowerVault volume/LUN. |
-| `powervault_volumes[].mount_path` | String | Yes | (none) | Local mount point on the target node(s). |
-
+## Mounts
+--8<-- "html/storage_config-mounts.html"
+## Mount_params
+--8<-- "html/storage_config-mount_params.html"
+## PowerVault
+--8<-- "html/storage_config-powervault_config.html"
+## Swap
+--8<-- "html/storage_config-swap.html"
+## S3
+--8<-- "html/storage_config-s3_configurations.html"
 ## Usage example
-
-
 ```yaml title="File: /opt/omnia/input/project_default/storage_config.yml"
-nfs_client_params: "nosuid,rw,sync,hard,intr"
-nfs_shares:
-  - server: "10.5.0.100"
-    server_path: "/exports/home"
-    client_mount_path: "/home"
-  - server: "10.5.0.100"
-    server_path: "/exports/scratch"
-    client_mount_path: "/scratch"
-    mount_options: "rw,sync,noatime"
+---
+mounts:
+  - name: "nfs_slurm"
+    source: "172.16.107.168:/mnt/share/omnia"
+    mount_point: "/share_omnia"
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr"
+    mount_on_oim: true
+    functional_group_prefix: ["slurm", "login"]
 
-beegfs_enabled: false
+  - name: "nfs_k8s"
+    source: "172.16.107.121:/mnt/share/omnia_k8s"
+    mount_point: "/opt/omnia/k8s_mount"
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard,intr"
+    mount_on_oim: true
+    functional_group_prefix: ["service_kube"]
 
-powerscale_enabled: true
-powerscale_server: "powerscale-sc.hpc.example.com"
-powerscale_exports:
-  - server_path: "/ifs/data/hpc"
-    client_mount_path: "/data"
+  - name: "vast_storage"
+    source: "172.16.107.77:/share/vast"
+    mount_point: "/mnt/vast"
+    mount_params: "vast_rdma"
+    mount_on_oim: true
+    functional_group_prefix: ["slurm_node", "login"]
 
-powervault_enabled: false
+mount_params:
+  # Default NFS mount
+  nfs_default:
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard"
+    dump_freq: "0"
+    fsck_pass: "0"
+
+  # VAST NFS RDMA storage over IB - standard configuration
+  vast_rdma:
+    fs_type: "nfs"
+    mnt_opts: "proto=rdma,nconnect=8,timeo=600,retrans=2,rsize=1048576,wsize=1048576,hard"
+
+  vast_tcp:
+    fs_type: "nfs"
+    mnt_opts: "nosuid,rw,sync,hard"
+
+powervault_config:
+  - name: powervault1
+    ip:
+      - 172.1.2.3
+    port: 3260
+    iscsi_initiator: iqn.2025-01.com.dell:scontrol-node
+    volume_id: 00c0ff4343f1f1f1001c8c4e6901000000
+    # mount params
+    mount_point: "/mnt/slurm"
+    mount_params: "powervault_iscsi"
+    node_key: "local_hostname" # per_node_id,node_subdir_key
+    node_mount_point: # bind_paths, sub_mounts
+      - "/var/lib/mysql" # /mnt/slurm/<local_hostname>/var/lib/mysql
+      - "/var/spool/slurm" # /mnt/slurm/<local_hostname>/var/spool/slurm
+    functional_group_prefix: ["slurm_control_node"]
+    permissions:
+      owner: "slurm"
+      group: "slurm"
+      mode: "0750"
+
+swap:
+  - name: "compute_swap"
+    filename: "/swapfile"
+    size: "2G"
+    maxsize: "4G"
+    functional_group_prefix: ["slurm_node"]
+
+s3_configurations:
+  provider: "powerscale"
+  endpoint_url: ""
 ```
 
 
 !!! info
 
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
-    - [Beegfs Server Setup](../Appendices/beegfs_server_setup.md) -- BeeGFS server setup.
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.

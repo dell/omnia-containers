@@ -89,6 +89,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>Name of the software package to be configured./p>
                         </div>
                     </td>
                 </tr>
@@ -106,6 +107,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>Specific version of the software package. If omitted, the default version is used.</p>
                         </div>
                     </td>
                 </tr>
@@ -123,22 +125,23 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>List of architectures for which this software package is applicable. Accepted values: x86_64, aarch64.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-additional_software"></div>
-                            <p class="omnia-title" id="module-parameter-additional-software">
-                                <strong>additional_software</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_custom"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-custom">
+                                <strong>slurm_custom</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Array of additional software packages to be configured.</p>
+                            <p>List of Slurm custom role names. Defines the roles used in Slurm cluster deployment.</p>
                         </div>
                     </td>
                 </tr>
@@ -146,8 +149,8 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-additional_software/name"></div>
-                            <p class="omnia-title" id="module-parameter-additional-software-name">
+                            <div class="ansibleOptionAnchor" id="parameter-slurm_custom/name"></div>
+                            <p class="omnia-title" id="module-parameter-slurm-custom-name">
                                 <strong>name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
@@ -156,48 +159,32 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
+                            <p>Role name. Accepted values: slurm_control_node, slurm_node, login_node, login_compiler_node.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
-                        <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-additional_software/version"></div>
-                            <p class="omnia-title" id="module-parameter-additional-software-version">
-                                <strong>version</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-bcm_roce"></div>
-                            <p class="omnia-title" id="module-parameter-bcm-roce">
-                                <strong>bcm_roce</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s">
+                                <strong>service_k8s</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Array of BCM RoCE libraries.</p>
+                            <p>List of service Kubernetes role names. Defines the roles used in service K8s cluster deployment.</p>
                         </div>
                     </td>
                 </tr>
-                <tr class="row-odd">
+                <tr class="row-even">
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-bcm_roce/name"></div>
-                            <p class="omnia-title" id="module-parameter-bcm-roce-name">
+                            <div class="ansibleOptionAnchor" id="parameter-service_k8s/name"></div>
+                            <p class="omnia-title" id="module-parameter-service-k8s-name">
                                 <strong>name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
@@ -206,39 +193,23 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-bcm_roce/version"></div>
-                            <p class="omnia-title" id="module-parameter-bcm-roce-version">
-                                <strong>version</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
+                            <p>Role name. Accepted values: service_kube_control_plane_first, service_kube_control_plane, service_kube_node.</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
                     <td>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu">
-                                <strong>amdgpu</strong>
+                            <div class="ansibleOptionAnchor" id="parameter-additional_packages"></div>
+                            <p class="omnia-title" id="module-parameter-additional-packages">
+                                <strong>additional_packages</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Array of AMDGPU software components.</p>
+                            <p>List of roles that receive additional packages. Combines both Slurm and K8s roles plus the base OS role.</p>
                         </div>
                     </td>
                 </tr>
@@ -246,8 +217,8 @@
                     <td>
                         <div class="omnia-indent"></div>
                         <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/name"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu-name">
+                            <div class="ansibleOptionAnchor" id="parameter-additional_packages/name"></div>
+                            <p class="omnia-title" id="module-parameter-additional-packages-name">
                                 <strong>name</strong>
                             </p>
                             <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
@@ -256,122 +227,7 @@
                     <td>
                         <div class="omnia-indent-desc"></div>
                         <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-amdgpu/version"></div>
-                            <p class="omnia-title" id="module-parameter-amdgpu-version">
-                                <strong>version</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-pytorch"></div>
-                            <p class="omnia-title" id="module-parameter-pytorch">
-                                <strong>pytorch</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Array of PyTorch components.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-pytorch/name"></div>
-                            <p class="omnia-title" id="module-parameter-pytorch-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-tensorflow"></div>
-                            <p class="omnia-title" id="module-parameter-tensorflow">
-                                <strong>tensorflow</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Array of TensorFlow components.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-tensorflow/name"></div>
-                            <p class="omnia-title" id="module-parameter-tensorflow-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi"></div>
-                            <p class="omnia-title" id="module-parameter-intelgaudi">
-                                <strong>intelgaudi</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Array of Intel Gaudi components.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-indent"></div>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-intelgaudi/name"></div>
-                            <p class="omnia-title" id="module-parameter-intelgaudi-name">
-                                <strong>name</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-indent-desc"></div>
-                        <div class="omnia-cell">
+                            <p>Role name. Accepted values: service_kube_control_plane_first, service_kube_control_plane, service_kube_node, slurm_control_node, slurm_node, login_node, login_compiler_node, os.</p>
                         </div>
                     </td>
                 </tr>

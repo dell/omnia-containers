@@ -4,8 +4,7 @@
 
 File path: `/opt/omnia/input/project_default/network_spec.yml`
 
-This file defines all network segments used by the Omnia cluster: admin, BMC,
-compute, and public networks. Each network is described as an entry in the
+This file defines all network segments used by the Omnia cluster: admin, ib, and additional networks. Each network is described as an entry in the
 `Networks` list.
 
 ## Top-level structure
@@ -18,7 +17,9 @@ YAML list of network definitions.
 Networks:
   - admin_network:
       ...
-  - bmc_network:
+  - ib_network:
+      ...
+  - additional_subnets:
       ...
 ```
 ## admin_network parameters
