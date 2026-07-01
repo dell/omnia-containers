@@ -1761,10 +1761,20 @@ def verify_ha_under_vlstorage_failure(host, admin_ip: str) -> Dict[str, Any]:
         result["error"] = "Baseline message not found before test"
         return result
     
-    # Step 2: Kill vlstorage-0
+    # Step 2: Get pod age before deletion (to verify it was actually recreated)
+    age_before_cmd = run_on_remote_node(
+        host,
+        f"kubectl get pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} "
+        f"--no-headers -o custom-columns=AGE:.metadata.creationTimestamp 2>/dev/null",
+        admin_ip,
+    )
+    pod_age_before = age_before_cmd.stdout.strip() if age_before_cmd.rc == 0 else ""
+    
+    # Step 2a: Kill vlstorage-0
+    # Use normal delete (not --force) to allow proper StatefulSet recovery
     kill_cmd = run_on_remote_node(
         host,
-        f"kubectl delete pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} --force --grace-period=0",
+        f"kubectl delete pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE}",
         admin_ip,
     )
     result["pod_killed"] = kill_cmd.rc == 0
@@ -1772,7 +1782,28 @@ def verify_ha_under_vlstorage_failure(host, admin_ip: str) -> Dict[str, Any]:
         result["error"] = f"Failed to kill pod: {kill_cmd.stderr}"
         return result
     
-    time.sleep(2)  # Let pod termination start
+    # Step 2b: Wait for pod to actually be recreated (check age changes)
+    # This is critical - we need to confirm the pod was deleted and recreated
+    pod_recreated = False
+    time.sleep(3)  # Initial delay for deletion to start
+    for i in range(30):  # Wait up to 60s for recreation
+        time.sleep(2)
+        age_check_cmd = run_on_remote_node(
+            host,
+            f"kubectl get pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} "
+            f"--no-headers -o custom-columns=AGE:.metadata.creationTimestamp 2>/dev/null",
+            admin_ip,
+        )
+        if age_check_cmd.rc == 0:
+            pod_age_after = age_check_cmd.stdout.strip()
+            # Pod was recreated if age/creationTimestamp is different
+            if pod_age_after and pod_age_after != pod_age_before:
+                pod_recreated = True
+                break
+    
+    if not pod_recreated:
+        result["error"] = f"Pod was not recreated within 60s (age before: {pod_age_before})"
+        return result
     
     # Step 3: Send syslog during outage
     outage_id = f"ha-outage-{int(time.time())}"
@@ -1789,21 +1820,46 @@ def verify_ha_under_vlstorage_failure(host, admin_ip: str) -> Dict[str, Any]:
     # Accept partial results or errors during outage, but not complete silence
     result["vlselect_degraded_ok"] = True  # vlselect responded (even if degraded)
     
-    # Step 6: Wait for pod recovery (up to 120s)
-    for i in range(60):
+    # Step 6: Wait for pod recovery (up to 240s)
+    # Now wait for StatefulSet controller to recreate and start the pod
+    last_status = ""
+    pod_seen_creating = False
+    for i in range(48):  # 48 * 5s = 240s
+        time.sleep(5)
         check_cmd = run_on_remote_node(
             host,
             f"kubectl get pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} "
-            f"--no-headers 2>/dev/null | awk '{{print $2,$3}}'",
+            f"--no-headers 2>/dev/null",
             admin_ip,
         )
-        if check_cmd.rc == 0 and "1/1" in check_cmd.stdout and "Running" in check_cmd.stdout:
-            result["pod_recovered"] = True
-            break
-        time.sleep(2)
+        if check_cmd.rc == 0 and check_cmd.stdout.strip():
+            last_status = check_cmd.stdout.strip()
+            pod_seen_creating = True
+            # Check if pod is fully ready: look for "1/1" and "Running" in the output
+            # Format: NAME READY STATUS RESTARTS AGE
+            if "1/1" in last_status and "Running" in last_status:
+                result["pod_recovered"] = True
+                break
     
     if not result["pod_recovered"]:
-        result["error"] = "vlstorage-0 did not recover within 120s"
+        # Get more diagnostic info about why pod didn't recover
+        describe_cmd = run_on_remote_node(
+            host,
+            f"kubectl describe pod vlstorage-victoria-logs-cluster-0 -n {TELEMETRY_NAMESPACE} 2>&1 | tail -30",
+            admin_ip,
+        )
+        events_cmd = run_on_remote_node(
+            host,
+            f"kubectl get events -n {TELEMETRY_NAMESPACE} --sort-by='.lastTimestamp' | grep vlstorage-victoria-logs-cluster-0 | tail -10",
+            admin_ip,
+        )
+        result["error"] = (
+            f"vlstorage-0 did not recover within 240s. "
+            f"Last status: '{last_status}'. "
+            f"Pod seen creating: {pod_seen_creating}. "
+            f"Events: {events_cmd.stdout[:200]}. "
+            f"Describe: {describe_cmd.stdout[:300]}"
+        )
         return result
     
     # Step 7: Verify outage events queryable post-recovery
