@@ -1140,7 +1140,7 @@ The default ``8Gi`` persistent volume size is suitable for small clusters (typic
 
 **Symptom**
 
-LDMS metrics are not appearing in the telemetry dashboard or are missing expected data points.
+LDMS metrics do not appear in the telemetry dashboard or are missing expected data points.
 
 **Cause**
 
@@ -1158,6 +1158,198 @@ Check the status of LDMS components and review logs for errors:
    kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
    sudo systemctl status ldmsd.sampler.service
    /opt/ovis-ldms/sbin/ldms_ls ...
+
+7.4 iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
+-----------------------------------------------------------------
+
+**Symptom**
+
+iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in 0/1 Ready state. New nodes do not appear as telemetry sources after provisioning.
+
+**Example errors**
+In the VictoriaPump / KafkaPump container logs:
+- `ERROR failed to subscribe to Redfish event service: 401 Unauthorized`
+- `ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)`
+- `WARN activemq: connection refused tcp 127.0.0.1:61616`
+- `ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused`
+
+**Cause**
+
+- Incorrect or expired iDRAC credentials in the vault (``idrac_username`` / ``idrac_password``), resulting in 401 Unauthorized errors
+- Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs block new ones)
+- iDRAC firmware does not support Redfish Telemetry/EventService (older iDRAC9 firmware)
+- Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump in the receiver pod is not ready)
+- Collection type misconfiguration (``idrac_telemetry_collection_type`` does not include the expected sink)
+- Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers
+
+**Diagnostics**
+
+Identify telemetry pods:
+
+.. code-block:: bash
+
+   kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
+
+Inspect iDRAC telemetry receiver pod (contains MySQL, ActiveMQ, KafkaPump, VictoriaPump):
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations describe pod <idrac-telemetry-pod>
+   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
+   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+
+Verify Redfish reachability and credentials from the OIM:
+
+.. code-block:: bash
+
+   curl -sk -u "$IDRAC_USER:$IDRAC_PASS" https://<idrac-ip>/redfish/v1/EventService | head
+
+List existing Redfish subscriptions (delete stale ones if at the limit):
+
+.. code-block:: bash
+
+   curl -sk -u "$IDRAC_USER:$IDRAC_PASS" \
+     https://<idrac-ip>/redfish/v1/EventService/Subscriptions
+
+Confirm metrics landed in VictoriaMetrics:
+
+.. code-block:: bash
+
+   curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+
+**Resolution**
+
+- Correct ``idrac_username`` / ``idrac_password`` in the Ansible vault, then re-run ``telemetry.yml``. Verify with the curl command above (expect 200).
+- Delete orphaned Redfish subscriptions using ``curl -X DELETE ...``, then allow the receiver to re-subscribe.
+- Update iDRAC firmware to a version that supports Redfish EventService/Telemetry, then re-run telemetry.
+- If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
+- Set ``idrac_telemetry_collection_type`` to victoria, kafka, or victoria,kafka to match where you expect data, then re-run.
+- Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
+
+.. note:: iDRAC telemetry is enabled by ``idrac_telemetry_support: true`` and routed per ``idrac_telemetry_collection_type`` in ``input/telemetry_config.yml``. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
+
+7.5 VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
+--------------------------------------------------------------------------
+
+**Symptom**
+
+Grafana panels show "No data" or queries time out or return partial series. One or more vmstorage, vminsert, or vmselect pods are in CrashLoopBackOff, Pending, or Evicted state. Recent samples are missing while older data is present (ingestion lag).
+
+Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
+
+**Example errors**
+vmstorage:
+- ``panic: cannot open storage at "/storage": no space left on device``
+vminsert:
+- ``cannot send data to vmstorage node "vmstorage-1:8400": connection timed out``
+vmselect:
+- ``error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)``
+Pod events:
+- ``0/3 nodes are available: 3 Insufficient memory.``
+- ``Pod ephemeral local storage usage exceeds the total limit of containers``
+
+**Cause**
+
+- vmstorage PVC is full (retention or ingest volume exceeded the provisioned storage)
+- Insufficient healthy replicas (with replication factor 2, losing 2+ vmstorage pods prevents vmselect from satisfying reads)
+- Resource pressure (pods Pending or Evicted due to insufficient memory or node disk pressure)
+- TLS or certificate mismatch (expired or mismatched certificates between vminsert/vmselect and vmstorage break inter-component communication)
+- vmagent backlog (vmagent cannot reach vminsert, queues fill, and remote_write stalls)
+
+**Diagnostics**
+
+Check pod and PVC status:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+   kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
+   kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
+
+Check disk usage inside a vmstorage pod:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
+
+Check cluster health logs:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
+   kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
+
+Check vmagent remote_write health (look for failed batches or queue size):
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
+
+**Resolution**
+
+- Expand the vmstorage PVC (if the StorageClass allows allowVolumeExpansion) or reduce retention. In Omnia, set retention and sizing through the telemetry input config and re-run ``telemetry.yml``; do not manually edit the StatefulSet.
+- Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues), confirming vmselect reports enough healthy nodes.
+- Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
+- Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
+- Once vminsert is reachable, vmagent flushes its queue; verify lag closes via a recent-range query.
+
+Sizing guidance: provision vmstorage capacity from sources × active series/node × samples/series × retention. Under-provisioning the PVC is the most common cause of this issue — size for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
+
+.. note:: cluster mode, replica counts, replication factor, TLS, and retention are rendered from ``input/telemetry_config.yml`` and ``input/service_k8s.json``. Modify inputs and re-run; pod edits are transient.
+
+7.6 VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
+-------------------------------------------------------------
+
+**Symptom**
+
+Log queries return nothing or only old data; new node or syslog events never appear. vlstorage, vlinsert, or vlselect pods restart repeatedly or remain unready. There is ingestion lag between event time and searchability.
+
+Omnia (Q2) deploys VictoriaLogs in cluster mode: vlinsert, vlstorage, vlselect.
+
+**Example errors**
+vlstorage:
+- ``cannot create new part: no space left on device``
+vlinsert:
+- ``cannot proxy request to vlstorage: dial tcp <vlstorage-svc>:9491: i/o timeout``
+vlselect:
+- ``cannot perform query: some vlstorage nodes are unavailable``
+VLAgent:
+- ``syslog: failed to forward to vlinsert: connection refused``
+
+**Cause**
+
+- vlstorage PVC is full (log volume exceeded provisioned storage)
+- vlstorage nodes are unavailable (vlselect cannot complete queries)
+- VLAgent to vlinsert path is broken (syslog receiver cannot forward due to firewall, wrong service endpoint, or TLS mismatch)
+- No source configured (a device or service is not shipping syslog to VLAgent)
+
+**Diagnostics**
+
+Check pod and PVC status:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+   kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
+   kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
+   kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
+   kubectl -n telemetry-and-visualizations logs <vlselect-pod> --tail=100
+
+Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+
+.. code-block:: bash
+
+   curl -s 'http://<vlselect-svc>:9471/select/logsql/query' \
+     --data-urlencode 'query=*' --data-urlencode 'limit=1'
+
+**Resolution**
+
+- Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run ``telemetry.yml``.
+- Recover unavailable vlstorage pods so vlselect can query them.
+- Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches; confirm forwarding in VLAgent logs.
+- Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+
+.. note:: VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
 8. Authentication Issues
 ========================
