@@ -55,7 +55,7 @@ Rollback processes components in reverse order of the upgrade:
       is restored to the previous version within the Slurm and Kubernetes
       rollbacks for the affected nodes.
 
-## Phase 0: Core Container Rollback
+## Phase 0: Core Container Rollback (OIM Host)
 
 The rollback begins on the OIM host outside the `omnia_core` container.
 
@@ -286,6 +286,8 @@ cluster after recovery.
     - Rollback restores the configuration state captured during the backup
       process. Configuration changes made after the upgrade may be lost.
 
+**Rollback Workflow**
+
 During rollback, Omnia performs the following operations:
 
 1. Reads the backed-up `software_config.json` file to identify the Slurm
@@ -304,6 +306,8 @@ During rollback, Omnia performs the following operations:
 8. Validates the operational status of Slurm services.
 9. Generates a rollback status report summarizing the outcome for each node.
 
+**Configuration Restoration**
+
 The rollback process restores the pre-upgrade configuration captured during
 the upgrade backup phase. The following configuration components are restored:
 
@@ -315,6 +319,8 @@ the upgrade backup phase. The following configuration components are restored:
 
 This restoration ensures that the Slurm infrastructure returns to the same
 configuration state that existed before the upgrade was initiated.
+
+**Node Restart and Recovery Validation**
 
 After the backup configuration has been restored, Omnia performs a
 cluster-wide reboot to activate the recovered settings.
@@ -332,6 +338,8 @@ The reboot and validation workflow includes the following steps:
 - Validation checks are retried automatically to account for service startup
   delays.
 
+**Health Checks Performed**
+
 The following checks are executed during rollback validation:
 
 **Pre-Reboot Checks**
@@ -347,6 +355,8 @@ The following checks are executed during rollback validation:
 - Verify successful execution of `sinfo`.
 - Confirm that the node can participate in normal cluster operations.
 
+**Rollback Status Report**
+
 At the end of the rollback process, Omnia generates a node-level status report
 showing the outcome for every Slurm and login node. Nodes are grouped into the
 following categories:
@@ -358,6 +368,8 @@ following categories:
   within the allowed timeout period.
 - **sinfo Failure** — Slurm services failed to start correctly or did not
   respond to `sinfo` validation checks.
+
+**Post-Rollback Recommendations**
 
 After rollback completes successfully:
 

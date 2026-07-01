@@ -4,8 +4,8 @@
 Day-2 operations for managing a running Omnia cluster. These guides cover
 common administrative tasks you will perform after the initial deployment is
 complete---scaling the cluster, re-provisioning nodes, upgrading to a new
-Omnia version, managing logs, hardening security, and cleaning up the OIM
-when a fresh start is needed.
+Omnia version, rolling back a failed upgrade, managing logs, hardening
+security, and cleaning up the OIM when a fresh start is needed.
 
 !!! tip
 

@@ -97,22 +97,7 @@ This image must be present on the OIM host before you run
     Ensure the OIM host has stable internet connectivity and sufficient disk
     space while building the container image.
 
-## Upgrade Component Order
-
-The upgrade orchestrator processes components in the following fixed order:
-
-| Order | Component | Description |
-| --- | --- | --- |
-| 1 | `oim` | Omnia Infrastructure Manager (includes OpenCHAMI) |
-| 2 | `build_stream` | BuildStreaM enablement / upgrade (terminal gate) |
-| 3 | `local_repo` | Local repository staging |
-| 4 | `build_image` | Compute image rebuild |
-| 5 | `provision` | Cloud-Init and BSS configuration generation |
-| 6 | `k8s` | Kubernetes cluster upgrade |
-| 7 | `telemetry` | Telemetry component upgrade |
-| 8 | `slurm` | Slurm cluster upgrade |
-
-## Phase 0: Core Container Upgrade
+## Phase 0: Core Container Upgrade (OIM Host)
 
 The upgrade begins on the OIM host outside the `omnia_core` container.
 
@@ -171,12 +156,34 @@ The upgrade begins on the OIM host outside the `omnia_core` container.
 6. After the container swap completes, SSH into the new `omnia_core` container
    to proceed with input preparation and component upgrades.
 
-!!! note
+### Upgrade Component Order
 
-    The upgrade is designed to be safe to rerun. Validation checks run before
-    any changes are made. If a component fails, the upgrade lock is released
-    automatically. On rerun, already-completed components are skipped so only
-    pending or failed components are processed.
+The upgrade orchestrator processes components in the following fixed order:
+
+| Order | Component | Description |
+| --- | --- | --- |
+| 1 | `oim` | Omnia Infrastructure Manager (includes OpenCHAMI) |
+| 2 | `build_stream` | BuildStreaM enablement / upgrade (terminal gate) |
+| 3 | `local_repo` | Local repository staging |
+| 4 | `build_image` | Compute image rebuild |
+| 5 | `provision` | Cloud-Init and BSS configuration generation |
+| 6 | `k8s` | Kubernetes cluster upgrade |
+| 7 | `telemetry` | Telemetry component upgrade |
+| 8 | `slurm` | Slurm cluster upgrade |
+
+### Safety Mechanisms
+
+The upgrade is designed to be safe to rerun and to fail cleanly:
+
+- **Validation before changes** — All validation checks (version, locks,
+  existing upgrade state) run before any change is made to the cluster. If a
+  check fails, the upgrade stops without leaving the system in a locked state.
+- **Automatic lock cleanup** — If a component fails partway, the upgrade lock
+  is still released at the end of the run so you can investigate and rerun
+  without manually clearing locks.
+- **Idempotent reruns** — Already-completed components are skipped
+  automatically when you rerun the upgrade, so only pending or failed
+  components are processed.
 
 ## Phase 1: Prepare Upgrade
 
@@ -296,56 +303,20 @@ supported.
     When `enable_build_stream=false`, the `build_stream` component is marked
     `skipped` in the manifest instead of being left as `pending`.
 
-## Phase 2: Execute Upgrade
-
-After preparing the upgrade inputs in Phase 1, run the full upgrade:
-
-```bash title="Run on: omnia_core container"
-cd /omnia/upgrade
-ansible-playbook upgrade.yml
-```
-
-**aarch64 clusters**: If your PXE mapping file contains aarch64 functional
-groups (e.g., `slurm_node_aarch64`), you must pass an inventory file with the
-`[admin_aarch64]` group:
-
-```bash title="Run on: omnia_core container"
-cd /omnia/upgrade
-ansible-playbook upgrade.yml -i <inventory_file>
-```
-
-The inventory file must define exactly one ARM admin node under the
-`[admin_aarch64]` group. Example inventory:
-
-```ini title="Example: aarch64 inventory file"
-[admin_aarch64]
-<arm_admin_node_ip_or_hostname>
-```
-
-!!! note
-
-    - The `[admin_aarch64]` group must contain exactly one host. Multiple
-      hosts or an empty group will cause the upgrade to fail.
-    - The ARM admin node must be accessible via SSH from the OIM host.
-    - NFS must be configured on the OIM for aarch64 image building to work.
-    - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE
-      mapping file), the `-i` option is not required.
-
-The following sections describe what each component upgrade does during Phase 2
-execution. These are reference details — no additional action is required
-beyond running the playbook above.
-
 ## Kubernetes Upgrade
 
 !!! note
 
-    The Kubernetes upgrade is automatically executed as part of Phase 2. The upgrade
+    The Kubernetes upgrade is automatically executed as part of
+    [Phase 2: Execute Upgrade](#phase-2-execute-upgrade). The upgrade
     orchestrator processes the `k8s` component in the correct order (after
     `provision` and before `telemetry`) and handles all validation and status
     tracking automatically.
 
 Kubernetes upgrade provides a robust, resumable, and transparent upgrade
 process for Kubernetes clusters.
+
+**Pre-Upgrade Checklist for Kubernetes Clusters**
 
 Before initiating the Kubernetes upgrade, verify the following conditions are
 met:
@@ -366,6 +337,8 @@ met:
 9. **`.cluster_initialized` marker exists on all control planes** —
    `/etc/kubernetes/.cluster_initialized` must be present on every CP node
    (confirms provisioning completed).
+
+**Kubernetes Upgrade Workflow**
 
 The K8s upgrade follows this sequence:
 
@@ -401,6 +374,8 @@ The K8s upgrade follows this sequence:
       upgraded software and can be rebooted at any time post successful upgrade.
     - All worker nodes are upgraded sequentially (one at a time) to ensure
       cluster stability.
+
+**Primary Status File**
 
 The K8s upgrade status is tracked at
 `<K8s_NFS_mount_point>/upgrade/upgrade_status.yml`.
@@ -444,10 +419,11 @@ In this example, the upgrade status file would be located at:
 
 !!! note
 
-    The telemetry upgrade is automatically executed as part of Phase 2. The
-    upgrade orchestrator processes the `telemetry` component in the correct
-    order (after Kubernetes and before Slurm) and handles all validation and
-    status tracking automatically.
+    The telemetry upgrade is automatically executed as part of
+    [Phase 2: Execute Upgrade](#phase-2-execute-upgrade). The upgrade
+    orchestrator processes the `telemetry` component in the correct order
+    (after Kubernetes and before Slurm) and handles all validation and status
+    tracking automatically.
 
 The telemetry upgrade process upgrades telemetry components to their 2.2
 versions while ensuring minimal disruption to metric collection and monitoring
@@ -481,10 +457,10 @@ validation steps:
 
 !!! note
 
-    The Slurm upgrade is automatically executed as part of Phase 2. The
-    upgrade orchestrator processes the `slurm` component in the correct order
-    (after `telemetry`) and handles all validation and status tracking
-    automatically.
+    The Slurm upgrade is automatically executed as part of
+    [Phase 2: Execute Upgrade](#phase-2-execute-upgrade). The upgrade
+    orchestrator processes the `slurm` component in the correct order (after
+    `telemetry`) and handles all validation and status tracking automatically.
 
 The Slurm upgrade workflow updates the cloud-init and BSS configurations on
 all Slurm cluster nodes and applies the changes through a coordinated reboot
@@ -503,6 +479,8 @@ release.
       the upgrade. Do not add, remove, or modify NFS mount points until the
       upgrade has completed successfully.
 
+**Slurm Upgrade Workflow**
+
 During the Slurm upgrade, Omnia performs the following operations:
 
 1. Updates cloud-init configurations for all Slurm functional node groups.
@@ -519,6 +497,8 @@ During the Slurm upgrade, Omnia performs the following operations:
 6. Verifies the operational status of Slurm services on each node.
 7. Generates a consolidated upgrade status report for all nodes.
 
+**Node Reboot and Validation**
+
 After configuration updates are applied, Omnia initiates a cluster-wide reboot
 to activate the new settings.
 
@@ -534,6 +514,8 @@ The reboot workflow includes the following validations:
 - The validation operation is retried automatically to accommodate service
   startup delays.
 
+**Health Checks Performed**
+
 The following checks are performed for every upgraded node:
 
 **Pre-Reboot Validation**
@@ -548,6 +530,8 @@ The following checks are performed for every upgraded node:
 - Validate that Slurm services are running correctly.
 - Verify that `sinfo` returns a valid response from the node.
 
+**Upgrade Status Report**
+
 At the end of the upgrade process, Omnia generates a node-level status report
 summarizing the outcome for every node in the cluster. The report categorizes
 nodes into the following groups:
@@ -560,6 +544,8 @@ nodes into the following groups:
 - **sinfo Failure** — Slurm services failed to start correctly or did not
   respond to `sinfo` validation checks.
 
+**Post-Upgrade Recommendations**
+
 After a successful upgrade:
 
 - Verify overall cluster health using `sinfo` and `scontrol show nodes`.
@@ -570,6 +556,42 @@ After a successful upgrade:
 - Review the generated status report and investigate any nodes reported under
   the Unreachable, Reboot Failed, SSH Failure, or Sinfo Failure categories
   before returning the cluster to production use.
+
+## Phase 2: Execute Upgrade
+
+After reviewing the component-specific upgrade details above, run the full
+upgrade:
+
+```bash title="Run on: omnia_core container"
+cd /omnia/upgrade
+ansible-playbook upgrade.yml
+```
+
+**aarch64 clusters**: If your PXE mapping file contains aarch64 functional
+groups (e.g., `slurm_node_aarch64`), you must pass an inventory file with the
+`[admin_aarch64]` group:
+
+```bash title="Run on: omnia_core container"
+cd /omnia/upgrade
+ansible-playbook upgrade.yml -i <inventory_file>
+```
+
+The inventory file must define exactly one ARM admin node under the
+`[admin_aarch64]` group. Example inventory:
+
+```ini title="Example: aarch64 inventory file"
+[admin_aarch64]
+<arm_admin_node_ip_or_hostname>
+```
+
+!!! note
+
+    - The `[admin_aarch64]` group must contain exactly one host. Multiple
+      hosts or an empty group will cause the upgrade to fail.
+    - The ARM admin node must be accessible via SSH from the OIM host.
+    - NFS must be configured on the OIM for aarch64 image building to work.
+    - If your cluster has only x86_64 nodes (no aarch64 entries in the PXE
+      mapping file), the `-i` option is not required.
 
 ## Post-Upgrade Verification
 
