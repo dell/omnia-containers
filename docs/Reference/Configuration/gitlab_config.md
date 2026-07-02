@@ -14,7 +14,7 @@ pipeline, including host, project, network, and resource parameters.
 ```yaml title="File: /opt/omnia/input/gitlab_config.yml"
 ---
 # Target host
-gitlab_host: "192.168.1.50"
+gitlab_host: ""
 
 # Project settings
 gitlab_project_name: "omnia-catalog"
