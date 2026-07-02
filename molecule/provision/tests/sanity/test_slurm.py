@@ -380,18 +380,6 @@ def test_cross_node_ssh(host):
     else:
         result = {"success": False, "total_pairs": 0, "failed": 0, "failed_pairs": []}
 
-    # Fail if any unreachable or SSH failed
-    if reach["unreachable"] or not result["success"]:
-        fail_parts = []
-        if reach["unreachable"]:
-            fail_parts.append(
-                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
-            )
-        if not result["success"]:
-            fail_parts.append(f"SSH failed: {result['failed']} pairs")
-        log.failed("Cross-node SSH test failed", "; ".join(fail_parts))
-        assert False, "; ".join(fail_parts)
-
     # Build detailed output grouped by source node
     details_lines = [f"Total pairs tested: {result['total_pairs']}"]
     for node_result in result.get("node_results", []):
@@ -403,12 +391,24 @@ def test_cross_node_ssh(host):
 
     details = "\n".join(details_lines)
 
-    if result["success"]:
-        log.passed(f"Cross-node SSH working for all {result['total_pairs']} pairs", details)
-    else:
-        log.failed(f"Cross-node SSH failed for {result['failed']} pairs", details)
+    # Fail if any unreachable or SSH failed
+    if reach["unreachable"] or not result["success"]:
+        fail_parts = []
+        if reach["unreachable"]:
+            fail_parts.append(
+                f"Unreachable: {', '.join(n['hostname'] for n in reach['unreachable'])}"
+            )
+        if not result["success"]:
+            # Show which specific pairs failed
+            failed_pairs_str = ", ".join(result['failed_pairs'][:10])  # Show up to 10 failed pairs
+            if len(result['failed_pairs']) > 10:
+                failed_pairs_str += f" ... and {len(result['failed_pairs']) - 10} more"
+            fail_parts.append(f"SSH failed ({result['failed']} pairs): {failed_pairs_str}")
+        
+        log.failed("Cross-node SSH test failed", details)
+        assert False, "; ".join(fail_parts)
 
-    assert result["success"], f"Cross-node SSH failed: {', '.join(result['failed_pairs'][:5])}"
+    log.passed(f"Cross-node SSH working for all {result['total_pairs']} pairs", details)
 
 
 # =============================================================================
