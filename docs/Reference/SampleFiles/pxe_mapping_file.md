@@ -10,7 +10,6 @@ functional group, hostname, and admin network addresses via mac addresses. Omnia
 
 ## Column reference
 
-
 | Column | Required | Description |
 | --- | --- | --- |
 | `FUNCTIONAL_GROUP_NAME` | Yes | The role and architecture this node plays in the cluster. Must match a group name in `software_config.json`. Values: `slurm_control_node_x86_64`, `slurm_node_x86_64`, `slurm_node_aarch64`, `login_node_x86_64`, `login_node_aarch64`, `login_compiler_node_aarch64`, `service_kube_control_plane_x86_64`, `service_kube_node_x86_64`, `os_x86_64`, `os_aarch64`. |
@@ -25,9 +24,9 @@ functional group, hostname, and admin network addresses via mac addresses. Omnia
 | `IB_NIC_NAME` | No | InfiniBand NIC identifier (e.g., `InfiniBand.Slot.7-1`, `NIC.InfiniBand.1-3`). Used for InfiniBand network configuration. Leave blank if node does not have InfiniBand. |
 | `IB_IP` | No | Static IP address on the InfiniBand network (e.g., `192.168.0.100`). Must be within the InfiniBand subnet defined in `network_spec.yml`. Leave blank if node does not have InfiniBand. |
 
-## Sample file
-
-```text title="Sample pxe_mapping_file.csv"
+## Sample csv files
+### pxe_mapping_file.csv
+```csv
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:gg,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
@@ -40,8 +39,41 @@ service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.1
 os_x86_64,grp6,ABEF56,,os-node1,xx:yy:zz:aa:bb:ll,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60,,
 os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:ac,172.17.107.61,,
 ```
+### pxe_mapping_file.csv for single subnet DHCP
+```csv
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_x86_64,grp2,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:aa,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:gg,172.16.107.44,aa:bb:cc:dd:ff:bb,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
+slurm_node_x86_64,grp1,BBFG35,ABKD88,slurm-node3,aa:bb:cc:dd:ee:hh,172.16.107.46,aa:bb:cc:dd:ff:cc,172.17.107.46,InfiniBand.Slot.7-1,192.168.0.103
+login_node_x86_64,grp8,ABCD78,,login-compiler-node1,aa:bb:cc:dd:ee:gg,172.16.107.41,aa:bb:cc:dd:ee:bb,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.104
+login_compiler_node_x86_64,grp9,ABFG78,,login-compiler-node2,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,InfiniBand.Slot.7-1,192.168.0.105
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,InfiniBand.Slot.7-1,192.168.0.106
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,aa:bb:cc:dd:ee:hh,172.16.107.54,xx:yy:zz:aa:bb:hh,172.17.107.54,,InfiniBand.Slot.7-1,192.168.0.107
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+```
 
+### pxe_mapping_file.csv for multiple subnet DHCP
 
+```csv
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp1,DEF456,,service-kube-control-plane1,aa:bb:cc:dd:ee:03,10.41.1.15,aa:bb:cc:dd:ee:04,10.40.1.15,InfiniBand.Slot.7-2,10.42.1.15
+service_kube_control_plane_x86_64,grp1,GHI789,,service-kube-control-plane2,aa:bb:cc:dd:ee:05,10.41.1.16,aa:bb:cc:dd:ee:06,10.40.1.16,InfiniBand.Slot.7-3,10.42.1.16
+service_kube_control_plane_x86_64,grp1,JKL012,,service-kube-control-plane3,aa:bb:cc:dd:ee:07,10.41.1.17,aa:bb:cc:dd:ee:08,10.40.1.17,InfiniBand.Slot.7-4,10.42.1.17
+service_kube_node_x86_64,grp2,MNO345,,service-kube-node1,aa:bb:cc:dd:ee:09,10.41.1.18,aa:bb:cc:dd:ee:10,10.40.1.18,InfiniBand.Slot.7-5,10.42.1.18
+service_kube_node_x86_64,grp2,PQR678,,service-kube-node2,aa:bb:cc:dd:ee:11,10.41.1.19,aa:bb:cc:dd:ee:12,10.40.1.19,InfiniBand.Slot.7-6,10.42.1.19
+slurm_control_node_x86_64,grp3,ABC123,,slurm-control-node1,aa:bb:cc:dd:ee:01,10.41.0.10,aa:bb:cc:dd:ee:02,10.40.0.10,InfiniBand.Slot.7-1,10.42.0.10
+slurm_node_x86_64,grp4,STU901,2LY0B33,slurm-node1,aa:bb:cc:dd:ee:13,10.41.2.22,aa:bb:cc:dd:ee:14,10.40.2.22,InfiniBand.Slot.7-7,10.42.2.22
+slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,aa:bb:cc:dd:ee:16,10.40.2.23,InfiniBand.Slot.7-8,10.42.2.23
+login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.41.2.24,aa:bb:cc:dd:ee:18,10.40.2.24,InfiniBand.Slot.7-9,10.42.2.24
+login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.41.0.11,aa:bb:cc:dd:ee:20,10.40.0.11,InfiniBand.Slot.7-10,10.42.0.11
+os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+```
 
 ## Node Role Examples
 
@@ -107,7 +139,6 @@ os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:
 - Generic nodes with no specific cluster role.
 - Useful for standalone compute, storage, or utility nodes.
 - InfiniBand is optional.
-
 
 ## Validation rules
 
