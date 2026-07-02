@@ -119,7 +119,7 @@ See [Components](components.md) for details on Pulp's capabilities.
   local credential caching.
 - Consistent UIDs and GIDs across all cluster nodes.
 
-See [Security Model](security_model.md) for the full authentication architecture.
+See [Security Configuration Guide](security_configuration_guide.md) for the full authentication architecture.
 
 ### Telemetry pipeline
 
@@ -183,7 +183,7 @@ See [Composable Roles](composable_roles.md) for the full explanation.
 - Credential utility for generating, rotating, and rekeying encrypted
   passwords.
 
-See [Security Model](security_model.md) for details.
+See [Security Configuration Guide](security_configuration_guide.md) for details.
 
 ### Multi-architecture support
 

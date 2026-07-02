@@ -56,5 +56,5 @@ ha_etcd_external: false
     - [Omnia Config](omnia_config.md) -- Kubernetes deployment settings.
     - [Minimum Nodes](../ClusterRequirements/minimum_nodes.md) -- Minimum node
       counts for HA deployments.
-    - [Ports](../ClusterRequirements/ports.md) -- Kubernetes ports including
+    - [Ports](../../Overview/security_configuration_guide.md#kubernetes-port-requirements) -- Kubernetes ports including
       the API server.

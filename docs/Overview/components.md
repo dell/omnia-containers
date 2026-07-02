@@ -217,7 +217,7 @@ integrates with virtually every Linux distribution and application.
 
 !!! info
 
-    - [Security Model](security_model.md) -- How Omnia protects credentials and manages TLS
+    - [Security Configuration Guide](security_configuration_guide.md) -- How Omnia protects credentials and manages TLS
       certificates.
     - [Architecture](architecture.md) -- Where each component runs in the three-cluster
       model.
@@ -234,10 +234,11 @@ supporting services:
 | **TFTP** | Trivial File Transfer Protocol server for delivering iPXE binaries to booting nodes. |
 | **iPXE** | Network bootloader that replaces legacy PXE with HTTP-based boot, enabling more flexible boot script generation via BSS. |
 | **AWX** *(optional)* | Web-based UI and REST API for Ansible Tower. Provides a graphical interface for running playbooks, managing inventories, and scheduling jobs. |
-| **step-ca** | Internal certificate authority for issuing TLS certificates to cluster services. See [Security Model](security_model.md). |
+| **step-ca** | Internal certificate authority for issuing TLS certificates to cluster services. See [Security Configuration Guide](security_configuration_guide.md). |
 | **Hydra** | OAuth 2.0 and OpenID Connect (OIDC) provider for token-based authentication between services. |
 
 !!! info
 
     [Architecture](architecture.md) for a visual diagram of how these components are
     deployed across the OIM, Slurm, and Kubernetes clusters.
+

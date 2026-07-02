@@ -53,13 +53,19 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
     ---
 
-    Day-2 operations: adding and removing nodes, re-provisioning, OIM cleanup, log management, security hardening, and best practices.
+    Day-2 operations: adding and removing nodes, re-provisioning, upgrading and rolling back Omnia versions, OIM cleanup, log management, security hardening, and best practices.
 
 -   :material-book-open-variant: **[Troubleshooting](Troubleshooting/index.md)**
 
     ---
 
     Symptom-driven guides for diagnosing and resolving issues with provisioning, Slurm, Kubernetes, telemetry, authentication, and more.
+
+-   :material-book-open-variant: **[Security Configuration Guide](Overview/security_configuration_guide.md)**
+
+    ---
+
+    Security controls, authentication setup, firewall and port requirements, credential management with Ansible Vault, auditing, logging, and vulnerability scanning.
 
 </div>
 

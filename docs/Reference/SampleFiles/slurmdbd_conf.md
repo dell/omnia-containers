@@ -134,6 +134,6 @@ TCPTimeout=120                   # TCP connection timeout in seconds.
     - [Slurm Conf](slurm_conf.md) -- Companion `slurm.conf` configuration.
     - [Omnia Config](../Configuration/omnia_config.md) -- Omnia-level Slurm
       settings.
-    - [Ports](../ClusterRequirements/ports.md) -- Port 6819 for slurmdbd.
+    - [Ports](../../Overview/security_configuration_guide.md#slurm-port-requirements) -- Port 6819 for slurmdbd.
     - [Slurm documentation](https://slurm.schedmd.com/slurmdbd.conf.html) --
       Upstream parameter reference.
