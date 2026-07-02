@@ -25,7 +25,7 @@ ERROR_NO_SLURM_NODES = "No slurm compute nodes found in PXE mapping file"
 ERROR_NO_SLURM_CONTROL_NODES = "No slurm control nodes found in PXE mapping file"
 ERROR_NO_LOGIN_NODES = "No login or login compiler nodes found in PXE mapping file"
 ERROR_NO_SIF_FILES = "No SIF files found in container_images directory"
-ERROR_LDAP_CREDS_MISSING = "ldap_credentials not configured in omnia_test_config.yml"
+ERROR_LDAP_CREDS_MISSING = "ldap_credentials not configured in omnia_test_credentials.yml"
 
 # =============================================================================
 # TC1 – Apptainer Installation

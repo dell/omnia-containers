@@ -30,8 +30,9 @@ from typing import Dict, Any, List
 
 from automation_library.core import (
     load_omnia_test_config,
+    load_omnia_test_credentials,
 )
-# LDAP user creation skipped - using existing credentials from omnia_test_config.yml
+# LDAP user creation skipped - using existing credentials from omnia_test_credentials.yml
 from automation_library.slurm.vars.slurm_vars import (
     SLURM_CONTROL_NODE_FUNCTIONAL_GROUP,
     LOGIN_NODE_FUNCTIONAL_GROUP,
@@ -115,16 +116,16 @@ class _FakeSshResult:
 
 
 def _get_ldap_credentials() -> Dict[str, str]:
-    """Read LDAP credentials from omnia_test_config.yml.
+    """Read LDAP credentials from omnia_test_credentials.yml.
 
     Reads ldap_credentials in 'username:password' format (supports comma-
     separated list; only the first pair is used).  Falls back to legacy
     ldap_user / ldap_password keys for backwards compatibility.
     """
-    config = load_omnia_test_config()
+    creds = load_omnia_test_credentials()
 
     # Primary: ldap_credentials: "user:password" or "user:pass,user2:pass2"
-    ldap_credentials = config.get("ldap_credentials", "")
+    ldap_credentials = creds.get("ldap_credentials", "")
     if ldap_credentials:
         first_cred = ldap_credentials.split(",")[0].strip()
         if ":" in first_cred:
@@ -139,8 +140,8 @@ def _get_ldap_credentials() -> Dict[str, str]:
                 }
 
     # Fallback: legacy separate keys
-    ldap_user = config.get("ldap_user", "")
-    ldap_password = config.get("ldap_password", "")
+    ldap_user = creds.get("ldap_user", "")
+    ldap_password = creds.get("ldap_password", "")
     if ldap_user and ldap_password:
         return {
             "ldap_user": ldap_user,
@@ -152,7 +153,7 @@ def _get_ldap_credentials() -> Dict[str, str]:
 
 
 def _get_all_ldap_credentials() -> Dict[str, Any]:
-    """Read ALL LDAP credentials from omnia_test_config.yml.
+    """Read ALL LDAP credentials from omnia_test_credentials.yml.
 
     Reads ldap_credentials in 'username:password' format.  Supports comma-
     separated list for multiple users: "user1:pwd1, user2:pwd2, ...".
@@ -162,12 +163,12 @@ def _get_all_ldap_credentials() -> Dict[str, Any]:
         Dict with 'users' (list of dicts with ldap_user/ldap_password)
         and 'error' (empty string on success).
     """
-    config = load_omnia_test_config()
+    creds = load_omnia_test_credentials()
 
     users = []
 
     # Primary: ldap_credentials: "user:password" or "user:pass,user2:pass2"
-    ldap_credentials = config.get("ldap_credentials", "")
+    ldap_credentials = creds.get("ldap_credentials", "")
     if ldap_credentials:
         for cred_pair in ldap_credentials.split(","):
             cred_pair = cred_pair.strip()
@@ -185,8 +186,8 @@ def _get_all_ldap_credentials() -> Dict[str, Any]:
         return {"users": users, "error": ""}
 
     # Fallback: legacy separate keys
-    ldap_user = config.get("ldap_user", "")
-    ldap_password = config.get("ldap_password", "")
+    ldap_user = creds.get("ldap_user", "")
+    ldap_password = creds.get("ldap_password", "")
     if ldap_user and ldap_password:
         return {
             "users": [{"ldap_user": ldap_user, "ldap_password": ldap_password}],

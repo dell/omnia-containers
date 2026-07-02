@@ -39,7 +39,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from automation_library.core import (
     get_testinfra_host, is_local_execution, TestReport, set_current_report, get_current_report, get_test_output,
-    TestLogger, is_build_stream_enabled,
+    TestLogger, is_build_stream_enabled, encrypt_omnia_test_credentials,
 )
 
 
@@ -389,7 +389,14 @@ def pytest_generate_tests(metafunc):
 
 
 def pytest_sessionstart(session):
-    """Called before test collection - initialize report."""
+    """Called before test collection - initialize report and ensure credentials encrypted."""
+    # Ensure omnia_test_credentials.yml is encrypted before running tests
+    # This handles the case where user runs 'verify' without 'test' (converge)
+    try:
+        encrypt_omnia_test_credentials()
+    except Exception:
+        pass  # File may not exist or already encrypted - that's OK
+
     module_name = "unknown"
     if session.config.args:
         path = session.config.args[0]

@@ -26,7 +26,13 @@ import yaml
 import testinfra
 
 from ..vars.paths_vars import INPUT_BASE_PATH, PROVISION_CONFIG_FILE
-from ..vars.common_vars import SSH_OPTS, OMNIA_CORE_CONTAINER
+from ..vars.common_vars import (
+    SSH_OPTS,
+    OMNIA_CORE_CONTAINER,
+    OMNIA_TEST_CONFIG_FILE,
+    OMNIA_TEST_CREDENTIALS_FILE,
+    OMNIA_TEST_CREDENTIALS_KEY,
+)
 
 
 def _get_project_root() -> str:
@@ -36,13 +42,165 @@ def _get_project_root() -> str:
     return os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
 
 
+def _get_config_path() -> str:
+    """Get config file path (plain text, no encryption)."""
+    project_root = _get_project_root()
+    return os.path.join(project_root, OMNIA_TEST_CONFIG_FILE)
+
+
+def _get_credentials_paths() -> tuple:
+    """Get credentials file and key file paths."""
+    project_root = _get_project_root()
+    creds_path = os.path.join(project_root, OMNIA_TEST_CREDENTIALS_FILE)
+    key_path = os.path.join(project_root, OMNIA_TEST_CREDENTIALS_KEY)
+    return creds_path, key_path
+
+
+def _is_vault_encrypted(file_path: str) -> bool:
+    """Check if file is ansible-vault encrypted."""
+    if not os.path.exists(file_path):
+        return False
+    with open(file_path, "r", encoding="utf-8") as f:
+        first_line = f.readline().strip()
+    return first_line.startswith("$ANSIBLE_VAULT")
+
+
+def _create_vault_key(key_path: str) -> None:
+    """Create a new vault key file with random 32-char password."""
+    import secrets
+    key = secrets.token_urlsafe(32)[:32]
+    with open(key_path, "w", encoding="utf-8") as f:
+        f.write(key)
+    os.chmod(key_path, 0o600)
+
+
+def _decrypt_vault_file(config_path: str, key_path: str) -> Dict[str, Any]:
+    """Decrypt ansible-vault encrypted file and return as dict."""
+    try:
+        result = subprocess.run(
+            ["ansible-vault", "view", config_path, "--vault-password-file", key_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True
+        )
+        return yaml.safe_load(result.stdout) or {}
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Failed to decrypt {config_path}: {e.stderr}") from e
+    except FileNotFoundError:
+        raise ValueError("ansible-vault command not found. Install ansible.") from None
+
+
+def _encrypt_vault_file(config_path: str, key_path: str) -> bool:
+    """Encrypt file with ansible-vault."""
+    try:
+        subprocess.run(
+            ["ansible-vault", "encrypt", config_path, "--vault-password-file", key_path],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True
+        )
+        return True
+    except subprocess.CalledProcessError as e:
+        raise ValueError(f"Failed to encrypt {config_path}: {e.stderr}") from e
+    except FileNotFoundError:
+        raise ValueError("ansible-vault command not found. Install ansible.") from None
+
+
 def load_omnia_test_config() -> Dict[str, Any]:
-    """Load omnia_test_config.yml."""
-    config_path = os.path.join(_get_project_root(), "omnia_test_config.yml")
-    if os.path.exists(config_path):
-        with open(config_path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    return {}
+    """
+    Load omnia_test_config.yml (plain text - no encryption).
+
+    Config file contains non-sensitive settings (IPs, paths, options).
+    Sensitive credentials are in omnia_test_credentials.yml.
+
+    Returns:
+        Dict containing the configuration
+    """
+    config_path = _get_config_path()
+
+    if not os.path.exists(config_path):
+        return {}
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+
+def load_omnia_test_credentials() -> Dict[str, Any]:
+    """
+    Load omnia_test_credentials.yml with automatic vault encryption.
+
+    This file contains sensitive credentials (passwords) that should be
+    encrypted with Ansible Vault.
+
+    Credentials loaded:
+    - oim_ssh_password: SSH password for OIM server (remote mode only)
+    - omnia_core_password: Root password for omnia_core container
+    - ldap_credentials: LDAP user credentials for testing
+
+    Behavior:
+    - If file is encrypted and key exists: decrypt and return credentials
+    - If file is encrypted and key missing: raise error
+    - If file is plain: read data, create key if missing, encrypt file, return data
+    - If file doesn't exist: return empty dict
+
+    Returns:
+        Dict containing the credentials
+    """
+    creds_path, key_path = _get_credentials_paths()
+
+    if not os.path.exists(creds_path):
+        return {}
+
+    if _is_vault_encrypted(creds_path):
+        # File is encrypted - must have key to decrypt
+        if os.path.exists(key_path):
+            return _decrypt_vault_file(creds_path, key_path)
+        else:
+            raise ValueError(
+                f"Credentials file is encrypted but key not found: {key_path}\n"
+                f"Please ensure {OMNIA_TEST_CREDENTIALS_KEY} exists in project root."
+            )
+    else:
+        # File is plain text - read it first, then encrypt
+        with open(creds_path, "r", encoding="utf-8") as f:
+            creds = yaml.safe_load(f) or {}
+
+        # Create key if not exists
+        if not os.path.exists(key_path):
+            _create_vault_key(key_path)
+
+        # Encrypt the file
+        _encrypt_vault_file(creds_path, key_path)
+
+        return creds
+
+
+def encrypt_omnia_test_credentials() -> bool:
+    """
+    Encrypt omnia_test_credentials.yml if not already encrypted.
+
+    Creates vault key (.omnia_test_credentials.key) if it doesn't exist.
+
+    Returns:
+        True if file is now encrypted, False if file doesn't exist
+    """
+    creds_path, key_path = _get_credentials_paths()
+
+    if not os.path.exists(creds_path):
+        return False
+
+    if _is_vault_encrypted(creds_path):
+        return True  # Already encrypted
+
+    # Create key if not exists
+    if not os.path.exists(key_path):
+        _create_vault_key(key_path)
+
+    # Encrypt the file
+    _encrypt_vault_file(creds_path, key_path)
+    return True
 
 
 def get_dataset_path() -> str:

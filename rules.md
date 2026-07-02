@@ -179,7 +179,8 @@ The core module provides reusable utilities used across all modules. **Never dup
 | Function | Description |
 |----------|-------------|
 | `get_testinfra_host()` | Returns a testinfra `Host` object. Local mode if `oim_server_ip` is empty/localhost, otherwise SSH. |
-| `load_omnia_test_config()` | Loads and returns the `omnia_test_config.yml` dict. |
+| `load_omnia_test_config()` | Loads and returns the `omnia_test_config.yml` dict (non-sensitive settings). |
+| `load_omnia_test_credentials()` | Loads and returns the `omnia_test_credentials.yml` dict (sensitive passwords). Auto-decrypts if vault-encrypted. |
 | `get_dataset_path()` | Returns the local dataset directory path. |
 | `is_local_execution()` | Returns `True` if running in local mode. |
 | `run_on_oim(host, cmd)` | Runs a shell command on the OIM host. Returns `CompletedProcess`. |

@@ -31,13 +31,14 @@
 - name: Sync project_default to container via rsync  # noqa: command-instead-of-module
   ansible.builtin.shell:
     cmd: >
-      rsync -avz --delete
-      -e "sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
+      rsync -avz
+      -e "sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
       {{ project_default_src }}/
       root@{{ ansible_host }}:{{ project_default_dest }}/
   delegate_to: localhost
   changed_when: true
+  no_log: true
   when: sync_enabled
 
 - name: Skip sync message
@@ -47,35 +48,39 @@
 
 # =============================================================================
 # CREATE VAULT KEY AND ENCRYPT CREDENTIALS (same as Omnia mechanism)
+# Only runs when sync_dataset_to_core is enabled
 # =============================================================================
 
 - name: Check if vault key exists in container
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "test -f {{ project_default_dest }}/{{ omnia_config_credentials_key }} && echo EXISTS || echo NOT_FOUND"
   delegate_to: localhost
   register: vault_key_check
   changed_when: false
+  no_log: true
+  when: sync_enabled
 
 - name: Create vault key file in container (32 char random password)  # noqa: risky-shell-pipe
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "head -c 32 /dev/urandom | base64 | head -c 32 > {{ project_default_dest }}/{{ omnia_config_credentials_key }} &&
       chmod 600 {{ project_default_dest }}/{{ omnia_config_credentials_key }}"
   delegate_to: localhost
   changed_when: true
-  when: vault_key_check.stdout == "NOT_FOUND"
+  no_log: true
+  when: sync_enabled and vault_key_check.stdout | default('') == "NOT_FOUND"
 
 - name: Check if credentials file is already encrypted  # noqa: risky-shell-pipe
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "head -n1 {{ project_default_dest }}/{{ omnia_config_credentials_file }} 2>/dev/null | grep -q 'ANSIBLE_VAULT' && echo ENCRYPTED || echo PLAIN"
@@ -83,11 +88,13 @@
   register: cred_file_check
   changed_when: false
   failed_when: false
+  no_log: true
+  when: sync_enabled
 
 - name: Encrypt omnia_config_credentials.yml in container
   ansible.builtin.shell:
     cmd: >
-      sshpass -p '{{ omnia_test_config.omnia_core_password }}' ssh -p 2222
+      sshpass -p '{{ omnia_test_credentials.omnia_core_password }}' ssh -p 2222
       -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
       root@{{ ansible_host }}
       "cd {{ project_default_dest }} &&
@@ -95,8 +102,10 @@
       --vault-password-file {{ omnia_config_credentials_key }}"
   delegate_to: localhost
   changed_when: true
-  when: cred_file_check.stdout == "PLAIN"
+  no_log: true
+  when: sync_enabled and cred_file_check.stdout | default('') == "PLAIN"
 
 - name: Display sync and encryption result
   ansible.builtin.debug:
     msg: "project_default synced and credentials encrypted on {{ ansible_host }}"
+  when: sync_enabled

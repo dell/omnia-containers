@@ -22,9 +22,15 @@
 #   - name:        Unique identifier for this mount entry. Mandatory
 #                  Pattern: [a-zA-Z0-9_-], length 1-64
 #   - source:      Device or network path. Mandatory
-#                  e.g., /dev/sdc, UUID=xxx, 192.168.1.100:/export/share
+#                  For NFS: server_ip:/export/path (e.g., 192.168.1.100:/export/share, nfs-server.example.com:/home)
+#                  For local: /dev/sdc, UUID=xxx, LABEL=xxx
+#                  For CIFS: //server/share
+#                  Note: NFS paths must be resolvable at boot time (use IP or DNS-resolvable hostname)
 #   - mount_point: Absolute path for the mount point. Mandatory
-#                  Pattern: /path/to/dir
+#                  Must be an absolute path starting with / (e.g., /home, /mnt/vast, /opt/data)
+#                  Avoid system directories (/etc, /sys, /proc, /boot, /root, /tmp)
+#                  Common patterns: /mnt/*, /opt/*, /home, /var/lib/*
+#                  Note: Path must be unique across all mount entries
 #
 # Optional fields:
 #   - mount_params: Named profile key from mount_params section. Optional
@@ -44,7 +50,7 @@
 #
 # Node-specific bind mounts (node_key and node_mount_point are paired):
 #   - node_key:         Per-node subdirectory isolation variable. Optional
-#                       Allowed values:
+#                       Allowed values: 
 #                           - "local_hostname" - hostname of the node
 #                           - "local_ipv4" - IPv4 address of the node
 #                           - "instance_id" - instance ID of the node from cloud-init
@@ -73,7 +79,7 @@
 #
 
 # Example: static mount with all explicit params (no profile)
-#         which will be mounted on functional groups
+#         which will be mounted on functional groups 
 #         slurm_control_node_x86_64, slurm_node_x86_64, slurm_login_x86_64
 # mounts:
 # Example: static mount using profile
@@ -100,12 +106,8 @@
 #     functional_group_prefix: ["slurm_node"]
 
 #   # On node001 generates fstab:
-#   #   /mnted/scratch/node001/scratch  /scratch  none  bind  0  0
-#   #   /mnted/scratch/node001/tmp      /tmp      none  bind  0  0
-#   # slurm.conf: SlurmdSpoolDir=/scratch,/tmp
-
-# /mnt/scratch /mnted/sctratch nfs4 defaults,nofail,_netdev,x-systemd.after=cloud-init-network.service 0 0
-# /mnted/scratch/node001/var/log/state  /var/log/state  none  bind  0  0
+#   #   /mnt/vast/node001/scratch  /scratch  none  bind  0  0
+#   #   /mnt/vast/node001/tmp      /tmp      none  bind  0  0
 mounts:
   - name: "nfs_slurm"
     source: "172.16.107.168:/mnt/share/omnia"

@@ -35,7 +35,7 @@
 # ============================================================================
 # STORAGE REQUIREMENTS SUMMARY
 # ============================================================================
-#
+# 
 # victoria_metrics STORAGE:
 # ┌─────────────────┬──────────────────┬─────────────────┬──────────────────┐
 # │ Deployment Mode │ Per-Pod Storage  │ Number of Pods  │ Total Storage    │
@@ -424,7 +424,7 @@ powerscale_configurations:
 
   # Path to the CSM Observability (Karavi Observability) values.yaml file
   # Required when powerscale_configurations.powerscale_telemetry_support: true
-  # Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.16.3/charts/karavi-observability/values.yaml
+  # Reference: https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml
   csm_observability_values_file_path: ""
 
 # --------------------------------------------------------------------------

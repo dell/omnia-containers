@@ -359,7 +359,7 @@ def check_regctl_registry_images(host, arch: str = "x86_64") -> Dict[str, Any]:
         expected_images.append(f"rhel-{fg}")
 
     # Run regctl repo ls command
-    regctl_cmd = host.run(f"regctl repo ls {registry_url} 2>/dev/null")
+    regctl_cmd = host.run(f"regctl repo ls --limit 500 {registry_url} 2>/dev/null")
 
     if regctl_cmd.rc != 0:
         return {

@@ -67,17 +67,11 @@ def _get_omnia_test_config_job_id() -> str:
     Returns the UUID string if set and non-empty, otherwise empty string.
     This is the local file (project root), NOT inside any container.
     """
-    project_root = os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
-    omnia_test_config_path = os.path.join(project_root, "omnia_test_config.yml")
-    if not os.path.exists(omnia_test_config_path):
-        return ""
+    from .host_func import load_omnia_test_config
     try:
-        with open(omnia_test_config_path, "r", encoding="utf-8") as fh:
-            config = yaml.safe_load(fh) or {}
+        config = load_omnia_test_config()
         return str(config.get("build_stream_job_id", "") or "").strip()
-    except (IOError, yaml.YAMLError):
+    except (IOError, yaml.YAMLError, ValueError):
         return ""
 
 

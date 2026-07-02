@@ -74,9 +74,9 @@ def run_command(cmd: List[str], timeout: Optional[int] = None) -> Tuple[int, str
         except subprocess.TimeoutExpired:
             _log(f"Remote command timed out after {timeout}s", "ERROR")
             return -1, "", "Command timed out"
-        except Exception as e:
-            _log(f"Remote command exception: {str(e)}", "ERROR")
-            return -1, "", str(e)
+        except Exception:
+            _log("Remote command execution failed unexpectedly", "ERROR")
+            return -1, "", "Remote command execution failed"
     else:
         # Run locally
         _log(f"Running command: {' '.join(cmd)}", "DEBUG")
@@ -91,9 +91,9 @@ def run_command(cmd: List[str], timeout: Optional[int] = None) -> Tuple[int, str
         except FileNotFoundError:
             _log(f"Command not found: {cmd[0]}", "ERROR")
             return -1, "", f"Command not found: {cmd[0]}"
-        except Exception as e:
-            _log(f"Command exception: {str(e)}", "ERROR")
-            return -1, "", str(e)
+        except Exception:
+            _log("Command execution failed unexpectedly", "ERROR")
+            return -1, "", "Command execution failed"
 
 
 def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
@@ -116,9 +116,9 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
         except subprocess.TimeoutExpired:
             _log(f"Remote shell command timed out after {timeout}s", "ERROR")
             return -1, "", "Command timed out"
-        except Exception as e:
-            _log(f"Remote shell exception: {str(e)}", "ERROR")
-            return -1, "", str(e)
+        except Exception:
+            _log("Remote shell execution failed unexpectedly", "ERROR")
+            return -1, "", "Remote shell execution failed"
     else:
         # Run locally
         _log(f"Running shell: {cmd}", "DEBUG")
@@ -129,9 +129,9 @@ def run_shell(cmd: str, timeout: Optional[int] = None) -> Tuple[int, str, str]:
         except subprocess.TimeoutExpired:
             _log(f"Shell command timed out after {timeout}s", "ERROR")
             return -1, "", "Command timed out"
-        except Exception as e:
-            _log(f"Shell exception: {str(e)}", "ERROR")
-            return -1, "", str(e)
+        except Exception:
+            _log("Shell execution failed unexpectedly", "ERROR")
+            return -1, "", "Shell execution failed"
 
 
 def validate_ssh_connection() -> Dict:

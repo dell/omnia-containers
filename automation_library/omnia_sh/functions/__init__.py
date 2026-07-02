@@ -36,3 +36,12 @@ from .omnia_sh_func import (
     check_fstab_entry_removed,
     check_mount_removed,
 )
+
+# NFS validation and install/uninstall functions
+from .omnia_sh_func import (
+    validate_nfs_config,
+    download_omnia_sh_script,
+    run_omnia_sh_install_testinfra,
+    run_omnia_sh_uninstall_testinfra,
+    setup_internal_nfs_server,
+)

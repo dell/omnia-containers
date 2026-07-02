@@ -40,12 +40,13 @@ This framework automates testing of Omnia Infrastructure Manager (OIM) deploymen
 ### How It Works
 
 1. **`omnia_test_config.yml`** drives all automation — it defines the OIM server connection, hardware thresholds, deployment options, and dataset selection.
-2. **`setup_env.sh`** creates a Python virtual environment, installs dependencies, and registers the `oim-prereq-check` CLI and `run_molecule` shell function.
-3. **Molecule scenarios** follow a `create → converge → verify` lifecycle:
+2. **`omnia_test_credentials.yml`** stores sensitive credentials (passwords) separately — automatically encrypted with Ansible Vault on first run.
+3. **`setup_env.sh`** creates a Python virtual environment, installs dependencies, and registers the `oim-prereq-check` CLI and `run_molecule` shell function.
+4. **Molecule scenarios** follow a `create → converge → verify` lifecycle:
    - **create.yml** — Builds dynamic Ansible inventory from `omnia_test_config.yml` and verifies SSH connectivity.
    - **converge.yml** — Optionally syncs dataset files into the `omnia_core` container at `/opt/omnia/input/project_default/`, then executes the target playbook via `podman exec`.
    - **verify** — Runs pytest-testinfra tests that use `automation_library` functions to validate deployment state.
-4. **`automation_library/core/`** provides shared utilities for host connections, config loading, container command execution, PXE mapping parsing, credential decryption, and report generation.
+5. **`automation_library/core/`** provides shared utilities for host connections, config loading, container command execution, PXE mapping parsing, credential decryption, and report generation.
 
 ### Local Mode vs Remote Mode
 
@@ -74,14 +75,17 @@ source .venv/bin/activate
 # 4. Configure your OIM server
 vi omnia_test_config.yml
 
-# 5. (Optional) Fill dataset files — required only for converge/test runs
+# 5. Configure credentials (passwords)
+vi omnia_test_credentials.yml
+
+# 7. (Optional) Fill dataset files — required only for converge/test runs
 vi datasets/project_default/network_spec.yml
 vi datasets/project_default/software_config.json
 
-# 6. Run prerequisite checks
+# 8. Run prerequisite checks
 oim-prereq-check
 
-# 7. Run molecule tests
+# 9. Run molecule tests
 run_molecule telemetry verify --suite sanity   # Single scenario
 run_molecule all test                          # Full lifecycle
 run_molecule --config                          # Batch from config file
@@ -95,7 +99,7 @@ run_molecule --config                          # Batch from config file
 
 ### omnia\_test\_config.yml
 
-This is the central configuration file. Every automation script reads from it. Edit this file before running any tests.
+This is the central configuration file for non-sensitive settings. Every automation script reads from it. Edit this file before running any tests.
 
 > **Full parameter reference:** [docs/input_reference.md](docs/input_reference.md)
 
@@ -104,11 +108,24 @@ Key parameters:
 | Parameter | Description |
 |-----------|-------------|
 | `oim_server_ip` | OIM server IP. Leave empty for local mode. |
-| `oim_ssh_user` / `oim_ssh_password` | SSH credentials for remote mode. |
+| `oim_ssh_user` | SSH username for remote mode. |
 | `dataset` | Dataset folder name under `datasets/` (default: `project_default`). |
 | `sync_dataset_to_core` | When `true`, syncs dataset files into the container during converge. |
 | `share_option` | Storage backend for omnia.sh: `NFS` or `Local`. |
+
+### omnia\_test\_credentials.yml
+
+This file stores all sensitive credentials (passwords). It is **automatically encrypted** with Ansible Vault on first Molecule run.
+
+| Parameter | Description |
+|-----------|-------------|
+| `oim_ssh_password` | SSH password for remote OIM server (remote mode only). |
 | `omnia_core_password` | Root password for `omnia_core` container SSH (port 2222). |
+| `ldap_credentials` | LDAP user credentials for cluster login tests (format: `user:pass` or `user1:pass1,user2:pass2`). |
+| `external_ldap_bind_username` | External LDAP bind username for slapd.conf configuration. |
+| `external_ldap_bind_password` | External LDAP bind password for slapd.conf configuration. |
+
+> **Security:** The credentials file is automatically encrypted using Ansible Vault. The vault key is stored in `.omnia_test_credentials.key` (gitignored). On each Molecule run, the file is decrypted, used, and re-encrypted.
 
 ### Datasets
 
@@ -234,7 +251,9 @@ Reports are generated in `reports/` after execution:
 
 ```
 omnia-artifactory/
-├── omnia_test_config.yml              # Central config — OIM server, credentials, dataset
+├── omnia_test_config.yml              # Central config — OIM server, settings, dataset
+├── omnia_test_credentials.yml         # Sensitive credentials (auto-encrypted with Vault)
+├── .omnia_test_credentials.key        # Vault encryption key (gitignored)
 ├── test_run_config.yml                # Batch scenario runner config
 ├── requirements.txt                   # Python dependencies
 ├── setup.py                           # Package setup (omnia-automation)
