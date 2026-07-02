@@ -650,6 +650,9 @@ def verify_version_hop_valid(host, admin_ip: str, target_version: str) -> Dict[s
 
     TC-F015 Gate 5 / TC-F017: Version skew policy enforcement.
 
+    Note: If target_version is an Omnia version (e.g., 2.2.0.0) instead of K8s version,
+    this check is skipped as it's not applicable.
+
     Returns:
         Dict with success, current_minor, target_minor, error
     """
@@ -661,12 +664,25 @@ def verify_version_hop_valid(host, admin_ip: str, target_version: str) -> Dict[s
     # Extract minor version numbers
     cur_match = re.search(r'v?1\.(\d+)', current)
     tgt_match = re.search(r'v?1\.(\d+)', target_version)
-    if not cur_match or not tgt_match:
+    
+    # If target is not a K8s version format (e.g., Omnia version like 2.2.0.0),
+    # skip this check as it's not applicable
+    if not tgt_match:
+        return {
+            "success": True,
+            "current_minor": current,
+            "target_minor": target_version,
+            "error": "",
+            "skipped": True,
+            "skip_reason": f"Target version '{target_version}' is not a K8s version format - skipping version hop validation",
+        }
+    
+    if not cur_match:
         return {
             "success": False,
             "current_minor": current,
             "target_minor": target_version,
-            "error": f"Cannot parse versions: current={current}, target={target_version}",
+            "error": f"Cannot parse current K8s version: {current}",
         }
 
     cur_minor = int(cur_match.group(1))

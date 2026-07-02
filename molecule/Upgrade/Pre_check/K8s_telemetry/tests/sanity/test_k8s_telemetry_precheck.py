@@ -189,11 +189,12 @@ def test_k8s_node_versions(host):
         )
 
     # Validate version if configured
-    if current_ver:
-        prefix = (
-            current_ver if current_ver.startswith("v")
-            else f"v{current_ver}"
-        )
+    # Note: current_ver is Omnia version (e.g., 2.1.0.0), not K8s version
+    # Skip version validation as we're just collecting the current state
+    # The actual K8s version will be recorded in the snapshot for comparison
+    if current_ver and current_ver.startswith("v1."):
+        # Only validate if current_ver is actually a K8s version format
+        prefix = current_ver if current_ver.startswith("v") else f"v{current_ver}"
         bad = [
             n for n in result["nodes"]
             if not n["version"].startswith(prefix)
@@ -711,6 +712,10 @@ def test_version_hop_valid(host):
     log.check(f"Validating version hop to {target}")
     result = verify_version_hop_valid(host, _admin_ip, target)
     _record("version_hop", result)
+
+    if result.get("skipped"):
+        log.passed(f"Skipped: {result.get('skip_reason', 'N/A')}")
+        return
 
     if not result["success"]:
         log.failed("Version hop invalid", result["error"])

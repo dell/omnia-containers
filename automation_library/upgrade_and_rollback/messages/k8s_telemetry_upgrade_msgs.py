@@ -78,7 +78,7 @@ PRECHECK_LOG_MSGS: Dict[str, str] = {
     "checking_calico": "Collecting Calico pod status",
     "checking_metallb": "Collecting MetalLB pod status",
     "collecting_lb_ips": "Recording LoadBalancer service external IPs",
-    "lb_service": "  {ns}/{name}: {ip}",
+    "lb_service": "  {namespace}/{name}: {external_ip}",
     "collecting_helm": "Collecting Helm releases in telemetry namespace",
     "helm_release": "  {name}: chart={chart} status={status}",
     "collecting_telemetry": "Collecting telemetry pod status",
