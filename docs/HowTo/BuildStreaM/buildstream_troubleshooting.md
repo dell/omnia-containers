@@ -1,178 +1,112 @@
-
 # BuildStreaM Troubleshooting
 
-
-Diagnose and resolve common BuildStreaM issues including pipeline failures,
-registry problems, GitLab errors, and runner configuration issues.
+Diagnose and resolve common BuildStreaM issues including pipeline stage
+failures, container service problems, GitLab errors, and runner
+configuration issues.
 
 ## Overview
 
-
-BuildStreaM integrates multiple components: GitLab, GitLab Runner, the local
-container registry, and the Omnia playbook engine. Failures can occur at any
-stage. This guide provides systematic troubleshooting for each component.
-
+BuildStreaM integrates multiple components: GitLab, GitLab Runner,
+the BuildStreaM API server, PostgreSQL database, Playbook Watcher,
+and the Omnia playbook engine. Failures can occur at any pipeline stage.
+This guide provides systematic troubleshooting for each component.
 
 ## Prerequisites
 
-
-- GitLab is deployed (see [Deploy Gitlab](deploy_gitlab.md)).
-- A BuildStreaM catalog is configured (see [Update Catalog Pipeline](update_catalog_pipeline.md)).
-- `root` or `sudo` access to the OIM host and the omnia_core container.
-
+- GitLab is deployed (see [Deploy GitLab](deploy_gitlab.md)).
+- A BuildStreaM catalog is configured (see [Update Catalog & Pipelines](update_catalog_pipeline.md)).
+- `root` access to the OIM host and the omnia_core container.
 
 ## Procedure
 
+### BuildStreaM service failures
 
-### Pipeline Failures
+1. **Verify BuildStreaM services are running**:
 
+    ```bash title="Run on: OIM host"
+    systemctl status omnia_build_stream.service
+    systemctl status omnia_postgres.service
+    systemctl status playbook_watcher.service
+    ```
 
-1. **View pipeline logs** in GitLab:
+2. **Check BuildStreaM service logs**:
 
-   Navigate to **CI/CD** > **Pipelines** > click the failed pipeline > click
-   the failed job. Read the job output from bottom to top for the error.
+    ```bash title="Run on: OIM host"
+    journalctl -u omnia_build_stream --no-pager
+    journalctl -u omnia_postgres --no-pager
+    ```
 
-2. **Common validation-stage failures**:
+3. **Check authentication logs**:
 
-   ```bash title="Run on: omnia_core container"
-   # Manually re-run validation to see errors
-   cd /omnia
-   ansible-playbook input_validator.yml -v
-   ```
+    ```bash title="Run on: OIM host"
+    cat /<nfs-dir>/omnia/log/build_stream/auth.log
+    ```
 
+### Pipeline stage failures
 
-   Common causes:
+4. **View pipeline logs** in GitLab:
 
-   - `catalog.yml` YAML syntax error
-   - Missing required fields
-   - IP address outside configured range
-   - Duplicate service tags or MAC addresses
+    Navigate to **Build** > **Pipelines** > click the failed pipeline >
+    click the failed job. Read the job output from bottom to top for the
+    error.
 
-3. **Common provision-stage failures**:
+5. **Check job-specific logs on the OIM**:
 
-   ```bash title="Run on: omnia_core container"
-   # Test BMC connectivity for a specific node
-   curl -sk https://<bmc-ip>/redfish/v1/ -u root:<password>
-   ```
+    ```bash title="Run on: OIM host"
+    ls /<nfs-dir>/omnia/log/build_stream/<job-id>/
+    cat /<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log
+    ```
 
+6. **Common parse-catalog failures**:
 
-   Common causes:
+    - Invalid JSON schema format in `catalog_rhel.json`.
+    - Catalog structure does not match expected schema.
+    - Verify against reference examples at `https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog`.
 
-   - BMC unreachable (network or credential issue)
-   - PXE boot failure (check DHCP and TFTP services)
-   - Vault password not available to runner
+7. **Common create-local-repository failures**:
 
-4. **Common configure-stage failures**:
+    - Playbook execution failed. Check the `log_file_path` field in the API response.
+    - Configuration issues in `local_repo_config.yml`.
 
-   ```bash title="Run on: omnia_core container"
-   # Test node connectivity
-   ansible all -m ping -v
-   ```
+8. **Common build-image failures**:
 
+    - The catalog does not have predefined functional groups.
+    - Playbook execution errors. Check the API response log path.
 
-   Common causes:
+9. **Common deploy failures**:
 
-   - Node not reachable (provisioning incomplete)
-   - Package installation failure (repo sync issue)
-   - Service startup failure on target node
+    - Functional groups in PXE mapping file do not match `catalog_rhel.json`.
+    - Check the API response log path for detailed error information.
 
+### GitLab and runner issues
 
-### GitLab Issues
+10. **GitLab is unresponsive or slow**:
 
+    ```bash title="Run on: GitLab node"
+    podman stats gitlab --no-stream
+    podman logs gitlab --tail=30
+    ```
 
-5. **GitLab is unresponsive or slow**:
+11. **Runner is offline or not picking up jobs**:
 
-   ```bash title="Run on: OIM host"
-   podman stats gitlab --no-stream
-   podman logs gitlab --tail=30
-   ```
+    Navigate to **Settings** > **CI/CD** > **Runners** in GitLab.
+    Verify the runner shows a green status indicator.
 
-
-   If memory is exhausted, increase the container memory limit or add swap:
-
-   ```bash title="Run on: OIM host"
-   # Check available memory
-   free -h
-
-   # Restart GitLab with more memory
-   podman stop gitlab
-   podman rm gitlab
-   # Re-create with --memory=16g flag
-   ```
-
-
-6. **GitLab "502 Bad Gateway"**:
-
-   ```bash title="Run on: OIM host"
-   # GitLab internal services may be restarting
-   podman exec gitlab gitlab-ctl status
-
-   # Restart GitLab services
-   podman exec gitlab gitlab-ctl restart
-   ```
-
-
-7. **GitLab database migration errors**:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab gitlab-rake db:migrate
-   podman exec gitlab gitlab-ctl reconfigure
-   ```
-
-
-
-### Runner Issues
-
-
-8. **Runner is offline or not picking up jobs**:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab-runner gitlab-runner list
-   podman exec gitlab-runner gitlab-runner verify
-   ```
-
-
-   If the runner is stale, re-register it:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab-runner gitlab-runner unregister --all-runners
-   podman exec gitlab-runner gitlab-runner register \
-     --non-interactive \
-     --url "http://<oim-ip>:8082" \
-     --token "<new-registration-token>" \
-     --executor "shell" \
-     --description "omnia-runner"
-   ```
-
-
-9. **Runner fails with "permission denied"**:
-
-   Ensure the runner has access to the omnia_core container and playbooks:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab-runner ls /omnia/
-   # If not mounted, add a volume mount when re-creating the runner container
-   ```
-
-
-10. **Runner jobs time out**:
+12. **Runner jobs time out**:
 
     Increase the job timeout in GitLab:
 
     - Navigate to **Settings** > **CI/CD** > **General pipelines** > **Timeout**.
-    - Set to `2 hours` or longer for provisioning jobs.
+    - Set to `2 hours` or longer for provisioning and build jobs.
 
+### Registry issues
 
-### Registry Issues
-
-
-11. **Container registry is unreachable**:
+13. **Container registry is unreachable**:
 
     ```bash title="Run on: OIM host"
     systemctl status registry.service
     podman logs registry
     ```
-
 
     Restart the registry:
 
@@ -180,96 +114,49 @@ stage. This guide provides systematic troubleshooting for each component.
     systemctl restart registry.service
     ```
 
-
-12. **Image push/pull fails**:
+14. **Image push/pull fails**:
 
     ```bash title="Run on: OIM host"
-    # Test registry connectivity
     curl -s http://localhost:5000/v2/_catalog
     ```
 
+### General debugging
 
-    If using HTTPS with self-signed certificates, add the registry to the
-    insecure registries list:
-
-    ```bash title="Run on: OIM host"
-    cat /etc/containers/registries.conf | grep insecure
-    ```
-
-
-
-### General Debugging
-
-
-13. **Enable verbose Ansible output** in pipelines:
-
-    Edit `.gitlab-ci.yml` to add `-vvv` to playbook commands:
-
-    ```yaml title="File: .gitlab-ci.yml"
-    configure_cluster:
-      stage: configure
-      script:
-        - cd /omnia
-        - ansible-playbook omnia.yml --ask-vault-pass -vvv
-    ```
-
-
-14. **Check system resources** on the OIM:
+15. **Check system resources** on the OIM:
 
     ```bash title="Run on: OIM host"
-    # Check disk space
     df -h
-
-    # Check memory
     free -h
-
-    # Check running containers
     podman ps -a
-
-    # Check container resource usage
     podman stats --no-stream
     ```
 
-
-
 ## Verification
-
 
 After resolving issues, verify the pipeline works end-to-end:
 
-1. **Make a trivial change** to the catalog (e.g., add a comment).
-2. **Push the change** and verify the validation stage passes.
-3. **Trigger the full pipeline** and confirm all stages complete.
-
-```bash title="Run on: omnia_core container"
-cd /opt/omnia/buildstream-catalog
-echo "# Test commit $(date)" >> catalog.yml
-git add catalog.yml
-git commit -m "Test pipeline trigger"
-git push origin main
-```
-
-
+1. Make a trivial change to the catalog or input files.
+2. Push the change and verify the pipeline triggers.
+3. Confirm all stages complete with green checkmarks.
 
 ## Next Steps
 
-
-- [Update Catalog Pipeline](update_catalog_pipeline.md) -- Resume catalog-driven deployments.
-- [Deploy Gitlab](deploy_gitlab.md) -- Reconfigure GitLab if needed.
-
+- [Update Catalog & Pipelines](update_catalog_pipeline.md) -- Resume catalog-driven deployments.
+- [Deploy GitLab](deploy_gitlab.md) -- Reconfigure GitLab if needed.
+- [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations.
 
 ## Troubleshooting
 
-
 !!! note
 
-    This page **is** the troubleshooting reference for BuildStreaM. For
-    issues not covered here:
+    This page **is** the troubleshooting how-to for BuildStreaM. For
+    the Symptom/Cause/Resolution reference, see
+    [BuildStreaM Issues](../../Troubleshooting/buildstream.md).
 
-    - Check GitLab logs: `podman logs gitlab`
-    - Check runner logs: `podman logs gitlab-runner`
-    - Check Omnia playbook logs inside the omnia_core container.
-    - Refer to the [GitLab documentation](https://docs.gitlab.com/) for
-      GitLab-specific issues.
-    - Open an issue on the `Omnia GitHub repository
-      <https://github.com/dell/omnia/issues>`_ for Omnia-specific issues.
+    Additional log locations:
+
+    - BuildStreaM API logs: `journalctl -u omnia_build_stream`
+    - PostgreSQL logs: `journalctl -u omnia_postgres`
+    - Playbook Watcher logs: `journalctl -u playbook_watcher`
+    - Job-specific logs: `/<nfs-dir>/omnia/log/build_stream/<job-id>/`
+    - Authentication logs: `/<nfs-dir>/omnia/log/build_stream/auth.log`

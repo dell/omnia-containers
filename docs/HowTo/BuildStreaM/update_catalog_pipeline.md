@@ -1,223 +1,138 @@
-
 # Update Catalog & Pipelines
 
-
-Update the BuildStreaM catalog file to modify your cluster configuration and
-trigger CI/CD pipeline runs to apply changes.
+Update the BuildStreaM `catalog_rhel.json` file to modify build requirements
+and trigger CI/CD pipeline runs to create and deploy images.
 
 ## Overview
 
+The BuildStreaM catalog is a declarative JSON file (`catalog_rhel.json`) that
+defines your build requirements:
 
-The BuildStreaM catalog is a declarative YAML file that defines your entire
-cluster configuration:
+- Functional group assignments and architecture types.
+- Operating system type and version.
+- Software packages and configurations.
 
-- Node assignments and roles.
-- Software stacks and versions.
-- Network configuration.
-- Storage and authentication settings.
+When you update the catalog and commit changes to GitLab, the build pipeline
+is automatically triggered. You can also trigger pipelines manually through
+the GitLab interface.
 
-When you update the catalog and push changes to GitLab, a CI/CD pipeline
-automatically validates the changes and (optionally) applies them to the
-cluster.
+BuildStreaM supports two primary pipeline triggers:
 
+- **Build Pipeline**: Triggered by catalog changes (commit to `catalog_rhel.json`). Creates diskless images.
+- **Deploy Pipeline**: Triggered by PXE mapping changes (update to `pxe_mapping_file.csv`). Deploys images to nodes.
 
 ## Prerequisites
 
-
-- GitLab is deployed and configured (see [Deploy Gitlab](deploy_gitlab.md)).
-- The BuildStreaM catalog repository is initialized.
+- GitLab is deployed and configured (see [Deploy GitLab](deploy_gitlab.md)).
+- The BuildStreaM catalog repository is initialized with `catalog_rhel.json`.
 - A GitLab Runner is registered and active.
-- You have Git access to the catalog repository.
-
+- You have access to the GitLab project repository.
 
 ## Procedure
 
+### Update the catalog and trigger a build
 
-1. **Clone the catalog repository** (if not already cloned):
+1. **Navigate to the GitLab project URL**:
 
-   ```bash title="Run on: omnia_core container"
-   cd /opt/omnia
-   git clone http://<oim-ip>:8082/root/buildstream-catalog.git
-   cd buildstream-catalog
-   ```
+    ```text title="GitLab project URL"
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
 
+2. Go to **Code** > **Repository** and locate `catalog_rhel.json`.
 
-2. **Edit the catalog file**:
+3. **Edit the catalog file** to define or modify build requirements.
 
-   ```bash title="Run on: omnia_core container"
-   vi catalog.yml
-   ```
+    !!! note
 
+        Ensure the catalog file contains valid values:
 
-   Example catalog structure:
+        - **Functional group names**: Use predefined functional group names only.
+        - **Architecture type**: `x86_64` or `aarch64`.
+        - **OS type**: `RHEL`.
+        - **Package types**: `rpm`, `rpm_repo`, `image`, `iso`, `tarball`, `pip_module`, `git`, `manifest`.
 
-   ```yaml title="File: /opt/omnia/buildstream-catalog/catalog.yml"
-   ---
-   catalog_version: "2.1.0"
-   cluster_name: "omnia-prod"
+    Reference examples are available at:
+    `https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog`
 
-   # Operating system
-   os:
-     type: "rhel"
-     version: "8.8"
-     iso_path: "/opt/omnia/iso/RHEL-8.8-x86_64-dvd.iso"
-
-   # Networks
-   networks:
-     admin:
-       nic: "eno1"
-       subnet: "10.5.0.0/24"
-       gateway: "10.5.0.1"
-       range: "10.5.0.100-10.5.0.200"
-     bmc:
-       nic: "eno2"
-       subnet: "10.3.0.0/24"
-       range: "10.3.0.100-10.3.0.200"
-
-   # Node groups
-   node_groups:
-     slurm_control:
-       role: "slurm_control_node"
-       nodes:
-         - service_tag: "ABCDEF1"
-           admin_ip: "10.5.0.101"
-           bmc_ip: "10.3.0.101"
-     slurm_compute:
-       role: "slurm_node"
-       nodes:
-         - service_tag: "ABCDEF2"
-           admin_ip: "10.5.0.102"
-           bmc_ip: "10.3.0.102"
-         - service_tag: "ABCDEF3"
-           admin_ip: "10.5.0.103"
-           bmc_ip: "10.3.0.103"
-
-   # Software stacks
-   software:
-     - slurm
-     - cuda
-     - apptainer
-     - openldap
-
-   # Telemetry
-   telemetry:
-     enabled: true
-     idrac: true
-     ldms: true
-   ```
-
-
-3. **Make your changes**. Common modifications include:
-
-   - Adding new nodes to a `node_groups` section.
-   - Changing the software stack.
-   - Updating network ranges.
-   - Enabling/disabling telemetry.
-
-4. **Commit and push the changes**:
-
-   ```bash title="Run on: omnia_core container"
-   cd /opt/omnia/buildstream-catalog
-   git add catalog.yml
-   git commit -m "Add 2 new compute nodes to slurm cluster"
-   git push origin main
-   ```
-
+4. **Commit and push the changes** to trigger the build pipeline automatically.
 
 5. **Monitor the pipeline** in GitLab:
 
-   Open the GitLab web UI and navigate to:
-   **CI/CD** > **Pipelines**
+    Navigate to **Build** > **Pipelines** and monitor the following stages:
 
-   The pipeline runs through the following stages:
+    - **parse-catalog**: Parses and validates the catalog file.
+    - **generate-input-files**: Generates input files and configuration data.
+    - **create-local-repository**: Creates the local repository for build artifacts.
+    - **build-image**: Builds diskless images based on catalog specifications.
 
-   - **validate** -- Checks catalog syntax and validates input files.
-   - **provision** -- Discovers and provisions new/changed nodes (manual
-     trigger).
-   - **configure** -- Applies Slurm/K8s/telemetry configuration (manual
-     trigger).
-   - **verify** -- Runs health checks on the updated cluster.
+### Update input configuration files
 
-6. **Manually trigger deployment stages**:
+You can also update input configuration files in the GitLab repository's
+`input/` folder:
 
-   In the GitLab pipeline view, click the **Play** button next to the
-   `provision` and `configure` stages to execute them.
+1. Navigate to the `input/` folder in the GitLab repository.
 
-7. **Review pipeline artifacts and logs**:
+2. Edit the relevant configuration file (e.g., `network_config.yml`, `provision_config.yml`).
 
-   Click on a completed job to view its logs. Download artifacts from the
-   **Artifacts** section if available.
+3. Commit and push the changes.
 
+### Manually trigger a build pipeline
+
+1. Navigate to **Build** > **Pipelines** and click **New Pipeline**.
+
+2. In the **Run new pipeline** dialog, enter the variable name as `PIPELINE_TYPE` and the value as `build`.
+
+3. Click **Run Pipeline**.
+
+### Trigger a deploy pipeline
+
+1. Update the `pxe_mapping_file.csv` in the GitLab repository's `input/` folder with target node information.
+
+2. Commit and push the changes to trigger the deploy pipeline automatically.
+
+3. Alternatively, manually trigger by navigating to **Build** > **Pipelines** > **New Pipeline** and setting `PIPELINE_TYPE` to `deploy`.
+
+!!! note
+
+    - BuildStreaM supports only one catalog file and one pipeline trigger at a time.
+    - Each pipeline processes changes independently. Once a pipeline completes, you can modify files and re-trigger.
+    - Multiple pipelines cannot run simultaneously.
 
 ## Verification
 
-
 1. **Verify the pipeline completed successfully**:
 
-   In GitLab, navigate to **CI/CD** > **Pipelines**. The latest pipeline
-   should show all stages with green checkmarks.
+    In GitLab, navigate to **Build** > **Pipelines**. The latest pipeline
+    should show all stages with green checkmarks.
 
-2. **Verify catalog changes were applied**:
+2. **Review job logs**:
 
-   ```bash title="Run on: omnia_core container"
-   # Check if new nodes were provisioned
-   ochami node list
+    Click on individual jobs to view execution logs, resource usage, and
+    error messages (if any).
 
-   # Check Slurm configuration
-   ssh <slurm-control-ip> sinfo
-   ```
+3. **For build pipelines**: Verify images were created successfully by checking the pipeline artifacts.
 
-
-3. **Run the verification stage** to confirm cluster health:
-
-   ```bash title="Run on: omnia_core container"
-   ansible all -m ping
-   ```
-
-
+4. **For deploy pipelines**: Verify target nodes have been provisioned and are accessible.
 
 ## Next Steps
 
-
-- [Buildstream Troubleshooting](buildstream_troubleshooting.md) -- Debug pipeline failures.
-- [Deploy Gitlab](deploy_gitlab.md) -- Update GitLab or runner configuration.
-
+- [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups when the count exceeds 50.
+- [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations.
+- [Deploy GitLab](deploy_gitlab.md) -- Update GitLab or runner configuration.
 
 ## Troubleshooting
 
+- **Pipeline fails at parse-catalog stage**: Ensure `catalog_rhel.json` has valid JSON syntax and matches the expected schema. Check job logs for specific validation errors.
 
-**Pipeline fails at "validate" stage**
-   Check the job logs for validation errors. Common issues:
+- **Pipeline fails at create-local-repository stage**: Verify `local_repo_config.yml` settings. Check the API response log path for detailed error information.
 
-   - YAML syntax errors in `catalog.yml`
-   - Missing required fields
-   - IP address conflicts
+- **Pipeline fails at build-image stage**: Ensure the catalog has predefined functional groups. Review job logs for Ansible playbook errors.
 
-   Fix the catalog and push a new commit.
+- **Pipeline not triggered on push**: Verify `.gitlab-ci.yml` exists in the repository root. Confirm the GitLab Runner is active and registered.
 
-**Pipeline fails at "provision" stage**
-   - Check that BMC IPs are reachable for new nodes.
-   - Verify credentials are configured.
-   - Review the Ansible playbook output in the job logs.
+- **Git push is rejected**: Verify GitLab authentication and that the repository URL is correct.
 
-**Pipeline fails at "configure" stage**
-   - Check that provisioned nodes are reachable.
-   - Verify the Vault password is available to the runner.
-   - Review Ansible output for specific task failures.
+!!! info "Related resources"
 
-**Git push is rejected**
-   Check GitLab authentication:
-
-   ```bash title="Run on: omnia_core container"
-   git remote -v
-   # Ensure URL is correct and credentials are configured
-   ```
-
-
-**Pipeline not triggered on push**
-   Verify `.gitlab-ci.yml` exists in the repository root and the runner
-   is active:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab-runner gitlab-runner list
-   ```
+    - [BuildStreaM Deployment](../../GetStarted/buildstream_deployment.md) -- End-to-end deployment tutorial.
+    - [BuildStreaM Troubleshooting](../../Troubleshooting/buildstream.md) -- Symptom/Cause/Resolution reference.
