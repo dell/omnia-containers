@@ -53,7 +53,7 @@ The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
     ---
 
-    Day-2 operations: adding and removing nodes, re-provisioning, OIM cleanup, log management, security hardening, and best practices.
+    Day-2 operations: adding and removing nodes, re-provisioning, upgrading and rolling back Omnia versions, OIM cleanup, log management, security hardening, and best practices.
 
 -   :material-book-open-variant: **[Troubleshooting](Troubleshooting/index.md)**
 

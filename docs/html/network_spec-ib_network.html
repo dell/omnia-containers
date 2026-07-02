@@ -1,0 +1,85 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-ib_network"></div>
+                    <p class="omnia-title" id="module-parameter-ib-network">
+                        <strong>ib_network</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-cell">
+                    <p>InfiniBand network configuration.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-ib_network/subnet"></div>
+                    <p class="omnia-title" id="module-parameter-ib-network-subnet">
+                        <strong>subnet</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The subnet of the IB network. Default: 192.168.0.0</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-ib_network/netmask_bits"></div>
+                    <p class="omnia-title" id="module-parameter-ib-network-netmask-bits">
+                        <strong>netmask_bits</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The number of bits in the subnet mask. Must be same as admin_network netmask_bits. Default: 24</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-ib_network/dns"></div>
+                    <p class="omnia-title" id="module-parameter-ib-network-dns">
+                        <strong>dns</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>External DNS server IP addresses for the InfiniBand network. Default: []</p>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>

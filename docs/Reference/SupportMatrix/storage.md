@@ -57,7 +57,6 @@ defined parallel filesystem running on cluster nodes.
 
     - [Storage Config](../Configuration/storage_config.md) -- Storage configuration
       parameters.
-    - [Beegfs Server Setup](../Appendices/beegfs_server_setup.md) -- BeeGFS server setup
-      reference.
+
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements
       for storage nodes.

@@ -1,0 +1,47 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-enable_bmc_discovery"></div>
+                            <p class="omnia-title" id="module-parameter-enable-bmc-discovery">
+                                <strong>enable_bmc_discovery</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">boolean</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Set to true to enable BMC discovery via OME. When false, OME credentials will not be prompted during prepare_oim. Accepted values: true or false. Default: false.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-ome_ip"></div>
+                            <p class="omnia-title" id="module-parameter-ome-ip">
+                                <strong>ome_ip</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>IP address of the Dell OpenManage Enterprise (OME) instance used for server discovery and inventory collection. Required when enable_bmc_discovery is set to true. Example: 192.168.1.100. Default: empty string.</p>
+                        </div>
+                    </td>
+                </tr>
+    </tbody>
+</table>
