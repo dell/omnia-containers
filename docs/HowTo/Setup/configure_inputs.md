@@ -23,7 +23,7 @@ The most important input files are:
 - `software_config.json` -- Defines which software stacks to deploy.
 - `network_spec.yml` -- Network configuration for admin, BMC, and compute
   networks.
-- `provision_config.yml` -- Provisioning parameters (OS image, timezone,
+- `provision_config.yml` -- Provisioning parameters (OS image, language,
   kernel options).
 - `omnia_config.yml` -- Cluster-level configuration (Slurm, K8s, storage).
 
@@ -141,7 +141,6 @@ The most important input files are:
 
    ```yaml title="File: /opt/omnia/input/project_default/provision_config.yml"
    ---
-   timezone: "America/Chicago"
    language: "en-US"
    iso_file_path: "/opt/omnia/iso/RHEL-8.8-x86_64-dvd.iso"
    default_lease_time: 86400

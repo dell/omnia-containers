@@ -1,4 +1,4 @@
-site_name: Dell Omnia
+site_name: "Omnia: Everything at once!"
 site_description: "Deploy and manage HPC, AI, and data analytics clusters on Dell PowerEdge infrastructure"
 # For deployment, set to the actual URL (e.g., https://dell.github.io/omnia/)
 site_url: ""
@@ -114,6 +114,7 @@ markdown_extensions:
 extra_css:
   - stylesheets/dell-brand.css
   - stylesheets/omnia.css
+  - stylesheets/custom-admonitions.css
 
 # Custom JS
 extra_javascript:
@@ -129,7 +130,7 @@ extra:
   generator: false
 
 # Copyright
-copyright: "Copyright &copy; 2025 Dell Technologies. All rights reserved."
+copyright: "© Copyright Dell Inc. All Rights Reserved."
 
 # Navigation
 nav:
@@ -183,7 +184,6 @@ nav:
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
-      - Configure RoCE: HowTo/Networking/configure_roce.md
     - Authentication:
       - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
       - OpenLDAP Proxy: HowTo/Authentication/setup_openldap_proxy.md
@@ -241,12 +241,12 @@ nav:
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
-      - Timezone List: Reference/Appendices/timezones.md
-      - BeeGFS Server Setup: Reference/Appendices/beegfs_server_setup.md
   - Operations:
     - Operations/index.md
     - Add / Remove Nodes: Operations/add_remove_nodes.md
     - Reprovision Cluster: Operations/reprovision_cluster.md
+    - Upgrade Omnia: Operations/upgrade_omnia.md
+    - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
     - Log Management: Operations/log_management.md
     - Security Hardening: Operations/security_hardening.md
@@ -260,6 +260,7 @@ nav:
     - Telemetry: Troubleshooting/telemetry.md
     - Authentication: Troubleshooting/authentication.md
     - BuildStreaM: Troubleshooting/buildstream.md
+    - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
     - Known Limitations: Troubleshooting/known_limitations.md
   - Contributing:
     - Contributing/index.md

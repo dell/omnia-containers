@@ -46,5 +46,5 @@ by data source.
 ## Appendices
 
 
-Supplementary reference material: naming rules, timezone values, and
+Supplementary reference material: naming rules and
 filesystem configuration details.

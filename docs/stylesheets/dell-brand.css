@@ -1,5 +1,5 @@
 /* ============================================================
-   Dell Omnia -- MkDocs Material Brand Theme
+   Omnia -- MkDocs Material Brand Theme
    Mimics squidfunk.github.io/mkdocs-material styling
    with Dell Technologies brand colors.
    ============================================================ */
@@ -98,7 +98,7 @@
 
 /* Site title */
 .md-header__title {
-  font-weight: 700;
+  font-weight: 200;
   font-size: 0.85rem;
   letter-spacing: 0.02em;
 }

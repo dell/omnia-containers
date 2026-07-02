@@ -125,7 +125,7 @@ ls -la /opt/omnia/input/project_default/
 You should see these key input files:
 
 - `network_spec.yml` -- Network CIDRs and interfaces
-- `provision_config.yml` -- OS provisioning settings (ISO path, timezone)
+- `provision_config.yml` -- OS provisioning settings (ISO path, language)
 - `software_config.json` -- Software stack selections
 - `omnia_config.yml` -- Slurm and cluster configuration
 - `security_config.yml` -- Authentication settings
@@ -207,9 +207,6 @@ Key fields to verify or set:
 ```yaml title="Example provision_config.yml excerpt"
 # Path to the RHEL or Rocky Linux ISO on the OIM
 iso_path: /opt/isos/RHEL-8.8-x86_64-dvd.iso
-
-# Timezone for provisioned nodes
-timezone: America/Chicago
 
 # Domain name for the cluster
 domain_name: omnia.local
