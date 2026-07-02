@@ -112,7 +112,7 @@ markdown_extensions:
 
 # Custom CSS
 extra_css:
-  - stylesheets/dell.css
+  - stylesheets/dell-brand.css
   - stylesheets/omnia.css
 
 # Custom JS
