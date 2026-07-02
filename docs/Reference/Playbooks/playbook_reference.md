@@ -1,7 +1,6 @@
 
 # Playbook Reference
 
-
 This page provides a quick-reference table for all Omnia playbooks, including
 their purpose, where they run, and what input files they require.
 
