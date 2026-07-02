@@ -6,7 +6,7 @@
 Omnia orchestrates the deployment of HPC and AI clusters by organizing servers
 into three distinct cluster types, each with a well-defined role. This page
 explains how those clusters relate to each other, what runs on the management
-node, and what the minimum requirements are for each tier.
+node, and what the minimum requirements are for each tier..
 
 ## Why three cluster types?
 
