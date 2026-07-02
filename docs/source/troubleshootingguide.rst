@@ -1090,7 +1090,7 @@ Expected files:
 - Remove that tool directory only if refresh is required.
 - Re-run ``/hpc_tools/scripts/pull_benchmarks.sh``.
 
-6.5 ``sacct`` Returning Empty Results
+6.5 'sacct' Erroring Out or Returning Empty Results
 --------------------------------------
 
 **Symptom**
