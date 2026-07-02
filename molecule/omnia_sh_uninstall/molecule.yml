@@ -1,4 +1,4 @@
-# Copyright 2025 Dell Inc. or its subsidiaries. All Rights Reserved.
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,21 @@
 # limitations under the License.
 
 # =============================================================================
-# Molecule Configuration for omnia.sh Uninstall Testing
+# Molecule Configuration for Omnia.sh Uninstall Testing
 # =============================================================================
 #
-# This module runs omnia.sh --uninstall and verifies uninstall was successful.
+# This module tests the omnia.sh --uninstall workflow.
+# Tests only — no converge step (uninstall is driven from within tests).
+#
+# PREREQUISITES:
+# --------------
+#   - omnia_core container running (if not running, tests will skip)
+#   - omnia.sh --install previously completed
 #
 # USAGE:
 # ------
-#   ./run_molecule.sh omnia_sh_uninstall test    # Run uninstall + verify
-#   ./run_molecule.sh omnia_sh_uninstall verify  # Verify only
+#   ./run_molecule.sh omnia_sh_uninstall verify    # Run verification tests
+#   ./run_molecule.sh omnia_sh_uninstall test      # Full test sequence
 #
 # =============================================================================
 
@@ -38,9 +44,6 @@ platforms:
 
 provisioner:
   name: ansible
-  playbooks:
-    create: ../omnia_sh/create.yml
-    converge: converge.yml
   env:
     ANSIBLE_VERBOSITY: 1
     ANSIBLE_HOST_KEY_CHECKING: "false"
@@ -55,6 +58,4 @@ verifier:
 scenario:
   name: omnia_sh_uninstall
   test_sequence:
-    - create
-    - converge
     - verify

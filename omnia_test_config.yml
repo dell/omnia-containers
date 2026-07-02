@@ -83,9 +83,6 @@ oim_server_ip: ""
 # SSH username for remote OIM server (only needed for remote mode)
 oim_ssh_user: ""
 
-# SSH password for remote OIM server (only needed for remote mode)
-oim_ssh_password: ""
-
 # SSH port (default: 22, only needed for remote mode)
 oim_ssh_port: 22
 
@@ -125,7 +122,7 @@ required_os_version: "10"
 # Required kernel version (must match exactly)
 # Example: "6.12.0-55.9.1.el10_0.x86_64"
 # Leave empty to skip kernel version check
-required_kernel_version: "6.12.0-55.9.1.el10_0.x86_64"
+required_kernel_version: ""
 
 # =============================================================================
 # NETWORK INTERFACES
@@ -194,11 +191,11 @@ omnia_repo_url: "https://github.com/dell/omnia-artifactory.git"
 artifactory_branch: "omnia-container"
 
 # Path where Omnia Artifactory will be cloned (default: /opt/omnia-artifactory)
-omnia_clone_path: "/opt/omnia-artifactory"
+omnia_clone_path: ""
 
 # Core image version tag
 # Usage: ./build_images.sh core core_tag=1.1 omnia_branch=pub/q1_dev
-core_tag: ""
+core_tag: "2.2"
 
 # Omnia branch/tag for core image build
 # Will build the core container with the below omnia branch/tag code
@@ -217,33 +214,18 @@ omnia_branch: ""
 # Choose how omnia will store data:
 #   "NFS"   - Use NFS share (uses nfs_server_ip and nfs_share_path above)
 #   "Local" - Use local disk storage
-share_option: "NFS"
+share_option: ""
 
 # NFS type (only if share_option is "NFS")
 #   "external" - External NFS server (outside OIM) - for HA and K8s clusters
 #   "internal" - NFS server on OIM itself - for flat provisioning only
-nfs_type: "external"
+nfs_type: "NFS"
 
 # Omnia shared path (REQUIRED)
 # This is the local directory where omnia data will be stored
 # - For external NFS: This path will be used as mount point for NFS share
 # - For Local: This directory will store omnia data directly
 omnia_shared_path: ""
-
-# Root password for accessing omnia_core container via SSH (REQUIRED)
-omnia_core_password: ""
-
-# =============================================================================
-# LDAP CONFIGURATION (for LDAP login tests)
-# =============================================================================
-# LDAP user credentials for testing LDAP SSH login on cluster nodes
-
-# LDAP credentials for testing SSH login (REQUIRED for LDAP tests)
-# Format: Single user or comma-separated list of user:password pairs
-# Examples:
-#   ldap_credentials: "ldapuser:ldappassword"
-#   ldap_credentials: "ldapuser:ldappassword,ldapuser1:ldappassword1,ldapuser2:ldappassword2"
-ldap_credentials: ""
 
 # =============================================================================
 # LDAP SLAPD.CONF CONFIGURATION (for external LDAP slapd.conf test)
@@ -259,12 +241,6 @@ external_ldap_server_port: ""
 # Used to build DC (e.g., omnia.test -> dc=omnia,dc=test)
 # For omnia.test.cluster -> dc=omnia,dc=test,dc=cluster
 external_ldap_domain: ""
-
-# External LDAP bind username (REQUIRED)
-external_ldap_bind_username: ""
-
-# External LDAP bind password (REQUIRED)
-external_ldap_bind_password: ""
 
 # =============================================================================
 # BUILD STREAM JOB OVERRIDE
@@ -324,23 +300,6 @@ image_identifier: ""
 #                                                                             #
 # #############################################################################
 # Used by the upgrade_omnia_sh and rollback_omnia_sh molecule scenarios.
-#
-# ┌──────────────────────────────────────────────────────────────────────────┐
-# │  VERSION CONFIGURATION                                                   │
-# │                                                                          │
-# │  current_version = LOWER version (e.g. 2.1.0.0) - the "from" version    │
-# │  new_version     = HIGHER version (e.g. 2.2.0.0) - the "to" version     │
-# │                                                                          │
-# │  UPGRADE TEST (upgrade_omnia_sh):                                        │
-# │    - Upgrades from current_version → new_version                        │
-# │    - Runs if container is at current_version                            │
-# │    - Fails if container is already at new_version                       │
-# │                                                                          │
-# │  ROLLBACK TEST (rollback_omnia_sh):                                      │
-# │    - Rolls back from new_version → current_version                      │
-# │    - Runs if container is at new_version (upgrade was done)             │
-# │    - Fails if container is at current_version (nothing to rollback)     │
-# └──────────────────────────────────────────────────────────────────────────┘
 
 upgrade:
   # Lower version (upgrade FROM this, rollback TO this)
@@ -348,10 +307,6 @@ upgrade:
 
   # Higher version (upgrade TO this, rollback FROM this)
   new_version: "2.2.0.0"
-
-  # -------------------------------------------------------------------------
-  # Repository & Build Settings
-  # -------------------------------------------------------------------------
 
   # Git URL of omnia-artifactory (contains build_images.sh)
   repo_url: "https://github.com/dell/omnia-artifactory.git"
@@ -361,7 +316,7 @@ upgrade:
 
   # Omnia branch/tag passed to build_images.sh for building the core image
   # Usage: ./build_images.sh core core_tag=<auto> omnia_branch=<this value>
-  omnia_branch: "pub/q2_upgrade"
+  omnia_branch: ""
 
   # -------------------------------------------------------------------------
   # Clone Path Configuration
@@ -370,5 +325,5 @@ upgrade:
   # Base directory for cloning omnia-artifactory repository
   # Default: "/upgrade" (creates /upgrade-2.2.0.0 for version 2.2.0.0)
   # Custom example: "/opt/omnia-upgrade" (creates /opt/omnia-upgrade/upgrade-2.2.0.0)
-  # IMPORTANT: This must NOT be the same as or a subdirectory of omnia_shared_path
+  # IMPORTANT: This must NOT be the same as or subdirectory of omnia_shared_path
   # clone_base_path: "/upgrade"

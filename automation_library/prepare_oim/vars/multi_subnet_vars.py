@@ -13,40 +13,45 @@
 # limitations under the License.
 
 """
-Core Common Variables.
+Prepare OIM - Multi-Subnet Configuration Variables.
 
-Shared constants used across all core functions.
+Constants for multi-subnet (multi-RAC) CoreDHCP verification.
 """
 
 # =============================================================================
-# CONTAINER CONFIGURATION
+# CoreDHCP Configuration
 # =============================================================================
 
-OMNIA_CORE_CONTAINER = "omnia_core"
-PODMAN_EXEC_PREFIX = f"podman exec {OMNIA_CORE_CONTAINER} bash -lc"
+# Path to coredhcp.yaml on the OIM host (outside container)
+COREDHCP_CONFIG_PATH = "/etc/openchami/configs/coredhcp.yaml"
 
 # =============================================================================
-# GIT URL BASE  (shared across upgrade, rollback, prereq, etc.)
+# coresmd Container Image
 # =============================================================================
 
-OMNIA_GIT_RAW_BASE_URL = "https://raw.githubusercontent.com/dell/omnia"
-OMNIA_ARTIFACTORY_GIT_RAW_BASE_URL = (
-    "https://raw.githubusercontent.com/dell/omnia-artifactory"
-)
+# Container quadlet files that reference coresmd image
+CORESMD_COREDHCP_CONTAINER_FILE = "/etc/containers/systemd/coresmd-coredhcp.container"
+CORESMD_COREDNS_CONTAINER_FILE = "/etc/containers/systemd/coresmd-coredns.container"
+
+# Minimum coresmd version required for native multi-subnet support
+CORESMD_MIN_MULTISUBNET_VERSION = "0.6.0"
+
+# coresmd image to pull for multi-subnet support
+CORESMD_MULTISUBNET_IMAGE = "ghcr.io/openchami/coresmd:v0.6.3"
 
 # =============================================================================
-# SSH OPTIONS
+# CoreDHCP Multi-Subnet Markers (used to detect config mode)
 # =============================================================================
 
-SSH_OPTS = "-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+# Markers present in multi-subnet (key=value) mode
+MULTISUBNET_CORESMD_MARKER = "svc_base_uri="
+MULTISUBNET_BOOTLOOP_MARKER = "subnet_pool="
+
+# Markers present in single-subnet (positional) mode
+SINGLE_SUBNET_CORESMD_COMMENT = "# Single-subnet mode"
 
 # =============================================================================
-# CONFIGURATION FILES
+# Systemd Targets
 # =============================================================================
 
-# Main config file (non-sensitive settings - always plain text)
-OMNIA_TEST_CONFIG_FILE = "omnia_test_config.yml"
-
-# Credentials file (sensitive passwords - vault encrypted)
-OMNIA_TEST_CREDENTIALS_FILE = "omnia_test_credentials.yml"
-OMNIA_TEST_CREDENTIALS_KEY = ".omnia_test_credentials.key"
+OPENCHAMI_TARGET = "openchami.target"

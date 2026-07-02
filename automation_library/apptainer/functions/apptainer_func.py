@@ -30,6 +30,7 @@ from automation_library.core import (
     get_functional_groups_from_pxe_mapping,
     run_on_remote_node,
     load_omnia_test_config,
+    load_omnia_test_credentials,
 )
 from automation_library.apptainer.vars.apptainer_vars import (
     COMPUTE_NODE_CONTAINER_IMAGES_DIR,
@@ -265,9 +266,9 @@ def _get_sif_for_jobs(host, images_dir: str) -> str:
 # =============================================================================
 
 def _get_ldap_credentials(host) -> List[Tuple[str, str]]:
-    """Return list of (username, password) tuples from omnia_test_config.yml."""
-    config = load_omnia_test_config()
-    raw = config.get("ldap_credentials", "")
+    """Return list of (username, password) tuples from omnia_test_credentials.yml."""
+    credentials = load_omnia_test_credentials()
+    raw = credentials.get("ldap_credentials", "")
     if not raw:
         return []
     creds = []
