@@ -352,6 +352,10 @@ Omnia configures the following ports for use by third-party tools installed by O
      - TCP
      - Slurm SrunPortRange
      - Manager + Compute
+   * - 3306
+     - TCP
+     - MariaDB
+     - Manager
 
 **OpenLDAP Port Requirements**
 
