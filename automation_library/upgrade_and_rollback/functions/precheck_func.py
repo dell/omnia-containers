@@ -1003,6 +1003,19 @@ def verify_k8s_at_target_for_telemetry(
         }
 
     current = result["nodes"][0]["version"]
+    
+    # If target is an Omnia version (e.g., 2.2.0.0), skip K8s version comparison
+    is_k8s_version = bool(re.search(r'v?1\.\d+', target_version))
+    if not is_k8s_version:
+        return {
+            "success": True,
+            "current_version": current,
+            "target_version": target_version,
+            "error": "",
+            "skipped": True,
+            "skip_reason": f"Target '{target_version}' is Omnia version, not K8s — skipping version check",
+        }
+    
     prefix = target_version if target_version.startswith("v") else f"v{target_version}"
     at_target = all(n["version"].startswith(prefix) for n in result["nodes"])
 
