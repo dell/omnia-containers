@@ -4,6 +4,32 @@ Troubleshooting Guide
 
 A structured guide for diagnosing and resolving issues across Omnia deployment, provisioning, Kubernetes, Slurm, storage, authentication, and telemetry workflows.
 
+.. rubric:: Key Log Locations
+
+When troubleshooting issues, consult the following log files:
+
+**Playbook Logs**
+
+- ``/opt/omnia/log/`` - Main playbook execution logs
+- ``/var/log/ansible/`` - Ansible playbook logs
+
+**Container Logs**
+
+- ``podman logs <container>`` - View container logs
+- ``podman logs -n 200 <container>`` - View last 200 lines
+
+**Kubernetes Logs**
+
+- ``kubectl logs -n <namespace> <pod>`` - View Kubernetes pod logs
+- ``kubectl logs -f -n <namespace> <pod>`` - Follow logs in real-time
+
+**Slurm Logs**
+
+- ``/var/log/slurm/`` - Slurm controller and daemon logs
+- ``/var/spool/slurm/`` - Slurm accounting and job logs
+
+For comprehensive logging information, see `Logs <Logging/OIM_logs.html>`_.
+
 .. contents::
    :depth: 2
    :local:
@@ -63,6 +89,13 @@ Re-run ``omnia.sh``.
 - Expected container not created
 - Service is running but unreachable
 
+**Cause**
+
+- Invalid or expired TLS certificates
+- Container image pull failures
+- Network connectivity issues
+- Incorrect configuration parameters
+
 **Resolution**
 
 Verify container inventory:
@@ -71,45 +104,103 @@ Verify container inventory:
 
    podman ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 
-1.3 Common Container Debugging Tools
+For common container debugging commands, see `Container Debugging Tools <../Utils/container_debugging_tools.html>`_.
+
+1.3 Ansible Vault Decryption Failures
 ------------------------------------
 
-Use the following commands to troubleshoot container issues across Omnia services.
+**Symptom**
 
-* To view list of all Omnia containers, run the following command:
+Playbook execution fails with error message "Attempting to decrypt but no vault secrets found" or similar vault decryption errors.
+
+**Cause**
+
+The vault password file (``.omnia_config_credentials_key``) is missing, incorrect, or inaccessible to the playbook execution context.
+
+**Resolution**
+
+1. Verify the vault password file exists in the correct location: ``.omnia_config_credentials_key``
+2. Ensure the file has the correct permissions (readable by the user running the playbook)
+3. Re-run the playbook with the correct vault password file
+
+For information on managing encrypted parameters, see `Encrypted Parameters Management <../SecurityConfigGuide/MiscellaneousConfigurationManagementElements.html#encrypted-parameters-management>`_.
+
+1.4 OIM Cleanup NFS Directory Deletion Failure
+-----------------------------------------------
+
+**Symptoms**
+
+- ``oim_cleanup.yml`` playbook fails with error: ``[ERROR]: Task failed: Module failed: rmtree failed: [Errno 39] Directory not empty``
+- Specific error on directories like ``/share_omnia_k8s/<node_ip>/kubelet/pods``
+- Cleanup process completes partially but leaves NFS share directories intact
+
+**Example Error**
+
+.. code-block:: text
+
+   [ERROR]: Task failed: Module failed: rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'
+
+   failed: [oim] (item=/share_omnia_k8s/10.20.0.15) => {
+     "ansible_loop_var": "item",
+     "changed": false,
+     "item": "/share_omnia_k8s/10.20.0.15",
+     "msg": "rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'"
+   }
+
+**Cause**
+
+- Active processes - Kubernetes processes (kubelet, crio) on compute nodes or OIM node have open file handles to the NFS share directories
+- Active NFS mounts - NFS shares are still mounted and in use on compute nodes
+
+.. note::
+   The OIM cleanup process cleans the contents of NFS shares for both Slurm and Kubernetes (K8s). Active processes or mounts may prevent successful cleanup.
+
+**Resolution**
+
+**Step 1: Manually delete the problematic directories on the OIM node**
+
+Log in to the OIM node and navigate to the NFS share path to manually delete the contents:
 
 .. code-block:: bash
 
-   podman ps -a
+   # On the OIM node
+   # Navigate to the problematic directory
+   cd /share_omnia_k8s/<node_ip>/kubelet/pods
 
-* To view container logs, run the following command:
+   # Delete all contents
+   rm -rf *
+
+   # Or delete the entire node directory
+   cd /share_omnia_k8s/
+   rm -rf <node_ip>
+
+**Step 2: Re-run the OIM cleanup playbook from the omnia_core container**
+
+After manually deleting the problematic directories, log in to the omnia_core container and re-run the cleanup playbook:
 
 .. code-block:: bash
 
-   podman logs -n 200 <container>
+   # Log in to omnia_core container
+   ssh omnia_core
 
-* To test outbound connectivity from a container, run the following command:
+   # Navigate to utils directory
+   cd /omnia/utils
 
-.. code-block:: bash
+   # Re-run the cleanup playbook
+   ansible-playbook oim_cleanup.yml
 
-   podman exec -it <container> sh -lc 'curl -I https://example.com'
-
-1.4 Encrypted Parameters Management
-----------------------------------
-
-To view encrypted parameters: ::
-
-        ansible-vault view omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
-
-To edit encrypted parameters: ::
-
-        ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
+.. tip::
+   If manual deletion also fails with "Directory not empty" or "Device or resource busy" errors, the directories are still in use by active processes. In such cases, power off the compute nodes before attempting manual cleanup.
 
 2. PXE Boot & Provisioning Issues
 =================================
 
 2.1 Node Hangs at nm-wait-online-initrd.service
 -----------------------------------------------
+
+**Symptom**
+
+Node hangs during boot at the ``nm-wait-online-initrd.service`` stage.
 
 **Cause**
 
@@ -124,7 +215,11 @@ IP address conflict with old node.
 2.2 PXE Boot Timeout (TFTP/Service Timeout)
 --------------------------------------------
 
-**Causes**
+**Symptom**
+
+PXE boot process times out with TFTP or service timeout errors.
+
+**Cause**
 
 - PXE NIC not configured
 - Extra NIC interfering
@@ -139,7 +234,11 @@ IP address conflict with old node.
 2.3 Target Server Unreachable After PXE Boot
 ----------------------------------------------
 
-**Causes**
+**Symptom**
+
+Target server becomes unreachable after PXE boot completes.
+
+**Cause**
 
 - POST errors
 - F1 hardware prompts
@@ -155,7 +254,15 @@ IP address conflict with old node.
 2.4 Root Login Fails
 --------------------
 
-**Causes**
+**Symptom**
+
+Unable to log in as root user via SSH. Error messages include:
+
+- ``WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!``
+- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
+- ``ssh: connect to host <ip> port 22: Connection refused``
+
+**Cause**
 
 - Outdated SSH key
 - cloud-init not rendered
@@ -174,21 +281,98 @@ Retry login or reprovision the node.
 3.1 local_repo.yml Download Failures
 -------------------------------------
 
-**Causes**
+**Symptom**
 
-- Incorrect URLs in software JSON
-- Docker pull limit
-- Insufficient disk space
+The ``local_repo.yml`` playbook fails during package download, displaying errors such as "TASK [parse_and_download : Display Failed Packages]" or indicating that specific software packages could not be downloaded.
+
+**Cause**
+
+Download failures occur due to:
+
+- Incorrect URLs in software JSON configuration files
+- Docker pull limit reached or invalid Docker credentials
+- Insufficient disk space on Pulp NFS storage
+- Unreachable software repositories
 
 **Resolution**
 
-- Correct URLs
-- Provide valid Docker credentials
-- Ensure adequate disk on Pulp NFS
-- Re-run the playbook
+1. Verify and correct URLs in the software JSON configuration files
+2. Provide valid Docker credentials in ``input/omnia_config_credentials.yml``
+3. Ensure adequate disk space is available on Pulp NFS storage
+4. Re-run the ``local_repo.yml`` playbook
+
+**Detailed Log Analysis**
+
+The ``local_repo.yml`` playbook generates log files for troubleshooting download failures. To diagnose specific issues:
+
+.. image:: images/troubleshooting_local_repo_updated.png
+
+.. image:: images/troubleshooting_local_repo_updated_1.png
+
+1. View overall download status of all software:
+
+   ::
+
+       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
+
+   .. image:: images/troubleshooting_local_repo_updated_2.png
+
+2. View download status and log filenames for a specific software:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
+
+   Example for OpenLDAP:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
+
+   .. image:: images/troubleshooting_local_repo_updated_3.png
+
+3. View package-level status for a specific software:
+
+   ::
+
+       /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
+
+   .. image:: images/troubleshooting_local_repo_updated_4.png
+
+4. View detailed failure information in the package status log:
+
+   To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
+
+   Example:
+
+   ::
+
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
+
+   .. image:: images/troubleshooting_local_repo_updated_5.png
+
+If the ``local_repo.yml`` is executed successfully without any package download failures, a ``Successful`` message is displayed.
+
+.. image:: images/local_repo_success.png
 
 3.2 Failure When Re-run Multiple Times
 --------------------------------------
+
+**Symptom**
+
+The ``local_repo.yml`` playbook fails when re-run multiple times in quick succession.
 
 **Cause**
 
@@ -201,13 +385,18 @@ Allow the system to idle ~1 hour before re-running.
 3.3 Pulp Reset Password Failed
 --------------------------------
 
+**Symptom**
+
+Pulp reset password operation fails during ``prepare_oim.yml`` execution.
+
 .. image:: images/pulp_reset_password_failed.png
 
-**Possible Causes for Pulp Reset Password Failed:**
+**Cause**
 
-* **NFS Storage Export Configuration (PowerScale)**: Enable the ``nfsv4-no-names``, ``nfsv4-no-domain``, ``nfsv4-no-domain-uids``, and ``nfsv4-allow-numeric-ids`` settings. Ensure consistent UID and GID mappings between the NFS server and client.
-* **Access Permissions**: Add the ``no_root_squash`` option to the NFS export configuration in ``/etc/exports``.
-* **Network Reachability**: Verify NFS server connectivity and ensure firewall ports 2049, 111, and 20048 are open.
+- NFS Storage Export Configuration (PowerScale): Missing or incorrect settings for ``nfsv4-no-names``, ``nfsv4-no-domain``, ``nfsv4-no-domain-uids``, and ``nfsv4-allow-numeric-ids``
+- Inconsistent UID and GID mappings between NFS server and client
+- Access Permissions: Missing ``no_root_squash`` option in NFS export configuration
+- Network Reachability: NFS server connectivity issues or firewall blocking ports 2049, 111, and 20048
 
 **Resolution**
 
@@ -215,6 +404,14 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 
 3.4 EPEL Repository Instability
 -------------------------------
+
+**Symptom**
+
+EPEL repository is unstable or unavailable during package installation.
+
+**Cause**
+
+EPEL repository server issues or network connectivity problems.
 
 **Resolution**
 
@@ -224,9 +421,15 @@ Verify the configurations and settings mentioned above, then rerun the ``prepare
 3.5 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
 -------------------------------------------------------------------------------------------
 
-**Cause**: The issue is caused by iptables rules on the OIM node not being persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+**Symptom**
 
-**Resolution**:
+Local repository sync fails intermittently due to blocked outbound internet access from containers.
+
+**Cause**
+
+iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+
+**Resolution**
 
 As a workaround to unblock repository synchronization, run the following commands to relax iptables default policies on the OIM node:
 
@@ -258,6 +461,19 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 4.2 Pods Not in Running State
 -----------------------------
 
+**Symptom**
+
+Pods are not in Running state. Status values observed include:
+
+- ``Pending``
+- ``CrashLoopBackOff``
+- ``ImagePullBackOff``
+- ``OOMKilled`` (from ``kubectl describe pod`` Events section)
+
+**Cause**
+
+Pod startup failures due to various issues including resource constraints, image pull failures, or application errors.
+
 **Resolution**
 
 .. code-block:: bash
@@ -267,6 +483,16 @@ For more information, `click here <https://kubernetes.io/docs/tasks/configure-po
 
 4.3 Cluster Nodes Reboot
 -------------------------
+
+**Symptom**
+
+Cluster nodes reboot unexpectedly or require reboot after configuration changes.
+
+**Cause**
+
+- Configuration changes requiring node restart
+- Kernel updates
+- System instability
 
 **Resolution**
 
@@ -281,6 +507,16 @@ Verify:
 4.4 DNS Unresponsive / CoreDNS Issues
 -------------------------------------
 
+**Symptom**
+
+DNS resolution fails or CoreDNS is unresponsive in the cluster.
+
+**Cause**
+
+- CoreDNS pod not running
+- DNS configuration errors
+- Network connectivity issues
+
 **Resolution**
 
 Restart CoreDNS:
@@ -291,6 +527,10 @@ Restart CoreDNS:
 
 4.5 PowerScale SmartConnect DNS Resolution Issues
 -------------------------------------------------
+
+**Symptom**
+
+DNS resolution fails for PowerScale SmartConnect zone entries.
 
 **Cause**
 
@@ -315,6 +555,10 @@ Restart CoreDNS.
 
 4.6 Control-plane Join Fails Due to Certificate Key Expiry
 ---------------------------------------------------------
+
+**Symptom**
+
+Control-plane node fails to join the cluster due to certificate key expiry.
 
 **Cause**
 
@@ -410,6 +654,10 @@ This is a known Kubernetes issue tracked upstream:
 5.1 NFS-Client Provisioner CrashLoopBackOff
 --------------------------------------------
 
+**Symptom**
+
+NFS-Client provisioner pod enters CrashLoopBackOff state.
+
 **Cause**
 
 NFS server not active at ``server_share_path``.
@@ -429,6 +677,12 @@ PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after node reboot.
 
 .. image:: images/troubleshoot_powerscale.jpg
 
+**Cause**
+
+- CSI controller fails to reconnect to PowerScale storage after node reboot
+- Storage connectivity issues or configuration problems
+- PowerScale (Isilon) service unavailability
+
 **Resolution**
 
 1. Inspect recent logs from the controller deployment: ::
@@ -446,6 +700,10 @@ PowerScale (Isilon) CSI controller pod in CrashLoopBackOff after node reboot.
 5.3 Missing PowerScale CSI Driver
 ----------------------------------
 
+**Symptom**
+
+PowerScale CSI driver is not deployed or available in the cluster.
+
 **Cause**
 
 Driver not listed in ``software_config.json``.
@@ -462,11 +720,24 @@ Driver not listed in ``software_config.json``.
 
 For more information on deploying the Dell CSI-PowerScale driver, see `Deploy CSI drivers for Dell PowerScale Storage Solutions <../OmniaInstallGuide/AdvancedConfigurations/PowerScale_CSI.html>`_
 
+**Resolution**
+
+Add the required entry to ``software_config.json`` and re-run the playbook.
+
+For troubleshooting Kafka issues related to the missing CSI driver, see `Section 7.1 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#kafka-pods-crashloopbackoff>`_.
+
 6. Slurm Issues
 ===============
 
 6.1 Nodes Entering DRAINED State
 --------------------------------
+
+**Symptom**
+
+Slurm nodes enter DRAINED state unexpectedly. Error messages include:
+
+- ``State=IDLE+DRAIN Reason=Kill task failed``
+- ``State=DOWN+DRAIN Reason=Not responding``
 
 **Cause**
 
@@ -479,41 +750,7 @@ Epilog script not executable.
    chmod 0755 /etc/slurm/epilog.d/logout_user.sh
    scontrol reconfigure
 
-6.2 Slurm Nodes Cannot Contact Controller
------------------------------------------
-
-**Cause**
-
-Nodes booted before controller.
-
-**Resolution**
-
-.. code-block:: bash
-
-   scontrol reconfigure
-   systemctl restart slurmd
-
-6.3 Missing Controller Groups / Missing slurm.conf
------------------------------------------------------
-
-**Resolution**
-
-- Update ``pxe_mapping.csv`` with controller groups
-- Choose different backup or create new one
-
-6.4 LDMS Metrics Missing
--------------------------
-
-**Checks**
-
-.. code-block:: bash
-
-   kubectl logs -n telemetry nersc-ldms-aggr-0
-   kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
-   sudo systemctl status ldmsd.sampler.service
-   /opt/ovis-ldms/sbin/ldms_ls ...
-
-6.5 NVIDIA GPU, CUDA, and DCGM Issues
+6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
 
 ``nvidia-smi`` Not Found or Driver Not Communicating
@@ -522,7 +759,7 @@ Nodes booted before controller.
 
 ``nvidia-smi: command not found`` or ``nvidia-smi`` exits with a non-zero return code
 
-**Probable cause**
+**Cause**
 
 NVIDIA driver installation failed during provisioning, or GPU hardware is absent on this node
 
@@ -562,7 +799,7 @@ CUDA Toolkit NFS Mount Failed
 
 ``/usr/local/cuda`` is empty or not mounted after provisioning
 
-**Probable cause**
+**Cause**
 
 NFS server was unreachable at provisioning time, or the NFS export is not configured with ``no_root_squash``
 
@@ -598,7 +835,7 @@ DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
 
 ``nvidia-dcgm`` service is not present on Slurm node, and ``/var/log/dcgm_setup.log`` is missing
 
-**Probable cause**
+**Cause**
 
 ``dcgm.metrics_enabled`` is set to ``false`` under ``telemetry_sources`` in ``telemetry_config.yml``, so Omnia intentionally skips DCGM installation during Slurm node cloud-init
 
@@ -612,7 +849,7 @@ DCGM Package Version Mismatch
 
 DCGM package installation fails with ``No match for argument`` or ``No packages found``
 
-**Probable cause**
+**Cause**
 
 The CUDA major version on the node does not have a matching ``datacenter-gpu-manager-4-cuda<N>`` package available in the configured local repository
 
@@ -652,12 +889,16 @@ Review ``/var/log/nvidia_peermem_install.log`` for details.
 
 .. note:: If RDMA is not required for any workload on this node, this warning is non-blocking.
 
-6.6 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
+6.3 CUDA Toolkit and DCGM Setup Failure: Manual Recovery
 ---------------------------------------------------------
 
-**Symptoms**
+**Symptom**
 
-Automated GPU setup fails during provisioning — due to repository unavailability, NFS connectivity issues, or node initialization errors.
+Automated GPU setup fails during provisioning.
+
+**Cause**
+
+Repository unavailability, NFS connectivity issues, or node initialization errors.
 
 **Resolution**
 
@@ -792,7 +1033,7 @@ Log File Reference
 * ``/var/log/dcgm_setup.log``: DCGM package install, service startup, GPU discovery
 * ``/var/log/nvidia_peermem_install.log``: ``nvidia-peermem`` DKMS build and load output
 
-6.7 Benchmark assets missing on Slurm nodes
+6.4 Benchmark assets missing on Slurm nodes
 -------------------------------------------
 
 **Symptom**
@@ -800,7 +1041,7 @@ Log File Reference
 - Benchmark tool directories are missing or incomplete under ``/hpc_tools``.
 - Expected benchmark artifacts are not visible on login/compiler/compute nodes.
 
-**Possible causes**
+**Cause**
 
 - Shared NFS path (``/hpc_tools``) is not mounted or not accessible.
 - ``pull_benchmarks.sh`` or ``benchmark_tools.list`` is missing under ``/hpc_tools/scripts``.
@@ -849,13 +1090,64 @@ Expected files:
 - Remove that tool directory only if refresh is required.
 - Re-run ``/hpc_tools/scripts/pull_benchmarks.sh``.
 
+6.5 ``sacct`` Returning Empty Results
+--------------------------------------
+
+**Symptom**
+
+The ``sacct`` command returns no output or empty results when querying job accounting information.
+
+**Cause**
+
+- slurmdbd service is not running
+- MariaDB service is not running (slurmdbd depends on MariaDB)
+- slurmdbd cannot communicate with the database
+- Port 6819 (slurmdbd port) is not listening
+
+**Resolution**
+
+Check if slurmdbd service is running:
+
+.. code-block:: bash
+
+   systemctl status slurmdbd
+
+Check if MariaDB service is running:
+
+.. code-block:: bash
+
+   systemctl status mariadb
+
+Check the slurmdbd logs:
+
+.. code-block:: bash
+
+   tail -50 /var/log/slurm/slurmdbd.log
+
+Check the slurmdbd port:
+
+.. code-block:: bash
+
+   ss -tlnp | grep 6819
+
+Restart the services accordingly:
+
+.. code-block:: bash
+
+   systemctl restart slurmdbd
+   systemctl restart mariadb
+
 7. Telemetry Issues
 ===================
 
 7.1 Kafka Pods CrashLoopBackOff
 -------------------------------
 
-**Causes**
+**Symptom**
+
+Kafka pods enter CrashLoopBackOff state.
+
+**Cause**
 
 - No service kube nodes
 - Missing CSI driver
@@ -866,6 +1158,10 @@ Expected files:
 - Ensure service kube nodes are booted
 - Add PowerScale CSI driver
 - Increase Kafka volume and configure log retention
+
+For more information on adding the PowerScale CSI driver, see `Section 5.3 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#missing-powerscale-csi-driver>`_.
+
+For more details on Kafka Pods CrashLoopBackOff issues, see `Section 7.1 <https://omnia-devel.readthedocs.io/en/latest/troubleshootingguide.html#kafka-pods-crashloopbackoff>`_.
 
 .. image:: images/telemetry.png
 
@@ -886,11 +1182,252 @@ Configured ``persistence_size`` for Kafka reaches capacity limit.
 
 The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit.
 
+7.3 LDMS Metrics Missing
+--------------------------
+
+**Symptom**
+
+LDMS metrics do not appear in the telemetry dashboard or are missing expected data points.
+
+**Cause**
+
+- LDMS aggregator pods are not running or experiencing errors
+- LDMS store daemon service is inactive
+- LDMS sampler service is not functioning correctly
+
+**Resolution**
+
+Check the status of LDMS components and review logs for errors:
+
+.. code-block:: bash
+
+   kubectl logs -n telemetry nersc-ldms-aggr-0
+   kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+   sudo systemctl status ldmsd.sampler.service
+   /opt/ovis-ldms/sbin/ldms_ls ...
+
+7.4 iDRAC Telemetry — No Metrics Reaching VictoriaMetrics / Kafka
+-----------------------------------------------------------------
+
+**Symptom**
+
+iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in 0/1 Ready state. New nodes do not appear as telemetry sources after provisioning.
+
+**Example errors**
+
+In the VictoriaPump / KafkaPump container logs:
+
+- ``ERROR failed to subscribe to Redfish event service: 401 Unauthorized``
+- ``ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)``
+- ``WARN activemq: connection refused tcp 127.0.0.1:61616``
+- ``ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
+
+**Cause**
+
+- Incorrect or expired iDRAC credentials in the vault (``idrac_username`` / ``idrac_password``), resulting in 401 Unauthorized errors
+- Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs block new ones)
+- iDRAC firmware does not support Redfish Telemetry/EventService (older iDRAC9 firmware)
+- Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump in the receiver pod is not ready)
+- Collection type misconfiguration (``idrac_telemetry_collection_type`` does not include the expected sink)
+- Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers
+
+**Diagnostics**
+
+Identify telemetry pods:
+
+.. code-block:: bash
+
+   kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
+
+Inspect iDRAC telemetry receiver pod (contains MySQL, ActiveMQ, KafkaPump, VictoriaPump):
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations describe pod <idrac-telemetry-pod>
+   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
+   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+
+Verify Redfish reachability and credentials from the OIM:
+
+.. code-block:: bash
+
+   curl -sk -u "$IDRAC_USER:$IDRAC_PASS" https://<idrac-ip>/redfish/v1/EventService | head
+
+List existing Redfish subscriptions (delete stale ones if at the limit):
+
+.. code-block:: bash
+
+   curl -sk -u "$IDRAC_USER:$IDRAC_PASS" \
+     https://<idrac-ip>/redfish/v1/EventService/Subscriptions
+
+Confirm metrics landed in VictoriaMetrics:
+
+.. code-block:: bash
+
+   curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+
+**Resolution**
+
+- Correct ``idrac_username`` / ``idrac_password`` in the Ansible vault, then re-run ``telemetry.yml``. Verify with the curl command above (expect 200).
+- Delete orphaned Redfish subscriptions using ``curl -X DELETE ...``, then allow the receiver to re-subscribe.
+- Update iDRAC firmware to a version that supports Redfish EventService/Telemetry, then re-run telemetry.
+- If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
+- Set ``idrac_telemetry_collection_type`` to victoria, kafka, or victoria,kafka to match where you expect data, then re-run.
+- Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
+
+.. note:: iDRAC telemetry is enabled by ``idrac_telemetry_support: true`` and routed per ``idrac_telemetry_collection_type`` in ``input/telemetry_config.yml``. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
+
+7.5 VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
+--------------------------------------------------------------------------
+
+**Symptom**
+
+Grafana panels show "No data" or queries time out or return partial series. One or more vmstorage, vminsert, or vmselect pods are in CrashLoopBackOff, Pending, or Evicted state. Recent samples are missing while older data is present (ingestion lag).
+
+Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
+
+**Example errors**
+
+vmstorage:
+
+- ``panic: cannot open storage at "/storage": no space left on device``
+
+vminsert:
+
+- ``cannot send data to vmstorage node "vmstorage-1:8400": connection timed out``
+
+vmselect:
+
+- ``error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes (got 1, need 2)``
+
+Pod events:
+
+- ``0/3 nodes are available: 3 Insufficient memory.``
+- ``Pod ephemeral local storage usage exceeds the total limit of containers``
+
+**Cause**
+
+- vmstorage PVC is full (retention or ingest volume exceeded the provisioned storage)
+- Insufficient healthy replicas (with replication factor 2, losing 2+ vmstorage pods prevents vmselect from satisfying reads)
+- Resource pressure (pods Pending or Evicted due to insufficient memory or node disk pressure)
+- TLS or certificate mismatch (expired or mismatched certificates between vminsert/vmselect and vmstorage break inter-component communication)
+- vmagent backlog (vmagent cannot reach vminsert, queues fill, and remote_write stalls)
+
+**Diagnostics**
+
+Check pod and PVC status:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+   kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
+   kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
+
+Check disk usage inside a vmstorage pod:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
+
+Check cluster health logs:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
+   kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
+
+Check vmagent remote_write health (look for failed batches or queue size):
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
+
+**Resolution**
+
+- Expand the vmstorage PVC (if the StorageClass allows allowVolumeExpansion) or reduce retention. In Omnia, set retention and sizing through the telemetry input config and re-run ``telemetry.yml``; do not manually edit the StatefulSet.
+- Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues), confirming vmselect reports enough healthy nodes.
+- Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
+- Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
+- Once vminsert is reachable, vmagent flushes its queue; verify lag closes via a recent-range query.
+
+Sizing guidance: provision vmstorage capacity from sources × active series/node × samples/series × retention. Under-provisioning the PVC is the most common cause of this issue — size for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
+
+.. note:: cluster mode, replica counts, replication factor, TLS, and retention are rendered from ``input/telemetry_config.yml`` and ``input/service_k8s.json``. Modify inputs and re-run; pod edits are transient.
+
+7.6 VictoriaLogs (Cluster Mode) — Logs Missing or Unsearchable
+-------------------------------------------------------------
+
+**Symptom**
+
+Log queries return nothing or only old data; new node or syslog events never appear. vlstorage, vlinsert, or vlselect pods restart repeatedly or remain unready. There is ingestion lag between event time and searchability.
+
+Omnia (Q2) deploys VictoriaLogs in cluster mode: vlinsert, vlstorage, vlselect.
+
+**Example errors**
+
+vlstorage:
+
+- ``cannot create new part: no space left on device``
+
+vlinsert:
+
+- ``cannot proxy request to vlstorage: dial tcp <vlstorage-svc>:9491: i/o timeout``
+
+vlselect:
+
+- ``cannot perform query: some vlstorage nodes are unavailable``
+
+VLAgent:
+
+- ``syslog: failed to forward to vlinsert: connection refused``
+
+**Cause**
+
+- vlstorage PVC is full (log volume exceeded provisioned storage)
+- vlstorage nodes are unavailable (vlselect cannot complete queries)
+- VLAgent to vlinsert path is broken (syslog receiver cannot forward due to firewall, wrong service endpoint, or TLS mismatch)
+- No source configured (a device or service is not shipping syslog to VLAgent)
+
+**Diagnostics**
+
+Check pod and PVC status:
+
+.. code-block:: bash
+
+   kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+   kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
+   kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
+   kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
+   kubectl -n telemetry-and-visualizations logs <vlselect-pod> --tail=100
+
+Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+
+.. code-block:: bash
+
+   curl -s 'http://<vlselect-svc>:9471/select/logsql/query' \
+     --data-urlencode 'query=*' --data-urlencode 'limit=1'
+
+**Resolution**
+
+- Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run ``telemetry.yml``.
+- Recover unavailable vlstorage pods so vlselect can query them.
+- Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches; confirm forwarding in VLAgent logs.
+- Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+
+.. note:: VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
+
 8. Authentication Issues
 ========================
 
 8.1 LDAP Login Fails After User Creation
 ----------------------------------------
+
+**Symptom**
+
+User login fails after LDAP user creation. Error messages include:
+
+- ``id: 'newuser': no such user``
+- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
 
 **Cause**
 
@@ -905,6 +1442,10 @@ Whitespace in LDIF.
 
 8.2 OpenLDAP Login Fails
 ------------------------
+
+**Symptom**
+
+OpenLDAP login fails.
 
 **Cause**
 
@@ -924,6 +1465,14 @@ Stale SSH key.
 9.1 Certificate Expiration
 --------------------------
 
+**Symptom**
+
+OpenCHAMI certificates have expired.
+
+**Cause**
+
+Certificates have reached their expiration date.
+
 **Resolution**
 
 .. code-block:: bash
@@ -934,6 +1483,14 @@ Stale SSH key.
 9.2 Token Expired
 ----------------
 
+**Symptom**
+
+OpenCHAMI access token has expired.
+
+**Cause**
+
+Token has reached its expiration time.
+
 **Resolution**
 
 .. code-block:: bash
@@ -942,6 +1499,10 @@ Stale SSH key.
 
 9.3 provision.yml Fails - prepare_oim Needs to be Executed
 ----------------------------------------------------------
+
+**Symptom**
+
+The ``provision.yml`` playbook fails with an error indicating that ``prepare_oim`` needs to be executed first.
 
 **Cause**
 
@@ -955,107 +1516,43 @@ Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` p
 ==================
 
 10.1 Playbook Fails Due to HW/Network/Storage
-----------------------------------------------
+--------------------------------------------
+
+**Symptom**
+
+Playbook execution fails due to hardware, network, or storage issues.
+
+**Cause**
+
+Underlying hardware, network, or storage problem preventing playbook execution.
 
 **Resolution**
 
 Fix underlying issue → re-run playbook.
 
-10.2 Graceful Shutdown of Omnia Cluster
-----------------------------------------
+10.2 Cluster Not Recovering After Power Cycle
+----------------------------------------------
 
-**Procedure**
+**Symptom**
 
-- Shutdown compute nodes first
-- Shutdown OIM last
-- On startup, power on OIM first → then compute nodes
+After a power cycle, the Omnia cluster does not recover properly. Nodes fail to rejoin the cluster or services do not start as expected.
 
-10.3 Licensing Requirements
-----------------------------
+**Cause**
+
+- OIM was not powered on before compute nodes
+- Compute nodes were powered on before OIM was fully operational
+- Network connectivity issues after power cycle
+- Persistent storage or NFS mount failures
 
 **Resolution**
 
-While Omnia playbooks are licensed by Apache 2.0, Omnia deploys multiple software that are licensed separately by their respective developer communities. For a comprehensive list of software and their licenses, `click here <Overview/SupportMatrix/omniainstalledsoftware.html>`_.
+1. Follow the proper startup sequence: power on OIM first, then compute nodes
+2. Verify OIM is fully operational before powering on compute nodes
+3. Check network connectivity between OIM and compute nodes
+4. Verify NFS mounts are accessible
+5. If issues persist, reprovision affected nodes
 
-10.4 Troubleshooting Logs
---------------------------
-
-For more information, see `Logs <Logging/OIM_logs.html>`_.
-
-10.5 Local Repository Package Download Issues
----------------------------------------------
-
-1. The ``local_repo.yml`` playbook generates and provides log files as part of its execution. For example, if the local repository is partially unsuccessful for OpenLDAP, analyze the issue using the following steps: 
-
-.. image:: images/troubleshooting_local_repo_updated.png
-
-.. image:: images/troubleshooting_local_repo_updated_1.png
-
-2. To view the overall download status of all software in the .csv format, run the following command:
-
-::
-
-        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
-
-Example: :: 
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
-
-.. image:: images/troubleshooting_local_repo_updated_2.png
-
-3. To view the overall download status of all packages and the log filenames for a specific software, run the following command:
-
-::
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
-
-Example: For nfs: ::
-
-         /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log
-
-.. image:: images/troubleshooting_local_repo_updated_3.png
-
-4. To view the package level status, run the following command: 
-
-::
-
-         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
-
-Example: ::
-
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv
-
-.. image:: images/troubleshooting_local_repo_updated_4.png
-
-5. To view the issues information and the reason for job being unsuccessful, see the ``package_status_<pid>.log`` file mentioned in the ``<sw>_task_result.log``.
-
-Example: ::
-        
-        /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
-
-.. image:: images/troubleshooting_local_repo_updated_5.png
-
-**Why does the** ``local_repo.yml`` **playbook execution fail at** ``TASK [parse_and_download : Display Failed Packages]`` **?**
-
-.. image:: images/package_failure_local_repo.png
-
-**Cause**: This issue is encountered if Omnia fails to download any software package while executing ``local_repo.yml`` playbook. Download failures can occur if:
-
-    * The URL to download the software packages mentioned in the ``<cluster_os_type>/<cluster_os_version>/<software>.json`` is incorrect or the repository is unreachable.
-    * The provided Docker credentials are incorrect or if you encounter a Docker pull limit issue. For more information, `click here <https://www.docker.com/increase-rate-limits/#:~:text=You%20have%20reached%20your%20pull%20rate%20limit.%20You,account%20to%20a%20Docker%20Pro%20or%20Team%20subscription.>`_.
-    * If disk space is insufficient while downloading the package.
-
-**Resolution**: Re-run the ``local_repo.yml`` playbook while ensuring the following:
-
-    * URL to download the software packages mentioned in ``<arch>/<cluster_os_type>/<cluster_os_version>/<software>.json`` is correct, and the repository is reachable.
-    * Docker credentials provided in ``input/omnia_config_credentials.yml`` are correct.
-    * Sufficient disk space is available while downloading the package. For disk space considerations, see the `Omnia installation guide <../OmniaInstallGuide/RHEL_new/RHELSpace.html>`_.
-
-If the ``local_repo.yml`` is executed successfully without any package download failures, a ``Successful`` message is displayed as shown below:
-
-.. image:: images/local_repo_success.png
-
-10.6 InfiniBand Issues
+10.3 InfiniBand Issues
 ----------------------
 
 **Symptoms**
@@ -1076,10 +1573,14 @@ The Open Subnet Manager (OpenSM) service is not running on the InfiniBand (IB) s
    * Run the following command on the host: ``ibstat``
    * Verify that the InfiniBand ports state transition to: ``State: Active``
 
-10.7 System Recovery Issues
+10.4 System Recovery Issues
 ---------------------------
 
 **Omnia containers not coming up after OIM reboot**
+
+**Symptom**
+
+Omnia containers fail to start after OIM reboot.
 
 **Cause**
 
@@ -1090,6 +1591,10 @@ The Admin NIC on the OIM may have its autoconnect settings disabled (``autoconne
 Ensure that the Admin NIC on the OIM is configured with ``autoconnect=yes`` so it automatically reconnects after reboot. If you changed this configuration, reboot your OIM once to nullify any cache-related or stale configuration issues.
 
 **PostgreSQL container deployment fails after cleanup**
+
+**Symptom**
+
+PostgreSQL container deployment fails after running ``oim_cleanup.yml``.
 
 **Cause**
 
@@ -1106,10 +1611,14 @@ Database initialization issues when existing data is present.
 
 The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associated data and log files. After cleanup completes, re-run ``prepare_oim.yml`` to deploy a new ``postgres_container_name`` container.
 
-10.8 Connectivity Issues
+10.5 Connectivity Issues
 -----------------------
 
 **local_repo.yml fails with connectivity errors**
+
+**Symptom**
+
+The ``local_repo.yml`` playbook fails with connectivity errors.
 
 **Cause**
 
@@ -1120,6 +1629,10 @@ The OIM was unable to reach a required online resource due to a network glitch.
 Verify all connectivity and re-run the playbook.
 
 **Software installation fails with checksum error**
+
+**Symptom**
+
+Software installation fails with a checksum error.
 
 **Cause**
 
@@ -1256,6 +1769,10 @@ Manifest file is missing or corrupted
 
 The playbook fails because ``upgrade_manifest.yml`` or ``rollback_manifest.yml`` cannot be parsed.
 
+**Cause**
+
+The manifest file was manually deleted, corrupted due to disk errors, or contains invalid YAML syntax.
+
 **Resolution**
 
 1. Check the manifest file for syntax errors:
@@ -1284,6 +1801,12 @@ OIM upgrade fails
 **Symptoms**
 
 The ``oim`` component fails during upgrade.
+
+**Cause**
+
+- ``oim_metadata.yml`` is missing or incorrectly configured
+- ``omnia_core`` container is not running or inaccessible
+- Database connectivity issues
 
 **Resolution**
 
@@ -1316,6 +1839,13 @@ General Kubernetes upgrade failure
 **Symptoms**
 
 The ``k8s`` component fails during upgrade with status showing ``failed`` in the upgrade manifest.
+
+**Cause**
+
+- Cluster nodes are not in Ready state
+- Pending pods or stuck resources
+- Network connectivity issues between nodes
+- Storage mount failures
 
 **Resolution**
 
@@ -1352,6 +1882,10 @@ Cloud-init timeout after reboot
 
 First control plane or first worker reboot fails with "Cloud-init did not complete within timeout" error.
 
+**Cause**
+
+Cloud-init execution takes longer than the configured timeout period due to slow network, large package downloads, or system resource constraints.
+
 **Resolution**
 
 1. SSH to the node and check the ``/var/log/cloud-init-output.log`` and wait for the cloud-init execution to complete.
@@ -1367,6 +1901,13 @@ Node unreachable during upgrade
 **Symptoms**
 
 Upgrade fails with SSH connection errors or node unreachable messages.
+
+**Cause**
+
+- Node is powered off or has hardware issues
+- SSH service is not running on the node
+- Network connectivity issues between OIM and the node
+- Firewall blocking SSH connections
 
 **Resolution**
 
@@ -1442,6 +1983,13 @@ Kubernetes rollback fails
 **Symptoms**
 
 The ``k8s-telemetry`` component fails during rollback.
+
+**Cause**
+
+- Control plane is unreachable or nodes are not in Ready state
+- Backup files are missing or corrupted on NFS
+- Storage mount failures preventing access to backup directory
+- Network connectivity issues between OIM and Kubernetes cluster
 
 **Resolution**
 

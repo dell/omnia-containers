@@ -64,3 +64,18 @@ Ansible Vault
 -------------
 
 Ansible vault enables encryption of variables and files to protect sensitive content such as passwords or keys rather than leaving it visible as plaintext in playbooks or roles. Please refer `Ansible Vault guidelines <https://docs.ansible.com/ansible/latest/vault_guide/index.html>`_ for more information.
+
+Encrypted Parameters Management
+--------------------------------
+
+To view encrypted parameters:
+
+.. code-block:: bash
+
+   ansible-vault view omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key
+
+To edit encrypted parameters:
+
+.. code-block:: bash
+
+   ansible-vault edit omnia_config_credentials.yml --vault-password-file .omnia_config_credentials_key

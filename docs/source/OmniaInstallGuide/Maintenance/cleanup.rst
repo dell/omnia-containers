@@ -2,6 +2,14 @@
 OIM Cleanup
 ===============
 
+.. important::
+   **Before running OIM cleanup:**
+
+   1. **Power off all compute nodes** - Ensure all compute nodes managed by the OIM are powered off before initiating the cleanup process. This prevents active NFS mounts and running processes from interfering with directory deletion.
+
+.. note::
+   The OIM cleanup process cleans the contents of NFS shares for both Slurm and Kubernetes (K8s).
+
 The ``oim_cleanup.yml`` playbook can be utilized to roll back any configurations made on the OIM. 
 
 Tasks performed by the playbook

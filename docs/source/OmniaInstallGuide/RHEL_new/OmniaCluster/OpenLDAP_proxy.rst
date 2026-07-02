@@ -35,14 +35,14 @@ Perform the following steps to configure OpenLDAP as a proxy server:
         database        meta
         suffix          "dc=phantom,dc=test"
         rootdn          cn=admin,dc=phantom,dc=test
-        rootpw          Dell1234
+        rootpw          <password>
 
         uri             "ldap://10.5.0.104:389/dc=phantom,dc=test"
         suffixmassage   "dc=phantom,dc=test" "dc=perf,dc=test"
         idassert-bind
          bindmethod=simple
          binddn="cn=admin,dc=perf,dc=test"
-         credentials="Dell1234"
+         credentials="<password>"
          flags=override
          mode=none
         TLSCACertificateFile    /etc/openldap/certs/ldapserver.crt
@@ -54,7 +54,7 @@ Change the **<parameter>** values in the config file, as described below:
 * **database**: Database used in the ``slapd.conf`` file, that captures the details of the external LDAP server to be used. For example, ``meta``.
 * **suffix**: Captures the domain name of internal OpenLDAP user, to refine the user search while attempting to authenticate the user. For example, ``"dc=omnia,dc=test"``.
 * **rootdn**: Admin or root username of the internal OpenLDAP server set up by Omnia. For example, ``cn=admin,dc=omnia,dc=test``.
-* **rootpw**: Admin password for the internal OpenLDAP server. For example, ``Dell1234``.
+* **rootpw**: Admin password for the internal OpenLDAP server. For example, ``<password>``.
 
 * **uri**: Captures the IP of the external LDAP server along with the port and the domain of the user in ``"ldap://<IP  of external LDAP server>:<Port number>/<suffix>"`` format. For example, ``"ldap://10.5.0.104:389/dc=omnia,dc=test"``.
 * **suffixmassage**: ``suffixmassage`` allows you to dynamically move the LDAP client information from the existing internal OpenLDAP server to the external LDAP server that you want to configure as a proxy. This is provided in the ``suffixmassage <suffix1> <suffix2>`` format.
@@ -78,7 +78,7 @@ Change the **<parameter>** values in the config file, as described below:
             idassert-bind
              bindmethod=simple
              binddn="cn=admin,dc=omnia,dc=test"
-             credentials="Dell1234"
+             credentials="<password>"
              flags=override
              mode=none
 
@@ -86,7 +86,7 @@ Change the **<parameter>** values in the config file, as described below:
             idassert-bind
              bindmethod=simple
              binddn="cn=admin,dc=omnia,dc=test"
-             credentials="Dell12345"
+             credentials="<password>"
              flags=override
              mode=none
 
