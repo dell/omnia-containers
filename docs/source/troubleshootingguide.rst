@@ -440,6 +440,39 @@ As a workaround to unblock repository synchronization, run the following command
    iptables -P OUTPUT ACCEPT
 
 
+3.6 Connectivity Issues
+-----------------------
+
+**local_repo.yml fails with connectivity errors**
+
+**Symptom**
+
+The ``local_repo.yml`` playbook fails with connectivity errors.
+
+**Cause**
+
+The OIM was unable to reach a required online resource due to a network glitch.
+
+**Resolution**
+
+Verify all connectivity and re-run the playbook.
+
+3.7 Software Installation Fails with Checksum Error
+----------------------------------------------------
+
+**Symptom**
+
+Software installation fails with a checksum error.
+
+**Cause**
+
+A local repository for the software has not been configured by the ``local_repo.yml`` playbook.
+
+**Resolution**
+
+1. Re-run the ``local_repo.yml`` playbook with proper inputs to download the software package to the Pulp repository.
+2. Once the local repository has been configured successfully, re-run the failed installation script.
+
 4. Kubernetes Cluster & Pod Issues
 ==================================
 
@@ -1610,38 +1643,6 @@ Database initialization issues when existing data is present.
    ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
 
 The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associated data and log files. After cleanup completes, re-run ``prepare_oim.yml`` to deploy a new ``postgres_container_name`` container.
-
-10.5 Connectivity Issues
------------------------
-
-**local_repo.yml fails with connectivity errors**
-
-**Symptom**
-
-The ``local_repo.yml`` playbook fails with connectivity errors.
-
-**Cause**
-
-The OIM was unable to reach a required online resource due to a network glitch.
-
-**Resolution**
-
-Verify all connectivity and re-run the playbook.
-
-**Software installation fails with checksum error**
-
-**Symptom**
-
-Software installation fails with a checksum error.
-
-**Cause**
-
-A local repository for the software has not been configured by the ``local_repo.yml`` playbook.
-
-**Resolution**
-
-1. Re-run the ``local_repo.yml`` playbook with proper inputs to download the software package to the Pulp repository.
-2. Once the local repository has been configured successfully, re-run the failed installation script.
 
 11. Upgrade and Rollback Issues
 ================================
