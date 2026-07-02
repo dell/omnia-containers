@@ -300,5 +300,3 @@ container, and TLS certificate errors.
 !!! info
 
     - [Setup Openldap](../HowTo/Authentication/setup_openldap.md) -- OpenLDAP setup guide.
-    - [Security Hardening](../Operations/security_hardening.md) -- TLS and LDAP hardening.
-    - [Security Hardening](../Operations/security_hardening.md) -- Credential rotation procedures.
