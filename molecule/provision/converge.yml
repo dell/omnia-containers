@@ -293,11 +293,10 @@
     # =========================================================================
 
     - name: Check if set_pxe_boot playbook exists in container
-      ansible.builtin.shell:  # noqa: risky-shell-pipe
+      ansible.builtin.shell:
         cmd: >
           podman exec {{ container_name }}
-          bash -o pipefail -c
-          'ls /omnia/utils/set_pxe_boot.yml /omnia/provision/set_pxe_boot.yml 2>/dev/null | head -1'
+          test -f /omnia/utils/set_pxe_boot.yml && echo '/omnia/utils/set_pxe_boot.yml' || echo ''
       register: pxe_boot_playbook_check
       changed_when: false
 
