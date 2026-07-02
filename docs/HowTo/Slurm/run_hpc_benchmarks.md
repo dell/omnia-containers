@@ -173,7 +173,7 @@ them as Slurm jobs using Apptainer.
 ## Next Steps
 
 
-- [Use Apptainer](../Containers/use_apptainer.md) -- Learn more about using Apptainer
+- [Use Apptainer](../AdvancedConfigurations/use_apptainer.md) -- Learn more about using Apptainer
   containers in your cluster.
 - [Configure Infiniband](../Networking/configure_infiniband.md) -- Optimize network performance
   for HPC workloads.
