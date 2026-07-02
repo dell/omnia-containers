@@ -81,6 +81,7 @@ vi omnia_test_credentials.yml
 # 7. (Optional) Fill dataset files — required only for converge/test runs
 vi datasets/project_default/network_spec.yml
 vi datasets/project_default/software_config.json
+vi datasets/project_default/telemetry_config.yml
 
 # 8. Run prerequisite checks
 oim-prereq-check
