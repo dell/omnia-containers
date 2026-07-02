@@ -52,25 +52,32 @@ Test-case mapping (from K8s-Telemetry-upgrade-test-cases-v2.xls):
   TC-21  NFS provisioner running    -> TC-F010
   TC-22  iDRAC telemetry running    -> TC-TEL-F006
   TC-23  LDMS collecting            -> TC-TEL-F007
-  TC-24  Upgrade manifest status    -> TC-F013 / TC-TEL-F015
-  TC-25  CPs at target version     -> TC-F002
-  TC-26  Workers at target version -> TC-F004
-  TC-27  Etcd backup artifacts     -> TC-F003
-  TC-28  PDBs healthy              -> TC-F005
-  TC-29  CRI-O storage preserved   -> TC-F006
-  TC-30  BSS boot params updated   -> TC-F011
-  TC-31  Kube-VIP HA               -> TC-F014
-  TC-32  Strimzi/Kafka upgraded    -> TC-TEL-F004
-  TC-33  KRaft migration           -> TC-TEL-F016
-  TC-34  Telemetry Phase 1 gate    -> TC-TEL-F008
-  TC-35  Security permissions      -> TC-S001 / TC-S002
-  TC-36  Idempotency baseline      -> TC-I001 / TC-I002 / TC-TEL-I001/I002
-  TC-37  Rollback: nodes at source -> TC-R001 / TC-R006 / TC-R007
-  TC-38  Rollback: etcd restored   -> TC-R002 / TC-R003
-  TC-39  Rollback: Helm restored   -> TC-R012
-  TC-40  Rollback: telemetry OK    -> TC-R007 / TC-TEL-R001
-  TC-41  Rollback: MetalLB cleaned -> TC-R009
-  TC-42  Rollback: CSI cleaned     -> TC-R010
+  TC-24  DCGM exporter running      -> TC-TEL-F009  (Omnia 2.2, config-gated)
+  TC-25  PowerScale telemetry       -> TC-TEL-F010  (Omnia 2.2, karavi+otel)
+  TC-26  VAST telemetry running     -> TC-TEL-F011  (Omnia 2.2, VMServiceScrape)
+  TC-27  UFM telemetry running      -> TC-TEL-F012  (Omnia 2.2, VMServiceScrape)
+  TC-28  Vector running             -> TC-TEL-F013  (Omnia 2.2, config-gated)
+  TC-29  VictoriaLogs running       -> TC-TEL-F014  (Omnia 2.2, VL cluster)
+  TC-30  Upgrade manifest status    -> TC-F013 / TC-TEL-F015
+  TC-31  CPs at target version     -> TC-F002
+  TC-32  Workers at target version -> TC-F004
+  TC-33  Etcd backup artifacts     -> TC-F003
+  TC-34  PDBs healthy              -> TC-F005
+  TC-35  CRI-O storage preserved   -> TC-F006
+  TC-36  BSS boot params updated   -> TC-F011
+  TC-37  Kube-VIP HA               -> TC-F014
+  TC-38  Strimzi/Kafka upgraded    -> TC-TEL-F004
+  TC-39  KRaft migration           -> TC-TEL-F016
+  TC-40  Telemetry Phase 1 gate    -> TC-TEL-F008
+  TC-41  Phase 2 components        -> TC-TEL-F009 to TC-TEL-F014
+  TC-42  Security permissions      -> TC-S001 / TC-S002
+  TC-43  Idempotency baseline      -> TC-I001 / TC-I002 / TC-TEL-I001/I002
+  TC-44  Rollback: nodes at source -> TC-R001 / TC-R006 / TC-R007
+  TC-45  Rollback: etcd restored   -> TC-R002 / TC-R003
+  TC-46  Rollback: Helm restored   -> TC-R012
+  TC-47  Rollback: telemetry OK    -> TC-R007 / TC-TEL-R001
+  TC-48  Rollback: MetalLB cleaned -> TC-R009
+  TC-49  Rollback: CSI cleaned     -> TC-R010
 """
 
 import pytest
@@ -103,6 +110,12 @@ from automation_library.upgrade_and_rollback.functions.postcheck_func import (
     verify_nfs_provisioner_running,
     verify_idrac_telemetry_running,
     verify_ldms_collecting,
+    verify_dcgm_running,
+    verify_powerscale_telemetry_running,
+    verify_vast_telemetry_running,
+    verify_ufm_telemetry_running,
+    verify_vector_running,
+    verify_victorialogs_running,
     verify_new_telemetry_components,
     verify_upgrade_manifest,
     verify_cps_at_target,
@@ -157,7 +170,7 @@ def _require_snapshot():
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
-def test_load_snapshot(host):
+def test_post_check_load_snapshot(host):
     """
     TC-01: Load the pre-upgrade snapshot and resolve admin IP.
     All subsequent tests depend on this.
@@ -213,7 +226,7 @@ def test_load_snapshot(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(2)
-def test_k8s_target_version(host):
+def test_post_check_k8s_target_version(host):
     """TC-02: Verify all nodes are at the target K8s version."""
     _require_snapshot()
     target = K8S_UPGRADE_VARS.get("new_version", "")
@@ -260,7 +273,7 @@ def test_k8s_target_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
-def test_node_readiness(host):
+def test_post_check_node_readiness(host):
     """TC-03: Verify all nodes are in Ready state after upgrade."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["node_readiness"])
@@ -285,7 +298,7 @@ def test_node_readiness(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(4)
-def test_kube_system_pods(host):
+def test_post_check_kube_system_pods(host):
     """TC-04: Verify all kube-system pods are Running after upgrade."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["kube_system_pods"])
@@ -310,7 +323,7 @@ def test_kube_system_pods(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
-def test_etcd_health(host):
+def test_post_check_etcd_health(host):
     """TC-05: Verify etcd cluster is healthy after upgrade."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["etcd_health"])
@@ -341,7 +354,7 @@ def test_etcd_health(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(6)
-def test_api_server(host):
+def test_post_check_api_server(host):
     """TC-06: Verify API server is reachable via kubectl cluster-info."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["api_server"])
@@ -362,7 +375,7 @@ def test_api_server(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(7)
-def test_dns_resolution(host):
+def test_post_check_dns_resolution(host):
     """TC-07: Verify DNS resolution works inside the cluster."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["dns_resolution"])
@@ -383,7 +396,7 @@ def test_dns_resolution(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_calico_healthy(host):
+def test_post_check_calico_healthy(host):
     """TC-08: Verify Calico pods are Running after upgrade."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["calico_healthy"])
@@ -408,7 +421,7 @@ def test_calico_healthy(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(9)
-def test_metallb_ips(host):
+def test_post_check_metallb_ips(host):
     """TC-09: Verify LoadBalancer service IPs are preserved after upgrade."""
     _require_snapshot()
     pre_services = _pre_snapshot.get("lb_service_ips", {}).get("services", [])
@@ -453,7 +466,7 @@ def test_metallb_ips(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
-def test_telemetry_pods(host):
+def test_post_check_telemetry_pods(host):
     """TC-10: Verify all telemetry pods are Running after upgrade."""
     _require_snapshot()
     log = TestLogger(POSTCHECK_TEST_NAMES["telemetry_pods"])
@@ -478,7 +491,7 @@ def test_telemetry_pods(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(11)
-def test_vm_pvcs(host):
+def test_post_check_vm_pvcs(host):
     """TC-11: Verify VictoriaMetrics PVCs remain Bound after upgrade."""
     _require_snapshot()
     pre_pvcs = _pre_snapshot.get("vm_pvcs", {}).get("pvcs", [])
@@ -507,7 +520,7 @@ def test_vm_pvcs(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(12)
-def test_vm_data(host):
+def test_post_check_vm_data(host):
     """TC-12: Verify VictoriaMetrics historical TSDB data is accessible."""
     _require_snapshot()
     pre_pvcs = _pre_snapshot.get("vm_pvcs", {}).get("pvcs", [])
@@ -538,7 +551,7 @@ def test_vm_data(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(13)
-def test_kafka_topics(host):
+def test_post_check_kafka_topics(host):
     """TC-13: Verify Kafka topics from pre-upgrade are preserved."""
     _require_snapshot()
     pre_topics = _pre_snapshot.get("kafka_state", {}).get("topics", [])
@@ -578,7 +591,7 @@ def test_kafka_topics(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(14)
-def test_csi_pvcs(host):
+def test_post_check_csi_pvcs(host):
     """TC-14: Verify CSI-backed PVCs remain Bound after upgrade."""
     _require_snapshot()
     pre_pvcs = _pre_snapshot.get("csi_status", {}).get("csi_pvcs", [])
@@ -607,7 +620,7 @@ def test_csi_pvcs(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(15)
-def test_helm_releases(host):
+def test_post_check_helm_releases(host):
     """TC-15: Verify Helm releases from pre-upgrade are still present."""
     _require_snapshot()
     pre_releases = _pre_snapshot.get("helm_releases", {}).get("releases", [])
@@ -636,7 +649,7 @@ def test_helm_releases(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(16)
-def test_crio_at_target(host):
+def test_post_check_crio_at_target(host):
     """TC-16: Verify CRI-O version matches target K8s minor version."""
     _require_snapshot()
     target = K8S_UPGRADE_VARS.get("new_version", "")
@@ -663,7 +676,7 @@ def test_crio_at_target(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(17)
-def test_calico_version_upgraded(host):
+def test_post_check_calico_version_upgraded(host):
     """TC-17: Verify Calico pods healthy and version upgraded."""
     _require_snapshot()
     log = TestLogger(
@@ -688,7 +701,7 @@ def test_calico_version_upgraded(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(18)
-def test_network_policies_preserved(host):
+def test_post_check_network_policies_preserved(host):
     """TC-18: Verify all pre-upgrade NetworkPolicies still exist."""
     _require_snapshot()
     pre_policies = _pre_snapshot.get("network_policies", {}).get("policies", [])
@@ -715,7 +728,7 @@ def test_network_policies_preserved(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(19)
-def test_metallb_version_upgraded(host):
+def test_post_check_metallb_version_upgraded(host):
     """TC-19: Verify MetalLB pods healthy and IPAddressPool CRDs preserved."""
     _require_snapshot()
     log = TestLogger(
@@ -741,7 +754,7 @@ def test_metallb_version_upgraded(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(20)
-def test_helm_at_target(host):
+def test_post_check_helm_at_target(host):
     """TC-20: Verify Helm binary version after upgrade."""
     _require_snapshot()
     log = TestLogger(
@@ -764,7 +777,7 @@ def test_helm_at_target(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(21)
-def test_nfs_provisioner_running(host):
+def test_post_check_nfs_provisioner_running(host):
     """TC-21: Verify NFS provisioner running if it was deployed pre-upgrade."""
     _require_snapshot()
     pre_deployed = _pre_snapshot.get("nfs_provisioner", {}).get("deployed", False)
@@ -791,7 +804,7 @@ def test_nfs_provisioner_running(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(22)
-def test_idrac_telemetry(host):
+def test_post_check_idrac_telemetry(host):
     """TC-22: Verify iDRAC telemetry pods are Running after upgrade."""
     _require_snapshot()
     pre_idrac = _pre_snapshot.get("idrac_telemetry", {}).get("pods", [])
@@ -818,7 +831,7 @@ def test_idrac_telemetry(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(23)
-def test_ldms_collecting(host):
+def test_post_check_ldms_collecting(host):
     """TC-23: Verify LDMS pods are Running after upgrade."""
     _require_snapshot()
     pre_ldms = _pre_snapshot.get("ldms_status", {}).get("pods", [])
@@ -840,13 +853,199 @@ def test_ldms_collecting(host):
 
 
 # =============================================================================
-# TC-24: Upgrade Manifest Status  (TC-F013 / TC-TEL-F015)
+# TC-24: DCGM Exporter Running  (TC-TEL-F009)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(24)
-def test_upgrade_manifest(host):
-    """TC-24: Verify upgrade_manifest.yml shows k8s completed."""
+def test_post_check_dcgm_running(host):
+    """TC-24: Verify DCGM (nvidia-dcgm.service) is active on GPU nodes.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml dcgm.metrics_enabled.
+    DCGM runs as a systemd service on GPU compute nodes, not as K8s pods.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("dcgm", False):
+        pytest.skip("DCGM disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("dcgm_status", "Post-check: DCGM exporter")
+    )
+    log.check("Verifying DCGM service on GPU nodes")
+    result = verify_dcgm_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("DCGM service not active", result["error"])
+        pytest.fail(result["error"])
+
+    active = [n for n in result.get("nodes", []) if n["active"]]
+    log.passed(f"DCGM: {len(active)} GPU nodes with nvidia-dcgm.service active")
+
+
+# =============================================================================
+# TC-25: PowerScale Telemetry Running  (TC-TEL-F010)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(25)
+def test_post_check_powerscale_telemetry_running(host):
+    """TC-25: Verify PowerScale telemetry pods (karavi-metrics-powerscale,
+    otel-collector) are Running after upgrade.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml powerscale.metrics_enabled.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("powerscale_telemetry", False):
+        pytest.skip("PowerScale telemetry disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("powerscale_status", "Post-check: PowerScale telemetry")
+    )
+    log.check("Verifying PowerScale telemetry pods (karavi, otel-collector)")
+    result = verify_powerscale_telemetry_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("PowerScale telemetry pods unhealthy", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(f"PowerScale telemetry: {len(result.get('pods', []))} pods healthy")
+
+
+# =============================================================================
+# TC-26: VAST Telemetry Running  (TC-TEL-F011)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(26)
+def test_post_check_vast_telemetry_running(host):
+    """TC-26: Verify VAST telemetry VMServiceScrape is configured after upgrade.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml vast.metrics_enabled.
+    VAST uses vmagent(shared) scrape; no dedicated pods — checks VMServiceScrape CR.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("vast_telemetry", False):
+        pytest.skip("VAST telemetry disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("vast_status", "Post-check: VAST telemetry")
+    )
+    log.check("Verifying VAST VMServiceScrape (vast-storage-metrics)")
+    result = verify_vast_telemetry_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("VAST telemetry scrape not found", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(f"VAST telemetry: {result.get('scrape_name', '')} present")
+
+
+# =============================================================================
+# TC-27: UFM Telemetry Running  (TC-TEL-F012)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(27)
+def test_post_check_ufm_telemetry_running(host):
+    """TC-27: Verify UFM telemetry VMServiceScrape is configured after upgrade.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml ufm.metrics_enabled.
+    UFM uses vmagent(shared) scrape; no dedicated pods — checks VMServiceScrape CR.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("ufm_telemetry", False):
+        pytest.skip("UFM telemetry disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("ufm_status", "Post-check: UFM telemetry")
+    )
+    log.check("Verifying UFM VMServiceScrape (ufm-infiniband-metrics)")
+    result = verify_ufm_telemetry_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("UFM telemetry scrape not found", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(f"UFM telemetry: {result.get('scrape_name', '')} present")
+
+
+# =============================================================================
+# TC-28: Vector Running  (TC-TEL-F013)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(28)
+def test_post_check_vector_running(host):
+    """TC-28: Verify Vector bridge pods (vector-ldms, vector-ome) are Running.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml vector bridges.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("vector", False):
+        pytest.skip("Vector disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("vector_status", "Post-check: Vector")
+    )
+    log.check("Verifying Vector pods (vector-ldms, vector-ome)")
+    result = verify_vector_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("Vector pods unhealthy", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(
+        f"Vector: {len(result.get('pods', []))} pods, "
+        f"deployments: {result.get('deployments', [])}"
+    )
+
+
+# =============================================================================
+# TC-29: VictoriaLogs Running  (TC-TEL-F014)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(29)
+def test_post_check_victorialogs_running(host):
+    """TC-29: Verify VictoriaLogs cluster pods (vlstorage, vlinsert, vlselect,
+    vlagent) are Running after upgrade.
+
+    New in Omnia 2.2 — enabled via telemetry_config.yml victorialogs sink.
+    """
+    _require_snapshot()
+    flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not flags.get("victorialogs", False):
+        pytest.skip("VictoriaLogs disabled in telemetry_config.yml")
+
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("victorialogs_status", "Post-check: VictoriaLogs")
+    )
+    log.check("Verifying VictoriaLogs pods (vlstorage, vlinsert, vlselect, vlagent)")
+    result = verify_victorialogs_running(host, _admin_ip)
+
+    if not result["success"]:
+        log.failed("VictoriaLogs pods unhealthy", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(
+        f"VictoriaLogs: {len(result.get('pods', []))} pods healthy, "
+        f"missing: {result.get('missing', [])}"
+    )
+
+
+# =============================================================================
+# TC-30: Upgrade Manifest Status  (TC-F013 / TC-TEL-F015)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(30)
+def test_post_check_upgrade_manifest(host):
+    """TC-30: Verify upgrade_manifest.yml shows k8s completed."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("upgrade_manifest", "Post-check: upgrade_manifest.yml")
@@ -866,13 +1065,13 @@ def test_upgrade_manifest(host):
 
 
 # =============================================================================
-# TC-25: CPs at Target Version  (TC-F002)
+# TC-31: CPs at Target Version  (TC-F002)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(25)
-def test_cps_at_target(host):
-    """TC-25: Verify all control-plane nodes at target version and Ready."""
+@pytest.mark.order(31)
+def test_post_check_cps_at_target(host):
+    """TC-31: Verify all control-plane nodes at target version and Ready."""
     _require_snapshot()
     target = K8S_UPGRADE_VARS.get("new_version", "")
     if not target:
@@ -892,13 +1091,13 @@ def test_cps_at_target(host):
 
 
 # =============================================================================
-# TC-26: Workers at Target Version  (TC-F004)
+# TC-32: Workers at Target Version  (TC-F004)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(26)
-def test_workers_at_target(host):
-    """TC-26: Verify all worker nodes at target version and Ready."""
+@pytest.mark.order(32)
+def test_post_check_workers_at_target(host):
+    """TC-32: Verify all worker nodes at target version and Ready."""
     _require_snapshot()
     target = K8S_UPGRADE_VARS.get("new_version", "")
     if not target:
@@ -918,13 +1117,13 @@ def test_workers_at_target(host):
 
 
 # =============================================================================
-# TC-27: Etcd Backup Artifacts  (TC-F003)
+# TC-33: Etcd Backup Artifacts  (TC-F003)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(27)
-def test_etcd_backup_exists(host):
-    """TC-27: Verify etcd snapshot and /etc/kubernetes backup created."""
+@pytest.mark.order(33)
+def test_post_check_etcd_backup_exists(host):
+    """TC-33: Verify etcd snapshot and /etc/kubernetes backup created."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("etcd_backup", "Post-check: etcd backup artifacts")
@@ -943,13 +1142,13 @@ def test_etcd_backup_exists(host):
 
 
 # =============================================================================
-# TC-28: PDBs Healthy  (TC-F005)
+# TC-34: PDBs Healthy  (TC-F005)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(28)
-def test_pdbs_healthy(host):
-    """TC-28: Verify PodDisruptionBudgets satisfied after upgrade."""
+@pytest.mark.order(34)
+def test_post_check_pdbs_healthy(host):
+    """TC-34: Verify PodDisruptionBudgets satisfied after upgrade."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("pdbs_healthy", "Post-check: PDBs healthy")
@@ -965,13 +1164,13 @@ def test_pdbs_healthy(host):
 
 
 # =============================================================================
-# TC-29: CRI-O Storage Preserved  (TC-F006)
+# TC-35: CRI-O Storage Preserved  (TC-F006)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(29)
-def test_crio_storage_preserved(host):
-    """TC-29: Verify CRI-O storage config preserved after upgrade."""
+@pytest.mark.order(35)
+def test_post_check_crio_storage_preserved(host):
+    """TC-35: Verify CRI-O storage config preserved after upgrade."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("crio_storage", "Post-check: CRI-O storage config")
@@ -987,13 +1186,13 @@ def test_crio_storage_preserved(host):
 
 
 # =============================================================================
-# TC-30: BSS Boot Params Updated  (TC-F011)
+# TC-36: BSS Boot Params Updated  (TC-F011)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(30)
-def test_bss_params_updated(host):
-    """TC-30: Verify BSS boot params updated after upgrade."""
+@pytest.mark.order(36)
+def test_post_check_bss_params_updated(host):
+    """TC-36: Verify BSS boot params updated after upgrade."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("bss_params", "Post-check: BSS boot params")
@@ -1008,13 +1207,13 @@ def test_bss_params_updated(host):
 
 
 # =============================================================================
-# TC-31: Kube-VIP HA  (TC-F014)
+# TC-37: Kube-VIP HA  (TC-F014)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(31)
-def test_kube_vip_ha(host):
-    """TC-31: Verify kube-vip running and VIP reachable after upgrade."""
+@pytest.mark.order(37)
+def test_post_check_kube_vip_ha(host):
+    """TC-37: Verify kube-vip running and VIP reachable after upgrade."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("kube_vip_ha", "Post-check: kube-vip HA")
@@ -1033,13 +1232,13 @@ def test_kube_vip_ha(host):
 
 
 # =============================================================================
-# TC-32: Strimzi Upgraded  (TC-TEL-F004)
+# TC-38: Strimzi Upgraded  (TC-TEL-F004)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(32)
-def test_strimzi_upgraded(host):
-    """TC-32: Verify Strimzi operator upgraded, Kafka brokers running."""
+@pytest.mark.order(38)
+def test_post_check_strimzi_upgraded(host):
+    """TC-38: Verify Strimzi operator upgraded, Kafka brokers running."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("strimzi_upgraded", "Post-check: Strimzi/Kafka upgraded")
@@ -1058,13 +1257,13 @@ def test_strimzi_upgraded(host):
 
 
 # =============================================================================
-# TC-33: KRaft Migration  (TC-TEL-F016)
+# TC-39: KRaft Migration  (TC-TEL-F016)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(33)
-def test_kraft_migration(host):
-    """TC-33: Verify Kafka uses KRaft (no ZooKeeper pods)."""
+@pytest.mark.order(39)
+def test_post_check_kraft_migration(host):
+    """TC-39: Verify Kafka uses KRaft (no ZooKeeper pods)."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("kraft_migration", "Post-check: KRaft migration")
@@ -1082,13 +1281,13 @@ def test_kraft_migration(host):
 
 
 # =============================================================================
-# TC-34: Telemetry Phase 1 Gate  (TC-TEL-F008)
+# TC-40: Telemetry Phase 1 Gate  (TC-TEL-F008)
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(34)
-def test_telemetry_phase1_gate(host):
-    """TC-34: Verify Phase 1 gate: telemetry pods, Kafka, VM all healthy."""
+@pytest.mark.order(40)
+def test_post_check_telemetry_phase1_gate(host):
+    """TC-40: Verify Phase 1 gate: telemetry pods, Kafka, VM all healthy."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("phase1_gate", "Post-check: Telemetry Phase 1 gate")
@@ -1107,14 +1306,52 @@ def test_telemetry_phase1_gate(host):
 
 
 # =============================================================================
-# TC-35: Security Permissions  (TC-S001, TC-S002)
+# TC-41: Phase 2 New Telemetry Components  (TC-TEL-F009 to TC-TEL-F014)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(41)
+def test_post_check_new_telemetry_components(host):
+    """TC-41: Verify Phase 2 components deployed/absent based on config flags."""
+    _require_snapshot()
+    log = TestLogger(
+        POSTCHECK_TEST_NAMES.get("phase2_components", "Post-check: Phase 2 telemetry components")
+    )
+    log.check("Verifying Phase 2 telemetry component deployment")
+
+    config_flags = _snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    if not config_flags:
+        log.passed("No telemetry config flags in snapshot — skipping component check")
+        return
+
+    result = verify_new_telemetry_components(host, _admin_ip, config_flags)
+
+    for comp in result.get("deployed", []):
+        log.check(f"  ✓ {comp}: deployed (expected)")
+    for comp in result.get("correctly_absent", []):
+        log.check(f"  ✓ {comp}: absent (expected)")
+    for issue in result.get("unexpected", []):
+        log.check(f"  ✗ {issue}")
+
+    if not result["success"]:
+        log.failed("Phase 2 component mismatch", result["error"])
+        pytest.fail(result["error"])
+
+    log.passed(
+        f"Phase 2: {len(result.get('deployed', []))} deployed, "
+        f"{len(result.get('correctly_absent', []))} correctly absent"
+    )
+
+
+# =============================================================================
+# TC-42: Security Permissions  (TC-S001, TC-S002)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.security
-@pytest.mark.order(35)
-def test_security_permissions(host):
-    """TC-35: Verify backup dir (0700), SSH keys (0600) after upgrade."""
+@pytest.mark.order(42)
+def test_post_check_security_permissions(host):
+    """TC-42: Verify backup dir (0700), SSH keys (0600) after upgrade."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("security", "Post-check: Security permissions")
@@ -1133,14 +1370,14 @@ def test_security_permissions(host):
 
 
 # =============================================================================
-# TC-36: Idempotency - Cluster Unchanged  (TC-I001, TC-I002, TC-TEL-I001/I002)
+# TC-43: Idempotency - Cluster Unchanged  (TC-I001, TC-I002, TC-TEL-I001/I002)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.idempotency
-@pytest.mark.order(36)
-def test_cluster_idempotency(host):
-    """TC-36: Verify cluster state consistent (idempotency baseline)."""
+@pytest.mark.order(43)
+def test_post_check_cluster_idempotency(host):
+    """TC-43: Verify cluster state consistent (idempotency baseline)."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("idempotency", "Post-check: Cluster idempotency")
@@ -1158,14 +1395,14 @@ def test_cluster_idempotency(host):
 
 
 # =============================================================================
-# TC-37: Rollback - All Nodes at Source  (TC-R001, TC-R006, TC-R007)
+# TC-44: Rollback - All Nodes at Source  (TC-R001, TC-R006, TC-R007)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(37)
-def test_rollback_to_source(host):
-    """TC-37: Verify all nodes reverted to source version after rollback."""
+@pytest.mark.order(44)
+def test_post_check_rollback_to_source(host):
+    """TC-44: Verify all nodes reverted to source version after rollback."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_source", "Post-rollback: Nodes at source version")
@@ -1181,14 +1418,14 @@ def test_rollback_to_source(host):
 
 
 # =============================================================================
-# TC-38: Rollback - Etcd Restored  (TC-R002, TC-R003)
+# TC-45: Rollback - Etcd Restored  (TC-R002, TC-R003)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(38)
-def test_rollback_etcd_restored(host):
-    """TC-38: Verify etcd healthy after rollback restore."""
+@pytest.mark.order(45)
+def test_post_check_rollback_etcd_restored(host):
+    """TC-45: Verify etcd healthy after rollback restore."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_etcd", "Post-rollback: etcd restored")
@@ -1204,14 +1441,14 @@ def test_rollback_etcd_restored(host):
 
 
 # =============================================================================
-# TC-39: Rollback - Helm Restored  (TC-R012)
+# TC-46: Rollback - Helm Restored  (TC-R012)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(39)
-def test_rollback_helm_restored(host):
-    """TC-39: Verify Helm binary restored to pre-upgrade version."""
+@pytest.mark.order(46)
+def test_post_check_rollback_helm_restored(host):
+    """TC-46: Verify Helm binary restored to pre-upgrade version."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_helm", "Post-rollback: Helm restored")
@@ -1229,14 +1466,14 @@ def test_rollback_helm_restored(host):
 
 
 # =============================================================================
-# TC-40: Rollback - Telemetry Healthy  (TC-R007, TC-TEL-R001)
+# TC-47: Rollback - Telemetry Healthy  (TC-R007, TC-TEL-R001)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(40)
-def test_rollback_telemetry_healthy(host):
-    """TC-40: Verify telemetry stack healthy after rollback."""
+@pytest.mark.order(47)
+def test_post_check_rollback_telemetry_healthy(host):
+    """TC-47: Verify telemetry stack healthy after rollback."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_telemetry", "Post-rollback: Telemetry healthy")
@@ -1256,14 +1493,14 @@ def test_rollback_telemetry_healthy(host):
 
 
 # =============================================================================
-# TC-41: Rollback - MetalLB Cleaned  (TC-R009)
+# TC-48: Rollback - MetalLB Cleaned  (TC-R009)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(41)
-def test_rollback_metallb_cleaned(host):
-    """TC-41: Verify MetalLB healthy after rollback (stale IPs cleaned)."""
+@pytest.mark.order(48)
+def test_post_check_rollback_metallb_cleaned(host):
+    """TC-48: Verify MetalLB healthy after rollback (stale IPs cleaned)."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_metallb", "Post-rollback: MetalLB cleaned")
@@ -1279,14 +1516,14 @@ def test_rollback_metallb_cleaned(host):
 
 
 # =============================================================================
-# TC-42: Rollback - CSI Cleaned  (TC-R010)
+# TC-49: Rollback - CSI Cleaned  (TC-R010)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.rollback
-@pytest.mark.order(42)
-def test_rollback_csi_cleaned(host):
-    """TC-42: Verify no stale CSI VolumeAttachments after rollback."""
+@pytest.mark.order(49)
+def test_post_check_rollback_csi_cleaned(host):
+    """TC-49: Verify no stale CSI VolumeAttachments after rollback."""
     _require_snapshot()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_csi", "Post-rollback: CSI cleaned")

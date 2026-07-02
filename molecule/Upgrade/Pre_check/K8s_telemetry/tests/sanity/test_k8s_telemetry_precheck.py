@@ -53,8 +53,14 @@ Test-case mapping (from K8s-Telemetry-upgrade-test-cases-v2.xls):
   TC-31  PodDisruptionBudgets      -> TC-F005
   TC-32  Node roles topology       -> TC-F002 / TC-F004
   TC-33  Telemetry pre-flight      -> TC-TEL-F002
-  TC-34  OIM upgrade status        -> TC-F016
-  TC-35  Save snapshot             -> Snapshot for post-checks
+  TC-34  Telemetry config flags    -> TC-TEL-F009 to TC-TEL-F014
+  TC-35  K8s at target for tel.    -> TC-TEL-F001
+  TC-36  OIM upgrade status        -> TC-F016
+  TC-37  Save snapshot             -> Snapshot for post-checks
+
+NOTE: DCGM, PowerScale, VAST, UFM, Vector, VictoriaLogs are NEW in Omnia 2.2.
+      They do not exist in 2.1 so there is no pre-check baseline to collect.
+      Post-check validates them based on telemetry_config.yml flags.
 
 IMPORTANT:
   Tests execute in order.  If TC-01 (version collection) fails, subsequent
@@ -146,7 +152,7 @@ def _record(key, value):
 
 @pytest.mark.sanity
 @pytest.mark.order(1)
-def test_k8s_node_versions(host):
+def test_pre_check_k8s_node_versions(host):
     """
     TC-01: Collect K8s version from every node.
     Records current version and validates all nodes are at the expected
@@ -230,7 +236,7 @@ def test_k8s_node_versions(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(2)
-def test_node_readiness(host):
+def test_pre_check_node_readiness(host):
     """TC-02: Verify all nodes are in Ready state."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["node_readiness"])
@@ -256,7 +262,7 @@ def test_node_readiness(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(3)
-def test_kube_system_pods(host):
+def test_pre_check_kube_system_pods(host):
     """TC-03: Verify all kube-system pods are Running."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["kube_system_pods"])
@@ -282,7 +288,7 @@ def test_kube_system_pods(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(4)
-def test_etcd_health(host):
+def test_pre_check_etcd_health(host):
     """TC-04: Verify etcd cluster is healthy."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["etcd_health"])
@@ -314,7 +320,7 @@ def test_etcd_health(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(5)
-def test_calico_status(host):
+def test_pre_check_calico_status(host):
     """TC-05: Verify Calico pods are Running."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["calico_status"])
@@ -340,7 +346,7 @@ def test_calico_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(6)
-def test_metallb_status(host):
+def test_pre_check_metallb_status(host):
     """TC-06: Verify MetalLB pods are Running."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["metallb_status"])
@@ -366,7 +372,7 @@ def test_metallb_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(7)
-def test_lb_service_ips(host):
+def test_pre_check_lb_service_ips(host):
     """TC-07: Record all LoadBalancer service external IPs for post-check comparison."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["lb_service_ips"])
@@ -390,7 +396,7 @@ def test_lb_service_ips(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(8)
-def test_helm_releases(host):
+def test_pre_check_helm_releases(host):
     """TC-08: Record Helm releases in telemetry namespace."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["helm_releases"])
@@ -414,7 +420,7 @@ def test_helm_releases(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(9)
-def test_telemetry_pods(host):
+def test_pre_check_telemetry_pods(host):
     """TC-09: Verify all telemetry pods are Running."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["telemetry_pods"])
@@ -440,7 +446,7 @@ def test_telemetry_pods(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(10)
-def test_vm_pvcs(host):
+def test_pre_check_vm_pvcs(host):
     """TC-10: Verify VictoriaMetrics PVCs are Bound and record state."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["vm_pvcs"])
@@ -464,7 +470,7 @@ def test_vm_pvcs(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(11)
-def test_kafka_state(host):
+def test_pre_check_kafka_state(host):
     """TC-11: Collect Kafka broker pods and topic list."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["kafka_state"])
@@ -491,7 +497,7 @@ def test_kafka_state(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(12)
-def test_csi_status(host):
+def test_pre_check_csi_status(host):
     """TC-12: Collect CSI driver pods and CSI-backed PVCs."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["csi_status"])
@@ -512,7 +518,7 @@ def test_csi_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(13)
-def test_nfs_provisioner(host):
+def test_pre_check_nfs_provisioner(host):
     """TC-13: Check NFS provisioner is deployed."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["nfs_provisioner"])
@@ -532,7 +538,7 @@ def test_nfs_provisioner(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(14)
-def test_crio_version(host):
+def test_pre_check_crio_version(host):
     """TC-14: Record CRI-O version from all nodes."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("crio_version", "Pre-check: CRI-O version"))
@@ -553,7 +559,7 @@ def test_crio_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(15)
-def test_calico_version(host):
+def test_pre_check_calico_version(host):
     """TC-15: Record Calico controller image version."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("calico_version", "Pre-check: Calico version"))
@@ -572,7 +578,7 @@ def test_calico_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(16)
-def test_network_policies(host):
+def test_pre_check_network_policies(host):
     """TC-16: Record all NetworkPolicies across namespaces."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("network_policies", "Pre-check: Network policies"))
@@ -590,7 +596,7 @@ def test_network_policies(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(17)
-def test_metallb_version(host):
+def test_pre_check_metallb_version(host):
     """TC-17: Record MetalLB version and IPAddressPool CRDs."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("metallb_version", "Pre-check: MetalLB version"))
@@ -615,7 +621,7 @@ def test_metallb_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(18)
-def test_helm_version(host):
+def test_pre_check_helm_version(host):
     """TC-18: Record Helm binary version."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("helm_version", "Pre-check: Helm version"))
@@ -634,7 +640,7 @@ def test_helm_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(19)
-def test_idrac_telemetry_status(host):
+def test_pre_check_idrac_telemetry_status(host):
     """TC-19: Record iDRAC telemetry receiver pod status."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("idrac_status", "Pre-check: iDRAC telemetry"))
@@ -652,7 +658,7 @@ def test_idrac_telemetry_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(20)
-def test_ldms_status(host):
+def test_pre_check_ldms_status(host):
     """TC-20: Record LDMS sampler/aggregator pod status."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("ldms_status", "Pre-check: LDMS status"))
@@ -670,7 +676,7 @@ def test_ldms_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(21)
-def test_ssh_connectivity(host):
+def test_pre_check_ssh_connectivity(host):
     """TC-21: Verify SSH connectivity from OIM to all K8s nodes."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES.get("ssh_connectivity", "Pre-check: SSH connectivity (Gate 2)"))
@@ -695,7 +701,7 @@ def test_ssh_connectivity(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(22)
-def test_version_hop_valid(host):
+def test_pre_check_version_hop_valid(host):
     """TC-22: Verify current->target version hop is exactly one minor version."""
     _require_cluster()
     target = K8S_UPGRADE_VARS.get("new_version", "")
@@ -732,7 +738,7 @@ def test_version_hop_valid(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(23)
-def test_etcd_backup_readiness(host):
+def test_pre_check_etcd_backup_readiness(host):
     """TC-23: Verify etcd is ready for snapshot and backup dir is accessible."""
     _require_cluster()
     log = TestLogger(
@@ -758,7 +764,7 @@ def test_etcd_backup_readiness(host):
 @pytest.mark.sanity
 @pytest.mark.security
 @pytest.mark.order(24)
-def test_security_permissions(host):
+def test_pre_check_security_permissions(host):
     """TC-24: Verify file permissions for SSH keys and backup dirs."""
     _require_cluster()
     log = TestLogger(
@@ -783,7 +789,7 @@ def test_security_permissions(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(25)
-def test_pulp_images_available(host):
+def test_pre_check_pulp_images_available(host):
     """TC-25: Verify target K8s images available in registry."""
     _require_cluster()
     target = K8S_UPGRADE_VARS.get("new_version", "")
@@ -809,7 +815,7 @@ def test_pulp_images_available(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(26)
-def test_addon_compatibility(host):
+def test_pre_check_addon_compatibility(host):
     """TC-26: Verify Calico, MetalLB, Helm healthy before upgrade."""
     _require_cluster()
     target = K8S_UPGRADE_VARS.get("new_version", "")
@@ -838,7 +844,7 @@ def test_addon_compatibility(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(27)
-def test_bss_boot_params(host):
+def test_pre_check_bss_boot_params(host):
     """TC-27: Collect BSS boot params (kernel, OS image) baseline."""
     _require_cluster()
     log = TestLogger(
@@ -863,7 +869,7 @@ def test_bss_boot_params(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(28)
-def test_strimzi_version(host):
+def test_pre_check_strimzi_version(host):
     """TC-28: Collect Strimzi operator, Kafka version, KRaft status."""
     _require_cluster()
     log = TestLogger(
@@ -889,7 +895,7 @@ def test_strimzi_version(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(29)
-def test_crio_storage_config(host):
+def test_pre_check_crio_storage_config(host):
     """TC-29: Collect CRI-O storage config baseline from all nodes."""
     _require_cluster()
     log = TestLogger(
@@ -914,7 +920,7 @@ def test_crio_storage_config(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(30)
-def test_kube_vip_status(host):
+def test_pre_check_kube_vip_status(host):
     """TC-30: Collect kube-vip pod status and VIP reachability."""
     _require_cluster()
     log = TestLogger(
@@ -937,7 +943,7 @@ def test_kube_vip_status(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(31)
-def test_pod_disruption_budgets(host):
+def test_pre_check_pod_disruption_budgets(host):
     """TC-31: Collect PodDisruptionBudgets for drain safety verification."""
     _require_cluster()
     log = TestLogger(
@@ -961,7 +967,7 @@ def test_pod_disruption_budgets(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(32)
-def test_node_roles(host):
+def test_pre_check_node_roles(host):
     """TC-32: Collect node roles (CPs vs workers) for upgrade order verification."""
     _require_cluster()
     log = TestLogger(
@@ -989,7 +995,7 @@ def test_node_roles(host):
 
 @pytest.mark.sanity
 @pytest.mark.order(33)
-def test_telemetry_preflight(host):
+def test_pre_check_telemetry_preflight(host):
     """TC-33: Verify telemetry upgrade pre-flight checks."""
     _require_cluster()
     log = TestLogger(
@@ -1009,13 +1015,64 @@ def test_telemetry_preflight(host):
 
 
 # =============================================================================
-# TC-34: OIM Upgrade Status  (TC-F016)
+# TC-34: Telemetry Config Flags  (TC-TEL-F009 to TC-TEL-F014)
 # =============================================================================
 
 @pytest.mark.sanity
 @pytest.mark.order(34)
-def test_oim_upgrade_status(host):
-    """TC-34: Verify OIM upgrade is completed (prerequisite for K8s upgrade)."""
+def test_pre_check_telemetry_config_flags(host):
+    """TC-34: Collect telemetry_config.yml feature flags for Phase 2 validation."""
+    _require_cluster()
+    log = TestLogger(
+        PRECHECK_TEST_NAMES.get("telemetry_config", "Pre-Check: Telemetry config flags")
+    )
+    log.check("Collecting telemetry_config.yml feature flags")
+    result = collect_telemetry_config_flags(host)
+    _record("telemetry_config_flags", result)
+
+    for flag, val in result.get("flags", {}).items():
+        log.check(f"  {flag}: {val}")
+
+    if not result["success"]:
+        log.failed("telemetry_config.yml not readable", result["error"])
+        pytest.fail(result["error"])
+    log.passed(f"Collected {len(result.get('flags', {}))} telemetry feature flags")
+
+
+# =============================================================================
+# TC-35: K8s at Target for Telemetry  (TC-TEL-F001)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(35)
+def test_pre_check_k8s_at_target_for_telemetry(host):
+    """TC-35: Verify K8s is at target version (prerequisite for telemetry upgrade)."""
+    _require_cluster()
+    target = K8S_UPGRADE_VARS.get("new_version", "")
+    log = TestLogger(
+        PRECHECK_TEST_NAMES.get("k8s_target_tel", "Pre-Check: K8s at target for telemetry")
+    )
+    log.check(f"Checking K8s nodes at target version {target}")
+    result = verify_k8s_at_target_for_telemetry(host, _admin_ip, target)
+    _record("k8s_at_target_for_telemetry", result)
+
+    log.check(f"  Current: {result.get('current_version', 'unknown')}")
+    log.check(f"  Target: {result.get('target_version', 'unknown')}")
+
+    if not result["success"]:
+        log.failed("K8s not at target for telemetry upgrade", result["error"])
+        pytest.fail(result["error"])
+    log.passed(f"K8s at target version {target} for telemetry upgrade")
+
+
+# =============================================================================
+# TC-36: OIM Upgrade Status  (TC-F016)
+# =============================================================================
+
+@pytest.mark.sanity
+@pytest.mark.order(36)
+def test_pre_check_oim_upgrade_status(host):
+    """TC-36: Verify OIM upgrade is completed (prerequisite for K8s upgrade)."""
     _require_cluster()
     log = TestLogger(
         PRECHECK_TEST_NAMES.get("oim_status", "Pre-Check: OIM upgrade status")
@@ -1035,13 +1092,13 @@ def test_oim_upgrade_status(host):
 
 
 # =============================================================================
-# TC-35: Save Snapshot
+# TC-37: Save Snapshot
 # =============================================================================
 
 @pytest.mark.sanity
-@pytest.mark.order(35)
-def test_save_snapshot(host):
-    """TC-35: Persist the collected pre-upgrade state as a JSON snapshot."""
+@pytest.mark.order(37)
+def test_pre_check_save_snapshot(host):
+    """TC-37: Persist the collected pre-upgrade state as a JSON snapshot."""
     _require_cluster()
     log = TestLogger(PRECHECK_TEST_NAMES["save_snapshot"])
 

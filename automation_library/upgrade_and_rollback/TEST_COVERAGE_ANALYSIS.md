@@ -28,29 +28,21 @@ subsets selectively. The available markers for upgrade tests are:
 |------|---------|
 | TC-01 to TC-23 | `sanity` |
 | TC-24 (security permissions) | `sanity`, `security` |
-| TC-25 to TC-35 | `sanity` |
-
-#### Execute Tests (`test_k8s_telemetry_execute.py`)
-
-| Test | Markers |
-|------|---------|
-| TC-01 (upgrade log verification) | `sanity` |
-| TC-02 (upgrade manifest updated) | `sanity` |
-| TC-03 (cluster accessible) | `sanity` |
+| TC-25 to TC-37 | `sanity` |
 
 #### Post-Check Tests (`test_k8s_telemetry_postcheck.py`)
 
 | Test | Markers |
 |------|---------|
-| TC-01 to TC-34 | `sanity` |
-| TC-35 (security permissions) | `sanity`, `security` |
-| TC-36 (idempotency) | `sanity`, `idempotency` |
-| TC-37 (rollback: nodes at source) | `sanity`, `rollback` |
-| TC-38 (rollback: etcd restored) | `sanity`, `rollback` |
-| TC-39 (rollback: Helm restored) | `sanity`, `rollback` |
-| TC-40 (rollback: telemetry healthy) | `sanity`, `rollback` |
-| TC-41 (rollback: MetalLB cleaned) | `sanity`, `rollback` |
-| TC-42 (rollback: CSI cleaned) | `sanity`, `rollback` |
+| TC-01 to TC-41 | `sanity` |
+| TC-42 (security permissions) | `sanity`, `security` |
+| TC-43 (idempotency) | `sanity`, `idempotency` |
+| TC-44 (rollback: nodes at source) | `sanity`, `rollback` |
+| TC-45 (rollback: etcd restored) | `sanity`, `rollback` |
+| TC-46 (rollback: Helm restored) | `sanity`, `rollback` |
+| TC-47 (rollback: telemetry healthy) | `sanity`, `rollback` |
+| TC-48 (rollback: MetalLB cleaned) | `sanity`, `rollback` |
+| TC-49 (rollback: CSI cleaned) | `sanity`, `rollback` |
 
 #### Negative & Performance Tests (`test_k8s_telemetry_negative.py`)
 
@@ -93,7 +85,11 @@ pytest -m rollback
 
 ## 1. Covered Test Cases (Automated as Pre-Check / Post-Check)
 
-### Pre-Check Tests (35 tests in `test_k8s_telemetry_precheck.py`)
+### Pre-Check Tests (37 tests in `test_k8s_telemetry_precheck.py`)
+
+> **NOTE**: DCGM, PowerScale, VAST, UFM, Vector, VictoriaLogs are new in Omnia 2.2
+> and do not exist in 2.1. No pre-check baseline to collect for these components.
+> Post-check validates them based on `telemetry_config.yml` flags.
 
 | Test # | Excel TC | Function | Description |
 |--------|----------|----------|-------------|
@@ -130,10 +126,12 @@ pytest -m rollback
 | TC-31 | TC-F005 | `collect_pod_disruption_budgets` | PDBs across cluster |
 | TC-32 | TC-F002/F004 | `collect_node_roles` | Node roles (CPs vs workers) + IPs |
 | TC-33 | TC-TEL-F002 | `verify_telemetry_preflight` | Telemetry pre-flight checks |
-| TC-34 | TC-F016 | `verify_oim_upgrade_completed` | OIM upgrade completion status |
-| TC-35 | -- | `save_precheck_snapshot` | Persist snapshot to JSON on OIM |
+| TC-34 | TC-TEL-F009-F014 | `collect_telemetry_config_flags` | Telemetry config flags for Phase 2 |
+| TC-35 | TC-TEL-F001 | `verify_k8s_at_target_for_telemetry` | K8s at target for telemetry upgrade |
+| TC-36 | TC-F016 | `verify_oim_upgrade_completed` | OIM upgrade completion status |
+| TC-37 | -- | `save_precheck_snapshot` | Persist snapshot to JSON on OIM |
 
-### Post-Check Tests (42 tests in `test_k8s_telemetry_postcheck.py`)
+### Post-Check Tests (49 tests in `test_k8s_telemetry_postcheck.py`)
 
 | Test # | Excel TC | Function | Description |
 |--------|----------|----------|-------------|
@@ -160,25 +158,32 @@ pytest -m rollback
 | TC-21 | TC-F010 | `verify_nfs_provisioner_running` | NFS provisioner running |
 | TC-22 | TC-TEL-F006 | `verify_idrac_telemetry_running` | iDRAC telemetry pods running |
 | TC-23 | TC-TEL-F007 | `verify_ldms_collecting` | LDMS pods running |
-| TC-24 | TC-F013/TEL-F015 | `verify_upgrade_manifest` | upgrade_manifest.yml status |
-| TC-25 | TC-F002 | `verify_cps_at_target` | All CPs at target version + Ready |
-| TC-26 | TC-F004 | `verify_workers_at_target` | All workers at target version + Ready |
-| TC-27 | TC-F003 | `verify_etcd_backup_exists` | etcd snapshot + /etc/kubernetes backup exist |
-| TC-28 | TC-F005 | `verify_pdbs_healthy` | PDBs satisfied after upgrade |
-| TC-29 | TC-F006 | `verify_crio_storage_preserved` | CRI-O storage config unchanged |
-| TC-30 | TC-F011 | `verify_bss_params_updated` | BSS boot params updated |
-| TC-31 | TC-F014 | `verify_kube_vip_ha` | kube-vip running + VIP reachable |
-| TC-32 | TC-TEL-F004 | `verify_strimzi_upgraded` | Strimzi/Kafka upgraded + brokers running |
-| TC-33 | TC-TEL-F016 | `verify_kraft_migration` | Kafka using KRaft (no ZooKeeper) |
-| TC-34 | TC-TEL-F008 | `verify_telemetry_phase1_gate` | Phase 1 gate: pods + Kafka + VM healthy |
-| TC-35 | TC-S001/S002 | `verify_security_permissions` | Backup dir (0700), SSH keys (0600) |
-| TC-36 | TC-I001/I002/TEL-I | `verify_cluster_unchanged` | Cluster state consistent (idempotency) |
-| TC-37 | TC-R001/R006/R007 | `verify_rollback_to_source` | All nodes at source version |
-| TC-38 | TC-R002/R003 | `verify_rollback_etcd_restored` | etcd healthy after rollback |
-| TC-39 | TC-R012 | `verify_rollback_helm_restored` | Helm restored to pre-upgrade version |
-| TC-40 | TC-R007/TEL-R001 | `verify_rollback_telemetry_healthy` | Telemetry stack healthy after rollback |
-| TC-41 | TC-R009 | `verify_rollback_metallb_cleaned` | MetalLB healthy (stale IPs cleaned) |
-| TC-42 | TC-R010 | `verify_rollback_csi_cleaned` | No stale CSI VolumeAttachments |
+| TC-24 | TC-TEL-F009 | `verify_dcgm_running` | DCGM nvidia-dcgm.service on GPU nodes (2.2, config-gated) |
+| TC-25 | TC-TEL-F010 | `verify_powerscale_telemetry_running` | PowerScale karavi + otel-collector pods (2.2, config-gated) |
+| TC-26 | TC-TEL-F011 | `verify_vast_telemetry_running` | VAST VMServiceScrape (vast-storage-metrics) (2.2, config-gated) |
+| TC-27 | TC-TEL-F012 | `verify_ufm_telemetry_running` | UFM VMServiceScrape (ufm-infiniband-metrics) (2.2, config-gated) |
+| TC-28 | TC-TEL-F013 | `verify_vector_running` | Vector vector-ldms/vector-ome deployments (2.2, config-gated) |
+| TC-29 | TC-TEL-F014 | `verify_victorialogs_running` | VictoriaLogs vlstorage/vlinsert/vlselect/vlagent (2.2, config-gated) |
+| TC-30 | TC-F013/TEL-F015 | `verify_upgrade_manifest` | upgrade_manifest.yml status |
+| TC-31 | TC-F002 | `verify_cps_at_target` | All CPs at target version + Ready |
+| TC-32 | TC-F004 | `verify_workers_at_target` | All workers at target version + Ready |
+| TC-33 | TC-F003 | `verify_etcd_backup_exists` | etcd snapshot + /etc/kubernetes backup exist |
+| TC-34 | TC-F005 | `verify_pdbs_healthy` | PDBs satisfied after upgrade |
+| TC-35 | TC-F006 | `verify_crio_storage_preserved` | CRI-O storage config unchanged |
+| TC-36 | TC-F011 | `verify_bss_params_updated` | BSS boot params updated |
+| TC-37 | TC-F014 | `verify_kube_vip_ha` | kube-vip running + VIP reachable |
+| TC-38 | TC-TEL-F004 | `verify_strimzi_upgraded` | Strimzi/Kafka upgraded + brokers running |
+| TC-39 | TC-TEL-F016 | `verify_kraft_migration` | Kafka using KRaft (no ZooKeeper) |
+| TC-40 | TC-TEL-F008 | `verify_telemetry_phase1_gate` | Phase 1 gate: pods + Kafka + VM healthy |
+| TC-41 | TC-TEL-F009-F014 | `verify_new_telemetry_components` | Phase 2 components deployed/absent per config |
+| TC-42 | TC-S001/S002 | `verify_security_permissions` | Backup dir (0700), SSH keys (0600) |
+| TC-43 | TC-I001/I002/TEL-I | `verify_cluster_unchanged` | Cluster state consistent (idempotency) |
+| TC-44 | TC-R001/R006/R007 | `verify_rollback_to_source` | All nodes at source version |
+| TC-45 | TC-R002/R003 | `verify_rollback_etcd_restored` | etcd healthy after rollback |
+| TC-46 | TC-R012 | `verify_rollback_helm_restored` | Helm restored to pre-upgrade version |
+| TC-47 | TC-R007/TEL-R001 | `verify_rollback_telemetry_healthy` | Telemetry stack healthy after rollback |
+| TC-48 | TC-R009 | `verify_rollback_metallb_cleaned` | MetalLB healthy (stale IPs cleaned) |
+| TC-49 | TC-R010 | `verify_rollback_csi_cleaned` | No stale CSI VolumeAttachments |
 
 ---
 
@@ -277,8 +282,8 @@ The converge step runs the upgrade playbook; these tests validate its output.
 
 | Category | Count | Marker | Scenario |
 |----------|-------|--------|----------|
-| Pre-check tests | 35 | `sanity` (+`security`) | `upgrade_pre_k8s_telemetry` |
-| Post-check tests | 42 | `sanity` (+`security`,`rollback`,`idempotency`) | `upgrade_post_k8s_telemetry` |
+| Pre-check tests | 37 | `sanity` (+`security`) | `upgrade_pre_k8s_telemetry` |
+| Post-check tests | 49 | `sanity` (+`security`,`rollback`,`idempotency`) | `upgrade_post_k8s_telemetry` |
 | K8s error injection | 15 | `negative` | `upgrade_negative_k8s_telemetry` |
 | Telemetry error injection | 7 | `negative` | `upgrade_negative_k8s_telemetry` |
 | Performance tests | 4 | `stress` | `upgrade_negative_k8s_telemetry` |
@@ -286,7 +291,7 @@ The converge step runs the upgrade playbook; these tests validate its output.
 | Execute verification | 3 | `negative` | `upgrade_negative_k8s_telemetry` |
 | Setup (env init) | 1 | `negative` | `upgrade_negative_k8s_telemetry` |
 | Documentation notes | 1 | — | Not a test |
-| **Total test functions** | **112** | | |
+| **Total test functions** | **121** | | |
 
 ### File Locations
 

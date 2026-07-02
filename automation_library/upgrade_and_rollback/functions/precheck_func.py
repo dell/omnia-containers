@@ -45,6 +45,7 @@ Test-case mapping:
   TC-TEL-F004 -> collect_strimzi_version
   TC-TEL-F006 -> collect_idrac_telemetry_status
   TC-TEL-F007 -> collect_ldms_status
+  TC-TEL-F009-F014 -> collect_telemetry_config_flags (flags only; post-check verifies)
   TC-TEL-F016 -> collect_strimzi_version
 """
 
@@ -576,6 +577,9 @@ def collect_helm_version(host, admin_ip: str) -> Dict[str, Any]:
 
 # =============================================================================
 # Extended Telemetry Collectors  (TC-TEL-F003, TC-TEL-F006, TC-TEL-F007)
+# NOTE: DCGM, PowerScale, VAST, UFM, Vector, VictoriaLogs are NEW in Omnia 2.2
+#       and do not exist in 2.1.  No pre-check baseline to collect.
+#       Post-check verifies them based on telemetry_config.yml flags.
 # =============================================================================
 
 def collect_idrac_telemetry_status(host, admin_ip: str) -> Dict[str, Any]:
@@ -604,6 +608,8 @@ def collect_ldms_status(host, admin_ip: str) -> Dict[str, Any]:
     return _collect_pods_in_namespace(
         host, admin_ip, TELEMETRY_NAMESPACE, label_filter="ldms"
     )
+
+
 
 
 # =============================================================================
@@ -770,14 +776,18 @@ def collect_telemetry_config_flags(host) -> Dict[str, Any]:
     try:
         import yaml as _yaml
         config = _yaml.safe_load(cmd.stdout) or {}
+        sources = config.get("telemetry_sources", {})
+        bridges = config.get("telemetry_bridges", {})
+        sinks = config.get("telemetry_sinks", {})
         flags = {
-            "powerscale_telemetry": config.get("powerscale_telemetry", False),
-            "vast_telemetry": config.get("vast_telemetry", False),
-            "victorialogs": config.get("victorialogs", False),
-            "ufm_telemetry": config.get("ufm_telemetry", False),
-            "vector": config.get("vector", False),
-            "idrac_telemetry": config.get("idrac_telemetry", False),
-            "ldms": config.get("ldms", False),
+            "idrac_telemetry": sources.get("idrac", {}).get("metrics_enabled", False),
+            "ldms": sources.get("ldms", {}).get("metrics_enabled", False),
+            "dcgm": sources.get("dcgm", {}).get("metrics_enabled", False),
+            "powerscale_telemetry": sources.get("powerscale", {}).get("metrics_enabled", False),
+            "ufm_telemetry": sources.get("ufm", {}).get("metrics_enabled", False),
+            "vast_telemetry": sources.get("vast", {}).get("metrics_enabled", False),
+            "vector": bool(bridges.get("vector_ldms") or bridges.get("vector_ome")),
+            "victorialogs": bool(sinks.get("victoria_logs")),
         }
         return {"success": True, "flags": flags, "error": ""}
     except Exception as exc:

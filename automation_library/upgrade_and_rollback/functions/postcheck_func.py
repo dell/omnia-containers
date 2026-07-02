@@ -48,7 +48,13 @@ Test-case mapping:
   TC-TEL-F006 -> verify_idrac_telemetry_running
   TC-TEL-F007 -> verify_ldms_collecting
   TC-TEL-F008 -> verify_telemetry_phase1_gate
-  TC-TEL-F009-F014 -> verify_new_telemetry_components
+  TC-TEL-F009 -> verify_dcgm_running
+  TC-TEL-F010 -> verify_powerscale_telemetry_running
+  TC-TEL-F011 -> verify_vast_telemetry_running
+  TC-TEL-F012 -> verify_ufm_telemetry_running
+  TC-TEL-F013 -> verify_vector_running
+  TC-TEL-F014 -> verify_victorialogs_running
+  TC-TEL-F009-F014 -> verify_new_telemetry_components (aggregate)
   TC-TEL-F015 -> verify_upgrade_manifest
   TC-TEL-F016 -> verify_kraft_migration
   TC-TEL-I001/I002 -> verify_cluster_unchanged
@@ -685,13 +691,271 @@ def verify_ldms_collecting(host, admin_ip: str) -> Dict[str, Any]:
     return collect_ldms_status(host, admin_ip)
 
 
+def verify_dcgm_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify DCGM exporter (nvidia-dcgm.service) is active on GPU nodes.
+
+    TC-TEL-F009: DCGM telemetry — new in Omnia 2.2.
+    DCGM runs as a systemd service on GPU compute nodes, NOT as a K8s pod
+    in the telemetry namespace.
+
+    Returns:
+        Dict with success, nodes=[{ip, active}], error
+    """
+    # Discover GPU nodes from the cluster
+    node_result = collect_node_roles(host, admin_ip)
+    if not node_result["success"]:
+        return {"success": False, "nodes": [], "error": node_result["error"]}
+
+    all_nodes = node_result.get("workers", [])
+    if not all_nodes:
+        return {"success": True, "nodes": [], "error": ""}
+
+    gpu_nodes = []
+    for node in all_nodes:
+        ip = node.get("ip", node.get("name", ""))
+        check = run_on_remote_node(
+            host,
+            "systemctl is-active nvidia-dcgm.service 2>/dev/null || echo inactive",
+            ip,
+        )
+        active = check.stdout.strip() == "active" if check.rc == 0 else False
+        gpu_nodes.append({"ip": ip, "active": active})
+
+    active_nodes = [n for n in gpu_nodes if n["active"]]
+    return {
+        "success": len(active_nodes) > 0,
+        "nodes": gpu_nodes,
+        "error": "" if active_nodes else "No GPU nodes running nvidia-dcgm.service",
+    }
+
+
+def verify_powerscale_telemetry_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify PowerScale telemetry pods (karavi-metrics-powerscale, otel-collector)
+    are Running after upgrade.
+
+    TC-TEL-F010: PowerScale telemetry — new in Omnia 2.2.
+    Data pipeline: CSM Metrics PowerScale -> OTEL Collector -> vmagent(shared)
+
+    Returns:
+        Dict with success, pods, components, error
+    """
+    components = {
+        "karavi-metrics-powerscale": "app.kubernetes.io/name=karavi-metrics-powerscale",
+        "otel-collector": "app.kubernetes.io/name=otel-collector",
+    }
+    all_pods = []
+    missing = []
+
+    for comp_name, label_sel in components.items():
+        cmd = run_on_remote_node(
+            host,
+            f"kubectl get pods -n {TELEMETRY_NAMESPACE} "
+            f"-l {label_sel} -o json 2>/dev/null",
+            admin_ip,
+        )
+        if cmd.rc != 0:
+            missing.append(comp_name)
+            continue
+        try:
+            data = json.loads(cmd.stdout)
+            items = data.get("items", [])
+            if not items:
+                missing.append(comp_name)
+                continue
+            for pod in items:
+                phase = pod.get("status", {}).get("phase", "Unknown")
+                all_pods.append({
+                    "name": pod["metadata"]["name"],
+                    "component": comp_name,
+                    "status": phase,
+                })
+        except (json.JSONDecodeError, KeyError):
+            missing.append(comp_name)
+
+    return {
+        "success": len(missing) == 0 and len(all_pods) > 0,
+        "pods": all_pods,
+        "components": list(components.keys()),
+        "missing": missing,
+        "error": f"Missing components: {missing}" if missing else "",
+    }
+
+
+def verify_vast_telemetry_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify VAST telemetry scrape is configured via VMServiceScrape.
+
+    TC-TEL-F011: VAST telemetry — new in Omnia 2.2.
+    VAST uses vmagent(shared) scrape; no dedicated pods are deployed.
+    Verifies the vast-storage-metrics VMServiceScrape CR exists.
+
+    Returns:
+        Dict with success, scrape_name, error
+    """
+    cmd = run_on_remote_node(
+        host,
+        f"kubectl get vmservicescrape vast-storage-metrics "
+        f"-n {TELEMETRY_NAMESPACE} -o name 2>/dev/null",
+        admin_ip,
+    )
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return {
+            "success": False,
+            "scrape_name": "",
+            "error": "VMServiceScrape 'vast-storage-metrics' not found",
+        }
+    return {
+        "success": True,
+        "scrape_name": cmd.stdout.strip(),
+        "error": "",
+    }
+
+
+def verify_ufm_telemetry_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify UFM telemetry scrape is configured via VMServiceScrape.
+
+    TC-TEL-F012: UFM telemetry — new in Omnia 2.2.
+    UFM uses vmagent(shared) scrape; no dedicated pods are deployed.
+    Verifies the ufm-infiniband-metrics VMServiceScrape CR exists.
+
+    Returns:
+        Dict with success, scrape_name, error
+    """
+    cmd = run_on_remote_node(
+        host,
+        f"kubectl get vmservicescrape ufm-infiniband-metrics "
+        f"-n {TELEMETRY_NAMESPACE} -o name 2>/dev/null",
+        admin_ip,
+    )
+    if cmd.rc != 0 or not cmd.stdout.strip():
+        return {
+            "success": False,
+            "scrape_name": "",
+            "error": "VMServiceScrape 'ufm-infiniband-metrics' not found",
+        }
+    return {
+        "success": True,
+        "scrape_name": cmd.stdout.strip(),
+        "error": "",
+    }
+
+
+def verify_vector_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify Vector bridge pods (vector-ldms, vector-ome) are Running.
+
+    TC-TEL-F013: Vector — new in Omnia 2.2.
+    Data pipeline: Kafka topics -> Vector pods -> vmagent-vector/vlagent-vector
+
+    Returns:
+        Dict with success, pods, deployments, error
+    """
+    deployments = {
+        "vector-ldms": "app=vector-ldms",
+        "vector-ome": "app=vector-ome",
+    }
+    all_pods = []
+    found_deployments = []
+
+    for deploy_name, label_sel in deployments.items():
+        cmd = run_on_remote_node(
+            host,
+            f"kubectl get pods -n {TELEMETRY_NAMESPACE} "
+            f"-l {label_sel} -o json 2>/dev/null",
+            admin_ip,
+        )
+        if cmd.rc != 0:
+            continue
+        try:
+            data = json.loads(cmd.stdout)
+            items = data.get("items", [])
+            if items:
+                found_deployments.append(deploy_name)
+            for pod in items:
+                phase = pod.get("status", {}).get("phase", "Unknown")
+                all_pods.append({
+                    "name": pod["metadata"]["name"],
+                    "deployment": deploy_name,
+                    "status": phase,
+                })
+        except (json.JSONDecodeError, KeyError):
+            continue
+
+    return {
+        "success": len(found_deployments) > 0,
+        "pods": all_pods,
+        "deployments": found_deployments,
+        "error": "" if found_deployments else "No Vector deployments found",
+    }
+
+
+def verify_victorialogs_running(host, admin_ip: str) -> Dict[str, Any]:
+    """
+    Verify VictoriaLogs cluster pods (vlstorage, vlinsert, vlselect, vlagent)
+    are Running after upgrade.
+
+    TC-TEL-F014: VictoriaLogs — new in Omnia 2.2.
+
+    Returns:
+        Dict with success, pods, components, missing, error
+    """
+    vl_components = {
+        "vlstorage": "app.kubernetes.io/name=vlstorage",
+        "vlinsert": "app.kubernetes.io/name=vlinsert",
+        "vlselect": "app.kubernetes.io/name=vlselect",
+        "vlagent": "app.kubernetes.io/name=vlagent",
+    }
+    all_pods = []
+    missing = []
+
+    for comp_name, label_sel in vl_components.items():
+        cmd = run_on_remote_node(
+            host,
+            f"kubectl get pods -n {TELEMETRY_NAMESPACE} "
+            f"-l {label_sel} -o json 2>/dev/null",
+            admin_ip,
+        )
+        if cmd.rc != 0:
+            missing.append(comp_name)
+            continue
+        try:
+            data = json.loads(cmd.stdout)
+            items = data.get("items", [])
+            if not items:
+                missing.append(comp_name)
+                continue
+            for pod in items:
+                phase = pod.get("status", {}).get("phase", "Unknown")
+                all_pods.append({
+                    "name": pod["metadata"]["name"],
+                    "component": comp_name,
+                    "status": phase,
+                })
+        except (json.JSONDecodeError, KeyError):
+            missing.append(comp_name)
+
+    return {
+        "success": len(missing) == 0 and len(all_pods) > 0,
+        "pods": all_pods,
+        "components": list(vl_components.keys()),
+        "missing": missing,
+        "error": f"Missing VL components: {missing}" if missing else "",
+    }
+
+
 def verify_new_telemetry_components(
     host, admin_ip: str, expected_flags: Dict[str, bool]
 ) -> Dict[str, Any]:
     """
-    Verify new telemetry components deployed/absent based on config flags.
+    Verify new Omnia 2.2 telemetry components deployed/absent based on config flags.
 
     TC-TEL-F009 - TC-TEL-F014: Phase 2 component deployment.
+
+    Uses the dedicated verifier for each component to check deployment status
+    against the telemetry_config.yml flags.
 
     Args:
         expected_flags: Dict of component_name -> enabled (True/False)
@@ -700,33 +964,36 @@ def verify_new_telemetry_components(
     Returns:
         Dict with success, deployed=[], correctly_absent=[], unexpected=[], error
     """
-    component_filters = {
-        "powerscale_telemetry": "powerscale",
-        "vast_telemetry": "vast",
-        "victorialogs": "victorialog",
-        "ufm_telemetry": "ufm",
-        "vector": "vector",
+    # Map config flag names to their dedicated verifier functions
+    component_verifiers = {
+        "dcgm": verify_dcgm_running,
+        "powerscale_telemetry": verify_powerscale_telemetry_running,
+        "vast_telemetry": verify_vast_telemetry_running,
+        "ufm_telemetry": verify_ufm_telemetry_running,
+        "vector": verify_vector_running,
+        "victorialogs": verify_victorialogs_running,
     }
 
     deployed = []
     correctly_absent = []
     unexpected = []
 
-    for comp, label in component_filters.items():
+    for comp, verifier in component_verifiers.items():
         enabled = expected_flags.get(comp, False)
-        result = _collect_pods_in_namespace(
-            host, admin_ip, TELEMETRY_NAMESPACE, label_filter=label
-        )
-        has_pods = len(result.get("pods", [])) > 0
+        result = verifier(host, admin_ip)
+        is_present = result.get("success", False)
 
-        if enabled and has_pods:
+        if enabled and is_present:
             deployed.append(comp)
-        elif not enabled and not has_pods:
+        elif not enabled and not is_present:
             correctly_absent.append(comp)
-        elif enabled and not has_pods:
-            unexpected.append(f"{comp}: expected but not deployed")
-        elif not enabled and has_pods:
-            unexpected.append(f"{comp}: deployed but flag is false")
+        elif enabled and not is_present:
+            unexpected.append(
+                f"{comp}: enabled in config but not found "
+                f"({result.get('error', 'unknown')})"
+            )
+        elif not enabled and is_present:
+            unexpected.append(f"{comp}: deployed but flag is disabled")
 
     return {
         "success": len(unexpected) == 0,
