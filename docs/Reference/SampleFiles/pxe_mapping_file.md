@@ -91,7 +91,7 @@ kube_control_plane,k8s_cp,PQR1234,,kube-cp-01,EC:2A:72:34:56:06,10.5.0.20,,10.3.
 
 - Runs the Kubernetes API server, etcd, scheduler, and controller-manager.
 - For HA, use 3 control plane nodes (see
-  [Ha Config](../Configuration/ha_config.md)).
+  [Ha Config](../Configuration/high_availability_config.md)).
 
 **Kubernetes worker nodes**
 

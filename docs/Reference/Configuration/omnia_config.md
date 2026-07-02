@@ -6,11 +6,11 @@ File path: `/opt/omnia/input/project_default/omnia_config.yml`
 This file controls the deployment of Slurm and Kubernetes across cluster nodes.
 
 ## Parameter reference
-### Slurm settings
+### Slurm Configuration Parameters
 
 --8<-- "html/omnia_config-slurm_cluster.html"
 
-### Kubernetes settings
+### Kubernetes Configuration Parameters
 
 --8<-- "html/omnia_config-k8s_cluster.html"
 
@@ -74,5 +74,5 @@ service_k8s_cluster:
 
     - [Software Config](software_config.md) -- Package-level software selection.
     - [Slurm Conf](../SampleFiles/slurm_conf.md) -- Custom Slurm configuration.
-    - [Ha Config](ha_config.md) -- Kubernetes high-availability settings.
+    - [HA Config](high_availability_config.md) -- Kubernetes high-availability settings.
     - [Playbook Reference](../Playbooks/playbook_reference.md) -- The `provision.yml` playbook that consumes this file.

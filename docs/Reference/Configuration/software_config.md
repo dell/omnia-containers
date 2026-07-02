@@ -29,8 +29,6 @@ belonging to that group.
 ]
 ```
 
-
-
 ## Field reference
 
 --8<-- "html/software_config.html"
