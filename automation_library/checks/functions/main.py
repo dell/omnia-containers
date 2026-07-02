@@ -310,7 +310,8 @@ class PrereqReport:
             f.write(f"  Passed       : {self.passed}\n")
             f.write(f"  Skipped      : {self.skipped}\n")
             f.write(f"  Failed       : {self.failed}\n")
-            f.write(f"  Success Rate : {(self.passed/total*100) if total > 0 else 0:.1f}%\n")
+            pct = (self.passed / total * 100) if total > 0 else 0
+            f.write(f"  Success Rate : {self.passed}/{total} ({pct:.1f}%)\n")
 
             f.write("\n" + "-" * 70 + "\n")
             f.write("DETAILED RESULTS\n")

@@ -32,6 +32,7 @@
     - name: Set facts for OIM server play
       ansible.builtin.set_fact:
         omnia_test_config: "{{ omnia_test_config }}"
+        omnia_test_credentials: "{{ omnia_test_credentials }}"
         cacheable: true
       no_log: true
 
@@ -42,6 +43,7 @@
 
   vars:
     omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    omnia_test_credentials: "{{ hostvars['localhost']['omnia_test_credentials'] }}"
     oim_input_dir: "/opt/omnia/input/project_default"
     omnia_shared_path: "{{ omnia_test_config.omnia_shared_path | default('/opt/omnia') }}"
     prepare_oim_playbook: "/omnia/prepare_oim/prepare_oim.yml"

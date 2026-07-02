@@ -15,8 +15,9 @@
 """
 OIM Prerequisite Check - Configuration Variables.
 
-This module loads user configuration from omnia_test_config.yml and provides
-sensible defaults for all prerequisite check parameters.
+This module loads user configuration from:
+- omnia_test_config.yml: Non-sensitive settings (IPs, paths, options)
+- omnia_test_credentials.yml: Sensitive credentials (passwords)
 
 Usage:
     from automation_library.vars.oim_prereq_vars import OIM_PREREQ_VARS, OMNIA_TEST_CONFIG_PATH
@@ -25,33 +26,42 @@ Usage:
     server_ip = OIM_PREREQ_VARS["oim_server_ip"]
 
 Note:
-    - Users should edit omnia_test_config.yml, NOT this file
-    - All values can be overridden via omnia_test_config.yml
-    - Default values are used when omnia_test_config.yml doesn't specify a value
+    - Users should edit omnia_test_config.yml and omnia_test_credentials.yml
+    - Credentials should be stored in omnia_test_credentials.yml (can be vault encrypted)
+    - All values can be overridden via config files
+    - Default values are used when config files don't specify a value
 
 Author: Dell Technologies
 """
 
 import os
+import subprocess
 from typing import Dict, Any
 
 import yaml
 
 from automation_library.core import OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH
+from automation_library.core import load_omnia_test_config, load_omnia_test_credentials
 
 
 # =============================================================================
-# Configuration File Path
+# Configuration File Paths
 # =============================================================================
 
-# Path to user config file (in project root, next to requirements.txt)
+# Path to user config files (in project root, next to requirements.txt)
 # automation_library/checks/vars/oim_prereq_vars.py -> go up 4 levels to project root
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))))
+
+# Main config file (non-sensitive settings)
 _OMNIA_TEST_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_config.yml")
 
-# Export config path for use in error messages
+# Credentials file (sensitive passwords - should be vault encrypted)
+_OMNIA_TEST_CREDENTIALS_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_credentials.yml")
+
+# Export paths for use in error messages
 OMNIA_TEST_CONFIG_PATH = _OMNIA_TEST_CONFIG_FILE
+OMNIA_TEST_CREDENTIALS_PATH = _OMNIA_TEST_CREDENTIALS_FILE
 
 
 # =============================================================================
@@ -59,26 +69,24 @@ OMNIA_TEST_CONFIG_PATH = _OMNIA_TEST_CONFIG_FILE
 # =============================================================================
 
 def _load_omnia_test_config() -> Dict[str, Any]:
-    """
-    Load user configuration from YAML file with error handling and validation.
-
-    Returns:
-        Dict containing user configuration, or empty dict if file not found/invalid.
-
-    Note:
-        Silently returns empty dict on errors to allow defaults to be used.
-    """
-    if os.path.exists(_OMNIA_TEST_CONFIG_FILE):
-        try:
-            with open(_OMNIA_TEST_CONFIG_FILE, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except (IOError, yaml.YAMLError):
-            return {}
-    return {}
+    """Load config using core function (plain text - no encryption)."""
+    try:
+        return load_omnia_test_config()
+    except (ImportError, ValueError):
+        return {}
 
 
-# Load user config once at module import
+def _load_omnia_test_credentials() -> Dict[str, Any]:
+    """Load credentials using core function (with auto-encryption)."""
+    try:
+        return load_omnia_test_credentials()
+    except (ImportError, ValueError):
+        return {}
+
+
+# Load config and credentials once at module import
 _omnia_test_config = _load_omnia_test_config()
+_omnia_test_credentials = _load_omnia_test_credentials()
 
 
 # =============================================================================
@@ -117,8 +125,8 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     # oim_ssh_user: SSH username for remote connection
     "oim_ssh_user": _omnia_test_config.get("oim_ssh_user", "root"),
 
-    # oim_ssh_password: SSH password for remote connection (REQUIRED)
-    "oim_ssh_password": _omnia_test_config.get("oim_ssh_password", ""),
+    # oim_ssh_password: SSH password for remote connection (from credentials file)
+    "oim_ssh_password": _omnia_test_credentials.get("oim_ssh_password", ""),
 
     # oim_ssh_port: SSH port number
     "oim_ssh_port": _omnia_test_config.get("oim_ssh_port", 22),
@@ -196,8 +204,8 @@ OIM_PREREQ_VARS: Dict[str, Any] = {
     # omnia_shared_path: Local path for omnia data storage
     "omnia_shared_path": _omnia_test_config.get("omnia_shared_path", _CORE_OIM_SHARED_PATH),
 
-    # omnia_core_password: Root password for omnia_core container SSH
-    "omnia_core_password": _omnia_test_config.get("omnia_core_password", ""),
+    # omnia_core_password: Root password for omnia_core container SSH (from credentials file)
+    "omnia_core_password": _omnia_test_credentials.get("omnia_core_password", ""),
 
     # =========================================================================
     # PODMAN CONFIGURATION

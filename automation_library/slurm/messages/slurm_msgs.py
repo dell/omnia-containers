@@ -85,7 +85,7 @@ LDAP_LOGIN_PASSED = "ldapuser login succeeded on all login/login_compiler/contro
 LDAP_LOGIN_FAILED = "ldapuser login failed on one or more nodes"
 LDAP_LOGIN_BLOCKED_PASSED = "ldapuser login correctly blocked on slurm nodes with no running jobs"
 LDAP_LOGIN_BLOCKED_FAILED = "ldapuser login was NOT blocked on one or more idle slurm nodes"
-LDAP_CREDS_MISSING = "ldap_credentials in 'username:password' format required in omnia_test_config.yml"
+LDAP_CREDS_MISSING = "ldap_credentials in 'username:password' format required in omnia_test_credentials.yml"
 LDAP_SETUP_FAILED = "LDAP user setup failed: {error}"
 
 # =============================================================================

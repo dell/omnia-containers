@@ -27,6 +27,11 @@ from typing import Dict
 
 # Test names (displayed in test output header)
 TEST_NAMES = {
+    # Install tests (pre-install)
+    "nfs_validation": "Validate NFS configuration",
+    "download_omnia_sh": "Download omnia.sh script",
+    "omnia_sh_install": "Run omnia.sh --install",
+    "internal_nfs_setup": "Setup internal NFS server",
     # Install verification
     "container_running": "Verify omnia_core container is running",
     "container_file": "Verify omnia_core.container file exists",
@@ -34,6 +39,8 @@ TEST_NAMES = {
     "metadata_file": "Verify oim_metadata.yml file exists",
     "ssh_to_container": "Verify passwordless SSH: OIM server → omnia_core",
     "ssh_from_container": "Verify passwordless SSH: omnia_core → OIM server",
+    # Uninstall tests
+    "omnia_sh_uninstall": "Run omnia.sh --uninstall",
     # Cleanup verification
     "cleanup_container_removed": "Verify omnia_core container is removed",
     "cleanup_service_removed": "Verify omnia_core.container file is removed",
@@ -43,6 +50,16 @@ TEST_NAMES = {
 
 # Test log messages
 TEST_LOG_MSGS = {
+    # Pre-install messages
+    "nfs_config_valid": "NFS configuration valid: {share_option}/{nfs_type}",
+    "nfs_config_invalid": "NFS configuration invalid",
+    "download_success": "omnia.sh downloaded successfully",
+    "download_failed": "omnia.sh download FAILED",
+    "install_success": "omnia.sh --install completed",
+    "install_failed": "omnia.sh --install FAILED",
+    "internal_nfs_success": "Internal NFS server configured",
+    "internal_nfs_failed": "Internal NFS server setup FAILED",
+    # Install verification messages
     "container_running": "Container is running",
     "container_not_running": "Container is NOT running",
     "file_exists": "File exists",
@@ -51,6 +68,9 @@ TEST_LOG_MSGS = {
     "service_inactive": "Service is {status}",
     "ssh_success": "Passwordless SSH successful",
     "ssh_failed": "Passwordless SSH FAILED",
+    # Uninstall messages
+    "uninstall_success": "omnia.sh --uninstall completed",
+    "uninstall_failed": "omnia.sh --uninstall FAILED",
     # Cleanup messages
     "cleanup_container_removed": "Container removed successfully",
     "cleanup_container_still_running": "Container is still running",
@@ -62,8 +82,53 @@ TEST_LOG_MSGS = {
     "cleanup_mount_exists": "Still mounted",
 }
 
+# Skip messages
+SKIP_MSGS = {
+    "container_running": "omnia_core container is already running - skipping install",
+    "container_not_running": "omnia_core container is not running - skipping uninstall",
+    "nfs_validation_failed": "NFS configuration validation failed - cannot proceed",
+    "install_failed": "Install test failed - skipping verification tests",
+}
+
 # Test assert messages
 TEST_ASSERT_MSGS = {
+    # Pre-install asserts
+    "nfs_config_invalid": (
+        "NFS configuration invalid.\n"
+        "Missing fields: {missing_fields}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Set config in omnia_test_config.yml: share_option, nfs_type, nfs_server_ip, nfs_share_path, omnia_shared_path\n"
+        "  2. Set credentials in omnia_test_credentials.yml: omnia_core_password\n"
+        "  Required fields:\n"
+        "     - For NFS external: nfs_server_ip, nfs_share_path, omnia_shared_path, omnia_core_password\n"
+        "     - For NFS internal: oim_server_ip, nfs_share_path, omnia_core_password\n"
+        "     - For Local: omnia_shared_path, omnia_core_password"
+    ),
+    "download_failed": (
+        "Failed to download omnia.sh.\n"
+        "Error: {error}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check network connectivity\n"
+        "  2. Verify artifactory_branch or core_tag in omnia_test_config.yml\n"
+        "  3. Ensure GitHub is accessible"
+    ),
+    "install_failed": (
+        "omnia.sh --install failed.\n"
+        "Error: {error}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check omnia.sh output for specific errors\n"
+        "  2. Verify NFS/storage configuration\n"
+        "  3. Check container logs: podman logs omnia_core"
+    ),
+    "uninstall_failed": (
+        "omnia.sh --uninstall failed.\n"
+        "Error: {error}\n\n"
+        "HOW TO FIX:\n"
+        "  1. Check omnia.sh output for specific errors\n"
+        "  2. Manually stop container: podman stop omnia_core\n"
+        "  3. Manually remove: podman rm omnia_core"
+    ),
+    # Install verification asserts
     "container_not_running": "Container '{name}' is not running. Status: {status}",
     "file_not_found": "File not found: {path}",
     "service_not_active": "Expected 'active', got '{status}'",

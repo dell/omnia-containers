@@ -18,10 +18,7 @@ Telemetry Automation - Configuration Variables.
 Loads user configuration from omnia_test_config.yml for OIM server connection.
 """
 
-import os
 from typing import Dict, Any
-
-import yaml
 
 from ...core import (
     OIM_SHARED_PATH as _CORE_OIM_SHARED_PATH,
@@ -32,33 +29,11 @@ from ...core import (
     OMNIA_CREDENTIALS_KEY_PATH as _CORE_CREDS_KEY_PATH,
     OMNIA_CORE_CONTAINER as _CORE_CONTAINER,
     K8S_CONTROL_PLANE_FUNCTIONAL_GROUP as _CORE_K8S_CP_GROUP,
+    load_omnia_test_config as _load_omnia_test_config,
 )
 
 
-# =============================================================================
-# Configuration File Paths
-# =============================================================================
-
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.abspath(__file__)))))
-_OMNIA_TEST_CONFIG_FILE = os.path.join(_PROJECT_ROOT, "omnia_test_config.yml")
-
-
-# =============================================================================
-# Configuration Loader
-# =============================================================================
-
-def _load_omnia_test_config() -> Dict[str, Any]:
-    """Load user configuration from YAML file."""
-    if os.path.exists(_OMNIA_TEST_CONFIG_FILE):
-        try:
-            with open(_OMNIA_TEST_CONFIG_FILE, "r", encoding="utf-8") as f:
-                return yaml.safe_load(f) or {}
-        except (IOError, yaml.YAMLError):
-            return {}
-    return {}
-
-
+# Load config using vault-aware function from core
 _omnia_test_config = _load_omnia_test_config()
 
 

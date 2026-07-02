@@ -334,7 +334,7 @@ def verify_registry_images(
     result["registry_url"] = registry_url
 
     regctl_cmd = run_on_oim(
-        host, f"regctl repo ls {registry_url} 2>/dev/null"
+        host, f"regctl repo ls --limit 500 {registry_url} 2>/dev/null"
     )
 
     if regctl_cmd.rc != 0:
