@@ -340,6 +340,8 @@ def collect_kafka_state(host, admin_ip: str) -> Dict[str, Any]:
     )
 
     topics: List[str] = []
+    
+    # Try to list topics via kafka-topics.sh command
     topic_cmd = KUBECTL_CMD["kafka_topics"].format(ns=TELEMETRY_NAMESPACE)
     tcmd = run_on_remote_node(host, topic_cmd, admin_ip)
     if tcmd.rc == 0 and tcmd.stdout.strip():
@@ -347,6 +349,21 @@ def collect_kafka_state(host, admin_ip: str) -> Dict[str, Any]:
             t.strip() for t in tcmd.stdout.strip().split("\n")
             if t.strip() and not t.startswith("__")
         ]
+    
+    # Fallback: if kafka-topics.sh fails, try KafkaTopic CRDs (Strimzi)
+    if not topics:
+        crd_cmd = f"kubectl get kafkatopic -n {TELEMETRY_NAMESPACE} -o json"
+        crd_result = run_on_remote_node(host, crd_cmd, admin_ip)
+        if crd_result.rc == 0 and crd_result.stdout.strip():
+            try:
+                data = json.loads(crd_result.stdout.strip())
+                topics = [
+                    item["metadata"]["name"]
+                    for item in data.get("items", [])
+                    if not item["metadata"]["name"].startswith("__")
+                ]
+            except (json.JSONDecodeError, KeyError):
+                pass
 
     return {
         "success": pods_result["success"],

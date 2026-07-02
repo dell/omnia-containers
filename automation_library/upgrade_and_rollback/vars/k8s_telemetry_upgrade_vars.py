@@ -139,13 +139,17 @@ KUBECTL_CMD = {
     "get_services_lb": "kubectl get svc -A -o json",
     "helm_list": "helm list -n {ns} -o json",
     "cluster_info": "kubectl cluster-info",
-    "etcd_health": "ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 "
+    "etcd_health": "kubectl exec -n kube-system "
+        "\\$(kubectl get pods -n kube-system -o name | grep etcd | head -1) "
+        "-- etcdctl "
+        "--endpoints=https://127.0.0.1:2379 "
         "--cacert=/etc/kubernetes/pki/etcd/ca.crt "
-        "--cert=/etc/kubernetes/pki/etcd/healthcheck-client.crt "
-        "--key=/etc/kubernetes/pki/etcd/healthcheck-client.key "
-        "endpoint health --write-out=json",
+        "--cert=/etc/kubernetes/pki/etcd/server.crt "
+        "--key=/etc/kubernetes/pki/etcd/server.key "
+        "endpoint health -w json",
     "dns_lookup": "kubectl run dns-check --image=busybox:1.36 --restart=Never "
         "--rm -i --wait=true -- nslookup kubernetes.default.svc.cluster.local",
-    "kafka_topics": "kubectl exec -n {ns} kafka-kafka-0 -- "
+    "kafka_topics": "KAFKA_POD=\\$(kubectl get pods -n {ns} -o name | grep -E 'kafka-broker-0|kafka-kafka-0' | head -1) && "
+        "kubectl exec -n {ns} \\$KAFKA_POD -- "
         "bin/kafka-topics.sh --bootstrap-server localhost:9092 --list",
 }
