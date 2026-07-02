@@ -13,7 +13,7 @@ detailed procedures.
 | --- | --- | --- |
 | ☐ | **Disable PowerCap** on all compute nodes to ensure maximum CPU performance. PowerCap can throttle compute-intensive HPC workloads. | [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) |
 | ☐ | **Set BIOS to Performance mode** on all compute nodes. The `Performance` power profile maximizes clock speeds and disables power-saving C-states that introduce latency. | [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) |
-| ☐ | **Keep iDRAC firmware current** on all nodes. Firmware updates fix bugs, improve Redfish API reliability, and patch security vulnerabilities. Use Dell Repository Manager or `racadm` for updates. | [Security Hardening](security_hardening.md) |
+| ☐ | **Keep iDRAC firmware current** on all nodes. Firmware updates fix bugs, improve Redfish API reliability, and patch security vulnerabilities. Use Dell Repository Manager or `racadm` for updates.
 
 ## Playbook execution
 
@@ -38,8 +38,8 @@ detailed procedures.
 | | Best Practice | Reference |
 | --- | --- | --- |
 | ☐ | **Minimize OIM reboots.** The OIM hosts critical Podman containers that provide provisioning, DHCP, and management services. Rebooting the OIM interrupts these services and may cause hostname or IP changes. Plan reboots during maintenance windows only. | [General](../Troubleshooting/general.md) |
-| ☐ | **Keep Firefox updated on RHEL OIM.** If you use the AWX web UI on the OIM, ensure Firefox (the default RHEL browser) is updated to avoid TLS compatibility and rendering issues. | [Security Hardening](security_hardening.md) |
-| ☐ | **Run** `yum update --security` **routinely.** Apply security patches on the OIM and all cluster nodes on a regular schedule (monthly recommended). Drain Slurm nodes before applying updates. | [Security Hardening](security_hardening.md) |
+| ☐ | **Keep Firefox updated on RHEL OIM.** If you use the AWX web UI on the OIM, ensure Firefox (the default RHEL browser) is updated to avoid TLS compatibility and rendering issues.
+| ☐ | **Run** `yum update --security` **routinely.** Apply security patches on the OIM and all cluster nodes on a regular schedule (monthly recommended). Drain Slurm nodes before applying updates.
 | ☐ | **Sync system time across the OIM and all nodes.** Use `chrony` or `ntpd` to maintain synchronized clocks. Time drift causes Kerberos authentication failures, Slurm scheduling issues, and inaccurate telemetry timestamps. | [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) |
 
 ## Pre-deployment summary
@@ -65,5 +65,4 @@ deployment:
 
     - [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) -- Detailed prerequisites for
       all deployment paths.
-    - [Security Hardening](security_hardening.md) -- Full security hardening procedures.
     - [Log Management](log_management.md) -- Log monitoring and rotation configuration.

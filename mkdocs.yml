@@ -142,7 +142,7 @@ nav:
     - Network Topologies: Overview/network_topologies.md
     - Composable Roles: Overview/composable_roles.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
-    - Security Model: Overview/security_model.md
+    - Security Configuration Guide: Overview/security_configuration_guide.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
     - Glossary: Overview/glossary.md
@@ -236,7 +236,6 @@ nav:
     - Cluster Requirements:
       - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
       - Disk Space: Reference/ClusterRequirements/disk_space.md
-      - Ports: Reference/ClusterRequirements/ports.md
     - Playbooks:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:
@@ -253,7 +252,6 @@ nav:
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
     - Log Management: Operations/log_management.md
-    - Security Hardening: Operations/security_hardening.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
     - Troubleshooting/index.md
