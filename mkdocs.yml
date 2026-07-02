@@ -224,6 +224,9 @@ nav:
       - HA Config: Reference/Configuration/high_availability_config.md
       - Local Repo Config: Reference/Configuration/local_repo_config.md
       - BuildStreaM Config: Reference/Configuration/build_stream_config.md
+      - Discovery Config: Reference/Configuration/discovery_config.md
+      - GitLab Config: Reference/Configuration/gitlab_config.md
+      - User Registry Credential: Reference/Configuration/user_registry_credential.md
     - Sample Files:
       - PXE Mapping File: Reference/SampleFiles/pxe_mapping_file.md
       - slurm.conf: Reference/SampleFiles/slurm_conf.md
