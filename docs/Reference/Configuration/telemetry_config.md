@@ -8,14 +8,13 @@ This file configures the Omnia telemetry pipeline: iDRAC metric collection,
 Kafka message streaming, VictoriaMetrics time-series storage, Grafana
 dashboards, and LDMS node-level samplers.
 
-## Telemetry Configuration
+## Telemetry Configuration Parameters
 
 --8<-- "html/telemetry_config.html"
 
-## Telemetry Storage Configuration
+## Telemetry Storage Configuration Parameters
 
 --8<-- "html/telemetry_storage_config.html"
-
 
 
 ## Usage example

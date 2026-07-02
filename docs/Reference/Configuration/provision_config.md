@@ -7,7 +7,7 @@ File path: `/opt/omnia/input/project_default/provision_config.yml`
 This file controls the provisioning behavior of the OIM, including PXE boot
 mapping, domain name, and OS image settings.
 
-## Parameter reference
+## Provision Configuration Parameters
 
 --8<-- "html/provision_config.html"
 

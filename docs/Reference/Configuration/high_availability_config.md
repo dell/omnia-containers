@@ -5,7 +5,7 @@ File path: `/opt/omnia/input/project_default/high_availability_config.yml`
 This file configures Kubernetes control plane high availability (HA) using a
 virtual IP address and load-balanced API servers.
 
-## HA Configuration Parameters
+## HA configuration parameters
 
 --8<-- "html/high_availability_config.html"
 
