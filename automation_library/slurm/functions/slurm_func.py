@@ -1741,3 +1741,176 @@ def verify_root_sbatch_from_multiple_login_nodes(host) -> Dict[str, Any]:
                error="One or more login nodes failed"))
     return {"success": all_passed, "skipped": False, "message": msg,
             "node_results": node_results, "error": "" if all_passed else msg}
+
+
+# =============================================================================
+# UPGRADE PRE/POST CHECK: single-node sbatch job submission
+# =============================================================================
+
+def submit_upgrade_sbatch_job(host) -> Dict[str, Any]:
+    """Submit a basic sbatch job on 1 compute node for upgrade pre/post check.
+
+    Creates a temporary sbatch script on the control node with --nodes=1,
+    submits it, then polls sacct until the job completes or times out.
+    Used by the upgrade precheck to persist a job ID for postcheck sacct
+    verification (slurmdbd accounting data preserved across upgrade).
+
+    Returns:
+        Dict with success, job_id, job_state, submit_node, error.
+    """
+    control_nodes = get_slurm_control_nodes(host)
+    if not control_nodes:
+        return {
+            "success": False,
+            "message": SBATCH_NO_CONTROL_NODE,
+            "job_id": "",
+            "job_state": "",
+            "submit_node": "",
+            "error": SBATCH_NO_CONTROL_NODE,
+        }
+
+    control_node = control_nodes[0]
+    control_ip = control_node.get("admin_ip", "")
+    control_hostname = control_node.get("hostname", "unknown")
+
+    if not control_ip:
+        return {
+            "success": False,
+            "message": "Slurm control node has no admin IP",
+            "job_id": "",
+            "job_state": "",
+            "submit_node": control_hostname,
+            "error": "No admin IP for control node",
+        }
+
+    slurm_nodes = get_slurm_nodes(host)
+    if not slurm_nodes:
+        return {
+            "success": False,
+            "message": ERROR_NO_SLURM_NODES,
+            "job_id": "",
+            "job_state": "",
+            "submit_node": control_hostname,
+            "error": ERROR_NO_SLURM_NODES,
+        }
+
+    # Read the dedicated upgrade precheck job script
+    jobs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "slurm_jobs",
+    )
+    job_script_local = os.path.join(jobs_dir, "upgrade_precheck_sbatch.sh")
+
+    with open(job_script_local, "r", encoding="utf-8") as f:
+        job_script_content = f.read()
+
+    # Transfer script to control node via base64 encoding
+    encoded = base64.b64encode(job_script_content.encode()).decode()
+    create_script_cmd = (
+        f"echo {encoded} | base64 -d > /home/omnia_upgrade_precheck_sbatch.sh && "
+        f"chmod +x /home/omnia_upgrade_precheck_sbatch.sh"
+    )
+    cmd = _safe_run_on_remote_node(host, create_script_cmd, control_ip)
+    if cmd.rc != 0:
+        return {
+            "success": False,
+            "message": (
+                f"Failed to create sbatch script on {control_hostname}: "
+                f"{cmd.stderr.strip()}"
+            ),
+            "job_id": "",
+            "job_state": "",
+            "submit_node": control_hostname,
+            "error": cmd.stderr.strip(),
+        }
+
+    # Submit the sbatch job
+    submit_cmd = "sbatch /home/omnia_upgrade_precheck_sbatch.sh"
+    cmd = _safe_run_on_remote_node(host, submit_cmd, control_ip)
+
+    if cmd.rc != 0:
+        _safe_run_on_remote_node(
+            host, "rm -f /home/omnia_upgrade_precheck_sbatch.sh", control_ip
+        )
+        return {
+            "success": False,
+            "message": SBATCH_SUBMIT_FAILED.format(error=cmd.stderr.strip()),
+            "job_id": "",
+            "job_state": "",
+            "submit_node": control_hostname,
+            "error": cmd.stderr.strip(),
+        }
+
+    # Extract job ID from "Submitted batch job <ID>"
+    submit_output = cmd.stdout.strip()
+    match = re.search(r"Submitted batch job (\d+)", submit_output)
+    if not match:
+        _safe_run_on_remote_node(
+            host, "rm -f /home/omnia_upgrade_precheck_sbatch.sh", control_ip
+        )
+        return {
+            "success": False,
+            "message": f"Could not parse job ID from sbatch output: {submit_output}",
+            "job_id": "",
+            "job_state": "",
+            "submit_node": control_hostname,
+            "error": "Failed to parse job ID",
+        }
+
+    job_id = match.group(1)
+
+    # Poll sacct for job completion
+    start_time = time.time()
+    job_state = ""
+    while time.time() - start_time < SACCT_TIMEOUT:
+        time.sleep(SACCT_POLL_INTERVAL)
+        sacct_cmd = f"sacct -j {job_id} --format=JobID,State,ExitCode -n -P"
+        cmd = _safe_run_on_remote_node(host, sacct_cmd, control_ip)
+
+        if cmd.rc != 0:
+            continue
+
+        for line in cmd.stdout.strip().split("\n"):
+            parts = line.strip().split("|")
+            if len(parts) >= 2 and parts[0] == job_id:
+                job_state = parts[1].strip()
+                break
+
+        if job_state in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL"):
+            break
+
+    # Cleanup the script on control node
+    _safe_run_on_remote_node(
+        host, "rm -f /home/omnia_upgrade_precheck_sbatch.sh", control_ip
+    )
+
+    if job_state == "COMPLETED":
+        return {
+            "success": True,
+            "message": SBATCH_CHECK_PASSED.format(job_id=job_id),
+            "job_id": job_id,
+            "job_state": job_state,
+            "submit_node": control_hostname,
+            "error": "",
+        }
+
+    if not job_state:
+        return {
+            "success": False,
+            "message": SBATCH_TIMEOUT.format(job_id=job_id, timeout=SACCT_TIMEOUT),
+            "job_id": job_id,
+            "job_state": "UNKNOWN",
+            "submit_node": control_hostname,
+            "error": f"Job did not complete within {SACCT_TIMEOUT}s",
+        }
+
+    return {
+        "success": False,
+        "message": SBATCH_CHECK_FAILED.format(
+            error=f"Job {job_id} ended with state: {job_state}"
+        ),
+        "job_id": job_id,
+        "job_state": job_state,
+        "submit_node": control_hostname,
+        "error": SACCT_JOB_STATUS.format(job_id=job_id, state=job_state),
+    }
