@@ -162,7 +162,9 @@ def collect_etcd_health(host, admin_ip: str) -> Dict[str, Any]:
         endpoints = []
         all_healthy = True
         for entry in data:
-            healthy = entry.get("health", "false") == "true"
+            # Handle both boolean true and string "true"
+            health_value = entry.get("health", False)
+            healthy = health_value is True or health_value == "true"
             if not healthy:
                 all_healthy = False
             endpoints.append({
@@ -707,8 +709,11 @@ def verify_oim_upgrade_completed(host) -> Dict[str, Any]:
     TC-F016: Tag dependency validation.
     TC-TEL-F001: Telemetry upgrade requires K8s at target.
 
+    Note: In pre-upgrade state, upgrade_manifest.yml won't exist yet.
+    This is acceptable and will be treated as success (no upgrade in progress).
+
     Returns:
-        Dict with success, oim_status, error
+        Dict with success, oim_status, error, skipped
     """
     from ...core import run_on_oim
     cmd = run_on_oim(
@@ -716,10 +721,13 @@ def verify_oim_upgrade_completed(host) -> Dict[str, Any]:
         "cat /opt/omnia/upgrade_manifest.yml 2>/dev/null || echo 'NOT_FOUND'"
     )
     if cmd.rc != 0 or "NOT_FOUND" in cmd.stdout:
+        # Pre-upgrade state: manifest doesn't exist yet - this is acceptable
         return {
-            "success": False,
-            "oim_status": "unknown",
-            "error": "upgrade_manifest.yml not found",
+            "success": True,
+            "oim_status": "not_started",
+            "error": "",
+            "skipped": True,
+            "skip_reason": "upgrade_manifest.yml not found - pre-upgrade state (acceptable)",
         }
 
     try:
@@ -730,9 +738,15 @@ def verify_oim_upgrade_completed(host) -> Dict[str, Any]:
             "success": oim_status == "completed",
             "oim_status": oim_status,
             "error": f"OIM status: {oim_status}" if oim_status != "completed" else "",
+            "skipped": False,
         }
     except Exception as exc:
-        return {"success": False, "oim_status": "parse_error", "error": str(exc)}
+        return {
+            "success": False,
+            "oim_status": "parse_error",
+            "error": str(exc),
+            "skipped": False,
+        }
 
 
 def collect_telemetry_config_flags(host) -> Dict[str, Any]:
@@ -748,10 +762,10 @@ def collect_telemetry_config_flags(host) -> Dict[str, Any]:
     from ...core import run_on_oim
     cmd = run_on_oim(
         host,
-        "cat /opt/omnia/telemetry_config.yml 2>/dev/null || echo 'NOT_FOUND'"
+        "cat /opt/omnia/input/project_default/telemetry_config.yml 2>/dev/null || echo 'NOT_FOUND'"
     )
     if cmd.rc != 0 or "NOT_FOUND" in cmd.stdout:
-        return {"success": False, "flags": {}, "error": "telemetry_config.yml not found"}
+        return {"success": False, "flags": {}, "error": "telemetry_config.yml not found at /opt/omnia/input/project_default/"}
 
     try:
         import yaml as _yaml

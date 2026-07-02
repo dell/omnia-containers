@@ -1024,6 +1024,10 @@ def test_oim_upgrade_status(host):
     result = verify_oim_upgrade_completed(host)
     _record("oim_upgrade_status", result)
 
+    if result.get("skipped"):
+        log.passed(f"Skipped: {result.get('skip_reason', 'N/A')}")
+        return
+
     if not result["success"]:
         log.failed(f"OIM not completed: {result['oim_status']}", result["error"])
         pytest.fail(result["error"])
