@@ -48,5 +48,5 @@ to the cluster nodes listed below.
 !!! info
 
     - [Disk Space](disk_space.md) -- Disk requirements per node role.
-    - [Ports](ports.md) -- Network ports required per role.
+    - [Ports](../../Overview/security_configuration_guide.md#host-port-requirements) -- Network ports required per role.
     - [Ha Config](../Configuration/ha_config.md) -- Kubernetes HA settings.
