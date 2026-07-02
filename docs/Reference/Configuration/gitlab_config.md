@@ -6,7 +6,7 @@ File path: `/opt/omnia/input/gitlab_config.yml`
 This file configures GitLab deployment settings for the BuildStreaM catalog
 pipeline, including host, project, network, and resource parameters.
 
-## Parameters
+## GitLab Configuration Parameters
 
 --8<-- "html/gitlab_config.html"
 

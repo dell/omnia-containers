@@ -7,7 +7,7 @@ playbook uses these settings to synchronize RHEL, third-party, and custom
 package repositories to the OIM via Pulp, enabling air-gapped or
 bandwidth-efficient deployments.
 
-## Local Repo Configuration Parameters
+## Local Repo configuration parameters
 
 --8<-- "html/local_repo_config.html"
 

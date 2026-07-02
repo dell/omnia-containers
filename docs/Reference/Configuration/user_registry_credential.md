@@ -6,7 +6,7 @@ File path: `/opt/omnia/input/user_registry_credential.yml`
 This file provides authentication credentials for user-defined container or
 package registries referenced in `local_repo_config.yml`.
 
-## Parameters
+## User Registry Credential Parameters
 
 --8<-- "html/user_registry_credential.html"
 
@@ -14,8 +14,12 @@ package registries referenced in `local_repo_config.yml`.
 ```yaml title="File: /opt/omnia/input/user_registry_credential.yml"
 ---
 user_registry_credential:
-  - {name: "my_private_registry", username: "admin", password: "secret123"}
-  - {name: "docker_hub", username: "user", password: "token"}
+  - name: "my_private_registry"
+    username: "admin"
+    password: ""
+  - name: "docker_hub"
+    username: "user"
+    password: ""
 ```
 
 !!! note

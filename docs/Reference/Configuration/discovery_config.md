@@ -6,7 +6,7 @@ File path: `/opt/omnia/input/discovery_config.yml`
 This file configures node discovery settings, including BMC discovery via
 Dell OpenManage Enterprise (OME).
 
-## Parameters
+## Discovery Configuration Parameters
 
 --8<-- "html/discovery_config.html"
 
