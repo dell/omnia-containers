@@ -1,5 +1,5 @@
-Step 15: Initialize and Verify Telemetry
-==================================================
+Step 15: Initialize telemetry
+=============================
 
 Prerequisites
 ---------------
