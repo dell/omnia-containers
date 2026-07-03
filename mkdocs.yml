@@ -140,7 +140,6 @@ nav:
     - Architecture: Overview/architecture.md
     - Components: Overview/components.md
     - Network Topologies: Overview/network_topologies.md
-    - Composable Roles: Overview/composable_roles.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
     - Security Configuration Guide: Overview/security_configuration_guide.md
     - Release Notes: Overview/release_notes.md
