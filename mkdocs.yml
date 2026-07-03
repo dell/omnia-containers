@@ -217,7 +217,6 @@ nav:
       - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
       - Retry Pipelines: HowTo/BuildStreaM/retry_pipelines.md
-      - BuildStreaM Troubleshooting: HowTo/BuildStreaM/buildstream_troubleshooting.md
   - Reference:
     - Reference/index.md
     - Support Matrix:
