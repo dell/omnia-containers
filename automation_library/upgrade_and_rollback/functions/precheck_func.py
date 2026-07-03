@@ -340,6 +340,8 @@ def collect_kafka_state(host, admin_ip: str) -> Dict[str, Any]:
     )
 
     topics: List[str] = []
+    
+    # Try to list topics via kafka-topics.sh command
     topic_cmd = KUBECTL_CMD["kafka_topics"].format(ns=TELEMETRY_NAMESPACE)
     tcmd = run_on_remote_node(host, topic_cmd, admin_ip)
     if tcmd.rc == 0 and tcmd.stdout.strip():
@@ -347,6 +349,21 @@ def collect_kafka_state(host, admin_ip: str) -> Dict[str, Any]:
             t.strip() for t in tcmd.stdout.strip().split("\n")
             if t.strip() and not t.startswith("__")
         ]
+    
+    # Fallback: if kafka-topics.sh fails, try KafkaTopic CRDs (Strimzi)
+    if not topics:
+        crd_cmd = f"kubectl get kafkatopic -n {TELEMETRY_NAMESPACE} -o json"
+        crd_result = run_on_remote_node(host, crd_cmd, admin_ip)
+        if crd_result.rc == 0 and crd_result.stdout.strip():
+            try:
+                data = json.loads(crd_result.stdout.strip())
+                topics = [
+                    item["metadata"]["name"]
+                    for item in data.get("items", [])
+                    if not item["metadata"]["name"].startswith("__")
+                ]
+            except (json.JSONDecodeError, KeyError):
+                pass
 
     return {
         "success": pods_result["success"],
@@ -986,6 +1003,19 @@ def verify_k8s_at_target_for_telemetry(
         }
 
     current = result["nodes"][0]["version"]
+    
+    # If target is an Omnia version (e.g., 2.2.0.0), skip K8s version comparison
+    is_k8s_version = bool(re.search(r'v?1\.\d+', target_version))
+    if not is_k8s_version:
+        return {
+            "success": True,
+            "current_version": current,
+            "target_version": target_version,
+            "error": "",
+            "skipped": True,
+            "skip_reason": f"Target '{target_version}' is Omnia version, not K8s — skipping version check",
+        }
+    
     prefix = target_version if target_version.startswith("v") else f"v{target_version}"
     at_target = all(n["version"].startswith(prefix) for n in result["nodes"])
 

@@ -43,8 +43,9 @@ def save_precheck_snapshot(host, data: Dict[str, Any],
     payload = json.dumps(data, indent=2, default=str)
 
     # Write via shell to handle remote OIM
-    escaped = payload.replace("'", "'\\''")
-    write_cmd = f"cat > '{target}' << 'SNAPSHOT_EOF'\n{escaped}\nSNAPSHOT_EOF"
+    # Use quoted heredoc delimiter ('SNAPSHOT_EOF') to prevent shell interpretation
+    # No manual escaping needed since quoted heredoc preserves content literally
+    write_cmd = f"cat > '{target}' << 'SNAPSHOT_EOF'\n{payload}\nSNAPSHOT_EOF"
     cmd = run_on_oim(host, write_cmd)
     if cmd.rc != 0:
         return {

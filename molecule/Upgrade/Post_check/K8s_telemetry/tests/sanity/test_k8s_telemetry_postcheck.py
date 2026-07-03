@@ -145,7 +145,7 @@ from automation_library.upgrade_and_rollback.messages import (
     POSTCHECK_TEST_NAMES,
     POSTCHECK_LOG_MSGS,
     POSTCHECK_ASSERT_MSGS,
-    SKIP_MSGS,
+    K8S_TEL_SKIP_MSGS as SKIP_MSGS,
 )
 
 
@@ -162,6 +162,13 @@ def _require_snapshot():
     """Skip test if pre-upgrade snapshot was not loaded."""
     if not _snapshot_loaded:
         pytest.skip("Pre-upgrade snapshot not loaded — TC-01 did not pass")
+
+
+def _require_rollback():
+    """Skip test if rollback was not performed (nodes are still at upgraded version)."""
+    operation = K8S_UPGRADE_VARS.get("operation", "upgrade")
+    if operation != "rollback":
+        pytest.skip("Rollback tests only run when operation is 'rollback'")
 
 
 # =============================================================================
@@ -438,6 +445,15 @@ def test_post_check_metallb_ips(host):
             f"    {POSTCHECK_LOG_MSGS['ip_preserved'].format(namespace=svc['namespace'], name=svc['name'], ip=svc['external_ip'])}",
             flush=True,
         )
+    
+    # Show Kafka broker IP changes as informational (expected behavior)
+    for svc in result.get("kafka_changed", []):
+        print(
+            f"    ℹ {svc['namespace']}/{svc['name']}: {svc['external_ip']} -> {svc['current_ip']} (Kafka broker IP shift - expected)",
+            flush=True,
+        )
+    
+    # Show other changes as warnings/errors
     for svc in result.get("changed", []):
         print(
             f"    {POSTCHECK_LOG_MSGS['ip_changed'].format(namespace=svc['namespace'], name=svc['name'], old=svc['external_ip'], new=svc['current_ip'])}",
@@ -457,7 +473,9 @@ def test_post_check_metallb_ips(host):
             )
         )
 
-    log.passed(f"{len(result['preserved'])} LB IPs preserved")
+    kafka_count = len(result.get("kafka_changed", []))
+    kafka_note = f" ({kafka_count} Kafka broker IPs shifted - expected)" if kafka_count > 0 else ""
+    log.passed(f"{len(result['preserved'])} LB IPs preserved{kafka_note}")
 
 
 # =============================================================================
@@ -1081,7 +1099,7 @@ def test_post_check_cps_at_target(host):
         POSTCHECK_TEST_NAMES.get("cps_at_target", "Post-check: CPs at target version")
     )
     log.check(f"Verifying CPs at v{target}")
-    result = verify_cps_at_target(host, _admin_ip, target, _snapshot)
+    result = verify_cps_at_target(host, _admin_ip, target, _pre_snapshot)
 
     if not result["success"]:
         log.failed("CPs not at target", result["error"])
@@ -1107,7 +1125,7 @@ def test_post_check_workers_at_target(host):
         POSTCHECK_TEST_NAMES.get("workers_at_target", "Post-check: Workers at target version")
     )
     log.check(f"Verifying workers at v{target}")
-    result = verify_workers_at_target(host, _admin_ip, target, _snapshot)
+    result = verify_workers_at_target(host, _admin_ip, target, _pre_snapshot)
 
     if not result["success"]:
         log.failed("Workers not at target", result["error"])
@@ -1176,7 +1194,7 @@ def test_post_check_crio_storage_preserved(host):
         POSTCHECK_TEST_NAMES.get("crio_storage", "Post-check: CRI-O storage config")
     )
     log.check("Comparing CRI-O storage config pre vs post upgrade")
-    result = verify_crio_storage_preserved(host, _admin_ip, _snapshot)
+    result = verify_crio_storage_preserved(host, _admin_ip, _pre_snapshot)
 
     if not result["success"]:
         log.failed("CRI-O config changed", result["error"])
@@ -1198,7 +1216,7 @@ def test_post_check_bss_params_updated(host):
         POSTCHECK_TEST_NAMES.get("bss_params", "Post-check: BSS boot params")
     )
     log.check("Checking BSS boot param changes post upgrade")
-    result = verify_bss_params_updated(host, _admin_ip, _snapshot)
+    result = verify_bss_params_updated(host, _admin_ip, _pre_snapshot)
 
     log.passed(
         f"Updated: {len(result['updated_nodes'])}, "
@@ -1244,7 +1262,7 @@ def test_post_check_strimzi_upgraded(host):
         POSTCHECK_TEST_NAMES.get("strimzi_upgraded", "Post-check: Strimzi/Kafka upgraded")
     )
     log.check("Verifying Strimzi operator and Kafka brokers post upgrade")
-    result = verify_strimzi_upgraded(host, _admin_ip, _snapshot)
+    result = verify_strimzi_upgraded(host, _admin_ip, _pre_snapshot)
 
     log.check(f"  Strimzi: {result['pre_strimzi']} -> {result['post_strimzi']}")
     log.check(f"  Kafka: {result['pre_kafka']} -> {result['post_kafka']}")
@@ -1319,7 +1337,7 @@ def test_post_check_new_telemetry_components(host):
     )
     log.check("Verifying Phase 2 telemetry component deployment")
 
-    config_flags = _snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    config_flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
     if not config_flags:
         log.passed("No telemetry config flags in snapshot — skipping component check")
         return
@@ -1383,7 +1401,7 @@ def test_post_check_cluster_idempotency(host):
         POSTCHECK_TEST_NAMES.get("idempotency", "Post-check: Cluster idempotency")
     )
     log.check("Comparing cluster state for idempotency verification")
-    result = verify_cluster_unchanged(host, _admin_ip, _snapshot)
+    result = verify_cluster_unchanged(host, _admin_ip, _pre_snapshot)
 
     log.check(f"  Versions match: {result['node_versions_match']}")
     log.check(f"  Pod count match: {result['pod_count_match']}")
@@ -1404,11 +1422,12 @@ def test_post_check_cluster_idempotency(host):
 def test_post_check_rollback_to_source(host):
     """TC-44: Verify all nodes reverted to source version after rollback."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_source", "Post-rollback: Nodes at source version")
     )
     log.check("Checking if all nodes reverted to pre-upgrade version")
-    result = verify_rollback_to_source(host, _admin_ip, _snapshot)
+    result = verify_rollback_to_source(host, _admin_ip, _pre_snapshot)
 
     if not result["success"]:
         log.failed("Rollback incomplete", result["error"])
@@ -1427,6 +1446,7 @@ def test_post_check_rollback_to_source(host):
 def test_post_check_rollback_etcd_restored(host):
     """TC-45: Verify etcd healthy after rollback restore."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_etcd", "Post-rollback: etcd restored")
     )
@@ -1450,11 +1470,12 @@ def test_post_check_rollback_etcd_restored(host):
 def test_post_check_rollback_helm_restored(host):
     """TC-46: Verify Helm binary restored to pre-upgrade version."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_helm", "Post-rollback: Helm restored")
     )
     log.check("Checking Helm version after rollback")
-    result = verify_rollback_helm_restored(host, _admin_ip, _snapshot)
+    result = verify_rollback_helm_restored(host, _admin_ip, _pre_snapshot)
 
     log.check(f"  Pre: {result['pre_version']} -> Post: {result['post_version']}")
 
@@ -1475,11 +1496,12 @@ def test_post_check_rollback_helm_restored(host):
 def test_post_check_rollback_telemetry_healthy(host):
     """TC-47: Verify telemetry stack healthy after rollback."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_telemetry", "Post-rollback: Telemetry healthy")
     )
     log.check("Checking telemetry health after rollback")
-    result = verify_rollback_telemetry_healthy(host, _admin_ip, _snapshot)
+    result = verify_rollback_telemetry_healthy(host, _admin_ip, _pre_snapshot)
 
     if not result["success"]:
         log.failed("Telemetry unhealthy after rollback", result["error"])
@@ -1502,6 +1524,7 @@ def test_post_check_rollback_telemetry_healthy(host):
 def test_post_check_rollback_metallb_cleaned(host):
     """TC-48: Verify MetalLB healthy after rollback (stale IPs cleaned)."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_metallb", "Post-rollback: MetalLB cleaned")
     )
@@ -1525,6 +1548,7 @@ def test_post_check_rollback_metallb_cleaned(host):
 def test_post_check_rollback_csi_cleaned(host):
     """TC-49: Verify no stale CSI VolumeAttachments after rollback."""
     _require_snapshot()
+    _require_rollback()
     log = TestLogger(
         POSTCHECK_TEST_NAMES.get("rollback_csi", "Post-rollback: CSI cleaned")
     )
