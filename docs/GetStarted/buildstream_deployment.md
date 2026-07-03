@@ -403,7 +403,7 @@ Before beginning the BuildStreaM setup:
 
 #### `build_stream_config.yml`
 
-Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the [BuildStreaM configuration table](../Reference/Configuration/buildstream_config.md) for guidance when configuring these parameters.
+Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the [BuildStreaM configuration table](../Reference/Configuration/build_stream_config.md) for guidance when configuring these parameters.
 
 !!! note
 
@@ -678,7 +678,7 @@ Before deploying GitLab for BuildStreaM:
 
     ![BuildStream project](../assets/images/buildstream_project.png)
 
-    The input folder includes the following configuration files (see [Configuration Tables](../Reference/Configuration/buildstream_config.md) for detailed parameter descriptions):
+    The input folder includes the following configuration files (see [Configuration Tables](../Reference/Configuration/build_stream_config.md) for detailed parameter descriptions):
 
     - `build_stream_config.yml` — BuildStream configuration file
     - `gitlab_config.yml` — GitLab configuration file

@@ -238,7 +238,7 @@ nav:
       - Security Config: Reference/Configuration/security_config.md
       - HA Config: Reference/Configuration/high_availability_config.md
       - Local Repo Config: Reference/Configuration/local_repo_config.md
-      - BuildStreaM Config: Reference/Configuration/buildstream_config.md
+      - BuildStreaM Config: Reference/Configuration/build_stream_config.md
       - GitLab Config: Reference/Configuration/gitlab_config.md
       - Discovery Config: Reference/Configuration/discovery_config.md
       - User Registry Credential: Reference/Configuration/user_registry_credential.md
