@@ -148,7 +148,7 @@ Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 On rerun, already-completed components are automatically skipped.
 
 BuildStreaM Rollback
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^
 
 If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``k8s-telemetry``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 

@@ -213,8 +213,8 @@ BuildStreaM Upgrade
 
 When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. If BuildStreaM is enabled during the upgrade, the downstream components (``local_repo``, ``build_image``, ``provision``, ``k8s``, ``telemetry``, ``slurm``) will not be upgraded by Omnia — they are managed by the GitLab CI/CD pipeline instead. In this scenario, these components are **automatically skipped during upgrade** because they are handled by the BuildStreaM pipeline. Only ``oim`` and ``build_stream`` are actually upgraded by Omnia.
 
-BuildStreaM Terminal Gate
-"""""""""""""""""""""""""
+BuildStreaM Terminal Gate (Upgrade)
+"""""""""""""""""""""""""""""""""""
 
 Components that are skipped are recorded as ``skipped`` in the upgrade manifest, which is treated as a successful terminal state when the overall upgrade status is determined.
 
