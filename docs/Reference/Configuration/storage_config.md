@@ -6,15 +6,15 @@ File path: `/opt/omnia/input/project_default/storage_config.yml`
 This file configures shared storage for the cluster, including NFS mounts,
 Dell PowerScale/PowerVault and swap configuration.
 
-## Mounts
+## Mounts Configuration
 --8<-- "html/storage_config-mounts.html"
-## Mount_params
+## Mount_params Configuration
 --8<-- "html/storage_config-mount_params.html"
-## PowerVault
+## PowerVault Configuration
 --8<-- "html/storage_config-powervault_config.html"
-## Swap
+## Swap Configuration
 --8<-- "html/storage_config-swap.html"
-## S3
+## S3 Configuration
 --8<-- "html/storage_config-s3_configurations.html"
 ## Usage example
 ```yaml title="File: /opt/omnia/input/project_default/storage_config.yml"

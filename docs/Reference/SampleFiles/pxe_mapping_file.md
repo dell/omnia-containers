@@ -6,116 +6,141 @@ File path: Specified by `pxe_mapping_file_path` in `provision_config.yml`
 (e.g., `/opt/omnia/input/project_default/pxe_mapping.csv`)
 
 The PXE mapping file is a CSV that assigns each physical server to a
-functional group, hostname, and set of network addresses. Omnia reads this
-file during `discovery.yml` and `omnia.yml` to determine which role each
-server plays and how it is addressed on the network.
+functional group, hostname, and admin network addresses via mac addresses. Omnia reads this file during `provision.yml` to determine which role eachserver plays and how it is addressed on the network.
 
 ## Column reference
 
-
 | Column | Required | Description |
 | --- | --- | --- |
-| `FUNCTIONAL_GROUP_NAME` | Yes | The role this node plays in the cluster. Must match a group name in `software_config.json`. Values: `slurm_control_node`, `slurm_node`, `login_node`, `kube_control_plane`, `kube_node`, `auth_server`. |
-| `GROUP_NAME` | Yes | A logical sub-group for organizing nodes (e.g., `gpu_nodes`, `cpu_nodes`, `storage_nodes`). Used for Ansible inventory grouping. |
+| `FUNCTIONAL_GROUP_NAME` | Yes | The role and architecture this node plays in the cluster. Must match a group name in `software_config.json`. Values: `slurm_control_node_x86_64`, `slurm_node_x86_64`, `slurm_node_aarch64`, `login_node_x86_64`, `login_node_aarch64`, `login_compiler_node_aarch64`, `service_kube_control_plane_x86_64`, `service_kube_node_x86_64`, `os_x86_64`, `os_aarch64`. |
+| `GROUP_NAME` | Yes | A logical sub-group for organizing nodes (e.g., `grp0`, `grp1`, `grp2`, `grp3`, `grp4`, `grp5`, `grp6`, `grp7`, `grp8`, `grp9`). Used for rack inventory grouping. |
 | `SERVICE_TAG` | Yes | Dell service tag of the server (7-character alphanumeric string found on the server chassis or in iDRAC). Used for unique node identification. |
 | `PARENT_SERVICE_TAG` | No | Service tag of the parent chassis for multi-node systems (e.g., C6620, C6625). Leave blank for standalone servers. |
 | `HOSTNAME` | Yes | Hostname to assign to the node. Must comply with hostname rules (see [Hostname Requirements](../Appendices/hostname_requirements.md)). |
-| `ADMIN_MAC` | Yes | MAC address of the admin network NIC (used for PXE boot). Format: `AA:BB:CC:DD:EE:FF`. |
+| `ADMIN_MAC` | Yes | MAC address of the admin network NIC (used for PXE boot). Format: `xx:yy:zz:aa:bb:cc`. |
 | `ADMIN_IP` | Yes | Static IP address on the admin network. Must be within the admin subnet defined in `network_spec.yml` and outside the `dynamic_range`. |
 | `BMC_MAC` | No | MAC address of the BMC/iDRAC interface. Used for BMC discovery and address assignment. |
 | `BMC_IP` | No | Static IP address for the BMC/iDRAC interface. Must be within the BMC subnet. |
+| `IB_NIC_NAME` | No | InfiniBand NIC identifier (e.g., `InfiniBand.Slot.7-1`, `NIC.InfiniBand.1-3`). Used for InfiniBand network configuration. Leave blank if node does not have InfiniBand. |
+| `IB_IP` | No | Static IP address on the InfiniBand network (e.g., `192.168.0.100`). Must be within the InfiniBand subnet defined in `network_spec.yml`. Leave blank if node does not have InfiniBand. |
 
-## Sample file
-
-
-```text title="Sample pxe_mapping_file.csv"
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
-slurm_control_node,slurm_head,ABC1234,,slurm-ctrl-01,EC:2A:72:34:56:01,10.5.0.10,,10.3.0.10
-slurm_node,gpu_nodes,DEF5678,,slurm-gpu-01,EC:2A:72:34:56:02,10.5.0.11,,10.3.0.11
-slurm_node,gpu_nodes,GHI9012,,slurm-gpu-02,EC:2A:72:34:56:03,10.5.0.12,,10.3.0.12
-slurm_node,cpu_nodes,JKL3456,,slurm-cpu-01,EC:2A:72:34:56:04,10.5.0.13,,10.3.0.13
-login_node,login,MNO7890,,login-01,EC:2A:72:34:56:05,10.5.0.14,,10.3.0.14
-kube_control_plane,k8s_cp,PQR1234,,kube-cp-01,EC:2A:72:34:56:06,10.5.0.20,,10.3.0.20
-kube_control_plane,k8s_cp,STU5678,,kube-cp-02,EC:2A:72:34:56:07,10.5.0.21,,10.3.0.21
-kube_control_plane,k8s_cp,VWX9012,,kube-cp-03,EC:2A:72:34:56:08,10.5.0.22,,10.3.0.22
-kube_node,k8s_workers,YZA3456,,kube-wk-01,EC:2A:72:34:56:09,10.5.0.23,,10.3.0.23
-kube_node,k8s_workers,BCD7890,,kube-wk-02,EC:2A:72:34:56:0A,10.5.0.24,,10.3.0.24
-auth_server,auth,EFG1234,,auth-01,EC:2A:72:34:56:0B,10.5.0.30,,10.3.0.30
+## Sample csv files
+### pxe_mapping_file.csv
+```csv
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:gg,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:ff,172.16.107.44,aa:bb:cc:dd:ff:gg,172.17.107.44,NIC.InfiniBand.1-3,192.168.0.102
+login_compiler_node_aarch64,grp8,ABCD78,,login-compiler-node1,aa:bb:cc:dd:ee:gg,172.16.107.41,aa:bb:cc:dd:ee:bb,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
+login_node_aarch64,grp9,ABFG78,,login-node1,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,aa:bb:cc:dd:ee:hh,172.16.107.54,xx:yy:zz:aa:bb:hh,172.17.107.54,,
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,,
+os_x86_64,grp6,ABEF56,,os-node1,xx:yy:zz:aa:bb:ll,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60,,
+os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:ac,172.17.107.61,,
+```
+### pxe_mapping_file.csv for single subnet DHCP
+```csv
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_x86_64,grp2,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:aa,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:gg,172.16.107.44,aa:bb:cc:dd:ff:bb,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
+slurm_node_x86_64,grp1,BBFG35,ABKD88,slurm-node3,aa:bb:cc:dd:ee:hh,172.16.107.46,aa:bb:cc:dd:ff:cc,172.17.107.46,InfiniBand.Slot.7-1,192.168.0.103
+login_node_x86_64,grp8,ABCD78,,login-compiler-node1,aa:bb:cc:dd:ee:gg,172.16.107.41,aa:bb:cc:dd:ee:bb,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.104
+login_compiler_node_x86_64,grp9,ABFG78,,login-compiler-node2,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,InfiniBand.Slot.7-1,192.168.0.105
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,InfiniBand.Slot.7-1,192.168.0.106
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,aa:bb:cc:dd:ee:hh,172.16.107.54,xx:yy:zz:aa:bb:hh,172.17.107.54,,InfiniBand.Slot.7-1,192.168.0.107
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:ii,172.16.107.55,xx:yy:zz:aa:bb:ii,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.108
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.109
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,aa:bb:cc:dd:ee:kk,172.16.107.57,xx:yy:zz:aa:bb:ff,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.110
+os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
 ```
 
+### pxe_mapping_file.csv for multiple subnet DHCP
 
+```csv
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp1,DEF456,,service-kube-control-plane1,aa:bb:cc:dd:ee:03,10.41.1.15,aa:bb:cc:dd:ee:04,10.40.1.15,InfiniBand.Slot.7-2,10.42.1.15
+service_kube_control_plane_x86_64,grp1,GHI789,,service-kube-control-plane2,aa:bb:cc:dd:ee:05,10.41.1.16,aa:bb:cc:dd:ee:06,10.40.1.16,InfiniBand.Slot.7-3,10.42.1.16
+service_kube_control_plane_x86_64,grp1,JKL012,,service-kube-control-plane3,aa:bb:cc:dd:ee:07,10.41.1.17,aa:bb:cc:dd:ee:08,10.40.1.17,InfiniBand.Slot.7-4,10.42.1.17
+service_kube_node_x86_64,grp2,MNO345,,service-kube-node1,aa:bb:cc:dd:ee:09,10.41.1.18,aa:bb:cc:dd:ee:10,10.40.1.18,InfiniBand.Slot.7-5,10.42.1.18
+service_kube_node_x86_64,grp2,PQR678,,service-kube-node2,aa:bb:cc:dd:ee:11,10.41.1.19,aa:bb:cc:dd:ee:12,10.40.1.19,InfiniBand.Slot.7-6,10.42.1.19
+slurm_control_node_x86_64,grp3,ABC123,,slurm-control-node1,aa:bb:cc:dd:ee:01,10.41.0.10,aa:bb:cc:dd:ee:02,10.40.0.10,InfiniBand.Slot.7-1,10.42.0.10
+slurm_node_x86_64,grp4,STU901,2LY0B33,slurm-node1,aa:bb:cc:dd:ee:13,10.41.2.22,aa:bb:cc:dd:ee:14,10.40.2.22,InfiniBand.Slot.7-7,10.42.2.22
+slurm_node_x86_64,grp4,VWX234,2LY0B33,slurm-node2,aa:bb:cc:dd:ee:15,10.41.2.23,aa:bb:cc:dd:ee:16,10.40.2.23,InfiniBand.Slot.7-8,10.42.2.23
+login_compiler_node_x86_64,grp5,YZA567,,login-compiler-node1,aa:bb:cc:dd:ee:17,10.41.2.24,aa:bb:cc:dd:ee:18,10.40.2.24,InfiniBand.Slot.7-9,10.42.2.24
+login_node_x86_64,grp6,BCD890,,login-node1,aa:bb:cc:dd:ee:19,10.41.0.11,aa:bb:cc:dd:ee:20,10.40.0.11,InfiniBand.Slot.7-10,10.42.0.11
+os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
+```
 
-## Annotated breakdown
+## Node Role Examples
 
-
-**Slurm control node**
+**Slurm control node (x86_64)**
 
 ```text title="Example: Slurm control node"
-slurm_control_node,slurm_head,ABC1234,,slurm-ctrl-01,EC:2A:72:34:56:01,10.5.0.10,,10.3.0.10
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 ```
-
 
 - Runs `slurmctld` and `slurmdbd`.
 - Exactly one node should have this functional group per Slurm cluster.
 - `PARENT_SERVICE_TAG` is empty (standalone server).
+- Includes InfiniBand NIC for high-speed cluster communication.
 
-**Slurm compute nodes**
+**Slurm compute nodes (AArch64)**
 
-```text title="Example: Slurm compute nodes"
-slurm_node,gpu_nodes,DEF5678,,slurm-gpu-01,EC:2A:72:34:56:02,10.5.0.11,,10.3.0.11
-slurm_node,cpu_nodes,JKL3456,,slurm-cpu-01,EC:2A:72:34:56:04,10.5.0.13,,10.3.0.13
+```text title="Example: Slurm compute nodes with parent chassis"
+slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:gg,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:ff,172.16.107.44,aa:bb:cc:dd:ff:gg,172.17.107.44,NIC.InfiniBand.1-3,192.168.0.102
 ```
-
 
 - Runs `slurmd`.
-- `GROUP_NAME` distinguishes GPU-equipped nodes (`gpu_nodes`) from
-  CPU-only nodes (`cpu_nodes`). This grouping can be used in Slurm
-  partitions.
+- `PARENT_SERVICE_TAG` identifies the shared chassis (multi-node systems like C6620).
+- Each node has its own service tag, hostname, and network addresses.
+- Includes InfiniBand NIC for high-speed cluster communication.
 
-**Login node**
+**Login node (AArch64)**
 
 ```text title="Example: Login node"
-login_node,login,MNO7890,,login-01,EC:2A:72:34:56:05,10.5.0.14,,10.3.0.14
+login_node_aarch64,grp9,ABFG78,,login-node1,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
 ```
-
 
 - Provides interactive SSH access for users to submit jobs.
 - Does not run `slurmd`; configured as a Slurm client only.
+- Includes InfiniBand for cluster communication.
 
-**Kubernetes control plane**
+**Kubernetes control plane (x86_64)**
 
 ```text title="Example: Kubernetes control plane"
-kube_control_plane,k8s_cp,PQR1234,,kube-cp-01,EC:2A:72:34:56:06,10.5.0.20,,10.3.0.20
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,
 ```
-
 
 - Runs the Kubernetes API server, etcd, scheduler, and controller-manager.
-- For HA, use 3 control plane nodes (see
-  [Ha Config](../Configuration/ha_config.md)).
+- For HA, use 3 control plane nodes (see [HA Config](../Configuration/high_availability_config.md)).
+- InfiniBand is optional for control plane nodes.
 
-**Kubernetes worker nodes**
+**Kubernetes worker nodes (x86_64)**
 
 ```text title="Example: Kubernetes worker nodes"
-kube_node,k8s_workers,YZA3456,,kube-wk-01,EC:2A:72:34:56:09,10.5.0.23,,10.3.0.23
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,,
 ```
-
 
 - Runs `kubelet` and `kube-proxy`; hosts application pods.
+- InfiniBand is optional for worker nodes.
 
-**Multi-node chassis example (C6620)**
+**Generic OS nodes (x86_64 and AArch64)**
 
-```text title="Example: Multi-node chassis (C6620)"
-slurm_node,cpu_nodes,SLD1234,CHASSIS01,sled-01,EC:2A:72:34:56:10,10.5.0.40,,10.3.0.40
-slurm_node,cpu_nodes,SLD5678,CHASSIS01,sled-02,EC:2A:72:34:56:11,10.5.0.41,,10.3.0.41
+```text title="Example: Generic OS nodes"
+os_x86_64,grp6,ABEF56,,os-node1,xx:yy:zz:aa:bb:ll,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60,,
+os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:ac,172.17.107.61,,
 ```
 
-
-- `PARENT_SERVICE_TAG` identifies the shared chassis.
-- Each sled has its own service tag, hostname, and network addresses.
-
+- Generic nodes with no specific cluster role.
+- Useful for standalone compute, storage, or utility nodes.
+- InfiniBand is optional.
 
 ## Validation rules
-
 
 | Rule | Description |
 | --- | --- |
@@ -126,12 +151,6 @@ slurm_node,cpu_nodes,SLD5678,CHASSIS01,sled-02,EC:2A:72:34:56:11,10.5.0.41,,10.3
 | Valid `FUNCTIONAL_GROUP_NAME` | Must be one of the recognized group names listed above. |
 | Hostname format | Lowercase, no domain suffix, RFC 952/1123 compliant. See [Hostname Requirements](../Appendices/hostname_requirements.md). |
 | IP within subnet | `ADMIN_IP` must fall within the admin network subnet and outside the `dynamic_range`. `BMC_IP` must fall within the BMC subnet. |
-
-!!! note
-
-    The `input_validator.yml` playbook validates the PXE mapping file before
-    provisioning begins. Any violations produce a descriptive error message
-    identifying the offending row and column.
 
 !!! info
 

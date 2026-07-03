@@ -4,6 +4,11 @@ File path: `/opt/omnia/input/project_default/gitlab_config.yml`
 
 This file configures the GitLab instance for BuildStreaM, including host settings, project configuration, and resource requirements.
 
+!!! note
+    - HTTPS is always enabled for GitLab deployment.
+    - GitLab credentials are managed separately via `get_config_credentials`.
+    - The target host must be configured in `build_stream/gitlab/inventory/hosts.ini`.
+
 ## Parameter reference
 
 | Parameter | Mandatory/Optional | Description |
@@ -17,3 +22,25 @@ This file configures the GitLab instance for BuildStreaM, including host setting
 | `gitlab_min_cpu_cores` | Mandatory | Minimum CPU core count validated before install. **Default value**: 2. More cores may be needed for production workloads. |
 | `gitlab_puma_workers` | Mandatory | Number of worker processes. **Default value**: 2. Scale with CPU cores (recommended: 1-2 workers per CPU core). |
 | `gitlab_sidekiq_concurrency` | Mandatory | Background job concurrency. **Default value**: 10. Adjust based on available memory and workload. |
+
+--8<-- "html/gitlab_config.html"
+
+## Usage example
+```yaml title="File: /opt/omnia/input/gitlab_config.yml"
+---
+# Target host
+gitlab_host: ""
+# Project settings
+gitlab_project_name: "omnia-catalog"
+gitlab_project_visibility: "private"
+gitlab_default_branch: "main"
+# Network
+gitlab_https_port: 443
+# Minimum requirements
+gitlab_min_storage_gb: 20
+gitlab_min_memory_gb: 4
+gitlab_min_cpu_cores: 2
+# Performance tuning
+gitlab_puma_workers: 2
+gitlab_sidekiq_concurrency: 10
+```

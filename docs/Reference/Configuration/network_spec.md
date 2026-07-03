@@ -1,14 +1,12 @@
 
 # network_spec.yml Reference
 
-
 File path: `/opt/omnia/input/project_default/network_spec.yml`
 
 This file defines all network segments used by the Omnia cluster: admin, ib, and additional networks. Each network is described as an entry in the
 `Networks` list.
 
 ## Top-level structure
-
 
 `network_spec.yml` contains a single top-level key, `Networks`, which is a
 YAML list of network definitions.
@@ -22,13 +20,13 @@ Networks:
   - additional_subnets:
       ...
 ```
-## admin_network parameters
+## Admin Network Configuration Parameters
 --8<-- "html/network_spec-admin_network.html"
 
-## ib_network parameters (optional)
+## Infiniband Network Configuration Parameters (optional)
 --8<-- "html/network_spec-ib_network.html"
 
-## additional_subnets parameters (optional)
+## Additional Subnets Configuration Parameters (optional)
 --8<-- "html/network_spec-additional_subnets.html"
 
 
