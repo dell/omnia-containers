@@ -6,7 +6,7 @@
 Omnia orchestrates the deployment of HPC and AI clusters by organizing servers
 into three distinct cluster types, each with a well-defined role. This page
 explains how those clusters relate to each other, what runs on the management
-node, and what the minimum requirements are for each tier.
+node, and what the minimum requirements are for each tier..
 
 ## Why three cluster types?
 
@@ -124,7 +124,7 @@ designated nodes.
 
     A single physical server can hold multiple roles. For example, a small
     cluster might combine `slurm_control_node` and `login_node` on the same
-    machine. See [Composable Roles](composable_roles.md) for details on how roles compose.
+    machine. Roles are assigned via the PXE mapping file during provisioning.
 
 ## Kubernetes cluster
 
@@ -166,7 +166,7 @@ collaborate through well-defined interfaces:
 
 1. **Provisioning flow** -- The OIM discovers bare-metal nodes via BMC/iDRAC,
    PXE-boots them, installs the operating system, and assigns them to the Slurm
-   or Kubernetes cluster based on the [Composable Roles](composable_roles.md) mapping file.
+   or Kubernetes cluster based on the PXE mapping file.
 
 2. **Authentication** -- An `auth_server` node (typically in the Slurm
    cluster) runs OpenLDAP. Both Slurm and Kubernetes nodes can be configured to
@@ -202,6 +202,6 @@ A runaway Kubernetes pod cannot starve a Slurm batch job, and vice versa.
 !!! info
 
     - [Components](components.md) -- Deep dive into each software component.
-    - [Composable Roles](composable_roles.md) -- How servers are assigned to clusters and roles.
     - [Network Topologies](network_topologies.md) -- Network design options that connect the three
       clusters.
+    - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How servers are assigned to clusters and roles.

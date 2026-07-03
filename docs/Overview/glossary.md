@@ -63,11 +63,8 @@ page that provides a full explanation.
 **BuildStreaM**
 :   Omnia's GitLab CI-based automation pipeline for catalog-driven deployment. Administrators define a deployment catalog (YAML manifest), and BuildStreaM generates a CI/CD pipeline that executes the required Ansible playbooks in order. See [Components](components.md).
 
-**Composable Roles**
-:   Omnia's system for assigning server functions via a declarative mapping file. A single server can hold multiple roles (e.g., Slurm control node + login node), decoupling physical hardware from logical cluster functions. See [Composable Roles](composable_roles.md).
-
 **Functional Groups**
-:   Named role definitions in Omnia's **Composable Roles** system. Each functional group (e.g., `slurm_node`, `service_kube_control_plane`) determines which software and configuration is applied to a server. See [Composable Roles](composable_roles.md).
+:   Named role definitions in Omnia's role assignment system. Each functional group (e.g., `slurm_node`, `service_kube_control_plane`) determines which software and configuration is applied to a server. Functional groups are assigned via the PXE mapping file during provisioning.
 
 **Pulp**
 :   An open-source repository management platform. Omnia deploys Pulp as a Podman container on the **OIM** to mirror RPM repositories, container images, and Python packages locally. Essential for air-gapped deployments. See [Components](components.md).

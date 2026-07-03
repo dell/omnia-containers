@@ -1,102 +1,51 @@
 
 # Log Management
 
+Omnia maintains logs across playbook executions, container operations, and cluster activities. These logs are essential for monitoring, debugging, and troubleshooting deployments across the OIM, Kubernetes, and Slurm environments.
 
-Omnia generates logs at multiple levels: Ansible playbook execution, container
-service logs, cluster service logs, and operating system logs. Understanding
-where logs are stored and how they are rotated is essential for diagnosing
-issues and maintaining a healthy cluster.
+!!! warning
 
-## Log locations
-
-
-### Playbook logs
-
-
-All Ansible playbook execution logs are written to the OIM host filesystem,
-even though playbooks run inside the `omnia_core` Podman container:
-
-| Path | Description |
-| --- | --- |
-| `/opt/omnia/log/core/playbooks/` | Primary log directory for all Omnia playbook runs. Each playbook generates a timestamped log file (for example, `omnia_2024-01-15.log`). |
-| `/opt/omnia/log/core/playbooks/discovery.log` | Node discovery and provisioning log. |
-| `/opt/omnia/log/core/playbooks/local_repo.log` | Local repository logs. |
-| `/opt/omnia/log/core/playbooks/prepare_oim.log` | Prepare OIM logs. |
-| `/opt/omnia/log/core/playbooks/provision.log` | Provision logs. |
-| `/opt/omnia/log/core/playbooks/omnia.log` | Main cluster deployment log (Slurm, Kubernetes, authentication). |
-| `/opt/omnia/log/core/playbooks/scheduler.log` | Scheduler logs. |
-| `/opt/omnia/log/core/playbooks/telemetry.log` | Telemetry stack deployment log. |
-| `/opt/omnia/log/core/playbooks/utils.log` | Utility logs. |
-| `/opt/omnia/log/core/playbooks/credential_utility.log` | Credential utility logs. |
-| `/opt/omnia/log/core/playbooks/validation_omnia_project_default.log` | Omnia input validation report logs. |
-| `/opt/omnia/log/core/playbooks/input_validation.log` | Omnia input validation playbook logs. |
-| `/opt/omnia/log/openchami/*.log` | OpenCHAMI playbook logs. |
-| `/opt/omnia/log/pulp/*.log` | Pulp container logs. |
-| `/opt/omnia/log/local_repo/*.log` | Local repo logs. |
-| `/opt/omnia/log/core/container/*.log` | Core container logs. |
-
-Additionally, an aggregate of the events taking place during storage,
-scheduler, and network role installation called `omnia.log` is created in
-`/var/log`.
+    Do not delete log files or the directories they reside in.
 
 !!! tip
 
-    To follow a playbook log in real time while a playbook is running, open a
-    second terminal on the OIM host:
+    To generate log files for a specific playbook, use the `cd` command to move into the playbook directory before running it. For example, run `cd local_repo` before executing the playbook to get dedicated local repo logs. If the directory is not changed, all playbook execution logs are consolidated under `/opt/omnia/log/core/playbooks`.
 
-    ```bash
-    tail -f /opt/omnia/log/core/playbooks/omnia.log
-    ```
+## Log locations
 
+### Playbook logs
 
-### Container logs
+All Ansible playbook execution logs are written to the OIM host filesystem under `/opt/omnia/log/core/playbooks/`:
 
+| Log File | Purpose | Playbook |
+| --- | --- | --- |
+| `discovery.log` | Discovery logs | `discovery/discovery.yml` |
+| `local_repo.log` | Local repository logs | `local_repo/local_repo.yml` |
+| `prepare_oim.log` | Prepare OIM logs | `prepare_oim/prepare_oim.yml` |
+| `provision.log` | Provision logs | `provision/provision.yml` |
+| `telemetry.log` | Telemetry logs | `telemetry/telemetry.yml` |
+| `utils.log` | Utility logs | `utils/*.yml` |
+| `credential_utility.log` | Credential utility logs | `credential_utility/get_config_credentials.yml` |
+| `validation_omnia_project_default.log` | Input validation report logs | |
+| `input_validation.log` | Input validation playbook logs | `input_validation/validate_config.yml` |
+| `gitlab_build_stream.log` | GitLab BuildStreaM logs | |
+| `build_image_<arch>.log` | Build image logs | `build_image_<arch>/build_image_<arch>.yml` |
 
-OIM services run as Podman containers. Access their logs with the ``podman
-logs`` command:
+### Core and container logs
 
-```bash title="Run on: OIM host"
-# List all running containers
-podman ps
-
-# View logs for a specific container
-podman logs omnia_core
-podman logs ochami-smd
-podman logs ochami-bss
-podman logs coredhcp
-
-# Follow logs in real time
-podman logs -f omnia_core
-
-# View only the last 100 lines
-podman logs --tail 100 omnia_core
-```
-
-
-| Container | What it logs |
+| Location | Purpose |
 | --- | --- |
-| `omnia_core` | Ansible execution output, SSH connections to managed nodes. |
-| `ochami-smd` | OpenCHAMI State Manager Daemon: node inventory, hardware discovery. |
-| `ochami-bss` | Boot Script Service: PXE boot script generation, boot requests. |
-| `coredhcp` | DHCP lease assignments during provisioning. |
-| `pulp` | Repository sync status, package downloads. |
+| `/opt/omnia/log/openchami/*log` | OpenCHAMI playbook logs |
+| `/opt/omnia/log/pulp/*log` | Pulp container logs |
+| `/opt/omnia/log/local_repo/*log` | Local repo logs |
+| `/opt/omnia/log/core/container/*log` | Core container logs |
+| `/opt/omnia/log/build_stream/` | BuildStreaM pipeline logs |
 
-### OpenCHAMI logs
+!!! note
 
-
-OpenCHAMI components write structured JSON logs accessible via Podman:
-
-```bash title="Run on: OIM host"
-# SMD logs (node state changes)
-podman logs ochami-smd 2>&1 | jq '.'
-
-# BSS logs (boot requests)
-podman logs ochami-bss 2>&1 | jq '.'
-```
-
+    BuildStreaM and GitLab log paths are available inside the BuildStreaM container.
 
 ### Slurm logs
-
 
 On Slurm cluster nodes, logs are stored in standard Slurm log directories:
 
@@ -106,185 +55,115 @@ On Slurm cluster nodes, logs are stored in standard Slurm log directories:
 | `/var/log/slurm/slurmd.log` | Slurm compute daemon log (on each compute node). |
 | `/var/log/slurm/slurmdbd.log` | Slurm database daemon log (job accounting). |
 
-```bash title="Run on: Slurm nodes"
-# On the Slurm control node
-tail -f /var/log/slurm/slurmctld.log
+## Viewing Podman container logs on OIM
 
-# On a compute node
-tail -f /var/log/slurm/slurmd.log
+1. List all containers running on the OIM:
+
+    ```bash title="Run on: OIM host"
+    podman ps -a
+    ```
+
+    ```text title="Expected output"
+    CONTAINER ID   IMAGE                                                        COMMAND                  CREATED        STATUS        PORTS                                        NAMES
+    222d8d96554b   localhost/omnia_auth:1.0                                     /bin/sh -c mkdi…         2 days ago     Up 2 days     0.0.0.0:389->389/tcp, 0.0.0.0:636->636/tcp   omnia_auth
+    0640a9adfce3   localhost/omnia_core:2.2                                                              2 days ago     Up 2 days     2222/tcp                                     omnia_core
+    42515184e9ba   docker.io/pgsty/minio:RELEASE.2026-04-17T00-00-00Z           server /data –co…        2 days ago     Up 2 days     0.0.0.0:9000-9001->9000-9001/tcp             minio-server
+    5bbce8efdc27   docker.io/pulp/pulp:3.80                                     /init                    2 days ago     Up 2 days     0.0.0.0:2225->2225/tcp, 80/tcp               pulp
+    d0b76ac340c7   docker.io/library/postgres:16                                postgres                 2 days ago     Up 2 days     5432/tcp                                     omnia_postgres
+    0608aa923b7c   docker.io/dellhpcomniaaisolution/omnia_build_stream:1.1                               2 days ago     Up 2 days                                                  omnia_build_stream
+    251709e17ec2   docker.io/library/registry:3.1.0                             /etc/distribution…       2 days ago     Up 2 days     0.0.0.0:5000->5000/tcp                       registry
+    992a9ca91d5d   docker.io/library/postgres:11.5-alpine                       postgres                 2 days ago     Up 2 days     5432/tcp                                     postgres
+    b731b88c87ff   ghcr.io/openchami/local-ca:v0.2.6                            /step-ca.sh              2 days ago     Up 2 days     9000/tcp                                     step-ca
+    ec2a4422424d   docker.io/oryd/hydra:v2.3                                    serve -c /etc/con…       2 days ago     Up 2 days                                                  hydra
+    0751a15ca614   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal serv…       2 days ago     Up 2 days                                                  opaal-idp
+    72e566933565   ghcr.io/openchami/smd:v2.19.3                                /smd                     2 days ago     Up 2 days     27779/tcp                                    smd
+    e95d50f8da14   ghcr.io/openchami/opaal:v0.3.12                              /opaal/opaal logi…       2 days ago     Up 2 days                                                  opaal
+    3fac48412fe9   ghcr.io/openchami/bss:v1.32.2                                /bin/sh -c /usr/l…       2 days ago     Up 2 days     27778/tcp                                    bss
+    81f488e6b5cb   ghcr.io/openchami/cloud-init:v1.3.0                          /usr/local/bin/cl…       2 days ago     Up 2 days                                                  cloud-init-server
+    7e970ad459ca   cgr.dev/chainguard/haproxy:latest                            haproxy -f /usr/l…       2 days ago     Up 2 days     0.0.0.0:8081->80/tcp, 0.0.0.0:8443->443/tcp  haproxy
+    5f5028bab1cd   ghcr.io/openchami/coresmd:v0.4.3                             /coredhcp                2 days ago     Up 2 days                                                  coresmd-coredhcp
+    354f3305a7b8   ghcr.io/openchami/coresmd:v0.4.3                             /coredns                 2 days ago     Up 2 days                                                  coresmd-coredns
+    ```
+
+    !!! note
+
+        Container IDs and image versions will vary on every system.
+
+2. View logs from a specific container:
+
+    ```bash title="Run on: OIM host"
+    podman logs <container_name>
+    ```
+
+3. If the container is managed as a systemd service, view logs with:
+
+    ```bash title="Run on: OIM host"
+    journalctl -xeu <container_name>
+    ```
+
+## Viewing Kubernetes pod logs
+
+1. List all namespaces and pods:
+
+    ```bash title="Run on: Kubernetes control plane"
+    kubectl get pods -A
+    ```
+
+2. Get the list of containers in a pod:
+
+    ```bash title="Run on: Kubernetes control plane"
+    kubectl get pods <pod_name> -o jsonpath='{.spec.containers[*].name}'
+    ```
+
+3. View logs for a specific container:
+
+    ```bash title="Run on: Kubernetes control plane"
+    kubectl logs <pod_name> -n <namespace> -c <container_name>
+    ```
+
+## Cluster log collection
+
+Omnia provides a log collection playbook for gathering cluster logs from Kubernetes and Slurm nodes for debugging and support.
+
+```bash title="Run on: omnia_core container"
+ssh omnia_core
+cd /omnia/log_collector
+ansible-playbook collect.yml
 ```
 
+### Collection modes
 
-### Kubernetes logs
+- **Full mode** (default): Collects all logs from target nodes.
 
+    ```bash title="Run on: omnia_core container"
+    ansible-playbook collect.yml
+    ```
 
-On Kubernetes cluster nodes, use `kubectl` or `journalctl` to access logs:
+- **Curated support mode**: Excludes temporary and stale log files.
 
-```bash title="Run on: Kubernetes nodes"
-# Pod logs
-kubectl logs <pod_name> -n <namespace>
+    ```bash title="Run on: omnia_core container"
+    ansible-playbook collect.yml --tags curated_support
+    ```
 
-# Kubelet logs on a specific node
-ssh <kube_node> journalctl -u kubelet -f
-```
+### Output artifacts
 
-
-
-## Logrotate configuration
-
-
-Omnia configures `logrotate` to manage log file sizes on the OIM and prevent
-disk exhaustion. The default configuration rotates logs based on size and age.
-
-### Default settings
-
-
-```text title="File: /etc/logrotate.d/omnia"
-# /etc/logrotate.d/omnia
-/opt/omnia/log/core/playbooks/*.log {
-    weekly
-    rotate 12
-    compress
-    delaycompress
-    missingok
-    notifempty
-    create 0640 root root
-}
-```
-
-
-This configuration:
-
-- Rotates log files **weekly**.
-- Keeps **12 rotated files** (approximately 3 months of history).
-- **Compresses** rotated files with gzip (after a one-rotation delay).
-- Skips rotation if the log file is missing or empty.
-
-### Customizing logrotate
-
-
-To adjust the rotation policy (for example, to rotate daily in high-throughput
-environments):
-
-1. Edit the logrotate configuration:
-
-   ```bash
-   vi /etc/logrotate.d/omnia
-   ```
-
-
-2. Change `weekly` to `daily` and adjust `rotate` to the desired number
-   of files:
-
-   ```text
-   /opt/omnia/log/core/playbooks/*.log {
-       daily
-       rotate 30
-       compress
-       delaycompress
-       missingok
-       notifempty
-       create 0640 root root
-   }
-   ```
-
-
-3. Test the configuration:
-
-   ```bash
-   logrotate -d /etc/logrotate.d/omnia
-   ```
-
-
-4. Force an immediate rotation (optional):
-
-   ```bash
-   logrotate -f /etc/logrotate.d/omnia
-   ```
-
-
-### Slurm logrotate
-
-
-Slurm logs are rotated separately. Omnia installs a Slurm-specific logrotate
-configuration on the control node:
-
-```text title="File: /etc/logrotate.d/slurm"
-# /etc/logrotate.d/slurm
-/var/log/slurm/*.log {
-    weekly
-    rotate 8
-    compress
-    delaycompress
-    missingok
-    notifempty
-    sharedscripts
-    postrotate
-        /usr/bin/pkill -HUP slurmctld 2>/dev/null || true
-        /usr/bin/pkill -HUP slurmd 2>/dev/null || true
-    endscript
-}
-```
-
-
-
-## Sample log output
-
-
-A sample of the `omnia.log` is provided below:
-
-```text title="Sample omnia.log output"
-2021-02-15 15:17:36,877 p=2778 u=omnia n=ansible | [WARNING]: provided hosts
-list is empty, only localhost is available. Note that the implicit localhost does not
-match 'all'
-2021-02-15 15:17:37,396 p=2778 u=omnia n=ansible | PLAY [Executing omnia roles]
-************************************************************************************
-2021-02-15 15:17:37,454 p=2778 u=omnia n=ansible | TASK [Gathering Facts]
-*****************************************************************************************
-2021-02-15 15:17:38,856 p=2778 u=omnia n=ansible | ok: [localhost]
-2021-02-15 15:17:38,885 p=2778 u=omnia n=ansible | TASK [common : Mount Path]
-**************************************************************************************
-2021-02-15 15:17:38,969 p=2778 u=omnia n=ansible | ok: [localhost]
-```
-
-These logs are intended to enable debugging.
+| Artifact | Description |
+| --- | --- |
+| Workspace | `/opt/omnia/collector_logs` |
+| Bundle | `omnia_logs_<YYYYMMDD-HHMMSS>.tar.gz` |
+| Metadata | `metadata.json` (included in bundle) |
+| Checksum | `.sha256` file for integrity verification |
 
 !!! note
 
-    The Omnia product recommends that product users apply masking rules on
-    personal identifiable information (PII) in the logs before sending to
-    external monitoring applications or sources.
+    - PXE mapping file must exist at `/opt/omnia/input/project_default/`.
+    - Nodes must be reachable from the OIM.
 
+!!! warning
 
-## Logging format
-
-
-Every log message begins with a timestamp and also carries information on the
-invoking play and task. The format is described in the following table:
-
-| Field | Format | Sample Value |
-| --- | --- | --- |
-| Timestamp | `yyyy-mm-dd h:m:s` | `2021-02-15 15:17` |
-| Process ID | `p=xxxx` | `p=2778` |
-| User | `u=xxxx` | `u=omnia` |
-| Name of the process executing | `n=xxxx` | `n=ansible` |
-| The task being executed/invoked | `PLAY/TASK` | `PLAY [Executing omnia roles]` / `TASK [Gathering Facts]` |
-| Error | `fatal: [hostname]: Error Message` | `fatal: [localhost]: FAILED! => {"msg": "lookup_plugin.lines}` |
-| Warning | `[WARNING]: warning message` | `[WARNING]: provided hosts list is empty` |
-
-
-## Troubleshooting log issues
-
-
-| Issue | Resolution |
-| --- | --- |
-| **Disk full on OIM** | Check log sizes: `du -sh /opt/omnia/log/core/playbooks/`. Force logrotate: `logrotate -f /etc/logrotate.d/omnia`. Remove old compressed logs if needed. |
-| **No playbook logs appearing** | Verify the `omnia_core` container is running: `podman ps`. Check that the log volume is mounted: `podman inspect omnia_core \| grep -A5 Mounts`. |
-| **Container logs too verbose** | Adjust the log level in the container's configuration file and restart the container: `podman restart <container_name>`. |
-| **Slurm logs not rotating** | Verify logrotate configuration exists: `cat /etc/logrotate.d/slurm`. Test with: `logrotate -d /etc/logrotate.d/slurm`. Check if `crond` is running: `systemctl status crond`. |
+    Logs are stored in `/var`. Ensure sufficient space is allocated to the `/var` partition.
 
 !!! info
 
-    - [General](../Troubleshooting/general.md) -- General troubleshooting that uses logs
-      as a primary diagnostic tool.
+    - [General Troubleshooting](../Troubleshooting/general.md) -- Uses logs as a primary diagnostic tool.
     - [Best Practices Checklist](best_practices_checklist.md) -- Storage and maintenance best practices.

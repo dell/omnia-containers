@@ -119,7 +119,7 @@ See [Components](components.md) for details on Pulp's capabilities.
   local credential caching.
 - Consistent UIDs and GIDs across all cluster nodes.
 
-See [Security Model](security_model.md) for the full authentication architecture.
+See [Security Configuration Guide](security_configuration_guide.md) for the full authentication architecture.
 
 ### Telemetry pipeline
 
@@ -147,14 +147,12 @@ See [Telemetry Architecture](telemetry_architecture.md) for the full pipeline ar
 ### Composable functional groups
 
 
-- **Composable roles system** -- Servers are assigned to functional groups via
+- **Functional groups system** -- Servers are assigned to functional groups via
   a CSV mapping file, decoupling physical hardware from logical roles.
 - A single server can hold multiple roles (e.g., Slurm control node + login
   node).
 - User-defined groups for physical characteristics (GPU type, CPU
   architecture, memory capacity).
-
-See [Composable Roles](composable_roles.md) for the full explanation.
 
 ### Stateless boot
 
@@ -183,7 +181,7 @@ See [Composable Roles](composable_roles.md) for the full explanation.
 - Credential utility for generating, rotating, and rekeying encrypted
   passwords.
 
-See [Security Model](security_model.md) for details.
+See [Security Configuration Guide](security_configuration_guide.md) for details.
 
 ### Multi-architecture support
 

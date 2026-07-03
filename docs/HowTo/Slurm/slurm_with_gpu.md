@@ -186,7 +186,7 @@ request specific GPU types and quantities.
 
 
 - [Run Hpc Benchmarks](run_hpc_benchmarks.md) -- Run GPU-accelerated benchmarks.
-- [Use Apptainer](../Containers/use_apptainer.md) -- Run GPU containers with Apptainer.
+- [Use Apptainer](../AdvancedConfigurations/use_apptainer.md) -- Run GPU containers with Apptainer.
 
 
 ## Troubleshooting

@@ -4,204 +4,152 @@
 
 File path: `/opt/omnia/input/project_default/software_config.json`
 
-This page provides complete, annotated `software_config.json` examples for
-common deployment scenarios. Copy the scenario that best matches your
+This page provides complete, annotated `software_config.json` examples for common deployment scenarios. Copy the scenario that best matches your
 deployment and modify as needed.
 
-## Scenario 1: Slurm-only cluster
+## RHEL 10.0 x86_64 - Slurm + Kubernetes (full deployment)
 
+This example demonstrates a single-architecture full deployment of Slurm(slurm_custom) and Kubernetes(service_k8s) supporting only x86_64 nodes.
 
-Deploys a traditional HPC cluster with Slurm scheduling, NVIDIA GPU support,
-and LDMS telemetry on compute nodes. No Kubernetes.
+```json title="Sample software_config.json"
+{
+    "cluster_os_type": "rhel",
+    "cluster_os_version": "10.0",
+    "repo_config": "partial",
+    "softwares": [
+        {"name": "default_packages", "arch": ["x86_64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64"]},
+        {"name": "openldap", "arch": ["x86_64"]},
+        {"name": "slurm_custom", "arch": ["x86_64"]},
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "ucx", "version": "1.19.0", "arch": ["x86_64"]},
+        {"name": "openmpi", "version": "5.0.8", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "version":"v2.16.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64"]},
+        {"name": "additional_packages", "arch": ["x86_64"]}
+    ],
+    "slurm_custom": [
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"}
+    ],
+    "service_k8s": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"}
+    ],
+     "additional_packages":[
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"},
+        {"name": "os"}
+    ]
+}
+```
+## RHEL 10.0 Multi-Arch cluster
+
+This example demonstrates a multi-architecture deployment supporting both x86_64 and aarch64 nodes.
+```json
+{
+    "cluster_os_type": "rhel",
+    "cluster_os_version": "10.0",
+    "repo_config": "partial",
+    "softwares": [
+        {"name": "default_packages", "arch": ["x86_64","aarch64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64","aarch64"]},
+        {"name": "openldap", "arch": ["x86_64","aarch64"]},
+        {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "ucx", "version": "1.19.0", "arch": ["x86_64","aarch64"]},
+        {"name": "openmpi", "version": "5.0.8", "arch": ["x86_64","aarch64"]},
+        {"name": "csi_driver_powerscale", "version":"v2.16.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64","aarch64"]},
+        {"name": "additional_packages", "arch": ["x86_64","aarch64"]}
+    ],
+    "slurm_custom": [
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"}
+    ],
+    "service_k8s": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"}
+    ],
+     "additional_packages":[
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"},
+        {"name": "os"}
+    ]
+}
+```
+
+## Slurm-only cluster
+Deploys a traditional HPC cluster with Slurm scheduling, LDAP, openmpi and ucx. No Kubernetes.
 
 ```json title="Sample software_config.json: Slurm-only cluster"
-[
-  {
-    "functional_group_name": "slurm_control_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
+{
+    "cluster_os_type": "rhel",
+    "cluster_os_version": "10.0",
+    "repo_config": "partial",
+    "softwares": [
+        {"name": "default_packages", "arch": ["x86_64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64"]},
+        {"name": "openldap", "arch": ["x86_64"]},
+        {"name": "slurm_custom", "arch": ["x86_64"]},
+        {"name": "ucx", "version": "1.19.0", "arch": ["x86_64"]},
+        {"name": "openmpi", "version": "5.0.8", "arch": ["x86_64"]},
+    ],
+    "slurm_custom": [
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"}
     ]
-  },
-  {
-    "functional_group_name": "slurm_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "nvidia_gpu"},
-      {"name": "ldms"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "login_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "auth_server",
-    "software": [
-      {"name": "openldap"},
-      {"name": "node_exporter"}
-    ]
-  }
-]
+}
 ```
 
-
-**Scenario 1 component summary**
-
-| Group | Installed Software |
-| --- | --- |
-| `slurm_control_node` | Slurm 23.11 (slurmctld, slurmdbd), Node Exporter |
-| `slurm_node` | Slurm 23.11 (slurmd), NVIDIA GPU drivers/CUDA, LDMS samplers, Node Exporter |
-| `login_node` | Slurm 23.11 (client tools), Node Exporter |
-| `auth_server` | OpenLDAP, Node Exporter |
-
-## Scenario 2: Slurm + Kubernetes (full deployment)
-
-
-Production-grade deployment with Slurm for HPC compute and Kubernetes for
-platform services, monitoring, and storage.
-
-```json title="Sample software_config.json: Slurm + Kubernetes"
-[
-  {
-    "functional_group_name": "slurm_control_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "slurm_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "nvidia_gpu"},
-      {"name": "ldms"},
-      {"name": "beegfs_client"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "login_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "kube_control_plane",
-    "software": [
-      {"name": "kubernetes", "version": "1.29"},
-      {"name": "calico"},
-      {"name": "metallb"},
-      {"name": "nfs_csi"},
-      {"name": "telemetry"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "kube_node",
-    "software": [
-      {"name": "kubernetes", "version": "1.29"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "auth_server",
-    "software": [
-      {"name": "openldap"},
-      {"name": "node_exporter"}
-    ]
-  }
-]
-```
-
-
-**Scenario 2 component summary**
-
-| Group | Installed Software |
-| --- | --- |
-| `slurm_control_node` | Slurm 23.11 (slurmctld, slurmdbd), Node Exporter |
-| `slurm_node` | Slurm 23.11 (slurmd), NVIDIA GPU, LDMS, BeeGFS client, Node Exporter |
-| `login_node` | Slurm 23.11 (client), Node Exporter |
-| `kube_control_plane` | K8s 1.29, Calico, MetalLB, NFS CSI, Telemetry stack, Node Exporter |
-| `kube_node` | K8s 1.29, Node Exporter |
-| `auth_server` | OpenLDAP, Node Exporter |
-
-## Scenario 3: Kubernetes + telemetry only (no Slurm)
-
-
+## Kubernetes + telemetry only (no Slurm)
 Deploys a Kubernetes cluster with the full telemetry pipeline for
 infrastructure monitoring without a job scheduler.
 
 ```json title="Sample software_config.json: Kubernetes + telemetry only"
-[
-  {
-    "functional_group_name": "kube_control_plane",
-    "software": [
-      {"name": "kubernetes", "version": "1.29"},
-      {"name": "calico"},
-      {"name": "metallb"},
-      {"name": "nfs_csi"},
-      {"name": "telemetry"},
-      {"name": "node_exporter"}
+{
+    "cluster_os_type": "rhel",
+    "cluster_os_version": "10.0",
+    "repo_config": "partial",
+    "softwares": [
+        {"name": "default_packages", "arch": ["x86_64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64"]},
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "version":"v2.16.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64"]},
+        {"name": "additional_packages", "arch": ["x86_64"]}
+    ],
+    "service_k8s": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"}
+    ],
+     "additional_packages":[
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
+        {"name": "os"}
     ]
-  },
-  {
-    "functional_group_name": "kube_node",
-    "software": [
-      {"name": "kubernetes", "version": "1.29"},
-      {"name": "node_exporter"}
-    ]
-  }
-]
+}
 ```
-
-
-**Scenario 3 component summary**
-
-| Group | Installed Software |
-| --- | --- |
-| `kube_control_plane` | K8s 1.29, Calico, MetalLB, NFS CSI, Telemetry stack (Kafka, VictoriaMetrics, Grafana), Node Exporter |
-| `kube_node` | K8s 1.29, Node Exporter |
-
-## Scenario 4: AMD GPU compute nodes
-
-
-Slurm cluster with AMD Instinct GPU nodes instead of NVIDIA.
-
-```json title="Sample software_config.json: AMD GPU compute nodes"
-[
-  {
-    "functional_group_name": "slurm_control_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "slurm_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "amd_gpu"},
-      {"name": "ldms"},
-      {"name": "node_exporter"}
-    ]
-  },
-  {
-    "functional_group_name": "login_node",
-    "software": [
-      {"name": "slurm", "version": "23.11"},
-      {"name": "node_exporter"}
-    ]
-  }
-]
-```
-
-
 
 !!! note
 
@@ -209,6 +157,7 @@ Slurm cluster with AMD Instinct GPU nodes instead of NVIDIA.
       default version bundled with the release.
     - Every `functional_group_name` must match an entry in the PXE mapping
       CSV (see [Pxe Mapping File](pxe_mapping_file.md)).
+    - Kubernetes(service_k8s) cluster only supports x86_64 architecture.
     - Groups not listed in the JSON receive only base OS packages.
 
 !!! info

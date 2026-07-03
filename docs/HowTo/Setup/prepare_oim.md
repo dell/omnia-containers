@@ -81,7 +81,6 @@ required for bare-metal provisioning and cluster management. It reads your
 
    ```yaml title="File: /opt/omnia/input/project_default/provision_config.yml"
    ---
-   timezone: "America/Chicago"
    language: "en-US"
    iso_file_path: "/opt/omnia/iso/RHEL-8.8-x86_64-dvd.iso"
    default_lease_time: 86400

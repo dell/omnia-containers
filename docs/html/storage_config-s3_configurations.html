@@ -1,0 +1,68 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-s3_configurations"></div>
+                            <p class="omnia-title" id="module-parameter-s3-configurations">
+                                <strong>s3_configurations</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>S3-compatible storage configuration for OpenCHAMI image repository.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-s3_configurations/provider"></div>
+                            <p class="omnia-title" id="module-parameter-s3-configurations-provider">
+                                <strong>provider</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>S3 storage provider: &#x27;powerscale&#x27; (Dell PowerScale) or &#x27;minio&#x27; (local MinIO container)</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">powerscale</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-s3_configurations/endpoint_url"></div>
+                            <p class="omnia-title" id="module-parameter-s3-configurations-endpoint-url">
+                                <strong>endpoint_url</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>S3 endpoint URL. Required for powerscale (e.g., https://10.43.1.11:9021). Leave empty for minio.</p>
+                        </div>
+                    </td>
+                </tr>
+    </tbody>
+</table>
