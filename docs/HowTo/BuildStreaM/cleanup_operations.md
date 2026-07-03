@@ -1,18 +1,16 @@
 # Perform Cleanup Operations
 
-BuildStream supports a maximum of 50 build images. When the build image count exceeds this limit, you must manually perform cleanup operations to remove old images before creating new ones.
+BuildStreaM supports a maximum of 50 build images. When the build image count exceeds this limit, you must manually perform cleanup operations to remove old images before creating new ones.
 
-!!! note
+!!! warning
 
-    Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+    Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state.
 
 ## Prerequisites
 
-Before performing cleanup operations, ensure the following:
-
-* You have administrative access to the OIM
-* BuildStream API server is running
-* PostgreSQL database is accessible
+- Administrative access to the OIM
+- BuildStreaM API server is running
+- PostgreSQL database is accessible
 
 ## Procedure
 
@@ -42,13 +40,13 @@ Before performing cleanup operations, ensure the following:
 
 8. Monitor the pipeline progress through the GitLab web interface:
 
-    a. Click on the running pipeline to view details.
-
-    b. Monitor the cleanup stage as it progresses to completion.
+    - Click on the running pipeline to view details.
+    - Monitor the cleanup stage as it progresses to completion.
 
     ![GitLab Clean Monitor Pipeline](../../assets/images/gitlab-clean-monitor-pipeline.png)
 
 9. Review the stage status indicators:
+
     - **Green checkmark**: Stage completed successfully
     - **Red X**: Stage failed (click for error details)
     - **Blue circle**: Stage currently running
@@ -61,7 +59,11 @@ Before performing cleanup operations, ensure the following:
 
 3. Review the cleanup pipeline logs in GitLab for specific details about which Image Groups were removed.
 
-## Related Topics
+## Next Steps
 
-* Retry Pipeline Operations
-* Configuration Reference
+- [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
+- [Execute Build Pipeline](execute_build_pipeline.md) -- Create new images after cleanup
+
+## Troubleshooting
+
+- **Cleanup pipeline failing**: Verify that the BuildStreaM API server and PostgreSQL database are running. See [BuildStreaM Troubleshooting](../../Troubleshooting/buildstream.md).

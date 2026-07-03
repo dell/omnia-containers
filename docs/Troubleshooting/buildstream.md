@@ -17,7 +17,7 @@ This section provides troubleshooting guidance for common BuildStreaM pipeline i
 
 2. Verify that the `omnia_build_stream` container and the `omnia_postgres` and `playbook_watcher` services are running on the OIM node. To check the status of the containers, run the following command:
 
-    ```bash title="Check service status"
+    ```bash title="Run on: OIM host"
     systemctl status omnia_build_stream.service
     systemctl status omnia_postgres.service
     systemctl status playbook_watcher.service
@@ -25,7 +25,7 @@ This section provides troubleshooting guidance for common BuildStreaM pipeline i
 
 3. If there are failures in any of the containers, capture and verify the logs from journalctl using the following command:
 
-    ```bash title="Check service logs"
+    ```bash title="Run on: OIM host"
     journalctl -u omnia_build_stream --no-pager
     journalctl -u omnia_postgres --no-pager
     ```
@@ -122,7 +122,7 @@ On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/
 
 **Resolution**:
 
-1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [functional groups section](../GetStarted/buildstream_deployment.md#functional-groups).
+1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../GetStarted/buildstream_deployment.md).
 
 2. If changes are required in the catalog, make the necessary modifications to the catalog.
 

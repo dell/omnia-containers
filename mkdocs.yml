@@ -213,6 +213,9 @@ nav:
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
+      - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
+      - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
       - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
       - Retry Pipelines: HowTo/BuildStreaM/retry_pipelines.md
