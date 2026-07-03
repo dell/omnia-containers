@@ -403,7 +403,7 @@ Before beginning the BuildStreaM setup:
 
 #### `build_stream_config.yml`
 
-Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the BuildStreaM configuration table for guidance when configuring these parameters.
+Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the [BuildStreaM configuration table](../Reference/Configuration/buildstream_config.md) for guidance when configuring these parameters.
 
 !!! note
 
@@ -411,7 +411,7 @@ Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM p
 
 #### `gitlab_config.yml`
 
-Add necessary inputs to the `gitlab_config.yml` file for the BuildStreaM GitLab configuration. Use the GitLab configuration table for guidance when configuring these parameters.
+Add necessary inputs to the `gitlab_config.yml` file for the BuildStreaM GitLab configuration. Use the [GitLab configuration table](../Reference/Configuration/gitlab_config.md) for guidance when configuring these parameters.
 
 #### `high_availability_config.yml`
 
@@ -634,7 +634,7 @@ Before deploying GitLab for BuildStreaM:
     ssh omnia_core
     ```
 
-2. Navigate to `/opt/omnia/input/project_default/gitlab_config.yml` and update the `gitlab_config.yml` file. Use the [gitlab configuration table](../Reference/Configuration/buildstream_config.md) for reference.
+2. Navigate to `/opt/omnia/input/project_default/gitlab_config.yml` and update the `gitlab_config.yml` file. Use the [GitLab configuration table](../Reference/Configuration/gitlab_config.md) for reference.
 
     ```bash
     cat /opt/omnia/input/project_default/gitlab_config.yml
