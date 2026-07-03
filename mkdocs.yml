@@ -197,10 +197,7 @@ nav:
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
     - Authentication:
-      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
-      - OpenLDAP Proxy: HowTo/Authentication/setup_openldap_proxy.md
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
-      - Replicate LDAP: HowTo/Authentication/replicate_ldap.md
     - Telemetry:
       - Set Up Telemetry: HowTo/Telemetry/setup_telemetry.md
       - Verify Telemetry: HowTo/Telemetry/verify_telemetry.md
@@ -283,3 +280,4 @@ nav:
   - Contributing:
     - Contributing/index.md
     - Pull Requests: Contributing/pull_requests.md
+ 

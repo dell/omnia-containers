@@ -1,262 +1,193 @@
+# Deploy External LDAP Server
 
-# Deploy External LDAP
-
-
-Deploy a standalone, external OpenLDAP server using Bitnami containers for
-environments that require a dedicated authentication server separate from
-the OIM.
+Deploy and configure a Bitnami OpenLDAP server using Podman on an external
+server to provide centralized authentication for your Omnia cluster.
 
 ## Overview
 
+This guide walks you through deploying a containerized OpenLDAP server using
+the Bitnami OpenLDAP image. The LDAP server provides centralized user
+authentication and directory services for cluster nodes. Once deployed, you
+can integrate this LDAP server with Omnia-managed nodes for unified user
+management.
 
-While Omnia includes OpenLDAP in the `omnia_auth` container on the OIM,
-some deployments benefit from a dedicated LDAP server:
+The deployment includes:
 
-- Separation of concerns (authentication independent of management node).
-- Dedicated resources for LDAP operations.
-- Existing infrastructure integration requirements.
-
-This guide deploys OpenLDAP using Bitnami's container image on a dedicated
-server (or K8s cluster), then configures Omnia cluster nodes to authenticate
-against it.
-
+- Bitnami OpenLDAP container running via Podman
+- LDAP directory structure (organizational units, users, groups)
+- User authentication configuration
+- Integration with Omnia cluster nodes
 
 ## Prerequisites
 
+- An external server (physical or virtual) with Podman installed.
+- Network connectivity between the LDAP server and Omnia cluster nodes.
+- Root or sudo access on the LDAP server.
+- Firewall rules allowing LDAP ports (1389 for LDAP, 1636 for LDAPS).
 
-- A dedicated server or the Omnia K8s service cluster is available.
-- Podman or Docker is installed on the dedicated server (or Helm for K8s).
-- Network connectivity between cluster nodes and the LDAP server.
-- A planned base DN, admin credentials, and organizational structure.
+!!! note
 
+    In the examples below, the domain components used are `dc=omnia,dc=test`,
+    corresponding to the domain name `omnia.test`. Replace these values with
+    your own domain components (for example, `dc=example,dc=com` or
+    `dc=mycompany,dc=local`). Similarly, replace `<admin_password>` with a
+    secure password of your choice.
 
 ## Procedure
 
+1. **Deploy the OpenLDAP container**:
 
-### Standalone Server Deployment (Podman)
+    ```bash title="Run on: LDAP server"
+    podman run -d --name openldap \
+      -p 0.0.0.0:1389:1389 \
+      -p 0.0.0.0:1636:1636 \
+      -e LDAP_ADMIN_USERNAME=admin \
+      -e LDAP_ADMIN_PASSWORD=<admin_password> \
+      -e LDAP_ROOT=dc=omnia,dc=test \
+      -v openldap_data:/bitnami/openldap \
+      docker.io/bitnamilegacy/openldap:latest
+    ```
 
+    | Parameter | Description |
+    |-----------|-------------|
+    | `-d` | Run container in detached mode |
+    | `--name openldap` | Assigns a container name |
+    | `-p` | Maps host ports to container ports |
+    | `-e` | Sets environment variables for admin credentials and domain root |
+    | `-v` | Persists data in a local volume |
+    | `docker.io/bitnamilegacy/openldap:latest` | Specifies the image |
 
-1. **Log in to the LDAP server host**:
+2. **Verify the container is running**:
 
-   ```bash title="Run on: dedicated LDAP server"
-   ssh root@<ldap-server-ip>
-   ```
+    ```bash title="Run on: LDAP server"
+    podman ps
+    ```
 
+3. **Create the organizational unit LDIF file** -- Create a file named
+   `ou_people.ldif`:
 
-2. **Create persistent storage directories**:
+    ```ldif title="File: ou_people.ldif"
+    dn: ou=People,dc=omnia,dc=test
+    objectClass: top
+    objectClass: organizationalUnit
+    ou: People
+    ```
 
-   ```bash title="Run on: dedicated LDAP server"
-   mkdir -p /opt/ldap/data
-   mkdir -p /opt/ldap/config
-   ```
+4. **Create the user LDIF file** -- Create a file named `ldapuser.ldif`:
 
+    ```ldif title="File: ldapuser.ldif"
+    dn: uid=ldapuser,ou=People,dc=omnia,dc=test
+    objectClass: inetOrgPerson
+    objectClass: posixAccount
+    objectClass: shadowAccount
+    cn: ldapuser
+    sn: ldapuser
+    loginShell: /bin/bash
+    uidNumber: 2000
+    gidNumber: 2000
+    homeDirectory: /home/ldapuser
+    shadowLastChange: 0
+    shadowMax: 0
+    shadowWarning: 0
+    ```
 
-3. **Deploy the Bitnami OpenLDAP container**:
+5. **Create the group LDIF file** -- Create a file named
+   `ldapuser_grp.ldif`:
 
-   ```bash title="Run on: dedicated LDAP server"
-   podman run -d \
-     --name openldap \
-     --restart=always \
-     -p 389:1389 \
-     -p 636:1636 \
-     -e LDAP_ADMIN_USERNAME=admin \
-     -e LDAP_ADMIN_PASSWORD=YourAdminPassword \
-     -e LDAP_ROOT=dc=omnia,dc=example,dc=com \
-     -e LDAP_ADMIN_DN=cn=admin,dc=omnia,dc=example,dc=com \
-     -e LDAP_CUSTOM_LDIF_DIR=/ldifs \
-     -v /opt/ldap/data:/bitnami/openldap:Z \
-     -v /opt/ldap/config:/ldifs:Z \
-     docker.io/bitnami/openldap:latest
-   ```
+    ```ldif title="File: ldapuser_grp.ldif"
+    dn: cn=ldapuser,ou=groups,dc=omnia,dc=test
+    objectClass: posixGroup
+    cn: ldapuser
+    gidNumber: 2000
+    memberUid: ldapuser
+    ```
 
+6. **Copy the LDIF files into the container**:
 
-4. **Create initial LDIF** for organizational structure:
+    ```bash title="Run on: LDAP server"
+    podman cp ou_people.ldif openldap:/
+    podman cp ldapuser.ldif openldap:/
+    podman cp ldapuser_grp.ldif openldap:/
+    ```
 
-   ```bash title="Run on: dedicated LDAP server"
-   cat <<'EOF' > /opt/ldap/config/01-org.ldif
-   dn: ou=People,dc=omnia,dc=example,dc=com
-   objectClass: organizationalUnit
-   ou: People
+7. **Access the container shell**:
 
-   dn: ou=Groups,dc=omnia,dc=example,dc=com
-   objectClass: organizationalUnit
-   ou: Groups
-   EOF
-   ```
+    ```bash title="Run on: LDAP server"
+    podman exec -it openldap /bin/bash
+    ```
 
+8. **Import the LDIF files into OpenLDAP**:
 
-5. **Load the initial LDIF**:
+    ```bash title="Run on: openldap container"
+    ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <admin_password> -f ou_people.ldif
+    ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <admin_password> -f ldapuser.ldif
+    ldapadd -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -w <admin_password> -f ldapuser_grp.ldif
+    ```
 
-   ```bash title="Run on: dedicated LDAP server"
-   podman exec openldap ldapadd -x \
-     -D "cn=admin,dc=omnia,dc=example,dc=com" \
-     -w YourAdminPassword \
-     -f /ldifs/01-org.ldif
-   ```
+    | Parameter | Description |
+    |-----------|-------------|
+    | `-x` | Use simple authentication |
+    | `-H` | LDAP server URL |
+    | `-D` | Bind DN (admin distinguished name) |
+    | `-w` | Admin password |
+    | `-f` | File to import |
 
+9. **Set the password for the LDAP user**:
 
-6. **Add users and groups**:
+    ```bash title="Run on: openldap container"
+    ldappasswd -x -D "cn=admin,dc=omnia,dc=test" -W -S -H ldap://localhost:1389 "uid=ldapuser,ou=People,dc=omnia,dc=test"
+    ```
 
-   ```bash title="Run on: dedicated LDAP server"
-   cat <<'EOF' > /opt/ldap/config/02-users.ldif
-   dn: cn=hpcusers,ou=Groups,dc=omnia,dc=example,dc=com
-   objectClass: posixGroup
-   cn: hpcusers
-   gidNumber: 10000
+    | Parameter | Description |
+    |-----------|-------------|
+    | `-x` | Use simple authentication |
+    | `-D` | Bind DN (admin distinguished name) |
+    | `-W` | Prompt for the admin password |
+    | `-S` | Prompt for the new password to assign |
 
-   dn: uid=hpcuser1,ou=People,dc=omnia,dc=example,dc=com
-   objectClass: inetOrgPerson
-   objectClass: posixAccount
-   objectClass: shadowAccount
-   uid: hpcuser1
-   cn: HPC User 1
-   sn: User1
-   uidNumber: 10001
-   gidNumber: 10000
-   homeDirectory: /home/hpcuser1
-   loginShell: /bin/bash
-   EOF
+!!! tip
 
-   podman exec openldap ldapadd -x \
-     -D "cn=admin,dc=omnia,dc=example,dc=com" \
-     -w YourAdminPassword \
-     -f /ldifs/02-users.ldif
-   ```
-
-
-   Set the user password:
-
-   ```bash title="Run on: dedicated LDAP server"
-   podman exec openldap ldappasswd -x \
-     -D "cn=admin,dc=omnia,dc=example,dc=com" \
-     -w YourAdminPassword \
-     -S "uid=hpcuser1,ou=People,dc=omnia,dc=example,dc=com"
-   ```
-
-
-
-### Kubernetes Deployment (Helm)
-
-
-7. **(Alternative) Deploy on K8s** using Helm:
-
-   ```bash title="Run on: K8s control plane node"
-   helm repo add bitnami https://charts.bitnami.com/bitnami
-   helm repo update
-
-   helm install openldap bitnami/openldap \
-     --namespace auth \
-     --create-namespace \
-     --set adminUsername=admin \
-     --set adminPassword=YourAdminPassword \
-     --set root=dc=omnia,dc=example,dc=com \
-     --set service.type=LoadBalancer \
-     --set persistence.enabled=true \
-     --set persistence.size=10Gi
-   ```
-
-
-
-### Configure Omnia Nodes
-
-
-8. **Update omnia_config.yml** to point to the external LDAP:
-
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/omnia_config.yml
-   ```
-
-
-   ```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
-   ---
-   auth_type: "external_ldap"
-   external_ldap_uri: "ldap://<ldap-server-ip>:389"
-   external_ldap_base_dn: "dc=omnia,dc=example,dc=com"
-   external_ldap_bind_dn: "cn=admin,dc=omnia,dc=example,dc=com"
-   ```
-
-
-9. **Run the auth playbook** to configure SSSD on cluster nodes:
-
-   ```bash title="Run on: omnia_core container"
-   cd /omnia
-   ansible-playbook auth.yml --ask-vault-pass
-   ```
-
-
+    To add more users, repeat steps 4, 6, 7, 8, and 9 with a new LDIF file
+    for each user. Increment the `uidNumber` and `gidNumber` values to
+    ensure they are unique across the directory.
 
 ## Verification
 
+Run the following command to list all entries in the LDAP directory and
+confirm your user was created:
 
-1. **Verify the LDAP container is running**:
+```bash title="Run on: openldap container"
+ldapsearch -x -H ldap://localhost:1389 -D "cn=admin,dc=omnia,dc=test" -W -b "dc=omnia,dc=test"
+```
 
-   ```bash title="Run on: dedicated LDAP server"
-   podman ps --filter name=openldap
-   ```
-
-
-2. **Test LDAP search**:
-
-   ```bash title="Run on: OIM host"
-   ldapsearch -x -H ldap://<ldap-server-ip> \
-     -b "dc=omnia,dc=example,dc=com" "(uid=hpcuser1)"
-   ```
-
-
-3. **Verify user resolution on cluster nodes**:
-
-   ```bash title="Run on: compute node"
-   getent passwd hpcuser1
-   id hpcuser1
-   ```
-
-
-4. **Test SSH login**:
-
-   ```bash title="Run on: any node"
-   ssh hpcuser1@<compute-node-ip>
-   ```
-
-
-
-## Next Steps
-
-
-- [Replicate Ldap](replicate_ldap.md) -- Replicate the external LDAP for redundancy.
-- [Setup Openldap Proxy](setup_openldap_proxy.md) -- Proxy an existing directory through Omnia.
-
+The output should include the `ldapuser` entry with the POSIX attributes
+you configured in the LDIF file.
 
 ## Troubleshooting
 
+### Container fails to start or ports are unreachable
 
-**Container fails to start**
-   Check container logs:
+Verify the container is running and ports `1389` and `1636` are not blocked
+by a firewall:
 
-   ```bash title="Run on: dedicated LDAP server"
-   podman logs openldap
-   ```
+```bash title="Run on: LDAP server"
+podman ps
+podman logs openldap
+```
 
+### LDIF import fails with schema or DN errors
 
-**Port 389 already in use**
-   Check for existing LDAP processes:
+Validate the LDIF file syntax before importing:
 
-   ```bash title="Run on: dedicated LDAP server"
-   ss -tlnp | grep 389
-   # Kill or stop the conflicting process
-   ```
+```bash title="Run on: LDAP server"
+slaptest -f <ldif-file>
+```
 
+### Common error messages
 
-**SSSD cannot connect to external LDAP**
-   Verify connectivity from a cluster node:
-
-   ```bash title="Run on: compute node"
-   ldapsearch -x -H ldap://<ldap-server-ip> -b "dc=omnia,dc=example,dc=com" "(objectClass=*)" dn
-   ```
-
-
-**Users not visible after LDAP add**
-   Clear SSSD cache on cluster nodes:
-
-   ```bash title="Run on: omnia_core container"
-   ansible all -m shell -a "sss_cache -E && systemctl restart sssd"
-   ```
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `No such object` | The parent organizational unit does not exist | Create `ou=People` and `ou=groups` before adding child entries |
+| `File not found` | LDIF files were not copied into the container | Re-run the `podman cp` commands in step 6 |
+| `Connection refused` | Container is not running or ports are not mapped | Run `podman ps` to verify the container is up |
+| `Invalid credentials` | Admin password or DN format is incorrect | Verify the password and DN match the values used in step 1 |

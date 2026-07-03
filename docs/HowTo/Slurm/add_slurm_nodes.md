@@ -122,7 +122,7 @@ process involves:
 - [Slurm With Gpu](slurm_with_gpu.md) -- Configure GPU support on the new nodes if they have
   GPUs.
 - [Configure Nfs](../Storage/configure_nfs.md) -- Mount shared storage on new nodes.
-- [Setup Openldap](../Authentication/setup_openldap.md) -- Ensure LDAP clients are
+- [Deploy External LDAP](../Authentication/deploy_external_ldap.md) -- Ensure LDAP clients are
   configured on new nodes.
 
 

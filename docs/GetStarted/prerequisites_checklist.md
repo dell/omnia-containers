@@ -260,7 +260,7 @@ via iDRAC or BIOS Setup (F2 at POST).
 
 | ☑ | Requirement | Details |
 | --- | --- | --- |
-| ☐ | LDAP server details available | Required to configure the `omnia_auth` container and OpenLDAP as a proxy server. See [Configure OpenLDAP as a proxy server](../HowTo/Authentication/setup_openldap_proxy.md). |
+| ☐ | LDAP server details available | Required to configure the `omnia_auth` container and OpenLDAP. See [Deploy External LDAP](../HowTo/Authentication/deploy_external_ldap.md). |
 | ☐ | External OpenLDAP server deployed (if applicable) | Ensure the OpenLDAP server is deployed and configured with the required directory structure (users and groups). See [External LDAP Deployment](../HowTo/Authentication/deploy_external_ldap.md). |
 
 ## LDMS Prerequisites
