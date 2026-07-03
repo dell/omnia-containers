@@ -16,54 +16,48 @@ The `storage_config.yml` file contains four sections:
 
     Storage configuration is applied during node provisioning. Mounts can be targeted to specific node groups using `functional_group_prefix` or `groups`.
 
+## Functional group prefix
+
+The `functional_group_prefix` parameter uses **prefix matching** against the `FUNCTIONAL_GROUP_NAME` column in the PXE mapping file. All nodes whose functional group name **starts with** any listed prefix receive the mount, swap, or PowerVault configuration.
+
+### Available functional group names
+
+| Functional group name | Role |
+| --- | --- |
+| `slurm_control_node_x86_64` | Slurm controller (`slurmctld`, `slurmdbd`) |
+| `slurm_node_x86_64` | Slurm compute node (x86_64) |
+| `slurm_node_aarch64` | Slurm compute node (AArch64) |
+| `login_node_x86_64` | Login/SSH access node (x86_64) |
+| `login_node_aarch64` | Login/SSH access node (AArch64) |
+| `login_compiler_node_aarch64` | Login node with compiler toolchain (AArch64) |
+| `service_kube_control_plane_x86_64` | Kubernetes control plane |
+| `service_kube_node_x86_64` | Kubernetes worker node |
+| `os_x86_64` | Generic OS node (x86_64) |
+| `os_aarch64` | Generic OS node (AArch64) |
+
+### Prefix matching examples
+
+| Prefix value | Matches |
+| --- | --- |
+| `["slurm"]` | `slurm_control_node_x86_64`, `slurm_node_x86_64`, `slurm_node_aarch64` (all Slurm nodes) |
+| `["slurm_node"]` | `slurm_node_x86_64`, `slurm_node_aarch64` (compute nodes only, excludes controller) |
+| `["slurm_control_node"]` | `slurm_control_node_x86_64` (controller only) |
+| `["login"]` | `login_node_x86_64`, `login_node_aarch64`, `login_compiler_node_aarch64` (all login nodes) |
+| `["service_kube"]` | `service_kube_control_plane_x86_64`, `service_kube_node_x86_64` (all Kubernetes nodes) |
+| `["service_kube_node"]` | `service_kube_node_x86_64` (Kubernetes workers only) |
+| `["os"]` | `os_x86_64`, `os_aarch64` (generic OS nodes only) |
+| `["slurm", "login"]` | All Slurm nodes **and** all login nodes |
+| `["slurm_node", "login"]` | Slurm compute nodes **and** login nodes (excludes Slurm controller) |
+
+!!! tip
+
+    Use shorter prefixes to target broader groups. For example, `["slurm"]` targets all Slurm roles, while `["slurm_node"]` targets only compute nodes.
+
 ## Mounts
 
 Each mount entry specifies a source, mount point, and optional filesystem parameters.
 
-### Required fields
-
-| Parameter | Description |
-| --- | --- |
-| `name` | Unique identifier (pattern: `[a-zA-Z0-9_-]`, 1--64 characters). |
-| `source` | Device or network path. NFS: `192.168.1.100:/export/share`. Local: `/dev/sdc`, `UUID=xxx`, `LABEL=xxx`. CIFS: `//server/share`. |
-| `mount_point` | Absolute path for the mount point. Must be unique across all entries. Avoid system directories (`/etc`, `/sys`, `/proc`, `/boot`, `/root`, `/tmp`). |
-
-One of the following node targeting parameters is required (mutually exclusive):
-
-| Parameter | Description |
-| --- | --- |
-| `functional_group_prefix` | List of functional group name prefixes. All nodes whose group name starts with any listed prefix receive this mount. Example: `["slurm"]` matches `slurm_control_node`, `slurm_node`, etc. |
-| `groups` | List of `GROUP_NAME` values from the PXE mapping file. Only nodes in the listed groups receive this mount. |
-
-### Optional fields
-
-| Parameter | Default | Description |
-| --- | --- | --- |
-| `fs_type` | `auto` | Filesystem type: `auto`, `ext2`, `ext3`, `ext4`, `xfs`, `nfs`, `nfs4`, `cifs`, `tmpfs`, `cephfs`, `vfat`, `ntfs`, `none`, `fuse.s3fs`. Overrides `mount_params` profile. |
-| `mnt_opts` | -- | Mount options string (e.g., `defaults,noexec,nofail`). Takes priority over `mount_params` profile. |
-| `dump_freq` | `0` | Dump frequency (`0`, `1`, or `2`). |
-| `fsck_pass` | `0` | Fsck pass number (`0` through `9`). |
-| `mount_params` | -- | Name of a `mount_params` profile to use for unspecified fields. |
-| `mount_on_oim` | `false` | Mount this filesystem on the OIM node. Ensure storage is network-accessible from OIM. |
-
-### Node-specific bind mounts
-
-| Parameter | Description |
-| --- | --- |
-| `node_key` | Per-node subdirectory variable: `local_hostname`, `local_ipv4`, or `instance_id`. When set, `node_mount_point` is required. Generates bind mounts: `<mount_point>/<node_key_value>/<target>` → `<target>`. |
-| `node_mount_point` | List of bind mount target paths. Required when `node_key` is set. Values must be unique absolute paths. |
-
-!!! note
-
-    When `node_key` is specified, `fs_type` is forced to `none` and `mnt_opts` is forced to `bind`.
-
-### Permissions
-
-| Parameter | Default | Description |
-| --- | --- | --- |
-| `permissions.owner` | `root` | User owner of the mount point. |
-| `permissions.group` | `root` | Group owner of the mount point. |
-| `permissions.mode` | `0755` | Octal permission string (e.g., `0755`, `1777`). |
+--8<-- "html/storage_config-mounts.html"
 
 ### Example
 
@@ -97,12 +91,7 @@ mounts:
 
 Named profiles that provide default values for filesystem type and mount options. Referenced by mounts and PowerVault entries via the `mount_params` field.
 
-| Parameter | Description |
-| --- | --- |
-| `fs_type` | Filesystem type (e.g., `nfs`, `xfs`, `ext4`). |
-| `mnt_opts` | Mount options (comma-separated). |
-| `dump_freq` | Dump frequency (usually `0`). |
-| `fsck_pass` | Fsck pass number (usually `0` or `2`). |
+--8<-- "html/storage_config-mount_params.html"
 
 ### Example
 
@@ -135,23 +124,7 @@ Defines PowerVault iSCSI volume connection parameters.
 
     PowerVault configuration requires proper iSCSI initiator setup and network connectivity to the PowerVault controllers.
 
-### Parameters
-
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `name` | Yes | Unique identifier for this PowerVault volume. |
-| `ip` | Yes | List of target controller IP addresses for iSCSI discovery. |
-| `port` | No | TCP port for iSCSI target (default: `3260`). |
-| `iscsi_initiator` | Yes | iSCSI initiator IQN. |
-| `volume_id` | Yes | Volume identifier (hex string / WWN) for multipath device matching. |
-| `mount_point` | Yes | Where the discovered device gets mounted. |
-| `fs_type` | No | Filesystem type (overrides `mount_params` profile). |
-| `mnt_opts` | No | Mount options (overrides `mount_params` profile). |
-| `mount_params` | No | Named profile for `fs_type`/`mnt_opts`. |
-| `node_key` | No | Per-node subdirectory variable (same behavior as mounts). |
-| `node_mount_point` | No | Bind mount target paths (required when `node_key` is set). |
-| `functional_group_prefix` | No | List of functional group prefixes for node targeting. |
-| `permissions` | No | Directory ownership and mode (`owner`, `group`, `mode`). |
+--8<-- "html/storage_config-powervault_config.html"
 
 ### Example
 
@@ -180,12 +153,7 @@ powervault_config:
 
 Defines swap file configurations created during node provisioning.
 
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `filename` | Yes | Path to the swap file to create. |
-| `size` | Yes | Size in bytes, `auto`, or human-readable format (`2G`, `512M`). |
-| `maxsize` | No | Maximum size (used with `size: auto`). |
-| `functional_group_prefix` | No | List of functional group prefixes to apply this swap to. |
+--8<-- "html/storage_config-swap.html"
 
 ### Example
 
