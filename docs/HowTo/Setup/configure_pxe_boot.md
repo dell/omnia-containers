@@ -52,4 +52,3 @@ ansible-playbook set_pxe_boot.yml
 
     - [PXE Boot Nodes](pxe_boot_nodes.md) -- Initial PXE boot and provisioning procedure.
     - [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) -- Mapping file format and functional group reference.
-    - [Discover Nodes](discover_nodes.md) -- Node discovery procedure.
