@@ -202,7 +202,7 @@ Use the following summary checklist:
 
 - [Slurm With Gpu](../Slurm/slurm_with_gpu.md) -- Configure GPU support for Slurm.
 - [Setup Telemetry](../Telemetry/setup_telemetry.md) -- Deploy monitoring and telemetry.
-- [Setup Openldap](../Authentication/setup_openldap.md) -- Set up centralized
+- [Deploy External LDAP](../Authentication/deploy_external_ldap.md) -- Set up centralized
   authentication.
 - [Configure Nfs](../Storage/configure_nfs.md) -- Configure shared NFS storage.
 

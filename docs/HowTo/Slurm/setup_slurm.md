@@ -156,7 +156,7 @@ in your mapping file. It performs the following:
 - [Add Slurm Nodes](add_slurm_nodes.md) -- Add more compute nodes to the cluster.
 - [Slurm With Gpu](slurm_with_gpu.md) -- Configure GPU support.
 - [Configure Nfs](../Storage/configure_nfs.md) -- Set up shared NFS storage.
-- [Setup Openldap](../Authentication/setup_openldap.md) -- Configure user authentication.
+- [Deploy External LDAP](../Authentication/deploy_external_ldap.md) -- Configure user authentication.
 
 
 ## Troubleshooting

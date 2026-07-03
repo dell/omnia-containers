@@ -299,4 +299,4 @@ container, and TLS certificate errors.
 
 !!! info
 
-    - [Setup Openldap](../HowTo/Authentication/setup_openldap.md) -- OpenLDAP setup guide.
+    - [Deploy External LDAP](../HowTo/Authentication/deploy_external_ldap.md) -- External LDAP deployment guide.
