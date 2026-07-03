@@ -4,32 +4,6 @@ Troubleshooting Guide
 
 A structured guide for diagnosing and resolving issues across Omnia deployment, provisioning, Kubernetes, Slurm, storage, authentication, and telemetry workflows.
 
-.. rubric:: Key Log Locations
-
-When troubleshooting issues, consult the following log files:
-
-**Playbook Logs**
-
-- ``/opt/omnia/log/`` - Main playbook execution logs
-- ``/var/log/ansible/`` - Ansible playbook logs
-
-**Container Logs**
-
-- ``podman logs <container>`` - View container logs
-- ``podman logs -n 200 <container>`` - View last 200 lines
-
-**Kubernetes Logs**
-
-- ``kubectl logs -n <namespace> <pod>`` - View Kubernetes pod logs
-- ``kubectl logs -f -n <namespace> <pod>`` - Follow logs in real-time
-
-**Slurm Logs**
-
-- ``/var/log/slurm/`` - Slurm controller and daemon logs
-- ``/var/spool/slurm/`` - Slurm accounting and job logs
-
-For comprehensive logging information, see `Logs <Logging/OIM_logs.html>`_.
-
 .. contents::
    :depth: 2
    :local:
@@ -123,7 +97,7 @@ The vault password file (``.omnia_config_credentials_key``) is missing, incorrec
 2. Ensure the file has the correct permissions (readable by the user running the playbook)
 3. Re-run the playbook with the correct vault password file
 
-For information on managing encrypted parameters, see `Encrypted Parameters Management <../SecurityConfigGuide/MiscellaneousConfigurationManagementElements.html#encrypted-parameters-management>`_.
+For information on managing encrypted parameters, see `Encrypted Parameters Management <../OmniaInstallGuide/AdvancedConfigurations/encrypted_parameters_management.html>`_.
 
 1.4 OIM Cleanup NFS Directory Deletion Failure
 -----------------------------------------------
