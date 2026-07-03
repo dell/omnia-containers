@@ -1337,7 +1337,7 @@ def test_post_check_new_telemetry_components(host):
     )
     log.check("Verifying Phase 2 telemetry component deployment")
 
-    config_flags = _snapshot.get("telemetry_config_flags", {}).get("flags", {})
+    config_flags = _pre_snapshot.get("telemetry_config_flags", {}).get("flags", {})
     if not config_flags:
         log.passed("No telemetry config flags in snapshot — skipping component check")
         return
