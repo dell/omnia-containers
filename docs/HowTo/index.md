@@ -52,11 +52,11 @@ Configure centralized user authentication across your cluster using LDAP.
 Deploy and configure the telemetry pipeline for cluster-wide metrics
 collection, aggregation, and visualization.
 
-## Containers & Packages
+## Advanced Configurations
 
 
-Run containerized workloads and deploy additional software packages on
-provisioned nodes.
+Deploy additional packages and container images, configure Apptainer for
+pulling images from Pulp registries, and deploy additional repositories.
 
 ## BuildStreaM (CI/CD)
 

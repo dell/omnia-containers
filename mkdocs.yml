@@ -193,6 +193,7 @@ nav:
     - Storage:
       - Configure NFS: HowTo/Storage/configure_nfs.md
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
+      - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
     - Authentication:
@@ -207,9 +208,10 @@ nav:
       - Configure LDMS: HowTo/Telemetry/configure_ldms.md
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
-    - Containers:
-      - Use Apptainer: HowTo/Containers/use_apptainer.md
-      - Deploy Additional Packages: HowTo/Containers/deploy_additional_packages.md
+    - Advanced Configurations:
+      - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
+      - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
+      - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
@@ -264,6 +266,7 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
+    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
