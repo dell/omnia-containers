@@ -208,16 +208,24 @@ On rerun, already-completed components are automatically skipped. This ensures i
 
 .. _buildstream-terminal-gate:
 
-BuildStreaM Terminal Gate
-^^^^^^^^^^^^^^^^^^^^^^^^^
+BuildStreaM Upgrade
+^^^^^^^^^^^^^^^^^^^^
 
-When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
+When ``enable_build_stream=true`` in ``build_stream_config.yml``, the BuildStreaM terminal gate activates. If BuildStreaM is enabled during the upgrade, the downstream components (``local_repo``, ``build_image``, ``provision``, ``k8s``, ``telemetry``, ``slurm``) will not be upgraded by Omnia — they are managed by the GitLab CI/CD pipeline instead. In this scenario, these components are **automatically skipped during upgrade** because they are handled by the BuildStreaM pipeline. Only ``oim`` and ``build_stream`` are actually upgraded by Omnia.
+
+BuildStreaM Terminal Gate (Upgrade)
+"""""""""""""""""""""""""""""""""""
+
+Components that are skipped are recorded as ``skipped`` in the upgrade manifest, which is treated as a successful terminal state when the overall upgrade status is determined.
+
+The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
 
 **PATH A: BuildStreaM was ENABLED in 2.1 (upgrade path)**
 
 * Upgrade BuildStreaM container image (quadlet update)
 * PostgreSQL data migration (pg_dump → restore to new schema)
 * Update GitLab configuration (URLs, runner tokens, registry)
+* Upgrades the GitLab project repository (pipelines, omnia input files, catalog examples) by adding a new upgrade commit
 * Validate BuildStreaM container + GitLab healthy
 
 **PATH B: BuildStreaM was DISABLED in 2.1, ENABLED in 2.2 (fresh install)**

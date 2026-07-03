@@ -1895,6 +1895,58 @@ Upgrade fails with SSH connection errors or node unreachable messages.
     cd /omnia/upgrade
     ansible-playbook upgrade.yml
 
+Node drain fails due to standalone pods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Symptoms**
+
+* Kubernetes upgrade fails during drain with error: ``cannot delete Pods that declare no controller (use --force to override)``
+* Node is cordoned but drain operation fails
+* Upgrade status shows ``drain_failed``
+
+**Cause**
+
+The node has standalone pods not managed by any controller (Deployment, StatefulSet, etc.). These are typically test pods created manually using ``kubectl run`` or ``kubectl create -f pod.yaml``.
+
+**Resolution**
+
+1. Identify standalone pods on the failed node:
+
+   .. code-block:: bash
+
+      kubectl get pods -A --field-selector spec.nodeName=<node-ip> -o json |
+        jq -r '.items[] | select(.metadata.ownerReferences == null) |
+        "\(.metadata.namespace)/\(.metadata.name)"'
+
+2. Delete the standalone pods:
+
+   .. code-block:: bash
+
+      kubectl delete pod <pod-name> -n <namespace>
+
+   .. warning::
+
+      Standalone pods will NOT be recreated after deletion.
+
+3. Re-run the upgrade:
+
+   .. code-block:: bash
+
+      cd /omnia/upgrade
+      ansible-playbook upgrade.yml
+
+**Prevention**
+
+Before starting any upgrade, identify and remove all standalone pods:
+
+.. code-block:: bash
+
+   kubectl get pods -A -o json | jq -r '.items[] |
+     select(.metadata.ownerReferences == null) |
+     "\(.metadata.namespace)/\(.metadata.name)"'
+
+Always use Deployments, StatefulSets, or Jobs instead of creating standalone pods in production.
+
 Build image fails for aarch64 — missing inventory
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
