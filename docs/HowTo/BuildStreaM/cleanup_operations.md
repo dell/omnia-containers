@@ -18,7 +18,7 @@ Before performing cleanup operations, ensure the following:
 
 1. Navigate to the GitLab project URL:
 
-    ```text
+    ```text title="GitLab project URL"
     https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
     ```
 
