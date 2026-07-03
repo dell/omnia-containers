@@ -1,0 +1,13 @@
+# build_stream_config.yml Reference
+
+This section contains the configuration tables for the BuildStreaM config file.
+
+File path: `/opt/omnia/input/project_default/build_stream_config.yml`
+
+## Parameter reference
+| Parameter | Mandatory/Optional | Description |
+| --- | --- | --- |
+| `enable_build_stream` | Mandatory | Enable or disable BuildStreaM pipeline. **Accepted values**: boolean values (true or false) or (yes or no). **Default value**: false |
+| `build_stream_host_ip` | Mandatory | Build Stream API server host IP. **Optional**: The public IP address of OIM or admin IP of OIM. The public IP address should be reachable from the GitLab server. **Default value**: The admin IP of OIM. |
+| `build_stream_port` | Mandatory | BuildStreaM API server port. **Accepted values**: valid port number (1-65535) which is free. **Default value**: 8010 |
+| `aarch64_inventory_host_ip` | Conditional Mandatory | Specify the aarch64 inventory host IP address for aarch64 builds. **Accepted values**: The admin IP of aarch64 host where OS is installed. **Default value**: None. If the inventory host IP address is not specified, the build images for aarch64 are not generated. |
