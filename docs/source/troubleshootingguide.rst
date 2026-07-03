@@ -11,6 +11,29 @@ A structured guide for diagnosing and resolving issues across Omnia deployment, 
 1. Core Container & OIM Issues
 ===============================
 
+Common Container Debugging Tools
+----------------------------------
+
+Use the following commands to troubleshoot container issues across Omnia services.
+
+**View all Omnia containers**
+
+.. code-block:: bash
+
+   podman ps -a
+
+**View container logs**
+
+.. code-block:: bash
+
+   podman logs -n 200 <container>
+
+**Test outbound connectivity from a container**
+
+.. code-block:: bash
+
+   podman exec -it <container> sh -lc 'curl -I https://example.com'
+
 1.1 Omnia Core Container Fails to Deploy
 ---------------------------------------
 
@@ -77,8 +100,6 @@ Verify container inventory:
 .. code-block:: bash
 
    podman ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
-
-For common container debugging commands, see `Container Debugging Tools <../Utils/container_debugging_tools.html>`_.
 
 1.3 Ansible Vault Decryption Failures
 ------------------------------------
