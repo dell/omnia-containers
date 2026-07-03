@@ -145,6 +145,7 @@ operating system image. This guide covers:
 ## Next Steps
 
 
+- [Configure PXE Boot](configure_pxe_boot.md) -- Set PXE boot order on provisioned nodes via `set_pxe_boot.yml`.
 - [Verify Cluster](verify_cluster.md) -- Comprehensive cluster health check.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Deploy Slurm on provisioned nodes.
 - [Setup Service K8S](../Kubernetes/setup_service_k8s.md) -- Deploy Kubernetes on

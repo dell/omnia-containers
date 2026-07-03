@@ -178,6 +178,7 @@ Both models use:
 ## Next Steps
 
 
+- [Configure Mounts](configure_mounts.md) -- Advanced mount configuration via `storage_config.yml`.
 - [Configure Powervault](configure_powervault.md) -- Configure block storage for additional
   performance.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Slurm uses NFS for shared job scripts

@@ -187,6 +187,7 @@ Omnia configures:
 ## Next Steps
 
 
+- [Configure Mounts](configure_mounts.md) -- Advanced mount configuration via `storage_config.yml`.
 - [Configure Nfs](configure_nfs.md) -- Configure NFS for shared storage across compute
   nodes.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Deploy Slurm using the PowerVault
