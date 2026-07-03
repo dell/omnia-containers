@@ -59,6 +59,12 @@ Before you begin, ensure the following:
 
 - Ensure that the following OIM hostname prerequisites are met.
 
+    - Hostname should not contain the following characters: , (comma), . (period), _ (underscore).
+    - Hostname cannot start or end with a hyphen (-).
+    - No upper case characters are allowed in the hostname.
+    - Hostname cannot start with a number.
+    - Hostname and domain name (hostname00000x.domain.xxx) cumulatively cannot exceed 64 characters.
+
 ### Deploy the Omnia Core Container from Omnia Artifactory
 
 To deploy the container images from any Omnia branch, available at [Omnia Artifactory Repository](https://github.com/dell/omnia-artifactory.git), do the following:
@@ -298,12 +304,10 @@ os_aarch64,grp7,ABEF78,,os-node2,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:
 
 Nodes that are located in the same place or similar hardware can be grouped together. To do so, update the mapping file with all necessary attributes for the nodes, based on their role within the cluster. Each group will have following attributes as indicated in the table below:
 
-| Attribute | Description |
-| --- | --- |
-| `GROUP_NAME` | A unique name for the group (e.g., grp0, grp1) |
-| `FUNCTIONAL_GROUP_NAME` | The functional role assigned to nodes in this group |
-| `SERVICE_TAG` | The Dell service tag of the node |
-| `PARENT_SERVICE_TAG` | The service tag of the parent chassis (if applicable) |
+| Attribute | Mandatory/Conditional mandatory/Optional | Description |
+| --- | --- | --- |
+| Group Name - `grpN` | Mandatory | User defined name of the group. Range for `N` is 0-99. Example: `grp0`, `grp1`, and `grp2`. |
+| Parent of the node- "parent" | Conditional Mandatory | The list of service tags that are associated with active service node(s). This field will be mandatory for group of nodes which is associated with `slurm_node_x86_64` and `slurm_node_aarch64` functional_groups. This should be the service tag of the parent node. Example: `ABCD12` |
 
 ### Functional Groups
 
@@ -316,6 +320,21 @@ Nodes with similar functional roles or functionalities can be grouped together. 
     - The functional groups are case-sensitive.
     - Omnia supports HA functionality for the `service_cluster`. For more information, see [Configure HA](../HowTo/Kubernetes/configure_ha.md).
     - To set up a service cluster, the `service_kube_node` must be present in the mapping file.
+
+
+| Functional Group Name | Layer | Details |
+| --- | --- | --- |
+| Slurm control plane - `slurm_control_node_x86_64` | Management | Nodes with `slurm_control_node` functional group can be added to the Slurm head node groups. This functional group is used to configure the nodes for Slurm head. The nodes included in this functional group will have the necessary tools and configurations to run Slurm head. The nodes in this functional group can be used to run the Slurm head. |
+| Slurm compute node - `slurm_node_x86_64` | Compute | This functional group is used to configure nodes as Slurm compute nodes on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads. Nodes in this functional group can be used as Slurm compute nodes for x86_64 clusters. |
+| Slurm compute node - `slurm_node_aarch64` | Compute | This functional group is used to configure nodes as Slurm compute nodes on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to run Slurm workloads. Nodes in this functional group can be used as Slurm compute nodes for aarch64 clusters. |
+| Service Cluster Kubernetes control plane - `service_kube_control_plane_x86_64` | Management | This functional_group is used to configure the kubernetes control plane nodes on service cluster. The nodes included in this functional_group will have the necessary tools and configurations to configure Kubernetes control plane to provide HA on service cluster. |
+| Service Cluster Kubernetes worker node - `service_kube_node_x86_64` | Management | This functional group is used to configure the Kubernetes worker nodes on service cluster. The nodes included in this functional group will have the necessary tools and configurations to configure and run Kubernetes worker on service cluster. |
+| Slurm Login node - `login_node_x86_64` | Management | This functional group is used to configure nodes for user logins on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities. Nodes in this functional group can be used to handle user login sessions on x86_64 systems. |
+| Slurm Login node - `login_node_aarch64` | Management | This functional group is used to configure nodes for user logins on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to support user login activities. Nodes in this functional group can be used to handle user login sessions on aarch64 systems. |
+| Slurm Login and Compiler node - `login_compiler_node_x86_64` | Management | This functional group is used to configure nodes for compilation on the x86_64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation. Nodes in this functional group can be used to compile code on x86_64 systems. |
+| Slurm Login and Compiler node - `login_compiler_node_aarch64` | Management | This functional group is used to configure nodes for compilation on the aarch64 architecture. The nodes included in this functional group will have the necessary tools and configurations to perform compilation. Nodes in this functional group can be used to compile code on aarch64 systems. |
+| Minimal OS compute node - `os_x86_64` | Compute | This functional group provides a clean operating system baseline for x86_64 architecture, designed for downstream platform software installation. This functional group is ideal for deploying platform software that requires a clean OS environment without conflicts from pre-installed components. |
+| Minimal OS compute node - `os_aarch64` | Compute | This functional group provides a clean operating system baseline for aarch64 architecture, designed for downstream platform software installation. This functional group is ideal for deploying platform software that requires a clean OS environment without conflicts from pre-installed components. |
 
 ### Recommended Software by Functional Groups
 
@@ -367,7 +386,7 @@ Before beginning the BuildStreaM setup:
 
 ### Procedure
 
-1. Update the following input files.
+#### 1. Update the following input files.
 
     - `build_stream_config.yml`: contains the details about the BuildStreaM pipeline.
     - `gitlab_config.yml`: contains the details about the BuildStreaM GitLab configuration.
@@ -448,13 +467,13 @@ Add necessary inputs to the `telemetry_config.yml` file for the telemetry config
 
 Add necessary inputs to the `telemetry_storage_config.yml` file for the telemetry storage configuration. Use the telemetry storage configuration table for guidance when configuring these parameters.
 
-2. After updating the input files, run the `prepare_oim.yml` playbook:
+#### 2. After updating the input files, run the `prepare_oim.yml` playbook:
 
-    ```bash title="Run on: omnia_core container"
-    ssh omnia_core
-    cd /omnia/prepare_oim
-    ansible-playbook prepare_oim.yml
-    ```
+```bash title="Run on: omnia_core container"
+ssh omnia_core
+cd /omnia/prepare_oim
+ansible-playbook prepare_oim.yml
+```
 
 The `prepare_oim.yml` deploys the following on the OIM node:
 
@@ -467,98 +486,85 @@ The `prepare_oim.yml` deploys the following on the OIM node:
 
 !!! note
 
-    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using `sudo` command. To avoid this, log in directly as a `root` user before executing the playbook.
+    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using `sudo` command. To avoid this, log in directly as a `root` user before executing the playbook or follow the steps mentioned [here](../Troubleshooting/general.md).
 
 ### Verification
 
 After successfully running the `prepare.oim.yml`, you can verify if the `omnia.target` and its dependent services are running correctly.
 
-1. Run the following command to check the status of the OMNIA Core service:
+Run the following commands to check the status of the BuildStreaM services:
 
-    ```bash title="Run on: OIM host"
-    systemctl status omnia_core.service
-    ```
+```shell title="Run on: OIM host"
+# Check OMNIA Core service status
+systemctl status omnia_core.service
 
-    This command displays whether the `omnia_core.service` is active, inactive, or has failed.
+# Check BuildStreaM API container status
+systemctl status omnia_build_stream.service
 
-2. Check the status of the BuildStreaM API container.
+# Check playbook watcher service status
+systemctl status playbook_watcher.service
 
-    ```bash
-    systemctl status omnia_build_stream.service
-    ```
+# Check PostgreSQL database container status
+systemctl status omnia_postgres.service
 
-3. Check the status of the playbook watcher service.
+# View complete list of dependent services
+systemctl list-dependencies omnia.target
+```
 
-    ```bash
-    systemctl status playbook_watcher.service
-    ```
+Review the status of the dependent services in the following tree output.
 
-4. Check the status of the PostgreSQL database container.
+!!! note
 
-    ```bash
-    systemctl status omnia_postgres.service
-    ```
+    The `prepare_oim.yml` deploys the following on the OIM node only when BuildStream is enabled on the `build_stream_config.yml`.
 
-5. To view the complete list of dependent services for the OMNIA target, run:
+    - PostgreSQL database container
+    - BuildStreaM API container
+    - Playbook watcher service
 
-    ```bash
-    systemctl list-dependencies omnia.target
-    ```
+```text title="Expected output"
+omnia.target
+● ├─minio.service
+● ├─omnia_auth.service
+● ├─omnia_build_stream.service
+● ├─omnia_core.service
+● ├─omnia_postgres.service
+● ├─playbook_watcher.service
+● ├─pulp.service
+● ├─registry.service
+● ├─network-online.target
+● │ └─NetworkManager-wait-online.service
+● └─openchami.target
+●   ├─acme-deploy.service
+●   ├─acme-register.service
+●   ├─bss-init.service
+●   ├─bss.service
+●   ├─cloud-init-server.service
+●   ├─coresmd-coredhcp.service
+●   ├─coresmd-coredns.service
+●   ├─haproxy.service
+●   ├─hydra-gen-jwks.service
+●   ├─hydra-migrate.service
+●   ├─hydra.service
+●   ├─opaal-idp.service
+●   ├─opaal.service
+●   ├─openchami-cert-trust.service
+●   ├─postgres.service
+●   ├─smd-init.service
+●   ├─smd.service
+●   └─step-ca.service
+```
 
-6. Review the status of the dependent services in the following tree output.
+- A **green circle** indicates that the service is running.
+- A **grey circle** indicates that the service is not running.
+- A **circle with a cross** indicates that the service failed to start.
 
-    !!! note
+!!! note
 
-        The `prepare_oim.yml` deploys the following on the OIM node only when BuildStream is enabled on the `build_stream_config.yml`.
+    The `omnia_auth.service` runs only when OpenLDAP is specified in the `/opt/omnia/input/project_default/software_config.json`.
 
-        - PostgreSQL database container
-        - BuildStreaM API container
-        - Playbook watcher service
+!!! note
 
-    ```text title="Expected output"
-    omnia.target
-    ● ├─minio.service
-    ● ├─omnia_auth.service
-    ● ├─omnia_build_stream.service
-    ● ├─omnia_core.service
-    ● ├─omnia_postgres.service
-    ● ├─playbook_watcher.service
-    ● ├─pulp.service
-    ● ├─registry.service
-    ● ├─network-online.target
-    ● │ └─NetworkManager-wait-online.service
-    ● └─openchami.target
-    ●   ├─acme-deploy.service
-    ●   ├─acme-register.service
-    ●   ├─bss-init.service
-    ●   ├─bss.service
-    ●   ├─cloud-init-server.service
-    ●   ├─coresmd-coredhcp.service
-    ●   ├─coresmd-coredns.service
-    ●   ├─haproxy.service
-    ●   ├─hydra-gen-jwks.service
-    ●   ├─hydra-migrate.service
-    ●   ├─hydra.service
-    ●   ├─opaal-idp.service
-    ●   ├─opaal.service
-    ●   ├─openchami-cert-trust.service
-    ●   ├─postgres.service
-    ●   ├─smd-init.service
-    ●   ├─smd.service
-    ●   └─step-ca.service
-    ```
-
-    - A **green circle** indicates that the service is running.
-    - A **grey circle** indicates that the service is not running.
-    - A **circle with a cross** indicates that the service failed to start.
-
-    !!! note
-
-        The `omnia_auth.service` runs only when OpenLDAP is specified in the `/opt/omnia/input/project_default/software_config.json`.
-
-    !!! note
-
-        The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher_service` run only when BuildStreaM is enabled in the `/opt/omnia/input/project_default/build_stream_config.yml`.
+    The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher_service` run only when BuildStreaM is enabled in the `/opt/omnia/input/project_default/build_stream_config.yml`.
 
 ### View Usage Instructions for OpenCHAMI Containers
 
