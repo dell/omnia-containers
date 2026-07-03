@@ -494,7 +494,7 @@ After successfully running the `prepare.oim.yml`, you can verify if the `omnia.t
 
 Run the following commands to check the status of the BuildStreaM services:
 
-```shell title="Run on: OIM host"
+```bash title="Run on: OIM host"
 # Check OMNIA Core service status
 systemctl status omnia_core.service
 
@@ -598,6 +598,454 @@ ochami [command] --help
 
 ---
 
+## Step 4: Deploy GitLab for BuildStream
+
+Deploy GitLab as the CI/CD automation engine for BuildStream, providing a three-pipeline architecture for build, deploy, and cleanup operations. This procedure covers GitLab installation, project setup with pipeline configuration files, input folder structure, and runner verification.
+
+BuildStream uses a **three-pipeline architecture** in GitLab:
+
+- **Build Pipeline**: Triggered by catalog changes, creates images and establishes Job ID to Image Group ID mapping. This pipeline can also be executed manually.
+- **Deploy Pipeline**: Triggered by PXE mapping changes, deploys images to cluster nodes. This pipeline can also be executed manually.
+- **Cleanup Pipeline**: Triggered manually, allows users to delete selected Image Groups.
+
+### Prerequisites
+
+Before deploying GitLab for BuildStreaM:
+
+- Ensure that Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node (see Step 3 above)
+- The node where GitLab will be deployed must have Internet connectivity.
+- A dedicated node is required for BuildStreaM GitLab deployment.
+- The node must have sufficient system resources for BuildStreaM (minimum 4 GB RAM, 2 CPU cores, 20 GB free disk space)
+- GitLab requires a minimum of 2 CPU cores. More cores may be needed for production workloads.
+- OIM node must be accessible from the GitLab node.
+- Ensure that BuildStream API server (BuildStream container) is reachable from the GitLab node.
+- Ensure that appStream and Base OS repositories are configured and accessible from the GitLab node.
+- Ensure that on the GitLab node, SELinux is disabled.
+
+!!! important
+
+    Omnia uses a dedicated GitLab instance for BuildStreaM. This procedure provisions a new GitLab instance specifically configured for BuildStreaM. Currently, existing GitLab setups configured for other purposes are not supported.
+
+### Procedure
+
+1. Use SSH to connect to the `omnia_core` container.
+
+    ```bash
+    ssh omnia_core
+    ```
+
+2. Navigate to `/opt/omnia/input/project_default/gitlab_config.yml` and update the `gitlab_config.yml` file. Use the [gitlab configuration table](../Reference/Configuration/buildstream_config.md) for reference.
+
+    ```bash
+    cat /opt/omnia/input/project_default/gitlab_config.yml
+    ```
+
+3. Navigate to the GitLab directory.
+
+    ```bash
+    cd /omnia/gitlab
+    ```
+
+4. Run the `gitlab.yml` playbook:
+
+    ```bash
+    ansible-playbook gitlab.yml
+    ```
+
+5. When it prompts you to enter the GitLab password, enter the password. Note the password as it is required to access the GitLab project and instance.
+
+    !!! note
+
+        The installation may take 10-15 minutes to complete.
+
+    This `gitlab.yml` playbook performs the following tasks:
+
+    - Installs the GitLab instance on the host specified in the `gitlab_config.yml` file.
+    - In the GitLab instance, creates a project with the specified name, visibility, and default branch as configured in the `gitlab_config.yml` file.
+    - Installs GitLab runner as a Podman container.
+    - Generates a self-signed CA certificate for GitLab on the GitLab node at `/root/gitlab-certs/ca.crt`
+    - Adds the project with the following files:
+        - **Pipeline Configuration Files**:
+            - `.gitlab-ci.yml` - Parent router pipeline that dispatches to child pipelines
+            - `.gitlab-ci-build.yml` - Build pipeline for creating images
+            - `.gitlab-ci-deploy.yml` - Deploy pipeline for deploying images to nodes
+            - `.gitlab-ci-cleanup.yml` - Cleanup pipeline for removing old Image Groups
+            - `.gitlab-ci-deploy-child-template.yml` - Dynamic child pipeline template for deploy operations
+        - **Catalog File**:
+            - `catalog_rhel.json` - Default catalog file containing build definitions for RHEL images
+        - **Input Folder**:
+            - `input/` - Directory containing all BuildStream input configuration files
+
+    ![BuildStream project](../assets/images/buildstream_project.png)
+
+    The input folder includes the following configuration files (see [Configuration Tables](../Reference/Configuration/buildstream_config.md) for detailed parameter descriptions):
+
+    - `build_stream_config.yml` — BuildStream configuration file
+    - `gitlab_config.yml` — GitLab configuration file
+    - `high_availability_config.yml` — High availability configuration file
+    - `local_repo_config.yml` — Local repository configuration file
+    - `network_config.yml` — Network configuration file
+    - `omnia_config.yml` — Omnia configuration file
+    - `provision_config.yml` — Provision configuration file
+    - `pxe_mapping_file.csv` — PXE mapping file
+    - `security_config.yml` — Security configuration file
+    - `storage_config.yml` — Storage configuration file
+    - `telemetry_config.yml` — Telemetry configuration file
+    - `telemetry_storage_config.yml` — Telemetry storage configuration file
+
+    ![BuildStream project input files structure](../assets/images/buildstream_project_input_files.png)
+
+6. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the certificate generated in step 5 to the browser.
+
+### Verification
+
+After the installation of GitLab complete, verify the following:
+
+- Verify you can access the GitLab project URL:
+
+    ```text
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
+
+- Verify the project contains the expected files and folders.
+- Verify runner status through GitLab web interface:
+
+    1. Navigate to **Settings** → **CI/CD**.
+    2. Expand **Runners** section.
+    3. Verify the runner shows a **green** status indicator.
+    4. Confirm runner is set to **Running Always** with **Podman Container**.
+
+### Next Steps
+
+After completing GitLab deployment, update the catalog file to automatically trigger the build pipeline. See Step 5 below.
+
+---
+
+## Step 5: Execute Build Pipeline
+
+Update the `catalog_rhel.json` file and execute the Omnia BuildStreaM build pipeline through GitLab. This procedure covers catalog modifications, pipeline triggering (automatic and manual), and verification of pipeline status and job execution.
+
+The BuildStream build pipeline automates the creation of diskless images based on catalog specifications. The pipeline consists of four sequential stages:
+
+- **parse-catalog**: Parses and validates the catalog file for build requirements
+- **generate-input-files**: Generates input files and configuration data for image building
+- **create-local-repository**: Creates and configures the local repository for build artifacts
+- **build-image**: Builds the diskless images based on catalog specifications
+
+The build pipeline is automatically triggered when you update the `catalog_rhel.json` file in the GitLab repository, or can be manually initiated through the GitLab interface.
+
+!!! note
+
+    Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+
+### Prerequisites
+
+Before updating catalogs and checking pipelines:
+
+- Deploy and Configure BuildStreaM Container on OIM Node (see Step 3 above)
+- GitLab deployment for BuildStreaM is completed (see Step 4 above)
+- Confirm that you can access GitLab project repository
+
+### Procedure
+
+1. Go to the GitLab project URL:
+
+    ```text
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
+
+2. Go to **Code** → **Repository**.
+3. Locate the catalog file `catalog_rhel.json`.
+4. Modify the `catalog_rhel.json` file to define your build requirements.
+
+    !!! note
+
+        Ensure that the catalog file is updated with valid functional group names, architecture types, operating system types and versions, and package types. The pipeline fails if invalid details are provided.
+
+        The following are the supported values:
+        - **Functional group names**: For supported functional group names, see the Functional Groups section above.
+        - **Architecture type**: `x86_64` and `aarch64`.
+        - **OS type**: `RHEL`, see supported OS types and versions.
+        - **OS version**: `10.0`, see supported OS types and versions.
+        - **Package types**: `rpm`, `rpm_repo`, `image`, `iso`, `tarball`, `pip_module`, `git`, `manifest`.
+
+5. Trigger the build pipeline by committing and pushing the catalog changes. The pipeline triggers automatically when catalog changes are committed. This pipeline can also be executed manually through the GitLab UI. See "Execute Build Pipeline Manually" below for detailed instructions.
+
+    ![BuildStreaM Build Trigger](../assets/images/buildstream-build-trigger.png)
+
+6. Monitor the pipeline progress to ensure it completes successfully. See "Monitor Build Pipeline Progress" below for detailed instructions.
+
+    ![BuildStreaM Pipeline Execution](../assets/images/buildstream-buid-success.png)
+
+!!! note
+
+    - Currently, BuildStreaM supports only one catalog file and one pipeline trigger. BuildStreaM pipeline behavior is controlled by the GitLab CI/CD configuration in your environment.
+    - Each pipeline processes the catalog changes independently and builds the specified images based on the catalog requirements. Once a pipeline execution is complete, users can modify the catalog and re-trigger the pipeline as needed. However, multiple pipeline triggers cannot be executed simultaneously.
+
+#### Execute Build Pipeline Manually
+
+To manually execute the build pipeline, follow these steps:
+
+1. Review the pipeline logs in GitLab to check the current status.
+
+    - a. Navigate to **Build** → **Pipelines**.
+    - b. Click on the desired pipeline.
+    - c. Click on the stage to view logs.
+
+2. Update the input configuration files in the GitLab repository.
+
+    - a. Navigate to the `input/` folder in the GitLab repository.
+    - b. Edit the relevant configuration file.
+    - c. Commit and push the changes.
+
+3. Manually trigger the pipeline with the updated parameters.
+
+    - a. Navigate to **Build** → **Pipelines**.
+    - b. Click **New Pipeline**.
+    - c. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **build**.
+
+    ![GitLab Build Manual Configuration](../assets/images/gitlab-build-manual-config.png)
+
+    - d. Click **Run Pipeline** to execute the build pipeline.
+
+4. Monitor the pipeline progress to ensure it completes successfully. See "Monitor Build Pipeline Progress" below for detailed instructions.
+
+For troubleshooting common pipeline issues, see [BuildStreaM Troubleshooting](../Troubleshooting/buildstream.md).
+
+#### Monitor Build Pipeline Progress
+
+Monitor the build pipeline progress through the GitLab web interface to track stage execution and identify any issues.
+
+1. Navigate to **Build** → **Pipeline**.
+2. Click on the running pipeline to view details.
+3. Monitor each stage as it progresses:
+    - **parse-catalog**: Parses and validates the catalog file for build requirements
+    - **create-local-repository**: Creates and configures the local repository for build artifacts
+    - **generate-input-files**: Generates input files and configuration data for image building
+    - **build-image**: Builds the diskless images based on catalog specifications
+
+4. Review the stage status indicators:
+    - **Green checkmark**: Stage completed successfully
+    - **Red X**: Stage failed (click for error details)
+    - **Blue circle**: Stage currently running
+
+5. If any stage fails, review the error logs by clicking on the failed job.
+
+!!! note
+
+    The build pipeline uses the catalog file to determine which images to build based on functional group assignments.
+
+### Verification
+
+After the pipeline is completed, you can check the overall pipeline status and job execution.
+
+1. Navigate to **Build** → **Pipelines**
+2. Review the job list and status.
+3. Click on individual jobs to view:
+    - Execution logs
+    - Resource usage
+    - Error messages (if any)
+
+### Next Steps
+
+After successful execution of the build pipeline, proceed with deploying the images to cluster nodes. See Step 6 below.
+
+---
+
+## Step 6: Execute Deploy Pipeline
+
+Execute the BuildStream deploy pipeline to deploy images to cluster nodes. This procedure covers the three deploy stages: deploy, restart, and validate.
+
+The BuildStream deploy pipeline automates the deployment of built images to target cluster nodes. The pipeline consists of three sequential stages:
+
+- **deploy**: Deploys the built images to the target nodes
+- **restart**: PXE-boots the target nodes to load the deployed images
+- **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health
+
+The deploy pipeline is automatically triggered when you update the PXE mapping file (`pxe_mapping_file.csv`) in the GitLab repository, or can be manually initiated through the GitLab interface.
+
+!!! note
+
+    Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
+
+### Prerequisites
+
+Before executing the deploy pipeline, ensure the following:
+
+- Build pipeline has completed successfully and images are available
+- Target nodes are powered on and accessible via BMC
+- PXE mapping file (`pxe_mapping_file.csv`) is correctly configured with target node information
+- PXE mapping file is present in the GitLab repository `input/` folder for automatic triggering
+
+### Procedure
+
+1. Navigate to the GitLab project URL:
+
+    ```text
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
+
+2. Trigger the deploy pipeline by updating the `pxe_mapping_file.csv` file in the GitLab repository and committing the changes. This pipeline can also be executed manually through the GitLab UI. See "Execute Deploy Pipeline Manually" below for detailed instructions.
+
+    ![GitLab Deploy Trigger](../assets/images/gitlab-deploy-trigger.png)
+
+3. In the deploy pipeline, select the image from the `select_image` stage and click the "Play" button.
+
+    ![GitLab Deploy Select Image](../assets/images/gitlab-deploy-select-image.png)
+
+4. To deploy the image, click the "Play" button in the `deploy` stage.
+
+    ![GitLab Deploy Play](../assets/images/gitlab-deploy-play.png)
+
+5. Monitor the pipeline progress to ensure it completes successfully. See "Monitor Deploy Pipeline Progress" below for detailed instructions.
+
+#### Execute Deploy Pipeline Manually
+
+To manually execute the deploy pipeline, follow these steps:
+
+1. Review the pipeline logs in GitLab to check the current status.
+
+    - a. Navigate to **Deploy** → **Pipelines**.
+    - b. Click on the desired pipeline.
+    - c. Click on the stage to view logs.
+
+2. Update the input parameters in the GitLab repository.
+
+    - a. Navigate to the `input/` folder in the GitLab repository.
+    - b. Edit the relevant configuration file.
+    - c. Commit and push the changes.
+
+3. Manually trigger the pipeline with the updated parameters.
+
+    - a. Navigate to **Deploy** → **Pipelines**.
+    - b. Click **New Pipeline**.
+    - c. In the **Run new pipeline** dialog box, enter the variable name as **PIPELINE_TYPE** and enter the value as **deploy**.
+
+    ![GitLab Deploy Manual Configuration](../assets/images/gitlab-deploy-manual-config.png)
+
+    - d. Click **Run Pipeline** to execute the deploy pipeline.
+
+4. Monitor the pipeline progress to ensure it completes successfully. See "Monitor Deploy Pipeline Progress" below for detailed instructions.
+
+    ![GitLab Deploy Success](../assets/images/gitlab-deploy-success.png)
+
+!!! note
+
+    When using manual retry, ensure that only the necessary parameters are updated. Unnecessary changes may cause additional pipeline failures.
+
+For information on handling deploy failures with partial node failures, see "Handling Deploy Failures During Restart Stage (PXE Boot)" below.
+
+#### Monitor Deploy Pipeline Progress
+
+1. Monitor the deploy pipeline progress through the GitLab web interface:
+
+    a. Click on the running pipeline to view details.
+    b. Monitor each stage as it progresses:
+
+        - **deploy**: Deploys images to target nodes based on catalog specifications
+        - **restart**: PXE-boots the nodes to load the deployed images.
+        - **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health
+
+2. Review the stage status indicators:
+    - **Green checkmark**: Stage completed successfully
+    - **Red X**: Stage failed (click for error details)
+    - **Blue circle**: Stage currently running
+
+3. If any stage fails, review the error logs by clicking on the failed job.
+
+!!! note
+
+    The deploy pipeline uses the PXE mapping file to determine which nodes receive which images based on functional group assignments.
+
+### Verification
+
+After the deploy pipeline completes, verify the deployment:
+
+1. Check the overall pipeline status in GitLab to ensure all stages passed.
+2. Verify that the target nodes have restarted and are accessible.
+3. Log in to a sample of deployed nodes to verify the correct image is loaded.
+4. Check the BuildStreaM API for deployment status and image group information.
+
+#### Adding New Nodes to the Cluster
+
+This procedure describes how to deploy images on the new nodes without affecting previously provisioned nodes.
+
+1. Update the `pxe_mapping` file with the details of the new nodes to be added in GitLab.
+2. Run the deploy pipeline by selecting the image required.
+
+The system will PXE boot only the newly added nodes, without impacting previously successful nodes.
+
+#### Handling Deploy Failures During Restart Stage (PXE Boot)
+
+In the deploy pipeline, when the restart stage encounters partial failures (some nodes PXE booted successfully while others fail), BuildStream provides a `failed_nodes.json` mechanism to enable efficient retry operations.
+
+`failed_nodes.json` is a structured JSON file that tracks which nodes failed to PXE boot during the restart stage. This file enables you to:
+
+- Track failed nodes with detailed error messages
+- Manually fix the failed nodes and update their entries as successful.
+- Retry only the failed nodes instead of the entire inventory
+- Maintain accurate state across pipeline runs
+
+**Sample failed_nodes.json Schema**
+
+```json
+{
+  "job_id": "018f3c4b-7b5b-7a9d-b6c4-9f3b4f9b2c10",
+  "stage_name": "restart",
+  "timestamp": "2026-04-10T16:32:15Z",
+  "total_nodes": 5,
+  "failure_count": 2,
+  "failed_nodes": [
+    {
+      "bmc_ip": "172.17.107.44",
+      "hostname": "slurm-node2",
+      "service_tag": "79WWJ93",
+      "status": "failed",
+      "message": "Failed. iDRAC is not ready. Retry again after iDRAC is ready"
+    },
+    {
+      "bmc_ip": "172.17.107.45",
+      "hostname": "slurm-node3",
+      "service_tag": "79WWJ94",
+      "status": "failed",
+      "message": "iDRAC is unreachable. pxe boot might be set. Please check the host reboot status manually"
+    }
+  ]
+}
+```
+
+**Procedure**
+
+1. During the first run, the restart stage attempts to PXE boot all nodes automatically.
+
+2. If all nodes succeed, the stage is marked successful and proceeds to the validation stage.
+
+3. In case of partial failure, only failed nodes are recorded in `failed_nodes.json` in a directory called `miscellaneous` in GitLab. The file contains failed node details along with corresponding error messages.
+
+    ![failed_nodes.json example](../assets/images/buildstream_restart_failed_nodes_json.png)
+
+4. Analyze failures and perform corrective actions:
+
+    - Check iDRAC readiness
+    - Verify BMC network connectivity
+    - Validate PXE boot configuration
+
+5. After resolving issues, retry the restart stage for failed nodes.
+
+6. If automated retry is not feasible (for example, VM or manual dependency), manually PXE boot the affected nodes.
+
+7. After manual boot of the nodes, update the node status as `success` in `failed_nodes.json` and click the **Retry donwstream pipline** icon to retry the failed pipeline. Updated nodes are excluded from further PXE attempts by the pipeline/API and are automatically added to the booted nodes list.
+
+    ![updated failed_nodes.json example](../assets/images/buildstream_restart_updated_failed_nodes_json.png)
+
+    The restart stage completes successfully only when all nodes are successful (automated or manual). Upon completion, the workflow proceeds to the validation stage.
+
+    ![restart stage success example](../assets/images/buildstream_restart_stage_success.png)
+
+8. To view detailed logs for a validate stage, click on the Validate stage in the pipeline. This will display the execution logs, including whether the stage has passed or failed. Within these logs, the corresponding log file path is provided. Users can navigate to this path on the OIM to access the detailed test report of the cluster deployment. If any failure occurs, the logs will include a comprehensive report for further analysis.
+
+---
+
 ## Step 7: Initialize and Verify Telemetry
 
 This step describes how to initialize and verify telemetry services for monitoring the cluster. Telemetry collection enables you to gather performance metrics and system health data from cluster nodes.
@@ -635,7 +1083,7 @@ To collect telemetry from the external nodes, do the following:
 
 2. Run the `telemetry.yml` playbook using the following command:
 
-    ```bash
+    ```bash title="Run on: omnia_core container"
     ansible-playbook telemetry.yml
     ```
 
@@ -662,7 +1110,7 @@ To verify that the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLo
 
 1. Run the following command:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get pods -n telemetry
     ```
 
@@ -685,7 +1133,7 @@ To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, 
 
 1. Run the following command:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get svc -n telemetry
     ```
 
@@ -815,13 +1263,13 @@ After applying the `telemetry.yml` configuration with `idrac_telemetry_collectio
 
 1. Run the following command to verify that the VictoriaLogs vlselect pod is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get pods -n telemetry -o wide | grep vlselect
     ```
 
 2. Run the following command to verify that the VictoriaLogs vlselect service is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get service -n telemetry -o wide | grep vlselect
     ```
 
@@ -845,19 +1293,19 @@ After applying the `telemetry.yml` configuration using the VictoriaMetrics deplo
 
 1. Run the following command to verify that the VictoriaMetrics pod is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get pods -n telemetry -o wide | grep vm
     ```
 
-![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
+    ![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
 
 2. Run the following command to verify that the VictoriaMetrics service is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get service -n telemetry -o wide | grep vm
     ```
 
-![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
+    ![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
 
 3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -873,7 +1321,7 @@ After applying the `telemetry.yml` configuration using the VictoriaMetrics deplo
     {__name__=~"PowerEdge_.*"}
     ```
 
-![VictoriaMetrics VMUI Cluster](../assets/images/victoria_metrics_vmui_cluster.png)
+    ![VictoriaMetrics VMUI Cluster](../assets/images/victoria_metrics_vmui_cluster.png)
 
 ### View Collected PowerScale Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 
@@ -881,27 +1329,27 @@ After applying the `telemetry.yml` configuration using the VictoriaMetrics deplo
 
 1. Run the following command to verify that the VictoriaMetrics pod is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get pods -n telemetry -o wide | grep vm
     ```
 
-![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
+    ![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
 
 2. Run the following command to verify that the VictoriaMetrics service is running:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get service -n telemetry -o wide | grep vm
     ```
 
-![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
+    ![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
 
 3. Run the following command to verify if OTEL collector is receiving telemetry data:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i metric
     ```
 
-![OTEL Collector Pod Cluster](../assets/images/otel_collector_pod_cluster.png)
+    ![OTEL Collector Pod Cluster](../assets/images/otel_collector_pod_cluster.png)
 
 4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -917,7 +1365,7 @@ After applying the `telemetry.yml` configuration using the VictoriaMetrics deplo
     {source=~"powerscale"}
     ```
 
-![PowerScale Metrics VMUI Cluster](../assets/images/powerscale_metrics_vmui_cluster.png)
+    ![PowerScale Metrics VMUI Cluster](../assets/images/powerscale_metrics_vmui_cluster.png)
 
 ### Accessing the MySQL Database
 
@@ -925,7 +1373,7 @@ After `telemetry.yml` has been executed for the service cluster, you can check t
 
 1. Use the following command to get the names of all the telemetry pods:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl get pods -n telemetry -l app=idrac-telemetry
     ```
 
@@ -935,7 +1383,7 @@ After `telemetry.yml` has been executed for the service cluster, you can check t
 
 2. Execute the following command:
 
-    ```bash
+    ```bash title="Run on: Service Kubernetes Control plane"
     kubectl exec -it -n telemetry <iDRAC_telemetry_pod_name> -c mysqldb -- mysql -u <MYSQL_USER> -p
     ```
 
