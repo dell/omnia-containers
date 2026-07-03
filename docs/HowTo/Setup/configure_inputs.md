@@ -1,30 +1,24 @@
-
 # Configure Inputs
 
-
 Configure Omnia's input files to define your cluster topology, software stack,
-and deployment preferences. Input files are YAML and JSON templates located at
+and deployment preferences. Input files are YAML and JSON located at
 `/opt/omnia/input/project_default/` inside the `omnia_core` container.
 
 ## Overview
 
-Omnia uses a set of input files to drive every playbook. Before running any
-provisioning or deployment playbook, you must:
+Before running any provisioning or deployment playbook, you must:
 
-1. Copy the example templates from `/omnia/examples/input_template/` to the
-   working input directory.
-2. Edit each file to match your environment (network ranges, software
-   selections, cluster layout).
-3. Optionally run the `validate_config.yml`(input validator playbook) to catch configuration errors early.
+1. Copy example templates from `/omnia/examples/` to the working input directory.
+2. Edit each file to match your environment.
+3. Optionally run `validate_config.yml` to catch configuration errors early.
 
-The most important input files are:
+The key input files are:
 
-- `software_config.json` -- Defines which software stacks to deploy.
-- `network_spec.yml` -- Network configuration for admin, BMC, and compute
-  networks.
-- `provision_config.yml` -- Provisioning parameters (OS image, language,
-  kernel options).
-- `omnia_config.yml` -- Cluster-level configuration (Slurm, K8s, storage).
+- `software_config.json` -- Software stacks to deploy.
+- `network_spec.yml` -- Admin, IB, and additional subnet configuration.
+- `provision_config.yml` -- Provisioning parameters (PXE mapping, language, DHCP lease).
+- `omnia_config.yml` -- Cluster-level configuration (Slurm, K8s, CSI drivers).
+- `storage_config.yml` -- NFS, VAST, and other storage mount definitions (referenced by `omnia_config.yml`).
 
 
 ## Prerequisites
@@ -47,12 +41,14 @@ The most important input files are:
 **2. Copy the example templates** to the input directory:
 
    ```bash title="Run on: omnia_core container"
-   cp /omnia/examples/input_template/* /opt/omnia/input/project_default/
+   cp /omnia/examples/pxe_mapping_file.csv /opt/omnia/input/project_default/
+   cp /omnia/examples/software_config_template/template_rhel_10.0_x86-64_software_config.json \
+     /opt/omnia/input/project_default/software_config.json
    ```
 
 !!! note
 
-      If files already exist in the destination, this command will overwrite them. Back up any previously customized files before copying.
+      Back up any previously customized files before copying. The `software_config_template/` directory contains architecture-specific templates (`x86-64` and `multi_arch`).
 
 **3. Edit the software configuration**:
 
@@ -67,14 +63,14 @@ The most important input files are:
     "cluster_os_version": "10.0",
     "repo_config": "partial",
     "softwares": [
-        {"name": "default_packages", "arch": ["x86_64"]},
-        {"name": "admin_debug_packages", "arch": ["x86_64"]},
-        {"name": "openldap", "arch": ["x86_64"]},
-        {"name": "service_k8s","version": "1.35.1", "arch": ["x86_64"]},
-        {"name": "slurm_custom", "arch": ["x86_64"]},
-        {"name": "csi_driver_powerscale", "version":"v2.17.0", "arch": ["x86_64"]},
-        {"name": "ldms", "arch": ["x86_64"]},
-        {"name": "additional_packages", "arch": ["x86_64"]}
+        {"name": "default_packages", "arch": ["x86_64", "aarch64"]},
+        {"name": "admin_debug_packages", "arch": ["x86_64", "aarch64"]},
+        {"name": "openldap", "arch": ["x86_64", "aarch64"]},
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "slurm_custom", "arch": ["x86_64", "aarch64"]},
+        {"name": "csi_driver_powerscale", "version": "v2.17.0", "arch": ["x86_64"]},
+        {"name": "ldms", "arch": ["x86_64", "aarch64"]},
+        {"name": "additional_packages", "arch": ["x86_64", "aarch64"]}
     ],
     "slurm_custom": [
         {"name": "slurm_control_node"},
@@ -86,9 +82,23 @@ The most important input files are:
         {"name": "service_kube_control_plane_first"},
         {"name": "service_kube_control_plane"},
         {"name": "service_kube_node"}
+    ],
+    "additional_packages": [
+        {"name": "service_kube_control_plane_first"},
+        {"name": "service_kube_control_plane"},
+        {"name": "service_kube_node"},
+        {"name": "slurm_control_node"},
+        {"name": "slurm_node"},
+        {"name": "login_node"},
+        {"name": "login_compiler_node"},
+        {"name": "os"}
     ]
 }
 ```
+
+!!! tip
+
+      Each software entry requires `name` and `arch`. The `version` field is optional. Use `["x86_64", "aarch64"]` for multi-architecture deployments, or `["x86_64"]` for x86-only.
 
 **4. Edit the network specification**:
 
@@ -101,22 +111,33 @@ The most important input files are:
 
 ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
 ---
+Networks:
 - admin_network:
-   oim_nic_name: "eno1"
-   subnet: "172.16.0.0"
-   netmask_bits: "24"
-   primary_oim_admin_ip: "172.16.107.254"
-   primary_oim_bmc_ip: ""
-   dynamic_range: "172.16.107.201-172.16.107.250"
-   dns: []
-   ntp_servers: []
-   additional_subnets: []
+    oim_nic_name: "eno1"
+    subnet: "172.16.0.0"
+    netmask_bits: "24"
+    primary_oim_admin_ip: "172.16.107.254"
+    primary_oim_bmc_ip: ""
+    dynamic_range: "172.16.107.201-172.16.107.250"
+    dns: []
+    ntp_servers: []
+    additional_subnets: []
 
 - ib_network:
-   subnet: "192.168.0.0"
-   netmask_bits: "24"
-   dns: []
+    subnet: "192.168.0.0"
+    netmask_bits: "24"
+    dns: []
+
+- additional_subnets:
+    - subnet: "10.40.1.0"
+      netmask_bits: "24"
+      router: "10.40.1.1"
+      dynamic_range: "10.40.1.100-10.40.1.200"
 ```
+
+!!! note
+
+      The top-level `Networks:` key is mandatory. The `admin_network` section is required. The `ib_network` and `additional_subnets` sections are optional.
 
 
 **5. Edit the provision configuration**:
@@ -170,34 +191,26 @@ service_k8s_cluster:
 
 ```bash title="Run on: omnia_core container"
 cd /omnia
-ansible-playbook input/validate_config.yml
+ansible-playbook input_validation/validate_config.yml
 ```
 
-
-The validator checks for:
-- Missing required fields.
-- IP address format and range conflicts.
-- Valid software names and versions.
-- Consistent network configuration.
+The validator checks for missing required fields, IP address format and range
+conflicts, valid software names, and consistent network configuration.
 
 
 ## Verification
+
 **List all input files** and confirm they are populated:
+
 ```bash title="Run on: omnia_core container"
 ls -la /opt/omnia/input/project_default/
 ```
 
 **Review the software configuration**:
+
 ```bash title="Run on: omnia_core container"
 cat /opt/omnia/input/project_default/software_config.json | python3 -m json.tool
 ```
-
-**Validate YAML syntax** for each YAML input file:
-```bash title="Run on: omnia_core container"
-python3 -c "import yaml; yaml.safe_load(open('/opt/omnia/input/project_default/network_spec.yml'))"
-```
-
-No output means the YAML is syntactically valid.
 
 ## Next Steps
 
@@ -206,19 +219,23 @@ No output means the YAML is syntactically valid.
 
 
 ## Troubleshooting
-**input_validator fails with "missing required field"**
-   Open the indicated file and ensure all required fields are present. Refer to
-   the example templates in `/omnia/examples/input_template/` for the complete
-   list of required fields.
 
-**JSON syntax error in software_config.json**
-   Validate JSON syntax:
+**validate_config.yml fails with "missing required field"**
 
-   ```bash title="Run on: omnia_core container"
-   python3 -m json.tool /opt/omnia/input/project_default/software_config.json
-   ```
+Open the indicated file and ensure all required fields are present. Refer to
+the templates in `/omnia/examples/software_config_template/` and the source
+input files in `/omnia/input/` for the complete list of required fields.
 
-**Network range overlap**
-   Ensure `admin_network` and `bmc_network` use different subnets.
-   Static and dynamic ranges within each network must not overlap.
+**validate_config.yml fails with "JSON syntax error in software_config.json"**
+
+Validate JSON syntax:
+
+```bash title="Run on: omnia_core container"
+python3 -m json.tool /opt/omnia/input/project_default/software_config.json
+```
+
+**validate_config.yml fails with "Network range overlap"**
+
+Ensure `admin_network`, `ib_network`, and `additional_subnets` use different subnets.
+Static and dynamic ranges within each network must not overlap.
 
