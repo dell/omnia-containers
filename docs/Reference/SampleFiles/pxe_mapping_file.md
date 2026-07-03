@@ -152,6 +152,10 @@ os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:
 | Hostname format | Lowercase, no domain suffix, RFC 952/1123 compliant. See [Hostname Requirements](../Appendices/hostname_requirements.md). |
 | IP within subnet | `ADMIN_IP` must fall within the admin network subnet and outside the `dynamic_range`. `BMC_IP` must fall within the BMC subnet. |
 
+!!! note
+
+    - PXE mapping file must exist at `/opt/omnia/input/project_default/` inside the omnia_core container.
+
 !!! info
 
     - [Provision Config](../Configuration/provision_config.md) -- Where the mapping

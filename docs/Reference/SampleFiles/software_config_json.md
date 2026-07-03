@@ -9,7 +9,7 @@ deployment and modify as needed.
 
 ## RHEL 10.0 x86_64 - Slurm + Kubernetes (full deployment)
 
-This example demonstrates a single-architecture deployment supporting only x86_64 nodes.
+This example demonstrates a single-architecture full deployment of Slurm(slurm_custom) and Kubernetes(service_k8s) supporting only x86_64 nodes.
 
 ```json title="Sample software_config.json"
 {
@@ -157,6 +157,7 @@ infrastructure monitoring without a job scheduler.
       default version bundled with the release.
     - Every `functional_group_name` must match an entry in the PXE mapping
       CSV (see [Pxe Mapping File](pxe_mapping_file.md)).
+    - Kubernetes(service_k8s) cluster only supports x86_64 architecture.
     - Groups not listed in the JSON receive only base OS packages.
 
 !!! info
