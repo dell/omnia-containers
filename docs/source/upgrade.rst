@@ -225,6 +225,7 @@ The upgrade playbook determines the BuildStreaM path based on the state in 2.1:
 * Upgrade BuildStreaM container image (quadlet update)
 * PostgreSQL data migration (pg_dump → restore to new schema)
 * Update GitLab configuration (URLs, runner tokens, registry)
+* Upgrades the GitLab project repository (pipelines, omnia input files, catalog examples) by adding a new upgrade commit
 * Validate BuildStreaM container + GitLab healthy
 
 **PATH B: BuildStreaM was DISABLED in 2.1, ENABLED in 2.2 (fresh install)**
