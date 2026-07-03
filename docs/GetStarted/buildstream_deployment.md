@@ -1,32 +1,20 @@
 # Path D: BuildStreaM Automated Deployment
 
-Omnia BuildStreaM provides a comprehensive automation solution for managing
-infrastructure build workflows. Deploy an automated, catalog-driven HPC cluster
-using Omnia BuildStreaM and GitLab CI/CD pipelines. BuildStreaM reads a
-declarative catalog (json) to build diskless images and deploy them to cluster
-nodes through automated pipelines.
+Omnia BuildStreaM provides a comprehensive automation solution for managing infrastructure build workflows. It uses a catalog-driven approach where you define your build requirements in a structured catalog file, and BuildStreaM executes automated pipelines to create and deploy images according to your specifications.
 
-BuildStreaM supports three pipeline types executed through GitLab:
+BuildStreaM supports three pipeline types that can be executed through GitLab:
 
-- **Build Pipeline**: Creates diskless images based on catalog specifications. Automatically triggered when the catalog is committed, or executed manually.
-- **Deploy Pipeline**: Deploys built images to target cluster nodes. Automatically triggered when the PXE mapping file is updated, or executed manually.
-- **Clean Pipeline**: Removes old Image Groups based on retention policy. Executed manually only.
+- **Build Pipeline**: Creates diskless images based on catalog specifications. This pipeline is automatically triggered when the catalog is committed, but can also be executed manually.
+- **Deploy Pipeline**: Deploys built images to target cluster nodes. This pipeline is automatically triggered when the PXE mapping file is updated, but can also be executed manually.
+- **Clean Pipeline**: Removes old Image Groups based on retention policy. This pipeline can be executed only manually.
 
 !!! note
 
-    This tutorial assumes you have completed every item on the
-    [Prerequisites Checklist](prerequisites_checklist.md). If you have not, stop here and
-    finish that first.
+    Do not cancel a running GitLab pipeline or stage. Cancellation prevents some pipeline steps from executing, which leaves the BuildStreaM job in an intermediate, inconsistent state. Note that backend BuildStreaM tasks already in progress will continue running to completion regardless of the cancellation.
 
 !!! note
 
-   - BuildStreaM does not support execution of multiple pipelines in parallel
-    or concurrently. Only one pipeline can be executed at a time.
-
-   - Do not cancel a running GitLab pipeline or stage. Cancellation prevents
-    some pipeline steps from executing, which leaves the BuildStreaM job in
-    an intermediate, inconsistent state. Backend BuildStreaM tasks already in
-    progress continue running to completion regardless of cancellation.
+    BuildStreaM does not support execution of multiple pipelines in parallel or concurrently. Only one pipeline can be executed at a time. Attempting to run multiple pipelines simultaneously may result in unexpected behavior or failures.
 
 BuildStreaM addresses the key challenges in HPC cluster image management:
 
@@ -34,28 +22,48 @@ BuildStreaM addresses the key challenges in HPC cluster image management:
 - **Integration**: Works seamlessly with existing Omnia deployments
 - **Traceability**: Provides complete audit trails for all build operations
 
+To build your own custom workflows, you can use the BuildStreaM REST API. The BuildStreaM API documentation is available at [Omnia BuildStreaM API Documentation](https://developer.dell.com/apis/ea677050-f49b-49e1-a4b9-1cdd563415d9/versions/2.2.0-0/introduction-to-buildstream-api-12967m0).
 
-To build custom workflows, use the BuildStreaM REST API. See the
-[Omnia BuildStreaM API Documentation](https://developer.dell.com/apis/ea677050-f49b-49e1-a4b9-1cdd563415d9/versions/2.2.0-0/introduction-to-buildstream-api-12967m0).
+---
 
-## Step 1 -- Deploy the omnia_core Container
+## Step 1: Deploy Omnia Core Container
 
-Deploy the Omnia core container on the OIM. The BuildStreaM container and
-Playbook Watcher service are installed during the BuildStreaM setup in Step 3.
-The `omnia_core` container is managed as a Systemd service
-(`omnia_core.service`) and contains the Omnia source code with Python and
-Ansible preinstalled.
+Deploy the Omnia core container on the Omnia Infrastructure Manager (OIM) where the BuildStreaM container and playbook watcher service will be installed during the BuildStreaM setup. BuildStreaM container and playbook watcher service are required to execute the pipelines to create, discover, and deploy images on the cluster nodes.
+The Omnia core container is deployed on the Omnia Infrastructure Manager (OIM) and it is managed as a Systemd service (`omnia_core.service`).
+The Omnia core container contains the following:
+
+- The open-source code to deploy and manage Omnia clusters. The source code is available at [https://github.com/dell/omnia](https://github.com/dell/omnia).
+- Python and Ansible preinstalled.
+
+Use the `omnia.sh` script to install, uninstall, and view help on the actions that you can perform on the Omnia core container.
 
 ### Prerequisites
 
-- The OIM has internet access to download necessary packages.
-- The OIM has two active NICs: one for the public network, one for internal cluster communication.
-- Podman container engine is installed on the OIM.
-- If using an NFS share for the Omnia shared path, the share has `755` permissions and `no_root_squash` enabled.
+Before you begin, ensure the following:
 
-### Deploy from Omnia Artifactory
+- The OIM has internet access to download necessary packages for cluster deployment and configuration.
+- The OIM must have two active Network Interface Cards (NICs):
 
-1. **Clone the Omnia Artifactory repository and build the container images**:
+    - One connected to the public network.
+    - One dedicated to internal cluster communication.
+
+- Ensure that Podman container engine is installed on your OIM.
+- If you want to use a NFS share for the omnia shared path, ensure the following:
+
+    - The NFS share has 755 permissions and `no_root_squash` is enabled on the mounted NFS share.
+    - Edit the `/etc/exports` file on the NFS server to include the `no_root_squash` option for the exported path.
+
+        ```text
+        /<your_exported_path>  *(rw,sync,no_root_squash,no_subtree_check)
+        ```
+
+- Ensure that the following OIM hostname prerequisites are met.
+
+### Deploy the Omnia Core Container from Omnia Artifactory
+
+To deploy the container images from any Omnia branch, available at [Omnia Artifactory Repository](https://github.com/dell/omnia-artifactory.git), do the following:
+
+1. Clone the Omnia artifacts repository and build the `omnia_core` container images. Run the following commands:
 
     ```bash title="Run on: OIM host"
     git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
@@ -63,163 +71,349 @@ Ansible preinstalled.
     ./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
     ```
 
-    - For `core_tag=<version>`, use the first two digits of the Omnia version. For example, for `v2.2.0.0`, use `core_tag=2.2`.
-    - For `omnia_branch=<tag|branch>`, use the branch name or tag name (e.g., `v2.2.0.0`, `main`, `pub/q1_dev`).
+    - For detailed build instructions, refer to the [Omnia Artifacts README](https://github.com/dell/omnia-artifactory/blob/omnia-container/README.md).
+    - For `core_tag=<version>`, use first two digits of the Omnia version. For example, for `v2.2.0.0`, use `core_tag=2.2`.
+    - For `omnia_branch=<tag|branch>`, use the branch name or tag name.
 
-2. **Download the `omnia.sh` script**:
+        - For `<tag>`, example: v2.1.0.0
+        - For `<branch>`, example: main, pub/q1_dev, staging
+        - For `<default>`, example: main
 
-    To use a tagged version:
+2. Download the `omnia.sh` script using the following commands:
 
-    ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
-    ```
+    - To use the tagged version of Omnia, run the following command:
 
-    To use a specific branch:
+        ```bash
+        wget https://raw.githubusercontent.com/dell/omnia/refs/tags/${OMNIA_VERSION}/omnia.sh
+        ```
 
-    ```bash title="Run on: OIM host"
-    wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
-    ```
+    - To use the specific branch of Omnia, run the following command:
 
-3. **Make the script executable and install the container**:
+        ```bash
+        wget https://raw.githubusercontent.com/dell/omnia/refs/heads/${OMNIA_VERSION}/omnia.sh
+        ```
 
-    ```bash title="Run on: OIM host"
+    **Example:**
+
+    - Specifc verion: `wget https://raw.githubusercontent.com/dell/omnia/refs/heads/main/omnia.sh`
+    - Tagged version: `wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.1.0.0-rc2/omnia.sh`
+
+3. Run the following command to make the script executable:
+
+    ```bash
     chmod +x omnia.sh
+    ```
+
+4. On the OIM, to deploy the `omnia_core` container and configure passwordless SSH, run the following command:
+
+    ```bash title="Run on: OIM host"
     ./omnia.sh --install
     ```
 
-    - When prompted for the shared path, enter the path for the Omnia shared directory (local file path or NFS share path).
-    - When prompted for the password, enter a secure alphanumeric password for accessing the Omnia core container.
+5. When prompted for the shared path, enter the path for the Omnia shared directory. This can be a local file path or an NFS share path.
 
-    !!! warning
+6. When prompted for the password, enter a secure alphanumeric password for accessing the Omnia core container.
 
-        The password must not contain special characters such as `\`, `|`,
-        `&`, `;`, `` ` ``, `<>`, `*`, `?`, `!`, `$`, `()`, `{}`, `[]`.
+7. To view the Omnia version, run the following command:
 
-4. **Verify the container is running**:
-
-    ```bash title="Run on: OIM host"
+    ```bash
     ./omnia.sh --version
-    systemctl status omnia_core
     ```
 
-    You should see `active (running)` in the output.
+!!! caution
 
-5. **Access the Omnia core container**:
+    The password must not contain special characters such as \ , | , & , ; , ` , < > , * , ? , ! , $ , ( ) , { } , [ ] .
 
-    ```bash title="Run on: OIM host"
+### Tasks Performed by `omnia.sh`
+
+The `omnia.sh` script performs the following tasks:
+
+- Deploys and starts the `omnia_core` container as a Systemd service.
+- Generates an SSH key pair and stores them in the `/root/.ssh` folder in the core container.
+- Initializes the Podman container engine.
+- Creates the following directories within the Omnia Core Container:
+
+    - `/opt/omnia`:  Shared directory that is mapped to the Omnia shared path used by OIM.
+    - `/opt/omnia/input/project_default`: Contains the input files for the playbooks.
+    - `/omnia`:  Contains the Omnia source code.
+    - `/opt/omnia/log/core/playbooks`: Contains the playbook execution logs.
+
+!!! note
+
+    Provide any file paths (for example, mapping file) that are mentioned in input files in the `/opt/omnia` directory.
+
+!!! caution
+
+    - Do not delete any key pairs generated by Omnia from `/root/.ssh` because this will lead to `omnia_core.service` execution failure.
+    - Do not manually delete any files from the OMNIA shared directory. Use the following command to safely remove the entire OMNIA shared directory:
+
+        ```bash
+        ./omnia.sh --uninstall
+        ```
+
+### Access the Omnia Core Container
+
+You can access the Omnia core container using either of the following methods:
+
+1. **Podman**: To access the Omnia core container using Podman, run the following command:
+
+    ```bash
+    podman exec -it -u root omnia_core bash
+    ```
+
+2. **SSH**: To access the Omnia core container using SSH, run the following command:
+
+    ```bash
     ssh omnia_core
     ```
 
-!!! tip
+### Uninstall Omnia Core Container
 
-    The `omnia.sh` script creates the following directories inside the
-    container: `/opt/omnia` (shared directory), `/opt/omnia/input/project_default`
-    (input files), `/omnia` (source code), and `/opt/omnia/log/core/playbooks`
-    (logs). Provide any file paths referenced in input files relative to
-    `/opt/omnia`.
+The `omnia.sh --uninstall` command removes the `omnia_core` container and its associated Systemd service (`omnia_core.service`). It also cleans up the Omnia shared directory and generated files, while preserving user-generated files such as inventory and mapping files.
 
-## Step 2 -- Create the Mapping File
+!!! note
 
-The mapping file tells Omnia which physical servers map to which cluster
-roles. Nodes are discovered and provisioned based on **groups** (physical
-location or hardware similarity) and **functional groups** (role in the
-system).
+    Before you uninstall the `omnia_core` container, ensure that no other containers are running on the OIM except `omnia_core`. If other containers are present, log in to the `omnia_core` container and run the following Ansible playbook to remove the containers:
 
-Create a CSV file at `/opt/omnia/input/project_default/pxe_mapping_file.csv`
-and set the `pxe_mapping_file_path` variable in `provision_config.yml` to
-point to it.
+    ```bash
+    cd /omnia/utils
+    ansible-playbook oim_cleanup.yml
+    ```
 
-Each node must be assigned: `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`,
-`SERVICE_TAG`, `PARENT_SERVICE_TAG`, `HOSTNAME`, `ADMIN_MAC`, `ADMIN_IP`,
-`BMC_MAC`, `BMC_IP`, `IB_NIC_NAME`, and `IB_IP`.
+To uninstall the Omnia core container, on the OIM, run the following script:
 
-```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv (x86_64 example)"
+```bash
+./omnia.sh --uninstall
+```
+
+### View Usage Instructions for Omnia Core Container
+
+The `omnia.sh --help` command provides usage instructions for managing the Omnia core container. The help menu lists the supported actions you can perform, such as installing and uninstalling the Omnia Core Container.
+
+To view the usage instructions, on the OIM, run the following command:
+
+```text title="Expected output"
+./omnia.sh --help
+
+    Usage: ./omnia.sh [--install | --uninstall | --upgrade | --rollback | --version | --help]
+  -i, --install     Install and start the Omnia core container
+  -u, --uninstall   Uninstall the Omnia core container and clean up configuration
+      --upgrade     Upgrade the Omnia core container to newer version
+      --rollback    Rollback the Omnia core container to previous version
+  -v, --version     Display Omnia version information
+  -h, --help        More information about usage
+```
+
+The help menu includes:
+
+- `--install`: Deploys the `omnia_core` container and configures it as a Systemd service.
+- `--uninstall`: Stops and removes the `omnia_core` container and its associated service.
+- `--upgrade`: Upgrade the Omnia core container to newer version.
+- `--rollback`: Rollback the Omnia core container to previous version.
+- `--version`: Display Omnia version information
+- `--help`: Display usage information.
+
+### Verification
+
+Ensure that the `omnia_core` container is running and the Systemd service is active.
+
+### Next Steps
+
+After installing the Omnia core container, create the PXE mapping file with the information of the nodes to be provisioned.
+
+---
+
+## Step 2: Create Mapping File with Node Information
+
+In Omnia, nodes are discovered and provisioned based on the  **groups** and **functional groups** defined in the mapping file. By combining both groups and functional groups, Omnia offers a powerful and flexible approach to managing large-scale node infrastructures, ensuring both logical organization and physical optimization of resources.
+
+- A **group** is based on the physical characteristics of the nodes. It refers to nodes that are located in the same place or have similar hardware. For example, nodes in the same rack or SU (Scalable Unit) might be grouped together, with specific functional groups like **Service Kube Node** or **Slurm Control Node**. Groups help with physical organization and management of nodes.
+
+- A **functional group** defines what a node does in the system. It is a way to categorize nodes based on their functionality. Functional groups help group nodes that perform similar tasks, making it easier to manage and assign resources.
+  For example, a node could belong to a functional group such as:
+
+    - **Service Kube Control Plane**
+    - **Service Kube Node**
+    - **Slurm Login Node**
+    - **Slurm Login/Compiler Node**
+    - **Slurm Control Node**
+    - **Slurm Node**
+
+### Create Mapping File
+
+Manually collect PXE NIC information of the nodes to be provisioned and manually define them to Omnia using the **pxe_mapping_file.csv** file. Provide the file path to the `pxe_mapping_file_path` variable in `/opt/omnia/input/project_default/provision_config.yml`.
+Each node listed in the mapping file must be assigned with the following values:
+`FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `SERVICE_TAG`, `PARENT_SERVICE_TAG`, `HOSTNAME`, `ADMIN_MAC`,
+`ADMIN_IP`, `BMC_MAC`, `BMC_IP`, `IB_NIC_NAME`, and `IB_IP`.
+
+Refer to the [Group Attributes](#groups) table to assign the appropriate `GROUP_NAME` and the [Types of Functional Groups](#functional-groups) table to assign the correct `FUNCTIONAL_GROUP_NAME` for each node in the mapping file.
+
+The following is the sample format of a mapping file for x86_64 cluster:
+
+```text title="File: pxe_mapping_file.csv (x86_64)"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 slurm_node_x86_64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
 slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
 login_compiler_node_x86_64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103
-service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-cp1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,InfiniBand.Slot.7-1,192.168.0.105
-service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-cp2,11:22:33:44:55:66,172.16.107.54,12:23:34:45:56:67,172.17.107.54,InfiniBand.Slot.7-1,192.168.0.106
-service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-cp3,aa:bb:cc:dd:ee:01,172.16.107.55,ab:bc:cd:de:ef:12,172.17.107.55,InfiniBand.Slot.7-1,192.168.0.107
+login_compiler_node_x86_64,grp8,ABFG78,,login-compiler-node2,e1:f2:a3:b4:c5:d6,172.16.107.42,e2:f3:a4:b5:c6:d7,172.17.107.42,InfiniBand.Slot.7-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,InfiniBand.Slot.7-1,192.168.0.105
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,11:22:33:44:55:66,172.16.107.54,12:23:34:45:56:67,172.17.107.54,,InfiniBand.Slot.7-1,192.168.0.106
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:01,172.16.107.55,ab:bc:cd:de:ef:12,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.107
 service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,33:44:55:66:77:88,172.16.107.56,34:45:56:67:78:89,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.108
 service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,55:66:77:88:99:aa,172.16.107.57,56:67:78:89:aa:bb,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.109
+os_x86_64,grp6,ABEF56,,os-node1,77:88:99:aa:bb:cc,172.16.107.60,78:89:aa:bb:cc:dd,172.17.107.60,,
 ```
 
-!!! warning
+The following is the sample format of a mapping file for x86_64 and aarch64 cluster:
 
-    Replace the placeholder values (`SERVICE_TAG`, `ADMIN_MAC`,
-    `ADMIN_IP`, `BMC_IP`) with the actual values from your servers.
-    Collect service tags from the server pull-out tab or iDRAC. Collect
-    MAC addresses from `iDRAC > Network > NIC Selection` or by running
-    `ip link` on each node.
+```text title="File: pxe_mapping_file.csv (x86_64 and aarch64)"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,NIC.InfiniBand.1-3,192.168.0.102
+login_compiler_node_aarch64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
+login_node_aarch64,grp9,ABFG78,,login-node1,e1:f2:a3:b4:c5:d6,172.16.107.42,e2:f3:a4:b5:c6:d7,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,11:22:33:44:55:66,172.16.107.54,12:23:34:45:56:67,172.17.107.54,,
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:01,172.16.107.55,ab:bc:cd:de:ef:12,172.17.107.55,,
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,33:44:55:66:77:88,172.16.107.56,34:45:56:67:78:89,172.17.107.56,,
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,55:66:77:88:99:aa,172.16.107.57,56:67:78:89:aa:bb,172.17.107.57,,
+os_x86_64,grp6,ABEF56,,os-node1,77:88:99:aa:bb:cc,172.16.107.60,78:89:aa:bb:cc:dd,172.17.107.60,,
+os_aarch64,grp7,ABEF78,,os-node2,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:ef,172.17.107.61,,
+```
 
 !!! note
 
-    - Ensure that nodes belonging to the same group have the same parent. Node entries with the same `GROUP_NAME` must have the same `PARENT_SERVICE_TAG`.
-    - The header fields are case-sensitive.
-    - IP addresses and service tags are not validated by Omnia. Incorrect values cause unexpected failures.
-    - Hostnames must not contain the domain name.
-    - All fields in the mapping file are mandatory.
-    - `ADMIN_MAC` and `BMC_MAC` must refer to the PXE NIC and BMC NIC on target nodes respectively.
-    - Target servers must be configured to boot in PXE mode with the appropriate NIC as the first boot device.
+    - Ensure that nodes belonging to the same group have the same parent. In the mapping file, node entries with the same `GROUP_NAME` must have the same parent specified in the `PARENT_SERVICE_TAG` column.
+    - The header fields mentioned above are case sensitive.
+    - The IP addresses provided in the mapping file are not validated by Omnia. Ensure that the correct IP addresses are provided. Incorrect IP addresses can cause unexpected failures.
+    - The service tags provided in the mapping file are not validated by Omnia. Ensure that correct service tags are provided. Incorrect service tags can cause unexpected failures.
+    - The hostnames provided should not contain the domain name of the nodes.
+    - All fields mentioned in the mapping file are mandatory.
+    - The ADMIN_MAC and BMC_MAC addresses provided in `pxe_mapping_file.csv` should refer to the PXE NIC and BMC NIC on the target nodes respectively.
+    - Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
 
-## Step 3 -- Prepare the OIM for BuildStreaM
+### Groups
 
-Prepare the OIM by deploying the required containers and services for
-BuildStreaM. This step installs the OpenCHAMI containers, BuildStreaM
-container, Omnia Auth container, Pulp container, and Playbook Watcher service.
+Nodes that are located in the same place or similar hardware can be grouped together. To do so, update the mapping file with all necessary attributes for the nodes, based on their role within the cluster. Each group will have following attributes as indicated in the table below:
+
+| Attribute | Description |
+| --- | --- |
+| `GROUP_NAME` | A unique name for the group (e.g., grp0, grp1) |
+| `FUNCTIONAL_GROUP_NAME` | The functional role assigned to nodes in this group |
+| `SERVICE_TAG` | The Dell service tag of the node |
+| `PARENT_SERVICE_TAG` | The service tag of the parent chassis (if applicable) |
+
+### Functional Groups
+
+Nodes with similar functional roles or functionalities can be grouped together. The following table lists the functional groups available in Omnia.
+
+!!! note
+
+    - At least one functional group is mandatory, and you must not change the name of functional groups.
+    - Ensure that the group nodes intended for a specific role must be associated with the corresponding functional group and must not be associated under multiple functional groups.
+    - The functional groups are case-sensitive.
+    - Omnia supports HA functionality for the `service_cluster`. For more information, see [Configure HA](../HowTo/Kubernetes/configure_ha.md).
+    - To set up a service cluster, the `service_kube_node` must be present in the mapping file.
+
+### Recommended Software by Functional Groups
+
+!!! caution
+
+    Ensure that the `software_config.json` file contains all required inputs for the software to be deployed on each functional group. For more information, see [Input parameters for Local Repositories](https://omnia-devel.readthedocs.io/en/latest/OmniaInstallGuide/RHEL_new/CreateLocalRepo/InputParameters.html).
+
+The following table lists the functional groups along with the recommended software to be deployed on each group.
+
+| Functional Group Name | Recommended Software |
+| --- | --- |
+| service_kube_control_plane_x86_64 | service_k8s.json |
+| service_kube_node_x86_64 | service_k8s.json |
+| slurm_control_node_x86_64 | slurm_custom.json, openldap.json, ldms.json |
+| slurm_node_x86_64 | slurm_custom.json, openldap.json, ldms.json |
+| slurm_node_aarch64 | slurm_custom.json, openldap.json, ldms.json |
+| login_node_x86_64 | slurm_custom.json, openldap.json, ldms.json |
+| login_node_aarch64 | slurm_custom.json, openldap.json, ldms.json |
+| login_compiler_node_x86_64 | slurm_custom.json, openldap.json, ucx.json, openmpi.json, ldms.json |
+| login_compiler_node_aarch64 | slurm_custom.json, openldap.json, ucx.json, openmpi.json, ldms.json |
+
+### Verification
+
+Ensure that the PXE mapping file is correctly formatted and that all required fields are populated.
+
+### Next Steps
+
+After creating the PXE mapping file, prepare the Omnia Infrastructure Manager by following the instructions in Step 3 below.
+
+---
+
+## Step 3: Prepare the Omnia Infrastructure Manager
+
+To enable BuildStreaM functionality, you must prepare the Omnia Infrastructure Manager (OIM) by deploying the required containers and services. This procedure installs the OpenCHAMI containers, BuildStreaM container, Omnia Auth container, Pulp container, and Playbook watcher service that are essential for automated build workflows and cluster management.
 
 ### Prerequisites
 
-- The Omnia core container is installed with Omnia 2.2.0.0.
-- Administrator access on the OIM node.
-- Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services.
-- 10 GB free disk space for BuildStreaM data and logs.
-- System time is synchronized across all compute nodes and the OIM. Time mismatch can lead to certificate-related issues.
+Before beginning the BuildStreaM setup:
 
-!!! warning
+- Ensure that the Omnia core container is installed with Omnia 2.2.0.0
+- Administrator access on the Omnia Infrastructure Manager (OIM) node
+- Minimum 4 GB RAM and 2 CPU cores for BuildStreaM services
+- 10 GB free disk space for BuildStreaM data and logs
+- Ensure that the system time is synchronized across all compute nodes and the OIM. Time mismatch can lead to certificate-related issues during or after the `prepare_oim.yml` playbook execution.
 
-    BuildStreaM requires a separate PostgreSQL database for storing
-    transaction details and job metadata.
+!!! important
 
-### 3a. Update input configuration files
+    BuildStreaM requires a separate PostgreSQL database for storing transaction details and job metadata.
 
-Update the following input files in `/opt/omnia/input/project_default/`:
+### Procedure
 
-- `build_stream_config.yml` -- BuildStreaM pipeline configuration. See the [BuildStreaM configuration reference](../Reference/Configuration/buildstream_config.md) for parameter details.
-- `gitlab_config.yml` -- GitLab configuration for BuildStreaM.
-- `high_availability_config.yml` -- High availability configuration.
-- `local_repo_config.yml` -- Local repository configuration.
-- `network_spec.yml` -- Network configuration for the cluster.
-- `omnia_config.yml` -- Omnia configuration.
-- `provision_config.yml` -- Provisioning configuration.
-- `security_config.yml` -- Security configuration.
-- `storage_config.yml` -- Storage configuration.
-- `telemetry_config.yml` -- Telemetry configuration.
-- `telemetry_storage_config.yml` -- Telemetry storage configuration.
-- `user_registry_credential.yml` -- User registry credentials.
+1. Update the following input files.
+
+    - `build_stream_config.yml`: contains the details about the BuildStreaM pipeline.
+    - `gitlab_config.yml`: contains the details about the BuildStreaM GitLab configuration.
+    - `high_availability_config.yml`: contains the details about the high availability configuration.
+    - `local_repo_config.yml`: contains the details about the local repository configuration.
+    - `network_spec.yml`: contains the details about the network configuration.
+    - `omnia_config.yml`: contains the details about the Omnia configuration.
+    - `provision_config.yml`: contains the details about the provision configuration.
+    - `security_config.yml`: contains the details about the security configuration.
+    - `storage_config.yml`: contains the details about the storage configuration.
+    - `telemetry_config.yml`: contains the details about the telemetry configuration.
+    - `telemetry_storage_config.yml`: contains the details about the telemetry storage configuration.
+    - `user_registry_credential.yml`: contains the details about the user registry credentials.
+
+#### `build_stream_config.yml`
+
+Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the BuildStreaM configuration table for guidance when configuring these parameters.
 
 !!! note
 
-    Ensure that `build_stream_port` is correctly configured in
-    `build_stream_config.yml`. The BuildStreaM port cannot be modified
-    after preparing the OIM. To change the port, clean up the OIM first
-    (`cleanup_oim.yml`) and then prepare it again with the new port
-    (`prepare_oim.yml`).
+    Ensure that the `build_stream_port` (BuildStreaM port) is correctly configured in the `build_stream_config.yml` file. The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using `cleanup_oim.yml`), and then prepare the OIM again with the required port number (using `prepare_oim.yml`).
 
-**BuildStreaM configuration parameters:**
+#### `gitlab_config.yml`
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `enable_build_stream` | Yes | `false` | Enable or disable the BuildStreaM pipeline. Accepted values: `true`/`false` or `yes`/`no`. |
-| `build_stream_host_ip` | Yes | Admin IP of OIM | BuildStreaM API server host IP. Must be reachable from the GitLab server. |
-| `build_stream_port` | Yes | `8010` | BuildStreaM API server port. Must be a free port (1--65535). |
-| `aarch64_inventory_host_ip` | Conditional | None | The admin IP of the aarch64 host. Required only for aarch64 builds. |
+Add necessary inputs to the `gitlab_config.yml` file for the BuildStreaM GitLab configuration. Use the GitLab configuration table for guidance when configuring these parameters.
 
-**Sample `network_spec.yml`:**
+#### `high_availability_config.yml`
 
-```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+Add necessary inputs to the `high_availability_config.yml` file for the high availability configuration. Use the high availability configuration table for guidance when configuring these parameters.
+
+#### `local_repo_config.yml`
+
+Add necessary inputs to the `local_repo_config.yml` file for the local repository configuration. Use the local repository configuration table for guidance when configuring these parameters.
+
+#### `network_spec.yml`
+
+Add necessary inputs to the `network_spec.yml` file to configure the network on which the cluster will operate. Use the network configuration table for guidance when configuring these parameters.
+
+!!! caution
+
+    - All provided network ranges and NIC IP addresses should be distinct with no overlap.
+    - All iDRACs must be reachable from the OIM.
+
+A sample of the `network_spec.yml` where nodes are discovered using a **mapping file** is provided below:
+
+```yaml title="Example network_spec.yml excerpt"
 Networks:
 - admin_network:
    oim_nic_name: "eno1"
@@ -230,84 +424,96 @@ Networks:
    dns: []
 ```
 
-!!! warning
+#### `omnia_config.yml`
 
-    All provided network ranges and NIC IP addresses must be distinct with
-    no overlap. All iDRACs must be reachable from the OIM.
+Add necessary inputs to the `omnia_config.yml` file for the OMNIA configuration. Use the OMNIA configuration table for guidance when configuring these parameters.
 
-### 3b. Set credentials
+#### `provision_config.yml`
 
-Run the `credentials_utility.yml` playbook to store passwords for BuildStreaM
-and other services:
+Add necessary inputs to the `provision_config.yml` file for the provisioning of the cluster. Use the provisioning configuration table for guidance when configuring these parameters.
 
-```bash title="Run on: OIM (inside omnia_core container)"
-ssh omnia_core
-cd /omnia
-ansible-playbook credentials_utility.yml
-```
+#### `security_config.yml`
 
-You will be prompted to set:
+Add necessary inputs to the `security_config.yml` file for the security configuration. Use the security configuration table for guidance when configuring these parameters.
 
-- **BuildStreaM username and password** -- Required when BuildStreaM is enabled in `build_stream_config.yml`.
-- **Provisioning OS password** -- Root password for provisioned nodes.
-- **iDRAC credentials** -- Username and password for out-of-band access.
+#### `storage_config.yml`
 
-### 3c. Run `prepare_oim.yml`
+Add necessary inputs to the `storage_config.yml` file for the storage configuration. Use the storage configuration table for guidance when configuring these parameters.
 
-```bash title="Run on: OIM (inside omnia_core container)"
-ssh omnia_core
-cd /omnia/prepare_oim
-ansible-playbook prepare_oim.yml
-```
+#### `telemetry_config.yml`
 
-The `prepare_oim.yml` playbook deploys the following on the OIM:
+Add necessary inputs to the `telemetry_config.yml` file for the telemetry configuration. Use the telemetry configuration table for guidance when configuring these parameters.
+
+#### `telemetry_storage_config.yml`
+
+Add necessary inputs to the `telemetry_storage_config.yml` file for the telemetry storage configuration. Use the telemetry storage configuration table for guidance when configuring these parameters.
+
+2. After updating the input files, run the `prepare_oim.yml` playbook:
+
+    ```bash title="Run on: omnia_core container"
+    ssh omnia_core
+    cd /omnia/prepare_oim
+    ansible-playbook prepare_oim.yml
+    ```
+
+The `prepare_oim.yml` deploys the following on the OIM node:
 
 - OpenCHAMI containers
 - PostgreSQL database container
 - Omnia Auth container
 - Pulp container
 - BuildStreaM API container
-- Playbook Watcher service
+- Playbook watcher service
 
 !!! note
 
-    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you
-    switch from a non-root to root user using `sudo`. Log in directly as
-    `root` before executing the playbook.
+    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using `sudo` command. To avoid this, log in directly as a `root` user before executing the playbook.
 
-### 3d. Verify OIM services
+### Verification
 
-1. **Check the Omnia Core service**:
+After successfully running the `prepare.oim.yml`, you can verify if the `omnia.target` and its dependent services are running correctly.
+
+1. Run the following command to check the status of the OMNIA Core service:
 
     ```bash title="Run on: OIM host"
     systemctl status omnia_core.service
     ```
 
-2. **Check the BuildStreaM API container**:
+    This command displays whether the `omnia_core.service` is active, inactive, or has failed.
 
-    ```bash title="Run on: OIM host"
+2. Check the status of the BuildStreaM API container.
+
+    ```bash
     systemctl status omnia_build_stream.service
     ```
 
-3. **Check the Playbook Watcher service**:
+3. Check the status of the playbook watcher service.
 
-    ```bash title="Run on: OIM host"
+    ```bash
     systemctl status playbook_watcher.service
     ```
 
-4. **Check the PostgreSQL database container**:
+4. Check the status of the PostgreSQL database container.
 
-    ```bash title="Run on: OIM host"
+    ```bash
     systemctl status omnia_postgres.service
     ```
 
-5. **View the complete dependency tree**:
+5. To view the complete list of dependent services for the OMNIA target, run:
 
-    ```bash title="Run on: OIM host"
+    ```bash
     systemctl list-dependencies omnia.target
     ```
 
-    Expected output:
+6. Review the status of the dependent services in the following tree output.
+
+    !!! note
+
+        The `prepare_oim.yml` deploys the following on the OIM node only when BuildStream is enabled on the `build_stream_config.yml`.
+
+        - PostgreSQL database container
+        - BuildStreaM API container
+        - Playbook watcher service
 
     ```text title="Expected output"
     omnia.target
@@ -342,425 +548,163 @@ The `prepare_oim.yml` playbook deploys the following on the OIM:
     ●   └─step-ca.service
     ```
 
-    - A green circle indicates the service is running.
-    - A grey circle indicates the service is not running.
-
-!!! note
-
-    The `omnia_build_stream.service`, `omnia_postgres.service`, and
-    `playbook_watcher.service` run only when BuildStreaM is enabled in
-    `build_stream_config.yml`.
-
-## Step 4 -- Deploy GitLab for BuildStreaM
-
-Deploy GitLab as the CI/CD automation engine for BuildStreaM. GitLab provides
-the three-pipeline architecture for build, deploy, and cleanup operations.
-
-### Prerequisites
-
-- The BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM (Step 3 completed).
-- A dedicated node is required for BuildStreaM GitLab deployment.
-- The GitLab node has internet connectivity.
-- The GitLab node has minimum 4 GB RAM, 2 CPU cores, and 20 GB free disk space.
-- GitLab requires a minimum of 2 CPU cores.
-- The OIM node is accessible from the GitLab node.
-- The BuildStreaM API server is reachable from the GitLab node.
-- AppStream and BaseOS repositories are configured and accessible on the GitLab node.
-- SELinux is disabled on the GitLab node.
-
-!!! warning
-
-    Omnia uses a dedicated GitLab instance for BuildStreaM. This procedure
-    provisions a new GitLab instance specifically configured for BuildStreaM.
-    Existing GitLab setups configured for other purposes are not supported.
-
-### Procedure
-
-1. **Connect to the omnia_core container**:
-
-    ```bash title="Run on: OIM host"
-    ssh omnia_core
-    ```
-
-2. **Verify the GitLab configuration**:
-
-    ```bash title="Run on: OIM (inside omnia_core container)"
-    cat /opt/omnia/input/project_default/gitlab_config.yml
-    ```
-
-    <!-- TODO: Provide gitlab_config.yml parameter reference link when available -->
-
-3. **Run the GitLab deployment playbook**:
-
-    ```bash title="Run on: OIM (inside omnia_core container)"
-    cd /omnia/gitlab
-    ansible-playbook gitlab.yml
-    ```
-
-    When prompted, enter a GitLab password. Note this password as it is
-    required to access the GitLab project and instance.
-
-!!! note
-
-    The installation takes 10--15 minutes to complete.
-
-The `gitlab.yml` playbook performs the following:
-
-- Installs GitLab on the host specified in `gitlab_config.yml`.
-- Creates a project with the configured name, visibility, and default branch.
-- Installs GitLab Runner as a Podman container.
-- Generates a self-signed CA certificate at `/root/gitlab-certs/ca.crt` on the GitLab node.
-- Adds the following files to the project:
-    - **Pipeline configuration**: `.gitlab-ci.yml` (parent router), `.gitlab-ci-build.yml`, `.gitlab-ci-deploy.yml`, `.gitlab-ci-cleanup.yml`, `.gitlab-ci-deploy-child-template.yml`
-    - **Catalog file**: `catalog_rhel.json` (default catalog for RHEL images)
-    - **Input folder**: `input/` directory containing all BuildStreaM input configuration files
-
-![BuildStreaM GitLab project structure](../assets/images/buildstream_project.png)
-
-The `input/` folder includes:
-
-- `build_stream_config.yml`
-- `gitlab_config.yml`
-- `high_availability_config.yml`
-- `local_repo_config.yml`
-- `network_config.yml`
-- `omnia_config.yml`
-- `provision_config.yml`
-- `pxe_mapping_file.csv`
-- `security_config.yml`
-- `storage_config.yml`
-- `telemetry_config.yml`
-- `telemetry_storage_config.yml`
-
-![BuildStreaM project input files](../assets/images/buildstream_project_input_files.png)
-
-### Verification
-
-1. **Verify you can access the GitLab project URL**:
-
-    ```text title="GitLab project URL"
-    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
-    ```
-
-2. **Verify the project** contains the expected files and folders.
-
-3. **Verify runner status** through the GitLab web interface:
-    1. Navigate to **Settings** > **CI/CD**.
-    2. Expand the **Runners** section.
-    3. Verify the runner shows a **green** status indicator.
-    4. Confirm the runner is set to **Running Always** with **Podman Container**.
-
-!!! tip
-
-    To avoid "Not Secure" warnings when accessing GitLab, download and
-    import the CA certificate generated at `/root/gitlab-certs/ca.crt`
-    on the GitLab node into your browser.
-
-## Step 5 -- Execute the Build Pipeline
-
-Update the `catalog_rhel.json` file and execute the BuildStreaM build
-pipeline to create diskless images. The build pipeline consists of four
-sequential stages:
-
-- **parse-catalog**: Parses and validates the catalog file.
-- **generate-input-files**: Generates input files and configuration data.
-- **create-local-repository**: Creates the local repository for build artifacts.
-- **build-image**: Builds the diskless images based on catalog specifications.
-
-### Prerequisites
-
-- The BuildStreaM container is deployed on the OIM (Step 3).
-- GitLab deployment is complete (Step 4).
-- You can access the GitLab project repository.
-
-### Procedure
-
-1. **Navigate to the GitLab project URL**:
-
-    ```text title="GitLab project URL"
-    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
-    ```
-
-2. Go to **Code** > **Repository** and locate `catalog_rhel.json`.
-
-3. **Modify the catalog file** to define your build requirements.
+    - A **green circle** indicates that the service is running.
+    - A **grey circle** indicates that the service is not running.
+    - A **circle with a cross** indicates that the service failed to start.
 
     !!! note
 
-        Ensure the catalog file contains valid values:
+        The `omnia_auth.service` runs only when OpenLDAP is specified in the `/opt/omnia/input/project_default/software_config.json`.
 
-        - **Functional group names**: See the functional groups reference table.
-        - **Architecture type**: `x86_64` or `aarch64`.
-        - **OS type**: `RHEL`.
-        - **Package types**: `rpm`, `rpm_repo`, `image`, `iso`, `tarball`, `pip_module`, `git`, `manifest`.
+    !!! note
 
-4. **Trigger the build pipeline** by committing and pushing the catalog changes. The pipeline triggers automatically on commit.
+        The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher_service` run only when BuildStreaM is enabled in the `/opt/omnia/input/project_default/build_stream_config.yml`.
 
-    ![BuildStreaM build trigger](../assets/images/buildstream-build-trigger.png)
+### View Usage Instructions for OpenCHAMI Containers
 
-5. **Monitor the pipeline progress** through the GitLab web interface:
-    1. Navigate to **Build** > **Pipelines**.
-    2. Click on the running pipeline to view details.
-    3. Monitor each stage as it progresses.
+The `ochami --help` command provides usage instructions for interacting with **OpenCHAMI services**. The help menu lists the supported commands you can use for node discovery, provisioning, and service management.
 
-    ![BuildStreaM build pipeline success](../assets/images/buildstream-buid-success.png)
+1. Access the OpenCHAMI container via Podman.
 
-!!! note
+2. On the Omnia Infrastructure Manager (OIM), run the following command:
 
-    - BuildStreaM currently supports only one catalog file and one pipeline trigger at a time.
-    - Each pipeline processes catalog changes independently. Once a pipeline completes, you can modify the catalog and re-trigger.
-
-### Execute build pipeline manually
-
-To manually trigger the build pipeline:
-
-1. Navigate to **Build** > **Pipelines** and click **New Pipeline**.
-2. In the **Run new pipeline** dialog, enter the variable name as `PIPELINE_TYPE` and the value as `build`.
-
-    ![GitLab build manual configuration](../assets/images/gitlab-build-manual-config.png)
-
-3. Click **Run Pipeline**.
-
-### Verification
-
-1. Navigate to **Build** > **Pipelines** and verify all stages show green checkmarks.
-2. Click on individual jobs to view execution logs and verify no errors.
-
-## Step 6 -- Execute the Deploy Pipeline
-
-Deploy the built images to target cluster nodes. The deploy pipeline
-consists of three sequential stages:
-
-- **deploy**: Deploys images to the target nodes.
-- **restart**: PXE-boots the target nodes to load deployed images.
-- **validate**: Executes Molecule-based infrastructure tests to verify cluster deployment, network connectivity, and service health.
-
-### Prerequisites
-
-- The build pipeline has completed successfully and images are available.
-- Target nodes are powered on and accessible via BMC.
-- The PXE mapping file (`pxe_mapping_file.csv`) is correctly configured with target node information.
-- The PXE mapping file is present in the GitLab repository `input/` folder.
-
-### Procedure
-
-1. **Navigate to the GitLab project URL**:
-
-    ```text title="GitLab project URL"
-    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```bash
+    ochami --help
     ```
 
-2. **Trigger the deploy pipeline** by updating `pxe_mapping_file.csv` in the GitLab repository and committing the changes.
+The help menu includes:
 
-    ![GitLab deploy trigger](../assets/images/gitlab-deploy-trigger.png)
+- `bss`: Communicate with the Boot Script Service (BSS).
+- `cloud-init`: Interact with the cloud-init service.
+- `completion`: Generate the autocompletion script for the specified shell.
+- `config`: View or modify configuration options.
+- `discover`: Perform static or dynamic discovery of nodes.
+- `pcs`: Interact with the Power Control Service (PCS).
+- `smd`: Communicate with the State Management Database (SMD).
+- `version`: Display detailed version information and exit.
+- `help`: Display help for a specific command.
 
-3. In the deploy pipeline, **select the image** from the `select_image` stage and click the **Play** button.
+For more details about a specific command, run:
 
-    ![GitLab deploy select image](../assets/images/gitlab-deploy-select-image.png)
-
-4. Click the **Play** button in the `deploy` stage to deploy the image.
-
-    ![GitLab deploy play](../assets/images/gitlab-deploy-play.png)
-
-5. **Monitor the pipeline progress**:
-    1. Click on the running pipeline to view details.
-    2. Monitor each stage: **deploy** > **restart** > **validate**.
-
-### Execute deploy pipeline manually
-
-1. Navigate to **Build** > **Pipelines** and click **New Pipeline**.
-2. Enter the variable name as `PIPELINE_TYPE` and the value as `deploy`.
-
-    ![GitLab deploy manual configuration](../assets/images/gitlab-deploy-manual-config.png)
-
-3. Click **Run Pipeline**.
-
-    ![GitLab deploy success](../assets/images/gitlab-deploy-success.png)
-
-!!! note
-
-    When using manual retry, ensure only necessary parameters are updated.
-    Unnecessary changes may cause additional pipeline failures.
-
-### Handle deploy failures during restart stage
-
-When the restart stage encounters partial failures (some nodes PXE-boot
-successfully while others fail), BuildStreaM provides a `failed_nodes.json`
-mechanism for efficient retry operations.
-
-The `failed_nodes.json` file tracks which nodes failed to PXE boot and
-enables you to:
-
-- Track failed nodes with detailed error messages.
-- Manually fix failed nodes and update their entries as successful.
-- Retry only failed nodes instead of the entire inventory.
-
-```json title="Example: failed_nodes.json"
-{
-  "job_id": "018f3c4b-7b5b-7a9d-b6c4-9f3b4f9b2c10",
-  "stage_name": "restart",
-  "timestamp": "2026-04-10T16:32:15Z",
-  "total_nodes": 5,
-  "failure_count": 2,
-  "failed_nodes": [
-    {
-      "bmc_ip": "172.17.107.44",
-      "hostname": "slurm-node2",
-      "service_tag": "79WWJ93",
-      "status": "failed",
-      "message": "Failed. iDRAC is not ready. Retry again after iDRAC is ready"
-    },
-    {
-      "bmc_ip": "172.17.107.45",
-      "hostname": "slurm-node3",
-      "service_tag": "79WWJ94",
-      "status": "failed",
-      "message": "iDRAC is unreachable. pxe boot might be set. Please check the host reboot status manually"
-    }
-  ]
-}
+```bash
+ochami [command] --help
 ```
 
-**Retry procedure for failed nodes:**
+---
 
-1. During the first run, the restart stage attempts to PXE-boot all nodes automatically.
-2. If all nodes succeed, the stage proceeds to validation.
-3. In case of partial failure, only failed nodes are recorded in `failed_nodes.json` in the `miscellaneous` directory in GitLab.
+## Step 7: Initialize and Verify Telemetry
 
-    ![failed_nodes.json example](../assets/images/buildstream_restart_failed_nodes_json.png)
-
-4. Analyze failures and perform corrective actions:
-    - Check iDRAC readiness.
-    - Verify BMC network connectivity.
-    - Validate PXE boot configuration.
-
-5. After resolving issues, retry the restart stage for failed nodes.
-6. If automated retry is not feasible (e.g., VM or manual dependency), manually PXE-boot the affected nodes.
-7. After manual boot, update the node status to `success` in `failed_nodes.json` and click the **Retry downstream pipeline** icon.
-
-    ![Updated failed_nodes.json](../assets/images/buildstream_restart_updated_failed_nodes_json.png)
-
-    The restart stage completes successfully when all nodes are successful (automated or manual). The workflow then proceeds to the validation stage.
-
-    ![Restart stage success](../assets/images/buildstream_restart_stage_success.png)
-
-8. To view detailed logs for the validate stage, click on the Validate stage in the pipeline. The logs include the log file path on the OIM for the detailed test report.
-
-### Add new nodes to the cluster
-
-To deploy images on new nodes without affecting previously provisioned nodes:
-
-1. Update the `pxe_mapping_file.csv` with the details of the new nodes in GitLab.
-2. Run the deploy pipeline by selecting the required image.
-
-The system PXE-boots only the newly added nodes without impacting previously successful nodes.
-
-### Verification
-
-1. Check the overall pipeline status in GitLab to ensure all stages passed.
-2. Verify that target nodes have restarted and are accessible.
-3. Log in to a sample of deployed nodes to verify the correct image is loaded.
-4. Check the BuildStreaM API for deployment status and image group information.
-
-## Step 7 -- Initialize Telemetry
-
-Initialize telemetry services for monitoring the cluster. Telemetry collection
-enables you to gather performance metrics and system health data from cluster
-nodes.
+This step describes how to initialize and verify telemetry services for monitoring the cluster. Telemetry collection enables you to gather performance metrics and system health data from cluster nodes.
 
 !!! note
 
-    BuildStreaM does not automate telemetry invocation and data collection.
-    You must perform all steps in this section manually on the OIM.
+    BuildStreaM does not automate telemetry invocation and data collection. You must perform all steps in this section manually on the OIM.
 
 ### Prerequisites
 
-- Nodes are powered on and accessible via BMC.
+- Ensure that the nodes are powered on and accessible via BMC.
 
-### Procedure
+### Steps
 
-1. **Run the `telemetry.yml` playbook**:
+1. To initiate the iDRAC telemetry service on the service cluster, run the `telemetry.yml` playbook:
 
-    ```bash title="Run on: OIM (inside omnia_core container)"
+    ```bash title="Run on: omnia_core container"
     cd telemetry
     ansible-playbook telemetry.yml
     ```
 
 !!! note
 
-    Service cluster metadata automatically captures the service cluster
-    kube control plane virtual IP. The `telemetry.yml` playbook executes
-    against the VIP rather than an individual control plane node.
+    Service cluster metadata automatically captures the service cluster kube control plane virtual IP. As a result, the `telemetry.yml` playbook is executed against the VIP rather than an individual control plane node.
 
 !!! note
 
-    You do not need to run `telemetry.yml` if the service cluster is
-    configured only for LDMS. LDMS begins collecting data automatically
-    after nodes are deployed with the appropriate configuration.
+    You do not need to run `telemetry.yml` if the service cluster is configured only for LDMS. By default, LDMS begins collecting data after the nodes are deployed with the appropriate configuration.
 
-### Collect telemetry from external nodes
+### Collect Telemetry from External Nodes
 
-1. Update the BMC IP of external nodes in `/opt/omnia/telemetry/bmc_group_data.csv`. Leave the `GROUP_NAME` and `PARENT` fields blank.
+To collect telemetry from the external nodes, do the following:
 
-    ```text title="File: /opt/omnia/telemetry/bmc_group_data.csv"
-    BMC_IP,GROUP_NAME,PARENT
-    <IP Address>,,
-    ```
+1. Update the BMC IP of the external nodes in the `/opt/omnia/telemetry/bmc_group_data.csv`. The `GROUP_NAME` and `PARENT` fields must be left blank.
 
-2. Run the telemetry playbook:
+2. Run the `telemetry.yml` playbook using the following command:
 
-    ```bash title="Run on: OIM (inside omnia_core container)"
+    ```bash
     ansible-playbook telemetry.yml
     ```
 
-## Step 8 -- Verify Telemetry Services
+Sample:
 
-Validate telemetry services and their components, including pod status,
-message flow, TLS connectivity, and collected telemetry data.
+```text title="File: bmc_group_data.csv"
+BMC_IP,GROUP_NAME,PARENT
+<IP Address>,,
+```
+
+---
+
+## Step 8: Verify Telemetry Services Deployed on the Cluster
+
+This section outlines the steps to validate telemetry services and their components, including checking pod status, verifying message flow, confirming TLS connectivity, and reviewing collected telemetry data.
 
 !!! note
 
-    For the list of iDRAC telemetry metrics collected by Kafka and
-    VictoriaMetrics, see the
-    [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+    For the list of iDRAC telemetry metrics collected by Kafka and VictoriaMetrics, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 
-### Verify telemetry pods
+### Verify Telemetry-Related Pods Are Running
 
-```bash title="Run on: Service K8s control plane"
-kubectl get pods -n telemetry
-```
+To verify that the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLogs pods are running, do the following:
 
-Ensure the following pods are in a `Running` state:
+1. Run the following command:
 
-- iDRAC Telemetry pods
-- Kafka broker, controller, and operator pods
-- LDMS aggregator and store pods
-- VictoriaMetrics and vmagent pods
-- VictoriaLogs pods
-- PowerScale Telemetry pods
+    ```bash
+    kubectl get pods -n telemetry
+    ```
 
-### Verify telemetry services
+2. Ensure that the following pods are in a running state in the output:
 
-```bash title="Run on: Service K8s control plane"
-kubectl get svc -n telemetry
-```
+    - iDRAC Telemetry pods
+    - Kafka broker, controller, and operator pods
+    - LDMS aggregator and store pods
+    - VictoriaMetrics and vmagent pods
+    - VictoriaLogs pods
+    - PowerScale Telemetry pods
 
-Ensure the following service entries exist:
+The following is the sample output file:
 
-- iDRAC Telemetry service
-- Kafka broker, controller (bootstrap), and bridge services
-- LDMS aggregator and store services
-- VictoriaMetrics service
-- VictoriaLogs service
-- PowerScale Telemetry service
+![Verify Telemetry Pods](../assets/images/verify_telemetry_pods.png)
 
-### Verify iDRAC telemetry messages in Kafka
+### Verify Kubernetes Telemetry Services Attached to Telemetry
 
-1. Log in to the Service Kubernetes control plane.
+To verify Kubernetes telemetry services attached to the iDRAC Telemetry, Kafka, LDMS, VictoriaMetrics, and VictoriaLogs pods, do the following:
 
-2. **Create a Kafka consumer**:
+1. Run the following command:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
+    kubectl get svc -n telemetry
+    ```
+
+2. Ensure the following service entries exist:
+
+    - iDRAC Telemetry service
+    - Kafka broker, controller (bootstrap), and bridge services
+    - LDMS aggregator and store services
+    - VictoriaMetrics service
+    - VictoriaLogs service
+    - PowerScale Telemetry service
+
+The following is the sample output file:
+
+![Verify Kubernetes Telemetry](../assets/images/verify_kube_telemetry.png)
+
+### Verify iDRAC Telemetry Messages in Kafka
+
+To verify that iDRAC telemetry data is being successfully published to the `idrac` Kafka topic, do the following:
+
+1. Log in to the Service Kubernetes Control plane.
+
+2. Create a Kafka consumer using the following command:
+
+    ```bash
     KAFKA_LB_IP=<external load balancer IP of the bridge-bridge-lb service>
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group \
     -H 'content-type: application/vnd.kafka.v2+json' \
@@ -771,30 +715,32 @@ Ensure the following service entries exist:
         }'
     ```
 
-3. **Subscribe the consumer to the telemetry topic**:
+3. Subscribe the consumer to the telemetry topic using the following command:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/subscription \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{"topics": ["idrac"]}'
     ```
 
-4. **Consume messages from the topic**:
+4. Consume messages from the topic using the following command:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
     while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/idrac-consumer-group/instances/idrac-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
     ```
 
-    If telemetry metrics are collected correctly, the output contains JSON-formatted iDRAC telemetry records.
+If telemetry metrics are collected correctly, the output contains JSON-formatted iDRAC telemetry records.
 
-### Verify LDMS messages in Kafka
+### Verify LDMS Messages in Kafka
 
-1. Log in to the Service Kubernetes control plane.
+To verify that LDMS telemetry data is being successfully published to the `ldms` Kafka topic, do the following:
 
-2. **Create a Kafka consumer**:
+1. Log in to the Service Kubernetes Control plane.
 
-    ```bash title="Run on: Service K8s control plane"
+2. Create a Kafka consumer using the following command:
+
+    ```bash
     KAFKA_LB_IP=<external load balancer IP of the bridge-bridge-lb service>
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
     -H 'content-type: application/vnd.kafka.v2+json' \
@@ -806,166 +752,197 @@ Ensure the following service entries exist:
         }'
     ```
 
-3. **Subscribe to the LDMS topic**:
+3. Subscribe the consumer to the LDMS topic using the following command:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
     -H 'content-type: application/vnd.kafka.v2+json' \
     -d '{"topics": ["ldms"]}'
     ```
 
-4. **Consume messages**:
+4. Consume messages from the topic using the following command:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
     while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
     -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
     ```
 
+If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records.
+
 !!! note
 
-    When new nodes are added, ensure the nodes are up and cloud-init has
-    completed successfully (check `/var/log/cloud-init-output.log` on each
-    node). Create a new Kafka consumer group with a unique name to verify
-    metrics from newly added nodes. Wait 2--3 minutes after discovery
-    completes before checking.
+    When new nodes are added, ensure the nodes are up and cloud-init has completed successfully (check /var/log/cloud-init-output.log on each node). Then, create a new Kafka consumer group with a unique name (e.g., ldms-new-nodes-group) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
 
-### Verify Kafka TLS connectivity
+### Verify Kafka TLS Connectivity
 
-```bash title="Run on: Service K8s control plane"
+To verify TLS connectivity for Kafka, run the Kafka TLS test job to verify that certificates, truststores, keystores, and mTLS communication are functioning correctly:
+
+```bash
 cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
 kubectl apply -f kafka.tls_test_job.yaml
 ```
 
-After the job completes, check the logs:
+After the job completes, check the logs to confirm that the TLS connection is successful:
 
-```bash title="Run on: Service K8s control plane"
+```bash
 kubectl logs kafka-tls-test-xxx -n telemetry
 ```
 
-### Verify VictoriaMetrics TLS connectivity
+### Verify VictoriaMetrics TLS Connectivity
 
-```bash title="Run on: Service K8s control plane"
+To verify TLS connectivity for VictoriaMetrics, run the VictoriaMetrics TLS test job to verify that certificates and secure connectivity are functioning correctly:
+
+```bash
 cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
 kubectl apply -f victoria-tls-test-job.yaml
 ```
 
-After the job completes, check the logs:
+After the job completes, check the logs to confirm that the TLS connection is successful:
 
-```bash title="Run on: Service K8s control plane"
+```bash
 kubectl logs victoria-tls-test-xxx -n telemetry
 ```
 
-### View collected logs using VictoriaLogs
+### View Collected Logs using VictoriaLogs Query Interface
 
-1. Verify the VictoriaLogs `vlselect` pod is running:
+After applying the `telemetry.yml` configuration with `idrac_telemetry_collection_type` set to `victoria`, you can access the VictoriaLogs query interface to validate that log data is being collected and stored successfully.
 
-    ```bash title="Run on: Service K8s control plane"
+1. Run the following command to verify that the VictoriaLogs vlselect pod is running:
+
+    ```bash
     kubectl get pods -n telemetry -o wide | grep vlselect
     ```
 
-2. Verify the VictoriaLogs `vlselect` service is running:
+2. Run the following command to verify that the VictoriaLogs vlselect service is running:
 
-    ```bash title="Run on: Service K8s control plane"
+    ```bash
     kubectl get service -n telemetry -o wide | grep vlselect
     ```
 
-3. Note the **External IP** and **port number** of the `vlselect` service.
+3. Note the **External IP** and **port number** of the VictoriaLogs vlselect service. The external IP and port number will be used to access the VictoriaLogs query interface.
 
-4. Access the VictoriaLogs query interface in a browser:
+4. Access the VictoriaLogs query interface in a web browser using:
 
-    ```text title="VictoriaLogs URL"
+    ```text
     https://<external vlselect loadbalancer IP>:9471/select/vmui
     ```
 
-5. Filter and view logs using LogsQL queries. For example:
+5. Filter and view logs using LogsQL queries in the query interface. For example, the following query displays recent log entries:
 
-    ```text title="Example query"
+    ```text
     * | sort by time desc
     ```
 
-### View iDRAC telemetry data using VictoriaMetrics UI (cluster mode)
+### View Collected iDRAC Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 
-1. Verify VictoriaMetrics pods are running:
+After applying the `telemetry.yml` configuration using the VictoriaMetrics deployment mode as `cluster`, use the (VMUI) to validate that iDRAC telemetry data is being collected and stored successfully in a cluster mode VictoriaMetrics deployment. For more details, see [VictoriaMetrics Cluster deployment documentation](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/).
 
-    ```bash title="Run on: Service K8s control plane"
+1. Run the following command to verify that the VictoriaMetrics pod is running:
+
+    ```bash
     kubectl get pods -n telemetry -o wide | grep vm
     ```
 
-2. Verify VictoriaMetrics services are running:
+![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
 
-    ```bash title="Run on: Service K8s control plane"
+2. Run the following command to verify that the VictoriaMetrics service is running:
+
+    ```bash
     kubectl get service -n telemetry -o wide | grep vm
     ```
 
-3. Note the **External IP** and **port number** of the VictoriaMetrics service.
+![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
 
-4. Access the VMUI in a browser:
+3. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
-    ```text title="VictoriaMetrics VMUI URL"
+4. Access the VMUI in a web browser using:
+
+    ```text
     https://<external vmselect loadbalancer IP>:8481/select/0/vmui
     ```
 
-5. Filter and view telemetry metrics. For example:
+5. Filter and view telemetry metrics using queries in VMUI. For example, the following query displays detailed PowerEdge metrics for each hardware component:
 
-    ```text title="Example query"
+    ```text
     {__name__=~"PowerEdge_.*"}
     ```
 
-### Access the MySQL database
+![VictoriaMetrics VMUI Cluster](../assets/images/victoria_metrics_vmui_cluster.png)
 
-After `telemetry.yml` has been executed, you can check the MySQL database
-inside the `mysqldb` container:
+### View Collected PowerScale Telemetry Data using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 
-1. Get the names of the telemetry pods:
+After applying the `telemetry.yml` configuration using the VictoriaMetrics deployment mode as `cluster`, use the (VMUI) to validate that PowerScale telemetry data is being collected and stored successfully in a cluster mode VictoriaMetrics deployment. For more details, see [VictoriaMetrics Cluster deployment documentation](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/).
 
-    ```bash title="Run on: Service K8s control plane"
+1. Run the following command to verify that the VictoriaMetrics pod is running:
+
+    ```bash
+    kubectl get pods -n telemetry -o wide | grep vm
+    ```
+
+![VictoriaMetrics Pod Cluster Mode](../assets/images/victoria_metrics_pod_cluster_mode.png)
+
+2. Run the following command to verify that the VictoriaMetrics service is running:
+
+    ```bash
+    kubectl get service -n telemetry -o wide | grep vm
+    ```
+
+![VictoriaMetrics Service Cluster](../assets/images/victoria_metrics_service_cluster.png)
+
+3. Run the following command to verify if OTEL collector is receiving telemetry data:
+
+    ```bash
+    kubectl logs -n telemetry -l app.kubernetes.io/name=otel-collector --all-containers --tail=50 | grep -i metric
+    ```
+
+![OTEL Collector Pod Cluster](../assets/images/otel_collector_pod_cluster.png)
+
+4. Note the **External IP** and **port number** of the VictoriaMetrics service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
+
+5. Access the VMUI in a web browser using:
+
+    ```text
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    ```
+
+6. Filter and view telemetry metrics using queries in VMUI. For example, the following query displays detailed PowerScale metrics for each hardware component:
+
+    ```text
+    {source=~"powerscale"}
+    ```
+
+![PowerScale Metrics VMUI Cluster](../assets/images/powerscale_metrics_vmui_cluster.png)
+
+### Accessing the MySQL Database
+
+After `telemetry.yml` has been executed for the service cluster, you can check the MySQL database inside the `mysqldb` container. To view these logs, do the following:
+
+1. Use the following command to get the names of all the telemetry pods:
+
+    ```bash
     kubectl get pods -n telemetry -l app=idrac-telemetry
     ```
 
-2. Access the MySQL database:
+    !!! note
 
-    ```bash title="Run on: Service K8s control plane"
+        The `idrac-telemetry-0` pod will always be responsible for collecting the telemetry data of the management nodes (`oim`, `service_kube_control_plane_x86_64`, `service_kube_node_x86_64`, `login_node_x86_64`, etc.).
+
+2. Execute the following command:
+
+    ```bash
     kubectl exec -it -n telemetry <iDRAC_telemetry_pod_name> -c mysqldb -- mysql -u <MYSQL_USER> -p
     ```
 
-3. Enter the MySQL password when prompted.
+3. When prompted, enter the mysql password to log in.
 
-4. Access the telemetry database:
+4. To enter into the `idrac_telemetry_db`, use the following command:
 
-    ```sql title="MySQL commands"
+    ```bash
     use idrac_telemetrydb;
-    select * from services;
     ```
 
-## Next Steps
+5. To access the services table:
 
-- [Deploy GitLab](../HowTo/BuildStreaM/deploy_gitlab.md) -- Configure and manage the GitLab instance.
-- [Update Catalog & Pipelines](../HowTo/BuildStreaM/update_catalog_pipeline.md) -- Modify catalogs and re-trigger pipelines.
-- [Perform Cleanup Operations](../HowTo/BuildStreaM/cleanup_operations.md) -- Remove old Image Groups when the count exceeds 50.
-- [Retry Pipeline Operations](../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipelines.
-
-## Troubleshooting
-
-- **Health Check stage failing**: Ensure the GitLab target IP and BuildStreaM API server are in the same subnet. Verify that `omnia_build_stream`, `omnia_postgres`, and `playbook_watcher` services are running. Check logs with `journalctl -u omnia_build_stream --no-pager`.
-
-- **API Registration stage failing**: Currently only one client can register with the BuildStreaM API server. If you see `max_clients_limit_reached`, either run the pipeline from the already registered client or perform `gitlab_cleanup` and reconfigure GitLab.
-
-- **Token Generation stage failing**: Check authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log`.
-
-- **Parse Catalog stage failing**: Ensure `catalog_rhel.json` matches the expected schema. Reference examples are available at `https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog`. Check job logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`.
-
-- **Create Local Repo stage failing**: Check the log path from the API response for detailed error information. Verify `local_repo_config.yml` settings.
-
-- **Build Images stage failing**: Ensure the catalog has predefined functional groups. Check the log path from the API response.
-
-- **Deploy Images stage failing**: Ensure functional groups in the PXE mapping file match those in `catalog_rhel.json`. Check the API response log path.
-
-- **Retry button not displayed**: Initiate a restart from the parent pipeline. This restarts the entire pipeline from the beginning.
-
-For detailed troubleshooting, see [BuildStreaM Troubleshooting](../Troubleshooting/buildstream.md).
-
-!!! info "Related resources"
-
-    - [Prerequisites Checklist](prerequisites_checklist.md)
-    - [BuildStreaM Troubleshooting](../Troubleshooting/buildstream.md)
-    - [Omnia BuildStreaM API Documentation](https://developer.dell.com/apis/ea677050-f49b-49e1-a4b9-1cdd563415d9/versions/2.2.0-0/introduction-to-buildstream-api-12967m0)
+    ```bash
+    select * from services;
+    ```
