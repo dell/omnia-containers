@@ -174,7 +174,7 @@ nav:
       - Discover Nodes: HowTo/Setup/discover_nodes.md
       - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - PXE Boot Nodes: HowTo/Setup/pxe_boot_nodes.md
-      - Configure PXE Boot: HowTo/Setup/configure_pxe_boot.md
+      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
