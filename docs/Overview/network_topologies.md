@@ -189,5 +189,4 @@ network troubleshooting and firewall rule management straightforward.
 !!! info
 
     - [Architecture](architecture.md) -- How the OIM connects to each network segment.
-    - [Composable Roles](composable_roles.md) -- How the mapping file associates nodes with IP
-      addresses across network segments.
+    - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How nodes are assigned IP addresses and roles across network segments.

@@ -1,147 +1,133 @@
 
 # Add and Remove Nodes
 
+Omnia supports addition and removal of Slurm compute nodes from an existing cluster. You can add or remove nodes using either OME-based BMC discovery or mapping file discovery.
 
-Omnia supports dynamically scaling your Slurm cluster by adding new compute
-nodes or removing existing ones without disrupting running workloads. This
-procedure uses the `add_node` and `remove_node` playbooks from inside the
-`omnia_core` Podman container on the OIM.
+!!! warning
 
-## Adding compute nodes
+    Addition of a new `slurm_control_node` is not supported.
 
-
-Use this procedure when new servers have been racked, cabled, and discovered by
-the OIM, and you want to include them in the Slurm cluster.
+## Adding Slurm nodes
 
 ### Prerequisites
 
+- The Slurm cluster is already operational (`slurmctld` is running on the control node).
+- Network connectivity between the OIM and the new nodes is verified.
+- For OME-based discovery: the new node is added and configured in OpenManage Enterprise (OME).
 
-- The new nodes have been provisioned with an operating system via
-  [Discover Nodes](../HowTo/Setup/discover_nodes.md) and [Pxe Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md).
-- Network connectivity between the OIM and the new nodes is verified (SSH
-  access works).
-- The Slurm cluster is already operational (`slurmctld` is running on the
-  control node).
+### Using mapping file discovery
 
-### Procedure
+1. Update the PXE mapping file with new Slurm node entries. Add entries for new nodes with the appropriate functional group (e.g., `slurm_node_x86_64`).
 
+    !!! warning
 
-1. **Update the node mapping file.** Add the new node entries (MAC address,
-   hostname, IP) to the mapping file used during initial deployment:
+        Do not remove existing nodes from the mapping file when adding new entries.
 
-   ```text
-   # /omnia/input/mapping_file.csv
-   AA:BB:CC:DD:EE:F1,compute-05,10.5.0.105
-   AA:BB:CC:DD:EE:F2,compute-06,10.5.0.106
-   ```
+2. Run the `provision.yml` playbook:
 
+    ```bash title="Run on: omnia_core container"
+    ssh omnia_core
+    cd /omnia/provision
+    ansible-playbook provision.yml
+    ```
 
-2. **Access the omnia_core container** on the OIM:
+3. PXE boot the newly added nodes.
 
-   ```bash
-   ssh omnia_core
-   ```
+4. To enable iDRAC telemetry collection on the new nodes, run the `telemetry.yml` playbook:
 
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/telemetry
+    ansible-playbook telemetry.yml
+    ```
 
-3. **Run the add_node playbook:**
+    !!! note
 
-   ```bash
-   cd /omnia
-   ansible-playbook playbooks/add_node.yml
-   ```
+        You do not need to run `telemetry.yml` if the service Kubernetes cluster nodes are configured to collect telemetry data only using LDMS. LDMS begins collection automatically after `provision.yml` is executed.
 
+### Using OME-based BMC discovery
 
-   The playbook will:
+1. Ensure the new node is added and configured in OpenManage Enterprise (OME).
 
-   - Install and configure `slurmd` on each new node.
-   - Register the nodes with the Slurm controller.
-   - Apply any GPU drivers or additional packages as specified in the
-     configuration.
+2. Run the `discovery.yml` playbook with the OME discovery mechanism:
 
-4. **Verify the new nodes** are visible to Slurm:
+    ```bash title="Run on: omnia_core container"
+    ssh omnia_core
+    cd /omnia/discovery
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+    ```
 
-   ```bash
-   sinfo
-   ```
+3. Update the PXE mapping file path in `provision_config.yml`.
 
+4. Run the `provision.yml` playbook:
 
-   Expected output shows the new nodes in an `idle` state:
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/provision
+    ansible-playbook provision.yml
+    ```
 
-   ```text
-   PARTITION  AVAIL  TIMELIMIT  NODES  STATE  NODELIST
-   normal*       up   infinite      6   idle  compute-[01-06]
-   ```
+5. PXE boot the newly added nodes.
 
+6. To enable iDRAC telemetry collection, run the `telemetry.yml` playbook:
 
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/telemetry
+    ansible-playbook telemetry.yml
+    ```
 
-## Removing compute nodes
+## Removing Slurm nodes
 
+### Using mapping file discovery
 
-Use this procedure when decommissioning servers or temporarily removing nodes
-from the scheduling pool.
+1. Update the PXE mapping file. Remove or reassign nodes that should no longer be part of the Slurm cluster.
 
-### Prerequisites
+2. Run the `provision.yml` playbook:
 
+    ```bash title="Run on: omnia_core container"
+    ssh omnia_core
+    cd /omnia/provision
+    ansible-playbook provision.yml
+    ```
 
-- You have `root` or `sudo` access to the OIM.
-- No critical jobs are running on the nodes to be removed (or you are prepared
-  to let them drain).
+3. To stop iDRAC telemetry collection from the removed nodes, run the `telemetry.yml` playbook:
 
-### Procedure
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/telemetry
+    ansible-playbook telemetry.yml
+    ```
 
+    !!! note
 
-1. **Drain the node** to allow running jobs to complete and prevent new jobs
-   from being scheduled:
+        You do not need to run `telemetry.yml` to stop LDMS collection from removed nodes. LDMS stops collection automatically after `provision.yml` is executed.
 
-   ```bash
-   scontrol update NodeName=compute-05 State=DRAIN Reason="Decommissioning"
-   ```
+### Using OME-based BMC discovery
 
+1. Remove or reassign the node in OpenManage Enterprise (OME).
 
-   Verify the node enters the `drained` state:
+2. Run the `discovery.yml` playbook with the OME discovery mechanism:
 
-   ```bash
-   sinfo -n compute-05
-   ```
+    ```bash title="Run on: omnia_core container"
+    ssh omnia_core
+    cd /omnia/discovery
+    ansible-playbook discovery.yml -e "discovery_mechanism=ome"
+    ```
 
+3. Update the PXE mapping file path in `provision_config.yml`.
 
-   ```text
-   PARTITION  AVAIL  TIMELIMIT  NODES  STATE    NODELIST
-   normal*       up   infinite      1  drained  compute-05
-   ```
+4. Run the `provision.yml` playbook:
 
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/provision
+    ansible-playbook provision.yml
+    ```
 
-2. **Access the omnia_core container** on the OIM:
+5. To stop iDRAC telemetry collection from the removed nodes, run the `telemetry.yml` playbook:
 
-   ```bash
-   ssh omnia_core
-   ```
-
-
-3. **Run the remove_node playbook:**
-
-   ```bash
-   cd /omnia
-   ansible-playbook playbooks/remove_node.yml -e "target_nodes=compute-05"
-   ```
-
-
-4. **Update the mapping file.** Remove the decommissioned node entry from
-   `/omnia/input/mapping_file.csv` to prevent it from being re-added in
-   future operations.
-
-5. **Verify the node has been removed:**
-
-   ```bash
-   sinfo
-   ```
-
-
-   The removed node should no longer appear in the node list.
-
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/telemetry
+    ansible-playbook telemetry.yml
+    ```
 
 ## Verification
-
 
 After adding or removing nodes, confirm the cluster state:
 
@@ -156,10 +142,8 @@ scontrol show nodes | grep NodeName
 srun -N 1 hostname
 ```
 
-
-
 !!! info
 
-    - [Add Slurm Nodes](../HowTo/Slurm/add_slurm_nodes.md) -- Detailed how-to for adding Slurm nodes.
-    - [Remove Slurm Nodes](../HowTo/Slurm/remove_slurm_nodes.md) -- Detailed how-to for removing Slurm nodes.
+    - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV format and functional group reference.
+    - [Provision Config](../Reference/Configuration/provision_config.md) -- Where the mapping file path is specified.
     - [Reprovision Cluster](reprovision_cluster.md) -- Re-image nodes instead of just adding/removing them.

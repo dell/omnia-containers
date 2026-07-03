@@ -147,14 +147,12 @@ See [Telemetry Architecture](telemetry_architecture.md) for the full pipeline ar
 ### Composable functional groups
 
 
-- **Composable roles system** -- Servers are assigned to functional groups via
+- **Functional groups system** -- Servers are assigned to functional groups via
   a CSV mapping file, decoupling physical hardware from logical roles.
 - A single server can hold multiple roles (e.g., Slurm control node + login
   node).
 - User-defined groups for physical characteristics (GPU type, CPU
   architecture, memory capacity).
-
-See [Composable Roles](composable_roles.md) for the full explanation.
 
 ### Stateless boot
 
