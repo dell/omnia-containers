@@ -68,6 +68,17 @@ plugins:
   - offline
   - search
   - tags
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+      auto_caption: false
+      caption_position: bottom
 
 # Extensions
 markdown_extensions:
@@ -202,6 +213,8 @@ nav:
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
+      - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
+      - Retry Pipelines: HowTo/BuildStreaM/retry_pipelines.md
       - BuildStreaM Troubleshooting: HowTo/BuildStreaM/buildstream_troubleshooting.md
   - Reference:
     - Reference/index.md

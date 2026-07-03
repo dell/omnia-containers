@@ -1,28 +1,10 @@
 # Path D: BuildStreaM Automated Deployment
 
-Deploy an automated, catalog-driven HPC cluster using Omnia BuildStreaM and
-GitLab CI/CD pipelines. BuildStreaM reads a declarative catalog to build
-diskless images and deploy them to cluster nodes through automated pipelines.
-
-**What you will build:**
-
-| Role | Functional Group | Purpose |
-|------|-----------------|---------|
-| OIM (management) | -- | Runs the `omnia_core` container, BuildStreaM API, PostgreSQL, and Playbook Watcher. Executes all Ansible playbooks. Does **not** join the compute cluster. |
-| GitLab node | -- | Hosts the GitLab instance and runner for CI/CD pipeline execution. |
-| Service K8s control plane (x3) | `service_kube_control_plane` | Runs the Kubernetes control plane for telemetry and monitoring services. |
-| Service K8s worker (x2) | `service_kube_node` | Runs telemetry collectors, Grafana, VictoriaMetrics, and Kafka. |
-| Slurm head node | `slurm_control_node` | Runs `slurmctld` and `slurmdbd` for job scheduling and accounting. |
-| Slurm compute nodes | `slurm_node` | Run `slurmd`; execute jobs submitted to the cluster. |
-| Login node | `login_node` | User-facing SSH gateway for job submission. |
-
-**Estimated time:** ~6 hours (varies with network speed, node count, and image build complexity).
-
-!!! note
-
-    This tutorial assumes you have completed every item on the
-    [Prerequisites Checklist](prerequisites_checklist.md). If you have not, stop here and
-    finish that first.
+Omnia BuildStreaM provides a comprehensive automation solution for managing
+infrastructure build workflows. Deploy an automated, catalog-driven HPC cluster
+using Omnia BuildStreaM and GitLab CI/CD pipelines. BuildStreaM reads a
+declarative catalog (json) to build diskless images and deploy them to cluster
+nodes through automated pipelines.
 
 BuildStreaM supports three pipeline types executed through GitLab:
 
@@ -30,17 +12,28 @@ BuildStreaM supports three pipeline types executed through GitLab:
 - **Deploy Pipeline**: Deploys built images to target cluster nodes. Automatically triggered when the PXE mapping file is updated, or executed manually.
 - **Clean Pipeline**: Removes old Image Groups based on retention policy. Executed manually only.
 
-!!! warning
+!!! note
 
-    Do not cancel a running GitLab pipeline or stage. Cancellation prevents
+    This tutorial assumes you have completed every item on the
+    [Prerequisites Checklist](prerequisites_checklist.md). If you have not, stop here and
+    finish that first.
+
+!!! note
+
+   - BuildStreaM does not support execution of multiple pipelines in parallel
+    or concurrently. Only one pipeline can be executed at a time.
+
+   - Do not cancel a running GitLab pipeline or stage. Cancellation prevents
     some pipeline steps from executing, which leaves the BuildStreaM job in
     an intermediate, inconsistent state. Backend BuildStreaM tasks already in
     progress continue running to completion regardless of cancellation.
 
-!!! note
+BuildStreaM addresses the key challenges in HPC cluster image management:
 
-    BuildStreaM does not support execution of multiple pipelines in parallel
-    or concurrently. Only one pipeline can be executed at a time.
+- **Automation**: Eliminates manual build and deployment processes
+- **Integration**: Works seamlessly with existing Omnia deployments
+- **Traceability**: Provides complete audit trails for all build operations
+
 
 To build custom workflows, use the BuildStreaM REST API. See the
 [Omnia BuildStreaM API Documentation](https://developer.dell.com/apis/ea677050-f49b-49e1-a4b9-1cdd563415d9/versions/2.2.0-0/introduction-to-buildstream-api-12967m0).
