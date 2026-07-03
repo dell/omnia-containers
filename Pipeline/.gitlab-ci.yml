@@ -1,0 +1,444 @@
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: always
+    
+stages:
+  - initialization
+  - setup_environment
+  - oim_cleanup
+  - omnia_sh_uninstall
+  - oim_prereq_check
+  - omnia_sh_install
+  - prepare_oim
+  - local_repo
+  - build_image_x86_64
+  - provision
+  - slurm
+  - kubernetes
+  - telemetry
+  - summary
+
+variables:
+  AUTOMATION_REPO: "https://github.com/dell/omnia-artifactory.git"
+  AUTOMATION_BRANCH: "automation-v2.2.0.0"
+  REMOTE_WORK_DIR: "/root/omnia-artifactory"
+  PIPELINE_VERSION: "2.2"
+
+initialization:
+  stage: initialization
+  when: on_success
+  allow_failure: false
+  timeout: 3h
+  script:
+    - echo "Pipeline Version $PIPELINE_VERSION"
+    - echo "Validating input files"
+    - test -f "omnia_test_config.yml" || exit 1
+    - test -f "omnia_test_credentials.yml" || exit 1
+    - test -d "datasets/project_default" || exit 1
+    - echo "Extracting target server credentials from omnia_test_config.yml"
+    - python3 -c "import yaml; config = yaml.safe_load(open('omnia_test_config.yml')); open('target.env', 'w').write(f'TARGET_IP={config.get(\"oim_server_ip\", \"\")}\nTARGET_USER={config.get(\"oim_ssh_user\", \"root\")}\nTARGET_PASS={config.get(\"oim_ssh_password\", \"\")}\n')"
+    - python3 -c "from datetime import datetime; open('pipeline_time.env', 'w').write(f'PIPELINE_TRIGGER_TIME={datetime.now().strftime(\"%Y-%m-%d_%H-%M-%S\")}\n')"
+    - cat target.env
+    - cat pipeline_time.env
+  artifacts:
+    paths:
+      - target.env
+      - pipeline_time.env
+
+setup_environment:
+  stage: setup_environment
+  timeout: 3h
+  needs:
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Setting up environment on target server"
+    - source target.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Step 1 Testing SSH connectivity"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 $TARGET_USER@$TARGET_IP "echo SSH connection successful"
+    - echo "Step 2 Checking if git is installed on target server"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "command -v git || (dnf install -y git || yum install -y git || apt-get install -y git)"
+    - echo "Step 3 Checking if automation repo exists"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "if [ -d $REMOTE_WORK_DIR ]; then rm -rf $REMOTE_WORK_DIR; fi"
+    - echo "Step 4 Cloning automation repo on target server"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd /root && git clone -b $AUTOMATION_BRANCH $AUTOMATION_REPO"
+    - echo "Step 5 Copying input files to target server"
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $CI_PROJECT_DIR/omnia_test_config.yml $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $CI_PROJECT_DIR/omnia_test_credentials.yml $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $CI_PROJECT_DIR/datasets/project_default $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/datasets/
+    - echo "Step 6 Verifying files on target server"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "ls -la $REMOTE_WORK_DIR/omnia_test_config.yml"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "ls -la $REMOTE_WORK_DIR/omnia_test_credentials.yml"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "ls -la $REMOTE_WORK_DIR/datasets/project_default/"
+    - echo "Step 7 Running setup_env.sh to create virtual environment"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && chmod +x setup_env.sh && ./setup_env.sh"
+    - echo "Step 8 Verifying virtual environment"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && python3 --version && pip list"
+    - echo "Environment setup completed"
+
+oim_cleanup:
+  stage: oim_cleanup
+  timeout: 3h
+  needs:
+    - job: setup_environment
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Checking if any container is running on target server"
+    - source target.env
+    - echo "Target server is $TARGET_IP"
+    - |
+      if sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "podman ps -a --format '{{.Names}}' | grep -q ."; then
+        echo "Container(s) found, proceeding with cleanup"
+        sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s oim_cleanup"
+        sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s oim_cleanup"
+        echo "Cleaning up NFS path from storage_config inside core container"
+        sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "CLIENT_SHARE_PATH=\$(podman exec omnia_core cat /opt/omnia/input/project_default/storage_config.yml | grep 'client_share_path' | awk '{print \$2}'); if [ -n \"\$CLIENT_SHARE_PATH\" ]; then echo \"Removing NFS path: \$CLIENT_SHARE_PATH\"; rm -rf \$CLIENT_SHARE_PATH; else echo \"No client_share_path found in storage_config.yml\"; fi"
+        echo "oim_cleanup completed"
+        mkdir -p reports
+        sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+        cd reports && mv test_report.html "report_oim_cleanup_$PIPELINE_TRIGGER_TIME.html" || true
+      else
+        echo "No containers found, skipping cleanup stage"
+        echo "This is expected for fresh installations"
+        mkdir -p reports
+        echo "Cleanup skipped - no containers found" > reports/report_oim_cleanup_$PIPELINE_TRIGGER_TIME.html
+      fi
+  artifacts:
+    paths:
+      - reports/
+    when: always  
+
+omnia_sh_uninstall:
+  stage: omnia_sh_uninstall
+  timeout: 3h
+  needs:
+    - job: oim_cleanup
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running omnia_sh_uninstall on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - |
+      if sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "podman ps --format '{{.Names}}' | grep -q '^omnia_core$'"; then
+        echo "omnia_core container is running, proceeding with uninstall"
+        sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && ./run_molecule.sh omnia_sh_uninstall test --suite sanity"
+        echo "omnia_sh_uninstall completed"
+        mkdir -p reports
+        sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+        cd reports && mv test_report.html "report_omnia_sh_uninstall_$PIPELINE_TRIGGER_TIME.html" || true
+      else
+        echo "omnia_core container is not running, skipping uninstall stage"
+        echo "This is expected for fresh installations"
+        mkdir -p reports
+        echo "Uninstall skipped - no core container found" > reports/report_omnia_sh_uninstall_$PIPELINE_TRIGGER_TIME.html
+      fi
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+oim_prereq_check:
+  stage: oim_prereq_check
+  timeout: 3h
+  needs:
+    - job: omnia_sh_uninstall
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running OIM prerequisite checks on target server"
+    - source target.env
+    - echo "Target server is $TARGET_IP"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && oim-prereq-check"
+    - echo "OIM prerequisite check completed"
+
+omnia_sh_install:
+  stage: omnia_sh_install
+  timeout: 3h
+  needs:
+    - job: oim_prereq_check
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running omnia_sh_install on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && ./run_molecule.sh omnia_sh_install test --suite sanity"
+    - echo "omnia_sh_install completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_omnia_sh_install_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+prepare_oim:
+  stage: prepare_oim
+  timeout: 3h
+  needs:
+    - job: omnia_sh_install
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running prepare_oim converge and verify on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s prepare_oim"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s prepare_oim"
+    - echo "prepare_oim completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_prepare_oim_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+local_repo:
+  stage: local_repo
+  timeout: 3h
+  needs:
+    - job: prepare_oim
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running local_repo converge and verify on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s local_repo"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s local_repo"
+    - echo "local_repo completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_local_repo_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+build_image_x86_64:
+  stage: build_image_x86_64
+  timeout: 3h
+  needs:
+    - job: local_repo
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running build_image_x86_64 directly in omnia_core container"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    
+    # Comment: Old method using molecule converge
+    # - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s build_image_x86_64"
+    
+    # Running ansible-playbook directly inside omnia_core container
+    - echo "Running build_image_x86_64 playbook directly in omnia_core container"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "podman exec -w /omnia/build_image_x86_64 omnia_core ansible-playbook build_image_x86_64.yml -v"
+    
+    - echo "Running verify tests"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s build_image_x86_64"
+    - echo "build_image_x86_64 completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_build_image_x86_64_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+provision:
+  stage: provision
+  timeout: 3h
+  needs:
+    - job: build_image_x86_64
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running provision.yml on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s provision"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s provision"
+    - echo "provision completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_provision_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+slurm:
+  stage: slurm
+  when: on_success
+  timeout: 3h
+  needs:
+    - job: provision
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running slurm verify on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s slurm"
+    - echo "slurm completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_slurm_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+kubernetes:
+  stage: kubernetes
+  timeout: 3h
+  needs:
+    - job: provision
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running kubernetes verify on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s kubernetes"
+    - echo "kubernetes completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_kubernetes_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+telemetry:
+  stage: telemetry
+  timeout: 3h
+  needs:
+    - job: kubernetes
+    - job: initialization
+      artifacts: true
+  script:
+    - echo "Running telemetry converge and verify on target server"
+    - source target.env
+    - source pipeline_time.env
+    - echo "Target server is $TARGET_IP"
+    - echo "Pipeline trigger time is $PIPELINE_TRIGGER_TIME"
+    #- sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && molecule converge -s telemetry"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "cd $REMOTE_WORK_DIR && source .venv/bin/activate && PYTEST_ADDOPTS='-m sanity' molecule verify -s telemetry"
+    - echo "telemetry completed"
+    - echo "Copying reports from target server"
+    - mkdir -p reports
+    - sshpass -p "$TARGET_PASS" scp -o StrictHostKeyChecking=no -r $TARGET_USER@$TARGET_IP:$REMOTE_WORK_DIR/reports/* reports/
+    - cd reports && mv test_report.html "report_telemetry_$PIPELINE_TRIGGER_TIME.html" || true
+  artifacts:
+    paths:
+      - reports/
+    when: always 
+
+summary:
+  stage: summary
+  when: always
+  allow_failure: true
+  needs:
+    - job: initialization
+      artifacts: true
+    - job: oim_cleanup
+      artifacts: true
+    - job: omnia_sh_uninstall
+      artifacts: true
+    - job: oim_prereq_check
+    - job: omnia_sh_install
+      artifacts: true
+    - job: prepare_oim
+      artifacts: true
+    - job: local_repo
+      artifacts: true
+    - job: build_image_x86_64
+      artifacts: true
+    - job: provision
+      artifacts: true
+    - job: slurm
+      artifacts: true
+    - job: kubernetes
+      artifacts: true
+    - job: telemetry
+      artifacts: true
+  script:
+    - echo "Using target.env and pipeline_time.env from initialization job"
+    - source target.env
+    - source pipeline_time.env
+    - echo "============================================"
+    - echo "Omnia Core Container - Last Commit Info"
+    - echo "============================================"
+    - sshpass -p "$TARGET_PASS" ssh -o StrictHostKeyChecking=no $TARGET_USER@$TARGET_IP "podman exec omnia_core git -C /omnia log -1 --oneline" || echo "Could not get git log from core container"
+    - echo "============================================"
+    - echo "Collecting all stage reports from job artifacts"
+    - mkdir -p final_reports
+    - |
+      # GitLab downloads artifacts from each job separately
+      # Collect all report files from all artifact directories
+      find . -name "report_*.html" -type f 2>/dev/null | while read report_file; do
+        echo "Found report: $report_file"
+        cp "$report_file" final_reports/
+      done
+    - |
+      # Prefer actual test reports over cleanup/uninstall placeholders
+      # Look for reports from stages that run molecule tests (in reverse order to get latest)
+      for stage in telemetry kubernetes slurm provision build_image_x86_64 local_repo prepare_oim omnia_sh_install; do
+        if ls final_reports/report_${stage}_*.html 1> /dev/null 2>&1; then
+          first_report=$(ls final_reports/report_${stage}_*.html | head -1)
+          cp "$first_report" "final_reports/test_report_${PIPELINE_TRIGGER_TIME}.html"
+          echo "Selected report from stage: $stage"
+          break
+        fi
+      done
+    - |
+      # Fallback: if no test stage reports found, use first available report
+      if [ ! -f "final_reports/test_report_${PIPELINE_TRIGGER_TIME}.html" ] && ls final_reports/report_*.html 1> /dev/null 2>&1; then
+        first_report=$(ls final_reports/report_*.html | head -1)
+        cp "$first_report" "final_reports/test_report_${PIPELINE_TRIGGER_TIME}.html"
+        echo "Fallback: using first available report"
+      fi
+    - ls -la final_reports/ || echo "No reports collected"
+    - echo "============================================"
+    - echo "Pipeline Status - $CI_PIPELINE_ID"
+    - echo "Pipeline URL - $CI_PIPELINE_URL"
+    - echo "============================================"
+    - echo "Generating pipeline summary file"
+    - echo "Pipeline Trigger Time - $PIPELINE_TRIGGER_TIME" > final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+    - echo "Pipeline ID - $CI_PIPELINE_ID" >> final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+    - echo "Pipeline URL - $CI_PIPELINE_URL" >> final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+    - echo "Project Name - $CI_PROJECT_NAME" >> final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+    - echo "Branch - $CI_COMMIT_REF_NAME" >> final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+    - echo "Commit - $CI_COMMIT_SHA" >> final_reports/pipeline_summary_${PIPELINE_TRIGGER_TIME}.txt
+  artifacts:
+    paths:
+      - final_reports/
