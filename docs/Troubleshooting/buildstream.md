@@ -76,7 +76,7 @@ On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/
 **Resolution**:
 
 * Ensure the JSON is aligned with the schema as shown in the reference examples available at:
-    - https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog
+    - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
 
 * If the issue persists, on the OIM, check the job-specific logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`
 
@@ -122,7 +122,7 @@ On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/
 
 **Resolution**:
 
-1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the functional groups section.
+1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [functional groups section](../GetStarted/buildstream_deployment.md#functional-groups).
 
 2. If changes are required in the catalog, make the necessary modifications to the catalog.
 

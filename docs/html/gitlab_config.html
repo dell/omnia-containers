@@ -24,7 +24,6 @@
                     <td>
                         <div class="omnia-cell">
                             <p>IP address of the target host where GitLab will be deployed. Must be accessible from the OIM server.</p>
-                            <p>Minimum length: 1.</p>
                         </div>
                     </td>
                 </tr>
@@ -40,8 +39,8 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Name of the GitLab project that Omnia creates or manages. This project is created automatically if it does not exist. Default: omnia-catalog.</p>
-                            <p>Minimum length: 1.</p>
+                            <p>Name of the GitLab project that Omnia creates or manages. This project is created automatically if it does not exist.</p>
+                            <p>Default: omnia-catalog</p>
                         </div>
                     </td>
                 </tr>
@@ -57,7 +56,9 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Visibility level for the GitLab project. private: access must be granted explicitly for each user. internal: can be cloned by any logged-in user. public: can be cloned without any authentication. Default: private.</p>
+                            <p>Visibility options that you can set for the GitLab project.</p>
+                            <p>Accepted values: private, internal, public</p>
+                            <p>Default: private</p>
                         </div>
                     </td>
                 </tr>
@@ -73,8 +74,8 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>The default branch used for repository and API operations. This branch is used as the default for all operations. Default: main.</p>
-                            <p>Minimum length: 1.</p>
+                            <p>The default branch used for repository and API operations. This branch is used as the default for all operations.</p>
+                            <p>Default: main</p>
                         </div>
                     </td>
                 </tr>
@@ -90,59 +91,26 @@
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>HTTPS port exposed via GitLab NGINX. Must be between 1-65535 and must not conflict with other services. Default: 443.</p>
-                            <p>Range: 1-65535.</p>
+                            <p>HTTPS port exposed via GitLab NGINX.</p>
+                            <p>Accepted values: valid port number (1-65535) which is free</p>
+                            <p>Default: 443</p>
                         </div>
                     </td>
                 </tr>
                 <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-gitlab_ssh_port"></div>
-                            <p class="omnia-title" id="module-parameter-gitlab-ssh-port">
-                                <strong>gitlab_ssh_port</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>SSH port for git+ssh operations. Accepted values: valid port number (1-65535). Default: 22</p>
-                            <p>Range: 1-65535.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
                     <td>
                         <div class="omnia-cell">
                             <div class="ansibleOptionAnchor" id="parameter-gitlab_min_storage_gb"></div>
                             <p class="omnia-title" id="module-parameter-gitlab-min-storage-gb">
                                 <strong>gitlab_min_storage_gb</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Free disk space in GB validated before install. GitLab requires at least 20GB of free disk space. Default: 20.</p>
-                            <p>Minimum: 20.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-gitlab_min_memory_gb"></div>
-                            <p class="omnia-title" id="module-parameter-gitlab-min-memory-gb">
-                                <strong>gitlab_min_memory_gb</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Minimum RAM in GB required before install. Accepted values: integer &gt;= 1. Default: 4</p>
-                            <p>Minimum: 1.</p>
+                            <p>Free disk space in GB validated before install. GitLab requires at least 20GB of free disk space.</p>
+                            <p>Minimum: 20</p>
                         </div>
                     </td>
                 </tr>
@@ -153,13 +121,14 @@
                             <p class="omnia-title" id="module-parameter-gitlab-min-cpu-cores">
                                 <strong>gitlab_min_cpu_cores</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Minimum CPU core count validated before install. More cores may be needed for production workloads. Default: 2.</p>
-                            <p>Minimum: 1.</p>
+                            <p>Minimum CPU core count validated before install. More cores may be needed for production workloads.</p>
+                            <p>Minimum: 2</p>
+                            <p>Default: 2</p>
                         </div>
                     </td>
                 </tr>
@@ -170,13 +139,15 @@
                             <p class="omnia-title" id="module-parameter-gitlab-puma-workers">
                                 <strong>gitlab_puma_workers</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Number of Puma web worker processes. Scale with CPU cores (recommended: 1-2 workers per CPU core). Default: 2.</p>
-                            <p>Range: 1-64.</p>
+                            <p>Number of worker processes.</p>
+                            <p>Scale with CPU cores (recommended: 1-2 workers per CPU core).</p>
+                            <p>Minimum: 1</p>
+                            <p>Default: 2</p>
                         </div>
                     </td>
                 </tr>
@@ -187,80 +158,15 @@
                             <p class="omnia-title" id="module-parameter-gitlab-sidekiq-concurrency">
                                 <strong>gitlab_sidekiq_concurrency</strong>
                             </p>
-                            <p class="omnia-type-line"><span class="omnia-type">integer</span></p>
+                            <p class="omnia-type-line"><span class="omnia-type">integer</span> / <span class="omnia-required">required</span></p>
                         </div>
                     </td>
                     <td>
                         <div class="omnia-cell">
-                            <p>Sidekiq background job concurrency. Adjust based on available memory and workload. Default: 10.</p>
-                            <p>Range: 1-200.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-oim_api_verify_ssl"></div>
-                            <p class="omnia-title" id="module-parameter-oim-api-verify-ssl">
-                                <strong>oim_api_verify_ssl</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">boolean</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Verify SSL certificate when connecting to OIM API. Set to false for self-signed certs. Accepted values: true or false. Default: true</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-gitlab_cert_dir"></div>
-                            <p class="omnia-title" id="module-parameter-gitlab-cert-dir">
-                                <strong>gitlab_cert_dir</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Directory on target host where cert artifacts are generated/stored. Accepted values: absolute path string. Default: /root/gitlab-certs</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-odd">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-gitlab_ssl_dir"></div>
-                            <p class="omnia-title" id="module-parameter-gitlab-ssl-dir">
-                                <strong>gitlab_ssl_dir</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>Final SSL directory consumed by GitLab Omnibus. Accepted values: absolute path string. Default: /etc/gitlab/ssl</p>
-                            <p>Minimum length: 1.</p>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="row-even">
-                    <td>
-                        <div class="omnia-cell">
-                            <div class="ansibleOptionAnchor" id="parameter-gitlab_repo_script_url"></div>
-                            <p class="omnia-title" id="module-parameter-gitlab-repo-script-url">
-                                <strong>gitlab_repo_script_url</strong>
-                            </p>
-                            <p class="omnia-type-line"><span class="omnia-type">string</span></p>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="omnia-cell">
-                            <p>URL for the GitLab package repository setup script. Override only when pinning to gitlab-ee or a specific version.</p>
-                            <p>Minimum length: 1.</p>
+                            <p>Background job concurrency.</p>
+                            <p>Adjust based on available memory and workload.</p>
+                            <p>Minimum: 1</p>
+                            <p>Default: 10</p>
                         </div>
                     </td>
                 </tr>
