@@ -174,12 +174,14 @@ nav:
       - Discover Nodes: HowTo/Setup/discover_nodes.md
       - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - PXE Boot Nodes: HowTo/Setup/pxe_boot_nodes.md
+      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
-      - Set Up Slurm: HowTo/Slurm/setup_slurm.md
       - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
+      - Set Up Slurm: HowTo/Slurm/setup_slurm.md
+      - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
       - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
       - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
@@ -190,6 +192,7 @@ nav:
       - Configure HA: HowTo/Kubernetes/configure_ha.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
+      - Configure Mounts: HowTo/Storage/configure_mounts.md
       - Configure NFS: HowTo/Storage/configure_nfs.md
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
       - Configure Vast: HowTo/Storage/configure_vast.md
