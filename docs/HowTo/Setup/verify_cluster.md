@@ -19,7 +19,7 @@ After provisioning and configuring your cluster, verify that:
 ## Prerequisites
 
 
-- Nodes are provisioned and reachable (see [Pxe Boot Nodes](pxe_boot_nodes.md)).
+- Nodes are provisioned and reachable (see [PXE Boot Playbook](configure_pxe_boot.md)).
 - Slurm and/or Kubernetes have been deployed (see
   [Setup Slurm](../Slurm/setup_slurm.md) or
   [Setup Service K8S](../Kubernetes/setup_service_k8s.md)).

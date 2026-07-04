@@ -132,7 +132,7 @@ The build process:
 
 
 - [Discover Nodes](discover_nodes.md) -- Run node discovery using the built images.
-- [Pxe Boot Nodes](pxe_boot_nodes.md) -- PXE boot target servers with the new images.
+- [PXE Boot Playbook](configure_pxe_boot.md) -- Configure PXE boot for target servers.
 
 
 ## Troubleshooting

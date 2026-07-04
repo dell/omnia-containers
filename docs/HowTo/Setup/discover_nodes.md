@@ -134,7 +134,7 @@ The `discovery.yml` playbook automates the following process:
 ## Next Steps
 
 
-- [Pxe Boot Nodes](pxe_boot_nodes.md) -- Ensure all nodes complete provisioning.
+- [PXE Boot Playbook](configure_pxe_boot.md) -- Configure PXE boot for discovered nodes.
 - [Verify Cluster](verify_cluster.md) -- Verify the cluster is operational.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Deploy Slurm on discovered nodes.
 

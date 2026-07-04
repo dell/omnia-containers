@@ -330,5 +330,5 @@ the `discovery.yml` playbook.
 !!! info
 
     - [Discover Nodes](../HowTo/Setup/discover_nodes.md) -- Full node discovery procedure.
-    - [Pxe Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md) -- PXE boot configuration guide.
+    - [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md) -- PXE boot configuration guide.
     - [Log Management](../Operations/log_management.md) -- Log locations for deeper diagnosis.
