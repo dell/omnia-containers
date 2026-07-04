@@ -11,6 +11,18 @@ This directory contains the GitLab CI/CD pipeline configuration for automating O
 - Target OIM server accessible from GitLab Runner
 - Python 3.x and required dependencies on Runner
 
+### Setup Checklist
+Before running the pipeline, ensure you have completed ALL these steps:
+
+- [ ] **Step 1:** Clone repository and push to your GitLab server
+- [ ] **Step 1a:** Edit `.gitlab-ci.yml` variables (AUTOMATION_REPO, AUTOMATION_BRANCH)
+- [ ] **Step 2:** Install and register GitLab Runner
+- [ ] **Step 3:** Configure GitLab CI/CD variables in project settings
+- [ ] **Step 4:** Edit configuration files (`omnia_test_config.yml`, `omnia_test_credentials.yml`)
+- [ ] **Step 5:** Verify dataset files in `datasets/project_default/`
+- [ ] **Step 6:** Test SSH connectivity to OIM server
+- [ ] **Step 7:** Trigger pipeline
+
 ### Setting Up Your GitLab Project
 
 #### 1. Clone and Setup Repository
@@ -30,6 +42,18 @@ git push -u origin --all
 git push -u origin --tags
 ```
 
+#### 1a. Edit Pipeline Configuration
+After cloning, you MUST update the `.gitlab-ci.yml` file with your environment details:
+
+```yaml
+# Edit Pipeline/.gitlab-ci.yml
+variables:
+  AUTOMATION_REPO: "https://github.com/dell/omnia-artifactory.git"  # Automation repo URL
+  AUTOMATION_BRANCH: "automation-v2.2.0.0"  # Automation branch
+  REMOTE_WORK_DIR: "/root/omnia-artifactory"  # Path on target OIM server
+  PIPELINE_VERSION: "2.2"  # Keep as is unless upgrading
+```
+
 #### 2. Configure GitLab Runner
 ```bash
 # Install GitLab Runner
@@ -47,21 +71,41 @@ gitlab-runner register
 # Enter executor: shell
 
 # Install dependencies on Runner
+sudo apt-get update && sudo apt-get install -y python3 python3-pip sshpass git
+# OR for RHEL/CentOS/Rocky
 sudo yum install -y python3 python3-pip sshpass git
 
 # Install Python packages
 pip3 install pyyaml
 ```
 
-#### 3. Configure Your Deployment
-Edit the following files in GitLab's web interface or locally:
+#### 3. Configure GitLab CI/CD Variables (REQUIRED)
+Go to your GitLab project → Settings → CI/CD → Variables and add:
+
+**Email Notification Variables:**
+| Variable Name | Value Example | Description | Protected | Masked |
+|--------------|---------------|-------------|-----------|---------|
+| `EMAIL_RECIPIENTS` | `team@company.com,team@company.com` | Comma-separated email recipients | Yes | Yes |
+| `EMAIL_SENDER` | `omnia@company.com` | Email sender address | Yes | Yes |
+
+**Using Variables in Configuration:**
+Instead of hardcoding sensitive data in `omnia_test_config.yml`, use CI/CD variables:
+```yaml
+# omnia_test_config.yml
+oim_server_ip: "${OIM_SERVER_IP}"  # Will be replaced by GitLab variable
+oim_ssh_user: "${OIM_SSH_USER}"
+oim_ssh_password: "${OIM_SSH_PASSWORD}"
+```
+
+#### 4. Configure Your Deployment Files
+Edit the following files in GitLab's web interface :
 
 **Essential Configuration Files:**
 - `omnia_test_config.yml` - Main configuration (OIM server details, deployment options)
 - `omnia_test_credentials.yml` - Credentials (passwords)
-- `datasets/project_default/` - All omnia-specific configurations
+- `datasets/project_default/` - All Omnia-specific configurations
 
-#### 4. Trigger the Pipeline
+#### 5. Trigger the Pipeline
 ```bash
 # Option 1: Via GitLab UI
 # Go to CI/CD → Pipelines → Run pipeline
@@ -104,7 +148,7 @@ stages:
   - initialization       # Validates configs, extracts credentials
   - setup_environment   # Prepares target server, clones repo
   - oim_cleanup        # Removes existing containers
-  - omnia_sh_uninstall # Uninstalls previous Omnia core
+  - omnia_sh_uninstall # Uninstalls previous Omnia
   - oim_prereq_check   # Validates prerequisites
   - omnia_sh_install   # Installs Omnia core
   - prepare_oim        # Prepares OIM environment
@@ -119,19 +163,7 @@ stages:
 
 ### Stage Dependencies
 - Each stage depends on the successful completion of previous stages
-  
 
-## Support and Resources
-
-- **Omnia Documentation**: https://omnia-doc.readthedocs.io/
-- **GitLab CI/CD Docs**: https://docs.gitlab.com/ee/ci/
-- **Ansible Documentation**: https://docs.ansible.com/
-- **Issue Tracker**: https://github.com/dell/omnia/issues
-- **Dell Support**: https://www.dell.com/support
-
-## License
-This project is licensed under the Apache License 2.0. See LICENSE file for details.
-
----
-*Last Updated: January 2025*
-*Version: 2.2.0.0*
+### Email Notifications
+Upon pipeline completion, an automated email will be sent to the configured recipients with:
+- **HTML test reports** - Detailed test results from each stage
