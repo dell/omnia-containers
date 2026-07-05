@@ -1,127 +1,123 @@
-
 # Known Limitations
 
+Review this page before planning your deployment to understand the current limitations and constraints of Omnia v2.2.
 
-Current limitations and constraints of Omnia v2.1.0. Review this page before
-planning your deployment to ensure your environment is compatible.
+## General limitations
 
-## Supported operating systems
+- Omnia supports only diskless provisioning of servers.
+- Dell Technologies provides support only for Dell-developed Omnia components. Third-party software deployed by Omnia is not covered under Dell support.
+- Containerized benchmark jobs are not supported on Slurm clusters.
+- All iDRACs must be configured with the same username and password.
 
+### InfiniBand restrictions
 
-Omnia supports the following operating systems on the OIM and cluster nodes:
+As described in the Red Hat documentation for InfiniBand and RDMA networking, Mellanox ConnectX-4 and newer adapters running RHEL 8 or later use Enhanced IPoIB mode by default. Enhanced IPoIB supports only datagram mode; connected mode is not supported.
 
-| Component | Supported OS | Notes |
-| --- | --- | --- |
-| **OIM (management node)** | RHEL 8.8, 8.9, 9.2, 9.4; Rocky Linux 8.x, 9.x | RHEL requires an active subscription for package repositories. |
-| **Slurm cluster nodes** | RHEL 8.8, 8.9, 9.2, 9.4; Rocky Linux 8.x, 9.x | The OIM and cluster nodes do not need to run the same OS version. |
-| **Kubernetes cluster nodes** | RHEL 8.8, 8.9, 9.2, 9.4; Rocky Linux 8.x, 9.x | Same as Slurm cluster nodes. |
+### Local repository GPG validation
+
+The `local_repo.yml` playbook completes successfully even when an invalid GPG key is provided during repository configuration. GPG key validation is currently not enforced during Pulp remote creation. Although local repositories support GPG keys, this functionality is not yet enabled in Pulp.
+
+For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issues/4241)
+
+### BuildStream limitations
+
+- BuildStream does not support customization of `catalog_rhel.json`.
+- BuildStream does not support installation of additional packages through the catalog.
+- BuildStream does not support automatic retry of failed pipeline jobs.
+
+### GPU software deployment limitations
+
+- DCGM and CUDA Toolkit are deployed only on Slurm compute nodes where NVIDIA GPUs are detected during provisioning.
+- Nodes provisioned without GPUs will not have DCGM or CUDA configured and cannot be converted into GPU-enabled nodes without reprovisioning.
+- DCGM installation depends on successful detection of the CUDA major version from an initialized NVIDIA driver. If driver initialization is incomplete during provisioning, DCGM deployment is deferred and must be completed manually.
+
+## Upgrade and rollback limitations
+
+- Omnia supports in-place upgrades only from **v2.1.0.0** to **v2.2.0.0**. Direct upgrades that skip releases (for example, **v2.0.0.0** to **v2.2.0.0**) are not supported. Upgrade one version at a time.
+- Rollback is intended for recovery from failed or partially completed upgrades. Rolling back a successfully completed upgrade is not recommended and is blocked by default. It can be forced using:
+
+    ```bash title="Run on: omnia_core container"
+    ansible-playbook rollback.yml -e force_rollback=true
+    ```
+
+    However, consistency across all components cannot be guaranteed.
+
+- New VAST storage mounts added after an upgrade are not retained during rollback.
+- Slurm and Kubernetes upgrade or rollback operations reboot all affected nodes simultaneously, resulting in temporary cluster downtime. Schedule these operations during a maintenance window.
+
+### BuildStream upgrade restrictions
+
+When BuildStream is enabled during an upgrade:
+
+- Kubernetes, Slurm, Telemetry, and related components are redeployed as new clusters through the GitLab CI/CD pipeline.
+- Existing cluster state, jobs, and custom configurations are not preserved.
+- The GitLab pipeline must be triggered manually after the upgrade.
+- BuildStream is intended primarily for test-bed environments.
+
+Additionally:
+
+- Disabling BuildStream during upgrade is not supported if it was enabled in Omnia 2.1.0.0.
+- Selective execution using `--tags` is not supported for upgrade or rollback operations. The complete playbook must be executed. On reruns, previously completed components are automatically skipped.
+
+### Telemetry and GitLab rollback restrictions
+
+- Telemetry data stored in VictoriaMetrics and Kafka is not preserved during rollback. Any telemetry collected after the upgrade is lost when the telemetry stack is reverted.
+- GitLab project rollback requires the upgrade commit to be the latest commit in the repository. If additional commits exist after the upgrade, automatic rollback will not restore GitLab content. In such cases, manually revert GitLab repository changes before performing the rollback.
+
+## BMC discovery limitations
+
+### OS NIC MAC address retrieval on Belton platforms
+
+**Affected configurations:**
+
+- Dell Belton platforms
+- Shared LOM (LAN on Motherboard) configurations
+- Mellanox ConnectX-6 and ConnectX-7 network adapters
+- Systems in a bare-metal state (no operating system installed)
+
+**Issue:**
+
+When the system is in a bare-metal state, the host operating system NIC MAC address cannot be retrieved using standard management interfaces, including:
+
+- iDRAC GUI
+- OpenManage Enterprise (OME)
+- Redfish APIs
+- RACADM CLI
+- Lifecycle Controller inventory
 
 !!! note
 
-    Ubuntu, SUSE, and other Linux distributions are **not supported** in this
-    release. Debian-based systems are on the roadmap for a future version.
+    The iDRAC MAC address remains visible and is reported correctly through iDRAC and OME. NIC devices are detected, but their host MAC address fields remain empty or unavailable.
 
-## Hardware requirements
+**Workarounds:**
 
+To obtain the host NIC MAC address, use one of the following methods:
 
-Minimum hardware specifications for each component:
+- Monitor DHCP or PXE boot traffic
+- Check network switch MAC address tables
+- Use factory-provided MAC address inventories
+- Review PXE boot logs
 
-| Component | CPU | RAM | Disk | Network |
-| --- | --- | --- | --- | --- |
-| **OIM** | 4 cores | 32 GB | 256 GB SSD | 2+ NICs |
-| **Slurm control node** | 4 cores | 16 GB | 100 GB | 1+ NIC |
-| **Slurm compute node** | 2+ cores | 8 GB | 50 GB | 1+ NIC |
-| **Kubernetes control plane** | 4 cores | 16 GB | 100 GB | 1+ NIC |
-| **Kubernetes worker** | 2+ cores | 8 GB | 50 GB | 1+ NIC |
+Capture DHCP discovery traffic to identify the host NIC MAC address:
 
-!!! important
+```bash title="Run on: OIM host"
+tcpdump -i <interface> -nne port 67 or port 68
+```
 
-    For clusters exceeding 100 nodes, the OIM should have 8+ cores and 64 GB
-    RAM to handle Pulp repository synchronization and parallel Ansible
-    execution.
+```text title="Expected output"
+DHCPDISCOVER from 3c:ec:ef:12:34:56
+```
 
-## Single OIM (no management-plane HA)
+In this example, `3c:ec:ef:12:34:56` is the host operating system NIC MAC address.
 
+## Documentation feedback
 
-Omnia uses a **single OIM** as the management and control point for the
-entire cluster. There is no built-in high-availability (HA) mechanism for the
-OIM itself.
-
-**Implications:**
-
-- If the OIM goes down, you cannot run Omnia playbooks, provision new nodes, or
-  manage the cluster until the OIM is restored.
-- Running Slurm and Kubernetes clusters **continue to operate** independently
-  of the OIM. Existing workloads are not affected by an OIM outage.
-- The OIM is a single point of failure for management operations only, not for
-  compute workloads.
-
-**Mitigation:**
-
-- Deploy the OIM on hardware with redundant power supplies and RAID storage.
-- Take regular backups of the OIM configuration:
-
-  ```bash
-  # Back up critical Omnia configuration
-  tar czf /backup/omnia_config_$(date +%Y%m%d).tar.gz /omnia/input/
-  ```
-
-
-- Minimize OIM reboots (see [Best Practices Checklist](../Operations/best_practices_checklist.md)).
-- Document the OIM rebuild procedure for disaster recovery.
-
-
-## Network topology constraints
-
-
-Omnia requires specific network configurations:
-
-- **Minimum two networks:** An admin network (for OIM-to-node communication and
-  provisioning) and a BMC network (for iDRAC out-of-band management).
-- **Flat Layer 2 for PXE:** PXE boot requires Layer 2 adjacency between the
-  OIM and the target nodes on the admin network. PXE does not work across
-  routed Layer 3 boundaries without a DHCP relay.
-- **No overlapping subnets:** The admin, BMC, compute, and public networks must
-  use non-overlapping IP ranges.
-- **VLAN support required:** The network switches must support VLANs to
-  segregate the different network types.
-
-| Constraint | Detail |
-| --- | --- |
-| **PXE boot** | Requires Layer 2 adjacency on the admin network. Use DHCP relay if nodes are on a different subnet. |
-| **InfiniBand** | Requires a dedicated InfiniBand fabric. Omnia configures the IB interfaces but does not manage the fabric switches. |
-| **RoCE** | Requires switches that support Priority Flow Control (PFC) and ECN for lossless Ethernet. |
-| **Public network** | Optional. Required only if cluster nodes need direct internet access or external user access. |
-
-## Known incompatibilities
-
-
-| Component | Limitation |
-| --- | --- |
-| **Docker** | Omnia uses Podman exclusively. Docker is not supported on the OIM and may conflict with Podman if installed. |
-| **NetworkManager with static IPs** | On some RHEL 9.x configurations, NetworkManager may override static IP assignments configured by Omnia. Ensure `NM_CONTROLLED=no` is set on interfaces managed by Omnia. |
-| **SELinux (disabled)** | Omnia requires SELinux in `enforcing` or `permissive` mode. Disabling SELinux entirely (`SELINUX=disabled`) is not recommended and may cause unexpected behavior. |
-| **Slurm + Kubernetes on same node** | Running both `slurmd` and `kubelet` on the same physical node is **not supported**. Nodes must be assigned to either the Slurm cluster or the Kubernetes cluster, not both. |
-| **IPv6-only networks** | Omnia currently supports IPv4 only. IPv6-only or dual-stack configurations are not tested or supported. |
-| **Secure Boot** | PXE provisioning with Secure Boot enabled is not supported in this release. Disable Secure Boot in the node BIOS before provisioning. |
-
-## Other limitations
-
-
-- **Maximum tested cluster size:** Omnia has been tested with clusters of up to
-  500 nodes. Larger deployments may require tuning Ansible parallelism and Pulp
-  repository performance.
-- **Single Slurm cluster per OIM:** Each OIM manages one Slurm cluster. To
-  manage multiple Slurm clusters, deploy separate OIMs.
-- **No live migration:** Omnia does not support live migration of running
-  workloads between nodes. Workloads must be drained before node maintenance.
-- **Telemetry retention:** Default telemetry data retention is 90 days. Adjust
-  the VictoriaMetrics `-retentionPeriod` flag if longer retention is needed.
-
+For feedback on Omnia documentation, contact: `omnia.readme@dell.com`
 
 !!! info
 
-    - [Release Notes](../Overview/release_notes.md) -- Release notes with version-specific
-      changes and fixes.
+    - [Release Notes](../Overview/release_notes.md) -- Release notes with version-specific changes and fixes.
     - [Prerequisites Checklist](../GetStarted/prerequisites_checklist.md) -- Full prerequisite list.
     - [Network Topologies](../Overview/network_topologies.md) -- Supported network configurations.
+    - [Upgrade Omnia](../Operations/upgrade_omnia.md) -- Upgrade procedures and requirements.
+    - [Rollback Omnia](../Operations/rollback_omnia.md) -- Rollback procedures.
