@@ -1,190 +1,227 @@
-
 # Build Slurm Repository
 
-
-Build a custom Slurm RPM repository for use with Omnia's local repository
-infrastructure. This is useful when you need a specific Slurm version or
-custom build options.
+Build Slurm 25.05 RPMs from source for use with Omnia. This guide covers
+building on both x86_64 and aarch64 hosts, with and without GPU support.
 
 ## Overview
 
+Omnia requires a user-built Slurm RPM repository. You build the RPMs on
+a host running the same OS as your cluster nodes (RHEL 10.0), then host
+them on an HTTP server accessible from the OIM.
 
-By default, Omnia installs Slurm from pre-built RPM packages in the local
-Pulp repositories. If you need a specific Slurm version, custom compile
-options, or patches, you can build Slurm RPMs from source and host them in a
-local repository.
-
+!!! important
+    Slurm must be compiled **without** UCX support. DOCA-OFED provides
+    its own UCX and OpenMPI stack.
 
 ## Prerequisites
 
+### x86_64
 
-- The [Create Local Repos](../Setup/create_local_repos.md) procedure is complete (Pulp is
-  running and base OS repos are synced).
-- A build host with:
+- A RHEL 10.0 x86_64 build host with internet access.
+- If using RHEL subscription, enable the required repositories:
 
-  - RHEL 8.x / 9.x or Rocky Linux matching your cluster OS
-  - `rpm-build`, `rpmbuild`, and development tools installed
-  - At least 10 GB free disk space
+    ```bash title="Run on: x86_64 build host"
+    subscription-manager repos --enable rhel-10-for-x86_64-baseos-rpms
+    subscription-manager repos --enable rhel-10-for-x86_64-appstream-rpms
+    subscription-manager repos --enable codeready-builder-for-rhel-10-x86_64-rpms
+    ```
 
-- Slurm source tarball (download from
-  `<https://www.schedmd.com/downloads.php>`_).
+### aarch64
 
+- A RHEL 10.0 aarch64 build host with a free PXE IP address assigned.
+- If the aarch64 host does not have internet access, enable network
+  masquerading on the OIM to provide connectivity:
+
+    ```bash title="Run on: OIM host"
+      #!/bin/bash
+
+      echo "=== Enable MASQUERADE (Internet Sharing) ==="
+      echo
+
+      read -p "Enter INTERNET interface name " WAN
+      read -p "Enter PXE interface name " LAN
+
+      echo
+      echo "WAN interface : $WAN"
+      echo "LAN interface : $LAN"
+      echo
+
+      # Enable IP forwarding
+      echo "[*] Enabling IP forwarding..."
+      echo 1 > /proc/sys/net/ipv4/ip_forward
+
+      # Add NAT rule
+      echo "[*] Adding MASQUERADE rule..."
+      iptables -t nat -A POSTROUTING -o "$WAN" -j MASQUERADE
+
+      # Add forward rules
+      echo "[*] Allowing forwarding..."
+      iptables -A FORWARD -i "$LAN" -o "$WAN" -j ACCEPT
+      iptables -A FORWARD -i "$WAN" -o "$LAN" -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+      echo
+      echo "✔ MASQUERADE enabled successfully"
+      echo "✔ $LAN can now access internet via $WAN"
+    ```
+
+- If using RHEL subscription, enable the required repositories:
+
+    ```bash title="Run on: aarch64 build host"
+    subscription-manager repos --enable rhel-10-for-aarch64-baseos-rpms
+    subscription-manager repos --enable rhel-10-for-aarch64-appstream-rpms
+    subscription-manager repos --enable codeready-builder-for-rhel-10-aarch64-rpms
+    ```
 
 ## Procedure
 
+### Build Without GPU Support
 
-1. **Install build dependencies** on the build host:
+1. **Install build dependencies**:
 
-   ```bash title="Run on: build host (OIM or dedicated build server)"
-   dnf groupinstall -y "Development Tools"
-   dnf install -y rpm-build munge-devel munge-libs pam-devel \
-     perl-ExtUtils-MakeMaker readline-devel openssl-devel \
-     mariadb-devel hwloc-devel lua-devel numactl-devel \
-     http-parser-devel json-c-devel libcurl-devel
-   ```
+    ```bash title="Run on: build host"
+    dnf install -y \
+      wget git make gcc gcc-c++ rpm-build autoconf automake \
+      python3 python3-devel perl perl-devel \
+      readline-devel zlib-devel pam-devel dbus-devel \
+      hwloc-devel libbpf-devel \
+      pmix pmix-devel \
+      jansson-devel \
+      json-c json-c-devel \
+      libyaml libyaml-devel \
+      openssl-devel \
+      mariadb-devel systemd-devel \
+      munge munge-devel
+    ```
 
+2. **Download the Slurm source tarball**:
 
-2. **Create the RPM build directory structure**:
+    ```bash title="Run on: build host"
+    wget https://download.schedmd.com/slurm/slurm-25.05.2.tar.bz2
+    ```
 
-   ```bash title="Run on: build host"
-   mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-   ```
+3. **Build the RPMs**:
 
+    ```bash title="Run on: build host"
+    rpmbuild -ta slurm-25.05.2.tar.bz2 \
+      --with pmix \
+      --define "with_pmix --with-pmix=/usr" \
+      --with yaml \
+      --define "with_yaml --with-yaml" \
+      --without hdf5 \
+      --define "without_hdf5 --without-hdf5" \
+      --with nvml \
+      --define "_with_nvml --with-nvml=/usr/local/cuda" \
+      --without ucx \
+      --define "without_ucx --without-ucx"
+    ```
 
-3. **Download the Slurm source tarball**:
+    After the build completes, RPMs are available at
+    `/root/rpmbuild/RPMS/x86_64/` or `/root/rpmbuild/RPMS/aarch64/`.
 
-   ```bash title="Run on: build host"
-   cd ~/rpmbuild/SOURCES
-   wget https://download.schedmd.com/slurm/slurm-23.11.4.tar.bz2
-   ```
+### Build With GPU Support
 
+1. **Install build dependencies** (same as above):
 
-   !!! note
+    ```bash title="Run on: build host"
+    dnf install -y \
+      wget git make gcc gcc-c++ rpm-build autoconf automake \
+      python3 python3-devel perl perl-devel \
+      readline-devel zlib-devel pam-devel dbus-devel \
+      hwloc-devel libbpf-devel \
+      pmix pmix-devel \
+      jansson-devel \
+      json-c json-c-devel \
+      libyaml libyaml-devel \
+      openssl-devel \
+      mariadb-devel systemd-devel \
+      munge munge-devel
+    ```
 
-       Replace the version number with your desired Slurm version.
+2. **Download the Slurm source tarball**:
 
-4. **Extract the spec file**:
+    ```bash title="Run on: build host"
+    wget https://download.schedmd.com/slurm/slurm-25.05.2.tar.bz2
+    ```
 
-   ```bash title="Run on: build host"
-   tar xjf slurm-23.11.4.tar.bz2 --strip-components=1 -C /tmp slurm-23.11.4/slurm.spec
-   cp /tmp/slurm.spec ~/rpmbuild/SPECS/
-   ```
+3. **Download and install the CUDA toolkit**:
 
+    For x86_64:
 
-5. **Build the RPMs**:
+    ```bash title="Run on: x86_64 build host"
+    wget https://developer.download.nvidia.com/compute/cuda/13.0.2/local_installers/cuda_13.0.2_580.95.05_linux.run
+    bash cuda_13.0.2_580.95.05_linux.run --silent --toolkit --toolkitpath=/usr/local/cuda --override
+    ```
 
-   ```bash title="Run on: build host"
-   rpmbuild -ba ~/rpmbuild/SPECS/slurm.spec
-   ```
+    For aarch64:
 
+    ```bash title="Run on: aarch64 build host"
+    wget https://developer.download.nvidia.com/compute/cuda/13.1.0/local_installers/cuda_13.1.0_590.44.01_linux_sbsa.run
+    bash cuda_13.1.0_590.44.01_linux_sbsa.run --silent --toolkit --toolkitpath=/usr/local/cuda --override
+    ```
 
-   This process takes **10-30 minutes** depending on hardware. The resulting
-   RPMs will be in `~/rpmbuild/RPMS/x86_64/`.
+4. **Build the RPMs**:
 
-6. **Create a local repository** from the built RPMs:
+    ```bash title="Run on: build host"
+    rpmbuild -ta slurm-25.05.2.tar.bz2 \
+      --with pmix \
+      --define "with_pmix --with-pmix=/usr" \
+      --with yaml \
+      --define "with_yaml --with-yaml" \
+      --without hdf5 \
+      --define "without_hdf5 --without-hdf5" \
+      --with nvml \
+      --define "_with_nvml --with-nvml=/usr/local/cuda" \
+      --without ucx \
+      --define "without_ucx --without-ucx"
+    ```
 
-   ```bash title="Run on: build host"
-   dnf install -y createrepo_c
-   mkdir -p /opt/omnia/custom_repos/slurm
-   cp ~/rpmbuild/RPMS/x86_64/slurm-*.rpm /opt/omnia/custom_repos/slurm/
-   createrepo_c /opt/omnia/custom_repos/slurm/
-   ```
-
-
-7. **Upload to Pulp** (from the omnia_core container):
-
-   ```bash title="Run on: omnia_core container"
-   # Create a Pulp repository for custom Slurm RPMs
-   pulp rpm repository create --name slurm-custom
-
-   # Upload RPMs
-   for rpm in /opt/omnia/custom_repos/slurm/*.rpm; do
-     pulp rpm content upload --file "$rpm" --repository slurm-custom
-   done
-
-   # Create a publication and distribution
-   pulp rpm publication create --repository slurm-custom
-   pulp rpm distribution create --name slurm-custom \
-     --base-path slurm-custom \
-     --repository slurm-custom
-   ```
-
-
+    After the build completes, RPMs are available at
+    `/root/rpmbuild/RPMS/x86_64/` or `/root/rpmbuild/RPMS/aarch64/`.
 
 ## Verification
 
+1. **Verify the build** by installing the base RPMs:
 
-1. **List the custom repository contents**:
+    For x86_64:
 
-   ```bash title="Run on: build host"
-   ls -la /opt/omnia/custom_repos/slurm/
-   ```
+    ```bash title="Run on: x86_64 build host"
+    sudo rpm -ivh /root/rpmbuild/RPMS/x86_64/slurm-25.05.2-1*.x86_64.rpm \
+      /root/rpmbuild/RPMS/x86_64/slurm-slurmd-25.05.2-1*.x86_64.rpm
+    ```
 
+    For aarch64:
 
-2. **Verify the repository metadata**:
+    ```bash title="Run on: aarch64 build host"
+    sudo rpm -ivh /root/rpmbuild/RPMS/aarch64/slurm-25.05.2-1*.aarch64.rpm \
+      /root/rpmbuild/RPMS/aarch64/slurm-slurmd-25.05.2-1*.aarch64.rpm
+    ```
 
-   ```bash title="Run on: build host"
-   ls /opt/omnia/custom_repos/slurm/repodata/
-   ```
+2. **Verify required shared libraries are present**:
 
+    - For builds without GPU: all required `.so` and `cgroup_v2.so`
+      files should be available.
+    - For builds with GPU: `gpu_nvml.so` should also be available.
 
-   You should see `repomd.xml` and related files.
+3. **Remove the test packages** after verification:
 
-3. **Test package availability via Pulp**:
+    ```bash title="Run on: build host"
+    sudo dnf remove -y 'slurm'
+    ```
 
-   ```bash title="Run on: OIM host"
-   curl -s http://localhost:8080/pulp/content/slurm-custom/repodata/repomd.xml | head
-   ```
+## Hosting the Repository
 
-
-4. **Verify RPM versions**:
-
-   ```bash title="Run on: build host"
-   rpm -qip ~/rpmbuild/RPMS/x86_64/slurm-23*.rpm | grep -E "^(Name|Version)"
-   ```
-
-
+After building and verifying the RPMs, host them on an HTTP server
+accessible from the OIM. See
+[Host RPMs on Apache Server](host_slurm_repo.md) for step-by-step
+instructions on setting up Apache to serve the repository.
 
 ## Next Steps
 
-
-- [Setup Slurm](setup_slurm.md) -- Deploy Slurm using the custom RPMs.
-- [Create Local Repos](../Setup/create_local_repos.md) -- Integrate the custom repo with
-  Omnia's repo management.
-
+- [Set Up Slurm](setup_slurm.md) -- Deploy Slurm using the built RPMs
+- [Create Local Repos](../Setup/create_local_repos.md) -- Integrate the
+  custom repo with Omnia's repo management
 
 ## Troubleshooting
 
-
-**rpmbuild fails with missing dependency**
-   Install the missing development package:
-
-   ```bash title="Run on: build host"
-   dnf install -y <missing-package>-devel
-   ```
-
-
-**Spec file not found in tarball**
-   Download the spec file separately from SchedMD's GitHub:
-
-   ```bash title="Run on: build host"
-   wget -O ~/rpmbuild/SPECS/slurm.spec \
-     https://raw.githubusercontent.com/SchedMD/slurm/slurm-23-11-4-1/slurm.spec
-   ```
-
-
-**createrepo_c fails**
-   Ensure the package is installed:
-
-   ```bash title="Run on: build host"
-   dnf install -y createrepo_c
-   ```
-
-
-**Custom RPMs conflict with existing Slurm packages**
-   Remove existing Slurm packages before installing custom ones:
-
-   ```bash title="Run on: compute node"
-   dnf remove -y slurm slurm-slurmd slurm-slurmctld
-   dnf install -y --disablerepo='*' --enablerepo='slurm-custom' slurm slurm-slurmd
-   ```
+For Slurm troubleshooting, see
+[Slurm Issues](../../Troubleshooting/slurm.md).

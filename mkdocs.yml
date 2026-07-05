@@ -179,8 +179,9 @@ nav:
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
-      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
+      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
+      - Host RPMs on Apache: HowTo/Slurm/host_slurm_repo.md
       - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
       - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
