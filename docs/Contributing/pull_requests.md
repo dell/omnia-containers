@@ -1,174 +1,130 @@
+# Pull Requests
 
-# Pull Request Guidelines
+This guide outlines the requirements and review process for contributing changes to Omnia.
 
+## Before Creating a PR
 
-This guide describes how to submit a pull request (PR) to the Omnia project,
-what reviewers look for, and how the review process works.
+* Search existing <https://github.com/dell/omnia/issues> and [pull requests](https://github.com/dell/omnia/pulls) to avoid duplicate work.
+* For significant changes, open an issue first and align with maintainers on the proposed approach.
+* Review the ../Overview/architecture.md and ../Overview/index.md documentation.
 
-## Before you start
+../assets/images/omnia-branch-structure.png
 
+## Development Setup
 
-1. **Check existing issues and PRs.** Search the `GitHub issues
-   <https://github.com/dell/omnia/issues>`_ and `open pull requests
-   <https://github.com/dell/omnia/pulls>`_ to ensure your change is not
-   already being worked on.
-
-2. **Open an issue first** for non-trivial changes. Discuss the approach with
-   maintainers before investing significant effort. This prevents wasted work
-   on changes that may not align with the project's direction.
-
-3. **Read the architecture documentation.** Familiarize yourself with Omnia's
-   [Architecture](../Overview/architecture.md) and [Index](../Overview/index.md) to understand how
-   components interact.
-
-![Omnia Branch Structure](../assets/images/omnia-branch-structure.png)
-
-## Setting up your development environment
-**1. Fork and clone** the repository:
-
+1. Fork and clone the repository:
    ```bash
    git clone https://github.com/<your_username>/omnia.git
    cd omnia
    ```
-**2. Add the upstream remote:**
 
+2. Add the upstream repository:
    ```bash
    git remote add upstream https://github.com/dell/omnia.git
    ```
-**3. Keep your fork in sync:**
 
+3. Synchronize with the latest `main` branch:
    ```bash
    git fetch upstream
    git checkout main
    git merge upstream/main
    ```
-**4. Create a feature branch** from the latest `main`:
 
+4. Create a feature branch:
    ```bash
-   git checkout -b feature/descriptive-branch-name
+   git checkout -b feature/<descriptive-name>
    ```
 
-## Making changes
+## Contribution Standards
 
-### Code style
+### Code Quality
 
-- **Ansible playbooks and roles:** Follow `Ansible best practices
-  <https://docs.ansible.com/ansible/latest/tips_tricks/ansible_tips_tricks.html>`_.
-  Use YAML syntax (not inline JSON), descriptive task names, and meaningful
-  variable names.
-- **Python scripts:** Follow [PEP 8](https://peps.python.org/pep-0008/).
-  Use `black` for formatting and `flake8` for linting.
-- **Shell scripts:** Use `shellcheck` to validate shell scripts.
-- **Documentation:** Follow the conventions in the existing documentation
-  (section underlines, directive usage, cross-referencing).
+* Follow established project conventions and language-specific best practices.
+* Format and lint code before submitting:
+  * Python: PEP 8, `black`, `flake8`
+  * Shell: `shellcheck`
+  * Ansible: Ansible best practices with clear task and variable names
+* Maintain consistency with existing documentation structure and style.
 
-### Writing tests
+### Testing
 
-- **Ansible roles:** Add or update Molecule tests for any new or modified
-  roles. Tests should validate both the default configuration and common
-  edge cases.
-- **Python code:** Write unit tests using `pytest`. Aim for meaningful
-  coverage of new functionality.
+* Add or update tests for all functional changes.
+* Update Molecule tests for Ansible roles where applicable.
+* Use `pytest` for Python unit tests.
+* Ensure all existing and new tests pass.
 
-## Protect authenticity -- Developer Certificate of Origin (DCO)
+## Developer Certificate of Origin (DCO)
 
-Every GitHub push requires a sign-off and a moderator is required to approve
-pull requests. All contributions have to be certified using the [Developer Certificate of Origin (DCO)](https://developercertificate.org/)
+All contributions must be signed off in accordance with the <https://developercertificate.org/>.
 
-Add the sign-off to every commit using the `-s` flag:
-
-```bash title="Run on: local machine"
-git commit -s -m "Add GPU auto-detection for AMD ROCm nodes"
+```bash
+git commit -s
 ```
 
-## Submitting the pull request
+## Submitting a Pull Request
 
-1. **Push your branch** to your fork:
+1. Push your branch:
 
-   ```bash title="Run on: local machine"
-   git push origin feature/descriptive-branch-name
-   ```
+```bash
+git push origin feature/<descriptive-name>
+```
 
-2. **Open a pull request** on GitHub:
+2. Create a PR targeting `dell/omnia:main`.
 
-   - Go to https://github.com/dell/omnia/pulls
-   - Click **New pull request**.
-   - Select your fork and branch as the source.
-   - Select `dell/omnia:main` as the target.
+3. Include the following information in the PR description:
 
-3. **Fill out the PR description** using this template:
+```text
+## Summary
+Brief description of the change.
 
-   ```text title="Example: PR description template"
-   ## Summary
-   Brief description of what this PR does.
+## Related Issue
+Fixes #<issue_number>
 
-   ## Related Issue
-   Fixes #<issue_number> (or "Related to #<issue_number>")
+## Changes
+- Change 1
+- Change 2
 
-   ## Changes
-   - List of specific changes made
-   - One item per line
+## Validation
+- Test environment
+- Validation steps
+- Results
 
-   ## Testing
-   Describe how you tested these changes:
-   - Environment (OS, hardware)
-   - Steps to reproduce/verify
-   - Test results
+## Checklist
+- [ ] Coding standards followed
+- [ ] Tests added/updated
+- [ ] Documentation updated (if required)
+- [ ] All tests passing
+```
 
-   ## Checklist
-   - [ ] Code follows the project's style guidelines
-   - [ ] Tests added/updated for new functionality
-   - [ ] Documentation updated (if applicable)
-   - [ ] All existing tests pass
-   - [ ] Commit messages are clear and descriptive
-   ```
+4. Request review from project maintainers.
 
-4. **Request a review** from one or more maintainers.
+## Review Process
 
-## Review process
-After you submit a PR:
+1. **Automated validation** – CI checks, linting, and automated tests must pass.
+2. **Maintainer review** – Reviewers assess correctness, maintainability, testing, documentation, security, and compatibility.
+3. **Feedback resolution** – Address review comments with incremental commits. Avoid force-pushes during active review unless requested.
+4. **Merge** – Approved PRs with passing CI are merged by a maintainer.
 
-1. **Automated checks** run first. CI pipelines will execute linting, syntax
-   checks, and any automated tests. All checks must pass before a human review.
+### Review Criteria
 
-2. **Maintainer review.** One or more project maintainers will review your PR.
-   They may:
+* Functional correctness
+* Code quality and maintainability
+* Test coverage
+* Documentation completeness
+* Security considerations
+* Compatibility across supported platforms
 
-   - **Approve** the PR if it meets all criteria.
-   - **Request changes** with specific feedback on what to update.
-   - **Comment** with questions or suggestions.
+## Recommendations
 
-3. **Address feedback.** Push additional commits to your branch to address
-   review comments. Do not force-push or squash commits during the review---
-   this makes it harder for reviewers to see incremental changes.
+To expedite reviews:
 
-4. **Final approval and merge.** Once all reviewers approve and CI passes, a
-   maintainer will merge the PR.
-
-### Review criteria
-
-Reviewers evaluate PRs against these criteria:
-
-| Criterion | What reviewers look for |
-| --- | --- |
-| **Correctness** | Does the change do what it claims? Are edge cases handled? |
-| **Style** | Does the code follow project conventions? |
-| **Testing** | Are there adequate tests? Do existing tests still pass? |
-| **Documentation** | Is the change documented? Are user-facing changes reflected in the docs? |
-| **Security** | Does the change introduce security risks? Are credentials handled safely? |
-| **Compatibility** | Does the change work across all supported OS versions and hardware? |
-
-### Response time
-
-Maintainers aim to provide an initial review within **5 business days**. For
-large PRs (100+ lines changed), reviews may take longer. You can help by:
-
-- Keeping PRs focused and small (one logical change per PR).
-- Providing a clear and thorough description.
-- Including test results in the PR description.
+* Keep PRs focused on a single logical change.
+* Provide a clear problem statement and validation evidence.
+* Include relevant test results and documentation updates.
 
 !!! info
 
-    - [Index](index.md) -- Overview of contribution options.
-    - [Omnia GitHub repository](https://github.com/dell/omnia) -- Source code
-      and issue tracker.
+```
+- [Index](index.md) – Contribution overview
+- [Omnia GitHub Repository](https://github.com/dell/omnia/pulls) – Source code and issue tracker
+```
