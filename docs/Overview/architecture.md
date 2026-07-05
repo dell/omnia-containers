@@ -3,205 +3,82 @@
 
 ![Omnia Architecture](../assets/images/Architecture.png)
 
-Omnia orchestrates the deployment of HPC and AI clusters by organizing servers
-into three distinct cluster types, each with a well-defined role. This page
-explains how those clusters relate to each other, what runs on the management
-node, and what the minimum requirements are for each tier..
+Omnia provides a comprehensive infrastructure management platform that orchestrates the deployment, configuration, and monitoring of HPC clusters. The architecture centers around the Omnia Infrastructure Manager (OIM), which serves as the central control plane for managing all cluster operations.
 
-## Why three cluster types?
+## OIM Role and Responsibilities
 
+The OIM is the primary management node that coordinates all cluster activities.
 
-A production HPC/AI environment has fundamentally different workload profiles:
-management tasks (provisioning, scheduling, monitoring), compute tasks (parallel
-simulations, model training), and platform services (container orchestration,
-storage, authentication). Omnia separates these concerns into three clusters so
-that each can be scaled, secured, and maintained independently.
+- **Provisioning**: Manages the Bare System Setup (BSS) and cloud-init configurations to provision nodes from bare metal
+- **Package Deployment**: Handles software distribution and configuration management across the cluster
+- **Monitoring**: Collects and aggregates metrics, logs, and telemetry data from all cluster components
+- **Orchestration**: Coordinates workflows for cluster operations including upgrades, scaling, and maintenance
 
-**Cluster types at a glance**
+## Node Relationships
 
-| Cluster | Primary purpose | Key workloads |
-| --- | --- | --- |
-| **OIM** (Omnia Infrastructure Manager) | Management and provisioning | Ansible playbooks, OpenCHAMI, Pulp, telemetry ingestion |
-| **Slurm Cluster** | HPC compute | Batch jobs, MPI workloads, GPU-accelerated training |
-| **Kubernetes Cluster** | Platform services | Containerized services, storage, authentication, monitoring |
+The OIM maintains a hierarchical relationship with provisioned nodes.
 
-## OIM -- The management node
+- **Service Cluster**: Kubernetes-based control plane running core services (monitoring, telemetry, scheduling)
+- **Compute Nodes**: Slurm-managed workload execution nodes
+- **Login Nodes**: User access points for job submission and cluster interaction
+- **Storage Nodes**: Dedicated nodes for shared storage and data management
 
+All nodes communicate with the OIM through secure channels for configuration updates, health checks, and status reporting. The OIM maintains the authoritative source of truth for cluster state and configuration.
 
-The Omnia Infrastructure Manager (OIM) is the single control point for the
-entire environment. It is a dedicated Dell PowerEdge server (or VM) that runs
-all management-plane components.
+## Component Integration
 
-### What runs on the OIM
+The architecture integrates three primary subsystems.
 
+1. **Monitoring Service**: Collects metrics and logs from all cluster components using VictoriaMetrics and VictoriaLogs for time-series data storage and analysis
+2. **Provisioning System**: Automates node provisioning through BSS and cloud-init, ensuring consistent configuration across the cluster
+3. **Package Management**: Deploys and manages software packages using local repositories and build pipelines
 
-The OIM hosts the `omnia_core` Podman container, which encapsulates the
-complete Ansible toolchain. All Omnia playbooks execute from inside this
-container, ensuring a reproducible and isolated control plane.
+These subsystems work together through the OIM's orchestration layer to provide a unified, automated infrastructure management experience.
 
-Beyond the Ansible engine, the OIM runs the following services:
+## Monitoring Service Component Legend
 
-**Provisioning stack**
+The Monitoring Service block in the architecture diagram uses the following VictoriaMetrics components.
 
-- **OpenCHAMI** -- Composable Hierarchical Automated Management Infrastructure
-  for node discovery and lifecycle management.
-- **ochami-cli** -- Command-line interface for interacting with OpenCHAMI.
-- **SMD** (State Manager Daemon) -- Maintains hardware inventory and node state.
-- **BSS** (Boot Script Service) -- Generates per-node boot scripts for PXE and
-  iPXE provisioning.
-- **CoreDHCP** -- Lightweight DHCP server for IP assignment during provisioning.
-- **TFTP / iPXE** -- Network boot services for bare-metal nodes.
+- **VictoriaMetrics / VictoriaLogs Agent (vmagent / vlagent)**: Collects metrics and logs from cluster components
+- **VictoriaMetrics Insert (vminsert)**: Ingests time-series data into the VictoriaMetrics database
+- **VictoriaMetrics Database (vmstorage + vmselect)**: Stores and queries metrics and log data
 
-**Container runtime**
+## Omnia Stack
 
-- **Podman** -- Runs all OIM services as rootless containers (no Docker daemon
-  required).
+Omnia provides two distinct deployment models tailored to different workload requirements: the Kubernetes Stack for containerized applications and the Slurm Stack for high-performance computing (HPC) workloads. These stacks can be deployed independently or in a converged configuration where both Kubernetes and Slurm coexist on the same infrastructure, enabling organizations to support diverse workload types within a single management framework.
 
-**Optional components**
+The following diagrams illustrate the architectural layers and component relationships for each deployment model.
 
-- **AWX** -- Web-based UI and REST API for Ansible automation (optional; Omnia
-  can run entirely from the CLI).
-
-!!! note
-
-    All OIM services run as Podman containers, which simplifies upgrades and
-    provides process isolation without the overhead of a full container
-    orchestration layer.
-
-### OIM minimum requirements
-
-
-| Resource | Minimum |
-| --- | --- |
-| **Operating system** | RHEL 8.8 / 9.2 or later; Rocky Linux 8.x / 9.x |
-| **CPU** | 4 cores (Intel or AMD x86_64) |
-| **RAM** | 32 GB |
-| **Disk** | 256 GB (SSD recommended) |
-| **Network** | At least 2 NICs (admin + BMC; additional NICs for compute and public networks depending on topology) |
-
-!!! tip
-
-    For clusters larger than 100 nodes, Dell recommends 8+ cores and 64 GB RAM
-    on the OIM to accommodate Pulp repository synchronization and parallel
-    Ansible execution.
-
-## Slurm cluster
-
-![Omnia Slurm Stack](../assets/images/omnia-slurm.png)
-
-The Slurm cluster handles all HPC and AI compute workloads. Omnia deploys and
-configures [Slurm](https://slurm.schedmd.com/) as the job scheduler across
-designated nodes.
-
-### Node roles
-
-
-**slurm_control_node**
-   Runs `slurmctld` (the Slurm controller daemon). Manages job queues,
-   scheduling policies, and resource accounting. Exactly one node per Slurm
-   cluster holds this role.
-
-**slurm_node**
-   Runs `slurmd` (the Slurm compute daemon). Executes the jobs dispatched by
-   the controller. This is where parallel simulations, training runs, and batch
-   workloads execute.
-
-**login_node** *(optional)*
-   Provides an interactive shell for users to compile code, submit jobs, and
-   inspect results without consuming compute resources.
-
-**auth_server** *(optional)*
-   Runs centralized authentication services (OpenLDAP) so that user credentials
-   are consistent across all nodes.
-
-**GPU nodes** *(optional)*
-   Standard `slurm_node` instances equipped with NVIDIA or AMD GPUs. Omnia
-   automatically installs the appropriate GPU drivers (CUDA for NVIDIA, ROCm for
-   AMD) and registers GPU resources with Slurm's GRES (Generic RESource)
-   framework.
-
-!!! note
-
-    A single physical server can hold multiple roles. For example, a small
-    cluster might combine `slurm_control_node` and `login_node` on the same
-    machine. Roles are assigned via the PXE mapping file during provisioning.
-
-## Kubernetes cluster
+## Omnia Kubernetes Stack
 
 ![Omnia Kubernetes Stack](../assets/images/omnia-k8s.png)
 
-The Kubernetes (K8s) cluster hosts containerized platform services that support
-the broader HPC environment---monitoring dashboards, storage provisioners,
-authentication proxies, and user-facing web applications.
+The Kubernetes stack provides a complete container orchestration platform for deploying and managing containerized applications. Key components include:
 
-### Node roles
+- **Infrastructure Layer**: Bare-metal or virtualized Dell PowerEdge servers with iDRAC management
+- **Operating System**: RHEL-based provisioning with cloud-init configuration
+- **Container Runtime**: Containerd for running containerized workloads
+- **Orchestration**: Kubernetes cluster with control plane and worker nodes
+- **Networking**: Calico CNI for pod networking, MetalLB for load balancing
+- **Storage**: CSI drivers for PowerScale and other storage backends
+- **Monitoring and Telemetry**: VictoriaMetrics for metrics collection, Kafka for telemetry data streaming
+- **Application Layer**: User-deployed containerized workloads
 
+## Omnia Slurm Stack
 
-**kube_control_plane**
-   Runs the Kubernetes API server, etcd, scheduler, and controller-manager. For
-   high availability, Omnia supports multiple control-plane nodes behind a
-   virtual IP.
+![Omnia Slurm Stack](../assets/images/omnia-slurm.png)
 
-**kube_node**
-   Worker nodes that run application pods. Omnia pre-configures each worker with
-   the container runtime, kubelet, and kube-proxy.
+The Slurm stack provides a workload manager optimized for HPC and batch job scheduling. Key components include:
 
-### Pre-installed Kubernetes components
+- **Infrastructure Layer**: Bare-metal or virtualized Dell PowerEdge servers with iDRAC management
+- **Operating System**: RHEL-based provisioning with cloud-init configuration
+- **Resource Management**: Slurm Workload Manager with control and compute nodes
+- **Networking**: InfiniBand for high-performance interconnects, Ethernet for management
+- **Storage**: NFS mounts for shared filesystem access
+- **GPU Support**: NVIDIA GPU provisioning with CUDA Toolkit and DCGM for GPU-enabled nodes
+- **Monitoring and Telemetry**: LDMS and other HPC-specific monitoring tools
+- **Application Layer**: Batch jobs, MPI workloads, and other HPC applications
 
+## Virtual Deployment Considerations
 
-Omnia deploys the following components automatically when the Kubernetes cluster
-is created:
-
-| Component | Purpose |
-| --- | --- |
-| **MetalLB** | Bare-metal load balancer that assigns external IPs to Kubernetes `LoadBalancer` services without a cloud provider. |
-| **NFS CSI driver** | Container Storage Interface driver that provisions persistent volumes backed by an NFS share, enabling shared storage across pods. |
-| **Calico** | CNI (Container Network Interface) plugin that provides pod-to-pod networking and network policy enforcement. |
-
-## How the clusters interact
-
-
-The three clusters are not isolated islands; they share networks and
-collaborate through well-defined interfaces:
-
-1. **Provisioning flow** -- The OIM discovers bare-metal nodes via BMC/iDRAC,
-   PXE-boots them, installs the operating system, and assigns them to the Slurm
-   or Kubernetes cluster based on the PXE mapping file.
-
-2. **Authentication** -- An `auth_server` node (typically in the Slurm
-   cluster) runs OpenLDAP. Both Slurm and Kubernetes nodes can be configured to
-   authenticate against this central directory.
-
-3. **Telemetry** -- Metrics from all clusters flow into the
-   [Telemetry Architecture](telemetry_architecture.md) pipeline, which may run on the Kubernetes
-   cluster (Grafana, VictoriaMetrics) or on the OIM.
-
-4. **Storage** -- NFS shares provisioned through the Kubernetes cluster can be
-   mounted by Slurm compute nodes, providing a unified storage layer for job
-   data.
-
-
-## Design rationale
-
-
-**Single management node** -- Omnia deliberately centralizes management on one
-OIM rather than distributing it. This reduces operational complexity: there is
-exactly one place to look for logs, one place to run playbooks, and one node to
-back up. For environments that require management-plane HA, the OIM itself can
-be deployed on a server with redundant power and RAID storage.
-
-**Podman over Docker** -- Omnia uses Podman because it runs containers without a
-persistent daemon, supports rootless execution, and is available in default RHEL
-and Rocky Linux repositories. This reduces the attack surface and avoids
-licensing considerations.
-
-**Separation of Slurm and Kubernetes** -- Keeping HPC compute (Slurm) and
-platform services (Kubernetes) on separate clusters prevents resource contention.
-A runaway Kubernetes pod cannot starve a Slurm batch job, and vice versa.
-
-!!! info
-
-    - [Components](components.md) -- Deep dive into each software component.
-    - [Network Topologies](network_topologies.md) -- Network design options that connect the three
-      clusters.
-    - [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md) -- How servers are assigned to clusters and roles.
+The diagrams show Virtual OS and Virtual Hardware blocks to represent scenarios where Omnia can be deployed on virtualized infrastructure. However, Omnia is primarily designed and tested for bare-metal deployments to ensure optimal performance for both Kubernetes and Slurm workloads. Virtual deployments may be supported for specific test or development scenarios, but production environments should use bare-metal hardware to avoid performance limitations and ensure full compatibility with all Omnia features.
