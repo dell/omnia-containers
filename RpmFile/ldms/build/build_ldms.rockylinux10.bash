@@ -110,7 +110,7 @@ make clean
 make maintainer-clean
 echo "[>>] Clean isn't clean. Remove any file with an .in file"
 find ./ -name "*.in" |(while read FOO; do base="$(echo $FOO |sed 's/\.in$//g')"; echo "Remove $base"; rm -rf  "$base"; done; )
-find ./ -name "*.cache" -delete
+rm -rf autom4te.cache config.cache
 
 #--------------------------------
 # BUILD 
@@ -121,9 +121,7 @@ echo "[>>] Get in source dir"
 set -xe
 echo "#define DCGM_PUBLIC_API" >> "/usr/include/dcgm_api_export.h"
 echo "[--] Build ldms"
-echo "[>>] autoreconf"
-autoreconf --install
-echo "[>>] autogen"
+echo "[>>] autogen (runs autoreconf internally)"
 ./autogen.sh
 echo "[>>] configure"
 ../scripts/configure.sh
