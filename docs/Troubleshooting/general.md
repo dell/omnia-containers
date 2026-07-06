@@ -175,14 +175,6 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     2. Retry login or reprovision the node.
 
-    3. To clear keys across bulk re-provisions:
-
-        ```bash title="Run on: OIM host"
-        for i in $(seq 101 110); do
-            ssh-keygen -R 10.5.0.$i
-        done
-        ```
-
 ## OpenCHAMI issues
 
 ### Certificate expiration
