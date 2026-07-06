@@ -1,50 +1,35 @@
-
 # Reference
 
-
-This section contains information-oriented technical reference material for
-Omnia v2.1. Every page is designed to be looked up rather than read
-end-to-end -- use the search bar or the table of contents below to find the
-specific specification you need.
+The **Reference** section provides authoritative technical information for Omnia. This content is intended for targeted lookup and operational guidance rather than sequential reading. Use the search function or browse the navigation structure to quickly locate the required specification, compatibility information, or configuration detail.
 
 ## Support Matrix
 
-
-Hardware, software, and topology compatibility tables that define the certified
-operating envelope for Omnia deployments.
+Compatibility matrices covering validated hardware platforms, operating systems, software dependencies, and supported deployment topologies. These tables define the certified operating boundaries and supported configurations for Omnia environments.
 
 ## Configuration File Reference
 
+Comprehensive documentation for all Omnia configuration parameters, including descriptions, supported values, defaults, dependencies, and usage considerations for files located under:
 
-Parameter-by-parameter documentation for every Omnia input file located under
-`/opt/omnia/input/project_default`.
+```text
+/opt/omnia/input/project_default
+```
 
 ## Sample Files
 
-
-Annotated examples of key input and configuration files, ready to copy and
-adapt.
+Curated and annotated examples of commonly used configuration and input files. These samples can be used as implementation references and customized to meet deployment-specific requirements.
 
 ## Cluster Requirements
 
-
-Minimum hardware, disk, and network port requirements for each deployment
-scenario.
+Detailed infrastructure prerequisites for supported deployment scenarios, including minimum and recommended requirements for compute, memory, storage, networking, and firewall configuration.
 
 ## Playbook Reference
 
-
-Quick-reference table covering every Omnia playbook, its purpose, where it
-runs, and what inputs it requires.
+A consolidated reference of all Omnia playbooks, including their purpose, execution scope, target nodes, required inputs, dependencies, and expected outcomes.
 
 ## Telemetry Metrics Reference
 
-
-Catalog of every metric collected by the Omnia telemetry pipeline, organized
-by data source.
+Complete catalog of telemetry metrics collected and exposed by Omnia. Metrics are organized by source and component, with descriptions, units, collection intervals, and operational relevance.
 
 ## Appendices
 
-
-Supplementary reference material: naming rules and
-filesystem configuration details.
+Supplementary reference information, including naming conventions, filesystem layouts, directory structures, configuration standards, and other supporting technical specifications.
