@@ -1,268 +1,321 @@
-
 # General Issues
 
+Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivity, system recovery, and Ansible Vault operations.
 
-Common issues that affect the OIM, SSH connectivity, containers, and Ansible
-Vault operations.
-
-## Hostname changes after OIM reboot
-
+## Omnia core container fails to deploy
 
 ???+ note "Symptom"
 
-    After rebooting the OIM, the hostname reverts to `localhost` or a different
-    value, causing Ansible playbooks and service connections to fail.
+    - `omnia.sh` aborts early.
+    - `podman pull` fails.
+    - Container starts but cannot write to shared path.
 
 ??? note "Cause"
 
-    The OIM's hostname was set temporarily with `hostnamectl` but not persisted
-    in `/etc/hostname`, or a DHCP-assigned hostname overrides the static
-    setting on boot.
+    - Podman pull or authentication issues.
+    - Time synchronization failure.
+    - Invalid OIM hostname.
+    - NFS or SELinux permission issues.
 
 ??? note "Resolution"
 
-    1. Set the hostname permanently:
+    1. Check container status:
 
-       ```bash
-       hostnamectl set-hostname oim.example.com
-       ```
+        ```bash title="Run on: OIM host"
+        podman ps --format 'table {{.Names}}\t{{.Status}}'
+        ```
 
+    2. Check container logs:
 
-    2. Verify it persisted in `/etc/hostname`:
+        ```bash title="Run on: OIM host"
+        podman logs -n 200 omnia_core
+        ```
 
-       ```bash
-       cat /etc/hostname
-       ```
+    3. Check time synchronization:
 
+        ```bash title="Run on: OIM host"
+        timedatectl status
+        chronyc tracking || chronyc sources -v
+        ```
 
-    3. Ensure the hostname is also in `/etc/hosts`:
+    4. Validate OIM hostname (no dots, underscores, commas, uppercase, leading/trailing hyphens, or leading digits; FQDN must be 64 characters or fewer).
 
-       ```text
-       127.0.0.1   localhost
-       <oim_ip>    oim.example.com oim
-       ```
+    5. Validate NFS mount and SELinux labeling:
 
+        ```bash title="Run on: OIM host"
+        podman run --rm -v /shared:/mnt:z registry.access.redhat.com/ubi10/ubi sh -lc 'touch /mnt/.rw'
+        ```
 
-    4. If DHCP is overriding the hostname, configure the DHCP client to preserve
-       the static hostname by adding the following to
-       `/etc/NetworkManager/conf.d/90-hostname.conf`:
+    6. Re-run `omnia.sh`.
 
-       ```ini
-       [main]
-       hostname-mode=none
-       ```
-
-
-## SSH key mismatches
-
+## Prepare OIM failures
 
 ???+ note "Symptom"
 
-    SSH connections from the OIM to cluster nodes fail with:
-
-    ```text
-    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
-    @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    ```
-
+    - Certificate or TLS failures during `prepare_oim.yml`.
+    - Expected container not created.
+    - Service is running but unreachable.
 
 ??? note "Cause"
 
-    The target node was re-provisioned or re-imaged, generating new SSH host
-    keys that conflict with the cached keys in `~/.ssh/known_hosts` on the
-    OIM.
+    - Invalid or expired TLS certificates.
+    - Container image pull failures.
+    - Network connectivity issues.
+    - Incorrect configuration parameters.
 
 ??? note "Resolution"
 
-    1. Remove the stale key for the affected host:
+    1. Verify container inventory:
 
-       ```bash
-       ssh-keygen -R <node_hostname_or_ip>
-       ```
+        ```bash title="Run on: OIM host"
+        podman ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+        ```
 
+    2. Review container logs for specific error messages.
+    3. Verify network connectivity and TLS certificate validity.
+    4. Re-run `prepare_oim.yml` after correcting the issue.
 
-    2. Reconnect to accept the new key:
-
-       ```bash
-       ssh <node_hostname_or_ip>
-       ```
-
-
-    3. To prevent this issue across bulk re-provisions, clear all known_hosts
-       entries for cluster nodes:
-
-       ```bash
-       # Remove entries for a range of IPs
-       for i in $(seq 101 110); do
-           ssh-keygen -R 10.5.0.$i
-       done
-       ```
-
-
-## Container startup failures
-
+## Ansible Vault decryption failures
 
 ???+ note "Symptom"
 
-    One or more Podman containers fail to start after an OIM reboot, or
-    `podman ps` shows containers in `Exited` or `Error` state.
+    Playbook execution fails with:
 
-??? note "Cause"
-
-    Possible causes include:
-
-    - The Podman service (`podman.socket`) did not start.
-    - Containers were not configured to auto-restart.
-    - Disk space exhaustion prevents container layer extraction.
-    - Port conflicts with another service.
-
-??? note "Resolution"
-
-    1. Check the container status and error message:
-
-       ```bash
-       podman ps -a
-       podman logs <container_name>
-       ```
-
-
-    2. Attempt a manual restart:
-
-       ```bash
-       podman start <container_name>
-       ```
-
-
-    3. If disk space is the issue:
-
-       ```bash
-       df -h /
-       podman system prune --force
-       ```
-
-
-    4. If a port conflict is reported, identify the conflicting process:
-
-       ```bash
-       ss -tlnp | grep <port_number>
-       ```
-
-
-    5. If containers consistently fail after reboot, verify that Podman pods
-       have auto-start enabled:
-
-       ```bash
-       podman generate systemd --name <pod_name> --files
-       systemctl enable pod-<pod_name>.service
-       ```
-
-
-## `ssh omnia_core` fails after `sudo`
-
-
-???+ note "Symptom"
-
-    Running `ssh omnia_core` as a non-root user (or after `sudo su`) returns
-    a connection error or permission denied:
-
-    ```text
-    Permission denied (publickey).
-    ```
-
-
-??? note "Cause"
-
-    The `omnia_core` container is configured with SSH keys for the `root`
-    user. When you use `sudo su` to become root, the SSH agent and key
-    environment may not be inherited.
-
-??? note "Resolution"
-
-    Log in as `root` directly instead of using `sudo`:
-
-    ```bash
-    # Instead of:
-    sudo su
-    ssh omnia_core    # <-- fails
-
-    # Do this:
-    ssh root@<oim_ip>
-    ssh omnia_core    # <-- works
-    ```
-
-
-    Alternatively, explicitly specify the SSH key:
-
-    ```bash
-    ssh -i /root/.ssh/id_rsa omnia_core
-    ```
-
-
-## Ansible Vault encrypted file issues
-
-
-???+ note "Symptom"
-
-    Ansible playbooks fail with:
-
-    ```text
+    ```text title="Expected output"
     ERROR! Attempting to decrypt but no vault secrets found
     ```
 
-
-    Or you cannot view the contents of encrypted credential files.
-
 ??? note "Cause"
 
-    The vault password was not provided when running the playbook, or the
-    vault password file path is incorrect.
+    The vault password file (`.omnia_config_credentials_key`) is missing, incorrect, or inaccessible to the playbook execution context.
 
 ??? note "Resolution"
 
-    1. **View an encrypted file** without editing:
+    1. Verify the vault password file exists in the correct location.
+    2. Ensure the file has the correct permissions (readable by the user running the playbook).
+    3. Re-run the playbook with the correct vault password file:
 
-       ```bash
-       ansible-vault view input/credentials.yml
-       ```
+        ```bash title="Run on: omnia_core container"
+        ansible-playbook playbooks/omnia.yml --vault-password-file /root/.vault_pass
+        ```
 
+    4. If the vault password is lost, recreate the credentials file:
 
-    2. **Edit an encrypted file:**
+        ```bash title="Run on: omnia_core container"
+        cp input/credentials.yml input/credentials.yml.bak
+        ansible-vault create input/credentials.yml
+        ```
 
-       ```bash
-       ansible-vault edit input/credentials.yml
-       ```
+## OIM cleanup NFS directory deletion failure
 
+???+ note "Symptom"
 
-    3. **Run a playbook with vault password prompt:**
+    - `oim_cleanup.yml` fails with: `rmtree failed: [Errno 39] Directory not empty`.
+    - Specific error on directories like `/share_omnia_k8s/<node_ip>/kubelet/pods`.
+    - Cleanup process completes partially but leaves NFS share directories intact.
 
-       ```bash
-       ansible-playbook playbooks/omnia.yml --ask-vault-pass
-       ```
+    ```text title="Expected output"
+    [ERROR]: Task failed: Module failed: rmtree failed: [Errno 39] Directory not empty: '/share_omnia_k8s/10.20.0.15/kubelet/pods'
+    ```
 
+??? note "Cause"
 
-    4. **Run a playbook with a vault password file:**
+    - Kubernetes processes (`kubelet`, `crio`) on compute nodes or OIM have open file handles to NFS share directories.
+    - NFS shares are still mounted and in use on compute nodes.
 
-       ```bash
-       ansible-playbook playbooks/omnia.yml --vault-password-file /root/.vault_pass
-       ```
+    !!! note
 
+        The OIM cleanup process cleans the contents of NFS shares for both Slurm and Kubernetes. Active processes or mounts may prevent successful cleanup.
 
-    5. If you have forgotten the vault password, you will need to recreate the
-       credentials file. There is no way to recover an AES-256 encrypted vault
-       without the original password:
+??? note "Resolution"
 
-       ```bash
-       # Back up the old file
-       cp input/credentials.yml input/credentials.yml.bak
+    1. Manually delete the problematic directories on the OIM node:
 
-       # Create a new encrypted file
-       ansible-vault create input/credentials.yml
-       ```
+        ```bash title="Run on: OIM host"
+        # /share_omnia_k8s is the mounted NFS share directory
+        cd /share_omnia_k8s/<node_ip>/kubelet/pods
+        rm -rf *
+        cd /share_omnia_k8s/
+        rm -rf <node_ip>
+        ```
 
+    2. Re-run the OIM cleanup playbook:
+
+        ```bash title="Run on: omnia_core container"
+        cd /omnia/utils
+        ansible-playbook oim_cleanup.yml
+        ```
+
+    !!! tip
+
+        If manual deletion also fails with "Device or resource busy" errors, power off the compute nodes before attempting manual cleanup.
+
+## SSH key mismatches and root login failures
+
+???+ note "Symptom"
+
+    SSH connections fail with one of the following errors:
+
+    - `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`
+    - `Permission denied (publickey,gssapi-keyex,gssapi-with-mic)`
+    - `ssh: connect to host <ip> port 22: Connection refused`
+
+??? note "Cause"
+
+    - Outdated SSH key after node re-provisioning.
+    - cloud-init not rendered on the target node.
+
+??? note "Resolution"
+
+    1. Remove the stale key:
+
+        ```bash title="Run on: OIM host"
+        ssh-keygen -R <hostname_or_ip>
+        ```
+
+    2. Retry login or reprovision the node.
+
+    3. To clear keys across bulk re-provisions:
+
+        ```bash title="Run on: OIM host"
+        for i in $(seq 101 110); do
+            ssh-keygen -R 10.5.0.$i
+        done
+        ```
+
+## OpenCHAMI issues
+
+### Certificate expiration
+
+???+ note "Symptom"
+
+    OpenCHAMI certificates have expired, causing service communication failures.
+
+??? note "Resolution"
+
+    ```bash title="Run on: OIM host"
+    sudo openchami-certificate-update update <OIM_hostname>.<domain>
+    sudo systemctl restart openchami.target
+    ```
+
+### Token expired
+
+???+ note "Symptom"
+
+    OpenCHAMI access token has expired.
+
+??? note "Resolution"
+
+    ```bash title="Run on: OIM host"
+    export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+    ```
+
+### `provision.yml` fails: prepare_oim needs to be executed
+
+???+ note "Symptom"
+
+    The `provision.yml` playbook fails with an error indicating that `prepare_oim` needs to be executed first.
+
+??? note "Cause"
+
+    The OpenCHAMI container is not up and running.
+
+??? note "Resolution"
+
+    Perform a cleanup using `oim_cleanup.yml` and re-run `prepare_oim.yml` to bring up the OpenCHAMI containers. After `prepare_oim.yml` completes successfully, re-deploy the cluster.
+
+## Cluster not recovering after power cycle
+
+???+ note "Symptom"
+
+    After a power cycle, the Omnia cluster does not recover. Nodes fail to rejoin or services do not start.
+
+??? note "Cause"
+
+    - OIM was not powered on before compute nodes.
+    - Network connectivity issues after power cycle.
+    - Persistent storage or NFS mount failures.
+
+??? note "Resolution"
+
+    1. Follow the proper startup sequence: power on OIM first, then compute nodes.
+    2. Verify OIM is fully operational before powering on compute nodes.
+    3. Check network connectivity between OIM and compute nodes.
+    4. Verify NFS mounts are accessible.
+    5. If issues persist, reprovision affected nodes.
+
+## InfiniBand ports stuck in initializing state
+
+???+ note "Symptom"
+
+    InfiniBand ports remain in `Initializing` state after boot.
+
+??? note "Cause"
+
+    The Open Subnet Manager (OpenSM) service is not running on the InfiniBand switch.
+
+??? note "Resolution"
+
+    1. Ensure the Open Subnet Manager service is enabled and running on the InfiniBand switch.
+    2. After enabling OpenSM, PXE boot all IB NIC-based nodes.
+    3. Verify port state on the host:
+
+        ```bash title="Run on: compute node"
+        ibstat
+        ```
+
+    4. Confirm the InfiniBand ports transition to `State: Active`.
+
+## System recovery issues
+
+### Omnia containers not coming up after OIM reboot
+
+???+ note "Symptom"
+
+    Omnia containers fail to start after OIM reboot.
+
+??? note "Cause"
+
+    The Admin NIC on the OIM may have its autoconnect settings disabled (`autoconnect=no`), preventing it from reconnecting automatically after a reboot.
+
+??? note "Resolution"
+
+    Ensure the Admin NIC on the OIM is configured with `autoconnect=yes`. If you changed this configuration, reboot the OIM once to clear any cache-related or stale configuration issues.
+
+### PostgreSQL container deployment fails after cleanup
+
+???+ note "Symptom"
+
+    PostgreSQL container deployment fails after running `oim_cleanup.yml`.
+
+??? note "Cause"
+
+    Database initialization issues when existing data is present.
+
+??? note "Resolution"
+
+    - To reuse existing PostgreSQL data at `postgres_data_dir`, re-run `prepare_oim.yml` using the same PostgreSQL database credentials from the previous deployment.
+    - To delete existing data and create a new database:
+
+        ```bash title="Run on: omnia_core container"
+        ansible-playbook utils/oim_cleanup.yml -e postgres_backup=false
+        ```
+
+        After cleanup completes, re-run `prepare_oim.yml` to deploy a new `postgres_container_name` container.
+
+## Playbook fails due to hardware, network, or storage issues
+
+???+ note "Symptom"
+
+    Playbook execution fails due to underlying hardware, network, or storage problems.
+
+??? note "Resolution"
+
+    Identify and fix the underlying issue, then re-run the playbook.
 
 !!! info
 
-    - [Log Management](../Operations/log_management.md) -- Where to find logs for deeper
-      diagnosis.
-    - [Oim Cleanup](../Operations/oim_cleanup.md) -- Full OIM reset if issues persist.
+    - [Log Management](../Operations/log_management.md) -- Where to find logs for deeper diagnosis.
+    - [OIM Cleanup](../Operations/oim_cleanup.md) -- Full OIM reset if issues persist.
+    - [Provisioning](provisioning.md) -- PXE boot and local repository issues.
+    - [Upgrade and Rollback](upgrade_rollback.md) -- Upgrade and rollback failures.
