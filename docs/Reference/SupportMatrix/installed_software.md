@@ -142,11 +142,11 @@ This page lists all software components that Omnia installs and configures acros
 
 | Component | Version | Type | License | Installed On | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| containers.podman | 1.16.2 | pip | GPL-3.0-or-later | OIM | Ansible collection for Podman container management. |
-| community.grafana | 2.1.0 | pip | GPL-3.0-only | OIM | Ansible collection for Grafana automation. |
-| community.mysql | 3.10.3 | pip | GPL-3.0-only | OIM | Ansible collection for MySQL/MariaDB management. |
-| kubernetes.core | 5.2.0 | pip | GPL-3.0-only | OIM | Ansible collection for Kubernetes and OpenShift cluster automation. |
-| community.kubernetes | 2.0.1 | pip | GPL-3.0-or-later | OIM | Ansible collection for Kubernetes resources. |
+| containers.podman | 1.16.2 | ansible collection | GPL-3.0-or-later | OIM | Ansible collection for Podman container management. |
+| community.grafana | 2.1.0 | ansible collection | GPL-3.0-only | OIM | Ansible collection for Grafana automation. |
+| community.mysql | 3.10.3 | ansible collection | GPL-3.0-only | OIM | Ansible collection for MySQL/MariaDB management. |
+| kubernetes.core | 5.2.0 | ansible collection | GPL-3.0-only | OIM | Ansible collection for Kubernetes and OpenShift cluster automation. |
+| community.kubernetes | 2.0.1 | ansible collection | GPL-3.0-or-later | OIM | Ansible collection for Kubernetes resources. |
 | ansible-pylibssh | 1.2.3 | pip | LGPL-2.1-only | OIM | Python bindings for libssh specific to Ansible. |
 | python3-netaddr | 0.8.0 | pip | BSD-2-Clause, BSD-3-Clause | OIM | Network address manipulation library for Python. |
 | libssh | 0.10.6 | rpm | LGPL-2.1-or-later | OIM | SSH library for secure remote access. |
