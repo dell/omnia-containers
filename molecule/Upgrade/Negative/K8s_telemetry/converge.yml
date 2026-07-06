@@ -84,7 +84,7 @@
         msg: "Pre-upgrade snapshot: {{ 'FOUND' if 'OK' in (snapshot_check.stdout | default('')) else 'NOT FOUND (some tests may skip)' }}"
 
     - name: Run K8s & Telemetry upgrade playbook
-      ansible.builtin.shell:
+      ansible.builtin.command:
         cmd: >-
           podman exec {{ container_name }}
           ansible-playbook {{ upgrade_playbook }}
