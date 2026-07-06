@@ -225,6 +225,7 @@ nav:
       - Switches: Reference/SupportMatrix/switches.md
       - Storage: Reference/SupportMatrix/storage.md
       - Installed Software: Reference/SupportMatrix/installed_software.md
+      - All Softwares: Reference/SupportMatrix/all_softwares.md
     - Configuration:
       - Omnia Config: Reference/Configuration/omnia_config.md
       - Provision Config: Reference/Configuration/provision_config.md
@@ -263,6 +264,7 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
+    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
