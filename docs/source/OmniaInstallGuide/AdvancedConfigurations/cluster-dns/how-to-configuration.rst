@@ -13,6 +13,7 @@ Before enabling Cluster DNS, ensure the following:
 - Omnia is deployed on the OIM node with OpenCHAMI services running
 - ``/opt/omnia/input/project_default/provision_config.yml`` exists and is validated
 - The OIM node is accessible on the admin network
+- All hostnames in the PXE mapping file follow the NID format (e.g., ``nid001``, ``nid002``) when ``dns_enabled`` is set to ``true``
 
 Enabling Cluster DNS
 --------------------
@@ -29,6 +30,9 @@ To enable Cluster DNS for dynamic hostname resolution:
 
    .. note::
       The default value is ``false``, which preserves the legacy ``/etc/hosts`` behavior.
+
+   .. important::
+      When ``dns_enabled`` is set to ``true``, all hostnames in the PXE mapping file must follow the NID format (e.g., ``nid001``, ``nid002``). Custom hostnames (e.g., ``headnode``, ``compute1``) are not supported with DNS enabled. The provisioning playbook will validate this and fail with an error if non-NID hostnames are detected.
 
 3. Deploy or redeploy OpenCHAMI with coresmd (if not already deployed)::
 
@@ -215,25 +219,26 @@ Expected output should show the new node's IP address without requiring any play
 Troubleshooting
 --------------
 
-Custom Hostnames Not Resolving
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Hostname Validation Failure
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Symptom**: Custom hostnames from the PXE mapping don't resolve.
+**Symptom**: Provisioning fails with a hostname validation error when ``dns_enabled`` is ``true``.
 
 **Possible Causes**:
 
-1. Custom hostname not in ``/etc/hosts``
-2. PXE mapping file not processed correctly
+1. PXE mapping file contains custom hostnames (e.g., ``headnode``, ``compute1``) instead of NID format (e.g., ``nid001``, ``nid002``)
+2. Hostnames do not match the required ``nid`` followed by digits pattern
 
 **Resolution Steps**:
 
-1. Check ``/etc/hosts``::
-
-    grep <hostname> /etc/hosts
-
-2. Re-run provisioning to repopulate ``/etc/hosts``::
+1. Review the error message to identify invalid hostnames
+2. Update the PXE mapping file to use NID format hostnames (e.g., change ``headnode`` to ``nid001``)
+3. Ensure the numbering matches the expected xname sort order for correct DNS resolution
+4. Re-run the provisioning playbook::
 
     ansible-playbook provision/provision.yml
+
+**Alternative**: If custom hostnames are required, set ``dns_enabled`` to ``false`` to use the legacy ``/etc/hosts`` behavior.
 
 Mixed-State Cluster
 ~~~~~~~~~~~~~~~~~~
@@ -254,51 +259,86 @@ Mixed-State Cluster
 
 3. Reboot all nodes to apply the new cloud-init configuration
 
+Firewall Blocking DNS Port
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Symptom**: DNS queries from compute nodes time out; hostname resolution fails.
+
+**Possible Causes**:
+
+1. Firewall on the OIM node is blocking UDP/TCP port 53
+2. Port 53 was not opened during OpenCHAMI deployment
+
+**Resolution Steps**:
+
+1. Verify port 53 is open on the OIM node::
+
+    firewall-cmd --list-ports
+
+2. If port 53 is not listed, open it manually::
+
+    firewall-cmd --permanent --add-port=53/udp --add-port=53/tcp && firewall-cmd --reload
+
+3. Verify the port is now open::
+
+    firewall-cmd --list-ports
+
 Best Practices
 --------------
 
 **Plan DNS Mode Before Deployment**
+
 - Decide on DNS mode (``/etc/hosts`` vs DNS) before initial cluster deployment
 - Changing mode after deployment requires reprovisioning all nodes
+- If using DNS mode, ensure all hostnames in the PXE mapping file follow the NID format before deployment
 
 **Monitor coresmd Health**
+
 - Monitor coresmd container status and logs
 - Use Prometheus metrics (port 9153) to track DNS query performance
 - Set up alerts for coresmd downtime
 
 **Configure Reliable Upstream DNS**
+
 - Configure at least two reliable upstream DNS servers in ``admin_network.dns``
 - Test upstream DNS connectivity before enabling Cluster DNS
 - Monitor upstream DNS server availability
 
 **Test Resolution Before Production**
+
 - Verify DNS resolution from compute nodes before running production workloads
 - Test Slurm and MPI job execution with DNS enabled
 - Verify K8s pod resolution if Kubernetes is deployed
 
 **Document Domain Configuration**
+
 - Record the cluster domain name (``domain_name``) for reference
 - Document the hostname pattern (``cluster_shortname`` and ``cluster_nidlength``)
 - Share this information with cluster users for hostname reference
 
 **Plan for High Availability**
+
 - In the current implementation, the OIM node is a single point of failure for DNS
 - Plan for OIM HA deployment when high availability is required
 - Monitor OIM node health and have a recovery plan
 
 **Use Short-Name Resolution**
+
 - Leverage the ``search <domain_name>`` directive in ``/etc/resolv.conf``
 - Users can use short hostnames (e.g., ``nid001``) instead of FQDNs (e.g., ``nid001.hpc.cluster``)
 - Simplifies Slurm and MPI job configuration
 
 **Validate After Node Changes**
+
 - After adding or removing nodes, verify DNS resolution within 30 seconds
 - Check SMD inventory to confirm node registration
 - Use ``dig`` or ``getent hosts`` to test resolution
 
 **Limitations Considerations**
+
 - Be aware that reverse DNS (PTR records) are not supported
 - Plan for workarounds if applications require reverse DNS
 - Note that InfiniBand-specific DNS is not provided
 - Ensure MPI workloads use UCX auto-detection for IB transport
+- Custom hostnames are not supported when DNS is enabled; use NID format only
 

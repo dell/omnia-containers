@@ -147,15 +147,15 @@ Rollback state is tracked in ``/opt/omnia/.data/rollback_manifest.yml``:
 
 On rerun, already-completed components are automatically skipped.
 
-BuildStreaM Terminal Gate (Rollback)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BuildStreaM Rollback
+^^^^^^^^^^^^^^^^^^^^^
 
 If BuildStreaM was enabled during the upgrade, the downstream components (``slurm``, ``k8s-telemetry``) were never upgraded by Omnia — they are managed by the GitLab CI/CD pipeline. In this scenario, these components are **automatically skipped during rollback** because there is nothing to roll back. Only ``build_stream`` and ``oim`` are actually rolled back.
 
 Components that are skipped are recorded as ``skipped`` in the rollback manifest, which is treated as a successful terminal state when the overall rollback status is determined.
 
-BuildStreaM Rollback
-""""""""""""""""""""
+BuildStreaM Terminal Gate (Rollback)
+""""""""""""""""""""""""""""""""""""
 
 The BuildStreaM rollback path is automatically determined from metadata stored during the upgrade:
 

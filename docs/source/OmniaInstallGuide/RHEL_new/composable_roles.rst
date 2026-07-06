@@ -400,8 +400,11 @@ After discovery completes, a summary message is displayed with paths to both out
     1. Review and edit the generated PXE mapping file.
     2. Review the discovery report for NIC link statuses.
     3. Update HOSTNAME, FUNCTIONAL_GROUP_NAME, GROUP_NAME as needed.
-    4. Update pxe_mapping_file_path in provision_config.yml.
-    5. Run: ansible-playbook provision/provision.yml
+    4. If fresh installation of Omnia, Run:
+         ansible-playbook prepare_oim/prepare_oim.yml
+
+       If Slurm add node scenario, Run:
+         ansible-playbook provision/provision.yml
     ============================================================
 
 
