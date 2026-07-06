@@ -1,6 +1,6 @@
 # Get Started
 
-![Omnia Deployment Flow](../assets/images/Omnia_Flow_v2.1.0.0.jpg)
+![Omnia Deployment Flow](../assets/images/Omnia_Flow_v2.2.0.0-rc1_latest.png)
 
 Choose your deployment path based on your cluster requirements, available
 hardware, and desired workload. Each path is a self-contained, end-to-end
