@@ -173,7 +173,6 @@ nav:
       - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
       - Discover Nodes: HowTo/Setup/discover_nodes.md
       - Create Mapping File: HowTo/Setup/create_mapping_file.md
-      - PXE Boot Nodes: HowTo/Setup/pxe_boot_nodes.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
@@ -264,7 +263,6 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
-    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
