@@ -168,11 +168,12 @@ nav:
     - Setup:
       - Prepare OIM: HowTo/Setup/prepare_oim.md
       - Configure Inputs: HowTo/Setup/configure_inputs.md
+      - Create Mapping File: HowTo/Setup/create_mapping_file.md
+      
       - Configure Credentials: HowTo/Setup/configure_credentials.md
       - Create Local Repos: HowTo/Setup/create_local_repos.md
       - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
       - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
