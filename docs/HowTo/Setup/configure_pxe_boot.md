@@ -35,7 +35,6 @@ Create an inventory file with a `bmc` group containing the BMC IP addresses of t
 **Mode 1: With inventory file** — Configure PXE boot for specific nodes:
 
 ```bash title="Run on: omnia_core container"
-ssh omnia_core
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml -i inventory
 ```
@@ -43,12 +42,11 @@ ansible-playbook set_pxe_boot.yml -i inventory
 **Mode 2: Without inventory file** — Configure PXE boot for all nodes in the PXE mapping file:
 
 ```bash title="Run on: omnia_core container"
-ssh omnia_core
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
 
 !!! info
 
-    - [PXE Boot Nodes](pxe_boot_nodes.md) -- Initial PXE boot and provisioning procedure.
     - [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md) -- Mapping file format and functional group reference.
+    - [Discover Nodes](discover_nodes.md) -- Node discovery procedure.

@@ -386,7 +386,7 @@ Before beginning the BuildStreaM setup:
 
 ### Procedure
 
-#### 1. Update the following input files.
+**1. Update the following input files.**
 
     - `build_stream_config.yml`: contains the details about the BuildStreaM pipeline.
     - `gitlab_config.yml`: contains the details about the BuildStreaM GitLab configuration.
@@ -401,27 +401,27 @@ Before beginning the BuildStreaM setup:
     - `telemetry_storage_config.yml`: contains the details about the telemetry storage configuration.
     - `user_registry_credential.yml`: contains the details about the user registry credentials.
 
-#### `build_stream_config.yml`
+**`build_stream_config.yml`**
 
-Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the [BuildStreaM configuration table](../Reference/Configuration/buildstream_config.md) for guidance when configuring these parameters.
+Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Use the [BuildStreaM configuration table](../Reference/Configuration/build_stream_config.md) for guidance when configuring these parameters.
 
 !!! note
 
     Ensure that the `build_stream_port` (BuildStreaM port) is correctly configured in the `build_stream_config.yml` file. The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using `cleanup_oim.yml`), and then prepare the OIM again with the required port number (using `prepare_oim.yml`).
 
-#### `gitlab_config.yml`
+**`gitlab_config.yml`**
 
 Add necessary inputs to the `gitlab_config.yml` file for the BuildStreaM GitLab configuration. Use the [GitLab configuration table](../Reference/Configuration/gitlab_config.md) for guidance when configuring these parameters.
 
-#### `high_availability_config.yml`
+**`high_availability_config.yml`**
 
 Add necessary inputs to the `high_availability_config.yml` file for the high availability configuration. Use the high availability configuration table for guidance when configuring these parameters.
 
-#### `local_repo_config.yml`
+**`local_repo_config.yml`**
 
 Add necessary inputs to the `local_repo_config.yml` file for the local repository configuration. Use the local repository configuration table for guidance when configuring these parameters.
 
-#### `network_spec.yml`
+**`network_spec.yml`**
 
 Add necessary inputs to the `network_spec.yml` file to configure the network on which the cluster will operate. Use the network configuration table for guidance when configuring these parameters.
 
@@ -443,31 +443,31 @@ Networks:
    dns: []
 ```
 
-#### `omnia_config.yml`
+**`omnia_config.yml`**
 
 Add necessary inputs to the `omnia_config.yml` file for the OMNIA configuration. Use the OMNIA configuration table for guidance when configuring these parameters.
 
-#### `provision_config.yml`
+**`provision_config.yml`**
 
 Add necessary inputs to the `provision_config.yml` file for the provisioning of the cluster. Use the provisioning configuration table for guidance when configuring these parameters.
 
-#### `security_config.yml`
+**`security_config.yml`**
 
 Add necessary inputs to the `security_config.yml` file for the security configuration. Use the security configuration table for guidance when configuring these parameters.
 
-#### `storage_config.yml`
+**`storage_config.yml`**
 
 Add necessary inputs to the `storage_config.yml` file for the storage configuration. Use the storage configuration table for guidance when configuring these parameters.
 
-#### `telemetry_config.yml`
+**`telemetry_config.yml`**
 
 Add necessary inputs to the `telemetry_config.yml` file for the telemetry configuration. Use the telemetry configuration table for guidance when configuring these parameters.
 
-#### `telemetry_storage_config.yml`
+**`telemetry_storage_config.yml`**
 
 Add necessary inputs to the `telemetry_storage_config.yml` file for the telemetry storage configuration. Use the telemetry storage configuration table for guidance when configuring these parameters.
 
-#### 2. After updating the input files, run the `prepare_oim.yml` playbook:
+**2. After updating the input files, run the `prepare_oim.yml` playbook:**
 
 ```bash title="Run on: omnia_core container"
 ssh omnia_core
@@ -678,7 +678,7 @@ Before deploying GitLab for BuildStreaM:
 
     ![BuildStream project](../assets/images/buildstream_project.png)
 
-    The input folder includes the following configuration files (see [Configuration Tables](../Reference/Configuration/buildstream_config.md) for detailed parameter descriptions):
+    The input folder includes the following configuration files (see [Configuration Tables](../Reference/Configuration/build_stream_config.md) for detailed parameter descriptions):
 
     - `build_stream_config.yml` — BuildStream configuration file
     - `gitlab_config.yml` — GitLab configuration file
@@ -782,7 +782,7 @@ Before updating catalogs and checking pipelines:
     - Currently, BuildStreaM supports only one catalog file and one pipeline trigger. BuildStreaM pipeline behavior is controlled by the GitLab CI/CD configuration in your environment.
     - Each pipeline processes the catalog changes independently and builds the specified images based on the catalog requirements. Once a pipeline execution is complete, users can modify the catalog and re-trigger the pipeline as needed. However, multiple pipeline triggers cannot be executed simultaneously.
 
-#### Execute Build Pipeline Manually
+**Execute Build Pipeline Manually**
 
 To manually execute the build pipeline, follow these steps:
 
@@ -812,7 +812,7 @@ To manually execute the build pipeline, follow these steps:
 
 For troubleshooting common pipeline issues, see [BuildStreaM Troubleshooting](../Troubleshooting/buildstream.md).
 
-#### Monitor Build Pipeline Progress
+**Monitor Build Pipeline Progress**
 
 Monitor the build pipeline progress through the GitLab web interface to track stage execution and identify any issues.
 
@@ -899,7 +899,7 @@ Before executing the deploy pipeline, ensure the following:
 
 5. Monitor the pipeline progress to ensure it completes successfully. See "Monitor Deploy Pipeline Progress" below for detailed instructions.
 
-#### Execute Deploy Pipeline Manually
+**Execute Deploy Pipeline Manually**
 
 To manually execute the deploy pipeline, follow these steps:
 
@@ -935,7 +935,7 @@ To manually execute the deploy pipeline, follow these steps:
 
 For information on handling deploy failures with partial node failures, see "Handling Deploy Failures During Restart Stage (PXE Boot)" below.
 
-#### Monitor Deploy Pipeline Progress
+**Monitor Deploy Pipeline Progress**
 
 1. Monitor the deploy pipeline progress through the GitLab web interface:
 
@@ -966,7 +966,7 @@ After the deploy pipeline completes, verify the deployment:
 3. Log in to a sample of deployed nodes to verify the correct image is loaded.
 4. Check the BuildStreaM API for deployment status and image group information.
 
-#### Adding New Nodes to the Cluster
+**Adding New Nodes to the Cluster**
 
 This procedure describes how to deploy images on the new nodes without affecting previously provisioned nodes.
 
@@ -975,7 +975,7 @@ This procedure describes how to deploy images on the new nodes without affecting
 
 The system will PXE boot only the newly added nodes, without impacting previously successful nodes.
 
-#### Handling Deploy Failures During Restart Stage (PXE Boot)
+**Handling Deploy Failures During Restart Stage (PXE Boot)**
 
 In the deploy pipeline, when the restart stage encounters partial failures (some nodes PXE booted successfully while others fail), BuildStream provides a `failed_nodes.json` mechanism to enable efficient retry operations.
 

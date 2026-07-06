@@ -1,52 +1,78 @@
-
 # Minimum Node Counts
 
+This page lists the minimum number of servers required for each Omnia deployment scenario, categorized by functional role and architecture.
 
-This page lists the minimum number of servers required for each Omnia
-deployment scenario. The OIM (management node) is always required in addition
-to the cluster nodes listed below.
+## Full deployment (Slurm + Service Kubernetes) -- x86_64 and aarch64
 
-## Node count summary
-
-
-| Deployment Scenario | Min. Nodes | Node Breakdown |
+| Role | Architecture | Quantity |
 | --- | --- | --- |
-| **Slurm-only (Path A)** | 4 | 1 OIM + 1 Slurm control + 1 Slurm compute + 1 login node |
-| **Full deployment (Path B)** | 8 | 1 OIM + 1 Slurm control + 1 Slurm compute + 1 login + 3 K8s control plane + 1 K8s worker (auth server may be co-located) |
-| **K8s + Telemetry only (Path C)** | 5 | 1 OIM + 3 K8s control plane + 1 K8s worker |
-| **BuildStreaM (Path D)** | 8+ | 1 OIM + 1 Slurm control + 1 Slurm compute + 1 login + 3 K8s control plane + 1 K8s worker (GitLab and runners on K8s) |
+| Omnia Infrastructure Manager (OIM) | x86_64 | 1 |
+| Service Kubernetes Control Plane | x86_64 | 3 |
+| Service Kubernetes Node | x86_64 | 1 |
+| Slurm Control Node | x86_64 | 1 |
+| Slurm Node | aarch64 | 1 |
+| Login Node | aarch64 | 1 |
+| Login Compiler Node | aarch64 | 1 |
 
-## Detailed breakdown by role
+**Total: 9 nodes**
 
+## Full deployment (Slurm + Service Kubernetes) -- x86_64 only
 
-| Node Role | Slurm Only | Full | K8s + Tel. | BuildStreaM | Notes |
-| --- | --- | --- | --- | --- | --- |
-| OIM | 1 | 1 | 1 | 1 | Always exactly 1. Cannot be co-located with cluster roles. |
-| slurm_control_node | 1 | 1 | -- | 1 | Runs slurmctld, slurmdbd, MariaDB. |
-| slurm_node | 1+ | 1+ | -- | 1+ | Compute nodes. Scale out as needed. |
-| login_node | 1 | 1 | -- | 1 | Optional but recommended. Can be omitted; users then SSH to the control node. |
-| kube_control_plane | -- | 3 | 3 | 3 | 3 required for HA quorum. 1 is acceptable for non-HA (development only). |
-| kube_node | -- | 1+ | 1+ | 1+ | Worker nodes for K8s pods. |
-| auth_server | 0--1 | 0--1 | -- | 0--1 | Optional dedicated node. Authentication can run on an existing Slurm or K8s node. |
+| Role | Architecture | Quantity |
+| --- | --- | --- |
+| Omnia Infrastructure Manager (OIM) | x86_64 | 1 |
+| Service Kubernetes Control Plane | x86_64 | 3 |
+| Service Kubernetes Node | x86_64 | 1 |
+| Slurm Control Node | x86_64 | 1 |
+| Slurm Node | x86_64 | 1 |
+| Login Node | x86_64 | 1 |
+| Login Compiler Node | x86_64 | 1 |
 
-## Scaling guidelines
+**Total: 9 nodes**
 
+## Slurm-only deployment -- x86_64
 
-| Cluster Size | Recommendation |
-| --- | --- |
-| < 50 nodes | Standard OIM (4 cores, 32 GB RAM). Single Slurm control node. |
-| 50--200 nodes | Upgraded OIM (8 cores, 64 GB RAM). Consider dedicated auth server. |
-| 200--500 nodes | High-spec OIM (16 cores, 128 GB RAM). Dedicated login node(s). Add K8s workers for monitoring load. |
-| 500+ nodes | Multiple login nodes. External NFS or PowerScale for /home. Increase Pulp storage. Consider external etcd for K8s HA. |
+| Role | Architecture | Quantity |
+| --- | --- | --- |
+| Omnia Infrastructure Manager (OIM) | x86_64 | 1 |
+| Slurm Control Node | x86_64 | 1 |
+| Slurm Node | x86_64 | 1 |
+| Login Node | x86_64 | 1 |
+| Login Compiler Node | x86_64 | 1 |
+
+!!! note
+    One of either Login Node or Login Compiler Node is required.
+
+**Total: 5 nodes**
+
+## Kubernetes + Telemetry deployment -- x86_64
+
+| Role | Architecture | Quantity |
+| --- | --- | --- |
+| Omnia Infrastructure Manager (OIM) | x86_64 | 1 |
+| Service Kubernetes Control Plane | x86_64 | 3 |
+| Service Kubernetes Node | x86_64 | 1 |
+
+**Total: 5 nodes**
+
+## Role descriptions
+
+| Role | Functional Group | Description |
+| --- | --- | --- |
+| OIM | -- | Management node. Runs Pulp, OpenCHAMI, MinIO, and provisioning services. Always exactly 1. Cannot be co-located with cluster roles. |
+| Service K8s Control Plane | `service_kube_control_plane_x86_64` | Runs Kubernetes API server, etcd, scheduler, and controller-manager. 3 required for HA quorum. |
+| Service K8s Node | `service_kube_node_x86_64` | Kubernetes worker node. Hosts telemetry pods (Kafka, VictoriaMetrics, Grafana) and application workloads. |
+| Slurm Control Node | `slurm_control_node_x86_64` | Runs `slurmctld`, `slurmdbd`, and MariaDB for job accounting. |
+| Slurm Node | `slurm_node_x86_64`, `slurm_node_aarch64` | Compute nodes running `slurmd`. Scale out as needed. |
+| Login Node | `login_node_x86_64`, `login_node_aarch64` | Interactive SSH access for users to submit jobs. Runs `slurmd`. |
+| Login Compiler Node | `login_compiler_node_aarch64` | Login node with compiler toolchain for cross-compilation on AArch64. |
 
 !!! note
 
-    The OIM must remain a dedicated, standalone server. Do not co-locate
-    Slurm or Kubernetes roles on the OIM -- this is unsupported and will
-    cause resource contention with the management services.
+    The OIM must remain a dedicated, standalone server. Do not co-locate Slurm or Kubernetes roles on the OIM.
 
 !!! info
 
-    - [Disk Space](disk_space.md) -- Disk requirements per node role.
+    - [Disk Space](disk_space.md) -- Disk and memory requirements per node role.
     - [Ports](ports.md) -- Network ports required per role.
     - [HA Config](../Configuration/high_availability_config.md) -- Kubernetes HA settings.

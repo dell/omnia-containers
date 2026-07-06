@@ -1,319 +1,241 @@
-
 # Kubernetes Issues
 
+Issues related to the Kubernetes service cluster, including image pulls, pod scheduling, DNS, storage, CSI drivers, control plane join, and networking.
 
-Issues related to the Kubernetes service cluster, including control plane
-initialization, pod scheduling, networking, storage, and load balancing.
-
-## Control plane not initializing
-
+## ImagePullBackOff / ErrImagePull
 
 ???+ note "Symptom"
 
-    The Kubernetes control plane fails to initialize. `kubectl get nodes`
-    returns a connection error, or the `omnia.yml` playbook fails during the
-    Kubernetes deployment phase.
+    Pods fail to start with `ImagePullBackOff` or `ErrImagePull` status.
 
 ??? note "Cause"
 
-    - Required ports (6443, 2379-2380, 10250-10252) are blocked by a firewall.
-    - The `kubelet` service failed to start.
-    - Insufficient resources (CPU, memory) on the control plane node.
-    - A previous Kubernetes installation was not fully cleaned up.
+    - Docker rate limits exceeded.
+    - Local repository missing required container images.
 
 ??? note "Resolution"
 
-    1. Check `kubelet` status on the control plane node:
+    1. Add Docker credentials to `omnia_config_credentials.yml`.
+    2. Ensure `local_repo.yml` completed successfully.
 
-       ```bash
-       ssh <kube_control_plane> systemctl status kubelet
-       ssh <kube_control_plane> journalctl -u kubelet --no-pager -n 50
-       ```
-
-
-    2. Verify required ports are open:
-
-       ```bash
-       ssh <kube_control_plane> ss -tlnp | grep -E '6443|2379|10250'
-       ```
-
-
-    3. Check for leftover state from a previous installation:
-
-       ```bash
-       ssh <kube_control_plane> ls /etc/kubernetes/manifests/
-       ```
-
-
-       If stale files exist, reset Kubernetes:
-
-       ```bash
-       ssh <kube_control_plane> kubeadm reset -f
-       ssh <kube_control_plane> rm -rf /etc/kubernetes/ /var/lib/etcd/
-       ```
-
-
-    4. Re-run the Omnia Kubernetes deployment:
-
-       ```bash
-       ssh omnia_core
-       cd /omnia
-       ansible-playbook playbooks/omnia.yml --tags kubernetes
-       ```
-
-
-## Pod scheduling failures
-
+## Pods not in running state
 
 ???+ note "Symptom"
 
-    Pods remain in `Pending` state indefinitely. ``kubectl describe pod
-    <pod_name>`` shows scheduling errors:
+    Pods are not in `Running` state. Status values observed include `Pending`, `CrashLoopBackOff`, `ImagePullBackOff`, or `OOMKilled` (visible in `kubectl describe pod` Events section).
 
-    ```text
-    Warning  FailedScheduling  0/3 nodes are available: 3 node(s) had taint
-    {node-role.kubernetes.io/control-plane: }, that the pod didn't tolerate.
+??? note "Cause"
+
+    Pod startup failures due to resource constraints, image pull failures, or application errors.
+
+??? note "Resolution"
+
+    1. Identify the failing pods:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl get pods --all-namespaces
+        ```
+
+    2. Delete and allow the controller to recreate:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl delete pod <pod-name> -n <namespace>
+        ```
+
+## Cluster nodes reboot
+
+???+ note "Symptom"
+
+    Cluster nodes reboot unexpectedly or require reboot after configuration changes.
+
+??? note "Cause"
+
+    - Configuration changes requiring node restart.
+    - Kernel updates.
+    - System instability.
+
+??? note "Resolution"
+
+    1. Wait 15 minutes for the node to rejoin the cluster.
+    2. Verify cluster status:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl get nodes
+        kubectl cluster-info
+        ```
+
+## DNS unresponsive / CoreDNS issues
+
+???+ note "Symptom"
+
+    DNS resolution fails or CoreDNS is unresponsive in the cluster.
+
+??? note "Cause"
+
+    - CoreDNS pod not running.
+    - DNS configuration errors.
+    - Network connectivity issues.
+
+??? note "Resolution"
+
+    Restart CoreDNS:
+
+    ```bash title="Run on: K8s control plane"
+    kubectl rollout restart deployment coredns -n kube-system
     ```
 
-
-??? note "Cause"
-
-    - No worker nodes are available (only control plane nodes exist).
-    - Worker nodes are in `NotReady` state.
-    - Resource requests exceed available capacity on worker nodes.
-    - Taints on nodes prevent pod scheduling.
-
-??? note "Resolution"
-
-    1. Check node status:
-
-       ```bash
-       kubectl get nodes
-       ```
-
-
-    2. If worker nodes are `NotReady`, check kubelet on those nodes:
-
-       ```bash
-       ssh <kube_worker> systemctl status kubelet
-       ssh <kube_worker> journalctl -u kubelet --no-pager -n 50
-       ```
-
-
-    3. If only control plane nodes exist, either add worker nodes or allow
-       scheduling on control planes (not recommended for production):
-
-       ```bash
-       # Add worker nodes via Omnia
-       ssh omnia_core
-       cd /omnia
-       ansible-playbook playbooks/add_node.yml
-       ```
-
-
-    4. Check resource availability:
-
-       ```bash
-       kubectl describe nodes | grep -A 5 "Allocated resources"
-       ```
-
-
-    5. Remove problematic taints if appropriate:
-
-       ```bash
-       kubectl taint nodes <node_name> <taint_key>-
-       ```
-
-
-## MetalLB not assigning IP addresses
-
+## PowerScale SmartConnect DNS resolution issues
 
 ???+ note "Symptom"
 
-    Services of type `LoadBalancer` remain in `<pending>` state and never
-    receive an external IP:
-
-    ```bash
-    kubectl get svc
-    # EXTERNAL-IP shows <pending>
-    ```
-
+    DNS resolution fails for PowerScale SmartConnect zone entries.
 
 ??? note "Cause"
 
-    - MetalLB is not deployed or its pods are not running.
-    - The MetalLB IP address pool is not configured or is exhausted.
-    - The MetalLB speaker pods cannot reach the network.
+    CoreDNS is unaware of external SmartConnect zone.
 
 ??? note "Resolution"
 
-    1. Verify MetalLB pods are running:
+    1. Edit the CoreDNS ConfigMap:
 
-       ```bash
-       kubectl get pods -n metallb-system
-       ```
+        ```bash title="Run on: K8s control plane"
+        kubectl -n kube-system edit configmap coredns
+        ```
 
+    2. Add a hosts block:
 
-    2. Check MetalLB logs:
+        ```text title="Example"
+        hosts {
+            10.x.x.x management.ps.com
+            fallthrough
+        }
+        ```
 
-       ```bash
-       kubectl logs -n metallb-system -l app=metallb,component=controller
-       kubectl logs -n metallb-system -l app=metallb,component=speaker
-       ```
+    3. Restart CoreDNS:
 
+        ```bash title="Run on: K8s control plane"
+        kubectl rollout restart deployment coredns -n kube-system
+        ```
 
-    3. Verify the IP address pool configuration:
-
-       ```bash
-       kubectl get ipaddresspool -n metallb-system -o yaml
-       ```
-
-
-       If no pool exists, create one:
-
-       ```yaml
-       apiVersion: metallb.io/v1beta1
-       kind: IPAddressPool
-       metadata:
-         name: default-pool
-         namespace: metallb-system
-       spec:
-         addresses:
-         - 10.5.1.100-10.5.1.200
-       ```
-
-
-    4. Verify the L2 advertisement is configured:
-
-       ```bash
-       kubectl get l2advertisement -n metallb-system
-       ```
-
-
-## NFS CSI mount failures
-
+## Control-plane join fails due to certificate key expiry
 
 ???+ note "Symptom"
 
-    Pods that use NFS-backed persistent volumes fail to start. ``kubectl
-    describe pod`` shows mount errors:
-
-    ```text
-    Warning  FailedMount  Unable to attach or mount volumes: timed out waiting
-    for the condition
-    ```
-
+    Control-plane node fails to join the cluster due to certificate key expiry.
 
 ??? note "Cause"
 
-    - The NFS server is unreachable from the Kubernetes worker nodes.
-    - The NFS CSI driver pods are not running.
-    - The NFS export path is incorrect in the PersistentVolume definition.
-    - Firewall rules block NFS traffic (ports 2049, 111).
+    The kubeadm certificate key expires after approximately 2 hours.
 
 ??? note "Resolution"
 
-    1. Verify the NFS CSI driver is running:
+    1. On a healthy control-plane, regenerate the join script:
 
-       ```bash
-       kubectl get pods -n kube-system | grep nfs
-       ```
+        ```bash title="Run on: K8s control plane"
+        {{ k8s_client_mount_path }}/generate-control-plane-join.sh
+        ```
 
+    2. Reboot the failed node.
 
-    2. Test NFS connectivity from a worker node:
-
-       ```bash
-       ssh <kube_worker> showmount -e <nfs_server_ip>
-       ```
-
-
-    3. Verify the PersistentVolume configuration:
-
-       ```bash
-       kubectl get pv -o yaml | grep -A 5 nfs
-       ```
-
-
-    4. Check NFS firewall rules on the NFS server:
-
-       ```bash
-       ssh <nfs_server> firewall-cmd --list-all | grep -E 'nfs|2049|111'
-       ```
-
-
-    5. If the NFS server is unreachable, verify it is on the admin network:
-
-       ```bash
-       ssh <kube_worker> ping <nfs_server_ip>
-       ```
-
-
-    !!! tip
-
-        For production environments, use the PowerScale CSI driver instead of
-        external NFS. See [Deploy Powerscale Csi](../HowTo/Kubernetes/deploy_powerscale_csi.md).
-
-
-## Calico networking issues
-
+## Static pods show stale running state after node shutdown
 
 ???+ note "Symptom"
 
-    Pods cannot communicate with each other across nodes. `kubectl exec`
-    into a pod and pinging another pod's IP fails. Calico pods may show errors
-    in their logs.
+    After a control plane node is powered off or rebooted, static pods on the affected node may show `1/1 Running` (stale) even though the node is `NotReady`. This is most commonly observed with `kube-apiserver` pods, but can affect `etcd`, `kube-controller-manager`, `kube-scheduler`, and `kube-vip`.
+
+    !!! note
+
+        This is an intermittent issue caused by a race condition. The behavior varies depending on shutdown timing, network conditions, and system load.
 
 ??? note "Cause"
 
-    - Calico pods are not running on all nodes.
-    - The pod CIDR overlaps with an existing network range.
-    - BGP peering is misconfigured (in BGP mode).
-    - IP-in-IP or VXLAN encapsulation is blocked by network infrastructure.
+    During graceful shutdown, all critical pods receive SIGTERM simultaneously. A circular dependency exists: kubelet needs the API server to update the API server's own status. When the VIP is released before `kube-apiserver` fully terminates, the container state remains stale.
+
+    **Impact**: No functional impact on cluster operations. The cluster continues to operate normally with remaining control planes. Pods are properly garbage collected based on `--terminated-pod-gc-threshold`.
 
 ??? note "Resolution"
 
-    1. Check Calico pod status:
+    This behavior is expected and does not require action. When the node powers back on, pods restart automatically with incremented restart count.
 
-       ```bash
-       kubectl get pods -n calico-system
-       # or
-       kubectl get pods -n kube-system | grep calico
-       ```
+    **Related Kubernetes issues:**
 
+    - [Issue #110755](https://github.com/kubernetes/kubernetes/issues/110755) -- Kubelet doesn't finish killing pods before shutdown.
+    - [Issue #124448](https://github.com/kubernetes/kubernetes/issues/124448) -- GracefulNodeShutdown fails to update Pod status.
+    - [Issue #109531](https://github.com/kubernetes/kubernetes/issues/109531) -- Pods in Running/Terminating state after shutdownGracePeriod expiry.
 
-    2. Check Calico node status:
+## NFS-client provisioner CrashLoopBackOff
 
-       ```bash
-       kubectl get nodes -o wide
-       calicoctl node status    # if calicoctl is installed
-       ```
+???+ note "Symptom"
 
+    NFS-client provisioner pod enters `CrashLoopBackOff` state.
 
-    3. Verify the pod CIDR does not overlap with existing networks:
+??? note "Cause"
 
-       ```bash
-       kubectl cluster-info dump | grep -m 1 cluster-cidr
-       ```
+    NFS server not active at `server_share_path`.
 
+??? note "Resolution"
 
-    4. Check Calico logs for errors:
+    Ensure NFS server is active and reachable from the Kubernetes worker nodes.
 
-       ```bash
-       kubectl logs -n calico-system -l k8s-app=calico-node --tail=50
-       ```
+## PowerScale CSI controller issues
 
+???+ note "Symptom"
 
-    5. If encapsulation is blocked, switch Calico to VXLAN mode:
+    PowerScale (Isilon) CSI controller pod in `CrashLoopBackOff` after node reboot.
 
-       ```bash
-       kubectl patch felixconfiguration default \
-         --type='merge' \
-         -p '{"spec":{"vxlanEnabled":true,"ipipEnabled":false}}'
-       ```
+??? note "Cause"
 
+    - CSI controller fails to reconnect to PowerScale storage after node reboot.
+    - Storage connectivity issues or configuration problems.
+    - PowerScale (Isilon) service unavailability.
+
+??? note "Resolution"
+
+    1. Inspect recent logs from the controller deployment:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl logs deploy/isilon-controller -n isilon --all-containers=true | tail -n 60
+        ```
+
+    2. Restart the Isilon controller deployment:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl rollout restart deployment isilon-controller -n isilon
+        ```
+
+    3. Restart the Isilon node daemonset:
+
+        ```bash title="Run on: K8s control plane"
+        kubectl rollout restart daemonset isilon-node -n isilon
+        ```
+
+## Missing PowerScale CSI driver
+
+???+ note "Symptom"
+
+    PowerScale CSI driver is not deployed or available in the cluster.
+
+??? note "Cause"
+
+    Driver not listed in `software_config.json`.
+
+??? note "Resolution"
+
+    1. Add the required entry to `software_config.json`:
+
+        ```json title="Example"
+        {
+          "name": "csi_driver_powerscale",
+          "version": "v2.17.0",
+          "arch": ["x86_64"]
+        }
+        ```
+
+    2. Re-run the playbook.
 
 !!! info
 
     - [Setup Service K8S](../HowTo/Kubernetes/setup_service_k8s.md) -- Kubernetes cluster setup.
-    - [Configure Ha](../HowTo/Kubernetes/configure_ha.md) -- High availability configuration.
+    - [Configure HA](../HowTo/Kubernetes/configure_ha.md) -- High availability configuration.
+    - [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md) -- PowerScale CSI driver deployment.
     - [Add Remove Nodes](../Operations/add_remove_nodes.md) -- Adding worker nodes.
