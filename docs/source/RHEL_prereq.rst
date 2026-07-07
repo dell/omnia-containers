@@ -266,8 +266,20 @@ GPU-capable nodes are present. These apply in addition to general Slurm prerequi
 
 Repository Requirements
 
-- CUDA repository: Must be reachable from Slurm compute nodes. The CUDA repository must be accessible through the local Pulp repository configured during ``local_repo.yml`` execution.
-- DCGM repository: Must be available in the configured local repository.
+- CUDA repository: Provisioned automatically in the local Pulp repository as part of local_repo_config.yml execution. Slurm compute nodes must be able to reach this local repository; no separate CUDA repo setup is required.
+- DCGM repository: Also provisioned automatically in the local repository by local_repo_config.yml. No manual configuration is needed beyond ensuring local_repo_config.yml has run successfully.
+
+DCGM Installation Configuration
+
+DCGM installation is controlled through the ``metrics_enabled`` parameter in the ``telemetry_sources.dcgm`` section of the ``input/telemetry_config.yml`` file:
+
+.. code-block:: yaml
+
+   telemetry_sources:
+     dcgm:
+       metrics_enabled: true
+
+For DCGM installation to happen, ensure that ``metrics_enabled`` is set to ``true``.
 
 NFS Requirements
 
