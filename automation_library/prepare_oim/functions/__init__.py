@@ -51,6 +51,16 @@ from .storage_func import (
     verify_s3_directories,
 )
 
+from .multi_subnet_func import (
+    get_additional_subnets,
+    has_additional_subnets,
+    check_coredhcp_file_exists,
+    check_coredhcp_multisubnet_mode,
+    verify_subnet_entries_in_coredhcp,
+    activate_multisubnet_coredhcp,
+    verify_coresmd_running_image,
+)
+
 __all__ = [
     # Config helpers
     "is_ldap_enabled",
@@ -80,4 +90,12 @@ __all__ = [
     "verify_s3_buckets",
     "verify_regctl_working",
     "verify_s3_directories",
+    # Multi-subnet functions
+    "get_additional_subnets",
+    "has_additional_subnets",
+    "check_coredhcp_file_exists",
+    "check_coredhcp_multisubnet_mode",
+    "verify_subnet_entries_in_coredhcp",
+    "activate_multisubnet_coredhcp",
+    "verify_coresmd_running_image",
 ]

@@ -649,7 +649,7 @@ def _parse_direct_deps(host, target: str):
         if indent == first_level_indent:
             # Extract unit name: strip tree chars
             cleaned = line
-            for ch in ("●", "├", "└", "─", "│"):
+            for ch in ("●", "├", "└", "─", "│", "×", "○"):
                 cleaned = cleaned.replace(ch, "")
             cleaned = cleaned.strip()
             if cleaned:
