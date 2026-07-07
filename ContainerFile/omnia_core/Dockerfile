@@ -74,7 +74,7 @@ RUN SITE_PKGS=$(python3 -c "import sysconfig; print(sysconfig.get_path('purelib'
     find "$SITE_PKGS" -name "pip-23.*" -exec rm -rf {} + 2>/dev/null || true
 
 # Install/sync python packages using pyproject.toml (includes all security-patched packages)
-RUN pip3 install uv==0.9.13
+RUN pip3 install uv==0.11.15
 COPY pyproject.toml uv.lock ./
 ENV UV_PROJECT_ENVIRONMENT="/usr"
 RUN uv lock && uv sync && \
@@ -117,7 +117,7 @@ RUN echo "collections:" > /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.os10" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 1.1.1" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: dellemc.openmanage" >> /tmp/omnia_core/galaxy_requirements.yml && \
-    echo "    version: 9.6.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
+    echo "    version: 10.0.2" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: ansible.posix" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "    version: 2.0.0" >> /tmp/omnia_core/galaxy_requirements.yml && \
     echo "  - name: containers.podman" >> /tmp/omnia_core/galaxy_requirements.yml && \
@@ -176,8 +176,8 @@ LABEL security.go.version="1.25.10" \
       security.pip.cves="CVE-2025-8869-fixed,CVE-2025-68121-fixed" \
       security.wheel.version="0.46.2" \
       security.wheel.note="Upgraded wheel and cleared uv cache to remove vendored vulnerable version" \
-      security.ansible.version="2.20.1" \
-      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.1 (supported through ~May 2027)"
+      security.ansible.version="2.20.7" \
+      security.ansible.note="Upgraded from EOL ansible-core 2.16 to stable 2.20.7 (supported through ~May 2027)"
 
 # Set the entrypoint script as the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
