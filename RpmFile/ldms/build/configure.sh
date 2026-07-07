@@ -6,6 +6,7 @@ CFLAGS="-ggdb3 -O0 -std=gnu17" \
  --with-slurm="/usr/include/slurm" \
  --with-libevent="/opt/ovis-ldms/lib" \
  --disable-mmap \
+ --enable-cray-samplers \
  --enable-doc \
  --enable-doc-html \
  --enable-doc-man \
