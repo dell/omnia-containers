@@ -1,48 +1,5 @@
-=======================================================
-Integrate VAST Storage with Omnia Telemetry for Secure Metrics and Logs Streaming
-=======================================================
-
-This section describes how to configure VAST Storage to securely stream telemetry metrics and logs to the Service Kubernetes cluster.
-
-This procedure assumes that VictoriaMetrics is deployed in cluster mode in the telemetry namespace of the Service Kubernetes cluster. For more information, see the `VictoriaMetrics cluster mode documentation <https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/>`_.
-
-Using Omnia, you can deploy VAST Telemetry to collect storage performance metrics and syslog events from VAST Storage appliances. The deployment includes configuring the VAST Telemetry components on the service Kubernetes cluster, integrating with the VAST Prometheus exporter via vmagent, and ingesting syslog events via the VLAgent pipeline.
-
-VAST Telemetry collects storage metrics and logs. VAST Telemetry includes these components:
-
-- **VAST Prometheus Exporter:** Exposes storage metrics on a Prometheus-compatible HTTPS endpoint (default port 443).
-- **vmagent (shared):** Scrapes the VAST Prometheus exporter endpoint over TLS and forwards metrics to VictoriaMetrics.
-- **VMServiceScrape CR:** Kubernetes custom resource that declares the VAST scrape target for the VictoriaMetrics operator.
-- **VLAgent:** Receives VAST syslog events (RFC 3164/5424) and forwards them to VictoriaLogs.
-- **Kubernetes Service + Endpoints:** Abstracts the external VAST appliance as a discoverable Kubernetes service for vmagent.
-
-Supported Metrics and Logs
---------------------------
-
-**Metrics**
-
-The VAST metrics include the following:
-
-- **Storage Performance:** Read/write throughput (bytes/sec), IOPS per volume, latency metrics
-- **Capacity Metrics:** Total capacity, used capacity, available capacity, thin provisioning ratios
-- **Volume Metrics:** Volume state, volume performance counters, snapshot metrics
-- **Device Metrics:** Device health status, device performance, device error counters
-- **Cluster Health:** Node status, cluster connectivity, replication status
-- **Telemetry Health:** Scrape success rate, scrape duration, ingest latency
-
-**Logs**
-
-The VAST logs include the following:
-
-- **Storage Events:** Volume creation/deletion events, snapshot events, capacity threshold alerts
-- **System Events:** Node health events, cluster state changes, replication events
-- **Alarm Events:** Critical alarms, warning alarms, informational events
-- Events are labeled with hostname, severity, and facility
-
-.. note:: For the configuration steps, see :doc:`../../configure_vast_integration`.
-
 Verify VAST Telemetry Flow
----------------------------
+===============================================
 
 This section outlines the steps to verify VAST telemetry data in VictoriaMetrics.
 
@@ -112,3 +69,4 @@ View VAST Logs using VictoriaLogs
     https://<external vlselect loadbalancer IP>:9471/select/vmui
 
 .. image:: ../../../../images/view_vast_logs_4.png
+

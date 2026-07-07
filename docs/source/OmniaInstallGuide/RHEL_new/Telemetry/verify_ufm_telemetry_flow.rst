@@ -1,46 +1,5 @@
-Integrate NVIDIA Unified Fabric Manager (UFM) with Omnia Telemetry for Secure Metrics and Logs Streaming
-=========================================================================================================
-
-This section describes how to configure NVIDIA Unified Fabric Manager (UFM) to securely stream telemetry metrics and logs to the Service Kubernetes cluster.
-
-This procedure assumes that VictoriaMetrics is deployed in **cluster mode** in the ``telemetry`` namespace of the Service Kubernetes cluster.
-For more information, see the `VictoriaMetrics cluster mode documentation <https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/>`_.
-
-Using Omnia, you can deploy UFM Telemetry to collect InfiniBand fabric performance metrics and syslog events from NVIDIA Unified Fabric Manager (UFM) appliances. The deployment includes configuring the UFM Telemetry components on the service Kubernetes cluster, integrating with the UFM Prometheus exporter via vmagent, and ingesting syslog events via the VLAgent pipeline.
-
-UFM Telemetry collects InfiniBand fabric metrics and logs. UFM Telemetry includes these components:
-
-* **UFM Prometheus Exporter**: Exposes InfiniBand fabric metrics on a Prometheus-compatible HTTPS endpoint (default port 9001).
-* **vmagent (shared)**: Scrapes the UFM Prometheus exporter endpoint over TLS and forwards metrics to VictoriaMetrics.
-* **VMServiceScrape CR**: Kubernetes custom resource that declares the UFM scrape target for the VictoriaMetrics operator.
-* **VLAgent**: Receives UFM syslog events (RFC 3164/5424) and forwards them to VictoriaLogs.
-* **Kubernetes Service + Endpoints**: Abstracts the external UFM appliance as a discoverable Kubernetes service for vmagent.
-
-Supported Metrics and Logs
----------------------------
-
-**Metrics:**
-
-The UFM metrics include the following:
-
-* **Port State**: InfiniBand port operational state (up, down, disabled)
-* **Traffic Counters**: Transmit/receive data rates (bytes/sec), packet counts per port
-* **Error Counters**: Symbol errors, link error recovery, link downed, VL15 dropped, excessive buffer overrun errors
-* **Fabric Topology**: Switch information, port mapping, node GUIDs, LID assignments
-* **Telemetry Health**: Scrape success rate, scrape duration, ingest latency
-
-**Logs:**
-
-The UFM logs include the following:
-
-* Fabric topology change events, port state transitions, error/warning messages
-* SM (Subnet Manager) events, SHARP events, UFM health events
-* Events are labeled with hostname, severity, and facility
-
-.. note:: For the configuration steps, see :doc:`../../configure_ufm_integration`.
-
 Verify UFM Telemetry Flow
---------------------------
+==============================================
 
 This section outlines the steps to verify UFM telemetry data in VictoriaMetrics.
 
@@ -115,3 +74,4 @@ View UFM Logs using VictoriaLogs
    ``https://<external vlselect loadbalancer IP>:9471/select/0/vmui``
 
 .. image:: ../../../../images/view_umf_telemetry_3.png
+

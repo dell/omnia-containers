@@ -1,5 +1,5 @@
-Step 15: Initialize telemetry
-=============================
+Step 15: Initialize iDRAC telemetry
+=====================================
 
 Prerequisites
 ---------------

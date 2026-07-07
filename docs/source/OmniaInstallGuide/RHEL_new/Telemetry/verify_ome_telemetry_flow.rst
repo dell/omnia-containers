@@ -1,14 +1,8 @@
-Integrate OpenManage Enterprise with Omnia Kafka Pipeline for Secure Telemetry Data Streaming
-===========================================================================================
-
-This section describes how to configure OpenManage Enterprise to securely stream metrics into the Service Kubernetes clusters using mutual TLS (mTLS).
-
-.. note:: To consume OpenManage Enterprise telemetry from Kafka topics and route to VictoriaMetrics and VictoriaLogs using Vector, see :ref:`telemetry-vector-configuration`.
-
-.. note:: For the configuration steps, see :doc:`../../configure_ome_kafka_integration`.
+Verify OME Telemetry Flow
+==============================================
 
 Verify OME Telemetry Data in Kafka
----------------------------------------
+-----------------------------------
 
 To verify that OME telemetry data is being successfully published to the OME Kafka topics, do the following:
 
@@ -37,7 +31,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 
       curl -s -X POST "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE/subscription" \
         -H 'content-type: application/vnd.kafka.v2+json' \
-        -d '{"topics": ["'"$TOPIC"'"]}'
+        -d '{"topics": ["'"$TOPIC'""]}'
 
 5. Consume messages from the topic using the following command::
 
@@ -51,7 +45,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
 
       curl -s -X DELETE "http://$KAFKA_LB_IP:8080/consumers/$GROUP/instances/$INSTANCE"
 
- .. note::
+.. note::
    * **From beginning**: Ensure ``"auto.offset.reset": "earliest"`` when creating the consumer if you want existing data.
    * **Message format**: Use ``"format": "json"`` only if producers publish JSON. Otherwise use ``"binary"`` and decode base64 payloads.
    * **Throughput**: Adjust polling interval; bridge returns empty array when no new records.
@@ -81,10 +75,10 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
 4. Verify that OME-related metrics are displayed in the results.
 
-.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > metrics_enabled: true``) for metrics data to flow from Kafka to VictoriaMetrics. 
+.. note:: Ensure that the Vector-OME bridge is enabled in ``telemetry_config.yml`` (``telemetry_bridges > vector_ome > metrics_enabled: true``) for metrics data to flow from Kafka to VictoriaMetrics.
 
 Verify OME Telemetry Data in VictoriaLogs
------------------------------------------
+------------------------------------------
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector, do the following:
 
