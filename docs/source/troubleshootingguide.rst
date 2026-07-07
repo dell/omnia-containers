@@ -1724,9 +1724,9 @@ Inspect iDRAC telemetry receiver pod (contains MySQL, ActiveMQ, KafkaPump, Victo
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations describe pod <idrac-telemetry-pod>
-   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
-   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+   kubectl -n telemetry describe pod <idrac-telemetry-pod>
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c victoriapump --tail=100
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c kafkapump --tail=100
 
 Verify Redfish reachability and credentials from the OIM:
 
@@ -1800,28 +1800,28 @@ Check pod and PVC status:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
-   kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
-   kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
+   kubectl -n telemetry get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+   kubectl -n telemetry get pvc | grep -i vmstorage
+   kubectl -n telemetry describe pod <vmstorage-pod> | sed -n '/Events/,$p'
 
 Check disk usage inside a vmstorage pod:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
+   kubectl -n telemetry exec <vmstorage-pod> -- df -h /storage
 
 Check cluster health logs:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
-   kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
+   kubectl -n telemetry logs <vminsert-pod> --tail=100
+   kubectl -n telemetry logs <vmselect-pod> --tail=100
 
 Check vmagent remote_write health (look for failed batches or queue size):
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
+   kubectl -n telemetry logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
 
 **Resolution**
 
@@ -1875,11 +1875,11 @@ Check pod and PVC status:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
-   kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
-   kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
-   kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
-   kubectl -n telemetry-and-visualizations logs <vlselect-pod> --tail=100
+   kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+   kubectl -n telemetry get pvc | grep -i vlstorage
+   kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
+   kubectl -n telemetry logs <vlinsert-pod> --tail=100
+   kubectl -n telemetry logs <vlselect-pod> --tail=100
 
 Confirm logs are ingesting (LogsQL count over the last 5 minutes):
 
