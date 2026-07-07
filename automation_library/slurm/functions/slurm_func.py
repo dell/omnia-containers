@@ -1741,5 +1741,3 @@ def verify_root_sbatch_from_multiple_login_nodes(host) -> Dict[str, Any]:
                error="One or more login nodes failed"))
     return {"success": all_passed, "skipped": False, "message": msg,
             "node_results": node_results, "error": "" if all_passed else msg}
-
-
