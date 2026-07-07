@@ -1416,6 +1416,253 @@ Configured ``persistence_size`` for Kafka reaches capacity limit.
 
 The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit.
 
+**Cleanup Script**
+
+If Kafka brokers are experiencing disk space issues and require immediate cleanup, use the following automated script to identify and remove old log segments:
+
+.. code-block:: bash
+
+   #!/bin/bash
+   # ============================================================
+   # KAFKA PV FULL — AUTOMATED EMERGENCY CLEANUP (OMNIA)
+   # ============================================================
+   set -e
+   NAMESPACE="telemetry"
+   BROKER_COUNT=3
+   RETENTION_MS=3600000        # 1 hour temporary retention
+   SEGMENT_AGE_DAYS=3          # Delete segments older than 3 days
+
+   echo "============================================"
+   echo " KAFKA PV EMERGENCY CLEANUP - AUTOMATED"
+   echo "============================================"
+
+   # -------------------------------------------------------
+   # STEP 1: CHECK — Which brokers are full
+   # -------------------------------------------------------
+   echo ""
+   echo ">>> STEP 1: Checking broker disk usage..."
+   BROKERS_HEALTHY=true
+   for i in $(seq 0 $((BROKER_COUNT-1))); do
+     echo "=== kafka-broker-$i ==="
+     if kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null; then
+       echo "Broker-$i: RESPONSIVE"
+     else
+       echo "Broker-$i: NOT RESPONSIVE"
+       BROKERS_HEALTHY=false
+     fi
+   done
+
+   # -------------------------------------------------------
+   # DECISION: Brokers responsive → Path A
+   #           Brokers crashing   → Path B
+   # -------------------------------------------------------
+   if [ "$BROKERS_HEALTHY" = true ]; then
+
+     echo ""
+     echo "============================================"
+     echo " PATH A: BROKERS RUNNING — RETENTION FIX"
+     echo "============================================"
+
+     # ----------------------------------------------------
+     # STEP 2: Auto-detect top space-consuming topics
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2: Identifying top space-consuming topics..."
+     TOPICS=$(kubectl exec -n $NAMESPACE kafka-broker-0 -- \
+       sh -c 'du -s /var/lib/kafka/data/*/ 2>/dev/null | sort -rn | head -5' | \
+       awk '{print $2}' | \
+       xargs -I{} basename {} | \
+       rev | cut -d'.' -f2 | rev | \
+       sort -u)
+
+     if [ -z "$TOPICS" ]; then
+       echo "ERROR: No topics found. Check Kafka data path."
+       exit 1
+     fi
+
+     echo "Top topics consuming space:"
+     echo "$TOPICS"
+     echo ""
+
+     # ----------------------------------------------------
+     # STEP 3: Apply reduced retention on detected topics
+     # ----------------------------------------------------
+     echo ">>> STEP 3: Reducing retention to ${RETENTION_MS}ms..."
+     for TOPIC in $TOPICS; do
+       echo "  Fixing: $TOPIC"
+       kubectl exec -n $NAMESPACE kafka-broker-0 -- \
+         /opt/kafka/bin/kafka-configs.sh \
+           --bootstrap-server localhost:9092 \
+           --alter \
+           --entity-type topics \
+           --entity-name "$TOPIC" \
+           --add-config retention.ms=$RETENTION_MS
+     done
+
+     # ----------------------------------------------------
+     # STEP 4: Rolling restart all brokers
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 4: Rolling restart..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "  Restarting kafka-broker-$i..."
+       kubectl delete pod -n $NAMESPACE kafka-broker$i
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+       echo "  kafka-broker-$i is ready. Stabilizing..."
+       sleep 60
+     done
+
+     # ----------------------------------------------------
+     # STEP 5: Verify space recovered
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 5: Verifying disk usage after cleanup..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i ==="
+       kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data
+     done
+
+   else
+
+     echo ""
+     echo "============================================"
+     echo " PATH B: BROKERS CRASHLOOPING — MANUAL FIX"
+     echo "============================================"
+
+     # ----------------------------------------------------
+     # STEP 2: Get PVC names
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2: Detecting PVC names..."
+     PVC_PREFIX=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' | \
+       rev | cut -d'-' -f2 | rev)
+     echo "PVC prefix detected: $PVC_PREFIX"
+
+     # ----------------------------------------------------
+     # STEP 3: Deploy cleanup pods
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 3: Deploying cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       PVC_NAME="${PVC_PREFIX}-${i}"
+       echo "  Creating cleanup pod for PVC: $PVC_NAME"
+       kubectl run kafka-cleanup-$i -n $NAMESPACE \
+         --image=busybox \
+         --restart=Never \
+         --overrides='{
+           "spec": {
+             "containers": [{
+               "name": "cleanup",
+               "image": "busybox",
+               "command": ["sh","-c","sleep 3600"],
+               "volumeMounts": [{
+                 "name": "data",
+                 "mountPath": "/data"
+               }]
+             }],
+             "volumes": [{
+               "name": "data",
+               "persistentVolumeClaim": {
+                 "claimName": "'$PVC_NAME'"
+               }
+             }]
+           }
+         }'
+     done
+
+     echo "  Waiting for cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup$i --timeout=120s
+     done
+
+     # ----------------------------------------------------
+     # STEP 4: Show current usage + Clean old segments
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 4: Cleaning old segments (>${SEGMENT_AGE_DAYS} days)..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i (BEFORE) ==="
+       kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+
+       echo "  Cleaning..."
+       DELETED=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
+         sh -c 'count=0; find /data -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' | while read f; do
+           base=$(echo "$f" | sed "s/\.log$//")
+           rm -f "${base}.log" "${base}.index" "${base}.timeindex" "${base}.snapshot"
+           count=$((count+1))
+           echo "$count"
+         done | tail -1')
+       echo "  Broker-$i: Deleted ${DELETED:-0} segments"
+     done
+
+     # ----------------------------------------------------
+     # STEP 5: Verify space recovered
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 5: Verifying space recovered..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i (AFTER) ==="
+       kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+     done
+
+     # ----------------------------------------------------
+     # STEP 6: Remove cleanup pods
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 6: Removing cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       kubectl delete pod -n $NAMESPACE kafka-cleanup$i --ignore-not-found
+     done
+
+     # ----------------------------------------------------
+     # STEP 7: Rolling restart brokers
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 7: Rolling restart brokers..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "  Restarting kafka-broker-$i..."
+       kubectl delete pod -n $NAMESPACE kafka-broker$i
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+       echo "  kafka-broker-$i is ready. Stabilizing..."
+       sleep 60
+     done
+
+   fi
+
+   echo ""
+   echo "============================================"
+   echo " CLEANUP COMPLETE"
+   echo "============================================"
+   echo ""
+   echo ">>> Final disk usage:"
+   for i in $(seq 0 $((BROKER_COUNT-1))); do
+     echo "=== kafka-broker-$i ==="
+     kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null || echo "  Still recovering..."
+   done
+
+**Script Usage**
+
+1. Save the script:
+
+   .. code-block:: bash
+
+      vi kafka-pv-cleanup.sh
+
+2. Make the script executable:
+
+   .. code-block:: bash
+
+      chmod +x kafka-pv-cleanup.sh
+
+3. Run the script:
+
+   .. code-block:: bash
+
+      ./kafka-pv-cleanup.sh
+
+.. note::
+   This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify the ``BROKER_COUNT``, ``RETENTION_MS``, and ``SEGMENT_AGE_DAYS`` variables at the top of the script to match your environment requirements.
+
 7.3 LDMS Metrics Missing
 --------------------------
 
