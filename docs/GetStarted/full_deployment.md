@@ -134,7 +134,7 @@ full parameter reference.
 | [`provision_config.yml`](../Reference/Configuration/provision_config.md){target="_blank"} | OS provisioning and PXE settings |
 | [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md){target="_blank"} | Kubernetes HA virtual IP configuration |
 | [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md){target="_blank"} | Telemetry sources, bridges, and sinks |
-| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_storage_config.md){target="_blank"} | Telemetry storage resources and retention |
+| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_config.md#telemetry-storage-configuration-parameters){target="_blank"} | Telemetry storage resources and retention |
 | [`software_config.json`](../Reference/Configuration/software_config.md){target="_blank"} | Software stack (K8s, Slurm, telemetry components) |
 | [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md){target="_blank"} | Repository mirror settings |
 | [`storage_config.yml`](../Reference/Configuration/storage_config.md){target="_blank"} | NFS storage mount configuration |
@@ -534,6 +534,9 @@ idrac-telemetry-1   5/5     Running   9 (42m ago)   144m
     standalone nodes) are collected by one additional pod. For example,
     if your mapping has 2 parent groups with multiple child nodes each,
     expect 3 pods — one per parent group + 1 for unparented nodes.
+
+For detailed telemetry verification procedures, see
+[Verify Telemetry](../HowTo/Telemetry/verify_telemetry.md){target="_blank"}.
 
 ## What's Next?
 

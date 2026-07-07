@@ -189,8 +189,8 @@ nav:
       - Config Backup: HowTo/Slurm/slurm_config_backup.md
       - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
     - Kubernetes:
-      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Configure HA: HowTo/Kubernetes/configure_ha.md
+      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
