@@ -631,14 +631,46 @@ Pods are not in Running state. Status values observed include:
 
 **Cause**
 
-Pod startup failures due to various issues including resource constraints, image pull failures, or application errors.
+Pod startup failures due to various issues including resource constraints, image pull failures, misconfigurations, or application errors.
 
 **Resolution**
+
+1. Identify affected pods:
 
 .. code-block:: bash
 
    kubectl get pods --all-namespaces
-   kubectl delete pod <pod-name>
+
+2. Review pod details and events:
+
+.. code-block:: bash
+
+   kubectl describe pod <pod-name> -n <namespace>
+
+3. Check container logs:
+
+.. code-block:: bash
+
+   kubectl logs <pod-name> -n <namespace>
+
+4. Resolve the issue based on the pod status:
+
+- **Pending**: Verify node resources, scheduling constraints, taints/tolerations, and resource requests.
+- **CrashLoopBackOff**: Review application logs and configuration for startup failures.
+- **ImagePullBackOff**: Validate image name, tag, registry access, and image pull secrets.
+- **OOMKilled**: Increase memory limits/requests or optimize application memory consumption.
+
+5. After resolving the root cause, restart or recreate the pod if required:
+
+.. code-block:: bash
+
+   kubectl delete pod <pod-name> -n <namespace>
+
+6. Verify the pod reaches the Running state:
+
+.. code-block:: bash
+
+   kubectl get pods -n <namespace>
 
 4.3 Cluster Nodes Reboot
 -------------------------
@@ -721,17 +753,26 @@ Control-plane node fails to join the cluster due to certificate key expiry.
 
 **Cause**
 
-kubeadm certificate key expires (~2 hours).
+The kubeadm certificate key expires after approximately 2 hours, preventing new control-plane nodes from joining the cluster.
 
 **Resolution**
 
-On a healthy control-plane:
+1. On a healthy control-plane node, generate a new control-plane join command:
 
 .. code-block:: bash
 
    {{ k8s_client_mount_path }}/generate-control-plane-join.sh
 
-Reboot the failed node.
+   .. note::
+      ``k8s_client_mount_path`` is the ``mount_point`` specified in ``storage_config.yml`` for the NFS mount whose ``name`` matches the ``nfs_storage_name`` defined in the ``service_k8s_cluster`` section of ``omnia_config.yml``.
+
+      For example, if ``nfs_storage_name: "nfs_k8s"`` in ``omnia_config.yml``, and in ``storage_config.yml`` the mount named ``nfs_k8s`` has ``mount_point: "/opt/omnia/k8s_mount"``, then the command would be:
+
+      .. code-block:: bash
+
+         /opt/omnia/k8s_mount/generate-control-plane-join.sh
+
+2. Reboot the failed control-plane node to rejoin the cluster with the new certificate key.
 
 4.7 Static Pods Show Stale "Running" State After Node Shutdown or Reboot
 ------------------------------------------------------------------------
