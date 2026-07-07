@@ -921,7 +921,7 @@ For troubleshooting Kafka issues related to the missing CSI driver, see `Section
 
 ``scontrol show node <node>`` shows ``State=IDLE+DRAIN`` or ``State=DOWN+DRAIN``.
 
-**Root Causes**
+**Causes**
 
 To identify the root cause, first check the drain reason:
 
@@ -1653,26 +1653,97 @@ Confirm logs are ingesting (LogsQL count over the last 5 minutes):
 8. Authentication Issues
 ========================
 
-8.1 LDAP Login Fails After User Creation
+8.1 LDAP Login Fails: Whitespace in LDIF
 ----------------------------------------
 
 **Symptom**
 
-User login fails after LDAP user creation. Error messages include:
-
-- ``id: 'newuser': no such user``
-- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
-
-**Cause**
-
-Whitespace in LDIF.
-
-**Resolution**
+After creating a user via LDIF import or Omnia's user management, SSH login fails:
 
 .. code-block:: bash
 
-   cat -vet <filename>
-   # remove whitespace
+   ssh newuser@compute-01
+   # Output: Permission denied (publickey,gssapi-keyex,gssapi-with-mic)
+   # Or: su: user newuser does not exist
+   id newuser
+   # Output: id: 'newuser': no such user
+
+**Cause**
+
+LDAP login failures have multiple common causes:
+
+1. **Whitespace or encoding in LDIF**: Invisible trailing spaces/tabs in LDIF file corrupt attribute values
+2. **Missing POSIX attributes**: User entry lacks required uidNumber, gidNumber, homeDirectory, or loginShell
+3. **Wrong objectClass**: User created with inetOrgPerson but missing posixAccount objectClass
+4. **SSSD cache stale**: SSSD on compute nodes has cached the "user not found" response
+5. **Incorrect base DN**: User created in wrong OU/tree — not under the search base configured in SSSD
+
+**Resolution**
+
+**Diagnostic Steps**
+
+Step 1: Verify user exists in LDAP
+
+.. code-block:: bash
+
+   ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)"
+
+Step 2: Check for whitespace in LDIF
+
+.. code-block:: bash
+
+   cat -vet /path/to/user.ldif | grep -E '\s$'
+
+Step 3: Verify POSIX attributes
+
+.. code-block:: bash
+
+   ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)" \
+     objectClass uidNumber gidNumber homeDirectory loginShell
+
+Step 4: Check SSSD cache on compute node
+
+.. code-block:: bash
+
+   sssctl user-show newuser
+
+Step 5: Verify base DN matches SSSD config
+
+.. code-block:: bash
+
+   grep ldap_search_base /etc/sssd/sssd.conf
+
+**Fix by Cause**
+
+**1. Whitespace in LDIF**
+
+.. code-block:: bash
+
+   sed -i 's/[[:space:]]*$//' /path/to/user.ldif
+   ldapmodify -x -H ldap://localhost -D "cn=admin,dc=omnia,dc=local" -W -f /path/to/user.ldif
+
+**2. Missing POSIX attributes**
+
+.. code-block:: bash
+
+   ldapmodify -x -H ldap://localhost -D "cn=admin,dc=omnia,dc=local" -W <<EOF
+   dn: uid=newuser,ou=People,dc=omnia,dc=local
+   changetype: modify
+   add: objectClass posixAccount
+   add: uidNumber 10001
+   add: gidNumber 10001
+   add: homeDirectory /home/newuser
+   add: loginShell /bin/bash
+   EOF
+
+**3. SSSD cache stale**
+
+.. code-block:: bash
+
+   sssctl cache-remove
+   systemctl restart sssd
+
+**4. Wrong objectClass or base DN**: Re-create user with correct attributes in proper OU under the LDAP search base.
 
 8.2 OpenLDAP Login Fails
 ------------------------
