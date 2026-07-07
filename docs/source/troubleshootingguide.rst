@@ -1696,20 +1696,20 @@ iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMet
 
 **Example errors**
 
-In the VictoriaPump / KafkaPump container logs:
+In the victoria-pump / kafka-pump container logs:
 
 - ``ERROR failed to subscribe to Redfish event service: 401 Unauthorized``
 - ``ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)``
 - ``WARN activemq: connection refused tcp 127.0.0.1:61616``
-- ``ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
+- ``ERROR victoria-pump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
 
 **Cause**
 
 - Incorrect or expired iDRAC credentials in the vault (``idrac_username`` / ``idrac_password``), resulting in 401 Unauthorized errors
 - Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs block new ones)
 - iDRAC firmware does not support Redfish Telemetry/EventService (older iDRAC9 firmware)
-- Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump in the receiver pod is not ready)
-- Collection type misconfiguration (``idrac_telemetry_collection_type`` does not include the expected sink)
+- Pipeline component failure (activemq, kafka-pump, or victoria-pump in the receiver pod is not ready)
+- Collection type misconfiguration (``telemetry_sources.idrac.collection_targets`` does not include the expected sink)
 - Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers
 
 **Diagnostics**
@@ -1720,13 +1720,13 @@ Identify telemetry pods:
 
    kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
 
-Inspect iDRAC telemetry receiver pod (contains MySQL, ActiveMQ, KafkaPump, VictoriaPump):
+Inspect iDRAC telemetry receiver pod (contains mysqldb, activemq, idrac-telemetry-receiver, kafka-pump conditional, victoria-pump conditional, plus initContainer cleanup-mysql-locks):
 
 .. code-block:: bash
 
    kubectl -n telemetry describe pod <idrac-telemetry-pod>
-   kubectl -n telemetry logs <idrac-telemetry-pod> -c victoriapump --tail=100
-   kubectl -n telemetry logs <idrac-telemetry-pod> -c kafkapump --tail=100
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c victoria-pump --tail=100
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c kafka-pump --tail=100
 
 Verify Redfish reachability and credentials from the OIM:
 
@@ -1749,14 +1749,14 @@ Confirm metrics landed in VictoriaMetrics:
 
 **Resolution**
 
-- Correct ``idrac_username`` / ``idrac_password`` in the Ansible vault, then re-run ``telemetry.yml``. Verify with the curl command above (expect 200).
+- Correct ``idrac_username`` / ``idrac_password`` in ``omnia_config_credentials.yml``, then re-run ``telemetry.yml``. Verify with the curl command above (expect 200).
 - Delete orphaned Redfish subscriptions using ``curl -X DELETE ...``, then allow the receiver to re-subscribe.
 - Update iDRAC firmware to a version that supports Redfish EventService/Telemetry, then re-run telemetry.
-- If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
-- Set ``idrac_telemetry_collection_type`` to victoria, kafka, or victoria,kafka to match where you expect data, then re-run.
+- If activemq/kafka-pump/victoria-pump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
+- Set ``telemetry_sources.idrac.collection_targets`` to ["victoria_metrics"], ["kafka"], or ["victoria_metrics", "kafka"] to match where you expect data, then re-run.
 - Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
 
-.. note:: iDRAC telemetry is enabled by ``idrac_telemetry_support: true`` and routed per ``idrac_telemetry_collection_type`` in ``input/telemetry_config.yml``. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
+.. note:: iDRAC telemetry is enabled by ``telemetry_sources.idrac.metrics_enabled: true`` and routed per ``telemetry_sources.idrac.collection_targets`` in ``input/telemetry_config.yml``. The receiver (mysqldb + activemq + idrac-telemetry-receiver + kafka-pump conditional + victoria-pump conditional, plus initContainer cleanup-mysql-locks) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
 
 7.5 VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
 --------------------------------------------------------------------------
