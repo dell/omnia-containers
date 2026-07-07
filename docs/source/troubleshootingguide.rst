@@ -763,14 +763,14 @@ The kubeadm certificate key expires after approximately 2 hours, preventing new 
 
    {{ k8s_client_mount_path }}/generate-control-plane-join.sh
 
-   .. note::
-      ``k8s_client_mount_path`` is the ``mount_point`` specified in ``storage_config.yml`` for the NFS mount whose ``name`` matches the ``nfs_storage_name`` defined in the ``service_k8s_cluster`` section of ``omnia_config.yml``.
+.. note::
+   ``k8s_client_mount_path`` is the ``mount_point`` specified in ``storage_config.yml`` for the NFS mount whose ``name`` matches the ``nfs_storage_name`` defined in the ``service_k8s_cluster`` section of ``omnia_config.yml``.
 
-      For example, if ``nfs_storage_name: "nfs_k8s"`` in ``omnia_config.yml``, and in ``storage_config.yml`` the mount named ``nfs_k8s`` has ``mount_point: "/opt/omnia/k8s_mount"``, then the command would be:
+   For example, if ``nfs_storage_name: "nfs_k8s"`` in ``omnia_config.yml``, and in ``storage_config.yml`` the mount named ``nfs_k8s`` has ``mount_point: "/opt/omnia/k8s_mount"``, then the command would be:
 
-      .. code-block:: bash
+   .. code-block:: bash
 
-         /opt/omnia/k8s_mount/generate-control-plane-join.sh
+   /opt/omnia/k8s_mount/generate-control-plane-join.sh
 
 2. Reboot the failed control-plane node to rejoin the cluster with the new certificate key.
 
