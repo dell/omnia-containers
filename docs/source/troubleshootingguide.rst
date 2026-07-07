@@ -1745,7 +1745,7 @@ Confirm metrics landed in VictoriaMetrics:
 
 .. code-block:: bash
 
-   curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+   curl -s 'https://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
 
 **Resolution**
 
@@ -1800,7 +1800,7 @@ Check pod and PVC status:
 
 .. code-block:: bash
 
-   kubectl -n telemetry get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+   kubectl -n telemetry get pods -l 'app.kubernetes.io/name in (vmstorage,vminsert,vmselect,vmagent)' -o wide
    kubectl -n telemetry get pvc | grep -i vmstorage
    kubectl -n telemetry describe pod <vmstorage-pod> | sed -n '/Events/,$p'
 
@@ -1893,7 +1893,7 @@ Confirm logs are ingesting (LogsQL count over the last 5 minutes):
 - Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run ``telemetry.yml``.
 - Recover unavailable vlstorage pods so vlselect can query them.
 - Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches; confirm forwarding in VLAgent logs.
-- Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+- Ensure the device or service (PowerScale, UFM, VAST, OS syslog) is configured to emit syslog to VLAgent.
 
 .. note:: VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
