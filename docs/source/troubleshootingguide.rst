@@ -919,21 +919,72 @@ For troubleshooting Kafka issues related to the missing CSI driver, see `Section
 
 **Symptom**
 
-Slurm nodes enter DRAINED state unexpectedly. Error messages include:
+``scontrol show node <node>`` shows ``State=IDLE+DRAIN`` or ``State=DOWN+DRAIN``.
 
-- ``State=IDLE+DRAIN Reason=Kill task failed``
-- ``State=DOWN+DRAIN Reason=Not responding``
+**Root Causes**
 
-**Cause**
+To identify the root cause, first check the drain reason:
 
-Epilog script not executable.
+.. code-block:: bash
+
+   scontrol show node <node_name> | grep -i reason
+
+.. list-table:: Drain Reasons and Root Causes
+   :widths: 40 60
+   :header-rows: 1
+
+   * - Drain Reason
+     - Root Cause
+   * - Kill task failed
+     - Epilog/prolog script error
+   * - Not responding
+     - slurmd lost connection to slurmctld (network, firewall, or slurmd crash)
+   * - Low RealMemory
+     - Node has less memory than configured in slurm.conf
+   * - Node unexpectedly rebooted
+     - Hardware issue or kernel panic
+   * - (blank/manual)
+     - Administrator manually drained the node
 
 **Resolution**
+
+Resolution steps vary by root cause:
+
+**1. Epilog script error**
 
 .. code-block:: bash
 
    chmod 0755 /etc/slurm/epilog.d/logout_user.sh
+   scontrol update nodename=<node> state=resume
    scontrol reconfigure
+
+**2. Not responding**
+
+Check the slurmd service status on the compute node:
+
+.. code-block:: bash
+
+   systemctl status slurmd      # On the compute node
+   systemctl restart slurmd      # If stopped
+   scontrol update nodename=<node> state=resume
+
+**3. Low RealMemory**
+
+Verify the actual memory available on the node:
+
+.. code-block:: bash
+
+   free -m                        # Check actual memory on node
+   grep <node> /etc/slurm/slurm.conf  # Check configured RealMemory
+
+Update the ``RealMemory`` value in ``slurm.conf`` to match the actual available memory, then run:
+
+.. code-block:: bash
+
+   scontrol reconfigure
+
+.. warning::
+   ``slurm.conf`` is managed by the ``slurm_config`` role. Manual edits will be overwritten on the next ``provision.yml`` run. Update the source configuration instead to make permanent changes.
 
 6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
