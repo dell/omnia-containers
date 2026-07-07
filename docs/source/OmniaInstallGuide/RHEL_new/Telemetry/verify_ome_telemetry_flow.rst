@@ -67,7 +67,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
       
       * ``last_over_time({source_subsystem="ome", type="healty"}[24h])``
 
-      .. image:: ../../../../images/external_kafka_ome_metrics_health.png
+      .. image:: ../../../images/external_kafka_ome_metrics_health.png
            
 
 .. note:: Note that ``source_subsystem=ome`` is coming from the ``ome_identifier`` that the user has given in the ``telemetry_config.yml`` input file and the suffix after the dot (i.e., health, inventory, auditlogs) is coming from OME.
@@ -92,7 +92,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
    * ``_msg_topic:ome.auditlogs``
    
-   .. image:: ../../../../images/external_kafka_ome_logs_audit.png
+   .. image:: ../../../images/external_kafka_ome_logs_audit.png
 
 4. Verify that OME-related logs are displayed in the results.
 
