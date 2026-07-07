@@ -1,196 +1,97 @@
-
 # Provisioning Issues
 
-
-Issues related to PXE booting, node discovery, cloud-init configuration, and
-the `discovery.yml` playbook.
+Issues related to PXE booting, node discovery, cloud-init configuration, the `discovery.yml` playbook, and local repository (Pulp) operations.
 
 ## PXE boot failures
 
-
-### NIC not set to PXE boot
-
+### Node hangs at `nm-wait-online-initrd.service`
 
 ???+ note "Symptom"
 
-    The target node does not attempt a network boot. It boots directly to the
-    local disk or enters the BIOS setup instead of requesting a PXE image from
-    the OIM.
+    Node hangs during boot at the `nm-wait-online-initrd.service` stage.
 
 ??? note "Cause"
 
-    The node's BIOS/UEFI boot order does not include PXE/network boot, or PXE
-    is disabled on the NIC connected to the admin network.
+    IP address conflict with an old node.
 
 ??? note "Resolution"
 
-    1. Enter the node's BIOS/UEFI setup (press F2 during POST on Dell PowerEdge
-       servers).
-    2. Navigate to **System BIOS > Network Settings**.
-    3. Enable **PXE Boot** on the NIC connected to the admin network.
-    4. Navigate to **Boot Settings > BIOS Boot Settings** (or **UEFI Boot
-       Settings**).
-    5. Set **Network Boot** (PXE) as the first boot option.
-    6. Save and exit BIOS. The node should now attempt PXE boot on the next
-       restart.
+    1. Ensure the old node is powered off or disconnected.
+    2. Verify the IP address is unused on the network.
+    3. Re-run `provision.yml`.
 
-    Alternatively, use `racadm` to configure remotely:
-
-    ```bash
-    racadm set NIC.NICConfig.1.LegacyBootProto PXE
-    racadm set BIOS.BiosBootSettings.BootSeq NIC.Slot.1-1
-    ```
-
-
-### Wrong MAC address in mapping file
-
+### PXE boot timeout (TFTP/service timeout)
 
 ???+ note "Symptom"
 
-    The node PXE boots but does not receive an IP address, or it receives an IP
-    but is not recognized by OpenCHAMI.
+    PXE boot process times out with TFTP or service timeout errors:
 
-??? note "Cause"
-
-    The MAC address in `/omnia/input/mapping_file.csv` does not match the
-    actual MAC address of the NIC being used for PXE boot.
-
-??? note "Resolution"
-
-    1. Verify the correct MAC address from iDRAC or the node's BIOS:
-
-       ```bash
-       # From iDRAC (using racadm)
-       racadm getsysinfo | grep "MAC Address"
-       ```
-
-
-    2. Update the mapping file with the correct MAC:
-
-       ```text
-       # /omnia/input/mapping_file.csv
-       AA:BB:CC:DD:EE:FF,compute-01,10.5.0.101
-       ```
-
-
-    3. Re-run the discovery playbook:
-
-       ```bash
-       ssh omnia_core
-       cd /omnia
-       ansible-playbook playbooks/discovery.yml
-       ```
-
-
-### DHCP not serving IP addresses
-
-
-???+ note "Symptom"
-
-    Nodes attempt PXE boot but fail with a DHCP timeout error:
-
-    ```text
-    PXE-E51: No DHCP or proxyDHCP offers were received
-    ```
-
-
-??? note "Cause"
-
-    - The CoreDHCP container on the OIM is not running.
-    - The DHCP range is exhausted.
-    - A network misconfiguration prevents DHCP broadcasts from reaching the OIM.
-    - Another DHCP server on the same network is interfering.
-
-??? note "Resolution"
-
-    1. Verify the CoreDHCP container is running:
-
-       ```bash
-       podman ps | grep coredhcp
-       ```
-
-
-       If it is not running, start it:
-
-       ```bash
-       podman start coredhcp
-       ```
-
-
-    2. Check CoreDHCP logs for errors:
-
-       ```bash
-       podman logs coredhcp
-       ```
-
-
-    3. Verify no rogue DHCP server exists on the admin network:
-
-       ```bash
-       nmap --script broadcast-dhcp-discover -e <admin_nic>
-       ```
-
-
-    4. Ensure the OIM's admin NIC is on the correct VLAN and subnet.
-
-### TFTP timeout during PXE boot
-
-
-???+ note "Symptom"
-
-    The node receives a DHCP lease but fails to download the boot image:
-
-    ```text
+    ```text title="Expected output"
     PXE-E32: TFTP open timeout
     PXE-T02: TFTP packet timeout
     ```
 
-
 ??? note "Cause"
 
-    - The TFTP service on the OIM is not running.
-    - Firewall rules on the OIM are blocking TFTP traffic (UDP port 69).
-    - The TFTP root directory does not contain the expected boot files.
+    - PXE NIC not configured in BIOS.
+    - Extra NIC interfering with the boot process.
+    - Multiple PXE servers on the same network.
 
 ??? note "Resolution"
 
-    1. Verify the TFTP container is running:
+    1. Configure BIOS: navigate to **Network Settings > PXE Device** and assign the correct active NIC.
+    2. Remove or disable any extra NIC until after boot completion.
+    3. Verify no rogue PXE/DHCP servers exist on the admin network.
 
-       ```bash
-       podman ps | grep tftp
-       ```
-
-
-    2. Check firewall rules:
-
-       ```bash
-       firewall-cmd --list-all | grep tftp
-       ```
-
-
-       If TFTP is not allowed:
-
-       ```bash
-       firewall-cmd --permanent --add-service=tftp
-       firewall-cmd --reload
-       ```
-
-
-    3. Verify boot files exist in the TFTP root:
-
-       ```bash
-       ls /var/lib/tftpboot/
-       ```
-
-
-## cloud-init issues
-
+### Target server unreachable after PXE boot
 
 ???+ note "Symptom"
 
-    Nodes boot the OS successfully but post-boot configuration fails. The node
-    is accessible via console but network settings, hostname, or SSH keys are
-    not configured correctly.
+    Target server becomes unreachable after PXE boot completes.
+
+??? note "Cause"
+
+    - POST errors on the target server.
+    - F1 hardware prompts blocking boot.
+    - Boot stalls due to hardware issues.
+
+??? note "Resolution"
+
+    1. Log in to iDRAC and check console output.
+    2. Clear errors or disable POST prompts.
+    3. Hard reboot the server.
+    4. Disable PXE temporarily if needed to bypass boot loops.
+
+### Root login fails after provisioning
+
+???+ note "Symptom"
+
+    Unable to log in as root via SSH. Error messages include:
+
+    - `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`
+    - `Permission denied (publickey,gssapi-keyex,gssapi-with-mic)`
+    - `ssh: connect to host <ip> port 22: Connection refused`
+
+??? note "Cause"
+
+    - Outdated SSH key in `~/.ssh/known_hosts`.
+    - cloud-init not rendered on the target node.
+
+??? note "Resolution"
+
+    1. Remove the stale SSH key:
+
+        ```bash title="Run on: OIM host"
+        ssh-keygen -R <hostname>
+        ```
+
+    2. Retry login or reprovision the node.
+
+## cloud-init issues
+
+???+ note "Symptom"
+
+    Nodes boot the OS successfully but post-boot configuration fails. The node is accessible via console but network settings, hostname, or SSH keys are not configured correctly.
 
 ??? note "Cause"
 
@@ -202,133 +103,170 @@ the `discovery.yml` playbook.
 
     1. Check cloud-init status on the affected node:
 
-       ```bash
-       cloud-init status --long
-       ```
-
+        ```bash title="Run on: compute node"
+        cloud-init status --long
+        ```
 
     2. Review cloud-init logs:
 
-       ```bash
-       cat /var/log/cloud-init.log
-       cat /var/log/cloud-init-output.log
-       ```
+        ```bash title="Run on: compute node"
+        cat /var/log/cloud-init.log
+        cat /var/log/cloud-init-output.log
+        ```
 
+    3. If cloud-init was disabled, re-enable it:
 
-    3. Verify the data source configuration:
+        ```bash title="Run on: compute node"
+        systemctl enable cloud-init
+        cloud-init clean
+        reboot
+        ```
 
-       ```bash
-       cat /etc/cloud/cloud.cfg.d/
-       ```
+## Local repository and Pulp issues
 
-
-    4. If cloud-init was disabled, re-enable it:
-
-       ```bash
-       systemctl enable cloud-init
-       cloud-init clean
-       reboot
-       ```
-
-
-## `discovery.yml` failures
-
+### `local_repo.yml` download failures
 
 ???+ note "Symptom"
 
-    The `discovery.yml` playbook fails with errors related to OpenCHAMI, BMC
-    connectivity, or inventory population.
+    The `local_repo.yml` playbook fails during package download, displaying errors such as "TASK [parse_and_download : Display Failed Packages]" or indicating that specific software packages could not be downloaded.
 
 ??? note "Cause"
 
-    - OpenCHAMI services (SMD, BSS) are not running on the OIM.
-    - BMC/iDRAC credentials are incorrect.
-    - The BMC network is unreachable from the OIM.
+    - Incorrect URLs in software JSON configuration files.
+    - Docker pull limit reached or invalid Docker credentials.
+    - Insufficient disk space on Pulp NFS storage.
+    - Unreachable software repositories.
 
 ??? note "Resolution"
 
-    1. Verify OpenCHAMI services are running:
+    1. Verify and correct URLs in the software JSON configuration files.
+    2. Provide valid Docker credentials in `input/omnia_config_credentials.yml`.
+    3. Ensure adequate disk space is available on Pulp NFS storage.
+    4. Re-run the `local_repo.yml` playbook.
 
-       ```bash
-       podman ps | grep ochami
-       ```
+    **Log analysis for download failures:**
 
+    - Overall download status:
 
-    2. Test BMC connectivity:
+        ```text title="Example"
+        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
+        ```
 
-       ```bash
-       # Ping the BMC IP
-       ping <bmc_ip>
+    - Per-software task results:
 
-       # Test Redfish API access
-       curl -k -u <user>:<pass> https://<bmc_ip>/redfish/v1/Systems
-       ```
+        ```text title="Example"
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
+        ```
 
+    - Package-level status:
 
-    3. Verify BMC credentials in the configuration:
+        ```text title="Example"
+        /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
+        ```
 
-       ```bash
-       ssh omnia_core
-       ansible-vault view /omnia/input/credentials.yml
-       ```
+    - Detailed failure information:
 
+        ```text title="Example"
+        /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>/logs/package_status_<pid>.log
+        ```
 
-    4. Check discovery logs for detailed errors:
-
-       ```bash
-       cat /opt/omnia/log/core/playbooks/discovery.log
-       ```
-
-
-## Nodes not appearing after discovery
-
+### Failure when re-run multiple times
 
 ???+ note "Symptom"
 
-    After running `discovery.yml` successfully, the expected nodes do not
-    appear in `ochami-cli smd components list` or `sinfo`.
+    The `local_repo.yml` playbook fails when re-run multiple times in quick succession.
 
 ??? note "Cause"
 
-    - The node's BMC did not respond during the discovery window.
-    - The node's MAC address does not match any entry in the mapping file.
-    - The node booted but failed cloud-init, so it did not register with the
-      OIM.
+    Pulp container resource saturation.
 
 ??? note "Resolution"
 
-    1. Check the OpenCHAMI inventory:
+    Allow the system to idle approximately 1 hour before re-running.
 
-       ```bash
-       ssh omnia_core
-       ochami-cli smd components list
-       ```
+### Pulp reset password failed
 
+???+ note "Symptom"
 
-    2. Verify the node's BMC is responsive:
+    Pulp reset password operation fails during `prepare_oim.yml` execution.
 
-       ```bash
-       ping <bmc_ip>
-       curl -k -u <user>:<pass> https://<bmc_ip>/redfish/v1/Systems
-       ```
+??? note "Cause"
 
+    - NFS Storage Export Configuration (PowerScale): Missing or incorrect settings for `nfsv4-no-names`, `nfsv4-no-domain`, `nfsv4-no-domain-uids`, and `nfsv4-allow-numeric-ids`.
+    - Inconsistent UID and GID mappings between NFS server and client.
+    - Missing `no_root_squash` option in NFS export configuration.
+    - NFS server connectivity issues or firewall blocking ports 2049, 111, and 20048.
 
-    3. Re-run discovery for the specific node by power-cycling it via iDRAC:
+??? note "Resolution"
 
-       ```bash
-       racadm -r <bmc_ip> -u <user> -p <pass> serveraction powercycle
-       ```
+    Verify the NFS export configurations and settings mentioned above, then re-run the `prepare_oim.yml` playbook.
 
+### EPEL repository instability
 
-    4. Monitor the discovery log in real time:
+???+ note "Symptom"
 
-       ```bash
-       tail -f /opt/omnia/log/core/playbooks/discovery.log
-       ```
+    EPEL repository is unstable or unavailable during package installation.
 
+??? note "Cause"
+
+    EPEL repository server issues or network connectivity problems.
+
+??? note "Resolution"
+
+    - If no packages depend on EPEL, remove the EPEL URL from the configuration.
+    - If required, wait for repository stability or host EPEL packages locally.
+
+### Intermittent local repository sync failure due to non-persistent iptables rules
+
+???+ note "Symptom"
+
+    Local repository sync fails intermittently due to blocked outbound internet access from containers.
+
+??? note "Cause"
+
+    iptables rules on the OIM node are not persistent. After OIM startup, restrictive iptables policies block outbound internet access from containers.
+
+??? note "Resolution"
+
+    As a workaround, relax the iptables default policies on the OIM node:
+
+    ```bash title="Run on: OIM host"
+    iptables -P INPUT ACCEPT
+    iptables -P FORWARD ACCEPT
+    iptables -P OUTPUT ACCEPT
+    ```
+
+### Connectivity issues
+
+???+ note "Symptom"
+
+    The `local_repo.yml` playbook fails with connectivity errors.
+
+??? note "Cause"
+
+    The OIM was unable to reach a required online resource due to a network glitch.
+
+??? note "Resolution"
+
+    Verify all connectivity and re-run the playbook.
+
+### Software installation fails with checksum error
+
+???+ note "Symptom"
+
+    Software installation fails with a checksum error.
+
+??? note "Cause"
+
+    A local repository for the software has not been configured by the `local_repo.yml` playbook.
+
+??? note "Resolution"
+
+    1. Re-run the `local_repo.yml` playbook with proper inputs to download the software package to the Pulp repository.
+    2. Once the local repository has been configured successfully, re-run the failed installation script.
 
 !!! info
 
     - [Discover Nodes](../HowTo/Setup/discover_nodes.md) -- Full node discovery procedure.
-    - [Pxe Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md) -- PXE boot configuration guide.
+    - [PXE Boot Playbook](../HowTo/Setup/configure_pxe_boot.md) -- PXE boot configuration guide.
     - [Log Management](../Operations/log_management.md) -- Log locations for deeper diagnosis.

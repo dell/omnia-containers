@@ -86,7 +86,7 @@ inventory records via the `ochami-cli` command-line tool or the SMD REST API.
 
 
 BSS dynamically generates boot scripts for each node based on its hardware
-profile and the role assigned to it in the [Composable Roles](composable_roles.md) mapping file.
+profile and the role assigned to it in the PXE mapping file.
 When a node PXE-boots, the following sequence occurs:
 
 1. The node's NIC sends a DHCP request; **CoreDHCP** responds with an IP

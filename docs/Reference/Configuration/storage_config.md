@@ -95,5 +95,6 @@ s3_configurations:
 
 !!! info
 
+    - [Configure Mounts](../../HowTo/Storage/configure_mounts.md) -- Detailed how-to for mounts, mount_params, PowerVault, and swap.
     - [Storage](../SupportMatrix/storage.md) -- Supported storage platforms.
     - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements.

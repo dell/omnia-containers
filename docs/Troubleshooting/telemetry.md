@@ -1,313 +1,207 @@
-
 # Telemetry Issues
 
+Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers, VictoriaMetrics (cluster mode), VictoriaLogs, and Grafana dashboards.
 
-Issues related to the telemetry pipeline: iDRAC metrics collection, LDMS
-samplers, Kafka message streaming, VictoriaMetrics storage, and Grafana
-dashboards.
-
-## iDRAC not sending telemetry data
-
+## Kafka pods CrashLoopBackOff
 
 ???+ note "Symptom"
 
-    No iDRAC metrics appear in VictoriaMetrics or Grafana dashboards. The
-    telemetry pipeline shows no incoming data from server BMCs.
+    Kafka pods enter `CrashLoopBackOff` state.
 
 ??? note "Cause"
 
-    - The iDRAC does not have a **Datacenter** license, which is required for
-      telemetry streaming.
-    - Redfish telemetry subscriptions are not configured on the iDRAC.
-    - Network connectivity between the iDRAC BMC network and the telemetry
-      collector is blocked.
-    - The iDRAC firmware is outdated and does not support Redfish telemetry.
+    - No service kube nodes available.
+    - Missing CSI driver.
+    - Persistent volume full.
 
 ??? note "Resolution"
 
-    1. **Verify the iDRAC license** includes Datacenter features:
+    1. Ensure service kube nodes are booted.
+    2. Add PowerScale CSI driver (see [Missing PowerScale CSI Driver](kubernetes.md#missing-powerscale-csi-driver)).
+    3. Increase Kafka volume and configure log retention.
 
-       ```bash
-       racadm -r <bmc_ip> -u <user> -p <pass> license view
-       ```
-
-
-       Look for `iDRAC Datacenter License` in the output. If not present,
-       install the appropriate license.
-
-    2. **Check Redfish telemetry support:**
-
-       ```bash
-       curl -k -u <user>:<pass> \
-         https://<bmc_ip>/redfish/v1/TelemetryService
-       ```
-
-
-       A `404` response indicates the firmware does not support telemetry.
-       Update iDRAC firmware to the latest version.
-
-    3. **Verify telemetry subscriptions:**
-
-       ```bash
-       curl -k -u <user>:<pass> \
-         https://<bmc_ip>/redfish/v1/EventService/Subscriptions
-       ```
-
-
-    4. **Test network connectivity** from the OIM to the BMC:
-
-       ```bash
-       ping <bmc_ip>
-       curl -k https://<bmc_ip>/redfish/v1/
-       ```
-
-
-    5. If subscriptions are missing, re-run the telemetry playbook:
-
-       ```bash
-       ssh omnia_core
-       cd /omnia
-       ansible-playbook playbooks/telemetry.yml
-       ```
-
-
-## LDMS sampler failures
-
+## Kafka "No space left on device"
 
 ???+ note "Symptom"
 
-    LDMS (Lightweight Distributed Metric Service) samplers on compute nodes are
-    not collecting or forwarding metrics. The `ldmsd` service may be in a
-    failed state.
+    Kafka pods crash with "No space left on device" errors.
 
 ??? note "Cause"
 
-    - The `ldmsd` daemon is not running on the compute node.
-    - The sampler configuration references a metric set that is not available on
-      the node (for example, GPU metrics on a non-GPU node).
-    - The aggregator endpoint is unreachable from the compute node.
+    Configured `persistence_size` for Kafka has reached capacity limit.
 
 ??? note "Resolution"
 
-    1. Check `ldmsd` status on the compute node:
+    The default `8Gi` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase `persistence_size` and configure Kafka retention settings `log_retention_hours` and `log_retention_bytes` so that old logs are deleted before the persistent volume reaches its limit.
 
-       ```bash
-       ssh <compute_node> systemctl status ldmsd
-       ```
-
-
-    2. Review LDMS logs:
-
-       ```bash
-       ssh <compute_node> cat /var/log/ldmsd.log
-       ```
-
-
-    3. Verify the sampler configuration:
-
-       ```bash
-       ssh <compute_node> cat /etc/ldms/ldmsd.conf
-       ```
-
-
-    4. Test connectivity to the aggregator:
-
-       ```bash
-       ssh <compute_node> nc -zv <aggregator_ip> <aggregator_port>
-       ```
-
-
-    5. Restart the LDMS daemon:
-
-       ```bash
-       ssh <compute_node> systemctl restart ldmsd
-       ```
-
-
-## Kafka connection issues
-
+## LDMS metrics missing
 
 ???+ note "Symptom"
 
-    Telemetry data producers (iDRAC collectors, LDMS aggregators) cannot connect
-    to Kafka. Logs show connection refused or timeout errors.
+    LDMS metrics do not appear in the telemetry dashboard or are missing expected data points.
 
 ??? note "Cause"
 
-    - The Kafka container or service is not running.
-    - Kafka listeners are misconfigured (wrong advertised address or port).
-    - ZooKeeper (or KRaft controller) is not running.
-    - Firewall rules block Kafka ports (default: 9092).
+    - LDMS aggregator pods are not running or experiencing errors.
+    - LDMS store daemon service is inactive.
+    - LDMS sampler service is not functioning correctly.
 
 ??? note "Resolution"
 
-    1. Verify Kafka is running:
+    Check the status of LDMS components and review logs for errors:
 
-       ```bash
-       # If Kafka runs as a Podman container
-       podman ps | grep kafka
+    ```bash title="Run on: K8s control plane"
+    kubectl logs -n telemetry nersc-ldms-aggr-0
+    kubectl logs -n telemetry nersc-ldms-store-slurm-cluster-0
+    ```
 
-       # If Kafka runs as a Kubernetes pod
-       kubectl get pods -n telemetry | grep kafka
-       ```
+    ```bash title="Run on: compute node"
+    sudo systemctl status ldmsd.sampler.service
+    ```
 
-
-    2. Check Kafka logs:
-
-       ```bash
-       podman logs kafka 2>&1 | tail -50
-       ```
-
-
-    3. Verify Kafka listeners:
-
-       ```bash
-       # Test Kafka port
-       nc -zv <kafka_host> 9092
-       ```
-
-
-    4. Check ZooKeeper status:
-
-       ```bash
-       podman ps | grep zookeeper
-       podman logs zookeeper 2>&1 | tail -50
-       ```
-
-
-    5. If Kafka's advertised listeners are wrong, update the configuration:
-
-       ```bash
-       # In Kafka's server.properties or environment variables
-       KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://<oim_ip>:9092
-       ```
-
-
-    6. Restart Kafka:
-
-       ```bash
-       podman restart kafka
-       ```
-
-
-## VictoriaMetrics not receiving data
-
+## iDRAC telemetry — no metrics reaching VictoriaMetrics / Kafka
 
 ???+ note "Symptom"
 
-    VictoriaMetrics shows no recent data points. Grafana dashboards display
-    `No data` or stale values.
+    iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMetrics, or data is stale. The iDRAC telemetry receiver pods restart repeatedly or remain in `0/1 Ready` state. New nodes do not appear as telemetry sources after provisioning.
+
+    Example errors in VictoriaPump / KafkaPump container logs:
+
+    - `ERROR failed to subscribe to Redfish event service: 401 Unauthorized`
+    - `ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)`
+    - `WARN activemq: connection refused tcp 127.0.0.1:61616`
+    - `ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused`
 
 ??? note "Cause"
 
-    - The VictoriaMetrics container is not running.
-    - The Kafka-to-VictoriaMetrics consumer is not running or is misconfigured.
-    - Disk space on the VictoriaMetrics storage volume is exhausted.
-    - Ingestion rate limits are rejecting data.
+    - Incorrect or expired iDRAC credentials in the vault (`idrac_username` / `idrac_password`).
+    - Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs).
+    - iDRAC firmware does not support Redfish Telemetry/EventService.
+    - Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump not ready).
+    - `idrac_telemetry_collection_type` misconfiguration.
+    - Firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers.
 
 ??? note "Resolution"
 
-    1. Verify VictoriaMetrics is running:
+    **Diagnostics:**
 
-       ```bash
-       podman ps | grep victoria
-       # or
-       kubectl get pods -n telemetry | grep victoria
-       ```
+    ```bash title="Run on: K8s control plane"
+    kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
+    kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
+    kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+    ```
 
+    Verify Redfish reachability and credentials:
 
-    2. Check VictoriaMetrics health:
+    ```bash title="Run on: OIM host"
+    curl -sk -u "$IDRAC_USER:$IDRAC_PASS" https://<idrac-ip>/redfish/v1/EventService | head
+    ```
 
-       ```bash
-       curl http://<victoria_host>:8428/health
-       ```
+    List and delete stale Redfish subscriptions:
 
+    ```bash title="Run on: OIM host"
+    curl -sk -u "$IDRAC_USER:$IDRAC_PASS" https://<idrac-ip>/redfish/v1/EventService/Subscriptions
+    ```
 
-    3. Verify data is being ingested:
+    **Resolution steps:**
 
-       ```bash
-       # Check the number of active time series
-       curl http://<victoria_host>:8428/api/v1/status/tsdb
-       ```
+    1. Correct `idrac_username` / `idrac_password` in the Ansible vault, then re-run `telemetry.yml`.
+    2. Delete orphaned Redfish subscriptions using `curl -X DELETE ...`, then allow the receiver to re-subscribe.
+    3. Update iDRAC firmware to a version that supports Redfish EventService/Telemetry.
+    4. If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod after confirming the root cause.
+    5. Set `idrac_telemetry_collection_type` to `victoria`, `kafka`, or `victoria,kafka` to match where you expect data.
+    6. Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
 
+    !!! note
 
-    4. Check disk space:
+        iDRAC telemetry is enabled by `idrac_telemetry_support: true` and routed per `idrac_telemetry_collection_type` in `input/telemetry_config.yml`. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
 
-       ```bash
-       df -h <victoria_data_dir>
-       ```
-
-
-    5. Check the Kafka consumer that feeds VictoriaMetrics:
-
-       ```bash
-       podman logs <kafka_consumer_container> 2>&1 | tail -50
-       ```
-
-
-    6. If disk is full, increase storage or reduce retention:
-
-       ```bash
-       # Adjust retention period (e.g., 30 days)
-       # Add to VictoriaMetrics startup flags: -retentionPeriod=30d
-       ```
-
-
-## Grafana dashboards empty
-
+## VictoriaMetrics (cluster mode) — pods down, PVC full, or queries failing
 
 ???+ note "Symptom"
 
-    Grafana is accessible but dashboards show no data, `No data` messages, or
-    broken panels.
+    Grafana panels show "No data" or queries time out. One or more `vmstorage`, `vminsert`, or `vmselect` pods are in `CrashLoopBackOff`, `Pending`, or `Evicted` state. Recent samples are missing while older data is present.
+
+    Omnia deploys VictoriaMetrics in cluster mode with TLS: vmstorage (3 replicas), vminsert (2), vmselect (2), and vmagent (2), with replication factor 2.
+
+    Example errors:
+
+    - vmstorage: `panic: cannot open storage at "/storage": no space left on device`
+    - vminsert: `cannot send data to vmstorage node "vmstorage-1:8400": connection timed out`
+    - vmselect: `error during search: cannot fetch data from vmstorage nodes: not enough healthy storage nodes`
 
 ??? note "Cause"
 
-    - The VictoriaMetrics data source is not configured in Grafana.
-    - The data source URL is incorrect.
-    - VictoriaMetrics itself has no data (see above).
-    - Dashboard queries reference metric names that do not exist in the
-      current data.
+    - vmstorage PVC is full (retention or ingest volume exceeded provisioned storage).
+    - Insufficient healthy replicas (with replication factor 2, losing 2+ vmstorage pods prevents vmselect from satisfying reads).
+    - Resource pressure (pods Pending or Evicted due to insufficient memory or node disk pressure).
+    - TLS or certificate mismatch between vminsert/vmselect and vmstorage.
+    - vmagent backlog (vmagent cannot reach vminsert, queues fill, remote_write stalls).
 
 ??? note "Resolution"
 
-    1. Verify the Grafana data source:
+    **Diagnostics:**
 
-       - Navigate to **Grafana > Configuration > Data Sources**.
-       - Confirm a Prometheus-compatible data source points to
-         `http://<victoria_host>:8428`.
-       - Click **Test** to verify connectivity.
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+    kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
+    kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
+    kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
+    ```
 
-    2. If no data source exists, add one:
+    **Resolution steps:**
 
-       ```bash
-       curl -X POST http://admin:admin@<grafana_host>:3000/api/datasources \
-         -H 'Content-Type: application/json' \
-         -d '{
-           "name": "VictoriaMetrics",
-           "type": "prometheus",
-           "url": "http://<victoria_host>:8428",
-           "access": "proxy",
-           "isDefault": true
-         }'
-       ```
+    1. Expand the vmstorage PVC (if the StorageClass allows `allowVolumeExpansion`) or reduce retention via the telemetry input config, then re-run `telemetry.yml`.
+    2. Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues).
+    3. Free node resources or adjust requests/limits via the input config.
+    4. Regenerate or rotate telemetry certificates via the playbook.
+    5. Once vminsert is reachable, vmagent flushes its queue automatically.
 
+    !!! note
 
-    3. Verify metrics exist in VictoriaMetrics:
+        Cluster mode, replica counts, replication factor, TLS, and retention are rendered from `input/telemetry_config.yml` and `input/service_k8s.json`. Modify inputs and re-run; pod edits are transient. Size vmstorage capacity for peak source count (iDRAC + LDMS + DCGM + PowerScale + UFM + VAST + OME), not initial node count.
 
-       ```bash
-       curl 'http://<victoria_host>:8428/api/v1/label/__name__/values' | jq '.'
-       ```
+## VictoriaLogs (cluster mode) — logs missing or unsearchable
 
+???+ note "Symptom"
 
-    4. Re-import Omnia default dashboards if they are missing:
+    Log queries return nothing or only old data; new node or syslog events never appear. `vlstorage`, `vlinsert`, or `vlselect` pods restart repeatedly or remain unready. There is ingestion lag between event time and searchability.
 
-       ```bash
-       ssh omnia_core
-       cd /omnia
-       ansible-playbook playbooks/telemetry.yml --tags grafana_dashboards
-       ```
+    Example errors:
 
+    - vlstorage: `cannot create new part: no space left on device`
+    - vlinsert: `cannot proxy request to vlstorage: dial tcp <vlstorage-svc>:9491: i/o timeout`
+    - vlselect: `cannot perform query: some vlstorage nodes are unavailable`
+    - VLAgent: `syslog: failed to forward to vlinsert: connection refused`
+
+??? note "Cause"
+
+    - vlstorage PVC is full (log volume exceeded provisioned storage).
+    - vlstorage nodes are unavailable (vlselect cannot complete queries).
+    - VLAgent to vlinsert path is broken (firewall, wrong service endpoint, or TLS mismatch).
+    - No source configured (a device or service is not shipping syslog to VLAgent).
+
+??? note "Resolution"
+
+    **Diagnostics:**
+
+    ```bash title="Run on: K8s control plane"
+    kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+    kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
+    kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
+    kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
+    ```
+
+    **Resolution steps:**
+
+    1. Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run `telemetry.yml`.
+    2. Recover unavailable vlstorage pods so vlselect can query them.
+    3. Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches.
+    4. Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+
+    !!! note
+
+        VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
 !!! info
 

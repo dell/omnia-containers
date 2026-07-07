@@ -13,7 +13,6 @@ their purpose, where they run, and what input files they require.
 | `utils/oim_cleanup.yml` | Removes all Omnia-deployed services, containers, and configuration from the OIM. Returns the OIM to a pre-Omnia state. Does **not** affect cluster nodes. |
 | `prepare_oim/prepare_oim.yml` | Prepares the OIM: installs Podman, configures networking, deploys the `omnia_core` container, and sets up OpenCHAMI services. |
 | `local_repo/local_repo.yml` | Configures and synchronizes the local Pulp repository mirror on the OIM. Mirrors RHEL, EPEL, CUDA, K8s, and custom repositories. |
-| `local_repo/pulp_cleanup.yml` | Removes the local Pulp repository and cleans up repository-related configurations from the OIM. |
 | `discovery/discovery.yml` | Discovers bare-metal nodes via PXE boot and BMC/iDRAC scanning. Registers discovered nodes in OpenCHAMI inventory with hardware details, MAC addresses, and service tags. |
 | `build_image_x86_64/build_image_x86_64.yml` | Builds the provisioning OS image for x86_64 (Intel/AMD) nodes from the RHEL ISO. The image is served via HTTP/iPXE during PXE boot. |
 | `build_image_aarch64/build_image_aarch64.yml` | Builds the provisioning OS image for AArch64 (ARM Grace CPU) nodes. Requires a separate RHEL AArch64 ISO. |

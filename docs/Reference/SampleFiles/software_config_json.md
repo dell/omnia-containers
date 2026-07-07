@@ -162,7 +162,5 @@ infrastructure monitoring without a job scheduler.
 
 !!! info
 
-    - [Software Config](../Configuration/software_config.md) -- Full schema reference.
+    - [Software Config](../Configuration/software_config.md) -- Full parameter reference.
     - [Pxe Mapping File](pxe_mapping_file.md) -- PXE mapping CSV that defines functional groups.
-    - [Installed Software](../SupportMatrix/installed_software.md) -- Complete software
-      bill of materials.
