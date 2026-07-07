@@ -109,7 +109,6 @@ __all__ = [
     "verify_drain_undrain_queuing",
     "verify_insufficient_resources",
     "verify_passwordless_ssh",
-    "submit_upgrade_sbatch_job",
     # LDAP user tests
     "verify_ldapuser_login",
     "verify_ldapuser_blocked_on_slurm_nodes",
