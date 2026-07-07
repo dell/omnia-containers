@@ -13,14 +13,20 @@
 # limitations under the License.
 
 # =============================================================================
-# Molecule Configuration - K8s & Telemetry Upgrade Pre-Check
+# Molecule Configuration for K8s & Telemetry Upgrade Testing
 # =============================================================================
 #
-# Captures the full cluster state BEFORE running the K8s + Telemetry upgrade.
-# Results are saved as a JSON snapshot that the Post_check scenario uses to
-# validate data preservation and IP continuity.
+# This module validates the K8s + Telemetry upgrade lifecycle:
+#   - Pre-check:  Capture cluster baseline before upgrade
+#   - Post-check: Validate cluster state after upgrade
+#   - Negative:   Error injection, performance, and partial-rollback tests
+#   - Upgrade:    omnia.sh --upgrade workflow tests
 #
-# NO upgrade playbook is executed by this scenario.
+# Test suites are separated by pytest markers and name prefixes:
+#   - test_pre_check_*   : Pre-upgrade baseline collection  (tests/sanity/)
+#   - test_post_check_*  : Post-upgrade validation           (tests/sanity/)
+#   - test_*             : Upgrade workflow tests             (tests/sanity/)
+#   - test_neg_*         : Negative / error injection tests   (tests/negative/)
 #
 # PREREQUISITES:
 # --------------
@@ -31,8 +37,23 @@
 #
 # USAGE:
 # ------
-#   ./run_molecule.sh upgrade_pre_k8s_telemetry verify
-#   ./run_molecule.sh upgrade_pre_k8s_telemetry test
+#   # Full test sequence (create + converge + verify):
+#   ./run_molecule.sh Upgrade test
+#
+#   # Pre-check only:
+#   ./run_molecule.sh Upgrade verify -- -k pre_check
+#
+#   # Post-check only:
+#   ./run_molecule.sh Upgrade verify -- -k post_check
+#
+#   # Negative tests only:
+#   ./run_molecule.sh Upgrade verify -- -m negative
+#
+#   # Upgrade workflow tests only:
+#   ./run_molecule.sh Upgrade verify -- -k "backup_verify or prepare_upgrade or upgrade_core"
+#
+# Configuration:
+#   - omnia_test_config.yml: OIM server connection and upgrade settings
 #
 # =============================================================================
 
@@ -58,16 +79,17 @@ provisioner:
 
 verifier:
   name: testinfra
-  directory: ./tests/sanity
+  directory: tests
   options:
     v: true
     s: true
     tb: short
 
 scenario:
-  name: upgrade_pre_k8s_telemetry
+  name: Upgrade
   test_sequence:
     - dependency
+    - syntax
     - create
     - converge
     - verify

@@ -231,7 +231,7 @@ POSTCHECK_ASSERT_MSGS: Dict[str, str] = {
     "snapshot_not_found": (
         "Pre-upgrade snapshot not found at {path}.\n\n"
         "HOW TO FIX:\n"
-        "  1. Run the Pre_check/K8s_telemetry scenario first\n"
+        "  1. Run the pre-check tests first: ./run_molecule.sh Upgrade verify -- -k pre_check\n"
         "  2. Ensure snapshot was saved before running the upgrade\n"
         "  3. Check k8s_upgrade_snapshot_path in omnia_test_config.yml"
     ),
@@ -239,7 +239,7 @@ POSTCHECK_ASSERT_MSGS: Dict[str, str] = {
         "Failed to load pre-upgrade snapshot: {error}\n\n"
         "HOW TO FIX:\n"
         "  1. Check that {path} is valid JSON\n"
-        "  2. Re-run Pre_check/K8s_telemetry to regenerate"
+        "  2. Re-run pre-check tests to regenerate: ./run_molecule.sh Upgrade verify -- -k pre_check"
     ),
     "version_mismatch": (
         "Nodes not at target version {expected}: {nodes}\n\n"
@@ -329,7 +329,7 @@ POSTCHECK_ASSERT_MSGS: Dict[str, str] = {
 SKIP_MSGS: Dict[str, str] = {
     "snapshot_not_found": (
         "Pre-upgrade snapshot not found at {path} — "
-        "run Pre_check/K8s_telemetry first"
+        "run pre-check tests first: ./run_molecule.sh Upgrade verify -- -k pre_check"
     ),
     "no_lb_services": "No LoadBalancer services found in pre-upgrade snapshot",
     "no_kafka_topics": "No Kafka topics found in pre-upgrade snapshot",

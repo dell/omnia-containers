@@ -16,7 +16,7 @@
 K8s & Telemetry Upgrade Pre-Check Tests.
 
 Captures the full cluster state BEFORE the K8s + Telemetry upgrade and
-persists it as a JSON snapshot so the Post_check scenario can validate
+persists it as a JSON snapshot so the post-check tests can validate
 data preservation, IP continuity, and version progression.
 
 Test-case mapping (from K8s-Telemetry-upgrade-test-cases-v2.xls):

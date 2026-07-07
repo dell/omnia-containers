@@ -14,12 +14,12 @@
 
 ---
 # =============================================================================
-# Molecule Converge - K8s & Telemetry Upgrade Pre-Check
+# Molecule Converge - K8s & Telemetry Upgrade
 # =============================================================================
-# This converge step only sets up inventory and verifies basic OIM
-# connectivity.  No upgrade playbook is executed.
-# The actual pre-check data collection happens in the verify step
-# (pytest / testinfra tests).
+# Sets up inventory and verifies OIM connectivity.
+# Checks for pre-upgrade snapshot if it exists.
+# The actual test logic (pre-check, post-check, negative) happens
+# in the verify step (pytest / testinfra tests).
 # =============================================================================
 
 - name: Converge - Load configuration and setup inventory
@@ -28,34 +28,39 @@
   gather_facts: false
 
   vars:
-    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../../../..', true) }}"
+    project_dir: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | default(playbook_dir + '/../..', true) }}"
 
   tasks:
     - name: Setup dynamic inventory
-      ansible.builtin.include_tasks: ../../../shared/tasks/setup_inventory.yml
+      ansible.builtin.include_tasks: ../shared/tasks/setup_inventory.yml
 
     - name: Set facts for OIM server play
       ansible.builtin.set_fact:
         omnia_test_config: "{{ omnia_test_config }}"
+        omnia_test_credentials: "{{ omnia_test_credentials }}"
         cacheable: true
       no_log: true
 
 
-- name: Converge - Verify OIM connectivity
+- name: Converge - Verify OIM connectivity and upgrade readiness
   hosts: oim_server
   gather_facts: false
 
   vars:
     omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
+    snapshot_path: "{{ omnia_test_config.k8s_upgrade_snapshot_path | default('/tmp/k8s_telemetry_upgrade_precheck.json') }}"
+
+  vars_files:
+    - vars/vars.yml
 
   tasks:
     - name: Display target OIM server
       ansible.builtin.debug:
-        msg: "K8s/Telemetry pre-check on OIM server: {{ ansible_host }}"
+        msg: "K8s/Telemetry upgrade testing on OIM server: {{ ansible_host }}"
 
     - name: Verify omnia_core container is running
       ansible.builtin.shell:
-        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name=omnia_core
+        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name={{ container_name }}
       register: container_check
       changed_when: false
       failed_when: "'omnia_core' not in container_check.stdout"
@@ -63,3 +68,14 @@
     - name: Display container status
       ansible.builtin.debug:
         msg: "omnia_core container: {{ 'running' if 'omnia_core' in container_check.stdout else 'NOT FOUND' }}"
+
+    - name: Check for pre-upgrade snapshot
+      ansible.builtin.stat:
+        path: "{{ snapshot_path }}"
+      register: snapshot_stat
+
+    - name: Display readiness summary
+      ansible.builtin.debug:
+        msg:
+          - "omnia_core container: {{ 'running' if 'omnia_core' in container_check.stdout else 'NOT FOUND' }}"
+          - "Pre-upgrade snapshot: {{ 'found at ' ~ snapshot_path if snapshot_stat.stat.exists else 'not yet created (run pre-check tests first)' }}"
