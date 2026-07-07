@@ -599,6 +599,12 @@ In ``/var/log/container_image_download.log`` or ``/var/log/apptainer_pull.log``:
 4.1 ImagePullBackOff / ErrImagePull
 ------------------------------------
 
+**Symptoms**
+
+- Pods fail to start with ``ImagePullBackOff`` or ``ErrImagePull`` status
+- Container images cannot be pulled from the local repository
+- Pod events show image pull errors
+
 **Causes**
 
 - Docker rate limits
@@ -906,7 +912,8 @@ Epilog script not executable.
 6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
 
-``nvidia-smi`` Not Found or Driver Not Communicating
+6.2.1 nvidia-smi Not Found or Driver Not Communicating
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -924,19 +931,17 @@ Verify GPU hardware is present on the node. If confirmed present, re-install the
 
 Review ``/var/log/nvidia_install.log`` for error details.
 
-CUDA Toolkit Not Available on Node (``nvcc`` Not Found)
+6.2.2 CUDA Toolkit Not Available on Node (``nvcc`` Not Found)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
 ``nvcc: command not found`` or ``/usr/local/cuda`` is empty
 
-**Probable cause 1**
+**Cause**
 
-Toolkit installation did not complete on the designated installer node due to a repository or NFS error
-
-**Probable cause 2**
-
-NFS mount for the CUDA toolkit was not established at provisioning time
+- Toolkit installation did not complete on the designated installer node due to a repository or NFS error
+- NFS mount for the CUDA toolkit was not established at provisioning time
 
 **Resolution**
 
@@ -946,7 +951,8 @@ Verify the NFS mount at ``/usr/local/cuda`` is present: ::
 
 If absent, re-mount manually. If the toolkit is not installed on the NFS share, review ``/var/log/cuda_toolkit_install.log`` on the installer node.
 
-CUDA Toolkit NFS Mount Failed
+6.2.3 CUDA Toolkit NFS Mount Failed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -964,25 +970,24 @@ Verify NFS server reachability from the node. Verify the NFS export includes ``n
 
 Verify the ``fstab`` entry is present for persistence.
 
-``nvidia-dcgm`` Service Inactive or Failed
+6.2.4 nvidia-dcgm Service Inactive or Failed
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
 ``systemctl status nvidia-dcgm`` shows ``inactive`` or ``failed`` state
 
-**Probable cause 1**
+**Cause**
 
-DCGM package installation failed due to an unavailable repository or a CUDA version mismatch
-
-**Probable cause 2**
-
-The NVIDIA driver was not functional at the time DCGM attempted to start
+- DCGM package installation failed due to an unavailable repository or a CUDA version mismatch
+- The NVIDIA driver was not functional at the time DCGM attempted to start
 
 **Resolution**
 
 Verify driver is functional: ``nvidia-smi``. Identify the installed CUDA version: ``nvidia-smi | grep "CUDA Version"``. Re-install the matching DCGM package and restart the service. Review ``/var/log/dcgm_setup.log`` for errors.
 
-DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
+6.2.5 DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -996,7 +1001,8 @@ DCGM Not Installed (``dcgm.metrics_enabled`` Disabled)
 
 Set ``dcgm.metrics_enabled: true`` under ``telemetry_sources`` in ``input/telemetry_config.yml``, re-run provisioning for affected Slurm nodes, then validate with ``systemctl status nvidia-dcgm`` and ``dcgmi discovery -l``
 
-DCGM Package Version Mismatch
+6.2.6 DCGM Package Version Mismatch
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -1010,19 +1016,17 @@ The CUDA major version on the node does not have a matching ``datacenter-gpu-man
 
 Verify the CUDA version: ``nvidia-smi | grep "CUDA Version"``. Confirm the corresponding DCGM package is present in the local Pulp repository. Update ``local_repo_config.yml`` to include the correct DCGM package version and re-run ``local_repo.yml``.
 
-``nvidia-peermem`` Not Loading
+6.2.7 nvidia-peermem Not Loading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
 ``lsmod`` does not show ``nvidia_peermem``; workloads requiring GPUDirect RDMA fail to initialize
 
-**Probable cause 1**
+**Cause**
 
-Kernel headers were not available at provisioning time, causing the DKMS build to fail
-
-**Probable cause 2**
-
-Base NVIDIA kernel modules were not loaded prior to ``nvidia-peermem`` load attempt
+- Kernel headers were not available at provisioning time, causing the DKMS build to fail
+- Base NVIDIA kernel modules were not loaded prior to ``nvidia-peermem`` load attempt
 
 **Resolution**
 
@@ -2053,9 +2057,10 @@ The Open Subnet Manager (OpenSM) service is not running on the InfiniBand (IB) s
    * Verify that the InfiniBand ports state transition to: ``State: Active``
 
 10.4 System Recovery Issues
----------------------------
+----------------------------
 
-**Omnia containers not coming up after OIM reboot**
+10.4.1 Omnia containers not coming up after OIM reboot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -2069,7 +2074,8 @@ The Admin NIC on the OIM may have its autoconnect settings disabled (``autoconne
 
 Ensure that the Admin NIC on the OIM is configured with ``autoconnect=yes`` so it automatically reconnects after reboot. If you changed this configuration, reboot your OIM once to nullify any cache-related or stale configuration issues.
 
-**PostgreSQL container deployment fails after cleanup**
+10.4.2 PostgreSQL container deployment fails after cleanup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptom**
 
@@ -2094,10 +2100,10 @@ The playbook deletes the PostgreSQL data at ``postgres_data_dir`` and the associ
 ================================
 
 11.1 Lock File Issues
----------------------
+----------------------
 
-Upgrade fails: "A rollback is currently in progress"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.1.1 Upgrade fails: "A rollback is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2123,8 +2129,8 @@ The file ``/opt/omnia/.data/rollback_in_progress.lock`` exists, indicating a rol
 
 3. Rerun the upgrade playbook.
 
-Rollback fails: "An upgrade is currently in progress"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.1.2 Rollback fails: "An upgrade is currently in progress"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2151,10 +2157,10 @@ The file ``/opt/omnia/.data/upgrade_in_progress.lock`` exists.
 3. Rerun the rollback playbook.
 
 11.2 Manifest Issues
----------------------
+----------------------
 
-Manifest shows "partial" status after upgrade
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.2.1 Manifest shows "partial" status after upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2181,8 +2187,8 @@ One or more components did not reach ``completed`` or ``skipped`` status.
    cd /omnia/upgrade
    ansible-playbook upgrade.yml
 
-Manifest shows "partial" status after rollback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.2.2 Manifest shows "partial" status after rollback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2209,8 +2215,8 @@ One or more components did not reach ``completed`` or ``skipped`` status.
    cd /omnia/rollback
    ansible-playbook rollback.yml
 
-Manifest file is missing or corrupted
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.2.3 Manifest file is missing or corrupted
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2240,10 +2246,10 @@ The manifest file was manually deleted, corrupted due to disk errors, or contain
    Removing the manifest means all component statuses are reset to ``pending``. Previously completed components will be re-executed.
 
 11.3 Component-Specific Issues
-----------------------------
+-----------------------------
 
-OIM upgrade fails
-~~~~~~~~~~~~~~~~~
+11.3.1 OIM upgrade fails
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2277,11 +2283,8 @@ The ``oim`` component fails during upgrade.
    cd /omnia/upgrade
    ansible-playbook upgrade.yml
 
-Kubernetes upgrade fails
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-General Kubernetes upgrade failure
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11.3.2 Kubernetes upgrade fails
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2322,8 +2325,8 @@ The ``k8s`` component fails during upgrade with status showing ``failed`` in the
     cd /omnia/rollback
     ansible-playbook rollback.yml
 
-Cloud-init timeout after reboot
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11.3.3 Cloud-init timeout after reboot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2342,8 +2345,8 @@ Cloud-init execution takes longer than the configured timeout period due to slow
     cd /omnia/upgrade
     ansible-playbook upgrade.yml
 
-Node unreachable during upgrade
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11.3.4 Node unreachable during upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2367,14 +2370,14 @@ Upgrade fails with SSH connection errors or node unreachable messages.
     cd /omnia/upgrade
     ansible-playbook upgrade.yml
 
-Node drain fails due to standalone pods
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+11.3.5 Node drain fails due to standalone pods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
-* Kubernetes upgrade fails during drain with error: ``cannot delete Pods that declare no controller (use --force to override)``
-* Node is cordoned but drain operation fails
-* Upgrade status shows ``drain_failed``
+- Kubernetes upgrade fails during drain with error: ``cannot delete Pods that declare no controller (use --force to override)``
+- Node is cordoned but drain operation fails
+- Upgrade status shows ``drain_failed``
 
 **Cause**
 
@@ -2419,8 +2422,8 @@ Before starting any upgrade, identify and remove all standalone pods:
 
 Always use Deployments, StatefulSets, or Jobs instead of creating standalone pods in production.
 
-Build image fails for aarch64 — missing inventory
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.3.6 Build image fails for aarch64 — missing inventory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2447,8 +2450,8 @@ The PXE mapping file contains aarch64 functional groups, but the upgrade was run
 .. note::
    The ``[admin_aarch64]`` group must have exactly one host. NFS must be configured on the OIM for aarch64 image building.
 
-Target core container image is missing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.3.7 Target core container image is missing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2476,8 +2479,8 @@ The container image for the target version has not been built on the OIM host.
 
 3. Re-run the ``omnia.sh`` command.
 
-Kubernetes rollback fails
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.3.8 Kubernetes rollback fails
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2540,8 +2543,8 @@ The ``k8s-telemetry`` component fails during rollback.
 
 6. After resolving the issue, rerun the full rollback. Already-completed stages are skipped automatically.
 
-Slurm or login nodes do not recover after rollback reboot
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+11.3.9 Slurm or login nodes do not recover after rollback reboot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 **Symptoms**
 
@@ -2572,8 +2575,157 @@ A node did not boot back with the restored 2.1 configuration, or Slurm services 
 .. note::
    There is no standalone ``provision`` rollback. Cloud-Init and BSS boot configuration is restored within the Slurm and Kubernetes rollbacks. If a node's boot configuration appears incorrect after rollback, rerun the rollback for the corresponding component (``slurm`` or ``k8s``).
 
-11.4 General Troubleshooting Steps
-------------------------------------
+12. Kernel Version Override Issues
+===================================
+
+12.1 Repository Sync Issues
+----------------------------
+
+**Symptoms**
+
+- ``local_repo.yml`` fails to sync the additional kernel repositories.
+- Kernel packages are not available in Pulp after sync.
+
+**Cause**
+
+- Repository URLs in ``local_repo_config.yml`` are incorrect or unreachable
+- RHEL subscription (EUS) entitlement certificates are expired or invalid
+- Pulp container cannot access the external repositories due to network or firewall issues
+
+**Resolution**
+
+1. Verify repository URLs are correct and accessible from the ``omnia_core`` container:
+
+.. code-block:: bash
+
+   podman exec -it omnia_core curl -I <repository_url>
+
+2. For RHEL subscription (EUS) repositories, verify that the entitlement certificates are valid and correctly placed:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/rhel_repo_certs/
+
+3. Validate kernel packages are available in the synced Pulp repository. From within the ``omnia_core`` container, list the repository distributions:
+
+.. code-block:: bash
+
+   pulp rpm distribution list
+
+4. Query the Pulp content endpoint to check for kernel packages. Replace ``<oim_admin_ip>`` with the OIM admin IP and ``<repo_name>`` with the distribution name from the previous step:
+
+.. code-block:: bash
+
+   curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
+
+5. If no kernel packages are found, correct the repository URLs in ``local_repo_config.yml`` and re-run ``local_repo.yml``.
+
+12.2 Kernel Image Not Found in S3
+----------------------------------
+
+**Symptoms**
+
+- ``provision.yml`` fails with a kernel validation error.
+- The specified ``kernel_version_override`` is not found in S3.
+
+**Cause**
+
+- The kernel image was not built or uploaded to S3 during the build image step
+- The kernel version specified in ``provision_config.yml`` does not match any available kernel images in S3
+- The build image playbook (``build_image_x86_64.yml`` or ``build_image_aarch64.yml``) was not executed or failed
+
+**Resolution**
+
+1. Verify that the build image step completed successfully and uploaded images to S3:
+
+.. code-block:: bash
+
+   s3cmd ls -Hr s3://boot-images
+
+2. Look for kernel and initramfs entries matching your functional group:
+
+.. code-block:: text
+
+   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
+   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
+
+3. If the expected kernel is missing, verify that the kernel packages were available in the Pulp repository before running ``build_image_x86_64.yml``. The build process selects the latest kernel available across all configured repositories.
+
+4. Re-run the build image playbook to rebuild with the correct kernel:
+
+.. code-block:: bash
+
+   cd /omnia/build_image_x86_64
+   ansible-playbook build_image_x86_64.yml
+
+5. After the build completes, verify the new kernel image in S3 using ``s3cmd ls -Hr s3://boot-images`` and then re-run ``provision.yml``.
+
+12.3 PXE Boot Issues
+--------------------
+
+**Symptoms**
+
+- Nodes fail to PXE boot after kernel override.
+- Nodes boot with the old kernel version instead of the overridden version.
+
+**Cause**
+
+- BSS boot parameters were not updated with the new kernel version
+- The kernel version specified in ``provision_config.yml`` does not match the kernel images available in S3
+- Network connectivity issues between nodes and the OIM prevent fetching the correct boot parameters
+- DHCP or TFTP services are not running correctly
+
+**Resolution**
+
+Validate the following:
+
+* BSS configuration matches the expected kernel and initrd paths in S3
+* Network connectivity between nodes and the OIM
+* DHCP and TFTP services are running
+* Node console logs for boot errors
+
+Verify the booted kernel version on the node:
+
+.. code-block:: bash
+
+   uname -r
+
+If the kernel version does not match the expected override, check that ``kernel_version_override`` in ``provision_config.yml`` is set correctly and re-run ``provision.yml``.
+
+12.4 EUS Subscription Certificate Issues
+------------------------------------------
+
+**Symptoms**
+
+- ``local_repo.yml`` fails with TLS/SSL errors when syncing EUS repositories.
+- Pulp reports authentication failures for RHEL CDN URLs.
+
+**Cause**
+
+- RHEL subscription (EUS) entitlement certificates have expired or are invalid
+- Certificate files are missing or not accessible from the configured paths in ``local_repo_config.yml``
+- SSL/TLS certificate trust issues between the Pulp container and RHEL CDN
+
+**Resolution**
+
+1. Verify the certificate files exist at the configured paths:
+
+.. code-block:: bash
+
+   ls -la /opt/omnia/rhel_repo_certs/
+
+2. Ensure the CA certificate, client key, and client certificate are valid and not expired:
+
+.. code-block:: bash
+
+   openssl x509 -in /opt/omnia/rhel_repo_certs/<entitlement-cert>.pem -noout -dates
+
+3. Verify the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` paths in ``local_repo_config.yml`` match the actual file locations on the OIM.
+
+4. After correcting the certificates, re-run ``local_repo.yml``.
+
+13. General Troubleshooting Steps
+=================================
 
 Check playbook logs
 ~~~~~~~~~~~~~~~~~~~
@@ -2638,127 +2790,3 @@ Expected fields:
 
 .. note::
    ``oim_metadata.yml`` is **read-only** for upgrade and rollback flows. It is never modified by the playbooks. If the version information is incorrect, it must be fixed manually before rerunning.
-
-12. Kernel Version Override Issues
-===================================
-
-12.1 Repository Sync Issues
-----------------------------
-
-**Symptoms**
-
-- ``local_repo.yml`` fails to sync the additional kernel repositories.
-- Kernel packages are not available in Pulp after sync.
-
-**Resolution**
-
-1. Verify repository URLs are correct and accessible from the ``omnia_core`` container:
-
-.. code-block:: bash
-
-   podman exec -it omnia_core curl -I <repository_url>
-
-2. For RHEL subscription (EUS) repositories, verify that the entitlement certificates are valid and correctly placed:
-
-.. code-block:: bash
-
-   ls -la /opt/omnia/rhel_repo_certs/
-
-3. Validate kernel packages are available in the synced Pulp repository. From within the ``omnia_core`` container, list the repository distributions:
-
-.. code-block:: bash
-
-   pulp rpm distribution list
-
-4. Query the Pulp content endpoint to check for kernel packages. Replace ``<oim_admin_ip>`` with the OIM admin IP and ``<repo_name>`` with the distribution name from the previous step:
-
-.. code-block:: bash
-
-   curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
-
-5. If no kernel packages are found, correct the repository URLs in ``local_repo_config.yml`` and re-run ``local_repo.yml``.
-
-12.2 Kernel Image Not Found in S3
-----------------------------------
-
-**Symptoms**
-
-- ``provision.yml`` fails with a kernel validation error.
-- The specified ``kernel_version_override`` is not found in S3.
-
-**Resolution**
-
-1. Verify that the build image step completed successfully and uploaded images to S3:
-
-.. code-block:: bash
-
-   s3cmd ls -Hr s3://boot-images
-
-2. Look for kernel and initramfs entries matching your functional group:
-
-.. code-block:: text
-
-   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
-   s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
-
-3. If the expected kernel is missing, verify that the kernel packages were available in the Pulp repository before running ``build_image_x86_64.yml``. The build process selects the latest kernel available across all configured repositories.
-
-4. Re-run the build image playbook to rebuild with the correct kernel:
-
-.. code-block:: bash
-
-   cd /omnia/build_image_x86_64
-   ansible-playbook build_image_x86_64.yml
-
-5. After the build completes, verify the new kernel image in S3 using ``s3cmd ls -Hr s3://boot-images`` and then re-run ``provision.yml``.
-
-12.3 PXE Boot Issues
---------------------
-
-**Symptoms**
-
-- Nodes fail to PXE boot after kernel override.
-- Nodes boot with the old kernel version instead of the overridden version.
-
-**Resolution**
-
-Validate the following:
-
-* BSS configuration matches the expected kernel and initrd paths in S3
-* Network connectivity between nodes and the OIM
-* DHCP and TFTP services are running
-* Node console logs for boot errors
-
-Verify the booted kernel version on the node:
-
-.. code-block:: bash
-
-   uname -r
-
-If the kernel version does not match the expected override, check that ``kernel_version_override`` in ``provision_config.yml`` is set correctly and re-run ``provision.yml``.
-
-12.4 EUS Subscription Certificate Issues
-------------------------------------------
-
-**Symptoms**
-
-- ``local_repo.yml`` fails with TLS/SSL errors when syncing EUS repositories.
-- Pulp reports authentication failures for RHEL CDN URLs.
-
-**Resolution**
-
-1. Verify the certificate files exist at the configured paths:
-
-.. code-block:: bash
-
-   ls -la /opt/omnia/rhel_repo_certs/
-
-2. Ensure the CA certificate, client key, and client certificate are valid and not expired:
-
-.. code-block:: bash
-
-   openssl x509 -in /opt/omnia/rhel_repo_certs/<entitlement-cert>.pem -noout -dates
-
-3. Verify the ``sslcacert``, ``sslclientkey``, and ``sslclientcert`` paths in ``local_repo_config.yml`` match the actual file locations on the OIM.
-
-4. After correcting the certificates, re-run ``local_repo.yml``.
