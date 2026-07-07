@@ -19,7 +19,7 @@ Ensure that the following prerequisites are met:
   * ``8480`` for ingesting data
   * ``8481`` for querying data
 
-Steps
+Configuration Steps
 -----
 
 1. Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster::

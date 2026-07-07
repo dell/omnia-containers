@@ -15,7 +15,7 @@ Prerequisites
 * Ensure that the nodes are discovered in OpenManage Enterprise before configuring telemetry streaming.
 * Ensure that OpenManage Enterprise Advanced License is installed on the OME discovered nodes. This license is required to retrieve OME telemetry.
 
-Steps
+Configuration Steps
 -----
 
 1. Run the following playbook to retrieve the Kafka connection details and TLS certificates from the Service Kubernetes cluster::
