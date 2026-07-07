@@ -136,112 +136,115 @@ For a full deployment, update the following input files in
 For the full procedure and parameter reference, see
 [Configure Inputs](../HowTo/Setup/configure_inputs.md){target="_blank"}.
 
-## Step 4 -- Set Credentials
+!!! note
 
-The credential utility is automatically invoked by `prepare_oim.yml`. It
-prompts for passwords interactively and stores them in an Ansible
-Vault-encrypted file. For details on which credentials are prompted and
-how to manage them, see
-[Configure Credentials](../HowTo/Setup/configure_credentials.md){target="_blank"}.
+    When you run `prepare_oim.yml` in the next step, you will be prompted
+    for a **Vault password**. This password encrypts the credential file
+    and is required for all subsequent playbook runs. Store it securely --
+    if lost, you must re-run the credential utility. For details on which
+    credentials are prompted, see
+    [Configure Credentials](../HowTo/Setup/configure_credentials.md){target="_blank"}.
 
-!!! warning
+## Step 4 -- Prepare the OIM
 
-    You will be prompted for a **Vault password** at the start of
-    `prepare_oim.yml`. This password encrypts the credential file and is
-    required for all subsequent playbook runs. Store it securely -- if
-    lost, you must re-run the credential utility.
-
-## Step 5 -- Prepare the OIM
-
-Validates all input files, prompts for credentials, and deploys the OIM
-infrastructure containers.
+The `prepare_oim.yml` playbook validates all input files, prompts for
+credentials, and deploys the OIM infrastructure containers. Since all
+input files were configured in Step 3, run the playbook directly:
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/prepare_oim
 ansible-playbook prepare_oim.yml
 ```
 
-For detailed information, see
-[Prepare OIM](../HowTo/Setup/prepare_oim.md){target="_blank"}.
+The playbook validates inputs, prompts for credentials, and deploys all
+OIM infrastructure containers (OpenCHAMI, Pulp, registry, MinIO/PowerScale,
+OpenLDAP auth, step-ca) and configures the `omnia.target` systemd unit.
 
-### Verification
+## Step 5 -- Verify OIM Services
 
 After `prepare_oim.yml` completes, verify the OIM services on the
 **OIM host** (not inside the container):
 
-```bash title="Run on: OIM host"
-systemctl is-active omnia.target
-```
+1. **Check `omnia.target` status**:
 
-Expected output: `active`
+    ```bash title="Run on: OIM host"
+    systemctl is-active omnia.target
+    ```
 
-```bash title="Run on: OIM host"
-systemctl list-dependencies omnia.target
-```
+    Expected output: `active`
 
-Expected output:
+2. **Verify all service dependencies**:
 
-```text title="Expected output"
-omnia.target
-● ├─minio.service
-● ├─omnia_auth.service
-● ├─omnia_core.service
-● ├─pulp.service
-● ├─registry.service
-● ├─network-online.target
-● │ └─NetworkManager-wait-online.service
-● └─openchami.target
-●   ├─acme-deploy.service
-●   ├─acme-register.service
-●   ├─bss-init.service
-●   ├─bss.service
-●   ├─cloud-init-server.service
-●   ├─coresmd-coredhcp.service
-●   ├─coresmd-coredns.service
-●   ├─haproxy.service
-●   ├─hydra-gen-jwks.service
-●   ├─hydra-migrate.service
-●   ├─hydra.service
-●   ├─opaal-idp.service
-●   ├─opaal.service
-●   ├─openchami-cert-trust.service
-●   ├─postgres.service
-●   ├─smd-init.service
-●   ├─smd.service
-●   └─step-ca.service
-```
+    ```bash title="Run on: OIM host"
+    systemctl list-dependencies omnia.target
+    ```
 
-```bash title="Run on: OIM host"
-podman ps --format "table {{.Names}}\t{{.Status}}"
-```
+    Expected output:
 
-Expected output:
+    ```text title="Expected output"
+    omnia.target
+    ● ├─minio.service
+    ● ├─omnia_auth.service
+    ● ├─omnia_core.service
+    ● ├─pulp.service
+    ● ├─registry.service
+    ● ├─network-online.target
+    ● │ └─NetworkManager-wait-online.service
+    ● └─openchami.target
+    ●   ├─acme-deploy.service
+    ●   ├─acme-register.service
+    ●   ├─bss-init.service
+    ●   ├─bss.service
+    ●   ├─cloud-init-server.service
+    ●   ├─coresmd-coredhcp.service
+    ●   ├─coresmd-coredns.service
+    ●   ├─haproxy.service
+    ●   ├─hydra-gen-jwks.service
+    ●   ├─hydra-migrate.service
+    ●   ├─hydra.service
+    ●   ├─opaal-idp.service
+    ●   ├─opaal.service
+    ●   ├─openchami-cert-trust.service
+    ●   ├─postgres.service
+    ●   ├─smd-init.service
+    ●   ├─smd.service
+    ●   └─step-ca.service
+    ```
 
-```text title="Expected output"
-NAMES               STATUS
-bss                 Up 30 hours
-cloud-init-server   Up 30 hours
-coresmd-coredhcp    Up 30 hours
-coresmd-coredns     Up 30 hours
-haproxy             Up 30 hours
-hydra               Up 30 hours
-minio-server        Up 7 days
-omnia_auth          Up 7 days
-omnia_core          Up 8 days
-opaal               Up 30 hours
-opaal-idp           Up 30 hours
-postgres            Up 30 hours
-pulp                Up 7 days
-registry            Up 7 days
-smd                 Up 30 hours
-step-ca             Up 30 hours
-```
+3. **Verify all containers are running**:
+
+    ```bash title="Run on: OIM host"
+    podman ps --format "table {{.Names}}\t{{.Status}}"
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    NAMES               STATUS
+    bss                 Up 30 hours
+    cloud-init-server   Up 30 hours
+    coresmd-coredhcp    Up 30 hours
+    coresmd-coredns     Up 30 hours
+    haproxy             Up 30 hours
+    hydra               Up 30 hours
+    minio-server        Up 7 days
+    omnia_auth          Up 7 days
+    omnia_core          Up 8 days
+    opaal               Up 30 hours
+    opaal-idp           Up 30 hours
+    postgres            Up 30 hours
+    pulp                Up 7 days
+    registry            Up 7 days
+    smd                 Up 30 hours
+    step-ca             Up 30 hours
+    ```
 
 !!! note
 
     - The `minio-server` container will **not** be present if you configured
       PowerScale as the S3 endpoint (`s3_configurations.provider: "powerscale"`)
-      in `storage_config.yml`.
+      in `storage_config.yml`. In that case, Omnia uses the external
+      PowerScale S3 service instead of deploying a local MinIO container.
     - The `omnia_auth` container will **not** be present if `openldap` is
       not included in `software_config.json`.
 
@@ -261,56 +264,22 @@ ansible-playbook local_repo.yml
     Expect **45--90 minutes** depending on network speed. Total download
     size is typically **20--40 GB**.
 
-For detailed information, see
-[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
-
 ### Verification
 
-After `local_repo.yml` completes, verify all software components were
-downloaded successfully:
+After `local_repo.yml` completes, verify that all packages were
+downloaded successfully. Each component generates a `status.csv` file
+under `/opt/omnia/log/local_repo/<os>/<version>/<arch>/<component>/`.
+All entries must show `Success`.
 
-**x86_64:**
-
-```bash title="Run on: omnia_core container"
-cat /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
-```
-
-Expected output:
-
-```text title="Expected output"
-name,status
-default_packages,success
-admin_debug_packages,success
-openldap,success
-service_k8s,success
-slurm_custom,success
-csi_driver_powerscale,success
-```
-
-**aarch64** (if aarch64 nodes are in the PXE mapping file):
-
-```bash title="Run on: omnia_core container"
-cat /opt/omnia/log/local_repo/rhel/10.0/aarch64/software.csv
-```
-
-Expected output:
-
-```text title="Expected output"
-name,status
-default_packages,success
-admin_debug_packages,success
-openldap,success
-slurm_custom,success
-```
-
-All entries must show `success`.
+For per-component verification details, see
+[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
 
 ## Step 7 -- Build Node Images
 
 ### 7.1 Build x86_64 images
 
 Builds compute images for all x86_64 functional groups defined in the
-PXE mapping file and uploads them to the S3 bucket.
+PXE mapping file and uploads them to MinIO (S3).
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_x86_64
@@ -319,89 +288,55 @@ ansible-playbook build_image_x86_64.yml
 
 ### 7.2 Build aarch64 images (if applicable)
 
-Builds compute images for all aarch64 functional groups defined in the
-PXE mapping file and uploads them to the S3 bucket.
-
-!!! note
-
-    Before running this playbook, the aarch64 node must be prepared with
-    RHEL 10 installed and an inventory file created. For prerequisites
-    and setup instructions, see
-    [Preparing aarch64 Node](../Reference/Configuration/prepare_aarch64_node.md){target="_blank"}.
+If your PXE mapping file contains aarch64 functional groups (e.g.,
+`slurm_node_aarch64`, `login_compiler_node_aarch64`), build the
+aarch64 images:
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_aarch64
-ansible-playbook build_image_aarch64.yml -i <inventory_file>
+ansible-playbook build_image_aarch64.yml
 ```
 
 ### Verification
 
-Verify the built images are uploaded to the S3 bucket:
+Verify the built images are uploaded to S3:
 
 ```bash title="Run on: OIM host"
 s3cmd ls -Hr s3://boot-images
 ```
 
-Expected output (showing two functional groups as example):
+You should see `initramfs`, `vmlinuz`, and OS image files for each
+functional group.
 
-```text title="Expected output"
-2026-06-26 11:42    78M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/initramfs-6.12.0-55.82.1.el10_0.x86_64.img
-2026-06-26 11:42    15M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/vmlinuz-6.12.0-55.82.1.el10_0.x86_64
-2026-06-26 11:42  1449M  s3://boot-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/rhel10.0-rhel-slurm_control_node_x86_64_omnia_2.2.0.0-10.0
-2026-06-26 11:43    78M  s3://boot-images/efi-images/slurm_node_x86_64/rhel-slurm_node_x86_64_omnia_2.2.0.0/initramfs-6.12.0-55.82.1.el10_0.x86_64.img
-2026-06-26 11:43    15M  s3://boot-images/efi-images/slurm_node_x86_64/rhel-slurm_node_x86_64_omnia_2.2.0.0/vmlinuz-6.12.0-55.82.1.el10_0.x86_64
-2026-06-26 11:44  1430M  s3://boot-images/slurm_node_x86_64/rhel-slurm_node_x86_64_omnia_2.2.0.0/rhel10.0-rhel-slurm_node_x86_64_omnia_2.2.0.0-10.0
-...
-```
+## Step 8 -- Set PXE Boot and Provision Nodes
 
-Each functional group in the PXE mapping file should have **3 images**:
-
-- `initramfs-<kernel_version>.img` -- Initial RAM filesystem
-- `vmlinuz-<kernel_version>` -- Linux kernel
-- `rhel<version>-<functional_group>-<omnia_version>` -- OS root filesystem image
-
-## Step 8 -- Set PXE Boot
-
-Sets the PXE boot order on all target nodes via iDRAC Redfish and
-reboots them for network provisioning.
+Sets the PXE boot order on all target nodes via iDRAC Redfish, reboots
+them, and waits for cloud-init provisioning to complete.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
 
-For detailed information, see
-[PXE Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md){target="_blank"}.
+For detailed information on PXE boot configuration and troubleshooting,
+see [PXE Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md){target="_blank"}.
 
-### Verification
+!!! note
 
-After `set_pxe_boot.yml` completes, verify that cloud-init has finished
-on all provisioned nodes:
-
-```bash title="Run on: omnia_core container"
-ssh <node_hostname> 'cloud-init status'
-```
-
-Expected output:
-
-```text title="Expected output"
-status: done
-```
-
-All nodes should report `status: done`. Run this command for each node
-in the PXE mapping file to confirm provisioning is complete.
+    With 8 nodes, provisioning can take **30--60 minutes**. Nodes are
+    provisioned in parallel. The playbook validates BMC inventory,
+    sets PXE boot via Redfish, and reboots all nodes.
 
 ## Step 9 -- Deploy Telemetry
 
-Deploys the telemetry pipeline as Kubernetes pods on the service cluster.
+Deploys the telemetry pipeline as Kubernetes pods on the service cluster
+worker node (iDRAC receiver, Kafka, VictoriaMetrics, vmagent, LDMS
+aggregator/store).
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
-
-For detailed information, see
-[Setup Telemetry](../HowTo/Telemetry/setup_telemetry.md){target="_blank"}.
 
 ## Step 10 -- Verify the Telemetry Pipeline
 
