@@ -468,6 +468,131 @@ A local repository for the software has not been configured by the ``local_repo.
 1. Re-run the ``local_repo.yml`` playbook with proper inputs to download the software package to the Pulp repository.
 2. Once the local repository has been configured successfully, re-run the failed installation script.
 
+3.8 Pulp Certificate Trust Failure on Compute Nodes
+----------------------------------------------------
+
+**Symptoms**
+
+- ``dnf install`` fails with SSL certificate errors on provisioned compute nodes
+- Package installation during cloud-init ``runcmd`` phase fails
+- Container image pulls from the Pulp mirror fail on nodes
+
+**Example errors**
+
+On the compute node:
+
+.. code-block:: text
+
+   SSL certificate problem: unable to get local issuer certificate
+   Peer's certificate issuer is not recognized
+   Error: Failed to download metadata for repo 'pulp_mirror'
+
+**Cause**
+
+The Pulp webserver certificate (``pulp_webserver.crt``) was not copied or trusted on the node. All cloud-init templates include a ``runcmd`` step that copies the certificate from the NFS-mounted ``/cert`` directory:
+
+.. code-block:: bash
+
+   cp /cert/pulp_webserver.crt /etc/pki/ca-trust/source/anchors && update-ca-trust
+
+This step can fail if the NFS mount for ``/cert`` was not established before the certificate copy step executes.
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check if the certificate is present and trusted
+   ls -la /etc/pki/ca-trust/source/anchors/pulp_webserver.crt
+   ls -la /cert/pulp_webserver.crt
+
+   # Verify the NFS mount for /cert
+   mount | grep /cert
+
+   # Test SSL connectivity to Pulp
+   openssl s_client -connect <admin_nic_ip>:2225 -showcerts </dev/null 2>&1 | grep -i verify
+
+   # Test package manager connectivity
+   dnf repolist
+
+**Resolution**
+
+1. Mount the certificate NFS share and copy the certificate manually:
+
+.. code-block:: bash
+
+   mount | grep /cert || mount -t nfs <admin_nic_ip>:<share_path>/cert /cert
+   cp /cert/pulp_webserver.crt /etc/pki/ca-trust/source/anchors/
+   update-ca-trust
+
+2. Verify package manager connectivity:
+
+.. code-block:: bash
+
+   dnf repolist
+   dnf makecache
+
+3. If the issue recurs on re-provisioned nodes, verify the NFS export for the ``/cert`` directory is accessible from the node network.
+
+3.9 Container Image Pull Fails from Pulp Mirror
+-------------------------------------------------
+
+**Symptoms**
+
+- Container images (SIF format) fail to download on Slurm/HPC nodes
+- ``/var/log/apptainer_pull.log`` shows pull failures
+- Expected container images are missing under ``/hpc_tools/container_images``
+
+**Example errors**
+
+In ``/var/log/container_image_download.log`` or ``/var/log/apptainer_pull.log``:
+
+.. code-block:: text
+
+   [ERROR] Failed to pull container image from Pulp mirror (exit code: 1).
+   [INFO] Image may not be available in Pulp or download was interrupted.
+   Error: error pulling image: unable to pull <image>: Error initializing source
+   TIMEOUT: Container image pull timed out after 1800 seconds
+
+**Cause**
+
+- Container image was not synced to Pulp during ``local_repo.yml`` execution
+- Pulp mirror endpoint is unreachable from the node (firewall, network issues)
+- Pulp certificate not trusted on the node (see Section 3.8)
+- Image tag mismatch between ``container_image.list`` and what is available in Pulp
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check download log
+   tail -50 /var/log/container_image_download.log
+   tail -50 /var/log/apptainer_pull.log
+
+   # Check if Pulp mirror is reachable from the node
+   curl -sk https://<admin_nic_ip>:2225/v2/_catalog
+
+   # Check what images are expected
+   cat /hpc_tools/scripts/container_image.list
+
+   # Check downloaded images
+   ls -lh /hpc_tools/container_images/
+
+**Resolution**
+
+1. Verify the container image exists in Pulp. From the OIM:
+
+.. code-block:: bash
+
+   podman exec -it omnia_core pulp container repository list
+
+2. If the image is missing in Pulp, ensure it is listed in ``software_config.json`` and re-run ``local_repo.yml``.
+
+3. If the image exists in Pulp but the pull fails, verify certificate trust (Section 3.8) and re-run the download script:
+
+.. code-block:: bash
+
+   /hpc_tools/scripts/download_container_image.sh
+
 4. Kubernetes Cluster & Pod Issues
 ==================================
 
@@ -1493,13 +1618,37 @@ Stale SSH key.
 9.1 Certificate Expiration
 --------------------------
 
-**Symptom**
+**Symptoms**
 
-OpenCHAMI certificates have expired.
+- ``provision.yml`` or ``ochami`` CLI commands fail with TLS errors
+- BSS or cloud-init-server returns connection refused or certificate errors
+- Nodes fail to PXE boot or cloud-init cannot reach the OIM
+
+**Example errors**
+
+.. code-block:: text
+
+   curl: (60) SSL certificate problem: certificate has expired
+   x509: certificate has expired or is not yet valid
+   ochami bss service status: certificate verify failed
 
 **Cause**
 
-Certificates have reached their expiration date.
+OpenCHAMI certificates (managed by ``acme-deploy``) have reached their expiration date. The ``openchami_auth.yml`` task automatically restarts ``acme-deploy`` when BSS status fails, but manual intervention is needed if the auto-recovery does not succeed.
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check certificate expiry dates
+   openssl s_client -connect localhost:8443 -showcerts </dev/null 2>&1 | openssl x509 -noout -dates
+
+   # Check acme-deploy service status
+   systemctl status acme-deploy
+   journalctl -u acme-deploy -n 50 --no-pager
+
+   # Check if openchami.target and its dependencies are active
+   systemctl list-dependencies openchami.target --plain
 
 **Resolution**
 
@@ -1508,22 +1657,60 @@ Certificates have reached their expiration date.
    sudo openchami-certificate-update update <OIM_hostname>.<domain>
    sudo systemctl restart openchami.target
 
+If the issue persists after certificate update, restart the ``acme-deploy`` service and wait for certificate regeneration:
+
+.. code-block:: bash
+
+   sudo systemctl restart acme-deploy
+   sleep 10
+   sudo systemctl restart openchami.target
+
 9.2 Token Expired
 ----------------
 
-**Symptom**
+**Symptoms**
 
-OpenCHAMI access token has expired.
+- ``ochami`` CLI commands return 401 Unauthorized
+- ``provision.yml`` fails during OpenCHAMI authentication phase
+- BSS or SMD API calls return authentication errors
+
+**Example errors**
+
+.. code-block:: text
+
+   {"error":"token is expired","status":401}
+   ochami bss boot params get: 401 Unauthorized
+   Failed to generate access token after 5 retries
 
 **Cause**
 
-Token has reached its expiration time.
+The OpenCHAMI access token (JWT issued via Hydra OIDC ``client_credentials`` grant) has reached its expiration time. Omnia's ``openchami_auth.yml`` task retries token generation up to 5 times with 5-second delays. Manual regeneration is required if automatic retries fail.
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check if the token environment variable is set
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN
+
+   # Inspect the token expiry (if jq is available)
+   echo $<OIM_HOSTNAME>_ACCESS_TOKEN | cut -d. -f2 | base64 -d 2>/dev/null | jq .exp
+
+   # Test BSS connectivity with the current token
+   ochami bss service status
 
 **Resolution**
 
 .. code-block:: bash
 
    export <OIM_HOSTNAME>_ACCESS_TOKEN=$(sudo bash -lc 'gen_access_token')
+
+If ``gen_access_token`` fails, verify the Hydra OIDC service is running:
+
+.. code-block:: bash
+
+   systemctl status hydra
+   journalctl -u hydra -n 50 --no-pager
 
 9.3 provision.yml Fails - prepare_oim Needs to be Executed
 ----------------------------------------------------------
@@ -1539,6 +1726,270 @@ The OpenCHAMI container is not up and running.
 **Resolution**
 
 Perform a cleanup using ``oim_cleanup.yml`` and re-run the ``prepare_oim.yml`` playbook to bring up the OpenCHAMI containers. After ``prepare_oim.yml`` playbook has been executed successfully, re-deploy the cluster using the steps mentioned in the `Omnia deployment guide <../OmniaInstallGuide/RHEL_new/index.html>`_.
+
+9.4 SMD Node Discovery Fails
+-----------------------------
+
+**Symptoms**
+
+- ``provision.yml`` fails at "Discover ochami nodes" task
+- ``ochami smd component get`` returns empty results or HTTP 404
+- Nodes are not visible in SMD after running ``provision.yml``
+
+**Example errors**
+
+.. code-block:: text
+
+   Failed to discover ochami nodes after retries.
+   smd service is not running
+   ochami smd component get: no components found
+   HTTP 404: node <xname> not found in SMD
+
+**Cause**
+
+- SMD service is not running or failed to start
+- ``openchami.target`` and its dependencies are not fully active
+- Invalid or malformed ``nodes.yaml`` (generated from ``pxe_mapping_file.csv``)
+- Network connectivity issues between the OIM and SMD
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check SMD service status
+   systemctl status smd
+   journalctl -u smd -n 50 --no-pager
+
+   # Check openchami.target and all dependencies
+   systemctl status openchami.target
+   systemctl list-dependencies openchami.target --plain
+
+   # Verify SMD API is reachable
+   ochami smd service status
+
+   # List registered nodes
+   ochami smd component get | jq '.Components[] | select(.Type == "Node")'
+
+   # Verify nodes.yaml is valid
+   cat /opt/omnia/openchami/workdir/nodes/nodes.yaml
+
+**Resolution**
+
+1. Restart ``openchami.target`` and verify all services are active:
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+   sleep 15
+   ochami smd service status
+
+2. Verify ``pxe_mapping_file.csv`` contains valid MAC addresses and xnames, then re-run ``provision.yml``.
+
+9.5 BSS Boot Parameters Not Applied
+------------------------------------
+
+**Symptoms**
+
+- Nodes boot with the default image instead of the expected functional group image
+- ``ochami bss boot params get`` returns empty or incorrect kernel/initrd paths
+- Nodes do not pick up updated boot parameters after re-running ``provision.yml``
+
+**Example errors**
+
+.. code-block:: text
+
+   node boots default image, ignoring BSS boot parameters
+   ochami bss boot params get: no params found for MAC <mac>
+   Missing kernel or initrd in BSS boot parameters
+
+**Cause**
+
+- BSS service is not running or has stale data
+- The kernel/initrd images were not built or uploaded to S3 (``build_image_x86_64.yml`` not run)
+- MAC addresses in ``pxe_mapping_file.csv`` do not match the node hardware
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check BSS service status
+   ochami bss service status
+
+   # List all boot parameters
+   ochami bss boot params get -F yaml
+
+   # Verify kernel/initrd in S3
+   s3cmd ls -Hr s3://boot-images
+
+**Resolution**
+
+1. Ensure ``build_image_x86_64.yml`` (or ``build_image_aarch64.yml``) completed successfully and images exist in S3.
+2. Verify MAC addresses in ``pxe_mapping_file.csv`` match node hardware.
+3. Re-run ``provision.yml`` to refresh BSS boot parameters.
+
+9.6 cloud-init-server Not Reachable
+------------------------------------
+
+**Symptoms**
+
+- ``provision.yml`` fails at "Verify cloud-init-server is reachable" task
+- Nodes complete PXE boot but cloud-init fails to fetch user-data from the OIM
+
+**Example errors**
+
+.. code-block:: text
+
+   cloud-init-server is not running after 16 retries.
+   ochami cloud-init service status: connection refused
+
+**Cause**
+
+- ``cloud-init-server`` systemd service is not running
+- ``openchami.target`` dependencies are not satisfied
+- Certificate issues preventing the service from starting
+
+**Diagnostics**
+
+.. code-block:: bash
+
+   # Check cloud-init-server status
+   systemctl status cloud-init-server
+   journalctl -u cloud-init-server -n 50 --no-pager
+
+   # Check if openchami.target dependencies are satisfied
+   systemctl list-dependencies openchami.target --plain
+
+   # Test cloud-init endpoint from OIM
+   ochami cloud-init service status
+
+**Resolution**
+
+.. code-block:: bash
+
+   # If certificate issues, restart acme-deploy first
+   sudo systemctl restart acme-deploy
+   sleep 10
+
+   # Restart the cloud-init-server
+   sudo systemctl restart cloud-init-server
+
+   # If still failing, restart the full openchami stack
+   sudo systemctl restart openchami.target
+
+Once the service is running, re-run ``provision.yml``.
+
+9.7 OpenCHAMI Stack Health Check
+---------------------------------
+
+Use the following commands to verify the overall health of the OpenCHAMI stack on the OIM:
+
+.. code-block:: bash
+
+   # Check openchami.target and all component services
+   systemctl status openchami.target
+   systemctl list-dependencies openchami.target --plain
+
+   # Verify individual services
+   systemctl status smd
+   systemctl status bss
+   systemctl status cloud-init-server
+   systemctl status hydra
+
+   # Verify API connectivity
+   ochami smd service status
+   ochami bss service status
+   ochami cloud-init service status
+
+   # View recent logs for any component
+   journalctl -u smd -n 50 --no-pager
+   journalctl -u bss -n 50 --no-pager
+   journalctl -u cloud-init-server -n 50 --no-pager
+
+If any service is not active, restart ``openchami.target``:
+
+.. code-block:: bash
+
+   sudo systemctl restart openchami.target
+
+9.8 Cloud-init Execution Failures on Compute Nodes
+----------------------------------------------------
+
+**Symptoms**
+
+- Node completes PXE boot but cloud-init does not finish successfully
+- Services (Slurm, Kubernetes, LDMS) are not configured after provisioning
+- Node is reachable via SSH but cloud-init scripts did not execute
+- Upgrade playbook reports "Cloud-init did not complete within timeout"
+
+**Example errors**
+
+In ``/var/log/cloud-init-output.log`` or ``/var/log/cloud-init.log`` on the compute node:
+
+.. code-block:: text
+
+   cloud-init[ERROR]: Failed running module cc_scripts_user
+   cloud-init status: error
+   WARNING: could not determine cloud type
+   stage failed: 'init-network' (duration: 120.0s, error: timeout waiting for metadata)
+
+**Cause**
+
+- Network not ready when cloud-init attempts to fetch metadata from the OIM (``http://<admin_nic_ip>:8081/cloud-init/``)
+- cloud-init user-data or vendor-data contains errors (invalid YAML, missing scripts)
+- NFS mount failures during ``runcmd`` scripts (NFS server unreachable, incorrect ``fstab`` entries)
+- Stale cloud-init state on re-provisioned nodes (cloud-init skips modules it has already run)
+- Pulp certificate trust not established (``pulp_webserver.crt`` copy failed), causing ``dnf`` package installs to fail
+- Timeout on CUDA driver installation or DOCA setup during ``runcmd`` phase
+
+**Diagnostics**
+
+Run these commands on the affected compute node:
+
+.. code-block:: bash
+
+   # Overall cloud-init status
+   cloud-init status --long
+
+   # Execution log (shows runcmd script output)
+   tail -100 /var/log/cloud-init-output.log
+
+   # Detailed error log
+   grep -i error /var/log/cloud-init.log | tail -30
+
+   # What user-data was injected by the OIM
+   cloud-init query userdata
+
+   # Which cloud-init modules completed successfully
+   ls /var/lib/cloud/instance/sem/
+
+   # Check NFS mounts (many cloud-init scripts depend on NFS)
+   mount | grep nfs
+   cat /etc/fstab | grep nfs
+
+   # Check Pulp certificate trust
+   ls /etc/pki/ca-trust/source/anchors/pulp_webserver.crt
+   openssl s_client -connect <admin_nic_ip>:2225 -showcerts </dev/null 2>&1 | grep -i verify
+
+**Resolution**
+
+1. If cloud-init is still running, wait for it to complete (check with ``cloud-init status --long``).
+
+2. If cloud-init completed with errors, review the specific failure in ``/var/log/cloud-init-output.log``. Common sub-failures:
+
+   - **NFS mount failure**: Verify OIM NFS service is reachable from the node (``showmount -e <admin_nic_ip>``)
+   - **Pulp cert trust failure**: Manually copy the certificate and update trust:
+
+   .. code-block:: bash
+
+      cp /cert/pulp_webserver.crt /etc/pki/ca-trust/source/anchors/ && update-ca-trust
+
+   - **CUDA/DOCA timeout**: These are non-critical (scripts use ``|| echo "failed (non-critical)"``). Review ``/var/log/nvidia_install.log`` or ``/var/log/cuda_toolkit_install.log``.
+
+3. For stale cloud-init state on re-provisioned nodes, the node image should be rebuilt via ``build_image_x86_64.yml`` to ensure a clean ``/var/lib/cloud`` state. Do not manually run ``cloud-init clean`` on provisioned nodes as this may break existing configuration.
+
+4. If cloud-init timed out during upgrade, SSH to the node and wait for completion, then re-run the upgrade playbook (completed steps are skipped automatically).
+
+.. note:: Omnia collects cloud-init logs from all node types during log collection (``log_collector/collect.yml``). The collected files include ``/var/log/cloud-init.log`` and ``/var/log/cloud-init-output.log``.
 
 10. General Issues
 ==================
