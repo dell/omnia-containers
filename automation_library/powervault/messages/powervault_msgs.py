@@ -80,6 +80,7 @@ TEST_LOG_MSGS = {
     "checking_sessions": "Checking iSCSI sessions on {node_ip}",
     "checking_startup": "Checking iSCSI node.startup setting on {node_ip}",
     "checking_port": "Checking port {port} reachability to {portal_ip} from {node_ip}",
+    "checking_portal_session": "Checking iSCSI session health for portal {portal_ip} from {node_ip}",
     # Multipath
     "checking_multipathd": "Checking multipathd service on {node_ip}",
     "checking_mpath_device": "Checking multipath device for volume_id '{volume_id}' on {node_ip}",
@@ -150,6 +151,10 @@ TEST_ASSERT_MSGS = {
     "port_reachable": (
         "Port {port} should be reachable on {portal_ip} from {node_ip}. "
         "Expected: reachable, Actual: {actual}"
+    ),
+    "portal_session_healthy": (
+        "iSCSI session to portal {portal_ip} should be LOGGED_IN on {node_ip}. "
+        "Expected: LOGGED_IN, Actual: {actual}"
     ),
     # Multipath
     "multipathd_active": (
@@ -315,7 +320,7 @@ SUCCESS_MESSAGES = {
     "discovery_verified": "iSCSI discovery successful on {node_ip}",
     "sessions_verified": "iSCSI sessions active on {node_ip}",
     "startup_verified": "node.startup is automatic on {node_ip}",
-    "ports_verified": "All portal ports reachable from {node_ip}",
+    "ports_verified": "All portal ports reachable and sessions healthy from {node_ip}",
     "multipathd_verified": "multipathd is active and enabled on {node_ip}",
     "mpath_device_verified": "Multipath device '{device}' verified on {node_ip}",
     "mpath_paths_verified": "Multipath redundancy verified ({count} paths) on {node_ip}",

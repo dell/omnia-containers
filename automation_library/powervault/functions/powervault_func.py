@@ -54,6 +54,7 @@ from ..vars import (
     CMD_MULTIPATHD_ENABLED,
     CMD_ISCSI_DISCOVERY,
     CMD_ISCSI_SESSION,
+    CMD_ISCSI_SESSION_DETAIL,
     CMD_ISCSI_NODE_SHOW,
     CMD_MULTIPATH_LIST,
     CMD_CHECK_MOUNTPOINT,
@@ -457,17 +458,54 @@ def verify_iscsi_startup_automatic(host, node_ip: str) -> Dict[str, Any]:
     }
 
 
+def _get_portal_session_states(host, node_ip: str) -> Dict[str, str]:
+    """Parse 'iscsiadm -m session -P 1' to map each portal IP to its session state.
+
+    Returns:
+        dict mapping portal_ip -> session_state (e.g., "LOGGED_IN", "FREE", "TRANSPORT WAIT")
+        Empty dict if no sessions found.
+    """
+    cmd = safe_run_on_remote_node(host, CMD_ISCSI_SESSION_DETAIL, node_ip)
+    output = cmd.stdout.strip()
+    if not output:
+        return {}
+
+    portal_states = {}
+    current_portal_ip = None
+
+    for line in output.split("\n"):
+        line = line.strip()
+        if line.startswith("Current Portal:"):
+            # Extract IP from "Current Portal: 10.43.4.21:3260,1"
+            portal_part = line.split(":", 1)[1].strip()
+            current_portal_ip = portal_part.split(":")[0].strip()
+        elif "iSCSI Session State:" in line and current_portal_ip:
+            # Extract state from "iSCSI Session State: LOGGED_IN"
+            state = line.split(":", 1)[1].strip()
+            portal_states[current_portal_ip] = state
+
+    return portal_states
+
+
 def verify_portal_reachability(host, node_ip: str, ip_list: List[str], port: int) -> Dict[str, Any]:
-    """Test port connectivity from target node to each portal IP.
+    """Test port connectivity and iSCSI session health from target node to each portal IP.
+
+    Checks two things per portal:
+    1. TCP port reachability (port open)
+    2. iSCSI session state (must be LOGGED_IN)
 
     Returns:
         {"success": bool, "error": str, "details": {"results": list}}
     """
     log = TestLogger("verify_portal_reachability")
     results = []
-    all_reachable = True
+    all_ok = True
+
+    # Get session states for all portals in one call
+    portal_states = _get_portal_session_states(host, node_ip)
 
     for portal_ip in ip_list:
+        # Check 1: TCP port reachability
         log.check(TEST_LOG_MSGS["checking_port"].format(
             node_ip=node_ip, portal_ip=portal_ip, port=port
         ))
@@ -477,16 +515,36 @@ def verify_portal_reachability(host, node_ip: str, ip_list: List[str], port: int
             node_ip,
         )
         reachable = "reachable" in cmd.stdout.strip()
-        results.append({"portal_ip": portal_ip, "reachable": reachable})
-        if not reachable:
-            all_reachable = False
 
-    error = ""
-    if not all_reachable:
-        unreachable = [r["portal_ip"] for r in results if not r["reachable"]]
-        error = f"Unreachable portals from {node_ip}: {unreachable}"
+        # Check 2: iSCSI session health
+        log.check(TEST_LOG_MSGS["checking_portal_session"].format(
+            node_ip=node_ip, portal_ip=portal_ip
+        ))
+        session_state = portal_states.get(portal_ip, "NO_SESSION")
+        session_healthy = session_state == "LOGGED_IN"
 
-    return {"success": all_reachable, "error": error, "details": {"results": results}}
+        portal_ok = reachable and session_healthy
+        results.append({
+            "portal_ip": portal_ip,
+            "reachable": reachable,
+            "session_state": session_state,
+            "session_healthy": session_healthy,
+        })
+        if not portal_ok:
+            all_ok = False
+
+    errors = []
+    unreachable = [r["portal_ip"] for r in results if not r["reachable"]]
+    unhealthy = [
+        f"{r['portal_ip']} (state: {r['session_state']})"
+        for r in results if not r["session_healthy"]
+    ]
+    if unreachable:
+        errors.append(f"Unreachable portals from {node_ip}: {unreachable}")
+    if unhealthy:
+        errors.append(f"Unhealthy iSCSI sessions from {node_ip}: {unhealthy}")
+
+    return {"success": all_ok, "error": "; ".join(errors), "details": {"results": results}}
 
 
 # =============================================================================

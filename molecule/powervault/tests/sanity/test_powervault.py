@@ -293,6 +293,11 @@ def test_iscsi_portal_reachability(host, pv_configs):
                         port=pv["port"], portal_ip=r["portal_ip"], node_ip=label,
                         actual="unreachable",
                     ))
+                if not r.get("session_healthy", True):
+                    failures.append(TEST_ASSERT_MSGS["portal_session_healthy"].format(
+                        portal_ip=r["portal_ip"], node_ip=label,
+                        actual=r.get("session_state", "UNKNOWN"),
+                    ))
 
             if result["success"]:
                 log.check(SUCCESS_MESSAGES["ports_verified"].format(node_ip=label))
