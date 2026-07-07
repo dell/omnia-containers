@@ -1,0 +1,70 @@
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM ubuntu:26.04 AS builder
+
+ARG BUILDAH_VERSION=1.42.2
+
+RUN apt-get update && apt-get install -y \
+        build-essential curl git pkg-config \
+        libglib2.0-dev libgpgme-dev libseccomp-dev \
+        btrfs-progs-dev libdevmapper-dev lvm2-dev \
+        zlib1g-dev liblzma-dev liblzo2-dev libzstd-dev liblz4-dev \
+        golang-go
+
+# Build squashfs-tools from source
+RUN git clone --depth 1 https://github.com/plougher/squashfs-tools.git /tmp/squashfs-tools && \
+    cd /tmp/squashfs-tools/squashfs-tools && \
+    make -j$(nproc) && \
+    make install INSTALL_PREFIX=/usr
+
+# Build buildah from source
+RUN git clone --branch v${BUILDAH_VERSION} --depth 1 \
+        https://github.com/containers/buildah.git /tmp/buildah && \
+    cd /tmp/buildah && \
+    go get github.com/sigstore/fulcio@v1.8.5 && \
+    go get golang.org/x/crypto@v0.45.0 && \
+    go get github.com/containernetworking/plugins@v1.9.0 && \
+    go get github.com/sigstore/sigstore@v1.10.4 && \
+    go mod tidy && \
+    go mod vendor && \
+    make buildah BUILDTAGS="seccomp"
+
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM ubuntu:26.04
+
+RUN apt-get update && apt-get install -y \
+        bash python3 python3-pip \
+        fuse-overlayfs \
+        containers-common crun slirp4netns \
+        uidmap libcap2-bin libgpgme-dev libseccomp2 libglib2.0-0 \
+        zlib1g xz-utils liblzo2 libzstd1 liblz4-1 \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy built binaries from Stage 1
+COPY --from=builder /tmp/buildah/bin/buildah /usr/bin/buildah
+COPY --from=builder /usr/bin/mksquashfs /usr/bin/mksquashfs
+COPY --from=builder /usr/bin/unsquashfs /usr/bin/unsquashfs
+
+COPY requirements.txt /
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r /requirements.txt
+
+COPY src/ /usr/local/bin/
+RUN chmod -R 0755 /usr/local/bin/
+
+RUN useradd --uid 1002 -m builder && \
+    chown -R builder /home/builder
+
+RUN setcap cap_setuid=ep "$(command -v newuidmap)" && \
+    setcap cap_setgid=ep "$(command -v newgidmap)" && \
+    chmod 0755 "$(command -v newuidmap)" && \
+    chmod 0755 "$(command -v newgidmap)" && \
+    echo "builder:2000:50000" > /etc/subuid && \
+    echo "builder:2000:50000" > /etc/subgid
+
+USER builder
+WORKDIR /home/builder
+
+ENV BUILDAH_ISOLATION=chroot
+ENTRYPOINT ["/usr/bin/buildah", "unshare"]
