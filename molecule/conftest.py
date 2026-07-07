@@ -150,8 +150,6 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "deploy: marks tests as deploy pipeline tests")
     config.addinivalue_line("markers", "stress: marks tests as stress/load tests (e.g., repeated pipeline runs)")
     config.addinivalue_line("markers", "build: marks tests as build pipeline tests")
-    config.addinivalue_line("markers", "precheck: marks tests as pre-upgrade checks")
-    config.addinivalue_line("markers", "postcheck: marks tests as post-upgrade checks")
 
     # DCGM GPU node collection - only for dcgm scenario
     _collect_dcgm_gpu_nodes(config)
