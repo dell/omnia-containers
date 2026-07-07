@@ -2650,12 +2650,6 @@ Expected fields:
 - ``local_repo.yml`` fails to sync the additional kernel repositories.
 - Kernel packages are not available in Pulp after sync.
 
-**Cause**
-
-- Repository URLs in ``local_repo_config.yml`` are incorrect or unreachable
-- RHEL subscription (EUS) entitlement certificates are expired or invalid
-- Pulp container cannot access the external repositories due to network or firewall issues
-
 **Resolution**
 
 1. Verify repository URLs are correct and accessible from the ``omnia_core`` container:
@@ -2692,12 +2686,6 @@ Expected fields:
 - ``provision.yml`` fails with a kernel validation error.
 - The specified ``kernel_version_override`` is not found in S3.
 
-**Cause**
-
-- The kernel image was not built or uploaded to S3 during the build image step
-- The kernel version specified in ``provision_config.yml`` does not match any available kernel images in S3
-- The build image playbook (``build_image_x86_64.yml`` or ``build_image_aarch64.yml``) was not executed or failed
-
 **Resolution**
 
 1. Verify that the build image step completed successfully and uploaded images to S3:
@@ -2732,13 +2720,6 @@ Expected fields:
 - Nodes fail to PXE boot after kernel override.
 - Nodes boot with the old kernel version instead of the overridden version.
 
-**Cause**
-
-- BSS boot parameters were not updated with the new kernel version
-- The kernel version specified in ``provision_config.yml`` does not match the kernel images available in S3
-- Network connectivity issues between nodes and the OIM prevent fetching the correct boot parameters
-- DHCP or TFTP services are not running correctly
-
 **Resolution**
 
 Validate the following:
@@ -2763,12 +2744,6 @@ If the kernel version does not match the expected override, check that ``kernel_
 
 - ``local_repo.yml`` fails with TLS/SSL errors when syncing EUS repositories.
 - Pulp reports authentication failures for RHEL CDN URLs.
-
-**Cause**
-
-- RHEL subscription (EUS) entitlement certificates have expired or are invalid
-- Certificate files are missing or not accessible from the configured paths in ``local_repo_config.yml``
-- SSL/TLS certificate trust issues between the Pulp container and RHEL CDN
 
 **Resolution**
 
