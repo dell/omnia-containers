@@ -10,13 +10,13 @@ To view the SFM telemetry data that is streamed to VictoriaMetrics, do the follo
 
     kubectl get pods -n telemetry -o wide | grep vm
 
-.. image:: ../../../../images/victoria_metrics_pod_cluster_mode.png
+.. image:: ../../../images/victoria_metrics_pod_cluster_mode.png
 
 2. Run the following command to verify that that all the services of VictoriaMetrics cluster are running::
 
     kubectl get service -n telemetry -o wide | grep vm
 
-.. image:: ../../../../images/victoria_metrics_service_cluster.png
+.. image:: ../../../images/victoria_metrics_service_cluster.png
 
 3. Note the **External IP** and **port number** of the ``vmselect`` service. The external IP and port number will be used to access the VictoriaMetrics UI (VMUI).
 
@@ -29,7 +29,7 @@ For example, the following query displays transceiver DOM temperature values::
 
     transceiver_dom_temperature_value
 
-.. image:: ../../../../images/victoria_metrics_dom_temperature.png
+.. image:: ../../../images/victoria_metrics_dom_temperature.png
 
 The following are some of the key metrics that can be queried:
 
