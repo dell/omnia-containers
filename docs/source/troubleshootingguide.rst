@@ -770,7 +770,7 @@ The kubeadm certificate key expires after approximately 2 hours, preventing new 
 
    .. code-block:: bash
 
-   /opt/omnia/k8s_mount/generate-control-plane-join.sh
+      /opt/omnia/k8s_mount/generate-control-plane-join.sh
 
 2. Reboot the failed control-plane node to rejoin the cluster with the new certificate key.
 
