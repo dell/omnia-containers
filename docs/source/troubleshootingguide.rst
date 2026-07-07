@@ -362,22 +362,7 @@ If the ``local_repo.yml`` is executed successfully without any package download 
 
 .. image:: images/local_repo_success.png
 
-3.2 Failure When Re-run Multiple Times
---------------------------------------
-
-**Symptom**
-
-The ``local_repo.yml`` playbook fails when re-run multiple times in quick succession.
-
-**Cause**
-
-Pulp container resource saturation.
-
-**Resolution**
-
-Allow the system to idle ~1 hour before re-running.
-
-3.3 Pulp Reset Password Failed
+3.2 Pulp Reset Password Failed
 --------------------------------
 
 **Symptom**
@@ -397,7 +382,7 @@ Pulp reset password operation fails during ``prepare_oim.yml`` execution.
 
 Verify the configurations and settings mentioned above, then rerun the ``prepare_oim.yml`` playbook. For PowerScale-specific configuration details, see the PowerScale configuration page in the `Omnia Deployment Requirements <https://omnia.readthedocs.io/en/v2.2.0.0-rc1/RHEL_prereq.html>`_ documentation.
 
-3.4 EPEL Repository Instability
+3.3 EPEL Repository Instability
 -------------------------------
 
 **Symptom**
@@ -413,7 +398,7 @@ EPEL repository server issues or network connectivity problems.
 - If no packages depend on EPEL → remove EPEL URL
 - If required → wait for stability or host EPEL packages locally
 
-3.5 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
+3.4 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
 -------------------------------------------------------------------------------------------
 
 **Symptom**
@@ -435,7 +420,7 @@ As a workaround to unblock repository synchronization, run the following command
    iptables -P OUTPUT ACCEPT
 
 
-3.6 Connectivity Issues
+3.5 Connectivity Issues
 -----------------------
 
 **local_repo.yml fails with connectivity errors**
@@ -452,7 +437,7 @@ The OIM was unable to reach a required online resource due to a network glitch.
 
 Verify all connectivity and re-run the playbook.
 
-3.7 Software Installation Fails with Checksum Error
+3.6 Software Installation Fails with Checksum Error
 ----------------------------------------------------
 
 **Symptom**
@@ -934,21 +919,72 @@ For troubleshooting Kafka issues related to the missing CSI driver, see `Section
 
 **Symptom**
 
-Slurm nodes enter DRAINED state unexpectedly. Error messages include:
+``scontrol show node <node>`` shows ``State=IDLE+DRAIN`` or ``State=DOWN+DRAIN``.
 
-- ``State=IDLE+DRAIN Reason=Kill task failed``
-- ``State=DOWN+DRAIN Reason=Not responding``
+**Causes**
 
-**Cause**
+To identify the root cause, first check the drain reason:
 
-Epilog script not executable.
+.. code-block:: bash
+
+   scontrol show node <node_name> | grep -i reason
+
+.. list-table:: Drain Reasons and Root Causes
+   :widths: 40 60
+   :header-rows: 1
+
+   * - Drain Reason
+     - Root Cause
+   * - Kill task failed
+     - Epilog/prolog script error
+   * - Not responding
+     - slurmd lost connection to slurmctld (network, firewall, or slurmd crash)
+   * - Low RealMemory
+     - Node has less memory than configured in slurm.conf
+   * - Node unexpectedly rebooted
+     - Hardware issue or kernel panic
+   * - (blank/manual)
+     - Administrator manually drained the node
 
 **Resolution**
+
+Resolution steps vary by root cause:
+
+**1. Epilog script error**
 
 .. code-block:: bash
 
    chmod 0755 /etc/slurm/epilog.d/logout_user.sh
+   scontrol update nodename=<node> state=resume
    scontrol reconfigure
+
+**2. Not responding**
+
+Check the slurmd service status on the compute node:
+
+.. code-block:: bash
+
+   systemctl status slurmd      # On the compute node
+   systemctl restart slurmd      # If stopped
+   scontrol update nodename=<node> state=resume
+
+**3. Low RealMemory**
+
+Verify the actual memory available on the node:
+
+.. code-block:: bash
+
+   free -m                        # Check actual memory on node
+   grep <node> /etc/slurm/slurm.conf  # Check configured RealMemory
+
+Update the ``RealMemory`` value in ``slurm.conf`` to match the actual available memory, then run:
+
+.. code-block:: bash
+
+   scontrol reconfigure
+
+.. warning::
+   ``slurm.conf`` is managed by the ``slurm_config`` role. Manual edits will be overwritten on the next ``provision.yml`` run. Update the source configuration instead to make permanent changes.
 
 6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------
@@ -1380,6 +1416,253 @@ Configured ``persistence_size`` for Kafka reaches capacity limit.
 
 The default ``8Gi`` persistent volume size is suitable for small clusters (typically fewer than 5 nodes). For larger clusters, increase the ``persistence_size`` and configure Kafka retention settings ``log_retention_hours`` and ``log_retention_bytes`` so that old logs are deleted before the persistent volume reaches its limit.
 
+**Cleanup Script**
+
+If Kafka brokers are experiencing disk space issues and require immediate cleanup, use the following automated script to identify and remove old log segments:
+
+.. code-block:: bash
+
+   #!/bin/bash
+   # ============================================================
+   # KAFKA PV FULL — AUTOMATED EMERGENCY CLEANUP (OMNIA)
+   # ============================================================
+   set -e
+   NAMESPACE="telemetry"
+   BROKER_COUNT=3
+   RETENTION_MS=3600000        # 1 hour temporary retention
+   SEGMENT_AGE_DAYS=3          # Delete segments older than 3 days
+
+   echo "============================================"
+   echo " KAFKA PV EMERGENCY CLEANUP - AUTOMATED"
+   echo "============================================"
+
+   # -------------------------------------------------------
+   # STEP 1: CHECK — Which brokers are full
+   # -------------------------------------------------------
+   echo ""
+   echo ">>> STEP 1: Checking broker disk usage..."
+   BROKERS_HEALTHY=true
+   for i in $(seq 0 $((BROKER_COUNT-1))); do
+     echo "=== kafka-broker-$i ==="
+     if kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null; then
+       echo "Broker-$i: RESPONSIVE"
+     else
+       echo "Broker-$i: NOT RESPONSIVE"
+       BROKERS_HEALTHY=false
+     fi
+   done
+
+   # -------------------------------------------------------
+   # DECISION: Brokers responsive → Path A
+   #           Brokers crashing   → Path B
+   # -------------------------------------------------------
+   if [ "$BROKERS_HEALTHY" = true ]; then
+
+     echo ""
+     echo "============================================"
+     echo " PATH A: BROKERS RUNNING — RETENTION FIX"
+     echo "============================================"
+
+     # ----------------------------------------------------
+     # STEP 2: Auto-detect top space-consuming topics
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2: Identifying top space-consuming topics..."
+     TOPICS=$(kubectl exec -n $NAMESPACE kafka-broker-0 -- \
+       sh -c 'du -s /var/lib/kafka/data/*/ 2>/dev/null | sort -rn | head -5' | \
+       awk '{print $2}' | \
+       xargs -I{} basename {} | \
+       rev | cut -d'.' -f2 | rev | \
+       sort -u)
+
+     if [ -z "$TOPICS" ]; then
+       echo "ERROR: No topics found. Check Kafka data path."
+       exit 1
+     fi
+
+     echo "Top topics consuming space:"
+     echo "$TOPICS"
+     echo ""
+
+     # ----------------------------------------------------
+     # STEP 3: Apply reduced retention on detected topics
+     # ----------------------------------------------------
+     echo ">>> STEP 3: Reducing retention to ${RETENTION_MS}ms..."
+     for TOPIC in $TOPICS; do
+       echo "  Fixing: $TOPIC"
+       kubectl exec -n $NAMESPACE kafka-broker-0 -- \
+         /opt/kafka/bin/kafka-configs.sh \
+           --bootstrap-server localhost:9092 \
+           --alter \
+           --entity-type topics \
+           --entity-name "$TOPIC" \
+           --add-config retention.ms=$RETENTION_MS
+     done
+
+     # ----------------------------------------------------
+     # STEP 4: Rolling restart all brokers
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 4: Rolling restart..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "  Restarting kafka-broker-$i..."
+       kubectl delete pod -n $NAMESPACE kafka-broker$i
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+       echo "  kafka-broker-$i is ready. Stabilizing..."
+       sleep 60
+     done
+
+     # ----------------------------------------------------
+     # STEP 5: Verify space recovered
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 5: Verifying disk usage after cleanup..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i ==="
+       kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data
+     done
+
+   else
+
+     echo ""
+     echo "============================================"
+     echo " PATH B: BROKERS CRASHLOOPING — MANUAL FIX"
+     echo "============================================"
+
+     # ----------------------------------------------------
+     # STEP 2: Get PVC names
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2: Detecting PVC names..."
+     PVC_PREFIX=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' | \
+       rev | cut -d'-' -f2 | rev)
+     echo "PVC prefix detected: $PVC_PREFIX"
+
+     # ----------------------------------------------------
+     # STEP 3: Deploy cleanup pods
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 3: Deploying cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       PVC_NAME="${PVC_PREFIX}-${i}"
+       echo "  Creating cleanup pod for PVC: $PVC_NAME"
+       kubectl run kafka-cleanup-$i -n $NAMESPACE \
+         --image=busybox \
+         --restart=Never \
+         --overrides='{
+           "spec": {
+             "containers": [{
+               "name": "cleanup",
+               "image": "busybox",
+               "command": ["sh","-c","sleep 3600"],
+               "volumeMounts": [{
+                 "name": "data",
+                 "mountPath": "/data"
+               }]
+             }],
+             "volumes": [{
+               "name": "data",
+               "persistentVolumeClaim": {
+                 "claimName": "'$PVC_NAME'"
+               }
+             }]
+           }
+         }'
+     done
+
+     echo "  Waiting for cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup$i --timeout=120s
+     done
+
+     # ----------------------------------------------------
+     # STEP 4: Show current usage + Clean old segments
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 4: Cleaning old segments (>${SEGMENT_AGE_DAYS} days)..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i (BEFORE) ==="
+       kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+
+       echo "  Cleaning..."
+       DELETED=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
+         sh -c 'count=0; find /data -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' | while read f; do
+           base=$(echo "$f" | sed "s/\.log$//")
+           rm -f "${base}.log" "${base}.index" "${base}.timeindex" "${base}.snapshot"
+           count=$((count+1))
+           echo "$count"
+         done | tail -1')
+       echo "  Broker-$i: Deleted ${DELETED:-0} segments"
+     done
+
+     # ----------------------------------------------------
+     # STEP 5: Verify space recovered
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 5: Verifying space recovered..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "=== kafka-broker-$i (AFTER) ==="
+       kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
+     done
+
+     # ----------------------------------------------------
+     # STEP 6: Remove cleanup pods
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 6: Removing cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       kubectl delete pod -n $NAMESPACE kafka-cleanup$i --ignore-not-found
+     done
+
+     # ----------------------------------------------------
+     # STEP 7: Rolling restart brokers
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 7: Rolling restart brokers..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       echo "  Restarting kafka-broker-$i..."
+       kubectl delete pod -n $NAMESPACE kafka-broker$i
+       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+       echo "  kafka-broker-$i is ready. Stabilizing..."
+       sleep 60
+     done
+
+   fi
+
+   echo ""
+   echo "============================================"
+   echo " CLEANUP COMPLETE"
+   echo "============================================"
+   echo ""
+   echo ">>> Final disk usage:"
+   for i in $(seq 0 $((BROKER_COUNT-1))); do
+     echo "=== kafka-broker-$i ==="
+     kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null || echo "  Still recovering..."
+   done
+
+**Script Usage**
+
+1. Save the script:
+
+   .. code-block:: bash
+
+      vi kafka-pv-cleanup.sh
+
+2. Make the script executable:
+
+   .. code-block:: bash
+
+      chmod +x kafka-pv-cleanup.sh
+
+3. Run the script:
+
+   .. code-block:: bash
+
+      ./kafka-pv-cleanup.sh
+
+.. note::
+   This script automatically detects whether brokers are responsive or crashlooping and applies the appropriate cleanup strategy. Modify the ``BROKER_COUNT``, ``RETENTION_MS``, and ``SEGMENT_AGE_DAYS`` variables at the top of the script to match your environment requirements.
+
 7.3 LDMS Metrics Missing
 --------------------------
 
@@ -1413,21 +1696,24 @@ iDRAC metrics (power, thermal, fan, CPU) do not appear in Grafana or VictoriaMet
 
 **Example errors**
 
-In the VictoriaPump / KafkaPump container logs:
+In the victoria-pump / kafka-pump container logs:
 
 - ``ERROR failed to subscribe to Redfish event service: 401 Unauthorized``
 - ``ERROR redfish: event subscription rejected (SubscriptionLimitExceeded)``
 - ``WARN activemq: connection refused tcp 127.0.0.1:61616``
-- ``ERROR victoriapump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
+- ``ERROR victoria-pump: post to vmagent failed: dial tcp <vmagent-svc>:8429: connect: connection refused``
+
+.. note::
+   The ``401 Unauthorized`` error specifically may occur due to credential drift — when iDRAC credentials are changed on the iDRAC side after a successful deployment. Omnia stores credentials in mysqldb at insert-time and does not continuously re-validate them against the iDRAC appliance.
 
 **Cause**
 
 - Incorrect or expired iDRAC credentials in the vault (``idrac_username`` / ``idrac_password``), resulting in 401 Unauthorized errors
 - Redfish subscription limit reached on iDRAC (stale subscriptions from prior runs block new ones)
 - iDRAC firmware does not support Redfish Telemetry/EventService (older iDRAC9 firmware)
-- Pipeline component failure (ActiveMQ, KafkaPump, or VictoriaPump in the receiver pod is not ready)
-- Collection type misconfiguration (``idrac_telemetry_collection_type`` does not include the expected sink)
-- Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent:8429 or Kafka brokers
+- Pipeline component failure (activemq, kafka-pump, or victoria-pump in the receiver pod is not ready)
+- Collection type misconfiguration (``telemetry_sources.idrac.collection_targets`` does not include the expected sink)
+- Network or firewall blocking OIM from reaching iDRAC on port 443, or receiver from reaching vmagent for scraping victoria-pump:2112/metrics or Kafka on port 9093 (TLS)
 
 **Diagnostics**
 
@@ -1437,13 +1723,13 @@ Identify telemetry pods:
 
    kubectl get pods -A | grep -Ei 'telemetry|idrac|victoria|kafka'
 
-Inspect iDRAC telemetry receiver pod (contains MySQL, ActiveMQ, KafkaPump, VictoriaPump):
+Inspect iDRAC telemetry receiver pod (contains mysqldb, activemq, idrac-telemetry-receiver, kafka-pump conditional, victoria-pump conditional, plus initContainer cleanup-mysql-locks):
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations describe pod <idrac-telemetry-pod>
-   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c victoriapump --tail=100
-   kubectl -n telemetry-and-visualizations logs <idrac-telemetry-pod> -c kafkapump --tail=100
+   kubectl -n telemetry describe pod <idrac-telemetry-pod>
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c victoria-pump --tail=100
+   kubectl -n telemetry logs <idrac-telemetry-pod> -c kafka-pump --tail=100
 
 Verify Redfish reachability and credentials from the OIM:
 
@@ -1462,18 +1748,18 @@ Confirm metrics landed in VictoriaMetrics:
 
 .. code-block:: bash
 
-   curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+   curl -s 'https://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
 
 **Resolution**
 
-- Correct ``idrac_username`` / ``idrac_password`` in the Ansible vault, then re-run ``telemetry.yml``. Verify with the curl command above (expect 200).
+- Correct ``idrac_username`` / ``idrac_password`` in ``omnia_config_credentials.yml``, then run ``ansible-playbook provision/provision.yml``, SSH to kube_vip and manually re-run ``bash <k8s_client_mount_path>/telemetry/telemetry.sh``, then run ``telemetry.yml``. Verify with the curl command above (expect 200).
 - Delete orphaned Redfish subscriptions using ``curl -X DELETE ...``, then allow the receiver to re-subscribe.
 - Update iDRAC firmware to a version that supports Redfish EventService/Telemetry, then re-run telemetry.
-- If ActiveMQ/KafkaPump/VictoriaPump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
-- Set ``idrac_telemetry_collection_type`` to victoria, kafka, or victoria,kafka to match where you expect data, then re-run.
-- Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent:8429 and Kafka on port 9092.
+- If activemq/kafka-pump/victoria-pump is unhealthy, check container logs and restart the receiver pod (``kubectl delete pod <pod>``) after confirming the root cause.
+- Set ``telemetry_sources.idrac.collection_targets`` to ["victoria_metrics"], ["kafka"], or ["victoria_metrics", "kafka"] to match where you expect data, then run ``ansible-playbook provision/provision.yml``, SSH to kube_vip and manually re-run ``bash <k8s_client_mount_path>/telemetry/telemetry.sh``, then run ``telemetry.yml``.
+- Ensure OIM can reach iDRAC on port 443 and the receiver can reach vmagent for scraping victoria-pump:2112/metrics and Kafka on port 9093 (TLS).
 
-.. note:: iDRAC telemetry is enabled by ``idrac_telemetry_support: true`` and routed per ``idrac_telemetry_collection_type`` in ``input/telemetry_config.yml``. The receiver (MySQL + ActiveMQ + KafkaPump + VictoriaPump) is a generated StatefulSet — modify inputs and re-run rather than editing the pod.
+.. note:: iDRAC telemetry is enabled by ``telemetry_sources.idrac.metrics_enabled: true`` and routed per ``telemetry_sources.idrac.collection_targets`` in ``input/telemetry_config.yml``. The receiver (mysqldb + activemq + idrac-telemetry-receiver + kafka-pump conditional + victoria-pump conditional, plus initContainer cleanup-mysql-locks) is a generated StatefulSet — modify inputs and re-run rather than editing the pod. Manifests (VMCluster, VLCluster, Kafka, iDRAC StatefulSet) are generated by ``provision.yml`` into ``telemetry/deployments/`` on the NFS share, then applied by ``telemetry.sh``, which cloud-init runs automatically only when a new control-plane node is provisioned. For an already-running cluster, after editing ``telemetry_config.yml``, run ``ansible-playbook provision/provision.yml``, SSH to kube_vip and manually re-run ``bash <k8s_client_mount_path>/telemetry/telemetry.sh``, then run ``telemetry.yml`` only if the change involves iDRAC (credentials, collection_targets, BMC list).
 
 7.5 VictoriaMetrics (Cluster Mode) — Pods Down, PVC Full, or Queries Failing
 --------------------------------------------------------------------------
@@ -1517,32 +1803,32 @@ Check pod and PVC status:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
-   kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
-   kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
+   kubectl -n telemetry get pods -l 'app.kubernetes.io/name in (vmstorage,vminsert,vmselect,vmagent)' -o wide
+   kubectl -n telemetry get pvc | grep -i vmstorage
+   kubectl -n telemetry describe pod <vmstorage-pod> | sed -n '/Events/,$p'
 
 Check disk usage inside a vmstorage pod:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
+   kubectl -n telemetry exec <vmstorage-pod> -- df -h /storage
 
 Check cluster health logs:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
-   kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
+   kubectl -n telemetry logs <vminsert-pod> --tail=100
+   kubectl -n telemetry logs <vmselect-pod> --tail=100
 
 Check vmagent remote_write health (look for failed batches or queue size):
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
+   kubectl -n telemetry logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
 
 **Resolution**
 
-- Expand the vmstorage PVC (if the StorageClass allows allowVolumeExpansion) or reduce retention. In Omnia, set retention and sizing through the telemetry input config and re-run ``telemetry.yml``; do not manually edit the StatefulSet.
+- Expand the vmstorage PVC (if the StorageClass allows allowVolumeExpansion) or reduce retention. In Omnia, set retention and sizing through the telemetry input config, then run ``ansible-playbook provision/provision.yml``, SSH to kube_vip and manually re-run ``bash <k8s_client_mount_path>/telemetry/telemetry.sh``; do not manually edit the StatefulSet.
 - Restore quorum by bringing failed vmstorage pods back (resolve node disk pressure or memory issues), confirming vmselect reports enough healthy nodes.
 - Free node resources or adjust requests/limits via the input config; reschedule Evicted pods.
 - Regenerate or rotate the telemetry certificates via the playbook so vminsert/vmselect ↔ vmstorage mTLS matches.
@@ -1592,11 +1878,11 @@ Check pod and PVC status:
 
 .. code-block:: bash
 
-   kubectl -n telemetry-and-visualizations get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
-   kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
-   kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
-   kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
-   kubectl -n telemetry-and-visualizations logs <vlselect-pod> --tail=100
+   kubectl -n telemetry get pods -l 'app in (vlinsert,vlstorage,vlselect)' -o wide
+   kubectl -n telemetry get pvc | grep -i vlstorage
+   kubectl -n telemetry exec <vlstorage-pod> -- df -h /vlstorage
+   kubectl -n telemetry logs <vlinsert-pod> --tail=100
+   kubectl -n telemetry logs <vlselect-pod> --tail=100
 
 Confirm logs are ingesting (LogsQL count over the last 5 minutes):
 
@@ -1607,36 +1893,107 @@ Confirm logs are ingesting (LogsQL count over the last 5 minutes):
 
 **Resolution**
 
-- Expand the vlstorage PVC or reduce log retention via the telemetry input config, then re-run ``telemetry.yml``.
+- Expand the vlstorage PVC or reduce log retention via the telemetry input config, then run ``ansible-playbook provision/provision.yml``, SSH to kube_vip and manually re-run ``bash <k8s_client_mount_path>/telemetry/telemetry.sh``.
 - Recover unavailable vlstorage pods so vlselect can query them.
 - Verify the syslog source points at the VLAgent service, the firewall permits the syslog port, and TLS matches; confirm forwarding in VLAgent logs.
-- Ensure the device or service (PowerScale, UFM, VAST, NetQ, Skyway, OS syslog) is configured to emit syslog to VLAgent.
+- Ensure the device or service (PowerScale, UFM, VAST, OS syslog) is configured to emit syslog to VLAgent.
 
 .. note:: VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
 8. Authentication Issues
 ========================
 
-8.1 LDAP Login Fails After User Creation
+8.1 LDAP Login Fails: Whitespace in LDIF
 ----------------------------------------
 
 **Symptom**
 
-User login fails after LDAP user creation. Error messages include:
-
-- ``id: 'newuser': no such user``
-- ``Permission denied (publickey,gssapi-keyex,gssapi-with-mic)``
-
-**Cause**
-
-Whitespace in LDIF.
-
-**Resolution**
+After creating a user via LDIF import or Omnia's user management, SSH login fails:
 
 .. code-block:: bash
 
-   cat -vet <filename>
-   # remove whitespace
+   ssh newuser@compute-01
+   # Output: Permission denied (publickey,gssapi-keyex,gssapi-with-mic)
+   # Or: su: user newuser does not exist
+   id newuser
+   # Output: id: 'newuser': no such user
+
+**Cause**
+
+LDAP login failures have multiple common causes:
+
+1. **Whitespace or encoding in LDIF**: Invisible trailing spaces/tabs in LDIF file corrupt attribute values
+2. **Missing POSIX attributes**: User entry lacks required uidNumber, gidNumber, homeDirectory, or loginShell
+3. **Wrong objectClass**: User created with inetOrgPerson but missing posixAccount objectClass
+4. **SSSD cache stale**: SSSD on compute nodes has cached the "user not found" response
+5. **Incorrect base DN**: User created in wrong OU/tree — not under the search base configured in SSSD
+
+**Resolution**
+
+**Diagnostic Steps**
+
+Step 1: Verify user exists in LDAP
+
+.. code-block:: bash
+
+   ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)"
+
+Step 2: Check for whitespace in LDIF
+
+.. code-block:: bash
+
+   cat -vet /path/to/user.ldif | grep -E '\s$'
+
+Step 3: Verify POSIX attributes
+
+.. code-block:: bash
+
+   ldapsearch -x -H ldap://localhost -b "dc=omnia,dc=local" "(uid=newuser)" \
+     objectClass uidNumber gidNumber homeDirectory loginShell
+
+Step 4: Check SSSD cache on compute node
+
+.. code-block:: bash
+
+   sssctl user-show newuser
+
+Step 5: Verify base DN matches SSSD config
+
+.. code-block:: bash
+
+   grep ldap_search_base /etc/sssd/sssd.conf
+
+**Fix by Cause**
+
+**1. Whitespace in LDIF**
+
+.. code-block:: bash
+
+   sed -i 's/[[:space:]]*$//' /path/to/user.ldif
+   ldapmodify -x -H ldap://localhost -D "cn=admin,dc=omnia,dc=local" -W -f /path/to/user.ldif
+
+**2. Missing POSIX attributes**
+
+.. code-block:: bash
+
+   ldapmodify -x -H ldap://localhost -D "cn=admin,dc=omnia,dc=local" -W <<EOF
+   dn: uid=newuser,ou=People,dc=omnia,dc=local
+   changetype: modify
+   add: objectClass posixAccount
+   add: uidNumber 10001
+   add: gidNumber 10001
+   add: homeDirectory /home/newuser
+   add: loginShell /bin/bash
+   EOF
+
+**3. SSSD cache stale**
+
+.. code-block:: bash
+
+   sssctl cache-remove
+   systemctl restart sssd
+
+**4. Wrong objectClass or base DN**: Re-create user with correct attributes in proper OU under the LDAP search base.
 
 8.2 OpenLDAP Login Fails
 ------------------------
