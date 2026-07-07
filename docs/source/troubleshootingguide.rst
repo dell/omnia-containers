@@ -362,22 +362,7 @@ If the ``local_repo.yml`` is executed successfully without any package download 
 
 .. image:: images/local_repo_success.png
 
-3.2 Failure When Re-run Multiple Times
---------------------------------------
-
-**Symptom**
-
-The ``local_repo.yml`` playbook fails when re-run multiple times in quick succession.
-
-**Cause**
-
-Pulp container resource saturation.
-
-**Resolution**
-
-Allow the system to idle ~1 hour before re-running.
-
-3.3 Pulp Reset Password Failed
+3.2 Pulp Reset Password Failed
 --------------------------------
 
 **Symptom**
@@ -397,7 +382,7 @@ Pulp reset password operation fails during ``prepare_oim.yml`` execution.
 
 Verify the configurations and settings mentioned above, then rerun the ``prepare_oim.yml`` playbook. For PowerScale-specific configuration details, see the PowerScale configuration page in the `Omnia Deployment Requirements <https://omnia.readthedocs.io/en/v2.2.0.0-rc1/RHEL_prereq.html>`_ documentation.
 
-3.4 EPEL Repository Instability
+3.3 EPEL Repository Instability
 -------------------------------
 
 **Symptom**
@@ -413,7 +398,7 @@ EPEL repository server issues or network connectivity problems.
 - If no packages depend on EPEL → remove EPEL URL
 - If required → wait for stability or host EPEL packages locally
 
-3.5 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
+3.4 Intermittent Local Repository sync failure due to non-persistent iptables rules on OIM
 -------------------------------------------------------------------------------------------
 
 **Symptom**
@@ -435,7 +420,7 @@ As a workaround to unblock repository synchronization, run the following command
    iptables -P OUTPUT ACCEPT
 
 
-3.6 Connectivity Issues
+3.5 Connectivity Issues
 -----------------------
 
 **local_repo.yml fails with connectivity errors**
@@ -452,7 +437,7 @@ The OIM was unable to reach a required online resource due to a network glitch.
 
 Verify all connectivity and re-run the playbook.
 
-3.7 Software Installation Fails with Checksum Error
+3.6 Software Installation Fails with Checksum Error
 ----------------------------------------------------
 
 **Symptom**
