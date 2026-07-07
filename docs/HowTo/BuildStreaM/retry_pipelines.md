@@ -49,7 +49,6 @@ Retry a BuildStreaM pipeline when one or more stages have failed. Before retryin
 
 ## Next Steps
 
-- [Execute Build Pipeline](execute_build_pipeline.md) -- Build pipeline operations
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy pipeline operations
 - [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 

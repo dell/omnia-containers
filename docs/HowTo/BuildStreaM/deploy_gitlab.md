@@ -82,18 +82,18 @@ BuildStreaM uses a **three-pipeline architecture** in GitLab:
 
     The input folder includes the following configuration files:
 
-    - `build_stream_config.yml` -- BuildStreaM configuration file
-    - `gitlab_config.yml` -- GitLab configuration file
-    - `high_availability_config.yml` -- High availability configuration file
-    - `local_repo_config.yml` -- Local repository configuration file
-    - `network_config.yml` -- Network configuration file
-    - `omnia_config.yml` -- Omnia configuration file
-    - `provision_config.yml` -- Provision configuration file
-    - `pxe_mapping_file.csv` -- PXE mapping file
-    - `security_config.yml` -- Security configuration file
-    - `storage_config.yml` -- Storage configuration file
-    - `telemetry_config.yml` -- Telemetry configuration file
-    - `telemetry_storage_config.yml` -- Telemetry storage configuration file
+    - [`build_stream_config.yml`](../../Reference/Configuration/build_stream_config.md) -- BuildStreaM configuration file
+    - [`gitlab_config.yml`](../../Reference/Configuration/gitlab_config.md) -- GitLab configuration file
+    - [`high_availability_config.yml`](../../Reference/Configuration/high_availability_config.md) -- High availability configuration file
+    - [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Local repository configuration file
+    - [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network configuration file
+    - [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Omnia configuration file
+    - [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- Provision configuration file
+    - [`pxe_mapping_file.csv`](../../Reference/SampleFiles/pxe_mapping_file.md) -- PXE mapping file
+    - [`security_config.yml`](../../Reference/Configuration/security_config.md) -- Security configuration file
+    - [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- Storage configuration file
+    - [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry configuration file
+    - [`telemetry_storage_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry storage configuration file
 
     ![BuildStream project input files structure](../../assets/images/buildstream_project_input_files.png)
 
@@ -119,16 +119,42 @@ After the installation completes, verify the following:
 
 !!! note
 
-    The `omnia_auth.service` runs only when OpenLDAP is specified in `/opt/omnia/input/project_default/software_config.json`.
-
-!!! note
-
     The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher.service` run only when BuildStreaM is enabled in `/opt/omnia/input/project_default/build_stream_config.yml`.
 
 ## Next Steps
 
 - [Execute Build Pipeline](execute_build_pipeline.md) -- Update catalog and trigger the build pipeline
 - [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy built images to cluster nodes
+- [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
+
+## Uninstall GitLab
+
+To remove the GitLab instance and associated resources from the BuildStreaM environment:
+
+1. Use SSH to connect to the `omnia_core` container:
+
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
+
+2. Navigate to the GitLab directory and run the uninstall playbook:
+
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/gitlab
+    ansible-playbook cleanup_gitlab.yml
+    ```
+
+!!! danger
+
+    This procedure permanently removes the GitLab instance, all projects, pipelines, and build artifacts. Ensure you have backed up any required data before proceeding.
+
+The `cleanup_gitlab.yml` playbook performs the following tasks:
+
+- Stops and removes the GitLab runner Podman container
+- Removes the GitLab project
+- Uninstalls the GitLab instance from the host
+- Removes the self-signed CA certificate from `/root/gitlab-certs/`
+- Cleans up GitLab-related configuration files
 
 ## Troubleshooting
 

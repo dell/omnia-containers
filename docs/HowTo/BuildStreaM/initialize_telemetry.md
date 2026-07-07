@@ -221,7 +221,7 @@ After applying `telemetry.yml` with `idrac_telemetry_collection_type` set to `vi
     * | sort by time desc
     ```
 
-### View iDRAC Telemetry Data Using VMUI (Cluster Mode)
+### View iDRAC Telemetry Data Using VictoriaMetrics UI (VMUI) - Cluster Mode Deployment
 
 After applying `telemetry.yml` with VictoriaMetrics deployment mode as `cluster`:
 
@@ -333,8 +333,8 @@ After `telemetry.yml` has been executed, you can check the MySQL database inside
 
 ## Next Steps
 
-- [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
-- [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
+- [Execute Build Pipeline](execute_build_pipeline.md) -- Update catalog and trigger the build pipeline
+- [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy built images to cluster nodes
 
 ## Troubleshooting
 

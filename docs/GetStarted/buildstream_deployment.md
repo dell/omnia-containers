@@ -48,7 +48,7 @@ For detailed procedures including NFS setup, uninstall, and upgrade options, see
 ## Step 2 -- Create the Mapping File
 
 The mapping file associates nodes with their BMC IPs, hostnames, and
-functional groups. Manually collect PXE NIC information and define each
+functional groups. Collect PXE NIC information and define each
 node in `pxe_mapping_file.csv`.
 
 ```bash title="Run on: OIM host"
@@ -351,7 +351,7 @@ Deploy the built images to cluster nodes.
 
 4. Click **Play** on the `deploy` stage.
 
-5. Monitor the pipeline. The deploy pipeline has three stages: **deploy** → **restart** → **validate**.
+5. Monitor the pipeline. The deploy pipeline has three later stages: **deploy** → **restart** → **validate**.
 
 6. Verify all stages complete successfully.
 

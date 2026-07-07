@@ -180,8 +180,7 @@ After the deploy pipeline completes:
 
 ## Next Steps
 
-- [Initialize Telemetry](initialize_telemetry.md) -- Set up and verify telemetry services
-- [Retry Pipelines](retry_pipelines.md) -- Retry failed pipeline operations
+- [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 
 ## Troubleshooting
 
