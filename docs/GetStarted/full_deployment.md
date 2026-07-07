@@ -134,12 +134,15 @@ full parameter reference.
 | [`provision_config.yml`](../Reference/Configuration/provision_config.md){target="_blank"} | OS provisioning and PXE settings |
 | [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md){target="_blank"} | Kubernetes HA virtual IP configuration |
 | [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md){target="_blank"} | Telemetry sources, bridges, and sinks |
+| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_storage_config.md){target="_blank"} | Telemetry storage resources and retention |
 | [`software_config.json`](../Reference/Configuration/software_config.md){target="_blank"} | Software stack (K8s, Slurm, telemetry components) |
 | [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md){target="_blank"} | Repository mirror settings |
 | [`storage_config.yml`](../Reference/Configuration/storage_config.md){target="_blank"} | NFS storage mount configuration |
-| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md){target="_blank"} | Slurm and service cluster K8s settings (cluster name, CNI, pod IP range, NFS storage) |
+| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md){target="_blank"} | Slurm and service cluster K8s settings |
 | [`security_config.yml`](../Reference/Configuration/security_config.md){target="_blank"} | OpenLDAP authentication settings |
 | [`discovery_config.yml`](../Reference/Configuration/discovery_config.md){target="_blank"} | BMC discovery and OME integration |
+| [`build_stream_config.yml`](../Reference/Configuration/build_stream_config.md){target="_blank"} | BuildStreaM CI/CD pipeline settings (optional) |
+| [`additional_cloud_init.yml`](../Reference/Configuration/additional_cloud_init.md){target="_blank"} | Custom cloud-init scripts (optional) |
 
 For the full procedure and parameter reference, see
 [Configure Inputs](../HowTo/Setup/configure_inputs.md){target="_blank"}.
@@ -487,8 +490,9 @@ For detailed cluster verification procedures, see
 
 The telemetry infrastructure (Kafka, VictoriaMetrics, LDMS, vmagent)
 is deployed automatically during provisioning (Step 7). The
-`telemetry.yml` playbook deploys the **iDRAC telemetry** StatefulSet,
-which collects hardware metrics from each server's iDRAC via Redfish.
+`telemetry.yml` playbook deploys the **iDRAC telemetry** StatefulSet
+that collects hardware metrics (power, thermal, fan, CPU) from each
+server's iDRAC via Redfish.
 
 For details, see
 [Telemetry Configuration](../Reference/Configuration/telemetry_config.md){target="_blank"}.
@@ -523,13 +527,13 @@ idrac-telemetry-1   5/5     Running   9 (42m ago)   144m
 
 !!! note
 
-    The number of `idrac-telemetry` pods scales based on parent-child
-    relationships in the PXE mapping file: one pod per parent node
-    (e.g., `kn` with `SERVICE_TAG=GZF6ZS3` is the parent of `snode1`
-    and `snode2` which have `PARENT_SERVICE_TAG=GZF6ZS3`) + one pod for
-    all nodes without parents (management, control plane, standalone
-    nodes). The remaining telemetry infrastructure is deployed during
-    provisioning (Step 7).
+    The `PARENT_SERVICE_TAG` column in the PXE mapping file groups
+    nodes under parent servers. Each unique parent group gets one
+    `idrac-telemetry` pod that collects metrics from all child nodes
+    mapped to that parent. Nodes without a parent (control plane,
+    standalone nodes) are collected by one additional pod. For example,
+    if your mapping has 2 parent groups with multiple child nodes each,
+    expect 3 pods — one per parent group + 1 for unparented nodes.
 
 ## What's Next?
 
