@@ -1,21 +1,21 @@
 # Set Up Service Kubernetes
 
-Deploy and configure a highly available Kubernetes service cluster using
-Omnia. This guide covers input configuration, deployment, and
-verification.
+Deploy a highly available Kubernetes service cluster using Omnia. This
+guide walks through every input file, playbook, and verification step
+required.
 
 ## Overview
 
 Omnia deploys the service Kubernetes cluster on designated nodes via
 cloud-init during provisioning. The cluster hosts platform services
-such as the telemetry pipeline, storage provisioners, and monitoring.
+such as storage provisioners and monitoring.
 
 ### Functional Groups
 
 | Functional Group | Architecture | Role |
 |---|---|---|
 | `service_kube_control_plane_x86_64` | x86_64 only | HA control plane (runs `kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`, kube-vip) |
-| `service_kube_node_x86_64` | x86_64 only | Worker node (runs telemetry stack, NFS subdir provisioner, MetalLB speaker) |
+| `service_kube_node_x86_64` | x86_64 only | Worker node (runs NFS subdir provisioner, MetalLB speaker) |
 
 ### Components Deployed
 
@@ -23,6 +23,7 @@ such as the telemetry pipeline, storage provisioners, and monitoring.
 - **Calico** or **Flannel** -- CNI plugin for pod networking
 - **MetalLB** -- Bare-metal load balancer for external service IPs
 - **NFS subdir provisioner** -- Persistent volume provisioner backed by NFS
+- **Helm** -- Kubernetes package manager
 - **CRI-O** -- Container runtime
 
 !!! important
@@ -33,35 +34,25 @@ such as the telemetry pipeline, storage provisioners, and monitoring.
 
 - The OIM is prepared and the `omnia_core` container is accessible (see
   [Prepare OIM](../Setup/prepare_oim.md)).
-- HA configuration is complete (see
-  [Configure HA](configure_ha.md)).
-- At least **3 nodes** assigned to `service_kube_control_plane` and
-  **1 node** assigned to `service_kube_node` in the PXE mapping file.
+- At least **3 physical nodes** available for `service_kube_control_plane`
+  and **1 node** for `service_kube_node`.
+- An NFS server is configured and reachable from the admin network.
+- A free IPv4 address on the admin subnet for the kube-vip virtual IP.
 
 ## Procedure
 
-### Step 1: Provide Inputs
+### Step 1: Enter the omnia_core Container
 
-For service K8s deployment, update the following input files in
-`/opt/omnia/input/project_default/`:
+```bash title="Run on: OIM host"
+ssh omnia_core
+```
 
-**Key files for this deployment:**
-
-- [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
-- [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- OS provisioning settings
-- [`pxe_mapping_file.csv`](../../Reference/SampleFiles/pxe_mapping_file.md) -- Node-to-role mapping for PXE boot
-- [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Service K8s cluster settings
-- [`high_availability_config.yml`](../../Reference/Configuration/high_availability_config.md) -- Kubernetes HA virtual IP
-- [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
-- [`software_config.json`](../../Reference/Configuration/software_config.md) -- Software stack (K8s packages)
-- [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
-- [`security_config.yml`](../../Reference/Configuration/security_config.md) -- OpenLDAP authentication settings (optional)
-- [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration
-- [`telemetry_storage_config.yml`](../../Reference/Configuration/telemetry_config.md#telemetry-storage-configuration-parameters) -- Telemetry pod resource and replica settings
+All subsequent commands run inside the `omnia_core` container unless
+stated otherwise.
 
 ### Step 2: Set Credentials
 
-Run the credential utility playbook to securely store passwords for
+Run the credential utility to securely store passwords for
 provisioning, iDRAC, and other services.
 
 ```bash title="Run on: omnia_core container"
@@ -69,10 +60,20 @@ cd /omnia/utils/credential_utility
 ansible-playbook get_config_credentials.yml
 ```
 
+You will be prompted for the **provision password** (used to set the
+root password on provisioned nodes) and **BMC credentials** (used for
+iDRAC-based PXE boot).
+
 ### Step 3: Create the PXE Mapping File
 
+The PXE mapping file defines which nodes belong to which functional
+group. You need at least **3 rows** with
+`service_kube_control_plane_x86_64` and **1 row** with
+`service_kube_node_x86_64`.
+
 Create a `pxe_mapping_file.csv` in `/opt/omnia/input/project_default/`
-and set the `pxe_mapping_file_path` variable in `provision_config.yml`
+and set the `pxe_mapping_file_path` variable in
+[`provision_config.yml`](../../Reference/Configuration/provision_config.md)
 to point to it.
 
 ```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
@@ -91,13 +92,13 @@ service_kube_node_x86_64,grp6,SVCTAG04,,kn,d1:e2:f3:a4:b5:c6,172.16.107.95,d2:e3
     - All header fields are case-sensitive.
     - `PARENT_SERVICE_TAG` is not required for service K8s nodes. Leave
       it empty.
-    - The `ADMIN_MAC` and `BMC_MAC` addresses should refer to the PXE
-      NIC and BMC NIC on the target nodes respectively.
-    - Target servers should be configured to boot in PXE mode with the
+    - `ADMIN_MAC` and `BMC_MAC` refer to the PXE NIC and BMC NIC on
+      the target nodes respectively.
+    - Target servers must be configured to boot in PXE mode with the
       appropriate NIC as the first boot device.
-    - Hostnames should not contain the domain name of the nodes.
+    - Hostnames must not contain the domain name of the nodes.
 
-For detailed information on PXE mapping file format and parameters, see
+For the full column reference, see
 [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md).
 
 #### Alternative: Discover Nodes via OME
@@ -139,7 +140,28 @@ necessary.
 
 ### Step 4: Edit Input Files
 
-#### 4a. Edit omnia_config.yml
+Edit the following input files in `/opt/omnia/input/project_default/`.
+Each sub-step shows the K8s-relevant section of the file.
+
+#### 4a. Edit network_spec.yml
+
+Edit [`network_spec.yml`](../../Reference/Configuration/network_spec.md)
+and configure the admin network interface and CIDR. This defines the
+network used by the K8s cluster for node communication.
+
+For the full parameter reference, see
+[network_spec.yml Reference](../../Reference/Configuration/network_spec.md).
+
+#### 4b. Edit provision_config.yml
+
+Edit [`provision_config.yml`](../../Reference/Configuration/provision_config.md)
+and set `pxe_mapping_file_path` to the PXE mapping file created in
+Step 3.
+
+For the full parameter reference, see
+[provision_config.yml Reference](../../Reference/Configuration/provision_config.md).
+
+#### 4c. Edit omnia_config.yml
 
 Edit [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md)
 and configure the `service_k8s_cluster` section:
@@ -161,16 +183,19 @@ service_k8s_cluster:
 | `cluster_name` | Name of the K8s cluster (must match `high_availability_config.yml`) |
 | `deployment` | Must be `true` for the cluster to be deployed |
 | `k8s_cni` | CNI plugin: `calico` (default) or `flannel` (required for RoCE NIC) |
-| `pod_external_ip_range` | MetalLB IP range for LoadBalancer services. Must not overlap with node IPs |
+| `pod_external_ip_range` | MetalLB IP range for LoadBalancer services. Must not overlap with any node `ADMIN_IP` or the VIP |
 | `k8s_service_addresses` | Internal network for K8s services (default: `10.233.0.0/18`) |
 | `k8s_pod_network_cidr` | Internal network for pods (default: `10.233.64.0/18`) |
-| `nfs_storage_name` | Must match a `name` in `storage_config.yml` |
+| `nfs_storage_name` | Must match a `name` in `storage_config.yml` (see Step 4e) |
 | `k8s_crio_storage_size` | Disk size for CRI-O container storage (default: `20G`) |
 
-#### 4b. Edit high_availability_config.yml
+#### 4d. Edit high_availability_config.yml
 
 Edit [`high_availability_config.yml`](../../Reference/Configuration/high_availability_config.md)
-and configure the virtual IP for the K8s API server:
+and configure the virtual IP for the K8s API server. Omnia deploys
+**kube-vip** as a static pod on each control-plane node to provide a
+floating VIP. If the active control-plane node fails, kube-vip
+migrates the VIP to a healthy node automatically.
 
 ```yaml title="File: /opt/omnia/input/project_default/high_availability_config.yml"
 service_k8s_cluster_ha:
@@ -183,9 +208,12 @@ service_k8s_cluster_ha:
 |---|---|
 | `cluster_name` | Must match `cluster_name` in `omnia_config.yml` where `deployment` is `true` |
 | `enable_k8s_ha` | Must be `true` -- service K8s is supported only in HA mode |
-| `virtual_ip_address` | Free IPv4 address on the admin subnet. Must not overlap with any `ADMIN_IP`, MetalLB range, or OIM IP |
+| `virtual_ip_address` | Free IPv4 address on the admin subnet. Must not overlap with any `ADMIN_IP` in the PXE mapping file, MetalLB `pod_external_ip_range`, or the OIM admin IP |
 
-#### 4c. Edit storage_config.yml
+For HA architecture details and troubleshooting, see
+[Configure HA](configure_ha.md).
+
+#### 4e. Edit storage_config.yml
 
 Edit [`storage_config.yml`](../../Reference/Configuration/storage_config.md)
 and define the NFS mount referenced by `nfs_storage_name` in
@@ -202,13 +230,15 @@ mounts:
     functional_group_prefix: ["service_kube"]
 ```
 
-!!! note
-    The `nfs_storage_name` value in `omnia_config.yml` must exactly match
-    the `name` field of a mount entry in `storage_config.yml`. Set
-    `mount_on_oim: true` so the OIM can write K8s configuration to the
-    share during provisioning.
+| Parameter | Description |
+|---|---|
+| `name` | Must exactly match `nfs_storage_name` in `omnia_config.yml` |
+| `source` | NFS server IP and export path |
+| `mount_point` | Local mount path on each node |
+| `mount_on_oim` | Must be `true` so the OIM can write K8s configuration to the NFS share during provisioning |
+| `functional_group_prefix` | Functional group prefixes that should mount this share. Use `["service_kube"]` for K8s nodes |
 
-#### 4d. Edit software_config.json
+#### 4f. Edit software_config.json
 
 Edit [`software_config.json`](../../Reference/Configuration/software_config.md)
 and include `service_k8s` in the `softwares` list:
@@ -225,7 +255,23 @@ and include `service_k8s` in the `softwares` list:
 }
 ```
 
+The `service_k8s` entry ensures that K8s packages (kubeadm, kubelet,
+CRI-O, Calico, MetalLB, Helm, NFS provisioner) are downloaded during
+the `local_repo.yml` step.
+
+#### 4g. Edit local_repo_config.yml
+
+Edit [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md)
+and configure the repository mirror settings. This file controls how
+packages are downloaded and cached in the Pulp repository.
+
+For the full parameter reference, see
+[local_repo_config.yml Reference](../../Reference/Configuration/local_repo_config.md).
+
 ### Step 5: Prepare the OIM
+
+Run `prepare_oim.yml` to deploy the OIM infrastructure (OpenCHAMI, Pulp,
+registry, and supporting containers).
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/prepare_oim
@@ -234,6 +280,9 @@ ansible-playbook prepare_oim.yml
 
 ### Step 6: Create Local Repositories
 
+Run `local_repo.yml` to download all required K8s packages, container
+images, and manifests into the Pulp repository.
+
 ```bash title="Run on: omnia_core container"
 cd /omnia/local_repo
 ansible-playbook local_repo.yml
@@ -241,9 +290,17 @@ ansible-playbook local_repo.yml
 
 ### Step 7: Build Node Images
 
+Build diskless boot images for the service K8s functional groups.
+
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_x86_64
 ansible-playbook build_image_x86_64.yml
+```
+
+Verify that images are created for each functional group:
+
+```bash title="Run on: OIM host"
+s3cmd ls -Hr s3://boot-images
 ```
 
 ### Step 8: Provision Nodes
@@ -256,142 +313,184 @@ cd /omnia/provision
 ansible-playbook provision.yml
 ```
 
-During provisioning, Omnia automatically configures each node based on
-its functional group:
+During provisioning, Omnia writes the K8s cluster configuration to the
+NFS share and generates cloud-init scripts for each node. When the
+nodes boot, cloud-init automatically:
 
-- **Control plane nodes**: Initializes `kubeadm`, joins the HA cluster,
-  deploys kube-vip static pod, runs `etcd`
-- **Worker nodes**: Joins the cluster, receives telemetry workloads,
-  runs NFS subdir provisioner and MetalLB speaker
+- **Control plane nodes**: Installs CRI-O, initializes `kubeadm`,
+  forms the HA cluster, deploys kube-vip static pod, runs `etcd`,
+  applies Calico/Flannel CNI, deploys MetalLB, installs Helm
+- **Worker nodes**: Installs CRI-O, joins the cluster via `kubeadm join`,
+  deploys NFS subdir external provisioner, runs MetalLB speaker
 
 ### Step 9: PXE Boot Nodes
 
 After `provision.yml` completes, PXE boot all service K8s nodes:
 
-- Control plane nodes
-- Worker nodes
+- Control plane nodes (3 nodes)
+- Worker nodes (1+ nodes)
 
 **Option 1: Manual PXE Boot**
 
 Configure each node to boot from the network via iDRAC or BIOS settings.
 
-**Option 2: Automated PXE Boot**
+**Option 2: Automated PXE Boot via iDRAC**
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
 
-Ensure all nodes boot successfully and become reachable.
+Wait for all nodes to complete booting and cloud-init to finish. This
+typically takes 10–20 minutes depending on the number of nodes and
+network speed.
 
 ## Verification
 
-In the examples below, `kcp1` and `kn` are the hostnames assigned to
-the control-plane and worker nodes in the PXE mapping file. Replace
-them with the hostnames from your own mapping file.
+After PXE boot completes, verify the cluster is operational. In all
+examples below, replace `<control_plane_hostname>` and
+`<worker_hostname>` with the hostnames from your PXE mapping file
+(e.g., `kcp1`, `kn`).
 
-1. **Check cloud-init status** on all K8s nodes:
+### 1. Check cloud-init status
 
-    ```bash title="Run on: omnia_core container"
-    ssh <control_plane_hostname> 'cloud-init status'
-    ssh <worker_hostname> 'cloud-init status'
-    ```
+Run this on **every node** listed in the PXE mapping file:
 
-    Example:
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'cloud-init status'
+ssh <worker_hostname> 'cloud-init status'
+```
 
-    ```bash title="Run on: omnia_core container (example)"
-    ssh kcp1 'cloud-init status'
-    ssh kn 'cloud-init status'
-    ```
+Expected output: `status: done`
 
-    Expected output: `status: done`
+!!! note
+    All nodes must report `status: done` before proceeding. If a node
+    shows `status: running`, wait and re-check. If it shows `error`,
+    check `/var/log/cloud-init-output.log` on the node.
 
-    !!! note
-        Check **every node** in your cluster. Open your PXE mapping file
-        and run `ssh <HOSTNAME> 'cloud-init status'` for each entry.
-        All nodes must report `status: done` before proceeding.
+### 2. Check Kubernetes node status
 
-2. **Check Kubernetes node status**:
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'kubectl get nodes'
+```
 
-    ```bash title="Run on: omnia_core container (example)"
-    ssh kcp1 'kubectl get nodes'
-    ```
+Expected output (4 nodes: 3 control-plane + 1 worker):
 
-    Expected output:
+```text title="Expected output"
+NAME              STATUS   ROLES           AGE    VERSION
+172.16.107.95     Ready    <none>          5d     v1.35.1
+172.16.107.96     Ready    control-plane   5d     v1.35.1
+172.16.107.97     Ready    control-plane   5d     v1.35.1
+172.16.107.98     Ready    control-plane   5d     v1.35.1
+```
 
-    ```text title="Expected output"
-    NAME              STATUS   ROLES           AGE    VERSION
-    172.16.107.95     Ready    <none>          5d     v1.35.1
-    172.16.107.96     Ready    control-plane   5d     v1.35.1
-    172.16.107.97     Ready    control-plane   5d     v1.35.1
-    172.16.107.98     Ready    control-plane   5d     v1.35.1
-    ```
+All nodes must show `Ready` status.
 
-    All nodes must show `Ready` status.
+### 3. Verify kube-vip HA
 
-3. **Verify system pods are running**:
+Ping the virtual IP address configured in `high_availability_config.yml`:
 
-    ```bash title="Run on: omnia_core container (example)"
-    ssh kcp1 'kubectl get pods -n kube-system'
-    ssh kcp1 'kubectl get pods -n metallb-system'
-    ```
+```bash title="Run on: omnia_core container"
+ping -c 3 <virtual_ip_address>
+```
 
-    All pods in `kube-system` and `metallb-system` should be `Running`.
+Verify the kube-vip container is running on a control-plane node:
 
-4. **Verify kube-vip HA is operational**:
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'crictl ps | grep kube-vip'
+```
 
-    ```bash title="Run on: omnia_core container"
-    ping -c 3 <virtual_ip_address>
-    ```
+### 4. Verify system pods
 
-    ```bash title="Run on: omnia_core container (example)"
-    ssh kcp1 'crictl ps | grep kube-vip'
-    ```
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'kubectl get pods -n kube-system'
+```
 
-5. **Verify NFS subdir provisioner**:
+All pods in `kube-system` should be `Running`. Key pods to check:
 
-    ```bash title="Run on: omnia_core container (example)"
-    ssh kcp1 'kubectl get pods -n default | grep nfs'
-    ssh kcp1 'kubectl get storageclass'
-    ```
+- `calico-node-*` (or `kube-flannel-*` if using Flannel)
+- `coredns-*`
+- `etcd-*`
+- `kube-apiserver-*`
+- `kube-controller-manager-*`
+- `kube-scheduler-*`
+
+### 5. Verify MetalLB
+
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'kubectl get pods -n metallb-system'
+```
+
+All MetalLB pods (`controller` and `speaker`) should be `Running`.
+
+### 6. Verify NFS subdir provisioner
+
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'kubectl get pods -n default | grep nfs'
+ssh <control_plane_hostname> 'kubectl get storageclass'
+```
+
+The NFS subdir external provisioner pod should be `Running` and a
+`StorageClass` should be available.
 
 ## Next Steps
 
 - [Deploy PowerScale CSI](deploy_powerscale_csi.md) -- Deploy PowerScale
   CSI driver for enterprise storage.
-- [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy telemetry
-  services on the K8s cluster.
+- [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy the
+  telemetry pipeline on the service K8s cluster.
+- [Configure HA](configure_ha.md) -- HA architecture details and
+  kube-vip troubleshooting.
 
 ## Troubleshooting
 
-**Nodes show "NotReady" status**
+### Nodes show "NotReady" status
 
 Check kubelet logs on the affected node:
 
-```bash title="Run on: omnia_core container (example)"
-ssh <control_plane_hostname> 'journalctl -u kubelet --no-pager -n 30'
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'journalctl -u kubelet --no-pager -n 50'
 ```
 
-**Calico pods stuck in "CrashLoopBackOff"**
+Common causes: CNI plugin not ready, CRI-O not running, NFS mount
+failed. Check `cloud-init status` and `/var/log/cloud-init-output.log`
+on the node.
 
-Check Calico logs:
+### Calico pods stuck in CrashLoopBackOff
 
-```bash title="Run on: omnia_core container (example)"
+```bash title="Run on: omnia_core container"
 ssh <control_plane_hostname> 'kubectl logs -n kube-system -l k8s-app=calico-node --tail=50'
 ```
 
-**MetalLB not assigning external IPs**
+Common cause: `k8s_pod_network_cidr` in `omnia_config.yml` conflicts
+with the admin network CIDR. Ensure they do not overlap.
 
-Verify the IP address pool configuration:
+### MetalLB not assigning external IPs
 
-```bash title="Run on: omnia_core container (example)"
+```bash title="Run on: omnia_core container"
 ssh <control_plane_hostname> 'kubectl get ipaddresspool -n metallb-system -o yaml'
 ```
 
-**NFS provisioner PVC stuck in "Pending"**
+Verify that `pod_external_ip_range` in `omnia_config.yml` does not
+overlap with node IPs or the kube-vip VIP.
 
-Verify the NFS server is reachable from the worker node:
+### NFS provisioner PVC stuck in Pending
 
-```bash title="Run on: omnia_core container (example)"
+```bash title="Run on: omnia_core container"
 ssh <worker_hostname> 'showmount -e <nfs-server-ip>'
 ```
+
+Verify the NFS server is reachable and the export path in
+`storage_config.yml` is correct.
+
+### VIP not reachable
+
+```bash title="Run on: omnia_core container"
+ssh <control_plane_hostname> 'crictl ps | grep kube-vip'
+ssh <control_plane_hostname> 'cat /etc/kubernetes/manifests/kube-vip.yaml'
+```
+
+If kube-vip is not running, check that `virtual_ip_address` in
+`high_availability_config.yml` does not conflict with any node IP or
+MetalLB range. For detailed HA troubleshooting, see
+[Configure HA](configure_ha.md).
