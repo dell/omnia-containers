@@ -354,7 +354,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
    ::
 
-       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_62982.log
 
    .. image:: images/troubleshooting_local_repo_updated_5.png
 
