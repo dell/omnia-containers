@@ -1,0 +1,143 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-common"></div>
+                            <p class="omnia-title" id="module-parameter-common">
+                                <strong>common</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Cloud-init configuration applied to ALL nodes. Entries here are merged into every node's cloud-init payload.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">{}</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-common/write_files"></div>
+                            <p class="omnia-title" id="module-parameter-common-write-files">
+                                <strong>write_files</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of files to write on all nodes. Each entry follows the cloud-init write_files module format (path, content, permissions, etc.).</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-common/runcmd"></div>
+                            <p class="omnia-title" id="module-parameter-common-runcmd">
+                                <strong>runcmd</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of commands to run at the final cloud-init stage on all nodes. Commands are appended to platform-defined runcmd lists.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-groups"></div>
+                            <p class="omnia-title" id="module-parameter-groups">
+                                <strong>groups</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-cell">
+                            <p>Per-functional-group cloud-init overrides. Each key must match a functional group name defined in pxe_mapping_file.csv. Group-specific entries are merged after common entries.</p>
+                            <p>Default: <code class="docutils literal notranslate"><span class="pre">{}</span></code>.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-groups/<group_name>"></div>
+                            <p class="omnia-title" id="module-parameter-groups-group-name">
+                                <strong>&lt;group_name&gt;</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>Cloud-init overrides for a specific functional group. Key must match a group name from pxe_mapping_file.csv (e.g., slurm_node_x86_64, os_x86_64).</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-odd">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-groups/<group_name>/write_files"></div>
+                            <p class="omnia-title" id="module-parameter-groups-group-name-write-files">
+                                <strong>write_files</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of files to write on nodes belonging to this functional group.</p>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="row-even">
+                    <td>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-indent"></div>
+                        <div class="omnia-cell">
+                            <div class="ansibleOptionAnchor" id="parameter-groups/<group_name>/runcmd"></div>
+                            <p class="omnia-title" id="module-parameter-groups-group-name-runcmd">
+                                <strong>runcmd</strong>
+                            </p>
+                            <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-indent-desc"></div>
+                        <div class="omnia-cell">
+                            <p>List of commands to run at the final cloud-init stage on nodes belonging to this functional group.</p>
+                        </div>
+                    </td>
+                </tr>
+    </tbody>
+</table>

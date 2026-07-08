@@ -1,683 +1,398 @@
 # Path D: BuildStreaM Automated Deployment
 
+Omnia BuildStreaM provides a comprehensive automation solution for managing infrastructure build workflows. It uses a catalog-driven approach where you define your build requirements in a structured catalog file, and BuildStreaM executes automated pipelines to create and deploy images according to your specifications.
 
-Deploy an 8+ node cluster using BuildStreaM, Omnia's catalog-driven
-automation framework powered by GitLab CI/CD. BuildStreaM reads a
-declarative hardware and software catalog, generates the required Omnia
-input files, and executes deployment pipelines -- transforming a manual
-multi-hour process into a repeatable, version-controlled workflow.
+BuildStreaM supports three pipeline types that can be executed through GitLab:
 
-**What you will build:**
-
-| Role | Functional Group | Count | Purpose |
-| --- | --- | --- | --- |
-| OIM (management) | -- | 1 | Runs `omnia_core` and the GitLab CI/CD runner. |
-| Slurm head node | `slurm_control_node` | 1 | Slurm controller. |
-| Compute nodes | `slurm_node` | 1+ | Slurm compute workers. |
-| Login node | `login_node` | 1 | User-facing SSH gateway. |
-| K8s control plane | `service_kube_control_plane` | 3 | HA Kubernetes service cluster. |
-| K8s worker node | `service_kube_node` | 1+ | Telemetry stack and GitLab services. |
-
-**What makes BuildStreaM different:**
-
-- **Declarative catalog** -- Define your cluster in a YAML catalog file.
-  BuildStreaM translates it into Omnia input files automatically.
-- **GitLab CI/CD pipelines** -- Every deployment step (prepare, discover,
-  deploy, verify) runs as a CI/CD stage with logs, artifacts, and rollback.
-- **Reproducibility** -- The catalog is version-controlled in Git. Rebuild
-  an identical cluster from a single `git push`.
-- **Scale** -- Designed for environments with 8, 16, 64, or hundreds of
-  nodes where manual input-file editing is error-prone.
-
-**Estimated time:** ~6 hours (includes GitLab deployment and pipeline execution).
+- **Build Pipeline**: Creates diskless images based on catalog specifications. This pipeline is automatically triggered when the catalog is committed, but can also be executed manually.
+- **Deploy Pipeline**: Deploys built images to target cluster nodes. This pipeline is automatically triggered when the PXE mapping file is updated, but can also be executed manually.
+- **Clean Pipeline**: Removes old Image Groups based on retention policy. This pipeline can be executed only manually.
 
 !!! note
 
-    Complete the [Prerequisites Checklist](prerequisites_checklist.md) before proceeding. In
-    addition, BuildStreaM requires:
-
-    - A GitLab instance (deployed in Step 4 below, or an existing one).
-    - OAuth application credentials for GitLab integration.
-    - Familiarity with Git workflows (clone, push, merge requests).
+    Complete the [Prerequisites Checklist](prerequisites_checklist.md) before proceeding.
 
 ## Step 1 -- Deploy the omnia_core Container
 
+Clone the Omnia artifacts repository, build the container images, and
+install the `omnia_core` Podman container on the OIM.
 
-```shell title="Run on OIM (as root)"
-cd /opt
-git clone https://github.com/dell/omnia.git
-cd omnia
-
-# Build container images
-bash build_images.sh
-
-# Install and start the omnia_core container
-bash omnia.sh --install
-
-# Verify
-systemctl status omnia_core
+```bash title="Run on: OIM host"
+# Clone and build
+git clone https://github.com/dell/omnia-artifactory.git -b omnia-container-v2.2.0.0
+cd omnia-artifactory
+./build_images.sh core omnia_branch=v2.2.0.0 core_tag=2.2
 ```
 
+```bash title="Run on: OIM host"
+# Download and install omnia.sh
+wget https://raw.githubusercontent.com/dell/omnia/refs/tags/v2.2.0.0/omnia.sh
+chmod +x omnia.sh
+./omnia.sh --install
+```
 
-```shell title="Run on OIM (as root)"
+When prompted, enter:
+
+- **Shared path**: local file path or NFS share path for Omnia data.
+- **Password**: secure alphanumeric password for accessing the Omnia core container.
+
+```bash title="Run on: OIM host"
+# Verify the container is running
+systemctl status omnia_core
 ssh omnia_core
 exit
 ```
 
+For detailed procedures including NFS setup, uninstall, and upgrade options, see [Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md).
 
+## Step 2 -- Create the Mapping File
 
-## Step 2 -- Enable BuildStreaM
+The mapping file associates nodes with their BMC IPs, hostnames, and
+functional groups. Collect PXE NIC information and define each
+node in `pxe_mapping_file.csv`.
 
-
-Configure BuildStreaM before running the prepare playbooks. This ensures
-that all BuildStreaM-specific services and packages are included from the
-start.
-
-### **2a. Edit** `build_stream_config.yml`
-
-
-```shell title="Run on OIM (inside omnia_core container)"
+```bash title="Run on: OIM host"
 ssh omnia_core
-vi /opt/omnia/input/project_default/build_stream_config.yml
+vi /opt/omnia/input/project_default/pxe_mapping_file.csv
 ```
 
-
-```yaml title="Example build_stream_config.yml"
-# Enable the BuildStreaM catalog-driven deployment framework
-build_stream_enabled: true
-
-# GitLab instance URL (will be deployed in Step 4 if not already available)
-gitlab_url: "http://10.5.0.10:8080"
-
-# GitLab project path for the catalog repository
-catalog_project: "omnia/cluster-catalog"
-
-# CI/CD runner tags (used to route pipeline jobs to the OIM runner)
-runner_tags:
-  - omnia-oim
-  - deployment
-
-# Catalog file path inside the Git repository
-catalog_file: "catalog.yml"
+```text title="File: pxe_mapping_file.csv (x86_64)"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_x86_64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
+login_compiler_node_x86_64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103
+login_compiler_node_x86_64,grp8,ABFG78,,login-compiler-node2,e1:f2:a3:b4:c5:d6,172.16.107.42,e2:f3:a4:b5:c6:d7,172.17.107.42,InfiniBand.Slot.7-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,InfiniBand.Slot.7-1,192.168.0.105
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,11:22:33:44:55:66,172.16.107.54,12:23:34:45:56:67,172.17.107.54,,InfiniBand.Slot.7-1,192.168.0.106
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:01,172.16.107.55,ab:bc:cd:de:ef:12,172.17.107.55,,InfiniBand.Slot.7-1,192.168.0.107
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,33:44:55:66:77:88,172.16.107.56,34:45:56:67:78:89,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.108
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,55:66:77:88:99:aa,172.16.107.57,56:67:78:89:aa:bb,172.17.107.57,InfiniBand.Slot.7-1,192.168.0.109
+os_x86_64,grp6,ABEF56,,os-node1,77:88:99:aa:bb:cc,172.16.107.60,78:89:aa:bb:cc:dd,172.17.107.60,,
 ```
 
+For x86_64 and aarch64 mixed clusters:
+
+```text title="File: pxe_mapping_file.csv (x86_64 and aarch64)"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,NIC.InfiniBand.1-3,192.168.0.102
+login_compiler_node_aarch64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
+login_node_aarch64,grp9,ABFG78,,login-node1,e1:f2:a3:b4:c5:d6,172.16.107.42,e2:f3:a4:b5:c6:d7,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,
+service_kube_control_plane_x86_64,grp4,ABFH78,,service-kube-control-plane2,11:22:33:44:55:66,172.16.107.54,12:23:34:45:56:67,172.17.107.54,,
+service_kube_control_plane_x86_64,grp4,ABFH80,,service-kube-control-plane3,aa:bb:cc:dd:ee:01,172.16.107.55,ab:bc:cd:de:ef:12,172.17.107.55,,
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,33:44:55:66:77:88,172.16.107.56,34:45:56:67:78:89,172.17.107.56,,
+service_kube_node_x86_64,grp5,ABKD88,,service-kube-node2,55:66:77:88:99:aa,172.16.107.57,56:67:78:89:aa:bb,172.17.107.57,,
+os_x86_64,grp6,ABEF56,,os-node1,77:88:99:aa:bb:cc,172.16.107.60,78:89:aa:bb:cc:dd,172.17.107.60,,
+os_aarch64,grp7,ABEF78,,os-node2,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:ef,172.17.107.61,,
+```
 
 !!! warning
 
-    If you plan to use an **existing** GitLab instance, set `gitlab_url`
-    to its URL and skip Step 4. If you want Omnia to deploy GitLab for
-    you on the K8s service cluster, keep the default and proceed through
-    all steps.
+    Replace all placeholder values with your actual hardware values.
+    All fields are mandatory. The header fields are case-sensitive.
 
-**2b. Configure OAuth credentials**
+!!! note
 
-BuildStreaM authenticates with GitLab via OAuth. Generate an OAuth
-application in GitLab (or prepare to do so after GitLab is deployed in
-Step 4).
+    Ensure that nodes belonging to the same group have the same parent. In the mapping file, node entries with the same `GROUP_NAME` must have the same parent specified in the `PARENT_SERVICE_TAG` column.
 
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/build_stream_oauth_credentials.yml
+!!! note
+
+    The IP addresses and service tags provided in the mapping file are not validated by Omnia. Ensure that correct IP addresses and service tags are provided. Incorrect values can cause unexpected failures. The hostnames should not contain the domain name of the nodes.
+
+!!! note
+
+    The ADMIN_MAC and BMC_MAC addresses provided in `pxe_mapping_file.csv` should refer to the PXE NIC and BMC NIC on the target nodes respectively. Target servers should be configured to boot in PXE mode with the appropriate NIC as the first boot device.
+
+For detailed information about the mapping file format and field descriptions, see [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md).
+
+**Supported functional groups:**
+
+| Functional Group | Layer | Description |
+| --- | --- | --- |
+| `slurm_control_node_x86_64` | Management | Slurm head node |
+| `slurm_node_x86_64` | Compute | Slurm compute node (x86_64) |
+| `slurm_node_aarch64` | Compute | Slurm compute node (aarch64) |
+| `service_kube_control_plane_x86_64` | Management | K8s control plane for service cluster |
+| `service_kube_node_x86_64` | Management | K8s worker node for service cluster |
+| `login_node_x86_64` | Management | Login node (x86_64) |
+| `login_node_aarch64` | Management | Login node (aarch64) |
+| `login_compiler_node_x86_64` | Management | Login and compiler node (x86_64) |
+| `login_compiler_node_aarch64` | Management | Login and compiler node (aarch64) |
+| `os_x86_64` | Compute | Minimal OS baseline (x86_64) |
+| `os_aarch64` | Compute | Minimal OS baseline (aarch64) |
+
+Set the `pxe_mapping_file_path` variable in `provision_config.yml` to point to this file.
+
+## Step 3 -- Provide Inputs and Prepare the OIM
+
+Update the input configuration files and run `prepare_oim.yml` to deploy
+BuildStreaM containers and services on the OIM.
+
+```bash title="Run on: OIM host"
+ssh omnia_core
+ls /opt/omnia/input/project_default/
 ```
 
+**Key files for this deployment:**
 
-```yaml title="Example build_stream_oauth_credentials.yml"
-# OAuth Application ID from GitLab
-oauth_app_id: ""
+- [`build_stream_config.yml`](../Reference/Configuration/build_stream_config.md) -- BuildStreaM pipeline configuration
 
-# OAuth Application Secret from GitLab
-oauth_app_secret: ""
+    ```yaml
+    # Sample configuration
+    enable_build_stream: true
+    build_stream_host_ip: 192.168.1.10
+    build_stream_port: 8010
+    aarch64_inventory_host_ip: ""
+    ```
 
-# OAuth callback URL (must match GitLab OAuth app configuration)
-oauth_callback_url: "http://10.5.0.10:8080/oauth/callback"
+- [`gitlab_config.yml`](../Reference/Configuration/gitlab_config.md) -- GitLab configuration
+
+    ```yaml
+    # Sample configuration
+    gitlab_host: 192.168.1.100
+    gitlab_project_name: omnia-catalog
+    gitlab_project_visibility: private
+    gitlab_default_branch: main
+    gitlab_https_port: 443
+    gitlab_min_storage_gb: 20
+    gitlab_min_cpu_cores: 2
+    ```
+
+- [`network_spec.yml`](../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
+
+    ```yaml
+    # Sample configuration
+    Networks:
+    - admin_network:
+        oim_nic_name: eno1
+        subnet: 192.168.1.0
+        netmask_bits: "24"
+        primary_oim_admin_ip: "192.168.1.10"
+        primary_oim_bmc_ip: ""
+        dynamic_range: "192.168.1.100-192.168.1.200"
+        dns: []
+        ntp_servers: []
+    - ib_network:
+        subnet: 10.0.1.0
+        netmask_bits: "24"
+        dns: []
+    ```
+
+- [`provision_config.yml`](../Reference/Configuration/provision_config.md) -- OS provisioning settings
+
+    ```yaml
+    # Sample configuration
+    pxe_mapping_file_path: /opt/omnia/input/project_default/pxe_mapping_file.csv
+    language: en_US.UTF-8
+    default_lease_time: 86400
+    dns_enabled: false
+    ```
+
+- [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md) -- Kubernetes HA virtual IP
+
+    ```yaml
+    # Sample configuration
+    k8s_vip: 192.168.1.250
+    k8s_vip_interface: eno1
+    ```
+
+- [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) -- Omnia cluster settings
+
+    ```yaml
+    # Sample configuration
+    service_cluster_enabled: true
+    slurm_enabled: true
+    ```
+
+- [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
+
+    ```yaml
+    # Sample configuration
+    local_repo_enabled: true
+    local_repo_path: /opt/omnia/local_repo
+    ```
+
+- [`storage_config.yml`](../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
+
+    ```yaml
+    # Sample configuration
+    nfs_enabled: true
+    nfs_server: 192.168.1.10
+    nfs_path: /opt/omnia
+    ```
+
+- [`security_config.yml`](../Reference/Configuration/security_config.md) -- Authentication settings
+
+    ```yaml
+    # Sample configuration
+    auth_type: freeipa
+    realm: CLUSTER.LOCAL
+    directory_domain: cluster.local
+    admin_user: admin
+    ```
+
+- [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration
+
+    ```yaml
+    # Sample configuration
+    idrac_telemetry_enabled: true
+    idrac_telemetry_collection_type: victoria
+    victoria_deployment_mode: cluster
+    ```
+
+- [`user_registry_credential.yml`](../Reference/Configuration/user_registry_credential.md) -- User registry credentials
+
+    ```yaml
+    # Sample configuration
+    registry_url: https://registry.example.com
+    registry_username: admin
+    registry_password: your_password
+    ```
+
+Edit each file as needed. Then run the prepare playbook:
+
+```bash title="Run on: omnia_core container"
+cd /omnia/prepare_oim
+ansible-playbook prepare_oim.yml
 ```
 
-
-!!! tip
-
-    Leave `oauth_app_id` and `oauth_app_secret` empty for now if you
-    are deploying GitLab in Step 4. You will return to fill these in after
-    GitLab is running and you create the OAuth application.
-
-## Step 3 -- Prepare the OIM and Infrastructure
-
-
-Follow the same infrastructure preparation as Path B. These steps are
-identical -- BuildStreaM automates the *deployment* workflow, not the
-initial OIM setup.
-
-**3a. Create the mapping file**
-
-```shell title="Run on OIM (as root)"
-cat > /opt/omnia/input/project_default/mapping.csv << 'EOF'
-FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
-slurm_control_node,slurm,SVCTAG01,,head01,24:6E:96:CC:01:01,10.5.0.101,,10.3.0.101
-slurm_node,slurm,SVCTAG02,,compute01,24:6E:96:CC:01:02,10.5.0.102,,10.3.0.102
-login_node,slurm,SVCTAG03,,login01,24:6E:96:CC:01:03,10.5.0.103,,10.3.0.103
-service_kube_control_plane,kube,SVCTAG04,,kube-cp01,24:6E:96:CC:02:01,10.5.0.201,,10.3.0.201
-service_kube_control_plane,kube,SVCTAG05,,kube-cp02,24:6E:96:CC:02:02,10.5.0.202,,10.3.0.202
-service_kube_control_plane,kube,SVCTAG06,,kube-cp03,24:6E:96:CC:02:03,10.5.0.203,,10.3.0.203
-service_kube_node,kube,SVCTAG07,,kube-wk01,24:6E:96:CC:02:04,10.5.0.204,,10.3.0.204
-EOF
-```
-
-
-!!! warning
-
-    Replace all placeholder values with your actual hardware data.
-
-**3b. Copy input templates**
-
-```shell title="Run on OIM (inside omnia_core container)"
-cp -r /opt/omnia/examples/input_template/bare_metal_slurm/x86_64/with_service_k8s/* \
-    /opt/omnia/input/project_default/
-```
-
-
-**3c. Edit network and provisioning inputs**
-
-Edit `network_spec.yml`, `provision_config.yml`, and `ha_config.yml`
-as described in [Full Deployment](full_deployment.md) Steps 5a--5c.
-
-**3d. Set credentials**
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook credentials_utility.yml
-```
-
-
-**3e. Prepare the OIM**
-
-```shell title="Run on OIM (inside omnia_core container)"
-ansible-playbook prepare_oim.yml -i /opt/omnia/input/project_default/mapping.csv
-```
-
-
-**3f. Verify OIM services**
-
-```shell title="Run on OIM (inside omnia_core container)"
+```bash title="Run on: OIM host"
+# Verify services are running
 systemctl list-dependencies omnia.target
+systemctl status omnia_build_stream.service
+systemctl status omnia_postgres.service
+systemctl status playbook_watcher.service
 ```
 
-
-**3g. Create local repos and build images**
-
-```shell title="Run on OIM (inside omnia_core container)"
-ansible-playbook local_repo.yml
-ansible-playbook build_image_x86_64.yml
-
-# Verify
-s3cmd ls s3://omnia-images/
+```text title="Expected output"
+omnia.target
+● ├─minio.service
+● ├─omnia_auth.service
+● ├─omnia_build_stream.service
+● ├─omnia_core.service
+● ├─omnia_postgres.service
+● ├─playbook_watcher.service
+● ├─pulp.service
+● ├─registry.service
+● ├─network-online.target
+● │ └─NetworkManager-wait-online.service
+● └─openchami.target
+●   ├─acme-deploy.service
+●   ├─acme-register.service
+●   ├─bss-init.service
+●   ├─bss.service
+●   ├─cloud-init-server.service
+●   ├─coresmd-coredhcp.service
+●   ├─coresmd-coredns.service
+●   ├─haproxy.service
+●   ├─hydra-gen-jwks.service
+●   ├─hydra-migrate.service
+●   ├─hydra.service
+●   ├─opaal-idp.service
+●   ├─opaal.service
+●   ├─openchami-cert-trust.service
+●   ├─postgres.service
+●   ├─smd-init.service
+●   ├─smd.service
+●   └─step-ca.service
 ```
 
+A green circle indicates the service is running.
 
-**3h. Discover and provision nodes**
+## Step 4 -- Deploy GitLab
 
-```shell title="Run on OIM (inside omnia_core container)"
-ansible-playbook discovery.yml
+Deploy GitLab as the CI/CD automation engine for BuildStreaM pipelines.
 
-# Verify
-ansible all -m ping -i /opt/omnia/inventories/project_default/inventory
+```bash title="Run on: omnia_core container"
+# Update GitLab configuration
+vi /opt/omnia/input/project_default/gitlab_config.yml
+
+# Deploy GitLab
+cd /omnia/gitlab
+ansible-playbook gitlab.yml
 ```
 
+When prompted, enter and note the GitLab password.
 
-**3i. Deploy Kubernetes service cluster**
+After installation, verify access at `https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>`.
 
-```shell title="Run on OIM (inside omnia_core container)"
-ansible-playbook k8s.yml
+Verify the runner status: **Settings** → **CI/CD** → **Runners** → green status indicator.
 
-# Verify
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
-kubectl get nodes
+For detailed GitLab deployment procedures, see [Deploy GitLab](../HowTo/BuildStreaM/deploy_gitlab.md).
+
+## Step 5 -- Execute Build Pipeline
+
+Update the catalog and trigger the build pipeline to create diskless images.
+
+1. Go to `https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>`.
+
+2. Navigate to **Code** → **Repository** and edit `catalog_rhel.json` with your build requirements.
+
+3. Commit the changes to automatically trigger the build pipeline.
+
+4. Monitor the pipeline in **Build** → **Pipelines**. The build pipeline has four stages: **parse-catalog** → **generate-input-files** → **create-local-repository** → **build-image**.
+
+5. Verify all stages show green checkmarks.
+
+For manual pipeline execution, advanced catalog configuration, and troubleshooting, see [Execute Build Pipeline](../HowTo/BuildStreaM/execute_build_pipeline.md).
+
+## Step 6 -- Execute Deploy Pipeline
+
+Deploy the built images to cluster nodes.
+
+1. Go to the GitLab project URL.
+
+2. Update the `pxe_mapping_file.csv` in the `input/` folder and commit the changes to trigger the deploy pipeline.
+
+3. In the deploy pipeline, select the image from the `select_image` stage and click **Play**.
+
+4. Click **Play** on the `deploy` stage.
+
+5. Monitor the pipeline. The deploy pipeline has three later stages: **deploy** → **restart** → **validate**.
+
+6. Verify all stages complete successfully.
+
+For manual pipeline execution, handling partial failures, and adding new nodes, see [Execute Deploy Pipeline](../HowTo/BuildStreaM/execute_deploy_pipeline.md).
+
+## Step 7 -- Initialize and Verify Telemetry
+
+Initialize telemetry services and verify data collection.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/telemetry
+ansible-playbook telemetry.yml
 ```
 
+```bash title="Run on: Service Kubernetes Control plane"
+# Verify telemetry pods
+kubectl get pods -n telemetry
 
-
-## Step 4 -- Deploy GitLab on the Service Cluster
-
-
-If you do not have an existing GitLab instance, Omnia can deploy one on
-the K8s service cluster.
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook build_stream_gitlab.yml
+# Verify telemetry services
+kubectl get svc -n telemetry
 ```
 
+Access the VictoriaLogs query interface to validate log collection:
 
-This playbook:
-
-- Deploys GitLab CE as a Kubernetes workload on the service cluster.
-- Configures persistent storage for Git repositories and CI/CD artifacts.
-- Exposes GitLab on the K8s VIP at the port specified in
-  `build_stream_config.yml`.
-- Registers a GitLab Runner on the OIM for executing CI/CD pipelines.
-
-```shell title="Run on OIM (inside omnia_core container)"
-# Verify GitLab pods
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
-kubectl get pods -n gitlab
-
-# Get the GitLab service URL
-kubectl get svc -n gitlab
+```text title="VictoriaLogs query interface URL"
+https://<external vlselect loadbalancer IP>:9471/select/vmui
 ```
 
+Access the VMUI to validate metrics collection:
 
-!!! tip
-
-    GitLab takes 5--10 minutes to fully initialize after the pods are
-    `Running`. Wait for the readiness probe to succeed before accessing
-    the UI:
-    `kubectl wait --for=condition=ready pod -l app=gitlab -n gitlab --timeout=600s`
-
-**4a. Access GitLab and create the OAuth application**
-
-1. Open `http://<k8s_vip>:8080` in a browser.
-2. Log in with the root credentials from the deployment output.
-3. Navigate to **Admin Area > Applications > New Application**.
-4. Fill in:
-
-   - **Name:** `BuildStreaM`
-   - **Redirect URI:** `http://10.5.0.10:8080/oauth/callback`
-     (match `oauth_callback_url` in `build_stream_oauth_credentials.yml`)
-   - **Scopes:** `api`, `read_user`, `read_repository`
-
-5. Click **Save application** and copy the **Application ID** and **Secret**.
-
-**4b. Update OAuth credentials**
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/build_stream_oauth_credentials.yml
+```text title="VMUI URL"
+https://<external vmselect loadbalancer IP>:8481/select/0/vmui
 ```
 
-
-```yaml title="Updated build_stream_oauth_credentials.yml"
-oauth_app_id: "your-application-id-from-gitlab"
-oauth_app_secret: "your-secret-from-gitlab"
-oauth_callback_url: "http://10.5.0.10:8080/oauth/callback"
-```
-
-
-!!! warning
-
-    Treat the OAuth secret like a password. Do not commit it to a public
-    Git repository. Use GitLab CI/CD variables (masked) for production
-    environments.
-
-## Step 5 -- Create the Cluster Catalog
-
-
-The cluster catalog is a declarative YAML file that describes your entire
-cluster: hardware inventory, software stack, network topology, and
-deployment parameters. BuildStreaM parses this catalog to generate all
-Omnia input files and orchestrate the deployment pipeline.
-
-**5a. Initialize the catalog repository**
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt
-git clone http://<k8s_vip>:8080/omnia/cluster-catalog.git
-cd cluster-catalog
-```
-
-
-If the repository does not exist yet, create it in GitLab first:
-
-1. In GitLab, go to **Projects > New Project > Create Blank Project**.
-2. Name: `cluster-catalog`, Group: `omnia`, Visibility: **Private**.
-
-**5b. Create the catalog file**
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/cluster-catalog/catalog.yml
-```
-
-
-```yaml title="Example catalog.yml"
----
-# BuildStreaM Cluster Catalog
-# This file declaratively defines the target cluster state.
-
-cluster:
-  name: "production-hpc"
-  domain: "omnia.local"
-
-networks:
-  admin:
-    cidr: "10.5.0.0/16"
-    gateway: "10.5.0.1"
-    nic: "eno2"
-  bmc:
-    cidr: "10.3.0.0/16"
-    nic: "eno2"
-
-nodes:
-  - hostname: head01
-    service_tag: SVCTAG01
-    role: slurm_control_node
-    group: slurm
-    admin_mac: "24:6E:96:CC:01:01"
-    admin_ip: "10.5.0.101"
-    bmc_ip: "10.3.0.101"
-
-  - hostname: compute01
-    service_tag: SVCTAG02
-    role: slurm_node
-    group: slurm
-    admin_mac: "24:6E:96:CC:01:02"
-    admin_ip: "10.5.0.102"
-    bmc_ip: "10.3.0.102"
-
-  - hostname: login01
-    service_tag: SVCTAG03
-    role: login_node
-    group: slurm
-    admin_mac: "24:6E:96:CC:01:03"
-    admin_ip: "10.5.0.103"
-    bmc_ip: "10.3.0.103"
-
-  - hostname: kube-cp01
-    service_tag: SVCTAG04
-    role: service_kube_control_plane
-    group: kube
-    admin_mac: "24:6E:96:CC:02:01"
-    admin_ip: "10.5.0.201"
-    bmc_ip: "10.3.0.201"
-
-  - hostname: kube-cp02
-    service_tag: SVCTAG05
-    role: service_kube_control_plane
-    group: kube
-    admin_mac: "24:6E:96:CC:02:02"
-    admin_ip: "10.5.0.202"
-    bmc_ip: "10.3.0.202"
-
-  - hostname: kube-cp03
-    service_tag: SVCTAG06
-    role: service_kube_control_plane
-    group: kube
-    admin_mac: "24:6E:96:CC:02:03"
-    admin_ip: "10.5.0.203"
-    bmc_ip: "10.3.0.203"
-
-  - hostname: kube-wk01
-    service_tag: SVCTAG07
-    role: service_kube_node
-    group: kube
-    admin_mac: "24:6E:96:CC:02:04"
-    admin_ip: "10.5.0.204"
-    bmc_ip: "10.3.0.204"
-
-software:
-  os_iso: "/opt/isos/RHEL-8.8-x86_64-dvd.iso"
-  slurm: true
-  kubernetes: true
-  telemetry: true
-  auth_type: "freeipa"
-  realm: "OMNIA.LOCAL"
-
-kubernetes:
-  ha_vip: "10.5.0.250"
-  ha_interface: "eno2"
-
-telemetry:
-  idrac_telemetry: true
-  ldms_telemetry: true
-  grafana_port: 3000
-  retention: "30d"
-```
-
-
-!!! tip
-
-    The catalog format is designed to be human-readable and diff-friendly.
-    Store it in Git so that every cluster change is tracked as a commit.
-    Review changes via merge requests before deploying.
-
-**5c. Create the CI/CD pipeline definition**
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/cluster-catalog/.gitlab-ci.yml
-```
-
-
-```yaml title=".gitlab-ci.yml"
----
-stages:
-  - validate
-  - generate
-  - deploy
-  - verify
-
-variables:
-  OMNIA_HOME: "/opt/omnia"
-  INPUT_DIR: "/opt/omnia/input/project_default"
-  CATALOG_FILE: "catalog.yml"
-
-validate_catalog:
-  stage: validate
-  tags:
-    - omnia-oim
-  script:
-    - cd ${OMNIA_HOME}
-    - python3 scripts/buildstream/validate_catalog.py ${CI_PROJECT_DIR}/${CATALOG_FILE}
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-
-generate_inputs:
-  stage: generate
-  tags:
-    - omnia-oim
-  script:
-    - cd ${OMNIA_HOME}
-    - python3 scripts/buildstream/generate_inputs.py ${CI_PROJECT_DIR}/${CATALOG_FILE} ${INPUT_DIR}
-  artifacts:
-    paths:
-      - ${INPUT_DIR}/*.yml
-      - ${INPUT_DIR}/*.json
-      - ${INPUT_DIR}/*.csv
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-
-deploy_cluster:
-  stage: deploy
-  tags:
-    - omnia-oim
-  script:
-    - cd ${OMNIA_HOME}
-    - ansible-playbook omnia.yml
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - when: manual
-
-verify_cluster:
-  stage: verify
-  tags:
-    - omnia-oim
-  script:
-    - cd ${OMNIA_HOME}
-    - ansible-playbook verify_cluster.yml
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-```
-
-
-!!! warning
-
-    The `deploy_cluster` stage is set to `when: manual` on the
-    `main` branch by default. This means a human must click **Play** in
-    the GitLab pipeline UI to trigger the deployment. Remove the
-    `when: manual` rule for fully unattended deployments, but only after
-    validating the pipeline on a test cluster.
-
-## Step 6 -- Push the Catalog and Trigger the Pipeline
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/cluster-catalog
-
-git add catalog.yml .gitlab-ci.yml
-git commit -m "Initial cluster catalog for production-hpc"
-git push origin main
-```
-
-
-This push triggers the BuildStreaM pipeline:
-
-1. **Validate** -- Checks the catalog for syntax errors, missing fields,
-   IP conflicts, and role-count constraints (e.g., 3 K8s control-plane
-   nodes).
-2. **Generate** -- Translates the catalog into Omnia input files
-   (`mapping.csv`, `network_spec.yml`, `omnia_config.yml`, etc.) and
-   stores them as pipeline artifacts.
-3. **Deploy** -- *(Manual trigger)* Runs `omnia.yml` to deploy the
-   full cluster.
-4. **Verify** -- Runs post-deployment verification (`sinfo`,
-   `kubectl get nodes`, telemetry health checks).
-
-**Monitor the pipeline:**
-
-1. Open GitLab at `http://<k8s_vip>:8080`.
-2. Navigate to **omnia/cluster-catalog > CI/CD > Pipelines**.
-3. Click the pipeline to see per-stage logs in real time.
-
-```shell title="Run on OIM (inside omnia_core container)"
-# Alternatively, monitor from the CLI
-gitlab-runner status
-# Watch the pipeline log from the runner
-tail -f /var/log/gitlab-runner/runner.log
-```
-
-
-!!! tip
-
-    If the **Validate** stage fails, read the error output -- it tells you
-    exactly which catalog field is invalid (e.g., ``"Node kube-cp04 has
-    role service_kube_control_plane but only 4 control-plane nodes are
-    defined. Expected odd number (3 or 5)."``). Fix the catalog, commit,
-    and push to re-trigger.
-
-## Step 7 -- Verify the Deployment
-
-
-After the pipeline completes (all stages green), verify the cluster.
-
-**Slurm verification:**
-
-```shell title="Run on head node (head01)"
-ssh head01
-sinfo
-srun -N 1 hostname
-sacctmgr show cluster
-```
-
-
-**Kubernetes verification:**
-
-```shell title="Run on OIM (inside omnia_core container)"
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
-kubectl get nodes
-kubectl get pods --all-namespaces | grep -v Running | grep -v Completed
-```
-
-
-**Telemetry verification:**
-
-```shell title="Run on OIM (inside omnia_core container)"
-kubectl get pods -n omnia-telemetry
-# Open Grafana at http://<k8s_vip>:3000
-```
-
-
-**BuildStreaM pipeline verification:**
-
-```shell title="Run on OIM (inside omnia_core container)"
-# Verify the pipeline artifacts were generated correctly
-ls -la /opt/omnia/input/project_default/
-
-# Verify the GitLab Runner is registered and online
-gitlab-runner list
-```
-
-
-
-## Day-2 Operations with BuildStreaM
-
-
-BuildStreaM is designed for ongoing cluster management, not just initial
-deployment.
-
-**Scaling out compute nodes**
-
-1. Add new `slurm_node` entries to `catalog.yml`.
-2. Commit and push.
-3. The pipeline re-validates, regenerates `mapping.csv`, and runs
-   discovery + deployment for the new nodes only.
-
-**Changing software configuration**
-
-1. Edit the `software` section of `catalog.yml` (e.g., enable GPU
-   drivers, change Slurm version).
-2. Commit and push.
-3. The pipeline regenerates `software_config.json` and re-runs
-   `omnia.yml` (idempotent -- only changed configs are applied).
-
-**Rolling back a change**
-
-1. `git revert HEAD` to undo the last commit.
-2. Push. The pipeline redeploys the previous catalog state.
-
-!!! tip
-
-    Use GitLab **merge requests** with required approvals for production
-    clusters. This ensures that catalog changes are reviewed by a second
-    engineer before being deployed. Set up **protected branches** on
-    `main` so that only merged MRs trigger the deploy stage.
-
-**Disaster recovery**
-
-If the cluster needs to be rebuilt from scratch (e.g., after a datacenter
-move):
-
-```shell title="Run on OIM (as root)"
-# Re-clone the catalog repository
-cd /opt
-git clone http://<gitlab_url>/omnia/cluster-catalog.git
-cd cluster-catalog
-
-# Trigger a full rebuild
-git commit --allow-empty -m "Rebuild cluster from catalog"
-git push origin main
-```
-
-
-The pipeline will re-provision all nodes and redeploy the entire stack
-using the catalog as the single source of truth.
-
-
-## What's Next?
-
-
-**Integrate with external CI/CD systems**
-   If your organization uses Jenkins, GitHub Actions, or Azure DevOps
-   instead of GitLab, you can call BuildStreaM's catalog validation and
-   input generation scripts as build steps in those systems.
-
-**Multi-cluster management**
-   Create separate catalog repositories for each cluster (dev, staging,
-   production). Each repository has its own pipeline and can be deployed
-   independently.
-
-**Custom pipeline stages**
-   Add stages for workload deployment (e.g., deploying MPI benchmarks,
-   AI training frameworks) after the `verify` stage.
-
-**Automated testing**
-   Add integration tests to the `verify` stage (e.g., run a small
-   Slurm job, verify Grafana data sources, check NFS mounts).
-
-!!! info
-
-    - [Full Deployment](full_deployment.md) -- Manual equivalent of this automated path
-    - [Prerequisites Checklist](prerequisites_checklist.md) -- Master checklist
-    - [Slurm Quickstart](slurm_quickstart.md) -- Simplified manual deployment for comparison
+For detailed telemetry verification including Kafka message validation, TLS connectivity tests, and database access, see [Initialize Telemetry](../HowTo/BuildStreaM/initialize_telemetry.md).
+
+## What's next
+
+- [Execute Build Pipeline](../HowTo/BuildStreaM/execute_build_pipeline.md) -- Detailed build pipeline operations
+- [Execute Deploy Pipeline](../HowTo/BuildStreaM/execute_deploy_pipeline.md) -- Detailed deploy pipeline operations
+- [Initialize Telemetry](../HowTo/BuildStreaM/initialize_telemetry.md) -- Detailed telemetry setup and verification
+- [Cleanup Operations](../HowTo/BuildStreaM/cleanup_operations.md) -- Remove old Image Groups
+- [Retry Pipelines](../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipeline operations
+- [BuildStreaM Troubleshooting](../Troubleshooting/buildstream.md) -- Diagnose and resolve issues

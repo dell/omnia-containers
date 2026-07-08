@@ -5,7 +5,7 @@ conflicts, manifest tracking, and component-specific failures.
 
 ## Lock File Issues
 
-### Upgrade Fails: Rollback Lock Exists
+**Upgrade fails: "A rollback is currently in progress"**
 
 ???+ note "Symptom"
 
@@ -33,7 +33,7 @@ conflicts, manifest tracking, and component-specific failures.
 
     3. Rerun the upgrade playbook.
 
-### Rollback Fails: Upgrade Lock Exists
+**Rollback fails: "An upgrade is currently in progress"**
 
 ???+ note "Symptom"
 
@@ -62,12 +62,11 @@ conflicts, manifest tracking, and component-specific failures.
 
 ## Manifest Issues
 
-### Manifest Shows Partial Status After Upgrade
+**Manifest shows "partial" status after upgrade**
 
 ???+ note "Symptom"
 
-    The upgrade completes but `upgrade_status` is `partial` instead of
-    `completed`.
+    The upgrade completes but `upgrade_status` is `partial` instead of `completed`.
 
 ??? note "Cause"
 
@@ -90,7 +89,7 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook upgrade.yml
         ```
 
-### Manifest Shows Partial Status After Rollback
+**Manifest shows "partial" status after rollback**
 
 ???+ note "Symptom"
 
@@ -118,12 +117,17 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook rollback.yml
         ```
 
-### Manifest File Is Missing or Corrupted
+**Manifest file is missing or corrupted**
 
 ???+ note "Symptom"
 
     The playbook fails because `upgrade_manifest.yml` or
     `rollback_manifest.yml` cannot be parsed.
+
+??? note "Cause"
+
+    The manifest file was manually deleted, corrupted due to disk errors, or
+    contains invalid YAML syntax.
 
 ??? note "Resolution"
 
@@ -149,11 +153,17 @@ conflicts, manifest tracking, and component-specific failures.
 
 ## Component-Specific Issues
 
-### OIM Upgrade Fails
+**OIM upgrade fails**
 
 ???+ note "Symptom"
 
     The `oim` component fails during upgrade.
+
+??? note "Cause"
+
+    - `oim_metadata.yml` is missing or incorrectly configured
+    - `omnia_core` container is not running or inaccessible
+    - Database connectivity issues
 
 ??? note "Resolution"
 
@@ -177,12 +187,19 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook upgrade.yml
         ```
 
-### Kubernetes Upgrade Fails
+**Kubernetes upgrade fails**
 
 ???+ note "Symptom"
 
     The `k8s` component fails during upgrade with status showing `failed` in
     the upgrade manifest.
+
+??? note "Cause"
+
+    - Cluster nodes are not in Ready state
+    - Pending pods or stuck resources
+    - Network connectivity issues between nodes
+    - Storage mount failures
 
 ??? note "Resolution"
 
@@ -217,12 +234,17 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook rollback.yml
         ```
 
-### Cloud-Init Timeout After Reboot
+**Cloud-init timeout after reboot**
 
 ???+ note "Symptom"
 
     First control plane or first worker reboot fails with
     "Cloud-init did not complete within timeout" error.
+
+??? note "Cause"
+
+    Cloud-init execution takes longer than the configured timeout period due to
+    slow network, large package downloads, or system resource constraints.
 
 ??? note "Resolution"
 
@@ -235,11 +257,18 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook upgrade.yml
         ```
 
-### Node Unreachable During Upgrade
+**Node unreachable during upgrade**
 
 ???+ note "Symptom"
 
     Upgrade fails with SSH connection errors or node unreachable messages.
+
+??? note "Cause"
+
+    - Node is powered off or has hardware issues
+    - SSH service is not running on the node
+    - Network connectivity issues between OIM and the node
+    - Firewall blocking SSH connections
 
 ??? note "Resolution"
 
@@ -252,7 +281,62 @@ conflicts, manifest tracking, and component-specific failures.
         ansible-playbook upgrade.yml
         ```
 
-### Build Image Fails for aarch64
+**Node drain fails due to standalone pods**
+
+???+ note "Symptom"
+
+    - Kubernetes upgrade fails during drain with error: `cannot delete Pods that
+      declare no controller (use --force to override)`
+    - Node is cordoned but drain operation fails
+    - Upgrade status shows `drain_failed`
+
+??? note "Cause"
+
+    The node has standalone pods not managed by any controller (Deployment,
+    StatefulSet, etc.). These are typically test pods created manually using
+    `kubectl run` or `kubectl create -f pod.yaml`.
+
+??? note "Resolution"
+
+    1. Identify standalone pods on the failed node:
+
+        ```bash title="Run on: omnia_core container"
+        kubectl get pods -A --field-selector spec.nodeName=<node-ip> -o json |
+          jq -r '.items[] | select(.metadata.ownerReferences == null) |
+          "\(.metadata.namespace)/\(.metadata.name)"'
+        ```
+
+    2. Delete the standalone pods:
+
+        ```bash title="Run on: omnia_core container"
+        kubectl delete pod <pod-name> -n <namespace>
+        ```
+
+        !!! warning
+
+            Standalone pods will NOT be recreated after deletion.
+
+    3. Re-run the upgrade:
+
+        ```bash title="Run on: omnia_core container"
+        cd /omnia/upgrade
+        ansible-playbook upgrade.yml
+        ```
+
+!!! tip
+
+    Before starting any upgrade, identify and remove all standalone pods:
+
+    ```bash title="Run on: omnia_core container"
+    kubectl get pods -A -o json | jq -r '.items[] |
+      select(.metadata.ownerReferences == null) |
+      "\(.metadata.namespace)/\(.metadata.name)"'
+    ```
+
+    Always use Deployments, StatefulSets, or Jobs instead of creating standalone
+    pods in production.
+
+**Build image fails for aarch64 — missing inventory**
 
 ???+ note "Symptom"
 
@@ -288,7 +372,7 @@ conflicts, manifest tracking, and component-specific failures.
         The `[admin_aarch64]` group must have exactly one host. NFS must be
         configured on the OIM for aarch64 image building.
 
-### Target Core Container Image Is Missing
+**Target core container image is missing**
 
 ???+ note "Symptom"
 
@@ -320,11 +404,18 @@ conflicts, manifest tracking, and component-specific failures.
 
     3. Re-run the `omnia.sh` command.
 
-### Kubernetes Rollback Fails
+**Kubernetes rollback fails**
 
 ???+ note "Symptom"
 
     The `k8s-telemetry` component fails during rollback.
+
+??? note "Cause"
+
+    - Control plane is unreachable or nodes are not in Ready state
+    - Backup files are missing or corrupted on NFS
+    - Storage mount failures preventing access to backup directory
+    - Network connectivity issues between OIM and Kubernetes cluster
 
 ??? note "Resolution"
 
@@ -372,7 +463,7 @@ conflicts, manifest tracking, and component-specific failures.
     6. After resolving the issue, rerun the full rollback.
        Already-completed stages are skipped automatically.
 
-### Slurm Nodes Do Not Recover After Rollback
+**Slurm nodes do not recover after rollback**
 
 ???+ note "Symptom"
 
@@ -411,73 +502,9 @@ conflicts, manifest tracking, and component-specific failures.
         a node's boot configuration appears incorrect after rollback, rerun the
         rollback for the corresponding component (`slurm` or `k8s`).
 
-## General Troubleshooting Steps
-
-### Check Playbook Logs
-
-Increase Ansible verbosity for detailed output:
-
-```bash title="Run on: omnia_core container"
-cd /omnia/upgrade
-ansible-playbook upgrade.yml -vvv
-```
-
-### Review State Files
-
-All state files are stored in `/opt/omnia/.data/`:
-
-```bash title="Run on: omnia_core container"
-ls -la /opt/omnia/.data/
-cat /opt/omnia/.data/upgrade_manifest.yml
-cat /opt/omnia/.data/rollback_manifest.yml
-cat /opt/omnia/.data/oim_metadata.yml
-```
-
-### Check Archived Manifests
-
-Previous manifests are archived for history:
-
-```bash title="Run on: omnia_core container"
-ls /opt/omnia/.data/archive/
-```
-
-### Reset Upgrade/Rollback State
-
-To completely reset the upgrade/rollback state and start fresh:
-
-!!! caution
-
-    This will discard all upgrade/rollback progress. Use only as a last resort.
-
-```bash title="Run on: omnia_core container"
-rm -f /opt/omnia/.data/upgrade_manifest.yml
-rm -f /opt/omnia/.data/rollback_manifest.yml
-rm -f /opt/omnia/.data/upgrade_in_progress.lock
-rm -f /opt/omnia/.data/rollback_in_progress.lock
-```
-
-### Verify oim_metadata.yml
-
-The `oim_metadata.yml` file is the source of truth for version information.
-Ensure it contains the correct values:
-
-```bash title="Run on: omnia_core container"
-cat /opt/omnia/.data/oim_metadata.yml
-```
-
-Expected fields:
-
-- `omnia_version` — Currently installed version.
-- `previous_omnia_version` — Previous version.
-- `upgrade_backup_dir` — Path to the backup directory.
-
-!!! note
-
-    `oim_metadata.yml` is read-only for upgrade and rollback flows. It is
-    never modified by the playbooks. If the version information is incorrect,
-    it must be fixed manually before rerunning.
-
 !!! info "Related Documentation"
 
+    - [Kernel Version Override Issues](kernel_version_override.md) — Kernel override troubleshooting.
+    - [General Troubleshooting Steps](general_troubleshooting.md) — Common troubleshooting steps.
     - [Upgrade Omnia](../Operations/upgrade_omnia.md) — Upgrade procedure.
     - [Rollback Omnia](../Operations/rollback_omnia.md) — Rollback procedure.

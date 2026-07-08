@@ -178,11 +178,13 @@ Both models use:
 ## Next Steps
 
 
+- [Configure Mounts](configure_mounts.md) -- Advanced mount configuration via `storage_config.yml`.
 - [Configure Powervault](configure_powervault.md) -- Configure block storage for additional
   performance.
+- [Configure Vast](configure_vast.md) -- Build the Vast repository and install the Vast client.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Slurm uses NFS for shared job scripts
   and results.
-- [Use Apptainer](../Containers/use_apptainer.md) -- Store SIF images on NFS for
+- [Use Apptainer](../AdvancedConfigurations/use_apptainer.md) -- Store SIF images on NFS for
   cluster-wide access.
 
 

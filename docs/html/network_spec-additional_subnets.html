@@ -1,0 +1,103 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-additional_subnets"></div>
+                    <p class="omnia-title" id="module-parameter-additional-subnets">
+                        <strong>additional_subnets</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-cell">
+                    <p>Optional field for multi-RAC/multi-subnet PXE deployments. Each entry defines a separate subnet managed via DHCP relay. Leave empty array for single-subnet deployments. Default: []</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-additional_subnets/subnet"></div>
+                    <p class="omnia-title" id="module-parameter-additional-subnets-subnet">
+                        <strong>subnet</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The network address of the additional subnet.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-additional_subnets/netmask_bits"></div>
+                    <p class="omnia-title" id="module-parameter-additional-subnets-netmask-bits">
+                        <strong>netmask_bits</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The CIDR prefix length for the additional subnet.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-additional_subnets/router"></div>
+                    <p class="omnia-title" id="module-parameter-additional-subnets-router">
+                        <strong>router</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The gateway/router IP for this subnet (used as DHCP option 3).</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-additional_subnets/dynamic_range"></div>
+                    <p class="omnia-title" id="module-parameter-additional-subnets-dynamic-range">
+                        <strong>dynamic_range</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The DHCP IP pool range in start_ip-end_ip format. Must fall within the subnet.</p>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>

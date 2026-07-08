@@ -1,260 +1,164 @@
+# Deploy GitLab for BuildStreaM
 
-# Deploy GitLab
-
-
-Deploy and configure GitLab for BuildStreaM CI/CD pipelines that automate
-catalog-driven cluster deployment.
+Deploy GitLab as the CI/CD automation engine for BuildStreaM pipelines. This procedure covers GitLab installation, project setup, pipeline configuration, and runner verification.
 
 ## Overview
 
+BuildStreaM uses a **three-pipeline architecture** in GitLab:
 
-BuildStreaM uses GitLab as the CI/CD engine to execute catalog-driven
-deployment pipelines. GitLab stores:
-
-- The **catalog file** that declaratively defines cluster configuration.
-- **Pipeline definitions** (`.gitlab-ci.yml`) that execute Omnia playbooks.
-- **Artifacts** (logs, reports) from each pipeline run.
-
-Omnia can deploy GitLab as a Podman container on the OIM or as a Helm
-deployment on the K8s service cluster.
-
+- **Build Pipeline**: Triggered by catalog changes, creates images and establishes Job ID to Image Group ID mapping. Can also be executed manually.
+- **Deploy Pipeline**: Triggered by PXE mapping changes, deploys images to cluster nodes. Can also be executed manually.
+- **Cleanup Pipeline**: Triggered manually, allows users to delete selected Image Groups.
 
 ## Prerequisites
 
+- Omnia BuildStreaM container, PostgreSQL container, and Playbook Watcher service are deployed on the OIM node
+- The node where GitLab will be deployed must have internet connectivity
+- A dedicated node is required for BuildStreaM GitLab deployment
+- Minimum 4 GB RAM, 2 CPU cores, 20 GB free disk space on the GitLab node
+- OIM node must be accessible from the GitLab node
+- BuildStreaM API server must be reachable from the GitLab node
+- AppStream and Base OS repositories are configured and accessible from the GitLab node
+- SELinux is disabled on the GitLab node
 
-- The [Prepare Oim](../Setup/prepare_oim.md) procedure is complete.
-- At least 8 GB RAM available for the GitLab container (16 GB recommended).
-- At least 50 GB disk space for GitLab data.
-- A DNS name or IP address for GitLab access.
-- The K8s service cluster is deployed (if using Helm deployment).
+!!! important
 
+    Omnia uses a dedicated GitLab instance for BuildStreaM. Currently, existing GitLab setups configured for other purposes are not supported.
+
+!!! note
+
+    Ensure that the `build_stream_port` is correctly configured in the `build_stream_config.yml` file. The BuildStreaM port cannot be modified after preparing the OIM. To modify the port after preparing the OIM, you need to cleanup the OIM first (using `cleanup_oim.yml`), and then prepare the OIM again with the required port number (using `prepare_oim.yml`).
 
 ## Procedure
 
+1. Use SSH to connect to the `omnia_core` container:
 
-### Option A: Deploy GitLab on the OIM (Podman)
-
-
-1. **Create persistent storage directories**:
-
-   ```bash title="Run on: OIM host"
-   mkdir -p /opt/gitlab/{config,logs,data}
-   ```
-
-
-2. **Deploy the GitLab container**:
-
-   ```bash title="Run on: OIM host"
-   podman run -d \
-     --name gitlab \
-     --restart=always \
-     --hostname gitlab.omnia.local \
-     -p 8443:443 \
-     -p 8082:80 \
-     -p 2222:22 \
-     -v /opt/gitlab/config:/etc/gitlab:Z \
-     -v /opt/gitlab/logs:/var/log/gitlab:Z \
-     -v /opt/gitlab/data:/var/opt/gitlab:Z \
-     --shm-size 256m \
-     docker.io/gitlab/gitlab-ce:latest
-   ```
-
-
-   !!! note
-
-       GitLab takes **3-5 minutes** to fully initialize after the container
-       starts. Wait before proceeding.
-
-3. **Retrieve the initial root password**:
-
-   ```bash title="Run on: OIM host"
-   podman exec gitlab cat /etc/gitlab/initial_root_password
-   ```
-
-
-   Save this password; it is only available for 24 hours.
-
-4. **Access GitLab** in a browser: `http://<oim-ip>:8082`
-
-   Log in with:
-
-   - Username: `root`
-   - Password: (from step 3)
-
-5. **Create the BuildStreaM project**:
-
-   ```bash title="Run on: OIM host"
-   # Using GitLab API
-   curl -s -X POST "http://localhost:8082/api/v4/projects" \
-     -H "PRIVATE-TOKEN: <your-root-token>" \
-     -d "name=buildstream-catalog&visibility=private"
-   ```
-
-
-6. **Register a GitLab Runner** for pipeline execution:
-
-   ```bash title="Run on: OIM host"
-   podman run -d \
-     --name gitlab-runner \
-     --restart=always \
-     -v /opt/gitlab-runner:/etc/gitlab-runner:Z \
-     -v /var/run/podman/podman.sock:/var/run/docker.sock:Z \
-     docker.io/gitlab/gitlab-runner:latest
-
-   podman exec gitlab-runner gitlab-runner register \
-     --non-interactive \
-     --url "http://<oim-ip>:8082" \
-     --token "<runner-registration-token>" \
-     --executor "shell" \
-     --description "omnia-runner"
-   ```
-
-
-
-### Option B: Deploy GitLab on K8s (Helm)
-
-
-7. **(Alternative) Deploy GitLab via Helm**:
-
-   ```bash title="Run on: K8s control plane node"
-   helm repo add gitlab https://charts.gitlab.io/
-   helm repo update
-
-   helm install gitlab gitlab/gitlab \
-     --namespace gitlab \
-     --create-namespace \
-     --set global.hosts.domain=omnia.local \
-     --set global.hosts.externalIP=<metallb-ip> \
-     --set certmanager.install=false \
-     --set global.ingress.configureCertmanager=false \
-     --set gitlab-runner.install=true \
-     --set persistence.enabled=true \
-     --timeout 600s
-   ```
-
-
-
-### Configure GitLab for BuildStreaM
-
-
-8. **Clone the BuildStreaM catalog repository** template:
-
-   ```bash title="Run on: omnia_core container"
-   cd /opt/omnia
-   git clone http://<oim-ip>:8082/root/buildstream-catalog.git
-   cd buildstream-catalog
-   ```
-
-
-9. **Create the pipeline configuration**:
-
-   ```bash title="Run on: omnia_core container"
-   cat <<'EOF' > .gitlab-ci.yml
-   stages:
-     - validate
-     - provision
-     - configure
-     - verify
-
-   validate_catalog:
-     stage: validate
-     script:
-       - cd /omnia
-       - ansible-playbook input_validator.yml
-
-   provision_nodes:
-     stage: provision
-     script:
-       - cd /omnia/discovery
-       - ansible-playbook discovery.yml --ask-vault-pass
-     when: manual
-
-   configure_cluster:
-     stage: configure
-     script:
-       - cd /omnia
-       - ansible-playbook omnia.yml --ask-vault-pass
-     when: manual
-
-   verify_cluster:
-     stage: verify
-     script:
-       - ansible all -m ping
-       - ssh <slurm-control-ip> sinfo
-   EOF
-   ```
-
-
-10. **Push the initial configuration**:
-
-    ```bash title="Run on: omnia_core container"
-    git add .
-    git commit -m "Initial BuildStreaM catalog"
-    git push origin main
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
     ```
 
+2. Update the `gitlab_config.yml` file. Use the [GitLab configuration table](../../Reference/Configuration/gitlab_config.md) for reference.
 
+    ```bash title="Run on: omnia_core container"
+    vi /opt/omnia/input/project_default/gitlab_config.yml
+    ```
+
+!!! caution
+
+    Ensure that all network ranges and NIC IP addresses provided in the configuration files are distinct with no overlap. All iDRACs must be reachable from the OIM.
+
+3. Navigate to the GitLab directory and run the playbook:
+
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/gitlab
+    ansible-playbook gitlab.yml
+    ```
+
+4. When prompted, enter the GitLab password. Note this password as it is required to access the GitLab project and instance.
+
+    !!! note
+
+        The installation may take 10-15 minutes to complete.
+
+    The `gitlab.yml` playbook performs the following tasks:
+
+    - Installs the GitLab instance on the host specified in `gitlab_config.yml`.
+    - Creates a project with the specified name, visibility, and default branch.
+    - Installs GitLab runner as a Podman container.
+    - Generates a self-signed CA certificate at `/root/gitlab-certs/ca.crt` on the GitLab node.
+    - Adds the project with the following files:
+        - **Pipeline Configuration Files**:
+            - `.gitlab-ci.yml` -- Parent router pipeline that dispatches to child pipelines
+            - `.gitlab-ci-build.yml` -- Build pipeline for creating images
+            - `.gitlab-ci-deploy.yml` -- Deploy pipeline for deploying images to nodes
+            - `.gitlab-ci-cleanup.yml` -- Cleanup pipeline for removing old Image Groups
+            - `.gitlab-ci-deploy-child-template.yml` -- Dynamic child pipeline template for deploy operations
+        - **Catalog File**:
+            - `catalog_rhel.json` -- Default catalog file containing build definitions for RHEL images
+        - **Input Folder**:
+            - `input/` -- Directory containing all BuildStreaM input configuration files
+
+    ![BuildStream project](../../assets/images/buildstream_project.png)
+
+    The input folder includes the following configuration files:
+
+    - [`build_stream_config.yml`](../../Reference/Configuration/build_stream_config.md) -- BuildStreaM configuration file
+    - [`gitlab_config.yml`](../../Reference/Configuration/gitlab_config.md) -- GitLab configuration file
+    - [`high_availability_config.yml`](../../Reference/Configuration/high_availability_config.md) -- High availability configuration file
+    - [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Local repository configuration file
+    - [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network configuration file
+    - [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Omnia configuration file
+    - [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- Provision configuration file
+    - [`pxe_mapping_file.csv`](../../Reference/SampleFiles/pxe_mapping_file.md) -- PXE mapping file
+    - [`security_config.yml`](../../Reference/Configuration/security_config.md) -- Security configuration file
+    - [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- Storage configuration file
+    - [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry configuration file
+    - [`telemetry_storage_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry storage configuration file
+
+    ![BuildStream project input files structure](../../assets/images/buildstream_project_input_files.png)
+
+5. To avoid **Not Secure** warnings when accessing the GitLab instance, download and import the CA certificate to your browser.
 
 ## Verification
 
+After the installation completes, verify the following:
 
-1. **Verify GitLab is running**:
+- Verify you can access the GitLab project URL:
 
-   ```bash title="Run on: OIM host"
-   podman ps --filter name=gitlab
-   curl -s http://localhost:8082/users/sign_in | grep "GitLab"
-   ```
+    ```text title="GitLab project URL"
+    https://<gitlab_host>:<gitlab_https_port>/root/<gitlab_project_name>
+    ```
 
+- Verify the project contains the expected files and folders.
+- Verify runner status through GitLab web interface:
 
-2. **Verify the runner is registered**:
+    1. Navigate to **Settings** → **CI/CD**.
+    2. Expand **Runners** section.
+    3. Verify the runner shows a **green** status indicator.
+    4. Confirm runner is set to **Running Always** with **Podman Container`.
 
-   ```bash title="Run on: OIM host"
-   podman exec gitlab-runner gitlab-runner list
-   ```
+!!! note
 
-
-3. **Trigger a test pipeline** by pushing a commit or via the GitLab UI:
-
-   Navigate to **CI/CD** > **Pipelines** in the GitLab web UI and confirm
-   the pipeline stages appear.
-
+    The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher.service` run only when BuildStreaM is enabled in `/opt/omnia/input/project_default/build_stream_config.yml`.
 
 ## Next Steps
 
+- [Execute Build Pipeline](execute_build_pipeline.md) -- Update catalog and trigger the build pipeline
+- [Execute Deploy Pipeline](execute_deploy_pipeline.md) -- Deploy built images to cluster nodes
+- [Cleanup Operations](cleanup_operations.md) -- Remove old Image Groups
 
-- [Update Catalog Pipeline](update_catalog_pipeline.md) -- Update the catalog and run pipelines.
-- [Buildstream Troubleshooting](buildstream_troubleshooting.md) -- Troubleshoot pipeline issues.
+## Uninstall GitLab
 
+To remove the GitLab instance and associated resources from the BuildStreaM environment:
+
+1. Use SSH to connect to the `omnia_core` container:
+
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
+
+2. Navigate to the GitLab directory and run the uninstall playbook:
+
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/gitlab
+    ansible-playbook cleanup_gitlab.yml
+    ```
+
+!!! danger
+
+    This procedure permanently removes the GitLab instance, all projects, pipelines, and build artifacts. Ensure you have backed up any required data before proceeding.
+
+The `cleanup_gitlab.yml` playbook performs the following tasks:
+
+- Stops and removes the GitLab runner Podman container
+- Removes the GitLab project
+- Uninstalls the GitLab instance from the host
+- Removes the self-signed CA certificate from `/root/gitlab-certs/`
+- Cleans up GitLab-related configuration files
 
 ## Troubleshooting
 
-
-**GitLab container takes too long to start**
-   Check container logs:
-
-   ```bash title="Run on: OIM host"
-   podman logs -f gitlab
-   ```
-
-
-**"502 Bad Gateway" in browser**
-   GitLab is still initializing. Wait 3-5 minutes and try again.
-
-**Runner registration fails**
-   Verify the registration token from GitLab's admin area:
-   **Admin Area** > **CI/CD** > **Runners**
-
-**Insufficient memory**
-   GitLab requires at least 8 GB RAM. Check available memory:
-
-   ```bash title="Run on: OIM host"
-   free -h
-   ```
-
-
-**Port conflicts**
-   Ensure ports 8082, 8443, and 2222 are not in use:
-
-   ```bash title="Run on: OIM host"
-   ss -tlnp | grep -E ':(8082|8443|2222)\b'
-   ```
+- **GitLab not accessible**: Verify network connectivity between OIM and GitLab node. Check that the port specified in `gitlab_config.yml` is not blocked by firewall.
+- **Runner not running**: Check runner status in GitLab UI under **Settings** → **CI/CD** → **Runners**. Verify the Podman container is running on the GitLab node.
+- **SSH omnia_core fails after prepare_oim**: If `ssh omnia_core` fails after switching from a non-root to root user using `sudo`, log in directly as a `root` user before executing the playbook. See [General Troubleshooting](../../Troubleshooting/general.md) for details.
+- For additional issues, see [BuildStreaM Troubleshooting](../../Troubleshooting/buildstream.md).

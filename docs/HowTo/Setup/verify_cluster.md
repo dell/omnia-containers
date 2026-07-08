@@ -19,7 +19,7 @@ After provisioning and configuring your cluster, verify that:
 ## Prerequisites
 
 
-- Nodes are provisioned and reachable (see [Pxe Boot Nodes](pxe_boot_nodes.md)).
+- Nodes are provisioned and reachable (see [PXE Boot Playbook](configure_pxe_boot.md)).
 - Slurm and/or Kubernetes have been deployed (see
   [Setup Slurm](../Slurm/setup_slurm.md) or
   [Setup Service K8S](../Kubernetes/setup_service_k8s.md)).
@@ -202,7 +202,7 @@ Use the following summary checklist:
 
 - [Slurm With Gpu](../Slurm/slurm_with_gpu.md) -- Configure GPU support for Slurm.
 - [Setup Telemetry](../Telemetry/setup_telemetry.md) -- Deploy monitoring and telemetry.
-- [Setup Openldap](../Authentication/setup_openldap.md) -- Set up centralized
+- [Deploy External LDAP](../Authentication/deploy_external_ldap.md) -- Set up centralized
   authentication.
 - [Configure Nfs](../Storage/configure_nfs.md) -- Configure shared NFS storage.
 

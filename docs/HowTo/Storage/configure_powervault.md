@@ -187,8 +187,10 @@ Omnia configures:
 ## Next Steps
 
 
+- [Configure Mounts](configure_mounts.md) -- Advanced mount configuration via `storage_config.yml`.
 - [Configure Nfs](configure_nfs.md) -- Configure NFS for shared storage across compute
   nodes.
+- [Configure Vast](configure_vast.md) -- Build the Vast repository and install the Vast client.
 - [Setup Slurm](../Slurm/setup_slurm.md) -- Deploy Slurm using the PowerVault
   storage for spool data.
 

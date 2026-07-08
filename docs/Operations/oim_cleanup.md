@@ -7,7 +7,7 @@ The `oim_cleanup.yml` playbook tears down the Omnia Infrastructure Manager
 fresh. This is a **destructive operation** --- use it only when you need to
 completely reset the OIM.
 
-## When to use OIM cleanup
+## When to Use OIM Cleanup
 
 
 - **Fresh start** -- You want to redeploy Omnia from scratch after a failed or
@@ -31,104 +31,92 @@ completely reset the OIM.
   container).
 - All cluster workloads have been drained or stopped.
 - Critical data has been backed up:
+  - `/opt/omnia/input/project_default/` (mapping files, configuration files)
 
-  - `/omnia/input/` (mapping files, configuration files)
-  - Custom Ansible inventories
-  - Any modified playbook files
-  - AES-256 encrypted credential vaults
+## Tasks Performed by the Playbook
 
 
-## Procedure
+The `oim_cleanup.yml` playbook performs the following tasks:
+
+- Clean up all containers, log files, and metadata on the OIM node.
+- Clean up any PostgreSQL database deployed as part of BuildStreaM on the OIM.
+- Rollback the firewall ports on the OIM node to its default setting.
 
 
-1. **Log in to the OIM as root:**
-
-   ```bash
-   ssh root@<oim_ip>
-   ```
+## Steps
 
 
-   !!! note
+1. To clean up the OIM and the PostgreSQL database which is deployed as part
+   of BuildStreaM, perform one of the following:
 
-       Do **not** run this playbook from inside the `omnia_core` container.
-       The cleanup process removes the container itself.
+   - **If the BuildStreaM PostgreSQL database is not deployed on the OIM node**,
+     and you want to clean up the OIM, run the following command:
 
-2. **Navigate to the Omnia utils directory:**
+      ```bash title="Run on: omnia_core container"
+      ssh omnia_core
+      cd /omnia/utils
+      ansible-playbook oim_cleanup.yml
+      ```
 
-   ```bash
-   cd /omnia/utils/
-   ```
+   - **If the BuildStreaM PostgreSQL database is deployed on the OIM node**,
+     and you want to clean up the OIM and the PostgreSQL database, run the
+     following command:
 
+      ```bash title="Run on: omnia_core container"
+      ssh omnia_core
+      cd /omnia/utils
+      ansible-playbook oim_cleanup.yml -e postgres_backup=false
+      ```
 
-3. **Run the cleanup playbook:**
+!!! note
 
-   ```bash
-   ansible-playbook oim_cleanup.yml
-   ```
+    The `postgres_backup` parameter determines whether the PostgreSQL
+    database should be backed up before cleanup.
 
+    - If `postgres_backup` is set to `true`, the database will be backed
+      up before cleanup.
+    - If `postgres_backup` is set to `false`, the database will not be
+      backed up before cleanup.
 
-   The playbook performs the following actions:
+   - **If the BuildStreaM PostgreSQL database is deployed on the OIM node**,
+     and you want to clean up the OIM but **retain** the PostgreSQL database,
+     run the following command:
 
-   - Stops and removes all Omnia-managed Podman containers (`omnia_core`,
-     OpenCHAMI, CoreDHCP, TFTP, Pulp, telemetry services).
-   - Removes Podman pods and networks created by Omnia.
-   - Deletes OIM service configuration files.
-   - Cleans up SSH keys and known_hosts entries for provisioned nodes.
-   - Removes cached OS images and repository data.
+      ```bash title="Run on: omnia_core container"
+      ssh omnia_core
+      cd /omnia/utils
+      ansible-playbook oim_cleanup.yml -e postgres_backup=true
+      ```
 
-4. **Verify the cleanup:**
+!!! important
 
-   ```bash
-   # Confirm no Omnia containers remain
-   podman ps -a | grep -i omnia
+    When prompted to back up the PostgreSQL database that you want to
+    retain, record the database credentials. These credentials are
+    required to restore the database when running the `prepare_oim.yml`
+    playbook.
 
-   # Confirm no Omnia pods remain
-   podman pod ls
-   ```
+2. After running the `oim_cleanup.yml` playbook, do the following:
 
+   - Reboot the OIM node to ensure all changes take effect.
+   - The `omnia_core` container is **not** removed by `oim_cleanup.yml`.
+     To delete it, log in to the OIM node and run:
 
+      ```bash title="Run on: OIM host"
+      omnia.sh --uninstall
+      ```
 
-## Selective cleanup options
+!!! warning
 
+    - After a clean-up, when re-provisioning your cluster by re-running the
+      `provision.yml` playbook, ensure to use a different `admin_nic_subnet` in
+      `input/provision_config.yml` to avoid a conflict with newly assigned
+      servers. Alternatively, disable any OS available in the
+      **Boot Option Enable/Disable** section of your BIOS settings
+      (**BIOS Settings > Boot Settings > UEFI Boot Settings**) on all target
+      nodes.
+    - On subsequent runs of `provision.yml`, if users are unable to log into
+      the server, refresh the SSH key manually and retry:
 
-If you do not need a full teardown, `oim_cleanup.yml` supports selective
-cleanup through extra variables:
-
-| Option | Description |
-| --- | --- |
-| `cleanup_provisioning=true` | Remove only provisioning-related services (OpenCHAMI, CoreDHCP, TFTP) while keeping the `omnia_core` container and telemetry stack. |
-| `cleanup_telemetry=true` | Remove only telemetry services (Kafka, VictoriaMetrics, Grafana) while keeping provisioning and core services. |
-| `cleanup_repos=true` | Remove Pulp repository data and cached packages, freeing disk space without affecting running services. |
-
-Example of selective cleanup:
-
-```bash title="Run on: OIM host"
-cd /omnia/utils/
-ansible-playbook oim_cleanup.yml -e "cleanup_telemetry=true"
-```
-
-
-!!! tip
-
-    Selective cleanup is useful when troubleshooting a specific subsystem. For
-    example, if telemetry is misconfigured, you can tear down only the telemetry
-    stack and redeploy it without disturbing the rest of the OIM.
-
-## Post-cleanup steps
-
-
-After a full cleanup, you will need to redeploy Omnia from the beginning:
-
-1. Re-run the OIM preparation playbook (see [Prepare Oim](../HowTo/Setup/prepare_oim.md)).
-2. Rebuild the `omnia_core` container (see [Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md)).
-3. Reconfigure inputs and credentials (see [Configure Inputs](../HowTo/Setup/configure_inputs.md)
-   and [Configure Credentials](../HowTo/Setup/configure_credentials.md)).
-4. Re-discover and provision nodes (see [Discover Nodes](../HowTo/Setup/discover_nodes.md)).
-
-
-!!! info
-
-    - [Reprovision Cluster](reprovision_cluster.md) -- Re-image individual nodes without tearing
-      down the entire OIM.
-    - [General](../Troubleshooting/general.md) -- Common issues that may arise after
-      cleanup and redeployment.
+      ```bash
+      ssh-keygen -R <node IP>
+      ```

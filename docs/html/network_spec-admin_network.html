@@ -1,0 +1,215 @@
+
+<table class="longtable omnia-table docutils align-default" style="width: 100%">
+    <thead>
+        <tr class="row-odd">
+            <th class="head">
+                <p>Parameter</p>
+            </th>
+            <th class="head">
+                <p>Details</p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network">
+                        <strong>admin_network</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">dict</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-cell">
+                    <p>Admin network configuration. Essential for PXE boot and host communication.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/oim_nic_name"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-oim-nic-name">
+                        <strong>oim_nic_name</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The name of the interface on the OIM server associated with the admin network. Default: eno1</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/subnet"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-subnet">
+                        <strong>subnet</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The subnet address for the admin network. Default: 172.16.0.0</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/netmask_bits"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-netmask-bits">
+                        <strong>netmask_bits</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The number of bits in the subnet mask. Default: 24</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/primary_oim_admin_ip"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-primary-oim-admin-ip">
+                        <strong>primary_oim_admin_ip</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The admin IP address of the OIM server which is configured. Default: 172.16.107.254</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/primary_oim_bmc_ip"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-primary-oim-bmc-ip">
+                        <strong>primary_oim_bmc_ip</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The iDRAC IP address of the OIM server. Mandatory only if idrac_telemetry is enabled and telemetry data needs to be collected from the OIM server.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/dynamic_range"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-dynamic-range">
+                        <strong>dynamic_range</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>The range of dynamic IP addresses available on the admin network. Default: 172.16.107.201-172.16.107.250</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/dns"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-dns">
+                        <strong>dns</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=string</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>List of external DNS server IP addresses for the admin network. Default: []</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/ntp_servers"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-ntp-servers">
+                        <strong>ntp_servers</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">list</span> / <span class="omnia-elements">elements=dict</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>List of NTP servers for the admin network. Each entry includes address (IP or hostname) and type (server or pool). Default: []</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-odd">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/ntp_servers/address"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-ntp-servers-address">
+                        <strong>address</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>IP address or hostname of the NTP server.</p>
+                </div>
+            </td>
+        </tr>
+        <tr class="row-even">
+            <td>
+                <div class="omnia-indent"></div>
+                <div class="omnia-indent"></div>
+                <div class="omnia-cell">
+                    <div class="ansibleOptionAnchor" id="parameter-admin_network/ntp_servers/type"></div>
+                    <p class="omnia-title" id="module-parameter-admin-network-ntp-servers-type">
+                        <strong>type</strong>
+                    </p>
+                    <p class="omnia-type-line"><span class="omnia-type">string</span> / <span class="omnia-required">required</span></p>
+                </div>
+            </td>
+            <td>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-indent-desc"></div>
+                <div class="omnia-cell">
+                    <p>NTP source type. Accepted values: server, pool.</p>
+                </div>
+            </td>
+        </tr>
+    </tbody>
+</table>

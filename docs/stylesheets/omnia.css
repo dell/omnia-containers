@@ -1,0 +1,262 @@
+/* -- Light mode (default) ----------------------------------- */
+:root,
+[data-md-color-scheme="default"] {
+    --table-background-header: #0076CE;   /* dell-blue */
+    --table-background-even: #fff;
+    --table-background-odd: #FAFAFA;      /* dell-gray-50 */
+    --table-border: #EEEEEE;              /* dell-gray-200 */
+    --narrowtable-background: #EEF1F5;    /* dell sidebar tint */
+    --option-type: #003566;               /* dell-dark */
+    --option-elements: #003566;           /* dell-dark */
+    --option-required: #d32f2f;           /* refined red */
+    --option-default: #0076CE;            /* dell-blue */
+}
+
+/* -- Dark mode (slate) ------------------------------------- */
+[data-md-color-scheme="slate"] {
+    --table-background-header: #003566;   /* dell-dark */
+    --table-background-even: #1a1a2e;
+    --table-background-odd: #222240;
+    --table-border: rgba(255, 255, 255, 0.12);
+    --narrowtable-background: rgba(255, 255, 255, 0.08);
+    --option-type: #7FC1EE;               /* lighter blue for dark bg */
+    --option-elements: #7FC1EE;
+    --option-required: #ff6b6b;           /* brighter red for dark bg */
+    --option-default: #4DA3E0;            /* dell-light */
+}
+
+body {
+    font-family: var(--md-text-font-family);
+    margin: 40px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #001d3d;    /* dell-navy */
+    margin-bottom: 20px;
+}
+
+table.omnia-table {
+    border-color: var(--table-border) !important;
+    display: table;
+    height: 1px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 0.3rem;
+    overflow: hidden;
+}
+
+table.omnia-table tr {
+    height: 100%
+}
+
+table.omnia-table td,
+table.omnia-table th {
+    border-color: var(--table-border) !important;
+    border-left: 1px solid var(--table-border) !important;
+    border-bottom: none !important;
+    vertical-align: top !important
+}
+
+table.omnia-table th>p {
+    font-size: 0.72rem !important;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    margin: 0;
+}
+
+table.omnia-table thead tr {
+    background-color: var(--table-background-header)
+}
+
+table.omnia-table tbody .row-odd td {
+    background-color: var(--table-background-odd) !important
+}
+
+table.omnia-table tbody .row-even td {
+    background-color: var(--table-background-even) !important
+}
+
+table.omnia-table ul>li>p {
+    margin: 0 !important
+}
+
+table.omnia-table ul>li>div[class^=highlight] {
+    margin-bottom: 4px !important
+}
+
+table.omnia-table p.omnia-title {
+    display: inline;
+    font-weight: bold;
+}
+
+table.omnia-table .omnia-type-line {
+    font-size: small;
+    margin-bottom: 0;
+    margin-top: 4px;
+}
+
+table.omnia-table .omnia-type {
+    color: var(--option-type)
+}
+
+table.omnia-table .omnia-elements {
+    color: var(--option-elements)
+}
+
+table.omnia-table .omnia-required {
+    color: var(--option-required)
+}
+
+table.omnia-table .omnia-line {
+    margin-top: 8px
+}
+
+table.omnia-table .omnia-default,
+table.omnia-table .omnia-default-bold {
+    color: var(--option-default)
+}
+
+table.omnia-table p {
+    margin: 0 0 8px
+}
+
+table.omnia-table td {
+    padding: 0 !important;
+    white-space: normal
+}
+
+table.omnia-table td>div.omnia-cell {
+    border-top: 1px solid var(--table-border);
+    padding: 8px 8px
+}
+
+table.omnia-table td:first-child {
+    display: flex;
+    height: inherit;
+    flex-direction: row
+}
+
+table.omnia-table td:first-child>div.omnia-cell {
+    height: inherit;
+    flex: 1 0 auto;
+    max-width: 100%;
+    white-space: nowrap
+}
+
+table.omnia-table .omnia-indent {
+    border-right: 1px solid var(--table-border);
+    margin-left: 2em
+}
+
+.simple {
+    list-style: none;
+    padding-left: 0;
+}
+
+.simple li {
+    margin: 4px 0;
+}
+
+code {
+    background-color: #F5F5F5;  /* dell-gray-100 */
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+em {
+    font-style: italic;
+}
+
+strong {
+    font-weight: bold;
+}
+
+.docutils.literal {
+    background-color: #F5F5F5;  /* dell-gray-100 */
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.omnia-indent-desc {
+    display: block;
+}
+
+
+/* -- Dark mode extras -------------------------------------- */
+[data-md-color-scheme="slate"] h1 {
+    color: #ffffff;
+}
+
+[data-md-color-scheme="slate"] code {
+    background-color: #0d1117;  /* dark code bg */
+    color: #c9d1d9;
+}
+
+[data-md-color-scheme="slate"] .docutils.literal {
+    background-color: #0d1117;
+    color: #c9d1d9;
+}
+
+[data-md-color-scheme="slate"] table.omnia-table th > p {
+    color: #ffffff;
+}
+
+@media (max-width:1200px) {
+    table.omnia-table {
+        border: none !important;
+        display: block;
+        height: unset
+    }
+
+    table.omnia-table thead {
+        display: none
+    }
+
+    table.omnia-table tbody,
+    table.omnia-table td,
+    table.omnia-table tr {
+        border: none !important;
+        display: block
+    }
+
+    table.omnia-table tbody .row-even td,
+    table.omnia-table tbody .row-odd td {
+        background-color: unset !important
+    }
+
+    table.omnia-table td>div.omnia-cell {
+        border-top: none
+    }
+
+    table.omnia-table td:first-child>div.omnia-cell {
+        background-color: var(--narrowtable-background) !important
+    }
+
+    table.omnia-table td:not(:first-child) {
+        display: flex;
+        flex-direction: row
+    }
+
+    table.omnia-table td:not(:first-child)>div.omnia-cell {
+        margin-left: 1em
+    }
+
+    table.omnia-table .omnia-indent,
+    table.omnia-table .omnia-indent-desc {
+        border: none;
+        margin-left: 1em
+    }
+
+}

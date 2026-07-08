@@ -1,9 +1,9 @@
 # Path C: Kubernetes + Telemetry Only
 
 
-Deploy a 5-node Kubernetes service cluster with the full Omnia telemetry
-pipeline -- without Slurm. Use this path when your goal is infrastructure
-monitoring via iDRAC metrics, OS-level telemetry, and Grafana dashboards,
+Deploy a Kubernetes service cluster (minimum 5 nodes) with the full Omnia
+telemetry pipeline -- without Slurm. Use this path when your goal is infrastructure
+monitoring via iDRAC metrics, OS-level telemetry, and time-series storage,
 with no HPC job scheduler required.
 
 **What you will build:**
@@ -11,26 +11,82 @@ with no HPC job scheduler required.
 | Role | Functional Group | Count | Purpose |
 | --- | --- | --- | --- |
 | OIM (management) | -- | 1 | Runs `omnia_core`; orchestrates the deployment. |
-| K8s control plane | `service_kube_control_plane` | 3 | HA Kubernetes control plane (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`). |
-| K8s worker node | `service_kube_node` | 1 | Runs the telemetry stack: iDRAC collector, LDMS aggregator, Kafka, VictoriaMetrics, and Grafana. |
+| K8s control plane | `service_kube_control_plane_x86_64` | 3 | HA Kubernetes control plane (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`). |
+| K8s worker node | `service_kube_node_x86_64` | 1 | Runs the telemetry stack: iDRAC collector, LDMS aggregator, Kafka, VictoriaMetrics, VictoriaLogs, and Vector pipeline. |
 
 **Telemetry pipeline architecture:**
 
-```text title="Telemetry pipeline architecture"
-iDRAC (Redfish) ──┐
-                  ├──> Kafka ──> VictoriaMetrics ──> Grafana
-LDMS (OS-level) ──┘
+Omnia's telemetry pipeline collects metrics and logs from multiple sources,
+routes them through Kafka and dedicated agents, and stores them in
+VictoriaMetrics (time-series metrics) and VictoriaLogs (log data). The
+pipeline is organized into **sources**, **bridges**, and **sinks**.
+
+```text title="Core telemetry data flows"
+iDRAC (Redfish) ─> iDRAC Collector ─> ActiveMQ ─┬─ KafkaPump ─> Kafka 'idrac' topic
+                                                └─ VictoriaPump ─> vmagent ─> VictoriaMetrics
+
+LDMS (OS-level) ─> Aggregator ─> Store ─> Kafka 'ldms' topic
+                                           └─> Vector-LDMS ─> vmagent-vector ─> VictoriaMetrics
+
+DCGM (GPU) ─> vmagent ─> VictoriaMetrics
 ```
 
+```text title="Storage, fabric, and external data flows"
+PowerScale ─> CSM Metrics ─> OTEL Collector ─> vmagent(shared) ─> VictoriaMetrics
+                                            └─> vlagent ─> VictoriaLogs
+
+UFM (InfiniBand) ─> vmagent(shared) ─> VictoriaMetrics / vlagent ─> VictoriaLogs
+VAST (Storage)   ─> vmagent(shared) ─> VictoriaMetrics / vlagent ─> VictoriaLogs
+
+OME (Fleet Mgmt) ─> Kafka 'ome.*' ─> Vector-OME ─> vmagent-vector ─> VictoriaMetrics
+                                                └─> vlagent-vector ─> VictoriaLogs
+```
+
+**Core telemetry sources:**
 
 - **iDRAC collector** polls each server's Redfish endpoint for hardware
-  metrics (temperatures, power consumption, fan speeds, storage health).
+  metrics (temperatures, power consumption, fan speeds, storage health,
+  CPU/memory errors). Data flows through ActiveMQ and is routed to both
+  Kafka and VictoriaMetrics via KafkaPump and VictoriaPump.
 - **LDMS** (Lightweight Distributed Metric Service) collects OS-level
-  metrics (CPU, memory, network I/O, GPU utilization) from monitored nodes.
-- **Kafka** acts as the message broker, decoupling collectors from storage.
-- **VictoriaMetrics** provides high-performance time-series storage with
-  configurable retention.
-- **Grafana** delivers pre-built dashboards with drill-down views.
+  metrics (CPU, memory, network, disk) from compute nodes via sampler
+  plugins (meminfo, procstat2, vmstat, loadavg, procnetdev2). Data flows
+  through the LDMS aggregator and store to Kafka. Enable Vector-LDMS to
+  route LDMS metrics from Kafka to VictoriaMetrics.
+- **DCGM** (NVIDIA Data Center GPU Manager) collects GPU metrics
+  (temperature, utilization, memory, ECC errors, power) from nodes with
+  NVIDIA GPUs. Metrics are sent directly to VictoriaMetrics via vmagent.
+- **PowerScale** collects storage metrics from Dell PowerScale (OneFS)
+  clusters via CSM Observability (Karavi). Metrics flow through OTEL
+  Collector to VictoriaMetrics; logs are sent to VictoriaLogs.
+- **UFM** collects NVIDIA InfiniBand Fabric Manager metrics (IB port
+  state, transmit/receive data, error counters) and syslog logs. Metrics
+  go to VictoriaMetrics; logs go to VictoriaLogs.
+- **VAST** collects storage metrics and syslog events from VAST Storage
+  appliances. Metrics go to VictoriaMetrics; logs go to VictoriaLogs.
+- **OME** (OpenManage Enterprise) collects server inventory, health, alerts,
+  and firmware metrics from Dell OME. OME publishes data to Kafka `ome.*`
+  topics. Enable Vector-OME bridge to route OME data from Kafka to
+  VictoriaMetrics and VictoriaLogs.
+
+**Telemetry bridges (Vector pipeline):**
+
+- **Vector-LDMS** consumes LDMS metrics from the Kafka `ldms` topic,
+  transforms them to Prometheus format, and writes to VictoriaMetrics
+  via a dedicated vmagent-vector instance.
+- **Vector-OME** consumes OpenManage Enterprise metrics and logs from
+  Kafka `ome.*` topics, routing metrics to VictoriaMetrics and logs to
+  VictoriaLogs via vlagent-vector.
+
+**Telemetry sinks (storage):**
+
+- **Kafka** (deployed via Strimzi operator) acts as the message broker,
+  decoupling collectors from storage. Retains messages for a configurable
+  period (default: 7 days).
+- **VictoriaMetrics** (cluster mode with vminsert, vmstorage, vmselect)
+  provides high-performance time-series storage with configurable retention.
+- **VictoriaLogs** (cluster mode with vlinsert, vlstorage, vlselect)
+  provides distributed log storage for telemetry logs and events.
 
 **Estimated time:** ~2 hours.
 
@@ -75,12 +131,12 @@ The mapping file for this path contains **only** Kubernetes roles -- no
 Slurm functional groups.
 
 ```shell title="Run on OIM (as root)"
-cat > /opt/omnia/input/project_default/mapping.csv << 'EOF'
+cat > /opt/omnia/input/project_default/pxe_mapping.csv << 'EOF'
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
-service_kube_control_plane,kube,SVCTAG01,,kube-cp01,24:6E:96:BB:01:01,10.5.0.201,,10.3.0.201
-service_kube_control_plane,kube,SVCTAG02,,kube-cp02,24:6E:96:BB:01:02,10.5.0.202,,10.3.0.202
-service_kube_control_plane,kube,SVCTAG03,,kube-cp03,24:6E:96:BB:01:03,10.5.0.203,,10.3.0.203
-service_kube_node,kube,SVCTAG04,,kube-wk01,24:6E:96:BB:02:01,10.5.0.204,,10.3.0.204
+service_kube_control_plane_x86_64,kube,SVCTAG01,,kube-cp01,24:6E:96:BB:01:01,10.5.0.201,,10.3.0.201
+service_kube_control_plane_x86_64,kube,SVCTAG02,,kube-cp02,24:6E:96:BB:01:02,10.5.0.202,,10.3.0.202
+service_kube_control_plane_x86_64,kube,SVCTAG03,,kube-cp03,24:6E:96:BB:01:03,10.5.0.203,,10.3.0.203
+service_kube_node_x86_64,kube,SVCTAG04,,kube-wk01,24:6E:96:BB:02:01,10.5.0.204,,10.3.0.204
 EOF
 ```
 
@@ -88,199 +144,98 @@ EOF
 !!! warning
 
     Replace **all** placeholder values with your actual hardware data.
-    The 3 `service_kube_control_plane` entries are mandatory for
+    The 3 `service_kube_control_plane_x86_64` entries are mandatory for
     Kubernetes HA -- do not reduce below 3.
-
-!!! tip
-
-    You can monitor additional servers (that are not part of this K8s
-    cluster) via iDRAC telemetry. Simply ensure their iDRAC BMC ports are
-    reachable from the K8s worker node and add their BMC IPs to
-    `telemetry_config.yml` later in Step 7.
 
 ## Step 3 -- Provide Inputs
 
 
-Since this deployment has no Slurm, use the `with_service_k8s` template
-and remove any Slurm-specific settings.
+For K8s + telemetry deployment, update the following input files in
+`/opt/omnia/input/project_default/`. Click each file name to view the
+full parameter reference.
 
-```shell title="Run on OIM (inside omnia_core container)"
-ssh omnia_core
+| Input File | Purpose |
+| --- | --- |
+| [`network_spec.yml`](../Reference/Configuration/network_spec.md) | Network CIDRs, interfaces, and IP ranges |
+| [`provision_config.yml`](../Reference/Configuration/provision_config.md) | OS provisioning and PXE settings |
+| [`high_availability_config.yml`](../Reference/Configuration/ha_config.md) | Kubernetes HA virtual IP configuration |
+| [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) | Telemetry sources, bridges, and sinks |
+| [`software_config.json`](../Reference/Configuration/software_config.md) | Software stack for K8s and telemetry |
+| [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
+| [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
+| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Service cluster K8s settings (cluster name, CNI, pod IP range, NFS storage) |
 
-# Copy the template with K8s support
-cp -r /opt/omnia/examples/input_template/bare_metal_slurm/x86_64/with_service_k8s/* \
-    /opt/omnia/input/project_default/
+### K8s + Telemetry specific guidance
 
-ls -la /opt/omnia/input/project_default/
+**`software_config.json`** -- The `service_k8s` entry is **mandatory**.
+Without it, Omnia skips telemetry deployment entirely.
+
+```json title="Minimum required entries"
+{
+  "softwares": [
+    {"name": "default_packages", "arch": ["x86_64"]},
+    {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]}
+  ]
+}
 ```
 
+!!! caution
 
-Key files for this deployment:
+    LDMS telemetry requires Slurm to be deployed. To enable LDMS along with the full Slurm + K8s stack, refer to the [Full Deployment](full_deployment.md) guide.
 
-- `network_spec.yml` -- Network CIDRs and interfaces
-- `provision_config.yml` -- OS provisioning settings
-- `ha_config.yml` -- Kubernetes HA virtual IP
-- `telemetry_config.yml` -- Telemetry pipeline configuration
-- `software_config.json` -- Software stack (K8s components)
-- `local_repo_config.yml` -- Repository mirror settings
+**`telemetry_config.yml`** -- Enable the telemetry sources you need
+before running `prepare_oim.yml` so all required packages are included
+in the local repo. Set `metrics_enabled: true` for each source (iDRAC,
+LDMS, DCGM, PowerScale, UFM, VAST, OME).
 
-!!! tip
-
-    You can safely ignore `omnia_config.yml` for this path since Slurm
-    will not be deployed. However, do not delete it -- Omnia expects the
-    file to exist even if its values are unused.
-
-## Step 4 -- Set Credentials
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook credentials_utility.yml
+```yaml title="Example: Enable iDRAC telemetry"
+telemetry_sources:
+  idrac:
+    metrics_enabled: true
+    collection_targets: [victoria_metrics, kafka]
+  ...
 ```
 
+**`high_availability_config.yml`** -- Configure the virtual IP for K8s
+API server HA.
 
-You will be prompted for:
-
-- **Provisioning OS password** -- root password for provisioned K8s nodes.
-- **iDRAC credentials** -- for Redfish access during discovery and
-  telemetry collection.
-- **Grafana admin password** -- for the telemetry visualization dashboard.
-
-
-## Step 5 -- Prepare the OIM
-
-
-### **5a. Edit** `network_spec.yml`
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/network_spec.yml
+```yaml title="Example high_availability_config.yml"
+service_k8s_cluster_ha:
+- cluster_name: service_cluster
+  enable_k8s_ha: true
+  virtual_ip_address: 182.11.5.101
 ```
-
-
-```yaml title="Example network_spec.yml"
-admin_network:
-  nic: eno2
-  cidr: 10.5.0.0/16
-  static_range: 10.5.0.200-10.5.0.250
-  gateway: 10.5.0.1
-
-bmc_network:
-  nic: eno2
-  cidr: 10.3.0.0/16
-  static_range: 10.3.0.200-10.3.0.250
-```
-
-
-### **5b. Edit** `provision_config.yml`
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/provision_config.yml
-```
-
-
-```yaml title="Example provision_config.yml"
-iso_path: /opt/isos/RHEL-8.8-x86_64-dvd.iso
-domain_name: omnia.local
-```
-
-
-### **5c. Edit** `ha_config.yml`
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/ha_config.yml
-```
-
-
-```yaml title="Example ha_config.yml"
-# Virtual IP for K8s API HA -- must be unused on the admin network
-k8s_vip: 10.5.0.250
-k8s_vip_interface: eno2
-```
-
 
 !!! warning
 
-    The `k8s_vip` must not conflict with any IP in `mapping.csv` or in
-    the `static_range`. Reserve it explicitly.
+    The `virtual_ip_address` must not belong to `dynamic_range` in
+    `network_spec.yml` or conflict with any IP in `mapping.csv`.
 
-### **5d. Run** `prepare_oim.yml`
+## Step 4 -- Prepare the OIM
 
 
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook prepare_oim.yml -i /opt/omnia/input/project_default/mapping.csv
+```shell title="Run on omnia_core container"
+cd /omnia/prepare_oim
+ansible-playbook prepare_oim.yml
 ```
 
 
+## Step 5 -- Verify OIM Services
 
-## Step 6 -- Verify OIM Services
 
-
-```shell title="Run on OIM (inside omnia_core container)"
+```shell title="Run on omnia_core container"
 systemctl list-dependencies omnia.target
-
-for svc in dhcpd tftp.socket httpd nfs-server; do
-    echo -n "$svc: "; systemctl is-active $svc
-done
 ```
 
 
 All services must show `active`.
 
 
-## Step 7 -- Configure Telemetry
+## Step 6 -- Create Local Repositories
 
 
-Edit the telemetry configuration before creating local repos and deploying
-the cluster, so that all required telemetry packages are included in the
-local repository sync.
-
-```shell title="Run on OIM (inside omnia_core container)"
-vi /opt/omnia/input/project_default/telemetry_config.yml
-```
-
-
-```yaml title="Example telemetry_config.yml"
-# Enable iDRAC hardware telemetry via Redfish
-idrac_telemetry: true
-
-# Enable LDMS OS-level metric collection
-# Set to true if you want CPU/memory/GPU metrics from monitored nodes
-ldms_telemetry: true
-
-# Grafana settings
-grafana_port: 3000
-
-# VictoriaMetrics time-series database
-victoriametrics_retention: 30d
-
-# Kafka message broker
-kafka_enabled: true
-
-# List of additional iDRAC BMC IPs to monitor (beyond nodes in mapping.csv)
-# Uncomment and add IPs to monitor servers not managed by this Omnia deployment
-# additional_idrac_targets:
-#   - 10.3.0.50
-#   - 10.3.0.51
-#   - 10.3.0.52
-```
-
-
-!!! tip
-
-    The `additional_idrac_targets` field lets you monitor servers that
-    are not part of this Omnia deployment. This is useful for monitoring
-    existing clusters or standalone servers through the same Grafana
-    instance.
-
-## Step 8 -- Create Local Repositories
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
+```shell title="Run on omnia_core container"
+cd /omnia/local_repo
 ansible-playbook local_repo.yml
 ```
 
@@ -288,116 +243,137 @@ ansible-playbook local_repo.yml
 !!! warning
 
     This step downloads Kubernetes packages, container images for the
-    telemetry stack (Grafana, VictoriaMetrics, Kafka), and base OS
-    packages. Allow **30--60 minutes** and ~20 GB disk space.
+    telemetry stack (VictoriaMetrics, VictoriaLogs, Kafka, Vector), and
+    base OS packages. Allow **30--60 minutes** and ~20 GB disk space.
 
-## Step 9 -- Build Node Images
+## Step 7 -- Build Node Images
 
 
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
+```shell title="Run on omnia_core container"
+cd /omnia/build_image_x86_64
 ansible-playbook build_image_x86_64.yml
+```
 
+
+```shell title="Run on OIM"
 # Verify the image was created
-s3cmd ls s3://omnia-images/
+s3cmd ls -Hr s3://boot-images
 ```
 
 
 
-## Step 10 -- Discover and Provision Nodes
+## Step 8 -- Provision Nodes
 
 
-Power on your 4 target nodes with PXE boot priority, then run discovery.
+The `provision.yml` playbook provisions the cluster nodes. It configures
+boot scripts, cloud-init, deploys iDRAC telemetry service, and deploys
+LDMS on the service cluster.
 
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook discovery.yml
+```shell title="Run on omnia_core container"
+cd /omnia/provision
+ansible-playbook provision.yml
 ```
 
 
-```shell title="Run on OIM (inside omnia_core container)"
-# Verify all 4 nodes are reachable
-ansible all -m ping -i /opt/omnia/inventories/project_default/inventory
+!!! note
+
+    - After executing `provision.yml`, check log files at `/opt/omnia/log`
+      for details.
+    - To identify boot issues on a node, check `/var/log/cloud-init-output.log`
+      on the target node.
+    - Omnia does not track OS installation on the target node. Verify
+      installation status manually.
+    - Post execution, IPs/hostnames cannot be re-assigned by changing
+      the mapping file.
+
+!!! warning
+
+    - In case of any IP route conflict between Admin network and
+      additional NIC, delete the Admin route or configure the IP route
+      priority based on your cluster requirements.
+    - Do not run `ssh-keygen` post execution of `provision.yml` to avoid
+      breaking the password-less SSH channel on the OIM.
+    - Do not delete the Omnia shared path or the NFS directory.
+
+**Optional: Set PXE boot order using `set_pxe_boot.yml`**
+
+After running `provision.yml`, you can either manually PXE boot the
+nodes or use the `set_pxe_boot.yml` utility. This playbook sets the PXE
+boot order on target nodes via iDRAC so they automatically boot into the
+diskless image from the OIM.
+
+!!! warning
+
+    This playbook will restart your servers and power them on if they
+    are off. Any unsaved data will be lost.
+
+```shell title="Run on omnia_core container (with inventory)"
+cd /omnia/utils
+ansible-playbook set_pxe_boot.yml -i inventory
 ```
 
 
-Expected: all 4 nodes return `pong`.
-
-
-## Step 11 -- Deploy Service Kubernetes Cluster
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
-ansible-playbook k8s.yml
+```shell title="Run on omnia_core container (all nodes from mapping file)"
+cd /omnia/utils
+ansible-playbook set_pxe_boot.yml
 ```
 
 
-This playbook:
+## Step 9 -- Deploy Telemetry
 
-- Initializes the Kubernetes cluster on `kube-cp01`.
-- Joins `kube-cp02` and `kube-cp03` as additional control-plane nodes.
-- Joins `kube-wk01` as the worker node.
-- Deploys `kube-vip` for API server HA.
-- Installs Calico CNI and MetalLB.
 
-```shell title="Run on OIM (inside omnia_core container)"
-# Verify the K8s cluster
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
-kubectl get nodes
+The `provision.yml` playbook (Step 8) deploys the service Kubernetes
+cluster and the core telemetry infrastructure. The `telemetry.yml`
+playbook initiates the iDRAC telemetry service on the service cluster
+based on the enabled components in `telemetry_config.yml`.
+
+**Prerequisites:**
+
+- `provision.yml` has been executed successfully with
+  `service_kube_control_plane_x86_64` and `service_kube_node_x86_64` in the mapping file.
+- All nodes are booted and pods are running.
+
+!!! note
+
+    Run the `telemetry.yml` playbook only if iDRAC telemetry is enabled.
+    It is not required for other telemetry types.
+
+!!! note
+
+    Service cluster metadata automatically captures the service cluster
+    kube control plane virtual IP. As a result, `telemetry.yml` is
+    executed against the VIP rather than an individual control plane node.
+
+**Collect telemetry from external nodes (optional):**
+
+You can monitor additional servers (that are not part of this K8s
+cluster) via iDRAC telemetry. Ensure their iDRAC BMC ports are reachable
+from the K8s worker node and update the BMC IPs in
+`/opt/omnia/telemetry/bmc_group_data.csv` inside the omnia_core
+container. The `GROUP_NAME` and `PARENT` fields must be left blank.
+
+```text title="Sample bmc_group_data.csv"
+BMC_IP,GROUP_NAME,PARENT
+10.3.0.101,,
+10.3.0.102,,
 ```
 
-
-Expected output (all nodes `Ready`):
-
-```text title="Expected output"
-NAME        STATUS   ROLES           AGE   VERSION
-kube-cp01   Ready    control-plane   10m   v1.28.x
-kube-cp02   Ready    control-plane   8m    v1.28.x
-kube-cp03   Ready    control-plane   8m    v1.28.x
-kube-wk01   Ready    <none>          6m    v1.28.x
-```
-
-
-```shell title="Run on OIM (inside omnia_core container)"
-# Verify all system pods are healthy
-kubectl get pods -n kube-system
-```
-
-
-All pods should be `Running` or `Completed`.
-
-!!! tip
-
-    If `kube-vip` pods are in `CrashLoopBackOff`, verify that the
-    `k8s_vip` in `ha_config.yml` is not in use by another device.
-    Run `arping -D -I eno2 10.5.0.250` from the OIM to check for
-    conflicts.
-
-## Step 12 -- Deploy Telemetry
-
-
-With the K8s cluster operational, deploy the full telemetry pipeline.
-
-```shell title="Run on OIM (inside omnia_core container)"
-cd /opt/omnia
+```shell title="Run on omnia_core container"
+cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
 
 
-`telemetry.yml` deploys these components as Kubernetes workloads:
+!!! note
 
-| Component | K8s Resource | Function |
-| --- | --- | --- |
-| iDRAC collector | Deployment | Polls iDRAC Redfish APIs on all BMC IPs for hardware telemetry (temperatures, power draw, fan RPM, storage health, memory errors). |
-| LDMS aggregator | Deployment | Receives OS-level metrics from `ldmsd` daemons running on monitored nodes. Forwards to Kafka. |
-| Kafka | StatefulSet | Message broker that buffers and routes metrics from collectors to VictoriaMetrics. |
-| VictoriaMetrics | StatefulSet | Time-series database optimized for high-throughput metric ingestion. Data retained per `victoriametrics_retention` setting. |
-| Grafana | Deployment | Visualization and dashboarding. Ships with pre-built Omnia dashboards for hardware and OS metrics. |
+    If you want to enable additional telemetry components after the
+    first successful deployment (by updating `telemetry_config.yml`),
+    and Kubernetes is already up and running, execute the `telemetry.sh`
+    script on kube-control-plane at path
+    `<K8s_NFS_mount_point>/telemetry/telemetry.sh`.
 
-```shell title="Run on OIM (inside omnia_core container)"
+```shell title="Run on K8s control plane"
 # Verify all telemetry pods are running
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
 kubectl get pods -n omnia-telemetry
 ```
 
@@ -405,82 +381,37 @@ kubectl get pods -n omnia-telemetry
 Expected output (all pods `Running` or `Completed`):
 
 ```text title="Expected output"
-NAME                                  READY   STATUS    RESTARTS   AGE
-grafana-6b8c4f7d9-xk2p4              1/1     Running   0          5m
-victoriametrics-0                     1/1     Running   0          5m
-kafka-0                               1/1     Running   0          5m
-idrac-collector-5d9f8b7c6-m3n7q      1/1     Running   0          5m
-ldms-aggregator-7f4b9c8d2-p2r4s      1/1     Running   0          5m
+NAME                                     READY   STATUS    RESTARTS   AGE
+vmstorage-victoria-cluster-0             1/1     Running   0          5m
+vminsert-victoria-cluster-0              1/1     Running   0          5m
+vmselect-victoria-cluster-0              1/1     Running   0          5m
+vlstorage-victoria-logs-cluster-0        1/1     Running   0          5m
+vlinsert-victoria-logs-cluster-0         1/1     Running   0          5m
+vlselect-victoria-logs-cluster-0         1/1     Running   0          5m
+kafka-0                                  1/1     Running   0          5m
+vmagent-5d9f8b7c6-abc12                  1/1     Running   0          5m
+idrac-collector-5d9f8b7c6-m3n7q          1/1     Running   0          5m
+ldms-aggregator-7f4b9c8d2-p2r4s          1/1     Running   0          5m
+ldms-store-8c6d3e9f1-q5t8u               1/1     Running   0          5m
+vector-ldms-6b8c4f7d9-xk2p4             1/1     Running   0          5m
+vmagent-vector-3a7f9d2e1-r4s6t           1/1     Running   0          5m
 ```
 
 
-```shell title="Run on OIM (inside omnia_core container)"
-# Get the Grafana service endpoint
-kubectl get svc -n omnia-telemetry grafana
+
+## Step 10 -- Verify the Telemetry Pipeline
+
+
+Run a quick sanity check to confirm that all telemetry pods are running:
+
+```shell title="Run on K8s control plane"
+kubectl get pods -n telemetry
+kubectl get svc -n telemetry
 ```
 
+All pods should be in `Running` or `Completed` state. All expected services should be listed.
 
-
-## Step 13 -- Verify the Telemetry Pipeline
-
-
-**13a. Access Grafana**
-
-Open a browser and navigate to `http://<k8s_vip>:3000` (e.g.,
-`http://10.5.0.250:3000`). Log in with:
-
-- **Username:** `admin`
-- **Password:** The Grafana password you set in Step 4.
-
-You should see pre-built dashboards in the **Omnia** folder:
-
-- **Cluster Overview** -- Summary of all monitored nodes.
-- **iDRAC Hardware Metrics** -- Per-server temperature, power, fans.
-- **System Metrics** -- CPU, memory, disk, and network utilization.
-
-**13b. Verify data flow**
-
-```shell title="Run on OIM (inside omnia_core container)"
-export KUBECONFIG=/opt/omnia/k8s/admin.conf
-
-# Check Kafka topics are receiving data
-kubectl exec -n omnia-telemetry kafka-0 -- \
-    kafka-topics.sh --list --bootstrap-server localhost:9092
-
-# Check VictoriaMetrics has ingested metrics
-curl -s "http://10.5.0.250:8428/api/v1/query?query=up" | python3 -m json.tool
-```
-
-
-!!! tip
-
-    If Grafana dashboards show "No Data":
-
-    1. Verify the iDRAC collector pod logs:
-       `kubectl logs -n omnia-telemetry deployment/idrac-collector`
-    2. Confirm iDRAC Redfish is reachable from the K8s worker:
-       `kubectl exec -n omnia-telemetry deployment/idrac-collector -- curl -sk https://10.3.0.201/redfish/v1/`
-    3. Check that the iDRAC **Datacenter** license is installed (Enterprise
-       is not sufficient for streaming telemetry).
-
-**13c. Verify iDRAC metrics specifically**
-
-```shell title="Run on OIM (inside omnia_core container)"
-# Query VictoriaMetrics for iDRAC temperature metrics
-curl -s "http://10.5.0.250:8428/api/v1/query?query=idrac_inlet_temperature" \
-    | python3 -m json.tool
-```
-
-
-You should see metric results with labels identifying each server by
-service tag and BMC IP.
-
-**13d. Test alerting (optional)**
-
-In Grafana, navigate to **Alerting > Alert Rules** to see the default
-Omnia alert rules (high temperature, disk failure, power anomaly). You can
-configure notification channels (email, Slack, PagerDuty) under
-**Alerting > Contact Points**.
+For comprehensive per-source verification (iDRAC, LDMS, PowerScale, UFM, VAST, OME, SFM) including Kafka consumer tests, TLS connectivity checks, and VictoriaMetrics/VictoriaLogs UI queries, see [Verify Telemetry](../HowTo/Telemetry/verify_telemetry.md).
 
 
 ## What's Next?
@@ -489,17 +420,18 @@ configure notification channels (email, Slack, PagerDuty) under
 Your K8s telemetry cluster is operational. Common next steps:
 
 **Monitor additional servers**
-   Add more BMC IPs to `additional_idrac_targets` in
-   `telemetry_config.yml` and re-run `telemetry.yml`.
+   Add BMC IPs of external nodes to `/opt/omnia/telemetry/bmc_group_data.csv`
+   and re-run `telemetry.yml`.
 
 **Add Slurm later**
    Follow [Full Deployment](full_deployment.md) (Path B) to add Slurm head, compute,
    and login nodes to this existing deployment. The K8s telemetry cluster
    you built here will seamlessly monitor the Slurm nodes.
 
-**Create custom Grafana dashboards**
-   Use VictoriaMetrics as a Prometheus-compatible data source to build
-   dashboards tailored to your monitoring needs.
+**Enable additional telemetry sources**
+   Enable DCGM, PowerScale, UFM, or VAST telemetry by setting their
+   `metrics_enabled` fields to `true` in `telemetry_config.yml` and
+   re-running `telemetry.yml`.
 
 **Enable LDMS on external nodes**
    Install the `ldmsd` agent on any Linux server and point it to the
@@ -507,9 +439,9 @@ Your K8s telemetry cluster is operational. Common next steps:
    outside the Omnia-managed cluster.
 
 **Configure long-term retention**
-   Increase `victoriametrics_retention` in `telemetry_config.yml` and
-   attach persistent storage (NFS PV or local SSD) to the VictoriaMetrics
-   StatefulSet.
+   Adjust `retention_period` under `telemetry_sinks > victoria_metrics`
+   and `telemetry_sinks > victoria_logs` in `telemetry_config.yml`.
+   Increase `persistence_size` and attach persistent storage as needed.
 
 !!! info
 
