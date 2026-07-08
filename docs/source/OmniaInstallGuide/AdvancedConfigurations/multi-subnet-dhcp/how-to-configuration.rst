@@ -10,7 +10,7 @@ Prerequisites
 
 Before configuring multi-subnet DHCP:
 
-* Omnia Infrastructure Manager (OIM) deployed and operational (``prepare_oim.yml`` playbook executed successfully)
+* Omnia Infrastructure Manager (OIM) deployed and operational with ``omnia_core`` container up and running (``prepare_oim.yml`` playbook executed successfully)
 * Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM CoreSMD server
 * CoreSMD services deployed (CoreSMD v0.6.3+ required for multi-subnet support)
 * Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
