@@ -36,6 +36,8 @@ The ``service_k8s_cluster`` depends on the inputs provided in the following file
         k8s_crio_storage_size: "20G"
 
 
+.. _slurm-setup-params:
+
 .. csv-table:: Parameters for slurm setup
    :file: ../../../Tables/scheduler_slurm.csv
    :header-rows: 1
@@ -81,6 +83,7 @@ See the following sample:
 ``/opt/omnia/input/project_default/storage_config.yml``
 ----------------------------------------------------------
 
+.. _storage-config-params:
 
 .. csv-table:: Parameters for Storage
    :file: ../../../Tables/storage_config.csv
