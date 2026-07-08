@@ -67,6 +67,12 @@ import json
 import re
 from typing import Dict, Any, List
 
+from ..vars.upgrade_core_vars import (
+    UPGRADE_MANIFEST_PATH,
+    BACKUP_PRIMARY_PATH,
+    BACKUP_LEGACY_PATH,
+)
+
 from ...core import run_on_remote_node
 from ..vars.k8s_telemetry_upgrade_vars import (
     TELEMETRY_NAMESPACE,
@@ -1071,7 +1077,7 @@ def verify_upgrade_manifest(host) -> Dict[str, Any]:
     from ...core import run_on_oim
     cmd = run_on_oim(
         host,
-        "cat /opt/omnia/upgrade_manifest.yml 2>/dev/null || echo 'NOT_FOUND'"
+        f"cat {UPGRADE_MANIFEST_PATH} 2>/dev/null || echo 'NOT_FOUND'"
     )
     if cmd.rc != 0 or "NOT_FOUND" in cmd.stdout:
         # Manifest may not exist in all product versions — treat as acceptable
@@ -1221,16 +1227,16 @@ def verify_etcd_backup_exists(host, admin_ip: str) -> Dict[str, Any]:
     TC-F003: etcd members + k8s config backed up.
 
     Checks multiple known backup locations:
-      - /share_omnia_csi/upgrade/backup/ (primary)
-      - /opt/omnia/k8s_upgrade_backup/ (legacy)
+      - {BACKUP_PRIMARY_PATH}/ (primary)
+      - {BACKUP_LEGACY_PATH}/ (legacy)
 
     Returns:
         Dict with success, snapshot_exists, k8s_backup_exists, error
     """
     # Check etcd members backup (etcd-members.json)
     snap_cmd = (
-        "ls /share_omnia_csi/upgrade/backup/etcd-members.json 2>/dev/null "
-        "|| ls /opt/omnia/k8s_upgrade_backup/etcd-snapshot*.db 2>/dev/null "
+        f"ls {BACKUP_PRIMARY_PATH}/etcd-members.json 2>/dev/null "
+        f"|| ls {BACKUP_LEGACY_PATH}/etcd-snapshot*.db 2>/dev/null "
         "&& echo 'SNAP_OK' || echo 'SNAP_MISSING'"
     )
     snap_result = run_on_remote_node(host, snap_cmd, admin_ip)
@@ -1238,8 +1244,8 @@ def verify_etcd_backup_exists(host, admin_ip: str) -> Dict[str, Any]:
 
     # Check /etc/kubernetes config backup (k8s-config.tar.gz)
     k8s_cmd = (
-        "find /share_omnia_csi/upgrade/backup/configs -name 'k8s-config.tar.gz' 2>/dev/null | head -1 "
-        "|| ls /opt/omnia/k8s_upgrade_backup/etc-kubernetes*.tar* 2>/dev/null "
+        f"find {BACKUP_PRIMARY_PATH}/configs -name 'k8s-config.tar.gz' 2>/dev/null | head -1 "
+        f"|| ls {BACKUP_LEGACY_PATH}/etc-kubernetes*.tar* 2>/dev/null "
         "&& echo 'K8S_OK' || echo 'K8S_MISSING'"
     )
     k8s_result = run_on_remote_node(host, k8s_cmd, admin_ip)

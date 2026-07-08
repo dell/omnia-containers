@@ -50,8 +50,6 @@
     omnia_test_config: "{{ hostvars['localhost']['omnia_test_config'] }}"
     snapshot_path: "{{ omnia_test_config.k8s_upgrade_snapshot_path | default('/tmp/k8s_telemetry_upgrade_precheck.json') }}"
 
-  vars_files:
-    - vars/vars.yml
 
   tasks:
     - name: Display target OIM server
@@ -60,7 +58,7 @@
 
     - name: Verify omnia_core container is running
       ansible.builtin.shell:
-        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name={{ container_name }}
+        cmd: podman ps --format '{{ '{{' }}.Names{{ '}}' }}' --filter name=omnia_core
       register: container_check
       changed_when: false
       failed_when: "'omnia_core' not in container_check.stdout"

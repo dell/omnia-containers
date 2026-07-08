@@ -56,7 +56,7 @@
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
 #   one_shot_log_extraction - Run one-shot log extraction and verify
-#   Upgrade              - K8s/Telemetry upgrade tests (pre-check, post-check, negative, upgrade workflow)
+#   Upgrade              - Omnia upgrade tests (K8s, telemetry, Slurm pre-check, post-check, negative, upgrade workflow)
 #   rollback_omnia_sh   - Rollback omnia.sh and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
