@@ -56,10 +56,7 @@
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
 #   one_shot_log_extraction - Run one-shot log extraction and verify
-#   upgrade_pre_k8s_telemetry  - K8s/Telemetry pre-upgrade checks + snapshot
-#   upgrade_omnia_sh    - Upgrade omnia.sh and verify
-#   upgrade_post_k8s_telemetry - K8s/Telemetry post-upgrade validation
-#   upgrade_negative_k8s_telemetry - K8s/Telemetry negative/performance/execute tests
+#   Upgrade              - K8s/Telemetry upgrade tests (pre-check, post-check, negative, upgrade workflow)
 #   rollback_omnia_sh   - Rollback omnia.sh and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
@@ -101,7 +98,7 @@ NC='\033[0m' # No Color
 # Add new scenarios, commands, or suites here when extending the framework.
 
 # Supported scenario names (must match directories under molecule/)
-SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh upgrade_pre_k8s_telemetry upgrade_post_k8s_telemetry upgrade_negative_k8s_telemetry"
+SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh"
 
 # Supported molecule commands
 SUPPORTED_COMMANDS="test verify converge create prepare"
@@ -113,16 +110,13 @@ SUPPORTED_RUN_VALUES="true false"
 SUPPORTED_SUITES="sanity negative regression smoke stress performance build_auto deploy_auto build_manual deploy_manual cleanup_manual build_stream"
 
 # Execution order for --config mode and 'all' command
-SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction upgrade_pre_k8s_telemetry upgrade_omnia_sh upgrade_post_k8s_telemetry upgrade_negative_k8s_telemetry rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+SCENARIO_EXECUTION_ORDER="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
 
-# Resolve nested scenario directories (e.g. Upgrade/Pre_check/K8s_telemetry)
+# Resolve scenario directories (now flat structure, no nested paths needed)
 resolve_scenario_dir() {
     local scenario="$1"
     case "$scenario" in
-        upgrade_pre_k8s_telemetry)  echo "Upgrade/Pre_check/K8s_telemetry" ;;
-        upgrade_post_k8s_telemetry) echo "Upgrade/Post_check/K8s_telemetry" ;;
-        upgrade_negative_k8s_telemetry) echo "Upgrade/Negative/K8s_telemetry" ;;
-        upgrade_omnia_sh)           echo "Upgrade/upgrade_omnia_sh" ;;
+        Upgrade)                    echo "Upgrade" ;;
         *)                          echo "$scenario" ;;
     esac
 }
@@ -399,7 +393,7 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream upgrade_pre_k8s_telemetry upgrade_omnia_sh upgrade_post_k8s_telemetry upgrade_negative_k8s_telemetry rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
             local resolved_dir
             resolved_dir=$(resolve_scenario_dir "$name")
@@ -611,7 +605,7 @@ if [[ -n "$SUITE" ]]; then
 fi
 
 # For tests-only scenarios: always use verify (no converge step needed)
-if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "upgrade_omnia_sh" || "$SCENARIO" == "upgrade_pre_k8s_telemetry" || "$SCENARIO" == "upgrade_post_k8s_telemetry" || "$SCENARIO" == "upgrade_negative_k8s_telemetry") ]]; then
+if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "Upgrade") ]]; then
     echo -e "${YELLOW}Note: ${SCENARIO} uses 'verify' instead of 'test' (no converge step needed)${NC}"
     COMMAND="verify"
 fi
