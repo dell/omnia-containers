@@ -155,7 +155,7 @@ Example:
 3. Creating the PXE Mapping CSV
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Populate the pxe_mapping file csv with the required fields. Refer `PXE mapping CSV <../../composable_roles.html#create-pxe-file-manually>`_
+Populate the pxe_mapping file csv with the required fields. Refer :ref:`manual_pxe_mapping` for detailed instructions.
 
 Example:
 
@@ -170,7 +170,7 @@ Example:
 4. Configure Slurm cluster parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Populate the required slurm specific parameters in ``omnia_config.yml``. (For parameter details, see: `Parameters for Slurm setup <../schedulerinputparams.html#id1>`)
+Populate the required slurm specific parameters in ``omnia_config.yml``. (For parameter details, see: :ref:`slurm-setup-params`)
 
 .. code-block:: yaml
 
@@ -183,7 +183,7 @@ Populate the required slurm specific parameters in ``omnia_config.yml``. (For pa
 5. Configure Storage for Slurm
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Slurm uses NFS storage and optional VAST(NFS storage) for operational purposes. `Parameters for storage configuration <../schedulerinputparams.html#id4>` for details. Populate the parameters in ``storage_config.yml``.
+Slurm uses NFS storage and optional VAST(NFS storage) for operational purposes. For storage configuration details, see :ref:`storage-config-params`. Populate the parameters in ``storage_config.yml``.
 
 .. code-block:: yaml
 
@@ -251,7 +251,7 @@ Confirm repository synchronization completed successfully by checking the reposi
 Step 3: Build Diskless Images
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Build cluster node images. See `Build images <../../build_images.html>` for more information.
+Build cluster node images. See :doc:`../../build_images` for more information.
 
 **x86_64**
 
@@ -272,7 +272,7 @@ Verify that the images are built successfully by checking the image build logs.
 Step 4: Configure Nodes
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the ``provision.yml`` playbook to discover potential cluster nodes, configure the boot script, and cloud-init based on the functional groups in pxe mapping csv file. See `Provision cluster nodes <../../Provision/index.html>` for more information.
+Run the ``provision.yml`` playbook to discover potential cluster nodes, configure the boot script, and cloud-init based on the functional groups in pxe mapping csv file. See :doc:`../../Provision/index` for more information.
 
 .. code-block:: bash
 
