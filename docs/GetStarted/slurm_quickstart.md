@@ -220,7 +220,26 @@ ansible-playbook get_config_credentials.yml
     quotes (`'`), double quotes (`"`), or backslashes (`\`) unless
     otherwise specified.
 
-## Step 5 -- Prepare the OIM
+## Step 5 -- Configure Slurm
+
+Omnia applies a default Slurm configuration optimized for HPC clusters:
+
+- **Default partition**: A partition named `normal` is created with all
+  compute nodes from the PXE mapping file
+- **Scheduler**: `sched/backfill` with `select/cons_tres` and
+  `CR_Core_Memory`
+- **GPU support**: `GresTypes=gpu` with `AutoDetect=nvml`
+- **Configless mode**: Compute nodes use `--conf-server` to fetch
+  configuration from the controller
+
+!!! note
+    The parameters `ClusterName`, `SlurmctldHost`, and
+    `AccountingStorageHost` are managed by Omnia and cannot be overridden.
+
+For custom Slurm configuration, see
+[Configure Slurm](../HowTo/Slurm/configure_slurm.md).
+
+## Step 6 -- Prepare the OIM
 
 Run `prepare_oim.yml` to configure the OIM for cluster deployment.
 
@@ -242,7 +261,7 @@ The `prepare_oim.yml` playbook deploys the following on the OIM:
     root before executing the playbook.
 
 
-## Step 6 -- Verify OIM Services
+## Step 7 -- Verify OIM Services
 
 After `prepare_oim.yml` completes, verify that all Omnia-managed
 services are running.
@@ -260,7 +279,7 @@ Key services to verify:
 - `openchami.target` and its dependent services
 
 
-## Step 7 -- Create Local Repositories
+## Step 8 -- Create Local Repositories
 
 Download required packages and repositories for offline node
 provisioning.
@@ -280,7 +299,7 @@ Confirm repository synchronization completed successfully by checking
 the repository logs.
 
 
-## Step 8 -- Build Node Images
+## Step 9 -- Build Node Images
 
 Build diskless images for each functional group defined in the mapping
 file.
@@ -313,7 +332,7 @@ Verify that images are created for each functional group:
 s3cmd ls -Hr s3://boot-images
 ```
 
-## Step 9 -- Provision Nodes
+## Step 10 -- Provision Nodes
 
 Run `provision.yml` to discover cluster nodes, configure boot scripts,
 and generate cloud-init files based on the functional groups in the PXE
@@ -329,7 +348,7 @@ Verify that:
 - Cloud-init files are generated.
 - Provision logs show successful configuration.
 
-## Step 10 -- PXE Boot Nodes
+## Step 11 -- PXE Boot Nodes
 
 After `provision.yml` completes, PXE boot all Slurm-related nodes:
 
@@ -350,7 +369,7 @@ ansible-playbook utils/set_pxe_boot.yml
 
 Ensure all nodes boot successfully and become reachable.
 
-## Step 11 -- Verify the Cluster
+## Step 12 -- Verify the Cluster
 
 After all nodes have booted and cloud-init has completed, verify the
 Slurm cluster is operational.
@@ -382,6 +401,11 @@ Your Slurm cluster is operational. Common next steps:
    If your compute nodes have NVIDIA GPUs, follow
    [Slurm with GPU](../HowTo/Slurm/slurm_with_gpu.md) to enable GPU
    scheduling and GRES configuration.
+
+**Install NVIDIA HPC SDK**
+   Set up the NVIDIA HPC compilers (`nvc`, `nvc++`, `nvfortran`) on
+   compiler and compute nodes using
+   [NVIDIA HPC SDK Setup](../HowTo/Slurm/setup_nvhpc_sdk.md).
 
 **Customize Slurm configuration**
    Tune partitions, scheduling policies, and accounting settings using

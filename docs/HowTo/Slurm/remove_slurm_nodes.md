@@ -80,5 +80,17 @@ controller.
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**Node still appears in sinfo after removal**
+   Verify that `provision.yml` completed and check the controller logs:
+
+   ```bash title="Run on: Slurm controller node"
+   journalctl -u slurmctld --no-pager -n 20
+   ```
+
+   Check for failed jobs on the removed node and resubmit as needed:
+
+   ```bash title="Run on: Slurm controller node"
+   sacct --starttime=today --state=FAILED,NODE_FAIL
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

@@ -313,6 +313,30 @@ telemetry_sources:
     For Slurm-only deployments without service K8s, set
     `telemetry_sources.idrac.metrics_enabled` to `false`.
 
+### Step 5: Configure Slurm
+
+#### Default Configuration
+
+Omnia applies a default Slurm configuration optimized for HPC clusters:
+
+- **Default partition**: A partition named `normal` is created with all
+  compute nodes from the PXE mapping file
+- **Scheduler**: `sched/backfill` with `select/cons_tres` and
+  `CR_Core_Memory`
+- **GPU support**: `GresTypes=gpu` with `AutoDetect=nvml`
+- **Configless mode**: Compute nodes use `--conf-server` to fetch
+  configuration from the controller
+
+!!! note
+    The parameters `ClusterName`, `SlurmctldHost`, and
+    `AccountingStorageHost` are managed by Omnia and cannot be overridden.
+
+#### Custom Configuration
+
+For detailed information on custom Slurm configuration, merge control,
+node discovery modes, and configuration validation, see
+[Configure Slurm](configure_slurm.md).
+
 ### Step 6: Prepare the OIM
 
 Run `prepare_oim.yml` to configure the OIM for cluster deployment.
@@ -450,30 +474,6 @@ ansible-playbook utils/set_pxe_boot.yml
 
 Ensure all nodes boot successfully and become reachable.
 
-## Slurm Configuration
-
-### Default Configuration
-
-Omnia applies a default Slurm configuration optimized for HPC clusters:
-
-- **Default partition**: A partition named `normal` is created with all
-  compute nodes from the PXE mapping file
-- **Scheduler**: `sched/backfill` with `select/cons_tres` and
-  `CR_Core_Memory`
-- **GPU support**: `GresTypes=gpu` with `AutoDetect=nvml`
-- **Configless mode**: Compute nodes use `--conf-server` to fetch
-  configuration from the controller
-
-!!! note
-    The parameters `ClusterName`, `SlurmctldHost`, and
-    `AccountingStorageHost` are managed by Omnia and cannot be overridden.
-
-### Custom Configuration
-
-For detailed information on custom Slurm configuration, merge control,
-node discovery modes, and configuration validation, see
-[Configure Slurm](configure_slurm.md).
-
 ## Verification
 
 1. **Check Slurm controller status**:
@@ -515,11 +515,114 @@ node discovery modes, and configuration validation, see
 ## Next Steps
 
 - [Slurm with GPU](slurm_with_gpu.md) -- Configure GPU support for Slurm nodes
+- [NVIDIA HPC SDK Setup](setup_nvhpc_sdk.md) -- Install NVIDIA HPC SDK on compiler and compute nodes
 - [Add Slurm Nodes](add_slurm_nodes.md) -- Add more compute nodes to the cluster
 - [Config Backup](slurm_config_backup.md) -- Back up Slurm configuration
 - [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Validate cluster performance
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**`slurmctld` not starting**
+   Check the slurmctld log and verify munge is running:
+
+   ```bash title="Run on: Slurm controller node"
+   tail -100 /var/log/slurm/slurmctld.log
+   systemctl status munge
+   ```
+
+   Validate the configuration and fix spool directory permissions:
+
+   ```bash title="Run on: Slurm controller node"
+   slurmd -C
+   chown -R slurm:slurm /var/spool/slurmctld/
+   chmod 755 /var/spool/slurmctld/
+   ```
+
+
+**Nodes Entering DRAINED State**
+   Fix the epilog script permissions and reconfigure Slurm:
+
+   ```bash title="Run on: Slurm controller node"
+   chmod 0755 /etc/slurm/epilog.d/logout_user.sh
+   scontrol reconfigure
+   ```
+
+
+**Nodes stuck in DOWN state**
+   Check the reason and verify `slurmd` is running on the compute node:
+
+   ```bash title="Run on: Slurm controller node"
+   scontrol show node <nodename> | grep -i reason
+   ssh <nodename> systemctl status slurmd
+   ```
+
+   Resume the node after fixing the underlying issue:
+
+   ```bash title="Run on: Slurm controller node"
+   scontrol update NodeName=<nodename> State=RESUME
+   ```
+
+
+**Job submission failures**
+   Check available partitions and resources:
+
+   ```bash title="Run on: Slurm controller node"
+   sinfo
+   sinfo -N -l
+   squeue
+   ```
+
+
+**`slurmdbd` connection issues**
+   Check `slurmdbd` and MariaDB status:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status slurmdbd
+   systemctl status mariadb
+   ```
+
+   Test database connectivity and restart if needed:
+
+   ```bash title="Run on: Slurm controller node"
+   mysql -u slurm -p -h localhost slurm_acct_db -e "SELECT 1;"
+   systemctl restart slurmdbd
+   systemctl restart slurmctld
+   ```
+
+
+**Munge authentication failure**
+   Verify Munge is running and keys are identical across all nodes:
+
+   ```bash title="Run on: omnia_core container"
+   ansible slurm_cluster -m shell -a "systemctl status munge"
+   ansible slurm_cluster -m shell -a "md5sum /etc/munge/munge.key"
+   ```
+
+
+**MariaDB connection error**
+   Check MariaDB and restart Slurm services:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status mariadb
+   systemctl start mariadb
+   systemctl restart slurmdbd
+   systemctl restart slurmctld
+   ```
+
+
+**`sacct` erroring out or returning empty results**
+   Check `slurmdbd` service and port:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl status slurmdbd
+   ss -tlnp | grep 6819
+   ```
+
+   Restart the services:
+
+   ```bash title="Run on: Slurm controller node"
+   systemctl restart slurmdbd
+   systemctl restart mariadb
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

@@ -121,11 +121,55 @@ package is selected based on the CUDA version. On clusters running CUDA
 
 ## Next Steps
 
+- [NVIDIA HPC SDK Setup](setup_nvhpc_sdk.md) -- Install the NVIDIA HPC SDK on compiler and compute nodes
 - [Run HPC Benchmarks](run_hpc_benchmarks.md) -- Run GPU-accelerated benchmarks
 - [Configure InfiniBand](../Networking/configure_infiniband.md) -- Enable
   GPUDirect RDMA over InfiniBand
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**`nvidia-smi` not found or driver not communicating**
+   Verify GPU hardware is present and re-install the driver:
+
+   ```bash title="Run on: GPU compute node"
+   lspci | grep -i nvidia
+   dnf install -y cuda-drivers
+   cat /var/log/nvidia_install.log
+   ```
+
+
+**CUDA toolkit not available on node**
+   Verify the NFS mount at `/usr/local/cuda` is present:
+
+   ```bash title="Run on: GPU compute node"
+   mount | grep cuda
+   ```
+
+   If absent, review the installation log on the installer node:
+
+   ```bash title="Run on: installer node (login/compiler or compute)"
+   cat /var/log/cuda_toolkit_install.log
+   ```
+
+
+**`nvidia-dcgm` service inactive or failed**
+   Verify the driver is functional and check the CUDA version:
+
+   ```bash title="Run on: GPU compute node"
+   nvidia-smi
+   nvidia-smi | grep "CUDA Version"
+   cat /var/log/dcgm_setup.log
+   ```
+
+
+**`nvidia-peermem` not loading**
+   Verify kernel headers and load the module:
+
+   ```bash title="Run on: GPU compute node"
+   ls /lib/modules/$(uname -r)/build
+   dnf install -y kernel-devel-$(uname -r)
+   modprobe nvidia-peermem
+   cat /var/log/nvidia_peermem_install.log
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

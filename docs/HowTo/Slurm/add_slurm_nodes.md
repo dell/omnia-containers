@@ -76,5 +76,19 @@ new nodes into the cluster during provisioning.
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**New nodes show DOWN after adding**
+   Verify `slurmd` is running and cloud-init completed on the new node:
+
+   ```bash title="Run on: new compute node"
+   systemctl status slurmd
+   journalctl -u slurmd --no-pager -n 20
+   cat /var/log/cloud-init-output.log | tail -20
+   ```
+
+   Resume the node from the controller:
+
+   ```bash title="Run on: Slurm controller node"
+   scontrol update nodename=<node> state=resume reason="added"
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).
