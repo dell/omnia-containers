@@ -155,7 +155,7 @@ Example:
 3. Creating the PXE Mapping CSV
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Populate the pxe_mapping file csv with the required fields. Refer `PXE mapping CSV <../../Provision/composable_roles.html#create-pxe-file-manually>`_
+Populate the pxe_mapping file csv with the required fields. Refer `PXE mapping CSV <../../composable_roles.html#create-pxe-file-manually>`_
 
 Example:
 
