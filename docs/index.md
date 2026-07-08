@@ -7,11 +7,18 @@
 [![Forks](https://img.shields.io/github/forks/dell/omnia)](https://github.com/dell/omnia/network/members)
 [![License](https://img.shields.io/github/license/dell/omnia)](https://github.com/dell/omnia/blob/main/LICENSE)
 
-Omnia is an open-source, Ansible-based toolkit by Dell Technologies that
-automates the deployment and management of HPC, AI, and data analytics clusters
-on Dell PowerEdge servers. From bare-metal provisioning to job scheduling,
-telemetry, and storage configuration, Omnia turns a rack of servers into a
-production-ready cluster.
+Omnia is a containerized, open-source deployment toolkit designed to automate
+the setup and management of high-performance computing (HPC) environments on
+Linux-based servers. It leverages Ansible playbooks to streamline:
+
+- Operating system provisioning
+- Driver installation and configuration
+- Deployment of workload schedulers such as Slurm and Kubernetes
+- Installation of optimization libraries, machine learning frameworks, and AI models
+- Management of compute, storage, and networking resources
+
+Omnia simplifies infrastructure deployment in complex environments, enabling
+faster setup and consistent configuration across systems.
 
 The project is hosted on [GitHub](https://github.com/dell/omnia), where you can:
 
