@@ -354,7 +354,7 @@ The ``local_repo.yml`` playbook generates log files for troubleshooting download
 
    ::
 
-       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log
+       /opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_62982.log
 
    .. image:: images/troubleshooting_local_repo_updated_5.png
 
@@ -985,6 +985,78 @@ Update the ``RealMemory`` value in ``slurm.conf`` to match the actual available 
 
 .. warning::
    ``slurm.conf`` is managed by the ``slurm_config`` role. Manual edits will be overwritten on the next ``provision.yml`` run. Update the source configuration instead to make permanent changes.
+
+**4. Invalid State (Resource Mismatch)**
+
+**Scenario**
+
+Nodes enter an invalid state when the hardware resources reported by Slurm do not match the actual node configuration. This typically occurs when incorrect iDRAC credentials cause the provisioning system to apply default resource values that do not reflect the actual hardware capabilities.
+
+**Resolution**
+
+1. **Identify nodes in invalid state**:
+
+.. code-block:: bash
+
+   scontrol show node | grep -i invalid
+
+2. **SSH to the affected compute node**:
+
+.. code-block:: bash
+
+   ssh <node_name>
+
+3. **Retrieve actual hardware configuration**:
+
+.. code-block:: bash
+
+   slurmd -C
+
+   The ``slurmd -C`` command outputs comprehensive hardware information including CPU architecture, core count, threads per core, sockets, RealMemory, GPU presence and model, and other resource specifications.
+
+4. **Document the actual hardware values** from the ``slurmd -C`` output for comparison with the Slurm configuration.
+
+5. **SSH to the Slurm control node**:
+
+.. code-block:: bash
+
+   ssh <slurm_controller_host>
+
+6. **Update slurm.conf** to match actual hardware:
+
+.. code-block:: bash
+
+   sudo nano /etc/slurm/slurm.conf
+
+   Locate the node configuration section and update the resource values (CPUs, RealMemory, GPUs, etc.) to match the actual hardware from step 3.
+
+7. **Apply the configuration changes**:
+
+.. code-block:: bash
+
+   sudo scontrol reconfigure
+
+8. **Resume the node**:
+
+.. code-block:: bash
+
+   sudo scontrol update nodename=<node_name> state=resume
+
+9. **Verify the node state**:
+
+.. code-block:: bash
+
+   sudo scontrol show node <node_name>
+
+   Confirm that the node no longer shows an invalid state and that the resource values are correct.
+
+.. note::
+   When using the ``slurm_config`` role to manage ``slurm.conf``, update the source configuration (inventory variables or configuration files) rather than manually editing ``/etc/slurm/slurm.conf``. Manual edits are overwritten on the next ``provision.yml`` execution.
+
+**Prevention**
+
+To prevent resource mismatch issues:
+- Verify iDRAC credentials are correct before provisioning to ensure accurate hardware discovery
 
 6.2 NVIDIA GPU, CUDA, and DCGM Issues
 --------------------------------------

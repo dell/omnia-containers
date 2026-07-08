@@ -10,7 +10,7 @@ Prerequisites
 
 Before configuring multi-subnet DHCP:
 
-* Omnia cluster deployed and operational
+* Omnia Infrastructure Manager (OIM) deployed and operational with ``omnia_core`` container up and running (``prepare_oim.yml`` playbook executed successfully)
 * Network switches configured with VLANs and DHCP relay helper-address pointing to the OIM CoreSMD server
 * CoreSMD services deployed (CoreSMD v0.6.3+ required for multi-subnet support)
 * Network topology documented with rack IDs, subnet allocations, gateway IPs, and VLAN assignments
@@ -90,7 +90,42 @@ Procedure
 
       systemctl list-dependencies openchami.target
 
-7. Open the ``/etc/openchami/configs/coredhcp.yaml`` input file and follow the steps under the **Multi-subnet configuration section (requires CoreSMD v0.6.3+)**.
+7. Exit the ``omnia_core`` container and return to the OIM node host system. Then open the ``/etc/openchami/configs/coredhcp.yaml`` configuration file on the OIM node host system.
+
+   .. code-block:: bash
+
+      exit
+      sudo vi /etc/openchami/configs/coredhcp.yaml
+
+   In the ``coredhcp.yaml`` file, locate the **Multi-subnet configuration section (requires CoreSMD v0.6.3+)** heading. The steps below provide the same instructions documented in that section. Follow these steps to enable multi-subnet DHCP:
+
+   1. Pull the new coresmd image:
+
+      .. code-block:: bash
+
+         podman pull ghcr.io/openchami/coresmd:v0.6.3
+
+   2. Comment out the single-subnet coresmd and bootloop lines above the multi-subnet configuration section
+   3. Uncomment the multi-subnet coresmd and bootloop blocks below the heading
+   4. Replace the old coresmd image version in the following files with the new version (v0.6.3):
+
+      - ``/etc/containers/systemd/coresmd-coredhcp.container``
+      - ``/etc/containers/systemd/coresmd-coredns.container``
+
+   5. Reload the systemd daemon:
+
+      .. code-block:: bash
+
+         systemctl daemon-reload
+
+   6. Restart the openchami services:
+
+      .. code-block:: bash
+
+         systemctl restart openchami.target
+
+   .. note::
+      The multi-subnet configuration section in ``coredhcp.yaml`` contains the specific coresmd and bootloop configuration blocks that need to be uncommented for multi-subnet DHCP to function correctly.
 
 .. 
 
