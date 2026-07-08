@@ -107,10 +107,12 @@ Procedure
 
    2. Comment out the single-subnet coresmd and bootloop lines above the multi-subnet configuration section
    3. Uncomment the multi-subnet coresmd and bootloop blocks below the heading
-   4. Replace the old coresmd image version in the following files with the new version (v0.6.3):
+   4. Update the CoreSMD container image version to v0.6.3 in the following files:
 
       - ``/etc/containers/systemd/coresmd-coredhcp.container``
       - ``/etc/containers/systemd/coresmd-coredns.container``
+
+      Replace the currently configured CoreSMD image version with CoreSMD v0.6.3.
 
    5. Reload the systemd daemon:
 
