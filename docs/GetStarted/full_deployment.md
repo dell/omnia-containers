@@ -4,27 +4,16 @@ Deploy a production-grade cluster with Slurm job scheduling, a highly
 available Kubernetes service cluster, and telemetry. This is the canonical
 Omnia deployment that exercises every major subsystem.
 
-### Minimum node requirements -- x86_64 and aarch64
+**What you will build:**
 
-| Role | Functional Group | Architecture | Count | Purpose |
-| --- | --- | --- | --- | --- |
-| OIM (management) | -- | x86_64 | 1 | Runs `omnia_core` container; hosts OpenCHAMI stack (CoreDHCP, CoreDNS, SMD, BSS, TFTP, iPXE, HAProxy), Pulp (local repo), container registry, MinIO (S3), OpenLDAP (`omnia_auth`), and step-ca; orchestrates all Ansible playbooks |
-| Service K8s control plane | `service_kube_control_plane` | x86_64 | 3 | HA Kubernetes control plane with kube-vip VIP failover; runs `etcd`, `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, CoreDNS, and Calico CNI |
-| Service K8s worker node | `service_kube_node` | x86_64 | 1 | Hosts the telemetry stack as K8s pods: Kafka (Strimzi), VictoriaMetrics (vmselect/vminsert/vmstorage), vmagent, iDRAC telemetry receiver, LDMS aggregator/store, NFS subdir provisioner, and MetalLB |
-| Slurm control node | `slurm_control_node` | x86_64 | 1 | Runs `slurmctld` (Slurm controller), `slurmdbd` (accounting daemon), MariaDB (job accounting database), and `munge` (authentication); manages NFS-shared Slurm config |
-| Slurm compute node | `slurm_node` | aarch64 | 1 | Runs `slurmd` (compute daemon) and `munge`; mounts NFS shares for Slurm config, spool, and logs; includes LDMS telemetry sampler and OpenLDAP client (SSSD) |
-| Login / compiler node | `login_compiler_node` | aarch64 | 1 | Runs `slurmd` for job submission (`sbatch`/`srun`); includes UCX, OpenMPI, compilers, NFS mounts (scratch, apps, hpc_tools), LDMS sampler, and OpenLDAP client (SSSD) |
-
-### Minimum node requirements -- x86_64 only
-
-| Role | Functional Group | Architecture | Count | Purpose |
-| --- | --- | --- | --- | --- |
-| OIM (management) | -- | x86_64 | 1 | Runs `omnia_core` container; hosts OpenCHAMI stack (CoreDHCP, CoreDNS, SMD, BSS, TFTP, iPXE, HAProxy), Pulp (local repo), container registry, MinIO (S3), OpenLDAP (`omnia_auth`), and step-ca; orchestrates all Ansible playbooks |
-| Service K8s control plane | `service_kube_control_plane` | x86_64 | 3 | HA Kubernetes control plane with kube-vip VIP failover; runs `etcd`, `kube-apiserver`, `kube-controller-manager`, `kube-scheduler`, CoreDNS, and Calico CNI |
-| Service K8s worker node | `service_kube_node` | x86_64 | 1 | Hosts the telemetry stack as K8s pods: Kafka (Strimzi), VictoriaMetrics (vmselect/vminsert/vmstorage), vmagent, iDRAC telemetry receiver, LDMS aggregator/store, NFS subdir provisioner, and MetalLB |
-| Slurm control node | `slurm_control_node` | x86_64 | 1 | Runs `slurmctld` (Slurm controller), `slurmdbd` (accounting daemon), MariaDB (job accounting database), and `munge` (authentication); manages NFS-shared Slurm config |
-| Slurm compute node | `slurm_node` | x86_64 | 1 | Runs `slurmd` (compute daemon) and `munge`; mounts NFS shares for Slurm config, spool, and logs; includes LDMS telemetry sampler and OpenLDAP client (SSSD) |
-| Login / compiler node | `login_compiler_node` | x86_64 | 1 | Runs `slurmd` for job submission (`sbatch`/`srun`); includes UCX, OpenMPI, compilers, NFS mounts (scratch, apps, hpc_tools), LDMS sampler, and OpenLDAP client (SSSD) |
+| Role | Functional Group | Count | Purpose |
+| --- | --- | --- | --- |
+| OIM (management) | -- | 1 | Runs `omnia_core`; orchestrates the deployment. |
+| K8s control plane | `service_kube_control_plane_x86_64` | 3 | HA Kubernetes control plane (`kube-apiserver`, `etcd`, `kube-scheduler`, `kube-controller-manager`). |
+| K8s worker node | `service_kube_node_x86_64` | 1 | Runs the telemetry stack: iDRAC collector, LDMS aggregator, Kafka, VictoriaMetrics. |
+| Slurm control node | `slurm_control_node_x86_64` | 1 | Runs `slurmctld` (Slurm controller), `slurmdbd` (accounting), and MariaDB. |
+| Slurm compute node(s) | `slurm_node_x86_64` / `slurm_node_aarch64` | 1+ | Run `slurmd`; execute jobs submitted to the cluster. |
+| Login / compiler node | `login_compiler_node_x86_64` / `login_compiler_node_aarch64` | 1 | User-facing SSH gateway with compiler toolchains for job submission and building applications. |
 
 **Estimated time:** ~4 hours.
 
@@ -34,6 +23,13 @@ Omnia deployment that exercises every major subsystem.
     before proceeding.
 
 ## Step 1 -- Deploy the omnia_core Container
+
+Clone the Omnia artifacts repository, build the `omnia_core` container
+image, and deploy the container on the OIM. The container packages the
+complete Omnia codebase and Ansible engine.
+
+For details, see
+[Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md){target="_blank"}.
 
 1. **Clone the Omnia Artifactory repository and build the container image**:
 
@@ -59,17 +55,28 @@ Omnia deployment that exercises every major subsystem.
     When prompted, enter the **shared directory path** (local or NFS) and a
     **secure alphanumeric password** for container access.
 
-4. **Access the omnia_core container**:
+#### Verification
+
+1. **Verify the `omnia_core` container is running**:
+
+    ```bash title="Run on: OIM host"
+    podman ps --filter name=omnia_core --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    NAMES        IMAGE                       STATUS       PORTS
+    omnia_core   localhost/omnia_core:2.2     Up 1 day     2222/tcp
+    ```
+
+2. **Access the omnia_core container**:
 
     ```bash title="Run on: OIM host"
     ssh omnia_core
     ```
 
     You will be automatically logged in to the `omnia_core` container.
-
-For detailed prerequisites, tasks performed by `omnia.sh`, and
-troubleshooting, see
-[Deploy Omnia Core](../HowTo/Setup/deploy_omnia_core.md){target="_blank"}.
 
 ## Step 2 -- Create the Mapping File
 
@@ -81,7 +88,7 @@ Omnia supports two methods for creating the PXE mapping file:
   to discover cluster nodes and auto-generate the mapping file using
   `discovery.yml`.
 
-### Option A: Fill the PXE mapping file manually
+#### Option A: Fill the PXE mapping file manually
 
 ```bash title="Run on: omnia_core container"
 vi /opt/omnia/input/project_default/pxe_mapping_file.csv
@@ -93,7 +100,7 @@ Populate one row per managed node with the required columns
 reference and sample files, see
 [PXE Mapping File Reference](../Reference/SampleFiles/pxe_mapping_file.md){target="_blank"}.
 
-### Option B: Create PXE file using OME
+#### Option B: Create PXE file using OME
 
 Use the `discovery.yml` playbook to auto-generate the mapping file from
 an OME inventory. For detailed instructions including OME prerequisites,
@@ -118,20 +125,24 @@ The playbook generates a `bmc_pxe_mapping_file_<timestamp>.csv` in
 ## Step 3 -- Provide Inputs
 
 For a full deployment, update the following input files in
-`/opt/omnia/input/project_default/`:
+`/opt/omnia/input/project_default/`. Click each file name to view the
+full parameter reference.
 
-**Key files for this deployment:**
-
-- [`network_spec.yml`](../Reference/Configuration/network_spec.md){target="_blank"} -- Network CIDRs and interfaces
-- [`provision_config.yml`](../Reference/Configuration/provision_config.md){target="_blank"} -- OS provisioning settings
-- [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md){target="_blank"} -- Kubernetes HA virtual IP
-- [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md){target="_blank"} -- Telemetry pipeline configuration
-- [`software_config.json`](../Reference/Configuration/software_config.md){target="_blank"} -- Software stack (K8s, Slurm, telemetry components)
-- [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md){target="_blank"} -- Repository mirror settings
-- [`storage_config.yml`](../Reference/Configuration/storage_config.md){target="_blank"} -- NFS storage mount configuration
-- [`omnia_config.yml`](../Reference/Configuration/omnia_config.md){target="_blank"} -- Slurm and service cluster K8s settings
-- [`security_config.yml`](../Reference/Configuration/security_config.md){target="_blank"} -- OpenLDAP authentication settings
-- [`discovery_config.yml`](../Reference/Configuration/discovery_config.md){target="_blank"} -- BMC discovery and OME integration
+| Input File | Purpose |
+| --- | --- |
+| [`network_spec.yml`](../Reference/Configuration/network_spec.md){target="_blank"} | Network CIDRs, interfaces, and IP ranges |
+| [`provision_config.yml`](../Reference/Configuration/provision_config.md){target="_blank"} | OS provisioning and PXE settings |
+| [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md){target="_blank"} | Kubernetes HA virtual IP configuration |
+| [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md){target="_blank"} | Telemetry sources, bridges, and sinks |
+| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_config.md#telemetry-storage-configuration-parameters){target="_blank"} | Telemetry storage resources and retention |
+| [`software_config.json`](../Reference/Configuration/software_config.md){target="_blank"} | Software stack (K8s, Slurm, telemetry components) |
+| [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md){target="_blank"} | Repository mirror settings |
+| [`storage_config.yml`](../Reference/Configuration/storage_config.md){target="_blank"} | NFS storage mount configuration |
+| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md){target="_blank"} | Slurm and service cluster K8s settings |
+| [`security_config.yml`](../Reference/Configuration/security_config.md){target="_blank"} | OpenLDAP authentication settings |
+| [`discovery_config.yml`](../Reference/Configuration/discovery_config.md){target="_blank"} | BMC discovery and OME integration |
+| [`build_stream_config.yml`](../Reference/Configuration/build_stream_config.md){target="_blank"} | BuildStreaM CI/CD pipeline settings (optional) |
+| [`additional_cloud_init.yml`](../Reference/Configuration/additional_cloud_init.md){target="_blank"} | Custom cloud-init scripts (optional) |
 
 For the full procedure and parameter reference, see
 [Configure Inputs](../HowTo/Setup/configure_inputs.md){target="_blank"}.
@@ -147,20 +158,19 @@ For the full procedure and parameter reference, see
 
 ## Step 4 -- Prepare the OIM
 
-The `prepare_oim.yml` playbook validates all input files, prompts for
-credentials, and deploys the OIM infrastructure containers. Since all
-input files were configured in Step 3, run the playbook directly:
+Deploys the OIM infrastructure: OpenCHAMI provisioning stack, Pulp
+local repository, container registry, MinIO S3 storage, OpenLDAP
+authentication, and step-ca certificate authority.
+
+For details, see
+[Prepare OIM](../HowTo/Setup/prepare_oim.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/prepare_oim
 ansible-playbook prepare_oim.yml
 ```
 
-The playbook validates inputs, prompts for credentials, and deploys all
-OIM infrastructure containers (OpenCHAMI, Pulp, registry, MinIO/PowerScale,
-OpenLDAP auth, step-ca) and configures the `omnia.target` systemd unit.
-
-## Step 5 -- Verify OIM Services
+#### Verification -- OIM Infrastructure
 
 After `prepare_oim.yml` completes, verify the OIM services on the
 **OIM host** (not inside the container):
@@ -221,22 +231,22 @@ After `prepare_oim.yml` completes, verify the OIM services on the
 
     ```text title="Expected output"
     NAMES               STATUS
-    bss                 Up 30 hours
-    cloud-init-server   Up 30 hours
-    coresmd-coredhcp    Up 30 hours
-    coresmd-coredns     Up 30 hours
-    haproxy             Up 30 hours
-    hydra               Up 30 hours
-    minio-server        Up 7 days
-    omnia_auth          Up 7 days
-    omnia_core          Up 8 days
-    opaal               Up 30 hours
-    opaal-idp           Up 30 hours
-    postgres            Up 30 hours
-    pulp                Up 7 days
-    registry            Up 7 days
-    smd                 Up 30 hours
-    step-ca             Up 30 hours
+    bss                 Up 1 day
+    cloud-init-server   Up 1 day
+    coresmd-coredhcp    Up 1 day
+    coresmd-coredns     Up 1 day
+    haproxy             Up 1 day
+    hydra               Up 1 day
+    minio-server        Up 1 day
+    omnia_auth          Up 1 day
+    omnia_core          Up 1 day
+    opaal               Up 1 day
+    opaal-idp           Up 1 day
+    postgres            Up 1 day
+    pulp                Up 1 day
+    registry            Up 1 day
+    smd                 Up 1 day
+    step-ca             Up 1 day
     ```
 
 !!! note
@@ -248,11 +258,13 @@ After `prepare_oim.yml` completes, verify the OIM services on the
     - The `omnia_auth` container will **not** be present if `openldap` is
       not included in `software_config.json`.
 
-## Step 6 -- Create Local Repositories
+## Step 5 -- Create Local Repositories
 
-Downloads all required RPM packages, container images, tarballs, and pip
-modules into Pulp for air-gapped provisioning. Packages are downloaded
-for both x86_64 and aarch64 architectures based on `software_config.json`.
+Downloads all required RPM packages, container images, and tarballs
+into Pulp based on `software_config.json` for air-gapped provisioning.
+
+For details, see
+[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/local_repo
@@ -264,130 +276,288 @@ ansible-playbook local_repo.yml
     Expect **45--90 minutes** depending on network speed. Total download
     size is typically **20--40 GB**.
 
-### Verification
+#### Verification -- Local Repository Status
 
-After `local_repo.yml` completes, verify that all packages were
-downloaded successfully. Each component generates a `status.csv` file
-under `/opt/omnia/log/local_repo/<os>/<version>/<arch>/<component>/`.
-All entries must show `Success`.
+After `local_repo.yml` completes, verify that all software components
+were downloaded successfully by checking the `software.csv` status file.
+The components listed in this file correspond directly to the software
+entries configured in `software_config.json`.
 
-For per-component verification details, see
-[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
+1. **Verify x86_64 package status**:
 
-## Step 7 -- Build Node Images
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv
+    ```
 
-### 7.1 Build x86_64 images
+    Expected output:
 
-Builds compute images for all x86_64 functional groups defined in the
-PXE mapping file and uploads them to MinIO (S3).
+    ```text title="Expected output"
+    name,status
+    default_packages,success
+    admin_debug_packages,success
+    openldap,success
+    service_k8s,success
+    slurm_custom,success
+    csi_driver_powerscale,success
+    ldms,success
+    ```
+
+2. **Verify aarch64 package status** (if aarch64 is included in
+   `software_config.json`):
+
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/log/local_repo/rhel/10.0/aarch64/software.csv
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    name,status
+    default_packages,success
+    openldap,success
+    slurm_custom,success
+    ```
+
+!!! note
+
+    The `software.csv` output reflects the software components configured
+    in `software_config.json`. Each component with `"arch": ["x86_64"]`
+    appears in the x86_64 status file, and each component with
+    `"arch": ["aarch64"]` appears in the aarch64 status file. Components
+    such as `service_k8s` and `csi_driver_powerscale` are typically
+    x86_64-only. All entries must show `success` status before proceeding.
+
+## Step 6 -- Build Node Images
+
+Builds diskless OS images for each functional group in the PXE mapping
+file and uploads them to MinIO (S3) for PXE boot delivery.
+
+For details, see
+[Build Cluster Images](../HowTo/Setup/build_cluster_images.md){target="_blank"}.
+
+#### Build x86_64 Images
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_x86_64
 ansible-playbook build_image_x86_64.yml
 ```
 
-### 7.2 Build aarch64 images (if applicable)
+#### Build aarch64 Images
 
-If your PXE mapping file contains aarch64 functional groups (e.g.,
-`slurm_node_aarch64`, `login_compiler_node_aarch64`), build the
-aarch64 images:
+If your PXE mapping file contains aarch64 functional groups, you must
+first prepare an aarch64 build node. See
+[Prepare aarch64 Node](../HowTo/Setup/prepare_aarch64_node.md){target="_blank"}
+for the complete procedure (manual RHEL 10 installation, inventory file
+creation, etc.).
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_aarch64
-ansible-playbook build_image_aarch64.yml
+ansible-playbook build_image_aarch64.yml -i inventory
 ```
 
-### Verification
+#### Verification -- Boot Images in S3
 
-Verify the built images are uploaded to S3:
+After the build playbooks complete, verify the images are uploaded to
+MinIO (S3). Each functional group produces **3 image artifacts**:
+`rootfs` (full OS root filesystem), `vmlinuz` (Linux kernel), and
+`initramfs` (initial RAM filesystem for PXE boot).
 
-```bash title="Run on: OIM host"
-s3cmd ls -Hr s3://boot-images
-```
+1. **List all boot images in S3**:
 
-You should see `initramfs`, `vmlinuz`, and OS image files for each
-functional group.
+    ```bash title="Run on: OIM host"
+    s3cmd ls s3://boot-images/
+    ```
 
-## Step 8 -- Set PXE Boot and Provision Nodes
+    Expected output (one directory per functional group plus `efi-images`):
 
-Sets the PXE boot order on all target nodes via iDRAC Redfish, reboots
-them, and waits for cloud-init provisioning to complete.
+    ```text title="Expected output"
+                        DIR  s3://boot-images/efi-images/
+                        DIR  s3://boot-images/login_compiler_node_x86_64/
+                        DIR  s3://boot-images/service_kube_control_plane_first_x86_64/
+                        DIR  s3://boot-images/service_kube_control_plane_x86_64/
+                        DIR  s3://boot-images/service_kube_node_x86_64/
+                        DIR  s3://boot-images/slurm_control_node_x86_64/
+                        DIR  s3://boot-images/slurm_node_x86_64/
+                        DIR  s3://boot-images/slurm_node_aarch64/
+    ```
+
+2. **Verify individual image artifacts for a specific functional group**:
+
+    ```bash title="Run on: OIM host"
+    s3cmd ls -Hr s3://boot-images/slurm_control_node_x86_64/
+    s3cmd ls -Hr s3://boot-images/efi-images/slurm_control_node_x86_64/
+    ```
+
+    Expected output:
+
+    ```text title="Expected output"
+    2026-06-26 11:42  1449M  s3://boot-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/rhel10.0-rhel-slurm_control_node_x86_64_omnia_2.2.0.0-10.0
+    2026-06-26 11:42    78M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/initramfs-6.12.0-55.82.1.el10_0.x86_64.img
+    2026-06-26 11:42    15M  s3://boot-images/efi-images/slurm_control_node_x86_64/rhel-slurm_control_node_x86_64_omnia_2.2.0.0/vmlinuz-6.12.0-55.82.1.el10_0.x86_64
+    ```
+
+!!! note
+
+    The directories listed in `s3://boot-images/` correspond to the
+    functional groups defined in your PXE mapping file. Each functional
+    group will have exactly **3 image artifacts** (`rootfs`, `vmlinuz`,
+    `initramfs`). The `efi-images/` directory contains the `initramfs`
+    and `vmlinuz` boot files used during PXE network boot, while the root
+    filesystem is stored directly under each functional group directory.
+    If any artifacts are missing, re-run the corresponding build playbook.
+
+## Step 7 -- Set PXE Boot and Provision Nodes
+
+Sets PXE boot order on all nodes via iDRAC Redfish, reboots them, and
+waits for cloud-init to complete provisioning (K8s, Slurm, NFS, SSH).
+
+For details, see
+[Configure PXE Boot](../HowTo/Setup/configure_pxe_boot.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
 
-For detailed information on PXE boot configuration and troubleshooting,
-see [PXE Boot Nodes](../HowTo/Setup/pxe_boot_nodes.md){target="_blank"}.
-
 !!! note
 
     With 8 nodes, provisioning can take **30--60 minutes**. Nodes are
-    provisioned in parallel. The playbook validates BMC inventory,
-    sets PXE boot via Redfish, and reboots all nodes.
+    provisioned in parallel.
 
-## Step 9 -- Deploy Telemetry
+#### Verification -- Cloud-Init Provisioning Status
 
-Deploys the telemetry pipeline as Kubernetes pods on the service cluster
-worker node (iDRAC receiver, Kafka, VictoriaMetrics, vmagent, LDMS
-aggregator/store).
+After the nodes PXE boot, verify that cloud-init has completed on all
+nodes. SSH from `omnia_core` into each node using its hostname from the
+PXE mapping file (`HOSTNAME` column):
+
+```bash title="Run on: omnia_core container (example for 2 nodes)"
+ssh scnode 'cloud-init status'
+ssh kcp1 'cloud-init status'
+```
+
+Expected output on each node:
+
+```text title="Expected output"
+status: done
+```
+
+!!! note
+
+    Check **every node** in your cluster. Open your PXE mapping file
+    (`/opt/omnia/input/project_default/pxe_mapping_file.csv`) and run
+    `ssh <HOSTNAME> 'cloud-init status'` for each entry. All nodes must
+    report `status: done` before proceeding.
+
+#### Verification -- Kubernetes Service Cluster
+
+SSH into any `service_kube_control_plane` node and verify all nodes
+are `Ready`:
+
+```bash title="Run on: omnia_core container (example)"
+ssh kcp1 'kubectl get nodes'
+```
+
+Expected output:
+
+```text title="Expected output"
+NAME   STATUS   ROLES           AGE   VERSION
+kcp1   Ready    control-plane   1d    v1.35.1
+kcp2   Ready    control-plane   1d    v1.35.1
+kcp3   Ready    control-plane   1d    v1.35.1
+kn     Ready    <none>          1d    v1.35.1
+```
+
+#### Verification -- Slurm Cluster
+
+SSH into the `slurm_control_node` and verify all compute nodes are
+`idle`:
+
+```bash title="Run on: omnia_core container (example)"
+ssh scnode 'sinfo'
+```
+
+Expected output:
+
+```text title="Expected output"
+PARTITION  AVAIL  TIMELIMIT  NODES  STATE  NODELIST
+normal*    up     infinite   2      idle   snode[1-2]
+```
+
+For detailed cluster verification procedures, see
+[Verify Cluster](../HowTo/Setup/verify_cluster.md){target="_blank"}.
+
+## Step 8 -- Deploy Telemetry
+
+The telemetry infrastructure (Kafka, VictoriaMetrics, LDMS, vmagent)
+is deployed automatically during provisioning (Step 7). The
+`telemetry.yml` playbook deploys the **iDRAC telemetry** StatefulSet
+that collects hardware metrics (power, thermal, fan, CPU) from each
+server's iDRAC via Redfish.
+
+For details, see
+[Telemetry Configuration](../Reference/Configuration/telemetry_config.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
 
-## Step 10 -- Verify the Telemetry Pipeline
+!!! note
 
-```bash title="Run on: omnia_core container"
-ssh kcp1 'kubectl get pods -n telemetry'
+    You do **not** need to run `telemetry.yml` if the service cluster is
+    configured only for LDMS. LDMS begins collecting data automatically
+    after provisioning.
+
+#### Verification -- iDRAC Telemetry
+
+SSH into any `service_kube_control_plane` node and verify the
+`idrac-telemetry` pods are running with 5/5 containers ready:
+
+```bash title="Run on: omnia_core container (example)"
+ssh kcp1 'kubectl get pods -n telemetry -l app=idrac-telemetry'
 ```
 
-Expected output (all pods `Running`):
+Expected output:
 
 ```text title="Expected output"
-NAME                                           READY   STATUS    RESTARTS   AGE
-bridge-bridge-798f595c5b-pt94w                 1/1     Running   0          29h
-idrac-telemetry-0                              5/5     Running   2          29h
-kafka-broker-0                                 1/1     Running   0          29h
-kafka-broker-1                                 1/1     Running   0          29h
-kafka-broker-2                                 1/1     Running   0          29h
-kafka-controller-3                             1/1     Running   0          29h
-kafka-controller-4                             1/1     Running   0          29h
-kafka-controller-5                             1/1     Running   0          29h
-kafka-entity-operator-bcd75596c-h5f4f          2/2     Running   0          29h
-nersc-ldms-aggr-0                              1/1     Running   0          29h
-nersc-ldms-store-slurm-cluster-0               1/1     Running   0          29h
-strimzi-cluster-operator-7c889c4cff-2fqjl      1/1     Running   0          29h
-victoria-metrics-operator-6bf4d7cc6d-9gl8v     1/1     Running   0          29h
-vmagent-vmagent-587b6d476f-hl2zp               2/2     Running   0          29h
-vmagent-vmagent-587b6d476f-xgddh               2/2     Running   0          29h
-vminsert-victoria-cluster-65b6bb84cb-5g85d     1/1     Running   0          29h
-vminsert-victoria-cluster-65b6bb84cb-m6f4s     1/1     Running   0          29h
-vmselect-victoria-cluster-0                    1/1     Running   0          29h
-vmselect-victoria-cluster-1                    1/1     Running   0          29h
-vmstorage-victoria-cluster-0                   1/1     Running   0          29h
-vmstorage-victoria-cluster-1                   1/1     Running   0          29h
-vmstorage-victoria-cluster-2                   1/1     Running   0          29h
+NAME                READY   STATUS    RESTARTS      AGE
+idrac-telemetry-0   5/5     Running   2 (48m ago)   144m
+idrac-telemetry-1   5/5     Running   9 (42m ago)   144m
 ```
+
+!!! note
+
+    The `PARENT_SERVICE_TAG` column in the PXE mapping file groups
+    nodes under parent servers. Each unique parent group gets one
+    `idrac-telemetry` pod that collects metrics from all child nodes
+    mapped to that parent. Nodes without a parent (control plane,
+    standalone nodes) are collected by one additional pod. For example,
+    if your mapping has 2 parent groups with multiple child nodes each,
+    expect 3 pods — one per parent group + 1 for unparented nodes.
+
+For detailed telemetry verification procedures, see
+[Verify Telemetry](../HowTo/Telemetry/verify_telemetry.md){target="_blank"}.
 
 ## What's Next?
 
-Your production cluster is fully operational with Slurm scheduling,
-Kubernetes service cluster, and telemetry monitoring. Consider these
-enhancements:
+Your cluster is fully operational with Slurm scheduling, Kubernetes
+service cluster, and telemetry monitoring. This full deployment is a
+combination of the Slurm and K8s telemetry paths — refer to those
+guides for component-specific operations:
 
-- **Scale out compute nodes** -- Add more `slurm_node` entries to the PXE
-  mapping file, re-run `provision.yml`.
-- **Add GPU support** -- Edit `software_config.json` to include NVIDIA
-  drivers and CUDA toolkit.
+- **Slurm operations** -- Scale compute nodes, configure GPU scheduling,
+  tune partitions, and run benchmarks. See
+  [Slurm Quickstart](slurm_quickstart.md) for details.
+- **Telemetry operations** -- Enable additional telemetry sources (DCGM,
+  PowerScale, UFM, VAST, OME), configure retention, and monitor
+  external servers. See
+  [K8S Telemetry Only](k8s_telemetry_only.md) for details.
 - **Enable BuildStreaM for GitOps** -- See
-  [BuildStreaM Deployment](buildstream_deployment.md) (Path D) to layer
-  CI/CD automation on top of this deployment.
+  [BuildStreaM Deployment](buildstream_deployment.md) to automate
+  image building and deployment via CI/CD pipelines.
 
 !!! info
 
-    - [Slurm Quickstart](slurm_quickstart.md) -- Simplified 4-node Slurm deployment
-    - [K8S Telemetry Only](k8s_telemetry_only.md) -- Telemetry without Slurm
+    - [Slurm Quickstart](slurm_quickstart.md) -- Slurm-only deployment and operations
+    - [K8S Telemetry Only](k8s_telemetry_only.md) -- K8s + telemetry deployment and operations
     - [Prerequisites Checklist](prerequisites_checklist.md) -- Master checklist
