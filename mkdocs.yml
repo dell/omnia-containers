@@ -281,6 +281,8 @@ nav:
     - Authentication: Troubleshooting/authentication.md
     - BuildStreaM: Troubleshooting/buildstream.md
     - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
+    - Kernel Version Override: Troubleshooting/kernel_version_override.md
+    - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
     - Known Limitations: Troubleshooting/known_limitations.md
   - Contributing:
     - Contributing/index.md
