@@ -302,7 +302,7 @@ Configure each node to boot from the network.
 
 **Option 2: Automated PXE Boot**
 
-See `Set PXE boot <../../../Utils/configure_pxe_boot.html>` for more information.
+See `Set PXE boot <../../../../Utils/configure_pxe_boot.html>` for more information.
 
 .. code-block:: bash
 

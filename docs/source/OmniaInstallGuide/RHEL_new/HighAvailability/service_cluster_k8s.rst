@@ -307,7 +307,7 @@ Run the ``provision.yml`` playbook to discover potential cluster nodes, configur
 Step 6: PXE Boot Nodes
 ----------------------
 
-After successfully running the ``provision.yml`` playbook, PXE boot the nodes to load diskless images from the OIM. For detailed steps on using ``set_pxe_boot.yml``, see `Configure PXE Boot <../../Utils/configure_pxe_boot.html>`_.
+After successfully running the ``provision.yml`` playbook, PXE boot the nodes to load diskless images from the OIM. For detailed steps on using ``set_pxe_boot.yml``, see `Configure PXE Boot <../../../Utils/configure_pxe_boot.html>`_.
 
 **Option 1**: Manual PXE boot
 
