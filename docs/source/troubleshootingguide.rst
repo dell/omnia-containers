@@ -1514,88 +1514,34 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
    echo ""
    echo ">>> STEP 1: Checking broker disk usage..."
    BROKERS_HEALTHY=true
+   RESPONSIVE_BROKER=""
    for i in $(seq 0 $((BROKER_COUNT-1))); do
      echo "=== kafka-broker-$i ==="
-     if kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null; then
-       echo "Broker-$i: RESPONSIVE"
+     POD_STATUS=$(kubectl get pod -n $NAMESPACE kafka-broker$i -o jsonpath='{.status.phase}')
+     READY=$(kubectl get pod -n $NAMESPACE kafka-broker$i -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')
+     echo "  Pod Phase: $POD_STATUS"
+     echo "  Ready: $READY"
+     if kubectl exec -n $NAMESPACE kafka-broker$i -- echo "OK" 2>/dev/null; then
+       echo "  Broker-$i: RESPONSIVE"
+       [ -z "$RESPONSIVE_BROKER" ] && RESPONSIVE_BROKER=$i
      else
-       echo "Broker-$i: NOT RESPONSIVE"
+       echo "  Broker-$i: NOT RESPONSIVE (exec failed)"
        BROKERS_HEALTHY=false
      fi
    done
 
    # -------------------------------------------------------
-   # DECISION: Brokers responsive → Path A
-   #           Brokers crashing   → Path B
+   # DECISION: Brokers responsive → Exit (no action needed)
+   #           Brokers crashing   → Path B (manual cleanup)
    # -------------------------------------------------------
    if [ "$BROKERS_HEALTHY" = true ]; then
-
      echo ""
-     echo "============================================"
-     echo " PATH A: BROKERS RUNNING — RETENTION FIX"
-     echo "============================================"
-
-     # ----------------------------------------------------
-     # STEP 2: Auto-detect top space-consuming topics
-     # ----------------------------------------------------
-     echo ""
-     echo ">>> STEP 2: Identifying top space-consuming topics..."
-     TOPICS=$(kubectl exec -n $NAMESPACE kafka-broker-0 -- \
-       sh -c 'du -s /var/lib/kafka/data/*/ 2>/dev/null | sort -rn | head -5' | \
-       awk '{print $2}' | \
-       xargs -I{} basename {} | \
-       rev | cut -d'.' -f2 | rev | \
-       sort -u)
-
-     if [ -z "$TOPICS" ]; then
-       echo "ERROR: No topics found. Check Kafka data path."
-       exit 1
-     fi
-
-     echo "Top topics consuming space:"
-     echo "$TOPICS"
-     echo ""
-
-     # ----------------------------------------------------
-     # STEP 3: Apply reduced retention on detected topics
-     # ----------------------------------------------------
-     echo ">>> STEP 3: Reducing retention to ${RETENTION_MS}ms..."
-     for TOPIC in $TOPICS; do
-       echo "  Fixing: $TOPIC"
-       kubectl exec -n $NAMESPACE kafka-broker-0 -- \
-         /opt/kafka/bin/kafka-configs.sh \
-           --bootstrap-server localhost:9092 \
-           --alter \
-           --entity-type topics \
-           --entity-name "$TOPIC" \
-           --add-config retention.ms=$RETENTION_MS
-     done
-
-     # ----------------------------------------------------
-     # STEP 4: Rolling restart all brokers
-     # ----------------------------------------------------
-     echo ""
-     echo ">>> STEP 4: Rolling restart..."
-     for i in $(seq 0 $((BROKER_COUNT-1))); do
-       echo "  Restarting kafka-broker-$i..."
-       kubectl delete pod -n $NAMESPACE kafka-broker$i
-       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
-       echo "  kafka-broker-$i is ready. Stabilizing..."
-       sleep 60
-     done
-
-     # ----------------------------------------------------
-     # STEP 5: Verify space recovered
-     # ----------------------------------------------------
-     echo ""
-     echo ">>> STEP 5: Verifying disk usage after cleanup..."
-     for i in $(seq 0 $((BROKER_COUNT-1))); do
-       echo "=== kafka-broker-$i ==="
-       kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data
-     done
-
-   else
-
+     echo "All brokers are running and responsive."
+     echo "This script is designed for emergency cleanup when brokers are crashlooping or PVs are full."
+     echo "Since all brokers are healthy, no action is needed."
+     echo "Exiting without making changes."
+     exit 0
+   fi
      echo ""
      echo "============================================"
      echo " PATH B: BROKERS CRASHLOOPING — MANUAL FIX"
@@ -1606,9 +1552,74 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
      # ----------------------------------------------------
      echo ""
      echo ">>> STEP 2: Detecting PVC names..."
-     PVC_PREFIX=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' | \
-       rev | cut -d'-' -f2 | rev)
+     echo "  Listing all PVCs in $NAMESPACE namespace..."
+     kubectl get pvc -n $NAMESPACE
+
+     # Try to detect PVC prefix
+     FIRST_PVC=$(kubectl get pvc -n $NAMESPACE -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+     if [ -z "$FIRST_PVC" ]; then
+       echo "ERROR: No PVCs found in $NAMESPACE namespace"
+       exit 1
+     fi
+     echo "First PVC: $FIRST_PVC"
+
+     # Extract PVC prefix by removing the broker number suffix
+     # Pattern: data-0-kafka-broker-0 -> data-0-kafka-broker
+     PVC_PREFIX=$(echo "$FIRST_PVC" | sed 's/-[0-9]$//')
      echo "PVC prefix detected: $PVC_PREFIX"
+
+     # Verify PVC names match expected pattern
+     echo "Verifying PVC names match expected pattern..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       EXPECTED_PVC="${PVC_PREFIX}-${i}"
+       if kubectl get pvc -n $NAMESPACE "$EXPECTED_PVC" >/dev/null 2>&1; then
+         echo "  $EXPECTED_PVC: FOUND"
+       else
+         echo "  $EXPECTED_PVC: NOT FOUND (will cause cleanup pod to fail)"
+         echo "  Listing all PVCs again for reference:"
+         kubectl get pvc -n $NAMESPACE
+         echo "ERROR: PVC naming pattern doesn't match. Please check PVC names and update script."
+         exit 1
+       fi
+     done
+
+     # ----------------------------------------------------
+     # STEP 2.5: Stop broker pods to release PVCs
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2.5: Stopping broker pods to release PVCs..."
+
+     # Check if Kafka is managed by StatefulSet
+     if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
+       echo "  Kafka brokers managed by StatefulSet: kafka-broker"
+       echo "  Scaling down to 0 replicas..."
+       kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=0
+       echo "  Waiting for pods to terminate..."
+       kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-0 --timeout=120s --ignore-not-found || true
+       kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-1 --timeout=120s --ignore-not-found || true
+       kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker-2 --timeout=120s --ignore-not-found || true
+     else
+       echo "  Kafka brokers not managed by StatefulSet, deleting pods directly..."
+       for i in $(seq 0 $((BROKER_COUNT-1))); do
+         echo "  Deleting kafka-broker-$i..."
+         kubectl delete pod -n $NAMESPACE kafka-broker$i --ignore-not-found --force --grace-period=0
+       done
+       echo "  Waiting for broker pods to terminate..."
+       for i in $(seq 0 $((BROKER_COUNT-1))); do
+         kubectl wait -n $NAMESPACE --for=delete pod/kafka-broker$i --timeout=60s || true
+       done
+     fi
+
+     # ----------------------------------------------------
+     # STEP 2.6: Cleanup any existing cleanup pods
+     # ----------------------------------------------------
+     echo ""
+     echo ">>> STEP 2.6: Removing any existing cleanup pods..."
+     for i in $(seq 0 $((BROKER_COUNT-1))); do
+       kubectl delete pod -n $NAMESPACE kafka-cleanup$i --ignore-not-found
+     done
+     echo "  Waiting for cleanup pods to be removed..."
+     sleep 5
 
      # ----------------------------------------------------
      # STEP 3: Deploy cleanup pods
@@ -1644,7 +1655,15 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
 
      echo "  Waiting for cleanup pods..."
      for i in $(seq 0 $((BROKER_COUNT-1))); do
-       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup$i --timeout=120s
+       echo "  Waiting for kafka-cleanup-$i..."
+       if ! kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-cleanup$i --timeout=120s; then
+         echo "  ERROR: kafka-cleanup-$i failed to become Ready"
+         echo "  Pod status:"
+         kubectl get pod -n $NAMESPACE kafka-cleanup$i -o wide
+         echo "  Pod events:"
+         kubectl describe pod -n $NAMESPACE kafka-cleanup$i --tail=20
+         exit 1
+       fi
      done
 
      # ----------------------------------------------------
@@ -1656,9 +1675,24 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
        echo "=== kafka-broker-$i (BEFORE) ==="
        kubectl exec -n $NAMESPACE kafka-cleanup$i -- df -h /data
 
+       # Detect actual data directory within PVC mount
+       echo "  Detecting data directory within PVC..."
+       PVC_DATA_DIR=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
+         sh -c 'find /data -type d -name "*.log" 2>/dev/null | head -1 | xargs dirname 2>/dev/null || echo "/data"' 2>/dev/null)
+       if [ "$PVC_DATA_DIR" = "/data" ]; then
+         # Try common subdirectories
+         for SUBDIR in "kafka-log0" "kraft-combined-logs" "data"; do
+           if kubectl exec -n $NAMESPACE kafka-cleanup$i -- sh -c "test -d /data/$SUBDIR && echo /data/$SUBDIR" 2>/dev/null | grep -q .; then
+             PVC_DATA_DIR="/data/$SUBDIR"
+             break
+           fi
+         done
+       fi
+       echo "  Using data directory: $PVC_DATA_DIR"
+
        echo "  Cleaning..."
        DELETED=$(kubectl exec -n $NAMESPACE kafka-cleanup$i -- \
-         sh -c 'count=0; find /data -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' | while read f; do
+         sh -c 'count=0; find '"$PVC_DATA_DIR"' -name "*.log" -mtime +'"$SEGMENT_AGE_DAYS"' 2>/dev/null | while read f; do
            base=$(echo "$f" | sed "s/\.log$//")
            rm -f "${base}.log" "${base}.index" "${base}.timeindex" "${base}.snapshot"
            count=$((count+1))
@@ -1687,19 +1721,23 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
      done
 
      # ----------------------------------------------------
-     # STEP 7: Rolling restart brokers
+     # STEP 7: Scale up StatefulSet to restore brokers
      # ----------------------------------------------------
      echo ""
-     echo ">>> STEP 7: Rolling restart brokers..."
-     for i in $(seq 0 $((BROKER_COUNT-1))); do
-       echo "  Restarting kafka-broker-$i..."
-       kubectl delete pod -n $NAMESPACE kafka-broker$i
-       kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
-       echo "  kafka-broker-$i is ready. Stabilizing..."
-       sleep 60
-     done
-
-   fi
+     echo ">>> STEP 7: Scaling up StatefulSet to restore brokers..."
+     if kubectl get statefulset -n $NAMESPACE kafka-broker >/dev/null 2>&1; then
+       echo "  Scaling kafka-broker StatefulSet to $BROKER_COUNT replicas..."
+       kubectl scale statefulset -n $NAMESPACE kafka-broker --replicas=$BROKER_COUNT
+       echo "  Waiting for brokers to become ready..."
+       for i in $(seq 0 $((BROKER_COUNT-1))); do
+         kubectl wait -n $NAMESPACE --for=condition=Ready pod/kafka-broker$i --timeout=300s
+         echo "  kafka-broker-$i is ready. Stabilizing..."
+         sleep 60
+       done
+     else
+       echo "  StatefulSet not found, brokers should auto-restart from Deployment"
+       sleep 120
+     fi
 
    echo ""
    echo "============================================"
@@ -1709,7 +1747,7 @@ If Kafka brokers are experiencing disk space issues and require immediate cleanu
    echo ">>> Final disk usage:"
    for i in $(seq 0 $((BROKER_COUNT-1))); do
      echo "=== kafka-broker-$i ==="
-     kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data 2>/dev/null || echo "  Still recovering..."
+     kubectl exec -n $NAMESPACE kafka-broker$i -- df -h /var/lib/kafka/data-0 2>/dev/null || echo "  Still recovering..."
    done
 
 **Script Usage**
