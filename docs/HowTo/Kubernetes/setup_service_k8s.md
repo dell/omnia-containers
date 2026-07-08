@@ -439,8 +439,6 @@ The NFS subdir external provisioner pod should be `Running` and a
   CSI driver for enterprise storage.
 - [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy the
   telemetry pipeline on the service K8s cluster.
-- [Configure HA](configure_ha.md) -- HA architecture details and
-  kube-vip troubleshooting.
 
 ## Troubleshooting
 
