@@ -1,160 +1,183 @@
-# Troubleshooting BuildStreaM Pipeline Issues
+# BuildStreaM Issues
 
-This section provides troubleshooting guidance for common BuildStreaM pipeline issues.
+Issues related to BuildStreaM pipeline execution, GitLab integration, catalog validation, and image deployment.
 
-## Stage: Health Check
+## Health Check stage failing
 
-**Issue**: Health Check stage is failing.
+???+ note "Symptom"
 
-**Possible Cause**: This issue indicates one of the following problems:
+    Health Check stage is failing in the BuildStreaM pipeline.
 
-- GitLab target IP and host IP of the BuildStream API server should be reachable from each other.
-- BuildStream containers are not running properly.
+??? note "Cause"
 
-**Resolution**:
+    - GitLab target IP and host IP of the BuildStreaM API server are not reachable from each other
+    - BuildStreaM containers are not running properly
 
-1. Ensure the GitLab target IP and BuildStream API server are in the same subnet.
+??? note "Resolution"
 
-2. Verify that the `omnia_build_stream` container and the `omnia_postgres` and `playbook_watcher` services are running on the OIM node. To check the status of the containers, run the following command:
+    1. Ensure the GitLab target IP and BuildStreaM API server are in the same subnet.
 
-    ```bash title="Check service status"
-    systemctl status omnia_build_stream.service
-    systemctl status omnia_postgres.service
-    systemctl status playbook_watcher.service
-    ```
+    2. Verify that the `omnia_build_stream` container and the `omnia_postgres` and `playbook_watcher` services are running on the OIM node:
 
-3. If there are failures in any of the containers, capture and verify the logs from journalctl using the following command:
+        ```bash title="Run on: OIM host"
+        systemctl status omnia_build_stream.service
+        systemctl status omnia_postgres.service
+        systemctl status playbook_watcher.service
+        ```
 
-    ```bash title="Check service logs"
-    journalctl -u omnia_build_stream --no-pager
-    journalctl -u omnia_postgres --no-pager
-    ```
+    3. If there are failures in any of the containers, capture and verify the logs from journalctl:
 
-## Stage: API Registration
+        ```bash title="Run on: OIM host"
+        journalctl -u omnia_build_stream --no-pager
+        journalctl -u omnia_postgres --no-pager
+        ```
 
-**Issue**: API-Registration stage is failing.
+## API Registration stage failing
 
-**Possible Cause**: This issue indicates one of the following problems:
+???+ note "Symptom"
 
-- Maximum client limit reached for BuildStreaM API server registration.
-- Other API registration errors.
+    API-Registration stage is failing in the BuildStreaM pipeline.
+
+??? note "Cause"
+
+    - Maximum client limit reached for BuildStreaM API server registration
+    - Other API registration errors
 
 !!! note
 
     Currently, only one client can be registered with the BuildStreaM API server.
 
-**Resolution**:
+??? note "Resolution"
 
-1. If you encounter the `max_clients_limit_reached` error, do the following:
-    - Either run the pipeline from the already registered client.
-    - Or perform the `gitlab_cleanup` and reconfigure GitLab using the playbook.
+    1. If you encounter the `max_clients_limit_reached` error:
+        - Either run the pipeline from the already registered client
+        - Or perform the `cleanup_gitlab` and reconfigure GitLab using the playbook
 
-2. For other non-successful API responses, on the Omnia Infrastructure Manager (OIM), check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
+    2. For other non-successful API responses, on the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
 
-## Stage: Token Generation
+## Token Generation stage failing
 
-**Issue**: Token-Generation stage is failing.
+???+ note "Symptom"
 
-**Possible Cause**: This issue indicates one of the following problems:
+    Token-Generation stage is failing in the BuildStreaM pipeline.
 
-- Token generation failed due to authentication issues.
-- Token generation failed due to network issues.
+??? note "Cause"
 
-**Resolution**:
+    - Token generation failed due to authentication issues
+    - Token generation failed due to network issues
 
-On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
+??? note "Resolution"
 
-## Stage: Parse Catalog
+    On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
 
-**Issue**: Parse-Catalog stage is failing.
+## Parse Catalog stage failing
 
-**Possible Cause**: This issue indicates one of the following problems:
+???+ note "Symptom"
 
-- Invalid JSON schema format.
-- The `catalog_rhel.json` structure does not match the expected catalog schema.
+    Parse-Catalog stage is failing in the BuildStreaM pipeline.
 
-**Resolution**:
+??? note "Cause"
 
-* Ensure the JSON is aligned with the schema as shown in the reference examples available at:
-    - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
+    - Invalid JSON schema format
+    - The `catalog_rhel.json` structure does not match the expected catalog schema
 
-* If the issue persists, on the OIM, check the job-specific logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`
+??? note "Resolution"
 
-## Stage: Create Local Repo
+    - Ensure the JSON is aligned with the schema as shown in the reference examples available at:
+        - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
+    - If the issue persists, on the OIM, check the job-specific logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`
 
-**Issue**: Create-Local-Repo stage is failing.
+## Create Local Repo stage failing
 
-**Possible Cause**: This issue indicates one of the following problems:
+???+ note "Symptom"
 
-- Playbook execution failed.
-- Configuration issues in `local_repo_config.yml`.
+    Create-Local-Repo stage is failing in the BuildStreaM pipeline.
 
-**Resolution**:
+??? note "Cause"
 
-1. If there are issues with playbook execution, the log path is available from the API response. Check the logs at the path specified in the `log_file_path` field.
+    - Playbook execution failed
+    - Configuration issues in `local_repo_config.yml`
 
-    **Example API response format**:
+??? note "Resolution"
 
-    ```json title="Example API response format"
-    {
-        "stage_name": "create-local-repository",
-        "stage_state": "FAILED",
-        "started_at": "2026-03-11T10:07:58.906785+00:00Z",
-        "ended_at": "2026-03-11T10:49:20.639894+00:00Z",
-        "error_code": "PLAYBOOK_EXECUTION_FAILED",
-        "error_summary": "Playbook exited with code 2",
-        "log_file_path": "/nfs/omnia/log/build_stream/5a4f69f4-44df-42eb-b88b-1583ea2610a8/local_repo.yml_20260311_171630.log"
-    }
-    ```
+    1. If there are issues with playbook execution, the log path is available from the API response. Check the logs at the path specified in the `log_file_path` field.
 
-2. Verify the configuration settings in `local_repo_config.yml`.
+        **Example API response format**:
 
-3. After fixing the configuration issues, re-run the pipeline.
+        ```json title="Example API response format"
+        {
+            "stage_name": "create-local-repository",
+            "stage_state": "FAILED",
+            "started_at": "2026-03-11T10:07:58.906785+00:00Z",
+            "ended_at": "2026-03-11T10:49:20.639894+00:00Z",
+            "error_code": "PLAYBOOK_EXECUTION_FAILED",
+            "error_summary": "Playbook exited with code 2",
+            "log_file_path": "/nfs/omnia/log/build_stream/5a4f69f4-44df-42eb-b88b-1583ea2610a8/local_repo.yml_20260311_171630.log"
+        }
+        ```
 
-## Stage: Build Images
+    2. Verify the configuration settings in `local_repo_config.yml`.
 
-**Issue**: Build Images stage is failing.
+    3. After fixing the configuration issues, re-run the pipeline.
 
-**Possible Cause**: This issue indicates one of the following problems:
+## Build Images stage failing
 
-- Playbook execution failed.
-- Catalog does not have predefined functional groups.
+???+ note "Symptom"
 
-**Resolution**:
+    Build Images stage is failing in the BuildStreaM pipeline.
 
-1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [functional groups section](../GetStarted/buildstream_deployment.md#functional-groups).
+??? note "Cause"
 
-2. If changes are required in the catalog, make the necessary modifications to the catalog.
+    - Playbook execution failed
+    - Catalog does not have predefined functional groups
 
-3. After fixing catalog issues, re-run the pipeline.
+??? note "Resolution"
 
-## Stage: Deploy Images
+    1. Ensure the catalog has the predefined functional groups. For the supported functional groups, see the [BuildStreaM deployment guide](../GetStarted/buildstream_deployment.md).
 
-**Issue**: Deploy Images stage is failing.
+    2. If changes are required in the catalog, make the necessary modifications to the catalog.
 
-**Possible Cause**: This issue indicates one of the following problems:
+    3. After fixing catalog issues, re-run the pipeline.
 
-- Playbook execution failed.
-- The functional groups listed in the PXE mapping file do not adhere to functional groups in the `catalog_rhel.json`.
+## Deploy Images stage failing
 
-**Resolution**:
+???+ note "Symptom"
 
-1. Check the log path from the API response for detailed error information.
+    Deploy Images stage is failing in the BuildStreaM pipeline.
 
-2. Ensure the functional groups listed in the PXE mapping file matches the functional groups defined in the `catalog_rhel.json`.
+??? note "Cause"
 
-3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
+    - Playbook execution failed
+    - The functional groups listed in the PXE mapping file do not adhere to functional groups in the `catalog_rhel.json`
 
-## Common Issues
+??? note "Resolution"
 
-### Retry Button Not Displayed
+    1. Check the log path from the API response for detailed error information.
 
-**Issue**: The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
+    2. Ensure the functional groups listed in the PXE mapping file matches the functional groups defined in the `catalog_rhel.json`.
 
-**Possible Cause**: The Retry button may not appear in certain failed pipeline stages due to Gitlab issues
+    3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
 
-**Resolution**:
+## Retry button not displayed
 
-1. Initiate a restart from the parent pipeline to resolve this issue.
+???+ note "Symptom"
 
-2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
+    The Retry button is not displayed for failed pipeline stages, including deploy, restart, and validate operations.
+
+??? note "Cause"
+
+    The Retry button may not appear in certain failed pipeline stages due to GitLab issues.
+
+??? note "Resolution"
+
+    1. Initiate a restart from the parent pipeline to resolve this issue.
+
+    2. This action restarts the entire pipeline from the beginning, allowing all stages to execute again.
+
+!!! info
+
+    - [Deploy GitLab](../HowTo/BuildStreaM/deploy_gitlab.md) -- GitLab deployment procedures
+    - [Execute Build Pipeline](../HowTo/BuildStreaM/execute_build_pipeline.md) -- Build pipeline operations
+    - [Execute Deploy Pipeline](../HowTo/BuildStreaM/execute_deploy_pipeline.md) -- Deploy pipeline operations
+    - [Retry Pipelines](../HowTo/BuildStreaM/retry_pipelines.md) -- Retry failed pipeline operations
+    - [Update Catalog](../HowTo/BuildStreaM/update_catalog.md) -- Catalog configuration

@@ -179,8 +179,9 @@ nav:
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
-      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
+      - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
+      - Host RPMs on Apache: HowTo/Slurm/host_slurm_repo.md
       - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
       - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
@@ -188,8 +189,8 @@ nav:
       - Config Backup: HowTo/Slurm/slurm_config_backup.md
       - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
     - Kubernetes:
-      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Configure HA: HowTo/Kubernetes/configure_ha.md
+      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
@@ -212,7 +213,10 @@ nav:
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
-      - Update Catalog Pipeline: HowTo/BuildStreaM/update_catalog_pipeline.md
+      - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
+      - Execute Deploy Pipeline: HowTo/BuildStreaM/execute_deploy_pipeline.md
+      - Initialize Telemetry: HowTo/BuildStreaM/initialize_telemetry.md
+      - Update Catalog: HowTo/BuildStreaM/update_catalog.md
       - Cleanup Operations: HowTo/BuildStreaM/cleanup_operations.md
       - Retry Pipelines: HowTo/BuildStreaM/retry_pipelines.md
   - Reference:
@@ -271,12 +275,15 @@ nav:
     - Troubleshooting/index.md
     - General: Troubleshooting/general.md
     - Provisioning: Troubleshooting/provisioning.md
+    - Build Cluster Images: Troubleshooting/build_cluster_images.md
     - Slurm: Troubleshooting/slurm.md
     - Kubernetes: Troubleshooting/kubernetes.md
     - Telemetry: Troubleshooting/telemetry.md
     - Authentication: Troubleshooting/authentication.md
     - BuildStreaM: Troubleshooting/buildstream.md
     - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
+    - Kernel Version Override: Troubleshooting/kernel_version_override.md
+    - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
     - Known Limitations: Troubleshooting/known_limitations.md
   - Contributing:
     - Contributing/index.md

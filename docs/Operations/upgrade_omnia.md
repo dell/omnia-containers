@@ -42,29 +42,6 @@ Before starting the upgrade, ensure the following prerequisites are met:
    functional groups, an inventory file with an `[admin_aarch64]` group is
    required. This group must contain exactly one ARM admin node.
 
-### Pre-Flight Checks
-
-Before initiating the upgrade, perform the following pre-flight checks to
-ensure the system is ready:
-
-1. **Verify OIM node health** — Ensure the OIM node is responsive and has
-   sufficient resources (CPU, memory, disk space) for the upgrade process.
-2. **Check network connectivity** — Verify all cluster nodes can reach the OIM
-   node and each other through the admin network.
-3. **Validate NFS shares** — Ensure all NFS shares defined in
-   `storage_config.yml` are accessible from the OIM and all cluster nodes.
-4. **Check disk space** — Verify sufficient disk space is available on the OIM
-   node for backups and container images (minimum 50 GB free recommended).
-5. **Verify time synchronization** — Ensure NTP is configured and time is
-   synchronized across all cluster nodes.
-6. **Check running services** — Verify all critical services (OpenCHAMI,
-   PostgreSQL, Kubernetes if applicable) are running and healthy.
-7. **Review logs** — Check recent logs in `/opt/omnia/log/` for any errors or
-   warnings that might indicate issues.
-8. **Validate configuration files** — Ensure all input configuration files in
-   `/opt/omnia/input/project_default/` are syntactically correct and contain
-   valid values.
-
 ### Build the Omnia 2.2.0.0 Core Container Image
 
 The upgrade swaps the running `omnia_core` container to the 2.2.0.0 image.
@@ -255,17 +232,33 @@ On rerun, already-completed components are automatically skipped. This ensures
 idempotent execution — you can safely rerun the upgrade after fixing a failed
 component.
 
-### BuildStreaM Terminal Gate
+### BuildStreaM Upgrade
 
 When `enable_build_stream=true` in `build_stream_config.yml`, the BuildStreaM
-terminal gate activates. The upgrade playbook determines the BuildStreaM path
-based on the state in 2.1:
+terminal gate activates. If BuildStreaM is enabled during the upgrade, the
+downstream components (`local_repo`, `build_image`, `provision`, `k8s`,
+`telemetry`, `slurm`) will not be upgraded by Omnia — they are managed by the
+GitLab CI/CD pipeline instead. In this scenario, these components are
+automatically skipped during upgrade because they are handled by the
+BuildStreaM pipeline. Only `oim` and `build_stream` are actually upgraded by
+Omnia.
+
+### BuildStreaM Terminal Gate (Upgrade)
+
+Components that are skipped are recorded as `skipped` in the upgrade manifest,
+which is treated as a successful terminal state when the overall upgrade status
+is determined.
+
+The upgrade playbook determines the BuildStreaM path based on the state in
+2.1:
 
 **PATH A: BuildStreaM was ENABLED in 2.1 (upgrade path)**
 
 - Upgrade BuildStreaM container image (quadlet update)
-- PostgreSQL data migration (`pg_dump` to restore to new schema)
+- PostgreSQL data migration (pg_dump → restore to new schema)
 - Update GitLab configuration (URLs, runner tokens, registry)
+- Upgrades the GitLab project repository (pipelines, omnia input files, catalog
+  examples) by adding a new upgrade commit
 - Validate BuildStreaM container + GitLab healthy
 
 **PATH B: BuildStreaM was DISABLED in 2.1, ENABLED in 2.2 (fresh install)**
@@ -554,7 +547,7 @@ After a successful upgrade:
 - Validate NFS accessibility from login and compute nodes.
 - Submit a small test job to confirm scheduler functionality.
 - Review the generated status report and investigate any nodes reported under
-  the Unreachable, Reboot Failed, SSH Failure, or Sinfo Failure categories
+  the Unreachable, Reboot Failed, SSH Failure, or sinfo Failure categories
   before returning the cluster to production use.
 
 ## Phase 2: Execute Upgrade
