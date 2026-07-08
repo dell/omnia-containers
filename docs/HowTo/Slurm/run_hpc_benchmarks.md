@@ -26,7 +26,7 @@ them as Slurm jobs using Apptainer.
 - Apptainer is installed on compute nodes (included in `software_config.json`
   with `{"name": "apptainer"}`).
 - NFS shared storage is available at `/home` or a dedicated benchmark
-  directory (see [Configure Nfs](../Storage/configure_nfs.md)).
+  directory (see [Configure Mounts](../Storage/configure_mounts.md)).
 - For GPU benchmarks: GPU drivers are installed (see [Slurm With Gpu](slurm_with_gpu.md)).
 
 

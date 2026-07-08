@@ -35,7 +35,7 @@ apptainer pull \
 
 
 - Apptainer is installed on compute nodes.
-- NFS shared storage is configured (see [Configure Nfs](../Storage/configure_nfs.md)).
+- NFS shared storage is configured (see [Configure Mounts](../Storage/configure_mounts.md)).
 - Verify Apptainer is installed:
 
    ```bash title="Run on: compute node"

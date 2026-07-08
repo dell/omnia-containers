@@ -131,7 +131,7 @@ The build process:
 ## Next Steps
 
 
-- [Discover Nodes](discover_nodes.md) -- Run node discovery using the built images.
+- [Provision Nodes](provision_nodes.md) -- Provision cluster nodes using the built images.
 - [PXE Boot Playbook](configure_pxe_boot.md) -- Configure PXE boot for target servers.
 
 
