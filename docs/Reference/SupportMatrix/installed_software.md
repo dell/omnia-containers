@@ -24,12 +24,17 @@ This page lists all software components that Omnia installs and configures acros
 | pulp-cli-deb | 0.3.0 | GPL-2.0-only | Command line interface to talk to pulpcore's REST API. (Deb plugin commands) |
 | pulp-glue | 0.33.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. |
 | pulp-glue-deb | 0.3.0 | GPL-2.0-only | Version agnostic glue library to talk to pulpcore's REST API. (deb plugin) |
-| Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
-| Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
-| Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
 | minio | latest | GNU Affero General Public License v3.0 (AGPLv3) | MinIO is a high-performance object storage system compatible with the Amazon S3 API. |
 | registry | latest | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 | postgresSQL | 16.8 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
+
+## Container Operating Systems
+
+| Component | Version | License | Purpose |
+| --- | --- | --- | --- |
+| Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
+| Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
+| Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
 
 ## Kubernetes cluster software
 
@@ -153,7 +158,7 @@ This page lists all software components that Omnia installs and configures acros
 | Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 | apptainer | Latest | LGPL-2.1-or-later | Container runtime for HPC |
 
-## Ansible collections and libraries
+## Ansible collections
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -170,12 +175,6 @@ This page lists all software components that Omnia installs and configures acros
 | community.postgresql | 3.10.2 | PostgreSQL License | Ansible collection for PostgreSQL database management |
 | dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
 | dellemc.openmanage | 9.6.0 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
-| ansible pylibssh | 1.2.3 | LGPL-2.1-only | Python bindings specific to Ansible use case for libssh |
-| python3-netaddr | 0.8.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
-| libssh-config | 0.10.6 | LGPL-2.1-OR-LATER | Unknown |
-| libssh | 0.11.1 | LGPL-2.1-OR-LATER | Unknown |
-| python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
-| uv (omnia_core) | 0.9.13 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
 
 ## Utilities and libraries
 
@@ -190,9 +189,15 @@ This page lists all software components that Omnia installs and configures acros
 | golang.org/x/text | 0.23.0 | BSD-3-Clause | mirror Go text processing support |
 | Go | 1.25.10 | BSD-3-Clause | Go is an open source programming language that makes it easy to build simple, reliable, and efficient software. |
 | Git LFS | v3.7.1 | MIT | Git LFS is a command line extension and specification for managing large files with Git. |
+| ansible pylibssh | 1.2.3 | LGPL-2.1-only | Python bindings specific to Ansible use case for libssh |
+| python3-netaddr | 0.8.0 | BSD?2-Clause, BSD?3-Clause | A network address manipulation library for Python |
+| libssh-config | 0.10.6 | LGPL-2.1-OR-LATER | Unknown |
+| libssh | 0.11.1 | LGPL-2.1-OR-LATER | Unknown |
+| python3.12 | 3.12.9 | Python Software Foundation License (PSF) | Python 3.12 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | python3.13 | 3.13 | Python Software Foundation License (PSF) | Python 3.13 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | python3.14 | 3.14 | Python Software Foundation License (PSF) | Python 3.14 is the core interpreter and standard library for the Python programming language, enabling execution of Python applications and scripts on the system. |
 | uv | 0.11.15 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
+| uv (omnia_core) | 0.9.13 | Apache-2.0 or MIT | An extremely fast Python package installer and resolver, written in Rust. |
 | pip | 26 | MIT | The pip package installer is the standard package manager for Python. |
 | pip (ubuntu-ldms) | 26.1.1 | MIT | The pip package installer is the standard package manager for Python. |
 | wheel | 0.46.2 | MIT | A built-package format for Python. |
