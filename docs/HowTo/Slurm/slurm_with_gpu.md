@@ -60,6 +60,22 @@ package is selected based on the CUDA version. On clusters running CUDA
 - Set `telemetry_sources.dcgm.metrics_enabled` to `false` in
   `telemetry_config.yml` to skip DCGM installation.
 
+``` yaml
+telemetry_sources:
+  dcgm:
+    metrics_enabled: true
+```
+
+**Behavior**
+
+| Value | Result |
+|-------------|----------|
+| true | Install DCGM during cloud-init |
+| false | Skip DCGM installation |
+
+!!! note
+    DCGM metrics collection is not currently integrated into the Omnia telemetry pipeline.
+
 
 ## Verification
 
