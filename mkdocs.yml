@@ -165,16 +165,17 @@ nav:
   - How-to Guides:
     - HowTo/index.md
     - Setup:
-      - Prepare OIM: HowTo/Setup/prepare_oim.md
+      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
+      - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - Configure Inputs: HowTo/Setup/configure_inputs.md
       - Configure Credentials: HowTo/Setup/configure_credentials.md
-      - Create Local Repos: HowTo/Setup/create_local_repos.md
-      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
-      - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
-      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
-      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Prepare OIM: HowTo/Setup/prepare_oim.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
+      - Create Local Repos: HowTo/Setup/create_local_repos.md
+      - Discover Nodes: HowTo/Setup/discover_nodes.md
+      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Provision Nodes: HowTo/Setup/provision_nodes.md
+      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
@@ -187,12 +188,11 @@ nav:
       - Config Backup: HowTo/Slurm/slurm_config_backup.md
       - Run HPC Benchmarks: HowTo/Slurm/run_hpc_benchmarks.md
     - Kubernetes:
-      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Configure HA: HowTo/Kubernetes/configure_ha.md
+      - Set Up Kubernetes: HowTo/Kubernetes/setup_service_k8s.md
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
-      - Configure NFS: HowTo/Storage/configure_nfs.md
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
@@ -200,12 +200,20 @@ nav:
     - Authentication:
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
-      - Set Up Telemetry: HowTo/Telemetry/setup_telemetry.md
-      - Verify Telemetry: HowTo/Telemetry/verify_telemetry.md
-      - Telemetry from OME: HowTo/Telemetry/telemetry_from_ome.md
-      - Configure LDMS: HowTo/Telemetry/configure_ldms.md
-      - External Kafka: HowTo/Telemetry/configure_external_kafka.md
-      - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
+      - Setup Telemetry: HowTo/Telemetry/setup_telemetry.md
+      - Configure iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
+      - Configure LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
+      - Configure DCGM Telemetry: HowTo/Telemetry/configure_dcgm.md
+      - Configure PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
+      - Configure UFM Telemetry: HowTo/Telemetry/configure_ufm.md
+      - Configure VAST Telemetry: HowTo/Telemetry/configure_vast.md
+      - Configure OpenManage Enterprise Telemetry: HowTo/Telemetry/telemetry_from_ome.md
+      - Configure SFM Telemetry: HowTo/Telemetry/configure_sfm.md
+      - Configure Vector Pipeline: HowTo/Telemetry/configure_vector.md
+      - Configure Vector-LDMS Pipeline: HowTo/Telemetry/configure_vector_ldms.md
+      - Configure Vector-OME Pipeline: HowTo/Telemetry/configure_vector_ome.md
+      - Configure External Kafka: HowTo/Telemetry/configure_external_kafka.md
+      - Configure External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
     - Advanced Configurations:
       - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
@@ -228,6 +236,7 @@ nav:
       - Switches: Reference/SupportMatrix/switches.md
       - Storage: Reference/SupportMatrix/storage.md
       - Installed Software: Reference/SupportMatrix/installed_software.md
+      - All Softwares: Reference/SupportMatrix/all_softwares.md
     - Configuration:
       - Omnia Config: Reference/Configuration/omnia_config.md
       - Provision Config: Reference/Configuration/provision_config.md
@@ -273,6 +282,7 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
+    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:
@@ -286,6 +296,8 @@ nav:
     - Authentication: Troubleshooting/authentication.md
     - BuildStreaM: Troubleshooting/buildstream.md
     - Upgrade and Rollback: Troubleshooting/upgrade_rollback.md
+    - Kernel Version Override: Troubleshooting/kernel_version_override.md
+    - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
     - Known Limitations: Troubleshooting/known_limitations.md
   - Contributing:
     - Contributing/index.md
