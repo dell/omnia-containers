@@ -198,6 +198,7 @@ nav:
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
     - Authentication:
+      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
       - Setup Telemetry: HowTo/Telemetry/setup_telemetry.md
