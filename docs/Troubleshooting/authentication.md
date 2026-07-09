@@ -2,68 +2,44 @@
 
 Issues related to LDAP authentication, user login, OpenLDAP service, and TLS certificate errors.
 
-## LDAP user import fails due to whitespace in LDIF file
+## LDAP login fails after user creation
 
 ???+ note "Symptom"
 
-    LDAP user import fails with syntax or formatting errors when processing the LDIF file.
+    User login fails after LDAP user creation. Error messages include:
+
+    - `id: 'newuser': no such user`
+    - `Permission denied (publickey,gssapi-keyex,gssapi-with-mic)`
 
 ??? note "Cause"
 
-    The LDIF file contains trailing whitespace or improperly formatted entries that are rejected by the LDAP server.
+    Whitespace in the LDIF file used to create the user.
 
 ??? note "Resolution"
 
-    1. Open the LDIF file and verify there is no trailing whitespace at the end of lines.
-    2. Ensure each entry is separated by exactly one blank line.
-    3. Re-import the corrected LDIF file:
+    1. Inspect the LDIF file for hidden whitespace or control characters:
 
         ```bash title="Run on: auth server"
-        ldapadd -x -D "cn=admin,dc=example,dc=com" -W -f users.ldif
+        cat -vet <filename>
         ```
 
-## OpenLDAP login fails: stale SSH authorized key
+    2. Remove any whitespace found, then re-import the corrected LDIF file.
+
+## OpenLDAP login fails
 
 ???+ note "Symptom"
 
-    A user can authenticate via LDAP (`ldapsearch` succeeds) but SSH login fails with `Permission denied (publickey)`.
+    OpenLDAP login fails.
 
 ??? note "Cause"
 
-    The SSH public key stored in the user's LDAP entry does not match the current private key on the client, or the `sshPublicKey` attribute is empty or contains an outdated key.
+    Stale SSH key.
 
 ??? note "Resolution"
 
-    1. Verify the key stored in LDAP:
-
-        ```bash title="Run on: auth server"
-        ldapsearch -x -D "cn=admin,dc=example,dc=com" -W \
-          -b "uid=<username>,ou=People,dc=example,dc=com" sshPublicKey
-        ```
-
-    2. Generate a new SSH key pair on the client if needed:
-
-        ```bash title="Run on: client"
-        ssh-keygen -t ed25519 -C "<username>@cluster"
-        ```
-
-    3. Update the LDAP entry with the correct public key:
-
-        ```bash title="Run on: auth server"
-        ldapmodify -x -D "cn=admin,dc=example,dc=com" -W <<EOF
-        dn: uid=<username>,ou=People,dc=example,dc=com
-        changetype: modify
-        replace: sshPublicKey
-        sshPublicKey: <paste_public_key_here>
-        EOF
-        ```
-
-    4. Clear the SSSD cache and retry:
-
-        ```bash title="Run on: compute node"
-        sss_cache -E
-        systemctl restart sssd
-        ```
+    ```bash title="Run on: OIM host"
+    ssh-keygen -R <hostname>
+    ```
 
 ## User login fails on cluster nodes
 
