@@ -618,7 +618,7 @@ kubectl logs -n isilon deployment/isilon-controller --all-containers
 
 - [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy telemetry
   with PowerScale-backed persistent storage.
-- [Configure NFS](../Storage/configure_nfs.md) -- Configure NFS for Slurm
+- [Configure Mounts](../Storage/configure_mounts.md) -- Configure NFS and other storage mounts for Slurm
   compute nodes.
 - [Set Up Kubernetes](setup_service_k8s.md) -- Review the Kubernetes cluster
   configuration options.

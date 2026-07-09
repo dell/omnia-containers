@@ -17,7 +17,7 @@ completely reset the OIM.
 - **Environment reset** -- Lab or test environments where the OIM is frequently
   rebuilt.
 
-!!! danger
+!!! caution
 
     `oim_cleanup.yml` removes Podman containers, configuration files, and
     state data from the OIM. **This operation cannot be undone.** Ensure you
@@ -120,3 +120,6 @@ The `oim_cleanup.yml` playbook performs the following tasks:
       ```bash
       ssh-keygen -R <node IP>
       ```
+!!! info
+
+    - [Pulp Cleanup](pulp_cleanup.md) -- Clean up Pulp repositories, files, and container images.
