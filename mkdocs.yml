@@ -151,6 +151,7 @@ nav:
     - Architecture: Overview/architecture.md
     - Components: Overview/components.md
     - Network Topologies: Overview/network_topologies.md
+    - Cluster DNS: Overview/cluster_dns.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
@@ -173,7 +174,9 @@ nav:
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Create Local Repos: HowTo/Setup/create_local_repos.md
       - Discover Nodes: HowTo/Setup/discover_nodes.md
+      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
       - Provision Nodes: HowTo/Setup/provision_nodes.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
@@ -197,6 +200,7 @@ nav:
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
+      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
     - Authentication:
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
@@ -218,6 +222,12 @@ nav:
       - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
+      - Additional Cloud-Init: Reference/Configuration/additional_cloud_init.md
+      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
+      - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
+      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
+      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
+      - Configure Multi-Subnet DHCP: HowTo/Setup/configure_inputs.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md

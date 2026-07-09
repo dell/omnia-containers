@@ -28,14 +28,6 @@ This page lists all software components that Omnia installs and configures acros
 | registry | latest | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 | postgresSQL | 16.8 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
-## Container Operating Systems
-
-| Component | Version | License | Purpose |
-| --- | --- | --- | --- |
-| Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
-| Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
-| Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
-
 ## Kubernetes cluster software
 
 | Component | Version | License | Purpose |
@@ -121,6 +113,25 @@ This page lists all software components that Omnia installs and configures acros
 | 389-ds | 2.6.1 | GPL-3.0-or-later | Light weight directory access protocol |
 | Omnia Auth | 1.0.0 | Apache License 2.0 | The omnia_auth image is part of Dell's Omnia toolkit and is responsible for authentication services within HPC, AI, and data analytics clusters. It primarily manages centralized user authentication and integrates with OpenLDAP to provide secure access control across the cluster. |
 
+
+## Ansible collections
+
+| Component | Version | License | Purpose |
+| --- | --- | --- | --- |
+| containers.podman | 1.16.2 | GPL-3.0-or-later | Repository for Ansible content that can include playbooks, roles, modules, and plugins for use with the Podman tool |
+| community.grafana | 2.1.0 | GPL-3.0-only | Ansible Community General Collection |
+| community.mysql | 3.10.3 | GPL-3.0-only | MySQL is an open-source relational database management system. |
+| kubernetes.core | 5.2.0 | GPL-3.0-only | The collection includes a variety of Ansible content to help automate the management of applications in Kubernetes and OpenShift clusters, as well as the provisioning and maintenance of clusters themselves. |
+| community.kubernetes | 2.0.1 | GPL-3.0-or-later | Kubernetes collection for ansible |
+| ansible.utils | 5.1.1 | Apache-2.0 | Ansible collection of utility modules |
+| community.crypto | 2.23.0 | Apache-2.0 | Ansible collection for cryptographic operations |
+| community.docker | 3.12.1 | Apache-2.0 | Ansible collection for Docker/Podman container management |
+| community.general | 10.3.0 | GPL-3.0-only | Ansible Community General Collection |
+| ansible.posix | 2.0.0 | GPL-3.0-or-later | Ansible collection for POSIX system management |
+| community.postgresql | 3.10.2 | PostgreSQL License | Ansible collection for PostgreSQL database management |
+| dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
+| dellemc.openmanage | 9.6.0 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
+
 ## Telemetry software stack
 
 | Component | Version | License | Purpose |
@@ -158,23 +169,14 @@ This page lists all software components that Omnia installs and configures acros
 | Busybox base image | 1.36 | Apache-2.0 license | BusyBox combines tiny versions of many common UNIX utilities into a single small executable |
 | apptainer | Latest | LGPL-2.1-or-later | Container runtime for HPC |
 
-## Ansible collections
+
+## Container Operating Systems
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
-| containers.podman | 1.16.2 | GPL-3.0-or-later | Repository for Ansible content that can include playbooks, roles, modules, and plugins for use with the Podman tool |
-| community.grafana | 2.1.0 | GPL-3.0-only | Ansible Community General Collection |
-| community.mysql | 3.10.3 | GPL-3.0-only | MySQL is an open-source relational database management system. |
-| kubernetes.core | 5.2.0 | GPL-3.0-only | The collection includes a variety of Ansible content to help automate the management of applications in Kubernetes and OpenShift clusters, as well as the provisioning and maintenance of clusters themselves. |
-| community.kubernetes | 2.0.1 | GPL-3.0-or-later | Kubernetes collection for ansible |
-| ansible.utils | 5.1.1 | Apache-2.0 | Ansible collection of utility modules |
-| community.crypto | 2.23.0 | Apache-2.0 | Ansible collection for cryptographic operations |
-| community.docker | 3.12.1 | Apache-2.0 | Ansible collection for Docker/Podman container management |
-| community.general | 10.3.0 | GPL-3.0-only | Ansible Community General Collection |
-| ansible.posix | 2.0.0 | GPL-3.0-or-later | Ansible collection for POSIX system management |
-| community.postgresql | 3.10.2 | PostgreSQL License | Ansible collection for PostgreSQL database management |
-| dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
-| dellemc.openmanage | 9.6.0 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
+| Fedora Core | 40 | MIT | Fedora CoreOS is a container-focused Linux distribution developed by the Fedora Project and sponsored by Red Hat. It provides an immutable, minimal, and secure operating system optimized for running container workloads at scale. |
+| Fedora 42 | 42 | MIT | Fedora is a Linux-based operating system, a collection of software that makes your computer run. |
+| Ubuntu 26.04 | 26.04 | GNU General Public License v2.0 or later | Ubuntu is a Linux distribution for desktop and server. |
 
 ## Utilities and libraries
 
