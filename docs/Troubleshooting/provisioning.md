@@ -290,6 +290,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
     - cloud-init failed during the boot process.
     - The node's boot image was not built correctly.
     - Network configuration conflicts prevent the node from reaching the OIM.
+    - cloud-init is not properly loaded on the target servers during provisioning. For more information, see [Inconsistent cloud-init behavior with multiple node group configurations](https://github.com/OpenCHAMI/cloud-init/issues/89).
 
 ??? note "Resolution"
 
@@ -309,6 +310,11 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
 
     3. If cloud-init completed with errors, re-run `provision.yml` after
        fixing the root cause.
+
+    4. If the hostname or root password is not configured because cloud-init
+       was not loaded in time, wait 5 minutes and retry provisioning the
+       node. If the issue persists, redeploy the cluster after running the
+       `oim_cleanup.yml` playbook.
 
 
 ## IP route conflict after provisioning

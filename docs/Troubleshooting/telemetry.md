@@ -224,6 +224,16 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
 
         VictoriaLogs is enabled and sized through the telemetry input config; component layout and TLS are generated. Modify inputs and re-run.
 
+## Telemetry failover delay after Kubernetes worker node failure
+
+???+ note "Symptom"
+
+    When a Kubernetes worker node fails, affected telemetry services take time to fail over to available worker nodes.
+
+??? note "Resolution"
+
+    No manual intervention is required. Wait for the telemetry services to recover and fail over automatically. Do not restart pods or nodes during this period, as it may extend recovery time.
+
 !!! info
 
     - [Setup Telemetry](../HowTo/Telemetry/setup_telemetry.md) -- Telemetry pipeline setup.
