@@ -406,10 +406,23 @@ MinIO (S3). Each functional group produces **3 image artifacts**:
     filesystem is stored directly under each functional group directory.
     If any artifacts are missing, re-run the corresponding build playbook.
 
-## Step 7 -- Set PXE Boot and Provision Nodes
+## Step 7 -- Provision Nodes
 
-Sets PXE boot order on all nodes via iDRAC Redfish, reboots them, and
-waits for cloud-init to complete provisioning (K8s, Slurm, NFS, SSH).
+Configures OpenCHAMI with the node inventory from the PXE mapping file,
+registers all nodes in the State Management Daemon (SMD), sets up
+cloud-init data (K8s, Slurm, NFS mounts, OpenLDAP, telemetry), and
+prepares the boot configuration for each functional group.
+
+```bash title="Run on: omnia_core container"
+cd /omnia/provision
+ansible-playbook provision.yml
+```
+
+## Step 8 -- Set PXE Boot
+
+Sets PXE boot order on all nodes via iDRAC Redfish and reboots them.
+Nodes boot from the network, load their OS image from S3, and execute
+cloud-init to complete provisioning.
 
 For details, see
 [Configure PXE Boot](../HowTo/Setup/configure_pxe_boot.md){target="_blank"}.
@@ -486,10 +499,10 @@ normal*    up     infinite   2      idle   snode[1-2]
 For detailed cluster verification procedures, see
 [Verify Cluster](../HowTo/Setup/verify_cluster.md){target="_blank"}.
 
-## Step 8 -- Deploy Telemetry
+## Step 9 -- Deploy Telemetry
 
 The telemetry infrastructure (Kafka, VictoriaMetrics, LDMS, vmagent)
-is deployed automatically during provisioning (Step 7). The
+is deployed automatically during provisioning (Steps 7--8). The
 `telemetry.yml` playbook deploys the **iDRAC telemetry** StatefulSet
 that collects hardware metrics (power, thermal, fan, CPU) from each
 server's iDRAC via Redfish.
