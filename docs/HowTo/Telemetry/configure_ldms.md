@@ -51,7 +51,7 @@ The following LDMS plugins are supported in Omnia:
 
 
 - `provision.yml` has been executed successfully with `service_kube_control_plane` and `service_kube_node` in the mapping file.
-- All service K8s nodes are booted and running before executing the telemetry playbook.
+- All service K8s and Slurm cluster nodes are booted and running before executing the telemetry playbook.
 ## Procedure
 
 
@@ -59,7 +59,7 @@ The following LDMS plugins are supported in Omnia:
 
     ```json
     {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
-    {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
+    {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
     {"name": "ldms", "arch": ["x86_64", "aarch64"]}
     ```
 
