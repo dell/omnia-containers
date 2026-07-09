@@ -9,13 +9,6 @@ Configure NVIDIA Unified Fabric Manager (UFM) to securely stream telemetry metri
 
 UFM Telemetry collects InfiniBand fabric metrics and logs. UFM Telemetry includes the following components:
 
-### Data Flow
-
-```
-UFM Fabric Manager → OTEL Collector → vmagent (shared) → VictoriaMetrics
-UFM Fabric Manager → syslog → VLAgent → VictoriaLogs
-```
-
 ### Components
 
 - **UFM Prometheus Exporter** -- Exposes InfiniBand fabric metrics on a Prometheus-compatible HTTPS endpoint (default port 9001).
@@ -23,6 +16,13 @@ UFM Fabric Manager → syslog → VLAgent → VictoriaLogs
 - **VMServiceScrape CR** -- Kubernetes custom resource that declares the UFM scrape target for the VictoriaMetrics operator.
 - **VLAgent** -- Receives UFM syslog events (RFC 3164/5424) and forwards them to VictoriaLogs.
 - **Kubernetes Service + Endpoints** -- Abstracts the external UFM appliance as a discoverable Kubernetes service for vmagent.
+
+### Data Flow
+
+```
+UFM Fabric Manager → OTEL Collector → vmagent (shared) → VictoriaMetrics
+UFM Fabric Manager → syslog → VLAgent → VictoriaLogs
+```
 
 ### Supported Metrics and Logs
 

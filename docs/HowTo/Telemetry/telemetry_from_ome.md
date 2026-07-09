@@ -7,7 +7,7 @@ Configure OpenManage Enterprise (OME) to securely stream telemetry data to the O
 ## Overview
 
 
-This procedure describes how to integrate OME with the Omnia Kafka pipeline for secure telemetry data streaming. OME connects to the Kafka external mTLS listener (port 9094) and publishes telemetry data (inventory, health, alerts, audit logs) to Kafka topics. To route OME telemetry from Kafka to VictoriaMetrics and VictoriaLogs, enable the Vector Telemetry Pipeline (see [Configure Vector Pipeline](configure_vector.md)).
+This procedure describes how to integrate OpenManage Enterprise (OME) with the Omnia Kafka pipeline for secure telemetry data streaming. OME connects to the Kafka external mTLS listener (port 9094) and publishes telemetry data (inventory, health, alerts, audit logs) to Kafka topics. To route OME telemetry from Kafka to VictoriaMetrics and VictoriaLogs, enable the [Vector-OME bridge](#enable-vector-ome-bridge).
 
 
 ## Prerequisites
@@ -81,6 +81,45 @@ openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out client
 7. Save and verify the connectivity status shows as **Connected**:
 
     ![OME Connectivity Verification](../../assets/images/ome_connectivity_verification.png)
+
+
+## Enable Vector-OME Bridge
+
+
+To route OME telemetry from Kafka to VictoriaMetrics and VictoriaLogs, enable the Vector-OME bridge in `telemetry_config.yml`. Vector-OME consumes from `ome.*` topics and routes metrics to VictoriaMetrics and logs to VictoriaLogs via dedicated vmagent-vector and vlagent-vector instances.
+
+For more details on Vector, see [Vector Documentation](https://vector.dev/docs/).
+
+1. **Configure `telemetry_config.yml` to enable Vector-OME**:
+
+    ```yaml title="Example: Enable Vector-OME"
+    telemetry_bridges:
+      vector_ome:
+        metrics_enabled: true
+        logs_enabled: true
+    ```
+
+    For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+
+The following components are deployed based on configured feature flags:
+
+- **vmagent-vector** -- Deployed when `vector_ome_metrics_enabled` is set to `true`.
+- **Vector-OME** -- Deployed when `vector_ome > metrics_enabled = true` or `vector_ome > logs_enabled = true`.
+- **vlagent-vector** -- Deployed when `vector_ome > logs_enabled = true`.
+- **Kafka topics and ACLs** -- For OME topics (deployed when Vector-OME is enabled).
+- **KafkaUser resources** -- For Vector-OME mTLS credentials (`vector-ome-user`).
+
+!!! note
+
+    Vector-OME requires a new KafkaUser (`vector-ome-user`) because OME is an external producer with a different security domain.
+
+!!! important
+
+    If you enable Vector-OME after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
+
+    ```bash title="Run on K8s control plane"
+    <K8s_NFS_mount_point>/telemetry/telemetry.sh
+    ```
 
 
 ## Verification
@@ -206,7 +245,6 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 ## Next Steps
 
 
-- [Configure Vector-OME Pipeline](configure_vector_ome.md) -- Route OME data from Kafka to VictoriaMetrics and VictoriaLogs.
 - [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
 
 

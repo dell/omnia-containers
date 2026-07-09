@@ -1,5 +1,5 @@
 
-# Verify OpenManage Enterprise Telemetry
+# Verify OpenManage Enterprise Telemetry (OME)
 
 
 This page provides verification steps for the OME telemetry data flow from Kafka to VictoriaMetrics and VictoriaLogs.
@@ -7,7 +7,7 @@ This page provides verification steps for the OME telemetry data flow from Kafka
 ## Prerequisites
 
 
-- The [Configure OpenManage Enterprise Telemetry](telemetry_from_ome.md) procedure is complete.
+- The [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md) procedure is complete.
 - The Vector-OME bridge is enabled in `telemetry_config.yml` for metrics and/or logs routing.
 - Nodes must be discovered in OpenManage Enterprise before configuring telemetry streaming.
 
