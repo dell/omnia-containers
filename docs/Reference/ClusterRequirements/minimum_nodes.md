@@ -74,5 +74,5 @@ This page lists the minimum number of servers required for each Omnia deployment
 !!! info
 
     - [Disk Space](disk_space.md) -- Disk and memory requirements per node role.
-    - [Ports](ports.md) -- Network ports required per role.
+    - [Ports](../../SecurityConfigurationGuide/network_security.md#firewall-settings) -- Network ports required per role.
     - [HA Config](../Configuration/high_availability_config.md) -- Kubernetes HA settings.
