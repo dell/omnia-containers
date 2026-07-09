@@ -55,6 +55,7 @@ from .common_func import (
     verify_k8s_default_storage_class,
     verify_k8s_isilon_pods,
     verify_k8s_nfs_provisioner_pods,
+    verify_k8s_powerscale_pvc_pod,
     # Package verification
     verify_node_packages,
 )
