@@ -14,7 +14,7 @@ Omnia deploys Slurm on designated nodes via cloud-init during
 provisioning. The setup includes Slurm controller, compute, login, and
 login/compiler nodes with DOCA-OFED support configured automatically.
 
-### Functional Groups
+## Functional Groups
 
 | Functional Group | Architecture | Role |
 |---|---|---|
@@ -39,7 +39,7 @@ login/compiler nodes with DOCA-OFED support configured automatically.
 - For Slurm-only deployments (no service K8s), set
   `idrac_telemetry_support` to `false` in `telemetry_config.yml`.
 
-### InfiniBand Requirements
+## InfiniBand Requirements
 
 If any Slurm nodes have an InfiniBand interface and `ib_network` is
 defined in `network_spec.yml`:
@@ -56,23 +56,7 @@ defined in `network_spec.yml`:
 
 ## Procedure
 
-### Step 1: Provide Inputs
-
-For Slurm deployment, update the following input files in
-`/opt/omnia/input/project_default/`:
-
-**Key files for this deployment:**
-
-- [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
-- [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- OS provisioning settings
-- [`pxe_mapping_file.csv`](../../Reference/SampleFiles/pxe_mapping_file.md) -- Node-to-role mapping for PXE boot
-- [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Slurm cluster settings
-- [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
-- [`software_config.json`](../../Reference/Configuration/software_config.md) -- Software stack (Slurm packages)
-- [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
-- [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration (optional)
-
-### Step 2: Set Credentials
+### Step 1: Set Credentials
 
 Run the credential utility playbook to securely store passwords for
 provisioning, iDRAC, and other services.
@@ -92,16 +76,18 @@ ansible-playbook get_config_credentials.yml
 | Pulp container password | `pulp_password` | Mandatory | Used for the Pulp repository container. Min 8 characters. |
 | Minio S3 bucket password | `minio_s3_password` | Mandatory | 5–128 characters. Must not be set to `admin`. |
 | Slurm database password | `slurm_db_password` | Mandatory for Slurm | Password for SlurmDB (MariaDB). Username is auto-generated (`slurm`). Must not contain `-`, `'`, `"`, or `\`. |
-| MySQL DB username | `mysqldb_user` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB password | `mysqldb_password` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB root password | `mysqldb_root_password` | Mandatory | Root password for the MySQL database. |
 
 !!! caution
     Passwords must not contain commas (`,`), hyphens (`-`), single
     quotes (`'`), double quotes (`"`), or backslashes (`\`) unless
     otherwise specified.
 
-### Step 3: Create the PXE Mapping File
+### Step 2: Create the PXE Mapping File
+
+The PXE mapping file tells Omnia which physical servers map to which
+cluster roles. Choose one of the following options to create it.
+
+#### Option A: Create the PXE Mapping File Manually
 
 Create a `pxe_mapping_file.csv` in `/opt/omnia/input/project_default/` and
 set the `pxe_mapping_file_path` variable in `provision_config.yml` to point
@@ -134,10 +120,9 @@ login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172
 For detailed information on PXE mapping file format and parameters, see
 [PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md).
 
-#### Alternative: Discover Nodes via OME
+#### Option B: Discover Nodes via OME
 
-If you did not create the `pxe_mapping_file.csv` manually, you can use
-OpenManage Enterprise (OME) to automatically discover servers and
+Use OpenManage Enterprise (OME) to automatically discover servers and
 generate the PXE mapping file.
 
 1. In OME, discover the cluster nodes. See the
@@ -175,9 +160,23 @@ necessary.
     Devices not assigned to any Omnia-supported static group in OME
     default to `slurm_node_aarch64` in the generated PXE mapping file.
 
-### Step 4: Edit Input Files
+### Step 3: Provide Inputs
 
-#### 4a. Edit omnia_config.yml
+For Slurm deployment, update the following input files in
+`/opt/omnia/input/project_default/`:
+
+**Key files for this deployment:**
+
+- [`network_spec.yml`](../../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
+- [`provision_config.yml`](../../Reference/Configuration/provision_config.md) -- OS provisioning settings
+- [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) -- Slurm cluster settings
+- [`storage_config.yml`](../../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
+- [`software_config.json`](../../Reference/Configuration/software_config.md) -- Software stack (Slurm packages)
+- [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
+- [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) -- Telemetry pipeline configuration (optional)
+
+
+#### Edit omnia_config.yml
 
 Edit [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) and configure the
 `slurm_cluster` section:
@@ -200,7 +199,7 @@ slurm_cluster:
     appliance for HPC tools and benchmarks. If you are using a single NFS
     share for all Slurm data, omit this parameter.
 
-#### 4b. Edit storage_config.yml
+#### Edit storage_config.yml
 
 Edit [`storage_config.yml`](../../Reference/Configuration/storage_config.md) and define the
 NFS mount entries referenced by `nfs_storage_name` and
@@ -246,7 +245,7 @@ mounts:
     The OIM must access these shares during provisioning to populate Slurm
     configuration, munge keys, and HPC tools.
 
-#### 4c. Edit software_config.json
+#### Edit software_config.json
 
 Edit [`software_config.json`](../../Reference/Configuration/software_config.md) and add
 `slurm_custom` to the `softwares` list with the required subgroups:
@@ -279,7 +278,7 @@ each functional group:
 | `login_node` | `slurm`, `slurm-slurmd` |
 | `login_compiler_node` | `slurm`, `slurm-slurmd` |
 
-#### 4d. Edit local_repo_config.yml
+#### Edit local_repo_config.yml
 
 Edit [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) and add
 your Slurm RPM repository URL under `user_repo_url_x86_64` (and
@@ -289,12 +288,18 @@ your Slurm RPM repository URL under `user_repo_url_x86_64` (and
 user_repo_url_x86_64:
   - { url: "http://<your-slurm-repo>/x86_64/", gpgkey: "", name: "slurm_custom" }
 ```
+!!! tip
+    If you need to build custom Slurm RPMs from source or host them on
+    a local server, complete these steps first:
 
+    - [Build Slurm RPM Repository](build_slurm_repo.md)
+    - [Host Slurm RPM Repository](host_slurm_repo.md)
+    
 !!! important
     The repository `name` must be `slurm_custom` to match the
     `software_config.json` entry.
 
-#### 4e. Edit telemetry_config.yml (optional)
+#### Edit telemetry_config.yml (optional)
 
 Edit [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) to control
 DCGM installation on GPU nodes:
@@ -310,10 +315,11 @@ telemetry_sources:
 - When `metrics_enabled` is `false`, DCGM installation is skipped.
 
 !!! note
-    For Slurm-only deployments without service K8s, set
-    `telemetry_sources.idrac.metrics_enabled` to `false`.
-
-### Step 5: Configure Slurm
+    For Slurm-only deployments, disable all telemetry metrics in
+    `telemetry_config.yml` except DCGM, which can be enabled if GPU
+    telemetry is required.
+    
+### Step 4: Configure Slurm
 
 #### Default Configuration
 
@@ -337,7 +343,7 @@ For detailed information on custom Slurm configuration, merge control,
 node discovery modes, and configuration validation, see
 [Configure Slurm](configure_slurm.md).
 
-### Step 6: Prepare the OIM
+### Step 5: Prepare the OIM
 
 Run `prepare_oim.yml` to configure the OIM for cluster deployment.
 
@@ -353,39 +359,13 @@ The `prepare_oim.yml` playbook deploys the following on the OIM:
 - Omnia Auth container
 - Pulp container
 
-### Step 7: Verify OIM Services
+For more information, see [Prepare OIM](../Setup/prepare_oim.md).
 
-After `prepare_oim.yml` completes, verify that all Omnia-managed
-services are running:
-
-```bash title="Run on: OIM host"
-systemctl list-dependencies omnia.target
-```
-
-Every listed service should show a green circle indicating `active`.
-Key services to verify:
-
-- `omnia_core.service`
-- `pulp.service`
-- `registry.service`
-- `openchami.target` and its dependent services
-
-!!! note
-    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you
-    switch from a non-root to root user using `sudo`. Log in directly as
-    root before executing the playbook.
-
-### Step 8: Create Local Repositories
+### Step 6: Create Local Repositories
 
 Download required packages and repositories for offline node
 provisioning.
 
-!!! tip
-    If you need to build custom Slurm RPMs from source or host them on
-    a local server, complete these steps first:
-
-    - [Build Slurm RPM Repository](build_slurm_repo.md)
-    - [Host Slurm RPM Repository](host_slurm_repo.md)
 
 ```bash title="Run on: omnia_core container"
 ansible-playbook local_repo.yml
@@ -394,7 +374,9 @@ ansible-playbook local_repo.yml
 Confirm repository synchronization completed successfully by checking
 the repository logs.
 
-### Step 9: Build Node Images
+For more information, see [Create Local Repositories](../Setup/create_local_repos.md).
+
+### Step 7: Build Node Images
 
 Build diskless images for each functional group defined in the mapping
 file.
@@ -427,7 +409,9 @@ Verify that images are created for each functional group:
 s3cmd ls -Hr s3://boot-images
 ```
 
-### Step 10: Provision Nodes
+For more information, see [Build Cluster Images](../Setup/build_cluster_images.md).
+
+### Step 8: Provision Nodes
 
 Run `provision.yml` to discover cluster nodes, configure boot scripts,
 and generate cloud-init files based on the functional groups in the PXE
@@ -453,7 +437,9 @@ its functional group:
 - **Login / compiler nodes**: Mounts shared configuration, enables Slurm
   client commands (`srun`, `sbatch`, `squeue`)
 
-### Step 11: PXE Boot Nodes
+For more information, see [Provision Nodes](../Setup/provision_nodes.md).
+
+### Step 9: PXE Boot Nodes
 
 After `provision.yml` completes, PXE boot all Slurm-related nodes:
 
@@ -473,6 +459,8 @@ ansible-playbook utils/set_pxe_boot.yml
 ```
 
 Ensure all nodes boot successfully and become reachable.
+
+For more information, see [Configure PXE Boot](../Setup/configure_pxe_boot.md).
 
 ## Verification
 
