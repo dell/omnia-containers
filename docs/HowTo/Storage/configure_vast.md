@@ -1,47 +1,52 @@
+# Configure VAST Storage
 
-# Configure Vast
-
-
-This section describes the steps to build the Vast repository and install the
-Vast client on the cluster nodes.
+Build the VAST NFS repository and install the VAST client on cluster nodes. The VAST repository must be built from the official package, hosted on an HTTP server, and configured as a user repository in Omnia before provisioning.
 
 !!! note
 
-    The Vast repository must be hosted on an HTTP server (such as Apache)
-    before it can be used as a user repository in Omnia.
+    The VAST repository must be hosted on an HTTP server (such as Apache) before it can be used as a user repository in Omnia.
 
+## Prerequisites
 
-## VAST Storage Prerequisites
+Configure the following settings on the VAST Storage appliance before building the VAST repository:
 
+1. **Log in to the VAST Dashboard** and click on **Element Store**.
 
-Configure the following settings on the VAST Storage appliance before building
-the Vast repository:
+    ![VAST Dashboard Element Store](../../assets/images/vast_storage_prereq_1.png)
 
-1. **Login to VAST Dashboard** -- Login to the VAST dashboard and click on
-   Element Store.
+2. **Configure Tenant** -- Verify that a tenant is configured on the VAST Storage appliance.
 
-2. **Configure Tenant** -- Ensure that the tenant is configured on the VAST
-   Storage appliance.
+    ![VAST Tenant Configuration](../../assets/images/vast_storage_prereq_2.png)
 
-3. **Configure Policies** -- Ensure that the policies are configured.
+3. **Configure Policies** -- Verify that the required policies are configured.
 
-4. **Create New Configuration** -- Right-click on the empty space and the
-   Create option will appear. Click on the Create button to complete the
-   configuration.
+    ![VAST Policy Configuration](../../assets/images/vast_storage_prereq_3.png)
 
+    Verify the policy options are configured as follows:
 
-## Step 1: Download Vast
+    ![VAST Policy Options](../../assets/images/vast_storage_prereq_4.png)
 
+4. **Create New Configuration** -- Right-click on the empty space to display the **Create** option.
 
-Download the Vast package using the following command:
+    ![VAST Create Option](../../assets/images/vast_storage_prereq_5.png)
+
+    ![VAST Create Configuration](../../assets/images/vast_storage_prereq_6.png)
+
+    Click **Create** to complete the configuration.
+
+## Procedure
+
+### Step 1: Download VAST
+
+Download the VAST NFS package:
 
 ```bash title="Run on: OIM host"
 curl -sSf https://vast-nfs.s3.amazonaws.com/download.sh | bash -s -- --version 4.5.5
 ```
 
+![VAST Download](../../assets/images/vastrepo1.png)
 
-## Step 2: Extract the Package
-
+### Step 2: Extract the package
 
 Extract the downloaded tarball:
 
@@ -49,9 +54,9 @@ Extract the downloaded tarball:
 tar -xf vastnfs-4.5.5.tar.xz vastnfs-4.5.5/
 ```
 
+![VAST Extract](../../assets/images/vastrepo2.png)
 
-## Step 3: Build the Vast Repository
-
+### Step 3: Build the VAST repository
 
 Navigate to the extracted directory and build the repository:
 
@@ -60,53 +65,58 @@ cd vastnfs-4.5.5/
 ./build.sh bin
 ```
 
-Once the build is complete, you will see a message indicating that the RPM
-files have been created and are ready to be hosted as a user repository.
-The Vast RPMs will be located in the `dist/` directory within `vastnfs-4.5.5/`.
+![VAST Build](../../assets/images/vastrepo3.png)
 
-```
+Once the build completes, the RPM files are created and ready to be hosted as a user repository. The VAST RPMs are located in the `dist/` directory within `vastnfs-4.5.5/`.
+
+![VAST Build Output](../../assets/images/vastrepo4.png)
+
+![VAST RPMs in dist directory](../../assets/images/vastrepo5.png)
+
+```text title="Expected output"
 ========== Vast repo build completed ==========
 ```
 
+### Step 4: Host the RPMs on an HTTP server
 
-## Step 4: Host the RPMs on an HTTP Server
+Host the built RPMs on an HTTP server (such as Apache) that serves as your user repository. You can use the OIM host as the HTTP server.
 
+![VAST RPMs Hosted](../../assets/images/vastrepo6.png)
 
-Host the RPMs on an HTTP server (such as Apache) or any other server that will
-serve as your user repository.
-
-For example, you can use the OIM as an HTTP server. Follow the steps provided
-in the documentation for hosting Slurm repositories on the Apache server
-(refer to [Configuring Specific Local Repositories](https://omnia.readthedocs.io/en/v2.2.0.0-rc1/OmniaInstallGuide/RHEL_new/CreateLocalRepo/localrepos.html)).
-
-```
+```text title="Expected output"
 ========== Vast rpms hosted for user_Repo ==========
 ```
 
+!!! tip
 
-## Step 5: Configure the User Repository in local_repo_config.yml
+    Refer to [Create Local Repos](../Setup/create_local_repos.md) for instructions on hosting repositories on the Apache server.
 
+### Step 5: Configure the user repository
 
-Add the user repository URL to the `local_repo_config.yml` file.
+Add the VAST user repository URL to the `local_repo_config.yml` file:
 
+```bash title="Run on: omnia_core container"
+vi /opt/omnia/input/project_default/local_repo_config.yml
+```
 
-## Step 6: Run Omnia Playbooks
+Add the HTTP URL where the VAST RPMs are hosted as a user repository entry.
 
+### Step 6: Run Omnia playbooks
 
 Run the following playbooks in order:
 
-1. `local_repo` playbook
-2. `build_image` playbook
-3. `provision` playbook
+1. `local_repo` -- Syncs the VAST repository to the local Pulp server.
+2. `build_image` -- Builds the cluster OS image with VAST client packages.
+3. `provision` -- Provisions nodes with the built image.
 
-The Vast client will be installed on the nodes successfully after the
-`provision` playbook completes.
-
+The VAST client is installed on the cluster nodes after the `provision` playbook completes successfully.
 
 ## Next Steps
 
+- [Configure Mounts](configure_mounts.md) -- Configure NFS and other storage mounts.
+- [Configure PowerVault](configure_powervault.md) -- Configure block storage for additional performance.
 
-- [Configure NFS](configure_nfs.md) -- Configure NFS for shared storage across compute
-  nodes.
-- [Configure PowerVault](configure_powervault.md) -- Configure block storage for additional
-  performance.
+!!! info "Related References"
+
+    - [Create Local Repos](../Setup/create_local_repos.md) -- Host and sync RPM repositories.
+    - [Local Repo Config](../../Reference/Configuration/local_repo_config.md) -- User repository configuration parameters.

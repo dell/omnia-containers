@@ -265,6 +265,79 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
     1. Re-run the `local_repo.yml` playbook with proper inputs to download the software package to the Pulp repository.
     2. Once the local repository has been configured successfully, re-run the failed installation script.
 
+## Boot issues on provisioned nodes
+
+
+???+ note "Symptom"
+
+    A provisioned node fails to boot correctly, or post-boot configuration
+    (hostname, network, SSH keys) is incomplete or missing.
+
+??? note "Cause"
+
+    - cloud-init failed during the boot process.
+    - The node's boot image was not built correctly.
+    - Network configuration conflicts prevent the node from reaching the OIM.
+
+??? note "Resolution"
+
+    1. Check the cloud-init output log on the affected node:
+
+       ```bash
+       cat /var/log/cloud-init-output.log
+       ```
+
+
+    2. Review the provisioning log on the OIM:
+
+       ```bash
+       cat /opt/omnia/log/provision.log
+       ```
+
+
+    3. If cloud-init completed with errors, re-run `provision.yml` after
+       fixing the root cause.
+
+
+## IP route conflict after provisioning
+
+
+???+ note "Symptom"
+
+    After provisioning, nodes lose connectivity on the admin network or
+    cannot reach the OIM, while the public/internet NIC works (or vice
+    versa).
+
+??? note "Cause"
+
+    An IP route conflict exists between the admin network and an
+    additional NIC (for example, an internet-facing NIC). Both NICs may
+    have overlapping default routes.
+
+??? note "Resolution"
+
+    1. List current routes on the affected node:
+
+       ```bash
+       ip route show
+       ```
+
+
+    2. Delete the conflicting admin route or adjust route priority:
+
+       ```bash
+       # Delete conflicting route
+       ip route del <conflicting_route>
+
+       # Or set metric to prioritize one route over another
+       ip route add <network> via <gateway> dev <nic> metric <priority>
+       ```
+
+
+    3. To make the change persistent, update the network configuration
+       files for the appropriate NIC.
+
+
 !!! info
 
     - [Discover Nodes](../HowTo/Setup/discover_nodes.md) -- Full node discovery procedure.

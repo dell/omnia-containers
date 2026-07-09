@@ -33,5 +33,4 @@ additional_cloud_init_config_file: ""
 !!! info
 
     - [PXE Mapping File](../SampleFiles/pxe_mapping_file.md) -- PXE mapping CSV format.
-    - [Timezones](../Appendices/timezones.md) -- Valid timezone values.
     - [Network Spec](network_spec.md) -- Network configuration that complements provisioning.
