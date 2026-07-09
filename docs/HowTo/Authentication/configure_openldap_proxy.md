@@ -27,14 +27,14 @@ the OpenLDAP client and the external LDAP server.
 
 ## Procedure
 
-1. **Locate the slapd.conf file** on the OIM host at
-   `/opt/omnia/authservice/slapd.conf`.
+1. **Locate the slapd.conf file** in the omnia_core container at
+   `/opt/omnia/auth/slapd.conf`.
 
 2. **Replace the slapd.conf contents** with the proxy configuration
    shown below. Update the placeholder values with your environment
    details:
 
-    ```text title="File: /opt/omnia/authservice/slapd.conf (RHEL)"
+    ```text title="File: /opt/omnia/auth/slapd.conf (RHEL)"
     include        /etc/openldap/schema/core.schema
     include        /etc/openldap/schema/cosine.schema
     include        /etc/openldap/schema/nis.schema
@@ -117,7 +117,7 @@ The OpenLDAP proxy allows users from multiple external LDAP servers to
 authenticate onto the cluster. Add multiple `uri` and `idassert-bind`
 blocks in the `slapd.conf` file:
 
-```text title="File: /opt/omnia/authservice/slapd.conf (multiple servers)"
+```text title="File: /opt/omnia/auth/slapd.conf (multiple servers)"
 uri "ldap://10.5.0.104:389/dc=omnia1,dc=test"
 idassert-bind
  bindmethod=simple
