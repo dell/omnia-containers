@@ -365,5 +365,5 @@ kafka_storage:
     - [Idrac Metrics](../Metrics/idrac_metrics.md) -- iDRAC metric catalog.
     - [Ldms Metrics](../Metrics/ldms_metrics.md) -- LDMS sampler metric catalog.
     - [Gpu Metrics](../Metrics/gpu_metrics.md) -- GPU metric catalog.
-    - [Ports](../../Overview/security_configuration_guide.md#telemetry-ports) -- Ports used by telemetry
+    - [Ports](../../SecurityConfigurationGuide/network_security.md#telemetry-ports) -- Ports used by telemetry
       services.

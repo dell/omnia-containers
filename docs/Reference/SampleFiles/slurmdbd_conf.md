@@ -47,6 +47,6 @@ StoragePass=<db_password>
     - [Slurm Conf](slurm_conf.md) -- Companion `slurm.conf` configuration.
     - [Omnia Config](../Configuration/omnia_config.md) -- Omnia-level Slurm
       settings.
-    - [Ports](../../Overview/security_configuration_guide.md#slurm-port-requirements) -- Port 6819 for slurmdbd.
+    - [Ports](../../SecurityConfigurationGuide/network_security.md#slurm-port-requirements) -- Port 6819 for slurmdbd.
     - [Slurm documentation](https://slurm.schedmd.com/slurmdbd.conf.html) --
       Upstream parameter reference.

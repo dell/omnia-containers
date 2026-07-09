@@ -152,7 +152,6 @@ nav:
     - Components: Overview/components.md
     - Network Topologies: Overview/network_topologies.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
-    - Security Configuration Guide: Overview/security_configuration_guide.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
     - Glossary: Overview/glossary.md
@@ -269,6 +268,13 @@ nav:
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
+  - Security Configuration Guide:
+    - SecurityConfigurationGuide/index.md
+    - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
+    - Product and Subsystem Security: SecurityConfigurationGuide/product_subsystem_security.md
+    - Authentication to External Systems: SecurityConfigurationGuide/external_systems_authentication.md
+    - Network Security: SecurityConfigurationGuide/network_security.md
+    - Miscellaneous Configuration and Management Elements: SecurityConfigurationGuide/misc_configuration.md
   - Operations:
     - Operations/index.md
     - Add / Remove Nodes: Operations/add_remove_nodes.md

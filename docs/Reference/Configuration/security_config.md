@@ -21,4 +21,4 @@ ldap_connection_type: "TLS"
 
     - [Playbook Reference](../Playbooks/playbook_reference.md) -- The `auth.yml`
       playbook that deploys authentication services.
-    - [Ports](../../Overview/security_configuration_guide.md#firewall-settings) -- Ports required by LDAP.
+    - [Ports](../../SecurityConfigurationGuide/network_security.md#openldap-port-requirements) -- Ports required by LDAP.
