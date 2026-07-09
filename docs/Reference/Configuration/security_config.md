@@ -19,6 +19,5 @@ ldap_connection_type: "TLS"
 
 !!! info
 
-    - [Playbook Reference](../Playbooks/playbook_reference.md) -- The `auth.yml`
-      playbook that deploys authentication services.
+    - [Deployment LDAP Server](../../HowTo/Authentication/deploy_external_ldap.md) -- Centralized authentication for your Omnia cluster.
     - [Ports](../../SecurityConfigurationGuide/network_security.md#openldap-port-requirements) -- Ports required by LDAP.
