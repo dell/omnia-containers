@@ -152,11 +152,15 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
         ```
 
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv`
+
     - Per-software task results:
 
         ```text title="Example"
         /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
         ```
+
+        Example for OpenLDAP: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log`
 
     - Package-level status:
 
@@ -164,11 +168,19 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
         ```
 
-    - Detailed failure information:
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv`
+
+    - Detailed failure information. View the reason a job was unsuccessful in the `package_status_<pid>.log` file referenced in the `<sw>_task_results.log`:
 
         ```text title="Example"
         /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>/logs/package_status_<pid>.log
         ```
+
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log`
+
+    !!! note
+
+        If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
 ### Failure when re-run multiple times
 

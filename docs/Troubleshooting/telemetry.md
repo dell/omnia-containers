@@ -59,6 +59,12 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     sudo systemctl status ldmsd.sampler.service
     ```
 
+    Query the LDMS sampler set directly:
+
+    ```bash title="Run on: compute node"
+    /opt/ovis-ldms/sbin/ldms_ls <host>:<port>
+    ```
+
 ## iDRAC telemetry — no metrics reaching VictoriaMetrics / Kafka
 
 ???+ note "Symptom"
@@ -103,6 +109,12 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     curl -sk -u "$IDRAC_USER:$IDRAC_PASS" https://<idrac-ip>/redfish/v1/EventService/Subscriptions
     ```
 
+    Confirm metrics landed in VictoriaMetrics:
+
+    ```bash title="Run on: OIM host"
+    curl -s 'http://<vmselect-svc>:8481/select/0/prometheus/api/v1/query?query=up' | head
+    ```
+
     **Resolution steps:**
 
     1. Correct `idrac_username` / `idrac_password` in the Ansible vault, then re-run `telemetry.yml`.
@@ -145,8 +157,11 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     ```bash title="Run on: K8s control plane"
     kubectl -n telemetry-and-visualizations get pods -l 'app in (vmstorage,vminsert,vmselect,vmagent)' -o wide
     kubectl -n telemetry-and-visualizations get pvc | grep -i vmstorage
+    kubectl -n telemetry-and-visualizations describe pod <vmstorage-pod> | sed -n '/Events/,$p'
     kubectl -n telemetry-and-visualizations exec <vmstorage-pod> -- df -h /storage
     kubectl -n telemetry-and-visualizations logs <vminsert-pod> --tail=100
+    kubectl -n telemetry-and-visualizations logs <vmselect-pod> --tail=100
+    kubectl -n telemetry-and-visualizations logs <vmagent-pod> --tail=100 | grep -Ei 'remote_write|error|drop'
     ```
 
     **Resolution steps:**
@@ -190,6 +205,12 @@ Issues related to the telemetry pipeline: Kafka, iDRAC telemetry, LDMS samplers,
     kubectl -n telemetry-and-visualizations get pvc | grep -i vlstorage
     kubectl -n telemetry-and-visualizations exec <vlstorage-pod> -- df -h /vlstorage
     kubectl -n telemetry-and-visualizations logs <vlinsert-pod> --tail=100
+    ```
+
+    Confirm logs are ingesting (LogsQL count over the last 5 minutes):
+
+    ```bash title="Run on: K8s control plane"
+    curl -s 'http://<vlselect-svc>:9471/select/logsql/query' --data-urlencode 'query=*' --data-urlencode 'limit=1'
     ```
 
     **Resolution steps:**

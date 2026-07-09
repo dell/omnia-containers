@@ -106,6 +106,8 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
         ansible-vault create input/credentials.yml
         ```
 
+    For more information on managing encrypted parameters, see [Encrypted Parameters Management](../SecurityConfigurationGuide/misc_configuration.md#encrypted-parameters-management).
+
 ## OIM cleanup NFS directory deletion failure
 
 ???+ note "Symptom"
