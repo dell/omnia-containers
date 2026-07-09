@@ -130,6 +130,7 @@ extra_css:
 # Custom JS
 extra_javascript:
   - javascripts/palette-fallback.js
+  - javascripts/language-badges.js
 
 # Footer
 extra:

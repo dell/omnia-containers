@@ -294,6 +294,45 @@
   letter-spacing: 0.02em;
 }
 
+/* Code title bar - non-bash/sh languages have transparent background */
+.md-typeset .highlight:not(.language-bash):not(.language-sh) .filename {
+  background: transparent;
+  color: var(--dell-dark);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.3rem 0.3rem 0 0;
+  font-weight: 400;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Language pill badges - styling for JavaScript-generated pills */
+.md-typeset .highlight:not(.language-bash):not(.language-sh) .filename .language-pill {
+  background: var(--dell-dark);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.6em;
+  font-weight: 600;
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Dark mode - non-bash/sh title bars */
+[data-md-color-scheme="slate"] .md-typeset .highlight:not(.language-bash):not(.language-sh) .filename {
+  color: #e0e0e0;
+  border-color: rgba(255, 255, 255, 0.12);
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Dark mode - language pill badges */
+[data-md-color-scheme="slate"] .md-typeset .highlight:not(.language-bash):not(.language-sh) .filename .language-pill {
+  background: var(--dell-light);
+  color: #1a1a2e;
+}
+
 /* Copy button */
 .md-clipboard {
   color: var(--md-default-fg-color--lighter);
