@@ -40,23 +40,3 @@ filesystems and persistent volumes.
 | Volumes | Pre-create LUNs and map them to host groups before running Omnia storage playbooks. |
 | Multipath | DM-Multipath (`device-mapper-multipath`) is recommended for redundancy and load balancing. |
 | Configuration | `storage_config.yml` specifies the PowerVault management IP, volume mappings, and mount points. |
-
-## BeeGFS parallel filesystem
-
-
-In addition to Dell storage appliances, Omnia supports BeeGFS as a software-
-defined parallel filesystem running on cluster nodes.
-
-| Component | Description |
-| --- | --- |
-| BeeGFS version | Consult `local_repo_config.yml` for the configured version. |
-| Server roles | Management, metadata, and storage services can run on dedicated nodes or co-located with compute nodes. |
-| Client | Omnia installs the BeeGFS client on designated nodes and mounts the filesystem at the path specified in `storage_config.yml`. |
-
-!!! info
-
-    - [Storage Config](../Configuration/storage_config.md) -- Storage configuration
-      parameters.
-
-    - [Disk Space](../ClusterRequirements/disk_space.md) -- Disk space requirements
-      for storage nodes.
