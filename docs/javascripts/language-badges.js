@@ -1,7 +1,7 @@
 /**
  * Dynamic language pill badges for code blocks.
  *
- * Automatically adds language type badges to non-bash/sh code blocks
+ * Automatically adds language type badges to all code blocks
  * by extracting the language class from the code block element.
  */
 (function () {
@@ -15,10 +15,8 @@
       var codeBlock = codeBlocks[i];
       var filename = codeBlock.querySelector(".filename");
       
-      // Skip if no filename or if it's bash/sh
+      // Skip if no filename
       if (!filename) continue;
-      if (codeBlock.classList.contains("language-bash") || 
-          codeBlock.classList.contains("language-sh")) continue;
       
       // Extract language from class names
       var language = null;
