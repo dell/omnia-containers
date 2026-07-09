@@ -52,7 +52,7 @@ In order to enable authentication to the cluster, Omnia installs OpenLDAP: an op
 
 **Use of SSH authorized_keys**
 
-A password-less channel is created between the management station and compute nodes using SSH authorized keys. This is explained in the[Security Controls Map](#security-controls-map).
+A password-less channel is created between the management station and compute nodes using SSH authorized keys. This is explained in the [Security Controls Map](#security-controls-map).
 
 ### Login Security Settings
 
