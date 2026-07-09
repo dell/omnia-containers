@@ -269,6 +269,12 @@ nav:
     - Cluster Requirements:
       - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
       - Disk Space: Reference/ClusterRequirements/disk_space.md
+      - Storage Requirements: Reference/ClusterRequirements/storage_requirements.md
+      - Networking Requirements: Reference/ClusterRequirements/networking_requirements.md
+      - OIM Requirements: Reference/ClusterRequirements/oim_requirements.md
+      - Software Requirements: Reference/ClusterRequirements/software_requirements.md
+      - Kubernetes Requirements: Reference/ClusterRequirements/kubernetes_requirements.md
+      - Slurm Requirements: Reference/ClusterRequirements/slurm_requirements.md
     - Playbooks:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:
