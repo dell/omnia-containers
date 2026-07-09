@@ -297,6 +297,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+/* Create a flex container for the right-side elements (toggle + pill) */
+.md-typeset .highlight .filename .right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Code title bar - bash/sh/shell get dark styling (conditional) */
@@ -327,6 +335,115 @@
 .md-typeset .highlight.language-sh .filename .language-pill,
 .md-typeset .highlight.language-shell .filename .language-pill {
   display: none;
+}
+
+/* CSV table styling */
+.csv-table-container {
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8em;
+  border-spacing: 0;
+}
+
+.csv-table th,
+.csv-table td {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  padding: 4px 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.csv-table th {
+  background: var(--dell-dark);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.75em;
+}
+
+[data-md-color-scheme="slate"] .csv-table th {
+  background: var(--dell-light);
+  color: #1a1a2e;
+}
+
+.csv-table tbody tr:nth-child(even) {
+  background: var(--dell-gray-50);
+}
+
+[data-md-color-scheme="slate"] .csv-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* CSV toggle button positioning */
+.md-typeset .highlight .filename .right-controls .csv-toggle {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* CSV toggle button when not in filename (for CSV blocks without titles) */
+.md-typeset .highlight > .csv-toggle {
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* iOS-style toggle switch */
+.csv-toggle {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background: var(--dell-dark);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.csv-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.csv-toggle.table-view::after {
+  transform: translateX(20px);
+}
+
+.csv-toggle:hover {
+  background: var(--dell-blue);
+}
+
+[data-md-color-scheme="slate"] .csv-toggle {
+  background: var(--dell-light);
+}
+
+[data-md-color-scheme="slate"] .csv-toggle:hover {
+  background: var(--dell-blue);
+}
+
+/* Language pill badges - styling for JavaScript-generated pills */
+.md-typeset .highlight .filename .language-pill {
+  background: var(--dell-dark);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.6em;
+  font-weight: 600;
+  margin-left: 8px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 /* Dark mode - default title bars */
