@@ -1,236 +1,244 @@
-
 # Prepare the OIM
 
+The `prepare_oim.yml` playbook prepares the Omnia Infrastructure Manager (OIM) by deploying the core management services required for bare-metal provisioning and cluster management. The playbook performs the following on the OIM:
 
-Prepare the Omnia Infrastructure Manager (OIM) by deploying the core
-management services: OpenCHAMI (provisioning), Pulp (repository management),
-and optionally BuildStreaM and Omnia Auth containers.
-
-## Overview
-
-
-The `prepare_oim.yml` playbook configures the OIM host with all services
-required for bare-metal provisioning and cluster management. It reads your
-`network_spec.yml` and `provision_config.yml` input files and deploys:
-
-- **OpenCHAMI** -- Node discovery, state management, and boot script services.
-- **Pulp** -- RPM repository management and synchronization.
-- **CoreDHCP** -- DHCP service for PXE boot on the admin network.
-- **MinIO** -- S3-compatible object storage for boot images and artifacts.
-- **Registry** -- Local container image registry.
-- **BuildStreaM** *(optional)* -- CI/CD pipeline services.
-- **Omnia Auth** *(optional)* -- Centralized authentication container.
-
+- Sets up the OpenCHAMI containers for node discovery, state management, and boot script services.
+- Sets up the Pulp container for RPM repository management and synchronization.
+- Sets up the BuildStreaM container if BuildStreaM is enabled in `/opt/omnia/input/project_default/build_stream_config.yml`.
+- Sets up the Omnia Auth container if `"name": "openldap", "arch": ["x86_64"]` entry is present in `/opt/omnia/input/project_default/software_config.json`.
+- Sets up MinIO for S3-compatible object storage for boot images and artifacts.
+- Sets up the local container image registry.
 
 ## Prerequisites
 
-
 - The [Deploy Omnia Core](deploy_omnia_core.md) procedure is complete.
-- The [Configure Inputs](configure_inputs.md) procedure is complete (`network_spec.yml` and
-  `provision_config.yml` are configured).
-- The [Configure Credentials](configure_credentials.md) procedure is complete (encrypted credentials
-  file exists).
+- The [Configure Inputs](configure_inputs.md) procedure is complete.
+- The [Configure Credentials](configure_credentials.md) procedure is complete (encrypted credentials file exists).
 - The OIM has at least 2 NICs connected to the admin and BMC networks.
 - Network switches are configured with the appropriate VLANs.
-
+- System time is synchronized across all compute nodes and the OIM. Time mismatch can lead to certificate-related issues during or after the `prepare_oim.yml` playbook execution.
 
 ## Procedure
 
+1. Update the following input files in `/opt/omnia/input/project_default/`:
 
-1. **Enter the omnia_core container**:
+    - `network_spec.yml` -- Contains the necessary configurations for the cluster network.
+    - `provision_config.yml` -- Contains the details about provisioning of clusters.
+    - `build_stream_config.yml` -- Contains the details about the BuildStreaM pipeline.
+    - `storage_config.yml` -- Contains the details about the storage configuration.
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+2. Enter the `omnia_core` container:
 
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
-2. **Review and edit network_spec.yml** (if not already done):
+3. Run the `prepare_oim.yml` playbook:
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/network_spec.yml
-   ```
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/prepare_oim
+    ansible-playbook prepare_oim.yml
+    ```
 
+The `prepare_oim.yml` playbook deploys the following on the OIM node:
 
-   Ensure the admin and BMC network parameters match your physical network:
+- OpenCHAMI containers
+- PostgreSQL database container
+- Omnia Auth container
+- Pulp container
+- BuildStreaM API container (if BuildStreaM is enabled)
+- Playbook watcher service (if BuildStreaM is enabled)
 
-   ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
-   ---
-   admin_network:
-     nic_name: "eno1"
-     static_range: "10.5.0.100-10.5.0.200"
-     dynamic_range: "10.5.0.201-10.5.0.254"
-     subnet: "10.5.0.0"
-     netmask: "255.255.255.0"
-     gateway: "10.5.0.1"
+!!! note
 
-   bmc_network:
-     nic_name: "eno2"
-     static_range: "10.3.0.100-10.3.0.200"
-     dynamic_range: "10.3.0.201-10.3.0.254"
-     subnet: "10.3.0.0"
-     netmask: "255.255.255.0"
-   ```
+    After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using the `sudo` command. To avoid this, log in directly as the `root` user before executing the playbook.
 
+## Input file configuration
 
-3. **Review and edit provision_config.yml** (if not already done):
+### network_spec.yml
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/provision_config.yml
-   ```
+Add necessary inputs to the `network_spec.yml` file to configure the network on which the cluster will operate. Refer to [Network Spec](../../Reference/Configuration/network_spec.md) for guidance on configuring these parameters.
 
+!!! warning
 
-   ```yaml title="File: /opt/omnia/input/project_default/provision_config.yml"
-   ---
-   language: "en-US"
-   iso_file_path: "/opt/omnia/iso/RHEL-8.8-x86_64-dvd.iso"
-   default_lease_time: 86400
-   pxe_mapping_file_path: "/opt/omnia/input/project_default/pxe_mapping_file.csv"
-   ```
+    - All provided network ranges and NIC IP addresses must be distinct with no overlap.
+    - All iDRACs must be reachable from the OIM.
 
+A sample of the `network_spec.yml` where nodes are discovered using a mapping file:
 
-4. **Run the prepare_oim playbook**:
+```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+Networks:
+- admin_network:
+    oim_nic_name: "eno1"
+    netmask_bits: "24"
+    primary_oim_admin_ip: "172.16.107.67"
+    primary_oim_bmc_ip: ""
+    dynamic_range: "172.16.107.201-172.16.107.250"
+    dns: []
+```
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/prepare_oim
-   ansible-playbook prepare_oim.yml
-   ```
+### provision_config.yml
 
+Add necessary inputs to the `provision_config.yml` file for provisioning the cluster. Refer to [Provision Config](../../Reference/Configuration/provision_config.md) for guidance on configuring these parameters.
 
-   !!! note
+### build_stream_config.yml
 
-       If your credentials file is encrypted with Ansible Vault, add the
-       `--ask-vault-pass` flag:
+Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Refer to [BuildStreaM Config](../../Reference/Configuration/build_stream_config.md) for guidance on configuring these parameters.
 
-       ```bash title="Run on: omnia_core container"
-       ansible-playbook prepare_oim.yml --ask-vault-pass
-       ```
+### storage_config.yml
 
+Add necessary inputs to the `storage_config.yml` file for the storage configuration. Refer to [Storage Config](../../Reference/Configuration/storage_config.md) for guidance on configuring these parameters.
 
-   The playbook performs the following tasks:
+### Configure PowerScale as S3 storage
 
-   - Validates input files.
-   - Configures network interfaces on the OIM.
-   - Deploys OpenCHAMI services (SMD, BSS, CoreDHCP, TFTP).
-   - Deploys Pulp for RPM repository management.
-   - Deploys MinIO for S3-compatible object storage.
-   - Sets up the local container registry.
-   - Optionally deploys BuildStreaM and Omnia Auth containers.
+PowerScale provides scalable, high-performance object storage for the OpenCHAMI image repository. Using PowerScale as S3-compatible storage enables efficient storage and retrieval of boot images across the cluster, with support for HTTP access and robust authentication mechanisms.
 
-   Execution time: **15-30 minutes** depending on network speed and hardware.
+!!! note
 
+    - PowerScale cluster must be deployed within the admin subnet and be accessible from all cluster nodes.
+    - Omnia uses HTTP access only when connecting to PowerScale, using the default port 9020.
+    - Both S3 and HTTP services must be enabled in the S3 bucket configuration.
+    - Valid S3 Access Key ID and S3 Secret Access Key are required for authentication.
+    - S3 Access Key ID and S3 Secret Access Key are tightly associated with the S3 buckets. You need these keys to access the S3 buckets created using the key.
+
+**Enable S3 service on PowerScale:**
+
+1. Log in to the PowerScale OneFS web interface.
+2. Navigate to **Protocol** > **Object storage (S3)**.
+3. On the **Object Storage (S3)** page, click the **Global Settings** tab.
+4. Select the **Enable S3 service** checkbox.
+5. Select the **Enable S3 HTTP** checkbox.
+6. Set the HTTP port for S3 (default: `9020`).
+7. Click **Save** to apply the changes.
+
+**Obtain S3 Access ID and Secret Key:**
+
+1. Log in to the PowerScale OneFS web interface.
+2. Navigate to **Protocol** > **Object storage (S3)**.
+3. On the **Object Storage (S3)** page, click the **My Keys** tab.
+4. Click **Create new key**.
+5. Note down the **Access ID** and **Secret Key**.
+
+!!! warning
+
+    The S3 Access ID and Secret Key are required during the OIM credential setup process. The cluster nodes cannot access boot images without these keys.
+
+**Configure storage_config.yml:**
+
+1. Open `/opt/omnia/input/project_default/storage_config.yml`.
+2. Update the `s3_configurations` section:
+
+    ```yaml title="File: /opt/omnia/input/project_default/storage_config.yml"
+    s3_configurations:
+      provider: "powerscale"
+      endpoint_url: "http://<powerscale-ip>:<port>"
+    ```
+
+    Replace `<powerscale-ip>` with the actual PowerScale IP address and `<port>` with the S3 port (default: `9020`).
+
+    ```yaml title="Example"
+    s3_configurations:
+      provider: "powerscale"
+      endpoint_url: "http://192.168.1.100:9020"
+    ```
+
+3. Save the file.
+
+**Configure credentials during prepare OIM:**
+
+When running `prepare_oim.yml`, you are prompted for S3 credentials. Enter the S3 Access ID and Secret Key obtained from PowerScale.
+
+!!! note
+
+    - For `powerscale` provider, the `s3_access_id` is prompted as a conditional mandatory parameter.
+    - The `s3_secret_key` is always prompted during credential setup.
 
 ## Verification
 
+1. Check the status of the Omnia Core service:
 
-1. **Check the omnia.target service tree**:
+    ```bash title="Run on: OIM host"
+    systemctl status omnia_core.service
+    ```
 
-   ```bash title="Run on: OIM host"
-   systemctl list-dependencies omnia.target
-   ```
+2. Check the status of the PostgreSQL database container (if BuildStreaM is enabled):
 
+    ```bash title="Run on: OIM host"
+    systemctl status omnia_postgres.service
+    ```
 
-   Expected service tree:
+3. Check the status of the BuildStreaM API container (if BuildStreaM is enabled):
 
-   ```text title="Expected output on: OIM host"
-   omnia.target
-   ├─minio.service
-   ├─omnia_auth.service
-   ├─omnia_core.service
-   ├─pulp.service
-   ├─registry.service
-   └─openchami.target
-     ├─bss.service
-     ├─coredhcp.service
-     ├─cloud-init-server.service
-     ├─dnsmasq.service
-     ├─hydra.service
-     ├─image-server.service
-     ├─opaal.service
-     ├─smd.service
-     └─tftpd.service
-   ```
+    ```bash title="Run on: OIM host"
+    systemctl status omnia_build_stream.service
+    ```
 
+4. Check the status of the playbook watcher service (if BuildStreaM is enabled):
 
-2. **Verify all services are active**:
+    ```bash title="Run on: OIM host"
+    systemctl status playbook_watcher.service
+    ```
 
-   ```bash title="Run on: OIM host"
-   systemctl status omnia_core.service
-   systemctl status openchami.target
-   ```
+5. View the complete list of dependent services for the Omnia target:
 
+    ```bash title="Run on: OIM host"
+    systemctl list-dependencies omnia.target
+    ```
 
-3. **Test OpenCHAMI CLI**:
+    Expected service tree:
 
-   ```bash title="Run on: omnia_core container"
-   ochami --help
-   ```
+    ```text title="Expected output"
+    omnia.target
+    ● ├─minio.service
+    ● ├─omnia_auth.service
+    ● ├─omnia_build_stream.service
+    ● ├─omnia_core.service
+    ● ├─omnia_postgres.service
+    ● ├─playbook_watcher.service
+    ● ├─pulp.service
+    ● ├─registry.service
+    ● ├─network-online.target
+    ● │ └─NetworkManager-wait-online.service
+    ● └─openchami.target
+    ●   ├─acme-deploy.service
+    ●   ├─acme-register.service
+    ●   ├─bss-init.service
+    ●   ├─bss.service
+    ●   ├─cloud-init-server.service
+    ●   ├─coresmd.service
+    ●   ├─haproxy.service
+    ●   ├─hydra-gen-jwks.service
+    ●   ├─hydra-migrate.service
+    ●   ├─hydra.service
+    ●   ├─opaal-idp.service
+    ●   ├─opaal.service
+    ●   ├─openchami-cert-trust.service
+    ●   ├─postgres.service
+    ●   ├─smd.service
+    ●   └─step-ca.service
+    ```
 
+    - A **green circle** indicates the service is running.
+    - A **grey circle** indicates the service is not running.
+    - A **circle with a cross** indicates the service failed to start.
 
-   This should display the OpenCHAMI command-line help, confirming the CLI is
-   installed and the services are accessible.
+!!! note
 
-4. **Verify Pulp is running**:
+    The `omnia_auth.service` runs only when OpenLDAP is specified in `/opt/omnia/input/project_default/software_config.json`.
 
-   ```bash title="Run on: OIM host"
-   podman ps --filter name=pulp
-   ```
+!!! note
 
-
-5. **Verify MinIO is accessible**:
-
-   ```bash title="Run on: omnia_core container"
-   s3cmd ls
-   ```
-
-
+    The `omnia_build_stream.service`, `omnia_postgres.service`, and `playbook_watcher.service` run only when BuildStreaM is enabled in `/opt/omnia/input/project_default/build_stream_config.yml`.
 
 ## Next Steps
 
-
-- [Verify Oim Services](verify_oim_services.md) -- Detailed verification of all OIM services.
+- [Verify OIM Services](verify_oim_services.md) -- Detailed verification of all OIM services.
 - [Create Local Repos](create_local_repos.md) -- Sync RPM repositories via Pulp.
 - [Build Cluster Images](build_cluster_images.md) -- Build OS images for cluster nodes.
 
+!!! info "Related References"
 
-## Troubleshooting
-
-
-**Playbook fails with "network interface not found"**
-   Verify the `nic_name` in `network_spec.yml` matches the actual interface
-   names on the OIM:
-
-   ```bash title="Run on: OIM host"
-   ip link show
-   ```
-
-
-**OpenCHAMI services fail to start**
-   Check the OpenCHAMI container logs:
-
-   ```bash title="Run on: OIM host"
-   podman logs smd
-   podman logs bss
-   podman logs coredhcp
-   ```
-
-
-**Pulp container fails to start**
-   Ensure sufficient disk space is available (Pulp requires significant storage
-   for repository synchronization):
-
-   ```bash title="Run on: OIM host"
-   df -h /var/lib/containers
-   ```
-
-
-**Port conflicts**
-   Ensure no other services are listening on ports used by OIM services
-   (DHCP: 67, TFTP: 69, HTTP: 80/8080, MinIO: 9000):
-
-   ```bash title="Run on: OIM host"
-   ss -tlnp | grep -E ':(67|69|80|8080|9000)\b'
-   ```
-
-
-**Playbook fails at credentials step**
-   Ensure you pass `--ask-vault-pass` and enter the correct Vault password.
+    - [Network Spec](../../Reference/Configuration/network_spec.md) -- Network configuration parameters.
+    - [Provision Config](../../Reference/Configuration/provision_config.md) -- Provisioning configuration parameters.
+    - [Storage Config](../../Reference/Configuration/storage_config.md) -- Storage configuration parameters.
+    - [Security Configuration Guide](../../Overview/security_configuration_guide.md#firewall-settings) -- Firewall port requirements.

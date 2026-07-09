@@ -166,17 +166,17 @@ nav:
   - How-to Guides:
     - HowTo/index.md
     - Setup:
-      - Prepare OIM: HowTo/Setup/prepare_oim.md
+      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
+      - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - Configure Inputs: HowTo/Setup/configure_inputs.md
       - Configure Credentials: HowTo/Setup/configure_credentials.md
-      - Create Local Repos: HowTo/Setup/create_local_repos.md
-      - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
-      - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
-      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
-      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
-      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Prepare OIM: HowTo/Setup/prepare_oim.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
+      - Create Local Repos: HowTo/Setup/create_local_repos.md
+      - Discover Nodes: HowTo/Setup/discover_nodes.md
+      - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Provision Nodes: HowTo/Setup/provision_nodes.md
+      - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
     - Slurm:
       - Set Up Slurm: HowTo/Slurm/setup_slurm.md
@@ -194,7 +194,6 @@ nav:
       - Deploy PowerScale CSI: HowTo/Kubernetes/deploy_powerscale_csi.md
     - Storage:
       - Configure Mounts: HowTo/Storage/configure_mounts.md
-      - Configure NFS: HowTo/Storage/configure_nfs.md
       - Configure PowerVault: HowTo/Storage/configure_powervault.md
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
@@ -230,6 +229,7 @@ nav:
       - Switches: Reference/SupportMatrix/switches.md
       - Storage: Reference/SupportMatrix/storage.md
       - Installed Software: Reference/SupportMatrix/installed_software.md
+      - All Softwares: Reference/SupportMatrix/all_softwares.md
     - Configuration:
       - Omnia Config: Reference/Configuration/omnia_config.md
       - Provision Config: Reference/Configuration/provision_config.md
@@ -268,6 +268,7 @@ nav:
     - Upgrade Omnia: Operations/upgrade_omnia.md
     - Rollback Omnia: Operations/rollback_omnia.md
     - OIM Cleanup: Operations/oim_cleanup.md
+    - Pulp Cleanup: Operations/pulp_cleanup.md
     - Log Management: Operations/log_management.md
     - Best Practices Checklist: Operations/best_practices_checklist.md
   - Troubleshooting:

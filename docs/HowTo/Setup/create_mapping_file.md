@@ -1,178 +1,137 @@
-
 # Create a Mapping File
 
+Nodes in Omnia are discovered and provisioned based on the **groups** and **functional groups** defined in a PXE mapping file. By combining both, Omnia provides a flexible approach to managing large-scale node infrastructures, ensuring both logical organization and physical optimization of resources.
 
-Create the `pxe_mapping_file.csv` that tells Omnia how to discover and
-provision each bare-metal server. This file maps service tags, MAC addresses,
-IP addresses, and functional group assignments for every target node.
+- A **group** is based on the physical characteristics of nodes. Nodes in the same rack or Scalable Unit (SU) are grouped together with a shared `GROUP_NAME`. Groups help with physical organization and management.
 
-## Overview
+- A **functional group** defines what a node does in the cluster. It categorizes nodes by their role, such as:
+    - `service_kube_control_plane`
+    - `service_kube_node`
+    - `slurm_control_node`
+    - `slurm_node`
+    - `login_node`
+    - `login_compiler_node`
+    - `os` (Minimal OS)
 
+## Discovery methods
 
-The PXE mapping file is a CSV file that Omnia's discovery playbook uses to:
+Omnia supports two methods for discovering target nodes and creating PXE mapping files:
 
-- Identify each server by its Dell service tag.
-- Assign admin and BMC network addresses.
-- Place nodes into functional groups (e.g., `slurm_control_node`,
-  `slurm_node`, `kube_control_plane`, `kube_node`, `login_node`).
-- Map blade servers to their parent chassis (for PowerEdge MX and C-series).
+- **Manual PXE mapping** -- Manually collect PXE NIC information and define entries in `pxe_mapping_file.csv`. See [Create PXE file manually](#create-pxe-file-manually).
+- **OME-based PXE file generation** (Recommended) -- Use OpenManage Enterprise (OME) to discover cluster nodes and auto-generate the mapping file via the `discovery.yml` playbook. See [Create PXE file using OME](#create-pxe-file-using-ome).
 
-The file must be created **before** running the discovery playbook.
+## Create PXE file manually
 
+Manually collect PXE NIC information for each node and define it in `pxe_mapping_file.csv`. Provide the file path to the `pxe_mapping_file_path` variable in `/opt/omnia/input/project_default/provision_config.yml`.
 
-## Prerequisites
+Each node entry requires the following fields: `FUNCTIONAL_GROUP_NAME`, `GROUP_NAME`, `SERVICE_TAG`, `PARENT_SERVICE_TAG`, `HOSTNAME`, `ADMIN_MAC`, `ADMIN_IP`, `BMC_MAC`, `BMC_IP`, `IB_NIC_NAME`, and `IB_IP`.
 
-
-- The [Deploy Omnia Core](deploy_omnia_core.md) procedure is complete and `omnia_core` is
-  running.
-- You have the service tag, admin MAC address, and BMC MAC address for every
-  target server. These are available from:
-
-  - iDRAC web UI (System > Overview)
-  - Physical label on the server front panel
-  - OpenManage Enterprise (OME) inventory
-
-- Admin and BMC IP ranges are planned and do not conflict with existing
-  allocations.
-
-
-## Procedure
-
-
-1. **Enter the omnia_core container**:
-
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
-
-
-   Or alternatively:
-
-   ```bash title="Run on: OIM host"
-   podman exec -it -u root omnia_core bash
-   ```
-
-
-2. **Navigate to the input directory**:
-
-   ```bash title="Run on: omnia_core container"
-   cd /opt/omnia/input/project_default
-   ```
-
-
-3. **Create the mapping file** using a text editor:
-
-   ```bash title="Run on: omnia_core container"
-   vi pxe_mapping_file.csv
-   ```
-
-
-4. **Add the CSV header and node entries**. The file must contain the following
-   columns in this exact order:
-
-   ```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
-   FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
-   slurm_control_node,slurm_cluster,ABCDEF1,,,aa:bb:cc:dd:ee:01,10.5.0.101,aa:bb:cc:dd:ff:01,10.3.0.101
-   slurm_node,slurm_cluster,ABCDEF2,,,aa:bb:cc:dd:ee:02,10.5.0.102,aa:bb:cc:dd:ff:02,10.3.0.102
-   slurm_node,slurm_cluster,ABCDEF3,,,aa:bb:cc:dd:ee:03,10.5.0.103,aa:bb:cc:dd:ff:03,10.3.0.103
-   login_node,slurm_cluster,ABCDEF4,,,aa:bb:cc:dd:ee:04,10.5.0.104,aa:bb:cc:dd:ff:04,10.3.0.104
-   kube_control_plane,k8s_cluster,ABCDEF5,,,aa:bb:cc:dd:ee:05,10.5.0.105,aa:bb:cc:dd:ff:05,10.3.0.105
-   kube_node,k8s_cluster,ABCDEF6,,,aa:bb:cc:dd:ee:06,10.5.0.106,aa:bb:cc:dd:ff:06,10.3.0.106
-   ```
-
-
-### Column Reference
-
+### Column reference
 
 | Column | Required | Description |
 | --- | --- | --- |
-| `FUNCTIONAL_GROUP_NAME` | Yes | Node role. Valid values: `slurm_control_node`, `slurm_node`, `login_node`, `kube_control_plane`, `kube_node`, `auth_server` |
-| `GROUP_NAME` | Yes | Logical cluster grouping (e.g., `slurm_cluster`, `k8s_cluster`) |
-| `SERVICE_TAG` | Yes | Dell service tag of the server (7-character alphanumeric string) |
-| `PARENT_SERVICE_TAG` | Yes | Service tag of the parent chassis for blade servers. Leave empty for rack servers. |
-| `HOSTNAME` | Yes | Custom hostname. Leave empty to let Omnia auto-generate from the service tag. |
-| `ADMIN_MAC` | Yes | MAC address of the PXE-capable NIC on the admin network |
-| `ADMIN_IP` | Yes | Static IP address to assign on the admin network |
-| `BMC_MAC` | Yes | MAC address of the BMC/iDRAC network interface |
-| `BMC_IP` | Yes | Static IP address to assign on the BMC network |
+| `FUNCTIONAL_GROUP_NAME` | Yes | Node role with architecture suffix (e.g., `slurm_node_x86_64`, `login_node_aarch64`). |
+| `GROUP_NAME` | Yes | Physical grouping identifier (e.g., `grp0`, `grp1`). Nodes in the same group must share the same parent. |
+| `SERVICE_TAG` | Yes | Dell service tag of the server. |
+| `PARENT_SERVICE_TAG` | No | Service tag of the parent chassis for blade servers. Leave empty for rack servers. |
+| `HOSTNAME` | Yes | Custom hostname for the node. Do not include the domain name. |
+| `ADMIN_MAC` | Yes | MAC address of the PXE NIC on the admin network. |
+| `ADMIN_IP` | Yes | Static IP address on the admin network. |
+| `BMC_MAC` | Yes | MAC address of the BMC/iDRAC interface. |
+| `BMC_IP` | Yes | Static IP address on the BMC network. |
+| `IB_NIC_NAME` | No | FQDD of the InfiniBand NIC port (e.g., `InfiniBand.Slot.7-1`). Leave empty if no IB NIC is present. |
+| `IB_IP` | No | Static IP address on the InfiniBand network. Leave empty if no IB NIC is present. |
+
+### Sample mapping file (x86_64 cluster)
+
+```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_x86_64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
+slurm_node_x86_64,grp1,ABFG34,ABKD88,slurm-node2,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,InfiniBand.Slot.7-1,192.168.0.102
+login_compiler_node_x86_64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.Slot.7-1,192.168.0.103
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-cp1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,
+service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,33:44:55:66:77:88,172.16.107.56,34:45:56:67:78:89,172.17.107.56,InfiniBand.Slot.7-1,192.168.0.108
+os_x86_64,grp6,ABEF56,,os-node1,77:88:99:aa:bb:cc,172.16.107.60,78:89:aa:bb:cc:dd,172.17.107.60,,
+```
+
+### Sample mapping file (mixed x86_64 and aarch64 cluster)
+
+```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
+slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
+login_compiler_node_aarch64,grp8,ABCD78,,login-compiler-node1,d1:e2:f3:a4:b5:c6,172.16.107.41,d2:e3:f4:a5:b6:c7,172.17.107.41,InfiniBand.PCIe.Slot.8-1,192.168.0.103
+login_node_aarch64,grp9,ABFG78,,login-node1,e1:f2:a3:b4:c5:d6,172.16.107.42,e2:f3:a4:b5:c6:d7,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
+service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-cp1,f1:a2:b3:c4:d5:e6,172.16.107.53,f2:a3:b4:c5:d6:e7,172.17.107.53,,
+os_aarch64,grp7,ABEF78,,os-node2,99:aa:bb:cc:dd:ee,172.16.107.61,9a:ab:bc:cd:de:ef,172.17.107.61,,
+```
 
 !!! warning
 
-    - Column headers are **case-sensitive**. Use uppercase exactly as shown.
-    - All fields are **mandatory**. Use an empty value (two consecutive commas)
-      for fields that should be auto-generated (`PARENT_SERVICE_TAG`,
-      `HOSTNAME`).
-    - `ADMIN_MAC` must be the MAC address of the NIC used for PXE boot.
-    - `BMC_MAC` must be the MAC address of the BMC/iDRAC interface.
-    - Do **not** add spaces after commas.
+    - Header fields are **case-sensitive**. Use uppercase exactly as shown.
+    - IP addresses in the mapping file are **not validated** by Omnia. Incorrect IPs cause unexpected failures.
+    - Service tags are **not validated** by Omnia. Verify correctness before discovery.
+    - Hostnames must **not** include the domain name.
+    - All fields are mandatory. Use an empty value (two consecutive commas) where a value is not applicable.
+    - `ADMIN_MAC` and `BMC_MAC` must refer to the PXE NIC and BMC NIC on the target nodes respectively.
+    - Target servers must be configured to boot in PXE mode with the appropriate NIC as the first boot device.
+    - Nodes in the same group must have the same parent (`PARENT_SERVICE_TAG`).
 
-5. **Save and exit** the editor (`:wq` in vi).
+!!! note "Minimal OS functional groups"
 
+    The `os_x86_64` and `os_aarch64` functional groups provide a clean operating system baseline with only essential OS packages and LDMS telemetry packages -- no schedulers, container runtimes, or orchestration software. Administrators can optionally include additional packages by creating `additional_packages.json` files in `input/config/{arch}/rhel/10.0/`.
 
-## Verification
+## Create PXE file using OME
 
+OME-based BMC discovery is the recommended method for discovering target nodes. This method leverages OpenManage Enterprise to automatically discover servers through their BMC/iDRAC interfaces, reducing manual configuration effort.
 
-1. **Validate the CSV format** by checking the header row:
+!!! note
 
-   ```bash title="Run on: omnia_core container"
-   head -1 /opt/omnia/input/project_default/pxe_mapping_file.csv
-   ```
+    In Dell Omnia deployments integrated with OME, server identification during PXE boot relies on information retrieved from OME and iDRAC inventory. Depending on the DNS environment, the `DnsName` value may not align with naming conventions required for cluster configuration. Users must explicitly define `GROUP_NAME` and `PARENT_SERVICE_TAG` in the `pxe_mapping_file` to ensure accurate PXE provisioning.
 
+### Prerequisites
 
-   Expected output:
+- OpenManage Enterprise is installed and accessible.
+- All target servers have iDRAC configured with network connectivity.
+- OME has discovered the devices (servers are visible in OME inventory).
+- You have administrative access to OME.
+- Servers have the correct NIC order and configuration. Verify NIC ordering in the server BIOS or iDRAC settings before discovery. Omnia uses the following NIC selection logic:
+    - **Admin NIC**: Priority 1: First NIC that is active/UP. Priority 2: Second NIC if UP. Priority 3: First NIC regardless of link state (fallback).
+    - **InfiniBand NIC**: If detected, IB NIC Name is captured and `IB_IP` is assigned. If absent, IB fields are left empty.
+- For a deployment with N Scalable Units, ensure one dedicated `service_kube_node` per Scalable Unit.
+- iDRAC hostnames must follow the Omnia naming convention:
 
-   ```text title="Expected output on: omnia_core container"
-   FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
-   ```
+    ```text title="Example"
+    idrac-<SU><1-100>R<000-999>OU<1-54><Type><Instance>
+    ```
 
+    - **SU** -- Scalable Unit number (`SU1` through `SU100`, case-insensitive)
+    - **R** -- Rack number within the SU (`R1` through `R999`)
+    - **OU** -- ORv3 (Open Rack v3) Unit position (`OU1` through `OU54`)
+    - **C** -- Compute Node number (`C1` through `C99`)
 
-2. **Count the entries** (excluding the header):
+    ```text title="Example breakdown"
+    SU02   R1   OU05   C7
+    │      │     │      │
+    │      │     │      └──  Compute Node number
+    │      │     └─────────  ORv3 Unit position in the rack
+    │      └───────────────  Rack number within the Scalable Unit
+    └──────────────────────  Scalable Unit number
+    ```
 
-   ```bash title="Run on: omnia_core container"
-   tail -n +2 /opt/omnia/input/project_default/pxe_mapping_file.csv | wc -l
-   ```
+!!! warning
 
-
-   The count should match the number of target servers you intend to provision.
-
-3. **Check for formatting issues** (trailing spaces, empty lines):
-
-   ```bash title="Run on: omnia_core container"
-   cat -A /opt/omnia/input/project_default/pxe_mapping_file.csv
-   ```
-
-
-   Ensure there are no trailing spaces (`$` should immediately follow the
-   last field value) and no blank lines.
-
+    If the iDRAC hostname is not set correctly using this convention before discovery, Omnia generates incorrect PXE mapping information. Accurate, consistent naming is mandatory.
 
 ## Next Steps
-
 
 - [Configure Inputs](configure_inputs.md) -- Configure software and cluster input files.
 - [Configure Credentials](configure_credentials.md) -- Set up encrypted provisioning credentials.
 - [Discover Nodes](discover_nodes.md) -- Run the discovery playbook using this mapping file.
 
 
-## Troubleshooting
+!!! info "Related References"
 
-
-**Discovery playbook fails with "invalid mapping file" error**
-   - Verify column headers are uppercase and match exactly.
-   - Ensure no trailing spaces or hidden characters (use `cat -A` to check).
-   - Confirm every row has exactly 9 comma-separated fields.
-
-**MAC address not found during discovery**
-   - Verify the `ADMIN_MAC` matches the PXE NIC (not an onboard NIC that is
-     disabled in BIOS).
-   - Check that the BMC MAC corresponds to the iDRAC dedicated NIC, not a
-     shared LOM.
-
-**IP address conflict**
-   - Ensure no duplicate IPs exist in the `ADMIN_IP` or `BMC_IP` columns.
-   - Verify the IP ranges do not overlap with the OIM's own addresses or any
-     DHCP scope on the network.
-
-**Blade server not discovered**
-   - Populate the `PARENT_SERVICE_TAG` column with the chassis service tag
-     for all blade servers in PowerEdge MX or C-series chassis.
+    - [Discover Nodes](discover_nodes.md) -- Run the discovery playbook.
+    - [Provision Config](../../Reference/Configuration/provision_config.md) -- Configure `pxe_mapping_file_path` and other provisioning parameters.
