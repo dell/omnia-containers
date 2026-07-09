@@ -132,8 +132,6 @@ Run the `provision.yml` playbook to discover, configure, and provision bare-meta
 
 - [Configure PXE Boot](configure_pxe_boot.md) -- Automate PXE boot for provisioned nodes
 - [Verify Cluster](verify_cluster.md) -- Verify the cluster is operational
-- [Set Up Slurm](../Slurm/setup_slurm.md) -- Deploy Slurm on provisioned nodes
-- [Set Up Kubernetes](../Kubernetes/setup_service_k8s.md) -- Deploy Kubernetes on provisioned nodes
 - [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Start telemetry collection
 
 ## Troubleshooting
