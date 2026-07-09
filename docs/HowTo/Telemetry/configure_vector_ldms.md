@@ -9,18 +9,18 @@ Configure Vector-LDMS to consume LDMS metrics from the Kafka `ldms` topic, trans
 
 Vector-LDMS provides Kafka-to-VictoriaMetrics ingestion for LDMS telemetry data. The deployment includes the following components:
 
-### Data Flow
-
-```
-LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → vminsert → VictoriaMetrics
-```
-
 ### Components
 
 - **Vector-LDMS** -- Kafka consumer for LDMS metrics. Consumes from the `ldms` topic, transforms Avro-encoded LDMS data to Prometheus metric format, and routes to VictoriaMetrics via vmagent-vector.
 - **vmagent-vector** -- Dedicated vmagent instance as a write-buffer between Vector pods and vminsert. Accepts `prometheus_remote_write` on port 8429, buffers to disk, and forwards to vminsert. Separate from the existing scraper vmagent to isolate failure domains.
 
 For more details on Vector, see [Vector Documentation](https://vector.dev/docs/).
+
+### Data Flow
+
+```
+LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent-vector → vminsert → VictoriaMetrics
+```
 
 
 ## Prerequisites

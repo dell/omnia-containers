@@ -9,6 +9,15 @@ Configure deployment of Lightweight Distributed Metric Service (LDMS) to collect
 
 LDMS collects system metrics such as CPU, memory, network, I/O, and Slurm job statistics. During deployment, Omnia attaches LDMS aggregator and store pods to the admin network. This improves throughput between Slurm nodes and the Kubernetes cluster.
 
+### Components
+
+- **LDMS producer (collector)** -- Collects local system metrics and runs on Slurm controller, compute, and login nodes.
+- **LDMS aggregator** -- Receives and aggregates metrics from producers. Runs as a Kubernetes pod.
+- **LDMS store** -- Buffers and stores metric batches reliably. Runs as a Kubernetes pod.
+- **Kafka broker** -- Handles telemetry streaming for consumption by downstream systems.
+
+For more details on LDMS, see [Lightweight Distributed Metric Service](https://github.com/ovis-hpc/ldms).
+
 ### Data Flow
 
 ```
@@ -19,20 +28,7 @@ Slurm Compute Nodes (LDMS Sampler) → LDMS Aggregator → LDMS Store → Kafka
                                                         Vector-LDMS → vmagent-vector → VictoriaMetrics
 ```
 
-LDMS data is always sent to Kafka. To route LDMS metrics to VictoriaMetrics, enable the [Vector-LDMS pipeline](configure_vector_ldms.md).
-
-### Components
-
-- **LDMS producer (collector)** -- Collects local system metrics and runs on Slurm controller, compute, and login nodes.
-- **LDMS aggregator** -- Receives and aggregates metrics from producers. Runs as a Kubernetes pod.
-- **LDMS store** -- Buffers and stores metric batches reliably. Runs as a Kubernetes pod.
-- **Kafka broker** -- Handles telemetry streaming for consumption by downstream systems.
-
-For more details on LDMS, see [Lightweight Distributed Metric Service](https://github.com/ovis-hpc/ldms).
-
-!!! note
-
-    To consume LDMS metrics from the Kafka `ldms` topic, transform to Prometheus format, and write to VictoriaMetrics, see [Configure Vector Pipeline](configure_vector.md).
+LDMS data is always sent to Kafka. To route LDMS metrics to VictoriaMetrics, enable the [Vector-LDMS bridge](#enable-vector-ldms-bridge).
 
 ### Supported Metrics
 
@@ -55,8 +51,7 @@ The following LDMS plugins are supported in Omnia:
 
 
 - `provision.yml` has been executed successfully with `service_kube_control_plane` and `service_kube_node` in the mapping file.
-
-
+- All service K8s and Slurm cluster nodes are booted and running before executing the telemetry playbook.
 ## Procedure
 
 
@@ -64,7 +59,7 @@ The following LDMS plugins are supported in Omnia:
 
     ```json
     {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
-    {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
+    {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
     {"name": "ldms", "arch": ["x86_64", "aarch64"]}
     ```
 
@@ -72,7 +67,7 @@ The following LDMS plugins are supported in Omnia:
 
 3. **Ensure that `telemetry_config.yml` has the entries specific for LDMS and Kafka deployment**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
 
-    ```yaml title="telemetry_config.yml -- LDMS section"
+    ```yaml title="telemetry_config.yml"
     telemetry_sources:
       ldms:
         metrics_enabled: true
@@ -102,7 +97,7 @@ The following LDMS plugins are supported in Omnia:
     ```
 
     - `metrics_enabled` -- Enable or disable LDMS metrics collection (`true` or `false`).
-    - `collection_targets` -- LDMS data is sent to Kafka. To route to VictoriaMetrics, enable the [Vector-LDMS pipeline](configure_vector_ldms.md).
+    - `collection_targets` -- LDMS data is sent to Kafka. To route to VictoriaMetrics, enable the [Vector-LDMS bridge](#enable-vector-ldms-bridge) (see below).
     - `agg_port` / `store_port` / `sampler_port` -- Network ports for LDMS aggregator, store, and sampler.
     - `sampler_plugins` -- List of LDMS sampler plugins to activate. At least one plugin is mandatory.
 
@@ -119,8 +114,52 @@ The following LDMS plugins are supported in Omnia:
     ```
 
 
+## Enable Vector-LDMS Bridge
+
+
+To route LDMS metrics from Kafka to VictoriaMetrics, enable the Vector-LDMS bridge in `telemetry_config.yml`. Vector-LDMS consumes from the Kafka `ldms` topic, transforms Avro-encoded LDMS data to Prometheus metric format, and routes to VictoriaMetrics via a dedicated vmagent-vector instance.
+
+For more details on Vector, see [Vector Documentation](https://vector.dev/docs/).
+
+1. **Configure `telemetry_config.yml` to enable Vector-LDMS**:
+
+    ```yaml title="Example: Enable Vector-LDMS"
+    telemetry_bridges:
+      vector_ldms:
+        metrics_enabled: true
+    ```
+
+    For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+
+The following components are deployed when `vector_ldms > metrics_enabled = true`:
+
+- **vmagent-vector** -- Dedicated vmagent instance for Vector write-buffer. Accepts `prometheus_remote_write` on port 8429, buffers to disk, and forwards to vminsert.
+- **Vector-LDMS** -- Kafka consumer pod for LDMS metrics.
+
+!!! note
+
+    Vector-LDMS reuses the existing `kafkapump` KafkaUser for mTLS credentials.
+
+!!! important
+
+    If you enable Vector-LDMS after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
+
+    ```bash title="Run on K8s control plane"
+    <K8s_NFS_mount_point>/telemetry/telemetry.sh
+    ```
+
+
 ## Verification
 
+
+### Verify LDMS Telemetry Pods
+1. Verify that the LDMS telemetry pods are running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get pods -n telemetry
+    ```
+
+    ![ldms Telemetry Pods](../../assets/images/ldms_telemetry_pods.png)
 
 ### Verify LDMS Messages in Kafka
 
@@ -128,7 +167,15 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
 
 1. Log in to the Service Kubernetes control plane.
 
-2. Set the required variables:
+2. List the telemetry services to identify the `bridge-bridge-lb` external IP:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry
+    ```
+
+    ![Telemetry Services](../../assets/images/telemetry_services_kafka_lb.png)
+
+3. Set the required variables:
 
     ```bash title="Run on K8s control plane"
     KAFKA_LB_IP=<external IP of bridge-bridge-lb service>
@@ -137,7 +184,7 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
     INSTANCE=ldms-consumer-1
     ```
 
-3. Create a Kafka consumer:
+4. Create a Kafka consumer:
 
     ```bash title="Run on K8s control plane"
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
@@ -150,13 +197,13 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
         }'
     ```
 
-4. View the list of LDMS Kafka topics configured:
+5. View the list of LDMS Kafka topics configured:
 
     ```bash title="Run on K8s control plane"
     curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
     ```
 
-5. Subscribe the consumer to the LDMS topic:
+6. Subscribe the consumer to the LDMS topic:
 
     ```bash title="Run on K8s control plane"
     curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
@@ -164,7 +211,7 @@ To verify that LDMS telemetry data is being successfully published to the `ldms`
     -d '{"topics": ["ldms"]}'
     ```
 
-6. Consume messages from the topic:
+7. Consume messages from the topic:
 
     ```bash title="Run on K8s control plane"
     while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
@@ -179,22 +226,22 @@ If telemetry is flowing correctly, the output contains JSON-formatted LDMS telem
 
 ### Verify TLS Connectivity
 
-To verify TLS connectivity for Kafka, run the Kafka TLS test job:
+1. Run the Kafka TLS test job:
 
-```bash title="Run on K8s control plane"
-cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
-kubectl apply -f kafka.tls_test_job.yaml
-```
+    ```bash title="Run on K8s control plane"
+    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+    kubectl apply -f kafka.tls_test_job.yaml
+    ```
 
-After the job completes, check the logs to confirm that the TLS connection is successful:
+2. After the job completes, check the logs to confirm that the TLS connection is successful:
 
-```bash title="Run on K8s control plane"
-kubectl logs kafka-tls-test-xxx -n telemetry
-```
+    ```bash title="Run on K8s control plane"
+    kubectl logs kafka-tls-test-xxx -n telemetry
+    ```
 
 ### View LDMS Metrics in VictoriaMetrics UI (VMUI)
 
-LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS pipeline](configure_vector_ldms.md).
+LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS bridge](#enable-vector-ldms-bridge).
 
 1. Verify that the Vector-LDMS pod is running:
 
@@ -240,7 +287,6 @@ LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS pipeline](config
 ## Next Steps
 
 
-- [Configure Vector-LDMS Pipeline](configure_vector_ldms.md) -- Route LDMS data from Kafka to VictoriaMetrics via Vector.
 - [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
 
 

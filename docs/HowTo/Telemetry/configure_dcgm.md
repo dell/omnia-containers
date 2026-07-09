@@ -9,16 +9,16 @@ Configure NVIDIA Data Center GPU Manager (DCGM) to collect GPU metrics from comp
 
 DCGM Telemetry collects GPU metrics from nodes with NVIDIA GPUs. DCGM is installed on each GPU-capable Slurm node during provisioning. The installed DCGM package is selected automatically based on the CUDA version present on the node. On clusters running CUDA 12 or later, the multinode diagnostic plugin is installed in addition to the base DCGM package.
 
+### Components
+
+- **DCGM** -- NVIDIA Data Center GPU Manager service running on each GPU-capable node. Exposes GPU metrics via a Prometheus-compatible endpoint.
+- **VMAgent** -- Scrapes the DCGM Prometheus endpoint and forwards metrics to VictoriaMetrics.
+
 ### Data Flow
 
 ```
 GPU Nodes → DCGM → VMAgent → VictoriaMetrics
 ```
-
-### Components
-
-- **DCGM** -- NVIDIA Data Center GPU Manager service running on each GPU-capable node. Exposes GPU metrics via a Prometheus-compatible endpoint.
-- **VMAgent** -- Scrapes the DCGM Prometheus endpoint and forwards metrics to VictoriaMetrics.
 
 ### Supported Metrics
 
