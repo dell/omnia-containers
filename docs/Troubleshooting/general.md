@@ -106,6 +106,8 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
         ansible-vault create input/credentials.yml
         ```
 
+    For more information on managing encrypted parameters, see [Encrypted Parameters Management](../SecurityConfigurationGuide/misc_configuration.md#encrypted-parameters-management).
+
 ## OIM cleanup NFS directory deletion failure
 
 ???+ note "Symptom"
@@ -175,20 +177,82 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 
     2. Retry login or reprovision the node.
 
+## SSH to omnia_core container fails after switching to root with sudo
+
+???+ note "Symptom"
+
+    After successful execution of the `omnia.sh` script, a message is displayed indicating that you can log in to the `omnia_core` container using `ssh omnia_core`. However, this fails if you initially logged in to the OIM node as a non-root user and then switched to the root user using the `sudo` command.
+
+??? note "Cause"
+
+    SSH access to the `omnia_core` container depends on direct root login. When a user logs in as a non-root user and switches to root using the `sudo` command, the SSH session may not have the required permissions or environment configuration to access the container using `ssh omnia_core`.
+
+??? note "Resolution"
+
+    1. Edit the SSH configuration file and set `PermitRootLogin yes`:
+
+        ```bash title="File: /etc/ssh/sshd_config"
+        PermitRootLogin yes
+        ```
+
+    2. Restart the SSH service:
+
+        ```bash title="Run on: OIM host"
+        systemctl restart sshd
+        ```
+
+    3. Log out and re-login to the OIM node directly as the `root` user.
+
+    4. Restart the `omnia_core` container:
+
+        ```bash title="Run on: OIM host"
+        podman restart omnia_core
+        ```
+
 ## OpenCHAMI issues
 
 ### Certificate expiration
 
 ???+ note "Symptom"
 
-    OpenCHAMI certificates have expired, causing service communication failures.
+    OpenCHAMI certificates have expired, causing service communication failures. This can also cause the cloud-init server to fail when running `provision.yml`.
+
+??? note "Cause"
+
+    The OpenCHAMI certificate has expired, or one or more `openchami.target` services are not running.
 
 ??? note "Resolution"
 
-    ```bash title="Run on: OIM host"
-    sudo openchami-certificate-update update <OIM_hostname>.<domain>
-    sudo systemctl restart openchami.target
-    ```
+    1. Check if OpenCHAMI target dependencies are satisfied:
+
+        ```bash title="Run on: OIM host"
+        systemctl list-dependencies openchami.target
+        ```
+
+    2. Update the certificate and restart the target:
+
+        ```bash title="Run on: OIM host"
+        sudo openchami-certificate-update update <OIM_hostname>.<domain>
+        sudo systemctl restart openchami.target
+        ```
+
+    3. If certificate expiry issues persist, restart the `acme-deploy` service:
+
+        ```bash title="Run on: OIM host"
+        systemctl restart acme-deploy
+        ```
+
+    4. If any other service under the OpenCHAMI target failed, restart it:
+
+        ```bash title="Run on: OIM host"
+        systemctl restart <service_name>
+        ```
+
+    5. Wait for the OpenCHAMI target and all its dependencies to become active:
+
+        ```bash title="Run on: OIM host"
+        systemctl is-active openchami.target
+        ```
 
 ### Token expired
 
@@ -273,6 +337,20 @@ Issues that affect the OIM, core containers, OpenCHAMI services, SSH connectivit
 ??? note "Resolution"
 
     Ensure the Admin NIC on the OIM is configured with `autoconnect=yes`. If you changed this configuration, reboot the OIM once to clear any cache-related or stale configuration issues.
+
+### Cluster nodes get incorrect hostname (nid) after OIM reboot
+
+???+ note "Symptom"
+
+    Compute nodes are assigned default hostnames such as `nid00...` instead of their configured hostnames from the PXE mapping file, after the OIM has been rebooted.
+
+??? note "Cause"
+
+    If the OIM is rebooted after clusters are deployed, cloud-init files are no longer retained on the OIM. When compute nodes are PXE booted afterwards, they cannot access the cloud-init configuration on the OIM. This results in default hostnames like `nid00...` instead of the configured hostnames from the PXE mapping file.
+
+??? note "Resolution"
+
+    Run the `provision.yml` playbook again with the same PXE mapping file. This ensures cloud-init files are properly recreated and compute nodes receive their correct configured hostnames from the PXE mapping file.
 
 ### PostgreSQL container deployment fails after cleanup
 

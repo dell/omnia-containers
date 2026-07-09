@@ -840,7 +840,7 @@ state problems, job submission errors, and GPU detection.
     4. Validate staged benchmark directories:
 
        ```bash title="Run on: affected node"
-       ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi
+       ls -l /hpc_tools/osu-micro-benchmarks /hpc_tools/imb /hpc_tools/likwid /hpc_tools/papi /hpc_tools/geopm /hpc_tools/sionlib
        ```
 
     5. If a tool was skipped as already present, remove that tool
