@@ -49,3 +49,24 @@ from .vars.local_repo_vars import (
 from .messages.local_repo_msgs import (
     TEST_VARS, TEST_NAMES, TEST_LOG_MSGS, TEST_ASSERT_MSGS,
 )
+from .functions.user_registry_func import (
+    check_user_registry_config,
+    check_user_registry_https_certs,
+    check_user_registry_http_no_certs,
+    check_user_registry_auth_credentials,
+    check_user_registry_container_repos_synced,
+    check_user_registry_remotes_in_pulp,
+)
+from .vars.user_registry_vars import (
+    LOCAL_REPO_CONFIG_FILE,
+    LOCAL_REPO_CONFIG_PATH,
+    USER_REGISTRY_CREDENTIAL_FILE,
+    USER_REGISTRY_CREDENTIAL_PATH,
+    USER_REGISTRY_REPO_PREFIX,
+    USER_REGISTRY_REMOTE_PREFIX,
+)
+from .messages.user_registry_msgs import (
+    USER_REGISTRY_TEST_NAMES,
+    USER_REGISTRY_LOG_MSGS,
+    USER_REGISTRY_ASSERT_MSGS,
+)

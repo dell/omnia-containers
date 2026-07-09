@@ -1,0 +1,109 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# =============================================================================
+# USER REGISTRY SETUP CONFIGURATION
+# =============================================================================
+# Configuration for deploying a Docker Registry v2 container with optional
+# HTTPS (self-signed certs) and htpasswd authentication.
+# Used by: utility/create_user_registry.py
+#
+# After setup, the registry details can be used in local_repo_config.yml:
+#   user_registry:
+#     - { host: "<server_ip>:<registry_port>", cert_path: "<cert_path>", key_path: "<key_path>" }
+#
+# TARGET SERVER:
+#   - Set registry_server_ip to deploy on a remote server (via SSH)
+#   - Leave empty to deploy on localhost
+
+# =============================================================================
+# SERVER CONNECTION
+# =============================================================================
+
+# Target server IP where the registry container will be deployed
+# Leave empty ("") to deploy on localhost
+registry_server_ip: ""
+
+# SSH username for remote server (only needed when registry_server_ip is set)
+registry_server_ssh_user: "root"
+
+# SSH password for remote server (only needed when registry_server_ip is set)
+registry_server_ssh_password: ""
+
+# SSH port for remote server (default: 22)
+registry_server_ssh_port: 22
+
+# =============================================================================
+# REGISTRY SETTINGS
+# =============================================================================
+
+# Registry container image (Docker Registry v2)
+registry_image: "docker.io/library/registry:2"
+
+# Registry container name
+registry_container_name: "user_registry"
+
+# Host port for registry (HTTP or HTTPS depending on enable_https)
+registry_port: 5000
+
+# =============================================================================
+# HTTPS CONFIGURATION
+# =============================================================================
+
+# Enable HTTPS with self-signed certificates
+# When true, generates self-signed CA cert + server cert/key and configures
+# the registry to use TLS. The cert_path and key_path will be output for
+# use in local_repo_config.yml.
+# When false, registry runs over HTTP (no certs needed).
+enable_https: true
+
+# Directory on target server where TLS certs will be stored
+# Cert files generated: domain.crt, domain.key
+cert_directory: "/opt/omnia/user_registry/certs"
+
+# Certificate subject fields (for self-signed cert generation)
+cert_common_name: ""
+cert_validity_days: 365
+
+# =============================================================================
+# AUTHENTICATION
+# =============================================================================
+
+# Enable htpasswd authentication for the registry
+# When true, creates an htpasswd file with the specified users and configures
+# the registry to require authentication.
+# When false, registry allows anonymous push/pull.
+enable_auth: true
+
+# Registry users (REQUIRED when enable_auth is true)
+# Each user must have: username, password
+registry_users:
+  - username: "admin"
+    password: ""
+
+# =============================================================================
+# SAMPLE IMAGES
+# =============================================================================
+
+# Push sample container images to the registry after setup
+# These images will be pulled from public registries, re-tagged,
+# and pushed to the new user registry for testing.
+# Set to empty list [] to skip pushing sample images.
+sample_images:
+  - source: "docker.io/library/alpine:3.20"
+    name: "alpine"
+    tag: "3.20"
+  - source: "docker.io/library/busybox:1.36"
+    name: "busybox"
+    tag: "1.36"
