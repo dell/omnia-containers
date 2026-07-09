@@ -107,12 +107,10 @@ Procedure
 
    2. Comment out the single-subnet coresmd and bootloop lines above the multi-subnet configuration section
    3. Uncomment the multi-subnet coresmd and bootloop blocks below the heading
-   4. Update the CoreSMD container image version to v0.6.3 in the following files:
+   4. Update the CoreSMD container image version to the new coresmd version in the following files:
 
       - ``/etc/containers/systemd/coresmd-coredhcp.container``
       - ``/etc/containers/systemd/coresmd-coredns.container``
-
-      Replace the currently configured CoreSMD image version with CoreSMD v0.6.3.
 
    5. Reload the systemd daemon:
 
@@ -126,8 +124,8 @@ Procedure
 
          systemctl restart openchami.target
 
-   .. note::
-      The multi-subnet configuration section in ``coredhcp.yaml`` contains the specific coresmd and bootloop configuration blocks that need to be uncommented for multi-subnet DHCP to function correctly.
+.. note::
+   The multi-subnet configuration section in ``coredhcp.yaml`` contains the specific coresmd and bootloop configuration blocks that need to be uncommented for multi-subnet DHCP to function correctly. Ensure these blocks are properly configured before restarting services.
 
 .. 
 
