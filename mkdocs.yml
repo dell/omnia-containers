@@ -239,7 +239,6 @@ nav:
       - Switches: Reference/SupportMatrix/switches.md
       - Storage: Reference/SupportMatrix/storage.md
       - Installed Software: Reference/SupportMatrix/installed_software.md
-      - All Softwares: Reference/SupportMatrix/all_softwares.md
     - Configuration:
       - Omnia Config: Reference/Configuration/omnia_config.md
       - Provision Config: Reference/Configuration/provision_config.md
