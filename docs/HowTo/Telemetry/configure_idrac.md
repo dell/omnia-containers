@@ -9,13 +9,6 @@ Configure iDRAC Telemetry to collect out-of-band hardware metrics from Dell Powe
 
 iDRAC Telemetry collects hardware metrics from Dell servers using the integrated Dell Remote Access Controller (iDRAC). iDRAC Telemetry includes the following components:
 
-### Data Flow
-
-```
-iDRAC (BMC) → iDRAC Collector → Kafka
-iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
-```
-
 ### Components
 
 - **iDRAC Collector** -- Polls each server's Redfish endpoint for hardware metrics. Runs as a Kubernetes pod in the telemetry namespace.
@@ -24,6 +17,13 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 - **VictoriaPump** -- Routes iDRAC metrics from ActiveMQ to VictoriaMetrics via VMAgent.
 - **VMAgent** -- Forwards metrics to VictoriaMetrics cluster (vminsert).
 - **MySQL Database** -- Stores iDRAC telemetry metadata. Storage size is configurable via `telemetry_storage_config.yml`.
+
+### Data Flow
+
+```
+iDRAC (BMC) → iDRAC Collector → Kafka
+iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
+```
 
 ### Supported Metrics
 
@@ -69,7 +69,7 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 
 2. **Ensure that `telemetry_config.yml` has the entries specific for iDRAC Telemetry**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
 
-    ```yaml title="telemetry_config.yml -- iDRAC section"
+    ```yaml title="telemetry_config.yml -- iDRAC"
     telemetry_sources:
       idrac:
         metrics_enabled: true
@@ -116,7 +116,6 @@ To collect iDRAC telemetry from servers that are not part of the Omnia-managed c
     10.3.0.101,,
     10.3.0.102,,
     ```
-
 2. Run the telemetry playbook:
 
     ```bash title="Run on omnia_core container"
@@ -203,31 +202,35 @@ If telemetry metrics are collected correctly, the output contains JSON-formatted
 
 ### Verify TLS Connectivity
 
-**VictoriaMetrics TLS** -- Run the VictoriaMetrics TLS test job:
+**VictoriaMetrics TLS**
 
-```bash title="Run on K8s control plane"
-cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
-kubectl apply -f victoria-tls-test-job.yaml
-```
+1. Run the VictoriaMetrics TLS test job:
 
-After the job completes, check the logs to confirm that the TLS connection is successful:
+    ```bash title="Run on K8s control plane"
+    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+    kubectl apply -f victoria-tls-test-job.yaml
+    ```
 
-```bash title="Run on K8s control plane"
-kubectl logs victoria-tls-test-xxx -n telemetry
-```
+2. After the job completes, check the logs to confirm that the TLS connection is successful:
 
-**Kafka TLS** -- Run the Kafka TLS test job:
+    ```bash title="Run on K8s control plane"
+    kubectl logs victoria-tls-test-xxx -n telemetry
+    ```
 
-```bash title="Run on K8s control plane"
-cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
-kubectl apply -f kafka.tls_test_job.yaml
-```
+**Kafka TLS**
 
-After the job completes, check the logs to confirm that the TLS connection is successful:
+1. Run the Kafka TLS test job:
 
-```bash title="Run on K8s control plane"
-kubectl logs kafka-tls-test-xxx -n telemetry
-```
+    ```bash title="Run on K8s control plane"
+    cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+    kubectl apply -f kafka.tls_test_job.yaml
+    ```
+
+2. After the job completes, check the logs to confirm that the TLS connection is successful:
+
+    ```bash title="Run on K8s control plane"
+    kubectl logs kafka-tls-test-xxx -n telemetry
+    ```
 
 ### View iDRAC Metrics in VictoriaMetrics UI (VMUI)
 

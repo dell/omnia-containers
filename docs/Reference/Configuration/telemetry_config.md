@@ -12,14 +12,12 @@ This file configures telemetry sources (iDRAC, LDMS, DCGM, PowerScale, UFM, VAST
 | Source | Description | Sinks |
 | --- | --- | --- |
 | [iDRAC](../../HowTo/Telemetry/configure_idrac.md) | Out-of-band hardware metrics (power, thermal, storage health) from Dell servers via Redfish | Kafka, VictoriaMetrics |
-| [LDMS](../../HowTo/Telemetry/configure_ldms.md) | In-band OS metrics (CPU, memory, network, I/O) from Slurm compute nodes | Kafka (route to VictoriaMetrics via Vector-LDMS) |
+| [LDMS](../../HowTo/Telemetry/configure_ldms.md) | In-band OS metrics (CPU, memory, network, I/O) from Slurm compute nodes | Kafka, VictoriaMetrics (via Vector-LDMS) |
 | [DCGM](../../HowTo/Telemetry/configure_dcgm.md) | NVIDIA GPU metrics (temperature, utilization, memory, ECC errors, power) from compute nodes | Kafka, VictoriaMetrics |
 | [PowerScale](../../HowTo/Telemetry/configure_powerscale.md) | Storage performance metrics and logs from Dell PowerScale clusters | VictoriaMetrics, VictoriaLogs |
 | [UFM](../../HowTo/Telemetry/configure_ufm.md) | NVIDIA UFM InfiniBand Fabric Manager metrics (IB port state, transmit/receive data, error counters, fabric topology) and syslog logs | VictoriaMetrics, VictoriaLogs |
 | [VAST](../../HowTo/Telemetry/configure_vast.md) | Storage performance metrics and syslog events from VAST Storage appliances | VictoriaMetrics, VictoriaLogs |
-| [Vector-LDMS](../../HowTo/Telemetry/configure_vector_ldms.md) | Routes LDMS metrics from Kafka to VictoriaMetrics | VictoriaMetrics |
-| [Vector-OME](../../HowTo/Telemetry/configure_vector_ome.md) | Routes OpenManage Enterprise metrics and logs from Kafka to Victoria stack | VictoriaMetrics, VictoriaLogs |
-| [OpenManage Enterprise](../../HowTo/Telemetry/telemetry_from_ome.md) | Server inventory, health, alerts, and audit logs from Dell OME via Kafka mTLS | Kafka (route to Victoria stack via Vector-OME) |
+| [OpenManage Enterprise (OME)](../../HowTo/Telemetry/telemetry_from_ome.md) | Server inventory, health, alerts, and audit logs from Dell OME via Kafka mTLS | Kafka, VictoriaMetrics, VictoriaLogs (via Vector-OME) |
 | [SFM](../../HowTo/Telemetry/configure_sfm.md) | Network telemetry metrics from Smart Fabric Manager | VictoriaMetrics |
 
 

@@ -77,7 +77,6 @@ ansible-playbook <playbook_name>.yml -i <absolute or relative path to inventory 
 !!! note
 
    - The playbooks are to be executed in the specified order as per the execution order table.
-   - These playbooks are designed to be idempotent and can be re-run if needed.
 
 !!! info
 

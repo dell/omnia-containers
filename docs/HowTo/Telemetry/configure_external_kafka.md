@@ -111,5 +111,5 @@ kafka-console-consumer.sh --bootstrap-server <kafka-external-ip>:9094 \
 ## Next Steps
 
 
-- [Configure OpenManage Enterprise Telemetry](telemetry_from_ome.md) -- Integrate OME with Kafka using mTLS.
+- [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md) -- Integrate OME with Kafka using mTLS.
 - [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.

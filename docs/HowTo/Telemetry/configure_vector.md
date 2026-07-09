@@ -11,6 +11,13 @@ Vector provides Kafka-to-Victoria ingestion for LDMS and OpenManage Enterprise (
 
 For more details on Vector, see [Vector Documentation](https://vector.dev/docs/).
 
+### Components
+
+- **Vector-LDMS** -- Kafka consumer for LDMS metrics. Consumes from the `ldms` topic and routes to VictoriaMetrics via vmagent-vector.
+- **Vector-OME** -- Kafka consumer for OME telemetry. Consumes from `ome.*` topics and routes metrics to VictoriaMetrics and logs to VictoriaLogs.
+- **vmagent-vector** -- Dedicated vmagent instance as a write-buffer between Vector pods and vminsert. Accepts `prometheus_remote_write` on port 8429, buffers to disk, and forwards to vminsert. Separate from the existing scraper vmagent to isolate failure domains.
+- **vlagent-vector** -- Dedicated VictoriaLogs forwarding agent deployed as a log write-buffer for Vector pods. Accepts JSON Lines on an HTTP endpoint (port 9427), buffers to disk, and forwards to vlinsert. Required for Vector-OME log/event sinks.
+
 ### Data Flow
 
 ```
@@ -18,13 +25,6 @@ LDMS Store (store_avro_kafka) → Kafka 'ldms' topic → Vector-LDMS → vmagent
 OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector → vminsert → VictoriaMetrics
 OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector → vlinsert → VictoriaLogs
 ```
-
-### Components
-
-- **Vector-LDMS** -- Kafka consumer for LDMS metrics. Consumes from the `ldms` topic and routes to VictoriaMetrics via vmagent-vector.
-- **Vector-OME** -- Kafka consumer for OME telemetry. Consumes from `ome.*` topics and routes metrics to VictoriaMetrics and logs to VictoriaLogs.
-- **vmagent-vector** -- Dedicated vmagent instance as a write-buffer between Vector pods and vminsert. Accepts `prometheus_remote_write` on port 8429, buffers to disk, and forwards to vminsert. Separate from the existing scraper vmagent to isolate failure domains.
-- **vlagent-vector** -- Dedicated VictoriaLogs forwarding agent deployed as a log write-buffer for Vector pods. Accepts JSON Lines on an HTTP endpoint (port 9427), buffers to disk, and forwards to vlinsert. Required for Vector-OME log/event sinks.
 
 
 ## Prerequisites

@@ -9,16 +9,16 @@ Configure Smart Fabric Manager (SFM) to securely stream telemetry metrics to Vic
 
 SFM collects network telemetry metrics including transceiver DOM readings, queue statistics, interface counters, and error counters from the managed fabric. SFM streams data directly to VictoriaMetrics via Prometheus Remote Write.
 
+### Components
+
+- **SFM Prometheus Exporter** -- Collects network telemetry metrics from the managed fabric and exports them via Prometheus Remote Write.
+- **vminsert** -- VictoriaMetrics ingestion endpoint that receives metrics over TLS from SFM.
+
 ### Data Flow
 
 ```
 SFM (Smart Fabric Manager) → Prometheus Remote Write → vminsert → VictoriaMetrics
 ```
-
-### Components
-
-- **SFM Prometheus Exporter** -- Collects network telemetry metrics from the managed fabric and exports them via Prometheus Remote Write.
-- **vminsert** -- VictoriaMetrics ingestion endpoint that receives metrics over TLS from SFM.
 
 ### Supported Metrics
 

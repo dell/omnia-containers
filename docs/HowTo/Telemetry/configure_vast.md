@@ -9,13 +9,6 @@ Configure VAST Storage to securely stream telemetry metrics and logs to the Serv
 
 VAST Telemetry collects storage metrics and logs. VAST Telemetry includes the following components:
 
-### Data Flow
-
-```
-VAST Storage Appliances → OTEL Collector → vmagent (shared) → VictoriaMetrics
-VAST Storage Appliances → syslog → VLAgent → VictoriaLogs
-```
-
 ### Components
 
 - **VAST Prometheus Exporter** -- Exposes storage metrics on a Prometheus-compatible HTTPS endpoint (default port 443).
@@ -23,6 +16,13 @@ VAST Storage Appliances → syslog → VLAgent → VictoriaLogs
 - **VMServiceScrape CR** -- Kubernetes custom resource that declares the VAST scrape target for the VictoriaMetrics operator.
 - **VLAgent** -- Receives VAST syslog events (RFC 3164/5424) and forwards them to VictoriaLogs.
 - **Kubernetes Service + Endpoints** -- Abstracts the external VAST appliance as a discoverable Kubernetes service for vmagent.
+
+### Data Flow
+
+```
+VAST Storage Appliances → OTEL Collector → vmagent (shared) → VictoriaMetrics
+VAST Storage Appliances → syslog → VLAgent → VictoriaLogs
+```
 
 ### Supported Metrics and Logs
 
