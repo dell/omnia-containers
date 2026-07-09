@@ -1,92 +1,18 @@
 
-# Integrate OME with Kafka for Telemetry Streaming
+# Verify OpenManage Enterprise Telemetry
 
 
-Configure OpenManage Enterprise (OME) to securely stream telemetry data to the Omnia Kafka pipeline using mutual TLS (mTLS).
-
-## Overview
-
-
-This procedure describes how to integrate OME with the Omnia Kafka pipeline for secure telemetry data streaming. OME connects to the Kafka external mTLS listener (port 9094) and publishes telemetry data (inventory, health, alerts, audit logs) to Kafka topics. To route OME telemetry from Kafka to VictoriaMetrics and VictoriaLogs, enable the Vector Telemetry Pipeline (see [Configure Vector Pipeline](configure_vector.md)).
-
+This page provides verification steps for the OME telemetry data flow from Kafka to VictoriaMetrics and VictoriaLogs.
 
 ## Prerequisites
 
 
-- `pod_external_ip_range` must be set in `provision_config.yml` and `provision.yml` must be executed after the external IP is configured.
-- Kafka is deployed and operational in the telemetry namespace.
-- Nodes must be discovered in OME before configuring telemetry streaming.
+- The [Configure OpenManage Enterprise Telemetry](telemetry_from_ome.md) procedure is complete.
+- The Vector-OME bridge is enabled in `telemetry_config.yml` for metrics and/or logs routing.
+- Nodes must be discovered in OpenManage Enterprise before configuring telemetry streaming.
 
 
-## Procedure
-
-
-### Retrieve Kafka Connection Details
-
-1. Log in to the Service Kubernetes control plane.
-
-2. Retrieve the Kafka LoadBalancer external IP:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep kafka
-    ```
-
-    Note the **External IP** of the Kafka LoadBalancer service (port 9094 for mTLS connections).
-
-### Extract TLS Certificates
-
-1. Extract the Kafka TLS certificates:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
-    kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.crt}' | base64 --decode > user.crt
-    kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.key}' | base64 --decode > user.key
-    ```
-
-### Create Client Certificate in .pfx Format
-
-OME requires a `.pfx` format client certificate for mTLS authentication:
-
-```bash title="Run on K8s control plane"
-openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out client.pfx -password pass:<password>
-```
-
-![OME Certificate PFX Format](../../assets/images/ome_certificate_pfx_format.png)
-
-### Configure OME Kafka Connectivity
-
-1. Log in to the OME web UI.
-
-2. Navigate to **Application Settings > Data Streaming > Remote Connectivity**.
-
-    ![OME Remote Connectivity](../../assets/images/ome_remote_connectivity.png)
-
-3. Select **Kafka Connectivity** and configure:
-
-    - **Bootstrap Server**: `<kafka-external-ip>:9094`
-    - **Security Protocol**: `SSL`
-
-    ![OME Kafka Connectivity](../../assets/images/ome_kafka_connectivity.png)
-
-4. Upload the client certificate (`client.pfx`) and enter the password.
-
-5. Configure **Data Configuration** to select the telemetry data types to stream:
-
-    ![OME Data Configuration](../../assets/images/ome_data_configuration.png)
-
-6. Configure **Group Configuration** to select the device groups to monitor:
-
-    ![OME Group Configuration](../../assets/images/ome_group_configuration.png)
-
-7. Save and verify the connectivity status shows as **Connected**:
-
-    ![OME Connectivity Verification](../../assets/images/ome_connectivity_verification.png)
-
-
-## Verification
-
-
-### Verify OME Messages in Kafka
+## Verify OME Messages in Kafka
 
 To verify that OME telemetry data is being successfully published to the OME Kafka topics:
 
@@ -146,7 +72,7 @@ To verify that OME telemetry data is being successfully published to the OME Kaf
     - **Throughput**: Adjust polling interval; bridge returns empty array when no new records.
     - **404/409 errors**: 404 usually means wrong group/instance name; 409 means already subscribed.
 
-### View OME Metrics in VictoriaMetrics UI (VMUI)
+## View OME Metrics in VictoriaMetrics UI (VMUI)
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaMetrics using Vector:
 
@@ -176,7 +102,7 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 
     Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > metrics_enabled: true`) for metrics data to flow from Kafka to VictoriaMetrics.
 
-### View OME Logs in VictoriaLogs
+## View OME Logs in VictoriaLogs
 
 To verify that OME telemetry data is being successfully routed from Kafka to VictoriaLogs using Vector:
 
@@ -201,16 +127,3 @@ To verify that OME telemetry data is being successfully routed from Kafka to Vic
 !!! note
 
     Ensure that the Vector-OME bridge is enabled in `telemetry_config.yml` (`telemetry_bridges > vector_ome > logs_enabled: true`) for logs data to flow from Kafka to VictoriaLogs.
-
-
-## Next Steps
-
-
-- [Configure Vector-OME Pipeline](configure_vector_ome.md) -- Route OME data from Kafka to VictoriaMetrics and VictoriaLogs.
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
-
-
-## Troubleshooting
-
-
-For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).

@@ -100,6 +100,8 @@ OME (Fleet Mgmt) ─> Kafka 'ome.*' ─> Vector-OME ─> vmagent-vector ─> Vic
 ## Step 1 -- Deploy the omnia_core Container
 
 
+The `omnia_core` container is deployed on the OIM and managed as a systemd service. It contains the Omnia source code with Python and Ansible preinstalled.
+
 ```shell title="Run on OIM (as root)"
 cd /opt
 git clone https://github.com/dell/omnia.git
@@ -127,8 +129,7 @@ exit
 ## Step 2 -- Create the Mapping File
 
 
-The mapping file for this path contains **only** Kubernetes roles -- no
-Slurm functional groups.
+The mapping file defines the cluster node roles and network details. For this path, it contains **only** Kubernetes roles -- no Slurm functional groups.
 
 ```shell title="Run on OIM (as root)"
 cat > /opt/omnia/input/project_default/pxe_mapping.csv << 'EOF'
@@ -150,7 +151,7 @@ EOF
 ## Step 3 -- Provide Inputs
 
 
-For K8s + telemetry deployment, update the following input files in
+Configure the input files that define your cluster's network, provisioning, telemetry, and storage settings. For K8s + telemetry deployment, update the following input files in
 `/opt/omnia/input/project_default/`. Click each file name to view the
 full parameter reference.
 
@@ -164,8 +165,9 @@ full parameter reference.
 | [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
 | [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
 | [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Service cluster K8s settings (cluster name, CNI, pod IP range, NFS storage) |
+| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_storage_config.md) (optional) | Storage and resource settings for telemetry components |
 
-### K8s + Telemetry specific guidance
+**K8s + Telemetry specific guidance**
 
 **`software_config.json`** -- The `service_k8s` entry is **mandatory**.
 Without it, Omnia skips telemetry deployment entirely.
@@ -183,56 +185,29 @@ Without it, Omnia skips telemetry deployment entirely.
 
     LDMS telemetry requires Slurm to be deployed. To enable LDMS along with the full Slurm + K8s stack, refer to the [Full Deployment](full_deployment.md) guide.
 
-**`telemetry_config.yml`** -- Enable the telemetry sources you need
-before running `prepare_oim.yml` so all required packages are included
-in the local repo. Set `metrics_enabled: true` for each source (iDRAC,
-LDMS, DCGM, PowerScale, UFM, VAST, OME).
-
-```yaml title="Example: Enable iDRAC telemetry"
-telemetry_sources:
-  idrac:
-    metrics_enabled: true
-    collection_targets: [victoria_metrics, kafka]
-  ...
-```
-
-**`high_availability_config.yml`** -- Configure the virtual IP for K8s
-API server HA.
-
-```yaml title="Example high_availability_config.yml"
-service_k8s_cluster_ha:
-- cluster_name: service_cluster
-  enable_k8s_ha: true
-  virtual_ip_address: 182.11.5.101
-```
-
-!!! warning
-
-    The `virtual_ip_address` must not belong to `dynamic_range` in
-    `network_spec.yml` or conflict with any IP in `mapping.csv`.
-
 ## Step 4 -- Prepare the OIM
 
+
+The `prepare_oim.yml` playbook sets up the OIM by deploying the OpenCHAMI containers, Pulp container, and other required services.
 
 ```shell title="Run on omnia_core container"
 cd /omnia/prepare_oim
 ansible-playbook prepare_oim.yml
 ```
 
-
-## Step 5 -- Verify OIM Services
-
+**Verify OIM Services**
 
 ```shell title="Run on omnia_core container"
 systemctl list-dependencies omnia.target
 ```
 
-
 All services must show `active`.
 
 
-## Step 6 -- Create Local Repositories
+## Step 5 -- Create Local Repositories
 
+
+The `local_repo.yml` playbook downloads and saves software packages and container images to the Pulp container, making them available to all cluster nodes.
 
 ```shell title="Run on omnia_core container"
 cd /omnia/local_repo
@@ -246,8 +221,10 @@ ansible-playbook local_repo.yml
     telemetry stack (VictoriaMetrics, VictoriaLogs, Kafka, Vector), and
     base OS packages. Allow **30--60 minutes** and ~20 GB disk space.
 
-## Step 7 -- Build Node Images
+## Step 6 -- Build Node Images
 
+
+The `build_image_x86_64.yml` playbook builds diskless images for cluster nodes based on the functional groups defined in the mapping file.
 
 ```shell title="Run on omnia_core container"
 cd /omnia/build_image_x86_64
@@ -262,109 +239,64 @@ s3cmd ls -Hr s3://boot-images
 
 
 
-## Step 8 -- Provision Nodes
+## Step 7 -- Provision Nodes
 
 
-The `provision.yml` playbook provisions the cluster nodes. It configures
-boot scripts, cloud-init, deploys iDRAC telemetry service, and deploys
-LDMS on the service cluster.
+The `provision.yml` playbook provisions the cluster nodes. It configures boot scripts, cloud-init, deploys iDRAC telemetry service, and deploys LDMS on the service cluster.
 
 ```shell title="Run on omnia_core container"
 cd /omnia/provision
 ansible-playbook provision.yml
 ```
 
+**Verify Provision Nodes**
+
+- After executing `provision.yml`, check log files at `/opt/omnia/log` for details.
+- Omnia does not track OS installation on the target node. Verify installation status manually.
 
 !!! note
 
-    - After executing `provision.yml`, check log files at `/opt/omnia/log`
-      for details.
-    - To identify boot issues on a node, check `/var/log/cloud-init-output.log`
-      on the target node.
-    - Omnia does not track OS installation on the target node. Verify
-      installation status manually.
-    - Post execution, IPs/hostnames cannot be re-assigned by changing
-      the mapping file.
+    Post execution of `provision.yml`, IPs and hostnames cannot be re-assigned by changing the mapping file.
 
-!!! warning
+!!! caution
 
-    - In case of any IP route conflict between Admin network and
-      additional NIC, delete the Admin route or configure the IP route
-      priority based on your cluster requirements.
-    - Do not run `ssh-keygen` post execution of `provision.yml` to avoid
-      breaking the password-less SSH channel on the OIM.
+    - Do not run `ssh-keygen` post execution of `provision.yml` to avoid breaking the password-less SSH channel on the OIM.
     - Do not delete the Omnia shared path or the NFS directory.
 
-**Optional: Set PXE boot order using `set_pxe_boot.yml`**
+For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../Troubleshooting/provisioning.md).
 
-After running `provision.yml`, you can either manually PXE boot the
-nodes or use the `set_pxe_boot.yml` utility. This playbook sets the PXE
-boot order on target nodes via iDRAC so they automatically boot into the
-diskless image from the OIM.
+
+## Step 8 -- Set PXE Boot Order (Optional)
+
+
+After running `provision.yml`, you can either manually PXE boot the nodes or use the `set_pxe_boot.yml` utility. This playbook sets the PXE boot order on target nodes via iDRAC so they automatically boot into the diskless image from the OIM.
 
 !!! warning
 
     This playbook will restart your servers and power them on if they
     are off. Any unsaved data will be lost.
 
-```shell title="Run on omnia_core container (with inventory)"
-cd /omnia/utils
-ansible-playbook set_pxe_boot.yml -i inventory
-```
-
-
-```shell title="Run on omnia_core container (all nodes from mapping file)"
+```shell title="Run on omnia_core container"
 cd /omnia/utils
 ansible-playbook set_pxe_boot.yml
 ```
 
 
-## Step 9 -- Deploy Telemetry
+## Step 9 -- Deploy iDRAC Telemetry (Optional)
 
 
-The `provision.yml` playbook (Step 8) deploys the service Kubernetes
-cluster and the core telemetry infrastructure. The `telemetry.yml`
-playbook initiates the iDRAC telemetry service on the service cluster
-based on the enabled components in `telemetry_config.yml`.
-
-**Prerequisites:**
-
-- `provision.yml` has been executed successfully with
-  `service_kube_control_plane_x86_64` and `service_kube_node_x86_64` in the mapping file.
-- All nodes are booted and pods are running.
+The `telemetry.yml` playbook initiates the iDRAC telemetry service on the service cluster. For prerequisites, configuration details, and collecting telemetry from external nodes, see [Configure iDRAC Telemetry](../HowTo/Telemetry/configure_idrac.md).
 
 !!! note
 
-    Run the `telemetry.yml` playbook only if iDRAC telemetry is enabled.
-    It is not required for other telemetry types.
-
-!!! note
-
-    Service cluster metadata automatically captures the service cluster
-    kube control plane virtual IP. As a result, `telemetry.yml` is
-    executed against the VIP rather than an individual control plane node.
-
-**Collect telemetry from external nodes (optional):**
-
-You can monitor additional servers (that are not part of this K8s
-cluster) via iDRAC telemetry. Ensure their iDRAC BMC ports are reachable
-from the K8s worker node and update the BMC IPs in
-`/opt/omnia/telemetry/bmc_group_data.csv` inside the omnia_core
-container. The `GROUP_NAME` and `PARENT` fields must be left blank.
-
-```text title="Sample bmc_group_data.csv"
-BMC_IP,GROUP_NAME,PARENT
-10.3.0.101,,
-10.3.0.102,,
-```
+    This step is required **only** when `idrac: metrics_enabled` is set to `true` in `telemetry_config.yml`. It is not required for other telemetry types.
 
 ```shell title="Run on omnia_core container"
 cd /omnia/telemetry
 ansible-playbook telemetry.yml
 ```
 
-
-!!! note
+!!! caution
 
     If you want to enable additional telemetry components after the
     first successful deployment (by updating `telemetry_config.yml`),
@@ -372,79 +304,26 @@ ansible-playbook telemetry.yml
     script on kube-control-plane at path
     `<K8s_NFS_mount_point>/telemetry/telemetry.sh`.
 
-```shell title="Run on K8s control plane"
-# Verify all telemetry pods are running
-kubectl get pods -n omnia-telemetry
-```
-
-
-Expected output (all pods `Running` or `Completed`):
-
-```text title="Expected output"
-NAME                                     READY   STATUS    RESTARTS   AGE
-vmstorage-victoria-cluster-0             1/1     Running   0          5m
-vminsert-victoria-cluster-0              1/1     Running   0          5m
-vmselect-victoria-cluster-0              1/1     Running   0          5m
-vlstorage-victoria-logs-cluster-0        1/1     Running   0          5m
-vlinsert-victoria-logs-cluster-0         1/1     Running   0          5m
-vlselect-victoria-logs-cluster-0         1/1     Running   0          5m
-kafka-0                                  1/1     Running   0          5m
-vmagent-5d9f8b7c6-abc12                  1/1     Running   0          5m
-idrac-collector-5d9f8b7c6-m3n7q          1/1     Running   0          5m
-ldms-aggregator-7f4b9c8d2-p2r4s          1/1     Running   0          5m
-ldms-store-8c6d3e9f1-q5t8u               1/1     Running   0          5m
-vector-ldms-6b8c4f7d9-xk2p4             1/1     Running   0          5m
-vmagent-vector-3a7f9d2e1-r4s6t           1/1     Running   0          5m
-```
-
 
 
 ## Step 10 -- Verify the Telemetry Pipeline
 
 
-Run a quick sanity check to confirm that all telemetry pods are running:
+After deploying telemetry, verify that all telemetry pods and services are operational. Refer to the topics in the following table for instructions on verifying each telemetry service.
 
-```shell title="Run on K8s control plane"
-kubectl get pods -n telemetry
-kubectl get svc -n telemetry
-```
-
-All pods should be in `Running` or `Completed` state. All expected services should be listed.
-
-For comprehensive per-source verification (iDRAC, LDMS, PowerScale, UFM, VAST, OME, SFM) including Kafka consumer tests, TLS connectivity checks, and VictoriaMetrics/VictoriaLogs UI queries, see [Verify Telemetry](../HowTo/Telemetry/verify_telemetry.md).
+| Telemetry Service | Description | Topic |
+| --- | --- | --- |
+| iDRAC | Verify collection and ingestion of hardware telemetry metrics. | [Configure iDRAC Telemetry -- Verification](../HowTo/Telemetry/configure_idrac.md#verification) |
+| LDMS | Verify collection and routing of node-level telemetry metrics. | [Configure LDMS Telemetry -- Verification](../HowTo/Telemetry/configure_ldms.md#verification) |
+| DCGM | Verify collection and ingestion of GPU telemetry metrics. | [Configure DCGM Telemetry -- Verification](../HowTo/Telemetry/configure_dcgm.md#verification) |
+| PowerScale | Verify collection and ingestion of storage metrics and logs. | [Configure PowerScale Telemetry -- Verification](../HowTo/Telemetry/configure_powerscale.md#verification) |
+| UFM | Verify collection and ingestion of fabric metrics and logs. | [Configure UFM Telemetry -- Verification](../HowTo/Telemetry/configure_ufm.md#verification) |
+| VAST | Verify collection and ingestion of storage metrics and logs. | [Configure VAST Telemetry -- Verification](../HowTo/Telemetry/configure_vast.md#verification) |
+| OpenManage Enterprise | Verify collection and routing of OME metrics and logs. | [Configure OME Telemetry -- Verification](../HowTo/Telemetry/telemetry_from_ome.md#verification) |
+| Vector-LDMS Pipeline | Verify routing of LDMS telemetry from Kafka to VictoriaMetrics. | [Configure Vector-LDMS Pipeline -- Verification](../HowTo/Telemetry/configure_vector_ldms.md#verification) |
 
 
 ## What's Next?
 
 
-Your K8s telemetry cluster is operational. Common next steps:
-
-**Monitor additional servers**
-   Add BMC IPs of external nodes to `/opt/omnia/telemetry/bmc_group_data.csv`
-   and re-run `telemetry.yml`.
-
-**Add Slurm later**
-   Follow [Full Deployment](full_deployment.md) (Path B) to add Slurm head, compute,
-   and login nodes to this existing deployment. The K8s telemetry cluster
-   you built here will seamlessly monitor the Slurm nodes.
-
-**Enable additional telemetry sources**
-   Enable DCGM, PowerScale, UFM, or VAST telemetry by setting their
-   `metrics_enabled` fields to `true` in `telemetry_config.yml` and
-   re-running `telemetry.yml`.
-
-**Enable LDMS on external nodes**
-   Install the `ldmsd` agent on any Linux server and point it to the
-   LDMS aggregator on the K8s worker to collect OS metrics from machines
-   outside the Omnia-managed cluster.
-
-**Configure long-term retention**
-   Adjust `retention_period` under `telemetry_sinks > victoria_metrics`
-   and `telemetry_sinks > victoria_logs` in `telemetry_config.yml`.
-   Increase `persistence_size` and attach persistent storage as needed.
-
-!!! info
-
-    - [Full Deployment](full_deployment.md) -- Add Slurm to this K8s deployment
-    - [Prerequisites Checklist](prerequisites_checklist.md) -- Master checklist
-    - [Telemetry Architecture](../Overview/telemetry_architecture.md) -- Deep dive into the telemetry pipeline
+Your K8s telemetry cluster is operational. For post-deployment tasks such as adding or removing nodes, enabling additional telemetry sources, configuring storage, and managing upgrades, see the [Operations Guide](../Operations/index.md).

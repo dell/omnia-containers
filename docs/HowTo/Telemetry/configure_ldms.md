@@ -1,237 +1,250 @@
 
-# Configure LDMS
+# Configure LDMS Telemetry
 
 
-Fine-tune LDMS (Lightweight Distributed Metric Service) sampler plugins and
-aggregation configuration for custom metric collection on compute nodes.
+Configure deployment of Lightweight Distributed Metric Service (LDMS) to collect in-band telemetry from Slurm clusters.
 
 ## Overview
 
 
-LDMS runs two types of daemons:
+LDMS collects system metrics such as CPU, memory, network, I/O, and Slurm job statistics. During deployment, Omnia attaches LDMS aggregator and store pods to the admin network. This improves throughput between Slurm nodes and the Kubernetes cluster.
 
-- **Samplers** (on compute nodes) -- Collect OS-level metrics at regular
-  intervals.
-- **Aggregators** (on K8s service cluster) -- Collect samples from all compute
-  nodes and forward them to the storage backend (Kafka/VictoriaMetrics).
+### Data Flow
 
-This guide shows how to configure sampler plugins (`meminfo`, `vmstat`,
-`procstat`, and others) and adjust aggregation parameters.
+```
+Slurm Compute Nodes (LDMS Sampler) → LDMS Aggregator → LDMS Store → Kafka
+                                                                      ↓
+                                                        (Optional: Vector-LDMS Bridge)
+                                                                      ↓
+                                                        Vector-LDMS → vmagent-vector → VictoriaMetrics
+```
+
+LDMS data is always sent to Kafka. To route LDMS metrics to VictoriaMetrics, enable the [Vector-LDMS pipeline](configure_vector_ldms.md).
+
+### Components
+
+- **LDMS producer (collector)** -- Collects local system metrics and runs on Slurm controller, compute, and login nodes.
+- **LDMS aggregator** -- Receives and aggregates metrics from producers. Runs as a Kubernetes pod.
+- **LDMS store** -- Buffers and stores metric batches reliably. Runs as a Kubernetes pod.
+- **Kafka broker** -- Handles telemetry streaming for consumption by downstream systems.
+
+For more details on LDMS, see [Lightweight Distributed Metric Service](https://github.com/ovis-hpc/ldms).
+
+!!! note
+
+    To consume LDMS metrics from the Kafka `ldms` topic, transform to Prometheus format, and write to VictoriaMetrics, see [Configure Vector Pipeline](configure_vector.md).
+
+### Supported Metrics
+
+The following LDMS plugins are supported in Omnia:
+
+| Plugin | Metrics Collected |
+| --- | --- |
+| `meminfo` | Memory usage statistics |
+| `procstat2` | Process statistics |
+| `vmstat` | Virtual memory statistics |
+| `loadavg` | System load average |
+| `procnetdev2` | Network interface statistics |
+
+!!! note
+
+    The LDMS Slurm sampler metrics are not supported in the current telemetry deployment.
 
 
 ## Prerequisites
 
 
-- The [Setup Telemetry](setup_telemetry.md) procedure is complete (LDMS is deployed).
-- LDMS agents are running on compute nodes.
-- Aggregators are running on the K8s service cluster.
+- `provision.yml` has been executed successfully with `service_kube_control_plane` and `service_kube_node` in the mapping file.
 
 
 ## Procedure
 
 
-1. **Review available LDMS sampler plugins**:
+1. **Specify the following entries in `software_config.json`**. If any entry is missing, Omnia skips LDMS deployment and logs an informational message. For more information, see the [software_config.json reference](../../Reference/Configuration/software_config.md).
 
-   ```bash title="Run on: compute node"
-   ldms_ls -h localhost -p 411 -v
-   ```
+    ```json
+    {"name": "slurm_custom", "arch": ["x86_64","aarch64"]},
+    {"name": "service_k8s", "version": "1.34.1", "arch": ["x86_64"]},
+    {"name": "ldms", "arch": ["x86_64", "aarch64"]}
+    ```
 
+2. **In `local_repo_config.yml`**, specify the paths for the `ovis-ldms` RPMs accordingly for the `user_repo_url_x86_64` and `user_repo_url_aarch64`.
 
-   Common sampler plugins:
+3. **Ensure that `telemetry_config.yml` has the entries specific for LDMS and Kafka deployment**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
 
-   .. list-table::
-      :header-rows: 1
-      :widths: 25 75
+    ```yaml title="telemetry_config.yml -- LDMS section"
+    telemetry_sources:
+      ldms:
+        metrics_enabled: true
+        collection_targets:
+          - "kafka"
 
-      * - Plugin
-        - Metrics Collected
-      * - `meminfo`
-        - Memory usage (MemTotal, MemFree, Buffers, Cached, SwapTotal, etc.)
-      * - `vmstat`
-        - Virtual memory statistics (page faults, swaps, context switches)
-      * - `procstat`
-        - Per-CPU usage statistics (user, system, idle, iowait)
-      * - `lustre_client`
-        - Lustre filesystem client statistics
-      * - `ibnet`
-        - InfiniBand network counters
-      * - `slurm_sampler`
-        - Slurm job-level metrics
+    ldms_configurations:
+      agg_port: 6001
+      store_port: 6001
+      sampler_port: 10001
+      sampler_plugins:
+        - plugin_name: meminfo
+          config_parameters: ""
+          activation_parameters: "interval=30000000"
+        - plugin_name: procstat2
+          config_parameters: ""
+          activation_parameters: "interval=30000000"
+        - plugin_name: vmstat
+          config_parameters: ""
+          activation_parameters: "interval=30000000"
+        - plugin_name: loadavg
+          config_parameters: ""
+          activation_parameters: "interval=30000000"
+        - plugin_name: procnetdev2
+          config_parameters: ""
+          activation_parameters: "interval=30000000 offset=0"
+    ```
 
-2. **Configure sampler plugins** on a compute node:
+    - `metrics_enabled` -- Enable or disable LDMS metrics collection (`true` or `false`).
+    - `collection_targets` -- LDMS data is sent to Kafka. To route to VictoriaMetrics, enable the [Vector-LDMS pipeline](configure_vector_ldms.md).
+    - `agg_port` / `store_port` / `sampler_port` -- Network ports for LDMS aggregator, store, and sampler.
+    - `sampler_plugins` -- List of LDMS sampler plugins to activate. At least one plugin is mandatory.
 
-   ```bash title="Run on: compute node"
-   vi /etc/ldms/ldmsd.conf
-   ```
+    !!! note
 
+        For LDMS telemetry configuration, at least one sampler plugin is mandatory to collect system metrics.
 
-   Example sampler configuration:
+!!! important
 
-   ```text title="File: /etc/ldms/ldmsd.conf on compute node"
-   # Transport and authentication
-   auth_add name=munge plugin=munge
+    If you enable LDMS telemetry after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
 
-   # Listen for connections
-   listen xprt=sock port=411 auth=munge
-
-   # Load sampler plugins
-   load name=meminfo
-   config name=meminfo producer=${HOSTNAME} instance=${HOSTNAME}/meminfo \
-          schema=meminfo component_id=${COMPONENT_ID}
-   start name=meminfo interval=10000000
-
-   load name=vmstat
-   config name=vmstat producer=${HOSTNAME} instance=${HOSTNAME}/vmstat \
-          schema=vmstat component_id=${COMPONENT_ID}
-   start name=vmstat interval=10000000
-
-   load name=procstat
-   config name=procstat producer=${HOSTNAME} instance=${HOSTNAME}/procstat \
-          schema=procstat component_id=${COMPONENT_ID}
-   start name=procstat interval=10000000
-   ```
-
-
-   !!! note
-
-       The `interval` is in microseconds. `10000000` = 10 seconds.
-
-3. **Restart the LDMS sampler daemon** after configuration changes:
-
-   ```bash title="Run on: compute node"
-   systemctl restart ldmsd
-   ```
-
-
-4. **Configure the LDMS aggregator** on the K8s cluster:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl edit configmap -n telemetry ldms-aggregator-config
-   ```
-
-
-   Example aggregator configuration:
-
-   ```text title="ConfigMap: ldms-aggregator-config in telemetry namespace"
-   # Authentication
-   auth_add name=munge plugin=munge
-
-   # Listen for downstream connections
-   listen xprt=sock port=411 auth=munge
-
-   # Add each compute node as a producer
-   prdcr_add name=compute01 host=10.5.0.101 port=411 xprt=sock \
-             auth=munge type=active interval=30000000
-   prdcr_start name=compute01
-
-   prdcr_add name=compute02 host=10.5.0.102 port=411 xprt=sock \
-             auth=munge type=active interval=30000000
-   prdcr_start name=compute02
-
-   # Start the updater to collect from all producers
-   updtr_add name=all_nodes interval=30000000 offset=100000
-   updtr_prdcr_add name=all_nodes regex=.*
-   updtr_start name=all_nodes
-   ```
-
-
-5. **Restart the aggregator pod**:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl rollout restart deployment -n telemetry ldms-aggregator
-   ```
-
-
-6. **(Bulk configuration) Deploy to all compute nodes** via Ansible:
-
-   ```bash title="Run on: omnia_core container"
-   ansible slurm_node -m copy -a "src=/tmp/ldmsd.conf dest=/etc/ldms/ldmsd.conf"
-   ansible slurm_node -m service -a "name=ldmsd state=restarted"
-   ```
-
+    ```bash title="Run on K8s control plane"
+    <K8s_NFS_mount_point>/telemetry/telemetry.sh
+    ```
 
 
 ## Verification
 
 
-1. **Verify sampler data** on a compute node:
+### Verify LDMS Messages in Kafka
 
-   ```bash title="Run on: compute node"
-   ldms_ls -h localhost -p 411 -v
-   ```
+To verify that LDMS telemetry data is being successfully published to the `ldms` Kafka topic:
 
+1. Log in to the Service Kubernetes control plane.
 
-   Expected: list of active metric sets (meminfo, vmstat, procstat).
+2. Set the required variables:
 
-2. **Query specific metrics**:
+    ```bash title="Run on K8s control plane"
+    KAFKA_LB_IP=<external IP of bridge-bridge-lb service>
+    TOPIC=ldms
+    GROUP=ldms-consumer-group
+    INSTANCE=ldms-consumer-1
+    ```
 
-   ```bash title="Run on: compute node"
-   ldms_ls -h localhost -p 411 -l -v | grep MemFree
-   ```
+3. Create a Kafka consumer:
 
+    ```bash title="Run on K8s control plane"
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group \
+    -H 'content-type: application/vnd.kafka.v2+json' \
+    -d '{
+            "name": "ldms-consumer-1",
+            "format": "json",
+            "auto.offset.reset": "latest",
+            "enable.auto.commit": true
+        }'
+    ```
 
-3. **Verify the aggregator is collecting** from compute nodes:
+4. View the list of LDMS Kafka topics configured:
 
-   ```bash title="Run on: K8s control plane node"
-   AGG_POD=$(kubectl get pod -n telemetry -l app=ldms-aggregator -o jsonpath='{.items[0].metadata.name}')
-   kubectl exec -n telemetry $AGG_POD -- ldms_ls -h localhost -p 411 -v
-   ```
+    ```bash title="Run on K8s control plane"
+    curl -s -X GET "http://$KAFKA_LB_IP:8080/topics" | jq '.'
+    ```
 
+5. Subscribe the consumer to the LDMS topic:
 
-4. **Verify data reaches VictoriaMetrics**:
+    ```bash title="Run on K8s control plane"
+    curl -X POST http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/subscription \
+    -H 'content-type: application/vnd.kafka.v2+json' \
+    -d '{"topics": ["ldms"]}'
+    ```
 
-   ```bash title="Run on: K8s control plane node"
-   VM_POD=$(kubectl get pod -n telemetry -l app=victoriametrics -o jsonpath='{.items[0].metadata.name}')
-   kubectl exec -n telemetry $VM_POD -- curl -s "http://localhost:8428/api/v1/query?query=meminfo_MemFree"
-   ```
+6. Consume messages from the topic:
 
+    ```bash title="Run on K8s control plane"
+    while true; do curl -X GET http://$KAFKA_LB_IP:8080/consumers/ldms-consumer-group/instances/ldms-consumer-1/records \
+    -H 'accept: application/vnd.kafka.json.v2+json' | jq '.' ;  sleep 2; done
+    ```
+
+If telemetry is flowing correctly, the output contains JSON-formatted LDMS telemetry records.
+
+!!! note
+
+    When new nodes are added, ensure the nodes are up and cloud-init has completed successfully (check `/var/log/cloud-init-output.log` on each node). Then, create a new Kafka consumer group with a unique name (e.g., `ldms-new-nodes-group`) to verify metrics from the newly added nodes. Wait 2-3 minutes after discovery completes before checking.
+
+### Verify TLS Connectivity
+
+To verify TLS connectivity for Kafka, run the Kafka TLS test job:
+
+```bash title="Run on K8s control plane"
+cd /<nfs client mount path of the service k8s cluster>/telemetry/deployments/test
+kubectl apply -f kafka.tls_test_job.yaml
+```
+
+After the job completes, check the logs to confirm that the TLS connection is successful:
+
+```bash title="Run on K8s control plane"
+kubectl logs kafka-tls-test-xxx -n telemetry
+```
+
+### View LDMS Metrics in VictoriaMetrics UI (VMUI)
+
+LDMS metrics are routed to VictoriaMetrics via the [Vector-LDMS pipeline](configure_vector_ldms.md).
+
+1. Verify that the Vector-LDMS pod is running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get pods -n telemetry | grep vector-ldms
+    ```
+
+    ![Vector-LDMS Pod](../../assets/images/victoria_metrics_ldms_1.png)
+
+2. Verify that the vmagent-vector pod is running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get pods -n telemetry | grep vmagent-vector
+    ```
+
+    ![vmagent-vector Pod](../../assets/images/victoria_metrics_ldms_2.png)
+
+3. Verify that the VictoriaMetrics service is running:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get service -n telemetry | grep vm
+    ```
+
+    ![VictoriaMetrics Service](../../assets/images/victoria_metrics_ldms_3.png)
+
+4. Note the **External IP** and **port number** of the VictoriaMetrics service.
+
+5. Access the VMUI in a web browser:
+
+    ```
+    https://<external vmselect loadbalancer IP>:8481/select/0/vmui
+    ```
+
+6. Verify that metrics are reaching VictoriaMetrics by querying the VMUI. For example, the following query displays LDMS-related metrics:
+
+    ```
+    {__name__=~"ldms_.*"}
+    ```
+
+    ![LDMS Metrics in VMUI](../../assets/images/victoria_metrics_ldms_ui_login.png)
 
 
 ## Next Steps
 
 
-- [Verify Telemetry](verify_telemetry.md) -- End-to-end telemetry verification.
-- [Configure External Kafka](configure_external_kafka.md) -- Route LDMS data through external Kafka.
+- [Configure Vector-LDMS Pipeline](configure_vector_ldms.md) -- Route LDMS data from Kafka to VictoriaMetrics via Vector.
+- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting
 
 
-**ldmsd fails to start**
-   Check configuration syntax:
-
-   ```bash title="Run on: compute node"
-   ldmsd -c /etc/ldms/ldmsd.conf -F -v DEBUG 2>&1 | head -50
-   ```
-
-
-**"Connection refused" from aggregator to sampler**
-   Verify the sampler is listening:
-
-   ```bash title="Run on: compute node"
-   ss -tlnp | grep 411
-   ```
-
-
-   Check firewall:
-
-   ```bash title="Run on: compute node"
-   firewall-cmd --add-port=411/tcp --permanent
-   firewall-cmd --reload
-   ```
-
-
-**Munge authentication failure**
-   Ensure the Munge key is the same on compute nodes and aggregator:
-
-   ```bash title="Run on: omnia_core container"
-   ansible slurm_node -m shell -a "md5sum /etc/munge/munge.key"
-   ```
-
-
-**Metrics not appearing in VictoriaMetrics**
-   Check the Kafka-to-VictoriaMetrics consumer logs:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl logs -n telemetry -l app=kafka-consumer --tail=30
-   ```
+For common telemetry issues and resolutions, see [Troubleshooting Telemetry](../../Troubleshooting/telemetry.md).

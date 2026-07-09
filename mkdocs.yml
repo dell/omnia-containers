@@ -201,12 +201,20 @@ nav:
     - Authentication:
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
-      - Set Up Telemetry: HowTo/Telemetry/setup_telemetry.md
-      - Verify Telemetry: HowTo/Telemetry/verify_telemetry.md
-      - Telemetry from OME: HowTo/Telemetry/telemetry_from_ome.md
-      - Configure LDMS: HowTo/Telemetry/configure_ldms.md
-      - External Kafka: HowTo/Telemetry/configure_external_kafka.md
-      - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
+      - Setup Telemetry: HowTo/Telemetry/setup_telemetry.md
+      - Configure iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
+      - Configure LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
+      - Configure DCGM Telemetry: HowTo/Telemetry/configure_dcgm.md
+      - Configure PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
+      - Configure UFM Telemetry: HowTo/Telemetry/configure_ufm.md
+      - Configure VAST Telemetry: HowTo/Telemetry/configure_vast.md
+      - Configure OpenManage Enterprise Telemetry: HowTo/Telemetry/telemetry_from_ome.md
+      - Configure SFM Telemetry: HowTo/Telemetry/configure_sfm.md
+      - Configure Vector Pipeline: HowTo/Telemetry/configure_vector.md
+      - Configure Vector-LDMS Pipeline: HowTo/Telemetry/configure_vector_ldms.md
+      - Configure Vector-OME Pipeline: HowTo/Telemetry/configure_vector_ome.md
+      - Configure External Kafka: HowTo/Telemetry/configure_external_kafka.md
+      - Configure External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
     - Advanced Configurations:
       - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md

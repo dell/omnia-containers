@@ -1,177 +1,184 @@
 
-# Configure External VictoriaMetrics
+# Collect Telemetry Data from External Clients to VictoriaMetrics and VictoriaLogs
 
 
-Replace Omnia's built-in VictoriaMetrics deployment with an external
-VictoriaMetrics instance for telemetry data storage.
+Stream telemetry metrics and logs from external client nodes to VictoriaMetrics and VictoriaLogs deployed in the Service Kubernetes cluster.
 
 ## Overview
 
 
-For organizations with existing monitoring infrastructure or requirements for
-a dedicated time-series database, Omnia can be configured to write telemetry
-data to an external VictoriaMetrics instance instead of deploying one on the
-K8s service cluster.
+This procedure describes how to collect telemetry data from external client nodes and stream it to VictoriaMetrics (cluster mode) and VictoriaLogs (cluster mode) in the Service Kubernetes cluster.
 
-Benefits:
-
-- Centralized metric storage across multiple clusters.
-- Dedicated compute and storage resources for time-series data.
-- Integration with existing Grafana instances and alerting rules.
+- **VictoriaMetrics** -- Accepts Prometheus remote write and import endpoints for metrics ingestion.
+- **VictoriaLogs** -- Accepts syslog (plaintext and TLS) and HTTP forwarding for log ingestion.
 
 
 ## Prerequisites
 
 
-- An external VictoriaMetrics instance (single-node or cluster mode) is
-  operational and accessible.
-- The VictoriaMetrics write endpoint (`/api/v1/write`) is reachable from
-  the K8s service cluster.
-- The [Setup Telemetry](setup_telemetry.md) procedure has been reviewed.
+- VictoriaMetrics is deployed in cluster mode in the telemetry namespace.
+- VictoriaLogs is deployed in cluster mode in the telemetry namespace (for log collection).
+- `pod_external_ip_range` must be set in `provision_config.yml` and `provision.yml` must be executed after the external IP is configured.
 
 
-## Procedure
+## Collect Metrics to VictoriaMetrics
 
 
-1. **Enter the omnia_core container**:
+### Retrieve VictoriaMetrics Connection Details
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+1. Log in to the Service Kubernetes control plane.
 
+2. Retrieve the `vmselect` LoadBalancer IP address (for querying data):
 
-2. **Configure external VictoriaMetrics** in `omnia_config.yml`:
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep vmselect
+    ```
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/omnia_config.yml
-   ```
+    Note the **External IP** (port 8481).
 
+3. Retrieve the `vminsert` LoadBalancer IP address (for ingesting data):
 
-   ```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
-   ---
-   # External VictoriaMetrics configuration
-   victoriametrics_external: true
-   victoriametrics_write_url: "http://victoria.example.com:8428/api/v1/write"
-   victoriametrics_read_url: "http://victoria.example.com:8428"
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep vminsert
+    ```
 
-   # Optional: authentication
-   victoriametrics_auth_enabled: false
-   victoriametrics_username: ""
-   victoriametrics_password: ""
+    Note the **External IP** (port 8480).
 
-   # Optional: custom labels added to all metrics
-   victoriametrics_extra_labels:
-     cluster: "omnia-prod"
-     datacenter: "dc1"
-   ```
+4. Extract the VictoriaMetrics TLS CA certificate:
 
+    ```bash title="Run on K8s control plane"
+    kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+    ```
 
-3. **Verify connectivity** to the external VictoriaMetrics:
+### Push Sample Metrics from the Omnia Core Container
 
-   ```bash title="Run on: K8s control plane node"
-   curl -s http://victoria.example.com:8428/api/v1/status/tsdb
-   ```
+1. Create a test metric file:
 
+    ```bash title="Run on omnia_core container"
+    cat <<EOF > test_metric.txt
+    # HELP test_metric A test metric
+    # TYPE test_metric gauge
+    test_metric{job="test",instance="external_node"} 42
+    EOF
+    ```
 
-   Expected: JSON response with database statistics.
+2. Push the metric to VictoriaMetrics using the `vminsert` LoadBalancer IP:
 
-4. **Run the telemetry playbook** to reconfigure:
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -X POST \
+      "https://<vminsert external IP>:8480/insert/0/prometheus/api/v1/import/prometheus" \
+      --data-binary @test_metric.txt
+    ```
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia
-   ansible-playbook telemetry.yml --ask-vault-pass
-   ```
+3. Query the inserted data from VictoriaMetrics:
 
-
-   The playbook will:
-
-   - Skip deploying the built-in VictoriaMetrics pod.
-   - Configure Kafka consumers to write to the external VictoriaMetrics.
-   - Update Grafana data source to point to the external instance.
-
-5. **Update Grafana data source** (if not automatically configured):
-
-   ```bash title="Run on: K8s control plane node"
-   GRAFANA_POD=$(kubectl get pod -n telemetry -l app=grafana -o jsonpath='{.items[0].metadata.name}')
-   kubectl exec -n telemetry $GRAFANA_POD -- \
-     curl -s -X POST http://localhost:3000/api/datasources \
-       -H "Content-Type: application/json" \
-       -u admin:YourGrafanaPassword \
-       -d '{
-         "name": "VictoriaMetrics External",
-         "type": "prometheus",
-         "url": "http://victoria.example.com:8428",
-         "access": "proxy",
-         "isDefault": true
-       }'
-   ```
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -s \
+      "https://<vmselect external IP>:8481/select/0/prometheus/api/v1/query?query=test_metric" \
+      | python3 -m json.tool
+    ```
 
 
-
-## Verification
-
-
-1. **Verify data is being written** to the external VictoriaMetrics:
-
-   ```bash title="Run on: any node with curl"
-   curl -s "http://victoria.example.com:8428/api/v1/query?query=up" | python3 -m json.tool
-   ```
+## Collect Logs to VictoriaLogs
 
 
-2. **Check metric count** on the external instance:
+### Retrieve VLAgent Endpoint Information
 
-   ```bash title="Run on: any node with curl"
-   curl -s "http://victoria.example.com:8428/api/v1/status/tsdb" | python3 -m json.tool
-   ```
+1. Log in to the Service Kubernetes control plane.
 
+2. Retrieve the VLAgent LoadBalancer service details:
 
-3. **Verify no built-in VictoriaMetrics pod** is running:
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep vlagent
+    ```
 
-   ```bash title="Run on: K8s control plane node"
-   kubectl get pods -n telemetry | grep victoriametrics
-   ```
+    Note the following ports:
 
+    - **Port 514** -- Syslog plaintext (TCP/UDP)
+    - **Port 6514** -- Syslog TLS (TCP)
+    - **Port 9481** -- HTTP forwarder
+    - **Port 9471** -- VictoriaLogs UI
 
-4. **Verify Grafana dashboards** show data from the external instance by
-   opening the Grafana web UI and checking the data source configuration.
+3. Extract the VLAgent TLS CA certificate:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get secret -n telemetry vlagent-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+    ```
+
+### Configure Plaintext Syslog Source
+
+To configure an external client to send syslog messages over plaintext:
+
+```bash title="Run on external client node"
+logger -n <vlagent external IP> -P 514 -t myapp "Test syslog message from external client"
+```
+
+For persistent configuration, update the client's rsyslog or syslog-ng configuration to forward to `<vlagent external IP>:514`.
+
+### Configure TLS Syslog Source
+
+To configure an external client to send syslog messages over TLS:
+
+1. Copy the `ca.crt` to the external client node.
+
+2. Configure rsyslog with TLS:
+
+    ```text title="File: /etc/rsyslog.d/remote-tls.conf on external client"
+    global(
+        DefaultNetstreamDriverCAFile="/path/to/ca.crt"
+    )
+
+    action(
+        type="omfwd"
+        target="<vlagent external IP>"
+        port="6514"
+        protocol="tcp"
+        StreamDriver="gtls"
+        StreamDriverMode="1"
+        StreamDriverAuthMode="x509/name"
+    )
+    ```
+
+3. Restart rsyslog:
+
+    ```bash title="Run on external client node"
+    systemctl restart rsyslog
+    ```
+
+### Configure HTTP Forwarding Source
+
+To forward logs via HTTP:
+
+```bash title="Run on external client node"
+curl -X POST "http://<vlagent external IP>:9481/insert/jsonline" \
+  -H "Content-Type: application/json" \
+  -d '{"_msg": "Test log from external client", "_time": "2024-01-01T00:00:00Z", "source": "external"}'
+```
+
+### Verify Log Ingestion
+
+1. Retrieve the vlselect LoadBalancer IP:
+
+    ```bash title="Run on K8s control plane"
+    kubectl get svc -n telemetry | grep vlselect
+    ```
+
+2. Query VictoriaLogs for the ingested logs:
+
+    ```bash title="Run on K8s control plane"
+    curl --cacert ca.crt -s \
+      "https://<vlselect external IP>:9471/select/logsql/query?query=*&limit=10"
+    ```
+
+3. Access the VictoriaLogs UI in a web browser:
+
+    ```
+    https://<external vlselect loadbalancer IP>:9471/select/vmui
+    ```
 
 
 ## Next Steps
 
 
-- [Verify Telemetry](verify_telemetry.md) -- End-to-end telemetry verification.
-- [Telemetry From Ome](telemetry_from_ome.md) -- Add OME telemetry to the external instance.
-
-
-## Troubleshooting
-
-
-**Write endpoint returns 403 or 401**
-   Verify authentication credentials are correct:
-
-   ```bash title="Run on: K8s control plane node"
-   curl -s -u user:password \
-     "http://victoria.example.com:8428/api/v1/query?query=up"
-   ```
-
-
-**Connection timeout to external VictoriaMetrics**
-   Check network connectivity and firewall rules:
-
-   ```bash title="Run on: K8s worker node"
-   curl -v http://victoria.example.com:8428/health
-   ```
-
-
-**Grafana shows "No data" with external source**
-   - Verify the data source URL in Grafana settings.
-   - Check that the external VictoriaMetrics is receiving data:
-
-     ```bash title="Run on: any node"
-     curl -s "http://victoria.example.com:8428/api/v1/series?match[]={cluster='omnia-prod'}"
-     ```
-
-
-**Metrics have wrong labels**
-   Check the `victoriametrics_extra_labels` configuration in
-   `omnia_config.yml`.
+- [External Kafka](configure_external_kafka.md) -- Stream data from external clients to Kafka.
+- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
