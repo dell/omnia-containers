@@ -1,235 +1,126 @@
-
 # Configure Kubernetes HA
 
-
-Enable high availability (HA) for the Kubernetes control plane using a virtual
-IP (VIP) that floats between control-plane nodes for API server redundancy.
+Configure high availability (HA) for the service Kubernetes control plane
+by setting a virtual IP (VIP) in `high_availability_config.yml`.
 
 ## Overview
 
+Omnia deploys **kube-vip** as a static pod on each control-plane node to
+provide a floating virtual IP address for the Kubernetes API server. If the
+active control-plane node fails, kube-vip automatically migrates the VIP to
+a healthy node, ensuring uninterrupted API access.
 
-By default, the Kubernetes API server is accessible on each control-plane
-node's individual IP address. For production deployments, a virtual IP (VIP)
-provides a single, stable endpoint for the API server. If the active
-control-plane node fails, the VIP automatically migrates to a healthy node.
+The HA configuration is defined in `high_availability_config.yml` and must
+be completed **before** running `provision.yml`.
 
-Omnia uses **kube-vip** or **keepalived** to manage the virtual IP, depending
-on your configuration.
+!!! important
 
+    Service Kubernetes cluster deployment is supported **only in HA mode**.
+    The `enable_k8s_ha` parameter must be set to `true`.
 
 ## Prerequisites
 
-
-- A Kubernetes cluster deployed with 3 control-plane nodes (see
-  [Setup Service K8S](setup_service_k8s.md)).
-- A free IP address on the admin network subnet for the VIP.
-- The VIP address must not be in the MetalLB address range or assigned to any
-  other device.
-
+- The [Prepare the OIM](../Setup/prepare_oim.md) procedure is complete.
+- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete,
+  including `omnia_config.yml` with the `service_k8s_cluster` section. See
+  [omnia_config.yml Reference](../../Reference/Configuration/omnia_config.md)
+  for the full parameter list.
+- At least **3 nodes** assigned to the `service_kube_control_plane` functional
+  group in the PXE mapping file.
+- At least **1 node** assigned to the `service_kube_node` functional group.
+- A free IPv4 address on the admin network subnet for the VIP. The VIP must
+  not overlap with any `ADMIN_IP` in the PXE mapping file, the MetalLB
+  `pod_external_ip_range` in `omnia_config.yml`, or the OIM admin IP.
 
 ## Procedure
 
-
 1. **Enter the omnia_core container**:
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
+2. **Open the HA configuration file**:
 
-2. **Configure the virtual IP** in `omnia_config.yml`:
+    ```bash title="Run on: omnia_core container"
+    vi /opt/omnia/input/project_default/high_availability_config.yml
+    ```
 
-   ```bash title="Run on: omnia_core container"
-   vi /opt/omnia/input/project_default/omnia_config.yml
-   ```
+3. **Set the HA parameters**:
 
+    ```yaml title="File: /opt/omnia/input/project_default/high_availability_config.yml"
+    service_k8s_cluster_ha:
+      - cluster_name: service_cluster
+        enable_k8s_ha: true
+        virtual_ip_address: "172.16.107.1"
+    ```
 
-   Add or update the HA parameters:
+    | Parameter | Description |
+    |-----------|-------------|
+    | `cluster_name` | Must match a cluster name in `omnia_config.yml` where `deployment` is `true` |
+    | `enable_k8s_ha` | Must be `true` -- service K8s is supported only in HA mode |
+    | `virtual_ip_address` | Free IPv4 address on the admin network subnet for the kube-vip VIP |
 
-   ```yaml title="File: /opt/omnia/input/project_default/omnia_config.yml"
-   ---
-   # Kubernetes HA configuration
-   k8s_ha_enabled: true
-   k8s_vip: "10.5.0.200"
-   k8s_vip_interface: "eno1"
-   ```
+4. **Save and close the file**.
 
+!!! tip
 
-   !!! warning
-
-       The `k8s_vip` must be a free IP address on the same subnet as the
-       control-plane nodes. Do **not** use an IP from the MetalLB range.
-
-3. **Run the omnia.yml playbook** (or re-run to apply HA changes):
-
-   ```bash title="Run on: omnia_core container"
-   cd /omnia
-   ansible-playbook omnia.yml --ask-vault-pass
-   ```
-
-
-   If the cluster is already deployed, the playbook will:
-
-   - Deploy kube-vip or keepalived on control-plane nodes.
-   - Configure the VIP as the API server endpoint.
-   - Update kubeconfig on all nodes to use the VIP.
-   - Reconfigure the kube-apiserver with the new advertised address.
-
-4. **Alternatively, configure HA manually** on an existing cluster:
-
-   a. **Install keepalived** on all control-plane nodes:
-
-      ```bash title="Run on: each K8s control plane node"
-      dnf install -y keepalived
-      ```
-
-
-   b. **Configure keepalived** on the primary control-plane node:
-
-      ```bash title="Run on: K8s control plane node 1 (MASTER)"
-      cat <<'EOF' > /etc/keepalived/keepalived.conf
-      vrrp_instance K8S_VIP {
-          state MASTER
-          interface eno1
-          virtual_router_id 51
-          priority 100
-          advert_int 1
-          authentication {
-              auth_type PASS
-              auth_pass k8s_vip_secret
-          }
-          virtual_ipaddress {
-              10.5.0.200/24
-          }
-      }
-      EOF
-
-      systemctl enable --now keepalived
-      ```
-
-
-   c. **Configure keepalived** on backup control-plane nodes:
-
-      ```bash title="Run on: K8s control plane nodes 2 and 3 (BACKUP)"
-      cat <<'EOF' > /etc/keepalived/keepalived.conf
-      vrrp_instance K8S_VIP {
-          state BACKUP
-          interface eno1
-          virtual_router_id 51
-          priority 90
-          advert_int 1
-          authentication {
-              auth_type PASS
-              auth_pass k8s_vip_secret
-          }
-          virtual_ipaddress {
-              10.5.0.200/24
-          }
-      }
-      EOF
-
-      systemctl enable --now keepalived
-      ```
-
-
-      !!! note
-
-          Set `priority 80` on the third control-plane node.
+    For the full list of `high_availability_config.yml` parameters, see
+    [HA Config Reference](../../Reference/Configuration/high_availability_config.md).
 
 ## Verification
 
+After the cluster is provisioned, verify that HA is operational.
 
-1. **Verify the VIP is active**:
+1. **Verify the VIP is reachable**:
 
-   ```bash title="Run on: OIM host"
-   ping -c 3 10.5.0.200
-   ```
+    ```bash title="Run on: OIM host"
+    ping -c 3 <virtual_ip_address>
+    ```
 
+2. **Check the Kubernetes API via the VIP**:
 
-2. **Check which node currently holds the VIP**:
+    ```bash title="Run on: control-plane node"
+    kubectl get nodes
+    ```
 
-   ```bash title="Run on: each K8s control plane node"
-   ip addr show eno1 | grep "10.5.0.200"
-   ```
+    All control-plane and worker nodes should show `Ready`.
 
+3. **Verify kube-vip is running on control-plane nodes**:
 
-   Only one node should show the VIP.
-
-3. **Access the Kubernetes API via the VIP**:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl --server=https://10.5.0.200:6443 get nodes
-   ```
-
-
-4. **Test failover** by stopping keepalived on the active node:
-
-   ```bash title="Run on: active K8s control plane node"
-   systemctl stop keepalived
-   ```
-
-
-   Then verify the VIP migrated:
-
-   ```bash title="Run on: OIM host"
-   ping -c 3 10.5.0.200
-   # Should still respond -- VIP migrated to a backup node
-   ```
-
-
-   Re-enable keepalived:
-
-   ```bash title="Run on: previously active node"
-   systemctl start keepalived
-   ```
-
-
-5. **Update kubeconfig** to use the VIP:
-
-   ```bash title="Run on: K8s control plane node"
-   kubectl config set-cluster kubernetes --server=https://10.5.0.200:6443
-   ```
-
-
+    ```bash title="Run on: control-plane node"
+    crictl ps | grep kube-vip
+    ```
 
 ## Next Steps
 
-
-- [Deploy Powerscale Csi](deploy_powerscale_csi.md) -- Deploy enterprise storage integration.
-- [Setup Telemetry](../Telemetry/setup_telemetry.md) -- Deploy telemetry on the HA
-  cluster.
-
+- [Configure Inputs](../Setup/configure_inputs.md) -- Configure remaining
+  input files before provisioning.
+- [Create Mapping File](../Setup/create_mapping_file.md) -- Assign nodes to
+  functional groups if not already done.
 
 ## Troubleshooting
 
+### VIP is not reachable after provisioning
 
-**VIP is not reachable**
-   Check keepalived status on all control-plane nodes:
+Verify that kube-vip is running on the control-plane nodes and the static
+pod manifest is present:
 
-   ```bash title="Run on: each K8s control plane node"
-   systemctl status keepalived
-   journalctl -u keepalived --no-pager -n 20
-   ```
+```bash title="Run on: control-plane node"
+crictl ps | grep kube-vip
+cat /etc/kubernetes/manifests/kube-vip.yaml
+```
 
+### VIP conflict error during input validation
 
-**VIP does not failover**
-   Verify VRRP traffic is allowed on the network. Check for firewall rules
-   blocking multicast:
+The `virtual_ip_address` must not match any `ADMIN_IP` in the PXE mapping
+file, the OIM admin IP, or an IP within the MetalLB `pod_external_ip_range`.
+Choose a different free IP on the admin subnet.
 
-   ```bash title="Run on: K8s control plane node"
-   firewall-cmd --add-protocol=vrrp --permanent
-   firewall-cmd --reload
-   ```
+### Common error messages
 
-
-**Both nodes claim the VIP (split-brain)**
-   Ensure all control-plane nodes have the same `virtual_router_id` and
-   `auth_pass` in keepalived.conf. Check network connectivity between
-   control-plane nodes.
-
-**kubectl fails with "connection refused" on VIP**
-   Verify the API server is listening on the VIP address:
-
-   ```bash title="Run on: K8s control plane node"
-   ss -tlnp | grep 6443
-   ```
+| Error | Cause | Resolution |
+|-------|-------|------------|
+| `kube_vip is not set` | `virtual_ip_address` is empty | Set a valid IPv4 address in `high_availability_config.yml` |
+| `virtual_ip_address conflicts with ADMIN_IP` | VIP matches a node IP in the PXE mapping file | Choose a different VIP on the admin subnet |
+| `Kube VIP is not reachable via SSH` | kube-vip failed to start or network issue | Check kube-vip pod logs and network connectivity |
