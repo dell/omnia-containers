@@ -56,7 +56,7 @@
 #   discovery           - Run discovery playbook and verify
 #   telemetry           - Run telemetry playbook and verify
 #   one_shot_log_extraction - Run one-shot log extraction and verify
-#   upgrade_omnia_sh    - Upgrade omnia.sh and verify
+#   Upgrade              - Omnia upgrade tests (K8s, telemetry, Slurm pre-check, post-check, negative, upgrade workflow)
 #   rollback_omnia_sh   - Rollback omnia.sh and verify
 #   gitlab_cleanup      - Run GitLab cleanup and verify
 #   oim_cleanup         - Run OIM cleanup and verify
@@ -98,7 +98,7 @@ NC='\033[0m' # No Color
 # Add new scenarios, commands, or suites here when extending the framework.
 
 # Supported scenario names (must match directories under molecule/)
-SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh powervault"
+SUPPORTED_SCENARIOS="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall Upgrade rollback_omnia_sh"
 
 # Supported molecule commands
 SUPPORTED_COMMANDS="test verify converge create prepare"
@@ -384,9 +384,11 @@ case "$SCENARIO" in
         echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
         echo ""
         # Display in logical order
-        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream upgrade_omnia_sh rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
+        ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
-            if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
+            local resolved_dir
+            resolved_dir=$(resolve_scenario_dir "$name")
+            if [[ -d "molecule/${resolved_dir}" && -f "molecule/${resolved_dir}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
             fi
         done
@@ -564,7 +566,8 @@ case "$SCENARIO" in
 esac
 
 # Validate scenario exists
-if [[ ! -d "molecule/${SCENARIO}" ]]; then
+SCENARIO_DIR=$(resolve_scenario_dir "$SCENARIO")
+if [[ ! -d "molecule/${SCENARIO_DIR}" ]]; then
     echo -e "${RED}Error: Scenario '${SCENARIO}' not found${NC}"
     echo -e "${YELLOW}Supported scenarios:${NC} ${SUPPORTED_SCENARIOS}"
     echo "Run '$0 list' to see available scenarios."
@@ -593,7 +596,7 @@ if [[ -n "$SUITE" ]]; then
 fi
 
 # For tests-only scenarios: always use verify (no converge step needed)
-if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "upgrade_omnia_sh") ]]; then
+if [[ "$COMMAND" == "test" && ("$SCENARIO" == "build_stream" || "$SCENARIO" == "Upgrade") ]]; then
     echo -e "${YELLOW}Note: ${SCENARIO} uses 'verify' instead of 'test' (no converge step needed)${NC}"
     COMMAND="verify"
 fi
@@ -666,7 +669,7 @@ _run_molecule_completions() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm powervault dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh all list help"
+    local scenarios="omnia_sh_install prepare_oim gitlab_install local_repo build_image_x86_64 build_image_aarch64 discovery provision telemetry apptainer kubernetes slurm dcgm hpc_benchmarks vast_storage build_stream one_shot_log_extraction gitlab_cleanup oim_cleanup omnia_sh_uninstall upgrade_omnia_sh rollback_omnia_sh upgrade_pre_k8s_telemetry upgrade_post_k8s_telemetry upgrade_negative_k8s_telemetry all list help"
     local commands="test verify converge create prepare"
     local suites="sanity negative regression smoke stress performance build_auto deploy_auto cleanup_manual build_manual deploy_manual build_stream"
     local flows="build_stream"
