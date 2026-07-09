@@ -76,42 +76,46 @@ images, and deploy the container on the OIM.
 
 
 
-## Step 2 -- Provide Inputs
+## Step 2 -- Set Credentials
 
-Once the `omnia_core` container is deployed, input files are available in
-`/opt/omnia/input/project_default/`. Review and update the following
-files before proceeding:
+Run the credential utility playbook to securely store passwords for
+provisioning, iDRAC, and other services.
 
-**Key files for this deployment:**
+```bash title="Run on: omnia_core container"
+cd /omnia/utils/credential_utility
+ansible-playbook get_config_credentials.yml
+```
 
-- [`network_spec.yml`](../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
-- [`provision_config.yml`](../Reference/Configuration/provision_config.md) -- OS provisioning settings
-- [`software_config.json`](../Reference/Configuration/software_config.md) -- Software stack selections
-- [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) -- Slurm cluster configuration
-- [`storage_config.yml`](../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
-- [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
-- [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) -- Telemetry and monitoring settings
+**Credentials required for a Slurm deployment:**
 
-For detailed Slurm-specific input configuration, see
-[Set Up Slurm](../HowTo/Slurm/setup_slurm.md).
+| Credential | Parameter | Required | Details |
+|---|---|---|---|
+| Provision password | `provision_password` | Mandatory | Root password for provisioned nodes. Min 8 characters. |
+| BMC (iDRAC) username | `bmc_username` | Mandatory | Must be the same across all servers. |
+| BMC (iDRAC) password | `bmc_password` | Mandatory | Min 3 characters. |
+| Pulp container password | `pulp_password` | Mandatory | Used for the Pulp repository container. Min 8 characters. |
+| Minio S3 bucket password | `minio_s3_password` | Mandatory | 5–128 characters. Must not be set to `admin`. |
+| Slurm database password | `slurm_db_password` | Mandatory for Slurm | Password for SlurmDB (MariaDB). |
 
-!!! note "InfiniBand deployments"
-    If any Slurm nodes have an InfiniBand interface and `ib_network` is
-    defined in `network_spec.yml`:
+!!! note
+    - Fields marked **mandatory** cannot be left empty.
+    - Fields marked **optional** can be skipped.
+    - Fields marked **conditional mandatory** are required only if the
+      corresponding feature is enabled in the input files.
 
-    - The Slurm user repository must **not** include `ucx`, `ucx-devel`,
-      `openmpi`, or `openmpi-devel` packages.
-    - Slurm must be compiled **without** UCX and OpenMPI support.
-    - DOCA-OFED provides its own UCX and OpenMPI stack, configured
-      automatically during provisioning.
-
-    For InfiniBand network configuration details, see
-    [Configure InfiniBand](../HowTo/Networking/configure_infiniband.md).
+!!! caution
+    Passwords must not contain commas (`,`), hyphens (`-`), single
+    quotes (`'`), double quotes (`"`), or backslashes (`\`) unless
+    otherwise specified.
 
 ## Step 3 -- Create the PXE Mapping File
 
 The PXE mapping file tells Omnia which physical servers map to which
-cluster roles. Create a `pxe_mapping_file.csv` in
+cluster roles. Choose one of the following options to create it.
+
+#### Option A: Create the PXE Mapping File Manually
+
+Create a `pxe_mapping_file.csv` in
 `/opt/omnia/input/project_default/` and set the `pxe_mapping_file_path`
 variable in `provision_config.yml` to point to it.
 
@@ -122,7 +126,6 @@ slurm_node_x86_64,grp1,SVCTAG02,,compute01,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3
 login_node_x86_64,grp2,SVCTAG03,,login01,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e4:f5:a6:b7,172.17.107.44,,
 login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172.16.107.45,d2:e3:f4:a5:b6:c7,172.17.107.45,,
 ```
-
 
 !!! warning
     Replace all placeholder values (`SVCTAG*`, MAC addresses, IPs) with
@@ -143,10 +146,9 @@ login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172
 For detailed information on PXE mapping file format and parameters, see
 [PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md).
 
-### Alternative: Discover Nodes via OME
+#### Option B: Discover Nodes via OME
 
-If you did not create the `pxe_mapping_file.csv` manually, you can use
-OpenManage Enterprise (OME) to automatically discover servers and
+Use OpenManage Enterprise (OME) to automatically discover servers and
 generate the PXE mapping file.
 
 1. In OME, discover the cluster nodes. See the
@@ -184,41 +186,48 @@ necessary.
     Devices not assigned to any Omnia-supported static group in OME
     default to `slurm_node_aarch64` in the generated PXE mapping file.
 
-## Step 4 -- Set Credentials
+## Step 4 -- Provide Inputs
 
-Run the credential utility playbook to securely store passwords for
-provisioning, iDRAC, and other services.
+Once the `omnia_core` container is deployed, input files are available in
+`/opt/omnia/input/project_default/`. Review and update the following
+files before proceeding:
 
-```bash title="Run on: omnia_core container"
-cd /omnia/utils/credential_utility
-ansible-playbook get_config_credentials.yml
-```
+**Key files for this deployment:**
 
-**Credentials required for a Slurm deployment:**
-
-| Credential | Parameter | Required | Details |
-|---|---|---|---|
-| Provision password | `provision_password` | Mandatory | Root password for provisioned nodes. Min 8 characters. |
-| BMC (iDRAC) username | `bmc_username` | Mandatory | Must be the same across all servers. |
-| BMC (iDRAC) password | `bmc_password` | Mandatory | Min 3 characters. |
-| Pulp container password | `pulp_password` | Mandatory | Used for the Pulp repository container. Min 8 characters. |
-| Minio S3 bucket password | `minio_s3_password` | Mandatory | 5–128 characters. Must not be set to `admin`. |
-| Slurm database password | `slurm_db_password` | Mandatory for Slurm | Password for SlurmDB (MariaDB). 
-| MySQL DB username | `mysqldb_user` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB password | `mysqldb_password` | Mandatory | Required for iDRAC telemetry services. |
-| MySQL DB root password | `mysqldb_root_password` | Mandatory | Root password for the MySQL database. |
+- [`network_spec.yml`](../Reference/Configuration/network_spec.md) -- Network CIDRs and interfaces
+- [`software_config.json`](../Reference/Configuration/software_config.md) -- Software stack selections
+- [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) -- Slurm cluster configuration
+- [`storage_config.yml`](../Reference/Configuration/storage_config.md) -- NFS storage mount configuration
+- [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) -- Repository mirror settings
+- [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) -- Telemetry and monitoring settings
 
 !!! note
-    - Fields marked **mandatory** cannot be left empty.
-    - Fields marked **optional** can be skipped.
-    - Fields marked **conditional mandatory** are required only if the
-      corresponding feature is enabled in the input files.
+    For Slurm-only deployments, disable all telemetry metrics in
+    `telemetry_config.yml` except DCGM, which can be enabled if GPU
+    telemetry is required.
 
+For detailed Slurm-specific input configuration, see
+[Set Up Slurm](../HowTo/Slurm/setup_slurm.md).
 
-!!! caution
-    Passwords must not contain commas (`,`), hyphens (`-`), single
-    quotes (`'`), double quotes (`"`), or backslashes (`\`) unless
-    otherwise specified.
+!!! tip
+    If you need to build custom Slurm RPMs from source or host them on
+    a local server, complete those steps first:
+
+    - [Build Slurm RPM Repository](../HowTo/Slurm/build_slurm_repo.md)
+    - [Host Slurm RPM Repository](../HowTo/Slurm/host_slurm_repo.md)
+    
+!!! note "InfiniBand deployments"
+    If any Slurm nodes have an InfiniBand interface and `ib_network` is
+    defined in `network_spec.yml`:
+
+    - The Slurm user repository must **not** include `ucx`, `ucx-devel`,
+      `openmpi`, or `openmpi-devel` packages.
+    - Slurm must be compiled **without** UCX and OpenMPI support.
+    - DOCA-OFED provides its own UCX and OpenMPI stack, configured
+      automatically during provisioning.
+
+    For InfiniBand network configuration details, see
+    [Configure InfiniBand](../HowTo/Networking/configure_infiniband.md).
 
 ## Step 5 -- Configure Slurm
 
@@ -260,36 +269,12 @@ The `prepare_oim.yml` playbook deploys the following on the OIM:
     switch from a non-root to root user using `sudo`. Log in directly as
     root before executing the playbook.
 
+For more information, see [Prepare OIM](../HowTo/Setup/prepare_oim.md).
 
-## Step 7 -- Verify OIM Services
-
-After `prepare_oim.yml` completes, verify that all Omnia-managed
-services are running.
-
-```bash title="Run on: OIM host"
-systemctl list-dependencies omnia.target
-```
-
-Every listed service should show a green circle indicating `active`.
-Key services to verify:
-
-- `omnia_core.service`
-- `pulp.service`
-- `registry.service`
-- `openchami.target` and its dependent services
-
-
-## Step 8 -- Create Local Repositories
+## Step 7 -- Create Local Repositories
 
 Download required packages and repositories for offline node
 provisioning.
-
-!!! tip
-    If you need to build custom Slurm RPMs from source or host them on
-    a local server, complete those steps first:
-
-    - [Build Slurm RPM Repository](../HowTo/Slurm/build_slurm_repo.md)
-    - [Host Slurm RPM Repository](../HowTo/Slurm/host_slurm_repo.md)
 
 ```bash title="Run on: omnia_core container"
 ansible-playbook local_repo.yml
@@ -298,20 +283,21 @@ ansible-playbook local_repo.yml
 Confirm repository synchronization completed successfully by checking
 the repository logs.
 
+For more information, see [Create Local Repositories](../HowTo/Setup/create_local_repos.md).
 
-## Step 9 -- Build Node Images
+## Step 8 -- Build Node Images
 
 Build diskless images for each functional group defined in the mapping
 file.
 
-### x86_64
+**x86_64**
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/build_image_x86_64
 ansible-playbook build_image_x86_64.yml
 ```
 
-### aarch64
+**aarch64**
 
 1. Navigate to the image build directory and run the playbook with an
    inventory file specifying the aarch64 node IP:
@@ -332,7 +318,9 @@ Verify that images are created for each functional group:
 s3cmd ls -Hr s3://boot-images
 ```
 
-## Step 10 -- Provision Nodes
+For more information, see [Build Cluster Images](../HowTo/Setup/build_cluster_images.md).
+
+## Step 9 -- Provision Nodes
 
 Run `provision.yml` to discover cluster nodes, configure boot scripts,
 and generate cloud-init files based on the functional groups in the PXE
@@ -348,14 +336,11 @@ Verify that:
 - Cloud-init files are generated.
 - Provision logs show successful configuration.
 
-## Step 11 -- PXE Boot Nodes
+For more information, see [Provision Nodes](../HowTo/Setup/provision_nodes.md).
 
-After `provision.yml` completes, PXE boot all Slurm-related nodes:
+## Step 10 -- PXE Boot Nodes
 
-- Controller node
-- Compute nodes
-- Login nodes
-- Login/compiler nodes
+After `provision.yml` completes, PXE boot all Slurm-related nodes.
 
 **Option 1: Manual PXE Boot**
 
@@ -369,7 +354,9 @@ ansible-playbook utils/set_pxe_boot.yml
 
 Ensure all nodes boot successfully and become reachable.
 
-## Step 12 -- Verify the Cluster
+For more information, see [Configure PXE Boot](../HowTo/Setup/configure_pxe_boot.md).
+
+## Step 11 -- Verify the Cluster
 
 After all nodes have booted and cloud-init has completed, verify the
 Slurm cluster is operational.
