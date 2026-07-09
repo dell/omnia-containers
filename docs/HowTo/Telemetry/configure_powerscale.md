@@ -9,13 +9,6 @@ Configure deployment of PowerScale Telemetry to collect storage performance metr
 
 PowerScale Telemetry collects storage performance metrics and logs. PowerScale Telemetry includes the following components:
 
-### Data Flow
-
-```
-PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent (shared) → VictoriaMetrics
-PowerScale Nodes → syslog → VLAgent → VictoriaLogs
-```
-
 ### Components
 
 - **CSM Metrics for PowerScale** -- Queries the OneFS API and emits metrics to an OpenTelemetry Collector.
@@ -24,6 +17,13 @@ PowerScale Nodes → syslog → VLAgent → VictoriaLogs
 - **VLAgent** -- Receives PowerScale syslog events and forwards them to VictoriaLogs.
 - **CSI Driver for Dell PowerScale** -- Required for Omnia-orchestrated deployment mode.
 - **cert-manager** -- Required for TLS certificate management in Omnia-orchestrated mode.
+
+### Data Flow
+
+```
+PowerScale Nodes → CSM Metrics PowerScale → OTEL Collector → vmagent (shared) → VictoriaMetrics
+PowerScale Nodes → syslog → VLAgent → VictoriaLogs
+```
 
 ### Supported Metrics and Logs
 
@@ -43,14 +43,39 @@ For more details on PowerScale metrics, see [Supported PowerScale Metrics](https
 
 ### Health Monitor Metrics
 
-When the CSI PowerScale health monitor is enabled (`controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the CSI PowerScale values.yaml), Omnia collects additional health metrics:
+When the CSI PowerScale health monitor is enabled (`controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the CSI PowerScale values.yaml), Omnia collects the following additional health metrics:
 
-- **PV Metrics** -- `powerscale_volume_status`, `powerscale_volume_count`, `powerscale_volume_capacity_bytes`, `powerscale_volume_info`, `powerscale_volume_age_seconds`
-- **PVC Metrics** -- `powerscale_pvc_status_phase`, `powerscale_pvc_requested_bytes`, `powerscale_pvc_count`
-- **Health Event Metrics** -- `powerscale_volume_health_abnormal`, `powerscale_volume_abnormal_events_total`, `powerscale_node_failure_events_total`
-- **Node Metrics** -- `powerscale_node_ready`
-- **Storage Class Metrics** -- `powerscale_storageclass_info`
-- **Aggregate Summary** -- `powerscale_total_capacity_bytes`
+**PV Metrics:**
+
+- `powerscale_volume_status` - PV phase (1=Bound, 0=Other) [pv_name, phase]
+- `powerscale_volume_count` - Total PowerScale PVs by phase [phase]
+- `powerscale_volume_capacity_bytes` - PV capacity in bytes [pv_name]
+- `powerscale_volume_info` - PV metadata [pv_name, phase, storage_class, reclaim_policy, access_modes, volume_handle, pvc_name, pvc_namespace]
+- `powerscale_volume_age_seconds` - Seconds since PV creation [pv_name]
+
+**PVC Metrics:**
+
+- `powerscale_pvc_status_phase` - PVC phase (1=Bound, 0=Other) [pvc_name, pvc_namespace, phase]
+- `powerscale_pvc_requested_bytes` - PVC requested storage in bytes [pvc_name, pvc_namespace]
+- `powerscale_pvc_count` - Total PowerScale PVCs by phase [phase]
+
+**Health Event Metrics:**
+
+- `powerscale_volume_health_abnormal` - Volume condition abnormal (1=abnormal, 0=healthy) [pvc_name, pvc_namespace, pv_name]
+- `powerscale_volume_abnormal_events_total` - Total VolumeConditionAbnormal events [pvc_name, pvc_namespace]
+- `powerscale_node_failure_events_total` - Total node failure events [node]
+
+**Node Metrics:**
+
+- `powerscale_node_ready` - Node Ready condition (1=True, 0=False) [node]
+
+**Storage Class Metrics:**
+
+- `powerscale_storageclass_info` - StorageClass metadata [storageclass, provisioner, reclaim_policy, volume_binding_mode, allow_volume_expansion]
+
+**Aggregate Summary:**
+
+- `powerscale_total_capacity_bytes` - Total capacity of all PowerScale PVs in bytes
 
 
 ## Prerequisites
@@ -133,7 +158,7 @@ When the CSI PowerScale health monitor is enabled (`controller > healthMonitor >
     - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in `telemetry_config.yml`.
     - Reference: `https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml`
     - **Important**: In the values.yaml file, only set `karaviMetricsPowerscale > enabled: true`. Set the following parameters to `false`: `karaviMetricsPowerflex > enabled`, `karaviMetricsPowerstore > enabled`, `karaviMetricsPowerscale.authorization > enabled`, `karaviMetricsPowermax > enabled`.
-    - **Health Metrics**: For CSI PowerScale health metrics, enable `controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the CSI PowerScale values.yaml.
+    - **Health Metrics**: For CSI PowerScale health metrics, enable `controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the [CSI PowerScale values.yaml](https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml).
 
     !!! note
 
@@ -143,7 +168,7 @@ When the CSI PowerScale health monitor is enabled (`controller > healthMonitor >
         isi http settings view
         ```
 
-        If Basic authentication is enabled, update the authentication type in the CSM Observability values.yaml file to use session-based authentication.
+        If Basic authentication is enabled, update the `isiAuthType` in the CSM Observability values.yaml file to use session-based authentication.
 
 4. **(Optional) Configure dual-destination delivery**: Specify the external VictoriaMetrics endpoint in `telemetry_config.yml`. Metrics will be delivered to both the internal time-series database and the external endpoint independently.
 

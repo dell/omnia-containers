@@ -241,4 +241,4 @@ When running `prepare_oim.yml`, you are prompted for S3 credentials. Enter the S
     - [Network Spec](../../Reference/Configuration/network_spec.md) -- Network configuration parameters.
     - [Provision Config](../../Reference/Configuration/provision_config.md) -- Provisioning configuration parameters.
     - [Storage Config](../../Reference/Configuration/storage_config.md) -- Storage configuration parameters.
-    - [Security Configuration Guide](../../Overview/security_configuration_guide.md#firewall-settings) -- Firewall port requirements.
+    - [Security Configuration Guide](../../SecurityConfigurationGuide/network_security.md#firewall-settings) -- Firewall port requirements.

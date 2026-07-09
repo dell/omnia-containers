@@ -9,13 +9,6 @@ Configure Vector-OME to consume OpenManage Enterprise telemetry from Kafka `ome.
 
 Vector-OME provides Kafka-to-Victoria ingestion for OpenManage Enterprise telemetry data. The deployment includes the following components:
 
-### Data Flow
-
-```
-OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
-OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
-```
-
 ### Components
 
 - **Vector-OME** -- Kafka consumer for OME telemetry. Consumes from `ome.*` topics and routes metrics to VictoriaMetrics and logs to VictoriaLogs.
@@ -23,6 +16,13 @@ OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinse
 - **vlagent-vector** -- Dedicated VictoriaLogs forwarding agent deployed as a log write-buffer for Vector pods. Accepts JSON Lines on an HTTP endpoint (port 9427), buffers to disk, and forwards to vlinsert. Required for Vector-OME log/event sinks.
 
 For more details on Vector, see [Vector Documentation](https://vector.dev/docs/).
+
+### Data Flow
+
+```
+OME → Kafka 'ome.*' topics → Vector-OME → vmagent-vector (metrics) → vminsert → VictoriaMetrics
+OME → Kafka 'ome.*' topics → Vector-OME → vlagent-vector (logs) → vlinsert → VictoriaLogs
+```
 
 
 ## Prerequisites

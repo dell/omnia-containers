@@ -11,7 +11,7 @@ including GitLab integration and pipeline behavior settings.
 
 ## Usage example
 
-```yaml title="File: /opt/omnia/input/project_default/build_stream_config.yml"
+```yaml title="/opt/omnia/input/project_default/build_stream_config.yml"
 ---
 enable_build_stream: true
 build_stream_host_ip: "10.5.0.100"
