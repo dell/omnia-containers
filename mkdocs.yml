@@ -130,6 +130,7 @@ extra_css:
 # Custom JS
 extra_javascript:
   - javascripts/palette-fallback.js
+  - javascripts/language-badges.js
 
 # Footer
 extra:
@@ -198,6 +199,8 @@ nav:
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
     - Authentication:
+      - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
+      - Configure OpenLDAP Proxy: HowTo/Authentication/configure_openldap_proxy.md
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
       - Telemetry Setup: HowTo/Telemetry/setup_telemetry.md
@@ -233,7 +236,6 @@ nav:
       - Switches: Reference/SupportMatrix/switches.md
       - Storage: Reference/SupportMatrix/storage.md
       - Installed Software: Reference/SupportMatrix/installed_software.md
-      - All Softwares: Reference/SupportMatrix/all_softwares.md
     - Configuration:
       - Omnia Config: Reference/Configuration/omnia_config.md
       - Provision Config: Reference/Configuration/provision_config.md
