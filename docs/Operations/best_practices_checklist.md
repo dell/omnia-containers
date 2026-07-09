@@ -28,7 +28,7 @@ detailed procedures.
 | --- | --- | --- |
 | ☐ | **Provision sufficient NFS storage for telemetry.** The telemetry pipeline (VictoriaMetrics, Kafka) can generate significant data volumes. Allocate at least 500 GB of NFS-backed persistent storage for telemetry retention. | [Setup Telemetry](../HowTo/Telemetry/setup_telemetry.md) |
 | ☐ | **Prefer the PowerScale CSI driver over external NFS** for Kubernetes persistent volumes. The CSI driver provides dynamic provisioning, better performance, and snapshot support compared to static NFS mounts. | [Deploy Powerscale Csi](../HowTo/Kubernetes/deploy_powerscale_csi.md) |
-| ☐ | **Ensure external NFS is accessible via the admin network.** If using external NFS (not PowerScale), verify that the NFS server is reachable from all nodes on the admin network and that firewall rules allow NFS traffic (ports 2049, 111). | [Configure NFS](../HowTo/Storage/configure_nfs.md) |
+| ☐ | **Ensure external NFS is accessible via the admin network.** If using external NFS (not PowerScale), verify that the NFS server is reachable from all nodes on the admin network and that firewall rules allow NFS traffic (ports 2049, 111). | [Configure Mounts](../HowTo/Storage/configure_mounts.md) |
 
 ## System administration
 
