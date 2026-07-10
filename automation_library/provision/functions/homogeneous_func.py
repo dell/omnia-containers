@@ -26,7 +26,7 @@ from automation_library.core import (
     run_in_container,
     run_on_remote_node,
     PROVISION_CONFIG_FILE,
-    get_functional_groups_from_pxe_mapping,
+    get_nodes_info,
 )
 from automation_library.provision.functions.common_func import (
     get_slurm_compute_nodes,
@@ -403,40 +403,56 @@ def verify_homogeneous_with_user_specs(host) -> Dict[str, Any]:
     specs_match = True
     validation_details = []
     
+    hostname_to_group = {
+        n.get("hostname"): n.get("group_name")
+        for n in compute_nodes
+        if n.get("hostname") and n.get("group_name")
+    }
+
     for node_name, node_config in node_configs.items():
-        # Find which group this node belongs to
-        node_group = None
-        for group_name in groups_with_specs:
-            group_nodes = [n for n in compute_nodes if n.get("functional_group") == group_name or 
-                          any(n.get("hostname", "") in str(node_name) for n in compute_nodes)]
-            if group_nodes:
-                node_group = group_name
-                break
-        
-        if node_group and node_group in user_specs:
-            expected_specs = user_specs[node_group]
-            actual_sockets = int(node_config.get("Sockets", 0))
-            actual_cores = int(node_config.get("CoresPerSocket", 0))
-            actual_memory = int(node_config.get("RealMemory", 0))
-            
-            expected_sockets = int(expected_specs.get("sockets", 0))
-            expected_cores = int(expected_specs.get("cores_per_socket", 0))
-            expected_memory = int(expected_specs.get("real_memory", 0))
-            
-            node_match = (actual_sockets == expected_sockets and 
-                         actual_cores == expected_cores and 
-                         actual_memory == expected_memory)
-            
-            validation_details.append({
-                "node": node_name,
-                "group": node_group,
-                "specs_match": node_match,
-                "expected": {"sockets": expected_sockets, "cores": expected_cores, "memory": expected_memory},
-                "actual": {"sockets": actual_sockets, "cores": actual_cores, "memory": actual_memory}
-            })
-            
-            if not node_match:
-                specs_match = False
+        node_group = hostname_to_group.get(node_name)
+        if not node_group or node_group not in user_specs:
+            continue
+
+        expected_specs = user_specs[node_group]
+
+        actual_sockets = int(node_config.get("Sockets", 0))
+        actual_cores = int(node_config.get("CoresPerSocket", 0))
+        actual_threads = int(node_config.get("ThreadsPerCore", 0))
+        actual_memory = int(node_config.get("RealMemory", 0))
+
+        expected_sockets = int(expected_specs.get("sockets", 0))
+        expected_cores = int(expected_specs.get("cores_per_socket", 0))
+        expected_threads = int(expected_specs.get("threads_per_core", 0))
+        expected_memory = int(expected_specs.get("real_memory", 0))
+
+        node_match = (
+            actual_sockets == expected_sockets
+            and actual_cores == expected_cores
+            and actual_threads == expected_threads
+            and actual_memory == expected_memory
+        )
+
+        validation_details.append({
+            "node": node_name,
+            "group": node_group,
+            "specs_match": node_match,
+            "expected": {
+                "sockets": expected_sockets,
+                "cores": expected_cores,
+                "threads": expected_threads,
+                "memory": expected_memory,
+            },
+            "actual": {
+                "sockets": actual_sockets,
+                "cores": actual_cores,
+                "threads": actual_threads,
+                "memory": actual_memory,
+            },
+        })
+
+        if not node_match:
+            specs_match = False
 
     discovery_behavior = {
         "discovery_method": "user_specs_only",
@@ -447,15 +463,20 @@ def verify_homogeneous_with_user_specs(host) -> Dict[str, Any]:
         "all_specs_match": specs_match
     }
     
-    result["success"] = True
-    result["message"] = f"Homogeneous mode with user specs: {len(groups_with_specs)} groups use user specs (0 iDRAC calls)"
     result["discovery_behavior"] = discovery_behavior
     result["cluster_state"] = {
         "actual_node_configs": node_configs,
         "nodes_in_slurm_conf": len(node_configs),
         "compute_nodes_from_pxe": len(compute_nodes),
-        "specs_match_expected": specs_match
+        "specs_match_expected": specs_match,
     }
+
+    if not specs_match:
+        result["error"] = "slurm.conf node specs do not match node_hardware_defaults"
+        return result
+
+    result["success"] = True
+    result["message"] = f"Homogeneous mode with user specs: {len(groups_with_specs)} groups use user specs (0 iDRAC calls)"
 
     return result
 
@@ -527,18 +548,19 @@ def verify_homogeneous_without_user_specs(host) -> Dict[str, Any]:
         return result
 
     groups_with_specs = hardware_defaults_result["groups_with_specs"]
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
-    
-    groups_without_specs = [g for g in functional_groups if g not in groups_with_specs]
-    
-    if not groups_without_specs:
-        result["error"] = "Test requires homogeneous mode without user specs (all groups have specs)"
-        return result
-
-    # Get compute nodes for cluster state validation
+    # Compute-only GROUP_NAMEs from PXE mapping
     compute_nodes = get_slurm_compute_nodes(host)
     if not compute_nodes:
         result["error"] = "No compute nodes found in PXE mapping"
+        return result
+
+    compute_group_names = sorted({n.get("group_name", "").strip() for n in compute_nodes if n.get("group_name", "").strip()})
+
+    groups_without_specs = [g for g in compute_group_names if g not in groups_with_specs]
+    
+    if not groups_without_specs:
+        result["skipped"] = True
+        result["message"] = "Test not applicable: all groups have user specs configured"
         return result
 
     # Get actual slurm.conf state
@@ -716,19 +738,20 @@ def verify_mixed_homogeneous_mode(host) -> Dict[str, Any]:
     # Homogeneous mode mixed scenario validation
     config = load_input_file(host, OMNIA_CONFIG_FILE)
     user_specs = config["slurm_cluster"][0].get("node_hardware_defaults", {})
-    functional_groups = get_functional_groups_from_pxe_mapping(host)
 
-    groups_with_specs = [g for g in functional_groups if g in user_specs]
-    groups_without_specs = [g for g in functional_groups if g not in user_specs]
-
-    if not groups_with_specs or not groups_without_specs:
-        result["error"] = "Mixed mode requires some groups with specs and some without"
-        return result
-
-    # Get compute nodes for cluster state validation
+    # Compute-only GROUP_NAMEs from PXE mapping
     compute_nodes = get_slurm_compute_nodes(host)
     if not compute_nodes:
         result["error"] = "No compute nodes found in PXE mapping"
+        return result
+
+    compute_group_names = sorted({n.get("group_name", "").strip() for n in compute_nodes if n.get("group_name", "").strip()})
+    groups_with_specs = [g for g in compute_group_names if g in user_specs]
+    groups_without_specs = [g for g in compute_group_names if g not in user_specs]
+
+    if not groups_with_specs or not groups_without_specs:
+        result["skipped"] = True
+        result["message"] = "Test not applicable: mixed mode requires some groups with specs and some without"
         return result
 
     # Get actual slurm.conf state
@@ -745,7 +768,7 @@ def verify_mixed_homogeneous_mode(host) -> Dict[str, Any]:
         "mode": "homogeneous_mixed",
         "groups_with_specs": groups_with_specs,
         "groups_without_specs": groups_without_specs,
-        "total_groups": len(functional_groups)
+        "total_groups": len(compute_group_names)
     }
     result["cluster_state"] = {
         "actual_node_configs": actual_node_configs,
