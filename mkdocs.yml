@@ -261,8 +261,12 @@ nav:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:
       - iDRAC Metrics: Reference/Metrics/idrac_metrics.md
-      - GPU Metrics: Reference/Metrics/gpu_metrics.md
+      - DCGM Metrics: Reference/Metrics/dcgm_metrics.md
       - LDMS Metrics: Reference/Metrics/ldms_metrics.md
+      - PowerScale Metrics: Reference/Metrics/powerscale_metrics.md
+      - UFM Metrics: Reference/Metrics/ufm_metrics.md
+      - VAST Metrics: Reference/Metrics/vast_metrics.md
+      - SFM Metrics: Reference/Metrics/sfm_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
   - Security Configuration Guide:

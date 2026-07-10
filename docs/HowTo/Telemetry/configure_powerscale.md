@@ -29,17 +29,21 @@ PowerScale Nodes → syslog → VLAgent → VictoriaLogs
 
 **Metrics:**
 
-- **Performance** -- Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency
-- **Capacity** -- Total cluster capacity, used capacity, available capacity, per-node capacity
-- **Health** -- Node online/offline status, disk health, cluster rebalance status, protection group status
-- **Topology** -- Cluster node membership, node roles, interconnect layout, protection domain mapping
+| Category | Metrics Collected |
+| --- | --- |
+| Performance | Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency |
+| Capacity | Total cluster capacity, used capacity, available capacity, per-node capacity |
+| Health | Node online/offline status, disk health, cluster rebalance status, protection group status |
+| Topology | Cluster node membership, node roles, interconnect layout, protection domain mapping |
 
-For more details on PowerScale metrics, see [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/).
+For the complete list of PowerScale telemetry metrics, see [PowerScale Metrics Reference](../../Reference/Metrics/powerscale_metrics.md) and [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/).
 
 **Logs:**
 
-- Capacity warnings, disk failures, node state changes, protocol errors
-- Events are labeled with host/cluster, severity, and facility
+| Category | Logs Collected |
+| --- | --- |
+| System Events | Capacity warnings, disk failures, node state changes, protocol errors |
+| Labels | Events are labeled with host/cluster, severity, and facility |
 
 ### Health Monitor Metrics
 

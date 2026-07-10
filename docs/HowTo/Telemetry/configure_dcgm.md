@@ -22,13 +22,17 @@ GPU Nodes → DCGM → VMAgent → VictoriaMetrics
 
 ### Supported Metrics
 
-- **Temperature** -- GPU core temperature, memory temperature
-- **Utilization** -- GPU utilization percentage, memory utilization, encoder/decoder utilization
-- **Memory** -- Total memory, used memory, free memory
-- **ECC Errors** -- Single-bit (correctable) and double-bit (uncorrectable) ECC error counts
-- **Power** -- Current power draw, power limit, power violation duration
-- **Clock Speeds** -- SM clock, memory clock, application clock
-- **PCIe** -- PCIe throughput (TX/RX), PCIe replay errors
+| Category | Metrics Collected |
+| --- | --- |
+| Temperature | GPU core temperature, memory temperature |
+| Utilization | GPU utilization percentage, memory utilization, encoder/decoder utilization |
+| Memory | Total memory, used memory, free memory |
+| ECC Errors | Single-bit (correctable) and double-bit (uncorrectable) ECC error counts |
+| Power | Current power draw, power limit, power violation duration |
+| Clock Speeds | SM clock, memory clock, application clock |
+| PCIe | PCIe throughput (TX/RX), PCIe replay errors |
+
+For the complete list of GPU telemetry metrics, see [DCGM Metrics Reference](../../Reference/Metrics/dcgm_metrics.md).
 
 
 ## Prerequisites
