@@ -10,10 +10,10 @@
 | Broadcom | Adv Dual 10GBASE-t Ethernet | Certified |
 | Broadcom | Adv Dual 25Gb Ethernet | Certified |
 | Broadcom | NetXtreme Gigabit Ethernet | Supported |
-| Broadcom | 100Gb Ethernet | Supported |
+| Broadcom | 100Gb Ethernet | Certified |
 | Broadcom | BCM5760x | Supported |
-| NVIDIA® | ConnectX-5 | Supported |
-| NVIDIA® | ConnectX-6 | Supported |
+| NVIDIA® | ConnectX-5 | Certified |
+| NVIDIA® | ConnectX-6 | Certified |
 
 !!! info
 
