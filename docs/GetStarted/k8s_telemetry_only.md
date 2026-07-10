@@ -27,8 +27,6 @@ iDRAC (Redfish) ─> iDRAC Collector ─> ActiveMQ ─┬─ KafkaPump ─> Kafk
 
 LDMS (OS-level) ─> Aggregator ─> Store ─> Kafka 'ldms' topic
                                            └─> Vector-LDMS ─> vmagent-vector ─> VictoriaMetrics
-
-DCGM (GPU) ─> vmagent ─> VictoriaMetrics
 ```
 
 ```text title="Storage, fabric, and external data flows"
@@ -53,9 +51,9 @@ OME (Fleet Mgmt) ─> Kafka 'ome.*' ─> Vector-OME ─> vmagent-vector ─> Vic
   plugins (meminfo, procstat2, vmstat, loadavg, procnetdev2). Data flows
   through the LDMS aggregator and store to Kafka. Enable Vector-LDMS to
   route LDMS metrics from Kafka to VictoriaMetrics.
-- **DCGM** (NVIDIA Data Center GPU Manager) collects GPU metrics
-  (temperature, utilization, memory, ECC errors, power) from nodes with
-  NVIDIA GPUs. Metrics are sent directly to VictoriaMetrics via vmagent.
+- **DCGM** (NVIDIA Data Center GPU Manager) is available on GPU nodes for
+  collecting GPU metrics (temperature, utilization, memory, ECC errors, power).
+  Users can manually run DCGM commands on GPU nodes to read GPU metrics directly.
 - **PowerScale** collects storage metrics from Dell PowerScale (OneFS)
   clusters via CSM Observability (Karavi). Metrics flow through OTEL
   Collector to VictoriaMetrics; logs are sent to VictoriaLogs.
@@ -653,7 +651,6 @@ After deploying telemetry, verify that all telemetry pods and services are opera
 | --- | --- | --- |
 | iDRAC | Verify collection and ingestion of hardware telemetry metrics. | [iDRAC Telemetry -- Verification](../HowTo/Telemetry/configure_idrac.md#verification) |
 | LDMS | Verify collection and routing of node-level telemetry metrics. | [LDMS Telemetry -- Verification](../HowTo/Telemetry/configure_ldms.md#verification) |
-| DCGM | Verify collection and ingestion of GPU telemetry metrics. | [DCGM Telemetry -- Verification](../HowTo/Telemetry/configure_dcgm.md#verification) |
 | PowerScale | Verify collection and ingestion of storage metrics and logs. | [PowerScale Telemetry -- Verification](../HowTo/Telemetry/configure_powerscale.md#verification) |
 | UFM | Verify collection and ingestion of fabric metrics and logs. | [UFM Telemetry -- Verification](../HowTo/Telemetry/configure_ufm.md#verification) |
 | VAST | Verify collection and ingestion of storage metrics and logs. | [VAST Telemetry -- Verification](../HowTo/Telemetry/configure_vast.md#verification) |

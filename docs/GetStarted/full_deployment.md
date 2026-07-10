@@ -646,7 +646,6 @@ After deploying telemetry, verify that all telemetry pods and services are opera
 | --- | --- | --- |
 | iDRAC | Verify collection and ingestion of hardware telemetry metrics. | [iDRAC Telemetry -- Verification](../HowTo/Telemetry/configure_idrac.md#verification) |
 | LDMS | Verify collection and routing of node-level telemetry metrics. | [LDMS Telemetry -- Verification](../HowTo/Telemetry/configure_ldms.md#verification) |
-| DCGM | Verify collection and ingestion of GPU telemetry metrics. | [DCGM Telemetry -- Verification](../HowTo/Telemetry/configure_dcgm.md#verification) |
 | PowerScale | Verify collection and ingestion of storage metrics and logs. | [PowerScale Telemetry -- Verification](../HowTo/Telemetry/configure_powerscale.md#verification) |
 | UFM | Verify collection and ingestion of fabric metrics and logs. | [UFM Telemetry -- Verification](../HowTo/Telemetry/configure_ufm.md#verification) |
 | VAST | Verify collection and ingestion of storage metrics and logs. | [VAST Telemetry -- Verification](../HowTo/Telemetry/configure_vast.md#verification) |

@@ -13,7 +13,6 @@ This file configures telemetry sources (iDRAC, LDMS, DCGM, PowerScale, UFM, VAST
 | --- | --- | --- |
 | [iDRAC](../../HowTo/Telemetry/configure_idrac.md) | Out-of-band hardware metrics (power, thermal, storage health) from Dell servers via Redfish | Kafka, VictoriaMetrics |
 | [LDMS](../../HowTo/Telemetry/configure_ldms.md) | In-band OS metrics (CPU, memory, network, I/O) from Slurm compute nodes | Kafka, VictoriaMetrics (via Vector-LDMS) |
-| [DCGM](../../HowTo/Telemetry/configure_dcgm.md) | NVIDIA GPU metrics (temperature, utilization, memory, ECC errors, power) from compute nodes | Kafka, VictoriaMetrics |
 | [PowerScale](../../HowTo/Telemetry/configure_powerscale.md) | Storage performance metrics and logs from Dell PowerScale clusters | VictoriaMetrics, VictoriaLogs |
 | [UFM](../../HowTo/Telemetry/configure_ufm.md) | NVIDIA UFM InfiniBand Fabric Manager metrics (IB port state, transmit/receive data, error counters, fabric topology) and syslog logs | VictoriaMetrics, VictoriaLogs |
 | [VAST](../../HowTo/Telemetry/configure_vast.md) | Storage performance metrics and syslog events from VAST Storage appliances | VictoriaMetrics, VictoriaLogs |
