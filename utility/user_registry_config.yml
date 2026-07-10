@@ -15,23 +15,27 @@
 # =============================================================================
 # USER REGISTRY SETUP CONFIGURATION
 # =============================================================================
-# Configuration for deploying a Docker Registry v2 container with optional
-# HTTPS (self-signed certs) and htpasswd authentication.
+# Configuration for deploying multiple Docker Registry v2 containers with
+# optional HTTPS (self-signed certs) and htpasswd authentication.
 # Used by: utility/create_user_registry.py
 #
 # After setup, the registry details can be used in local_repo_config.yml:
 #   user_registry:
 #     - { host: "<server_ip>:<registry_port>", cert_path: "<cert_path>", key_path: "<key_path>" }
 #
+# Each registry entry can be configured as:
+#   - HTTPS (protocol: https) with self-signed certs
+#   - HTTP (protocol: http) without certs
+#
 # TARGET SERVER:
 #   - Set registry_server_ip to deploy on a remote server (via SSH)
-#   - Leave empty to deploy on localhost
+#   - Leave empty ("") to deploy on localhost
 
 # =============================================================================
 # SERVER CONNECTION
 # =============================================================================
 
-# Target server IP where the registry container will be deployed
+# Target server IP where the registry containers will be deployed
 # Leave empty ("") to deploy on localhost
 registry_server_ip: ""
 
@@ -45,61 +49,46 @@ registry_server_ssh_password: ""
 registry_server_ssh_port: 22
 
 # =============================================================================
-# REGISTRY SETTINGS
+# REGISTRY CONTAINER IMAGE
 # =============================================================================
 
 # Registry container image (Docker Registry v2)
 registry_image: "docker.io/library/registry:2"
 
-# Registry container name
-registry_container_name: "user_registry"
-
-# Host port for registry (HTTP or HTTPS depending on enable_https)
-registry_port: 5000
-
 # =============================================================================
-# HTTPS CONFIGURATION
+# REGISTRY CONFIGURATIONS
 # =============================================================================
+# List of registry configurations to deploy. Each entry represents a separate
+# registry instance with its own port, protocol, and authentication settings.
 
-# Enable HTTPS with self-signed certificates
-# When true, generates self-signed CA cert + server cert/key and configures
-# the registry to use TLS. The cert_path and key_path will be output for
-# use in local_repo_config.yml.
-# When false, registry runs over HTTP (no certs needed).
-enable_https: true
+registries:
+  # HTTPS Registry Example (with self-signed certificates)
+  - name: "user_registry_https"
+    port: 5010
+    protocol: https
+    cert_directory: "/opt/omnia/user_registry/certs"
+    cert_common_name: "100.10.1.76"
+    cert_validity_days: 365
+    enable_auth: true
+    users:
+      - username: "admin"
+        password: ""
 
-# Directory on target server where TLS certs will be stored
-# Cert files generated: domain.crt, domain.key
-cert_directory: "/opt/omnia/user_registry/certs"
-
-# Certificate subject fields (for self-signed cert generation)
-cert_common_name: ""
-cert_validity_days: 365
-
-# =============================================================================
-# AUTHENTICATION
-# =============================================================================
-
-# Enable htpasswd authentication for the registry
-# When true, creates an htpasswd file with the specified users and configures
-# the registry to require authentication.
-# When false, registry allows anonymous push/pull.
-enable_auth: true
-
-# Registry users (REQUIRED when enable_auth is true)
-# Each user must have: username, password
-registry_users:
-  - username: "admin"
-    password: ""
+  # HTTP Registry Example (no certificates)
+  - name: "user_registry_http"
+    port: 4000
+    protocol: http
+    enable_auth: false
+    users: []
 
 # =============================================================================
 # SAMPLE IMAGES
 # =============================================================================
-
-# Push sample container images to the registry after setup
+# Push sample container images to the registries after setup.
 # These images will be pulled from public registries, re-tagged,
-# and pushed to the new user registry for testing.
+# and pushed to the new user registries for testing.
 # Set to empty list [] to skip pushing sample images.
+
 sample_images:
   - source: "docker.io/library/alpine:3.20"
     name: "alpine"

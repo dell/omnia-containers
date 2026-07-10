@@ -47,6 +47,7 @@ from automation_library.local_repo.functions.user_registry_func import (
     check_user_registry_auth_credentials,
     check_user_registry_container_repos_synced,
     check_user_registry_remotes_in_pulp,
+    check_user_registry_distributions,
 )
 
 
@@ -294,3 +295,34 @@ def test_user_registry_remotes_in_pulp(host):
         details = result.get("details") or result.get("error") or ""
         log.failed(LOG_MSGS["remotes_not_found"], details)
         assert False, ASSERT_MSGS["remotes_not_found"].format(details=details)
+
+
+# ---------------------------------------------------------------------------
+# 19. Pulp container distributions for user registries
+# ---------------------------------------------------------------------------
+@pytest.mark.sanity
+@pytest.mark.order(19)
+def test_user_registry_distributions(host):
+    """
+    Test 19: Verify Pulp container distributions exist for user registries.
+
+    Container distributions expose the synced repositories for access.
+    This test verifies that distributions are created for user registry
+    repositories, allowing clients to pull images.
+
+    This test always runs to check distribution status.
+    """
+    log = TestLogger("User Registry Distributions Check")
+
+    log.check("Checking Pulp container distributions")
+
+    result = check_user_registry_distributions(host)
+
+    if result["success"]:
+        log.passed(
+            f"Found {result['total_distributions']} distributions",
+            result.get("details") or ""
+        )
+    else:
+        log.failed("Failed to list distributions", result.get("error") or "")
+        assert False, f"pulp container distribution list failed: {result.get('error', '')}"

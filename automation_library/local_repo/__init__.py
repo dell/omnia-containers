@@ -56,6 +56,7 @@ from .functions.user_registry_func import (
     check_user_registry_auth_credentials,
     check_user_registry_container_repos_synced,
     check_user_registry_remotes_in_pulp,
+    check_user_registry_distributions,
 )
 from .vars.user_registry_vars import (
     LOCAL_REPO_CONFIG_FILE,

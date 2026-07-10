@@ -475,3 +475,52 @@ def check_user_registry_remotes_in_pulp(host, registries: List[Dict]) -> Dict[st
         "details": details.strip(),
         "error": None,
     }
+
+
+# =============================================================================
+# 7. PULP CONTAINER DISTRIBUTIONS FOR USER REGISTRIES
+# =============================================================================
+
+def check_user_registry_distributions(host) -> Dict[str, Any]:
+    """Verify Pulp container distributions exist for user registries.
+
+    Container distributions expose the synced repositories for access.
+    This function lists all Pulp container distributions and filters
+    those related to user registries.
+
+    Returns:
+        dict with keys:
+            success (bool): True if command succeeded
+            total_distributions (int): Total distributions found
+            user_distributions (list): Distributions related to user registries
+            details (str): Human-readable summary
+            error (str|None): Error message
+    """
+    cmd = run_in_omnia_core(host, "pulp container distribution list 2>/dev/null")
+    parsed = _parse_json_output(cmd)
+
+    if not parsed["success"]:
+        return {
+            "success": False,
+            "total_distributions": 0,
+            "user_distributions": [],
+            "details": "",
+            "error": f"pulp container distribution list failed: {parsed.get('error', '')}",
+        }
+
+    distributions = parsed["data"] or []
+
+    details = f"Container distributions: {len(distributions)} total\n"
+    for dist in distributions:
+        name = dist.get("name", "unknown")
+        base_path = dist.get("base_path", "N/A")
+        repository = dist.get("repository", "N/A")
+        details += f"  - {name} (base_path: {base_path}, repo: {repository})\n"
+
+    return {
+        "success": True,
+        "total_distributions": len(distributions),
+        "user_distributions": distributions,
+        "details": details.strip(),
+        "error": None,
+    }
