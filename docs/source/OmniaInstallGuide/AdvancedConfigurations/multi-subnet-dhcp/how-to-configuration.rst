@@ -90,7 +90,13 @@ Procedure
 
       systemctl list-dependencies openchami.target
 
-7. Exit the ``omnia_core`` container and return to the OIM node host system. Then open the ``/etc/openchami/configs/coredhcp.yaml`` configuration file on the OIM node host system.
+7. Stop the openchami services before modifying the configuration:
+
+   .. code-block:: bash
+
+      systemctl stop openchami.target
+
+8. Exit the ``omnia_core`` container and return to the OIM node host system. Then open the ``/etc/openchami/configs/coredhcp.yaml`` configuration file on the OIM node host system.
 
    .. code-block:: bash
 
@@ -128,12 +134,6 @@ Procedure
    The multi-subnet configuration section in ``coredhcp.yaml`` contains the specific coresmd and bootloop configuration blocks that need to be uncommented for multi-subnet DHCP to function correctly. Ensure these blocks are properly configured before restarting services.
 
 .. 
-
-8. Execute the following command to restart the openchami target:
-
-   .. code-block:: bash
-
-      systemctl restart openchami.target
 
 9. Ensure that services such as CoreSMD and other dependent services are in an active state. If any of the core services fail to start, use the following commands to check the error logs:
 
