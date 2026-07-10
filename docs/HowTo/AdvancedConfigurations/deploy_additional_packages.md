@@ -259,27 +259,27 @@ On each Kubernetes compute node:
 
 1. Edit the CRI-O configuration file:
 
-   ```bash title="Run on: compute node"
-   vi /etc/containers/registries.conf.d/crio.conf
-   ```
+    ```bash title="Run on: compute node"
+    vi /etc/containers/registries.conf.d/crio.conf
+    ```
 
 2. Append this configuration at the end of the file:
 
-   ```toml
-   [[registry]]
-   prefix = "100.10.0.76:3445"
-   location = "100.10.0.76:3445"
+    ```toml
+    [[registry]]
+    prefix = "100.10.0.76:3445"
+    location = "100.10.0.76:3445"
 
-   [[registry.mirror]]
-   location = "172.16.255.254:2225"
-   ```
+    [[registry.mirror]]
+    location = "172.16.255.254:2225"
+    ```
 
 3. Reload and restart CRI-O:
 
-   ```bash title="Run on: compute node"
-   systemctl daemon-reload
-   systemctl restart crio
-   ```
+    ```bash title="Run on: compute node"
+    systemctl daemon-reload
+    systemctl restart crio
+    ```
 
 #### Pull the Image
 
