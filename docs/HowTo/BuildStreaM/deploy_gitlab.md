@@ -144,7 +144,7 @@ To remove the GitLab instance and associated resources from the BuildStreaM envi
     ansible-playbook cleanup_gitlab.yml
     ```
 
-!!! danger
+!!! caution
 
     This procedure permanently removes the GitLab instance, all projects, pipelines, and build artifacts. Ensure you have backed up any required data before proceeding.
 

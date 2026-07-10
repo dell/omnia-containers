@@ -44,21 +44,21 @@ starts automatically on boot.
 
 1. **Log in to the OIM** as `root` or a user with `sudo` privileges:
 
-   ```bash title="Run on: OIM host"
-   ssh root@<oim-ip-address>
-   ```
+    ```bash title="Run on: OIM host"
+    ssh root@<oim-ip-address>
+    ```
 
 
 2. **Clone the Omnia repository** from Dell's artifact repository:
 
-   ```bash title="Run on: OIM host"
-   cd /opt
-   git clone https://github.com/dell/omnia.git
-   cd omnia
-   ```
+    ```bash title="Run on: OIM host"
+    cd /opt
+    git clone https://github.com/dell/omnia.git
+    cd omnia
+    ```
 
 
-   !!! note
+    !!! note
 
        To use a specific release, check out the corresponding tag:
 
@@ -69,90 +69,85 @@ starts automatically on boot.
 
 3. **Build the container images** using the provided build script:
 
-   ```bash title="Run on: OIM host"
-   bash build_images.sh core
-   ```
+    ```bash title="Run on: OIM host"
+    bash build_images.sh core
+    ```
 
 
-   This builds the `omnia_core` container image locally. The build process
-   takes approximately 10-15 minutes depending on network speed and hardware.
+    This builds the `omnia_core` container image locally. The build process
+    takes approximately 10-15 minutes depending on network speed and hardware.
 
 4. **Install the omnia_core service**:
 
-   ```bash title="Run on: OIM host"
-   bash omnia.sh --install
-   ```
+    ```bash title="Run on: OIM host"
+    bash omnia.sh --install
+    ```
 
 
-   This script:
+    This script:
 
-   - Creates the `omnia_core` Podman container.
-   - Registers it as a systemd service (`omnia_core.service`).
-   - Mounts the necessary volumes for configuration and playbook storage.
-   - Starts the container automatically.
+    - Creates the `omnia_core` Podman container.
+    - Registers it as a systemd service (`omnia_core.service`).
+    - Mounts the necessary volumes for configuration and playbook storage.
+    - Starts the container automatically.
 
 5. **Verify the service is running**:
 
-   ```bash title="Run on: OIM host"
-   systemctl status omnia_core.service
-   ```
+    ```bash title="Run on: OIM host"
+    systemctl status omnia_core.service
+    ```
 
 
-   Expected output:
+    Expected output:
 
-   ```text title="Expected output on: OIM host"
-   ● omnia_core.service - Omnia Core Container
-        Loaded: loaded (/etc/systemd/system/omnia_core.service; enabled; vendor preset: disabled)
-        Active: active (running) since ...
-   ```
-
-
+    ```text title="Expected output on: OIM host"
+    ● omnia_core.service - Omnia Core Container
+      Loaded: loaded (/etc/systemd/system/omnia_core.service; enabled; vendor preset: disabled)
+      Active: active (running) since ...
+    ```
 
 ## Verification
 
 
 1. **Check the container is running**:
 
-   ```bash title="Run on: OIM host"
-   podman ps --filter name=omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    podman ps --filter name=omnia_core
+    ```
 
 
-   You should see a running container named `omnia_core`.
+    You should see a running container named `omnia_core`.
 
 2. **Enter the omnia_core container** and verify Ansible is available:
 
-   ```bash title="Run on: OIM host"
-   podman exec -it -u root omnia_core bash
-   ```
+    ```bash title="Run on: OIM host"
+    podman exec -it -u root omnia_core bash
+    ```
 
 
-   ```bash title="Run on: omnia_core container"
-   ansible --version
-   ```
+    ```bash title="Run on: omnia_core container"
+    ansible --version
+    ```
 
 
 3. **Verify playbooks are accessible**:
 
-   ```bash title="Run on: omnia_core container"
-   ls /omnia/*.yml
-   ```
+    ```bash title="Run on: omnia_core container"
+    ls /omnia/*.yml
+    ```
 
 
-   You should see the key playbooks: `omnia_startup.yml`,
-   `input_validator.yml`, `credentials_utility.yml`, `prepare_oim.yml`,
-   `local_repo.yml`, `discovery.yml`, and others.
+    You should see the key playbooks: `omnia_startup.yml`,
+    `input_validator.yml`, `credentials_utility.yml`, `prepare_oim.yml`,
+    `local_repo.yml`, `discovery.yml`, and others.
 
 4. **Verify input directory exists**:
 
-   ```bash title="Run on: omnia_core container"
-   ls /opt/omnia/input/project_default/
-   ```
-
-
+    ```bash title="Run on: omnia_core container"
+    ls /opt/omnia/input/project_default/
+    ```
 
 ## Next Steps
-
 
 - [Create Mapping File](create_mapping_file.md) -- Create the PXE mapping file for node discovery.
 - [Configure Inputs](configure_inputs.md) -- Configure Omnia input files.

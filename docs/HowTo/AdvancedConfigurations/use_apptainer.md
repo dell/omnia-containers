@@ -42,29 +42,29 @@ apptainer pull \
    apptainer --version
    ```
 
-
-## Method 1: Standard Image Pull (Pulp-Integrated and Preferred)
+## Procedure
+### Method 1: Standard Image Pull (Pulp-Integrated and Preferred)
 
 
 1. **Create the directory** used for both image storage and temporary files.
    This directory must be on an NFS-backed filesystem:
 
-   ```bash title="Run on: compute node"
-   mkdir -p /hpc_tools/container_images
-   ```
+    ```bash title="Run on: compute node"
+    mkdir -p /hpc_tools/container_images
+    ```
 
 
 2. **Pull the image** using the standard Apptainer workflow. This method
    automatically leverages Pulp when available and requires no changes to
    user behavior:
 
-   ```bash title="Run on: compute node"
-   apptainer pull \
-     --name ubuntu_22.04.sif \
-     --dir /hpc_tools/container_images \
-     --tmpdir /hpc_tools/container_images \
-     docker://docker.io/library/ubuntu:22.04
-   ```
+    ```bash title="Run on: compute node"
+    apptainer pull \
+    --name ubuntu_22.04.sif \
+    --dir /hpc_tools/container_images \
+    --tmpdir /hpc_tools/container_images \
+    docker://docker.io/library/ubuntu:22.04
+    ```
 
 
    **Behavior:** Registry mirror behavior is controlled by configuration files
@@ -82,7 +82,7 @@ apptainer pull \
    Replace `<pulp-registry>` and `<namespace>` with site-specific values.
 
 
-## Method 2: Pulling an Image Directly from the Internet (Exception Only)
+### Method 2: Pulling an Image Directly from the Internet (Exception Only)
 
 
 !!! warning
@@ -94,20 +94,20 @@ apptainer pull \
 1. **Temporarily disable** the container registry configuration that enforces
    mirroring to Pulp. This configuration is typically located under:
 
-   ```
-   /etc/containers/registries.conf.d/
-   ```
+    ```
+    /etc/containers/registries.conf.d/
+    ```
 
 
 2. **Pull the image** directly from the public registry. Use the same
    NFS-backed directory for both image storage and temporary files:
 
-   ```bash title="Run on: compute node"
-   apptainer pull --disable-cache \
-     --name ubuntu_22.04.sif \
-     --dir /hpc_tools/container_images \
-     --tmpdir /hpc_tools/container_images \
-     docker://docker.io/library/ubuntu:22.04
+    ```bash title="Run on: compute node"
+    apptainer pull --disable-cache \
+    --name ubuntu_22.04.sif \
+    --dir /hpc_tools/container_images \
+    --tmpdir /hpc_tools/container_images \
+    docker://docker.io/library/ubuntu:22.04
    ```
 
 
@@ -116,10 +116,10 @@ apptainer pull \
 
 1. **Verify the SIF image** was downloaded successfully:
 
-   ```bash title="Run on: compute node"
-   ls -lh /hpc_tools/container_images/ubuntu_22.04.sif
-   apptainer inspect /hpc_tools/container_images/ubuntu_22.04.sif
-   ```
+    ```bash title="Run on: compute node"
+    ls -lh /hpc_tools/container_images/ubuntu_22.04.sif
+    apptainer inspect /hpc_tools/container_images/ubuntu_22.04.sif
+    ```
 
 
 !!! note
@@ -130,7 +130,6 @@ apptainer pull \
 
 
 ## Next Steps
-
 
 - [Deploy Additional Packages](deploy_additional_packages.md) -- Deploy additional software packages and
   container images on cluster nodes.
