@@ -250,7 +250,7 @@ def load_config(config_path: str = "") -> dict:
             "sample_images": raw.get("sample_images", []),
             # Legacy fields for backward compatibility (from first registry)
             "container_name": registries[0].get("name", "user_registry") if registries else "user_registry",
-            "port": int(registries[0].get("port", 5000)) if registries else 5000,
+            "port": int(registries[0].get("port", 5010)) if registries else 5010,
             "enable_https": registries[0].get("protocol") == "https" if registries else True,
             "cert_directory": registries[0].get("cert_directory", "/opt/omnia/user_registry/certs") if registries else "/opt/omnia/user_registry/certs",
             "cert_common_name": registries[0].get("cert_common_name", "") if registries else "",
@@ -269,7 +269,7 @@ def load_config(config_path: str = "") -> dict:
             # Registry settings
             "image": raw.get("registry_image", "docker.io/library/registry:2"),
             "container_name": raw.get("registry_container_name", "user_registry"),
-            "port": int(raw.get("registry_port", 5000)),
+            "port": int(raw.get("registry_port", 5010)),
             # HTTPS
             "enable_https": bool(raw.get("enable_https", True)),
             "cert_directory": raw.get("cert_directory", "/opt/omnia/user_registry/certs"),
@@ -768,7 +768,7 @@ def main() -> None:
                 reg_cfg = cfg.copy()
                 reg_cfg.update({
                     "container_name": reg.get("name", f"user_registry_{i}"),
-                    "port": int(reg.get("port", 5000)),
+                    "port": int(reg.get("port", 5010)),
                     "enable_https": reg.get("protocol") == "https",
                     "cert_directory": reg.get("cert_directory", "/opt/omnia/user_registry/certs"),
                     "cert_common_name": reg.get("cert_common_name", ""),

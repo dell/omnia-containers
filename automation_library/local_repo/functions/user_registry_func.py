@@ -30,6 +30,7 @@ Source code references:
 """
 
 import json
+import re
 from typing import Any, Dict, List
 
 from ...core import run_in_container, load_input_file
@@ -523,4 +524,352 @@ def check_user_registry_distributions(host) -> Dict[str, Any]:
         "user_distributions": distributions,
         "details": details.strip(),
         "error": None,
+    }
+
+
+# =============================================================================
+# 8. NEGATIVE: VALIDATE REGISTRY HOST FORMAT
+# =============================================================================
+
+_HOST_PORT_RE = re.compile(r"^[\w.\-]+:\d+$")
+
+
+def check_user_registry_host_format(registries: List[Dict]) -> Dict[str, Any]:
+    """Validate host:port format for all user_registry entries.
+
+    Each registry entry must have a host field in the format 'hostname:port'
+    or 'ip:port'. Entries with empty host, missing port, or invalid characters
+    are flagged.
+
+    Args:
+        registries: List of registry dicts (each with a 'host' key)
+
+    Returns:
+        dict with keys:
+            success (bool): True if all hosts are valid
+            valid (list): Entries with valid host:port format
+            invalid (list): Entries with invalid format
+            details (str): Human-readable per-entry summary
+            error (str|None): Error message if any invalid
+    """
+    if not registries:
+        return {
+            "success": True,
+            "valid": [],
+            "invalid": [],
+            "details": "No registries to validate",
+            "error": None,
+        }
+
+    valid = []
+    invalid = []
+    details = f"Host format check for {len(registries)} registries:\n"
+
+    for reg in registries:
+        host_val = (reg.get("host") or "").strip()
+        if not host_val:
+            invalid.append({**reg, "reason": "host is empty"})
+            details += f"  \u2718 (empty host)\n"
+        elif not _HOST_PORT_RE.match(host_val):
+            invalid.append({**reg, "reason": f"invalid format: '{host_val}'"})
+            details += f"  \u2718 {host_val} — invalid host:port format\n"
+        else:
+            parts = host_val.split(":")
+            port = int(parts[-1])
+            if port < 1 or port > 65535:
+                invalid.append({**reg, "reason": f"port {port} out of range"})
+                details += f"  \u2718 {host_val} — port {port} out of range (1-65535)\n"
+            else:
+                valid.append(reg)
+                details += f"  \u2713 {host_val}\n"
+
+    return {
+        "success": len(invalid) == 0,
+        "valid": valid,
+        "invalid": invalid,
+        "details": details.strip(),
+        "error": (
+            None if not invalid
+            else f"{len(invalid)} registry(ies) have invalid host format"
+        ),
+    }
+
+
+# =============================================================================
+# 9. NEGATIVE: REGISTRY ENDPOINT REACHABILITY
+# =============================================================================
+
+def check_user_registry_endpoint_reachable(host, registries: List[Dict]) -> Dict[str, Any]:
+    """Verify registry endpoints are reachable via curl from omnia_core.
+
+    Attempts to curl each registry's /v2/ endpoint. Unreachable registries
+    are flagged. This is a negative test helper — it reports which
+    registries are unreachable.
+
+    Args:
+        host: Testinfra host object
+        registries: List of registry dicts with 'host' and 'protocol' keys
+
+    Returns:
+        dict with keys:
+            success (bool): True if all endpoints are reachable
+            reachable (list): Registry hosts that responded
+            unreachable (list): Registry hosts that failed
+            details (str): Human-readable summary
+            error (str|None): Error message
+    """
+    if not registries:
+        return {
+            "success": True,
+            "reachable": [],
+            "unreachable": [],
+            "details": "No registries to check",
+            "error": None,
+        }
+
+    reachable = []
+    unreachable = []
+    details = f"Endpoint reachability for {len(registries)} registries:\n"
+
+    for reg in registries:
+        host_val = reg.get("host", "")
+        protocol = reg.get("protocol", "http")
+        tls_flag = "-k" if protocol == "https" else ""
+
+        curl_cmd = (
+            f"curl {tls_flag} -sSf --max-time 5 --connect-timeout 3 "
+            f"{protocol}://{host_val}/v2/ 2>&1 || true"
+        )
+        result = run_in_omnia_core(host, curl_cmd)
+        stdout = (result.get("stdout") or "").strip()
+        rc = result.get("rc", 1)
+
+        if rc == 0 and ("Connection refused" not in stdout) and ("Could not resolve" not in stdout):
+            reachable.append(host_val)
+            details += f"  \u2713 {protocol}://{host_val} — reachable\n"
+        else:
+            unreachable.append(host_val)
+            snippet = stdout[:120] if stdout else "no response"
+            details += f"  \u2718 {protocol}://{host_val} — unreachable ({snippet})\n"
+
+    return {
+        "success": len(unreachable) == 0,
+        "reachable": reachable,
+        "unreachable": unreachable,
+        "details": details.strip(),
+        "error": (
+            None if not unreachable
+            else f"{len(unreachable)} registry(ies) unreachable"
+        ),
+    }
+
+
+# =============================================================================
+# 10. NEGATIVE: AUTH REJECTED WITH WRONG CREDENTIALS
+# =============================================================================
+
+def check_user_registry_auth_rejected(host, registries: List[Dict]) -> Dict[str, Any]:
+    """Verify registries reject requests with wrong credentials.
+
+    For each registry with authentication, sends a request with deliberately
+    wrong credentials and verifies the registry returns 401 Unauthorized.
+    If the registry accepts wrong credentials, it flags a security issue.
+
+    Args:
+        host: Testinfra host object
+        registries: List of registry dicts with 'host', 'protocol' keys
+
+    Returns:
+        dict with keys:
+            success (bool): True if all auth registries properly rejected bad creds
+            properly_rejected (list): Registries that returned 401
+            improperly_accepted (list): Registries that accepted bad creds
+            unreachable (list): Registries that could not be reached
+            details (str): Human-readable summary
+            error (str|None): Error message
+    """
+    if not registries:
+        return {
+            "success": True,
+            "properly_rejected": [],
+            "improperly_accepted": [],
+            "unreachable": [],
+            "details": "No registries to test",
+            "error": None,
+        }
+
+    properly_rejected = []
+    improperly_accepted = []
+    unreachable = []
+    details = f"Auth rejection check for {len(registries)} registries:\n"
+
+    for reg in registries:
+        host_val = reg.get("host", "")
+        protocol = reg.get("protocol", "https")
+        tls_flag = "-k" if protocol == "https" else ""
+
+        # Use deliberately wrong credentials
+        curl_cmd = (
+            f"curl {tls_flag} -sS --max-time 5 --connect-timeout 3 "
+            f"-u 'wrong_user:wrong_password' "
+            f"-o /dev/null -w '%{{http_code}}' "
+            f"{protocol}://{host_val}/v2/_catalog 2>&1"
+        )
+        result = run_in_omnia_core(host, curl_cmd)
+        stdout = (result.get("stdout") or "").strip()
+
+        if "000" in stdout or "Connection refused" in stdout or "Could not resolve" in stdout:
+            unreachable.append(host_val)
+            details += f"  \u26a0 {host_val} — unreachable (cannot test auth)\n"
+        elif "401" in stdout:
+            properly_rejected.append(host_val)
+            details += f"  \u2713 {host_val} — correctly rejected bad credentials (HTTP 401)\n"
+        elif "200" in stdout:
+            improperly_accepted.append(host_val)
+            details += f"  \u2718 {host_val} — ACCEPTED wrong credentials (HTTP 200) — SECURITY ISSUE\n"
+        else:
+            properly_rejected.append(host_val)
+            details += f"  \u2713 {host_val} — rejected (HTTP {stdout})\n"
+
+    return {
+        "success": len(improperly_accepted) == 0,
+        "properly_rejected": properly_rejected,
+        "improperly_accepted": improperly_accepted,
+        "unreachable": unreachable,
+        "details": details.strip(),
+        "error": (
+            None if not improperly_accepted
+            else f"{len(improperly_accepted)} registry(ies) accepted wrong credentials"
+        ),
+    }
+
+
+# =============================================================================
+# 11. NEGATIVE: DUPLICATE REGISTRY HOST ENTRIES
+# =============================================================================
+
+def check_user_registry_duplicate_hosts(registries: List[Dict]) -> Dict[str, Any]:
+    """Detect duplicate host entries in user_registry configuration.
+
+    Duplicate registry entries (same host:port) can cause Pulp sync conflicts
+    or container name collisions. This function identifies duplicates.
+
+    Args:
+        registries: List of registry dicts with 'host' key
+
+    Returns:
+        dict with keys:
+            success (bool): True if no duplicates found
+            duplicates (list): Host values that appear more than once
+            details (str): Human-readable summary
+            error (str|None): Error message
+    """
+    if not registries:
+        return {
+            "success": True,
+            "duplicates": [],
+            "details": "No registries to check",
+            "error": None,
+        }
+
+    host_counts: Dict[str, int] = {}
+    for reg in registries:
+        host_val = (reg.get("host") or "").strip()
+        if host_val:
+            host_counts[host_val] = host_counts.get(host_val, 0) + 1
+
+    duplicates = [h for h, c in host_counts.items() if c > 1]
+    details = f"Duplicate host check for {len(registries)} registries:\n"
+
+    if duplicates:
+        for dup in duplicates:
+            details += f"  \u2718 {dup} — appears {host_counts[dup]} times\n"
+    else:
+        details += "  \u2713 No duplicate hosts found\n"
+
+    return {
+        "success": len(duplicates) == 0,
+        "duplicates": duplicates,
+        "details": details.strip(),
+        "error": (
+            None if not duplicates
+            else f"{len(duplicates)} duplicate host(s) found: {', '.join(duplicates)}"
+        ),
+    }
+
+
+# =============================================================================
+# 12. NEGATIVE: HTTPS REGISTRY WITHOUT CERT COMMON NAME
+# =============================================================================
+
+def check_user_registry_https_no_common_name(host, registries: List[Dict]) -> Dict[str, Any]:
+    """Verify HTTPS registries have valid TLS certificate subject.
+
+    For HTTPS registries, checks that the cert file exists and has a proper
+    CN or SAN set. A cert without a proper CN/SAN will cause TLS handshake
+    failures when Pulp tries to connect.
+
+    Args:
+        host: Testinfra host object
+        registries: List of HTTPS registry dicts with cert_path
+
+    Returns:
+        dict with keys:
+            success (bool): True if all certs have valid CN/SAN
+            valid_certs (list): Certs with proper CN
+            invalid_certs (list): Certs without CN or missing
+            details (str): Human-readable summary
+            error (str|None): Error message
+    """
+    if not registries:
+        return {
+            "success": True,
+            "valid_certs": [],
+            "invalid_certs": [],
+            "details": "No HTTPS registries to check",
+            "error": None,
+        }
+
+    valid_certs = []
+    invalid_certs = []
+    details = f"TLS cert CN/SAN check for {len(registries)} HTTPS registries:\n"
+
+    for reg in registries:
+        host_val = reg.get("host", "")
+        cert_path = reg.get("cert_path", "")
+
+        if not cert_path:
+            invalid_certs.append({**reg, "reason": "cert_path is empty"})
+            details += f"  \u2718 {host_val} — no cert_path configured\n"
+            continue
+
+        # Check if cert file exists and read subject
+        cert_cmd = (
+            f"test -f '{cert_path}' && "
+            f"openssl x509 -in '{cert_path}' -noout -subject -ext subjectAltName 2>&1 "
+            f"|| echo 'CERT_NOT_FOUND'"
+        )
+        result = run_in_omnia_core(host, cert_cmd)
+        stdout = (result.get("stdout") or "").strip()
+
+        if "CERT_NOT_FOUND" in stdout:
+            invalid_certs.append({**reg, "reason": "cert file not found"})
+            details += f"  \u2718 {host_val} — cert file not found: {cert_path}\n"
+        elif "CN=" in stdout or "DNS:" in stdout or "IP:" in stdout:
+            valid_certs.append(reg)
+            cn_line = stdout.split("\n")[0] if stdout else ""
+            details += f"  \u2713 {host_val} — {cn_line}\n"
+        else:
+            invalid_certs.append({**reg, "reason": "no CN or SAN in certificate"})
+            details += f"  \u2718 {host_val} — certificate has no CN or SAN\n"
+
+    return {
+        "success": len(invalid_certs) == 0,
+        "valid_certs": valid_certs,
+        "invalid_certs": invalid_certs,
+        "details": details.strip(),
+        "error": (
+            None if not invalid_certs
+            else f"{len(invalid_certs)} HTTPS cert(s) have invalid or missing CN/SAN"
+        ),
     }

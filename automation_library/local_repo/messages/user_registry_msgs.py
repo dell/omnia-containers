@@ -44,6 +44,28 @@ USER_REGISTRY_TEST_NAMES = {
     "user_registry_remotes_in_pulp": (
         "Verify Pulp container remotes created for user registries"
     ),
+    # Negative test names
+    "neg_empty_config_handled": (
+        "Negative: Verify empty user_registry is handled gracefully"
+    ),
+    "neg_invalid_host_format": (
+        "Negative: Verify invalid registry host format is detected"
+    ),
+    "neg_https_cert_not_found": (
+        "Negative: Verify missing HTTPS cert files produce clear error"
+    ),
+    "neg_endpoint_unreachable": (
+        "Negative: Verify unreachable registry endpoint is reported"
+    ),
+    "neg_auth_wrong_credentials": (
+        "Negative: Verify registry rejects wrong credentials"
+    ),
+    "neg_duplicate_hosts": (
+        "Negative: Verify duplicate registry host entries are detected"
+    ),
+    "neg_https_cert_no_cn": (
+        "Negative: Verify HTTPS cert without CN/SAN is detected"
+    ),
 }
 
 
@@ -117,6 +139,49 @@ USER_REGISTRY_LOG_MSGS = {
     ),
     "remotes_none_found": (
         "No Pulp container remotes found for user registries"
+    ),
+    # Negative test log messages
+    "neg_empty_config_ok": (
+        "Empty user_registry handled gracefully — no errors raised"
+    ),
+    "neg_empty_config_fail": (
+        "Empty user_registry caused unexpected error"
+    ),
+    "neg_invalid_host_detected": (
+        "Invalid host format correctly detected"
+    ),
+    "neg_invalid_host_not_detected": (
+        "Invalid host format was NOT detected — validation gap"
+    ),
+    "neg_cert_missing_detected": (
+        "Missing HTTPS cert files correctly reported"
+    ),
+    "neg_cert_missing_not_detected": (
+        "Missing HTTPS cert files were NOT detected"
+    ),
+    "neg_endpoint_unreachable_ok": (
+        "Unreachable registry endpoint correctly reported"
+    ),
+    "neg_endpoint_unreachable_fail": (
+        "Unreachable registry endpoint was not detected"
+    ),
+    "neg_auth_rejected_ok": (
+        "Registry correctly rejected wrong credentials"
+    ),
+    "neg_auth_accepted_bad_creds": (
+        "Registry ACCEPTED wrong credentials — security issue"
+    ),
+    "neg_no_duplicates": (
+        "No duplicate registry hosts found"
+    ),
+    "neg_duplicates_detected": (
+        "Duplicate registry hosts correctly detected"
+    ),
+    "neg_cert_cn_ok": (
+        "HTTPS certificate CN/SAN validation passed"
+    ),
+    "neg_cert_cn_missing": (
+        "HTTPS certificate missing CN/SAN — TLS handshake will fail"
     ),
 }
 
@@ -195,4 +260,30 @@ USER_REGISTRY_ASSERT_MSGS = {
 \u2551   5. Re-run local_repo.yml inside omnia_core
 \u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d
 """,
+    # Negative test assert messages
+    "neg_invalid_host_format": (
+        "user_registry contains entries with invalid host:port format. "
+        "Each entry must use 'hostname:port' or 'ip:port' format. "
+        "Details: {details}"
+    ),
+    "neg_endpoint_unreachable": (
+        "user_registry endpoints are unreachable from omnia_core container. "
+        "Verify registry hosts are running and network is reachable. "
+        "Unreachable: {details}"
+    ),
+    "neg_auth_accepted_bad_creds": (
+        "SECURITY: user_registry accepted wrong credentials. "
+        "Authentication is not working correctly. "
+        "Details: {details}"
+    ),
+    "neg_duplicate_hosts": (
+        "user_registry contains duplicate host entries. "
+        "Each registry host:port must be unique. "
+        "Duplicates: {details}"
+    ),
+    "neg_cert_cn_missing": (
+        "HTTPS registry certificate has no CN or SAN. "
+        "TLS handshake will fail when Pulp connects. "
+        "Details: {details}"
+    ),
 }

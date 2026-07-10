@@ -67,7 +67,7 @@ registries:
     port: 5010
     protocol: https
     cert_directory: "/opt/omnia/user_registry/certs"
-    cert_common_name: "100.10.1.76"
+    cert_common_name: ""
     cert_validity_days: 365
     enable_auth: true
     users:
