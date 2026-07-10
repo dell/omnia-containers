@@ -1,4 +1,3 @@
-
 # Configure SFM Telemetry
 
 
@@ -31,15 +30,70 @@ SFM (Smart Fabric Manager) → Prometheus Remote Write → vminsert → Victoria
 ## Prerequisites
 
 
-- VictoriaMetrics is deployed in cluster mode in the telemetry namespace. For more information, see [VictoriaMetrics cluster mode documentation](https://docs.victoriametrics.com/victoriametrics/cluster-victoriametrics/).
-- `pod_external_ip_range` must be set in `provision_config.yml` and `provision.yml` must be executed after the external IP is configured.
-- SFM must be operational and accessible from the service Kubernetes cluster.
+Complete the following before you configure SFM telemetry. You provision the
+cluster first (which deploys VictoriaMetrics), then configure SFM to push metrics
+to it via Prometheus Remote Write.
+
+- The `omnia_core` container is deployed on the OIM. See
+  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See
+  [Create Mapping File](../Setup/create_mapping_file.md).
+- SFM (Smart Fabric Manager) must be operational and accessible from the service
+  Kubernetes cluster.
 
 
 ## Procedure
 
 
-### Retrieve VictoriaMetrics Connection Details
+### Step 1: Add Required Software to software_config.json
+
+SFM streams metrics to VictoriaMetrics running on the service Kubernetes cluster.
+Ensure the `service_k8s` entry is present in `software_config.json`. Include an
+`aarch64` entry only if you have aarch64 nodes.
+
+```json title="software_config.json -- required for SFM telemetry"
+{
+    "softwares": [
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]}
+    ]
+}
+```
+
+For the full file structure, see the
+[software_config.json reference](../../Reference/Configuration/software_config.md).
+
+### Step 2: Add Required Nodes to the Mapping File
+
+SFM telemetry requires a service Kubernetes cluster with VictoriaMetrics exposed
+over a MetalLB LoadBalancer. In `pxe_mapping_file.csv`, ensure the following
+functional groups are present:
+
+- `service_kube_control_plane` (three control plane nodes)
+- `service_kube_node` (at least one worker node)
+
+```text title="pxe_mapping_file.csv -- example service K8s rows"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
+service_kube_control_plane_x86_64,grp5,2LXT933,,kcp2,BC:97:E1:F0:95:10,172.16.107.97,b0:7b:25:d8:4b:04,100.10.1.100,,
+service_kube_control_plane_x86_64,grp7,8X697C3,,kcp3,BC:97:E1:F0:95:30,172.16.107.98,b0:7b:25:d8:4b:14,100.10.1.101,,
+service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
+```
+
+Ensure `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
+an external IP to the `vminsert` service. For the full mapping file format, see the
+[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
+
+### Step 3: Deploy the Cluster
+
+Deploy the cluster by running the full playbook sequence
+(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
+`provision.yml` deploys VictoriaMetrics in the telemetry namespace. See
+[Deploy the Telemetry Stack](deploy_telemetry.md).
+
+Once the cluster is provisioned and VictoriaMetrics is running, configure SFM to
+stream metrics to it using the following steps.
+
+### Step 4: Retrieve VictoriaMetrics Connection Details
 
 1. Log in to the Service Kubernetes control plane.
 
@@ -59,7 +113,7 @@ SFM (Smart Fabric Manager) → Prometheus Remote Write → vminsert → Victoria
     kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.tls\.key}' | base64 --decode > tls.key
     ```
 
-### Configure SFM Prometheus Remote Write
+### Step 5: Configure SFM Prometheus Remote Write
 
 1. Log in to the SFM web UI.
 
@@ -84,7 +138,7 @@ SFM (Smart Fabric Manager) → Prometheus Remote Write → vminsert → Victoria
 
 6. Save and apply the configuration.
 
-### Update /etc/hosts in the Kubernetes Prometheus Pod
+### Step 6: Update /etc/hosts in the Kubernetes Prometheus Pod
 
 After configuring the SFM remote write settings, update the `/etc/hosts` file in the Kubernetes Prometheus pod to ensure proper DNS resolution:
 
@@ -116,13 +170,13 @@ After configuring the SFM remote write settings, update the `/etc/hosts` file in
 ## Verification
 
 
-For detailed SFM telemetry verification steps including VMUI queries and key metrics, see the SFM section in the [Telemetry Overview](setup_telemetry.md).
+For detailed SFM telemetry verification steps including VMUI queries and key metrics, see the SFM section in the [Setup Telemetry](setup_telemetry.md).
 
 
 ## Next Steps
 
 
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting

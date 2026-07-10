@@ -163,21 +163,20 @@ nav:
     - GetStarted/index.md
     - Prerequisites Checklist: GetStarted/prerequisites_checklist.md
     - "Path A: Slurm Quickstart": GetStarted/slurm_quickstart.md
-    - "Path B: Full Deployment": GetStarted/full_deployment.md
-    - "Path C: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
+    - "Path B: Kubernetes & Telemetry": GetStarted/k8s_telemetry_only.md
+    - "Path C: Full Deployment": GetStarted/full_deployment.md
     - "Path D: BuildStreaM": GetStarted/buildstream_deployment.md
   - How-to Guides:
     - HowTo/index.md
     - Setup:
       - Deploy Omnia Core: HowTo/Setup/deploy_omnia_core.md
       - Create Mapping File: HowTo/Setup/create_mapping_file.md
+      - Discover Nodes: HowTo/Setup/discover_nodes.md
       - Configure Inputs: HowTo/Setup/configure_inputs.md
       - Configure Credentials: HowTo/Setup/configure_credentials.md
       - Prepare OIM: HowTo/Setup/prepare_oim.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Create Local Repos: HowTo/Setup/create_local_repos.md
-      - Discover Nodes: HowTo/Setup/discover_nodes.md
-      - Create Mapping File: HowTo/Setup/create_mapping_file.md
       - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
       - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
@@ -212,9 +211,9 @@ nav:
       - Deploy External LDAP: HowTo/Authentication/deploy_external_ldap.md
     - Telemetry:
       - Telemetry Setup: HowTo/Telemetry/setup_telemetry.md
+      - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
       - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
       - LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
-      - DCGM Telemetry: HowTo/Telemetry/configure_dcgm.md
       - PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
       - UFM Telemetry: HowTo/Telemetry/configure_ufm.md
       - VAST Telemetry: HowTo/Telemetry/configure_vast.md
