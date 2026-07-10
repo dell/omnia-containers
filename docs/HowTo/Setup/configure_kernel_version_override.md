@@ -107,7 +107,19 @@ cd /omnia/local_repo
 ansible-playbook local_repo.yml
 ```
 
-Verify that all repositories show a successful status before continuing.
+**Validate that kernel packages are available in Pulp.** List the synced repository distributions to identify the repository name:
+
+```bash title="Run on: omnia_core container"
+pulp rpm distribution list
+```
+
+Query the Pulp content endpoint to confirm kernel packages are present. Replace `<oim_admin_ip>` with the OIM admin IP address and `<repo_name>` with the repository name from the previous step:
+
+```bash title="Run on: omnia_core container"
+curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
+```
+
+Confirm that the expected kernel RPM packages (`kernel`, `kernel-core`, `kernel-modules`) are listed. If none are found, verify the repository URLs in `local_repo_config.yml` and re-run `local_repo.yml`.
 
 ### Step 4: Build Images
 
@@ -119,6 +131,21 @@ ansible-playbook build_image_x86_64.yml
 ```
 
 This playbook builds the images and uploads them to S3.
+
+**Validate the kernel image in S3.** After the build completes, verify that the new kernel image was uploaded:
+
+```bash title="Run on: omnia_core container"
+s3cmd ls -Hr s3://boot-images
+```
+
+Look for entries matching your functional group and the expected kernel version:
+
+```text title="Expected output"
+s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
+s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
+```
+
+Confirm the kernel version in S3 matches the expected version before provisioning.
 
 ### Step 5: Provision the Cluster
 
@@ -141,42 +168,13 @@ Power on the cluster nodes and confirm that they boot successfully and cluster s
 
 ## Verification
 
-1. **Validate that kernel packages are available in Pulp.** List the synced repository distributions to identify the repository name:
+**Verify the booted kernel version** on each node:
 
-    ```bash title="Run on: omnia_core container"
-    pulp rpm distribution list
-    ```
+```bash title="Run on: compute node"
+uname -r
+```
 
-    Query the Pulp content endpoint to confirm kernel packages are present. Replace `<oim_admin_ip>` with the OIM admin IP address and `<repo_name>` with the repository name from the previous step:
-
-    ```bash title="Run on: omnia_core container"
-    curl -k https://<oim_admin_ip>:2225/pulp/content/opt/omnia/offline_repo/cluster/x86_64/rhel/10.0/rpms/<repo_name>/Packages/k/ | grep kernel
-    ```
-
-    Confirm that the expected kernel RPM packages (`kernel`, `kernel-core`, `kernel-modules`) are listed. If none are found, verify the repository URLs in `local_repo_config.yml` and re-run `local_repo.yml`.
-
-2. **Validate the kernel image in S3.** After the build completes, verify that the new kernel image was uploaded:
-
-    ```bash title="Run on: omnia_core container"
-    s3cmd ls -Hr s3://boot-images
-    ```
-
-    Look for entries matching your functional group and the expected kernel version:
-
-    ```text title="Expected output"
-    s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/vmlinuz-<kernel_version>
-    s3://boot-images/efi-images/<functional_group>/rhel-<functional_group>_omnia_<version>/initramfs-<kernel_version>.img
-    ```
-
-    Confirm the kernel version in S3 matches the expected version before provisioning.
-
-3. **Verify the booted kernel version** on each node:
-
-    ```bash title="Run on: compute node"
-    uname -r
-    ```
-
-    The output should match the version specified in `kernel_version_override` (or the latest available version if left empty).
+The output should match the version specified in `kernel_version_override` (or the latest available version if left empty).
 
 
 ## Next Steps
