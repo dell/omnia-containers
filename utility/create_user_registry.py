@@ -232,27 +232,57 @@ def load_config(config_path: str = "") -> dict:
     with open(path, "r", encoding="utf-8") as fh:
         raw = yaml.safe_load(fh) or {}
 
-    return {
-        # Target server
-        "server_ip": raw.get("registry_server_ip", ""),
-        "ssh_user": raw.get("registry_server_ssh_user", "root"),
-        "ssh_password": raw.get("registry_server_ssh_password", ""),
-        "ssh_port": int(raw.get("registry_server_ssh_port", 22)),
-        # Registry settings
-        "image": raw.get("registry_image", "docker.io/library/registry:2"),
-        "container_name": raw.get("registry_container_name", "user_registry"),
-        "port": int(raw.get("registry_port", 5000)),
-        # HTTPS
-        "enable_https": bool(raw.get("enable_https", True)),
-        "cert_directory": raw.get("cert_directory", "/opt/omnia/user_registry/certs"),
-        "cert_common_name": raw.get("cert_common_name", ""),
-        "cert_validity_days": int(raw.get("cert_validity_days", 365)),
-        # Auth
-        "enable_auth": bool(raw.get("enable_auth", True)),
-        "users": raw.get("registry_users", []),
-        # Sample images
-        "sample_images": raw.get("sample_images", []),
-    }
+    # Support both old single-registry and new multi-registry structure
+    registries = raw.get("registries", [])
+    if registries:
+        # New multi-registry structure
+        return {
+            # Target server
+            "server_ip": raw.get("registry_server_ip", ""),
+            "ssh_user": raw.get("registry_server_ssh_user", "root"),
+            "ssh_password": raw.get("registry_server_ssh_password", ""),
+            "ssh_port": int(raw.get("registry_server_ssh_port", 22)),
+            # Registry image (common for all)
+            "image": raw.get("registry_image", "docker.io/library/registry:2"),
+            # Multi-registry list
+            "registries": registries,
+            # Sample images
+            "sample_images": raw.get("sample_images", []),
+            # Legacy fields for backward compatibility (from first registry)
+            "container_name": registries[0].get("name", "user_registry") if registries else "user_registry",
+            "port": int(registries[0].get("port", 5000)) if registries else 5000,
+            "enable_https": registries[0].get("protocol") == "https" if registries else True,
+            "cert_directory": registries[0].get("cert_directory", "/opt/omnia/user_registry/certs") if registries else "/opt/omnia/user_registry/certs",
+            "cert_common_name": registries[0].get("cert_common_name", "") if registries else "",
+            "cert_validity_days": int(registries[0].get("cert_validity_days", 365)) if registries else 365,
+            "enable_auth": registries[0].get("enable_auth", True) if registries else True,
+            "users": registries[0].get("users", []) if registries else [],
+        }
+    else:
+        # Old single-registry structure (backward compatibility)
+        return {
+            # Target server
+            "server_ip": raw.get("registry_server_ip", ""),
+            "ssh_user": raw.get("registry_server_ssh_user", "root"),
+            "ssh_password": raw.get("registry_server_ssh_password", ""),
+            "ssh_port": int(raw.get("registry_server_ssh_port", 22)),
+            # Registry settings
+            "image": raw.get("registry_image", "docker.io/library/registry:2"),
+            "container_name": raw.get("registry_container_name", "user_registry"),
+            "port": int(raw.get("registry_port", 5000)),
+            # HTTPS
+            "enable_https": bool(raw.get("enable_https", True)),
+            "cert_directory": raw.get("cert_directory", "/opt/omnia/user_registry/certs"),
+            "cert_common_name": raw.get("cert_common_name", ""),
+            "cert_validity_days": int(raw.get("cert_validity_days", 365)),
+            # Auth
+            "enable_auth": bool(raw.get("enable_auth", True)),
+            "users": raw.get("registry_users", []),
+            # Sample images
+            "sample_images": raw.get("sample_images", []),
+            # Empty registries list for backward compatibility
+            "registries": [],
+        }
 
 
 def validate_config(cfg: dict) -> None:
@@ -267,25 +297,70 @@ def validate_config(cfg: dict) -> None:
                 "registry_server_ssh_password is required when registry_server_ip is set"
             )
 
-    # Auth requires at least one user with username and password
-    if cfg.get("enable_auth"):
-        users = cfg.get("users") or []
-        if not users:
-            errors.append(
-                "registry_users list is empty — at least one user is required "
-                "when enable_auth is true"
-            )
-        else:
-            for i, user in enumerate(users):
-                if not isinstance(user, dict):
+    # Validate registries (new multi-registry structure) or legacy fields
+    registries = cfg.get("registries", [])
+    if registries:
+        # New multi-registry structure validation
+        for i, reg in enumerate(registries):
+            if not isinstance(reg, dict):
+                errors.append(f"registries[{i}] must be a mapping")
+                continue
+
+            # Validate protocol
+            protocol = reg.get("protocol", "https")
+            if protocol not in ("http", "https"):
+                errors.append(f"registries[{i}].protocol must be 'http' or 'https'")
+
+            # Validate port
+            if not reg.get("port"):
+                errors.append(f"registries[{i}].port is required")
+
+            # Validate auth and users
+            if reg.get("enable_auth"):
+                users = reg.get("users", [])
+                if not users:
                     errors.append(
-                        f"registry_users[{i}] must be a mapping, got {type(user).__name__}"
+                        f"registries[{i}].users list is empty — at least one user is "
+                        f"required when enable_auth is true"
                     )
-                    continue
-                if not user.get("username"):
-                    errors.append(f"registry_users[{i}].username is required")
-                if not user.get("password"):
-                    errors.append(f"registry_users[{i}].password is required")
+                else:
+                    for j, user in enumerate(users):
+                        if not isinstance(user, dict):
+                            errors.append(
+                                f"registries[{i}].users[{j}] must be a mapping, got {type(user).__name__}"
+                            )
+                            continue
+                        if not user.get("username"):
+                            errors.append(f"registries[{i}].users[{j}].username is required")
+                        if not user.get("password"):
+                            errors.append(f"registries[{i}].users[{j}].password is required")
+
+            # Validate HTTPS fields
+            if protocol == "https":
+                if not reg.get("cert_directory"):
+                    errors.append(f"registries[{i}].cert_directory is required for HTTPS")
+                if not reg.get("cert_common_name"):
+                    errors.append(f"registries[{i}].cert_common_name is required for HTTPS")
+    else:
+        # Legacy single-registry structure validation (backward compatibility)
+        if cfg.get("enable_auth"):
+            users = cfg.get("users") or []
+            if not users:
+                errors.append(
+                    "registry_users list is empty — at least one user is required "
+                    "when enable_auth is true"
+                )
+            else:
+                for i, user in enumerate(users):
+                    if not isinstance(user, dict):
+                        errors.append(
+                            f"registry_users[{i}] must be a mapping, got {type(user).__name__}"
+                        )
+                        continue
+                    if not user.get("username"):
+                        errors.append(f"registry_users[{i}].username is required")
+                    if not user.get("password"):
+                        errors.append(f"registry_users[{i}].password is required")
 
     # Sample images validation
     for i, img in enumerate(cfg.get("sample_images") or []):
@@ -642,7 +717,7 @@ def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description=(
-            "Deploy a Docker Registry v2 container with optional HTTPS and "
+            "Deploy Docker Registry v2 containers with optional HTTPS and "
             "htpasswd authentication. Reads inputs from utility/user_registry_config.yml."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -662,7 +737,6 @@ def main() -> None:
     validate_config(cfg)
 
     server_ip = cfg["server_ip"].strip() if cfg["server_ip"] else "localhost"
-    scheme = "https" if cfg["enable_https"] else "http"
 
     # --- Create runner (local or remote) ---
     runner = CommandRunner(
@@ -678,113 +752,260 @@ def main() -> None:
             result = runner.run("hostname")
             success(f"Connected to: {result.stdout.strip()}")
 
-        # --- Display plan ---
-        print()
-        print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
-        print(f"{_C.BOLD}  USER REGISTRY AUTOMATED SETUP{_C.NC}")
-        print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
-        print(f"  Target server : {server_ip}")
-        print(f"  Image         : {cfg['image']}")
-        print(f"  Container     : {cfg['container_name']}")
-        print(f"  Port          : {cfg['port']}")
-        print(f"  Protocol      : {scheme.upper()}")
-        print(f"  Authentication: {'ENABLED' if cfg['enable_auth'] else 'DISABLED'}")
-        if cfg["enable_auth"]:
-            for u in cfg["users"]:
-                print(f"    - {u['username']}")
-        if cfg["enable_https"]:
-            print(f"  Cert directory: {cfg['cert_directory']}")
-        if cfg.get("sample_images"):
-            print(f"  Sample images : {len(cfg['sample_images'])}")
-            for img in cfg["sample_images"]:
-                print(f"    - {img['source']} -> {img['name']}:{img['tag']}")
-        print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
-        print()
+        # Check if using new multi-registry or legacy single-registry structure
+        registries = cfg.get("registries", [])
+        if registries:
+            # New multi-registry structure - process each registry
+            all_results = []
 
-        # Step 1: Generate TLS certificates (if HTTPS)
-        tls_paths = {}
-        if cfg["enable_https"]:
-            tls_paths = generate_tls_certs(runner, cfg)
-        else:
-            info("HTTPS disabled — skipping TLS certificate generation.")
+            for i, reg in enumerate(registries):
+                print()
+                print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
+                print(f"{_C.BOLD}  REGISTRY {i + 1}/{len(registries)}: {reg.get('name', 'user_registry')}{_C.NC}")
+                print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
 
-        # Step 2: Create htpasswd (if auth enabled)
-        htpasswd_path = ""
-        if cfg["enable_auth"]:
-            htpasswd_path = create_htpasswd(runner, cfg)
-        else:
-            info("Authentication disabled — skipping htpasswd creation.")
+                # Build registry-specific config from the registry entry
+                reg_cfg = cfg.copy()
+                reg_cfg.update({
+                    "container_name": reg.get("name", f"user_registry_{i}"),
+                    "port": int(reg.get("port", 5000)),
+                    "enable_https": reg.get("protocol") == "https",
+                    "cert_directory": reg.get("cert_directory", "/opt/omnia/user_registry/certs"),
+                    "cert_common_name": reg.get("cert_common_name", ""),
+                    "cert_validity_days": int(reg.get("cert_validity_days", 365)),
+                    "enable_auth": reg.get("enable_auth", True),
+                    "users": reg.get("users", []),
+                })
 
-        # Step 3: Deploy registry container
-        deploy_registry_container(runner, cfg, tls_paths, htpasswd_path)
+                scheme = "https" if reg_cfg["enable_https"] else "http"
 
-        # Step 4: Wait for readiness
-        wait_for_registry_ready(runner, cfg)
+                print(f"  Target server : {server_ip}")
+                print(f"  Image         : {cfg['image']}")
+                print(f"  Container     : {reg_cfg['container_name']}")
+                print(f"  Port          : {reg_cfg['port']}")
+                print(f"  Protocol      : {scheme.upper()}")
+                print(f"  Authentication: {'ENABLED' if reg_cfg['enable_auth'] else 'DISABLED'}")
+                if reg_cfg["enable_auth"]:
+                    for u in reg_cfg["users"]:
+                        print(f"    - {u['username']}")
+                if reg_cfg["enable_https"]:
+                    print(f"  Cert directory: {reg_cfg['cert_directory']}")
+                print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
+                print()
 
-        # Step 5: Push sample images
-        pushed = push_sample_images(runner, cfg)
+                # Step 1: Generate TLS certificates (if HTTPS)
+                tls_paths = {}
+                if reg_cfg["enable_https"]:
+                    tls_paths = generate_tls_certs(runner, reg_cfg)
+                else:
+                    info("HTTPS disabled — skipping TLS certificate generation.")
 
-        # Step 6: Verify
-        print()
-        verify_ok = verify_registry(runner, cfg)
+                # Step 2: Create htpasswd (if auth enabled)
+                htpasswd_path = ""
+                if reg_cfg["enable_auth"]:
+                    htpasswd_path = create_htpasswd(runner, reg_cfg)
+                else:
+                    info("Authentication disabled — skipping htpasswd creation.")
 
-        # --- Build local_repo_config.yml snippet ---
-        registry_host = f"{server_ip}:{cfg['port']}"
-        cert_path = tls_paths.get("cert_path", "") if cfg["enable_https"] else ""
-        key_path = tls_paths.get("key_path", "") if cfg["enable_https"] else ""
+                # Step 3: Deploy registry container
+                deploy_registry_container(runner, reg_cfg, tls_paths, htpasswd_path)
 
-        # --- Summary ---
-        print()
-        print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
-        print(f"{_C.GREEN}{_C.BOLD}  USER REGISTRY SETUP COMPLETE{_C.NC}")
-        print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
-        print(f"  Registry URL  : {scheme}://{registry_host}")
-        print(f"  Container     : {cfg['container_name']}")
-        print(f"  Protocol      : {scheme.upper()}")
-        print(f"  Authentication: {'ENABLED' if cfg['enable_auth'] else 'DISABLED'}")
-        if pushed:
-            print(f"  Images pushed : {len(pushed)}")
-            for img in pushed:
-                print(f"    - {img['full']}")
-        print()
+                # Step 4: Wait for readiness
+                wait_for_registry_ready(runner, reg_cfg)
 
-        # Print local_repo_config.yml snippet
-        print(f"  {_C.BOLD}Add to local_repo_config.yml:{_C.NC}")
-        print()
-        if cfg["enable_https"]:
-            print(f"  user_registry:")
-            print(f'    - {{ host: "{registry_host}", '
-                  f'cert_path: "{cert_path}", '
-                  f'key_path: "{key_path}" }}')
-        else:
-            print(f"  user_registry:")
-            print(f'    - {{ host: "{registry_host}", '
-                  f'cert_path: "", key_path: "" }}')
+                # Step 5: Push sample images (only for first registry to avoid duplication)
+                pushed = []
+                if i == 0 and cfg.get("sample_images"):
+                    pushed = push_sample_images(runner, reg_cfg)
+                else:
+                    info("Skipping sample image push (already done for first registry).")
 
-        # Print credential file snippet if auth is enabled
-        if cfg["enable_auth"]:
+                # Step 6: Verify
+                print()
+                verify_ok = verify_registry(runner, reg_cfg)
+
+                # Build result for this registry
+                registry_host = f"{server_ip}:{reg_cfg['port']}"
+                cert_path = tls_paths.get("cert_path", "") if reg_cfg["enable_https"] else ""
+                key_path = tls_paths.get("key_path", "") if reg_cfg["enable_https"] else ""
+
+                all_results.append({
+                    "host": registry_host,
+                    "cert_path": cert_path,
+                    "key_path": key_path,
+                    "protocol": scheme,
+                    "container_name": reg_cfg["container_name"],
+                    "enable_auth": reg_cfg["enable_auth"],
+                    "users": reg_cfg["users"],
+                    "pushed": pushed if i == 0 else [],
+                    "verify_ok": verify_ok,
+                })
+
+                # Summary for this registry
+                print()
+                print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+                print(f"{_C.GREEN}{_C.BOLD}  REGISTRY {i + 1} COMPLETE{_C.NC}")
+                print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+                print(f"  Registry URL  : {scheme}://{registry_host}")
+                print(f"  Container     : {reg_cfg['container_name']}")
+                print(f"  Protocol      : {scheme.upper()}")
+                print(f"  Authentication: {'ENABLED' if reg_cfg['enable_auth'] else 'DISABLED'}")
+                if i == 0 and pushed:
+                    print(f"  Images pushed : {len(pushed)}")
+                    for img in pushed:
+                        print(f"    - {img['full']}")
+                print()
+
+                if not verify_ok:
+                    die(f"Registry {i + 1} verification failed. Check output above.")
+
+            # Final summary with local_repo_config.yml snippet
             print()
-            print(f"  {_C.BOLD}Create user_registry_credential.yml:{_C.NC}")
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+            print(f"{_C.GREEN}{_C.BOLD}  ALL REGISTRIES SETUP COMPLETE{_C.NC}")
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
             print()
-            print(f"  user_registry_credential:")
-            for u in cfg["users"]:
-                print(f'    - {{ name: "{u["username"]}", '
-                      f'username: "{u["username"]}", '
-                      f'password: "********" }}')
+            print(f"  {_C.BOLD}Add to local_repo_config.yml:{_C.NC}")
+            print()
+            print(f"  user_registry:")
+            for result in all_results:
+                if result["protocol"] == "https":
+                    print(f'    - {{ host: "{result["host"]}", '
+                          f'cert_path: "{result["cert_path"]}", '
+                          f'key_path: "{result["key_path"]}" }}')
+                else:
+                    print(f'    - {{ host: "{result["host"]}", '
+                          f'cert_path: "", key_path: "" }}')
 
-        print()
-        print(f"  {_C.BOLD}To verify manually:{_C.NC}")
-        tls_curl = "-k " if cfg["enable_https"] else ""
-        auth_curl = ""
-        if cfg["enable_auth"] and cfg["users"]:
-            u = cfg["users"][0]
-            auth_curl = f"-u '{u['username']}:<password>' "
-        print(f"    curl {tls_curl}{auth_curl}{scheme}://{registry_host}/v2/_catalog")
-        print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
-        print()
+            # Print credential file snippet if any registry has auth enabled
+            auth_enabled_any = any(r["enable_auth"] for r in all_results)
+            if auth_enabled_any:
+                print()
+                print(f"  {_C.BOLD}Create user_registry_credential.yml (if needed):{_C.NC}")
+                print()
+                print(f"  user_registry_credential:")
+                for result in all_results:
+                    if result["enable_auth"] and result["users"]:
+                        for u in result["users"]:
+                            print(f'    - {{ name: "{u["username"]}", '
+                                  f'username: "{u["username"]}", '
+                                  f'password: "********" }}')
 
-        if not verify_ok:
-            die("Registry verification failed. Check output above.")
+            print()
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+            print()
+
+        else:
+            # Legacy single-registry structure
+            scheme = "https" if cfg["enable_https"] else "http"
+
+            # --- Display plan ---
+            print()
+            print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
+            print(f"{_C.BOLD}  USER REGISTRY AUTOMATED SETUP{_C.NC}")
+            print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
+            print(f"  Target server : {server_ip}")
+            print(f"  Image         : {cfg['image']}")
+            print(f"  Container     : {cfg['container_name']}")
+            print(f"  Port          : {cfg['port']}")
+            print(f"  Protocol      : {scheme.upper()}")
+            print(f"  Authentication: {'ENABLED' if cfg['enable_auth'] else 'DISABLED'}")
+            if cfg["enable_auth"]:
+                for u in cfg["users"]:
+                    print(f"    - {u['username']}")
+            if cfg["enable_https"]:
+                print(f"  Cert directory: {cfg['cert_directory']}")
+            if cfg.get("sample_images"):
+                print(f"  Sample images : {len(cfg['sample_images'])}")
+                for img in cfg["sample_images"]:
+                    print(f"    - {img['source']} -> {img['name']}:{img['tag']}")
+            print(f"{_C.BOLD}{'=' * 60}{_C.NC}")
+            print()
+
+            # Step 1: Generate TLS certificates (if HTTPS)
+            tls_paths = {}
+            if cfg["enable_https"]:
+                tls_paths = generate_tls_certs(runner, cfg)
+            else:
+                info("HTTPS disabled — skipping TLS certificate generation.")
+
+            # Step 2: Create htpasswd (if auth enabled)
+            htpasswd_path = ""
+            if cfg["enable_auth"]:
+                htpasswd_path = create_htpasswd(runner, cfg)
+            else:
+                info("Authentication disabled — skipping htpasswd creation.")
+
+            # Step 3: Deploy registry container
+            deploy_registry_container(runner, cfg, tls_paths, htpasswd_path)
+
+            # Step 4: Wait for readiness
+            wait_for_registry_ready(runner, cfg)
+
+            # Step 5: Push sample images
+            pushed = push_sample_images(runner, cfg)
+
+            # Step 6: Verify
+            print()
+            verify_ok = verify_registry(runner, cfg)
+
+            # --- Build local_repo_config.yml snippet ---
+            registry_host = f"{server_ip}:{cfg['port']}"
+            cert_path = tls_paths.get("cert_path", "") if cfg["enable_https"] else ""
+            key_path = tls_paths.get("key_path", "") if cfg["enable_https"] else ""
+
+            # --- Summary ---
+            print()
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+            print(f"{_C.GREEN}{_C.BOLD}  USER REGISTRY SETUP COMPLETE{_C.NC}")
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+            print(f"  Registry URL  : {scheme}://{registry_host}")
+            print(f"  Container     : {cfg['container_name']}")
+            print(f"  Protocol      : {scheme.upper()}")
+            print(f"  Authentication: {'ENABLED' if cfg['enable_auth'] else 'DISABLED'}")
+            if pushed:
+                print(f"  Images pushed : {len(pushed)}")
+                for img in pushed:
+                    print(f"    - {img['full']}")
+            print()
+
+            # Print local_repo_config.yml snippet
+            print(f"  {_C.BOLD}Add to local_repo_config.yml:{_C.NC}")
+            print()
+            if cfg["enable_https"]:
+                print(f"  user_registry:")
+                print(f'    - {{ host: "{registry_host}", '
+                      f'cert_path: "{cert_path}", '
+                      f'key_path: "{key_path}" }}')
+            else:
+                print(f"  user_registry:")
+                print(f'    - {{ host: "{registry_host}", '
+                      f'cert_path: "", key_path: "" }}')
+
+            # Print credential file snippet if auth is enabled
+            if cfg["enable_auth"]:
+                print()
+                print(f"  {_C.BOLD}Create user_registry_credential.yml:{_C.NC}")
+                print()
+                print(f"  user_registry_credential:")
+                for u in cfg["users"]:
+                    print(f'    - {{ name: "{u["username"]}", '
+                          f'username: "{u["username"]}", '
+                          f'password: "********" }}')
+
+            print()
+            print(f"  {_C.BOLD}To verify manually:{_C.NC}")
+            tls_curl = "-k " if cfg["enable_https"] else ""
+            auth_curl = ""
+            if cfg["enable_auth"] and cfg["users"]:
+                u = cfg["users"][0]
+                auth_curl = f"-u '{u['username']}:<password>' "
+            print(f"    curl {tls_curl}{auth_curl}{scheme}://{registry_host}/v2/_catalog")
+            print(f"{_C.GREEN}{_C.BOLD}{'=' * 60}{_C.NC}")
+            print()
+
+            if not verify_ok:
+                die("Registry verification failed. Check output above.")
 
     finally:
         runner.close()

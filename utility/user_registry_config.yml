@@ -96,3 +96,6 @@ sample_images:
   - source: "docker.io/library/busybox:1.36"
     name: "busybox"
     tag: "1.36"
+  - source: "docker.io/ubuntu/squid:latest"
+    name: "squid"
+    tag: "latest"
