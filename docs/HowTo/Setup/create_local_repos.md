@@ -54,50 +54,50 @@ and the OIM serves as the default Pulp registry.
 
 1. **Enter the omnia_core container**:
 
-   ```bash title="Run on: OIM host"
-   ssh omnia_core
-   ```
+    ```bash title="Run on: OIM host"
+    ssh omnia_core
+    ```
 
 
 2. **Verify software_config.json is configured** with the desired software
    stacks:
 
-   ```bash title="Run on: omnia_core container"
-   cat /opt/omnia/input/project_default/software_config.json | python3 -m json.tool
-   ```
+    ```bash title="Run on: omnia_core container"
+    cat /opt/omnia/input/project_default/software_config.json | python3 -m json.tool
+    ```
 
 
-   Confirm the `softwares` list includes all packages you need (e.g.,
-   `service_k8s`, `slurm_custom`, `openldap`, `openmpi`, `ucx`,
-   `csi_driver_powerscale`).
+    Confirm the `softwares` list includes all packages you need (e.g.,
+    `service_k8s`, `slurm_custom`, `openldap`, `openmpi`, `ucx`,
+    `csi_driver_powerscale`).
 
 3. **Run the local_repo playbook**:
 
-   ```bash title="Run on: omnia_core container"
-   cd /omnia/local_repo
-   ansible-playbook local_repo.yml
-   ```
+    ```bash title="Run on: omnia_core container"
+    cd /omnia/local_repo
+    ansible-playbook local_repo.yml
+    ```
 
 
-   The playbook will:
+    The playbook will:
 
-   - Download and save software packages/images to the Pulp container.
-   - All cluster nodes can then access these packages from the Pulp container.
+    - Download and save software packages/images to the Pulp container.
+    - All cluster nodes can then access these packages from the Pulp container.
 
-!!! warning
+    !!! warning
 
-    Initial synchronization can take a significant amount of time depending
-    on the number of repositories, internet bandwidth, and selected software
-    stacks. CUDA repositories are particularly large.
+        Initial synchronization can take a significant amount of time depending
+        on the number of repositories, internet bandwidth, and selected software
+        stacks. CUDA repositories are particularly large.
 
 4. **Check the status report** after execution:
 
-   After `local_repo.yml` has been executed, a status report is displayed
-   containing the status for each downloaded package along with the complete
-   playbook execution time:
+    After `local_repo.yml` has been executed, a status report is displayed
+    containing the status for each downloaded package along with the complete
+    playbook execution time:
 
-   - **SUCCESS**: The package has been successfully downloaded to the Pulp container.
-   - **FAILED**: The package couldn't be downloaded successfully.
+    - **SUCCESS**: The package has been successfully downloaded to the Pulp container.
+    - **FAILED**: The package couldn't be downloaded successfully.
 
 !!! note
 
