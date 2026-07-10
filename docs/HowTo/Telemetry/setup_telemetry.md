@@ -1,5 +1,4 @@
-
-# Telemetry Overview
+# Setup Telemetry
 
 
 Omnia deploys a telemetry pipeline to collect, aggregate, and store hardware, OS-level, and storage telemetry data from across the cluster using VictoriaMetrics, VictoriaLogs, and Kafka.
@@ -43,6 +42,10 @@ For detailed data flow diagrams, see the respective configuration pages below.
 
 ## Next Steps
 
+
+Configure one or more telemetry sources, then deploy the cluster to bring up the
+telemetry stack. For the end-to-end playbook sequence, see
+[Deploy the Telemetry Stack](deploy_telemetry.md).
 
 - [Configure iDRAC Telemetry](configure_idrac.md)
 - [Configure LDMS Telemetry](configure_ldms.md)

@@ -1,4 +1,3 @@
-
 # Configure iDRAC Telemetry
 
 
@@ -27,31 +26,36 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 
 ### Supported Metrics
 
-- **Thermal** -- Inlet temperature, exhaust temperature, CPU temperature, fan speeds
-- **Power** -- System power consumption, PSU input/output power, power capping status
-- **Storage Health** -- Physical disk status, virtual disk health, controller health, SMART data
-- **CPU/Memory** -- Correctable/uncorrectable ECC errors, CPU utilization, DIMM health
-- **System Events** -- Hardware alerts, lifecycle events, firmware status
+| Category | Metrics Collected |
+| --- | --- |
+| Thermal | Inlet temperature, exhaust temperature, CPU temperature, fan speeds |
+| Power | System power consumption, PSU input/output power, power capping status |
+| Storage Health | Physical disk status, virtual disk health, controller health, SMART data |
+| CPU/Memory | Correctable/uncorrectable ECC errors, CPU utilization, DIMM health |
+| System Events | Hardware alerts, lifecycle events, firmware status |
 
-!!! note
-
-    For the list of iDRAC telemetry metrics collected by Kafka and VictoriaMetrics, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+For the complete list of iDRAC telemetry metrics, see [iDRAC Metrics Reference](../../Reference/Metrics/idrac_metrics.md) and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 
 
 ## Prerequisites
 
 
-- `provision.yml` has been executed successfully with `service_kube_control_plane_x86_64` and `service_kube_node_x86_64` in the mapping file.
-- All service K8s nodes are booted and running before executing the telemetry playbook.
+Complete the following before you configure iDRAC telemetry. Provisioning the
+cluster happens **after** this configuration, as part of the deployment sequence.
+
+- The `omnia_core` container is deployed on the OIM. See
+  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See
+  [Create Mapping File](../Setup/create_mapping_file.md).
 - Redfish must be enabled in iDRAC.
 - iDRAC firmware must be updated to the latest version.
 - **Datacenter license** must be installed on the nodes. Enterprise license is not sufficient for streaming telemetry.
-- Ensure that the correct node service tags are displayed on the iDRAC interface. Otherwise, telemetry data cannot be collected by the iDRAC collector.
+- The correct node service tags are displayed on the iDRAC interface. Otherwise, telemetry data cannot be collected by the iDRAC collector.
 - All BMC (iDRAC) IPs must be reachable from the service cluster nodes. If the service cluster does not have direct access to the BMC network, configure routing from OIM.
 
 !!! note
 
-    If there is a dedicated setup and BMC IPs are not reachable, enable masquerading to make BMC IP reachable:
+    If there is a dedicated setup and BMC IPs are not reachable, enable masquerading (after the cluster is provisioned) to make BMC IPs reachable:
 
     ```bash title="Run on K8s control plane"
     iptables -t nat -A POSTROUTING -o "<external interface which has internet>" -j MASQUERADE
@@ -65,47 +69,98 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 ## Procedure
 
 
-1. **In the mapping file**, ensure that the service tag of the service kube node is specified as the parent for the Slurm nodes.
+### Step 1: Add Required Software to software_config.json
 
-2. **Ensure that `telemetry_config.yml` has the entries specific for iDRAC Telemetry**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+iDRAC telemetry runs on the service Kubernetes cluster. Ensure the `service_k8s`
+entry is present in `software_config.json`. Include an `aarch64` entry only if you
+have aarch64 nodes.
 
-    ```yaml title="telemetry_config.yml -- iDRAC"
-    telemetry_sources:
-      idrac:
-        metrics_enabled: true
-        collection_targets:
-          - "victoria_metrics"
-          - "kafka"
+```json title="software_config.json -- required for iDRAC telemetry"
+{
+    "softwares": [
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]}
+    ]
+}
+```
 
-    idrac_telemetry_configurations:
-      mysqldb_storage: "1Gi"
-    ```
+For the full file structure, see the
+[software_config.json reference](../../Reference/Configuration/software_config.md).
 
-    - `metrics_enabled` -- Enable or disable iDRAC metrics collection (`true` or `false`).
-    - `collection_targets` -- Define where iDRAC data is sent. Supported values: `victoria_metrics`, `kafka`. You can specify both.
-    - `mysqldb_storage` -- Storage size for the iDRAC telemetry MySQL metadata database.
+### Step 2: Add Required Nodes to the Mapping File
 
-3. **Run the telemetry playbook**:
+iDRAC telemetry requires a service Kubernetes cluster. In `pxe_mapping_file.csv`,
+ensure the following functional groups are present:
 
-    ```bash title="Run on omnia_core container"
-    cd /omnia/telemetry
-    ansible-playbook telemetry.yml
-    ```
+- `service_kube_control_plane` (three control plane nodes)
+- `service_kube_node` (at least one worker node)
 
-    !!! note
+The `BMC_IP` column must be populated for every node whose iDRAC telemetry you want
+to collect. Ensure the service tag of the `service_kube_node` is set as the
+`PARENT_SERVICE_TAG` for the Slurm nodes.
 
-        Service cluster metadata automatically captures the service cluster kube control plane virtual IP. As a result, `telemetry.yml` is executed against the VIP rather than an individual control plane node.
+```text title="pxe_mapping_file.csv -- example service K8s rows"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
+service_kube_control_plane_x86_64,grp5,2LXT933,,kcp2,BC:97:E1:F0:95:10,172.16.107.97,b0:7b:25:d8:4b:04,100.10.1.100,,
+service_kube_control_plane_x86_64,grp7,8X697C3,,kcp3,BC:97:E1:F0:95:30,172.16.107.98,b0:7b:25:d8:4b:14,100.10.1.101,,
+service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
+```
+
+For the full format, see the
+[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
+
+### Step 3: Enable iDRAC in telemetry_config.yml
+
+Configure iDRAC telemetry settings in `telemetry_config.yml`. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+
+```yaml title="telemetry_config.yml -- iDRAC"
+telemetry_sources:
+  idrac:
+    metrics_enabled: true
+    collection_targets:
+      - "victoria_metrics"
+      - "kafka"
+
+idrac_telemetry_configurations:
+  mysqldb_storage: "1Gi"
+```
+
+| Parameter | Description |
+| --- | --- |
+| `metrics_enabled` | Enable or disable iDRAC metrics collection (`true` or `false`) |
+| `collection_targets` | Where iDRAC data is sent. Supported: `victoria_metrics`, `kafka`. You can specify both |
+| `mysqldb_storage` | Storage size for the iDRAC telemetry MySQL metadata database |
+
+### Step 4: Deploy the Cluster
+
+Deploy the cluster by running the full playbook sequence
+(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
+`provision.yml` deploys the iDRAC telemetry infrastructure to the service K8s
+cluster. See [Deploy the Telemetry Stack](deploy_telemetry.md).
+
+iDRAC telemetry requires one **additional** step after provisioning. Run
+`telemetry.yml` to validate the BMC IPs and initiate iDRAC telemetry collection:
+
+```bash title="Run on omnia_core container"
+cd /omnia/telemetry
+ansible-playbook telemetry.yml
+```
+
+!!! note
+
+    - `telemetry.yml` validates iDRAC BMC IPs, generates the service cluster metadata, and triggers the iDRAC telemetry collection.
+    - Service cluster metadata automatically captures the service cluster kube control plane virtual IP. As a result, `telemetry.yml` is executed against the VIP rather than an individual control plane node.
 
 !!! important
 
-    If you enable iDRAC telemetry after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
+    If you enable iDRAC telemetry on an already-provisioned cluster, re-run `provision.yml`, execute the `telemetry.sh` script on the K8s control plane, and then run `telemetry.yml`. See [Update Telemetry on a Running Cluster](deploy_telemetry.md#update-telemetry-on-a-running-cluster).
 
     ```bash title="Run on K8s control plane"
     <K8s_NFS_mount_point>/telemetry/telemetry.sh
     ```
 
 
-### Collect Telemetry from External Nodes
+### Step 5: Collect Telemetry from External Nodes (Optional)
 
 To collect iDRAC telemetry from servers that are not part of the Omnia-managed cluster:
 
@@ -303,7 +358,7 @@ After `telemetry.yml` has been executed for the service cluster, you can check t
 ## Next Steps
 
 
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting

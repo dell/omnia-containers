@@ -1,4 +1,3 @@
-
 # Configure PowerScale Telemetry
 
 
@@ -29,17 +28,21 @@ PowerScale Nodes → syslog → VLAgent → VictoriaLogs
 
 **Metrics:**
 
-- **Performance** -- Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency
-- **Capacity** -- Total cluster capacity, used capacity, available capacity, per-node capacity
-- **Health** -- Node online/offline status, disk health, cluster rebalance status, protection group status
-- **Topology** -- Cluster node membership, node roles, interconnect layout, protection domain mapping
+| Category | Metrics Collected |
+| --- | --- |
+| Performance | Protocol-level IOPS (NFS, SMB, S3), throughput (bytes/s), read/write latency |
+| Capacity | Total cluster capacity, used capacity, available capacity, per-node capacity |
+| Health | Node online/offline status, disk health, cluster rebalance status, protection group status |
+| Topology | Cluster node membership, node roles, interconnect layout, protection domain mapping |
 
-For more details on PowerScale metrics, see [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/).
+For the complete list of PowerScale telemetry metrics, see [PowerScale Metrics Reference](../../Reference/Metrics/powerscale_metrics.md) and [Supported PowerScale Metrics](https://dell.github.io/csm-docs/docs/concepts/observability/metrics/powerscale/).
 
 **Logs:**
 
-- Capacity warnings, disk failures, node state changes, protocol errors
-- Events are labeled with host/cluster, severity, and facility
+| Category | Logs Collected |
+| --- | --- |
+| System Events | Capacity warnings, disk failures, node state changes, protocol errors |
+| Labels | Events are labeled with host/cluster, severity, and facility |
 
 ### Health Monitor Metrics
 
@@ -78,15 +81,117 @@ When the CSI PowerScale health monitor is enabled (`controller > healthMonitor >
 - `powerscale_total_capacity_bytes` - Total capacity of all PowerScale PVs in bytes
 
 
+### TLS and Authentication
+
+All metric scraping between the OpenTelemetry Collector and VictoriaMetrics uses TLS encryption. Authentication uses Kubernetes service-account tokens. Mutual TLS (mTLS) is not required — the connection is encrypted but the PowerScale-side endpoint does not validate client identity via certificate exchange. TLS is enforced for all off-cluster communications.
+
+
 ## Prerequisites
 
 
-- `provision.yml` has been executed successfully with `service_kube_control_plane` and `service_kube_node` in the mapping file.
-- For Omnia-orchestrated mode, the service Kubernetes cluster has sufficient resources to run CSM Metrics, OpenTelemetry Collector, CSI Driver, and cert-manager.
-- For operator-provided mode, the external OpenTelemetry Collector endpoint is accessible from the service cluster over TLS.
+Complete the following before you configure PowerScale telemetry. Provisioning the
+cluster happens **after** this configuration, as part of the deployment sequence.
+
+- The `omnia_core` container is deployed on the OIM. See
+  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See
+  [Create Mapping File](../Setup/create_mapping_file.md).
+- A Dell PowerScale (OneFS) cluster is reachable from the service Kubernetes cluster.
+- The CSM Observability (Karavi) values.yaml file is available.
 - Network connectivity between the PowerScale cluster and the Omnia log agent for syslog integration.
 
-**For PowerScale log collection**, configure the following settings on the PowerScale cluster:
+
+## Procedure
+
+
+### Step 1: Add Required Software to software_config.json
+
+PowerScale telemetry runs on the service Kubernetes cluster and uses the CSI driver
+for Dell PowerScale. Add the `service_k8s` and `csi_driver_powerscale` entries to
+`software_config.json`. Include an `aarch64` entry only if you have aarch64 nodes.
+
+```json title="software_config.json -- required for PowerScale telemetry"
+{
+    "softwares": [
+        {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
+        {"name": "csi_driver_powerscale", "version": "v2.17.0", "arch": ["x86_64"]}
+    ]
+}
+```
+
+!!! note
+
+    These entries must be present when `telemetry_sources > powerscale > metrics_enabled` is set to `true` in the `telemetry_config.yml` file. For the full file structure, see the [software_config.json reference](../../Reference/Configuration/software_config.md).
+
+### Step 2: Add Required Nodes to the Mapping File
+
+PowerScale telemetry requires a service Kubernetes cluster. In
+`pxe_mapping_file.csv`, ensure the following functional groups are present:
+
+- `service_kube_control_plane` (three control plane nodes)
+- `service_kube_node` (at least one worker node)
+
+```text title="pxe_mapping_file.csv -- example service K8s rows"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
+service_kube_control_plane_x86_64,grp5,2LXT933,,kcp2,BC:97:E1:F0:95:10,172.16.107.97,b0:7b:25:d8:4b:04,100.10.1.100,,
+service_kube_control_plane_x86_64,grp7,8X697C3,,kcp3,BC:97:E1:F0:95:30,172.16.107.98,b0:7b:25:d8:4b:14,100.10.1.101,,
+service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
+```
+
+For the full format, see the
+[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
+
+### Step 3: Enable PowerScale in telemetry_config.yml
+
+Configure PowerScale telemetry settings in `telemetry_config.yml`. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+
+```yaml title="telemetry_config.yml -- PowerScale section"
+telemetry_sources:
+  powerscale:
+    metrics_enabled: true
+    logs_enabled: true
+    collection_targets:
+      - "victoria_metrics"
+      - "victoria_logs"
+
+powerscale_configurations:
+  otel_collector_storage_size: "5Gi"
+  csm_observability_values_file_path: ""
+```
+
+| Parameter | Description |
+| --- | --- |
+| `metrics_enabled` | Enable or disable PowerScale metric collection (`true` or `false`) |
+| `logs_enabled` | Enable or disable PowerScale log collection (`true` or `false`) |
+| `collection_targets` | Where PowerScale data is sent. Supported: `victoria_metrics`, `victoria_logs` |
+| `otel_collector_storage_size` | Persistent storage size for the OpenTelemetry Collector |
+| `csm_observability_values_file_path` | Path to the CSM Observability (Karavi) values.yaml file |
+
+!!! note
+
+    PowerScale Telemetry supports independent feature flags for metric collection and log collection. You can enable or disable each independently.
+
+### Step 4: Configure the CSM Observability Values File
+
+- Provide the path to the CSM Observability (Karavi Observability) values.yaml file in `telemetry_config.yml`.
+- Reference: [karavi-observability values.yaml](https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml){target="_blank"}
+- **Important**: In the values.yaml file, only set `karaviMetricsPowerscale > enabled: true`. Set the following parameters to `false`: `karaviMetricsPowerflex > enabled`, `karaviMetricsPowerstore > enabled`, `karaviMetricsPowerscale.authorization > enabled`, `karaviMetricsPowermax > enabled`.
+- **Health Metrics**: For CSI PowerScale health metrics, enable `controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the [CSI PowerScale values.yaml](https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml).
+
+!!! note
+
+    The karavi-metrics-powerscale pod may go into CrashLoopBackOff state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale:
+
+    ```bash title="Run on PowerScale CLI"
+    isi http settings view
+    ```
+
+    If Basic authentication is enabled, update the `isiAuthType` in the CSM Observability values.yaml file to use session-based authentication.
+
+### Step 5: Configure PowerScale Log Forwarding (Optional)
+
+To collect PowerScale logs, configure syslog forwarding on the PowerScale cluster:
 
 1. Enable syslog forwarding from PowerScale:
 
@@ -112,69 +217,19 @@ When the CSI PowerScale health monitor is enabled (`controller > healthMonitor >
 
     ![PowerScale Audited Zones Prereq](../../assets/images/powerscale_audited_zones_logs_prereq.png)
 
+### Step 6: Deploy the Cluster
 
-## Procedure
+Deploy the cluster by running the full playbook sequence
+(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`).
+`provision.yml` deploys the PowerScale telemetry stack (CSM Metrics, OTEL
+Collector, CSI driver) to the service K8s cluster. See
+[Deploy the Telemetry Stack](deploy_telemetry.md).
 
-
-1. **Specify the following entries in `software_config.json`**:
-
-    !!! note
-
-        The entry must be present when `telemetry_sources > powerscale > metrics_enabled` is set to `true` in the `telemetry_config.yml` file.
-
-    ```json
-    {"name": "service_k8s", "version": "1.35.1", "arch": ["x86_64"]},
-    {"name": "csi_driver_powerscale", "version": "2.17.0", "arch": ["x86_64"]}
-    ```
-
-2. **Ensure that `telemetry_config.yml` has the entries specific for PowerScale Telemetry deployment**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
-
-    ```yaml title="telemetry_config.yml -- PowerScale section"
-    telemetry_sources:
-      powerscale:
-        metrics_enabled: true
-        logs_enabled: true
-        collection_targets:
-          - "victoria_metrics"
-          - "victoria_logs"
-
-    powerscale_configurations:
-      otel_collector_storage_size: "5Gi"
-      csm_observability_values_file_path: ""
-    ```
-
-    - `metrics_enabled` -- Enable or disable PowerScale metric collection (`true` or `false`).
-    - `logs_enabled` -- Enable or disable PowerScale log collection (`true` or `false`).
-    - `collection_targets` -- Define where PowerScale data is sent. Supported values: `victoria_metrics`, `victoria_logs`.
-    - `otel_collector_storage_size` -- Persistent storage size for the OpenTelemetry Collector.
-    - `csm_observability_values_file_path` -- Path to the CSM Observability (Karavi) values.yaml file.
-
-    !!! note
-
-        PowerScale Telemetry supports independent feature flags for metric collection and log collection. You can enable or disable each independently.
-
-3. **Configure the CSM Observability values file**:
-
-    - Provide the path to the CSM Observability (Karavi Observability) values.yaml file in `telemetry_config.yml`.
-    - Reference: `https://raw.githubusercontent.com/dell/helm-charts/refs/heads/release-v1.17.1/charts/karavi-observability/values.yaml`
-    - **Important**: In the values.yaml file, only set `karaviMetricsPowerscale > enabled: true`. Set the following parameters to `false`: `karaviMetricsPowerflex > enabled`, `karaviMetricsPowerstore > enabled`, `karaviMetricsPowerscale.authorization > enabled`, `karaviMetricsPowermax > enabled`.
-    - **Health Metrics**: For CSI PowerScale health metrics, enable `controller > healthMonitor > enabled: true` and `node > healthMonitor > enabled: true` in the [CSI PowerScale values.yaml](https://raw.githubusercontent.com/dell/helm-charts/csi-isilon-2.17.0/charts/csi-isilon/values.yaml).
-
-    !!! note
-
-        The karavi-metrics-powerscale pod may go into CrashLoopBackOff state when CSM is enabled with Basic authentication. To check the current authentication type on PowerScale:
-
-        ```bash title="Run on PowerScale CLI"
-        isi http settings view
-        ```
-
-        If Basic authentication is enabled, update the `isiAuthType` in the CSM Observability values.yaml file to use session-based authentication.
-
-4. **(Optional) Configure dual-destination delivery**: Specify the external VictoriaMetrics endpoint in `telemetry_config.yml`. Metrics will be delivered to both the internal time-series database and the external endpoint independently.
+**(Optional) Configure dual-destination delivery**: Specify the external VictoriaMetrics endpoint in `telemetry_config.yml`. Metrics will be delivered to both the internal time-series database and the external endpoint independently.
 
 !!! important
 
-    If you enable PowerScale telemetry after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
+    If you enable PowerScale telemetry on an already-provisioned cluster, re-run `provision.yml` and then execute the `telemetry.sh` script on the K8s control plane. See [Update Telemetry on a Running Cluster](deploy_telemetry.md#update-telemetry-on-a-running-cluster).
 
     ```bash title="Run on K8s control plane"
     <K8s_NFS_mount_point>/telemetry/telemetry.sh
@@ -298,7 +353,7 @@ Use the VictoriaLogs UI to validate that PowerScale log data is being collected.
 ## Next Steps
 
 
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting

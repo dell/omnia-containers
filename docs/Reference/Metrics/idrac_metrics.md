@@ -6,89 +6,227 @@ This page catalogs the metrics collected by the Omnia iDRAC telemetry
 collector via the Redfish API. These metrics are streamed to Kafka and stored
 in VictoriaMetrics for visualization in Grafana.
 
+For the complete list of available iDRAC Redfish telemetry metric reports and integration tools, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+
 ## Collection method
 
 
 | Property | Value |
 | --- | --- |
-| **Protocol** | Redfish (HTTPS REST API) |
-| **Source** | iDRAC on each managed server |
+| **Protocol** | Redfish SSE (HTTPS REST API) |
+| **Source** | iDRAC on each managed Dell PowerEdge server |
 | **Default interval** | 300 seconds (configurable via `idrac_telemetry_interval` in `telemetry_config.yml`) |
-| **Kafka topic** | `idrac_telemetry` (configurable via `kafka_topic_idrac`) |
+| **Kafka topic** | `idrac` |
 | **Storage** | VictoriaMetrics time-series database |
 
 ## Power metrics
 
+Redfish reports: `PowerMetrics`, `PowerStatistics`, `Sensor`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_power_consumed_watts` | Watts | Current total server power consumption. |
-| `idrac_power_capacity_watts` | Watts | Maximum power capacity of the server's power supply units. |
-| `idrac_power_input_voltage` | Volts | Input voltage from the power source to the PSU. |
-| `idrac_power_output_voltage` | Volts | Output voltage from PSU to server components. |
-| `idrac_power_psu_status` | Enum | Power supply unit health status (`OK`, `Warning`, `Critical`). |
-| `idrac_power_avg_watts` | Watts | Average power consumption over the collection interval. |
-| `idrac_power_peak_watts` | Watts | Peak power consumption recorded during the interval. |
+| `SystemPowerConsumption` | Watts | Current total server power consumption. |
+| `SystemInputPower` | Watts | Total input power to the server. |
+| `SystemOutputPower` | Watts | Total output power from PSUs. |
+| `SystemHeadRoomInstantaneous` | Watts | Instantaneous headroom between consumed and capped power. |
+| `TotalCPUPower` | Watts | Total power consumed by all CPUs. |
+| `TotalMemoryPower` | Watts | Total power consumed by all DIMMs. |
+| `TotalFanPower` | Watts | Total power consumed by all fans. |
+| `TotalPciePower` | Watts | Total power consumed by PCIe devices. |
+| `TotalStoragePower` | Watts | Total power consumed by storage devices. |
+| `LastHourAvgPower` | Watts | Average power consumption over the last hour. |
+| `LastHourMaxPower` | Watts | Peak power consumption in the last hour. |
+| `LastDayAvgPower` | Watts | Average power consumption over the last day. |
+| `LastWeekAvgPower` | Watts | Average power consumption over the last week. |
+| `WattsReading` | Watts | Per-PSU power reading. |
 
 ## Thermal metrics
 
+Redfish reports: `ThermalSensor`, `ThermalMetrics`, `CPUSensor`, `MemorySensor`, `StorageSensor`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_thermal_inlet_temp_celsius` | Celsius | Temperature at the server inlet (ambient air entering the chassis). |
-| `idrac_thermal_outlet_temp_celsius` | Celsius | Temperature at the server outlet (exhaust air). |
-| `idrac_thermal_cpu_temp_celsius` | Celsius | CPU package temperature. One metric per socket (labeled `cpu=0`, `cpu=1`). |
-| `idrac_thermal_memory_temp_celsius` | Celsius | DIMM temperature. One metric per DIMM slot. |
-| `idrac_thermal_storage_temp_celsius` | Celsius | Storage drive temperature (NVMe, SSD, or HDD). |
+| `TemperatureReading` | Celsius | Temperature reading from each sensor (inlet, outlet, CPU, DIMM, storage, etc.). Labeled by sensor location. |
+| `SysRackTempDelta` | Celsius | Temperature delta between inlet and outlet (rack-level thermal efficiency). |
+| `SysNetAirflow` | CFM | Net system airflow. |
+| `SysAirflowUtilization` | Percent | System airflow utilization as a percentage of total capacity. |
+| `ComputePower` | Watts | Compute subsystem power (thermal context). |
+| `ITUE` | Ratio | IT Usage Efficiency ratio. |
+| `TotalPSUHeatDissipation` | BTU/hr | Total heat dissipation from all PSUs. |
 
 ## Fan metrics
 
+Redfish report: `FanSensor`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_fan_speed_rpm` | RPM | Current fan rotational speed. One metric per fan (labeled `fan=Fan.Embedded.1`, etc.). |
-| `idrac_fan_speed_percent` | Percent | Fan speed as a percentage of maximum. Useful for alerting on fan degradation. |
-| `idrac_fan_status` | Enum | Fan health status (`OK`, `Warning`, `Critical`, `Absent`). |
+| `RPMReading` | RPM | Current fan rotational speed. One metric per fan. |
 
-## Voltage metrics
+## Sensor metrics
 
-
-| Metric | Unit | Description |
-| --- | --- | --- |
-| `idrac_voltage_reading` | Volts | Voltage reading from each voltage sensor. Labeled by sensor name (e.g., `sensor=PS1_Voltage_1`). |
-| `idrac_voltage_status` | Enum | Voltage sensor health status (`OK`, `Warning`, `Critical`). |
-| `idrac_voltage_upper_threshold` | Volts | Upper critical threshold for the voltage sensor. |
-| `idrac_voltage_lower_threshold` | Volts | Lower critical threshold for the voltage sensor. |
-
-## CPU health metrics
-
+Redfish report: `Sensor`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_cpu_status` | Enum | CPU health status (`OK`, `Warning`, `Critical`). One per socket. |
-| `idrac_cpu_model` | String (label) | CPU model string (e.g., `Intel(R) Xeon(R) Gold 6448Y`). Exposed as a metric label, not a numeric value. |
-| `idrac_cpu_core_count` | Count | Number of physical cores per CPU socket. |
-| `idrac_cpu_thread_count` | Count | Number of logical threads per CPU socket. |
+| `VoltageReading` | Volts | Voltage reading from each voltage sensor. |
+| `AmpsReading` | Amps | Current (amperage) reading from each PSU. |
+| `TemperatureReading` | Celsius | Temperature reading from generic sensors. |
+| `CPUUsagePctReading` | Percent | CPU utilization percentage. |
+| `IOUsagePctReading` | Percent | I/O subsystem utilization percentage. |
+| `MemoryUsagePctReading` | Percent | Memory utilization percentage. |
+| `SystemUsagePctReading` | Percent | Overall system usage percentage. |
+
+## CPU and memory metrics
+
+Redfish report: `CPUMemMetrics`
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `CPUC0ResidencyHigh` | Count | CPU C0 residency counter (high word). Higher values indicate more active CPU time. |
+| `CPUC0ResidencyLow` | Count | CPU C0 residency counter (low word). |
+| `AvgFrequencyAcrossCores` | MHz | Average frequency across all CPU cores. |
+| `CPUPkgEnergy` | Joules | CPU package energy consumed. |
+| `DRAMPkgEnergy` | Joules | DRAM package energy consumed. |
+| `PkgPwr` | Watts | CPU package power. |
+| `DRAMPwr` | Watts | DRAM power. |
+| `TJMax` | Celsius | Maximum junction temperature for the CPU. |
+| `PkgThermalStatus` | Enum | CPU package thermal status. |
+| `DRAMThrottling` | Enum | DRAM throttling state. |
+| `CPUViolationCounter` | Count | CPU power/thermal violation counter. |
+| `DDRLimitingCounter` | Count | DDR power limiting event counter. |
 
 ## Memory health metrics
 
+Redfish report: `MemoryMetrics`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_memory_status` | Enum | DIMM health status (`OK`, `Warning`, `Critical`). One per DIMM slot. |
-| `idrac_memory_size_gb` | GB | Capacity of each DIMM. |
-| `idrac_memory_speed_mhz` | MHz | Operating speed of each DIMM. |
-| `idrac_memory_correctable_errors` | Count | Correctable ECC error count per DIMM. Non-zero values may indicate impending DIMM failure. |
+| `CorrectableECCError` | Count | Correctable ECC error count per DIMM. Non-zero values may indicate impending DIMM failure. |
+| `UncorrectableECCError` | Count | Uncorrectable ECC error count per DIMM. |
+| `AddressParityError` | Count | Address parity error count. |
+| `DataLossDetected` | Enum | Whether data loss has been detected on the DIMM. |
+| `MemorySpareBlock` | Count | Spare block availability status. |
+| `PredictedMediaLifeLeftPercent` | Percent | Predicted media life remaining (persistent memory). |
+| `TemperatureThresholdAlarm` | Enum | Temperature threshold alarm state. |
 
 ## Storage health metrics
 
+Redfish reports: `StorageDiskSMARTData`, `NVMeSMARTData`
 
 | Metric | Unit | Description |
 | --- | --- | --- |
-| `idrac_storage_disk_status` | Enum | Physical disk health (`OK`, `Warning`, `Critical`, `Failed`). |
-| `idrac_storage_disk_capacity_gb` | GB | Reported capacity of each physical disk. |
-| `idrac_storage_disk_media_type` | String (label) | Media type (`SSD`, `HDD`, `NVMe`). Exposed as a label. |
-| `idrac_storage_virtual_disk_status` | Enum | RAID virtual disk health status. |
+| `DriveTemperature` | Celsius | Current drive temperature. |
+| `PercentDriveLifeRemaining` | Percent | Estimated drive life remaining. |
+| `PowerOnHours` | Hours | Total power-on hours. |
+| `PowerCycleCount` | Count | Total power cycle count. |
+| `ReadErrorRate` | Count | Read error rate. |
+| `CRCErrorCount` | Count | CRC error count. |
+| `ReallocatedBlockCount` | Count | Reallocated sector/block count. |
+| `UncorrectableErrorCount` | Count | Uncorrectable error count. |
+| `MediaWriteCount` | Count | Total media write count (SSD wear indicator). |
+| `CommandTimeout` | Count | Command timeout count. |
+| `AvailableSpare` | Percent | NVMe available spare capacity percentage. |
+| `AvailableSpareThreshold` | Percent | NVMe available spare threshold. |
+| `PercentageUsed` | Percent | NVMe percentage of drive life used. |
+| `CriticalWarning` | Bitmask | NVMe critical warning flags. |
+| `CompositeTemparature` | Celsius | NVMe composite temperature. |
+
+## GPU metrics (via iDRAC)
+
+iDRAC collects out-of-band GPU metrics from installed GPUs via the Redfish API. These metrics are independent of the in-band DCGM metrics collected by the GPU driver.
+
+Redfish reports: `GPUMetrics`, `GPUStatistics`
+
+**GPUMetrics:**
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `GPUUsage` | Percent | GPU utilization percentage. |
+| `GPUMemoryUsage` | Percent | GPU memory utilization percentage. |
+| `GPUClockFrequency` | MHz | Current GPU clock frequency. |
+| `GPUMemoryClockFrequency` | MHz | Current GPU memory clock frequency. |
+| `PowerConsumption` | Watts | Current GPU power consumption. |
+| `PrimaryTemperature` | Celsius | Primary GPU temperature. |
+| `SecondaryTemperature` | Celsius | Secondary GPU temperature. |
+| `BoardTemperature` | Celsius | GPU board temperature. |
+| `MemoryTemperature` | Celsius | GPU memory temperature. |
+| `GPUHealth` | Enum | GPU health status. |
+| `GPUStatus` | Enum | GPU operational status. |
+| `BoardPowerSupplyStatus` | Enum | GPU board power supply status. |
+| `PowerSupplyStatus` | Enum | GPU power supply status. |
+| `PowerBrakeState` | Enum | GPU power brake state. |
+| `ThermalAlertState` | Enum | GPU thermal alert state. |
+| `GPUArbitratedPowerLimit` | Watts | GPU arbitrated power limit. |
+| `GPUEnforcedPowerLimit` | Watts | GPU enforced power limit. |
+| `GPUPCIeLinkSpeed` | GT/s | Current PCIe link speed. |
+| `GPUPCIeLinkSpeedMax` | GT/s | Maximum PCIe link speed. |
+| `GPUPCIeRxThroughput` | KB/s | PCIe receive throughput. |
+| `GPUPCIeTxThroughput` | KB/s | PCIe transmit throughput. |
+| `GPUPCIeCorrectableErrorCount` | Count | PCIe correctable error count. |
+| `GPUMemBandwidthUsage` | Percent | GPU memory bandwidth usage. |
+| `GPUClockEventReason` | Bitmask | Reason for GPU clock frequency changes. |
+| `GPUSMActivity` | Percent | SM (Streaming Multiprocessor) activity. |
+| `GPUSMOccupancy` | Percent | SM occupancy. |
+| `GPUTensorCoreUsage` | Percent | Tensor core utilization. |
+| `GPUHmmaUsage` | Percent | HMMA (Half-precision Matrix Multiply Accumulate) usage. |
+
+**GPUStatistics (ECC error counters):**
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `SBECounterFB` | Count | Single-bit ECC errors in framebuffer. |
+| `DBECounterFB` | Count | Double-bit ECC errors in framebuffer. |
+| `SBECounterFBL2Cache` | Count | Single-bit ECC errors in FB L2 cache. |
+| `DBECounterFBL2Cache` | Count | Double-bit ECC errors in FB L2 cache. |
+| `SBECounterGRL1Cache` | Count | Single-bit ECC errors in GR L1 cache. |
+| `DBECounterGRL1Cache` | Count | Double-bit ECC errors in GR L1 cache. |
+| `SBECounterGRRF` | Count | Single-bit ECC errors in GR register file. |
+| `DBECounterGRRF` | Count | Double-bit ECC errors in GR register file. |
+| `SBECounterGRTex` | Count | Single-bit ECC errors in GR texture memory. |
+| `DBECounterGRTex` | Count | Double-bit ECC errors in GR texture memory. |
+| `CumulativeSBECounterFB` | Count | Cumulative single-bit ECC errors in framebuffer. |
+| `CumulativeDBECounterFB` | Count | Cumulative double-bit ECC errors in framebuffer. |
+| `CumulativeSBECounterGR` | Count | Cumulative single-bit ECC errors in GR. |
+| `CumulativeDBECounterGR` | Count | Cumulative double-bit ECC errors in GR. |
+| `SBERetiredPages` | Count | Memory pages retired due to single-bit errors. |
+| `DBERetiredPages` | Count | Memory pages retired due to double-bit errors. |
+
+## NIC metrics
+
+Redfish reports: `NICStatistics`, `NICSensor`
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `RxBytes` | Bytes | Total bytes received (cumulative). |
+| `TxBytes` | Bytes | Total bytes transmitted (cumulative). |
+| `RxUnicast` | Count | Unicast packets received. |
+| `TxUnicast` | Count | Unicast packets transmitted. |
+| `RxBroadcast` | Count | Broadcast packets received. |
+| `TxBroadcast` | Count | Broadcast packets transmitted. |
+| `LanFCSRxErrors` | Count | LAN FCS receive errors. |
+| `LinkStatus` | Enum | NIC link status. |
+| `OSDriverState` | Enum | OS driver state. |
+| `TemperatureReading` | Celsius | NIC temperature. |
+
+## PSU metrics
+
+Redfish report: `PSUMetrics`
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `PSURPMReading` | RPM | PSU fan speed. |
+| `PSUTemperatureReading` | Celsius | PSU temperature. |
+
+## System usage metrics
+
+Redfish report: `SystemUsage`
+
+| Metric | Unit | Description |
+| --- | --- | --- |
+| `CPUUsage` | Percent | Overall CPU usage. |
+| `IOUsage` | Percent | Overall I/O usage. |
+| `MemoryUsage` | Percent | Overall memory usage. |
+| `AggregateUsage` | Percent | Aggregate system usage. |
 
 ## Metric labels
 
@@ -105,5 +243,5 @@ All iDRAC metrics include the following common labels:
 
     - [Telemetry Config](../Configuration/telemetry_config.md) -- iDRAC telemetry
       configuration parameters.
+    - [DCGM Metrics](dcgm_metrics.md) -- In-band GPU telemetry metrics (DCGM/ROCm).
     - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
-    - [Gpu Metrics](gpu_metrics.md) -- GPU telemetry metrics.
