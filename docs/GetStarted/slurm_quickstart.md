@@ -101,7 +101,7 @@ Create a `pxe_mapping_file.csv` in
 `/opt/omnia/input/project_default/` and set the `pxe_mapping_file_path`
 variable in `provision_config.yml` to point to it.
 
-```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
+```csv title="/opt/omnia/input/project_default/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,SVCTAG01,,head01,a1:b2:c3:d4:e5:f6,172.16.107.52,a2:b3:c4:d5:e6:f7,172.17.107.52,,
 slurm_node_x86_64,grp1,SVCTAG02,,compute01,b1:c2:d3:e4:f5:a6,172.16.107.43,b2:c3:d4:e5:f6:a7,172.17.107.43,,

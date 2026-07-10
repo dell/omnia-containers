@@ -117,7 +117,7 @@ In `pxe_mapping_file.csv`, ensure the following functional groups are present:
 - `service_kube_control_plane` (three control plane nodes)
 - `service_kube_node` (at least one worker node)
 
-```text title="pxe_mapping_file.csv -- example rows"
+```csv title="pxe_mapping_file.csv -- example rows"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,JS8MN34,,scnode,04:32:01:DD:9D:F0,172.16.107.91,6c:3c:8c:85:bd:a6,100.10.0.115,,
 slurm_node_x86_64,grp1,1T8MN34,GZF6ZS3,snode1,04:32:01:DE:18:D0,172.16.107.92,6c:3c:8c:85:be:a6,100.10.0.116,,

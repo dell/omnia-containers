@@ -53,7 +53,7 @@ groups are present:
 - `service_kube_control_plane` (control plane nodes; three for an HA cluster)
 - `service_kube_node` (at least one worker node)
 
-```text title="pxe_mapping_file.csv -- example service K8s rows"
+```csv title="pxe_mapping_file.csv -- example service K8s rows"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
 service_kube_node_x86_64,grp6,GZF6ZS3,,kn,EC:2A:72:32:C6:98,172.16.107.95,ec:2a:72:3b:a8:52,100.10.0.209,,
