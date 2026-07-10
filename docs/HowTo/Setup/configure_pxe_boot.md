@@ -5,9 +5,9 @@
 
 The `set_pxe_boot.yml` playbook uses the iDRAC Redfish API to set the boot source override on target nodes, ensuring they boot from PXE on the next restart to retrieve the diskless image from the OIM.
 
-!!! warning
+!!! caution
 
-    This playbook restarts target servers and powers them on if they are off. Any unsaved data will be lost.
+    <b>This playbook restarts the target servers and powers on servers that are currently off.<br>Running workloads may be interrupted, and any unsaved data could be lost.<br>Ensure all critical workloads are gracefully stopped and any important data is saved before executing this playbook.</b>
 
 ## Prerequisites
 
