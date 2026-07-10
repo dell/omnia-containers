@@ -2,7 +2,7 @@
 
 This page lists all software components that Omnia installs and configures across the OIM and cluster nodes. Versions are pinned to those validated with this release.
 
-## OIM (Management Node) software
+## OIM software
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -28,7 +28,7 @@ This page lists all software components that Omnia installs and configures acros
 | registry | latest | Apache-2.0 license | Docker Registry is the official image registry service for storing and distributing Docker images. |
 | postgresSQL | 16.8 | PostgreSQL | PostgreSQL, also known as Postgres, is a free and open-source relational database management system emphasizing extensibility and SQL compliance. |
 
-## Kubernetes cluster software
+## Kubernetes
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -81,7 +81,7 @@ This page lists all software components that Omnia installs and configures acros
 | sg3_utils | Latest | GPL-2.0-or-later | SCSI utility tools |
 | lsscsi | Latest | GPL-2.0-or-later | List SCSI devices utility |
 
-## Slurm cluster software
+## Slurm
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -94,7 +94,7 @@ This page lists all software components that Omnia installs and configures acros
 | PyMySQL | 1.1.2 | MIT | MySQL client library for Python |
 | OpenMPI | 5.0.10 | BSD-3-Clause-Clear | Open MPI main development repository |
 
-## GPU and accelerator software
+## GPU and accelerator
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -104,7 +104,7 @@ This page lists all software components that Omnia installs and configures acros
 | doca-ofed | 3.2.1 | NVIDIA DOCA EULA | NVIDIA DOCA OFED driver |
 | UCX | 1.19.0 | BSD-3-Clause | Unified Communication X - high-performance network communication library for HPC |
 
-## Authentication software
+## Authentication
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |
@@ -132,7 +132,7 @@ This page lists all software components that Omnia installs and configures acros
 | dellemc.os10 | 1.1.1 | Apache-2.0 | Ansible collection for Dell EMC OS10 switch management |
 | dellemc.openmanage | 9.6.0 | Apache-2.0 | Ansible collection for Dell EMC OpenManage |
 
-## Telemetry software stack
+## Telemetry stack
 
 | Component | Version | License | Purpose |
 | --- | --- | --- | --- |

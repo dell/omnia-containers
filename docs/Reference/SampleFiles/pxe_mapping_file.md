@@ -25,8 +25,8 @@ functional group, hostname, and admin network addresses via mac addresses. Omnia
 | `IB_IP` | No | Static IP address on the InfiniBand network (e.g., `192.168.0.100`). Must be within the InfiniBand subnet defined in `network_spec.yml`. Leave blank if node does not have InfiniBand. |
 
 ## Sample csv files
-#### pxe_mapping_file.csv for single subnet DHCP
-```csv
+#### Single subnet DHCP
+```csv title="pxe_mapping_file_single_subnet.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 slurm_node_x86_64,grp2,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:aa,172.17.107.43,InfiniBand.Slot.7-1,192.168.0.101
@@ -43,9 +43,9 @@ os_x86_64,grp7,EFG123,,os-node1,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,1
 os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22,10.40.0.12,InfiniBand.Slot.7-11,10.42.0.12
 ```
 
-#### pxe_mapping_file.csv for multiple subnet DHCP
+#### Multi-subnet DHCP
 
-```csv
+```csv title="pxe_mapping_file_multiple_subnet.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 service_kube_control_plane_x86_64,grp1,DEF456,,service-kube-control-plane1,aa:bb:cc:dd:ee:03,10.41.1.15,aa:bb:cc:dd:ee:04,10.40.1.15,InfiniBand.Slot.7-2,10.42.1.15
 service_kube_control_plane_x86_64,grp1,GHI789,,service-kube-control-plane2,aa:bb:cc:dd:ee:05,10.41.1.16,aa:bb:cc:dd:ee:06,10.40.1.16,InfiniBand.Slot.7-3,10.42.1.16
@@ -65,7 +65,8 @@ os_aarch_64,grp8,EFG123,,os-node2,aa:bb:cc:dd:ee:21,10.41.0.12,aa:bb:cc:dd:ee:22
 
 **Slurm control node (x86_64)**
 
-```text title="Example: Slurm control node"
+```csv title="Example: Slurm control node"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172.16.107.52,xx:yy:zz:aa:bb:dd,172.17.107.52,InfiniBand.Slot.7-1,192.168.0.100
 ```
 
@@ -77,6 +78,7 @@ slurm_control_node_x86_64,grp0,ABCD12,,slurm-control-node1,xx:yy:zz:aa:bb:cc,172
 **Slurm compute nodes (AArch64)**
 
 ```text title="Example: Slurm compute nodes with parent chassis"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 slurm_node_aarch64,grp1,ABCD34,ABFL82,slurm-node1,aa:bb:cc:dd:ee:ff,172.16.107.43,aa:bb:cc:dd:ee:gg,172.17.107.43,InfiniBand.Slot.7-2,192.168.0.101
 slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:ff,172.16.107.44,aa:bb:cc:dd:ff:gg,172.17.107.44,NIC.InfiniBand.1-3,192.168.0.102
 ```
@@ -88,7 +90,8 @@ slurm_node_aarch64,grp2,ABFG34,ABKD88,slurm-node2,aa:bb:cc:dd:ee:ff,172.16.107.4
 
 **Login node (AArch64)**
 
-```text title="Example: Login node"
+```csv title="Example: Login node"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 login_node_aarch64,grp9,ABFG78,,login-node1,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:bb:cc:dd:ee:bb,172.17.107.42,NIC.InfiniBand.1-1,192.168.0.104
 ```
 
@@ -98,7 +101,8 @@ login_node_aarch64,grp9,ABFG78,,login-node1,aa:bb:cc:dd:ee:gg,172.16.107.42,aa:b
 
 **Kubernetes control plane (x86_64)**
 
-```text title="Example: Kubernetes control plane"
+```csv title="Example: Kubernetes control plane"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb:cc:dd:ee:ff,172.16.107.53,xx:yy:zz:aa:bb:ff,172.17.107.53,,
 ```
 
@@ -108,7 +112,8 @@ service_kube_control_plane_x86_64,grp3,ABFG79,,service-kube-control-plane1,aa:bb
 
 **Kubernetes worker nodes (x86_64)**
 
-```text title="Example: Kubernetes worker nodes"
+```csv title="Example: Kubernetes worker nodes"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.16.107.56,xx:yy:zz:aa:bb:jj,172.17.107.56,,
 ```
 
@@ -117,7 +122,8 @@ service_kube_node_x86_64,grp5,ABFL82,,service-kube-node1,aa:bb:cc:dd:ee:jj,172.1
 
 **Generic OS nodes (x86_64 and AArch64)**
 
-```text title="Example: Generic OS nodes"
+```csv title="Example: Generic OS nodes"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 os_x86_64,grp6,ABEF56,,os-node1,xx:yy:zz:aa:bb:ll,172.16.107.60,xx:yy:zz:aa:bb:ee,172.17.107.60,,
 os_aarch64,grp7,ABEF78,,os-node2,xx:yy:zz:aa:bb:ab,172.16.107.61,xx:yy:zz:aa:bb:ac,172.17.107.61,,
 ```
