@@ -109,7 +109,6 @@ login_node_x86_64,grp2,SVCTAG03,,login01,c1:d2:e3:f4:a5:b6,172.16.107.44,c2:d3:e
 login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172.16.107.45,d2:e3:f4:a5:b6:c7,172.17.107.45,,
 ```
 
-
 !!! warning
     Replace all placeholder values (`SVCTAG*`, MAC addresses, IPs) with
     your actual hardware data.
@@ -188,7 +187,8 @@ For the full procedure and parameter reference, see
 !!! note
     For Slurm-only deployments, disable all telemetry metrics in
     `telemetry_config.yml` except DCGM, which can be enabled if GPU
-    telemetry is required.
+    telemetry is required. 
+    For more information related to DCGM, see [DCGM](../HowTo/Slurm/slurm_with_gpu.md#dcgm).
 
 !!! tip
     If you need to build custom Slurm RPMs from source or host them on
@@ -210,7 +210,26 @@ For the full procedure and parameter reference, see
     For InfiniBand network configuration details, see
     [Configure InfiniBand](../HowTo/Networking/configure_infiniband.md).
 
-## Step 4 -- Prepare the OIM
+## Step 4 -- Configure Slurm
+
+Omnia applies a default Slurm configuration optimized for HPC clusters:
+
+- **Default partition**: A partition named `normal` is created with all
+  compute nodes from the PXE mapping file
+- **Scheduler**: `sched/backfill` with `select/cons_tres` and
+  `CR_Core_Memory`
+- **GPU support**: `GresTypes=gpu` with `AutoDetect=nvml`
+- **Configless mode**: Compute nodes use `--conf-server` to fetch
+  configuration from the controller
+
+!!! note
+    The parameters `ClusterName`, `SlurmctldHost`, and
+    `AccountingStorageHost` are managed by Omnia and cannot be overridden.
+
+For custom Slurm configuration, see
+[Configure Slurm](../HowTo/Slurm/configure_slurm.md).
+
+## Step 5 -- Prepare the OIM
 
 Deploys the OIM infrastructure: OpenCHAMI provisioning stack, Pulp
 local repository, container registry, MinIO S3 storage, OpenLDAP
@@ -315,7 +334,7 @@ After `prepare_oim.yml` completes, verify the OIM services on the
 For detailed OIM verification procedures, see
 [Verify OIM Services](../HowTo/Setup/verify_oim_services.md){target="_blank"}.
 
-## Step 5 -- Create Local Repositories
+## Step 6 -- Create Local Repositories
 
 Downloads all required RPM packages, container images, and tarballs
 into Pulp based on `software_config.json` for air-gapped provisioning.
@@ -380,7 +399,7 @@ entries configured in `software_config.json`.
     must show `success` status before proceeding.
 
 
-## Step 6 -- Build Node Images
+## Step 7 -- Build Node Images
 
 Builds diskless OS images for each functional group in the PXE mapping
 file and uploads them to MinIO (S3) for PXE boot delivery.
@@ -460,7 +479,7 @@ MinIO (S3). Each functional group produces **3 image artifacts**:
     filesystem is stored directly under each functional group directory.
     If any artifacts are missing, re-run the corresponding build playbook.
 
-## Step 7 -- Provision Nodes
+## Step 8 -- Provision Nodes
 
 The `provision.yml` playbook provisions the cluster nodes. It configures
 boot scripts, cloud-init, and prepares nodes for Slurm deployment.
@@ -525,7 +544,7 @@ nodes:
 
 For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../Troubleshooting/provisioning.md).
 
-## Step 8 -- PXE Boot Nodes
+## Step 9 -- PXE Boot Nodes
 
 After `provision.yml` completes, PXE boot all Slurm-related nodes.
 
@@ -592,7 +611,7 @@ normal*    up     infinite   2      idle   compute[01-02]
 For detailed cluster verification procedures, see
 [Verify Cluster](../HowTo/Setup/verify_cluster.md){target="_blank"}.
 
-## Step 9 -- Verify the Cluster
+## Step 10 -- Verify the Cluster
 
 After all nodes have booted and cloud-init has completed, verify the
 Slurm cluster is operational.
@@ -627,6 +646,11 @@ Your Slurm cluster is operational. Common next steps:
    If your compute nodes have NVIDIA GPUs, follow
    [Slurm with GPU](../HowTo/Slurm/slurm_with_gpu.md) to enable GPU
    scheduling and GRES configuration.
+
+**Install NVIDIA HPC SDK**
+   Set up the NVIDIA HPC compilers (`nvc`, `nvc++`, `nvfortran`) on
+   compiler and compute nodes using
+   [NVIDIA HPC SDK Setup](../HowTo/Slurm/setup_nvhpc_sdk.md).
 
 **Customize Slurm configuration**
    Tune partitions, scheduling policies, and accounting settings using
