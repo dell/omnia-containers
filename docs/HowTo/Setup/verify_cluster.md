@@ -44,10 +44,6 @@ After booting the nodes, verify the following:
 
     Ensure that the compute nodes are listed and the node state is `idle`.
 
-!!! tip
-
-    Store job output and error files in NFS-mounted directories (for example, `/var/log/slurm/`) so that job logs are persisted.
-
 ### Verify Slurm Cluster with GPU
 
 3. On Slurm nodes that have GPUs, it may take some time for Slurmd to start because of the GPU driver installation. To view the logs during this process, run:
@@ -95,5 +91,5 @@ Slurm PAM restricts SSH access to compute nodes for non-root users. You can log 
 
 ## Next Steps
 
-- [Slurm With Gpu](../Slurm/slurm_with_gpu.md) -- Configure GPU support for Slurm.
+- [Slurm With GPU](../Slurm/slurm_with_gpu.md) -- Configure GPU support for Slurm.
 - [Deploy External LDAP](../Authentication/deploy_external_ldap.md) -- Set up centralized authentication for the PAM feature.

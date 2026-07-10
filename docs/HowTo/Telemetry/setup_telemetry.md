@@ -8,7 +8,6 @@ For a summary of all supported telemetry sources, bridges and their sinks, see [
 !!! note
 
     To enable any telemetry and log collections (iDRAC, LDMS, PowerScale, DCGM, UFM, VAST, or Vector), ensure that the `service_k8s` entry is present in the `software_config.json` file and the corresponding telemetry source fields are set to `true` in the `telemetry_config.yml` file.
-
 ## Telemetry Architecture
 
 
@@ -50,7 +49,6 @@ telemetry stack. For the end-to-end playbook sequence, see
 
 - [Configure iDRAC Telemetry](configure_idrac.md)
 - [Configure LDMS Telemetry](configure_ldms.md)
-- [Configure DCGM Telemetry](configure_dcgm.md)
 - [Configure PowerScale Telemetry](configure_powerscale.md)
 - [Configure UFM Telemetry](configure_ufm.md)
 - [Configure VAST Telemetry](configure_vast.md)

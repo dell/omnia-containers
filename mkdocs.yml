@@ -131,6 +131,8 @@ extra_css:
 extra_javascript:
   - javascripts/palette-fallback.js
   - javascripts/language-badges.js
+  - javascripts/csv-table-formatter.js
+  - javascripts/collapsible-tables-height.js
 
 # Footer
 extra:
@@ -152,6 +154,7 @@ nav:
     - Architecture: Overview/architecture.md
     - Components: Overview/components.md
     - Network Topologies: Overview/network_topologies.md
+    - Cluster DNS: Overview/cluster_dns.md
     - Telemetry Architecture: Overview/telemetry_architecture.md
     - Release Notes: Overview/release_notes.md
     - Blogs about Omnia: Overview/blogs.md
@@ -174,7 +177,9 @@ nav:
       - Prepare OIM: HowTo/Setup/prepare_oim.md
       - Verify OIM Services: HowTo/Setup/verify_oim_services.md
       - Create Local Repos: HowTo/Setup/create_local_repos.md
+      - Prepare aarch64 Node: HowTo/Setup/prepare_aarch64_node.md
       - Build Cluster Images: HowTo/Setup/build_cluster_images.md
+      - Configure Kernel Version Override: HowTo/Setup/configure_kernel_version_override.md
       - Provision Nodes: HowTo/Setup/provision_nodes.md
       - PXE Boot Playbook: HowTo/Setup/configure_pxe_boot.md
       - Verify Cluster: HowTo/Setup/verify_cluster.md
@@ -183,6 +188,7 @@ nav:
       - Build Slurm Repo: HowTo/Slurm/build_slurm_repo.md
       - Host RPMs on Apache: HowTo/Slurm/host_slurm_repo.md
       - Slurm Configuration Files: HowTo/Slurm/configure_slurm.md
+      - NVIDIA HPC SDK Setup: HowTo/Slurm/setup_nvhpc_sdk.md
       - Slurm with GPU: HowTo/Slurm/slurm_with_gpu.md
       - Add Slurm Nodes: HowTo/Slurm/add_slurm_nodes.md
       - Remove Slurm Nodes: HowTo/Slurm/remove_slurm_nodes.md
@@ -198,6 +204,7 @@ nav:
       - Configure Vast: HowTo/Storage/configure_vast.md
     - Networking:
       - Configure InfiniBand: HowTo/Networking/configure_infiniband.md
+      - Configure Cluster DNS: HowTo/Networking/configure_cluster_dns.md
     - Authentication:
       - Set Up OpenLDAP: HowTo/Authentication/setup_openldap.md
       - Configure OpenLDAP Proxy: HowTo/Authentication/configure_openldap_proxy.md
@@ -207,7 +214,6 @@ nav:
       - Deploy the Telemetry Stack: HowTo/Telemetry/deploy_telemetry.md
       - iDRAC Telemetry: HowTo/Telemetry/configure_idrac.md
       - LDMS Telemetry: HowTo/Telemetry/configure_ldms.md
-      - DCGM Telemetry: HowTo/Telemetry/configure_dcgm.md
       - PowerScale Telemetry: HowTo/Telemetry/configure_powerscale.md
       - UFM Telemetry: HowTo/Telemetry/configure_ufm.md
       - VAST Telemetry: HowTo/Telemetry/configure_vast.md
@@ -216,10 +222,11 @@ nav:
       - External Kafka: HowTo/Telemetry/configure_external_kafka.md
       - External VictoriaMetrics: HowTo/Telemetry/configure_external_victoria.md
     - Advanced Configurations:
+      - Additional Cloud-Init: HowTo/AdvancedConfigurations/configure_additional_cloud_init.md
       - Apptainer: HowTo/AdvancedConfigurations/use_apptainer.md
-      - Configure Multi-subnet: HowTo/AdvancedConfigurations/configure_multisubnet.md
       - Deploy Additional Packages: HowTo/AdvancedConfigurations/deploy_additional_packages.md
       - Deploy Additional Repositories: HowTo/AdvancedConfigurations/deploy_additional_repos.md
+      - Configure Multi-Subnet DHCP: HowTo/AdvancedConfigurations/configure_multi_subnet_dhcp.md
     - BuildStreaM:
       - Deploy GitLab: HowTo/BuildStreaM/deploy_gitlab.md
       - Execute Build Pipeline: HowTo/BuildStreaM/execute_build_pipeline.md
@@ -255,12 +262,19 @@ nav:
       - Additional Cloud Init: Reference/Configuration/additional_cloud_init.md
     - Sample Files:
       - PXE Mapping File: Reference/SampleFiles/pxe_mapping_file.md
+      - PXE Boot Inventory: Reference/SampleFiles/pxe_boot_inventory.md
       - slurm.conf: Reference/SampleFiles/slurm_conf.md
       - slurmdbd.conf: Reference/SampleFiles/slurmdbd_conf.md
       - software_config.json: Reference/SampleFiles/software_config_json.md
     - Cluster Requirements:
       - Minimum Nodes: Reference/ClusterRequirements/minimum_nodes.md
       - Disk Space: Reference/ClusterRequirements/disk_space.md
+      - Storage Requirements: Reference/ClusterRequirements/storage_requirements.md
+      - Networking Requirements: Reference/ClusterRequirements/networking_requirements.md
+      - OIM Requirements: Reference/ClusterRequirements/oim_requirements.md
+      - Software Requirements: Reference/ClusterRequirements/software_requirements.md
+      - Kubernetes Requirements: Reference/ClusterRequirements/kubernetes_requirements.md
+      - Slurm Requirements: Reference/ClusterRequirements/slurm_requirements.md
     - Playbooks:
       - Playbook Reference: Reference/Playbooks/playbook_reference.md
     - Metrics:

@@ -223,5 +223,23 @@ instructions on setting up Apache to serve the repository.
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**Slurm RPM build failures**
+   Install missing development packages:
+
+   ```bash title="Run on: build host"
+   dnf install -y <missing-package>-devel
+   ```
+
+   For aarch64 builds, install kernel headers:
+
+   ```bash title="Run on: aarch64 build host"
+   dnf install -y kernel-devel kernel-headers
+   ```
+
+   Verify CUDA is installed before running `rpmbuild` with GPU support:
+
+   ```bash title="Run on: build host"
+   ls /usr/local/cuda/lib64/stubs/libnvidia-ml.so
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

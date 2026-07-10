@@ -84,5 +84,12 @@ The utility performs the following steps:
 
 ## Troubleshooting
 
-For Slurm troubleshooting, see
-[Slurm Issues](../../Troubleshooting/slurm.md).
+**`slurmctld` fails to start after config rollback**
+   The backup may reference nodes that no longer exist. Run cleanup and redeploy:
+
+   ```bash title="Run on: omnia_core container"
+   ansible-playbook /opt/omnia/utils/slurm_config_util.yml --tags slurm_cleanup
+   ansible-playbook provision.yml
+   ```
+
+For the complete list, see [Slurm Issues](../../Troubleshooting/slurm.md).

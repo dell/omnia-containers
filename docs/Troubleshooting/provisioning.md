@@ -152,11 +152,15 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/software.csv
         ```
 
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/software.csv`
+
     - Per-software task results:
 
         ```text title="Example"
         /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>_task_results.log
         ```
+
+        Example for OpenLDAP: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap_task_results.log`
 
     - Package-level status:
 
@@ -164,11 +168,19 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
         /opt/omnia/log/local_repo/<cluster_os>/<cluster_os_version>/<arch>/<sw>/status.csv
         ```
 
-    - Detailed failure information:
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/status.csv`
+
+    - Detailed failure information. View the reason a job was unsuccessful in the `package_status_<pid>.log` file referenced in the `<sw>_task_results.log`:
 
         ```text title="Example"
         /opt/omnia/log/local_repo/rhel/10.0/x86_64/<sw>/logs/package_status_<pid>.log
         ```
+
+        Example: `/opt/omnia/log/local_repo/rhel/10.0/x86_64/openldap/logs/package_status_858667.log`
+
+    !!! note
+
+        If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
 ### Failure when re-run multiple times
 
@@ -278,6 +290,7 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
     - cloud-init failed during the boot process.
     - The node's boot image was not built correctly.
     - Network configuration conflicts prevent the node from reaching the OIM.
+    - cloud-init is not properly loaded on the target servers during provisioning. For more information, see [Inconsistent cloud-init behavior with multiple node group configurations](https://github.com/OpenCHAMI/cloud-init/issues/89).
 
 ??? note "Resolution"
 
@@ -297,6 +310,11 @@ Issues related to PXE booting, node discovery, cloud-init configuration, the `di
 
     3. If cloud-init completed with errors, re-run `provision.yml` after
        fixing the root cause.
+
+    4. If the hostname or root password is not configured because cloud-init
+       was not loaded in time, wait 5 minutes and retry provisioning the
+       node. If the issue persists, redeploy the cluster after running the
+       `oim_cleanup.yml` playbook.
 
 
 ## IP route conflict after provisioning

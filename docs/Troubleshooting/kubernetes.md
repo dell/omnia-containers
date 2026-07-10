@@ -18,6 +18,8 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
     1. Add Docker credentials to `omnia_config_credentials.yml`.
     2. Ensure `local_repo.yml` completed successfully.
 
+    For more information, see [Pull an Image from a Private Registry](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/).
+
 ## Pods not in running state
 
 ???+ note "Symptom"
@@ -162,6 +164,11 @@ Issues related to the Kubernetes service cluster, including image pulls, pod sch
     - [Issue #110755](https://github.com/kubernetes/kubernetes/issues/110755) -- Kubelet doesn't finish killing pods before shutdown.
     - [Issue #124448](https://github.com/kubernetes/kubernetes/issues/124448) -- GracefulNodeShutdown fails to update Pod status.
     - [Issue #109531](https://github.com/kubernetes/kubernetes/issues/109531) -- Pods in Running/Terminating state after shutdownGracePeriod expiry.
+
+    **Official Kubernetes documentation:**
+
+    - [Kubernetes Node Shutdowns](https://kubernetes.io/docs/concepts/cluster-administration/node-shutdown/)
+    - [Kubelet Configuration Reference](https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/)
 
 ## NFS-client provisioner CrashLoopBackOff
 
