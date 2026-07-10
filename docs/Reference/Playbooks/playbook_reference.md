@@ -7,32 +7,32 @@ their purpose, where they run, and what input files they require.
 
 | Playbook | Purpose |
 | --- | --- |
-| <b>provision/provision.yml</b> | End-to-end orchestration playbook that calls all other playbooks in sequence: validation, OIM preparation, repository setup, discovery, image building, cluster deployment, and telemetry. |
-| <b>input_validation/validate_config.yml</b> | Validates all input files (YAML, JSON, CSV) for schema correctness, type checking, range validation, and cross-file consistency. |
-| <b>utils/credential_utility/get_config_credentials.yml</b> | Securely creates and updates credential configuration files. Prompts for sensitive credentials (root password, BMC credentials, database passwords, LDAP bind password) and stores them in encrypted vault files. |
-| <b>utils/oim_cleanup.yml</b> | Removes all Omnia-deployed services, containers, and configuration from the OIM. Returns the OIM to a pre-Omnia state. Does **not** affect cluster nodes. |
-| <b>prepare_oim/prepare_oim.yml</b> | Prepares the OIM: installs Podman, configures networking, deploys the `omnia_core` container, and sets up OpenCHAMI services. |
-| <b>local_repo/local_repo.yml</b> | Configures and synchronizes the local Pulp repository mirror on the OIM. Mirrors RHEL, EPEL, CUDA, K8s, and custom repositories. |
-| <b>discovery/discovery.yml</b> | Discovers bare-metal nodes via PXE boot and BMC/iDRAC scanning. Registers discovered nodes in OpenCHAMI inventory with hardware details, MAC addresses, and service tags. |
-| <b>build_image_x86_64/build_image_x86_64.yml</b> | Builds the provisioning OS image for x86_64 (Intel/AMD) nodes from the RHEL ISO. The image is served via HTTP/iPXE during PXE boot. |
-| <b>build_image_aarch64/build_image_aarch64.yml</b> | Builds the provisioning OS image for AArch64 (ARM Grace CPU) nodes. Requires a separate RHEL AArch64 ISO. |
-| <b>gitlab/gitlab.yml</b> | Deploys and configures GitLab for the BuildStreaM catalog pipeline on the designated GitLab host. Manages project creation, SSL certificates, and repository settings. |
-| <b>gitlab/cleanup_gitlab.yml</b> | Removes GitLab deployment and cleans up related configurations and containers. |
-| <b>telemetry/telemetry.yml</b> | Deploys the telemetry pipeline: Kafka, VictoriaMetrics, Grafana, iDRAC telemetry collector, and LDMS samplers. |
-| <b>telemetry/telemetry_enable.yml</b> | Enables telemetry collection on cluster nodes without full redeployment. |
-| <b>telemetry/telemetry_disable.yml</b> | Disables telemetry collection on cluster nodes. |
-| <b>utils/create_container_group.yml</b> | Creates container groups and manages container-related configurations on the OIM. |
-| <b>utils/generate_functional_groups.yml</b> | Generates functional group mappings from the PXE mapping file for cluster node organization. |
-| <b>utils/set_pxe_boot.yml</b> | Configures PXE boot settings on discovered nodes for provisioning. |
-| <b>utils/slurm_config_util.yml</b> | Utility playbook for managing Slurm configuration backups and updates. |
-| <b>utils/update_cloud_init_bss.yml</b> | Updates cloud-init configuration on Boot Service Stack (BSS) for node provisioning. |
-| <b>utils/external_kafka_connect_details.yml</b> | Retrieves and displays external Kafka connection details for telemetry integration. |
-| <b>utils/external_victoria_connect_details.yml</b> | Retrieves and displays external VictoriaMetrics connection details for telemetry integration. |
-| <b>utils/delete_migrated_pulp_rpm_repos.yml</b> | Cleans up migrated RPM repositories from Pulp after migration. |
-| <b>log_collector/collect.yml</b> | Collects logs from all cluster nodes and the OIM for troubleshooting and diagnostics. |
-| <b>rollback/rollback.yml</b> | Rolls back Omnia deployment to a previous state. Restores configurations and removes recent changes. |
-| <b>upgrade/prepare_upgrade.yml</b> | Prepares the cluster for an Omnia version upgrade. Validates compatibility and backs up configurations. |
-| <b>upgrade/upgrade.yml</b> | Performs the Omnia version upgrade across the OIM and cluster nodes. |
+| <b>provision/provision.yml</b> | Validates provision inputs and images, configures OIM/CoreDNS name resolution, provisions nodes via OpenCHAMI (BSS and cloud-init), and deploys mount, Kubernetes, Slurm, OpenLDAP, and telemetry configuration on the provisioned cluster nodes. |
+| <b>input_validation/validate_config.yml</b> | Validates RHEL subscription status and repository URLs, then runs the `validate_input` role to perform schema and cross-file (L1/L2) validation of all Omnia input files, scoped by the tags of the calling playbook. |
+| <b>utils/credential_utility/get_config_credentials.yml</b> | Creates and updates the encrypted `omnia_config_credentials.yml` file, prompting for any mandatory or conditional credentials (root password, BMC credentials, database passwords, LDAP bind password) that are missing. |
+| <b>utils/oim_cleanup.yml</b> | Removes all Omnia-deployed containers, services, and configuration from the OIM (and, with the `credentials` tag, Omnia credential files), returning the OIM to a pre-Omnia state. Does **not** affect cluster nodes. |
+| <b>prepare_oim/prepare_oim.yml</b> | Validates inputs and credentials, then deploys the `omnia_core`, Pulp, OpenLDAP, and OpenCHAMI containers on the OIM, configures the Pulp registry (HTTP/HTTPS), and installs required OIM packages and services. |
+| <b>local_repo/local_repo.yml</b> | Validates the Pulp container and network configuration, then downloads and mirrors the software packages/images listed in `software_config.json` into the Pulp container on the OIM for air-gapped cluster installation. |
+| <b>discovery/discovery.yml</b> | Discovers bare-metal nodes via the specified `discovery_mechanism` and registers them using Dell OpenManage Enterprise (OME) as the discovery source. |
+| <b>build_image_x86_64/build_image_x86_64.yml</b> | Fetches required packages and builds the OpenCHAMI-based provisioning OS image for x86_64 functional groups, using BuildStream prerequisites when `enable_build_stream` is set. |
+| <b>build_image_aarch64/build_image_aarch64.yml</b> | Prepares the aarch64 admin node, fetches required packages, and builds the OpenCHAMI-based provisioning OS image for aarch64 functional groups. |
+| <b>gitlab/gitlab.yml</b> | Bootstraps passwordless SSH and deploys a hosted GitLab CE instance on the designated `gitlab_server` host for the BuildStreaM catalog pipeline, after validating OIM and provision prerequisites. |
+| <b>gitlab/cleanup_gitlab.yml</b> | Removes the GitLab installation, packages, and directories from the `gitlab_server` host, then verifies that GitLab packages, directories, and processes are fully removed. |
+| <b>telemetry/telemetry.yml</b> | Validates telemetry inputs, then deploys the telemetry pod stack on the service Kubernetes cluster and enables iDRAC telemetry collection. |
+| <b>telemetry/telemetry_enable.yml</b> | Selectively re-enables a previously disabled telemetry source (for example, `--tags powerscale`) by scaling the corresponding Kubernetes workloads back up. |
+| <b>telemetry/telemetry_disable.yml</b> | Selectively disables a telemetry source (for example, `--tags powerscale`) by scaling down its Kubernetes workloads while leaving storage components (VictoriaMetrics, VictoriaLogs) running. |
+| <b>utils/create_container_group.yml</b> | Creates the Ansible `oim` inventory group used by other playbooks to target the Omnia Infrastructure Manager over SSH. |
+| <b>utils/generate_functional_groups.yml</b> | Generates the functional group configuration from the PXE mapping file, used to organize cluster nodes by role for provisioning and image builds. |
+| <b>utils/set_pxe_boot.yml</b> | Sets the boot source override on discovered nodes via the iDRAC Redfish API, reboots them to PXE, and (for BuildStreaM) verifies cloud-init phone-home completion and uploads results to GitLab. |
+| <b>utils/slurm_config_util.yml</b> | Utility playbook that identifies the Slurm controller from the node inventory and runs Slurm configuration backup, cleanup, or rollback tasks (selected via `config_backup`, `slurm_cleanup`, or `config_rollback` tags). |
+| <b>utils/update_cloud_init_bss.yml</b> | Updates the BSS boot parameters and/or cloud-init configuration for a specified functional group using pre-rendered YAML files on the OIM. Callable standalone or imported by upgrade/rollback flows. |
+| <b>utils/external_kafka_connect_details.yml</b> | Resolves the service Kubernetes control-plane VIP from `high_availability_config.yml` and displays the external Kafka connection details for telemetry integration. |
+| <b>utils/external_victoria_connect_details.yml</b> | Resolves the service Kubernetes control-plane VIP from `high_availability_config.yml` and displays the external VictoriaMetrics connection details for telemetry integration. |
+| <b>utils/delete_migrated_pulp_rpm_repos.yml</b> | Deletes old- or new-format RPM repositories in Pulp (`-e repo_format=old\|new`) after a repo-name migration or rollback, and regenerates `/etc/yum.repos.d/pulp.repo` from the remaining distributions. |
+| <b>log_collector/collect.yml</b> | Collects Kubernetes, Slurm controller, Slurm node, and login node logs across the cluster, then bundles them into a single archive with a summary for troubleshooting and diagnostics. |
+| <b>rollback/rollback.yml</b> | Rolls back Slurm, Kubernetes/telemetry, BuildStreaM, and OIM (in that order) to the previous Omnia version recorded in `oim_metadata.yml`, tracking progress in `rollback_manifest.yml`. Fails if an upgrade is in progress. |
+| <b>upgrade/prepare_upgrade.yml</b> | Run after `omnia.sh --upgrade`: transforms 2.1 input files to the 2.2 format, restores and re-encrypts credentials from backup, and displays a summary of migrated files and new fields requiring review before running `upgrade.yml`. |
+| <b>upgrade/upgrade.yml</b> | Tag-based upgrade orchestrator that upgrades OIM, BuildStreaM, local repo, build images, provisioning, Kubernetes, telemetry, and Slurm (in dependency order) after operator approval, tracking progress in `upgrade_manifest.yml`. |
 
 ## Execution order
 
