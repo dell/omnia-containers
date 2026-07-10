@@ -237,13 +237,13 @@ name to view the full parameter reference.
 | --- | --- |
 | [`network_spec.yml`](../Reference/Configuration/network_spec.md) | Network CIDRs, interfaces, and IP ranges |
 | [`provision_config.yml`](../Reference/Configuration/provision_config.md) | OS provisioning and PXE settings |
-| [`high_availability_config.yml`](../Reference/Configuration/ha_config.md) | Kubernetes HA virtual IP configuration |
+| [`high_availability_config.yml`](../Reference/Configuration/high_availability_config.md) | Kubernetes HA virtual IP configuration |
 | [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) | Telemetry sources, bridges, and sinks |
 | [`software_config.json`](../Reference/Configuration/software_config.md) | Software stack for K8s and telemetry |
 | [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
 | [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
 | [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Service cluster K8s settings (cluster name, CNI, pod IP range, NFS storage) |
-| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_storage_config.md) (optional) | Storage and resource settings for telemetry components |
+| [`telemetry_storage_config.yml`](../Reference/Configuration/telemetry_config.md#telemetry-storage-configuration-parameters) (optional) | Storage and resource settings for telemetry components |
 
 **K8s + Telemetry specific guidance**
 

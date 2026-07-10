@@ -1,7 +1,6 @@
 
 # Glossary
 
-
 This glossary defines key terms used throughout the Omnia documentation. Terms
 are listed alphabetically. Where applicable, entries link to the documentation
 page that provides a full explanation.
@@ -25,7 +24,7 @@ page that provides a full explanation.
 :   A cloud instance initialization system that configures systems during first boot. Omnia uses cloud-init to automate node configuration and customization during the provisioning process.
 
 **Composable Roles**
-:   Omnia's system for assigning server functions via a declarative mapping file. A single server can hold multiple roles (e.g., Slurm control node + login node), decoupling physical hardware from logical cluster functions. See [Composable Roles](composable_roles.md).
+:   Omnia's system for assigning server functions via a declarative mapping file. A single server can hold multiple roles (e.g., Slurm control node + login node), decoupling physical hardware from logical cluster functions.
 
 **Containerd**
 :   An industry-standard container runtime with an emphasis on simplicity, robustness, and portability. Omnia uses Containerd as the container runtime for Kubernetes workloads.
@@ -52,7 +51,7 @@ page that provides a full explanation.
 :   A distributed, reliable key-value store for the most critical data of a distributed system. Omnia uses ETCD as the Kubernetes cluster state store, with support for local disk deployment for high availability.
 
 **Functional Groups**
-:   Named role definitions in Omnia's **Composable Roles** system. Each functional group (e.g., `slurm_node`, `service_kube_control_plane`) determines which software and configuration is applied to a server. See [Composable Roles](composable_roles.md).
+:   Named role definitions in Omnia's **Composable Roles** system. Each functional group (e.g., `slurm_node`, `service_kube_control_plane`) determines which software and configuration is applied to a server.
 
 **iDRAC**
 :   Integrated Dell Remote Access Controller. Dell's implementation of the **BMC**, providing Redfish API access, remote console, virtual media, firmware management, and hardware telemetry for Dell PowerEdge servers. See [Telemetry Architecture](telemetry_architecture.md).
