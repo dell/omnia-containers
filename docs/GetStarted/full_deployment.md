@@ -1,4 +1,4 @@
-# Path B: Full Deployment (Slurm + K8s + Telemetry)
+# Path C: Full Deployment (Slurm + K8s + Telemetry)
 
 Deploy a production-grade cluster with Slurm job scheduling, a highly
 available Kubernetes service cluster, and telemetry. This is the canonical

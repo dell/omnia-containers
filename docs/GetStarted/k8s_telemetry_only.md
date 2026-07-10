@@ -1,4 +1,4 @@
-# Path C: Kubernetes + Telemetry Only
+# Path B: Kubernetes + Telemetry Only
 
 
 Deploy a Kubernetes service cluster (minimum 5 nodes) with the full Omnia

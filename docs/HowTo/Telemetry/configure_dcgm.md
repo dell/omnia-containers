@@ -1,4 +1,3 @@
-
 # Configure DCGM Telemetry
 
 
@@ -34,47 +33,103 @@ GPU Nodes → DCGM → VMAgent → VictoriaMetrics
 ## Prerequisites
 
 
-- `provision.yml` has been executed successfully with `service_kube_control_plane_x86_64` and `service_kube_node_x86_64` in the mapping file.
+Complete the following before you configure DCGM telemetry. Provisioning the
+cluster happens **after** this configuration, as part of the deployment sequence.
+
+- The `omnia_core` container is deployed on the OIM. See
+  [Deploy Omnia Core](../Setup/deploy_omnia_core.md).
+- The mapping file (`pxe_mapping_file.csv`) is created. See
+  [Create Mapping File](../Setup/create_mapping_file.md).
 - Compute nodes must have NVIDIA GPUs installed.
-- NVIDIA driver and CUDA toolkit must be installed on GPU-capable nodes (installed automatically during provisioning).
 
 !!! note
 
-    DCGM is installed during the cloud-init provisioning phase. It is not deployed via the `telemetry.yml` playbook.
+    DCGM is installed during the cloud-init provisioning phase on GPU-capable
+    Slurm nodes. It is **not** deployed via the `telemetry.yml` playbook. During
+    provisioning, Omnia detects the NVIDIA GPU and CUDA version and installs the
+    matching `datacenter-gpu-manager-4-cuda<version>` package. If no NVIDIA GPU or
+    driver is detected, DCGM setup is skipped automatically.
 
 
 ## Procedure
 
 
-1. **Ensure that `telemetry_config.yml` has the entries specific for DCGM Telemetry**. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+### Step 1: Add Required Software to software_config.json
 
-    ```yaml title="Example: Enable DCGM telemetry"
-    telemetry_sources:
-      dcgm:
-        metrics_enabled: true
-    ```
+DCGM runs on GPU-capable Slurm nodes and requires the NVIDIA driver and CUDA
+toolkit. These are provided by the NVIDIA HPC SDK (NVHPC) bundled with the
+`slurm_custom` software entry. Ensure `slurm_custom` is present in
+`software_config.json`.
 
-    | Value | Result |
-    | --- | --- |
-    | `true` | Install DCGM during cloud-init provisioning |
-    | `false` | Skip DCGM installation |
+```json title="software_config.json -- required for DCGM telemetry"
+{
+    "softwares": [
+        {"name": "slurm_custom", "arch": ["x86_64", "aarch64"]}
+    ]
+}
+```
 
-2. **Run provisioning** to deploy DCGM on GPU-capable nodes:
+For the full file structure, see the
+[software_config.json reference](../../Reference/Configuration/software_config.md).
 
-    ```bash title="Run on omnia_core container"
-    cd /omnia/provision
-    ansible-playbook provision.yml
-    ```
+### Step 2: Verify the CUDA Repository in local_repo_config.yml
 
-    DCGM is installed and the `nvidia-dcgm` service is automatically enabled and started on GPU-capable nodes during provisioning.
+The DCGM package (`datacenter-gpu-manager-4-cuda<version>`) is downloaded from the
+NVIDIA `cuda` repository. This repository is included by default in
+`omnia_repo_url_rhel_x86_64` (and `omnia_repo_url_rhel_aarch64`). Verify the entry
+exists for each architecture in your cluster.
+
+```yaml title="local_repo_config.yml -- CUDA repository (default)"
+omnia_repo_url_rhel_x86_64:
+  - {url: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/", gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel10/x86_64/repodata/repomd.xml.key", name: "cuda"}
+```
+
+For details, see the
+[local_repo_config.yml reference](../../Reference/Configuration/local_repo_config.md).
+
+### Step 3: Add Required Nodes to the Mapping File
+
+Add your GPU-capable compute nodes to `pxe_mapping_file.csv` under the `slurm_node`
+(or `slurm_control_node`) functional group.
+
+```text title="pxe_mapping_file.csv -- example GPU compute node"
+FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
+slurm_node_x86_64,grp1,1T8MN34,GZF6ZS3,snode1,04:32:01:DE:18:D0,172.16.107.92,6c:3c:8c:85:be:a6,100.10.0.116,,
+```
+
+For the full format, see the
+[PXE mapping file reference](../../Reference/SampleFiles/pxe_mapping_file.md).
+
+### Step 4: Enable DCGM in telemetry_config.yml
+
+Enable DCGM in `telemetry_config.yml`. For details on all parameters, see the [telemetry_config.yml reference](../../Reference/Configuration/telemetry_config.md).
+
+```yaml title="telemetry_config.yml -- DCGM section"
+telemetry_sources:
+  dcgm:
+    metrics_enabled: true
+```
+
+| Value | Result |
+| --- | --- |
+| `true` | Install DCGM during cloud-init provisioning |
+| `false` | Skip DCGM installation |
+
+### Step 5: Deploy the Cluster
+
+Deploy the cluster by running the full playbook sequence
+(`prepare_oim.yml` -> `local_repo.yml` -> `build_image` -> `provision.yml`). See
+[Deploy the Telemetry Stack](deploy_telemetry.md).
+
+DCGM is installed and the `nvidia-dcgm` service is automatically enabled and
+started on GPU-capable nodes via cloud-init during provisioning.
 
 !!! important
 
-    If you enable DCGM telemetry after the initial deployment, execute the `telemetry.sh` script on the K8s control plane:
-
-    ```bash title="Run on K8s control plane"
-    <K8s_NFS_mount_point>/telemetry/telemetry.sh
-    ```
+    If you enable DCGM telemetry on an already-provisioned cluster, re-run
+    `provision.yml` to regenerate the node configuration and re-PXE boot the GPU
+    nodes. See
+    [Update Telemetry on a Running Cluster](deploy_telemetry.md#update-telemetry-on-a-running-cluster).
 
 
 ## Verification
@@ -130,7 +185,7 @@ Verify that the DCGM service and GPU stack are operational on GPU-capable nodes:
 ## Next Steps
 
 
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
 
 
 ## Troubleshooting

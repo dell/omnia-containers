@@ -1,4 +1,3 @@
-
 # Collect Telemetry Data from External Clients to Kafka
 
 
@@ -13,14 +12,21 @@ This procedure describes how to collect telemetry data from external client node
 ## Prerequisites
 
 
-- `pod_external_ip_range` must be set in `provision_config.yml` and `provision.yml` must be executed after the external IP is configured.
-- Kafka is deployed and operational in the telemetry namespace.
+This is a post-deployment procedure. The Omnia telemetry stack (including Kafka)
+must already be deployed and running before you connect external clients.
+
+- The cluster is deployed and the telemetry stack is running. See
+  [Deploy the Telemetry Stack](deploy_telemetry.md).
+- `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign an
+  external IP to the Kafka mTLS listener.
+- Kafka is deployed and operational in the telemetry namespace (enable a Kafka-
+  backed telemetry source, such as iDRAC, LDMS, or OME, before deployment).
 
 
 ## Procedure
 
 
-### Create a Kafka Topic (Optional)
+### Step 1: Create a Kafka Topic (Optional)
 
 If you need a custom topic for your external data, create it from the Omnia Core Container:
 
@@ -33,7 +39,7 @@ curl -s -X POST "http://$KAFKA_LB_IP:8080/topics/<topic-name>" \
   }'
 ```
 
-### Extract Kafka Connection Details and TLS Certificates
+### Step 2: Extract Kafka Connection Details and TLS Certificates
 
 1. Log in to the Service Kubernetes control plane.
 
@@ -53,7 +59,7 @@ curl -s -X POST "http://$KAFKA_LB_IP:8080/topics/<topic-name>" \
     kubectl get secret -n telemetry kafka-external-tls -o jsonpath='{.data.user\.key}' | base64 --decode > user.key
     ```
 
-### Create Client Certificate in .pfx Format (Optional)
+### Step 3: Create Client Certificate in .pfx Format (Optional)
 
 If the external client requires a `.pfx` format certificate:
 
@@ -61,7 +67,7 @@ If the external client requires a `.pfx` format certificate:
 openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out client.pfx -password pass:<password>
 ```
 
-### Create Java Truststore and Keystore (Optional)
+### Step 4: Create Java Truststore and Keystore (Optional)
 
 If the external client is a Java application (e.g., Kafka console consumer/producer):
 
@@ -71,7 +77,7 @@ openssl pkcs12 -export -in user.crt -inkey user.key -certfile ca.crt -out user.p
 keytool -importkeystore -srckeystore user.p12 -srcstoretype PKCS12 -srcstorepass <password> -destkeystore keystore.jks -deststoretype JKS -deststorepass <password>
 ```
 
-### Create Kafka Client SSL Configuration File
+### Step 5: Create Kafka Client SSL Configuration File
 
 Create a properties file for the Kafka client:
 
@@ -84,7 +90,7 @@ ssl.keystore.password=<password>
 ssl.key.password=<password>
 ```
 
-### Produce Telemetry Data
+### Step 6: Produce Telemetry Data
 
 Use the Kafka console producer to send test data to the Kafka broker:
 
@@ -96,7 +102,7 @@ kafka-console-producer.sh --bootstrap-server <kafka-external-ip>:9094 \
 
 Type messages and press Enter to send each one.
 
-### Verify Telemetry Data
+### Step 7: Verify Telemetry Data
 
 Use the Kafka console consumer to verify that the data was received:
 
@@ -112,4 +118,4 @@ kafka-console-consumer.sh --bootstrap-server <kafka-external-ip>:9094 \
 
 
 - [Configure OpenManage Enterprise Telemetry (OME)](telemetry_from_ome.md) -- Integrate OME with Kafka using mTLS.
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.

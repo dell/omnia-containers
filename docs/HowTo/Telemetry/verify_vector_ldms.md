@@ -7,7 +7,7 @@ This page provides verification steps for the Vector-LDMS pipeline that routes L
 ## Prerequisites
 
 
-- The [Configure LDMS Telemetry](configure_ldms.md) procedure is complete, with [Vector-LDMS bridge](configure_ldms.md#enable-vector-ldms-bridge) enabled.
+- The [Configure LDMS Telemetry](configure_ldms.md) procedure is complete, with [Vector-LDMS bridge](configure_ldms.md#step-5-enable-vector-ldms-bridge-optional) enabled.
 - LDMS telemetry is configured and the `store_avro_kafka` plugin is producing to the Kafka `ldms` topic.
 
 

@@ -1,4 +1,3 @@
-
 # Collect Telemetry Data from External Clients to VictoriaMetrics and VictoriaLogs
 
 
@@ -16,15 +15,22 @@ This procedure describes how to collect telemetry data from external client node
 ## Prerequisites
 
 
+This is a post-deployment procedure. The Omnia telemetry stack (including
+VictoriaMetrics and VictoriaLogs) must already be deployed and running before you
+connect external clients.
+
+- The cluster is deployed and the telemetry stack is running. See
+  [Deploy the Telemetry Stack](deploy_telemetry.md).
+- `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
+  external IPs to the `vminsert`, `vmselect`, and VictoriaLogs services.
 - VictoriaMetrics is deployed in cluster mode in the telemetry namespace.
 - VictoriaLogs is deployed in cluster mode in the telemetry namespace (for log collection).
-- `pod_external_ip_range` must be set in `provision_config.yml` and `provision.yml` must be executed after the external IP is configured.
 
 
 ## Collect Metrics to VictoriaMetrics
 
 
-### Retrieve VictoriaMetrics Connection Details
+### Step 1: Retrieve VictoriaMetrics Connection Details
 
 1. Log in to the Service Kubernetes control plane.
 
@@ -50,7 +56,7 @@ This procedure describes how to collect telemetry data from external client node
     kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
     ```
 
-### Push Sample Metrics from the Omnia Core Container
+### Step 2: Push Sample Metrics from the Omnia Core Container
 
 1. Create a test metric file:
 
@@ -82,7 +88,7 @@ This procedure describes how to collect telemetry data from external client node
 ## Collect Logs to VictoriaLogs
 
 
-### Retrieve VLAgent Endpoint Information
+### Step 1: Retrieve VLAgent Endpoint Information
 
 1. Log in to the Service Kubernetes control plane.
 
@@ -105,7 +111,7 @@ This procedure describes how to collect telemetry data from external client node
     kubectl get secret -n telemetry vlagent-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
     ```
 
-### Configure Plaintext Syslog Source
+### Step 2: Configure Plaintext Syslog Source
 
 To configure an external client to send syslog messages over plaintext:
 
@@ -115,7 +121,7 @@ logger -n <vlagent external IP> -P 514 -t myapp "Test syslog message from extern
 
 For persistent configuration, update the client's rsyslog or syslog-ng configuration to forward to `<vlagent external IP>:514`.
 
-### Configure TLS Syslog Source
+### Step 3: Configure TLS Syslog Source
 
 To configure an external client to send syslog messages over TLS:
 
@@ -145,7 +151,7 @@ To configure an external client to send syslog messages over TLS:
     systemctl restart rsyslog
     ```
 
-### Configure HTTP Forwarding Source
+### Step 4: Configure HTTP Forwarding Source
 
 To forward logs via HTTP:
 
@@ -155,7 +161,7 @@ curl -X POST "http://<vlagent external IP>:9481/insert/jsonline" \
   -d '{"_msg": "Test log from external client", "_time": "2024-01-01T00:00:00Z", "source": "external"}'
 ```
 
-### Verify Log Ingestion
+### Step 5: Verify Log Ingestion
 
 1. Retrieve the vlselect LoadBalancer IP:
 
@@ -181,4 +187,4 @@ curl -X POST "http://<vlagent external IP>:9481/insert/jsonline" \
 
 
 - [External Kafka](configure_external_kafka.md) -- Stream data from external clients to Kafka.
-- [Telemetry Overview](setup_telemetry.md) -- Overview of all telemetry sources.
+- [Setup Telemetry](setup_telemetry.md) -- Overview of all telemetry sources.
