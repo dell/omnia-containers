@@ -343,6 +343,99 @@
   overflow-x: auto;
 }
 
+/* Note: Toggle functionality has issues with table not hiding properly in some cases */
+/* TODO: Investigate CSS specificity issues preventing table from being hidden */
+.csv-table-container.hidden {
+  display: none !important;
+}
+
+/* Collapsible tables - hide rows beyond the 5th */
+/* Only apply the hidden-row class, don't affect table styling */
+.md-typeset table tbody tr.hidden-row {
+  display: none;
+}
+
+/* Show all rows when expanded */
+.md-typeset table tbody tr.hidden-row.visible {
+  display: table-row;
+}
+
+/* Height-based collapsible tables wrapper */
+.collapsible-table-wrapper {
+  position: relative;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+/* Fade-out gradient for collapsed tables */
+.collapsible-table-wrapper.collapsed::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--md-default-bg-color, #ffffff)
+  );
+  pointer-events: none;
+}
+
+/* Expanded state */
+.collapsible-table-wrapper.expanded {
+  max-height: none !important;
+}
+
+.collapsible-table-wrapper.expanded::after {
+  display: none;
+}
+
+/* Dark mode support for gradient */
+[data-md-color-scheme="slate"] .collapsible-table-wrapper.collapsed::after {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--md-default-bg-color, #2e303e)
+  );
+}
+
+/* Toggle button styling for tables */
+.table-toggle-btn,
+.csv-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--md-primary-fg-color);
+  background-color: transparent;
+  border: 1px solid var(--md-primary-fg-color);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-toggle-btn:hover,
+.csv-collapse-btn:hover {
+  background-color: var(--md-primary-fg-color);
+  color: var(--md-primary-bg-color);
+}
+
+.table-toggle-btn .arrow,
+.csv-collapse-btn .arrow {
+  transition: transform 0.3s ease;
+}
+
+.table-toggle-btn.expanded .arrow,
+.csv-collapse-btn.expanded .arrow {
+  transform: rotate(180deg);
+}
+
 .csv-table {
   width: 100%;
   border-collapse: collapse;

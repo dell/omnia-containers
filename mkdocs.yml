@@ -131,6 +131,8 @@ extra_css:
 extra_javascript:
   - javascripts/palette-fallback.js
   - javascripts/language-badges.js
+  - javascripts/csv-table-formatter.js
+  - javascripts/collapsible-tables-height.js
 
 # Footer
 extra:
