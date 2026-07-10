@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Provision Slurm Test Cases for Homogeneous Node Discovery Mode.
+"""Slurm Test Cases for Homogeneous Node Discovery Mode.
 
 Test cases for validating homogeneous node discovery mode functionality in Slurm cluster configuration.
 
@@ -29,7 +29,7 @@ Test Coverage:
 
 import pytest
 from automation_library.core import TestLogger, load_input_file, OMNIA_CONFIG_FILE
-from automation_library.provision.functions.homogeneous_func import (
+from automation_library.slurm.functions.homogeneous_func import (
     validate_node_discovery_mode_config,
     validate_node_hardware_defaults_config,
     validate_group_names_in_pxe_mapping,

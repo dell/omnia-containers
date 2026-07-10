@@ -129,15 +129,3 @@ from .minimal_os_func import (
     check_network_isolation,
     check_no_embedded_credentials,
 )
-
-# Homogeneous node discovery functions
-from .homogeneous_func import (
-    validate_node_discovery_mode_config,
-    validate_node_hardware_defaults_config,
-    validate_group_names_in_pxe_mapping,
-    verify_homogeneous_with_user_specs,
-    verify_homogeneous_without_user_specs,
-    verify_hardware_specs_match_user_specs,
-    verify_mixed_homogeneous_mode,
-    verify_heterogeneous_mode_default,
-)
