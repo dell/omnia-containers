@@ -27,19 +27,25 @@ VAST Storage Appliances → syslog → VLAgent → VictoriaLogs
 
 **Metrics:**
 
-- **Storage Performance** -- Read/write throughput (bytes/sec), IOPS per volume, latency metrics
-- **Capacity Metrics** -- Total capacity, used capacity, available capacity, thin provisioning ratios
-- **Volume Metrics** -- Volume state, volume performance counters, snapshot metrics
-- **Device Metrics** -- Device health status, device performance, device error counters
-- **Cluster Health** -- Node status, cluster connectivity, replication status
-- **Telemetry Health** -- Scrape success rate, scrape duration, ingest latency
+| Category | Metrics Collected |
+| --- | --- |
+| Storage Performance | Read/write throughput (bytes/sec), IOPS per volume, latency metrics |
+| Capacity | Total capacity, used capacity, available capacity, thin provisioning ratios |
+| Volume | Volume state, volume performance counters, snapshot metrics |
+| Device | Device health status, device performance, device error counters |
+| Cluster Health | Node status, cluster connectivity, replication status |
+| Telemetry Health | Scrape success rate, scrape duration, ingest latency |
+
+For the complete list of VAST telemetry metrics, see [VAST Metrics Reference](../../Reference/Metrics/vast_metrics.md).
 
 **Logs:**
 
-- **Storage Events** -- Volume creation/deletion events, snapshot events, capacity threshold alerts
-- **System Events** -- Node health events, cluster state changes, replication events
-- **Alarm Events** -- Critical alarms, warning alarms, informational events
-- Events are labeled with hostname, severity, and facility
+| Category | Logs Collected |
+| --- | --- |
+| Storage Events | Volume creation/deletion events, snapshot events, capacity threshold alerts |
+| System Events | Node health events, cluster state changes, replication events |
+| Alarm Events | Critical alarms, warning alarms, informational events |
+| Labels | Events are labeled with hostname, severity, and facility |
 
 !!! note
 

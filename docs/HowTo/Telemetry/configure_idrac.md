@@ -26,15 +26,15 @@ iDRAC (BMC) → iDRAC Collector → VMAgent → VictoriaMetrics
 
 ### Supported Metrics
 
-- **Thermal** -- Inlet temperature, exhaust temperature, CPU temperature, fan speeds
-- **Power** -- System power consumption, PSU input/output power, power capping status
-- **Storage Health** -- Physical disk status, virtual disk health, controller health, SMART data
-- **CPU/Memory** -- Correctable/uncorrectable ECC errors, CPU utilization, DIMM health
-- **System Events** -- Hardware alerts, lifecycle events, firmware status
+| Category | Metrics Collected |
+| --- | --- |
+| Thermal | Inlet temperature, exhaust temperature, CPU temperature, fan speeds |
+| Power | System power consumption, PSU input/output power, power capping status |
+| Storage Health | Physical disk status, virtual disk health, controller health, SMART data |
+| CPU/Memory | Correctable/uncorrectable ECC errors, CPU utilization, DIMM health |
+| System Events | Hardware alerts, lifecycle events, firmware status |
 
-!!! note
-
-    For the list of iDRAC telemetry metrics collected by Kafka and VictoriaMetrics, see [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
+For the complete list of iDRAC telemetry metrics, see [iDRAC Metrics Reference](../../Reference/Metrics/idrac_metrics.md) and [iDRAC Telemetry Reference Tools](https://github.com/dell/iDRAC-Telemetry-Reference-Tools).
 
 
 ## Prerequisites

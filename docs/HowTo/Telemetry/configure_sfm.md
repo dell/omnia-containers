@@ -21,10 +21,14 @@ SFM (Smart Fabric Manager) → Prometheus Remote Write → vminsert → Victoria
 
 ### Supported Metrics
 
-- **Transceiver DOM** -- Optical power (TX/RX), temperature, voltage, bias current
-- **Queue Statistics** -- Queue depth, egress queue counters, multicast queue counters
-- **Interface Counters** -- Interface throughput (TX/RX bytes), packet counts, error counts, drop counts
-- **Error Counters** -- CRC errors, alignment errors, symbol errors, FCS errors
+| Category | Metrics Collected |
+| --- | --- |
+| Transceiver DOM | Optical power (TX/RX), temperature, voltage, bias current |
+| Queue Statistics | Queue depth, egress queue counters, multicast queue counters |
+| Interface Counters | Interface throughput (TX/RX bytes), packet counts, error counts, drop counts |
+| Error Counters | CRC errors, alignment errors, symbol errors, FCS errors |
+
+For the complete list of SFM telemetry metrics, see [SFM Metrics Reference](../../Reference/Metrics/sfm_metrics.md).
 
 
 ## Prerequisites

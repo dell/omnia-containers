@@ -28,17 +28,23 @@ UFM Fabric Manager → syslog → VLAgent → VictoriaLogs
 
 **Metrics:**
 
-- **Port State** -- InfiniBand port operational state (up, down, disabled)
-- **Traffic Counters** -- Transmit/receive data rates (bytes/sec), packet counts per port
-- **Error Counters** -- Symbol errors, link error recovery, link downed, VL15 dropped, excessive buffer overrun errors
-- **Fabric Topology** -- Switch information, port mapping, node GUIDs, LID assignments
-- **Telemetry Health** -- Scrape success rate, scrape duration, ingest latency
+| Category | Metrics Collected |
+| --- | --- |
+| Port State | InfiniBand port operational state (up, down, disabled) |
+| Traffic Counters | Transmit/receive data rates (bytes/sec), packet counts per port |
+| Error Counters | Symbol errors, link error recovery, link downed, VL15 dropped, excessive buffer overrun errors |
+| Fabric Topology | Switch information, port mapping, node GUIDs, LID assignments |
+| Telemetry Health | Scrape success rate, scrape duration, ingest latency |
+
+For the complete list of UFM telemetry metrics, see [UFM Metrics Reference](../../Reference/Metrics/ufm_metrics.md).
 
 **Logs:**
 
-- Fabric topology change events, port state transitions, error/warning messages
-- SM (Subnet Manager) events, SHARP events, UFM health events
-- Events are labeled with hostname, severity, and facility
+| Category | Logs Collected |
+| --- | --- |
+| Fabric Events | Fabric topology change events, port state transitions, error/warning messages |
+| Manager Events | SM (Subnet Manager) events, SHARP events, UFM health events |
+| Labels | Events are labeled with hostname, severity, and facility |
 
 !!! note
 
