@@ -95,7 +95,7 @@ ensure the following functional groups are present:
 - `service_kube_control_plane` (three control plane nodes)
 - `service_kube_node` (at least one worker node)
 
-```text title="pxe_mapping_file.csv -- example service K8s rows"
+```csv title="pxe_mapping_file.csv -- example service K8s rows"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP,IB_NIC_NAME,IB_IP
 service_kube_control_plane_x86_64,grp4,H94M8F3,,kcp1,BC:97:E1:F0:94:F0,172.16.107.96,b0:7b:25:d8:4a:f4,100.10.1.99,,
 service_kube_control_plane_x86_64,grp5,2LXT933,,kcp2,BC:97:E1:F0:95:10,172.16.107.97,b0:7b:25:d8:4b:04,100.10.1.100,,

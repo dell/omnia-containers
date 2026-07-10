@@ -286,10 +286,9 @@
 
 /* Code title bar - default styling (transparent background with pill badge) */
 .md-typeset .highlight .filename {
-  background: transparent;
-  color: var(--dell-dark);
-  border: 1px solid var(--md-default-fg-color--lightest);
-  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+  background: var(--md-primary-fg-color--light);
+  color: #ffffff;
+  border: none;
   border-radius: 0.3rem 0.3rem 0 0;
   font-size: 0.72rem;
   font-weight: 400;

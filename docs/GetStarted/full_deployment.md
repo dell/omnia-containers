@@ -101,7 +101,7 @@ Create a `pxe_mapping_file.csv` in
 `/opt/omnia/input/project_default/` and set the `pxe_mapping_file_path`
 variable in `provision_config.yml` to point to it.
 
-```text title="File: /opt/omnia/input/project_default/pxe_mapping_file.csv"
+```csv title="/opt/omnia/input/project_default/pxe_mapping_file.csv"
 FUNCTIONAL_GROUP_NAME,GROUP_NAME,SERVICE_TAG,PARENT_SERVICE_TAG,HOSTNAME,ADMIN_MAC,ADMIN_IP,BMC_MAC,BMC_IP
 service_kube_control_plane_x86_64,kube,SVCTAG01,,kube-cp01,24:6E:96:BB:01:01,10.5.0.201,,10.3.0.201
 service_kube_control_plane_x86_64,kube,SVCTAG02,,kube-cp02,24:6E:96:BB:01:02,10.5.0.202,,10.3.0.202
