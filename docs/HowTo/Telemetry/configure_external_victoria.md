@@ -19,12 +19,18 @@ This is a post-deployment procedure. The Omnia telemetry stack (including
 VictoriaMetrics and VictoriaLogs) must already be deployed and running before you
 connect external clients.
 
-- The cluster is deployed and the telemetry stack is running. See
-  [Deploy the Telemetry Stack](deploy_telemetry.md).
+- A Service Kubernetes cluster is running with VictoriaMetrics deployed in the `telemetry` namespace.
 - `pod_external_ip_range` is set in `omnia_config.yml` so MetalLB can assign
   external IPs to the `vminsert`, `vmselect`, and VictoriaLogs services.
-- VictoriaMetrics is deployed in cluster mode in the telemetry namespace.
-- VictoriaLogs is deployed in cluster mode in the telemetry namespace (for log collection).
+- External access to VictoriaMetrics is available through:
+    - LoadBalancer port `8480` for ingesting (inserting) data.
+    - LoadBalancer port `8481` for querying data.
+- VictoriaLogs is deployed in cluster mode in the `telemetry` namespace (for log collection).
+- Network connectivity exists from external log sources to the Service Kubernetes cluster.
+
+!!! important
+
+    Ensure that `pod_external_ip_range` in `omnia_config.yml` is reachable from external log sources.
 
 
 ## Collect Metrics to VictoriaMetrics
@@ -32,155 +38,194 @@ connect external clients.
 
 ### Step 1: Retrieve VictoriaMetrics Connection Details
 
-1. Log in to the Service Kubernetes control plane.
+Run the following playbook to retrieve the VictoriaMetrics connection details and TLS certificate from the Service Kubernetes cluster:
 
-2. Retrieve the `vmselect` LoadBalancer IP address (for querying data):
+```bash title="Run on omnia_core container"
+cd /omnia/utils
+ansible-playbook external_victoria_connect_details.yml
+```
 
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep vmselect
-    ```
+The `external_victoria_connect_details.yml` playbook does the following:
 
-    Note the **External IP** (port 8481).
-
-3. Retrieve the `vminsert` LoadBalancer IP address (for ingesting data):
-
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep vminsert
-    ```
-
-    Note the **External IP** (port 8480).
-
-4. Extract the VictoriaMetrics TLS CA certificate:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get secret -n telemetry vminsert-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
-    ```
+- Retrieves the VictoriaMetrics `vminsert` and `vmselect` LoadBalancer IPs.
+- Extracts the server CA certificate for TLS.
+- Writes the connection details to `/omnia/utils/external_victoria_connect_details.yml`.
+- Saves the CA certificate at `/omnia/utils/victoria-certs/ca.crt`.
 
 ### Step 2: Push Sample Metrics from the Omnia Core Container
 
-1. Create a test metric file:
+1. Add the LoadBalancer insert and select IP addresses to `/etc/hosts`:
 
     ```bash title="Run on omnia_core container"
-    cat <<EOF > test_metric.txt
-    # HELP test_metric A test metric
-    # TYPE test_metric gauge
-    test_metric{job="test",instance="external_node"} 42
-    EOF
+    echo "<vminsert-IP> vminsert.telemetry.svc.cluster.local" >> /etc/hosts
+    echo "<vmselect-IP> vmselect.telemetry.svc.cluster.local" >> /etc/hosts
     ```
 
-2. Push the metric to VictoriaMetrics using the `vminsert` LoadBalancer IP:
+    For `vminsert` and `vmselect` IP, use the values retrieved by the `external_victoria_connect_details.yml` playbook.
+
+    !!! note
+
+        The `/etc/hosts` update must be repeated if the SFM Prometheus pod restarts.
+
+2. Create a new test metric:
 
     ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -X POST \
-      "https://<vminsert external IP>:8480/insert/0/prometheus/api/v1/import/prometheus" \
-      --data-binary @test_metric.txt
+      "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
+      -H "Content-Type: text/plain" \
+      -d "test_metric{source=\"external\"} 42"
     ```
 
-3. Query the inserted data from VictoriaMetrics:
+    !!! note
+
+        Use `https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/write` to push the metrics from an external client, such as [Smart Fabric Manager (SFM)](https://www.dell.com/en-in/shop/ipovw/smartfabric-manager-for-sonic){target="_blank"}. For collecting telemetry data from SFM to Victoria DB, see [SFM Telemetry](configure_sfm.md).
+
+3. Push sample test metrics to Victoria DB:
+
+    ```bash title="Run on omnia_core container"
+    curl --cacert ca.crt -X POST \
+      "https://vminsert.telemetry.svc.cluster.local:8480/insert/0/prometheus/api/v1/import/prometheus" \
+      -H "Content-Type: text/plain" \
+      -d 'cpu_usage{host="server1",job="new"} 75.5
+    memory_usage{host="server1",job="new"} 1024
+    disk_usage{host="server1",job="new"} 512
+    network_rx{host="server1",interface="eth0"} 1000000
+    network_tx{host="server1",interface="eth0"} 500000'
+    ```
+
+4. Query the inserted data from Victoria DB:
 
     ```bash title="Run on omnia_core container"
     curl --cacert ca.crt -s \
-      "https://<vmselect external IP>:8481/select/0/prometheus/api/v1/query?query=test_metric" \
-      | python3 -m json.tool
+      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query?query=new_metric"
+
+    curl --cacert ca.crt -s \
+      "https://vmselect.telemetry.svc.cluster.local:8481/select/0/prometheus/api/v1/query_range?query=cpu_usage&start=$(date -d '1 hour ago' +%s)&end=$(date +%s)&step=600s"
     ```
 
 
 ## Collect Logs to VictoriaLogs
 
 
-### Step 1: Retrieve VLAgent Endpoint Information
+### Step 1: Obtain Endpoint Information
 
-1. Log in to the Service Kubernetes control plane.
+Retrieve the VLAgent endpoint information from the VictoriaLogs deployment.
 
-2. Retrieve the VLAgent LoadBalancer service details:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep vlagent
-    ```
-
-    Note the following ports:
-
-    - **Port 514** -- Syslog plaintext (TCP/UDP)
-    - **Port 6514** -- Syslog TLS (TCP)
-    - **Port 9481** -- HTTP forwarder
-    - **Port 9471** -- VictoriaLogs UI
-
-3. Extract the VLAgent TLS CA certificate:
+1. Check the `vlagent` LoadBalancer service to get the external IP:
 
     ```bash title="Run on K8s control plane"
-    kubectl get secret -n telemetry vlagent-tls -o jsonpath='{.data.ca\.crt}' | base64 --decode > ca.crt
+    kubectl get svc vlagent -n telemetry
     ```
 
-### Step 2: Configure Plaintext Syslog Source
+2. Record the following endpoints:
 
-To configure an external client to send syslog messages over plaintext:
+    - **Syslog plaintext**: `<LoadBalancer IP>:514`
+    - **Syslog TLS**: `<LoadBalancer IP>:6514`
+    - **HTTP forwarder**: `https://<LoadBalancer IP>:9481/insert/jsonline`
 
-```bash title="Run on external client node"
-logger -n <vlagent external IP> -P 514 -t myapp "Test syslog message from external client"
-```
+3. Retrieve the TLS CA certificate from the `victoria-tls-certs` secret:
 
-For persistent configuration, update the client's rsyslog or syslog-ng configuration to forward to `<vlagent external IP>:514`.
-
-### Step 3: Configure TLS Syslog Source
-
-To configure an external client to send syslog messages over TLS:
-
-1. Copy the `ca.crt` to the external client node.
-
-2. Configure rsyslog with TLS:
-
-    ```text title="File: /etc/rsyslog.d/remote-tls.conf on external client"
-    global(
-        DefaultNetstreamDriverCAFile="/path/to/ca.crt"
-    )
-
-    action(
-        type="omfwd"
-        target="<vlagent external IP>"
-        port="6514"
-        protocol="tcp"
-        StreamDriver="gtls"
-        StreamDriverMode="1"
-        StreamDriverAuthMode="x509/name"
-    )
+    ```bash title="Run on K8s control plane"
+    kubectl get secret victoria-tls-certs -n telemetry -o jsonpath='{.data.ca\.crt}' | base64 -d > victoria-ca.crt
     ```
 
-3. Restart rsyslog:
+!!! note
+
+    VLAgent provides platform-managed syslog receivers. No additional configuration is needed on the Omnia side.
+
+### Step 2: Configure Syslog Sources
+
+Configure external devices to send syslog messages to VLAgent.
+
+**Plaintext Syslog (Port 514)**
+
+1. Access the configuration interface of your log source device.
+2. Configure syslog forwarding to the VLAgent plaintext endpoint.
+
+    Example configuration:
+
+    ```text
+    Syslog server: <LoadBalancer IP>
+    Port: 514
+    Protocol: TCP or UDP
+    ```
+
+!!! note
+
+    DNS mapping may be required in some devices for TLS certificate validation. Use the LoadBalancer IP if DNS is not configured.
+
+**TLS Syslog (Port 6514)**
+
+1. Copy the VictoriaLogs CA certificate to the log source device.
+2. Access the configuration interface of your log source device.
+3. Configure syslog forwarding to the VLAgent TLS endpoint.
+
+    Example configuration:
+
+    ```text
+    Syslog server: <LoadBalancer IP>
+    Port: 6514
+    Protocol: TCP
+    TLS: Enabled
+    CA certificate: victoria-ca.crt
+    ```
+
+4. Verify TLS handshake:
 
     ```bash title="Run on external client node"
-    systemctl restart rsyslog
+    openssl s_client -connect <LoadBalancer IP>:6514 -CAfile victoria-ca.crt
     ```
 
-### Step 4: Configure HTTP Forwarding Source
+### Step 3: Configure HTTP Forwarding Sources
 
-To forward logs via HTTP:
+Configure log sources that support HTTP forwarding to send logs in JSON Lines format to the `vlinsert` endpoint.
 
-```bash title="Run on external client node"
-curl -X POST "http://<vlagent external IP>:9481/insert/jsonline" \
-  -H "Content-Type: application/json" \
-  -d '{"_msg": "Test log from external client", "_time": "2024-01-01T00:00:00Z", "source": "external"}'
-```
+1. Configure HTTP log forwarding to the vlinsert endpoint.
 
-### Step 5: Verify Log Ingestion
+    Example configuration:
 
-1. Retrieve the vlselect LoadBalancer IP:
-
-    ```bash title="Run on K8s control plane"
-    kubectl get svc -n telemetry | grep vlselect
+    ```text
+    Endpoint URL: https://<LoadBalancer IP>:9481/insert/jsonline
+    Method: POST
+    Format: JSON Lines
+    Headers:
+      Content-Type: application/json
     ```
 
-2. Query VictoriaLogs for the ingested logs:
+2. Example JSON Lines payload format:
 
-    ```bash title="Run on K8s control plane"
-    curl --cacert ca.crt -s \
-      "https://<vlselect external IP>:9471/select/logsql/query?query=*&limit=10"
+    ```json
+    {"time":"2024-01-01T12:00:00Z","stream":"device-01","_msg":"System started"}
+    {"time":"2024-01-01T12:01:00Z","stream":"device-01","_msg":"Connection established"}
     ```
 
-3. Access the VictoriaLogs UI in a web browser:
+!!! note
 
+    The `vlinsert` endpoint expects one JSON object per line (JSON Lines format).
+
+### Step 4: Verify Log Ingestion
+
+1. Access the VictoriaLogs query interface:
+
+    ```bash title="Run on K8s control plane or omnia_core container"
+    curl -k https://<LoadBalancer IP>:9491/select/logsql/query -d 'query="{}"'
     ```
-    https://<external vlselect loadbalancer IP>:9471/select/vmui
+
+2. Query for logs from a configured source:
+
+    ```text
+    query="{_stream='device-01'}"
     ```
+
+3. Verify that logs from the external source appear in the query results.
+
+!!! note
+
+    Query latency depends on time range and data volume. Narrow the time range for faster results.
+
+!!! note
+
+    VictoriaLogs does not return an error when log entries with timestamps outside the configured retention window are submitted. Log entries will be automatically removed from VictoriaLogs after the retention period.
 
 
 ## Next Steps
