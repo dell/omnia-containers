@@ -1,0 +1,41 @@
+# Copyright 2026 Dell Inc. or its subsidiaries. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# You may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# ============================================================================
+# USER REGISTRY TEST DATASET
+# ============================================================================
+# This file provides example user_registry configurations for molecule testing.
+# Copy the relevant user_registry section into your local_repo_config.yml to
+# enable user_registry tests.
+#
+# Scenarios covered:
+#   1. HTTPS registry with cert_path and key_path
+#   2. HTTP registry without certs
+#   3. Multiple user registries (mixed HTTPS + HTTP)
+# ============================================================================
+
+# --- Scenario 1: HTTPS registry with cert/key ---
+# user_registry:
+#   - { host: "172.16.107.254:5000", cert_path: "/opt/omnia/certs/domain.crt", key_path: "/opt/omnia/certs/domain.key" }
+
+# --- Scenario 2: HTTP registry (no certs) ---
+# user_registry:
+#   - { host: "172.16.107.254:4000", cert_path: "", key_path: "" }
+
+# --- Scenario 3: Multiple registries (mixed HTTPS + HTTP) ---
+# user_registry:
+#   - { host: "172.16.107.254:5000", cert_path: "/opt/omnia/certs/domain.crt", key_path: "/opt/omnia/certs/domain.key" }
+#   - { host: "172.16.107.254:4000", cert_path: "", key_path: "" }
+
+# --- Registry authentication (user_registry_credential.yml) ---
+# When registries require authentication, create a separate file:
+#   user_registry_credential.yml:
+#     user_registry_credential:
+#       - { name: "my-registry", username: "admin", password: "secret" }
+#
+# Note: Authentication support is partially implemented in Omnia 2.2
+# (credential handling code is commented out in check_user_registry.py).
