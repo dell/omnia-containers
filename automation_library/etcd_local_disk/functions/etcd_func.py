@@ -22,6 +22,7 @@ on Kubernetes control plane nodes.
 import csv
 import io
 import shlex
+import subprocess
 import time
 import yaml
 
@@ -32,8 +33,10 @@ from paramiko.ssh_exception import (
     NoValidConnectionsError,
     SSHException,
 )
-from automation_library.checks.vars.oim_prereq_vars import (
-    OMNIA_TEST_CONFIG_PATH as DEFAULT_USER_CONFIG_PATH,
+from automation_library.core import (
+    is_local_execution,
+    load_omnia_test_config,
+    load_omnia_test_credentials,
 )
 from automation_library.etcd_local_disk.messages.etcd_msgs import (
     BOSS_CARD_CHECK_FAILED,
@@ -115,7 +118,6 @@ from automation_library.etcd_local_disk.vars.etcd_vars import (
 )
 
 # Constants
-USER_CONFIG_PATH = DEFAULT_USER_CONFIG_PATH
 OMNIA_CORE_CONTAINER_NAME = "omnia_core"
 PXE_MAPPING_FILE_PATH = "/opt/omnia/input/project_default/pxe_mapping_file.csv"
 OMNIA_CONFIG_PATH = "/opt/omnia/input/project_default/omnia_config.yml"
@@ -135,20 +137,33 @@ class EtcdLocalDiskOperations:
 
         Args:
             config_path (str, optional): Path to the user config file.
-                Defaults to USER_CONFIG_PATH.
+                Defaults to standard config path. This parameter is kept
+                for compatibility but is not used as config is loaded
+                from standard locations.
         """
-        self.config_path = config_path or USER_CONFIG_PATH
         self.config = self._load_config()
         self.ssh_client = None
         self._omnia_core_container_id = None
+        self._local_mode = is_local_execution()
 
     def _load_config(self):
-        """Load configuration from user config file."""
-        with open(self.config_path, 'r', encoding="utf-8") as file:
-            return yaml.safe_load(file)
+        """Load configuration from user config file and credentials file."""
+        # Load main config (non-sensitive settings)
+        config = load_omnia_test_config()
+        # Load credentials (sensitive settings with vault decryption)
+        credentials = load_omnia_test_credentials()
+        # Merge credentials into config
+        config.update(credentials)
+        return config
 
     def connect_ssh(self):
-        """Establish SSH connection to OIM server."""
+        """Establish SSH connection to OIM server.
+
+        In local mode (running on the OIM itself), this is a no-op.
+        """
+        if self._local_mode:
+            return None
+
         if self.ssh_client is not None:
             transport = self.ssh_client.get_transport()
             if transport and transport.is_active():
@@ -197,10 +212,20 @@ class EtcdLocalDiskOperations:
             f"podman ps --filter 'name={OMNIA_CORE_CONTAINER_NAME}'"
             " --format '{{.ID}}'"
         )
-        self.connect_ssh()
-        _stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
-        stdout.channel.recv_exit_status()
-        container_id = stdout.read().decode('utf-8').strip()
+        
+        if self._local_mode:
+            # Run command locally
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, check=True
+            )
+            container_id = result.stdout.strip()
+        else:
+            # Run command via SSH
+            self.connect_ssh()
+            _stdin, stdout, stderr = self.ssh_client.exec_command(cmd)
+            stdout.channel.recv_exit_status()
+            container_id = stdout.read().decode('utf-8').strip()
+        
         if not container_id:
             raise RuntimeError(
                 f"Container '{OMNIA_CORE_CONTAINER_NAME}' not found"
@@ -221,13 +246,23 @@ class EtcdLocalDiskOperations:
         container_id = self._get_omnia_core_container_id()
         wrapped = f"podman exec {container_id} bash -lc {shlex.quote(command)}"
 
-        if not self.ssh_client:
-            self.connect_ssh()
+        if self._local_mode:
+            # Run command locally
+            result = subprocess.run(
+                wrapped, shell=True, capture_output=True, text=True
+            )
+            exit_code = result.returncode
+            out = result.stdout.strip()
+            err = result.stderr.strip()
+        else:
+            # Run command via SSH
+            if not self.ssh_client:
+                self.connect_ssh()
 
-        _stdin, stdout, stderr = self.ssh_client.exec_command(wrapped)
-        exit_code = stdout.channel.recv_exit_status()
-        out = stdout.read().decode('utf-8').strip()
-        err = stderr.read().decode('utf-8').strip()
+            _stdin, stdout, stderr = self.ssh_client.exec_command(wrapped)
+            exit_code = stdout.channel.recv_exit_status()
+            out = stdout.read().decode('utf-8').strip()
+            err = stderr.read().decode('utf-8').strip()
 
         if check and exit_code != 0:
             raise RuntimeError(
@@ -265,13 +300,23 @@ class EtcdLocalDiskOperations:
         """Read pxe_mapping_file from omnia_core container."""
         container_id = self._get_omnia_core_container_id()
         read_cmd = f"podman exec {container_id} cat {PXE_MAPPING_FILE_PATH}"
-        self.connect_ssh()
-        _stdin, stdout, stderr = self.ssh_client.exec_command(read_cmd)
-        exit_code = stdout.channel.recv_exit_status()
-        out = stdout.read().decode('utf-8').strip()
-        err = stderr.read().decode('utf-8').strip()
-        if exit_code != 0:
-            raise RuntimeError(f"Error reading pxe_mapping_file: {err}")
+        
+        if self._local_mode:
+            # Run command locally
+            result = subprocess.run(
+                read_cmd, shell=True, capture_output=True, text=True, check=True
+            )
+            out = result.stdout.strip()
+        else:
+            # Run command via SSH
+            self.connect_ssh()
+            _stdin, stdout, stderr = self.ssh_client.exec_command(read_cmd)
+            exit_code = stdout.channel.recv_exit_status()
+            out = stdout.read().decode('utf-8').strip()
+            err = stderr.read().decode('utf-8').strip()
+            if exit_code != 0:
+                raise RuntimeError(f"Error reading pxe_mapping_file: {err}")
+        
         return out
 
     def get_control_plane_nodes(self):
