@@ -97,14 +97,14 @@ login_compiler_node_x86_64,grp3,SVCTAG04,,login-compiler01,d1:e2:f3:a4:b5:c6,172
     - Hostnames should not contain the domain name of the nodes.
 
 For detailed information on PXE mapping file format and parameters, see
-[PXE Mapping File](../Reference/SampleFiles/pxe_mapping_file.md).
+[PXE Mapping File](../../Reference/SampleFiles/pxe_mapping_file.md).
 
 **Option B: Create PXE file using OME**
 
 Use the `discovery.yml` playbook to auto-generate the mapping file from
 an OME inventory. For detailed instructions including OME prerequisites,
 static group setup, and iDRAC hostname conventions, see
-[Discover Nodes Using OME](../HowTo/Setup/discover_nodes.md){target="_blank"}.
+[Discover Nodes Using OME](../Setup/discover_nodes.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/discovery
@@ -123,14 +123,14 @@ For Slurm deployment, update the following input files in
 
 | Input File | Purpose |
 | --- | --- |
-| [`network_spec.yml`](../Reference/Configuration/network_spec.md) | Network CIDRs, interfaces, and IP ranges |
-| [`provision_config.yml`](../Reference/Configuration/provision_config.md) | OS provisioning and PXE settings |
-| [`software_config.json`](../Reference/Configuration/software_config.md) | Software stack selections |
-| [`omnia_config.yml`](../Reference/Configuration/omnia_config.md) | Slurm cluster configuration |
-| [`storage_config.yml`](../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
-| [`local_repo_config.yml`](../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
-| [`telemetry_config.yml`](../Reference/Configuration/telemetry_config.md) | Telemetry and monitoring settings |
-| [`security_config.yml`](../Reference/Configuration/security_config.md) | OpenLDAP authentication settings |
+| [`network_spec.yml`](../../Reference/Configuration/network_spec.md) | Network CIDRs, interfaces, and IP ranges |
+| [`provision_config.yml`](../../Reference/Configuration/provision_config.md) | OS provisioning and PXE settings |
+| [`software_config.json`](../../Reference/Configuration/software_config.md) | Software stack selections |
+| [`omnia_config.yml`](../../Reference/Configuration/omnia_config.md) | Slurm cluster configuration |
+| [`storage_config.yml`](../../Reference/Configuration/storage_config.md) | NFS storage mount configuration |
+| [`local_repo_config.yml`](../../Reference/Configuration/local_repo_config.md) | Repository mirror settings |
+| [`telemetry_config.yml`](../../Reference/Configuration/telemetry_config.md) | Telemetry and monitoring settings |
+| [`security_config.yml`](../../Reference/Configuration/security_config.md) | OpenLDAP authentication settings |
 
 
 #### Edit omnia_config.yml
@@ -275,7 +275,7 @@ telemetry_sources:
     For Slurm-only deployments, disable all telemetry metrics in
     `telemetry_config.yml` except DCGM, which can be enabled if GPU
     telemetry is required.
-    For more information related to DCGM, see [DCGM](../HowTo/Slurm/slurm_with_gpu.md#dcgm).
+    For more information related to DCGM, see [DCGM](slurm_with_gpu.md#dcgm).
     
 ### Step 3: Configure Slurm
 
@@ -308,7 +308,7 @@ local repository, container registry, MinIO S3 storage, OpenLDAP
 authentication, and step-ca certificate authority.
 
 For details, see
-[Prepare OIM](../HowTo/Setup/prepare_oim.md){target="_blank"}.
+[Prepare OIM](../Setup/prepare_oim.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/prepare_oim
@@ -404,7 +404,7 @@ After `prepare_oim.yml` completes, verify the OIM services on the
       not included in `software_config.json`.
 
 For detailed OIM verification procedures, see
-[Verify OIM Services](../HowTo/Setup/verify_oim_services.md){target="_blank"}.
+[Verify OIM Services](../Setup/verify_oim_services.md){target="_blank"}.
 
 ## Step 5 -- Create Local Repositories
 
@@ -412,7 +412,7 @@ Downloads all required RPM packages, container images, and tarballs
 into Pulp based on `software_config.json` for air-gapped provisioning.
 
 For details, see
-[Create Local Repos](../HowTo/Setup/create_local_repos.md){target="_blank"}.
+[Create Local Repos](../Setup/create_local_repos.md){target="_blank"}.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/local_repo
@@ -477,7 +477,7 @@ Builds diskless OS images for each functional group in the PXE mapping
 file and uploads them to MinIO (S3) for PXE boot delivery.
 
 For details, see
-[Build Cluster Images](../HowTo/Setup/build_cluster_images.md){target="_blank"}.
+[Build Cluster Images](../Setup/build_cluster_images.md){target="_blank"}.
 
 **Build x86_64 Images**
 
@@ -490,7 +490,7 @@ ansible-playbook build_image_x86_64.yml
 
 If your PXE mapping file contains aarch64 functional groups, you must
 first prepare an aarch64 build node. See
-[Prepare aarch64 Node](../HowTo/Setup/prepare_aarch64_node.md){target="_blank"}
+[Prepare aarch64 Node](../Setup/prepare_aarch64_node.md){target="_blank"}
 for the complete procedure (manual RHEL 10 installation, inventory file
 creation, etc.).
 
@@ -614,7 +614,7 @@ nodes:
       breaking the password-less SSH channel on the OIM.
     - Do not delete the Omnia shared path or the NFS directory.
 
-For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../Troubleshooting/provisioning.md).
+For troubleshooting boot issues, IP route conflicts, and cloud-init failures, see [Provisioning Issues](../../Troubleshooting/provisioning.md).
 
 ## Step 8 -- PXE Boot Nodes
 

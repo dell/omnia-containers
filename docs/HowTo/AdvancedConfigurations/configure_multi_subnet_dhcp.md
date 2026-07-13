@@ -70,28 +70,28 @@ Multi-subnet DHCP requires a network infrastructure with:
 
 1. Use SSH to connect to the `omnia_core` container on the OIM node.
 
-    ```bash title="Run on: OIM host"
-    ssh omnia_core
-    ```
+  ```bash title="Run on: OIM host"
+  ssh omnia_core
+  ```
 
 2. Navigate to the input directory and view the current `network_spec.yml` file.
 
-    ```bash title="Run on: omnia_core container"
-    cd /opt/omnia/input/project_default/
-    cat network_spec.yml
-    ```
+   ```bash title="Run on: omnia_core container"
+   cd /opt/omnia/input/project_default/
+   cat network_spec.yml
+   ```
 
 3. Edit the `network_spec.yml` file to add the `additional_subnets` field under the `admin_network` section.
 
-    ```bash title="Run on: omnia_core container"
-    vi network_spec.yml
-    ```
+   ```bash title="Run on: omnia_core container"
+   vi network_spec.yml
+   ```
 
 4. Add the `additional_subnets` array with subnet entries for each rack. For example, for 2 racks:
 
-    ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
-    Networks:
-    - admin_network:
+   ```yaml title="File: /opt/omnia/input/project_default/network_spec.yml"
+   Networks:
+   - admin_network:
        oim_nic_name: "eno1"
        subnet: "10.40.1.0"
        netmask_bits: "24"
@@ -100,43 +100,49 @@ Multi-subnet DHCP requires a network infrastructure with:
        dynamic_range: "10.40.1.201-10.40.1.250"
        dns: []
        ntp_servers: []
+       additional_subnets:
+         - subnet: "10.40.2.0"
+           netmask_bits: "24"
+           router: "10.40.2.1"
+           dynamic_range: "10.40.2.190-10.40.2.200"
 
-    - ib_network:
+         - subnet: "10.40.3.0"
+           netmask_bits: "24"
+           router: "10.40.3.1"
+           dynamic_range: "10.40.3.190-10.40.3.200"
+
+   - ib_network:
        subnet: "198.168.0.0"
        netmask_bits: "24"
        dns: []
-    - additional_subnets:
-      - subnet: "10.40.2.0"
-        netmask_bits: "24"
-        router: "10.40.2.1"
-        dynamic_range: "10.40.2.190-10.40.2.200"
-
-      - subnet: "10.40.3.0"
-        netmask_bits: "24"
-        router: "10.40.3.1"
-        dynamic_range: "10.40.3.190-10.40.3.200"
    ```
 
-    !!! note
+  !!! note
 
-        Leave `additional_subnets: []` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
+       Leave `additional_subnets: []` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
 
-    For a full description of the `additional_subnets` parameters, see [network_spec.yml Reference](../../Reference/Configuration/network_spec.md).
+   For a full description of the `additional_subnets` parameters, see [network_spec.yml Reference](../../Reference/Configuration/network_spec.md).
 
 5. Run the `prepare_oim.yml` playbook:
 
-    ```bash title="Run on: omnia_core container"
-    cd /omnia/prepare_oim
-    ansible-playbook prepare_oim.yml
-    ```
+   ```bash title="Run on: omnia_core container"
+   cd /omnia/prepare_oim
+   ansible-playbook prepare_oim.yml
+   ```
 
-6. Open the `/etc/openchami/configs/coredhcp.yaml` file and follow the steps under the **Multi-subnet configuration** section (requires CoreSMD v0.6.3+).
+6. After `prepare_oim.yml` completes successfully, verify that all required services are running correctly:
 
-7. Restart the OpenCHAMI target to apply the change:
+   ```bash title="Run on: omnia_core container"
+   systemctl list-dependencies openchami.target
+   ```
 
-    ```bash title="Run on: OIM host"
-    systemctl restart openchami.target
-    ```
+7. Open the `/etc/openchami/configs/coredhcp.yaml` file and follow the steps under the **Multi-subnet configuration** section (requires CoreSMD v0.6.3+).
+
+8. Restart the OpenCHAMI target to apply the change:
+
+   ```bash title="Run on: OIM host"
+   systemctl restart openchami.target
+   ```
 
 ### Example: ten-rack configuration
 
@@ -153,47 +159,47 @@ Networks:
     dynamic_range: "10.40.1.201-10.40.1.250"
     dns: []
     ntp_servers: []
-- additional_subnets:
-    - subnet: "10.40.2.0"
-      netmask_bits: "24"
-      router: "10.40.2.1"
-      dynamic_range: "10.40.2.190-10.40.2.200"
-    - subnet: "10.40.3.0"
-      netmask_bits: "24"
-      router: "10.40.3.1"
-      dynamic_range: "10.40.3.190-10.40.3.200"
-    - subnet: "10.40.5.0"
-      netmask_bits: "24"
-      router: "10.40.5.1"
-      dynamic_range: "10.40.5.100-10.40.5.200"
-    - subnet: "10.40.7.0"
-      netmask_bits: "24"
-      router: "10.40.7.1"
-      dynamic_range: "10.40.7.100-10.40.7.200"
-    - subnet: "10.40.9.0"
-      netmask_bits: "24"
-      router: "10.40.9.1"
-      dynamic_range: "10.40.9.100-10.40.9.200"
-    - subnet: "10.40.11.0"
-      netmask_bits: "24"
-      router: "10.40.11.1"
-      dynamic_range: "10.40.11.100-10.40.11.200"
-    - subnet: "10.40.13.0"
-      netmask_bits: "24"
-      router: "10.40.13.1"
-      dynamic_range: "10.40.13.100-10.40.13.200"
-    - subnet: "10.40.15.0"
-      netmask_bits: "24"
-      router: "10.40.15.1"
-      dynamic_range: "10.40.15.100-10.40.15.200"
-    - subnet: "10.40.17.0"
-      netmask_bits: "24"
-      router: "10.40.17.1"
-      dynamic_range: "10.40.17.100-10.40.17.200"
-    - subnet: "10.40.19.0"
-      netmask_bits: "24"
-      router: "10.40.19.1"
-      dynamic_range: "10.40.19.100-10.40.19.200"
+    additional_subnets:
+      - subnet: "10.40.2.0"
+        netmask_bits: "24"
+        router: "10.40.2.1"
+        dynamic_range: "10.40.2.190-10.40.2.200"
+      - subnet: "10.40.3.0"
+        netmask_bits: "24"
+        router: "10.40.3.1"
+        dynamic_range: "10.40.3.190-10.40.3.200"
+      - subnet: "10.40.5.0"
+        netmask_bits: "24"
+        router: "10.40.5.1"
+        dynamic_range: "10.40.5.100-10.40.5.200"
+      - subnet: "10.40.7.0"
+        netmask_bits: "24"
+        router: "10.40.7.1"
+        dynamic_range: "10.40.7.100-10.40.7.200"
+      - subnet: "10.40.9.0"
+        netmask_bits: "24"
+        router: "10.40.9.1"
+        dynamic_range: "10.40.9.100-10.40.9.200"
+      - subnet: "10.40.11.0"
+        netmask_bits: "24"
+        router: "10.40.11.1"
+        dynamic_range: "10.40.11.100-10.40.11.200"
+      - subnet: "10.40.13.0"
+        netmask_bits: "24"
+        router: "10.40.13.1"
+        dynamic_range: "10.40.13.100-10.40.13.200"
+      - subnet: "10.40.15.0"
+        netmask_bits: "24"
+        router: "10.40.15.1"
+        dynamic_range: "10.40.15.100-10.40.15.200"
+      - subnet: "10.40.17.0"
+        netmask_bits: "24"
+        router: "10.40.17.1"
+        dynamic_range: "10.40.17.100-10.40.17.200"
+      - subnet: "10.40.19.0"
+        netmask_bits: "24"
+        router: "10.40.19.1"
+        dynamic_range: "10.40.19.100-10.40.19.200"
 ```
 
 This configuration supports 10 racks with non-overlapping /24 subnets, each with 100 IP addresses available for DHCP allocation.
