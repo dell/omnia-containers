@@ -22,12 +22,12 @@ Both scopes support the following cloud-init directives:
 
 ## Prerequisites
 
-- The [Create Mapping File](create_mapping_file.md) procedure is complete.
-- The [Configure Credentials](configure_credentials.md) procedure is complete.
-- The [Configure Inputs](configure_inputs.md) procedure is complete.
-- The [Prepare OIM](prepare_oim.md) procedure is complete (OpenCHAMI and DHCP are running).
-- The [Create Local Repos](create_local_repos.md) procedure is complete (local Pulp repository is set up with required packages).
-- The [Build Cluster Images](build_cluster_images.md) procedure is complete.
+- The [Create Mapping File](../Setup/create_mapping_file.md) procedure is complete.
+- The [Configure Credentials](../Setup/configure_credentials.md) procedure is complete.
+- The [Configure Inputs](../Setup/configure_inputs.md) procedure is complete.
+- The [Prepare OIM](../Setup/prepare_oim.md) procedure is complete (OpenCHAMI and DHCP are running).
+- The [Create Local Repos](../Setup/create_local_repos.md) procedure is complete (local Pulp repository is set up with required packages).
+- The [Build Cluster Images](../Setup/build_cluster_images.md) procedure is complete.
 
 ## Procedure
 
