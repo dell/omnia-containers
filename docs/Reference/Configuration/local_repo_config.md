@@ -1,13 +1,11 @@
-# local_repo_config.yml Reference
-
-File path: `/opt/omnia/input/project_default/local_repo_config.yml`
+# local_repo_config.yml
 
 This file configures the local repository mirror on the OIM. The `local_repo.yml`
 playbook uses these settings to synchronize RHEL, third-party, and custom
 package repositories to the OIM via Pulp, enabling air-gapped or
 bandwidth-efficient deployments.
 
-## Local Repo configuration parameters
+## Parameter Reference
 
 --8<-- "html/local_repo_config.html"
 

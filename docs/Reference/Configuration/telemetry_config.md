@@ -1,8 +1,5 @@
 
-# telemetry_config.yml Reference
-
-
-File path: `/opt/omnia/input/project_default/telemetry_config.yml`
+# telemetry_config.yml
 
 This file configures telemetry sources (iDRAC, LDMS, DCGM, PowerScale, UFM, VAST, OpenManage Enterprise), telemetry bridges (Vector-LDMS, Vector-OME), and telemetry sinks (VictoriaMetrics, VictoriaLogs, Kafka). It also includes component-specific configurations for each telemetry source.
 
@@ -19,12 +16,12 @@ This file configures telemetry sources (iDRAC, LDMS, DCGM, PowerScale, UFM, VAST
 | [OpenManage Enterprise (OME)](../../HowTo/Telemetry/telemetry_from_ome.md) | Server inventory, health, alerts, and audit logs from Dell OME via Kafka mTLS | Kafka, VictoriaMetrics, VictoriaLogs (via Vector-OME) |
 | [SFM](../../HowTo/Telemetry/configure_sfm.md) | Network telemetry metrics from Smart Fabric Manager | VictoriaMetrics |
 
-
-## Telemetry Configuration Parameters
+## Parameter Reference
+### Telemetry Configuration Parameters
 
 --8<-- "html/telemetry_config.html"
 
-## Telemetry Storage Configuration Parameters
+### Telemetry Storage Configuration Parameters
 
 --8<-- "html/telemetry_storage_config.html"
 
