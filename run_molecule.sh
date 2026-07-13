@@ -386,9 +386,7 @@ case "$SCENARIO" in
         # Display in logical order
         ORDERED_SCENARIOS="omnia_sh_install prepare_oim discovery gitlab_install local_repo build_image_x86_64 build_image_aarch64 provision telemetry apptainer build_stream Upgrade rollback_omnia_sh gitlab_cleanup oim_cleanup omnia_sh_uninstall"
         for name in $ORDERED_SCENARIOS; do
-            local resolved_dir
-            resolved_dir=$(resolve_scenario_dir "$name")
-            if [[ -d "molecule/${resolved_dir}" && -f "molecule/${resolved_dir}/molecule.yml" ]]; then
+            if [[ -d "molecule/${name}" && -f "molecule/${name}/molecule.yml" ]]; then
                 echo -e "  ${GREEN}${name}${NC}"
             fi
         done
@@ -566,8 +564,7 @@ case "$SCENARIO" in
 esac
 
 # Validate scenario exists
-SCENARIO_DIR=$(resolve_scenario_dir "$SCENARIO")
-if [[ ! -d "molecule/${SCENARIO_DIR}" ]]; then
+if [[ ! -d "molecule/${SCENARIO}" ]]; then
     echo -e "${RED}Error: Scenario '${SCENARIO}' not found${NC}"
     echo -e "${YELLOW}Supported scenarios:${NC} ${SUPPORTED_SCENARIOS}"
     echo "Run '$0 list' to see available scenarios."
