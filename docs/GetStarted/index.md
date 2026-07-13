@@ -140,7 +140,7 @@
   .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 24px 0 16px; }
 </style>
 <div class="wrap">
-  <p class="sub">Click a decision to expand only the relevant path  collapse it again to fold the diagram back up.</p>
+  <p class="sub">Click Yes or No to expand the corresponding deployment path.</p>
   <div class="legend">
     <span><i class="swatch" style="background:var(--neutral-fill);border:1px solid var(--neutral-stroke)"></i>Process step</span>
     <span><i class="swatch" style="background:var(--decision-fill)"></i>Decision / start / end</span>
