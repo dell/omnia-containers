@@ -899,22 +899,50 @@ class EtcdLocalDiskOperations:
             rc, _, _ = self._ssh_from_omnia_core(
                 target, f"[ -f {ETCD_DISK_SETUP_LOG} ]",
             )
-            if rc != 0:
-                msg = FIRST_BOOT_LOG_MISSING.format(node=target)
-                details_lines.append(f"  [FAIL] {msg}")
-                all_valid = False
+            if rc == 0:
+                # First boot log exists - check for DONE marker
+                rc, log_tail, _ = self._ssh_from_omnia_core(
+                    target, f"tail -5 {ETCD_DISK_SETUP_LOG} 2>/dev/null",
+                )
+                log_tail = (log_tail or "").strip()
+
+                if "DONE" in log_tail:
+                    msg = FIRST_BOOT_LOG_SUCCESS.format(node=target)
+                    details_lines.append(f"  [PASS] {msg}")
+                else:
+                    msg = FIRST_BOOT_LOG_FAILED.format(node=target)
+                    details_lines.append(f"  [FAIL] {msg}")
+                    all_valid = False
                 continue
 
-            rc, log_tail, _ = self._ssh_from_omnia_core(
-                target, f"tail -5 {ETCD_DISK_SETUP_LOG} 2>/dev/null",
+            # First boot log missing - check if subsequent boot log exists
+            # (node was rebooted, cloud-init cleaned up first boot log)
+            rc, _, _ = self._ssh_from_omnia_core(
+                target, f"[ -f {ETCD_FSTAB_UPDATE_LOG} ]",
             )
-            log_tail = (log_tail or "").strip()
+            if rc == 0:
+                rc, log_tail, _ = self._ssh_from_omnia_core(
+                    target,
+                    f"tail -5 {ETCD_FSTAB_UPDATE_LOG} 2>/dev/null",
+                )
+                log_tail = (log_tail or "").strip()
 
-            if "DONE" in log_tail:
-                msg = FIRST_BOOT_LOG_SUCCESS.format(node=target)
-                details_lines.append(f"  [PASS] {msg}")
+                if "DONE" in log_tail:
+                    details_lines.append(
+                        f"  [PASS] etcd-disk-setup.log not found on"
+                        f" {target} (node was rebooted),"
+                        f" but etcd-fstab-update.sh completed"
+                        f" successfully — disk setup preserved"
+                    )
+                else:
+                    details_lines.append(
+                        f"  [FAIL] etcd-disk-setup.log not found on"
+                        f" {target} and etcd-fstab-update.sh did not"
+                        f" complete successfully"
+                    )
+                    all_valid = False
             else:
-                msg = FIRST_BOOT_LOG_FAILED.format(node=target)
+                msg = FIRST_BOOT_LOG_MISSING.format(node=target)
                 details_lines.append(f"  [FAIL] {msg}")
                 all_valid = False
 
