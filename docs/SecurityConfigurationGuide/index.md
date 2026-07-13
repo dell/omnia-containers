@@ -4,7 +4,7 @@
 ## Preface
 The security configuration guide of Omnia provides Dell customers an overview and understanding of the security features supported by Omnia. As part of an effort to improve its product lines, Dell periodically releases revisions of its software and hardware. The product release notes provide the most up-to-date information about product features. Contact your Dell technical support professional if a product does not function properly or does not function as described in this document. This document was accurate at publication time. To ensure that you are using the latest version of this document, go to [Omnia: Docs](../Overview/index.md)
 
-![Omnia-Architecture](../assets/images/Architecture.png)
+![Omnia-Architecture](../assets/images/omnia_arch_s.svg)
 
 ### LEGAL DISCLAIMERS
 
