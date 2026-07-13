@@ -219,13 +219,16 @@ def test_tc_f09_subsequent_boot_post_reboot(etcd_ops, etcd_enabled):
         pytest.skip("Reboot test did not run - no reboot time available")
 
     reboot_time = _reboot_state["reboot_time"]
+    rebooted_node = _reboot_state["rebooted_hostname"]
     log.check(
         f"Verifying etcd-fstab-update.sh log was updated after reboot"
-        f" (reboot time: {reboot_time})"
+        f" on {rebooted_node} (reboot time: {reboot_time})"
     )
 
     success, message, details = (
-        etcd_ops.verify_subsequent_boot_fstab_update_post_reboot(reboot_time)
+        etcd_ops.verify_subsequent_boot_fstab_update_post_reboot(
+            reboot_time, target_node=rebooted_node,
+        )
     )
 
     if success:
@@ -258,11 +261,14 @@ def test_tc_f05_fstab_mount_post_reboot(etcd_ops, etcd_enabled):
     if not _reboot_state["rebooted_ip"]:
         pytest.skip("Reboot test did not run - no node to check")
 
+    rebooted_node = _reboot_state["rebooted_hostname"]
     log.check(
         f"Verifying UUID-based fstab entry and active mount for"
-        f" {ETCD_MOUNT_PATH} after reboot"
+        f" {ETCD_MOUNT_PATH} on {rebooted_node} after reboot"
     )
-    success, message, details = etcd_ops.verify_fstab_and_mount()
+    success, message, details = etcd_ops.verify_fstab_and_mount(
+        target_node=rebooted_node,
+    )
 
     if success:
         log.passed(message, details)
@@ -294,11 +300,14 @@ def test_tc_f06_etcd_local_disk_post_reboot(etcd_ops, etcd_enabled):
     if not _reboot_state["rebooted_ip"]:
         pytest.skip("Reboot test did not run - no node to check")
 
+    rebooted_node = _reboot_state["rebooted_hostname"]
     log.check(
         f"Verifying etcd uses local disk at {ETCD_MOUNT_PATH}"
-        f" (not NFS) after reboot"
+        f" on {rebooted_node} (not NFS) after reboot"
     )
-    success, message, details = etcd_ops.verify_etcd_using_local_disk()
+    success, message, details = etcd_ops.verify_etcd_using_local_disk(
+        target_node=rebooted_node,
+    )
 
     if success:
         log.passed(message, details)

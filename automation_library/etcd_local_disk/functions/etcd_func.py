@@ -597,13 +597,21 @@ class EtcdLocalDiskOperations:
     # TC-F05: FSTAB UPDATE AND MOUNT
     # =========================================================================
 
-    def verify_fstab_and_mount(self):
+    def verify_fstab_and_mount(self, target_node=None):
         """Verify UUID-based fstab entry and active mount for /var/lib/etcd.
+
+        Args:
+            target_node (str, optional): Hostname or IP of a specific node to
+                verify. When provided, only that node is checked instead of all
+                control plane nodes.
 
         Returns:
             tuple: (success, message, details)
         """
-        nodes = self.get_control_plane_nodes()
+        if target_node:
+            nodes = [{"hostname": target_node, "admin_ip": target_node}]
+        else:
+            nodes = self.get_control_plane_nodes()
         if not nodes:
             return False, NO_CONTROL_PLANE_NODES, None
 
@@ -675,13 +683,21 @@ class EtcdLocalDiskOperations:
     # TC-F06: ETCD CONFIGURATION TO LOCAL DISK
     # =========================================================================
 
-    def verify_etcd_using_local_disk(self):
+    def verify_etcd_using_local_disk(self, target_node=None):
         """Verify etcd is using local disk at /var/lib/etcd (not NFS).
+
+        Args:
+            target_node (str, optional): Hostname or IP of a specific node to
+                verify. When provided, only that node is checked instead of all
+                control plane nodes.
 
         Returns:
             tuple: (success, message, details)
         """
-        nodes = self.get_control_plane_nodes()
+        if target_node:
+            nodes = [{"hostname": target_node, "admin_ip": target_node}]
+        else:
+            nodes = self.get_control_plane_nodes()
         if not nodes:
             return False, NO_CONTROL_PLANE_NODES, None
 
@@ -1214,16 +1230,24 @@ class EtcdLocalDiskOperations:
     # POST-REBOOT: TC-F09 WITH TIMESTAMP VALIDATION
     # =========================================================================
 
-    def verify_subsequent_boot_fstab_update_post_reboot(self, reboot_time):
+    def verify_subsequent_boot_fstab_update_post_reboot(
+        self, reboot_time, target_node=None,
+    ):
         """Verify etcd-fstab-update.sh ran AFTER the reboot by checking log timestamps.
 
         Args:
             reboot_time (str): Timestamp of the reboot (YYYY-MM-DD HH:MM:SS).
+            target_node (str, optional): Hostname or IP of a specific node to
+                verify. When provided, only that node is checked instead of all
+                control plane nodes.
 
         Returns:
             tuple: (success, message, details)
         """
-        nodes = self.get_control_plane_nodes()
+        if target_node:
+            nodes = [{"hostname": target_node, "admin_ip": target_node}]
+        else:
+            nodes = self.get_control_plane_nodes()
         if not nodes:
             return False, NO_CONTROL_PLANE_NODES, None
 
