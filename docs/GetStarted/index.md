@@ -18,6 +18,10 @@
     --retry-text: #C15F1E;
     --arrow: #E8843C;
     --arrow-fail: #C0392B;
+    --buildstream-fill: #6F42C1;
+    --buildstream-stroke: #4A2B8A;
+    --manual-fill: #28A745;
+    --manual-stroke: #1E7E34;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -52,6 +56,8 @@
   .node.terminal { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 600; border-radius: 999px; }
   .node.decision { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 500; }
   .node.retry { background: var(--retry-fill); border: 1px solid var(--retry-stroke); color: var(--retry-text); }
+  .node.buildstream { background: var(--buildstream-fill); border: 1px solid var(--buildstream-stroke); color: #fff; font-weight: 500; }
+  .node.manual { background: var(--manual-fill); border: 1px solid var(--manual-stroke); color: #fff; font-weight: 500; }
   .node code { font-size: 12.5px; opacity: 0.9; }
 
   .arrow {
@@ -76,24 +82,55 @@
   .row { display: flex; gap: 16px; width: 100%; max-width: 460px; justify-content: center; }
   .row .node { max-width: none; flex: 1; }
 
-  .choice-row { display: flex; gap: 10px; margin: 10px 0 4px; }
+  .choice-row { display: flex; gap: 12px; margin: 12px 0 8px; justify-content: center; }
   .choice-btn {
-    padding: 6px 18px;
-    border-radius: 999px;
-    border: 1.5px solid var(--neutral-stroke);
+    padding: 10px 24px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+    justify-content: center;
+  }
+  .choice-btn svg { width: 18px; height: 18px; }
+  .choice-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  
+  .choice-btn.manual-btn {
+    background: linear-gradient(135deg, #28A745 0%, #20c997 100%);
+    color: #fff;
+    border-color: #1E7E34;
+  }
+  .choice-btn.manual-btn:hover { background: linear-gradient(135deg, #218838 0%, #1aa87a 100%); }
+  .choice-btn.manual-btn.active {
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3), 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .choice-btn.buildstream-btn {
+    background: linear-gradient(135deg, #6F42C1 0%, #8e44ad 100%);
+    color: #fff;
+    border-color: #4A2B8A;
+  }
+  .choice-btn.buildstream-btn:hover { background: linear-gradient(135deg, #5a32a3 0%, #7d3c98 100%); }
+  .choice-btn.buildstream-btn.active {
+    box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.3), 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  .choice-btn.secondary {
     background: var(--bg);
     color: var(--neutral-text);
-    font-size: 12.5px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.15s, color 0.15s;
+    border: 2px solid var(--neutral-stroke);
   }
-  .choice-btn.active {
+  .choice-btn.secondary:hover { background: var(--neutral-fill); }
+  .choice-btn.secondary.active {
     background: var(--decision-fill);
     border-color: var(--decision-stroke);
     color: #fff;
   }
-  .choice-btn:hover:not(.active) { background: var(--neutral-fill); }
 
   .branch-body {
     display: flex;
@@ -102,16 +139,17 @@
     overflow: hidden;
     max-height: 0;
     opacity: 0;
-    transition: max-height 0.35s ease, opacity 0.25s ease;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
     width: 100%;
   }
-  .branch-body.open { max-height: 2200px; opacity: 1; }
+  .branch-body.open { max-height: 2500px; opacity: 1; }
 
   .placeholder {
     font-size: 12.5px;
     color: var(--text-secondary);
     font-style: italic;
     padding: 8px 0 4px;
+    text-align: center;
   }
 
   details.error-handling {
@@ -123,7 +161,7 @@
     cursor: pointer;
     font-size: 12px;
     color: var(--retry-text);
-    padding: 6px 12px;
+    padding: 8px 16px;
     border: 1px dashed var(--retry-stroke);
     border-radius: 8px;
     background: var(--retry-fill);
@@ -131,16 +169,30 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    font-weight: 500;
   }
   details.error-handling summary::-webkit-details-marker { display: none; }
-  details.error-handling summary::after { content: ""; transition: transform 0.15s; }
+  details.error-handling summary::after { content: "▼"; font-size: 10px; transition: transform 0.15s; }
   details.error-handling[open] summary::after { transform: rotate(180deg); }
   .error-body { display: flex; flex-direction: column; align-items: center; padding-top: 8px; }
 
   .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 24px 0 16px; }
+
+  .path-indicator {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin: 8px 0;
+  }
+  .path-indicator.manual { background: rgba(40, 167, 69, 0.1); color: #1E7E34; border: 1px solid #28A745; }
+  .path-indicator.buildstream { background: rgba(111, 66, 193, 0.1); color: #4A2B8A; border: 1px solid #6F42C1; }
 </style>
 <div class="wrap">
-  <p class="sub">Click Yes or No to expand the corresponding deployment path.</p>
+  <h1>Omnia deployment flow</h1>
+  <p class="sub">Choose your deployment path to see the detailed steps</p>
   <div class="legend">
     <span><i class="swatch" style="background:var(--neutral-fill);border:1px solid var(--neutral-stroke)"></i>Process step</span>
     <span><i class="swatch" style="background:var(--decision-fill)"></i>Decision / start / end</span>
@@ -148,31 +200,42 @@
   </div>
 
   <div class="flow">
-    <div class="node terminal">Start Omnia deployment</div>
+    <div class="node terminal">🚀 Start Omnia deployment</div>
     <div class="arrow"></div>
     <div class="node neutral">Build Omnia images from Omnia artifactory repo</div>
     <div class="arrow"></div>
     <div class="node neutral">Run <code>omnia.sh</code> to create the Omnia core container</div>
     <div class="arrow"></div>
-    <div class="node neutral">Update required input files in <code>/opt/omnia/input/project_default</code></div>
-    <div class="arrow"></div>
-    <div class="row">
-      <div class="node neutral">Create PXE mapping file manually</div>
-      <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
-    </div>
-    <div class="arrow"></div>
-    <div class="node neutral">Run input validator to validate the input files</div>
-    <div class="arrow"></div>
-
-    <div class="node decision">Use BuildStreaM: catalog-driven build automation?</div>
+    
+    <div class="node decision">🔀 Choose your deployment method</div>
     <div class="choice-row">
-      <button class="choice-btn" id="btn-no" onclick="selectStream('no')">No</button>
-      <button class="choice-btn" id="btn-yes" onclick="selectStream('yes')">Yes</button>
+      <button class="choice-btn manual-btn" id="btn-manual" onclick="selectDeployment('manual')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+        </svg>
+        Manual Setup
+      </button>
+      <button class="choice-btn buildstream-btn" id="btn-buildstream" onclick="selectDeployment('buildstream')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        BuildStreaM
+      </button>
     </div>
-    <div class="placeholder" id="placeholder">Choose Yes or No above to view that path</div>
+    <div class="placeholder" id="placeholder">Select a deployment method above to view the detailed path</div>
 
-    <!-- ===== Branch: No (manual) ===== -->
-    <div class="branch-body" id="branch-no">
+    <!-- ===== Branch: Manual Setup ===== -->
+    <div class="branch-body" id="branch-manual">
+      <div class="path-indicator manual">Manual Deployment Path</div>
+      <div class="arrow"></div>
+      <div class="node neutral">Update required input files in <code>/opt/omnia/input/project_default</code></div>
+      <div class="arrow"></div>
+      <div class="row">
+        <div class="node neutral">Create PXE mapping file manually</div>
+        <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
+      </div>
+      <div class="arrow"></div>
+      <div class="node neutral">Run input validator to validate the input files</div>
       <div class="arrow"></div>
       <div class="node neutral">Run <code>prepare_oim.yml</code> to deploy containers on OIM</div>
       <div class="arrow"></div>
@@ -181,13 +244,13 @@
       <div class="node neutral">Run <code>build_image_x86_64.yml</code> to build x86_64 diskless images</div>
       <div class="arrow"></div>
 
-      <div class="node decision">aarch64 support required?</div>
+      <div class="node decision">🏗️ aarch64 support required?</div>
       <div class="choice-row">
-        <button class="choice-btn" id="btn-no-aarch-no" onclick="selectAarch('no', false)">No</button>
-        <button class="choice-btn" id="btn-no-aarch-yes" onclick="selectAarch('no', true)">Yes</button>
+        <button class="choice-btn secondary" id="btn-manual-aarch-no" onclick="selectAarch('manual', false)">No</button>
+        <button class="choice-btn secondary" id="btn-manual-aarch-yes" onclick="selectAarch('manual', true)">Yes</button>
       </div>
 
-      <div class="branch-body" id="no-aarch-yes">
+      <div class="branch-body" id="manual-aarch-yes">
         <div class="arrow"></div>
         <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
         <div class="arrow"></div>
@@ -200,16 +263,27 @@
       <div class="node neutral">PXE boot nodes to load diskless images from OIM</div>
     </div>
 
-    <!-- ===== Branch: Yes (BuildStreaM) ===== -->
-    <div class="branch-body" id="branch-yes">
+    <!-- ===== Branch: BuildStreaM ===== -->
+    <div class="branch-body" id="branch-buildstream">
+      <div class="path-indicator buildstream">BuildStreaM CI/CD Path</div>
       <div class="arrow"></div>
-      <div class="node decision">aarch64 support required?</div>
+      <div class="node neutral">Update required input files in <code>/opt/omnia/input/project_default</code></div>
+      <div class="arrow"></div>
+      <div class="row">
+        <div class="node neutral">Create PXE mapping file manually</div>
+        <div class="node neutral">Generate PXE mapping file via OME-based BMC discovery</div>
+      </div>
+      <div class="arrow"></div>
+      <div class="node neutral">Run input validator to validate the input files</div>
+      <div class="arrow"></div>
+      
+      <div class="node decision">🏗️ aarch64 support required?</div>
       <div class="choice-row">
-        <button class="choice-btn" id="btn-yes-aarch-no" onclick="selectAarch('yes', false)">No</button>
-        <button class="choice-btn" id="btn-yes-aarch-yes" onclick="selectAarch('yes', true)">Yes</button>
+        <button class="choice-btn secondary" id="btn-buildstream-aarch-no" onclick="selectAarch('buildstream', false)">No</button>
+        <button class="choice-btn secondary" id="btn-buildstream-aarch-yes" onclick="selectAarch('buildstream', true)">Yes</button>
       </div>
 
-      <div class="branch-body" id="yes-aarch-yes">
+      <div class="branch-body" id="buildstream-aarch-yes">
         <div class="arrow"></div>
         <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
       </div>
@@ -221,10 +295,10 @@
       <div class="arrow"></div>
       <div class="node neutral">Update the catalog file on the BuildStreaM GitLab instance</div>
       <div class="arrow"></div>
-      <div class="node decision">Trigger the build CI/CD pipeline</div>
+      <div class="node decision">⚡ Trigger the build CI/CD pipeline</div>
 
       <details class="error-handling">
-        <summary>If it fails  debug &amp; retry loop</summary>
+        <summary>🔧 If it fails - debug &amp; retry loop</summary>
         <div class="error-body">
           <div class="arrow fail"></div>
           <div class="node retry">Debug logs &amp; fix the config</div>
@@ -238,10 +312,10 @@
       <div class="arrow"></div>
       <div class="node neutral">Modify PXE mapping file</div>
       <div class="arrow"></div>
-      <div class="node decision">Trigger deploy pipeline (PXE boot)</div>
+      <div class="node decision">⚡ Trigger deploy pipeline (PXE boot)</div>
 
       <details class="error-handling">
-        <summary>If it fails  debug &amp; retry loop</summary>
+        <summary>🔧 If it fails - debug &amp; retry loop</summary>
         <div class="error-body">
           <div class="arrow fail"></div>
           <div class="node retry">Debug logs &amp; fix the config</div>
@@ -257,17 +331,17 @@
 
     <div class="node neutral">Run <code>telemetry.yml</code> to enable iDRAC telemetry</div>
     <div class="arrow"></div>
-    <div class="node terminal">End of deployment</div>
+    <div class="node terminal">🎉 End of deployment</div>
   </div>
 </div>
 </div>
 
 <script>
-  function selectStream(choice) {
-    document.getElementById('btn-no').classList.toggle('active', choice === 'no');
-    document.getElementById('btn-yes').classList.toggle('active', choice === 'yes');
-    document.getElementById('branch-no').classList.toggle('open', choice === 'no');
-    document.getElementById('branch-yes').classList.toggle('open', choice === 'yes');
+  function selectDeployment(choice) {
+    document.getElementById('btn-manual').classList.toggle('active', choice === 'manual');
+    document.getElementById('btn-buildstream').classList.toggle('active', choice === 'buildstream');
+    document.getElementById('branch-manual').classList.toggle('open', choice === 'manual');
+    document.getElementById('branch-buildstream').classList.toggle('open', choice === 'buildstream');
     document.getElementById('placeholder').style.display = 'none';
   }
   function selectAarch(branch, isYes) {
