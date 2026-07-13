@@ -182,7 +182,6 @@ Each component has its own verification page:
 
 - [Verify iDRAC Telemetry](verify_idrac.md)
 - [Verify LDMS Telemetry](verify_ldms.md)
-- [Verify DCGM Telemetry](verify_dcgm.md)
 - [Verify PowerScale Telemetry](verify_powerscale.md)
 - [Verify UFM Telemetry](verify_ufm.md)
 - [Verify VAST Telemetry](verify_vast.md)
