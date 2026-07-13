@@ -27,8 +27,8 @@ Each image is created based on the functional groups defined in the mapping file
 |--------|-----------------|---------------|
 | RHEL   | RHEL            | Yes           |
 
-
-## Build Images for x86_64 Cluster Nodes
+## Procedure
+### Build Images for x86_64 Cluster Nodes
 
 
 1. **Enter the omnia_core container**:
@@ -58,10 +58,10 @@ Each image is created based on the functional groups defined in the mapping file
     The images created for each functional group are listed in the `boot-images` directory.
 
 
-## Build Images for aarch64 Cluster Nodes
+### Build Images for aarch64 Cluster Nodes
 
 
-### Prepare the aarch64 Node
+#### Prepare the aarch64 Node
 
 Before building aarch64 images, you must install RHEL 10 on one of the aarch64 nodes:
 
@@ -77,7 +77,7 @@ Before building aarch64 images, you must install RHEL 10 on one of the aarch64 n
     - The password set during RHEL installation on the aarch64 node must be supplied as `provision_password` when running `provision.yml`.
 
 
-### Build the aarch64 Images
+#### Build the aarch64 Images
 
 1. **Enter the omnia_core container**:
 

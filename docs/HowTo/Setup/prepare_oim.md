@@ -53,9 +53,9 @@ The `prepare_oim.yml` playbook deploys the following on the OIM node:
 
     After `prepare_oim.yml` execution, `ssh omnia_core` may fail if you switch from a non-root to root user using the `sudo` command. To avoid this, log in directly as the `root` user before executing the playbook.
 
-## Input file configuration
+### Input file configuration
 
-### network_spec.yml
+#### network_spec.yml
 
 Add necessary inputs to the `network_spec.yml` file to configure the network on which the cluster will operate. Refer to [Network Spec](../../Reference/Configuration/network_spec.md) for guidance on configuring these parameters.
 
@@ -77,19 +77,19 @@ Networks:
     dns: []
 ```
 
-### provision_config.yml
+#### provision_config.yml
 
 Add necessary inputs to the `provision_config.yml` file for provisioning the cluster. Refer to [Provision Config](../../Reference/Configuration/provision_config.md) for guidance on configuring these parameters.
 
-### build_stream_config.yml
+#### build_stream_config.yml
 
 Add necessary inputs to the `build_stream_config.yml` file for the BuildStreaM pipeline. Refer to [BuildStreaM Config](../../Reference/Configuration/build_stream_config.md) for guidance on configuring these parameters.
 
-### storage_config.yml
+#### storage_config.yml
 
 Add necessary inputs to the `storage_config.yml` file for the storage configuration. Refer to [Storage Config](../../Reference/Configuration/storage_config.md) for guidance on configuring these parameters.
 
-### Configure PowerScale as S3 storage
+#### Configure PowerScale as S3 storage
 
 PowerScale provides scalable, high-performance object storage for the OpenCHAMI image repository. Using PowerScale as S3-compatible storage enables efficient storage and retrieval of boot images across the cluster, with support for HTTP access and robust authentication mechanisms.
 
