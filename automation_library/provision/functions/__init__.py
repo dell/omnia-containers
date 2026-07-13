@@ -129,3 +129,14 @@ from .minimal_os_func import (
     check_network_isolation,
     check_no_embedded_credentials,
 )
+
+# Kernel version override functions
+from .kernel_override_func import (
+    get_kernel_version_override,
+    validate_kernel_version_override_format,
+    validate_kernel_version_string_format,
+    verify_kernel_override_in_s3,
+    verify_node_kernel_version,
+    verify_all_nodes_kernel_version,
+    verify_bss_kernel_override,
+)

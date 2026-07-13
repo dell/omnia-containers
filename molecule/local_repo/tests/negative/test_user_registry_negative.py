@@ -19,7 +19,7 @@ This module contains pytest negative test cases for verifying user_registry
 error handling, validation, and security behavior.
 
 Test cases:
-  TC-N001: Empty user_registry handled gracefully (no crash)
+  TC-N001: Invalid registry entry structure handled gracefully
   TC-N002: Invalid registry host format detected
   TC-N003: HTTPS registry with missing cert files produces clear error
   TC-N004: Unreachable registry endpoint is reported
