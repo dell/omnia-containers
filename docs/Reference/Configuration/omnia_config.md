@@ -1,7 +1,5 @@
 
-# omnia_config.yml Reference
-
-File path: `/opt/omnia/input/project_default/omnia_config.yml`
+# omnia_config.yml
 
 This file controls the deployment of Slurm and Kubernetes across cluster nodes.
 

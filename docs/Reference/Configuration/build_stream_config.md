@@ -1,11 +1,9 @@
-# build_stream_config.yml Reference
-
-File path: `/opt/omnia/input/project_default/build_stream_config.yml`
+# build_stream_config.yml
 
 This file configures the BuildStreaM catalog-driven CI/CD deployment pipeline,
 including GitLab integration and pipeline behavior settings.
 
-## BuildStreaM Configuration Parameters
+## Parameter Reference
 
 --8<-- "html/build_stream_config.html"
 

@@ -1,7 +1,5 @@
 
-# network_spec.yml Reference
-
-File path: `/opt/omnia/input/project_default/network_spec.yml`
+# network_spec.yml
 
 This file defines all network segments used by the Omnia cluster: admin, ib, and additional networks. Each network is described as an entry in the
 `Networks` list.
