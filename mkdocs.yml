@@ -291,13 +291,6 @@ nav:
       - SFM Metrics: Reference/Metrics/sfm_metrics.md
     - Appendices:
       - Hostname Requirements: Reference/Appendices/hostname_requirements.md
-  - Security Configuration Guide:
-    - SecurityConfigurationGuide/index.md
-    - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
-    - Product and Subsystem Security: SecurityConfigurationGuide/product_subsystem_security.md
-    - Authentication to External Systems: SecurityConfigurationGuide/external_systems_authentication.md
-    - Network Security: SecurityConfigurationGuide/network_security.md
-    - Miscellaneous Configuration and Management Elements: SecurityConfigurationGuide/misc_configuration.md
   - Operations:
     - Operations/index.md
     - Add / Remove Nodes: Operations/add_remove_nodes.md
@@ -322,6 +315,13 @@ nav:
     - Kernel Version Override: Troubleshooting/kernel_version_override.md
     - General Troubleshooting Steps: Troubleshooting/general_troubleshooting.md
     - Known Limitations: Troubleshooting/known_limitations.md
+  - Security Configuration Guide:
+    - SecurityConfigurationGuide/index.md
+    - Security Quick Reference: SecurityConfigurationGuide/security_quick_reference.md
+    - Product and Subsystem Security: SecurityConfigurationGuide/product_subsystem_security.md
+    - Authentication to External Systems: SecurityConfigurationGuide/external_systems_authentication.md
+    - Network Security: SecurityConfigurationGuide/network_security.md
+    - Miscellaneous Configuration and Management Elements: SecurityConfigurationGuide/misc_configuration.md
   - Contributing:
     - Contributing/index.md
     - Pull Requests: Contributing/pull_requests.md
