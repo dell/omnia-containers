@@ -126,9 +126,9 @@
     // Button text
     var hiddenPercent = Math.round(decision.hiddenRatio * 100);
     var expandText = CONFIG.showStats
-      ? "Expand table (" + hiddenPercent + "% hidden) "
-      : "Expand table ";
-    var collapseText = "Collapse table ";
+      ? "More (" + hiddenPercent + "% hidden) "
+      : "More ";
+    var collapseText = "Less ";
 
     // Create toggle button
     var btn = document.createElement("button");
