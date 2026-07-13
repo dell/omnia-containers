@@ -166,14 +166,7 @@ Converting Single-Subnet to Multi-Subnet
 
 Follow these steps to convert an existing single-subnet Omnia 2.2 deployment to multi-subnet.
 
-Step 1: Stop OpenCHAMI services
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-On the OIM host, stop all OpenCHAMI services::
-
-   systemctl stop openchami.target
-
-Step 2: Update network_spec.yml
+Step 1: Update network_spec.yml
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use SSH to connect to the ``omnia_core`` container and edit ``network_spec.yml`` to add the additional subnets::
@@ -218,7 +211,7 @@ Example configuration for 2 racks:
 
    Leave ``additional_subnets: []`` (empty array) for single-subnet deployments. This maintains backward compatibility with existing configurations.
 
-Step 3: Run prepare_oim.yml
+Step 2: Run prepare_oim.yml
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Inside the ``omnia_core`` container, run the ``prepare_oim.yml`` playbook to regenerate the CoreDHCP configuration::
@@ -226,7 +219,7 @@ Inside the ``omnia_core`` container, run the ``prepare_oim.yml`` playbook to reg
    cd /omnia/prepare_oim
    ansible-playbook prepare_oim.yml
 
-Step 4: Verify the generated coredhcp.yaml
+Step 3: Verify the generated coredhcp.yaml
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Exit the ``omnia_core`` container and verify the updated CoreDHCP configuration on the OIM host::
@@ -282,26 +275,26 @@ The file will contain the single-subnet configuration as active, with the multi-
        #     subnet_pool=10.40.3.0/24,10.40.3.190,10.40.3.200
        #     subnet_pool=10.40.4.0/24,10.40.4.190,10.40.4.200
 
-Step 5: Stop OpenCHAMI services
+Step 4: Stop OpenCHAMI services
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On the OIM host, stop all OpenCHAMI services before modifying the container configuration::
 
    systemctl stop openchami.target
 
-Step 6: Pull the new CoreSMD image
+Step 5: Pull the new CoreSMD image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pull the CoreSMD v0.6.3 image which supports multi-subnet DHCP::
 
    podman pull ghcr.io/openchami/coresmd:v0.6.3
 
-Step 7: Enable multi-subnet in coredhcp.yaml
+Step 6: Enable multi-subnet in coredhcp.yaml
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On the OIM host, edit the CoreDHCP configuration to switch from single-subnet to multi-subnet mode::
 
-   sudo vi /etc/openchami/configs/coredhcp.yaml
+   vi /etc/openchami/configs/coredhcp.yaml
 
 Make the following changes:
 
@@ -356,12 +349,12 @@ The resulting file should look like this:
            subnet_pool=10.40.3.0/24,10.40.2.190,10.40.3.200
            subnet_pool=10.40.4.0/24,10.40.3.190,10.40.4.200
 
-Step 8: Update coresmd-coredhcp.container
+Step 7: Update coresmd-coredhcp.container
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Update the CoreSMD CoreDHCP container quadlet file to use the new image version::
 
-   sudo vi /etc/containers/systemd/coresmd-coredhcp.container
+   vi /etc/containers/systemd/coresmd-coredhcp.container
 
 Change the ``Image`` line from ``v0.4.3`` to ``v0.6.3``:
 
@@ -397,12 +390,12 @@ Change the ``Image`` line from ``v0.4.3`` to ``v0.6.3``:
    [Service]
    Restart=always
 
-Step 9: Update coresmd-coredns.container
+Step 8: Update coresmd-coredns.container
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Update the CoreSMD CoreDNS container quadlet file to use the new image version::
 
-   sudo vi /etc/containers/systemd/coresmd-coredns.container
+   vi /etc/containers/systemd/coresmd-coredns.container
 
 Change the ``Image`` line from ``v0.4.3`` to ``v0.6.3``:
 
@@ -440,7 +433,7 @@ Change the ``Image`` line from ``v0.4.3`` to ``v0.6.3``:
    [Service]
    Restart=always
 
-Step 10: Reload systemd and restart services
+Step 9: Reload systemd and restart services
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Reload the systemd daemon to pick up the quadlet file changes, then restart the OpenCHAMI services::
