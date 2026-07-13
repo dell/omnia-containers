@@ -1,14 +1,6 @@
 # Get Started
 
-<details>
-<summary>Click to view interactive deployment flowchart</summary>
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Omnia deployment flow  interactive</title>
+<div class="omnia-flowchart">
 <style>
   :root {
     --bg: #ffffff;
@@ -36,14 +28,8 @@
       --border: #444441;
     }
   }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0;
-    padding: 32px 16px 64px;
-  }
+  .omnia-flowchart { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 32px 16px 64px; }
+  .omnia-flowchart * { box-sizing: border-box; }
   .wrap { max-width: 720px; margin: 0 auto; }
   h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
   .sub { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
@@ -153,8 +139,6 @@
 
   .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 24px 0 16px; }
 </style>
-</head>
-<body>
 <div class="wrap">
   <h1>Omnia deployment flow</h1>
   <p class="sub">Click a decision to expand only the relevant path  collapse it again to fold the diagram back up.</p>
@@ -277,6 +261,7 @@
     <div class="node terminal">End of deployment</div>
   </div>
 </div>
+</div>
 
 <script>
   function selectStream(choice) {
@@ -292,11 +277,6 @@
     document.getElementById(branch + '-aarch-yes').classList.toggle('open', isYes);
   }
 </script>
-</body>
-</html>
-```
-
-</details>
 
 Choose your deployment path based on your cluster requirements, available
 hardware, and desired workload. Each path is a self-contained, end-to-end
