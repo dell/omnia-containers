@@ -33,8 +33,8 @@ When you encounter an issue, follow this general diagnostic flow:
 4. **Use the ochami CLI.** For provisioning issues, the `ochami-cli` provides direct access to the OpenCHAMI state manager for inspecting node inventory, boot status, and hardware state:
 
     ```bash title="Run on: omnia_core container"
-    ochami-cli smd components list
-    ochami-cli bss bootscript list
+    ochami smd component get
+    ochami bss boot params get
     ```
 
 5. **Search this section.** Browse the topic-specific pages below or use your browser's search (Ctrl+F) to find your symptom.

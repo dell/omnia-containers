@@ -622,13 +622,13 @@ After `provision.yml` completes, PXE boot all Slurm-related nodes.
 
 **Option 1: Manual PXE Boot**
 
-Configure each node to boot from the network via iDRAC or BIOS settings.
+Configure each node to boot from the PXE enabled NIC, whose mac address is listed in `pxe_mapping_file.csv`, via iDRAC or BIOS settings.
 
 **Option 2: Automated PXE Boot**
+This option boots all nodes via PXE through the iDRAC Redfish API.
+After reboot, the nodes boot from the network, retrieve their OS image from S3, and run `cloud-init` to complete provisioning.
+For more information, see the [PXE Boot playbook](../Setup/configure_pxe_boot.md).
 
-Sets PXE boot order on all nodes via iDRAC Redfish and reboots them.
-Nodes boot from the network, load their OS image from S3, and execute
-cloud-init to complete provisioning.
 
 ```bash title="Run on: omnia_core container"
 cd /omnia/utils
@@ -639,6 +639,10 @@ ansible-playbook set_pxe_boot.yml
 
     This playbook will restart your servers and power them on if they
     are off. Any unsaved data will be lost.
+
+!!! note
+    
+    - Setting the boot device order has to be done manually before executing this playbook. This is a one time setup.
 
 **Verification -- Cloud-Init Provisioning Status**
 
@@ -745,6 +749,7 @@ status: done
 ## Troubleshooting
 
 **`slurmctld` not starting**
+
    Check the slurmctld log and verify munge is running:
 
    ```bash title="Run on: Slurm controller node"
@@ -762,6 +767,7 @@ status: done
 
 
 **Nodes Entering DRAINED State**
+   
    Fix the epilog script permissions and reconfigure Slurm:
 
    ```bash title="Run on: Slurm controller node"
@@ -771,6 +777,7 @@ status: done
 
 
 **Nodes stuck in DOWN state**
+   
    Check the reason and verify `slurmd` is running on the compute node:
 
    ```bash title="Run on: Slurm controller node"
@@ -784,18 +791,8 @@ status: done
    scontrol update NodeName=<nodename> State=RESUME
    ```
 
-
-**Job submission failures**
-   Check available partitions and resources:
-
-   ```bash title="Run on: Slurm controller node"
-   sinfo
-   sinfo -N -l
-   squeue
-   ```
-
-
 **`slurmdbd` connection issues**
+   
    Check `slurmdbd` and MariaDB status:
 
    ```bash title="Run on: Slurm controller node"
@@ -811,28 +808,8 @@ status: done
    systemctl restart slurmctld
    ```
 
-
-**Munge authentication failure**
-   Verify Munge is running and keys are identical across all nodes:
-
-   ```bash title="Run on: omnia_core container"
-   ansible slurm_cluster -m shell -a "systemctl status munge"
-   ansible slurm_cluster -m shell -a "md5sum /etc/munge/munge.key"
-   ```
-
-
-**MariaDB connection error**
-   Check MariaDB and restart Slurm services:
-
-   ```bash title="Run on: Slurm controller node"
-   systemctl status mariadb
-   systemctl start mariadb
-   systemctl restart slurmdbd
-   systemctl restart slurmctld
-   ```
-
-
 **`sacct` erroring out or returning empty results**
+   
    Check `slurmdbd` service and port:
 
    ```bash title="Run on: Slurm controller node"
