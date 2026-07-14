@@ -1,6 +1,6 @@
 # Product and Subsystem Security
 
-### Security Controls Map
+## Security Controls Map
 
 ![Security Controls Map](../assets/images/SecurityControlMap.png)
 
@@ -32,13 +32,13 @@ established between the management node and the following entities:
 - `service_kube_control_node`
 - `service_kube_node`
 
-### Authentication
+## Authentication
 
 Omnia adheres to a subset of the specifications of NIST 800-53 and NIST 800-171 guidelines on the OIM and login node.
 
 Omnia does not have its own authentication mechanism because bare metal installations and configurations take place using root privileges. Post the execution of Omnia, third-party tools are responsible for authentication to the respective tool.
 
-### Cluster Authentication Tool
+## Cluster Authentication Tool
 
 In order to enable authentication to the cluster, Omnia installs OpenLDAP: an open source tool providing integrated identity and authentication for Linux networked environments. As part of the HPC cluster, the login node is responsible for configuring users and managing a limited number of administrative tasks. Access to the manager/head node is restricted to cluster administrators only.
 
@@ -46,15 +46,15 @@ In order to enable authentication to the cluster, Omnia installs OpenLDAP: an op
 
     Omnia does not configure OpenLDAP users or groups.
 
-### Authentication Types and Setup
+## Authentication Types and Setup
 
-#### Key-Based authentication
+### Key-Based authentication
 
 **Use of SSH authorized_keys**
 
 A password-less channel is created between the management station and compute nodes using SSH authorized keys. This is explained in the [Security Controls Map](#security-controls-map).
 
-### Login Security Settings
+## Login Security Settings
 
 User needs to provide the following credentials during cluster configuration. Once these credentials are provided, Omnia stores them in an encrypted Ansible Vault in `input/omnia_config_credetials.yml`.
 They are hidden from external visibility and access.
