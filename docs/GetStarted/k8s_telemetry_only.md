@@ -671,8 +671,8 @@ Your K8s telemetry cluster is operational. Common next steps:
    Enable persistent storage for Kubernetes workloads using
    [Deploy PowerScale CSI](../HowTo/Kubernetes/deploy_powerscale_csi.md).
 
-**Configure high availability**
-   Tune Kubernetes HA settings and virtual IP configuration using
+**Tune high availability**
+   Adjust Kubernetes HA and virtual IP settings post-deployment using
    [Configure HA](../HowTo/Kubernetes/configure_ha.md).
 
 **Scale the cluster**
