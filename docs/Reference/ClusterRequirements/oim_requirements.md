@@ -2,7 +2,7 @@
 
 This section outlines the key requirements for the Omnia Infrastructure Manager (OIM) and Aarch64 nodes used by Omnia to deploy HPC clusters. For more information about the supported devices and software, see [Support Matrix](../index.md#support-matrix).
 
-## Omnia Infrastructure Manager (OIM)
+## Omnia Infrastructure Manager
 
 - Choose a **server outside of your intended cluster** that meets the required [Storage Requirements](disk_space.md) to function as the Omnia Infrastructure Manager (OIM).
 - Ensure the OIM has at least 64 GB RAM. To check the free RAM size, use the `free -h` command. To check the disk space, use the `df -h` command.
@@ -19,8 +19,13 @@ This section outlines the key requirements for the Omnia Infrastructure Manager 
 - Make sure that the required ports are open on the OIM node for cluster deployment. For detailed information on the required ports, refer to [Ports Used by the OIM](../../GetStarted/prerequisites_checklist.md#ports-used-by-the-oim).
 - The `omnia_core` and `omnia_auth` container images are deployed on the OIM. For instructions to deploy containers, see [Deploy Omnia Core Container](../../HowTo/Setup/deploy_omnia_core.md).
 
-## Aarch64 Node Prerequisites
+## aarch64 Node Prerequisites
 
 - Ensure that a disk is available to the aarch64 node for Full OS installation and you must install the OS manually.
 - Ensure that an IP address is assigned to the aarch64 node and the node has connectivity to the PXE network.
 - Ensure that the same NFS share used in OIM is reachable on the aarch64 node.
+
+!!! info
+
+    - [Deploy Omnia core](../../HowTo/Setup/deploy_omnia_core.md) -- Deploy Omnia container images on OIM.
+

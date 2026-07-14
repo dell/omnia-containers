@@ -6,7 +6,7 @@ This page catalogs the InfiniBand fabric metrics collected by the NVIDIA
 Unified Fabric Manager (UFM) Prometheus exporter. These metrics are scraped
 by vmagent and stored in VictoriaMetrics.
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -17,7 +17,7 @@ by vmagent and stored in VictoriaMetrics.
 | **Default interval** | 30 seconds (configurable via `scrape_interval` in `telemetry_config.yml`) |
 | **Storage** | VictoriaMetrics time-series database |
 
-## Port state metrics
+## Port State Metrics
 
 
 | Metric | Unit | Description |
@@ -27,7 +27,7 @@ by vmagent and stored in VictoriaMetrics.
 | `ufm_port_link_width` | Count | Active link width (1x, 4x, 8x, 12x). |
 | `ufm_port_link_speed` | Gbps | Active link speed (SDR, DDR, QDR, FDR, EDR, HDR, NDR). |
 
-## Traffic counter metrics
+## Traffic Counter Metrics
 
 
 | Metric | Unit | Description |
@@ -39,7 +39,7 @@ by vmagent and stored in VictoriaMetrics.
 | `ufm_port_xmit_packets` | Count | Total packets transmitted (cumulative). |
 | `ufm_port_rcv_packets` | Count | Total packets received (cumulative). |
 
-## Error counter metrics
+## Error Counter Metrics
 
 
 | Metric | Unit | Description |
@@ -57,7 +57,7 @@ by vmagent and stored in VictoriaMetrics.
 | `ufm_port_excessive_buffer_overrun_errors` | Count | Excessive buffer overrun errors (cumulative). |
 | `ufm_port_vl15_dropped` | Count | VL15 packets dropped (cumulative). |
 
-## Fabric topology metrics
+## Fabric Topology Metrics
 
 
 | Metric | Unit | Description |
@@ -67,7 +67,7 @@ by vmagent and stored in VictoriaMetrics.
 | `ufm_node_guid` | Info | Node GUID information. |
 | `ufm_lid_assignment` | Count | LID assigned to each port. |
 
-## Telemetry health metrics
+## Telemetry Health Metrics
 
 
 | Metric | Unit | Description |
@@ -75,7 +75,7 @@ by vmagent and stored in VictoriaMetrics.
 | `scrape_duration_seconds` | Seconds | Duration of the Prometheus scrape for UFM endpoint. |
 | `up` | Enum | Whether the UFM scrape target is reachable (1=up, 0=down). |
 
-## Metric labels
+## Metric Labels
 
 
 All UFM metrics include the following common labels:

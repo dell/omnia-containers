@@ -8,7 +8,7 @@ deployment and modify as needed.
 
 This example demonstrates a single-architecture full deployment of Slurm(slurm_custom) and Kubernetes(service_k8s) supporting only x86_64 nodes.
 
-```json title="Sample software_config.json"
+```json title="x86_64_slurm_k8s_config.json"
 {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",
@@ -51,7 +51,7 @@ This example demonstrates a single-architecture full deployment of Slurm(slurm_c
 ## Multi-Arch - Slurm + Kubernetes
 
 This example demonstrates a multi-architecture deployment supporting both x86_64 and aarch64 nodes.
-```json
+```json title="x86_64_aarch64_slurm_k8s_config.json"
 {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",
@@ -92,10 +92,10 @@ This example demonstrates a multi-architecture deployment supporting both x86_64
 }
 ```
 
-## x86_64 - Slurm Only
+## x86_64 - Slurm
 Deploys a traditional HPC cluster with Slurm scheduling, LDAP, openmpi and ucx. No Kubernetes.
 
-```json title="Sample software_config.json: Slurm-only cluster"
+```json title="x86_64_slurm_config.json"
 {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",
@@ -121,7 +121,7 @@ Deploys a traditional HPC cluster with Slurm scheduling, LDAP, openmpi and ucx. 
 Deploys a Kubernetes cluster with the full telemetry pipeline for
 infrastructure monitoring without a job scheduler.
 
-```json title="Sample software_config.json: Kubernetes + telemetry only"
+```json title="x86_64_k8s_telemetry_config.json"
 {
     "cluster_os_type": "rhel",
     "cluster_os_version": "10.0",

@@ -6,7 +6,7 @@ This page catalogs the storage telemetry metrics collected from VAST Storage
 appliances via the Prometheus-compatible exporter. These metrics are scraped
 by vmagent and stored in VictoriaMetrics.
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -18,7 +18,7 @@ by vmagent and stored in VictoriaMetrics.
 | **Default interval** | 30 seconds (configurable via `scrape_interval` in `telemetry_config.yml`) |
 | **Storage** | VictoriaMetrics time-series database |
 
-## Storage performance metrics
+## Storage Performance Metrics
 
 
 | Metric | Unit | Description |
@@ -30,7 +30,7 @@ by vmagent and stored in VictoriaMetrics.
 | `vast_read_latency` | Microseconds | Average read latency per operation. |
 | `vast_write_latency` | Microseconds | Average write latency per operation. |
 
-## Capacity metrics
+## Capacity Metrics
 
 
 | Metric | Unit | Description |
@@ -40,7 +40,7 @@ by vmagent and stored in VictoriaMetrics.
 | `vast_capacity_avail_bytes` | Bytes | Storage capacity available for allocation. |
 | `vast_capacity_thin_provisioning_ratio` | Ratio | Thin provisioning ratio (logical / physical). |
 
-## Volume metrics
+## Volume Metrics
 
 
 | Metric | Unit | Description |
@@ -52,7 +52,7 @@ by vmagent and stored in VictoriaMetrics.
 | `vast_volume_write_bw` | Bytes/s | Per-volume write throughput. |
 | `vast_snapshot_count` | Count | Number of snapshots per volume. |
 
-## Device metrics
+## Device Metrics
 
 
 | Metric | Unit | Description |
@@ -62,7 +62,7 @@ by vmagent and stored in VictoriaMetrics.
 | `vast_device_write_iops` | IOPS | Per-device write I/O operations per second. |
 | `vast_device_errors` | Count | Total device error count. |
 
-## Cluster health metrics
+## Cluster Health Metrics
 
 
 | Metric | Unit | Description |
@@ -71,7 +71,7 @@ by vmagent and stored in VictoriaMetrics.
 | `vast_cluster_connectivity` | Enum | Cluster network connectivity status. |
 | `vast_replication_status` | Enum | Data replication status. |
 
-## Telemetry health metrics
+## Telemetry Health Metrics
 
 
 | Metric | Unit | Description |
@@ -79,7 +79,7 @@ by vmagent and stored in VictoriaMetrics.
 | `scrape_duration_seconds` | Seconds | Duration of the Prometheus scrape for VAST endpoint. |
 | `up` | Enum | Whether the VAST scrape target is reachable (1=up, 0=down). |
 
-## Metric labels
+## Metric Labels
 
 
 All VAST metrics include the following common labels:
@@ -96,5 +96,5 @@ All VAST metrics include the following common labels:
     - [Telemetry Config](../Configuration/telemetry_config.md) -- VAST telemetry
       configuration parameters.
     - [VAST Data Documentation](https://support.vastdata.com/s/) -- VAST platform documentation.
-    - [Idrac Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
-    - [Ldms Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.
+    - [iDRAC Metrics](idrac_metrics.md) -- Hardware-level metrics from iDRAC.
+    - [LDMS Metrics](ldms_metrics.md) -- OS-level metrics from LDMS.

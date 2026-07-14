@@ -6,7 +6,7 @@ This page catalogs the metrics collected by the Omnia PowerScale telemetry
 pipeline via the CSM Observability framework. These metrics are stored
 in VictoriaMetrics for visualization in Grafana.
 
-## Collection method
+## Collection Method
 
 
 | Property | Value |
@@ -16,7 +16,7 @@ in VictoriaMetrics for visualization in Grafana.
 | **Default interval** | 30 seconds (configurable via `scrape_interval` in CSM Observability values.yaml) |
 | **Storage** | VictoriaMetrics time-series database |
 
-## Performance metrics
+## Performance Metrics
 
 
 | Metric | Unit | Description |
@@ -28,7 +28,7 @@ in VictoriaMetrics for visualization in Grafana.
 | `powerscale_cluster_protocol_read_latency` | Microseconds | Average read latency per protocol operation. |
 | `powerscale_cluster_protocol_write_latency` | Microseconds | Average write latency per protocol operation. |
 
-## Capacity metrics
+## Capacity Metrics
 
 
 | Metric | Unit | Description |
@@ -39,7 +39,7 @@ in VictoriaMetrics for visualization in Grafana.
 | `powerscale_node_capacity_total_bytes` | Bytes | Total capacity per node. |
 | `powerscale_node_capacity_used_bytes` | Bytes | Capacity consumed per node. |
 
-## Health metrics
+## Health Metrics
 
 
 | Metric | Unit | Description |
@@ -49,7 +49,7 @@ in VictoriaMetrics for visualization in Grafana.
 | `powerscale_cluster_rebalance_status` | Enum | Cluster data rebalance/restripe status. |
 | `powerscale_protection_group_status` | Enum | Protection group health. |
 
-## CSI health monitor metrics
+## CSI Health Monitor Metrics
 
 
 When the CSI PowerScale health monitor is enabled, the following additional metrics are collected:
@@ -88,7 +88,7 @@ When the CSI PowerScale health monitor is enabled, the following additional metr
 | `powerscale_storageclass_info` | Info | StorageClass metadata. Labels: `storageclass`, `provisioner`, `reclaim_policy`, `volume_binding_mode`, `allow_volume_expansion`. |
 | `powerscale_total_capacity_bytes` | Bytes | Total capacity of all PowerScale PVs in bytes. |
 
-## Metric labels
+## Metric Labels
 
 
 All PowerScale metrics include the following common labels:

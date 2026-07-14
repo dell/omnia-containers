@@ -2,7 +2,7 @@
 
 ## PowerEdge NVIDIA Grace CPUs servers
 
-| Model | Generation | Form Factor | Notes | Status |
+| Model | Dell PowerEdge Generation | Form Factor | Notes | Status |
 | --- | --- | --- | --- | --- |
 | XE8712 with GB200 | 17G | 1U rack | AI rack solution with NVIDIA GB200 NVL4 Superchip. | Certified |
 
@@ -12,7 +12,7 @@
 
 ## PowerEdge AMD servers
 
-| Model | Generation | Form Factor | Notes | Status |
+| Model | Dell PowerEdge Generation | Form Factor | Notes | Status |
 | --- | --- | --- | --- | --- |
 | R6625 | 16G | 1U rack | Dual-socket; high core density for parallel workloads. | Supported |
 | R7625 | 16G | 2U rack | Dual-socket; balanced compute and storage. | Certified |
@@ -24,7 +24,7 @@
 
 ## PowerEdge Intel servers
 
-| Model | Generation | Form Factor | Notes | Status |
+| Model | Dell PowerEdge Generation | Form Factor | Notes | Status |
 | --- | --- | --- | --- | --- |
 | C6620 | 16G | 2U multi-node (4 sleds) | High-density; 4 independent dual-socket sleds per 2U chassis. | Certified |
 | R660 | 16G | 1U rack | Dual-socket; suitable for OIM, Slurm control, or login nodes. | Certified |
