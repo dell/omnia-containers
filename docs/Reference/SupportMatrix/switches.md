@@ -1,5 +1,7 @@
 # Switches
 
+## Supported Switches
+
 | Model | Status |
 | --- | --- |
 | PowerSwitch S3048-ON | Certified |
