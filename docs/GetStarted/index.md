@@ -130,6 +130,23 @@
   .col-spacer { flex: 1 1 auto; }
   .col-stem { width: 2px; height: 16px; background: var(--arrow); }
   .fork-col.fail-col .col-stem { background: var(--arrow-fail); }
+  .arrow-continue { 
+    width: 2px; 
+    height: 80px; 
+    background: var(--arrow); 
+    margin: 8px 0;
+    position: relative;
+  }
+  .arrow-continue::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid var(--arrow);
+  }
   .merge-bar-wrap { position: relative; width: 100%; }
   .merge-bar-wrap .merge-bar {
     position: absolute; bottom: 0; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow);
@@ -254,6 +271,7 @@
           <div class="fork">
             <div class="fork-col">
               <div class="branch-tag">No</div>
+              <div class="arrow-continue"></div>
               <div class="col-spacer"></div>
               <div class="col-stem"></div>
             </div>
@@ -320,6 +338,7 @@
           <div class="fork">
             <div class="fork-col">
               <div class="branch-tag">No</div>
+              <div class="arrow-continue"></div>
               <div class="col-spacer"></div>
               <div class="col-stem"></div>
             </div>
