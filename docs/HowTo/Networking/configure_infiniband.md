@@ -227,6 +227,10 @@ one node in the IB fabric **before** provisioning.
 
     Expected InfiniBand latency: < 2 microseconds.
 
+## Next Steps
+
+- [Run HPC Benchmarks](../Slurm/run_hpc_benchmarks.md) -- Run MPI
+  benchmarks over the IB fabric.
 
 ## Troubleshooting
 
@@ -295,9 +299,3 @@ Only devices with `Link layer: InfiniBand` are used by Omnia.
     ```bash title="Run on: compute node"
     perfquery
     ```
-
-
-## Next Steps
-
-- [Run HPC Benchmarks](../Slurm/run_hpc_benchmarks.md) -- Run MPI
-  benchmarks over the IB fabric.

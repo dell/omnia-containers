@@ -176,12 +176,10 @@ uname -r
 
 The output should match the version specified in `kernel_version_override` (or the latest available version if left empty).
 
-
 ## Next Steps
 
 - [Provision Nodes](provision_nodes.md) -- Continue the provisioning workflow.
 - [PXE Boot Playbook](configure_pxe_boot.md) -- PXE boot configuration reference.
-
 
 ## Troubleshooting
 

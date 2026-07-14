@@ -29,7 +29,7 @@ Omnia automates the following steps when the CSI PowerScale driver is enabled:
 - Creates the `ps01` StorageClass and sets it as the default (demoting `nfs-client` if present)
 
 
-## PowerScale SmartConnect (Optional)
+### PowerScale SmartConnect (Optional)
 
 To use the PowerScale SmartConnect hostname, you need an upstream DNS server
 that includes delegation mappings of hostname to PowerScale IP addresses.
@@ -400,7 +400,7 @@ parameters:
     (e.g., `csi-powerscale-v2.17.0`).
 
 
-## Post Installation
+### Post Installation
 
 ### Create a Custom Storage Class (Optional)
 
@@ -510,7 +510,7 @@ You can also verify the volume from the OneFS portal — it will show a
 matching entry for the `VOLUME` name (e.g., `csivol-98d3e7631d`).
 
 
-## Uninstallation
+### Uninstallation
 
 To uninstall the PowerScale CSI driver manually:
 
@@ -581,6 +581,15 @@ To uninstall the PowerScale CSI driver manually:
           --from-file=config=<updated_secret.yaml_filepath>
         ```
 
+## Next Steps
+
+- [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy telemetry
+  with PowerScale-backed persistent storage.
+- [Configure Mounts](../Storage/configure_mounts.md) -- Configure NFS and other storage mounts for Slurm
+  compute nodes.
+- [Set Up Kubernetes](setup_service_k8s.md) -- Review the Kubernetes cluster
+  configuration options.
+
 
 ## Troubleshooting
 
@@ -612,13 +621,3 @@ state. Check the pod status and logs:
 ```bash title="Run on: kube_control_plane"
 kubectl logs -n isilon deployment/isilon-controller --all-containers
 ```
-
-
-## Next Steps
-
-- [Set Up Telemetry](../Telemetry/setup_telemetry.md) -- Deploy telemetry
-  with PowerScale-backed persistent storage.
-- [Configure Mounts](../Storage/configure_mounts.md) -- Configure NFS and other storage mounts for Slurm
-  compute nodes.
-- [Set Up Kubernetes](setup_service_k8s.md) -- Review the Kubernetes cluster
-  configuration options.

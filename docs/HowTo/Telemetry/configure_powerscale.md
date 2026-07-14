@@ -236,7 +236,7 @@ Collector, CSI driver) to the service K8s cluster. See
     ```
 
 
-## Enable and Disable PowerScale Telemetry
+### Enable and Disable PowerScale Telemetry
 
 
 **To disable PowerScale telemetry:**
