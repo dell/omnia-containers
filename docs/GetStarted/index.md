@@ -25,23 +25,23 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg: #1a1a18; --text: #e8e6dd; --text-secondary: #b4b2a9; --border: #444441; }
   }
-  * { box-sizing: border-box; }
-  body {
+  .omnia-flowchart * { box-sizing: border-box; }
+  .omnia-flowchart {
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg); color: var(--text);
     margin: 0; padding: 32px 16px 64px;
   }
-  .wrap { max-width: 700px; margin: 0 auto; }
-  h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
-  .sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 20px; }
-  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-secondary); margin: 0 0 26px; }
-  .legend span { display: inline-flex; align-items: center; gap: 5px; }
-  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-  .diamond-swatch { width: 12px; height: 12px; background: var(--decision-fill); transform: rotate(45deg); display:inline-block; }
+  .omnia-flowchart .wrap { max-width: 700px; margin: 0 auto; }
+  .omnia-flowchart h1 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+  .omnia-flowchart .sub { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 20px; }
+  .omnia-flowchart .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-secondary); margin: 0 0 26px; }
+  .omnia-flowchart .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .omnia-flowchart .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .omnia-flowchart .diamond-swatch { width: 12px; height: 12px; background: var(--decision-fill); transform: rotate(45deg); display:inline-block; }
 
-  .flow { display: flex; flex-direction: column; align-items: center; }
+  .omnia-flowchart .flow { display: flex; flex-direction: column; align-items: center; }
 
-  .node {
+  .omnia-flowchart .node {
     width: 230px;
     padding: 10px 14px;
     border-radius: 8px;
@@ -49,12 +49,12 @@
     font-size: 12.5px;
     line-height: 1.35;
   }
-  .node.neutral { background: var(--neutral-fill); border: 1px solid var(--neutral-stroke); color: var(--neutral-text); }
-  .node.terminal { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 600; border-radius: 999px; width: auto; max-width: 230px; padding: 10px 20px; }
-  .node.retry { background: var(--retry-fill); border: 1px solid var(--retry-stroke); color: var(--retry-text); }
-  .node code { font-size: 11.5px; }
+  .omnia-flowchart .node.neutral { background: var(--neutral-fill); border: 1px solid var(--neutral-stroke); color: var(--neutral-text); }
+  .omnia-flowchart .node.terminal { background: var(--decision-fill); border: 1px solid var(--decision-stroke); color: #fff; font-weight: 600; border-radius: 999px; width: auto; max-width: 230px; padding: 10px 20px; }
+  .omnia-flowchart .node.retry { background: var(--retry-fill); border: 1px solid var(--retry-stroke); color: var(--retry-text); }
+  .omnia-flowchart .node code { font-size: 11.5px; }
 
-  .diamond {
+  .omnia-flowchart .diamond {
     width: 150px;
     height: 100px;
     clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
@@ -70,74 +70,74 @@
     padding: 0 28px;
   }
 
-  .arrow {
+  .omnia-flowchart .arrow {
     width: 2px; height: 18px; background: var(--arrow); position: relative;
   }
-  .arrow::after {
+  .omnia-flowchart .arrow::after {
     content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
     border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--arrow);
   }
-  .arrow.fail { background: var(--arrow-fail); }
-  .arrow.fail::after { border-top-color: var(--arrow-fail); }
+  .omnia-flowchart .arrow.fail { background: var(--arrow-fail); }
+  .omnia-flowchart .arrow.fail::after { border-top-color: var(--arrow-fail); }
 
-  .row { display: flex; gap: 12px; }
+  .omnia-flowchart .row { display: flex; gap: 12px; }
 
   /* ---- generic line utilities (solid vs dotted) ---- */
-  .line-v { width: 2px; margin: 0 auto; }
-  .line-v.state-solid { background: var(--arrow); }
-  .line-v.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
-  .line-h { height: 2px; }
-  .line-h.state-solid { background: var(--arrow); }
-  .line-h.state-dotted { background: repeating-linear-gradient(to right, var(--text-secondary) 0 4px, transparent 4px 8px); }
+  .omnia-flowchart .line-v { width: 2px; margin: 0 auto; }
+  .omnia-flowchart .line-v.state-solid { background: var(--arrow); }
+  .omnia-flowchart .line-v.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
+  .omnia-flowchart .line-h { height: 2px; }
+  .omnia-flowchart .line-h.state-solid { background: var(--arrow); }
+  .omnia-flowchart .line-h.state-dotted { background: repeating-linear-gradient(to right, var(--text-secondary) 0 4px, transparent 4px 8px); }
 
-  .final-connector { width: 2px; height: 18px; margin: 0 auto; position: relative; }
-  .final-connector.state-solid { background: var(--arrow); }
-  .final-connector.state-solid::after {
+  .omnia-flowchart .final-connector { width: 2px; height: 18px; margin: 0 auto; position: relative; }
+  .omnia-flowchart .final-connector.state-solid { background: var(--arrow); }
+  .omnia-flowchart .final-connector.state-solid::after {
     content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
     border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--arrow);
   }
-  .final-connector.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
+  .omnia-flowchart .final-connector.state-dotted { background: repeating-linear-gradient(to bottom, var(--text-secondary) 0 4px, transparent 4px 8px); }
 
   /* ---- Two-column fork (from a diamond, Yes/No both shown, no click) ---- */
-  .fork-wrap { position: relative; padding-top: 16px; }
-  .fork-wrap::before {
+  .omnia-flowchart .fork-wrap { position: relative; padding-top: 16px; }
+  .omnia-flowchart .fork-wrap::before {
     content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 16px;
     background: var(--arrow); transform: translateX(-50%);
   }
-  .fork-wrap.fail-top::before { background: var(--arrow-fail); }
-  .fork-bar { position: absolute; top: 16px; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow); }
-  .fork-bar.fail-bar { background: var(--arrow-fail); }
-  .fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
-  .fork-col { width: 230px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 16px; }
-  .fork-col::before {
+  .omnia-flowchart .fork-wrap.fail-top::before { background: var(--arrow-fail); }
+  .omnia-flowchart .fork-bar { position: absolute; top: 16px; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow); }
+  .omnia-flowchart .fork-bar.fail-bar { background: var(--arrow-fail); }
+  .omnia-flowchart .fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
+  .omnia-flowchart .fork-col { width: 230px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 16px; }
+  .omnia-flowchart .fork-col::before {
     content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 16px;
     background: var(--arrow); transform: translateX(-50%);
   }
-  .fork-col.fail-col::before { background: var(--arrow-fail); }
-  .branch-tag {
+  .omnia-flowchart .fork-col.fail-col::before { background: var(--arrow-fail); }
+  .omnia-flowchart .branch-tag {
     font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
     padding: 2px 9px; border-radius: 8px; margin-bottom: 8px;
     background: var(--bg); border: 1.5px solid var(--arrow); color: var(--arrow);
   }
-  .branch-tag.fail-tag { border-color: var(--arrow-fail); color: var(--arrow-fail); }
-  .empty-note { font-size: 11px; color: var(--text-secondary); font-style: italic; padding: 4px 0; }
-  .loop-note {
+  .omnia-flowchart .branch-tag.fail-tag { border-color: var(--arrow-fail); color: var(--arrow-fail); }
+  .omnia-flowchart .empty-note { font-size: 11px; color: var(--text-secondary); font-style: italic; padding: 4px 0; }
+  .omnia-flowchart .loop-note {
     font-size: 10.5px; color: var(--retry-text); font-style: italic; text-align: center;
     padding: 6px 10px; border: 1px dashed var(--retry-stroke); border-radius: 8px; background: var(--retry-fill);
   }
 
   /* ---- Merge (reverse fork): both columns always converge, always solid, no interactivity ---- */
-  .col-spacer { flex: 1 1 auto; }
-  .col-stem { width: 2px; height: 16px; background: var(--arrow); }
-  .fork-col.fail-col .col-stem { background: var(--arrow-fail); }
-  .arrow-continue { 
-    width: 2px; 
-    height: 80px; 
-    background: var(--arrow); 
+  .omnia-flowchart .col-spacer { flex: 1 1 auto; }
+  .omnia-flowchart .col-stem { width: 2px; height: 16px; background: var(--arrow); }
+  .omnia-flowchart .fork-col.fail-col .col-stem { background: var(--arrow-fail); }
+  .omnia-flowchart .arrow-continue {
+    width: 2px;
+    height: 80px;
+    background: var(--arrow);
     margin: 8px 0;
     position: relative;
   }
-  .arrow-continue::after {
+  .omnia-flowchart .arrow-continue::after {
     content: "";
     position: absolute;
     bottom: -1px;
@@ -147,49 +147,50 @@
     border-right: 5px solid transparent;
     border-top: 6px solid var(--arrow);
   }
-  .merge-bar-wrap { position: relative; width: 100%; }
-  .merge-bar-wrap .merge-bar {
+  .omnia-flowchart .merge-bar-wrap { position: relative; width: 100%; }
+  .omnia-flowchart .merge-bar-wrap .merge-bar {
     position: absolute; bottom: 0; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow);
   }
 
   /* ---- Top-level Start -> Manual/BuildStream selector fork (clickable) ---- */
-  .top-fork-wrap { position: relative; padding-top: 18px; width: 100%; }
-  .top-fork-wrap::before {
+  .omnia-flowchart .top-fork-wrap { position: relative; padding-top: 18px; width: 100%; }
+  .omnia-flowchart .top-fork-wrap::before {
     content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 18px;
     background: var(--arrow); transform: translateX(-50%);
   }
-  .top-fork-bar { position: absolute; top: 18px; left: calc(50% - 120px); width: 240px; height: 2px; background: var(--arrow); }
-  .top-fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
-  .top-fork-col { width: 200px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 18px; }
-  .top-fork-col::before {
+  .omnia-flowchart .top-fork-bar { position: absolute; top: 18px; left: calc(50% - 120px); width: 240px; height: 2px; background: var(--arrow); }
+  .omnia-flowchart .top-fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
+  .omnia-flowchart .top-fork-col { width: 200px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 18px; }
+  .omnia-flowchart .top-fork-col::before {
     content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 18px;
     background: var(--arrow); transform: translateX(-50%);
   }
-  .select-btn {
+  .omnia-flowchart .select-btn {
     width: 100%; padding: 11px 10px; border-radius: 8px; cursor: pointer;
     background: var(--bg); border: 2px solid var(--neutral-stroke); color: var(--neutral-text);
     font-size: 13px; font-weight: 600; text-align: center; transition: background 0.15s, color 0.15s;
   }
-  .select-btn:hover:not(.active) { background: var(--neutral-fill); }
-  .select-btn.active { background: var(--decision-fill); border-color: var(--decision-stroke); color: #fff; }
+  .omnia-flowchart .select-btn:hover:not(.active) { background: var(--neutral-fill); }
+  .omnia-flowchart .select-btn.active { background: var(--decision-fill); border-color: var(--decision-stroke); color: #fff; }
 
-  .conn-stem { height: 16px; margin-top: 10px; }
-  .merge-row-top { display: flex; justify-content: center; width: 100%; }
-  .half-line { width: 120px; }
+  .omnia-flowchart .conn-stem { height: 16px; margin-top: 10px; }
+  .omnia-flowchart .merge-row-top { display: flex; justify-content: center; width: 100%; }
+  .omnia-flowchart .half-line { width: 120px; }
 
-  .placeholder { font-size: 12px; color: var(--text-secondary); font-style: italic; padding: 10px 0 2px; text-align: center; }
+  .omnia-flowchart .placeholder { font-size: 12px; color: var(--text-secondary); font-style: italic; padding: 10px 0 2px; text-align: center; }
 
-  .branch-body {
+  .omnia-flowchart .branch-body {
     display: flex; flex-direction: column; align-items: center;
     overflow: hidden; max-height: 0; opacity: 0; width: 100%;
     transition: max-height 0.35s ease, opacity 0.25s ease;
   }
-  .branch-body.open { max-height: 3000px; opacity: 1; }
+  .omnia-flowchart .branch-body.open { max-height: 3000px; opacity: 1; }
 
-  .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 22px 0 14px; }
+  .omnia-flowchart .divider { height: 1px; background: var(--border); width: 100%; max-width: 460px; margin: 22px 0 14px; }
 </style>
 </head>
 <body>
+<div class="omnia-flowchart">
 <div class="wrap">
   <h1>Omnia deployment flow</h1>
   <p class="sub">Pick a path to expand its steps. Yes/No branches inside a path are shown in full.</p>
@@ -390,6 +391,7 @@
     document.getElementById('placeholder').style.display = 'none';
   }
 </script>
+</div>
 </body>
 </html>
 
