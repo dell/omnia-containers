@@ -1,13 +1,11 @@
 
-# additional_cloud_init.yml Reference
-
-File path: `/opt/omnia/input/additional_cloud_init.yml`
+# additional_cloud_init.yml
 
 This file provides additional cloud-init configuration for stateless node
 provisioning. It allows writing files and running commands on nodes during
 the cloud-init final stage.
 
-## Additional cloud-init Configuration Parameters
+## Parameter Reference
 
 --8<-- "html/additional_cloud_init.html"
 

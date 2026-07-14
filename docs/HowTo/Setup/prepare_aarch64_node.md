@@ -57,7 +57,7 @@ the node where RHEL 10 was installed.
     The `build_image_aarch64.yml` playbook will fail if the group is empty
     or contains more than one host.
 
-## What happens during the build
+### What happens during the build
 
 When you run `build_image_aarch64.yml -i inventory`, the playbook
 automatically performs the following on the aarch64 node:

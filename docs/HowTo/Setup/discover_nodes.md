@@ -207,7 +207,7 @@ Compute Node 7.
     `GROUP_NAME`, and `PARENT_SERVICE_TAG` columns as needed for your
     deployment.
 
-## Groups
+### Groups
 
 Nodes located in the same physical location or with similar hardware can
 be grouped together. Each group in the PXE mapping file has the following
@@ -218,7 +218,7 @@ attributes:
 | `GROUP_NAME` (`grpN`) | Mandatory | User-defined group name. Range for `N` is `0`--`99`. Example: `grp0`, `grp1`, `grp2`. |
 | `PARENT_SERVICE_TAG` | Conditional Mandatory | Service tag of the parent (active service) node. **Required** for nodes in the `slurm_node_x86_64` and `slurm_node_aarch64` functional groups. Must be the service tag of the `service_kube_node` associated with that group. |
 
-## Functional groups
+### Functional groups
 
 Nodes with similar functional roles are grouped into functional groups.
 The following table lists all functional groups supported in Omnia.
@@ -247,7 +247,7 @@ The following table lists all functional groups supported in Omnia.
 | `os_x86_64` | Compute | Minimal OS baseline for x86_64. Clean environment for downstream platform software. |
 | `os_aarch64` | Compute | Minimal OS baseline for aarch64. Clean environment for downstream platform software. |
 
-### Recommended software by functional groups
+#### Recommended software by functional groups
 
 !!! caution
 
@@ -278,7 +278,7 @@ The following table lists all functional groups supported in Omnia.
     If no additional packages are needed, the images build successfully
     with the standard packages.
 
-## BMC discovery report
+### BMC discovery report
 
 The BMC discovery report is a CSV file generated automatically at the end
 of the OME discovery process. It provides a consolidated view of all
@@ -286,7 +286,7 @@ discovered servers along with the link status of each NIC type (BMC,
 Ethernet, and InfiniBand), enabling administrators to quickly identify
 connectivity issues before provisioning.
 
-### Output file location
+#### Output file location
 
 ```text
 /opt/omnia/discovery/bmc_discovery_report_<timestamp>.csv
@@ -295,7 +295,7 @@ connectivity issues before provisioning.
 Where `<timestamp>` is in `YYYYMMDDTHHMMSS` format (for example,
 `20260601T120000`), matching the PXE mapping file timestamp.
 
-### Report columns
+#### Report columns
 
 | Column | Description |
 | --- | --- |
@@ -308,7 +308,7 @@ Where `<timestamp>` is in `YYYYMMDDTHHMMSS` format (for example,
 | `IB_NIC_NAME` | FQDD of the InfiniBand NIC port (for example, `InfiniBand.Slot.3-1`). Empty if no InfiniBand NIC is present. |
 | `IB_NIC_LINK_STATUS` | Link status of the InfiniBand NIC (`Up`, `Down`, `Unknown`). Empty if no InfiniBand NIC is present. |
 
-### Sample output
+#### Sample output
 
 ```csv title="bmc_discovery_report_20260601T120000.csv"
 SERVICE_TAG,BMC_MAC,BMC_IP,BMC_NIC_STATUS,ETHERNET_NIC_MAC,ETHERNET_NIC_LINK_STATUS,IB_NIC_NAME,IB_NIC_LINK_STATUS
@@ -317,7 +317,7 @@ J7KN2G4,A4:BF:01:12:34:56,172.16.0.102,UP,e4:43:4b:01:23:45,Up,,
 K5LP9H2,D0:94:66:AB:CD:EF,172.16.0.103,UP,24:6e:96:78:90:12,Unknown,InfiniBand.Slot.3-1,Up
 ```
 
-### NIC link statuses
+#### NIC link statuses
 
 **BMC NIC status:** Indicates whether the iDRAC is reachable from OME.
 Typically `Up` since OME manages the server.
@@ -351,7 +351,7 @@ first non-iDRAC, non-InfiniBand network port:
     preferred, followed by `Unknown`, then `Down`. This ensures an IB NIC
     is reported even when iDRAC cannot determine its link state.
 
-### Use cases
+#### Use cases
 
 **Pre-provisioning health check:** Before running `provision.yml`, review
 the discovery report to verify:
@@ -374,7 +374,7 @@ the cluster NIC inventory, useful for verifying InfiniBand fabric
 connectivity, tracking which servers have IB NICs installed, and auditing
 MAC addresses.
 
-### Relationship to PXE mapping file
+#### Relationship to PXE mapping file
 
 | Attribute | PXE Mapping File | Discovery Report |
 | --- | --- | --- |

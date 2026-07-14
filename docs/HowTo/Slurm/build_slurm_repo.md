@@ -208,7 +208,7 @@ them on an HTTP server accessible from the OIM.
     sudo dnf remove -y 'slurm'
     ```
 
-## Hosting the Repository
+### Hosting the Repository
 
 After building and verifying the RPMs, host them on an HTTP server
 accessible from the OIM. See

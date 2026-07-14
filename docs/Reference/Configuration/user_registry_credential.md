@@ -1,12 +1,10 @@
 
-# user_registry_credential.yml Reference
-
-File path: `/opt/omnia/input/user_registry_credential.yml`
+# user_registry_credential.yml
 
 This file provides authentication credentials for user-defined container or
 package registries referenced in `local_repo_config.yml`.
 
-## User Registry Credential Parameters
+## Parameter Reference
 
 --8<-- "html/user_registry_credential.html"
 
