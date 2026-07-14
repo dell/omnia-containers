@@ -19,11 +19,11 @@ The `local_repo.yml` playbook completes successfully even when an invalid GPG ke
 
 For tracking, see: [pulp_rpm issue #4241](https://github.com/pulp/pulp_rpm/issues/4241)
 
-### BuildStream Limitations
+### BuildStreaM Limitations
 
-- BuildStream does not support customization of `catalog_rhel.json`.
-- BuildStream does not support installation of additional packages through the catalog.
-- BuildStream does not support automatic retry of failed pipeline jobs.
+- BuildStreaM does not support customization of `catalog_rhel.json`.
+- BuildStreaM does not support installation of additional packages through the catalog.
+- BuildStreaM does not support automatic retry of failed pipeline jobs.
 
 ### GPU Software Deployment Limitations
 

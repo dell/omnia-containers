@@ -60,7 +60,7 @@ Issues related to the `local_repo.yml` playbook, Pulp container operations, and 
 
         If `local_repo.yml` completes without any package download failures, a `Successful` message is displayed.
 
-## Failure When Re-Run Multiple Times
+## Playbook Fails When Re-Run Multiple Times
 
 ???+ note "Symptom"
 
