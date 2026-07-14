@@ -382,21 +382,43 @@ Pulp reset password operation fails during ``prepare_oim.yml`` execution.
 
 Verify the configurations and settings mentioned above, then rerun the ``prepare_oim.yml`` playbook. For PowerScale-specific configuration details, see the PowerScale configuration page in the `Omnia Deployment Requirements <https://omnia.readthedocs.io/en/v2.2.0.0-rc1/RHEL_prereq.html>`_ documentation.
 
-3.3 EPEL Repository Instability
--------------------------------
+3.3 EPEL Repository Unavailable or Unstable
+-----------------------------------------
 
 **Symptom**
 
-EPEL repository is unstable or unavailable during package installation.
+local_repo.yml fails while downloading EPEL packages or metadata, with timeout, connection, or repository errors.
 
 **Cause**
 
-EPEL repository server issues or network connectivity problems.
+The EPEL repository is unavailable, unreachable through the configured proxy or firewall, or contains stale metadata.
 
 **Resolution**
 
-- If no packages depend on EPEL → remove EPEL URL
-- If required → wait for stability or host EPEL packages locally
+1. **Verify connectivity and refresh repository metadata**:
+
+.. code-block:: bash
+
+   curl -I --connect-timeout 10 <epel_repository_url>
+   dnf clean metadata
+   dnf makecache --refresh
+
+2. **Identify the failed EPEL package in the Omnia logs**:
+
+.. code-block:: bash
+
+   grep -RiE "epel|failed|timeout|error" /opt/omnia/log/local_repo/
+
+3. **Apply the appropriate recovery**:
+
+- If EPEL is temporarily unavailable, retry after service recovery
+- If EPEL packages are required, use an organization-approved mirror or stage the packages in the Omnia local repository
+- Disable EPEL only after confirming that no required package depends on it
+
+4. **Rerun local_repo.yml and verify that all required packages download successfully**.
+
+.. note::
+   For repeatable or air-gapped deployments, host the required EPEL packages locally instead of relying on the external EPEL service during deployment.
 
 3.4 Intermittent Local Repository Sync Failures
 -------------------------------------------------
@@ -746,23 +768,56 @@ Confirm that the pod becomes ready, restart counts stop increasing, PVCs remain 
 
 **Symptom**
 
-Cluster nodes reboot unexpectedly or require reboot after configuration changes.
+Cluster nodes reboot unexpectedly or remain NotReady after restarting.
 
 **Cause**
 
-- Configuration changes requiring node restart
-- Kernel updates
-- System instability
+Possible causes include power or hardware faults, kernel panic, out-of-memory events, automated updates, or failure of Kubernetes, network, or storage services.
 
 **Resolution**
 
-Wait 15 minutes
-Verify:
+1. **Check the node and affected pods**:
+
+.. code-block:: bash
+
+   kubectl get nodes -o wide
+   kubectl describe node <node_name>
+   kubectl get pods -A -o wide --field-selector spec.nodeName=<node_name>
+
+2. **On the affected node, identify the reboot cause**:
+
+.. code-block:: bash
+
+   last -x | head
+   journalctl -b -1 -p warning..alert --no-pager
+   journalctl -k -b -1 --no-pager
+
+3. **Verify node services and Omnia dependencies**:
+
+.. code-block:: bash
+
+   systemctl --failed
+   systemctl status kubelet containerd --no-pager
+
+Also verify network connectivity, time synchronization, and required NFS or PowerScale mounts.
+
+4. **After correcting the root cause, restart only the failed services**:
+
+.. code-block:: bash
+
+   systemctl restart containerd kubelet
+
+.. caution::
+   Do not repeatedly reboot or reprovision the node before collecting the previous boot logs. Waiting alone does not resolve recurring hardware, kernel, memory, network, or storage failures.
+
+**Validation**
 
 .. code-block:: bash
 
    kubectl get nodes
-   kubectl cluster-info
+   kubectl get pods -A -o wide
+
+Confirm that the node returns to Ready, its pods recover, and required storage mounts are accessible.
 
 4.4 DNS Unresponsive / CoreDNS Issues
 -------------------------------------
@@ -2610,22 +2665,436 @@ Fix underlying issue → re-run playbook.
 
 **Symptom**
 
-After a power cycle, the Omnia cluster does not recover properly. Nodes fail to rejoin the cluster or services do not start as expected.
+After the Omnia Infrastructure Manager (OIM) and cluster nodes are powered on, one or more of the following conditions may occur:
+
+- One or more compute nodes remain NotReady, Down, Unknown, or otherwise unavailable
+- Kubernetes nodes do not rejoin the cluster
+- Kubernetes pods remain in Pending, ContainerCreating, CrashLoopBackOff, or Unknown state
+- Slurm nodes remain DOWN, DRAIN, NOT_RESPONDING, or are missing from sinfo
+- Omnia services on the OIM are inactive or failed
+- OpenCHAMI, Pulp, authentication, provisioning, or related Podman containers are not running
+- Compute nodes cannot reach the OIM over the management network
+- NFS-backed directories are unavailable or commands accessing them hang
+- Cluster applications fail because shared storage, DNS, time synchronization, or control-plane services are unavailable
+
+.. note::
+   Do not immediately reprovision an affected node. First determine whether the failure is caused by an unavailable OIM service, network connectivity, shared storage, or a node-local service.
 
 **Cause**
 
-- OIM was not powered on before compute nodes
-- Compute nodes were powered on before OIM was fully operational
-- Network connectivity issues after power cycle
-- Persistent storage or NFS mount failures
+- The compute nodes were powered on before the OIM became fully operational
+- One or more services associated with omnia.target failed to start
+- An Omnia Podman container stopped or entered an unhealthy state
+- The management interface, routing, DNS, firewall, or VLAN configuration did not recover correctly
+- An NFS server or NFS mount is unavailable
+- Time synchronization has not recovered
+- Kubernetes or Slurm node services failed to start
+- A node retained stale network, mount, or runtime state after the power interruption
+- The node operating system or provisioning state was damaged by an ungraceful shutdown
 
 **Resolution**
 
-1. Follow the proper startup sequence: power on OIM first, then compute nodes
-2. Verify OIM is fully operational before powering on compute nodes
-3. Check network connectivity between OIM and compute nodes
-4. Verify NFS mounts are accessible
-5. If issues persist, reprovision affected nodes
+Perform the following checks in order. Resolve OIM-wide dependencies before troubleshooting individual compute nodes.
+
+1. **Verify that the OIM is fully operational**
+
+Log in to the OIM and verify that the operating system has completed startup:
+
+.. code-block:: bash
+
+   uptime
+   systemctl is-system-running
+   systemctl --failed
+
+If ``systemctl is-system-running`` reports starting, wait for startup jobs to complete and run the command again. If it reports degraded, examine the failed units:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+
+Do not power-cycle the compute nodes again until the required OIM services are operational.
+
+2. **Verify Omnia services on the OIM**
+
+Check the Omnia core service and the services associated with omnia.target:
+
+.. code-block:: bash
+
+   systemctl status omnia_core.service --no-pager
+   systemctl list-dependencies omnia.target
+
+The Omnia deployment documentation identifies omnia_core.service, pulp.service, omnia_auth.service, and the OpenCHAMI services under openchami.target as dependencies that may be present under omnia.target. The exact set depends on the deployed configuration.
+
+List failed Omnia and OpenCHAMI-related services:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+   systemctl status omnia.target --no-pager
+   systemctl status openchami.target --no-pager
+
+For each failed service, inspect its journal. For example:
+
+.. code-block:: bash
+
+   journalctl -u omnia_core.service -b --no-pager
+   journalctl -u pulp.service -b --no-pager
+   journalctl -u openchami.target -b --no-pager
+
+To display recent high-priority errors from the current boot:
+
+.. code-block:: bash
+
+   journalctl -b -p err..alert --no-pager
+
+If a service failed because one of its dependencies was unavailable, correct the dependency first. Then restart only the affected service:
+
+.. code-block:: bash
+
+   systemctl restart <service_name>
+   systemctl status <service_name> --no-pager
+
+Replace ``<service_name>`` with the failed unit displayed by ``systemctl --failed``. Avoid repeatedly restarting omnia.target without first reviewing the failed service logs. Repeated restarts can obscure the original failure and unnecessarily interrupt healthy services.
+
+3. **Verify Omnia Podman containers**
+
+List all containers, including containers that exited during startup:
+
+.. code-block:: bash
+
+   podman ps -a
+
+Check a specific container:
+
+.. code-block:: bash
+
+   podman ps -a --filter name=<container_name>
+   podman inspect <container_name> --format 'status={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}}'
+
+View its recent logs:
+
+.. code-block:: bash
+
+   podman logs --tail 200 <container_name>
+
+If the container is managed by a systemd unit, restart the corresponding systemd service rather than starting the container manually:
+
+.. code-block:: bash
+
+   systemctl restart <service_name>
+   systemctl status <service_name> --no-pager
+
+Use the container logs and the associated systemd journal to determine whether the failure is related to storage, port binding, certificates, database availability, or another service dependency.
+
+4. **Verify network recovery between the OIM and compute nodes**
+
+On the OIM, check the management interfaces, addresses, routes, and NetworkManager state:
+
+.. code-block:: bash
+
+   ip -brief address
+   ip route
+   nmcli device status
+   nmcli connection show --active
+
+Test connectivity to each affected compute node:
+
+.. code-block:: bash
+
+   ping -c 4 <compute_node_ip>
+   ip neigh show <compute_node_ip>
+
+If hostnames are used, verify name resolution separately:
+
+.. code-block:: bash
+
+   getent hosts <compute_node_hostname>
+   ping -c 4 <compute_node_hostname>
+
+On the affected compute node, test the return path to the OIM:
+
+.. code-block:: bash
+
+   ip -brief address
+   ip route
+   ping -c 4 <oim_ip>
+   getent hosts <oim_hostname>
+
+Interpret the results as follows:
+
+- No management IP address: Check the interface and NetworkManager connection
+- No route to the OIM: Correct the route, VLAN, or gateway configuration
+- IP address works but hostname fails: Investigate DNS or /etc/hosts
+- OIM can reach the node but the node cannot reach the OIM: Check asymmetric routing, firewall rules, bonding, or VLAN configuration
+- Duplicate or stale neighbor entry: Check for an IP address conflict before clearing the entry
+
+To inspect recent network-service errors:
+
+.. code-block:: bash
+
+   journalctl -u NetworkManager -b --no-pager
+
+5. **Verify time synchronization**
+
+Significant clock differences can prevent certificate-based services and distributed cluster components from operating correctly. Run the following command on the OIM and on an affected node:
+
+.. code-block:: bash
+
+   timedatectl status
+
+If Chrony is used:
+
+.. code-block:: bash
+
+   systemctl status chronyd --no-pager
+   chronyc tracking
+   chronyc sources -v
+
+Resolve DNS, routing, or NTP-source connectivity problems before continuing.
+
+6. **Verify NFS and shared-storage availability**
+
+On the OIM and affected nodes, list NFS filesystems:
+
+.. code-block:: bash
+
+   findmnt -t nfs,nfs4
+
+Check a specific expected mount point:
+
+.. code-block:: bash
+
+   findmnt <mount_point>
+   mountpoint <mount_point>
+   timeout 10 ls -la <mount_point>
+
+If the mount is absent, examine its configuration:
+
+.. code-block:: bash
+
+   grep -E '^[^#].+[[:space:]]nfs4?[[:space:]]' /etc/fstab
+
+Test whether the NFS server is reachable:
+
+.. code-block:: bash
+
+   ping -c 4 <nfs_server>
+
+Where supported, list exported filesystems:
+
+.. code-block:: bash
+
+   showmount -e <nfs_server>
+
+Review mount-related errors from the current boot:
+
+.. code-block:: bash
+
+   journalctl -b --no-pager | grep -Ei 'nfs|mount|rpc|stale|timed out'
+
+After confirming that the NFS server and network are available, mount only the affected filesystem:
+
+.. code-block:: bash
+
+   mount <mount_point>
+   findmnt <mount_point>
+
+.. warning::
+   Do not use ``mount -a`` as the first recovery action on a production cluster. It attempts every configured filesystem and can make diagnosis more difficult if multiple remote filesystems are unavailable. If a command against the mount point hangs, investigate the NFS server and network path before restarting workload services.
+
+7. **Check the cluster manager**
+
+Use the checks applicable to the cluster manager deployed in the environment.
+
+**Kubernetes-based cluster**
+
+From a host with the required Kubernetes configuration:
+
+.. code-block:: bash
+
+   kubectl get nodes -o wide
+   kubectl get pods -A -o wide
+   kubectl get events -A --sort-by=.metadata.creationTimestamp
+
+For an affected node:
+
+.. code-block:: bash
+
+   kubectl describe node <node_name>
+
+Look for conditions such as:
+
+- Ready=False or Ready=Unknown
+- NetworkUnavailable=True
+- DiskPressure=True
+- MemoryPressure=True
+- Expired certificates or authentication failures
+- Container runtime or CNI initialization failures
+
+On the affected node, check the node agent and container runtime used by the deployment:
+
+.. code-block:: bash
+
+   systemctl status kubelet --no-pager
+   journalctl -u kubelet -b --no-pager
+   systemctl status containerd --no-pager
+   journalctl -u containerd -b --no-pager
+
+If the services are installed but inactive, and their network and storage dependencies are healthy, restart them:
+
+.. code-block:: bash
+
+   systemctl restart containerd
+   systemctl restart kubelet
+
+Recheck the node:
+
+.. code-block:: bash
+
+   kubectl get node <node_name> -o wide
+   kubectl describe node <node_name>
+
+.. note::
+   Do not delete or reprovision the node solely because it temporarily reports NotReady.
+
+**Slurm-based cluster**
+
+On the Slurm control node, check cluster and node state:
+
+.. code-block:: bash
+
+   sinfo -R
+   sinfo -N -l
+   scontrol show nodes
+
+On an affected compute node:
+
+.. code-block:: bash
+
+   systemctl status slurmd --no-pager
+   journalctl -u slurmd -b --no-pager
+
+On the Slurm control node:
+
+.. code-block:: bash
+
+   systemctl status slurmctld --no-pager
+   journalctl -u slurmctld -b --no-pager
+
+After correcting the underlying network, storage, time, or service problem, restart only the failed Slurm daemon:
+
+.. code-block:: bash
+
+   systemctl restart slurmd
+
+If the node is healthy but remains marked DOWN, return it to service from the control node:
+
+.. code-block:: bash
+
+   scontrol update NodeName=<node_name> State=RESUME
+
+Then verify:
+
+.. code-block:: bash
+
+   sinfo -N -l
+   scontrol show node <node_name>
+
+.. note::
+   Do not resume a node until slurmd, shared storage, networking, and required accelerators or devices are healthy.
+
+8. **Reboot only the affected node, if necessary**
+
+If the OIM, networking, time synchronization, shared storage, and cluster services are healthy but a node still does not recover, perform a controlled reboot of only that node:
+
+.. code-block:: bash
+
+   systemctl reboot
+
+After the node returns, verify:
+
+.. code-block:: bash
+
+   systemctl --failed --no-pager
+   ip -brief address
+   findmnt -t nfs,nfs4
+
+Then repeat the Kubernetes or Slurm checks.
+
+9. **Reprovision only after isolating the failure to the node**
+
+Reprovision the affected node only when all the following conditions are true:
+
+- OIM services and containers are healthy
+- The node has working management-network connectivity
+- DNS and time synchronization are operating correctly
+- Required NFS or shared-storage services are available
+- Other nodes with the same configuration have recovered successfully
+- Node-local services continue to fail after a controlled reboot
+- Logs indicate damaged system state, missing configuration, failed provisioning artifacts, or an unrecoverable operating-system problem
+
+Before reprovisioning, collect diagnostic information:
+
+.. code-block:: bash
+
+   journalctl -b --no-pager > /tmp/current-boot.log
+   journalctl -b -1 --no-pager > /tmp/previous-boot.log
+   systemctl --failed --no-pager > /tmp/failed-services.log
+   ip address show > /tmp/ip-address.log
+   ip route show > /tmp/ip-route.log
+   findmnt > /tmp/findmnt.log
+
+Also save:
+
+- Output of ``podman ps -a`` and relevant container logs from the OIM
+- Output of ``kubectl describe node <node_name>`` for Kubernetes
+- Output of ``scontrol show node <node_name>`` for Slurm
+- Relevant Omnia and provisioning logs
+
+This information should be retained for root-cause analysis even if reprovisioning restores the node.
+
+**Validation**
+
+The recovery is complete only when all applicable checks succeed:
+
+.. code-block:: bash
+
+   systemctl --failed
+   podman ps
+
+For Kubernetes:
+
+.. code-block:: bash
+
+   kubectl get nodes
+   kubectl get pods -A
+
+For Slurm:
+
+.. code-block:: bash
+
+   sinfo -R
+   sinfo -N -l
+
+Additionally, verify that:
+
+- No required OIM service is failed
+- Required Podman containers are running
+- All expected nodes are reachable
+- Shared filesystems are mounted and responsive
+- Cluster nodes have returned to their expected state
+- A representative workload can be submitted and completed successfully
+
+**Prevention**
+
+For subsequent planned startup operations:
+
+1. Power on the OIM first
+2. Wait until the operating system, omnia.target dependencies, required containers, networking, and shared storage are healthy
+3. Power on the control or service nodes, if separate
+4. Verify the cluster control plane
+5. Power on compute nodes in manageable batches
+6. Validate node registration and service health before starting production workloads
 
 10.3 InfiniBand Issues
 ----------------------
