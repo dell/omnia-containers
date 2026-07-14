@@ -108,7 +108,7 @@
   .fork-bar { position: absolute; top: 16px; left: calc(50% - 135px); width: 270px; height: 2px; background: var(--arrow); }
   .fork-bar.fail-bar { background: var(--arrow-fail); }
   .fork { display: flex; gap: 40px; justify-content: center; width: 100%; }
-  .fork-col { width: 230px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 16px; }
+  .fork-col { width: 230px; display: flex; flex-direction: column; align-items: center; position: relative; padding-top: 16px; min-height: 120px; }
   .fork-col::before {
     content: ""; position: absolute; top: 0; left: 50%; width: 2px; height: 16px;
     background: var(--arrow); transform: translateX(-50%);
@@ -132,10 +132,14 @@
   .fork-col.fail-col .col-stem { background: var(--arrow-fail); }
   .arrow-continue { 
     width: 2px; 
-    height: 80px; 
+    height: 100%; 
     background: var(--arrow); 
-    margin: 8px 0;
-    position: relative;
+    margin: 0;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    min-height: 120px;
   }
   .arrow-continue::after {
     content: "";
@@ -273,7 +277,6 @@
               <div class="branch-tag">No</div>
               <div class="arrow-continue"></div>
               <div class="col-spacer"></div>
-              <div class="col-stem"></div>
             </div>
             <div class="fork-col">
               <div class="branch-tag">Yes</div>
@@ -281,7 +284,6 @@
               <div class="arrow"></div>
               <div class="node neutral">Run <code>build_image_aarch64.yml</code></div>
               <div class="col-spacer"></div>
-              <div class="col-stem"></div>
             </div>
           </div>
         </div>
@@ -340,13 +342,11 @@
               <div class="branch-tag">No</div>
               <div class="arrow-continue"></div>
               <div class="col-spacer"></div>
-              <div class="col-stem"></div>
             </div>
             <div class="fork-col">
               <div class="branch-tag">Yes</div>
               <div class="node neutral">Install RHEL10 diskfull OS on aarch64 node</div>
               <div class="col-spacer"></div>
-              <div class="col-stem"></div>
             </div>
           </div>
         </div>
