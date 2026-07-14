@@ -2,7 +2,7 @@
 
 Issues related to BuildStreaM pipeline execution, GitLab integration, catalog validation, and image deployment.
 
-## Health Check stage failing
+## Health Check Stage Failing
 
 ???+ note "Symptom"
 
@@ -32,7 +32,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
         journalctl -u omnia_postgres --no-pager
         ```
 
-## API Registration stage failing
+## API Registration Stage Failing
 
 ???+ note "Symptom"
 
@@ -55,7 +55,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     2. For other non-successful API responses, on the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
 
-## Token Generation stage failing
+## Token Generation Stage Failing
 
 ???+ note "Symptom"
 
@@ -70,7 +70,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     On the OIM, check the authentication logs at `/<nfs-dir>/omnia/log/build_stream/auth.log` for detailed error information.
 
-## Parse Catalog stage failing
+## Parse Catalog Stage Failing
 
 ???+ note "Symptom"
 
@@ -87,7 +87,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
         - [https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog](https://github.com/dell/omnia/tree/pub/build_stream/examples/catalog)
     - If the issue persists, on the OIM, check the job-specific logs at `/<nfs-dir>/omnia/log/build_stream/<job-id>/<jobid>.log`
 
-## Create Local Repo stage failing
+## Create Local Repo Stage Failing
 
 ???+ note "Symptom"
 
@@ -120,7 +120,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     3. After fixing the configuration issues, re-run the pipeline.
 
-## Build Images stage failing
+## Build Images Stage Failing
 
 ???+ note "Symptom"
 
@@ -139,7 +139,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     3. After fixing catalog issues, re-run the pipeline.
 
-## Deploy Images stage failing
+## Deploy Images Stage Failing
 
 ???+ note "Symptom"
 
@@ -158,7 +158,7 @@ Issues related to BuildStreaM pipeline execution, GitLab integration, catalog va
 
     3. After making necessary modifications to the PXE mapping, re-run the pipeline manually.
 
-## Retry button not displayed
+## Retry Button Not Displayed
 
 ???+ note "Symptom"
 

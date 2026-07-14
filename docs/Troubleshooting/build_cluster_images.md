@@ -5,7 +5,7 @@
 Issues related to building diskless cluster node images, S3/MinIO image
 storage, and architecture-specific build failures.
  
-## S3 upload fails
+## S3 Upload Fails
  
  
 ???+ note "Symptom"
@@ -45,7 +45,7 @@ storage, and architecture-specific build failures.
  
     4. After resolving the issue, re-run the build image playbook.
  
-## Kernel image not found in S3
+## Kernel Image Not Found in S3
  
  
 ???+ note "Symptom"
@@ -92,7 +92,7 @@ storage, and architecture-specific build failures.
     5. After the build completes, verify the new kernel image in S3 using
        `s3cmd ls -Hr s3://boot-images` and then re-run `provision.yml`.
  
-## Build image fails for aarch64 — missing inventory
+## Build Image Fails for aarch64 — Missing Inventory
  
  
 ???+ note "Symptom"
@@ -131,7 +131,7 @@ storage, and architecture-specific build failures.
         The `[admin_aarch64]` group must have exactly one host. NFS must be
         configured on the OIM for aarch64 image building.
  
-## Repository sync issues
+## Repository Sync Issues
  
  
 ???+ note "Symptom"
@@ -185,7 +185,7 @@ storage, and architecture-specific build failures.
     5. If no kernel packages are found, correct the repository URLs in
        `local_repo_config.yml` and re-run `local_repo.yml`.
  
-## Images not created for all functional groups
+## Images Not Created for All Functional Groups
  
  
 ???+ note "Symptom"
